@@ -36329,6 +36329,12 @@ int MRIScomputeBorderValues(
 
 /*!
   \fn int MRIScomputeBorderValues_new()
+  \brief Computes the distance along the normal to the point of the maximum
+  gradient of the intensity as well as the intensity at this point. The
+  intensity will be used as a target intensity when placing the surface.
+  There are lots of rules employed to make sure that the point is not
+  in a crazy place (mostly that the value must be between border_low
+  and border_hi). 
   \param mris surface
     v->{x,y,z} is the current vertex coordinate
     v->{nx,ny,nz} is the normal to the current vertex
@@ -36339,7 +36345,7 @@ int MRIScomputeBorderValues(
   \param border_hi eg,  115 (max_border_white)
   \param border_low eg,  77 (min_border_white)
   \param outside_low eg, 68 (min_gray_at_white_border)
-  \param outside_hi eg, 115 (outside_hi (often same as border_hi))
+  \param outside_hi eg, 115 (outside_hi (often same as border_hi), used?)
   \param sigma sets the range of smoothing to [sigma 10*sigma]
   \param max_thickness - (eg, 5) not really a thickness but a
     threshold in mm that limits how far away a target point can be
@@ -36355,7 +36361,7 @@ int MRIScomputeBorderValues(
   It does not appear that the annot is used in this function or its children
 
   The outputs are set in each vertex structure:
-      v->val2 = current_sigma; // smoothing level used to find the target
+      v->val2 = current_sigma; // smoothing level along gradient used to find the target
       v->val  = max_mag_val; // target intensity
       v->d = max_mag_dist;   // dist to target intensity along normal
       v->mean = max_mag;     // derive at target intensity
@@ -36484,6 +36490,7 @@ static int MRIScomputeBorderValues_new(
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
+	// Note clear what orig_dist is computing
         double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
         double val;
 
@@ -36509,7 +36516,7 @@ static int MRIScomputeBorderValues_new(
         
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
-          //Out side of intensity range, so break
+          // More intense than WM near the edge
           break;
         }
         if (mri_mask) {
@@ -36564,7 +36571,7 @@ static int MRIScomputeBorderValues_new(
             break; // break from distance loop
         } // end loop over distance
         inward_dist = dist;
-      } // end diag verbose
+      } // end if(BorderValsHiRes)
 
       // search outwards
       for (dist = 0; dist < max_thickness; dist += step_size) {
@@ -36589,7 +36596,7 @@ static int MRIScomputeBorderValues_new(
 
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val < border_low)
-          break;
+          break; // Less intense than GM near the edge
         if (mri_mask) {
           MRIsampleVolume(mri_mask, xw, yw, zw, &val);
           if (val > thresh) {
@@ -36646,6 +36653,8 @@ static int MRIScomputeBorderValues_new(
     int   numberOfSamples = 0;
     float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
+      // There must be a value in this distance range where 
+      // val < border_hi && val >= border_low) {
 
       // Get an intensity at dist outward along the normal
       double val;
