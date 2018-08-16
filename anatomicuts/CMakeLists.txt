@@ -41,7 +41,7 @@ if(ITK_FOUND AND VTK_FOUND)
   )
   target_link_libraries(trk_tools.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS trk_tools.bin DESTINATION bin)
-  install(PROGRAMS source_vtk_wrapper DESTINATION bin RENAME trk_tools)
+  install(PROGRAMS trk_tools_wrapper DESTINATION bin RENAME trk_tools)
 
   
 endif()
