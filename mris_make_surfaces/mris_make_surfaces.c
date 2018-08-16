@@ -634,17 +634,19 @@ int main(int argc, char *argv[])
     MRIfree(&mri_wm) ; mri_wm = mri_tmp ;
   }
   //////////////////////////////////////////
-//  setMRIforSurface(mri_wm);
+  //  setMRIforSurface(mri_wm);
 
   MRIsmoothBrightWM(mri_T1, mri_wm) ;
   if (fill_interior == 0)
     mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
   else
     mri_labeled = MRIclone(mri_T1, NULL) ;
+
   if (mri_T1_white)
   {
     MRIsmoothBrightWM(mri_T1_white, mri_wm) ;
   }
+
   if (overlay)
   {
     fprintf(stdout, "overlaying editing into T1 volume...\n") ;
@@ -654,7 +656,6 @@ int main(int argc, char *argv[])
     sprintf(fname, "%s/%s/mri/T1_overlay", sdir, sname) ;
     MRIwrite(mri_T1, fname) ;
   }
-
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   printf("reading original surface position from %s...\n", fname) ;
@@ -672,63 +673,60 @@ int main(int argc, char *argv[])
     mris->vg.ysize = mri_T1->ysize ;
     mris->vg.zsize = mri_T1->zsize ;
   }
+
   if (!FEQUAL(spring_scale, 1.0))
     printf("spring scale = %2.2f\n", spring_scale) ;
+
   MRISaddCommandLine(mris, cmdline) ;
-  if (mris->ct == NULL && ctab)  
+
+  if(mris->ct == NULL && ctab)  
     mris->ct = ctab ;  // add user-specified color table to structure
 
   MRISremoveIntersections(mris) ;
   
   if (pial_nbrs > 2)
-  {
     MRISsetNeighborhoodSize(mris, pial_nbrs) ;
-  }
   
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
     float white_mode, gray_mode ;
 
-    mri_tmp = MRIbinarize
-              (mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
+    mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     fprintf(stdout, "computing class statistics...\n");
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
+    printf("white_mean = %g +/- %g, gray_mean = %g +/- %g\n",white_mean, white_std, gray_mean,gray_std) ;
+
     if (use_mode)
     {
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
-//      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      //MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
-      
       white_mean = white_mode ;
       gray_mean = gray_mode ;
+      printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
     }
+    printf("std_scale = %g\n",std_scale);
 
     white_std /= std_scale;
     gray_std /= std_scale;
 
-    if (!min_gray_at_white_border_set)
-    {
+    //these may be set on the cmd
+    if(!min_gray_at_white_border_set)
       min_gray_at_white_border = gray_mean-gray_std ;
-    }
-    if (!max_border_white_set)
-    {
+    if(!max_border_white_set)
       max_border_white = white_mean+white_std ;
-    }
-    if (!max_csf_set)
-    {
+    if(!max_csf_set)
       max_csf = gray_mean - MAX(.5, (variablesigma-1.0))*gray_std ;
-    }
     if (!min_border_white_set)
-    {
       min_border_white = gray_mean ;
-    }
 
     // apply some sanity checks
-#define MAX_SCALE_DOWN .2
+    double MAX_SCALE_DOWN = .2;
+    printf("Applying sanity checks, MAX_SCALE_DOWN = %g\n",MAX_SCALE_DOWN);
 
     if (min_gray_at_white_border < MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER)
       min_gray_at_white_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER) ;
@@ -739,42 +737,38 @@ int main(int argc, char *argv[])
     if (max_csf < MAX_SCALE_DOWN*MAX_CSF)
       max_csf = MAX_SCALE_DOWN*MAX_CSF ;
 
-    fprintf(stdout, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
+    printf("setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
             min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
-    fprintf(stdout, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
+    printf("setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
             max_border_white, MAX_BORDER_WHITE) ;
-    fprintf(stdout, "setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
+    printf("setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
             min_border_white, MIN_BORDER_WHITE) ;
-    fprintf(stdout, "setting MAX_CSF to %2.1f (was %d)\n",
+    printf("setting MAX_CSF to %2.1f (was %d)\n",
             max_csf, MAX_CSF) ;
 
+    //these may be set on the cmd
     if (!max_gray_set)
-    {
       max_gray = white_mean-white_std ;
-    }
-    if (!max_gray_at_csf_border_set)
-    {
-      //      max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+    if (!max_gray_at_csf_border_set){
+      //max_gray_at_csf_border = gray_mean-0.5*gray_std ;
       max_gray_at_csf_border = gray_mean-1.0*gray_std ;   // changed to push pial surfaces further out BRF 12/10/2015
     }
     if (!min_gray_at_csf_border_set)
-    {
       min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
-    }
+
     if (max_gray < MAX_SCALE_DOWN*MAX_GRAY)
       max_gray = nint(MAX_SCALE_DOWN*MAX_GRAY) ;
     if (max_gray_at_csf_border < MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER)
       max_gray_at_csf_border = nint(MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER) ;
     if (min_gray_at_csf_border < MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER)
       min_gray_at_csf_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER) ;
-    fprintf(stdout, "setting MAX_GRAY to %2.1f (was %d)\n",
-            max_gray, MAX_GRAY) ;
-    fprintf(stdout, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
-            max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
-    fprintf(stdout, "setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
-            min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
+
+    printf("setting MAX_GRAY to %2.1f (was %d)\n",max_gray, MAX_GRAY) ;
+    printf("setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
+    printf("setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
     MRIfree(&mri_tmp) ;
   }
+
   if (dura_echo_name == NULL)
   {
     MRIfree(&mri_wm) ;
@@ -953,6 +947,7 @@ int main(int argc, char *argv[])
     else if (flair_or_T2_name == NULL){ // otherwise already done
       // This is where most of the recon-all commands end up when placing white
 
+      //outside_hi = max_border_white when max_gray_scale=0 (default)
       double outside_hi = (max_border_white + max_gray_scale*max_gray) / (max_gray_scale+1.0) ;
 
       if (!FZERO(max_gray_scale))
@@ -3474,7 +3469,10 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
 
   If there is an annotation, it will only make a difference in two
   places: (1) for entorhinal (where vertices are never marked/ripped),
-  and (2) in some areas of "unknown" cortex (see above).
+  and (2) in some areas of "unknown" cortex (see above). #1 probably
+  does not have much of an impact because because there is usually
+  some WM between entorhinal and hippo. #2 probably removes a few
+  vertices (and causes the putamen bug). 
 
   v->marked2 - affects MRIScortexLabel(), forces labeling as cortex. Also
   influences this program the second time around in that vertices with
@@ -3657,7 +3655,7 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
 	}
 
 	// these are labels where the intensities aren't useful, so just freeze surface there
-	// hidden parameter d<1mm
+	// hidden parameter d<1mm. v->marked2 affects the cortical label
 	if (d < 1 && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	  v->marked = v->marked2 = 1 ;
 
@@ -3706,8 +3704,13 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
       MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
-      if (d < 1.1 && (label == wm_label || label == gm_label))
-        break ;  // found ispilateral GM or WM next to surface, 1.1 hidden parameter
+ 
+      // Found ispilateral GM or WM next to surface (1.1mm hidden
+      // parameter), so don't go any deeper.  This is probably why the
+      // surface near entorhinal is not affected (or not much) even
+      // when no annotation is passed.
+      if(d < 1.1 && (label == wm_label || label == gm_label))
+        break ;  
 
       if ((which == GRAY_CSF) && (d < 1) && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	v->val2 = 1 ;
@@ -3874,7 +3877,8 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
       pct_unknown /= (double)labels[n]->n_points ;
 
       // If this fraction is < 0.6 (hidden parameter), unmark all vertices in the cluster
-      // Won't this undo the marks near putamen or lesion? Answer: yes, this is a bug.
+      // Won't this undo the marks near putamen or lesion? Answer: yes, this is a bug
+      // that makes the surface worse when the annotation is loaded.
       if (pct_unknown < .6) {
         printf("deleting segment %d with %d points - only %2.2f%% unknown, v=%d\n",
                n,labels[n]->n_points,100*pct_unknown, labels[n]->lv[0].vno) ;
