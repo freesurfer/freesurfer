@@ -39,17 +39,17 @@ int main(int argc, const char **argv)
   std::string surfpath = parser.retrieve<std::string>("surf");
   std::cout << "Reading in surface " << surfpath << std::endl;
   MRIS *surf = MRISread(surfpath.c_str());
-  if (!surf) errExit(1) << "could not read surface";
+  if (!surf) fs_fatal(1) << "could not read surface";
 
   // load defect overlay
   std::string defectpath = parser.retrieve<std::string>("defects");
   std::cout << "Reading in defect segmentation " << defectpath << std::endl;
   MRI *overlay = MRIread(defectpath.c_str());
-  if (!overlay) errExit(1) << "could not read defect segmentation";
+  if (!overlay) fs_fatal(1) << "could not read defect segmentation";
 
   if (overlay->width != surf->nvertices) {
-    errExit(1) << "error: defect overlay (" << overlay->width << " points) "
-               << "does not match surface (" << surf->nvertices << " vertices)";
+    fs_fatal(1) << "error: defect overlay (" << overlay->width << " points) "
+                << "does not match surface (" << surf->nvertices << " vertices)";
   }
 
   // ---- optionally mask the defect segmentation to a label ----
@@ -61,7 +61,7 @@ int main(int argc, const char **argv)
     std::string labelpath = parser.retrieve<std::string>("label");
     std::cout << "Reading in label " << labelpath << std::endl;
     LABEL *label = LabelRead(NULL, labelpath.c_str());
-    if (!label) errExit(1) << "could not read label";
+    if (!label) fs_fatal(1) << "could not read label";
     // set values outside of the label to 0
     MRI *tmp = MRISlabel2Mask(surf, label, NULL);
     for (int v = 0 ; v < surf->nvertices ; v++) {
@@ -120,10 +120,11 @@ int main(int argc, const char **argv)
 
   std::string usectrl = parser.retrieve<std::string>("control");
 
-  if(usectrl.size() == 0)
+  if (usectrl.size() == 0) {
     centroids.save(parser.retrieve<std::string>("out"));
-  else
+  } else {
     centroids.save_as_ctrlpoint(parser.retrieve<std::string>("out"));
+  }
 
   // ---- cleanup ----
 

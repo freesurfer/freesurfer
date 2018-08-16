@@ -20,7 +20,6 @@ if(ITK_FOUND AND VTK_FOUND)
   add_executable(AnatomiCuts_correspondences.bin
     AnatomiCuts_correspondences.cxx ../freeview/track_io/TrackIO.cpp
   )
-# ../utils/colortab.c
   target_link_libraries(AnatomiCuts_correspondences.bin ${ITK_LIBRARIES} ${VTK_LIBRARIES} utils)
   install(TARGETS AnatomiCuts_correspondences.bin DESTINATION bin)
   install(PROGRAMS AnatomiCuts_correspondences_wrapper DESTINATION bin RENAME AnatomiCuts_correspondences)

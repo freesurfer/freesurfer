@@ -174,9 +174,7 @@ static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
-
-static char *orig_white = NULL ;
-static char *orig_pial = NULL ;
+char *save_white_res_fname = NULL;
 
 char *Progname ;
 
@@ -187,7 +185,6 @@ static int graymid = 0 ;
 static int curvature_avgs = 10 ;
 static int create = 1 ;
 static int smoothwm = 0 ;
-static int white_only = 0 ;
 static int overlay = 0 ;
 static int inverted_contrast = 0 ;
 static char *filled_name = "filled" ;
@@ -224,12 +221,33 @@ static int vavgs = 5 ;
 static int nwhite = 100 /* 25 */ /*5*/ ;
 static int ngray = 100  /* 30*/ /*45*/ ;
 
+// orig_name is the surface that will be read first. It will be
+// smoothed. If orig_white is specified, the smoothed vertex locations
+// will be overwritten by the orig_white surface (which will not be
+// smoothed).
+static char *orig_name = ORIG_NAME ; // "orig"
+
+// white_only=1, then only place the white, do not place pial
+static int white_only = 0 ;
+
+// If nowhite=1, do not place white, forces reading previously placed
+// gray/white surface.  This will be the value of orig_white or
+// "white" if unspecified. Could have been called pialonly instead.
 static int nowhite = 0 ;
+
+// orig_white, if specified, will be used as the initial surface 
+// to place the white surface. Whatever surface is specified, it
+// will not be smoothed prior to placing the white surface. 
+static char *orig_white = NULL ;
+
+// orig_pial, if specified, will be used as the initial surface 
+// to place the white surface
+static char *orig_pial = NULL ;
+
 static int flairwhite = 0 ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
-static char *orig_name = ORIG_NAME ; // "orig"
 static char *suffix = "" ;
 static char *output_suffix = "" ;
 static char *xform_fname = NULL ;
@@ -314,6 +332,9 @@ main(int argc, char *argv[])
   int memusage[5];
   char *cmdline2, cwd[2000];
   char cmdline[CMD_LINE_LEN] ;
+  MRIS *mristarget = NULL;
+  int vno;
+  VERTEX *v;
 
   FSinit() ;
   make_cmd_version_string
@@ -636,11 +657,11 @@ main(int argc, char *argv[])
 
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
-  fprintf(stdout, "reading original surface position from %s...\n", fname) ;
+  printf("reading original surface position from %s...\n", fname) ;
+  if(orig_white) printf("  .. but with overwrite the positions with %s...\n",orig_white) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
 
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
     spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
@@ -770,24 +791,27 @@ main(int argc, char *argv[])
   if (smooth && !nowhite && !dura_echo_name)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
+    if(orig_white) printf("  .. but with overwrite the positions with %s...\n",orig_white) ;
+    /* The effect of smoothing the vertices here is to pull the
+       surface away from the boundary toward the center of the
+       hemisphere.  For the orig, it has a bigger effect at the crowns
+       because that is where the surface bends the sharpest. The
+       surface placement then must work to undo this. When 5
+       iterations are used (smooth=5), the smoothed surface moves
+       quite a bit.  This does not happen when -orig_white is
+       specified. Basically, the smoothing is to handle the orig
+       surface which may be jagged. */
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
   if (nbrs > 1)
-  {
     MRISsetNeighborhoodSize(mris, nbrs) ;
-  }
 
-  sprintf(parms.base_name, "%s%s%s",
-          white_matter_name, output_suffix, suffix) ;
-  if (orig_white)
-  {
-    printf("reading initial white vertex positions from %s...\n",
-           orig_white) ;
+  sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
+  if(orig_white){
+    printf("reading initial white vertex positions from %s...\n",orig_white) ;
     if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
-    {
       ErrorExit(Gerror, "reading of orig white failed...");
-    }
     MRISremoveIntersections(mris) ;
   }
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
@@ -795,39 +819,29 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
 
-  if (add)
-  {
+  if (add)  {
     fprintf(stdout, "adding vertices to initial tessellation...\n") ;
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
       while (MRISdivideLongEdges(mris, max_len) > 0) {}
   }
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
-  if (aparc_name)
-  {
+  if (aparc_name) {
+    printf("Reading in aparc %s\n",aparc_name);
     if (MRISreadAnnotation(mris, aparc_name) != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",
-                aparc_name) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",aparc_name) ;
   }
 
-  if (!nowhite)
-  {
-    fprintf(stdout,
-            "repositioning cortical surface to gray/white boundary\n");
-
+  if(!nowhite)  {
+    printf("repositioning cortical surface to gray/white boundary\n");
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, 0) ;
-    if (mri_T1_white)
-    {
-      MRImask
-      (mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_LABEL, 0) ;
-      MRImask
-      (mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
+    if (mri_T1_white) {
+      MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_LABEL, 0) ;
+      MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
       MRIwrite(mri_T1, "white_masked.mgz") ;
-    }
   }
 
   if (mri_T1_white)  {
@@ -979,12 +993,9 @@ main(int argc, char *argv[])
 	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ; // update estimate of white
 	else   // first time - read it in
 	{
-	  printf("reading initial white vertex positions from %s...\n",
-		 orig_white) ;
+	  printf("reading initial white vertex positions from %s...\n",orig_white) ;
 	  if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
-	  {
 	    ErrorExit(Gerror, "reading of orig white failed...");
-	  }
 	  MRISremoveIntersections(mris) ;
 	}
       }
@@ -1024,10 +1035,8 @@ main(int argc, char *argv[])
       if (Gdiag_no > 0){
         VERTEX *v ;
         v = &mris->vertices[Gdiag_no] ;
-        fprintf
-        (stdout,
-         "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
-         Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
+        printf("v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+	       Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
       }
     }
 
@@ -1045,6 +1054,21 @@ main(int argc, char *argv[])
     if (write_vals) {
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname);
+    }
+
+    // Create a surface of the target surface at the point where the
+    // maximum gradient should be. This will not necessarily be a topo
+    // correct surface, but it can be used for evaluation.  Have to
+    // create this surface here because v->d gets set to 0 after pos surf
+    if(mristarget != NULL) MRISfree(&mristarget);
+    mristarget = MRISclone(mris);
+    for(vno=0; vno < mris->nvertices; vno++){
+      v = &(mristarget->vertices[vno]);
+      v->d = mris->vertices[vno].d; // clone does not copy this
+      v->val = mris->vertices[vno].val; // clone does not copy this
+      v->x += (v->d*v->nx); // d is the distance to the max gradient
+      v->y += (v->d*v->ny);
+      v->z += (v->d*v->nz);
     }
 
     // Everything up to now has been leading up to this. This is where
@@ -1066,6 +1090,7 @@ main(int argc, char *argv[])
     printf("Positioning Surface: tspring = %g, nspring = %g, spring = %g, niters = %d ",
 	   parms.l_tspring,parms.l_nspring,parms.l_spring,parms.niterations); 
     printf("l_repulse = %g, checktol = %d\n",parms.l_repulse,parms.check_tol);fflush(stdout);
+
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 
     old_parms.start_t = parms.start_t ;
@@ -1079,7 +1104,7 @@ main(int argc, char *argv[])
     if (!n_averages)
       break ; 
 
-  } // end major loop placing the white surface
+  } // end major loop placing the white surface using
   // ==========================================================================
 
   if(!nowhite) {
@@ -1090,15 +1115,12 @@ main(int argc, char *argv[])
   if(nowhite){ /* read in previously generated white matter surface */
     if (orig_white)    {
       sprintf(fname, "%s%s", orig_white, suffix) ;
-      printf("reading white vertex positions from %s...\n",
-             orig_white) ;
+      printf("reading white vertex positions from %s...\n",orig_white) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
-        ErrorExit(Gerror, "%s: could not read white matter surface.",
-                  Progname) ;
+        ErrorExit(Gerror, "%s: could not read white matter surface.",Progname) ;
       MRISremoveIntersections(mris) ;
     }
-    else // read default white (something needs to be
-      // read if nowhite was created)
+    else // read default white (something needs to be read if nowhite was created)
     {
       // if you don't like the default, give an error message here and exit,
       // to force passing the -orig_white white
@@ -1108,7 +1130,7 @@ main(int argc, char *argv[])
                   Progname) ;
     }
     MRIScomputeMetricProperties(mris) ;
-  }
+  } // end nowhite (read in previously generated white matter surface)
 
 
   if (mri_aseg) //update aseg using either generated or orig_white
@@ -1126,10 +1148,33 @@ main(int argc, char *argv[])
   // -nowhite not creating pial surfaces that match those created
   // w/o the -nowhite option.
   if (!nowhite && strcmp(white_matter_name,"NOWRITE"))  {
+    // white_matter_name != "NOWRITE"
+
+    if(save_white_res_fname != NULL){
+      RmsValErrorRecord = 1;
+      mrisRmsValError(mris, mri_T1);
+      RmsValErrorRecord = 0;
+      MRI *ValResid;
+      ValResid = MRIcopyMRIS(NULL, mristarget, 3, "d"); // target distance
+      MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
+      MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
+      MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
+      sprintf(fname,"%s/%s/surf/%s.%s%s%s.mgz",sdir, sname,hemi,save_white_res_fname,output_suffix,suffix);
+      printf("Saving white value residual to %s\n",fname);
+      MRIwrite(ValResid,fname);
+      MRIfree(&ValResid);
+      sprintf(fname,"%s/%s/surf/%s.white.maxgrad%s%s",sdir, sname,hemi,output_suffix,suffix);
+      printf("Writing target surface to %s\n",fname);
+      MRISwrite(mristarget,fname);
+    }
+
     MRISremoveIntersections(mris) ;
+    if(smoothwm > 0){
+      printf("Averaging white surface by %d iterations\n",smoothwm);
+      MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
+    }
     sprintf(fname,"%s/%s/surf/%s.%s%s%s",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
-    fprintf(stdout, "writing white matter surface to %s...\n", fname) ;
-    MRISaverageVertexPositions(mris, smoothwm) ;
+    fprintf(stdout, "writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
     if(mri_aseg && label_cortex) {
@@ -1191,6 +1236,7 @@ main(int argc, char *argv[])
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
+    MRISfree(&mristarget);
 
     if (create)   /* write out curvature and area files */
     {
@@ -1220,15 +1266,16 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
+  //////////////////////////////////////////////////////////////////
+  // below will place the pial surface
+  //////////////////////////////////////////////////////////////////
+
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
 
   MRISunrip(mris) ;
 
   if (mri_aseg) //update aseg using either generated or orig_white
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
-  //////////////////////////////////////////////////////////////////
-  // pial surface
-  //////////////////////////////////////////////////////////////////
 
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
@@ -1241,6 +1288,7 @@ main(int argc, char *argv[])
   if (smooth && !nowhite)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
+    if(orig_pial)  printf(" .. but this will be overwritten using vertex positions from %s...\n", orig_pial) ;
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
@@ -1262,30 +1310,26 @@ main(int argc, char *argv[])
     MRIfree(&mri_interior) ;
   }
 
-  if (orig_pial)
-  {
+  if (orig_pial)  {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
 
-    if (longitudinal)
-    {
+    if (longitudinal)    {
       //save final white location into TMP_VERTICES (v->tx, v->ty, v->tz)
       MRISsaveVertexPositions(mris, TMP_VERTICES);
     }
 
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
-    {
       ErrorExit(Gerror, "reading orig pial positions failed") ;
-    }
-    if (smooth_pial)
-    {
+
+    if(smooth_pial){
       printf("smoothing pial surface for %d iterations before deformation\n", smooth_pial) ;
       MRISaverageVertexPositions(mris, smooth_pial) ;
     }
+
     MRISremoveIntersections(mris) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
 
-    if (longitudinal)
-    {
+    if (longitudinal) {
       //reset starting point to be between final white and orig pial
       int vno;
       VERTEX *v;
@@ -2748,6 +2792,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "nowhite"))
   {
+    // Do not place the white surface. Only place the pial surface. Read in
+    // ?h.white or whatever is specified with -orig_white
     nowhite = 1 ;
     fprintf(stderr, "reading previously compute gray/white surface\n") ;
   }
@@ -2865,6 +2911,11 @@ get_option(int argc, char *argv[])
       nargs = 3 ;
       printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "wm-res")){
+    save_white_res_fname = argv[2];
+    printf("Saving white surface residual to %s\n",save_white_res_fname);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "openmp")) 
   {
     char str[STRLEN] ;
@@ -2950,7 +3001,7 @@ get_option(int argc, char *argv[])
     case 'W':
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;
-      fprintf(stderr, "write iterations = %d\n", parms.write_iterations) ;
+      printf("write iterations = %d\n", parms.write_iterations) ;
       Gdiag |= DIAG_WRITE ;
       break ;
     case 'N':

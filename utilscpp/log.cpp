@@ -6,31 +6,30 @@
 #include "log.hpp"
 
 
-namespace Log
+namespace fs
 {
-  Logger::Logger(Status status) : msg_status(status), exitout(false) {}
-  Logger::Logger(Status status, int exitcode) : msg_status(status), retcode(exitcode), exitout(true) {}
+  Logger::Logger(MessageStatus status) : msg_status(status), exitout(false) {}
+  Logger::Logger(MessageStatus status, int exitcode) : msg_status(status), retcode(exitcode), exitout(true) {}
 
   // destructor calls the print routine
   Logger::~Logger()
   {
-    log(ss.str());
+    print(ss.str());
     if (exitout) exit(retcode);
   }
 
   /// prints the actual prefaced message
-  void Logger::log(std::string content)
+  void Logger::print(std::string content)
   {
     switch(msg_status) {
-      case WARNING  : fprintf(stderr, "%swarning:%s %s\n", yellow(), reset(), content.c_str()); break;
-      case ARGERROR : fprintf(stderr, "%sargument error:%s %s\n", red(), reset(), content.c_str()); break;
-      case ERROR    : fprintf(stderr, "%serror:%s %s\n", red(), reset(), content.c_str()); break;
+      case Warning  : fprintf(stderr, "%swarning:%s %s\n", term::yellow(), term::reset(), content.c_str()); break;
+      case Error    : fprintf(stderr, "%serror:%s %s\n", term::red(), term::reset(), content.c_str()); break;
       default       : fprintf(stdout, "%s\n", content.c_str()); break;
     }
   }
 
   /// checks to make sure the output is a tty that accepts colors
-  static bool term_allows_color()
+  static bool termAllowsColor()
   {
     if (!isatty(fileno(stderr))) return false;
     if (const char* term = getenv("TERM")) {
@@ -48,23 +47,26 @@ namespace Log
     else return false;
   }
 
-  // colors
-  const char* black()      { return term_allows_color() ? "\e[30m" : ""; }
-  const char* red()        { return term_allows_color() ? "\e[31m" : ""; }
-  const char* green()      { return term_allows_color() ? "\e[32m" : ""; }
-  const char* yellow()     { return term_allows_color() ? "\e[33m" : ""; }
-  const char* blue()       { return term_allows_color() ? "\e[34m" : ""; }
-  const char* purple()     { return term_allows_color() ? "\e[35m" : ""; }
-  const char* cyan()       { return term_allows_color() ? "\e[36m" : ""; }
-  const char* light_gray() { return term_allows_color() ? "\e[37m" : ""; }
-  const char* white()      { return term_allows_color() ? "\e[37m" : ""; }
-  const char* light_red()  { return term_allows_color() ? "\e[91m" : ""; }
-  const char* dim()        { return term_allows_color() ? "\e[2m"  : ""; }
+  namespace term
+  {
+    // colors
+    const char* black()      { return termAllowsColor() ? "\e[30m" : ""; }
+    const char* red()        { return termAllowsColor() ? "\e[31m" : ""; }
+    const char* green()      { return termAllowsColor() ? "\e[32m" : ""; }
+    const char* yellow()     { return termAllowsColor() ? "\e[33m" : ""; }
+    const char* blue()       { return termAllowsColor() ? "\e[34m" : ""; }
+    const char* purple()     { return termAllowsColor() ? "\e[35m" : ""; }
+    const char* cyan()       { return termAllowsColor() ? "\e[36m" : ""; }
+    const char* light_gray() { return termAllowsColor() ? "\e[37m" : ""; }
+    const char* white()      { return termAllowsColor() ? "\e[37m" : ""; }
+    const char* light_red()  { return termAllowsColor() ? "\e[91m" : ""; }
+    const char* dim()        { return termAllowsColor() ? "\e[2m"  : ""; }
 
-  // formating
-  const char* bold()       { return term_allows_color() ? "\e[1m" : ""; }
-  const char* underline()  { return term_allows_color() ? "\e[4m" : ""; }
+    // formating
+    const char* bold()       { return termAllowsColor() ? "\e[1m" : ""; }
+    const char* underline()  { return termAllowsColor() ? "\e[4m" : ""; }
 
-  // reset
-  const char* reset()      { return term_allows_color() ? "\e[0m" : ""; }
+    // reset
+    const char* reset()      { return termAllowsColor() ? "\e[0m" : ""; }
+  }
 }
