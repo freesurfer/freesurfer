@@ -20067,12 +20067,9 @@ static int mrisClearExtraGradient(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+/*! ----------------------------------------------------
+  \fn int mrisClearMomentum(MRI_SURFACE *mris)
+  \brief sets v->od{xyz}=0 for unripped vertices.
   ------------------------------------------------------*/
 static int mrisClearMomentum(MRI_SURFACE *mris)
 {
@@ -25760,6 +25757,7 @@ static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmoot
     REPULSE_K - scaling term
     REPULSE_E - sets minimum distance
     4 - scaling term
+  Does not appear to use annotation
 */
 static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
 {
@@ -31658,12 +31656,9 @@ static int mrisTrackTotalDistance(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+/*! ----------------------------------------------------
+  \fn int MRISclearCurvature(MRI_SURFACE *mris)
+  \brief sets v->curv=0 for unripped vertices.
   ------------------------------------------------------*/
 int MRISclearCurvature(MRI_SURFACE *mris)
 {
@@ -33587,14 +33582,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisLogIntegrationParms(stdout, mris, parms);
   }
 
-  mrisClearMomentum(mris);
+  mrisClearMomentum(mris); // v->od{xyz}=0 for unripped
   MRIScomputeMetricProperties(mris);
   MRISstoreMetricProperties(mris);
 
   MRIScomputeNormals(mris);
-  mrisClearDistances(mris);
+  mrisClearDistances(mris);  // v->d=0 for unripped
 
-  MRISclearCurvature(mris); /* curvature will be used to calculate sulc */
+  MRISclearCurvature(mris); /* v->curv=0 for unripped, curvature will be used to calculate sulc */
 
 
   /* write out initial surface */
@@ -33731,7 +33726,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 
       mrisScaleTimeStepByCurvature(mris);
 
-      MRISclearMarks(mris);
+      MRISclearMarks(mris); //v->marked=0
 
       // Take a step by changing the v->{x,y,z} of all vertices
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt, mht, max_mm);
@@ -35746,13 +35741,10 @@ int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn int MRISclearMarks(MRI_SURFACE *mris)
+  \brief Sets v->marked=0 for all unripped vertices
+*/
 int MRISclearMarks(MRI_SURFACE *mris)
 {
   int vno;
@@ -35764,6 +35756,24 @@ int MRISclearMarks(MRI_SURFACE *mris)
       continue;
     }
     v->marked = 0;
+  }
+  return (NO_ERROR);
+}
+/*!
+  \fn int MRISclearMarks(MRI_SURFACE *mris)
+  \brief Sets v->marked2=0 for all unripped vertices
+*/
+int MRISclearMark2s(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked2 = 0;
   }
   return (NO_ERROR);
 }
@@ -36350,6 +36360,8 @@ int MRIScomputeBorderValues(
       v->d = max_mag_dist;   // dist to target intensity along normal
       v->mean = max_mag;     // derive at target intensity
       v->marked = 1;         // vertex has good data
+      Skips all ripped vertices
+#BV
 */
 static int MRIScomputeBorderValues_new(
     MRI_SURFACE *       mris,
@@ -65975,32 +65987,31 @@ static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
   }
   return (nmarked);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+/*! -----------------------------------------------------
+  \fn int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
+  \brief Dilates the marked vertices by marking a vertex
+  if any of its non-ripped neighbors is ripped.
   ------------------------------------------------------*/
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
 {
   int vno, i, n, mx;
 
+  // Loop through each dilation
   for (i = 0; i < ndil; i++) {
+
+    // Set v->tx to 0 for unripped vertices
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX * const v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
+      if(v->ripflag) continue;
       v->tx = 0;
     }
 
+    // Loop through vertices (skip ripped)
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
       VERTEX                * const v  = &mris->vertices         [vno];
-      if (v->ripflag) {
-        continue;
-      }
+      if(v->ripflag) continue;
+      // set v->tx=1 if this vertex or any of its neightbors is marked
       mx = v->marked;
       for (n = 0; n < vt->vnum; n++) {
         VERTEX const * const vn = &mris->vertices[vt->v[n]];
@@ -66008,14 +66019,15 @@ int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
       }
       v->tx = mx;
     }
+
+    // Now copy tx into marked
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX * const v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
+      if (v->ripflag) continue;
       v->marked = (int)v->tx;
     }
-  }
+
+  }// end loop over dilations
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -67172,6 +67184,12 @@ int MRISinvertMarks(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
+/*!
+  \fn int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area)
+  \brief Appears to create a label for each connected component
+  defined by v->marked=1; the surface area of the label must be >
+  min_label_area.
+*/
 int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area)
 {
   int vno, nfound, n, nlabels, *marks;
@@ -67206,6 +67224,7 @@ int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, f
       }
       break;
     }
+
     if (vno < mris->nvertices) {
       area = LabelAlloc(mris->nvertices, NULL, NULL);
       area->n_points = 1;
@@ -68614,6 +68633,10 @@ int MRISrestoreExtraGradients(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
+/*! ----------------------------------------------------
+  \fn int MRISclearDistances(MRI_SURFACE *mris)
+  \brief sets v->d=0 for unripped vertices.
+  ------------------------------------------------------*/
 int MRISclearDistances(MRI_SURFACE *mris)
 {
   int vno;
@@ -73252,6 +73275,11 @@ MRISPiterative_blur(MRI_SURFACE *mris,
   return(mrisp_dst) ;
 }
 #endif
+/*!
+  \fn int MRISripMarked(MRI_SURFACE *mris)
+  \brief Sets v->ripflag=1 if v->marked==1.
+  Note: does not unrip any vertices.
+*/
 int MRISripMarked(MRI_SURFACE *mris)
 {
   int vno;
@@ -73840,20 +73868,6 @@ MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolu
   MRIfree(&mri_tmp);
   MRIfree(&mri_mask);
   return (mri_dist);
-}
-int MRISclearMark2s(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked2 = 0;
-  }
-  return (NO_ERROR);
 }
 
 // Discrete Principle Curvature and Related vvvvvvvvvvvvvvvvvv
@@ -77442,6 +77456,35 @@ static int mrisScaleTimeStepByCurvature(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
+/*!
+  \fn int MRIScountRipped(MRIS *mris)
+  \brief Returns the total number of ripped vertices
+ */
+int MRIScountRipped(MRIS *mris)
+{
+  int nripped=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  return(nripped);
+}
+/*!
+  \fn int MRIScountAllMarked(MRIS *mris)
+  \brief Returns the total number of vertices have v->marked > 0
+ */
+int MRIScountAllMarked(MRIS *mris)
+{
+  int nmarked=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].marked>0) nmarked++;
+  }
+  return(nmarked);
+}
+/*!
+  \fn int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
+  \brief Returns the total number of non-ripped vertices 
+  that have v->marked >= threshold
+ */
 int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
 {
   int vno, total_marked;
@@ -77456,7 +77499,6 @@ int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
       total_marked++;
     }
   }
-
   return (total_marked);
 }
 
