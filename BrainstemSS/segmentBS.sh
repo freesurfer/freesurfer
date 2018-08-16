@@ -235,8 +235,8 @@ endif
 # structure name. The segmentation IDs also do not mean anything. 
 # Could run mri_segstats instead, but the volumes would not include
 # partial volume correction.
-set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/brainstemSsVolumes.v12.txt
-set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/brainstem.stats
+set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/brainstemSsVolumes.$SUFFIX.txt
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/brainstem.$SUFFIX.stats
 echo "# Brainstem structure volumes as created by segmentBS.sh" > $stats
 cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 

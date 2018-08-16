@@ -174,9 +174,7 @@ static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
-
-static char *orig_white = NULL ;
-static char *orig_pial = NULL ;
+char *save_white_res_fname = NULL;
 
 char *Progname ;
 
@@ -187,7 +185,6 @@ static int graymid = 0 ;
 static int curvature_avgs = 10 ;
 static int create = 1 ;
 static int smoothwm = 0 ;
-static int white_only = 0 ;
 static int overlay = 0 ;
 static int inverted_contrast = 0 ;
 static char *filled_name = "filled" ;
@@ -224,12 +221,33 @@ static int vavgs = 5 ;
 static int nwhite = 100 /* 25 */ /*5*/ ;
 static int ngray = 100  /* 30*/ /*45*/ ;
 
+// orig_name is the surface that will be read first. It will be
+// smoothed. If orig_white is specified, the smoothed vertex locations
+// will be overwritten by the orig_white surface (which will not be
+// smoothed).
+static char *orig_name = ORIG_NAME ; // "orig"
+
+// white_only=1, then only place the white, do not place pial
+static int white_only = 0 ;
+
+// If nowhite=1, do not place white, forces reading previously placed
+// gray/white surface.  This will be the value of orig_white or
+// "white" if unspecified. Could have been called pialonly instead.
 static int nowhite = 0 ;
+
+// orig_white, if specified, will be used as the initial surface 
+// to place the white surface. Whatever surface is specified, it
+// will not be smoothed prior to placing the white surface. 
+static char *orig_white = NULL ;
+
+// orig_pial, if specified, will be used as the initial surface 
+// to place the white surface
+static char *orig_pial = NULL ;
+
 static int flairwhite = 0 ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
-static char *orig_name = ORIG_NAME ; // "orig"
 static char *suffix = "" ;
 static char *output_suffix = "" ;
 static char *xform_fname = NULL ;
@@ -296,8 +314,8 @@ static int white_vnos[MAX_VERTICES] ;
 
 static int fill_interior = 0 ;
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1) ;
-int
-main(int argc, char *argv[])
+
+int main(int argc, char *argv[])
 {
   char          *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
   int           nargs, i, msec, n_averages, j ;
@@ -314,6 +332,9 @@ main(int argc, char *argv[])
   int memusage[5];
   char *cmdline2, cwd[2000];
   char cmdline[CMD_LINE_LEN] ;
+  MRIS *mristarget = NULL;
+  int vno;
+  VERTEX *v;
 
   FSinit() ;
   make_cmd_version_string
@@ -636,11 +657,11 @@ main(int argc, char *argv[])
 
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
-  fprintf(stdout, "reading original surface position from %s...\n", fname) ;
+  printf("reading original surface position from %s...\n", fname) ;
+  if(orig_white) printf("  .. but with overwrite the positions with %s...\n",orig_white) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
 
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
     spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
@@ -770,24 +791,27 @@ main(int argc, char *argv[])
   if (smooth && !nowhite && !dura_echo_name)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
+    if(orig_white) printf("  .. but with overwrite the positions with %s...\n",orig_white) ;
+    /* The effect of smoothing the vertices here is to pull the
+       surface away from the boundary toward the center of the
+       hemisphere.  For the orig, it has a bigger effect at the crowns
+       because that is where the surface bends the sharpest. The
+       surface placement then must work to undo this. When 5
+       iterations are used (smooth=5), the smoothed surface moves
+       quite a bit.  This does not happen when -orig_white is
+       specified. Basically, the smoothing is to handle the orig
+       surface which may be jagged. */
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
   if (nbrs > 1)
-  {
     MRISsetNeighborhoodSize(mris, nbrs) ;
-  }
 
-  sprintf(parms.base_name, "%s%s%s",
-          white_matter_name, output_suffix, suffix) ;
-  if (orig_white)
-  {
-    printf("reading initial white vertex positions from %s...\n",
-           orig_white) ;
+  sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
+  if(orig_white){
+    printf("reading initial white vertex positions from %s...\n",orig_white) ;
     if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
-    {
       ErrorExit(Gerror, "reading of orig white failed...");
-    }
     MRISremoveIntersections(mris) ;
   }
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
@@ -795,39 +819,29 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
 
-  if (add)
-  {
+  if (add)  {
     fprintf(stdout, "adding vertices to initial tessellation...\n") ;
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
       while (MRISdivideLongEdges(mris, max_len) > 0) {}
   }
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
-  if (aparc_name)
-  {
+  if (aparc_name) {
+    printf("Reading in aparc %s\n",aparc_name);
     if (MRISreadAnnotation(mris, aparc_name) != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",
-                aparc_name) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",aparc_name) ;
   }
 
-  if (!nowhite)
-  {
-    fprintf(stdout,
-            "repositioning cortical surface to gray/white boundary\n");
-
+  if(!nowhite)  {
+    printf("repositioning cortical surface to gray/white boundary\n");
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, 0) ;
-    if (mri_T1_white)
-    {
-      MRImask
-      (mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_LABEL, 0) ;
-      MRImask
-      (mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
+    if (mri_T1_white) {
+      MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_LABEL, 0) ;
+      MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
       MRIwrite(mri_T1, "white_masked.mgz") ;
-    }
   }
 
   if (mri_T1_white)  {
@@ -872,7 +886,15 @@ main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stdout) ;
 
     if(mri_aseg){
-      printf("Fixing midline\n");  fflush(stdout);
+      printf("Freezing midline and others\n");  fflush(stdout);
+      // This rips the midline vertices so that they do not move (thus
+      // "fix"). It may also rip some vertices near the putamen and
+      // maybe near lesions. It may set v->marked2 which will
+      // influence the cortex.label. At onset, it will set all marked
+      // and marked2 to 0. At then end it will set all marked=0.
+      // It does not unrip any vertices, so, unless they are unripped
+      // at some other point, the number of ripped vertices will 
+      // increase.
       fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
     }
 
@@ -941,6 +963,7 @@ main(int argc, char *argv[])
 	     MAX_WHITE, max_border_white, min_border_white, min_gray_at_white_border);
       printf("  outside_hi  %g, max_thickness %g, max_gray_scale %g,  max_gray %g\n",
 	     outside_hi, max_thickness, max_gray_scale, max_gray); fflush(stdout);
+      // MRIScomputeBorderValues() will effectively set all v->marked=1 for all unripped vertices
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
@@ -979,12 +1002,9 @@ main(int argc, char *argv[])
 	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ; // update estimate of white
 	else   // first time - read it in
 	{
-	  printf("reading initial white vertex positions from %s...\n",
-		 orig_white) ;
+	  printf("reading initial white vertex positions from %s...\n",orig_white) ;
 	  if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
-	  {
 	    ErrorExit(Gerror, "reading of orig white failed...");
-	  }
 	  MRISremoveIntersections(mris) ;
 	}
       }
@@ -1020,14 +1040,13 @@ main(int argc, char *argv[])
 
     if(vavgs) {
       fprintf(stdout,"averaging target values for %d iterations...\n",vavgs) ;
+      // MRIScomputeBorderValues() sets v->marked=1 for all unripped
       MRISaverageMarkedVals(mris, vavgs) ;
       if (Gdiag_no > 0){
         VERTEX *v ;
         v = &mris->vertices[Gdiag_no] ;
-        fprintf
-        (stdout,
-         "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
-         Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
+        printf("v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+	       Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
       }
     }
 
@@ -1045,6 +1064,21 @@ main(int argc, char *argv[])
     if (write_vals) {
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname);
+    }
+
+    // Create a surface of the target surface at the point where the
+    // maximum gradient should be. This will not necessarily be a topo
+    // correct surface, but it can be used for evaluation.  Have to
+    // create this surface here because v->d gets set to 0 after pos surf
+    if(mristarget != NULL) MRISfree(&mristarget);
+    mristarget = MRISclone(mris);
+    for(vno=0; vno < mris->nvertices; vno++){
+      v = &(mristarget->vertices[vno]);
+      v->d = mris->vertices[vno].d; // clone does not copy this
+      v->val = mris->vertices[vno].val; // clone does not copy this
+      v->x += (v->d*v->nx); // d is the distance to the max gradient
+      v->y += (v->d*v->ny);
+      v->z += (v->d*v->nz);
     }
 
     // Everything up to now has been leading up to this. This is where
@@ -1079,7 +1113,7 @@ main(int argc, char *argv[])
     if (!n_averages)
       break ; 
 
-  } // end major loop placing the white surface
+  } // end major loop placing the white surface using
   // ==========================================================================
 
   if(!nowhite) {
@@ -1090,15 +1124,12 @@ main(int argc, char *argv[])
   if(nowhite){ /* read in previously generated white matter surface */
     if (orig_white)    {
       sprintf(fname, "%s%s", orig_white, suffix) ;
-      printf("reading white vertex positions from %s...\n",
-             orig_white) ;
+      printf("reading white vertex positions from %s...\n",orig_white) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
-        ErrorExit(Gerror, "%s: could not read white matter surface.",
-                  Progname) ;
+        ErrorExit(Gerror, "%s: could not read white matter surface.",Progname) ;
       MRISremoveIntersections(mris) ;
     }
-    else // read default white (something needs to be
-      // read if nowhite was created)
+    else // read default white (something needs to be read if nowhite was created)
     {
       // if you don't like the default, give an error message here and exit,
       // to force passing the -orig_white white
@@ -1108,7 +1139,7 @@ main(int argc, char *argv[])
                   Progname) ;
     }
     MRIScomputeMetricProperties(mris) ;
-  }
+  } // end nowhite (read in previously generated white matter surface)
 
 
   if (mri_aseg) //update aseg using either generated or orig_white
@@ -1126,10 +1157,33 @@ main(int argc, char *argv[])
   // -nowhite not creating pial surfaces that match those created
   // w/o the -nowhite option.
   if (!nowhite && strcmp(white_matter_name,"NOWRITE"))  {
+    // white_matter_name != "NOWRITE"
+
+    if(save_white_res_fname != NULL){
+      RmsValErrorRecord = 1;
+      mrisRmsValError(mris, mri_T1);
+      RmsValErrorRecord = 0;
+      MRI *ValResid;
+      ValResid = MRIcopyMRIS(NULL, mristarget, 3, "d"); // target distance
+      MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
+      MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
+      MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
+      sprintf(fname,"%s/%s/surf/%s.%s%s%s.mgz",sdir, sname,hemi,save_white_res_fname,output_suffix,suffix);
+      printf("Saving white value residual to %s\n",fname);
+      MRIwrite(ValResid,fname);
+      MRIfree(&ValResid);
+      sprintf(fname,"%s/%s/surf/%s.white.maxgrad%s%s",sdir, sname,hemi,output_suffix,suffix);
+      printf("Writing target surface to %s\n",fname);
+      MRISwrite(mristarget,fname);
+    }
+
     MRISremoveIntersections(mris) ;
+    if(smoothwm > 0){
+      printf("Averaging white surface by %d iterations\n",smoothwm);
+      MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
+    }
     sprintf(fname,"%s/%s/surf/%s.%s%s%s",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
-    fprintf(stdout, "writing white matter surface to %s...\n", fname) ;
-    MRISaverageVertexPositions(mris, smoothwm) ;
+    fprintf(stdout, "writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
     if(mri_aseg && label_cortex) {
@@ -1191,6 +1245,7 @@ main(int argc, char *argv[])
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
+    MRISfree(&mristarget);
 
     if (create)   /* write out curvature and area files */
     {
@@ -1220,15 +1275,16 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
+  //////////////////////////////////////////////////////////////////
+  // below will place the pial surface
+  //////////////////////////////////////////////////////////////////
+
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
 
   MRISunrip(mris) ;
 
   if (mri_aseg) //update aseg using either generated or orig_white
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
-  //////////////////////////////////////////////////////////////////
-  // pial surface
-  //////////////////////////////////////////////////////////////////
 
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
@@ -1241,6 +1297,7 @@ main(int argc, char *argv[])
   if (smooth && !nowhite)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
+    if(orig_pial)  printf(" .. but this will be overwritten using vertex positions from %s...\n", orig_pial) ;
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
@@ -1262,30 +1319,26 @@ main(int argc, char *argv[])
     MRIfree(&mri_interior) ;
   }
 
-  if (orig_pial)
-  {
+  if (orig_pial)  {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
 
-    if (longitudinal)
-    {
+    if (longitudinal)    {
       //save final white location into TMP_VERTICES (v->tx, v->ty, v->tz)
       MRISsaveVertexPositions(mris, TMP_VERTICES);
     }
 
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
-    {
       ErrorExit(Gerror, "reading orig pial positions failed") ;
-    }
-    if (smooth_pial)
-    {
+
+    if(smooth_pial){
       printf("smoothing pial surface for %d iterations before deformation\n", smooth_pial) ;
       MRISaverageVertexPositions(mris, smooth_pial) ;
     }
+
     MRISremoveIntersections(mris) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
 
-    if (longitudinal)
-    {
+    if (longitudinal) {
       //reset starting point to be between final white and orig pial
       int vno;
       VERTEX *v;
@@ -2748,6 +2801,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "nowhite"))
   {
+    // Do not place the white surface. Only place the pial surface. Read in
+    // ?h.white or whatever is specified with -orig_white
     nowhite = 1 ;
     fprintf(stderr, "reading previously compute gray/white surface\n") ;
   }
@@ -2865,6 +2920,11 @@ get_option(int argc, char *argv[])
       nargs = 3 ;
       printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "wm-res")){
+    save_white_res_fname = argv[2];
+    printf("Saving white surface residual to %s\n",save_white_res_fname);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "openmp")) 
   {
     char str[STRLEN] ;
@@ -2950,7 +3010,7 @@ get_option(int argc, char *argv[])
     case 'W':
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;
-      fprintf(stderr, "write iterations = %d\n", parms.write_iterations) ;
+      printf("write iterations = %d\n", parms.write_iterations) ;
       Gdiag |= DIAG_WRITE ;
       break ;
     case 'N':
@@ -3388,8 +3448,42 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
 }
 
 
-static int
-fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
+/*!
+  \fn int fix_midline()
+
+  \brief Note: "fix" here means to "hold in place", not to "repair
+  something that is broken".  It also does more than midline.  
+
+  Sets the v->ripped flag at certain vertices (which then holds them
+  in place later on). Does not unrip vertices; if a vertex is ripped,
+  then it is not procsssed. All unripped v->marked are set to 0 at the
+  beginning; all v->marked (ripped or otherwise) are set to 0 at end
+  of the function. All unripped v->marked2 are set to 0 at the
+  begining of the function. The ripped vertices will have
+  v->val=intensity at the vertex and v->d=0.
+
+  It finds the midline mostly by finding subcortical GM, ventricular
+  CSF, or CC in the aseg.presurf within a few mm of the vertex. These
+  vertices are marked (v->marked=1).  It will also mark some vertices
+  that are near putamen or a lesion. All ripped vertices are marked.
+
+  The marks are spatially filtered by eliminating clusters that have
+  fewer than 5 vertices or, if annotation is present, that are less
+  than 60% "unknown". This last step unmarks the putamen marks done
+  before (bug).
+
+  If there is an annotation, it will only make a difference in two
+  places: (1) for entorhinal (where vertices are never marked/ripped),
+  and (2) in some areas of "unknown" cortex (see above).
+
+  v->marked2 - affects MRIScortexLabel(), forces labeling as cortex. Also
+  influences this program the second time around in that vertices with
+  v->marked2=1 are not reprocessed. 
+
+  v->val2=1 for Lesions when fitting GRAY_CSF
+  #FIX
+*/
+static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             int which, int fix_mtl)
 {
   int vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0;
@@ -3397,64 +3491,84 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d, nx, ny, nz ;
   LABEL    **labels ;
+  int nmarked, nmarked2, nripped;
 
-  printf("inhibiting deformation at non-cortical midline structures...\n") ;
-  if (stricmp(hemi, "lh") == 0)
-  {
+  printf("Entering: fix_midline(): inhibiting deformation at non-cortical midline structures...\n") ;
+  printf("  which=%d, fix_mtl=%d\n",which, fix_mtl);
+  printf("#FML0# fix_midline(): nripped=%d\n",MRIScountRipped(mris));
+  fflush(stdout);
+
+  if (stricmp(hemi, "lh") == 0){
     contra_wm_label = Right_Cerebral_White_Matter ;
     wm_label = Left_Cerebral_White_Matter ;
     gm_label = Left_Cerebral_Cortex ;
   }
-  else
-  {
+  else{
     contra_wm_label = Left_Cerebral_White_Matter ;
     wm_label = Right_Cerebral_White_Matter ;
     gm_label = Right_Cerebral_Cortex ;
   }
-  MRISclearMark2s(mris) ;
-  MRISclearMarks(mris) ;
+
+  // Clear the deck
+  MRISclearMarks(mris) ;  // Sets v->marked=0  for all unripped vertices
+  MRISclearMark2s(mris) ; // Sets v->marked2=0 for all unripped vertices
 
   if (mris->ct)
     CTABfindName(mris->ct, "entorhinal", &entorhinal_index);
   else
     entorhinal_index = -1 ;
+
+  // Loop over vertices ==================================
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag || v->marked2 > 0)
-    {
-      v->marked = 1 ; // it was ripped previously - it should still be excluded
+
+    if(v->ripflag || v->marked2 > 0){
+      // It was ripped previously - it should still be excluded, but
+      // still mark it.  Note: all unripped marked2 are set to zero
+      // above, so if(v->marked2>0) is meaningless.
+      v->marked = 1 ;
       continue ;
     }
 
     if (mris->ct)
       CTABfindAnnotation(mris->ct, v->annotation, &index);
 
-    if (vno == Gdiag_no )
-    {
+    if (vno == Gdiag_no ) {
       printf("vno %d: annotation %x, index %d, EC %d\n", vno, v->annotation, index, entorhinal_index) ;
       DiagBreak() ;
     }
 
-    if (mris->ct && index == entorhinal_index)  // don't freeze vertices that are in EC and very close to hippocampus
+    // don't freeze vertices that are in EC and very close to hippocampus
+    // How do you know from this that the vertex is close to hippo?
+    if (mris->ct && index == entorhinal_index)  
       continue ;
-    // search outwards
-    for (d = 0 ; d <= 2 ; d += 0.5)
-    {
+
+    // search outwards. Hidden parameters 2mm and 0.5mm
+    for (d = 0 ; d <= 2 ; d += 0.5) {
       xs = v->x + d*v->nx ;
       ys = v->y + d*v->ny ;
       zs = v->z + d*v->nz ;
+
+      // Sample the aseg at this distance
       MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
-      if (vno == Gdiag_no)
-      {
+      if (vno == Gdiag_no){
 	printf("vno %d: dist %2.2f - %s (%d)\n", vno, d, cma_label_to_name(label), label) ;
 	DiagBreak() ;
       }
+
       if (d > 0 && label == gm_label)
 	break ;  // cortical gray matter of this hemisphere - doesn't matter what is outside it
-      if (label == contra_wm_label ||
+
+      // If the vertex lands on a certain label, then v->marked=1 and
+      // v->d=0 and v->val=val at this location. The val may be
+      // changed at later distances but marked and d will not even if
+      // the point lands in an acceptable label. marked2 may be set to
+      // 1 if the label is a lesion or WMSA.  Labels excluded from
+      // thist list include ipsilateral cortex and WM.
+      if(label == contra_wm_label ||
           label == Left_Lateral_Ventricle ||
           label == Left_vessel ||
           label == Right_vessel ||
@@ -3477,43 +3591,43 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_Caudate ||
           label == Right_Caudate ||
           label == Left_Pallidum ||
+          label == Right_Pallidum ||
           IS_CC(label) ||
           ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl)  ||
-          label == Right_Pallidum ||
           label == Right_Thalamus_Proper ||
           label == Left_Thalamus_Proper ||
           label == Brain_Stem ||
           label == Left_VentralDC ||
           label == Right_VentralDC)
       {
-	// these are labels where the intensities aren't useful, so just freeze surface there
+	// below are labels where the intensities aren't useful, so just freeze surface there
 	if (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label))
-	  v->marked2 = 1 ;
+	  v->marked2 = 1 ; // afects the cortex.label
         if (label == Left_Putamen || label == Right_Putamen)
-        {
           DiagBreak() ;
-        }
         if (vno == Gdiag_no)
-        {
           DiagBreak() ;
-        }
-        MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+	// Sample brain intensity at vertex (not at distance from vertex)
+        MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ; // not redundant
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
         v->d = 0 ;
         v->marked = 1 ;
       }
-    }
+    } // end loop over distance
 
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
+    // Compute the normal to the edge of the label if this is putamen
     MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
     MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
     label = nint(val) ;
-    if (IS_PUTAMEN(label))
-    {
+    if (IS_PUTAMEN(label)) {
+      // 3=whalf in voxels, hidden parameter
+      // 1=use_abs, hidden parameter
+      // nx, ny, nz are in vox coords making orientation a hidden parameter
+      // Are nx,ny,nz ever used?
       compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
     }
     else
@@ -3525,65 +3639,67 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       for gray/white surface, if we are in insula, don't want to let the
       surface diverge into the putamen.
     */
-    if (which == GRAY_WHITE)
-    {
-      // search inwards
-      for (d = 0 ; d <= 2 ; d += 0.5)
-      {
+    if (which == GRAY_WHITE) {
+
+      // search inwards. Hidden parameters 2mm and 0.5mm
+      for (d = 0 ; d <= 2 ; d += 0.5) {
+
+	// Sample the aseg at this distance
         xs = v->x - d*v->nx ;
         ys = v->y - d*v->ny ;
         zs = v->z - d*v->nz ;
         MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
-	if (vno == Gdiag_no)
-	{
+	if (vno == Gdiag_no){
 	  printf("vno %d: dist %2.2f - %s (%d)\n", vno, -d, cma_label_to_name(label), label) ;
 	  DiagBreak() ;
 	}
+
 	// these are labels where the intensities aren't useful, so just freeze surface there
+	// hidden parameter d<1mm
 	if (d < 1 && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	  v->marked = v->marked2 = 1 ;
 
-        if (IS_PUTAMEN(label) || IS_ACCUMBENS(label) || IS_CLAUSTRUM(label))
-        {
-          compute_label_normal(mri_aseg, xv, yv, zv, label, 3,
-                               &nx, &ny, &nz, 1) ;
-          if (fabs(nx) > fabs(ny) && fabs(nx) > fabs(nz))
-          {
-            if (vno == Gdiag_no)
-            {
+        if (IS_PUTAMEN(label) || IS_ACCUMBENS(label) || IS_CLAUSTRUM(label)){
+	  // 3=whalf in voxels, hidden parameter. Voxel resolution is
+	  //   a hidden parameter since whalf is in voxels
+	  // 1=use_abs, hidden parameter, but abs used regardless below
+	  // nx, ny, nz are in vox coords making orientation a hidden parameter
+          compute_label_normal(mri_aseg, xv, yv, zv, label, 3,&nx, &ny, &nz, 1) ;
+          if(fabs(nx) > fabs(ny) && fabs(nx) > fabs(nz))  {
+	    // edge is mostly oriented in column direction
+            if(vno == Gdiag_no)
               DiagBreak() ;
-            }
-	    if (IS_ACCUMBENS(label))
-	    {
+	    if(IS_ACCUMBENS(label)){
+	      // Same as put and claust but val not set
 	      v->d = 0 ;
 	      v->marked = 1 ;
 	      if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
-	      {
 		printf("marking vertex %d as adjacent to accumbens on midline\n", vno);
-	      }
 	    }
-	    else
-	    {
-	      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+	    else {
+	      // Sample brain intensity at the vertex (not the distance)
+	      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ; // not redundant
 	      MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
 	      v->val = val ;
 	      v->d = 0 ;
 	      v->marked = 1 ;
 	      if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
-	      {
 		printf("marking vertex %d as adjacent to putamen/claustrum in insula\n", vno);
-	      }
 	    }
 	    break ;
           }
-        }
-      }
-    }
-    // search inwards
-    for (d = 0 ; d <= 2 ; d += 0.5)
-    {
+        } // if putamen, accumbens, or claustrum
+
+      } // loop over distance
+    }// if GRAY_WHITE
+
+
+    // search inwards 2mm step 0.5mm (hidden parameters)
+    for (d = 0 ; d <= 2 ; d += 0.5) {
+
+      // Sample the aseg at this distance
       xs = v->x - d*v->nx ;
       ys = v->y - d*v->ny ;
       zs = v->z - d*v->nz ;
@@ -3591,9 +3707,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
       if (d < 1.1 && (label == wm_label || label == gm_label))
-      {
-        break ;  // found real white matter next to surface
-      }
+        break ;  // found ispilateral GM or WM next to surface, 1.1 hidden parameter
 
       if ((which == GRAY_CSF) && (d < 1) && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	v->val2 = 1 ;
@@ -3626,66 +3740,69 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 
       {
         if (label == Left_Putamen || label == Right_Putamen)
-        {
           DiagBreak() ;
-        }
-        if ((label == Left_Lateral_Ventricle ||
-             label == Right_Lateral_Ventricle) &&
-            d > 1)  // in calcarine ventricle can be pretty close to wm surface
+
+        if((label == Left_Lateral_Ventricle || label == Right_Lateral_Ventricle) && d > 1)  
         {
+	  // In calcarine ventricle can be pretty close to wm surface
+	  // but could affect any vertex that is near L/R Lat Vent.
+	  // d>1mm hidden parameter
           break ;
         }
         if (vno == Gdiag_no)
-        {
           DiagBreak() ;
-        }
+
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
         v->d = 0 ;
         v->marked = 1 ;
       }
-    }
 
+    } // end loop over inward distance
 
-    /* now check for putamen superior to this point. If there's a lot
+    /* Now check for putamen superior to this vertex. If there's a lot
        of it there, then we are in basal forebrain and not cortex. */
-    if (which == GRAY_WHITE)
-    {
-      for (adjacent = total_vox = nvox = 0, d = 0 ;
-           d <= 10 ; d += 0.5, total_vox++)
-      {
+    if (which == GRAY_WHITE) {
+      // Project in the row direction (not the normal direction) 10mm step 0.5 mm (hidden par)
+      // For a conformed volume, row direction = superior/inferior
+      adjacent = total_vox = nvox = 0;
+      for (d = 0 ; d <= 10 ; d += 0.5, total_vox++){
+	// Sample superiorly. This leads to a dependence on how the
+	// head is oriented with respect to the voxel coordinates
+	// (hidden parameter) since the surface coordinates are
+	// aligned with the voxel coords.  It also leads to a
+	// dependence on voxel axis orientation since the row
+	// direction is not always superior/inf.
         xs = v->x ;
         ys = v->y ;
-        zs = v->z + d ;  // sample superiorly
+        zs = v->z + d ;  // z is along the row direction
         MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
-        if (label == Left_Putamen || label == Right_Putamen)
-        {
+        if (label == Left_Putamen || label == Right_Putamen) {
           nvox++ ;
-          if (d < 1.5)
-          {
+          if (d < 1.5) // d<1.5mm hidden parameter
             adjacent = 1 ;  // right next to putamen
-          }
         }
-      }
-      if (adjacent &&
-          (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
+      } // loop over distance
+
+      // if more than 50% of the samples are putamen and vertex is within 1.5mm of putamen
+      // and edge of putamen is mostly in the row direction
+      if (adjacent && (double)nvox/(double)total_vox > 0.5)
       {
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
+	// 3=whalf in voxels, hidden parameter. Voxel resolution is
+	//   a hidden parameter since whalf is in voxels
+	// 1=use_abs, hidden parameter, but abs used regardless below
+	// nx, ny, nz are in vox coords making orientation a hidden parameter
         compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
-
-        if (ny > 0 &&
-            fabs(ny) > fabs(nx) &&
-            fabs(ny) > fabs(nz))
-        {
+        if (ny > 0 && fabs(ny) > fabs(nx) &&  fabs(ny) > fabs(nz))  {
+	  // Normal is mostly in the row direction. Note that ny will always be >=0 since use_abs=1
           if (vno == Gdiag_no)
-          {
             DiagBreak() ;
-          }
           MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
           MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
           v->val = val ;
@@ -3693,13 +3810,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           v->marked = 1 ;
         }
       }
-    }
-  }
 
-  if (Gdiag_no >= 0)
-  {
+    } // end if GRAY_WHITE
+
+  } // end loop over vertices =================================================
+
+  if (Gdiag_no >= 0) {
     int index ;
-
     v = &mris->vertices[Gdiag_no] ;
     if (mris->ct)
       CTABfindAnnotation(mris->ct, v->annotation, &index);
@@ -3708,49 +3825,45 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     printf("v %d: ripflag = %d before connected components, annot %d (%d)\n",
            Gdiag_no, v->marked, v->annotation, index) ;
     if (v->marked == 0)
-    {
       DiagBreak() ;
-    }
     else
-    {
       DiagBreak() ;
-    }
   }
+
+  // Dilate and erode the marked vertices
   MRISdilateMarked(mris, 3) ;
   MRISerodeMarked(mris, 3) ;
+
+  // Get a list of marked clusters (ie, connected components) whose
+  // area is greater than 1mm2 (hidden parameter)
   MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
   
   if (Gdiag_no > 0)
-    printf("v %d: ripflag = %d after morphology\n",
-           Gdiag_no, mris->vertices[Gdiag_no].marked) ;
+    printf("v %d: ripflag = %d after morphology\n", Gdiag_no, mris->vertices[Gdiag_no].marked) ;
 
-  for (n = 0 ; n < nlabels ; n++)
-  {
-    if (labels[n]->n_points < 5)
-    {
-      int i ;
-      printf("removing %d vertex label from ripped group in thread:%d\n",
-             labels[n]->n_points, 
-#ifdef HAVE_OPENMP
-             omp_get_thread_num()
-#else
-             0
-#endif
-             ) ;
-      for (i = 0 ; i < labels[n]->n_points ; i++)
-      {
+  // Go through all the clusters
+  for (n = 0 ; n < nlabels ; n++)  {
+
+    // If there are fewer than 5 points in the cluster, then discard it
+    if(labels[n]->n_points < 5) {
+      int i, threadno = 0 ;
+      #ifdef HAVE_OPENMP 
+      threadno = omp_get_thread_num();
+      #endif
+      printf("removing %d vertices from ripped group in thread:%d\n",labels[n]->n_points,threadno); 
+      for (i = 0 ; i < labels[n]->n_points ; i++) 
         mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
-      }
     }
-    if (mris->ct && CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
-    {
+
+    // If there is an annoation that includes "unknown", then ...
+    if (mris->ct && CTABfindName(mris->ct, "unknown", &index) == NO_ERROR) {
       double pct_unknown;
       int    i ;
       VERTEX *v ;
       CTABannotationAtIndex(mris->ct, index, &annotation) ;
 
-      for (pct_unknown = 0.0, i = 0 ; i < labels[n]->n_points ; i++)
-      {
+      // Compute the fraction of this cluster that is in the unknown annotation
+      for (pct_unknown = 0.0, i = 0 ; i < labels[n]->n_points ; i++) {
 	v = &mris->vertices[labels[n]->lv[i].vno] ;
         if ((v->annotation == annotation || v->annotation == 0) &&
 	    (v->marked2 == 0))  // will be 1 if a lesion or WMSA (keep frozen if so)
@@ -3759,34 +3872,47 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         }
       }
       pct_unknown /= (double)labels[n]->n_points ;
-      if (pct_unknown < .6)
-      {
-        printf("deleting segment %d with %d points - only %2.2f%% unknown\n",n,
-               labels[n]->n_points,100*pct_unknown) ;
-        for (i = 0 ; i < labels[n]->n_points ; i++)
-        {
+
+      // If this fraction is < 0.6 (hidden parameter), unmark all vertices in the cluster
+      // Won't this undo the marks near putamen or lesion? Answer: yes, this is a bug.
+      if (pct_unknown < .6) {
+        printf("deleting segment %d with %d points - only %2.2f%% unknown, v=%d\n",
+               n,labels[n]->n_points,100*pct_unknown, labels[n]->lv[0].vno) ;
+        for (i = 0 ; i < labels[n]->n_points ; i++) {
 	  v = &mris->vertices[labels[n]->lv[i].vno] ;
-	  if (v->marked2 == 0)
-	  {
+	  if (v->marked2 == 0){
 	    mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
 	    if (labels[n]->lv[i].vno  == Gdiag_no)
-	    {
-	      printf("removing ripflag from v %d due to non-unknown aparc\n",
-		     Gdiag_no) ;
-	    }
+	      printf("removing mark from v %d due to non-unknown aparc\n",Gdiag_no) ;
 	  }
         }
       }
     }
 
     LabelFree(&labels[n]) ;
-  }
+
+  } // end loop over clusters
   free(labels) ;
 
   if (Gdiag_no > 0)
     printf("v %d: ripflag = %d after connected components\n",
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
-  MRISripMarked(mris) ;
+
+  // This is where the effects of this routine are instantiated
+  // Sets v->ripflag=1 if v->marked==1  Note: does not unrip any vertices.
+  MRISripMarked(mris) ; 
+
+  // Count up the final number of marked vertices
+  nmarked=0, nmarked2=0, nripped=0;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].marked)  nmarked++;
+    if(mris->vertices[vno].marked2) nmarked2++;
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  printf("#FML# fix_midline(): nmarked=%d, nmarked2=%d, nripped=%d\n",nmarked,nmarked2,nripped);
+  fflush(stdout);
+
+  // Sets all marked vertices to 0, even the ripped ones
   MRISsetAllMarks(mris, 0) ;
 
   return(NO_ERROR) ;
@@ -5257,6 +5383,16 @@ edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
   return(NO_ERROR) ;
 }
 
+/*!
+  \fn compute_label_normal()
+  \brief This function searches whalf voxels around the given voxel
+  for voxels that are on the edge of the given label. It then computes
+  the average normal of the edge over these voxels. If use_abs=1, then
+  the average of the absolute value of the normals is computed. The
+  normal is in voxel units, and if the orientation changes, then the
+  interpretation of the normal changes making orientation effectively
+  a hidden parameter.
+*/
 static int
 compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                      int label, int whalf, double *pnx, double *pny,
@@ -5266,39 +5402,33 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
   double  nx, ny, nz, mag ;
 
   nx = ny = nz = 0.0 ;
-  for (xk = -whalf ; xk <= whalf ; xk++)
-  {
+
+  // Search an area of 3x3x3 around xyz0
+  for (xk = -whalf ; xk <= whalf ; xk++)  {
     xi = mri_aseg->xi[x0+xk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++)
-    {
+    for (yk = -whalf ; yk <= whalf ; yk++)    {
       yi = mri_aseg->yi[y0+yk] ;
-      for (zk = -whalf ; zk <= whalf ; zk++)
-      {
+      for (zk = -whalf ; zk <= whalf ; zk++)      {
         zi = mri_aseg->zi[z0+zk] ;
+
         val = (int)MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) ;
-        if (val != label)
-        {
-          continue ;
-        }
-        for (dx = -1 ; dx <= 1 ; dx++)
-        {
-          for (dy = -1 ; dy <= 1 ; dy++)
-          {
-            for (dz = -1 ; dz <= 1 ; dz++)
-            {
-              if (fabs(dx) + fabs(dy) + fabs(dz) != 1)
-              {
-                continue ;  // only 8-connected nbrs
-              }
+        if (val != label) continue ;
+
+	// If this point is within the label, then look at only the 6 face neighbors
+        for (dx = -1 ; dx <= 1 ; dx++)  {
+          for (dy = -1 ; dy <= 1 ; dy++)  {
+            for (dz = -1 ; dz <= 1 ; dz++)   {
+              if (fabs(dx) + fabs(dy) + fabs(dz) != 1) continue ;  // only 8-connected nbrs (??)
+                
               xn = mri_aseg->xi[xi+dx] ;
               yn = mri_aseg->yi[yi+dy] ;
               zn = mri_aseg->zi[zi+dz] ;
               val = (int)MRIgetVoxVal(mri_aseg, xn, yn, zn, 0) ;
-              if (val != label)  // "surface" of label - interface between label and non-label
-              {
+              if (val != label) {
+		// This voxel not the target label but is at the edge of the target label
+		// "surface" of label - interface between label and non-label
                 nvox++ ;
-                if (use_abs)
-                {
+                if(use_abs){
                   nx += fabs(dx) ;
                   ny += fabs(dy) ;
                   nz += fabs(dz) ;
@@ -5316,12 +5446,14 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
       }
     }
   }
+
   if (nvox > 0)
   {
     nx /= nvox ;
     ny /= nvox ;
     nz /= nvox ;
   }
+
   mag = sqrt(nx*nx + ny*ny + nz*nz) ;
   if (mag > 0)
   {
@@ -5329,6 +5461,7 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
     ny /= mag ;
     nz /= mag ;
   }
+
   *pnx = nx ;
   *pny = ny ;
   *pnz = nz ;
@@ -5371,3 +5504,4 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ; ;
 }
+

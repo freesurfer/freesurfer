@@ -478,6 +478,16 @@ int main(int argc, char *argv[])
     {
       sphinx_flag = TRUE;
     }
+    else if (strcmp(argv[i], "--rescale-dicom") == 0 )
+    {
+      // DO  apply rescale intercept and slope based on (0028,1052) (0028,1053).
+      setenv("FS_RESCALE_DICOM","1",1);
+    }
+    else if (strcmp(argv[i], "--no-rescale-dicom") == 0 )
+    {
+      // Do NOT apply rescale intercept and slope based on (0028,1052) (0028,1053).
+      setenv("FS_RESCALE_DICOM","0",1);
+    }
     else if (strcmp(argv[i], "--bvec-scanner") == 0 )
     {
       // force bvecs to be in scanner space. only applies when

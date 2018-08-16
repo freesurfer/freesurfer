@@ -276,10 +276,10 @@ set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/ThalamicNuclei.$suffix2.volumes.txt
 # Divide the stats into left and right. The sorting is done because
 # the Left and Right nuclei are not ordered the same in the txt file
 set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.lh.$suffix2.stats
-echo "# Left Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
+echo "# Left Thalamic nuclei volume statistics as created by segmentThalamicNuclei.sh" > $stats
 grep Left $txt | sed 's/Left-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.rh.$suffix2.stats
-echo "# Right Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
+echo "# Right Thalamic nuclei volume statistics as created by segmentThalamicNuclei.sh" > $stats
 grep Right $txt | sed 's/Right-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 
 # All done!

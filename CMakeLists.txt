@@ -1,4 +1,3 @@
-
 # before starting the project, set gcc/g++ as default
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
@@ -43,6 +42,7 @@ else()
     set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer")
   endif()
 endif()
+
 
 # --------------------------------------------------
 #   library dependencies and third-party packages
