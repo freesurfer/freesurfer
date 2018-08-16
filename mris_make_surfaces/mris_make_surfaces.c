@@ -963,6 +963,7 @@ int main(int argc, char *argv[])
 	     MAX_WHITE, max_border_white, min_border_white, min_gray_at_white_border);
       printf("  outside_hi  %g, max_thickness %g, max_gray_scale %g,  max_gray %g\n",
 	     outside_hi, max_thickness, max_gray_scale, max_gray); fflush(stdout);
+      // MRIScomputeBorderValues() will effectively set all v->marked=1 for all unripped vertices
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
@@ -1039,7 +1040,7 @@ int main(int argc, char *argv[])
 
     if(vavgs) {
       fprintf(stdout,"averaging target values for %d iterations...\n",vavgs) ;
-      // Does this do anything given that fix_midline() zeroed all the v->marked?
+      // MRIScomputeBorderValues() sets v->marked=1 for all unripped
       MRISaverageMarkedVals(mris, vavgs) ;
       if (Gdiag_no > 0){
         VERTEX *v ;
