@@ -56,7 +56,7 @@ if( $1 == "--help") then
   echo "   (the argument [SUBJECT_DIR] is only necessary if the"
   echo "    environment variable has not been set)"
   echo " "
-  echo "FILE_ADDITIONAL_SCAN is the additional scan in Nifti (.nii/.nii.gz) ot FreeSurfer"
+  echo "FILE_ADDITIONAL_SCAN is the additional scan in Nifti (.nii/.nii.gz) or FreeSurfer"
   echo "format (.mgh/.mgz)."
   echo " "
   echo "ANALYSIS_ID is a user defined identifier that makes it possible to run different"
@@ -292,6 +292,26 @@ foreach hemi ($hippohemilist)
     rm -f $IsRunningFile
     exit 1;
   endif
+end
+
+# Convert the txt files into a stats file so that asegstats2table can
+# be run Note: the number of voxels is set to 0 and there is no info
+# about intensity. The only useful info is the volume in mm and the
+# structure name. The segmentation IDs also do not mean anything. 
+# Could run mri_segstats instead, but the volumes would not include
+# partial volume correction.
+
+
+  set suffix2 = $SUFFIX.
+foreach hemi (lh rh)
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T2.$SUFFIX.$ANALYSISID.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/hipposubfields.$hemi.T2.$SUFFIX.$ANALYSISID.stats
+  echo "# Hippocampal subfield volumes as created by segmentHA_T2.sh" > $stats
+  cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T2.$SUFFIX.$ANALYSISID.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/amygdalar-nuclei.$hemi.T2.$SUFFIX.$ANALYSISID.stats
+  echo "# Amygdala nuclei volumes as created by segmentHA_T2.sh" > $stats
+  cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 end
  
 # All done!

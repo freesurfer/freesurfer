@@ -70,12 +70,17 @@ int UnitizeNormalFace = 1;
 extern int UnitizeNormalFace;
 #endif
 
+#ifdef _MRISURF_SRC
 // This variable can be used to turn on the hires options
 // in MRIScomputeBorderValues_new()
-#ifdef _MRISURF_SRC
 int BorderValsHiRes = 0;
+// This is used to record the actual value and difference
+// into v->valbak and v->val2bak when running mrisRmsValError()
+// for debugging or evaluation purposes.
+int RmsValErrorRecord = 0;
 #else
 extern int BorderValsHiRes;
+extern int RmsValErrorRecord;
 #endif
 
 typedef struct _area_label
@@ -1360,6 +1365,8 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) ;
+int MRIScountRipped(MRIS *mris);
+int MRIScountAllMarked(MRIS *mris);
 int          MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris,
@@ -2564,6 +2571,7 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
+double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 
 // for sorting vertices using qsort
 typedef struct{

@@ -159,7 +159,7 @@ public:
   template <typename T>
   T retrieve(const String& name) {
     String unstripped = unstrip(name);
-    if (index.count(unstripped) == 0) errExit(1) << "'" << unstripped << "' is not a known argument";
+    if (index.count(unstripped) == 0) fs_fatal(1) << "'" << unstripped << "' is not a known argument";
     size_t N = index[unstripped];
     T retrieved;
     // try to cast the arguments
@@ -175,11 +175,11 @@ public:
         fulltype = "std::vector<" + arguments[N].typeName() + ">";
         sentence_starter = "These inputs are";
       }
-      errExit(1) << "invalid cast of argument '" << name << "'. " << sentence_starter << " of type '"
-                 << arguments[N].typeName() << "' and should be retrieved via " << Log::dim()
-                 << "retrieve<" << fulltype << ">(\"" << name << "\")" << Log::reset() << ". " 
-                 << "To change the expected type, modify the call to "
-                 << Log::dim() << "addArgument()" << Log::reset();
+      fs_fatal(1) << "invalid cast of argument '" << name << "'. " << sentence_starter << " of type '"
+                  << arguments[N].typeName() << "' and should be retrieved via " << fs::term::dim()
+                  << "retrieve<" << fulltype << ">(\"" << name << "\")" << fs::term::reset() << ". " 
+                  << "To change the expected type, modify the call to "
+                  << fs::term::dim() << "addArgument()" << fs::term::reset();
     }
     return retrieved;
   }
