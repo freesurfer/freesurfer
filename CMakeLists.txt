@@ -1,4 +1,3 @@
-# WARNING: this is in development and should not yet be used to replace automake
 
 # before starting the project, set gcc/g++ as default
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
@@ -35,9 +34,7 @@ endif()
 
 # allow reading installation dir from environment var, but if not defined,
 # then override default install dir /usr/local (too messy to install there)
-if(DEFINED FS_INSTALL_DIR)
-  set(CMAKE_INSTALL_PREFIX "${FS_INSTALL_DIR}" CACHE INTERNAL "Copied from -DFS_INSTALL_DIR")
-else()
+if(NOT DEFINED FS_INSTALL_DIR)
   if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
     set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE INTERNAL "Copied from environment variable")
   else()
@@ -65,16 +62,19 @@ if(NOT DEFINED FS_PACKAGES_DIR)
 endif()
 
 if(NOT FS_PACKAGES_DIR)
-  if(EXISTS /usr/pubsw/packages)
+  if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
+    # check if FS_PACKAGES_DIR has been set 
+    set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from FS_PACKAGES_DIR environment variable")
+  elseif(EXISTS /usr/pubsw/packages)
     # if the user is at Martinos, default to /usr/pubsw/packages
-    set(FS_PACKAGES_DIR /usr/pubsw/packages)
+    set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
+    # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     if(APPLE)
       set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/osx10.11-packages.tar.gz")
     else()
       set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz")
     endif()
-    # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
                         "Required FS dependencies can be built locally by running:\n"
                         "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
