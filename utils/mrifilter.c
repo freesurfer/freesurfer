@@ -4529,12 +4529,17 @@ MRI *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst, MRI *mri_gaus
 
   return (mri_dst);
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
+/*! -----------------------------------------------------
+  \fn MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
+  \param mri_src - binarized volume
+  \parm mri_dst - trinerized output (MRI_AMBIGUOUS, MRI_WHITE MRI_NOT_WHITE)
+  \brief Trinerizes the output. If an input voxel is MRI_WHITE and one
+  of its neighbors is MRI_NOT_WHITE, then the output set to MRI_WHITE.
+  If an input voxel is MRI_NOT_WHITE and one of its neighbors is
+  MRI_WHITE, then the output set to MRI_NOT_WHITE. All other voxels
+  are set to MRI_AMBIGUOUS. Basically, it is marking the boundaries
+  between white and not white. In practice (eg, mris_make_surfaces),
+  mri_src is often wm.mgz, which could give inaccurate segmentation.
 ------------------------------------------------------*/
 MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
 {
@@ -4614,7 +4619,7 @@ MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
           else if (dlabel == MRI_NOT_WHITE) {
             ng++;
           }
-          *pdst++ = dlabel;
+          *pdst++ = dlabel; // assign value of voxel to dlabel
         }
       }
     }
@@ -5052,16 +5057,24 @@ MRI *MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0, float 
   }
   return (mri_dst);
 }
-/*-----------------------------------------------------
-        Parameters:
-          setting gray_low <0 disables the intensity range checking.
-          This is useful for images with contrast that is inverted with
-          respect to normal T1-weighted in vivo scans.
+/*!
+  \fn int MRIcomputeClassStatistics()
+  \brief Computes the mean and stddev of WM and NOT_WM (ie, GM) classes
+  \param mri_T1 - volume of T1 intensities in the range of 0-255
+  \param mri_labeled - binary volume of WM voxels (wm.mgz)
+  \param gray_low (eg,  30) - not necessarily for gray (see mris_make_surfaces)
+  \param gray_hi  (eg, 110) - not necessarily for gray (see mris_make_surfaces)
 
-        Returns value:
+  The mri_labeled is first reduced to boundary voxels that are either WM or NOT WM. 
+  The segmentation is further refined with WM voxels needing to have an intensity
+  greather than (gray_low+gray_hi)/2 (~70) and NOT WM voxels needing to be
+  between gray_low (30) and gray_high (110). Seems like it would be better to
+  do this with the aseg.
 
-        Description
-------------------------------------------------------*/
+  Setting gray_low <0 disables the intensity range checking.  This is
+  useful for images with contrast that is inverted with respect to
+  normal T1-weighted in vivo scans.
+  ------------------------------------------------------*/
 int MRIcomputeClassStatistics(MRI *mri_T1,
                               MRI *mri_labeled,
                               float gray_low,
@@ -5089,6 +5102,8 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   HISTOinit(h_gray, h_gray->nbins, 0, 0);
   HISTOinit(h_white, h_white->nbins, 0, 0);
 
+  // This labels two classes (WM and NOT_WM) along the border of WM.
+  // All other voxels are labeled as ambiguous.
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     MRIwrite(mri_border, "border.mgz");
@@ -5104,7 +5119,6 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   nwhite = ngray = 0;
   
   // Measurement showed this not worth improving
-  //
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(serial)
@@ -5186,15 +5200,10 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   white_mean /= (double)nwhite;
   white_std = sqrt(white_std / (double)nwhite - white_mean * white_mean);
   gray_std = sqrt(gray_std / (double)ngray - gray_mean * gray_mean);
-  fprintf(stderr,
-          "WM (%2.1f): %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
-          white_mode,
-          white_mean,
-          white_std,
-          white_min,
-          white_max);
-  fprintf(
-      stderr, "GM (%2.1f) : %2.1f +- %2.1f [%2.1f --> %2.1f]\n", gray_mode, gray_mean, gray_std, gray_min, gray_max);
+  printf("CCS WM (%2.1f): %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
+          white_mode, white_mean, white_std, white_min, white_max);
+  printf("CCS GM (%2.1f) : %2.1f +- %2.1f [%2.1f --> %2.1f]\n", 
+    gray_mode, gray_mean, gray_std, gray_min, gray_max);
   MRIfree(&mri_border);
   *pmean_wm = white_mode;
   *pmean_gm = gray_mode;
