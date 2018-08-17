@@ -4,7 +4,6 @@
 #include "itkDefaultStaticMeshTraits.h"
 #include "itkMesh.h"
 #include "itkTriangleCell.h"
-//#include "itkMeshFileWriter.h"
 #include <set>
 #include "GetPot.h"
 #include <string>
@@ -19,15 +18,6 @@ extern "C" {
 
 int main(int narg, char*  arg[])
 {
-
-/*COLOR_TABLE *ct;
-
-  FSENV *fsenv = FSENVgetenv();
-  char tmpstr[2000];
-  sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
-  ct = CTABreadASCII(tmpstr);
-  */
-
 	try{
 
 		constexpr unsigned int Dimension = 3;
@@ -36,11 +26,8 @@ int main(int narg, char*  arg[])
 		typedef MeshType::PointsContainer PointsContainer;
 		typedef MeshType::PointType PointType;
 		typedef MeshType::PointIdentifier PointIdentifier;
-	
-//		typedef itk::MeshFileWriter< MeshType > MeshWriterType;
-
- 		typedef MeshType::CellType CellType;
-  		typedef itk::TriangleCell< CellType > TriangleType;
+		typedef MeshType::CellType CellType;
+		typedef itk::TriangleCell< CellType > TriangleType;
 
 		GetPot cl(narg, const_cast<char**>(arg));
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -52,18 +39,14 @@ int main(int narg, char*  arg[])
 		const char *inSurf= cl.follow ("", "-i");
 		const char *outSurf = cl.follow ("", "-o");
 
-		
+
 		MRI_SURFACE *surf;
 		surf = MRISread(inSurf);
 
-  
+
 		MeshType::Pointer mesh = MeshType::New();
-
-
 		PointsContainer::Pointer points = PointsContainer::New();
 		points->Reserve( surf->nvertices );
-
-		PointIdentifier k = 0;
 
 		for( int i = 0; i < surf->nvertices; i++ )
 		{
@@ -75,7 +58,7 @@ int main(int narg, char*  arg[])
 		}
 
 		mesh->SetPoints( points );
-  CellType::CellAutoPointer cellpointer;
+		CellType::CellAutoPointer cellpointer;
 
 		for( int i = 0; i < surf->nfaces; i++ )
 		{
@@ -91,14 +74,7 @@ int main(int narg, char*  arg[])
 		writer->SetInput(mesh);
 		writer->SetFileName(outSurf);
 		writer->Update();
-
-
-		/*MeshWriterType::Pointer writer = MeshWriterType::New();
-		writer->SetFileName( outSurf);
-		writer->SetInput( mesh );
-		writer->Update();
-	*/
-
+	
 	}catch(...)
 	{
 		std::cout << "Error --> ";
