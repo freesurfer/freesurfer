@@ -91,9 +91,11 @@ endfunction()
 function(install_osx_app APP_PATH)
   get_filename_component(APP_NAME ${APP_PATH} NAME)
   install(CODE "
-    message(STATUS \"Copying OS X Application: ${APP_NAME} to ${CMAKE_INSTALL_PREFIX}/bin\")
+    message(STATUS \"Copying OS X Application: ${APP_NAME} to ${CMAKE_INSTALL_PREFIX}/bin/${APP_NAME}\")
     execute_process(
-      COMMAND bash -c \"cp -RL ${CMAKE_CURRENT_SOURCE_DIR}/${APP_PATH} ${CMAKE_INSTALL_PREFIX}/bin\"
+      COMMAND bash -c \"
+        cp -RL ${CMAKE_CURRENT_SOURCE_DIR}/${APP_PATH} ${CMAKE_INSTALL_PREFIX}/bin &&
+        chmod -R 755 ${CMAKE_INSTALL_PREFIX}/bin/${APP_NAME}\"
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
