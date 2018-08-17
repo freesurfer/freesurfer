@@ -546,6 +546,15 @@ while( $#argv != 0 )
       set FSFAST = 0;
       breaksw     
 
+    case "-no-rescale-dicom"
+      setenv FS_RESCALE_DICOM 0
+      breaksw     
+
+    case "-rescale-dicom"
+      # This is currently the default for mri_convert
+      setenv FS_RESCALE_DICOM 1
+      breaksw     
+
     case "-fips":
       if($#argv < 4) goto arg4err;
       set Project = "$argv[1]"; shift;
@@ -797,6 +806,8 @@ usage_exit:
   echo "   -itdicom : add -it dicom to mri_convert cmd line"
   echo "   -no-exit-on-error : continue to unpack data even if there is an error in coversion"
   echo "   -run-skip runno : skip a given run (good when using -auto-runseq)"
+  echo "   -no-rescale-dicom : turn off DICOM rescaling based on tags (0028,1052) (0028,1053)"
+  echo "   -rescale-dicom : turn it on (default)"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
