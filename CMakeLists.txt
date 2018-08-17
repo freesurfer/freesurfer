@@ -10,7 +10,7 @@ enable_language(C CXX Fortran)
 # a few build options
 option(BUILD_GUIS "Build GUIs" ON)
 if(APPLE)
-   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
+  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
 
 # enable ctest
