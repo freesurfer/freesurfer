@@ -9,7 +9,7 @@ from samseg.process_timer import ProcessTimer
 from samseg.register_atlas_ported import samseg_registerAtlas
 from samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options, \
     find_samseg_data_dir
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 from samseg.samseg_ported import samsegment
 from samseg.show_figures import DoNotShowFigures, ShowFigures
@@ -87,7 +87,7 @@ def run_samseg(
     # the point where memory becomes the bottle neck.
     # If the following command is not provided, the number of cores on your system will be used
     if numberOfThreads is not None:
-        GEMS2Python.setGlobalDefaultNumberOfThreads(numberOfThreads)
+        gems.setGlobalDefaultNumberOfThreads(numberOfThreads)
 
     # Affine registration
     templateFileName = os.path.join(samsegDataDir, 'template.nii')

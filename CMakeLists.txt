@@ -309,6 +309,7 @@ add_subdirectories(vtkfsio vtkutils lineprof)
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
+add_subdirectories(GEMS2)
 
 # --------------------------------------------------
 #                      programs
@@ -639,12 +640,14 @@ add_subdirectories(
   oct_register_mosaic
   oct_train
   optseq2
+  python
   qdecproject
   qdec
   qdec_glmfit
   rbftest
   regdat2xfm
   repair_siemens_file
+  samseg
   scripts
   spherical_stats
   spline3

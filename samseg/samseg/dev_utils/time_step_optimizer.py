@@ -1,5 +1,5 @@
 import numpy as np
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 from samseg.dev_utils.rasterize_mesh import show_result, create_mesh
 from samseg.process_timer import ProcessTimer
@@ -21,7 +21,7 @@ def full_optimizer_test():
 
 
 def measure_optimizer_step_time(mesh=None, thread_count=1, repeat_count=3):
-    GEMS2Python.setGlobalDefaultNumberOfThreads(thread_count)
+    gems.setGlobalDefaultNumberOfThreads(thread_count)
     test_parts = make_test_parts(mesh)
     optimizer = test_parts['optimizer']
     process_timer = ProcessTimer()
@@ -39,7 +39,7 @@ def make_test_parts(mesh=None):
     image = create_image()
     calculator = create_calculator(image)
     optimization_parameters = create_optimization_parameters()
-    optimizer = GEMS2Python.KvlOptimizer(
+    optimizer = gems.KvlOptimizer(
         'L-BFGS',
         mesh,
         calculator,
@@ -54,12 +54,12 @@ def make_test_parts(mesh=None):
 
 
 def create_calculator(image):
-    return GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
+    return gems.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
 
 
 def create_image():
     image_file_name = IMAGE_FILE_NAME
-    return GEMS2Python.KvlImage(image_file_name)
+    return gems.KvlImage(image_file_name)
 
 
 def create_optimization_parameters():

@@ -1,6 +1,6 @@
 import logging
 
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 import numpy as np
 
@@ -12,7 +12,7 @@ def transform_product(a, b):
     bb = b.as_numpy_array
     ab = np.dot(aa, bb)
     ab_f = np.asfortranarray(ab)
-    return GEMS2Python.KvlTransform(ab_f)
+    return gems.KvlTransform(ab_f)
 
 
 def voxel_spacing_of_transform(t):
@@ -33,7 +33,7 @@ def calculate_down_sampling_factors(transform, target_voxel_spacing):
 
 
 def create_transform_from_2d_list(list_2d):
-    return GEMS2Python.KvlTransform(np.array(list_2d, dtype=np.double, order='F'))
+    return gems.KvlTransform(np.array(list_2d, dtype=np.double, order='F'))
 
 
 def create_translation_transform(offsets):

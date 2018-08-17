@@ -1,6 +1,5 @@
 import logging
-
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 import numpy as np
 import scipy.io
@@ -59,7 +58,7 @@ def samsegment_part2(
     numberOfGaussiansPerClass = part1_results_dict['numberOfGaussiansPerClass']
     transformMatrix = part1_results_dict['transformMatrix']
     voxelSpacing = part1_results_dict['voxelSpacing']
-    transform = GEMS2Python.KvlTransform(np.asfortranarray(transformMatrix))
+    transform = gems.KvlTransform(np.asfortranarray(transformMatrix))
     names_for_merged_data = merged_names(modelSpecifications)
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
@@ -104,10 +103,10 @@ def samsegment_part2(
 
         totalTransformationMatrix = downSamplingTransformMatrix @ transform.as_numpy_array
 
-        mesh_collection = GEMS2Python.KvlMeshCollection()
+        mesh_collection = gems.KvlMeshCollection()
         mesh_collection.read(optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
         mesh_collection.k = modelSpecifications.K
-        mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(totalTransformationMatrix)))
+        mesh_collection.transform(gems.KvlTransform(require_np_array(totalTransformationMatrix)))
 
         mesh = mesh_collection.reference_mesh
 
@@ -427,11 +426,11 @@ def samsegment_part2(
             #
             downSampledBiasCorrectedImages = []
             for contrastNumber in range(numberOfContrasts):
-                downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
+                downSampledBiasCorrectedImages.append(gems.KvlImage(
                     require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
 
             # Set up cost calculator
-            calculator = GEMS2Python.KvlCostAndGradientCalculator(
+            calculator = gems.KvlCostAndGradientCalculator(
                 typeName='AtlasMeshToIntensityImage',
                 images=downSampledBiasCorrectedImages,
                 boundaryCondition='Sliding',
@@ -449,7 +448,7 @@ def samsegment_part2(
                 'MaximumNumberOfIterations': optimizationOptions.maximumNumberOfDeformationIterations,
                 'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
             }
-            optimizer = GEMS2Python.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
+            optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
             historyOfDeformationCost = [];
             historyOfMaximalDeformation = [];
             nodePositionsBeforeDeformation = mesh.points

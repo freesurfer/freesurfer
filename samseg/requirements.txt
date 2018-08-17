@@ -1,4 +1,4 @@
-gems2python==0.1.0
+gems==0.1.0
 nibabel==2.2.1
 py==1.5.2
 pytest==3.2.5

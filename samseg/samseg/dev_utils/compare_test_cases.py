@@ -1,4 +1,4 @@
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 
 from samseg.dev_utils.debug_client import create_part1_inspection_team, \
@@ -29,8 +29,8 @@ def compare_single_case(case_name, case_file_folder, savePath):
 def compare_template_files():
     matlab_file_name = '/home/willy/work/cm/innolitics_testing/buckner40/matlab_temp_data/004/template_coregistered.nii'
     python_file_name = '/home/willy/work/cm/innolitics_testing/buckner40/python_temp_data/004/template_coregistered.nii'
-    matlab_image = GEMS2Python.KvlImage(matlab_file_name)
-    python_image = GEMS2Python.KvlImage(python_file_name)
+    matlab_image = gems.KvlImage(matlab_file_name)
+    python_image = gems.KvlImage(python_file_name)
     matlab_transform_matrix = matlab_image.transform_matrix.as_numpy_array
     python_transform_matrix = python_image.transform_matrix.as_numpy_array
     matlab_image_buffer = matlab_image.getImageBuffer()

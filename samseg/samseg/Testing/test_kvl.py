@@ -1,4 +1,4 @@
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -21,8 +21,8 @@ def test_transform_product():
         [0, 0, 0, 1],
     ], dtype=np.double, order='F')
 
-    transform_a = GEMS2Python.KvlTransform(matrix_a)
-    transform_b = GEMS2Python.KvlTransform(matrix_b)
+    transform_a = gems.KvlTransform(matrix_a)
+    transform_b = gems.KvlTransform(matrix_b)
 
     matrix_ab = np.dot(matrix_a, matrix_b)
     transform_ab = transform_product(transform_a, transform_b)
@@ -32,7 +32,7 @@ def test_transform_product():
 
 
 def test_voxel_spacing_of_transform():
-    test_matrix = GEMS2Python.KvlTransform(np.array([
+    test_matrix = gems.KvlTransform(np.array([
         [200, 300, 500, 999],
         [20, 30, 50, 999],
         [2, 3, 5, 999],
@@ -46,7 +46,7 @@ def test_voxel_spacing_of_transform():
 
 
 def test_calculate_down_sampling_factors():
-    test_matrix = GEMS2Python.KvlTransform(np.array([
+    test_matrix = gems.KvlTransform(np.array([
         [10, 0, 0, 0],
         [0, 20, 0, 0],
         [0, 0, 30, 0],

@@ -1,5 +1,5 @@
 import logging
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 import numpy as np
 import scipy.ndimage
@@ -53,9 +53,9 @@ def samseg_registerAtlas(imageFileName,
         print('No init.lta file')
 
     # Read in image and template, as well as their coordinates in world (mm) space
-    image = GEMS2Python.KvlImage(imageFileName)
+    image = gems.KvlImage(imageFileName)
     imageToWorldTransformMatrix = image.transform_matrix.as_numpy_array
-    template = GEMS2Python.KvlImage(templateFileName)
+    template = gems.KvlImage(templateFileName)
 
     templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
     basepath, templateFileNameExtension = os.path.splitext(templateFileName)
@@ -116,10 +116,10 @@ def samseg_registerAtlas(imageFileName,
         downSamplingFactors[downSamplingFactors < 1] = 1
         # Use initial transform to define the reference (rest) position of the mesh (i.e., the one
         # where the log-prior term is zero)
-        mesh_collection = GEMS2Python.KvlMeshCollection()
+        mesh_collection = gems.KvlMeshCollection()
         mesh_collection.read(meshCollectionFileName)
         mesh_collection.k = K * np.prod(downSamplingFactors)
-        mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(initialImageToImageTransformMatrix)))
+        mesh_collection.transform(gems.KvlTransform(require_np_array(initialImageToImageTransformMatrix)))
         mesh = mesh_collection.reference_mesh
         #   % Get image data
         imageBuffer = image.getImageBuffer()
@@ -129,14 +129,14 @@ def samseg_registerAtlas(imageFileName,
                       ::int(downSamplingFactors[0]),
                       ::int(downSamplingFactors[1]),
                       ::int(downSamplingFactors[2])]
-        image = GEMS2Python.KvlImage(require_np_array(imageBuffer))
+        image = gems.KvlImage(require_np_array(imageBuffer))
         mesh.scale(1 / downSamplingFactors)
         alphas = mesh.alphas
         gmClassNumber = 3  # Needed for displaying purposes
         numberOfClasses = alphas.shape[1]
         visualizer.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
         # Get a registration cost and use it to evaluate some promising starting point proposals
-        calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
+        calculator = gems.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
         priors = mesh.rasterize_atlas(imageBuffer.shape)
@@ -164,7 +164,7 @@ def samseg_registerAtlas(imageFileName,
             'LineSearchMaximalDeformationIntervalStopCriterion': lineSearchMaximalDeformationIntervalStopCriterion,
             'BFGS-MaximumMemoryLength': 12.0  # Affine registration only has 12 DOF
         }
-        optimizer = GEMS2Python.KvlOptimizer(
+        optimizer = gems.KvlOptimizer(
             'L-BFGS',
             mesh,
             calculator,
@@ -314,7 +314,7 @@ def save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransfor
         imageToWorldTransformMatrix @ imageToImageTransformMatrix)
     transformedTemplateFileName = os.path.join(savePath,
                                                templateFileNameBase + '_coregistered' + templateFileNameExtension)
-    template.write(transformedTemplateFileName, GEMS2Python.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
+    template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
     return transformedTemplateFileName
 
 

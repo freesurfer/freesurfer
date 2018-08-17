@@ -18,6 +18,7 @@ cmake ../ITK-5.0a01 \
   -DITKGroup_Core=ON \
   -DITKGroup_Filtering=ON \
   -DITKGroup_Segmentation=ON \
+  -DModule_AnisotropicDiffusionLBR=ON \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse" \
   -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \

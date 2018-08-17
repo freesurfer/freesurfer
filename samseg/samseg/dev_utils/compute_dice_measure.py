@@ -1,7 +1,5 @@
 import os
-
-from gems2python import GEMS2Python
-
+import freesurfer.gems as gems
 
 from samseg.dev_utils.debug_client import run_test_cases, compare_ndarray_dice, create_checkpoint_manager
 
@@ -55,7 +53,7 @@ def find_image_and_path(case_dir, case_name=None, leaf_name=RESULT_LEAF_NAME):
         case_dir = os.path.join(case_dir, case_name)
     file_path = os.path.join(case_dir, leaf_name)
     if os.path.isfile(file_path):
-        image_buffer = GEMS2Python.KvlImage(file_path).getImageBuffer()
+        image_buffer = gems.KvlImage(file_path).getImageBuffer()
         return image_buffer, file_path
     else:
         return None, file_path

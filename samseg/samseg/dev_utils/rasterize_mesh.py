@@ -1,5 +1,5 @@
 import numpy as np
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 from samseg.process_timer import ProcessTimer
 
@@ -14,18 +14,18 @@ def create_mesh(mesh_collection_file_name=MESH_COLLECTION_NAME):
     scaling = 0.9
     scalingMatrix = np.diag([scaling, scaling, scaling, 1.0])
     initialWorldToWorldTransformMatrix = scalingMatrix
-    mesh_collection = GEMS2Python.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(mesh_collection_file_name)
     K = 1e-7
     K = K / (scaling * scaling * scaling)
     mesh_collection.k = K
-    mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(initialWorldToWorldTransformMatrix)))
+    mesh_collection.transform(gems.KvlTransform(require_np_array(initialWorldToWorldTransformMatrix)))
     mesh = mesh_collection.reference_mesh
     return mesh
 
 def rasterize_a_mesh(mesh_collection_file_name, thread_count=1, repeat_count=10):
     mesh = create_mesh(mesh_collection_file_name)
-    GEMS2Python.setGlobalDefaultNumberOfThreads(thread_count)
+    gems.setGlobalDefaultNumberOfThreads(thread_count)
     imageSize = [200, 200, 200]
     process_timer = ProcessTimer()
     for _ in range(repeat_count):

@@ -1,7 +1,5 @@
 import os
-
-from gems2python import GEMS2Python
-
+import freesurfer.gems as gems
 import numpy as np
 
 from samseg.bias_correction import backprojectKroneckerProductBasisFunctions
@@ -55,7 +53,7 @@ def samsegment_part3(
     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
         part2_results_dict['nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel']
     variances = part2_results_dict['variances']
-    transform = GEMS2Python.KvlTransform(np.asfortranarray(part2_results_dict['transformMatrix']))
+    transform = gems.KvlTransform(np.asfortranarray(part2_results_dict['transformMatrix']))
 
     nonCroppedImageSize = [int(dim) for dim in nonCroppedImageSize]
     croppingOffset = [int(offset) for offset in croppingOffset]
@@ -74,7 +72,7 @@ def samsegment_part3(
         biasFields[:, :, :, contrastNumber] = biasField
         
     # Read the atlas, applying the affine registration transform
-    mesh_collection = GEMS2Python.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(modelSpecifications.atlasFileName)
     mesh_collection.k = modelSpecifications.K
     mesh_collection.transform(transform)
@@ -155,9 +153,9 @@ def samsegment_part3(
     croppingOffset[1]: imageSize[1] + croppingOffset[1],
     croppingOffset[2]: imageSize[2] + croppingOffset[2]] = freeSurferSegmentation
     print('Writing out freesurfer segmentation')
-    GEMS2Python.KvlImage(require_np_array(uncroppedFreeSurferSegmentation)).write(
+    gems.KvlImage(require_np_array(uncroppedFreeSurferSegmentation)).write(
         os.path.join(savePath, 'crispSegmentation.nii'),
-        GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+        gems.KvlTransform(require_np_array(imageToWorldTransformMatrix))
     )
     
     # Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
@@ -173,9 +171,9 @@ def samsegment_part3(
             croppingOffset[2]:croppingOffset[2] + imageSize[2],
         ] = np.exp(biasFields[:, :, :, contrastNumber]) * mask
         outputFileName = os.path.join(savePath, scanName + '_biasField.nii')
-        GEMS2Python.KvlImage(biasField).write(
+        gems.KvlImage(biasField).write(
             outputFileName,
-            GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+            gems.KvlTransform(require_np_array(imageToWorldTransformMatrix))
         )
         
         #  Then bias field corrected data
@@ -186,9 +184,9 @@ def samsegment_part3(
             croppingOffset[2]:croppingOffset[2] + imageSize[2],
         ] = np.exp(biasCorrectedImageBuffers[:, :, :, contrastNumber])
         outputFileName = os.path.join(savePath, scanName + '_biasCorrected.nii')
-        GEMS2Python.KvlImage(biasCorrected).write(
+        gems.KvlImage(biasCorrected).write(
             outputFileName,
-            GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+            gems.KvlTransform(require_np_array(imageToWorldTransformMatrix))
         )
     return {
         'FreeSurferLabels': FreeSurferLabels,

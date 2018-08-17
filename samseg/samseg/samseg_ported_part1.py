@@ -2,7 +2,7 @@ import math
 from functools import reduce
 from operator import mul
 
-from gems2python import GEMS2Python
+import freesurfer.gems as gems
 
 import numpy as np
 
@@ -43,7 +43,7 @@ def samsegment_part1(
     images = []
     for imageFileName in imageFileNames:
         # Get the pointers to image and the corresponding transform
-        image = GEMS2Python.KvlImage(imageFileName, transformedTemplateFileName)
+        image = gems.KvlImage(imageFileName, transformedTemplateFileName)
         transform = image.transform_matrix
         nonCroppedImageSize = image.non_cropped_image_size
         croppingOffset = image.cropping_offset
@@ -58,7 +58,7 @@ def samsegment_part1(
 
     # Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling
     # steps etc in mm.
-    nonCroppedImage = GEMS2Python.KvlImage(imageFileNames[0])
+    nonCroppedImage = gems.KvlImage(imageFileNames[0])
     imageToWorldTransformMatrix = nonCroppedImage.transform_matrix.as_numpy_array
     voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
 
@@ -71,7 +71,7 @@ def samsegment_part1(
     #
     # You also need to provide a value for K, which determines the flexibility of the atlas mesh, i.e., how
     # much it will typically deform. Higher values correspond to stiffer meshes.
-    meshCollection = GEMS2Python.KvlMeshCollection()
+    meshCollection = gems.KvlMeshCollection()
     meshCollection.read(modelSpecifications.atlasFileName)
     meshCollection.k = modelSpecifications.K
     meshCollection.transform(transform)
@@ -104,7 +104,7 @@ def samsegment_part1(
         title='Samsegment Background Priors'
     )
     smoothingSigmas = [1.0 * modelSpecifications.brainMaskingSmoothingSigma] * 3
-    smoothedBackgroundPrior = GEMS2Python.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
+    smoothedBackgroundPrior = gems.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
     visualizer.show(
         probabilities=smoothedBackgroundPrior,
         window_id='samsegment smoothed',
