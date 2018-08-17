@@ -11,9 +11,7 @@ install_symlinks(
   DESTINATION average
 )
 
-if(NMR_INSTALL)
-  install_symlinks(aseg+spmhead.ixi.gca TYPE files DESTINATION average)
-endif()
+install_symlinks(aseg+spmhead.ixi.gca TYPE files DESTINATION average NMR_ONLY)
 
 # GCS
 install_symlinks(
@@ -75,9 +73,7 @@ install_symlinks(
   DESTINATION average
 )
 
-if(NMR_INSTALL)
-  install_symlinks(HPMarch022005_ras.mgz TYPE files DESTINATION average)
-endif()
+install_symlinks(HPMarch022005_ras.mgz TYPE files DESTINATION average NMR_ONLY)
 
 # DAT
 install_symlinks(
@@ -93,9 +89,7 @@ install_symlinks(
   DESTINATION average
 )
 
-if(NMR_INSTALL)
-  install_symlinks(mni152.1mm.register.dat TYPE files DESTINATION average)
-endif()
+install_symlinks(mni152.1mm.register.dat TYPE files DESTINATION average NMR_ONLY)
 
 # unpack subjects
 install_tarball(fsaverage.tar.gz DESTINATION subjects)

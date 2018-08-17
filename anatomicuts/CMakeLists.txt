@@ -10,6 +10,7 @@ if(ITK_FOUND AND VTK_FOUND)
     ${VTK_INCLUDE_DIRS}
     Code
     ${FS_INCLUDE_DIRS}
+    #${FS_INCLUDE_DIRS}/utils/
     ${CMAKE_SOURCE_DIR}/freeview/track_io
   )
 
@@ -38,8 +39,8 @@ if(ITK_FOUND AND VTK_FOUND)
     trk_tools.cxx ../freeview/track_io/TrackIO.cpp
   )
   target_link_libraries(trk_tools.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  # install(TARGETS trk_tools.bin DESTINATION bin)
-  # install(PROGRAMS source_vtk_wrapper DESTINATION bin RENAME trk_tools)
+  install(TARGETS trk_tools.bin DESTINATION bin)
+  install(PROGRAMS trk_tools_wrapper DESTINATION bin RENAME trk_tools)
 
   
 endif()

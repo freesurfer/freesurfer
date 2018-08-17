@@ -152,14 +152,14 @@ install(FILES
   DESTINATION matlab
 )
 
-if(NMR_INSTALL)
-  install(FILES
-    read_meas_dat.m
-    read_meas_prot.m
-    read_meas_prot__struct.m
-    DESTINATION matlab
-  )
-endif()
+install(FILES
+  read_meas_dat.m
+  read_meas_prot.m
+  read_meas_prot__struct.m
+  DESTINATION matlab
+  COMPONENT nmr
+  EXCLUDE_FROM_ALL
+)
 
 # lme
 install(FILES
