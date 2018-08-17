@@ -33,13 +33,11 @@ endif()
 
 # allow reading installation dir from environment var, but if not defined,
 # then override default install dir /usr/local (too messy to install there)
-if(DEFINED FS_INSTALL_DIR)
-  set(CMAKE_INSTALL_PREFIX "${FS_INSTALL_DIR}" CACHE INTERNAL "Copied from -DFS_INSTALL_DIR")
-else()
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
-    set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE INTERNAL "Copied from environment variable")
+    set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE PATH "Copied from FS_INSTALL_DIR env variable" FORCE)
   else()
-    set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer")
+    set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer" CACHE PATH "Default install path" FORCE)
   endif()
 endif()
 
@@ -56,12 +54,6 @@ endif()
 # is not found under FS_PACKAGES_DIR, cmake will continue to look through the default search paths.
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
 # Note: FS_PACKAGES_DIR can be defined in an environment variable
-
-if(NOT DEFINED FS_PACKAGES_DIR)
-  if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
-    set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from environment variable")
-  endif()
-endif()
 
 if(NOT FS_PACKAGES_DIR)
   if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
