@@ -36329,6 +36329,12 @@ int MRIScomputeBorderValues(
 
 /*!
   \fn int MRIScomputeBorderValues_new()
+  \brief Computes the distance along the normal to the point of the maximum
+  gradient of the intensity as well as the intensity at this point. The
+  intensity will be used as a target intensity when placing the surface.
+  There are lots of rules employed to make sure that the point is not
+  in a crazy place (mostly that the value must be between border_low
+  and border_hi). 
   \param mris surface
     v->{x,y,z} is the current vertex coordinate
     v->{nx,ny,nz} is the normal to the current vertex
@@ -36336,10 +36342,10 @@ int MRIScomputeBorderValues(
   \param mri_brain - T1 weighted input volume (mri_T1)
   \param mri_smooth - not apparently used for anything (mri_smooth)
   \param inside_hi eg,  120 (MAX_WHITE)
-  \param border_hi eg,  115 (max_border_white)
-  \param border_low eg,  77 (min_border_white)
-  \param outside_low eg, 68 (min_gray_at_white_border)
-  \param outside_hi eg, 115 (outside_hi (often same as border_hi))
+  \param border_hi eg,  115 (max_border_white, MeanWM+1WMSTD)
+  \param border_low eg,  77 (min_border_white, MeanGM)
+  \param outside_low eg, 68 (min_gray_at_white_border, MeanGM-1GMSTD)
+  \param outside_hi eg, 115 (outside_hi (often same as border_hi), used?)
   \param sigma sets the range of smoothing to [sigma 10*sigma]
   \param max_thickness - (eg, 5) not really a thickness but a
     threshold in mm that limits how far away a target point can be
@@ -36355,7 +36361,7 @@ int MRIScomputeBorderValues(
   It does not appear that the annot is used in this function or its children
 
   The outputs are set in each vertex structure:
-      v->val2 = current_sigma; // smoothing level used to find the target
+      v->val2 = current_sigma; // smoothing level along gradient used to find the target
       v->val  = max_mag_val; // target intensity
       v->d = max_mag_dist;   // dist to target intensity along normal
       v->mean = max_mag;     // derive at target intensity
@@ -36484,6 +36490,7 @@ static int MRIScomputeBorderValues_new(
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
+	// Note clear what orig_dist is computing
         double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
         double val;
 
@@ -36509,7 +36516,8 @@ static int MRIScomputeBorderValues_new(
         
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
-          //Out side of intensity range, so break
+          // More intense than the expected range of WM. border_hi is
+          // 1std above the mean of WM.
           break;
         }
         if (mri_mask) {
@@ -36564,7 +36572,7 @@ static int MRIScomputeBorderValues_new(
             break; // break from distance loop
         } // end loop over distance
         inward_dist = dist;
-      } // end diag verbose
+      } // end if(BorderValsHiRes)
 
       // search outwards
       for (dist = 0; dist < max_thickness; dist += step_size) {
@@ -36589,7 +36597,8 @@ static int MRIScomputeBorderValues_new(
 
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val < border_low)
-          break;
+	  // Less intense than GM. border_low is the global mean (or mode) of GM
+          break; 
         if (mri_mask) {
           MRIsampleVolume(mri_mask, xw, yw, zw, &val);
           if (val > thresh) {
@@ -36646,6 +36655,9 @@ static int MRIScomputeBorderValues_new(
     int   numberOfSamples = 0;
     float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
+      // There must be a value in this distance range where 
+      // val >= border_low && val < border_hi
+      // val >= MeanGM && val < MeanWM+1StdWM
 
       // Get an intensity at dist outward along the normal
       double val;
@@ -36675,6 +36687,7 @@ static int MRIScomputeBorderValues_new(
       }
 
       if (previous_val < inside_hi && previous_val >= border_low) {
+	// inside_hi=120, boder_low=MeanGray
 	/* the "previous" point intensity was inside the acceptable intensity range */
       
         double xw, yw, zw;
@@ -36776,10 +36789,10 @@ static int MRIScomputeBorderValues_new(
 	    (val <= border_hi) && (val >= border_low)) {
 	  // Gradient maximum has been found if the grad at this
 	  // distance is greater than the grad at dist-STEP and
-	  // dist+STEP and the inensity is between BorderHi and
-	  // BorderLow.  Below determines whether the gradient is the
-	  // local maximum.
-          // double next_val;  // define with function scope
+	  // dist+STEP and the inensity is between BorderHi
+	  // (MeanWM+1WMSTD) and BorderLow (MeanGM).  Below determines
+	  // whether the gradient is the local maximum.  
+	  /* double next_val; // define with function scope*/
           double xw,yw,zw;
 	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
@@ -36799,6 +36812,9 @@ static int MRIScomputeBorderValues_new(
               (next_val <= border_hi  ) &&
               (next_val <= outside_hi ) &&
               (!local_max_found || (max_mag < fabs(mag)))) {
+	    // outside_low=MeanGM-1GMSTD
+	    // border_hi=MeanWM+1WMSTD
+	    // outside_hi=MeanWM+1WMSTD
             // beware, this is non-deterministic! if the max mag has equal fabs(), any could be chosen
             local_max_found = 1;
             max_mag_dist = dist; 
@@ -72969,6 +72985,21 @@ int MRIScomputeClassStatistics(
   }
   return (NO_ERROR);
 }
+
+/*
+  \fn int MRIScomputeClassModes()
+  \brief Computes the modes and stddevs of WM, GM, and CSF.  It goes
+  through the non-ripped vertices in the surface and samples the mri
+  at 1mm inside the white surface (WHITE_VERTICES) to get WM samples,
+  1mm outside the white surface to get GM values, and 0.5mm outside
+  the pial surface (PIAL_VERTICES) to get CSF samples. When CSF is
+  requested, GM samples are also obtained from 0.5mm inside the
+  pial. So the GM stats can change depending upon whether CSF stats
+  are or are not being computed (they will not be if pcsf_mode==NULL).
+  Once the samples of a class are obtained, they are histogrammed; the
+  mode is determined from the peak of the hist, the stddev is
+  determined by fitting a Gaussian to the hist.
+*/
 int MRIScomputeClassModes(MRI_SURFACE *mris,
                           MRI *mri,
                           float *pwhite_mode,
@@ -72983,6 +73014,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
   int nbins, b, vno, gray_peak, white_peak, csf_peak, bin;
   VERTEX *v;
   double val, x, y, z, xw, yw, zw;
+  double WM_SAMPLE_DIST = 1.0; //1mm hidden parameter
 
   MRIvalRange(mri, &min_val, &max_val);
   nbins = ceil(max_val - min_val) + 1;
@@ -73008,19 +73040,19 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
 
-#define WM_SAMPLE_DIST 1.0
+    // Project 1mm (WM_SAMPLE_DIST) into white matter
     x = v->x - WM_SAMPLE_DIST * v->nx;
     y = v->y - WM_SAMPLE_DIST * v->ny;
     z = v->z - WM_SAMPLE_DIST * v->nz;
     MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw);
-
     MRIsampleVolume(mri, xw, yw, zw, &val);
     bin = nint(val - min_val);
     if (bin < 0 || bin >= h_white->nbins) {
       DiagBreak();
     }
-    h_white->counts[bin]++;
+    h_white->counts[bin]++; // add to the WM bin
 
+    // Project 1mm into gray matter
     x = v->x + 1.0 * v->nx;
     y = v->y + 1.0 * v->ny;
     z = v->z + 1.0 * v->nz;
@@ -73030,7 +73062,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
     if (bin < 0 || bin >= h_gray->nbins) {
       DiagBreak();
     }
-    h_gray->counts[bin]++;
+    h_gray->counts[bin]++;  // add to the GM bin
   }
 
   if (pcsf_mode) {
@@ -73045,6 +73077,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
         DiagBreak();
       }
 
+      // Project 0.5mm into GM (from pial)
       x = v->x - 0.5 * v->nx;
       y = v->y - 0.5 * v->ny;
       z = v->z - 0.5 * v->nz;
@@ -73055,9 +73088,10 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
         if (bin < 0 || bin >= h_gray->nbins) {
           DiagBreak();
         }
-        h_gray->counts[bin]++;
+        h_gray->counts[bin]++; // add to the GM bin
       }
 
+      // Project 0.5mm into extrcerebral CSF (from pial)
       x = v->x + 0.5 * v->nx;
       y = v->y + 0.5 * v->ny;
       z = v->z + 0.5 * v->nz;
@@ -73074,6 +73108,8 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
         h_csf->counts[bin]++;
       }
     }
+    // Compute the mode of the CSF as the peak and the stddev based
+    // on the shape of the histo (Gaussian model)
     HISTOclearZeroBin(h_csf);
     csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins);
     *pcsf_mode = h_csf->bins[csf_peak];
@@ -73092,6 +73128,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
   *pgray_mode = h_gray->bins[gray_peak];
   white_std = HISTOcomputeFWHM(h_white, white_peak) / 2.3;
   gray_std = HISTOcomputeFWHM(h_gray, gray_peak) / 2.3;
+
   if (pwhite_std) *pwhite_std = white_std;
   if (pgray_std) *pgray_std = gray_std;
   if (pcsf_mode)
