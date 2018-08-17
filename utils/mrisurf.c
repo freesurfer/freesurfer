@@ -36335,22 +36335,17 @@ int MRIScomputeBorderValues(
   There are lots of rules employed to make sure that the point is not
   in a crazy place (mostly that the value must be between border_low
   and border_hi). 
-  \param mris surface
+  \param mris surface (could be white or pial)
     v->{x,y,z} is the current vertex coordinate
     v->{nx,ny,nz} is the normal to the current vertex
     v->orig{x,y,z} is a reference (see max_thickness)
   \param mri_brain - T1 weighted input volume (mri_T1)
   \param mri_smooth - not apparently used for anything (mri_smooth)
-  \param inside_hi eg,  120 (MAX_WHITE)
-  \param border_hi eg,  115 (max_border_white, MeanWM+1WMSTD)
-  \param border_low eg,  77 (min_border_white, MeanGM)
-  \param outside_low eg, 68 (min_gray_at_white_border, MeanGM-1GMSTD)
-  \param outside_hi eg, 115 (outside_hi (often same as border_hi), used?)
   \param sigma sets the range of smoothing to [sigma 10*sigma]
-  \param max_thickness - (eg, 5) not really a thickness but a
+  \param max_thickness - (eg, 10mm) not really a thickness but a
     threshold in mm that limits how far away a target point can be
     respect to orig{xyz}
-  \param which = GRAY_WHITE or GRAY_CSF, gray/white surface or pial (?)
+  \param which = GRAY_WHITE or GRAY_CSF, gray/white surface or pial 
   \param thresh eg, 0. Mask value must be > thresh to be in the mask
   \param flags IPFLAG_FIND_FIRST_WM_PEAK (with hires, generally not set)
   \param mri_aseg - use to check whether a voxel is in the contralat hemi
@@ -36359,6 +36354,20 @@ int MRIScomputeBorderValues(
   Hidden Parameter: 1mm 
   The step size of the in/out search is determined by mri_brain->xsize/2
   It does not appear that the annot is used in this function or its children
+
+  When placing the white surface (second variables are from mris_make_surfaces):
+  inside_hi eg,  120 (MAX_WHITE)
+  border_hi eg,  115 (max_border_white, MeanWM+1WMSTD)
+  border_low eg,  77 (min_border_white, MeanGM)
+  outside_low eg, 68 (min_gray_at_white_border, MeanGM-1GMSTD)
+  outside_hi eg, 115 (outside_hi (often same as border_hi), used?)
+
+  When placing the pial surface  (second variables are from mris_make_surfaces):
+  inside_hi = max_gray (eg, 99.05)
+  border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
+  border_low = min_gray_at_csf_border = meanGM-V*stdGM (V=3) (eg, 45.7)
+  outside_low = min_csf = meanGM - MAX(0.5,(V-1)*stdGM) (eg, 10)
+  outside_hi  = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
 
   The outputs are set in each vertex structure:
       v->val2 = current_sigma; // smoothing level along gradient used to find the target
@@ -36387,11 +36396,23 @@ static int MRIScomputeBorderValues_new(
     int           const flags,
     MRI *         const mri_aseg) 
 {
-  float const step_size = mri_brain->xsize / 2;
+  float const step_size = mri_brain->xsize/2;
   double next_val = 0;    
 
-  printf("Entering MRIScomputeBorderValues_new(): BorderValsHiRes=%d, step_size=%g\n",
-	 BorderValsHiRes,step_size);
+  printf("Entering MRIScomputeBorderValues_new(): \n");
+  printf("  inside_hi   = %g\n",inside_hi);
+  printf("  border_hi   = %g\n",border_hi);
+  printf("  border_low  = %g\n",border_low);
+  printf("  outside_low = %g\n",outside_low);
+  printf("  outside_hi  = %g\n",outside_hi);
+  printf("  sigma = %g\n",sigma);
+  printf("  max_thickness = %g\n",max_thickness);
+  printf("  step_size=%g\n",step_size);
+  printf("  STEP_SIZE=%g\n",STEP_SIZE);
+  printf("  which = %d\n",which);
+  printf("  thresh = %g\n",thresh);
+  printf("  flags = %d\n",flags);
+  printf("  BorderValsHiRes=%d\n",BorderValsHiRes);
 
   MRI *mri_tmp;
   if (mri_brain->type == MRI_UCHAR) {
@@ -36762,12 +36783,12 @@ static int MRIScomputeBorderValues_new(
         }
         
         if(which == GRAY_CSF) {
-          /* NOT used for the Gray/White boundary.
-            Sample the next val we would process.  If it is too low,
-            then we have definitely reached the border, and the
-            current gradient should be considered a local max. Don't
-            want to do this for gray/white, as the gray/white gradient
-            often continues seemlessly into the gray/csf.
+          /* This is used for placing the pial surface.  Sample the
+            next val we would process.  If it is too low, then we have
+            definitely reached the border, and the current gradient
+            should be considered a local max. Don't want to do this
+            for gray/white, as the gray/white gradient often continues
+            seemlessly into the gray/csf.
           */
           double xw,yw,zw;
           
@@ -36778,9 +36799,9 @@ static int MRIScomputeBorderValues_new(
           
           //double next_val; // define with function scope
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
-          if (next_val < border_low) {
+	  // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
+          if (next_val < border_low)
             next_mag = 0;
-          }
         }
 
         if (vno == Gdiag_no) fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n", dist, val, mag, previous_mag, next_mag);
@@ -36854,8 +36875,8 @@ static int MRIScomputeBorderValues_new(
 
     // Doesn't apply to standard stream - only highres or if user
     // specifies IPFLAG_FIND_FIRST_WM_PEAK. Not clear what effect this will have
-    if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-      // Hidden parameter. Units of STEP_SIZE (I think)
+    if (BorderValsHiRes || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+      // whalf Hidden parameter. Units of STEP_SIZE (I think)
       int const whalf = 7; // This was a #define
 
       if(vno == Gdiag_no) 
@@ -37027,15 +37048,15 @@ static int MRIScomputeBorderValues_new(
         if (vno == Gdiag_no) DiagBreak();
       } // end if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) 
 
-    } // end if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK)
+    } // end if (BorderValsHiRes || flags & IPFLAG_FIND_FIRST_WM_PEAK)
 
     if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0) {
-      /* check to make sure it's not ringing near the gray white boundary,
-         by seeing if there is uniform stuff outside that could be gray matter.
-      */
+      /* When placing the pial surface and the local max is not found,
+         check to make sure it's not ringing near the gray white
+         boundary, by seeing if there is uniform stuff in the 2mm outside that
+         could be gray matter.*/
       int allgray = 1;
-
-      float outlen;
+      float outlen; // hidden param below 2mm
       for (outlen = max_mag_dist; outlen < max_mag_dist + 2; outlen += STEP_SIZE) {
         double const x = v->x + v->nx * outlen;
         double const y = v->y + v->ny * outlen;
@@ -37045,6 +37066,10 @@ static int MRIScomputeBorderValues_new(
         double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if ((val < outside_hi /*border_low*/) || (val > border_hi)) {
+	  // if it gets here, then it is not all gray
+	  // border_hi < val < outside_hi
+	  // outside_hi = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
+	  // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
           allgray = 0;
           break;
         }
@@ -37052,13 +37077,9 @@ static int MRIScomputeBorderValues_new(
       
       if (allgray) {
         if (Gdiag_no == vno)
-          printf(
-              "v %d: exterior gray matter detected, "
+          printf("v %d: exterior gray matter detected, "
               "ignoring large gradient at %2.3f (I=%2.1f)\n",
-              vno,
-              max_mag_dist,
-              max_mag_val);
-
+              vno,max_mag_dist, max_mag_val);
         max_mag_val = -10; /* don't worry about largest gradient */
         max_mag_dist = 0;
         num_changed++;
