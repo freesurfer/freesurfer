@@ -474,10 +474,7 @@ int main(int argc, char *argv[])
   if (white_fname != NULL)
   {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
-    if (MGZ)
-    {
-      strcat(fname, ".mgz");
-    }
+    if (MGZ) strcat(fname, ".mgz");
     fprintf(stdout, "reading volume %s...\n", fname) ;
     mri_T1_white = MRIread(fname) ;
     if (!mri_T1_white)
@@ -608,11 +605,10 @@ int main(int argc, char *argv[])
   {
     mri_aseg = NULL ;
   }
+
+  // Load in wm.mgz (or equivalent)
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
-  if (MGZ)
-  {
-    strcat(fname, ".mgz");
-  }
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stdout, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -636,16 +632,17 @@ int main(int argc, char *argv[])
   //////////////////////////////////////////
   //  setMRIforSurface(mri_wm);
 
+  // This does not smooth. It clips the maximum WM value
   MRIsmoothBrightWM(mri_T1, mri_wm) ;
-  if (fill_interior == 0)
+
+  if(fill_interior == 0)
     mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
   else
     mri_labeled = MRIclone(mri_T1, NULL) ;
 
-  if (mri_T1_white)
-  {
+  if(mri_T1_white)
     MRIsmoothBrightWM(mri_T1_white, mri_wm) ;
-  }
+
 
   if (overlay)
   {
@@ -692,18 +689,24 @@ int main(int argc, char *argv[])
     MRI *mri_tmp ;
     float white_mode, gray_mode ;
 
+    // Binarize wm.mgz by thresholding at WM_MIN_VAL. Voxels below threshold will 
+    // take a value of MRI_NOT_WHITE; those above will get MRI_WHITE.
+    printf("Binarizing %s thresholding at %d\n",wm_name,WM_MIN_VAL);
     mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
-    fprintf(stdout, "computing class statistics...\n");
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+    // WHITE_MATTER_MEAN = 110
+    printf("computing class statistics... low=30, hi=%d\n",WHITE_MATTER_MEAN);
+    // This computes means and stddevs of voxels near the border of
+    // wm.mgz with inside being WM and outside being GM. Seems like
+    // the aseg would be better for this than the wm.mgz
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
-                              &white_mean, &white_std, &gray_mean,
-                              &gray_std) ;
+                              &white_mean, &white_std, &gray_mean, &gray_std) ;
     printf("white_mean = %g +/- %g, gray_mean = %g +/- %g\n",white_mean, white_std, gray_mean,gray_std) ;
 
-    if (use_mode)
-    {
+    if(use_mode){
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
       //MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
@@ -3284,8 +3287,12 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
-int
-MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
+/*!
+  \fn int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
+  \brief Does not smooth. It actually just replaces values that are
+  greater than WM_MIN_VAL with DEFAULT_DESIRED_WHITE_MATTER_VALUE
+*/
+int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nthresholded ;
   BUFTYPE *pwm, val, wm ;
@@ -3295,29 +3302,27 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
   depth = mri_T1->depth ;
 
   nthresholded = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
       pwm = &MRIvox(mri_wm, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
+      for (x = 0 ; x < width ; x++)      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         wm = *pwm++ ;
-        if (wm >= WM_MIN_VAL)  /* labeled as white */
-        {
-          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE)
-          {
+        if (wm >= WM_MIN_VAL){
+	  /* labeled as white */
+          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE){
             nthresholded++ ;
             val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
           }
         }
+	// If too bright, replace value with DEFAULT_DESIRED_WHITE_MATTER_VALUE 
         MRIsetVoxVal(mri_T1, x, y, z, 0, val) ;
       }
     }
   }
 
-  fprintf(stdout, "%d bright wm thresholded.\n", nthresholded) ;
+  printf("MRIsmoothBrightWM(): thresh=%d, clip=%d, %d bright wm thresholded.\n", 
+	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
 
   return(NO_ERROR) ;
 }
