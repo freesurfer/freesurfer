@@ -1,5 +1,3 @@
-# WARNING: this is in development and should not yet be used to replace automake
-
 # before starting the project, set gcc/g++ as default
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
@@ -33,6 +31,16 @@ if(NOT XXD)
   message(FATAL_ERROR "The xxd program is required to build freesurfer")
 endif()
 
+# allow reading installation dir from environment var, but if not defined,
+# then override default install dir /usr/local (too messy to install there)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
+    set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE PATH "Copied from FS_INSTALL_DIR env variable" FORCE)
+  else()
+    set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer" CACHE PATH "Default install path" FORCE)
+  endif()
+endif()
+
 
 # --------------------------------------------------
 #   library dependencies and third-party packages
@@ -45,18 +53,22 @@ endif()
 # can run the packages/build_packages.py script to compile the dependencies locally. If a package
 # is not found under FS_PACKAGES_DIR, cmake will continue to look through the default search paths.
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
+# Note: FS_PACKAGES_DIR can be defined in an environment variable
 
 if(NOT FS_PACKAGES_DIR)
-  if(EXISTS /usr/pubsw/packages)
+  if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
+    # check if FS_PACKAGES_DIR has been set 
+    set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from FS_PACKAGES_DIR environment variable")
+  elseif(EXISTS /usr/pubsw/packages)
     # if the user is at Martinos, default to /usr/pubsw/packages
-    set(FS_PACKAGES_DIR /usr/pubsw/packages)
+    set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
+    # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     if(APPLE)
       set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/osx10.11-packages.tar.gz")
     else()
       set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz")
     endif()
-    # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
                         "Required FS dependencies can be built locally by running:\n"
                         "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
@@ -98,10 +110,13 @@ find_package(Expat REQUIRED)
 find_package(XML2 REQUIRED)
 
 # -------- netcdf --------
-find_package(NetCDF REQUIRED)
+set(NetCDF_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1)
+set(NetCDF_LIBRARIES netcdf_3_6_0_p1)
 
 # -------- minc --------
-find_package(MINC REQUIRED)
+set(MINC_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/minc_1_5_1)
+set(MINC_LIBRARIES minc_1_5_1)
+add_definitions(-DUSE_LOCAL_MINC)
 
 # -------- tetgen --------
 find_package(Tetgen REQUIRED)
@@ -137,24 +152,26 @@ if(OPENMP_FOUND)
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
 endif()
 
-# -------- openGL --------
-find_package(OpenGL)
-if(OPENGL_FOUND)
-  add_definitions(-DHAVE_OPENGL)
-  # since we have OpenGL, make sure we have glut too!
-  find_package(GLUT REQUIRED)
-  add_definitions(-DHAVE_GLUT_LIBS)
-  find_package(X11 REQUIRED)
-endif()
-
 # -------- openCV --------
 find_package(OpenCV)
 
 # -------- openCL --------
 find_package(OpenCL)
 
+# -------- X11 ---------
+find_package(X11 REQUIRED)
+
 # search for GUI libraries
 if(BUILD_GUIS)
+
+  # -------- openGL --------
+  find_package(OpenGL)
+  if(OPENGL_FOUND)
+    add_definitions(-DHAVE_OPENGL)
+    # since we have OpenGL, make sure we have glut too!
+    find_package(GLUT REQUIRED)
+    add_definitions(-DHAVE_GLUT_LIBS)
+  endif()
 
   # -------- qt --------
   set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
@@ -201,7 +218,11 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
+if(APPLE) # clang on Mac complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-const-variable -Wno-unused-result -Wno-unused-local-typedefs")
+else()
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
+endif()
 
 # ANSI
 add_definitions(-DANSI)
@@ -262,9 +283,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 # first, prepare the freesurfer distribution
 add_subdirectories(distribution images)
 
-# the top-level include dir and the netcdf package contain the most commonly
+# the top-level include dir contain the most commonly
 # included freesurfer header files
-set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
+set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -278,6 +299,8 @@ add_subdirectories(
   fsgdf
   svm-lib
   opencl_algorithms
+  minc_1_5_1
+  netcdf_3_6_0_p1
 )
 
 # the following utility libs are required for freeview and qdec
@@ -298,6 +321,7 @@ add_subdirectories(
   BrainstemSS
   check_siemens_dir
   connectgraph
+  diffusion_tool
   dmri_tensoreig
   dngtester
   freeview

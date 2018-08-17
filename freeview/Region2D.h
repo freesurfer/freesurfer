@@ -30,7 +30,6 @@
 #include <QStringList>
 #include <vtkSmartPointer.h>
 
-
 class RenderView2D;
 class vtkRenderer;
 class vtkTextActor;
@@ -81,6 +80,12 @@ public:
     return m_strsLongStats;
   }
 
+  vtkTextActor* GetTextActor();
+
+  void SetTextSize(int nsize);
+
+  void SetAutoScaleText(bool b);
+
 signals:
   void StatsUpdated();
 
@@ -89,7 +94,6 @@ protected:
   QString       m_strShortStats;
   QStringList   m_strsLongStats;
   vtkSmartPointer<vtkTextActor> m_actorText;
-
 };
 
 #endif

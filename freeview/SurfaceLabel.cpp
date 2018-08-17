@@ -464,7 +464,6 @@ void SurfaceLabel::Undo()
   }
 }
 
-
 void SurfaceLabel::Redo()
 {
   if (!m_redoBuffer.isEmpty())

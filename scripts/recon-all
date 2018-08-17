@@ -3391,36 +3391,19 @@ endif
 ##---------------     -fix     -------------------#
 #----------------              -------------------#
 if($DoFix && ( ! $longitudinal )) then
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Fix Topology Copy $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    # Must copy unfixed to fixed
-    set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.orig)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd = (cp ../surf/$hemi.inflated.nofix ../surf/$hemi.inflated)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  end # hemi first loop
 
   set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
 
-  # Now can run fixer
+  # Removed copying of orig.nofix and inflated.nofix to orig and inflated
+  # because they can be specified directly as input.
   if($UseOldTopoFix) then
     set CMDFS = () # see earlier notes on -parallel implementation
     foreach hemi ($hemilist)
       echo "#@# Fix Topology $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile $GlobXOptsFile`;
-      set cmd = (mris_fix_topology)
-      set cmd = ($cmd -rusage $touchdir/rusage.mris_fix_topology.$hemi.dat) 
-      set cmd = ($cmd -mgz -sphere qsphere.nofix)
+      set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix \
+        -inflated inflated.nofix -orig orig.nofix -out orig)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -5709,7 +5692,10 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
-      set DoT2pial         = 1; # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # This can backfire, eg, if not all the preceeding steps
+      # are included
+      set DoT2pial         = 1; 
       breaksw
 
     case "-t2max"
@@ -5738,7 +5724,10 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputFlairVol = "$FlairInVolDir/$FlairInVolBase";
       set DoConvertFlairInput = 1;
-      set DoT2pial         = 1; # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # This can backfire, eg, if not all the preceeding steps
+      # are included
+      set DoT2pial         = 1; 
       breaksw
 
     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated

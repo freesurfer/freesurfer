@@ -126,4 +126,6 @@ int L2Sfree(LABEL2SURF **pl2s);
 int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 int L2Stest(char *subject);
 
+int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0);
+
 #endif

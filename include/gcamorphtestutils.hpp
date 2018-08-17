@@ -33,7 +33,7 @@
 #include <iostream>
 #include <cstdlib>
 
-#include <netcdf.h>
+#include "netcdf.h"
 
 
 #include "gcamorph.h"
