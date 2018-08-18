@@ -3573,7 +3573,6 @@ int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
 int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;
-  VERTEX *v1;
   int n, nhits,v0;
 
   // Only consider vertices if they belong to a triangle where all the corners
@@ -3609,7 +3608,7 @@ int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, 
   nedges = 0;
   for (vno = 0; vno < mris->nvertices; vno++){
     if(!mris->vertices[vno].marked) continue;
-    v1 = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const *v1 = &mris->vertices_topology[vno];
     for (i = 0; i < v1->vnum; i++) {
       vnb = v1->v[i];
       if(! mris->vertices[vnb].marked) continue;
