@@ -16,7 +16,6 @@ foo_DATA= \
 	Simple_surface_labels2009.txt	\
 	FreeSurferColorLUT.txt \
 	WMParcStatsLUT.txt \
-	numaris4-protocols.unpackcfg \
 	ASegStatsLUT.txt \
 	DefectLUT.txt \
 	SegmentNoLUT.txt

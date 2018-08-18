@@ -9,7 +9,6 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(BUILD_GUIS "Build GUIs" ON)
-option(NMR_INSTALL "Install NMR files" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -42,6 +41,9 @@ else()
     set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer")
   endif()
 endif()
+
+# create a custom target "make install-nmr" to only install nmr-component files 
+add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
 
 
 # --------------------------------------------------

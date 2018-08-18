@@ -17,12 +17,15 @@ endfunction()
 # links. The TYPE argument should specify the install type that would normally
 # be provided to the install function (i.e. PROGRAMS, FILES, etc.)
 function(install_symlinks)
-  cmake_parse_arguments(INSTALL "" "DESTINATION;TYPE" "" ${ARGN})
+  cmake_parse_arguments(INSTALL "NMR_ONLY" "DESTINATION;TYPE" "" ${ARGN})
   string(TOUPPER ${INSTALL_TYPE} INSTALL_TYPE)
+  if(INSTALL_NMR_ONLY)
+    set(COMPONENT_ARGS COMPONENT nmr EXCLUDE_FROM_ALL)
+  endif()
   foreach(arg ${INSTALL_UNPARSED_ARGUMENTS})
     get_filename_component(BASENAME ${arg} NAME)
     get_filename_component(ABS_PATH ${arg} REALPATH)
-    install(${INSTALL_TYPE} ${ABS_PATH} DESTINATION ${INSTALL_DESTINATION} RENAME ${BASENAME})
+    install(${INSTALL_TYPE} ${ABS_PATH} DESTINATION ${INSTALL_DESTINATION} RENAME ${BASENAME} ${COMPONENT_ARGS})
   endforeach()
 endfunction()
 
@@ -59,7 +62,7 @@ function(add_help BINARY HELPTEXT)
   target_sources(${BINARY} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${HELPTEXT}.h)
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
   # make sure to validate the xml as wel
-  add_test(${BINARY}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
+  add_test(${BINARY}_help_test bash -c "xmllint --noout ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction(add_help)
 
 
@@ -83,7 +86,7 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
   # make sure to validate the xml as well
-  add_test(${SCRIPT}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
+  add_test(${SCRIPT}_help_test bash -c "xmllint --noout ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction()
 
 # install_osx_app(<app>)
@@ -91,9 +94,11 @@ endfunction()
 function(install_osx_app APP_PATH)
   get_filename_component(APP_NAME ${APP_PATH} NAME)
   install(CODE "
-    message(STATUS \"Copying OS X Application: ${APP_NAME} to ${CMAKE_INSTALL_PREFIX}/bin\")
+    message(STATUS \"Copying OS X Application: ${APP_NAME} to ${CMAKE_INSTALL_PREFIX}/bin/${APP_NAME}\")
     execute_process(
-      COMMAND bash -c \"cp -RL ${CMAKE_CURRENT_SOURCE_DIR}/${APP_PATH} ${CMAKE_INSTALL_PREFIX}/bin\"
+      COMMAND bash -c \"
+        cp -RL ${CMAKE_CURRENT_SOURCE_DIR}/${APP_PATH} ${CMAKE_INSTALL_PREFIX}/bin &&
+        chmod -R 755 ${CMAKE_INSTALL_PREFIX}/bin/${APP_NAME}\"
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
