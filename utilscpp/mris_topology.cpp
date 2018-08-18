@@ -595,18 +595,19 @@ extern "C" int MRISgetEulerNumber(const MRIS *mris,
   //we need to allocate the edge structure for the faces in the list
   //mark and count the vertices
   for (int n = 0 ; n < mris->nvertices ; n++) {
-    mris->vertices[n].marked = 0;
-    mris->vertices[n].e=0;
+    mris->vertices         [n].marked = 0;
+    mris->vertices_topology[n].e=0;
   }
   nv = 0 ;
   for (int n = 0 ; n < nfs ; n++)
     for (int i = 0 ; i < 3 ; i++) {
-      VERTEX *v=&mris->vertices[mris->faces[list_of_faces[n]].v[i]];
+      VERTEX_TOPOLOGY * const vt=&mris->vertices_topology[mris->faces[list_of_faces[n]].v[i]];
+      VERTEX          * const v =&mris->vertices         [mris->faces[list_of_faces[n]].v[i]];
       if (v->marked==0) {
         nv++;
         v->marked=1;
-        if (v->e) delete [] v->e;
-        v->e = (int*)calloc(v->vnum,sizeof(int));
+        if (vt->e) free(vt->e);
+        vt->e = (int*)calloc(vt->vnum,sizeof(int));
       };
     }
 
@@ -620,13 +621,12 @@ extern "C" int MRISgetEulerNumber(const MRIS *mris,
       nf++;
       face->marked=1;
       int vn0,vn1;
-      VERTEX *v0,*v1;
       for (int i = 0 ; i < 3 ; i++) {
         vn0 = face->v[i];
         if (i==2) vn1 = face->v[0];
         else vn1 = face->v[i+1];
-        v0 = &mris->vertices[vn0];
-        v1 = &mris->vertices[vn1];
+        VERTEX_TOPOLOGY * const v0 = &mris->vertices_topology[vn0];
+        VERTEX_TOPOLOGY * const v1 = &mris->vertices_topology[vn1];
         //edge vn0 <--> vn1 ?
         for (int p = 0 ; p < v0->vnum ; p++) {
           if (v0->v[p] == vn1 && v0->e[p]==0) {
@@ -651,11 +651,12 @@ extern "C" int MRISgetEulerNumber(const MRIS *mris,
     FACE *face= &mris->faces[list_of_faces[n]];
     face->marked = 0;
     for (int i = 0 ; i < 3 ; i++) {
-      VERTEX *v=&mris->vertices[face->v[i]];
+      VERTEX_TOPOLOGY * const vt=&mris->vertices_topology[face->v[i]];
+      VERTEX          * const v =&mris->vertices         [face->v[i]];
       if (v->marked) {
         v->marked=0;
-        if (v->e) delete [] v->e;
-        v->e=0;
+        if (vt->e) free(vt->e);
+        vt->e=0;
       }
     }
   }
@@ -789,30 +790,29 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
 
 void MRISinitSurface(MRIS *mris) 
 {
-  VERTEX *v;
-
   for (int n = 0 ; n < mris->nvertices ; n++) {
-    v = &mris->vertices[n];
-    v->num = 0;
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[n];
+    VERTEX          * const v  = &mris->vertices         [n];
+    vt->num = 0;
     v->marked = 0;
-    if (v->f) free(v->f);
-    if (v->n) free(v->n);
-    if (v->v) free(v->v);
-    v->f = NULL;
-    v->n = NULL;
-    v->v = NULL;
+    if (vt->f) free(vt->f);
+    if (vt->n) free(vt->n);
+    if (vt->v) free(vt->v);
+    vt->f = NULL;
+    vt->n = NULL;
+    vt->v = NULL;
   }
 
   // counting the number of faces per vertex
   for (int n = 0 ; n < mris->nfaces ; n++)
     for (int i = 0 ; i < 3 ; i++)
-      mris->vertices[mris->faces[n].v[i]].num++;
+      mris->vertices_topology[mris->faces[n].v[i]].num++;
 
   // allocate the list of faces
   for (int n = 0 ; n < mris->nvertices ; n++) {
-    VERTEX *v = &mris->vertices[n];
-    v->f = (int *)calloc(mris->vertices[n].num,sizeof(int));
-    v->n = (uchar *)calloc(mris->vertices[n].num,sizeof(uchar));
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[n];
+    v->f = (int   *)calloc(mris->vertices_topology[n].num,sizeof(int));
+    v->n = (uchar *)calloc(mris->vertices_topology[n].num,sizeof(uchar));
     v->num = 0;
   }
 
@@ -820,7 +820,7 @@ void MRISinitSurface(MRIS *mris)
   for (int n = 0 ; n < mris->nfaces ; n++) {
     for (int i = 0 ; i < 3 ; i++) {
       int vno = mris->faces[n].v[i];
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       v->f[v->num] = n;
       v->n[v->num++] = i;
     }
@@ -829,7 +829,7 @@ void MRISinitSurface(MRIS *mris)
 
   // counting the list of vertices
   for (int n = 0 ; n < mris->nvertices ; n++) {
-    v = &mris->vertices[n];
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[n];
     v->vnum = 0;
     for (int p = 0 ; p < v->num ; p++) {
       FACE *face = &mris->faces[v->f[p]];
@@ -842,7 +842,7 @@ void MRISinitSurface(MRIS *mris)
       }
     }
     // allocate the list of vertices
-    v->v = (int*)calloc(mris->vertices[n].vnum,sizeof(int));
+    v->v = (int*)calloc(mris->vertices_topology[n].vnum,sizeof(int));
     v->vnum = 0;
     for (int p = 0 ; p < v->num ; p++) {
       FACE *face = &mris->faces[v->f[p]];
@@ -870,13 +870,6 @@ MRIP *MRIPalloc(int nvertices, int nfaces)
   /* allocate the surface */
   MRIS *mris = MRISoverAlloc(nvertices,nfaces,nvertices,nfaces);
 
-  for (int n = 0 ; n < mris->nvertices ; n++) { //making sure...
-    VERTEX *v=&mris->vertices[n];
-    v->f=NULL;
-    v->n=NULL;
-    v->v=NULL;
-    v->e=NULL;
-  }
   patch->mris=mris;
 
   return patch;
@@ -997,7 +990,8 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
 
   //Vertices
   for (int n = 0 ; n < surface->nvertices ; n++) {
-    VERTEX *vdst=&mris->vertices[n];
+    VERTEX_TOPOLOGY * const vdstt = &mris->vertices_topology[n];
+    VERTEX          * const vdst  = &mris->vertices         [n];
     Vertex *vsrc = &surface->vertices[n];
     vdst->x=vsrc->x;
     vdst->y=vsrc->y;
@@ -1005,27 +999,27 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
     vdst->ripflag = 0;
     vdst->marked = 0;
     //vertices
-    if (vdst->v) free(vdst->v);
-    vdst->v=NULL;
-    vdst->v = (int*)calloc(vsrc->vnum , sizeof(int));
+    if (vdstt->v) free(vdstt->v);
+    vdstt->v=NULL;
+    vdstt->v = (int*)calloc(vsrc->vnum , sizeof(int));
     for (int p = 0 ; p < vsrc->vnum ; p++)
-      vdst->v[p]=vsrc->v[p];
-    vdst->vnum=vsrc->vnum;
-    vdst->v2num = vsrc->vnum;
-    vdst->v3num=vsrc->vnum;
-    vdst->vtotal=vsrc->vnum;
+      vdstt->v[p]=vsrc->v[p];
+    vdstt->vnum=vsrc->vnum;
+    vdstt->v2num = vsrc->vnum;
+    vdstt->v3num=vsrc->vnum;
+    vdstt->vtotal=vsrc->vnum;
     //faces
-    if (vdst->f) free(vdst->f);
-    vdst->f=NULL;
-    if (vdst->n) free(vdst->n);
-    vdst->n=NULL;
-    vdst->f = (int*)calloc(vsrc->fnum , sizeof(int));
-    vdst->n = (uchar*)calloc(vsrc->fnum , sizeof(uchar));
+    if (vdstt->f) free(vdstt->f);
+    vdstt->f=NULL;
+    if (vdstt->n) free(vdstt->n);
+    vdstt->n=NULL;
+    vdstt->f = (int*)calloc(vsrc->fnum , sizeof(int));
+    vdstt->n = (uchar*)calloc(vsrc->fnum , sizeof(uchar));
     for (int p = 0 ; p < vsrc->fnum ; p++) {
-      vdst->f[p]=vsrc->f[p];
-      vdst->n[p]=(uchar)vsrc->n[p];
+      vdstt->f[p]=vsrc->f[p];
+      vdstt->n[p]=(uchar)vsrc->n[p];
     }
-    vdst->num=vsrc->fnum;
+    vdstt->num=vsrc->fnum;
   }
   //Faces
   for (int n = 0 ; n < surface->nfaces ; n++) {
