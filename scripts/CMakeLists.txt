@@ -278,9 +278,7 @@ install(PROGRAMS
   DESTINATION bin
 )
 
-if(NMR_INSTALL)
-  install(PROGRAMS process_exvivo_diff_data_bay3.sh DESTINATION bin)
-endif()
+install(PROGRAMS process_exvivo_diff_data_bay3.sh DESTINATION bin COMPONENT nmr EXCLUDE_FROM_ALL)
 
 install(PROGRAMS
   tkanalyse.tcl

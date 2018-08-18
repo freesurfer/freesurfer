@@ -474,10 +474,7 @@ int main(int argc, char *argv[])
   if (white_fname != NULL)
   {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
-    if (MGZ)
-    {
-      strcat(fname, ".mgz");
-    }
+    if (MGZ) strcat(fname, ".mgz");
     fprintf(stdout, "reading volume %s...\n", fname) ;
     mri_T1_white = MRIread(fname) ;
     if (!mri_T1_white)
@@ -608,11 +605,10 @@ int main(int argc, char *argv[])
   {
     mri_aseg = NULL ;
   }
+
+  // Load in wm.mgz (or equivalent)
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
-  if (MGZ)
-  {
-    strcat(fname, ".mgz");
-  }
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stdout, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -634,17 +630,20 @@ int main(int argc, char *argv[])
     MRIfree(&mri_wm) ; mri_wm = mri_tmp ;
   }
   //////////////////////////////////////////
-//  setMRIforSurface(mri_wm);
+  //  setMRIforSurface(mri_wm);
 
+  // This does not smooth. It clips the maximum WM value
   MRIsmoothBrightWM(mri_T1, mri_wm) ;
-  if (fill_interior == 0)
+
+  if(fill_interior == 0)
     mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
   else
     mri_labeled = MRIclone(mri_T1, NULL) ;
-  if (mri_T1_white)
-  {
+
+  if(mri_T1_white)
     MRIsmoothBrightWM(mri_T1_white, mri_wm) ;
-  }
+
+
   if (overlay)
   {
     fprintf(stdout, "overlaying editing into T1 volume...\n") ;
@@ -654,7 +653,6 @@ int main(int argc, char *argv[])
     sprintf(fname, "%s/%s/mri/T1_overlay", sdir, sname) ;
     MRIwrite(mri_T1, fname) ;
   }
-
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   printf("reading original surface position from %s...\n", fname) ;
@@ -672,63 +670,66 @@ int main(int argc, char *argv[])
     mris->vg.ysize = mri_T1->ysize ;
     mris->vg.zsize = mri_T1->zsize ;
   }
+
   if (!FEQUAL(spring_scale, 1.0))
     printf("spring scale = %2.2f\n", spring_scale) ;
+
   MRISaddCommandLine(mris, cmdline) ;
-  if (mris->ct == NULL && ctab)  
+
+  if(mris->ct == NULL && ctab)  
     mris->ct = ctab ;  // add user-specified color table to structure
 
   MRISremoveIntersections(mris) ;
   
   if (pial_nbrs > 2)
-  {
     MRISsetNeighborhoodSize(mris, pial_nbrs) ;
-  }
   
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
     float white_mode, gray_mode ;
 
-    mri_tmp = MRIbinarize
-              (mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
-    fprintf(stdout, "computing class statistics...\n");
+    // Binarize wm.mgz by thresholding at WM_MIN_VAL. Voxels below threshold will 
+    // take a value of MRI_NOT_WHITE; those above will get MRI_WHITE.
+    printf("Binarizing %s thresholding at %d\n",wm_name,WM_MIN_VAL);
+    mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+    // WHITE_MATTER_MEAN = 110
+    printf("computing class statistics... low=30, hi=%d\n",WHITE_MATTER_MEAN);
+    // This computes means and stddevs of voxels near the border of
+    // wm.mgz with inside being WM and outside being GM. Seems like
+    // the aseg would be better for this than the wm.mgz
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
-                              &white_mean, &white_std, &gray_mean,
-                              &gray_std) ;
-    if (use_mode)
-    {
+                              &white_mean, &white_std, &gray_mean, &gray_std) ;
+    printf("white_mean = %g +/- %g, gray_mean = %g +/- %g\n",white_mean, white_std, gray_mean,gray_std) ;
+
+    if(use_mode){
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
-//      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      //MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
-      
       white_mean = white_mode ;
       gray_mean = gray_mode ;
+      printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
     }
+    printf("std_scale = %g\n",std_scale);
 
     white_std /= std_scale;
     gray_std /= std_scale;
 
-    if (!min_gray_at_white_border_set)
-    {
+    //these may be set on the cmd
+    if(!min_gray_at_white_border_set)
       min_gray_at_white_border = gray_mean-gray_std ;
-    }
-    if (!max_border_white_set)
-    {
+    if(!max_border_white_set)
       max_border_white = white_mean+white_std ;
-    }
-    if (!max_csf_set)
-    {
+    if(!max_csf_set)
       max_csf = gray_mean - MAX(.5, (variablesigma-1.0))*gray_std ;
-    }
     if (!min_border_white_set)
-    {
       min_border_white = gray_mean ;
-    }
 
     // apply some sanity checks
-#define MAX_SCALE_DOWN .2
+    double MAX_SCALE_DOWN = .2;
+    printf("Applying sanity checks, MAX_SCALE_DOWN = %g\n",MAX_SCALE_DOWN);
 
     if (min_gray_at_white_border < MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER)
       min_gray_at_white_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER) ;
@@ -739,42 +740,38 @@ int main(int argc, char *argv[])
     if (max_csf < MAX_SCALE_DOWN*MAX_CSF)
       max_csf = MAX_SCALE_DOWN*MAX_CSF ;
 
-    fprintf(stdout, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
+    printf("setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
             min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
-    fprintf(stdout, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
+    printf("setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
             max_border_white, MAX_BORDER_WHITE) ;
-    fprintf(stdout, "setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
+    printf("setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
             min_border_white, MIN_BORDER_WHITE) ;
-    fprintf(stdout, "setting MAX_CSF to %2.1f (was %d)\n",
+    printf("setting MAX_CSF to %2.1f (was %d)\n",
             max_csf, MAX_CSF) ;
 
+    //these may be set on the cmd
     if (!max_gray_set)
-    {
       max_gray = white_mean-white_std ;
-    }
-    if (!max_gray_at_csf_border_set)
-    {
-      //      max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+    if (!max_gray_at_csf_border_set){
+      //max_gray_at_csf_border = gray_mean-0.5*gray_std ;
       max_gray_at_csf_border = gray_mean-1.0*gray_std ;   // changed to push pial surfaces further out BRF 12/10/2015
     }
     if (!min_gray_at_csf_border_set)
-    {
       min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
-    }
+
     if (max_gray < MAX_SCALE_DOWN*MAX_GRAY)
       max_gray = nint(MAX_SCALE_DOWN*MAX_GRAY) ;
     if (max_gray_at_csf_border < MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER)
       max_gray_at_csf_border = nint(MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER) ;
     if (min_gray_at_csf_border < MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER)
       min_gray_at_csf_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER) ;
-    fprintf(stdout, "setting MAX_GRAY to %2.1f (was %d)\n",
-            max_gray, MAX_GRAY) ;
-    fprintf(stdout, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
-            max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
-    fprintf(stdout, "setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
-            min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
+
+    printf("setting MAX_GRAY to %2.1f (was %d)\n",max_gray, MAX_GRAY) ;
+    printf("setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
+    printf("setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
     MRIfree(&mri_tmp) ;
   }
+
   if (dura_echo_name == NULL)
   {
     MRIfree(&mri_wm) ;
@@ -953,6 +950,7 @@ int main(int argc, char *argv[])
     else if (flair_or_T2_name == NULL){ // otherwise already done
       // This is where most of the recon-all commands end up when placing white
 
+      //outside_hi = max_border_white when max_gray_scale=0 (default)
       double outside_hi = (max_border_white + max_gray_scale*max_gray) / (max_gray_scale+1.0) ;
 
       if (!FZERO(max_gray_scale))
@@ -1276,14 +1274,16 @@ int main(int argc, char *argv[])
   }
 
   //////////////////////////////////////////////////////////////////
-  // below will place the pial surface
+  // below will place the pial surface #pial
   //////////////////////////////////////////////////////////////////
+  printf("Placing pial surface\n");
 
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
 
   MRISunrip(mris) ;
 
-  if (mri_aseg) //update aseg using either generated or orig_white
+  // Rip vertices in the midline and other places
+  if(mri_aseg) 
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
 
   parms.t = parms.start_t = 0 ;
@@ -1294,20 +1294,18 @@ int main(int argc, char *argv[])
 
   MRISsetVals(mris, -1) ;  /* clear target intensities */
 
-  if (smooth && !nowhite)
-  {
+  if (smooth && !nowhite) {
     printf("smoothing surface for %d iterations...\n", smooth) ;
     if(orig_pial)  printf(" .. but this will be overwritten using vertex positions from %s...\n", orig_pial) ;
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
-  if (fill_interior)
-  {
+  if (fill_interior)  { // off by default
     MRI *mri_interior ;
     if (fill_interior== 255 && mri_T1_pial->type == MRI_UCHAR)
     {
       // see MRIcomputeBorderValues which changes all 255 to 0
-      printf("!!!!!!!!!!!!!!! WARNING - 255 is a protected value for uchar volumes. Changing to 254... !!!!!!!!!!!!!!!!!!!!!!\n") ;
+      printf("!!!!!!!! WARNING - 255 is a protected value for uchar volumes. Changing to 254... !!!!!!!!!!!!!!!!!!!!!!\n") ;
       fill_interior = 254 ;
     }
     mri_interior = MRIcopy(mri_T1_pial, NULL) ;
@@ -1319,7 +1317,8 @@ int main(int argc, char *argv[])
     MRIfree(&mri_interior) ;
   }
 
-  if (orig_pial)  {
+  if(orig_pial)  {
+    // often white.preaparc is passed as orig_pial
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
 
     if (longitudinal)    {
@@ -1330,7 +1329,7 @@ int main(int argc, char *argv[])
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
 
-    if(smooth_pial){
+    if(smooth_pial){ // off by default
       printf("smoothing pial surface for %d iterations before deformation\n", smooth_pial) ;
       MRISaverageVertexPositions(mris, smooth_pial) ;
     }
@@ -1361,15 +1360,15 @@ int main(int argc, char *argv[])
     // orig_pial is used??? Maybe that's why the cross-intersection
     // was caused
   }
+
   /*    parms.l_convex = 1000 ;*/
   mri_T1 = mri_T1_pial ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
     MRIwrite(mri_T1, "p.mgz") ;
-  }
+
   if (dura_echo_name)
   {
-#define MAX_VOLUMES 100
+    #define MAX_VOLUMES 100
     char fname[STRLEN], fmt[STRLEN] ;
     MRI *mri_ratio, *mri_echos[MAX_VOLUMES] ;
     int  e ;
@@ -1430,12 +1429,9 @@ int main(int argc, char *argv[])
       {
         MRIfree(&mri_echos[e]) ;
       }
-  }
+  } // end dura_echo_name
   else
-  {
     mri_mask = NULL ;
-  }
-
 
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   fprintf(stdout, "repositioning cortical surface to gray/csf boundary.\n") ;
@@ -1446,76 +1442,61 @@ int main(int argc, char *argv[])
   for (j = 0 ; j < 1 ; j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
+
     for (n_averages = max_pial_averages, i = 0 ;
          n_averages >= min_pial_averages ;
          n_averages /= 2, current_sigma /= 2, i++)
     {
-      if (flair_or_T2_name)
-      {
+
+      if (flair_or_T2_name) {
         MRI  *mri_flair = NULL ;
         LABEL             **labels ;
         int               nlabels ;
         char             fname[STRLEN] ;
 
         strcpy(fname, flair_or_T2_name) ;
-        if (MGZ)
-        {
-          strcat(fname, ".mgz");
-        }
+        if (MGZ) strcat(fname, ".mgz");
 
         printf("repositioning pial surface locations using  %s\n", fname) ;
-        if (mri_flair)  // first time
-        {
-          MRIfree(&mri_flair) ;
-        }
+        if (mri_flair)  MRIfree(&mri_flair) ;
 
 	if (n_averages <= min_pial_averages)
 	  parms.l_repulse = 0 ;  // for final round turn off the 'unpinching' term
 
         mri_flair = MRIread(fname) ;
         if (mri_flair == NULL)
-        {
           ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
-        }
 
-	if (MRImatchDimensions(mri_flair, mri_aseg) == 0)
-	{
+	if (MRImatchDimensions(mri_flair, mri_aseg) == 0){
 	  MRI *mri_tmp ;
-	  
 	  printf("resampling to be in voxel space of T2/FLAIR\n") ;
 	  mri_tmp = MRIresample(mri_aseg, mri_flair, SAMPLE_NEAREST) ;
 	  MRIfree(&mri_aseg) ;
 	  mri_aseg = mri_tmp ;
 	}
 
-	if (mri_aseg && erase_cerebellum)
-	{
+	if(mri_aseg && erase_cerebellum){ // off by default
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Left_Cerebellum_Cortex, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Right_Cerebellum_White_Matter, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_Cortex, 0) ;
 	}
 
-	if (mri_aseg && erase_brainstem)
-	{
+	if (mri_aseg && erase_brainstem) {  // off by default
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Brain_Stem, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Left_VentralDC, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Right_VentralDC, 0) ;
 	}
 
-        if (read_pinch_fname)
-        {
+        if (read_pinch_fname) {  // off by default
           char marked_fname[STRLEN] ;
-
           MRISreadVertexPositions(mris, read_pinch_fname) ;
           sprintf(marked_fname, "%s.marked.mgz", read_pinch_fname) ;
           MRISreadMarked(mris, marked_fname) ;
           MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
         }
-        else if (unpinch)
-        {
-          if (mri_aseg && erase_cerebellum)
-          {
+        else if (unpinch){  // off by default
+          if (mri_aseg && erase_cerebellum) {
             MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
             MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_Cortex, 0) ;
             MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
@@ -1551,24 +1532,23 @@ int main(int argc, char *argv[])
 
           MRISwriteMarked(mris, "distant.mgz") ;
           MRIScomputeMetricProperties(mris) ;
-        }
+        } //end if(unpinch)
         else
-        {
           nlabels = 0 ;
-        }
 
 	MRISremoveIntersections(mris) ;
 	
 	GetMemUsage(memusage);  printf("Pre Pial Targ Loc VmPeak %d\n",memusage[1]);fflush(stdout);
 
-        compute_pial_target_locations(mris, mri_flair,
-                                      labels, nlabels,
-                                      contrast_type, mri_aseg, T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside,max_outward_dist,Ghisto_min_inside_peak_pct, Ghisto_min_outside_peak_pct, wm_weight, mri_T1_pial) ;
-//	parms.l_location /= spring_scale ; 
+        compute_pial_target_locations(mris, mri_flair, labels, nlabels,
+             contrast_type, mri_aseg, 
+             T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside,
+             max_outward_dist,Ghisto_min_inside_peak_pct, 
+             Ghisto_min_outside_peak_pct, wm_weight, mri_T1_pial) ;
+	//	parms.l_location /= spring_scale ; 
 	GetMemUsage(memusage);  printf("Post Pial Targ Loc VmPeak %d\n",memusage[1]);fflush(stdout);
 
-        if (Gdiag & DIAG_WRITE)
-        {
+        if (Gdiag & DIAG_WRITE) {
           char fname[STRLEN] ;
 	  static int n = 0 ;
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -1578,44 +1558,27 @@ int main(int argc, char *argv[])
           MRISwrite(mris, fname) ;
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
-//  parms.l_histo = 1 ;
+	//  parms.l_histo = 1 ;
         parms.l_intensity = 0 ;
-#if 0
-	if (i == 0) // only the first time
-	{
-	  //	  parms.l_nspring *= 0.1 ;
-	  //	  parms.l_tspring *= 0.1 ;
-	  //	  parms.l_curv *= 0.1 ;
-	  parms.l_nspring *= 0.25 ;
-	  parms.l_tspring *= 0.25 ;
-	  parms.l_curv *= 0.25 ;
-	}
-#endif
-
 	//  parms.l_max_spring = .1 ;
 	//  parms.l_parea = .05 ;
-      }
+      } // end if(FLAIR or T2)
 
-      if (T2_name)
-      {
+      // T2=========================================
+      if(T2_name) {
+        // Note: l_location is set to 0.5 at the end and l_intensity is turned off
         MRI  *mri_T2 = NULL ;
         int n = 0 ;
         LABEL             **labels ;
         int               nlabels ;
 
-        printf("removing non-brain from pial surface locations"
-               " using T2 volume %s\n", T2_name) ;
+        printf("removing non-brain from pial surface locations using T2 volume %s\n", T2_name) ;
         if (mri_T2)  // first time
-        {
           MRIfree(&mri_T2) ;
-        }
+
         mri_T2 = MRIread(T2_name) ;
         if (mri_T2 == NULL)
-        {
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not load T2 volume %s", Progname, T2_name) ;
-        }
-
+          ErrorExit(ERROR_NOFILE,"%s: could not load T2 volume %s", Progname, T2_name) ;
 
         if (read_pinch_fname)
         {
@@ -1663,7 +1626,7 @@ int main(int argc, char *argv[])
 
           MRISwriteMarked(mris, "distant.mgz") ;
           MRIScomputeMetricProperties(mris) ;
-        }
+  }
         else
         {
           nlabels = 0 ;
@@ -1688,7 +1651,8 @@ int main(int argc, char *argv[])
 	//        parms.l_histo = 1 ;
         parms.l_location = .5 ;
         parms.l_intensity = 0 ;
-      }
+      } // if T2_name ==================================================
+
       parms.sigma = current_sigma ;
       mri_kernel = MRIgaussian1d(current_sigma, 100) ;
       fprintf(stdout, "smoothing T1 volume with sigma = %2.3f\n",
@@ -1696,35 +1660,26 @@ int main(int argc, char *argv[])
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
       /*
-        replace bright stuff such as eye sockets with 255.
-        Simply zeroing it out
-        would make the border always go through the sockets,
-        and ignore subtle
-        local minima in intensity at the border of the sockets.
-        Will set to 0
-        after border values have been computed so that it
-        doesn't mess up gradients.
+        Replace bright stuff such as eye sockets with 255.  Simply
+        zeroing it out would make the border always go through the
+        sockets, and ignore subtle local minima in intensity at the
+        border of the sockets.  Will set to 0 after border values have
+        been computed so that it doesn't mess up gradients.
       */
-      if (fill_interior == 0)
-      {
+      if (fill_interior == 0){
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
       }
+
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
         MRIwrite(mri_T1, "pial_masked.mgz") ; 
-     }
-      if (mri_cover_seg)
-      {
+
+      if (mri_cover_seg)      {
         MRI *mri_tmp, *mri_bin ;
-
-        if (i == 0)
-        {
+        if (i == 0)        {
           mri_bin = MRIclone(mri_T1, NULL) ;
-
           printf("creating distance transform volume from segmentation\n") ;
-          if (mris->hemisphere == LEFT_HEMISPHERE)
-          {
+          if (mris->hemisphere == LEFT_HEMISPHERE) {
             MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
             MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_Cortex) ;
             MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
@@ -1769,29 +1724,35 @@ int main(int argc, char *argv[])
               printf("writing dtrans volume to %s\n", fname) ;
               MRIwrite(mri_tmp, fname) ;
 	  }
-//          parms.grad_dir = 1 ;
+	  //          parms.grad_dir = 1 ;
           MRIfree(&mri_T1) ;
           mri_T1 = mri_tmp ;
           MRISsetVals(mris, 0) ;   // target is 0 distance transform val
           MRIfree(&mri_bin) ;
         }
-      }
-      else if (flair_or_T2_name == NULL) // otherwise already done
+      } // end if mri_cover_seg
+      else if (flair_or_T2_name == NULL) 
       {
-        MRIScomputeBorderValues
-        (mris, mri_T1, mri_smooth, max_gray,
+        // Intensity is ignored with T2 or FLAIR
+        // This is the main CBV for pial
+        // inside_hi = max_gray (eg, 99.05)
+        // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
+        // border_low = min_gray_at_csf_border = meanGM-V*stdGM (V=3) (eg, 45.7)
+        // outside_low = min_csf = meanGM - MAX(0.5,(V-1)*stdGM) (eg, 10)
+        // outside_hi  = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
+        MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+max_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
          GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       }
-      if (!FZERO(pial_target_offset))
-      {
+      if (!FZERO(pial_target_offset)){
 	MRISaddToValues(mris, pial_target_offset) ;
 	printf("adding %2.2f to pial targets\n", pial_target_offset);
       }
-      {
+
+      {// open scope
         int ii, vno, n, vtotal ;
         VERTEX *v ;
         for (ii = 0; ii < pial_num ; ii++)
@@ -1827,9 +1788,9 @@ int main(int argc, char *argv[])
             mris->vertices[v->v[n]].val2 = current_sigma ;
           }
         }
-      }
-      if (pial_blur_sigma>0)
-      {
+       } // just an end of scope
+
+      if (pial_blur_sigma>0) { // off by default
 	MRI *mri_tmp ;
 	printf("blurring input image with sigma = %2.3f\n", pial_blur_sigma) ;
 	mri_kernel = MRIgaussian1d(pial_blur_sigma, 100) ;
@@ -1839,47 +1800,45 @@ int main(int argc, char *argv[])
 	MRIwrite(mri_T1_pial, "pblur.mgz") ;
       }
 
-      if (vavgs)
-      {
-        fprintf
-        (stdout,
-         "averaging target values for %d iterations...\n",vavgs) ;
+      if(vavgs){ // 5 by default
+        printf("averaging target values for %d iterations...\n",vavgs) ;
         MRISaverageMarkedVals(mris, vavgs) ;
-        if (Gdiag_no >= 0)
-        {
+        if (Gdiag_no >= 0){
           VERTEX *v ;
           v = &mris->vertices[Gdiag_no] ;
-          fprintf
-          (stdout,
-           "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+          printf("v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
            Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
         }
       }
 
-      if (write_vals)
-      {
+      if (write_vals) {
         sprintf(fname, "./%s-gray%2.2f.mgz", hemi, current_sigma) ;
         MRISwriteValues(mris, fname) ;
       }
+
+      // probably don't need this
       if (!mri_smooth)
-      {
         mri_smooth = MRIcopy(mri_T1, NULL) ;
-      }
-      if (j == 0 && i == 0 && orig_pial == NULL)  // first time increase smoothness to prevent pinching when pushing out from white surface
-      {
+
+      // first time increase smoothness to prevent pinching when pushing out from white surface
+      if(j == 0 && i == 0 && orig_pial == NULL)  {
+        // Problem: this stage is not run in recon-all because orig_pial is specified, but
+        // orig_pial is actually white.preaparc, which is not a real pial surface. 
 	INTEGRATION_PARMS  saved_parms ;
 	int k, start_t ;
 
 	printf("perforing initial smooth deformation to move away from white surface\n") ;
+
+	// Copy the params to restore after this stage
 	INTEGRATION_PARMS_copy(&saved_parms, &parms) ;
-	//	parms.l_intensity /= 5 ;
+
+	// parms.l_intensity /= 5 ;
+	// parms.l_spring = 1 ;
 	parms.dt /= 10 ;   // take small steps to unkink pinched areas
-	//	parms.l_spring = 1 ;
 	parms.niterations = 10 ;
 	parms.l_surf_repulse /= 5 ;
 
-	for (k = 0 ; k < 3 ; k++)
-	{
+	for (k = 0 ; k < 3 ; k++){
 	  INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 	  parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
 	  parms.l_tspring = MIN(1.0,parms.l_tspring) ;
@@ -1895,12 +1854,13 @@ int main(int argc, char *argv[])
 	       min_csf,(max_csf+max_gray_at_csf_border)/2,
 	       current_sigma, 2*max_thickness, parms.fp,
 	       GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
-	}
+        }// loop over k
 	start_t = parms.start_t ;
 	INTEGRATION_PARMS_copy(&parms, &saved_parms) ;
 	parms.start_t = start_t ;
 	parms.l_surf_repulse = l_surf_repulse ;
-      }
+      }// end if (j == 0 && i == 0 && orig_pial == NULL)  
+
       INTEGRATION_PARMS_copy(&old_parms, &parms) ;
       parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
       parms.l_tspring = MIN(1.0,parms.l_tspring) ;
@@ -1910,8 +1870,7 @@ int main(int argc, char *argv[])
       old_parms.start_t = parms.start_t ;
       INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 
-      if (parms.l_location > 0)
-      {
+      if (parms.l_location > 0)  { // 0 by default, but turned on with T2
 	int vno ;
 	VERTEX *v ;
 	double dist ;
@@ -1931,11 +1890,9 @@ int main(int argc, char *argv[])
 
       /*    parms.l_nspring = 0 ;*/
       if (!n_averages)
-      {
         break ;
-      }
-    }
-  }
+    } // end loop over number of averages 
+  } // end loop over j (only 1 for now)
 
   MRISremoveIntersections(mris) ;
   sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
@@ -1961,7 +1918,7 @@ int main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stdout) ;
   }
 
-  if (in_out_in_flag)
+  if (in_out_in_flag)// off by default
   {
     sprintf(parms.base_name, "%s%s%s",
             white_matter_name, output_suffix, suffix) ;
@@ -2004,6 +1961,7 @@ int main(int argc, char *argv[])
       parms.n_averages = n_averages ;
       MRISprintTessellationStats(mris, stdout) ;
       if (flair_or_T2_name == NULL) // otherwise already done
+	// within if(in_out_in_flag)
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, MAX_WHITE,
          max_border_white, min_border_white,
@@ -2063,7 +2021,7 @@ int main(int argc, char *argv[])
             suffix);
     fprintf(stdout, "writing gray/white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
-  }
+  } // end if(in_and_out)
   MRIfree(&mri_T1);
 
   /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
@@ -3289,8 +3247,12 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
-int
-MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
+/*!
+  \fn int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
+  \brief Does not smooth. It actually just replaces values that are
+  greater than WM_MIN_VAL with DEFAULT_DESIRED_WHITE_MATTER_VALUE
+*/
+int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nthresholded ;
   BUFTYPE *pwm, val, wm ;
@@ -3300,29 +3262,27 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
   depth = mri_T1->depth ;
 
   nthresholded = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
       pwm = &MRIvox(mri_wm, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
+      for (x = 0 ; x < width ; x++)      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         wm = *pwm++ ;
-        if (wm >= WM_MIN_VAL)  /* labeled as white */
-        {
-          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE)
-          {
+        if (wm >= WM_MIN_VAL){
+	  /* labeled as white */
+          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE){
             nthresholded++ ;
             val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
           }
         }
+	// If too bright, replace value with DEFAULT_DESIRED_WHITE_MATTER_VALUE 
         MRIsetVoxVal(mri_T1, x, y, z, 0, val) ;
       }
     }
   }
 
-  fprintf(stdout, "%d bright wm thresholded.\n", nthresholded) ;
+  printf("MRIsmoothBrightWM(): thresh=%d, clip=%d, %d bright wm thresholded.\n", 
+	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
 
   return(NO_ERROR) ;
 }
@@ -3474,7 +3434,10 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
 
   If there is an annotation, it will only make a difference in two
   places: (1) for entorhinal (where vertices are never marked/ripped),
-  and (2) in some areas of "unknown" cortex (see above).
+  and (2) in some areas of "unknown" cortex (see above). #1 probably
+  does not have much of an impact because because there is usually
+  some WM between entorhinal and hippo. #2 probably removes a few
+  vertices (and causes the putamen bug). 
 
   v->marked2 - affects MRIScortexLabel(), forces labeling as cortex. Also
   influences this program the second time around in that vertices with
@@ -3657,7 +3620,7 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
 	}
 
 	// these are labels where the intensities aren't useful, so just freeze surface there
-	// hidden parameter d<1mm
+	// hidden parameter d<1mm. v->marked2 affects the cortical label
 	if (d < 1 && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	  v->marked = v->marked2 = 1 ;
 
@@ -3706,8 +3669,13 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
       MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
-      if (d < 1.1 && (label == wm_label || label == gm_label))
-        break ;  // found ispilateral GM or WM next to surface, 1.1 hidden parameter
+ 
+      // Found ispilateral GM or WM next to surface (1.1mm hidden
+      // parameter), so don't go any deeper.  This is probably why the
+      // surface near entorhinal is not affected (or not much) even
+      // when no annotation is passed.
+      if(d < 1.1 && (label == wm_label || label == gm_label))
+        break ;  
 
       if ((which == GRAY_CSF) && (d < 1) && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	v->val2 = 1 ;
@@ -3874,7 +3842,8 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
       pct_unknown /= (double)labels[n]->n_points ;
 
       // If this fraction is < 0.6 (hidden parameter), unmark all vertices in the cluster
-      // Won't this undo the marks near putamen or lesion? Answer: yes, this is a bug.
+      // Won't this undo the marks near putamen or lesion? Answer: yes, this is a bug
+      // that makes the surface worse when the annotation is loaded.
       if (pct_unknown < .6) {
         printf("deleting segment %d with %d points - only %2.2f%% unknown, v=%d\n",
                n,labels[n]->n_points,100*pct_unknown, labels[n]->lv[0].vno) ;
