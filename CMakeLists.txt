@@ -647,6 +647,7 @@ add_subdirectories(
   rbftest
   regdat2xfm
   repair_siemens_file
+  resurf
   scripts
   spherical_stats
   spline3
