@@ -43,12 +43,11 @@
       <argument>-whiteonly</argument>
       <explanation>Only generate white matter surface</explanation>
       <argument>-nowhite</argument>
-      <explanation>Only generate pial surface (use ?h.orig or whatever is specified with -orig_white as white surface)</explanation>
+      <explanation>Only generate pial surface (use ?h.white or whatever is specified with -orig_white as white surface)</explanation>
       <argument>-orig_white &lt;surf&gt;</argument>
       <explanation>specify a white surface to start with</explanation>
       <argument>-orig_pial &lt;surf&gt;</argument>
       <explanation>specify a pial surface to start with</explanation>
-
       <argument>-q</argument>
       <explanation>Omit self-intersection and only generate gray/white surface</explanation>
       <argument>-max_gray_scale  mgs</argument>
@@ -107,6 +106,10 @@
       <explanation>Set weight of normal spring cost </explanation>
       <argument>-repulse repulsecostweight</argument>
       <explanation>Set weight of repulsion force </explanation>
+      <argument>-save-target</argument>
+      <explanation>save target surface (for debugging)</explanation>
+      <argument>-save-res</argument>
+      <explanation>save residual (for debugging)</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

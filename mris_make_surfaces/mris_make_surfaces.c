@@ -174,7 +174,6 @@ static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
-char *save_white_res_fname = NULL;
 
 char *Progname ;
 
@@ -2697,8 +2696,10 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "nowhite"))
   {
-    // Do not place the white surface. Only place the pial surface. Read in
-    // ?h.orig or whatever is specified with -orig_white
+    // Do not place the white surface. Only place the pial surface. It
+    // reads in a white surface based on whatever orig_white is set to.
+    // if that is null, then uses whatever white_matter_name is set to.
+    // The default for this is white.
     nowhite = 1 ;
     printf("reading previously compute gray/white surface\n") ;
   }
