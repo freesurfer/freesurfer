@@ -184,11 +184,9 @@ modelSpecifications = history.input.modelSpecifications;
 numberOfGaussiansPerClass = [ modelSpecifications.sharedGMMParameters.numberOfComponents ];
 numberOfClasses = length( numberOfGaussiansPerClass );
 numberOfGaussians = sum( numberOfGaussiansPerClass );
-figure
-%  colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];           
-downSampledImageSize = size( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 ) );
-downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 downSampledImageBuffer = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
+downSampledImageSize = size( downSampledImageBuffer );
+downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 if 1
   % Posterior
   probabilities = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).posteriorsAtEnd;
@@ -233,34 +231,67 @@ for alpha = [ 1 0.5 ]
 end
   
 
+  
+  
+  
+%
+%
+multiResolutionLevel = 1;
+modelSpecifications = history.input.modelSpecifications;
+numberOfGaussiansPerClass = [ modelSpecifications.sharedGMMParameters.numberOfComponents ];
+numberOfClasses = length( numberOfGaussiansPerClass );
+numberOfGaussians = sum( numberOfGaussiansPerClass );
+downSampledImageBuffer = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
+downSampledImageSize = size( downSampledImageBuffer );
+downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 numberOfIterations = ...
    length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration );
-figure
 binCenters = linspace( min( downSampledImageBuffer(:) ), max( downSampledImageBuffer(:) ), 100 );
+numberOfRows = ceil( sqrt( numberOfClasses ) );
+numberOfColumns = ceil( numberOfClasses / numberOfRows );
+figure
 for iterationNumber = 1 : numberOfIterations
   historyWithinIteration = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration( iterationNumber );
   mixtureWeights = historyWithinIteration.mixtureWeights;
   means = historyWithinIteration.means;
   variances = historyWithinIteration.variances;
-  model = zeros( size( binCenters ) );
-  for componentNumber = 1 : numberOfComponents
-    gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
+  
+  for classNumber = 1 : numberOfClasses
+    numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    mergedName = history.input.modelSpecifications.sharedGMMParameters( classNumber ).mergedName; 
+  
+    subplot( numberOfRows, numberOfColumns, classNumber )
+    model = zeros( size( binCenters ) );
+    for componentNumber = 1 : numberOfComponents
+      gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
 
-    mean = means( gaussianNumber );
-    variance = variances( gaussianNumber );
-    mixtureWeight = mixtureWeights( gaussianNumber );
-    gauss = 1/sqrt( 2 * pi * variance ) * exp( -( binCenters - mean ).^2 / 2 / variance );
-    plot( binCenters, gauss * mixtureWeight )
-    hold on
-    model = model + gauss * mixtureWeight;
-  end
-  plot( binCenters, model )
+      mean = means( gaussianNumber );
+      variance = variances( gaussianNumber );
+      mixtureWeight = mixtureWeights( gaussianNumber );
+      gauss = 1/sqrt( 2 * pi * variance ) * exp( -( binCenters - mean ).^2 / 2 / variance );
+      plot( binCenters, gauss * mixtureWeight )
+      hold on
+      model = model + gauss * mixtureWeight;
+    end
+    plot( binCenters, model )
+    hold off
+    xlim = get( gca, 'xlim' );
+    ylim = get( gca, 'ylim' );
+    % t = text( xlim * [ 0.7 0.3 ]', ylim * [ 0.2 0.8 ]', ...
+    %          [ 'iterationNumber: ' num2str( iterationNumber ) ] );
+    title( [ mergedName ' (iter ' num2str( iterationNumber ) ')' ] )
+    grid
+  end    
+  a = get( gcf, 'Children' );
+  xlims = cell2mat( get( a, 'xlim' ) );
+  ylims = cell2mat( get( a, 'ylim' ) );
+  xlim = [ min( xlims(:,1) ) max( xlims(:,2) ) ];
+  ylim = [ min( ylims(:,1) ) max( ylims(:,2) ) ];
+  set( a, 'xlim', xlim, 'ylim', ylim )
   hold off
-  xlim = get( gca, 'xlim' );
-  ylim = get( gca, 'ylim' );
-  t = text( xlim * [ 0.7 0.3 ]', ylim * [ 0.2 0.8 ]', [ 'iterationNumber: ' num2str( iterationNumber ) ] );
   drawnow
   pause( .1 )
+  
 end 
 
 
