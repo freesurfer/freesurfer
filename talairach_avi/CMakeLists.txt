@@ -85,30 +85,37 @@ install(TARGETS compute_vox2vox DESTINATION bin)
 
 install(FILES talairach_avi.help.xml DESTINATION docs/xml)
 
+add_test_script(NAME libg2c_linker SCRIPT test_libg2c DEPENDS gauss_4dfp)
+
+install_symlinks(
+  3T18yoSchwartzReactN32_as_orig.4dfp.hdr
+  3T18yoSchwartzReactN32_as_orig.4dfp.ifh
+  3T18yoSchwartzReactN32_as_orig.4dfp.img
+  3T18yoSchwartzReactN32_as_orig.4dfp.img.rec
+  3T18yoSchwartzReactN32_as_orig.4dfp.mat
+  3T18yoSchwartzReactN32_as_orig.lst
+  711-2B_as_mni_average_305_mask.4dfp.hdr
+  711-2B_as_mni_average_305_mask.4dfp.ifh
+  711-2B_as_mni_average_305_mask.4dfp.img
+  711-2B_as_mni_average_305_mask.4dfp.img.rec
+  711-2C_as_mni_average_305.4dfp.hdr
+  711-2C_as_mni_average_305.4dfp.ifh
+  711-2C_as_mni_average_305.4dfp.img
+  711-2C_as_mni_average_305.4dfp.img.rec
+  711-2C_as_mni_average_305.4dfp.mat
+  TYPE files
+  DESTINATION average
+)
+
 install_symlinks(
   711-2B_as_mni_average_305.4dfp.hdr
-  711-2B_as_mni_average_305_mask.4dfp.ifh
-  711-2C_as_mni_average_305.4dfp.img
   711-2B_as_mni_average_305.4dfp.ifh
-  711-2B_as_mni_average_305_mask.4dfp.img
-  711-2C_as_mni_average_305.4dfp.img.rec
   711-2B_as_mni_average_305.4dfp.img
-  711-2B_as_mni_average_305_mask.4dfp.img.rec
   711-2B_as_mni_average_305.4dfp.img.rec
-  711-2C_as_mni_average_305.4dfp.hdr
-  711-2B_as_mni_average_305_mask.4dfp.hdr
-  711-2C_as_mni_average_305.4dfp.ifh
-  711-2C_as_mni_average_305.4dfp.mat
   mni_average_305.4dfp.hdr
   mni_average_305.4dfp.ifh
   mni_average_305.4dfp.img
   mni_average_305.4dfp.img.rec
-  3T18yoSchwartzReactN32_as_orig.4dfp.hdr
-  3T18yoSchwartzReactN32_as_orig.4dfp.img
-  3T18yoSchwartzReactN32_as_orig.4dfp.ifh
-  3T18yoSchwartzReactN32_as_orig.4dfp.img.rec
-  3T18yoSchwartzReactN32_as_orig.4dfp.mat
-  3T18yoSchwartzReactN32_as_orig.lst
   RLB700_atlas_as_orig.4dfp.hdr
   RLB700_atlas_as_orig.4dfp.ifh
   RLB700_atlas_as_orig.4dfp.img
@@ -144,5 +151,3 @@ install_symlinks(
   TYPE files
   DESTINATION average
 )
-
-add_test_script(NAME libg2c_linker SCRIPT test_libg2c DEPENDS gauss_4dfp)
