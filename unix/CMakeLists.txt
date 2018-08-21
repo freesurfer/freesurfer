@@ -2,7 +2,6 @@ project(unix)
 
 include_directories(
   ${FS_INCLUDE_DIRS}
-  ${MINC_INCLUDE_DIR}
   ${X11_INCLUDE_DIR}
 )
 
@@ -22,4 +21,4 @@ set(SOURCES
 
 add_library(unix STATIC ${SOURCES})
 
-target_link_libraries(unix ${MINC_LIBRARIES} ${NetCDF_LIBRARIES} ${OPENGL_LIBRARIES})
+target_link_libraries(unix minc netcdf ${OPENGL_LIBRARIES})
