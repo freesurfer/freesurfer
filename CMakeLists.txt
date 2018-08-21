@@ -111,15 +111,6 @@ find_package(Expat REQUIRED)
 # -------- xml2 --------
 find_package(XML2 REQUIRED)
 
-# -------- netcdf --------
-set(NetCDF_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1)
-set(NetCDF_LIBRARIES netcdf_3_6_0_p1)
-
-# -------- minc --------
-set(MINC_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/minc_1_5_1)
-set(MINC_LIBRARIES minc_1_5_1)
-add_definitions(-DUSE_LOCAL_MINC)
-
 # -------- tetgen --------
 find_package(Tetgen REQUIRED)
 
@@ -220,7 +211,8 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-if(APPLE) # clang on Mac complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-const-variable -Wno-unused-result -Wno-unused-local-typedefs")
 else()
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
@@ -287,10 +279,20 @@ add_subdirectories(distribution images)
 
 # the top-level include dir contain the most commonly
 # included freesurfer header files
-set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
+set(FS_INCLUDE_DIRS
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/minc_1_5_1
+  ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1
+)
+
+# make sure to use the local minc source
+add_definitions(-DUSE_LOCAL_MINC)
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
+  minc_1_5_1
+  netcdf_3_6_0_p1
   unix
   log
   rgb
@@ -301,8 +303,6 @@ add_subdirectories(
   fsgdf
   svm-lib
   opencl_algorithms
-  minc_1_5_1
-  netcdf_3_6_0_p1
 )
 
 # the following utility libs are required for freeview and qdec
@@ -317,7 +317,6 @@ add_subdirectory(fem_elastic)
 # --------------------------------------------------
 
 # configure the remaining FS subdirs
-
 add_subdirectories(
   anatomicuts
   BrainstemSS

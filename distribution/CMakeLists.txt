@@ -72,3 +72,10 @@ set(AFNIDIR $ENV{AFNIDIR})
 if(AFNIDIR)
   install(PROGRAMS ${AFNIDIR}/bin/3dvolreg DESTINATION bin RENAME 3dvolreg.afni)
 endif()
+
+# symlink MNI installation
+if(NOT "$ENV{MNI_DIR}" STREQUAL "")
+  symlink("$ENV{MNI_DIR}" ${CMAKE_INSTALL_PREFIX}/mni)
+elseif(EXISTS ${FS_PACKAGES_DIR}/mni/current)
+  symlink(${FS_PACKAGES_DIR}/mni/current ${CMAKE_INSTALL_PREFIX}/mni)
+endif()
