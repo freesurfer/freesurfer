@@ -211,7 +211,8 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-if(APPLE) # clang on Mac complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-const-variable -Wno-unused-result -Wno-unused-local-typedefs")
 else()
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
