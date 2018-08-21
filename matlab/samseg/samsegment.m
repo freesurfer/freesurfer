@@ -202,7 +202,7 @@ end
 FreeSurferLabels = modelSpecifications.FreeSurferLabels;
 names = modelSpecifications.names;
 colors = modelSpecifications.colors;
-[ reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable ] = ...
+[ reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, translationTable ] = ...
                         kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
 
 
@@ -580,7 +580,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfGaussians ] );
       minLogLikelihood = -sum( log( normalizer ) );
       intensityModelParameterCost = 0;
-      useRestrictedGMMs = true;
+      useRestrictedGMMs = false;
       if ~useRestrictedGMMs
         for gaussianNumber = 1 : numberOfGaussians
           variance = squeeze( variances( gaussianNumber, :, : ) );
@@ -1014,27 +1014,39 @@ posteriors = zeros( size( priors ), 'double' );
 for structureNumber = 1 : numberOfStructures
 
   prior = single( priors( :, structureNumber ) ) / 65535;
-  classNumber = reducingLookupTable( structureNumber );
   
-  likelihoods = zeros( length( maskIndices ), 1 );
-  numberOfComponents = numberOfGaussiansPerClass( classNumber );
-  for componentNumber = 1 : numberOfComponents
-    gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-
-    mean = means( gaussianNumber, : )';
-    variance = squeeze( variances( gaussianNumber, :, : ) );
-    mixtureWeight = mixtureWeights( gaussianNumber );
-    
-    L = chol( variance, 'lower' );  % variance = L * L'
-    tmp = L \ ( data' - repmat( mean, [ 1 size( data, 1 ) ] ) );
-    squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
-    sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
-    gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
-
-    likelihoods = likelihoods + gaussianLikelihoods * mixtureWeight;
-  end
+  mixedLikelihoods = zeros( length( maskIndices ), 1 );
+  for classNumber = 1 : numberOfClasses
+    %
+    fraction = translationTable( classNumber, structureNumber );
+    if ( fraction < 1e-10 )
+      continue;
+    end 
   
-  posteriors( :, structureNumber ) = likelihoods .* prior;
+    % Compute likelihood of this class (aka mixture model)
+    likelihoods = zeros( length( maskIndices ), 1 );
+    numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    for componentNumber = 1 : numberOfComponents
+      gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
+
+      mean = means( gaussianNumber, : )';
+      variance = squeeze( variances( gaussianNumber, :, : ) );
+      mixtureWeight = mixtureWeights( gaussianNumber );
+      
+      L = chol( variance, 'lower' );  % variance = L * L'
+      tmp = L \ ( data' - repmat( mean, [ 1 size( data, 1 ) ] ) );
+      squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
+      sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
+      gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
+
+      likelihoods = likelihoods + gaussianLikelihoods * mixtureWeight;
+    end
+
+    % 
+    mixedLikelihoods = mixedLikelihoods + likelihoods * fraction;
+  end 
+  
+  posteriors( :, structureNumber ) = mixedLikelihoods .* prior;
 
 end % End loop over structures
 
