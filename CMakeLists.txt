@@ -279,6 +279,7 @@ add_subdirectories(distribution images)
 # the top-level include dir contain the most commonly
 # included freesurfer header files
 set(FS_INCLUDE_DIRS
+  ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/minc_1_5_1
   ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1
