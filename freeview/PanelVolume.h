@@ -138,6 +138,8 @@ protected slots:
 
   void OnGoToNextPoint();
 
+  void OnColorTableChangeColor();
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();

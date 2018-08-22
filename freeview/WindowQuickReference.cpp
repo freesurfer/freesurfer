@@ -34,7 +34,11 @@ WindowQuickReference::WindowQuickReference(QWidget *parent) :
   setWindowFlags( Qt::Tool );
   QFile file(":/resource/QuickRef.html");
   file.open(QIODevice::ReadOnly | QIODevice::Text);
-  ui->textBrowser->setHtml(file.readAll());
+  QByteArray ba = file.readAll();
+#ifdef Q_OS_MAC
+  ba.replace("Ctrl +", "Cmd +");
+#endif
+  ui->textBrowser->setHtml(ba);
 
   QSettings settings;
   restoreGeometry(settings.value("WindowQuickRef/Geometry").toByteArray());
