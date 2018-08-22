@@ -26,6 +26,7 @@
 
 #include "PanelLayer.h"
 #include <QList>
+#include <QVector>
 
 extern "C"
 {
@@ -133,6 +134,10 @@ protected slots:
 
   void OnCheckBoxSetDisplayRGB(bool b);
 
+  void OnGoToFirstPoint();
+
+  void OnGoToNextPoint();
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();
@@ -162,6 +167,9 @@ private:
 
   COLOR_TABLE*  m_curCTAB;
   bool          m_bShowExistingLabelsOnly;
+
+  QVector<double> m_voxelList;
+  int           m_nCurrentVoxelIndex;
 };
 
 #endif // PANELVOLUME_H

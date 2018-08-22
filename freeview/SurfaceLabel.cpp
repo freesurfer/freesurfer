@@ -446,7 +446,9 @@ bool SurfaceLabel::SaveToFile(const QString &filename)
   if ( err != 0 )
   {
     cerr << "LabelWrite failed\n";
+    return false;
   }
+  return true;
 }
 
 void SurfaceLabel::Undo()

@@ -43,6 +43,7 @@
 #include <QMessageBox>
 #include <QClipboard>
 #include <QMimeData>
+#include <QToolTip>
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -81,7 +82,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   PanelLayer("MRI", parent),
   ui(new Ui::PanelVolume),
   m_curCTAB( NULL ),
-  m_bShowExistingLabelsOnly(false)
+  m_bShowExistingLabelsOnly(false),
+  m_nCurrentVoxelIndex(-1)
 {
   ui->setupUi(this);
   ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -699,6 +701,7 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     ChangeLineEditNumber( ui->lineEditBrushValue, val );
     MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
     UpdateColorLabel();
+    m_nCurrentVoxelIndex = -1;
   }
 }
 
@@ -1717,10 +1720,21 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
         {
           act->setText("Go to Centroid");
           connect(act, SIGNAL(triggered()), SLOT(OnColorTableItemDoubleClicked()));
+          menu.addAction(act);
+          act = new QAction(this);
+#ifdef Q_OS_MAC
+          act->setText("Go Through Voxels (Cmd+Shift+N)");
+#else
+          act->setText("Go Through Voxels (Ctrl+Shift+N)");
+#endif
+          connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
+          menu.addAction(act);
         }
         else
+        {
           act->setText("Label does not exist in volume");
-        menu.addAction(act);
+          menu.addAction(act);
+        }
         menu.addSeparator();
       }
     }
@@ -1749,4 +1763,69 @@ void PanelVolume::OnButtonResetWindowLevel()
   {
     layer->GetProperty()->ResetWindowLevel();
   }
+}
+
+void PanelVolume::OnGoToFirstPoint()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (item)
+  {
+    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
+    double val = strglist[0].toDouble();
+    LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+    if ( layer )
+    {
+      double pos[3];
+      m_voxelList = layer->GetVoxelList((int)val);
+      if (!m_voxelList.isEmpty())
+      {
+        pos[0] = m_voxelList[0];
+        pos[1] = m_voxelList[1];
+        pos[2] = m_voxelList[2];
+        MainWindow::GetMainWindow()->SetSlicePosition(pos);
+        MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+        m_nCurrentVoxelIndex = 0;
+      }
+      else
+      {
+        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+      }
+    }
+  }
+}
+
+void PanelVolume::OnGoToNextPoint()
+{
+  if (m_nCurrentVoxelIndex < 0 || m_nCurrentVoxelIndex >= m_voxelList.size()/3)
+  {
+    OnGoToFirstPoint();
+  }
+  else if (!m_voxelList.isEmpty())
+  {
+    m_nCurrentVoxelIndex++;
+    if (m_nCurrentVoxelIndex >= m_voxelList.size()/3)
+      m_nCurrentVoxelIndex = 0;
+    double pos[3];
+    pos[0] = m_voxelList[m_nCurrentVoxelIndex*3];
+    pos[1] = m_voxelList[m_nCurrentVoxelIndex*3+1];
+    pos[2] = m_voxelList[m_nCurrentVoxelIndex*3+2];
+    MainWindow::GetMainWindow()->SetSlicePosition(pos);
+    MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+  }
+  if (m_nCurrentVoxelIndex >= 0 && !m_voxelList.isEmpty())
+  {
+    QWidget* w = MainWindow::GetMainWindow()->GetMainView();
+    QPoint pt(100,100);
+    if (w)
+    {
+      pt = w->mapToGlobal(w->rect().center() + QPoint(30, 30));
+    }
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
+    QToolTip::showText(pt, QString(" %1 / %2 ").arg(m_nCurrentVoxelIndex+1).arg(m_voxelList.size()/3), NULL, QRect(), 1500);
+#else
+    QToolTip::showText(pt, QString(" %1 / %2 ").arg(m_nCurrentVoxelIndex+1).arg(m_voxelList.size()/3), w);
+#endif
+  }
+  else
+    QToolTip::hideText();
 }
