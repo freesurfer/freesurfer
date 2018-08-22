@@ -43,7 +43,7 @@ void LayerMRIWorkerThread::run()
           if (!centers.contains(val))
           {
             QList<double> center;
-            center << 0 << 0 << 0;
+            center << i*vs[0] + origin[0] << j*vs[1] + origin[1] << k*vs[2] + origin[2];
             centers[val] = center;
             counts[val] = 1;
           }
