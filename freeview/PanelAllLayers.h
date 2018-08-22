@@ -44,6 +44,8 @@ public slots:
   void SelectAllLayers();
   void DeselectAllLayers();
 
+  PanelLayer* GetPanel(const QString& layer_type);
+
 private:
   void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer,
                  const QList<Layer *>& selectedLayers, Layer* curLayer = NULL);
