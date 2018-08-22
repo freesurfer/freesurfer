@@ -2944,9 +2944,19 @@ get_option(int argc, char *argv[])
     printf("Saving residual\n");
     nargs = 0 ;
   }
+  else if (!stricmp(option, "no-save-res")){
+    SaveResidual = 0;
+    printf("Not saving residual\n");
+    nargs = 0 ;
+  }
   else if (!stricmp(option, "save-target")){
     SaveTarget = 1;
     printf("Saving target surface\n");
+    nargs = 0 ;
+  }
+  else if (!stricmp(option, "no-save-target")){
+    SaveTarget = 0;
+    printf("Not saving target surface\n");
     nargs = 0 ;
   }
   else if (!stricmp(option, "openmp")) 

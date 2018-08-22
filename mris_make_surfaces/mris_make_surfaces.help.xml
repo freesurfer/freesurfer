@@ -106,9 +106,9 @@
       <explanation>Set weight of normal spring cost </explanation>
       <argument>-repulse repulsecostweight</argument>
       <explanation>Set weight of repulsion force </explanation>
-      <argument>-save-target</argument>
+      <argument>-save-target (-no-save-target)</argument>
       <explanation>save target surface (for debugging)</explanation>
-      <argument>-save-res</argument>
+      <argument>-save-res (-no-save-res)</argument>
       <explanation>save residual (for debugging)</explanation>
     </optional-flagged>
   </arguments>
