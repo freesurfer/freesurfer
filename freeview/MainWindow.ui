@@ -1656,6 +1656,14 @@
     <string>Unload Transform...</string>
    </property>
   </action>
+  <action name="actionNextLabelPoint">
+   <property name="text">
+    <string>Go to Next Label Point</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3530,5 +3538,6 @@
   <slot>OnSavePatchAs()</slot>
   <slot>OnLoadVolumeTransform()</slot>
   <slot>OnUnloadVolumeTransform()</slot>
+  <slot>OnGoToNextLabelPoint()</slot>
  </slots>
 </ui>

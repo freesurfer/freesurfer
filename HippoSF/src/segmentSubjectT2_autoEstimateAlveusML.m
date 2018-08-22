@@ -8,7 +8,7 @@
 % - subjectDir: FreeSurfer subject directory
 % - T2volumeFileName: T2 image
 % - resolution: voxel size at which we want to work (in mm).
-% - atlasMeshFileName: the atlas to segment the data
+% - atlasMeshFileName: the atlas to segment the datas
 % - atlasDumpFileName: corresponding imageDump.mgz (name *must* be imageDump.mgz)
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation (around 0.05)
@@ -2136,7 +2136,7 @@ for l=1:length(llist)
     dmap=bwdist(VOL==label);
     if l==1
         mini=dmap(mask);
-        seg=label;
+        seg=label*ones(size(mini));
     else
         dist=dmap(mask);
         m=dist<mini;

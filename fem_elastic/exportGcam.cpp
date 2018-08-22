@@ -141,7 +141,7 @@ main(int ac, char* av[])
                                             true,
                                             &vgLike);
     std::cout << " morph completed in " << t1.elapsed_min() << " minutes\n";
-    MRIwrite(mriOut, "tmpout1.mgz");
+    //MRIwrite(mriOut, "tmpout1.mgz");
     MRIfree(&mriOut);
   }
   // produce the GCAM
@@ -171,7 +171,7 @@ main(int ac, char* av[])
     << " height = " << mriOut->height
     << " depth = " << mriOut->depth
     << " nframes = " << mriOut->nframes << std::endl;
-    MRIwrite(mriOut, "tmpout2.mgz");
+    //MRIwrite(mriOut, "tmpout2.mgz");
   }
   else
   {
