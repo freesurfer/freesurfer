@@ -38,6 +38,7 @@ install_symlinks(
   DESTINATION lib/bem
 )
 
+# these aren't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
   add_subdirectory(diffusion)
   install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)

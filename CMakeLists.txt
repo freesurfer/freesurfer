@@ -211,11 +211,12 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result -Wno-unused-local-typedefs")
+# clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-const-variable -Wno-unused-result -Wno-unused-local-typedefs")
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
 else()
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-but-set-variable")
 endif()
 
 # ANSI
@@ -316,6 +317,9 @@ add_subdirectory(fem_elastic)
 #                      programs
 # --------------------------------------------------
 
+# the following subdirectories contain programs required for recon-all
+# and should be included during a "minimal" install. Extra programs that aren't
+# used in the standard stream should be added further down
 add_subdirectories(
   lta_convert
   mri_and
@@ -403,8 +407,10 @@ add_subdirectories(
   tkregister2
 )
 
+# the following program subdirectories aren't required in the standard
+# recon-all stream - they will be built by default, but not if a minimal build
+# is configured
 if(NOT MINIMAL)
-
   add_subdirectories(
     anatomicuts
     BrainstemSS
@@ -668,5 +674,4 @@ if(NOT MINIMAL)
     trc
     tridec
   )
-
 endif()

@@ -35,6 +35,7 @@ install_symlinks(
   mni305.mask.cor.mgz
 )
 
+# the following data isn't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
 
   install_symlinks(
