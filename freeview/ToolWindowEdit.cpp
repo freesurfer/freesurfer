@@ -144,6 +144,11 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
   timer->start( 50 );
 
+#ifdef Q_OS_MAC
+  ui->labelTips->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
+  ui->labelTipsContour->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
+#endif
+
   m_bToUpdateWidgets = true;
 }
 

@@ -44,6 +44,7 @@
 #include <QClipboard>
 #include <QMimeData>
 #include <QToolTip>
+#include <QColorDialog>
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -58,14 +59,14 @@ bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
   if (SortType == ColorTableItem::ST_VALUE)
   {
     bRet = (txt.split(" ", QString::SkipEmptyParts).first().toInt() >
-        other_txt.split(" ", QString::SkipEmptyParts).first().toInt());
+            other_txt.split(" ", QString::SkipEmptyParts).first().toInt());
   }
   else
   {
-//    if (txt.trimmed().contains(" "))
-//      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
-//    if (other_txt.trimmed().contains(" "))
-//      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
+    //    if (txt.trimmed().contains(" "))
+    //      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
+    //    if (other_txt.trimmed().contains(" "))
+    //      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
     if (txt.toLower() != other_txt.toLower())
     {
       txt = txt.toLower();
@@ -735,10 +736,10 @@ void PanelVolume::OnColorTableSortingChanged()
 {
   if (sender())
   {
-//    if (sender()->property("sort_by").toInt() == ColorTableItem::SortType)
-//      ColorTableItem::SortAscending = !ColorTableItem::SortAscending;
-//    else
-      ColorTableItem::SortType = sender()->property("sort_by").toInt();
+    //    if (sender()->property("sort_by").toInt() == ColorTableItem::SortType)
+    //      ColorTableItem::SortAscending = !ColorTableItem::SortAscending;
+    //    else
+    ColorTableItem::SortType = sender()->property("sort_by").toInt();
     BlockAllSignals(true);
     COLOR_TABLE* t = m_curCTAB;
     m_curCTAB = NULL;
@@ -1012,7 +1013,7 @@ void PanelVolume::OnCheckShowContour(bool bShow)
 void PanelVolume::OnCheckShowLabelContour(bool bShow)
 {
   ShowWidgets( m_widgetlistContourNormal, !bShow);
-//  ShowWidgets( m_widgetlistContourLabel, bShow);
+  //  ShowWidgets( m_widgetlistContourLabel, bShow);
 }
 
 void PanelVolume::OnSliderOpacity( int nVal )
@@ -1390,7 +1391,7 @@ void PanelVolume::OnTrackVolumeThresholdChanged()
   if (!item)
     return;
 
-  int nLabel = item->text(0).split(" ").at(0).toInt();
+  int nLabel = item->data(0, Qt::UserRole+1).toInt();
   bool bOK;
   double fMin;
   fMin = ui->lineEditTrackVolumeThresholdLow->text().trimmed().toDouble(&bOK);
@@ -1478,7 +1479,7 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
     for (int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++)
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
-      if ( item->text(0).split(" ").at(0).toInt() == nLabel )
+      if ( item->data(0, Qt::UserRole+1).toInt() == nLabel )
       {
         ui->treeWidgetColorTable->setCurrentItem(item);
         return;
@@ -1679,7 +1680,7 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
-    int nVal = item->text(0).split(" ").at(0).toInt();
+    int nVal = item->data(0, Qt::UserRole+1).toInt();
     layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
     ui->checkBoxSelectAllLabels->setCheckState(layer->GetProperty()->GetSelectedLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
@@ -1710,8 +1711,7 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
     QTreeWidgetItem* item = ui->treeWidgetColorTable->itemAt(pt);
     if (item)
     {
-      QStringList strglist = item->text( 0 ).split(" ");
-      double val = strglist[0].toDouble();
+      double val = item->data(0, Qt::UserRole+1).toDouble();
       LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
       if ( layer )
       {
@@ -1735,6 +1735,11 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
           act->setText("Label does not exist in volume");
           menu.addAction(act);
         }
+        menu.addSeparator();
+        act = new QAction(this);
+        act->setText("Change Color...");
+        connect(act, SIGNAL(triggered()), SLOT(OnColorTableChangeColor()));
+        menu.addAction(act);
         menu.addSeparator();
       }
     }
@@ -1770,8 +1775,7 @@ void PanelVolume::OnGoToFirstPoint()
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
-    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
-    double val = strglist[0].toDouble();
+    double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
     {
@@ -1828,4 +1832,36 @@ void PanelVolume::OnGoToNextPoint()
   }
   else
     QToolTip::hideText();
+}
+
+void PanelVolume::OnColorTableChangeColor()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (item)
+  {
+    QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
+    color = QColorDialog::getColor(color, this);
+    if (color.isValid())
+    {
+      QPixmap pix(13, 13);
+      pix.fill( color );
+      item->setIcon(0, QIcon(pix) );
+      item->setData(0, Qt::UserRole, color );
+      int nIndex = item->data(0, Qt::UserRole+1).toInt();
+      if (m_curCTAB)
+      {
+        m_curCTAB->entries[nIndex]->rf = color.redF();
+        m_curCTAB->entries[nIndex]->gf = color.greenF();
+        m_curCTAB->entries[nIndex]->bf = color.blueF();
+        m_curCTAB->entries[nIndex]->ri = color.red();
+        m_curCTAB->entries[nIndex]->gi = color.green();
+        m_curCTAB->entries[nIndex]->bi = color.blue();
+      }
+      LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+      if ( layer )
+      {
+        layer->GetProperty()->UpdateLUTTable();
+      }
+    }
+  }
 }

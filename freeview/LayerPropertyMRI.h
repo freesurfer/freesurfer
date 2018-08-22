@@ -449,6 +449,8 @@ public slots:
   void SetVectorLineWidth(double val);
   void SetVectorSkip(int nSkip);
 
+  void UpdateLUTTable();
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
@@ -470,7 +472,6 @@ signals:
 
 private:
   void UpdateMinMaxValues();
-  void UpdateLUTTable();
   void BuildGenericLUT( const int colors[256][3] );
 
   //BTX
