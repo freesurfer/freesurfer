@@ -3,6 +3,7 @@ install(FILES
   DefectLUT.txt
   FreeSurferColorLUT.txt
   SegmentNoLUT.txt
+  Simple_surface_labels2005.txt
   Simple_surface_labels2009.txt
   tkmeditParcColorsCMA
   WMParcStatsLUT.txt
@@ -19,11 +20,7 @@ install(PROGRAMS
   DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
 
-add_subdirectory(average)
-add_subdirectory(diffusion)
-add_subdirectory(docs)
-add_subdirectory(fsafd)
-add_subdirectory(subjects)
+add_subdirectories(average docs fsafd subjects)
 
 install_symlinks(
   lib/bem/ic0.tri
@@ -41,8 +38,13 @@ install_symlinks(
   DESTINATION lib/bem
 )
 
-install(FILES sessions/README DESTINATION sessions)
-install_tarball(trctrain/trctraindata.tar.gz DESTINATION trctrain)
+# these aren't required for recon-all, but will be installed by default
+if(NOT MINIMAL)
+  add_subdirectory(diffusion)
+  install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
+  install(FILES sessions/README DESTINATION sessions)
+  install_tarball(trctrain/trctraindata.tar.gz DESTINATION trctrain)
+endif()
 
 # FSL commands
 set(FSLDIR $ENV{FSLDIR})
@@ -51,8 +53,6 @@ if(FSLDIR)
     install(PROGRAMS ${FSLDIR}/bin/${CMD} DESTINATION bin RENAME ${CMD}.fsl)
   endforeach()
 endif()
-
-install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
 
 # DCMTK commands
 set(DCMTKDIR $ENV{DCMTKDIR})
