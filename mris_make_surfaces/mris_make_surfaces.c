@@ -1168,7 +1168,7 @@ int main(int argc, char *argv[])
       MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
       MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
       MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
-      sprintf(fname,"%s/%s/surf/%s.%s.res.%s%s.mgz",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
+      sprintf(fname,"%s/%s/surf/%s.%s.res.%s%smgz",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
       printf("Saving white value residual to %s\n",fname);
       MRIwrite(ValResid,fname);
       MRIfree(&ValResid);
