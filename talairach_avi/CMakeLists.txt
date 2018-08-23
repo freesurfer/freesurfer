@@ -107,47 +107,52 @@ install_symlinks(
   DESTINATION average
 )
 
-install_symlinks(
-  711-2B_as_mni_average_305.4dfp.hdr
-  711-2B_as_mni_average_305.4dfp.ifh
-  711-2B_as_mni_average_305.4dfp.img
-  711-2B_as_mni_average_305.4dfp.img.rec
-  mni_average_305.4dfp.hdr
-  mni_average_305.4dfp.ifh
-  mni_average_305.4dfp.img
-  mni_average_305.4dfp.img.rec
-  RLB700_atlas_as_orig.4dfp.hdr
-  RLB700_atlas_as_orig.4dfp.ifh
-  RLB700_atlas_as_orig.4dfp.img
-  RLB700_atlas_as_orig.4dfp.img.rec
-  SVIP_Adult_Comp_N24_as_orig.4dfp.hdr
-  SVIP_Adult_Comp_N24_as_orig.4dfp.ifh
-  SVIP_Adult_Comp_N24_as_orig.4dfp.img
-  SVIP_Adult_Comp_N24_as_orig.4dfp.img.rec
-  SVIP_Adult_Control_N12_as_orig.4dfp.hdr
-  SVIP_Adult_Control_N12_as_orig.4dfp.ifh
-  SVIP_Adult_Control_N12_as_orig.4dfp.img
-  SVIP_Adult_Control_N12_as_orig.4dfp.img.rec
-  SVIP_Adult_Patient_N12_as_orig.4dfp.hdr
-  SVIP_Adult_Patient_N12_as_orig.4dfp.ifh
-  SVIP_Adult_Patient_N12_as_orig.4dfp.img
-  SVIP_Adult_Patient_N12_as_orig.4dfp.img.rec
-  SVIP_Child_Comp_N24_as_orig.4dfp.hdr
-  SVIP_Child_Comp_N24_as_orig.4dfp.ifh
-  SVIP_Child_Comp_N24_as_orig.4dfp.img
-  SVIP_Child_Comp_N24_as_orig.4dfp.img.rec
-  SVIP_Full_Comp_N48_as_orig.4dfp.hdr
-  SVIP_Full_Comp_N48_as_orig.4dfp.ifh
-  SVIP_Full_Comp_N48_as_orig.4dfp.img
-  SVIP_Full_Comp_N48_as_orig.4dfp.img.rec
-  SVIP_Young_Control_N12_as_orig.4dfp.hdr
-  SVIP_Young_Control_N12_as_orig.4dfp.ifh
-  SVIP_Young_Control_N12_as_orig.4dfp.img
-  SVIP_Young_Control_N12_as_orig.4dfp.img.rec
-  SVIP_Young_Patient_N12_as_orig.4dfp.hdr
-  SVIP_Young_Patient_N12_as_orig.4dfp.ifh
-  SVIP_Young_Patient_N12_as_orig.4dfp.img
-  SVIP_Young_Patient_N12_as_orig.4dfp.img.rec
-  TYPE files
-  DESTINATION average
-)
+# not required for minimal recon-all
+if(NOT MINIMAL)
+
+  install_symlinks(
+    711-2B_as_mni_average_305.4dfp.hdr
+    711-2B_as_mni_average_305.4dfp.ifh
+    711-2B_as_mni_average_305.4dfp.img
+    711-2B_as_mni_average_305.4dfp.img.rec
+    mni_average_305.4dfp.hdr
+    mni_average_305.4dfp.ifh
+    mni_average_305.4dfp.img
+    mni_average_305.4dfp.img.rec
+    RLB700_atlas_as_orig.4dfp.hdr
+    RLB700_atlas_as_orig.4dfp.ifh
+    RLB700_atlas_as_orig.4dfp.img
+    RLB700_atlas_as_orig.4dfp.img.rec
+    SVIP_Adult_Comp_N24_as_orig.4dfp.hdr
+    SVIP_Adult_Comp_N24_as_orig.4dfp.ifh
+    SVIP_Adult_Comp_N24_as_orig.4dfp.img
+    SVIP_Adult_Comp_N24_as_orig.4dfp.img.rec
+    SVIP_Adult_Control_N12_as_orig.4dfp.hdr
+    SVIP_Adult_Control_N12_as_orig.4dfp.ifh
+    SVIP_Adult_Control_N12_as_orig.4dfp.img
+    SVIP_Adult_Control_N12_as_orig.4dfp.img.rec
+    SVIP_Adult_Patient_N12_as_orig.4dfp.hdr
+    SVIP_Adult_Patient_N12_as_orig.4dfp.ifh
+    SVIP_Adult_Patient_N12_as_orig.4dfp.img
+    SVIP_Adult_Patient_N12_as_orig.4dfp.img.rec
+    SVIP_Child_Comp_N24_as_orig.4dfp.hdr
+    SVIP_Child_Comp_N24_as_orig.4dfp.ifh
+    SVIP_Child_Comp_N24_as_orig.4dfp.img
+    SVIP_Child_Comp_N24_as_orig.4dfp.img.rec
+    SVIP_Full_Comp_N48_as_orig.4dfp.hdr
+    SVIP_Full_Comp_N48_as_orig.4dfp.ifh
+    SVIP_Full_Comp_N48_as_orig.4dfp.img
+    SVIP_Full_Comp_N48_as_orig.4dfp.img.rec
+    SVIP_Young_Control_N12_as_orig.4dfp.hdr
+    SVIP_Young_Control_N12_as_orig.4dfp.ifh
+    SVIP_Young_Control_N12_as_orig.4dfp.img
+    SVIP_Young_Control_N12_as_orig.4dfp.img.rec
+    SVIP_Young_Patient_N12_as_orig.4dfp.hdr
+    SVIP_Young_Patient_N12_as_orig.4dfp.ifh
+    SVIP_Young_Patient_N12_as_orig.4dfp.img
+    SVIP_Young_Patient_N12_as_orig.4dfp.img.rec
+    TYPE files
+    DESTINATION average
+  )
+
+endif()

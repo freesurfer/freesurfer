@@ -1,12 +1,3 @@
-# subdirectories
-add_subdirectories(
-  surf
-  samseg
-  Yeo_JNeurophysiol11_MNI152
-  Buckner_JNeurophysiol11_MNI152
-  Choi_JNeurophysiol12_MNI152
-)
-
 # these are the minimum-required files for a standard recon
 install_symlinks(
   TYPE files
@@ -35,8 +26,21 @@ install_symlinks(
   mni305.mask.cor.mgz
 )
 
+# fsaverage
+install_tarball(fsaverage.tar.gz DESTINATION subjects)
+
+# samseg atlas
+add_subdirectory(samseg)
+
 # the following data isn't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
+
+  add_subdirectories(
+    surf
+    Yeo_JNeurophysiol11_MNI152
+    Buckner_JNeurophysiol11_MNI152
+    Choi_JNeurophysiol12_MNI152
+  )
 
   install_symlinks(
     TYPE files
@@ -97,7 +101,6 @@ if(NOT MINIMAL)
   install_tarball(cvs_avg35.tar.gz DESTINATION subjects)
   install_tarball(cvs_avg35_inMNI152.tar.gz DESTINATION subjects)
   install_tarball(EC_average.tar.gz DESTINATION subjects)
-  install_tarball(fsaverage.tar.gz DESTINATION subjects)
   install_tarball(fsaverage3.tar.gz DESTINATION subjects)
   install_tarball(fsaverage4.tar.gz DESTINATION subjects)
   install_tarball(fsaverage5.tar.gz DESTINATION subjects)
