@@ -115,6 +115,7 @@
 #include "BinaryTreeView.h"
 #include "SurfaceAnnotation.h"
 #include "Annotation2D.h"
+#include "PanelLayer.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -165,15 +166,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionDecreaseOpacity);
   addAction(ui->actionCycleSurfaceLabel);
 
-  addAction(ui->actionIncreaseOpacity);
-  addAction(ui->actionDecreaseOpacity);
-  addAction(ui->actionCycleSurfaceLabel);
   addAction(ui->actionResetViewAnterior);
   addAction(ui->actionResetViewPosterior);
   addAction(ui->actionResetViewLeft);
   addAction(ui->actionResetViewRight);
   addAction(ui->actionResetViewSuperior);
   addAction(ui->actionResetViewInferior);
+
+  addAction(ui->actionNextLabelPoint);
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
@@ -499,6 +499,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionToggleAseg);
   addAction(ui->actionToggleBrainmask);
   addAction(ui->actionToggleWm);
+
+  connect(ui->actionNextLabelPoint, SIGNAL(triggered()), ui->widgetAllLayers->GetPanel("MRI"), SLOT(OnGoToNextPoint()));
 }
 
 MainWindow::~MainWindow()
@@ -7994,3 +7996,4 @@ void MainWindow::OnUnloadVolumeTransform()
   args["unload"] = true;
   m_threadIOWorker->TransformVolume(mri, args);
 }
+
