@@ -276,7 +276,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 # --------------------------------------------------
 
 # first, prepare the freesurfer distribution
-add_subdirectories(distribution images)
+add_subdirectory(distribution)
+if(NOT MINIMAL)
+  add_subdirectory(images)
+endif()
 
 # the top-level include dir contain the most commonly
 # included freesurfer header files
