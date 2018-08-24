@@ -329,6 +329,8 @@ public:
   {
     m_bIgnoreHeader = b;
   }
+
+  QVector<double> GetVoxelList(int nVal);
   
 public slots:
   void SetActiveFrame( int nFrame );
@@ -468,6 +470,7 @@ private:
   LayerMRIWorkerThread* m_worker;
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
+  QMap<int, QVector<double> > m_voxelLists;
 
   QMap<QObject*, double>  m_mapMaskThresholds;
   double      m_dMaskThreshold;

@@ -3562,7 +3562,7 @@ if($DoWhiteSurfs) then
           -max 3.5)
     else
       # default stream:
-      set cmd = (mris_make_surfaces)
+      set cmd = (mris_make_surfaces -save-res -save-target)
     endif
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
@@ -4184,7 +4184,8 @@ if($DoPialSurfs) then
     else
       # default stream:
       # NJS: -orig_pial white added 16Feb2015 per BF
-      set cmd = (mris_make_surfaces \
+      # MOD: by specifying -orig_pial, it does not do init smooth to reduce pinching
+      set cmd = (mris_make_surfaces  -save-res -save-target \
           -orig_white white.preaparc \
           -orig_pial  white.preaparc)
       if ($UseFixMtl) then
@@ -4385,7 +4386,7 @@ if($DoT2pial || $DoFLAIRpial) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    set cmd = (mris_make_surfaces \
+    set cmd = (mris_make_surfaces -save-res -save-target \
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then

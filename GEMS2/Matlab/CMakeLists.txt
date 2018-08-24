@@ -33,7 +33,8 @@ CONFIGURE_FILE( kvlWriteSharedGMMParameters.m
   ${GEMS_LIBRARY_PATH}/kvlWriteSharedGMMParameters.m COPYONLY )
 CONFIGURE_FILE( kvlWarpMesh.m
   ${GEMS_LIBRARY_PATH}/kvlWarpMesh.m COPYONLY )
-
+CONFIGURE_FILE( kvlFitRestrictedGMM.m
+  ${GEMS_LIBRARY_PATH}/kvlFitRestrictedGMM.m COPYONLY )
 
 
 # For each function, also create a .m file calling the mex file

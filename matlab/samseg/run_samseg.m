@@ -174,6 +174,7 @@ optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion = optimiza
 optimizationOptions.maximalDeformationAppliedStopCriterion = 0.0;
 optimizationOptions.BFGSMaximumMemoryLength = 12;
 
+
 [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
                                                             modelSpecifications, optimizationOptions, ...
                                                             savePath, showFigures );
