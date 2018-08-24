@@ -58,8 +58,8 @@ bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
   bool bRet = false;
   if (SortType == ColorTableItem::ST_VALUE)
   {
-    bRet = (txt.split(" ", QString::SkipEmptyParts).first().toInt() >
-            other_txt.split(" ", QString::SkipEmptyParts).first().toInt());
+    bRet = (data(0, Qt::UserRole+1).toInt() >
+            other.data(0, Qt::UserRole+1).toInt());
   }
   else
   {
@@ -713,8 +713,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
     item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
-    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
-    double val = strglist[0].toDouble();
+    double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
     {
@@ -782,7 +781,7 @@ void PanelVolume::UpdateTrackVolumeThreshold()
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
   if ( item && layer )
   {
-    int nLabel = item->text(0).split(" ").at(0).toInt();
+    int nLabel = item->data(0, Qt::UserRole+1).toInt();
     ui->sliderTrackVolumeThresholdLow->blockSignals(true);
     ui->lineEditTrackVolumeThresholdLow->blockSignals(true);
     double fMin = layer->GetProperty()->GetMinValue();
