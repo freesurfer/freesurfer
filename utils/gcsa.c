@@ -590,6 +590,8 @@ int GCSAwrite(GCSA *gcsa, char *fname)
 
 GCSA *GCSAread(char *fname)
 {
+  static const bool trace = true;
+  
   FILE *fp;
   int vno, n, ninputs, icno_classifiers, icno_priors, magic, i, j;
   GCSA_NODE *gcsan;
@@ -599,8 +601,9 @@ GCSA *GCSAread(char *fname)
   CP *cp;
 
   fp = fopen(fname, "rb");
-  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "GCSAread(%s): could not open file", fname));
-
+  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "GCSAread(%s): could not open file", fname))
+  else if (trace) fprintf(stdout, "GCSAread(%s): opened file", fname);
+  
   magic = freadInt(fp);
   if (magic != GCSA_MAGIC)
     ErrorReturn(NULL, (ERROR_BADFILE, "GCSAread(%s): file magic #%x != GCSA_MAGIC (%x)", fname, magic, GCSA_MAGIC));
@@ -608,8 +611,9 @@ GCSA *GCSAread(char *fname)
   icno_classifiers = freadInt(fp);
   icno_priors = freadInt(fp);
 
-  // printf("GCSAread(): ninputs=%d, icno_classifiers=%d, icno_priors=%d\n",
-  //     ninputs,icno_classifiers,icno_priors);
+  if (trace)
+    printf("GCSAread(): ninputs=%d, icno_classifiers=%d, icno_priors=%d\n",
+      ninputs,icno_classifiers,icno_priors);
 
   gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers);
 
@@ -624,6 +628,10 @@ GCSA *GCSAread(char *fname)
   }
 
   /* first read in class statistics */
+  if (trace)
+    printf("GCSAread(): gcsa->mris_classifiers->nvertices=%d\n",
+      gcsa->mris_classifiers->nvertices);
+      
   for (vno = 0; vno < gcsa->mris_classifiers->nvertices; vno++) {
     if (vno == Gdiag_no) DiagBreak();
     gcsan = &gcsa->gc_nodes[vno];
@@ -672,7 +680,7 @@ GCSA *GCSAread(char *fname)
         cp->total_nbrs[i] = freadInt(fp);
         cp->nlabels[i] = freadInt(fp);
         cp->labels[i] = (int *)calloc(cp->nlabels[i], sizeof(int));
-        if (!cp->labels[i]) ErrorExit(ERROR_NOMEMORY, "GCSAread: couldn't allocate labels to %d", cp->nlabels[i] + 1);
+        if (!cp->labels[i]) ErrorExit(ERROR_NOMEMORY, "GCSAread: couldn't allocate labels to cpn->nlabels[%d]:%d of %d labels", i, cp->nlabels[i] + 1, cpn->nlabels);
 
         cp->label_priors[i] = (float *)calloc(cp->nlabels[i], sizeof(float));
         if (!cp->label_priors[i])
