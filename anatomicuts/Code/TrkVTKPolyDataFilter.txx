@@ -117,7 +117,7 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 	{
 		trkheadout.Initialize();
 
-		//std::cout << "hola " << std::endl;
+		std::cout << "hola " << std::endl;
 		for (int i=0; i<3 ; i++)
 		{
 			trkheadout.origin[i] =m_refImage->GetOrigin()[i]; 

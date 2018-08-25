@@ -33,8 +33,11 @@
 #include "GetPot.h"
 #include <string>
 #include "vtkSplineFilter.h"
-#include "colortab.h"
-#include "fsenv.h"
+extern "C"
+{
+	#include "colortab.h"
+	#include "fsenv.h"
+}
 
 typedef std::vector<int>                  PointDataType;
 typedef float PixelType;
@@ -55,7 +58,28 @@ typedef  itk::Image< double,3> ImageType;
 typedef ImageType::IndexType IndexType;
 typedef LabelPerPointVariableLengthVector<float, MeshType> MeasurementVectorType;	
 typedef LabelsEntropyAndIntersectionMembershipFunction<MeasurementVectorType>  MembershipFunctionType;	
+int SymmetricLabelId(int id)
+{
+	std::string left = "Left";
+	std::string right = "Right";
 
+	COLOR_TABLE *ct;
+
+	FSENV *fsenv = FSENVgetenv();
+	char tmpstr[2000];	
+	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+	ct = CTABreadASCII(tmpstr);
+
+	std::string str = std::string(ct->entries[id]->name);
+	int symId = id;
+	if( str.find(left) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(left),left.length(), right).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+		//std::cout << sval << std::endl;
+	}
+	return  symId;
+}
 std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes)
 {
 	std::vector<MeshType::Pointer> meshes;
@@ -98,7 +122,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 	return meshes;
 }
 
-std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<IndexType> direcciones)
+std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<IndexType> direcciones, bool symmetry)
 {
 	std::vector<MeasurementVectorType> measurements;
 	for(unsigned int i=0;i<meshes.size();i++)
@@ -125,16 +149,21 @@ std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType:
 			if (segmentation->TransformPhysicalPointToIndex(pt1,index))
 			{
 				PointDataType* pointData = new PointDataType();
-				PixelType label = segmentation->GetPixel(index);
+				PixelType labelOrig = segmentation->GetPixel(index);
+				PixelType label = labelOrig;
+				if (symmetry)	
+				{
+					label= SymmetricLabelId(labelOrig);
+				} 
 				pointData->push_back(label);
 
 
 				for(unsigned int k=1;k<direcciones.size();k++)
 				{
-					PixelType vecino = label;
+					PixelType vecino = labelOrig;
 					IndexType ind = index;
 					MeshType::PointType point = pt1;
-					while(vecino == label)
+					while(vecino == labelOrig)
 					{
 						for(unsigned int j=0; j<3;j++)
 							ind[j] += direcciones[k][j];
@@ -142,11 +171,18 @@ std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType:
 							break;
 						vecino = segmentation->GetPixel(ind);
 					}
-					if(vecino!=0)	
+					if(vecino!=0)
+					{
+						if (symmetry)
+						{
+							vecino= SymmetricLabelId(vecino);
+						}
 						pointData->push_back(vecino);
+					}
 					else
+					{
 						pointData->push_back(label);
-
+					}
 				}
 				meshes[i]->SetPointData(pointId, *pointData);
 			}
@@ -308,14 +344,9 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 }
 int main(int narg, char*  arg[])
 {
+	
 
-/*COLOR_TABLE *ct;
 
-  FSENV *fsenv = FSENVgetenv();
-  char tmpstr[2000];
-  sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
-  ct = CTABreadASCII(tmpstr);
-  */
 
 
 	try 
@@ -330,7 +361,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -m euclid/labels -o output"  << std::endl;   
+			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -m euclid/labels -sym -o output"  << std::endl;   
 			return -1;
 		}
 		int numClusters = cl.follow(0,"-c");
@@ -342,6 +373,7 @@ int main(int narg, char*  arg[])
 		ImageType::Pointer segmentation1  = readerS->GetOutput();
 
 		segFile = cl.follow ("", "-s2");
+		bool symm =  cl.search("-sym");
 		readerS = ImageReaderType::New();
 		readerS->SetFileName ( segFile);
 		readerS->Update();
@@ -456,8 +488,8 @@ int main(int narg, char*  arg[])
 					}
 				}
 			}
-			std::vector<MeasurementVectorType> measurements1 =  SetDirectionalNeighbors(meshes1, clusterCentroidsIndex1,segmentation1, direcciones);
-			std::vector<MeasurementVectorType> measurements2 = SetDirectionalNeighbors(meshes2, clusterCentroidsIndex2,segmentation2, direcciones);
+			std::vector<MeasurementVectorType> measurements1 =  SetDirectionalNeighbors(meshes1, clusterCentroidsIndex1,segmentation1, direcciones, false);
+			std::vector<MeasurementVectorType> measurements2 = SetDirectionalNeighbors(meshes2, clusterCentroidsIndex2,segmentation2, direcciones, symm);
 			MembershipFunctionType::Pointer function = MembershipFunctionType::New();		
 			function->SetLabels(true);
 			//		std::cout << measurements1[100] << std::endl;
