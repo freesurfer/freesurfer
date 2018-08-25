@@ -348,7 +348,7 @@ void FSSurface::UpdateHashTable(int nSet, int coord)
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
-  m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/3 );
+  m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/10 );
 }
 
 void FSSurface::LoadTargetSurface( const QString& filename )

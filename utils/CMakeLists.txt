@@ -7,7 +7,6 @@ include_directories(
   ${XML2_INCLUDE_DIR}
   ${JPEG_INCLUDE_DIR}
   ${TIFF_INCLUDE_DIR}
-  ${MINC_INCLUDE_DIR}
   ${GLUT_INCLUDE_DIR}/GL
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIR}
@@ -306,8 +305,6 @@ target_link_libraries(utils
   ${XML2_LIBRARIES}
   ${JPEG_LIBRARIES}
   ${TIFF_LIBRARIES}
-  ${MINC_LIBRARIES}
-  ${NetCDF_LIBRARIES}
   ${ITK_LIBRARIES}
   ${Expat_LIBRARIES}
 )

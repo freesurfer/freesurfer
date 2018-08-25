@@ -33529,6 +33529,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
   return (NO_ERROR);
 }
 
+// #POS
 int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms)
 {
   int avgs, niterations, n, write_iterations, nreductions = 0, done;
@@ -33539,8 +33540,9 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 
   printf("Entering MRISpositionSurface()\n");
   max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_smooth->xsize, MIN(mri_smooth->ysize, mri_smooth->zsize)) / 2);
-  printf("max_mm = %g\n",max_mm);
+  printf("  max_mm = %g\n",max_mm);
   printf("  MAX_REDUCTIONS = %d, REDUCTION_PCT = %g\n",MAX_REDUCTIONS,REDUCTION_PCT);
+  printf("  parms->check_tol = %d \n",parms->check_tol);
 
   if (!FZERO(parms->l_surf_repulse)) {
     mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
@@ -33598,6 +33600,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   }
 
   avgs = parms->n_averages;
+
+  // Compute initial RMS based on  which cost is non-zero
   if (!FZERO(parms->l_histo)) {
     last_rms = rms = mrisComputeHistoNegativeLikelihood(mris, parms);
   }
@@ -33629,11 +33633,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     last_rms = rms = sqrt(rms / nvox);
   }
   else if (!FZERO(parms->l_location)) {
+    // Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
     last_rms = rms = mrisRmsDistanceError(mris);
   }
   else {
+    // Intensity RMS (see more notes below)
     last_rms = rms = mrisRmsValError(mris, mri_brain);
   }
+
   last_sse = sse = MRIScomputeSSE(mris, parms);
   if (DZERO(parms->l_histo) == 0) {
     last_rms = rms = mrisComputeHistoNegativeLikelihood(mris, parms);
@@ -33713,13 +33720,13 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     // smaller step. Only a certain number (MAX_REDUCTIONS+1) of
     // reductions are allowed after which it will break from the
     // iteration loop. The way it is set up, it always forces the RMS
-    // (intensity error) to drop regardless of what factors are
-    // included in SSE and gradient calculations. Given that the
-    // gradient includes other terms (eg, repulse, curv, tang and norm
-    // spring), the direction may not always result in a decrease of
-    // in RMS. Some terms (eg, curv and nspring) don't even have
-    // functions that compute the SSE. Annectotally, the intensity
-    // SSE is an order of mag > than the other SSEs. 
+    // (intensity or distgance error, etc) to drop regardless of what
+    // factors are included in SSE and gradient calculations. Given
+    // that the gradient includes other terms (eg, repulse, curv, tang
+    // and norm spring), the direction may not always result in a
+    // decrease of in RMS. Some terms (eg, curv and nspring) don't
+    // even have functions that compute the SSE. Annectotally, the
+    // intensity SSE is an order of mag > than the other SSEs.
     do { // do loops alway execute at least once
       // save vertex positions in case we have to reject this step
       MRISsaveVertexPositions(mris, TMP2_VERTICES);
@@ -33776,6 +33783,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         rms = sqrt(rms / nvox);
       }
       else if (!FZERO(parms->l_location)) {
+	// Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
         rms = mrisRmsDistanceError(mris);
       }
       else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
@@ -33785,7 +33793,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 	// This RMS is only for the intensity cost. This is different than SSE below in 
 	// that SSE is not normalized for the number of vertices, includes all the costs
 	// that have non-zero weight each of which are weighted by their weights. 
-	// RMS will = sqrt(SSE/nvert) when all weights are zero except for l_intensity
+	// RMS = sqrt(SSE/nvert) when all weights are zero except for l_intensity
 	// and l_intensity=1. Even then it will only be equal when nvert is the number
 	// of unripped vertices. 
         rms = mrisRmsValError(mris, mri_brain);
@@ -33807,8 +33815,13 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       done = 1; // assume done with this step unless there is an increase in RMS (below)
 
       // This next section is doing a couple of things:
-      // A. it is determining whether it to reduce the step size on the next iteration.
-      // B. it will force a rerun this iteration with the smaller step if the RMS increased.
+      // A. It is determining whether it to reduce the step size on the next iteration.
+      // B. It will force a rerun this iteration with the smaller step if the RMS increased.
+      // C. It will eventually cause a break from the iteration loop if the maximum number 
+      //    of reductions is hit (ie, an alternative stopping criteria)
+      // Note: the RMS may refer to the itensity or location criteria or something else 
+      // depending on above. It always applies regardless of the weight applied to the cost.
+      // (as long as it is nonzero).
       // There are three criteria for reducing the step size:
       //   1. RMS *fraction* reduced by less than tolerance (requires parms->check_tol=1 which is
       //      NOT the case by default for white surface placement).
@@ -33818,7 +33831,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       //   3. RMS *value* reduced by less than .05 (requires parms->check_tol=0 && location=0
       //      which is the case by default for white surface placement). This is probably 
       //      the factor that dictates when a reduction occurs. 
-      // It is a bit strange that #1 is a fraction and #2 is a percent and #3 is a hard value
+      // #2 and #3 generally apply during intensity optimization
+      // #1 generally applies during distance optimization
       if (((parms->check_tol && ((last_rms - rms) / last_rms < parms->tol))) ||
           ((FZERO(parms->l_location) && (100 * (last_sse - sse) / last_sse < parms->tol))) ||
           ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms - 0.05)) ) {
@@ -33848,7 +33862,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) 
         MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES);
 
-    } while (!done);
+    } while (!done); // do loop
 
     mrisTrackTotalDistanceNew(mris); /* computes signed deformation amount */
 
@@ -36397,7 +36411,6 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_aseg) 
 {
   float const step_size = mri_brain->xsize/2;
-  double next_val = 0;    
 
   printf("Entering MRIScomputeBorderValues_new(): \n");
   printf("  inside_hi   = %g\n",inside_hi);
@@ -36453,6 +36466,7 @@ static int MRIScomputeBorderValues_new(
     
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
+    double next_val = 0;    
     
     if (v->ripflag) {
       ROMP_PF_continue;
@@ -36559,7 +36573,7 @@ static int MRIScomputeBorderValues_new(
       // behavior non-deterministic for hires volumes because
       // "next_val" was used downstream but not set here. This existed
       // in v6. Also, next_val needs to be defined globally withing
-      // the scope of the function. There are several places below
+      // the scope of the vertex loop. There are several places below
       // (now commented out) where it is redefined.
       if(BorderValsHiRes==1  && mag >= 0.0){
 	// This code is supposed to refine inward_dist for hires
@@ -36571,7 +36585,7 @@ static int MRIScomputeBorderValues_new(
           double x,y,z;
           double xw, yw, zw;
           double val;
-          //double next_val; // define above with function scope
+          //double next_val; // define above with looop scope
 
 	  // Sample brain at this distance
           x = v->x + v->nx * dist;
@@ -36797,7 +36811,7 @@ static int MRIScomputeBorderValues_new(
           double const z = v->z + v->nz * (dist + STEP_SIZE);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
-          //double next_val; // define with function scope
+          //double next_val; // define with loop scope
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
 	  // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
           if (next_val < border_low)
@@ -36813,7 +36827,7 @@ static int MRIScomputeBorderValues_new(
 	  // dist+STEP and the inensity is between BorderHi
 	  // (MeanWM+1WMSTD) and BorderLow (MeanGM).  Below determines
 	  // whether the gradient is the local maximum.  
-	  /* double next_val; // define with function scope*/
+	  /* double next_val; // define with loop scope*/
           double xw,yw,zw;
 	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
@@ -36851,7 +36865,7 @@ static int MRIScomputeBorderValues_new(
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
             double xw,yw,zw;
-            // double next_val;  // define with function scope
+            // double next_val;  // define with loop scope
             double const x = v->x + v->nx * (dist + 1);
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);
@@ -39971,12 +39985,10 @@ static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
   //printf("mrisComputeIntensityError() %f %d\n",sse,nhits);
   return (sse);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+/*! -----------------------------------------------------
+  \fn static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+  \brief Computes the distance squared between v->{xyz} and v->targ{xyz} and sums up over
+  all unripped vertices. See also mrisRmsDistanceError(mris).
   ------------------------------------------------------*/
 static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
@@ -39990,7 +40002,8 @@ static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARM
 
   last_mag = max_mag = 0;
   max_vno = -1;
-  for (sse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
+  sse = 0.0;
+  for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
@@ -40005,6 +40018,10 @@ static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARM
 
     if (!devFinite(mag)) DiagBreak();
 
+    // Not sure what this bit of code is for since it does not affect
+    // the output of the function. Maybe just a diagnosis.  This is
+    // not thread safe because of the static, but maybe that does not
+    // matter. 
     if (mag > last_error[vno]) {
       if (mag > max_mag) {
         last_mag = last_error[vno];
@@ -40019,6 +40036,7 @@ static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARM
   if (last_mag > 0) DiagBreak();
   return (sse);
 }
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -76969,6 +76987,11 @@ int MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
   return (NO_ERROR);
 }
 
+/*!
+  \fn static double mrisRmsDistanceError(MRI_SURFACE *mris)
+  Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
+  over all unripped vertices. See also  mrisComputeTargetLocationError().
+*/
 static double mrisRmsDistanceError(MRI_SURFACE *mris)
 {
   INTEGRATION_PARMS parms;
@@ -76979,6 +77002,7 @@ static double mrisRmsDistanceError(MRI_SURFACE *mris)
   rms = mrisComputeTargetLocationError(mris, &parms);
   return (sqrt(rms / MRISvalidVertices(mris)));
 }
+
 int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale)
 {
   VERTEX *v;

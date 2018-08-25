@@ -1,8 +1,6 @@
-project(minc_1_5_1)
+project(minc)
 
-include_directories(
-  ${FS_INCLUDE_DIRS}
-)
+include_directories(${FS_INCLUDE_DIRS})
 
 set(SOURCES
 	minc_convenience.c
@@ -22,4 +20,4 @@ set(SOURCES
 	minc_volume_io.c
 )
 
-add_library(minc_1_5_1 STATIC ${SOURCES})
+add_library(minc STATIC ${SOURCES})

@@ -18,7 +18,7 @@ add_help(mris_volmask_novtk mris_volmask.help.xml)
 target_link_libraries(mris_volmask_novtk utils)
 install(TARGETS mris_volmask_novtk DESTINATION bin)
 
-if(VTK_FOUND)
+if(VTK_FOUND AND NOT MINIMAL)
 
   include_directories(${VTK_INCLUDE_DIRS})
 

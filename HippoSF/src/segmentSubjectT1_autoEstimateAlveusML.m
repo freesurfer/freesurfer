@@ -1845,7 +1845,7 @@ for l=1:length(llist)
    dmap=bwdist(VOL==label);
    if l==1
        mini=dmap(mask);
-       seg=label;
+       seg=label*ones(size(mini));
    else
        dist=dmap(mask);
        m=dist<mini;
