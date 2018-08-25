@@ -15653,6 +15653,21 @@ int MRIScopyStatsToValues(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
+int MRIScopyStatsFromValues(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->stat = v->val ;
+  }
+  return (NO_ERROR);
+}
 
 /*-----------------------------------------------------
   Parameters:
@@ -81061,3 +81076,17 @@ MRIS *MRISsortVertices(MRIS *mris0)
   return(mris);
 }
 
+int
+MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) 
+      continue;
+    v->marked = (int)(v->val > thresh) ;
+  }
+  return (NO_ERROR);
+}
