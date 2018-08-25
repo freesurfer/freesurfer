@@ -36426,7 +36426,6 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_aseg) 
 {
   float const step_size = mri_brain->xsize/2;
-  double next_val = 0;    
 
   printf("Entering MRIScomputeBorderValues_new(): \n");
   printf("  inside_hi   = %g\n",inside_hi);
@@ -36482,6 +36481,7 @@ static int MRIScomputeBorderValues_new(
     
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
+    double next_val = 0;    
     
     if (v->ripflag) {
       ROMP_PF_continue;
@@ -36588,7 +36588,7 @@ static int MRIScomputeBorderValues_new(
       // behavior non-deterministic for hires volumes because
       // "next_val" was used downstream but not set here. This existed
       // in v6. Also, next_val needs to be defined globally withing
-      // the scope of the function. There are several places below
+      // the scope of the vertex loop. There are several places below
       // (now commented out) where it is redefined.
       if(BorderValsHiRes==1  && mag >= 0.0){
 	// This code is supposed to refine inward_dist for hires
@@ -36600,7 +36600,7 @@ static int MRIScomputeBorderValues_new(
           double x,y,z;
           double xw, yw, zw;
           double val;
-          //double next_val; // define above with function scope
+          //double next_val; // define above with looop scope
 
 	  // Sample brain at this distance
           x = v->x + v->nx * dist;
@@ -36826,7 +36826,7 @@ static int MRIScomputeBorderValues_new(
           double const z = v->z + v->nz * (dist + STEP_SIZE);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
-          //double next_val; // define with function scope
+          //double next_val; // define with loop scope
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
 	  // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
           if (next_val < border_low)
@@ -36842,7 +36842,7 @@ static int MRIScomputeBorderValues_new(
 	  // dist+STEP and the inensity is between BorderHi
 	  // (MeanWM+1WMSTD) and BorderLow (MeanGM).  Below determines
 	  // whether the gradient is the local maximum.  
-	  /* double next_val; // define with function scope*/
+	  /* double next_val; // define with loop scope*/
           double xw,yw,zw;
 	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
@@ -36880,7 +36880,7 @@ static int MRIScomputeBorderValues_new(
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
             double xw,yw,zw;
-            // double next_val;  // define with function scope
+            // double next_val;  // define with loop scope
             double const x = v->x + v->nx * (dist + 1);
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);

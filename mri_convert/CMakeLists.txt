@@ -1,6 +1,6 @@
 project(mri_convert)
 
-include_directories(${FS_INCLUDE_DIRS} ${MINC_INCLUDE_DIR})
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_convert mri_convert.c)
 add_help(mri_convert mri_convert.help.xml)

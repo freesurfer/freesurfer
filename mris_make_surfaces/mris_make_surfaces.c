@@ -2944,9 +2944,19 @@ get_option(int argc, char *argv[])
     printf("Saving residual\n");
     nargs = 0 ;
   }
+  else if (!stricmp(option, "no-save-res")){
+    SaveResidual = 0;
+    printf("Not saving residual\n");
+    nargs = 0 ;
+  }
   else if (!stricmp(option, "save-target")){
     SaveTarget = 1;
     printf("Saving target surface\n");
+    nargs = 0 ;
+  }
+  else if (!stricmp(option, "no-save-target")){
+    SaveTarget = 0;
+    printf("Not saving target surface\n");
     nargs = 0 ;
   }
   else if (!stricmp(option, "openmp")) 
@@ -4320,16 +4330,17 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     // The basic method here is to project in or out along the normal until 
     // a value is found outside the desired range.
 
-    // Check for illegal intensities in the interior ("inside") of the ribbon.
-    // Note: this is not inside the white surface but just beyond the white surface
-    // to about half way to the current pial surface
+    // Check for illegal intensities in inside of the current ribbon.
+    // Note: this is not inside the white surface, rather it is starts
+    // just beyond the white surface and goes to the current pial
+    // surface
     d = MIN(0.5, thickness/2) ; // start at 0.5mm or "thickness"/2 and go out
     xs = v->whitex + d*nx ; ys = v->whitey + d*ny ; zs = v->whitez + d*nz ; // WHITE XYZ
     outside_of_white = 0 ;
     for ( ; d <= thickness ; d += sample_dist)
     {
       // project a distance of d from the WHITE surface toward the pial along normal 
-      xs = v->whitex + d*nx ; ys = v->whitey + d*ny ; zs = v->whitez + d*nz ;
+      xs = v->whitex + d*nx ; ys = v->whitey + d*ny ; zs = v->whitez + d*nz ; // WHITE XYZ
       // Sample the T2/FLAIR at that point. Note: using "cached" for multiple
       // different MRIs is inefficient.
       MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
@@ -4378,7 +4389,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	      printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
 		     vno, d, cma_label_to_name(label)) ;
 	  found_bad_intensity = 1 ;
-	  break ; // from interior ribbon distance loop
+	  break ; // from loop over the ribbon 
 	}
       }
 
@@ -4388,7 +4399,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	if (vno == Gdiag_no)
 	  printf("illegal intensity %2.1f found at d=%2.2f, vox=(%2.1f, %2.1f, %2.1f)\n", val, d,xv,yv,zv) ;
         found_bad_intensity = 1 ;
-        break ; // from interior ribbon distance loop
+        break ; // from loop over the ribbon 
       }
     } // end interior ribbon distance loop
 
@@ -4411,24 +4422,20 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         DiagBreak() ;
       }
     }
-    else  // no invalid intensities found in the interior - not deforming inwards. Now check for valid ones in the exterior.
+    else  
     {
       // All the points in the interior of the ribbon are within the
-      // desired intensity range, it must mean that the true pial
+      // desired intensity range;  this must mean that the true pial
       // location is beyond/outside the current pial. Push out to find
-      // it. It seems like this creates a gap in that the "interior"
-      // is defined to be between the white surface and half way to
-      // the current pial. The projection loop below starts are the
-      // current pial and projects outward. Doesn't this leave a gap
-      // between the half way point and the current pial where the
-      // intensities are not searched?
+      // it. 
       outside_of_white = outside_of_pial = 0 ;
       found = 1 ;
       last_white = 0 ;
       MRISsurfaceRASToVoxelCached(mris, mri_dist_pial, v->x, v->y, v->z, &xvf, &yvf, &zvf);
       MRIsampleVolume(mri_dist_pial, xvf, yvf, zvf, &last_dist_to_pial) ;
-      // follow the gradient of the distance transform of the pial surface outwards
-      // as the surface normal direction becomes meaningless a few mm out from surface
+      // Follow the gradient of the distance transform of the pial
+      // surface outwards as the surface normal direction becomes
+      // meaningless a few mm out from surface
       xp = xvf ; yp = yvf ; zp = zvf ;
       for (d = 0 ; d <= max_outward_dist ; d += sample_dist)
       {
