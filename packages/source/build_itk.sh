@@ -11,15 +11,18 @@ export CXX=$(which g++)
 mkdir build
 cd build
 
-cmake ../ITK-5.0a01 \
+cmake ../ITK \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse" \
+  -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \
+  -DITK_BUILD_DEFAULT_MODULES=OFF \
   -DITKGroup_Core=ON \
   -DITKGroup_Filtering=ON \
   -DITKGroup_Segmentation=ON \
-  -DCMAKE_BUILD_TYPE=Release \
+  -DITKGroup_IO=ON \
+  -DModule_AnisotropicDiffusionLBR=ON \
   -DBUILD_TESTING=OFF \
-  -DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse" \
-  -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10
 
 make -j8
