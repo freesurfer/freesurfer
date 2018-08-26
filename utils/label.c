@@ -3976,3 +3976,25 @@ static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *
   *pz = (float)zv;
   return (NO_ERROR);
 }
+
+double
+LabelAverageVal(LABEL *area, MRI_SURFACE *mris)
+{
+  int vno, n, num ;
+  VERTEX *v ;
+  double avg ;
+
+  for (avg = 0.0, num = n = 0; n < area->n_points; n++) {
+    if (area->lv[n].deleted)
+      continue ;
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    num++ ;
+    avg += v->val ;
+  }
+  if (num > 0)
+    avg /= num ;
+  return(avg) ;
+}

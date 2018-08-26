@@ -190,5 +190,6 @@ int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *
 LABEL *LabelAddPoint(LABEL *label, LV *lv);
 int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
+double LabelAverageVal(LABEL *area, MRI_SURFACE *mris) ;
 
 #endif
