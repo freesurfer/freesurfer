@@ -590,7 +590,7 @@ int GCSAwrite(GCSA *gcsa, char *fname)
 
 GCSA *GCSAread(char *fname)
 {
-  static const bool trace = true;
+  static const bool trace = false;
   
   FILE *fp;
   int vno, n, ninputs, icno_classifiers, icno_priors, magic, i, j;
