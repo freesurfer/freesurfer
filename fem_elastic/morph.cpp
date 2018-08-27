@@ -115,12 +115,7 @@ AffineTransform3d::invert()
 
 //-=-----------------------------------------------
 
-
-#if HAVE_ITK5
-DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(nullptr), m_maskInterpolator(nullptr) {}
-#else
 DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(NULL), m_maskInterpolator(NULL) {}
-#endif
 
 // the field is not kept per se
 //

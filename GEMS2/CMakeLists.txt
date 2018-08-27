@@ -4,7 +4,7 @@ project(gems)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(interfaces)
 
-# find ITK if we're building standalone
+# find ITK if we're building independently of freesurfer
 if(NOT ITK_FOUND)
   find_package(ITK REQUIRED)
 endif()
@@ -20,11 +20,11 @@ option(GEMS_BUILD_EXECUTABLES "Build command line executables" OFF)
 option(GEMS_BUILD_TESTING "Build tests" OFF)
 option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
 option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
-option(GEMS_BUILD_PYTHON "Build Python wrappers" ON)
+option(GEMS_BUILD_PYTHON "Build Python wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-O3 -fPIC -fpermissive -msse2 -mfpmath=sse")
+set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
 if(GEMS_BUILD_EXECUTABLES OR GEMS_BUILD_GUI)
   add_definitions(-DUSE_DYNAMIC_MESH)

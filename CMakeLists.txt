@@ -41,6 +41,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   endif()
 endif()
 
+# set the default build type to 'Release' for optimization purposes
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "No build type selected - defaulting to Release")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Default build type" FORCE)
+endif()
+
 # --------------------------------------------------
 #   library dependencies and third-party packages
 # --------------------------------------------------
@@ -207,7 +213,6 @@ if(BUILD_GUIS)
 
 endif()
 
-
 # --------------------------------------------------
 #             global build configuration
 # --------------------------------------------------
@@ -227,27 +232,18 @@ endif()
 # ANSI
 add_definitions(-DANSI)
 
-# todo: write some logic to set this correctly
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
+# todo: write some logic to set this correctly
 add_definitions(-DUSE_SSE_MATHFUN)
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
-
-# -g compiles debugging info for use by debuggers like gdb. Normally we want
-# that in the build, but here we add the FS_DEBUG option, which greatly
-# reduces the size of compiled binaries when turned OFF
-option(DEBUG "Compile with the -g flag" ON)
-if(DEBUG)
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -g")
-endif()
 
 # large file support: support for files > 2GB
 if(APPLE)
   add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 endif()
 
-# optimization
 # todo: implement processor-based logic to determine this
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 
 # for stripping unused code
 if(APPLE)
@@ -263,7 +259,7 @@ if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
 endif()
 
-# check for 
+# check for clock_gettime on mac
 if(APPLE)
   check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
   if(HAVE_CLOCK_GETTIME)
@@ -275,6 +271,8 @@ endif()
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 
+# enable std c++11
+set(CMAKE_CXX_STANDARD 11)
 
 # --------------------------------------------------
 #                 build freesurfer
@@ -303,12 +301,14 @@ add_subdirectories(
   netcdf_3_6_0_p1
 )
 
-# the following utility libs are required for freeview and qdec
+# the following utility libraries are required for freeview and qdec
 add_subdirectories(vtkfsio vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
+# build the gems python library
+set(GEMS_BUILD_PYTHON ON)
 add_subdirectories(GEMS2)
 
 # --------------------------------------------------
