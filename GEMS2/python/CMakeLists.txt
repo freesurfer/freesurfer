@@ -1,5 +1,3 @@
-add_subdirectory(pybind11)
-
 foreach(filename ${SOURCES})
   LIST(APPEND GEMS_SOURCES "../${filename}")
 endforeach()

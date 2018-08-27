@@ -290,6 +290,9 @@ set(FS_INCLUDE_DIRS
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
 
+# initialize pybind for python wrapping
+add_subdirectory(packages/pybind11)
+
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
   minc_1_5_1
