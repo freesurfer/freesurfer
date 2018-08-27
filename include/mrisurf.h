@@ -1110,6 +1110,7 @@ int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValsToAnnotations(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
+int          MRIScopyStatsFromValues(MRI_SURFACE *mris) ;
 
 
 int MRISsetCroppedToZero(MRI_SURFACE *mris) ;
@@ -1365,6 +1366,8 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) ;
+int MRIScountRipped(MRIS *mris);
+int MRIScountAllMarked(MRIS *mris);
 int          MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris,
@@ -2151,6 +2154,7 @@ MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
 int MRISmarkedVertices(MRI_SURFACE *mris) ;
+int MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,

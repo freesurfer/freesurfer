@@ -3761,3 +3761,33 @@ void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
   image->GetDimensions(dim);
   image->GetSpacing(voxel_size);
 }
+
+QVector<double> LayerMRI::GetVoxelList(int nVal)
+{
+  if (m_voxelLists.contains(nVal))
+    return m_voxelLists[nVal];
+
+  QVector<double> vlist;
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  double* origin = m_imageData->GetOrigin();
+  double* vs = m_imageData->GetSpacing();
+  for ( int k = 0; k < dim[2]; k++ )
+  {
+    for ( int j = 0; j < dim[1]; j++ )
+    {
+      for ( int i = 0; i < dim[0]; i++ )
+      {
+        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, m_nActiveFrame, scalar_type);
+        if (val == nVal)
+        {
+          vlist << i*vs[0] + origin[0] << j*vs[1] + origin[1] << k*vs[2] + origin[2];
+        }
+      }
+    }
+  }
+  return vlist;
+}
+

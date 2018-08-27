@@ -6,14 +6,12 @@ include_directories(${FS_INCLUDE_DIRS})
 add_executable(tkregister2_cmdl tkregister2.c)
 target_compile_definitions(tkregister2_cmdl PRIVATE -DNO_GUI)
 target_link_libraries(tkregister2_cmdl utils)
-install(TARGETS tkregister2_cmdl DESTINATION tktools)
+install(TARGETS tkregister2_cmdl DESTINATION bin)
 
-if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
+if(NOT MINIMAL AND BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   if(APPLE AND NOT BUILD_OSX_TK_GUIS)
-  
     install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/tkregister2.bin TYPE programs DESTINATION bin)
-
   else()
 
     include_directories(

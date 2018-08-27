@@ -40,6 +40,7 @@
 #include "version.h"
 #include "label.h"
 #include "MARS_DT_Boundary.h"
+#include "mri_identify.h"
 
 static char vcid[] = 
 "$Id: mris_hausdorff_dist.c,v 1.3 2011/03/02 00:04:32 nicks Exp $";
@@ -140,12 +141,54 @@ main(int argc, char *argv[])
   {
     if (argc < 4)
       usage_exit() ;
-    area1 = LabelRead(NULL, argv[2]) ;
+    if (mri_identify(argv[2]) != MGH_LABEL_FILE)
+    {
+      MRI *mri_label ;
+      fprintf(stderr,"reading surface overlay and using it to create label\n") ;
+      mri_label = MRIread(argv[2]) ;
+      if (mri_label == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read overlay %s",
+		  Progname, argv[2]) ;
+
+      MRISimportValFromMRI(mris, mri_label, 0) ;
+      MRIScopyStatsFromValues(mris) ;
+      MRISmarkVerticesWithValOverThresh(mris, binarize);
+      area1 = LabelFromMarkedSurface(mris) ;
+      if (area1 == NULL)
+      {
+	fprintf(stderr, "no vertices found in overlay 1 over threshold %2.1f\n", binarize);
+	exit(1);
+      }
+      MRIfree(&mri_label) ;
+    }
+    else
+      area1 = LabelRead(NULL, argv[2]) ;
     if (area1 == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s",
                 Progname, argv[2]) ;
     
-    area2 = LabelRead(NULL, argv[3]) ;
+    if (mri_identify(argv[3]) != MGH_LABEL_FILE)
+    {
+      MRI *mri_label ;
+      printf("reading surface overlay and using it to create label\n") ;
+      mri_label = MRIread(argv[3]) ;
+      if (mri_label == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read overlay %s",
+		  Progname, argv[3]) ;
+
+      MRISimportValFromMRI(mris, mri_label, 0) ;
+      MRIScopyStatsFromValues(mris) ;
+      MRISmarkVerticesWithValOverThresh(mris, binarize);
+      area2 = LabelFromMarkedSurface(mris) ;
+      if (area2 == NULL)
+      {
+	fprintf(stderr, "no vertices found in overlay 2 over threshold %2.1f\n", binarize);
+	exit(1);
+      }
+      MRIfree(&mri_label) ;
+    }
+    else
+      area2 = LabelRead(NULL, argv[3]) ;
     if (area2 == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s",
                 Progname, argv[3]) ;
@@ -158,7 +201,9 @@ main(int argc, char *argv[])
     }
     MRIScomputeMetricProperties(mris) ;
     MRISdistanceTransform(mris, area1, DTRANS_MODE_SIGNED) ;
+//    printf("hdist2 %2.3f\n", LabelAverageVal(area2, mris)) ;
     MRIScopyValToVal2(mris) ;
+//    printf("hdist1 %2.3f\n", LabelAverageVal(area1, mris)) ;
     
     MRIScomputeMetricProperties(mris) ;
     MRISdistanceTransform(mris, area2, DTRANS_MODE_SIGNED) ;

@@ -32,6 +32,7 @@
 #include <vector>
 #include <QFile>
 #include <QVariantMap>
+#include <QVector>
 
 class vtkImageData;
 class BrushProperty;
@@ -108,7 +109,7 @@ signals:
   void FillValueChanged( double );
   void EraseValueChanged( double );
   void BrushRadiusChanged( int );
-  void BaseVoxelEdited(const QList<int>, bool bAdd);
+  void BaseVoxelEdited(const QVector<int>, bool bAdd);
 
 public slots:
   void SetFillValue( double fFill );
@@ -116,9 +117,9 @@ public slots:
   void SetBrushRadius( int nRadius );
 
 protected:
-  QList<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
-  QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
-  QList<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
+  QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
+  QVector<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
+  QVector<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );
   bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );
