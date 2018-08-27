@@ -26,11 +26,7 @@ class BinaryDistribution(Distribution):
         return True
 
 def find_shared_libraries(libname):
-    # use correct shared lib extension
-    if platform.system() == 'Darwin': ext = 'dylib'
-    else: ext = 'so'
-    # search for library
-    libraries = glob.glob('**/%s.*.%s' % (libname, ext), recursive=True)
+    libraries = glob.glob('**/%s.*.so' % libname, recursive=True)
     if not libraries:
         print('error: could not find %s library' % libname)
         sys.exit(1)
