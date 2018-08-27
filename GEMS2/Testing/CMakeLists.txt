@@ -37,5 +37,5 @@ if(Boost_FOUND)
 endif()
                
 # copy some files
-configure_file(test.nii ${GEMS_LIBRARY_PATH}/test.nii COPYONLY)
-configure_file(test.txt.gz ${GEMS_LIBRARY_PATH}/test.txt.gz COPYONLY)
+configure_file(test.nii ${GEMS_RUNTIME_PATH}/test.nii COPYONLY)
+configure_file(test.txt.gz ${GEMS_RUNTIME_PATH}/test.txt.gz COPYONLY)

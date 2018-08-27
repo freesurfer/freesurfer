@@ -3,6 +3,7 @@
 import os
 import sys
 import glob
+import platform
 from setuptools import setup, find_packages, Distribution
 from distutils.util import convert_path
 
