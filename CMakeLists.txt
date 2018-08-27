@@ -316,7 +316,6 @@ add_subdirectories(vtkfsio vtkutils lineprof)
 add_subdirectory(fem_elastic)
 
 # build the gems python library
-set(GEMS_BUILD_PYTHON ON)
 add_subdirectories(GEMS2)
 
 # --------------------------------------------------

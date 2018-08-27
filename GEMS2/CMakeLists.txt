@@ -23,6 +23,11 @@ option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
 option(GEMS_BUILD_PYTHON "Build Python wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 
+# Check if GEMS is being added as a subdirectory (and not built independently)
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(GEMS_BUILD_PYTHON ON)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 

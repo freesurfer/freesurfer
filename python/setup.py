@@ -9,8 +9,8 @@ from distutils.util import convert_path
 
 requirements = [
     'nibabel == 2.2.1',
-    'numpy >= 1.13.3',
-    'scipy >= 1.0.0'
+    'numpy == 1.13.3',
+    'scipy == 1.0.0'
 ]
 
 packages = [
@@ -25,7 +25,11 @@ class BinaryDistribution(Distribution):
         return True
 
 def find_shared_libraries(libname):
-    libraries = glob.glob('**/%s.*.so' % libname, recursive=True)
+    # use correct shared lib extension
+    if platform.system() == 'Darwin': ext = 'dylib'
+    else: ext = 'so'
+    # search for library
+    libraries = glob.glob('**/%s.*.%s' % (libname, ext), recursive=True)
     if not libraries:
         print('error: could not find %s library' % libname)
         sys.exit(1)
@@ -40,7 +44,7 @@ setup(
     author_email='freesurfer@nmr.mgh.harvard.edu',
     url='https://github.com/freesurfer/freesurfer',
     packages=find_packages(include=packages),
-    package_data={'freesurfer.gems': find_shared_libraries('gems')},
+    package_data={'freesurfer.gems': find_shared_libraries('gems_python')},
     install_requires=requirements,
     include_package_data=True
 )
