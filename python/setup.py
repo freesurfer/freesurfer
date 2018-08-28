@@ -20,6 +20,14 @@ packages = [
     'freesurfer.samseg'
 ]
 
+# install visualization tools unless specified not to
+no_vis_arg = '--no-visualization'
+if no_vis_arg not in sys.argv:
+    requirements += ['pyqtgraph', 'pyqt5']
+    packages += ['samseg.hdav.hdav']
+else:
+    sys.argv.remove(no_vis_arg)
+
 class BinaryDistribution(Distribution):
     def is_pure(self):
         return False

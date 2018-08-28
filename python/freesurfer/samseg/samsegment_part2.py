@@ -12,25 +12,11 @@ from .figures import initVisualizer
 
 
 logger = logging.getLogger(__name__)
-
-SKIP_SHOW_FIGURES_SAMSEG_PART_2 = False
-
 eps = np.finfo(float).eps
 
 
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
-
-
-def load_mat_file(filename):
-    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
-
-
-def ensure_dims(np_array, dims):
-    if np_array.ndim < dims:
-        return np.expand_dims(np_array, axis=dims)
-    elif np_array.ndim == dims:
-        return np_array
 
 
 def samsegment_part2(
@@ -41,8 +27,8 @@ def samsegment_part2(
         checkpoint_manager=None,
 ):
 
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or visualizer is None:
-        visualizer = initVisualizer(False, False)
+    # Setup null visualization if necessary
+    if visualizer is None: visualizer = initVisualizer(False, False)
 
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
@@ -66,12 +52,8 @@ def samsegment_part2(
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
         #  If the movie flag is on then making a movie archives a lot of data.
         #  Saving some memory here by making, showing, then erasing the movie at each resolution level.
-        visualizer.start_movie(
-            window_id='samsegment',
-            title='Samsegment Mesh Registration - the movie'
-        )
-        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
-            multiResolutionLevel].maximumNumberOfIterations
+        visualizer.start_movie(window_id='samsegment', title='Samsegment Mesh Registration - the movie')
+        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].maximumNumberOfIterations
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
         historyOfCost = [1 / eps]
         logger.debug('maximumNumberOfIterations: %d', maximumNumberOfIterations)
@@ -91,12 +73,13 @@ def samsegment_part2(
                                                                ::downSamplingFactors[1],
                                                                ::downSamplingFactors[2],
                                                                contrastNumber]
+
         downSampledKroneckerProductBasisFunctions = [np.array(kroneckerProductBasisFunction[::downSamplingFactor])
                                                      for kroneckerProductBasisFunction, downSamplingFactor in
                                                      zip(kroneckerProductBasisFunctions, downSamplingFactors)]
         downSampledImageSize = downSampledImageBuffers[:, :, :, 0].shape
-        # Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
-        # correctly
+        # Read the atlas mesh to be used for this multi-resolution level, taking into account
+        # the downsampling to position it correctly
         downSamplingTransformMatrix = np.diag(1. / downSamplingFactors)
         downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0, 1), mode='constant', constant_values=0)
         downSamplingTransformMatrix[3][3] = 1
@@ -454,8 +437,7 @@ def samsegment_part2(
             nodePositionsBeforeDeformation = mesh.points
             while True:
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
-                print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation,
-                                                                         minLogLikelihoodTimesDeformationPrior))
+                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 if maximalDeformation == 0:
                     break
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
@@ -463,10 +445,11 @@ def samsegment_part2(
             nodePositionsAfterDeformation = mesh.points
             maximalDeformationApplied = np.sqrt(
                 np.max(np.sum((nodePositionsAfterDeformation - nodePositionsBeforeDeformation) ** 2, 1)))
-            print('==============================')
-            print(['iterationNumber: ', iterationNumber])
-            print(['    maximalDeformationApplied: ', maximalDeformationApplied])
-            print('==============================')
+
+            # print summary of iteration
+            print('iterationNumber: %d' % iterationNumber)
+            print('maximalDeformationApplied: %.4f' % maximalDeformationApplied)
+            print('======================================================')
             visualizer.show(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
@@ -513,7 +496,7 @@ def samsegment_part2(
         tmp = np.linalg.solve(totalTransformationMatrix,
                               np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
-        ## Record deformation delta here in lieu of maintaining history
+        # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
             finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
@@ -522,8 +505,7 @@ def samsegment_part2(
         'imageBuffers': imageBuffers,
         'means': means,
         'mixtureWeights': mixtureWeights,
-        'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel':
-            nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
+        'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel': nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
         'transformMatrix': transform.as_numpy_array,
         'variances': variances,
     }

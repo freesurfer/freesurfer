@@ -22,9 +22,9 @@ def samsegment_part1(
         visualizer,
         checkpoint_manager=None
 ):
-
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_1 or visualizer is None:
-        visualizer = initVisualizer(False, False)
+    
+    # Setup null visualization if necessary
+    if visualizer is None: visualizer = initVisualizer(False, False)
 
     # Print input options
     print('==========================')

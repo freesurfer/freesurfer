@@ -14,7 +14,7 @@ def samsegment(
     modelSpecifications,
     optimizationOptions,
     savePath,
-    visualizer,
+    visualizer=None,
     checkpoint_manager=None
 ):
 

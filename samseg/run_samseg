@@ -6,7 +6,6 @@ import numpy as np
 import freesurfer as fs
 import freesurfer.gems as gems
 
-from freesurfer.samseg.utilities import forceFortranOrder
 from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, \
     kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
 
@@ -72,7 +71,7 @@ worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
     args.outputDirectory,
     visualizer,
     worldToWorldTransformMatrix,
-    args.initlta
+    args.init_lta
 )
 
 timer.mark('atlas registration complete')
@@ -143,10 +142,6 @@ optimizationOptions = Specification({
 
 # ------ Run Samsegment ------
 
-FreeSurferLabels, names, volumesInCubicMm = samsegment(args.inputFileNames, transformedTemplateFileName,
-                                                       modelSpecifications, optimizationOptions,
-                                                       args.outputDirectory, visualizer)
+samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications, optimizationOptions, args.outputDirectory, visualizer)
 
-print('names', names)
-print('volumesInCubicMm', volumesInCubicMm)
-timer.mark('samseg done')
+timer.mark('samseg complete')

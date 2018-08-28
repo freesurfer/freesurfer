@@ -11,7 +11,6 @@ from .figures import initVisualizer
 
 eps = np.finfo(float).eps
 
-SKIP_SHOW_FIGURES_SAMSEG_PART_3 = False
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
@@ -34,8 +33,8 @@ def samsegment_part3(
         checkpoint_manager=None
 ):
 
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or visualizer is None:
-        visualizer = initVisualizer(False, False)
+    # Setup null visualization if necessary
+    if visualizer is None: visualizer = initVisualizer(False, False)
 
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
