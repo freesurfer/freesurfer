@@ -1192,19 +1192,19 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     /* Now need to find the closest face in order
        to perform linear interpolation,
        but first, a sanity-check: */
-    if (Mesh2->vertices[nnindex].num <= 0) 
+    if (Mesh2->vertices_topology[nnindex].num <= 0) 
     {
       printf("\nERROR: ComputeDifferenceNew: \n"
              "(Mesh2->vertices[nnindex].num=%d <= 0)\n", 
-             Mesh2->vertices[nnindex].num);
+             Mesh2->vertices_topology[nnindex].num);
       exit(1);
     }
     distance = 1e30;
     closestface = 0;
-    for (k=0; k < Mesh2->vertices[nnindex].num; k++)
+    for (k=0; k < Mesh2->vertices_topology[nnindex].num; k++)
     {
 
-      facenumber =  Mesh2->vertices[nnindex].f[k]; /* index of the k-th face */
+      facenumber =  Mesh2->vertices_topology[nnindex].f[k]; /* index of the k-th face */
       if (facenumber < 0 || facenumber >= Mesh2->nfaces) continue;
       value = v_to_f_distance(vertex, Mesh2, facenumber, 0, &tmps, &tmpt);
       /* Here it would be better to compute the correct distance together
@@ -1791,11 +1791,10 @@ static void jacobi(float **a, int n,float *d, float **v, int *nrot)
   ------------------------------------------------------*/
 static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
 {
-  VERTEX  *v ;
   FACE    *f ;
   int     n, i ;
 
-  v = &mris->vertices[vno] ;
+  VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno] ;
   f = &mris->faces[fno] ;
 
   for (n = 0 ; n < VERTICES_PER_FACE ; n++)

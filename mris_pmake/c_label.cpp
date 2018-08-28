@@ -129,7 +129,6 @@ label_terminalsFind(
   //
 
   LABEL*  pLBL;
-  VERTEX*  pvertex;
   int   vno_i   = 0;
   int   vno_j  = 0;
   int   vno_k  = 0;
@@ -144,7 +143,7 @@ label_terminalsFind(
   aque_terminal.clear();
   for (i=0; i <pLBL->n_points; i++) {
     vno_i  = pLBL->lv[i].vno;
-    pvertex = &apmris->vertices[vno_i];
+    VERTEX_TOPOLOGY const * const pvertex = &apmris->vertices_topology[vno_i];
     inLabel = 0;
     for (j=0; j<pvertex->vnum; j++) {
       vno_j = pvertex->v[j];

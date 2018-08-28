@@ -515,7 +515,6 @@ static LABEL *
 segment_area(MRI_SURFACE *mris, MRI *mri, LABEL *area, int nvertices)
 {
   int          vno, max_vno, vno2, n, m ;
-  VERTEX       *v ;
   double       max_p, p ;
   LABEL_VERTEX *lv ;
 
@@ -535,12 +534,14 @@ segment_area(MRI_SURFACE *mris, MRI *mri, LABEL *area, int nvertices)
 
   area->n_points = 1 ;
   lv = &area->lv[0] ;
-  v = &mris->vertices[max_vno] ;
-  lv->x = v->x ;
-  lv->y = v->y ;
-  lv->z = v->z ;
-  lv->stat = max_p ;
-  lv->vno = max_vno ;
+  {
+    VERTEX const * const v = &mris->vertices[max_vno] ;
+    lv->x = v->x ;
+    lv->y = v->y ;
+    lv->z = v->z ;
+    lv->stat = max_p ;
+    lv->vno = max_vno ;
+  }
   mris->vertices[max_vno].marked = 1 ;
 
   do
@@ -552,10 +553,10 @@ segment_area(MRI_SURFACE *mris, MRI *mri, LABEL *area, int nvertices)
     for (n = 0 ; n < area->n_points ; n++)
     {
       vno = area->lv[n].vno ;
-      v = &mris->vertices[vno] ;
-      for (m = 0 ; m < v->vnum ; m++)
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      for (m = 0 ; m < vt->vnum ; m++)
       {
-        vno2 = v->v[m] ;
+        vno2 = vt->v[m] ;
         if (mris->vertices[vno2].marked == 1)
         {
           continue ;  // already in the label
@@ -569,12 +570,14 @@ segment_area(MRI_SURFACE *mris, MRI *mri, LABEL *area, int nvertices)
       }
     }
     lv = &area->lv[area->n_points++] ;
-    v = &mris->vertices[max_vno] ;
-    lv->vno = max_vno ;
-    lv->x = v->x ;
-    lv->y = v->y ;
-    lv->z = v->z ;
-    lv->stat = max_p ;
+    { 
+      VERTEX const * const v = &mris->vertices[max_vno] ;
+      lv->vno = max_vno ;
+      lv->x = v->x ;
+      lv->y = v->y ;
+      lv->z = v->z ;
+      lv->stat = max_p ;
+    }
     mris->vertices[max_vno].marked = 1 ;
   }
   while (area->n_points < nvertices) ;
