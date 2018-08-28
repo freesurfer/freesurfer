@@ -171,17 +171,17 @@ static int
 unmark_interior(MRI_SURFACE *mris)
 {
   int    vno, n, unmarked ;
-  VERTEX *v, *vn ;
 
   MRIScopyMarkedToMarked2(mris) ;
   for (vno = 0 ; vno <mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->marked == 0)
       continue ;
-    for (unmarked = n = 0 ; unmarked == 0 && n < v->vnum ; n++)
+    for (unmarked = n = 0 ; unmarked == 0 && n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->marked == 0)
         unmarked = 1 ;
     }
@@ -197,7 +197,7 @@ unmark_interior(MRI_SURFACE *mris)
 
     for (xc = yc = 0.0, num = vno = 0 ; vno <mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX const * const v = &mris->vertices[vno] ;
       if (v->marked == 0)
         continue ;
       num++ ;
