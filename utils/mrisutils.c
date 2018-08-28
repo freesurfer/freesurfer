@@ -583,14 +583,14 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
   static int direction = 1;
   double mag;
   int vno, i;
-  VERTEX *v;
 
   for (i = 0; i < mris->nvertices; i++) {
     if (direction < 0)
       vno = mris->nvertices - i - 1;
     else
       vno = i;
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
     v->odx = delta_t * v->dx + momentum * v->odx;
@@ -607,7 +607,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
     /* erase the faces this vertex is part of */
 
-    if (mht) MHTremoveAllFaces(mht, mris, v);
+    if (mht) MHTremoveAllFaces(mht, mris, vt);
 
     if (mht) mrisLimitGradientDistance(mris, mht, vno);
 
@@ -617,7 +617,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
     if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) DiagBreak();
 
-    if (mht) MHTaddAllFaces(mht, mris, v);
+    if (mht) MHTaddAllFaces(mht, mris, vt);
   }
 
   direction *= -1;
@@ -3573,7 +3573,6 @@ int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
 int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;
-  VERTEX *v1;
   int n, nhits,v0;
 
   // Only consider vertices if they belong to a triangle where all the corners
@@ -3609,7 +3608,7 @@ int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, 
   nedges = 0;
   for (vno = 0; vno < mris->nvertices; vno++){
     if(!mris->vertices[vno].marked) continue;
-    v1 = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const *v1 = &mris->vertices_topology[vno];
     for (i = 0; i < v1->vnum; i++) {
       vnb = v1->v[i];
       if(! mris->vertices[vnb].marked) continue;
