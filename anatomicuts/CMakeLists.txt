@@ -42,5 +42,12 @@ if(ITK_FOUND AND VTK_FOUND)
   install(TARGETS trk_tools.bin DESTINATION bin)
   install(PROGRAMS trk_tools_wrapper DESTINATION bin RENAME trk_tools)
 
+#streamline filtering:
+  add_executable(streamlineFilter.bin
+    StreamlineFilter.cxx ../freeview/track_io/TrackIO.cpp
+  )
+  target_link_libraries(streamlineFilter.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS streamlineFilter.bin DESTINATION bin)
+  install(PROGRAMS streamlineFilter_wrapper DESTINATION bin RENAME streamlineFilter)
   
 endif()

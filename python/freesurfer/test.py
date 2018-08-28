@@ -95,7 +95,8 @@ class RegressionTest:
     self.cd(self.testdir)
     # extract the testdata
     rmdir(self.testdatadir)
-    self.runcmd('tar -xzvf ' + self.testdatatar)
+    # self.runcmd('tar -xzvf ' + self.testdatatar)
+    self.runcmd('tar -xzvf ' + '"' + self.testdatatar + '"')
     self.cd(self.testdatadir)
     # set number of OMP threads if necessary
     if threads is not None:
