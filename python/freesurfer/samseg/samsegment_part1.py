@@ -1,15 +1,15 @@
 import math
+import numpy as np
 from functools import reduce
 from operator import mul
 
 import freesurfer.gems as gems
 
-import numpy as np
+from .kvl_merge_alphas import kvlMergeAlphas
+from .figures import initVisualizer
 
-from samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
-    create_part1_inspection_team, load_starting_fixture
-from samseg.kvl_merge_alphas import kvlMergeAlphas
-from samseg.show_figures import DoNotShowFigures
+# from .dev_utils.debug_client import create_checkpoint_manager, run_test_cases, create_part1_inspection_team, load_starting_fixture
+
 
 SKIP_SHOW_FIGURES_SAMSEG_PART_1 = False
 
@@ -22,16 +22,17 @@ def samsegment_part1(
         visualizer,
         checkpoint_manager=None
 ):
+
     if SKIP_SHOW_FIGURES_SAMSEG_PART_1 or visualizer is None:
-        visualizer = DoNotShowFigures()
+        visualizer = initVisualizer(False, False)
+
     # Print input options
     print('==========================')
     print_image_file_names(imageFileNames)
     print_transformed_template_file_name(transformedTemplateFileName)
     print_model_specifications(modelSpecifications)
     print_optimization_options(optimizationOptions)
-    print_save_path(savePath)
-    print_visualizer(visualizer)
+    print('savePath:', savePath)
 
     numberOfContrasts = len(imageFileNames)
     # Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
@@ -292,15 +293,6 @@ def print_optimization_options(options):
         print('        maximumNumberOfIterations={0}'.format(spec.maximumNumberOfIterations))
         print('        estimateBiasField={0}'.format(spec.estimateBiasField))
         print('        ---')
-    print('-----')
-
-
-def print_save_path(savePath):
-    print('savePath:', savePath)
-
-
-def print_visualizer(visualizer):
-    print('visualizer:', visualizer)
     print('-----')
 
 

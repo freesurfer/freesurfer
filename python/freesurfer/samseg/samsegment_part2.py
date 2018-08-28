@@ -1,17 +1,15 @@
 import logging
+import scipy.io
+import numpy as np
 import freesurfer.gems as gems
 
-import numpy as np
-import scipy.io
+from .bias_correction import backprojectKroneckerProductBasisFunctions, projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
+from .kvlWarpMesh import kvlWarpMesh
+from .kvl_merge_alphas import kvlMergeAlphas
+from .figures import initVisualizer
 
-from samseg.bias_correction import backprojectKroneckerProductBasisFunctions, \
-    projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
-from samseg.dev_utils.debug_client import create_part2_inspection_team, run_test_cases, \
-    create_checkpoint_manager, load_starting_fixture
-from samseg.kvlWarpMesh import kvlWarpMesh
-from samseg.kvl_merge_alphas import kvlMergeAlphas
-from samseg.run_utilities import merged_names
-from samseg.show_figures import DoNotShowFigures, ShowFigures
+# from .dev_utils.debug_client import create_part2_inspection_team, run_test_cases, create_checkpoint_manager, load_starting_fixture
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +40,10 @@ def samsegment_part2(
         visualizer,
         checkpoint_manager=None,
 ):
+
     if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or visualizer is None:
-        visualizer = DoNotShowFigures()
+        visualizer = initVisualizer(False, False)
+
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
@@ -59,7 +59,7 @@ def samsegment_part2(
     transformMatrix = part1_results_dict['transformMatrix']
     voxelSpacing = part1_results_dict['voxelSpacing']
     transform = gems.KvlTransform(np.asfortranarray(transformMatrix))
-    names_for_merged_data = merged_names(modelSpecifications)
+    names_for_merged_data = [item.mergedName for item in modelSpecifications.sharedGMMParameters]
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -559,7 +559,7 @@ def test_samseg_ported_part2(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         part1_results_dict,
-        DoNotShowFigures(),
+        None,
         checkpoint_manager
     )
     checkpoint_manager.save(part2_results_dict, 'part2', 1)

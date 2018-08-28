@@ -1,12 +1,13 @@
 import os
-import freesurfer.gems as gems
 import numpy as np
+import freesurfer.gems as gems
 
-from samseg.bias_correction import backprojectKroneckerProductBasisFunctions
-from samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
-    create_part3_inspection_team, load_starting_fixture
-from samseg.kvlWarpMesh import kvlWarpMesh
-from samseg.show_figures import DoNotShowFigures
+from .bias_correction import backprojectKroneckerProductBasisFunctions
+from .kvlWarpMesh import kvlWarpMesh
+from .figures import initVisualizer
+
+# from .dev_utils.debug_client import run_test_cases, create_checkpoint_manager, create_part3_inspection_team, load_starting_fixture
+
 
 eps = np.finfo(float).eps
 
@@ -32,8 +33,10 @@ def samsegment_part3(
         visualizer,
         checkpoint_manager=None
 ):
+
     if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or visualizer is None:
-        visualizer = DoNotShowFigures()
+        visualizer = initVisualizer(False, False)
+
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
     imageSize = part1_results_dict['imageSize']
@@ -70,7 +73,7 @@ def samsegment_part3(
                                                               biasFieldCoefficients[:, contrastNumber])
         biasCorrectedImageBuffers[:, :, :, contrastNumber] = imageBuffers[:, :, :, contrastNumber] - biasField * mask
         biasFields[:, :, :, contrastNumber] = biasField
-        
+
     # Read the atlas, applying the affine registration transform
     mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(modelSpecifications.atlasFileName)

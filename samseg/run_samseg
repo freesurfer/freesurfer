@@ -1,6 +1,152 @@
 #!/usr/bin/env python
 
-from samseg.command_arguments import parse_args
-from samseg.run_samseg_ported import run_samseg_from_cmdargs
+import os
+import argparse
+import numpy as np
+import freesurfer as fs
+import freesurfer.gems as gems
 
-run_samseg_from_cmdargs(parse_args())
+from freesurfer.samseg.utilities import forceFortranOrder
+from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, \
+    kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+
+
+# ------ Parse Command Line Arguments ------
+
+parser = argparse.ArgumentParser()
+
+# required
+parser.add_argument('-o', '--output', metavar='FOLDER', dest='outputDirectory', help='output directory', required=True)
+parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='input image(s)', required=True)
+# optional processing options
+parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='number of threads')
+parser.add_argument('--init-lta', metavar='FILE', help='initial registration')
+parser.add_argument('--reg-only', action='store_true', default=False, dest='atlas_only', help='only perform registration')
+parser.add_argument('-r', '--regmat', metavar='FILE', help='skip registration and read transform from file')
+parser.add_argument('-m', '--missing', dest='missing_structures', action='append', metavar='LABEL', help='LABEL is a missing structure (repeat for multiple missing labels)')
+parser.add_argument('--nobrainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
+parser.add_argument('--diagcovs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
+# optional debugging options
+parser.add_argument('--showfigs', action='store_true', default=False, help='show figures during run')
+parser.add_argument('--movie', action='store_true', default=False, help='show as arrow key controlled time sequence')
+parser.add_argument('-v', '--verbose', action='store_true', default=False, help='verbose debug output')
+
+args = parser.parse_args()
+
+
+# ------ Initial Setup ------
+
+timer = fs.Timer()
+
+# Create the output folder
+os.makedirs(args.outputDirectory, exist_ok=True)
+
+# Specify the maximum number of threads the GEMS code will use
+if args.threads is not None:
+    gems.setGlobalDefaultNumberOfThreads(args.threads)
+
+# Get the atlas directory
+atlasDir = os.environ.get('SAMSEG_DATA_DIR')
+if not atlasDir:
+    defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
+    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+
+# Setup the visualization tool
+visualizer = initVisualizer(args.showfigs, args.movie)
+
+
+# ------ Perform Affine Registration ------
+
+templateFileName = os.path.join(atlasDir, 'template.nii')
+affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
+worldToWorldTransformMatrix = None
+# TODO: load RegMatFile
+# if ( ~isempty( RegMatFile ) )
+#   load( RegMatFile, 'worldToWorldTransformMatrix' );
+# end
+
+worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
+    args.inputFileNames[0],
+    affineRegistrationMeshCollectionFileName,
+    templateFileName,
+    args.outputDirectory,
+    visualizer,
+    worldToWorldTransformMatrix,
+    args.initlta
+)
+
+timer.mark('atlas registration complete')
+if args.atlas_only:
+    print('registration-only requested, so quiting now')
+    exit()
+
+
+# ------ Prepare Samsegment Parameters ------
+
+# Read the contents of 'compressionLookupTable.txt', and show the names of the structures being considered.
+# The results are automatically sorted according to their 'compressed label', i.e., the first result corresponds to
+# the first entry in the vector of probabilities associated with each node in our atlas mesh.
+compressionLookupTableFileName = os.path.join(atlasDir, 'compressionLookupTable.txt')
+FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(compressionLookupTableFileName)
+
+# Because we have many labels to segment, and each of these labels has its own Gaussian mixture model
+# whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
+# the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
+# governing their Gaussian mixture model. For example, we'd expect no intensity differences between the left and right
+# part of each structure.
+# The way we implement this is by defining 'super-structures' (i.e., a global white matter tissue class), and therefore
+# work with a simplied ('reduced') model during the entire parameter estimation phase. At the same time we also build
+# an inverse lookup table (mapping from original class number onto a reduced class number (super-structure)) that we
+# will need to compute the final segmentation.
+sharedGMMParametersFileName = os.path.join(atlasDir, 'sharedGMMParameters.txt')
+sharedGMMParameters = kvlReadSharedGMMParameters(sharedGMMParametersFileName)
+
+# Set model specifications
+modelSpecifications = Specification({
+    'FreeSurferLabels': FreeSurferLabels,
+    'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
+    'names': names,
+    'colors': colors,
+    'sharedGMMParameters': sharedGMMParameters,
+    'useDiagonalCovarianceMatrices': args.diagcovs,
+    'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
+    'brainMaskingThreshold': -np.inf if args.nobrainmask else 0.01,
+    'K': 0.1,  # stiffness of the mesh
+    'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
+})
+
+# Set optimization options
+optimizationOptions = Specification({
+    'multiResolutionSpecification': [
+        Specification({
+            'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
+            'targetDownsampledVoxelSpacing': 2.0,
+            'maximumNumberOfIterations': 100,
+            'estimateBiasField': True,
+        }),
+        Specification({
+            'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
+            'targetDownsampledVoxelSpacing': 1.0,
+            'maximumNumberOfIterations': 100,
+            'estimateBiasField': True,  # switching this off will use the bias field estimated at lower resolution(s)
+        }),
+    ],
+    'maximumNumberOfDeformationIterations': 20,
+    'absoluteCostPerVoxelDecreaseStopCriterion': 1e-4,
+    'verbose': args.verbose,
+    'maximalDeformationStopCriterion': 0.001,  # measured in pixels
+    'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
+    'maximalDeformationAppliedStopCriterion': 0.0,
+    'BFGSMaximumMemoryLength': 12,
+})
+
+
+# ------ Run Samsegment ------
+
+FreeSurferLabels, names, volumesInCubicMm = samsegment(args.inputFileNames, transformedTemplateFileName,
+                                                       modelSpecifications, optimizationOptions,
+                                                       args.outputDirectory, visualizer)
+
+print('names', names)
+print('volumesInCubicMm', volumesInCubicMm)
+timer.mark('samseg done')

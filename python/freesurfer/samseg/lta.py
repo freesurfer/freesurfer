@@ -1,9 +1,8 @@
-import math
 import os
-
+import math
 import numpy as np
 
-from samseg.mri_util import load_mgh_header, construct_affine
+from .mri_util import load_mgh_header, construct_affine
 
 
 def filter_until_type(lines):

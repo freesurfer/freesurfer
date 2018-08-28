@@ -114,8 +114,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
     for index, newIndex in enumerate(newlyInventedClasses):
         mergedFreeSurferLabels[newIndex] = -(1 + index)
         hue = index / numberOfNewlyInvitedClasses
-        mergedColors[newIndex]= [
-            255 * component for component in colorsys.hsv_to_rgb(hue, saturation, color_value)] + [255]
+        mergedColors[newIndex]= [255 * component for component in colorsys.hsv_to_rgb(hue, saturation, color_value)] + [255]
     # Also compute lookup table indicating for each original class number (column number in alphas) the final
     # class number (column number) in mergedAlphas
     mergingLookupTable = [0] * label_count

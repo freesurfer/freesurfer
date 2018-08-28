@@ -16,7 +16,8 @@ requirements = [
 
 packages = [
     'freesurfer',
-    'freesurfer.gems'
+    'freesurfer.gems',
+    'freesurfer.samseg'
 ]
 
 class BinaryDistribution(Distribution):

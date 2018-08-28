@@ -7,6 +7,8 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+# todo: note: none of this stuff is used
+
 def transform_product(a, b):
     aa = a.as_numpy_array
     bb = b.as_numpy_array

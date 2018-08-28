@@ -1,14 +1,7 @@
-import traceback
-
-from scipy import ndimage
-
+import numpy as np
+import scipy
 import freesurfer.gems as gems
 
-import numpy as np
-import scipy.ndimage
-import scipy.io
-
-from samseg.dev_utils.debug_client import CheckpointManager, compare_ndarray_closeness
 
 def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName):
     #
@@ -33,7 +26,6 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     targetNumberOfNodes = targetReferencePosition.shape[0]
     # In the special case of identical mesh connectivity, no need to do any optimization
     if targetNumberOfNodes == sourceNumberOfNodes:
-        #   if ( max( abs( sourceReferencePosition(:) - targetReferencePosition(:) ) ) < 1e-2 )
         deltaReferencePosition = sourceReferencePosition - targetReferencePosition
         divergence = np.max(np.absolute(deltaReferencePosition))
         if divergence < 1e-2:
@@ -77,11 +69,11 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     # OK this seems to work. Now get (interpolate) the deformation at the target mesh nodes (in reference position)
     targetReferencePositionMap = np.transpose(targetReferencePosition)
     desiredTargetNodePosition = [
-        ndimage.map_coordinates(denseDeformation[:, :, :, 0],
+        scipy.ndimage.map_coordinates(denseDeformation[:, :, :, 0],
                                 targetReferencePositionMap, mode='nearest', order=1, output=np.double),
-        ndimage.map_coordinates(denseDeformation[:, :, :, 1],
+        scipy.ndimage.map_coordinates(denseDeformation[:, :, :, 1],
                                 targetReferencePositionMap, mode='nearest', order=1, output=np.double),
-        ndimage.map_coordinates(denseDeformation[:, :, :, 2],
+        scipy.ndimage.map_coordinates(denseDeformation[:, :, :, 2],
                                 targetReferencePositionMap, mode='nearest', order=1, output=np.double),
     ]
     desiredTargetNodePosition += targetReferencePositionMap
@@ -117,26 +109,3 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     averageDistance = np.sum(distances) / distances.shape[0]
     maximumDistance = np.max(distances)
     return targetDeformation, averageDistance, maximumDistance
-
-
-if __name__ == '__main__':
-    try:
-        checkpoint_manager = CheckpointManager()
-        TEST_PATH = '/home/willy/work/cm/my_tests/kvlWarpMesh/kvlWarpMesh_'
-        INPUT_PATH = TEST_PATH + 'input.mat'
-        OUTPUT_PATH = TEST_PATH + 'output.mat'
-        input_fixture = scipy.io.loadmat(INPUT_PATH, struct_as_record=False, squeeze_me=True)
-        output_fixture = scipy.io.loadmat(OUTPUT_PATH, struct_as_record=False, squeeze_me=True)
-        sourceDeformation = input_fixture['sourceDeformation']
-        sourceMeshCollectionFileName = '/home/willy/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level1.txt.gz'
-        targetMeshCollectionFileName = '/home/willy/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level2.txt.gz'
-        targetDeformation, averageDistance, maximumDistance = kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName)
-        print("averageDistance = {0}".format(averageDistance))
-        print("maximumDistance = {0}".format(maximumDistance))
-        print("targetDeformation.shape = {0}".format(targetDeformation.shape))
-        checkpoint_manager.increment('all_done')
-        checking = checkpoint_manager.load('all_done')
-        compare_ndarray_closeness(checking['targetDeformation'], targetDeformation, 'targetDeformation')
-    except Exception as flaw:
-        print('flaw = {0}'.format(str(flaw)))
-        traceback.print_exc()
