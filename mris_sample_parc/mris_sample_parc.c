@@ -744,12 +744,11 @@ static int
 resegment_label(MRI_SURFACE *mris, LABEL *segment) {
   int    *histo, max_label, i, n, vno, ino, index;
   int    max_histo, max_index, nchanged, lno, label ;
-  VERTEX *v, *vn ;
 
   max_label = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->val > max_label)
       max_label = v->val ;
   }
@@ -762,15 +761,16 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
     nchanged = 0 ;
     for (lno = 0 ; lno < segment->n_points ; lno++) {
       vno = segment->lv[lno].vno ;
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->val != label || v->ripflag)
         continue ;   /* already changed */
 
       memset(histo, 0, (max_label+1)*sizeof(*histo)) ;
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
+      for (n = 0 ; n < vt->vnum ; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         index = (int)nint(vn->val) ;
         if (index < 0)
           continue ;
@@ -790,7 +790,7 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
     }
     for (lno = 0 ; lno < segment->n_points ; lno++) {
       vno = segment->lv[lno].vno ;
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->val != label)
         continue ;
       if (vno == Gdiag_no)

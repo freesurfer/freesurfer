@@ -242,22 +242,24 @@ MRIScomputeGradient(MRI_SURFACE *mris, MRI *mri, int which_norm, MRI *mri_grad)
   {
     MATRIX   *m_df, *m_p, *m_x, *m_xtx, *m_inv, *m_xt, *m_tmp ;
     int      vno2, n, frame ;
-    VERTEX   *v, *vn ;
     double   norm = 0.0, val1, val0, x1, y1, dx, dy ;
 
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
       continue ;
       
-    m_x = MatrixAlloc(v->vtotal, 2, MATRIX_REAL) ;   // matrix of delta coordinates
+    m_x = MatrixAlloc(vt->vtotal, 2, MATRIX_REAL) ;   // matrix of delta coordinates
     m_p = MatrixAlloc(2, 1, MATRIX_REAL) ;            // [dx,dy]
-    m_df = MatrixAlloc(v->vtotal, 1, MATRIX_REAL) ;   // vector of changes in function val
+    m_df = MatrixAlloc(vt->vtotal, 1, MATRIX_REAL) ;   // vector of changes in function val
     m_tmp = m_xt = m_xtx = m_inv = m_p = NULL ; 
-    for (n = 0 ; n < v->vtotal ; n++)
+    for (n = 0 ; n < vt->vtotal ; n++)
     {
-      vno2 = v->v[n] ; vn = &mris->vertices[vno2] ;
+      vno2 = vt->v[n] ;
+      VERTEX const * const vn = &mris->vertices[vno2] ;
       if (vno2 == Gdiag_no)
 	DiagBreak() ;
       x1 = v->e1x * (vn->x-v->x) + v->e1y * (vn->y-v->y) + v->e1z * (vn->z-v->z);
@@ -284,9 +286,9 @@ MRIScomputeGradient(MRI_SURFACE *mris, MRI *mri, int which_norm, MRI *mri_grad)
     for (frame = 0 ; frame < mri->nframes ; frame++)
     {
       val0 = MRIgetVoxVal(mri, vno, 0, 0, frame) ;
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-	vno2 = v->v[n] ; 
+	vno2 = vt->v[n] ; 
 	val1 = MRIgetVoxVal(mri, vno2, 0, 0, frame) ;
 	*MATRIX_RELT(m_df, n+1, 1) = val1 - val0 ;
       }
