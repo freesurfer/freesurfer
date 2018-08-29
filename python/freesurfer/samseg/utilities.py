@@ -34,7 +34,7 @@ def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
 
-def icv(volumes, includeStructures=None):
+def icv(structures, includeStructures=None):
     if not includeStructures:
         print("using default intracranial structures to compute sbtiv measure")
         includeStructures = [  
@@ -79,4 +79,4 @@ def icv(volumes, includeStructures=None):
             'non-WM-hypointensities',
             '5th-Ventricle'
         ]
-    return sum(structure[1] for structure in volumes if structure[0] in includeStructures)
+    return sum(structure[1] for structure in structures if structure[0] in includeStructures)
