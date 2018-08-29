@@ -577,7 +577,6 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   double     min_curv, max_curv, K, bin_size, total, mode = 0.0, mode_peak, mean, std, dmean,
     dmin, dmax, dsigma ;
   int        vno, num, b, bin_no, bin_thresh = 0, vno_min, vno_max, skipped, nvertices ;
-  VERTEX     *v ;
 
   dmean = MRIScomputeVertexSpacingStats(mris, &dsigma,&dmin, &dmax, &vno_min, &vno_max,
                                         CURRENT_VERTICES);
@@ -589,15 +588,17 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   {
     int    n ;
 
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (v->ripflag)
       continue ;
 
-    for (v->d = 0.0, n = 0 ; n < v->vtotal ; n++)
+    for (v->d = 0.0, n = 0 ; n < vt->vtotal ; n++)
     {
       v->d += v->dist[n] ;
     }
-    v->d /= v->vtotal ;
+    v->d /= vt->vtotal ;
     dmean += v->d ;
     num++ ;
   }
@@ -606,7 +607,7 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   mean = std = 0.0 ;
   for (skipped = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
 
@@ -648,7 +649,7 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
 
@@ -729,7 +730,7 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
     {
       DiagBreak() ;
@@ -752,7 +753,8 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
     {
       continue ;
@@ -760,12 +762,11 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
     if (v->marked == 1)
     {
       int    n ;
-      VERTEX *vn ;
 
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
-        if (v->v[n] == Gdiag_no)
+        VERTEX * const vn = &mris->vertices[vt->v[n]] ;
+        if (vt->v[n] == Gdiag_no)
         {
           DiagBreak() ;
         }
@@ -808,7 +809,8 @@ MRISthresholdPrincipalCurvatures(MRI_SURFACE *mris, double thresh)
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
     {
       continue ;
@@ -818,10 +820,10 @@ MRISthresholdPrincipalCurvatures(MRI_SURFACE *mris, double thresh)
       int n ;
 
       v->marked = 1 ;
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        mris->vertices[v->v[n]].marked = 2 ;
-        mris->vertices[v->v[n]].K = 0.5 ;
+        mris->vertices[vt->v[n]].marked = 2 ;
+        mris->vertices[vt->v[n]].K = 0.5 ;
       }
     }
   }
@@ -853,12 +855,13 @@ int
 MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, double hi_thresh)
 {
   int    vno ;
-  VERTEX *v, *vn ;
   double K ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (vno == Gdiag_no)
     {
       DiagBreak() ;
@@ -873,9 +876,9 @@ MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, dou
       int n ;
       v->marked = 0 ;
 
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked == 2)
         {
           vn->marked = 0 ;
@@ -889,7 +892,8 @@ MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, dou
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
     {
       continue ;
@@ -898,10 +902,10 @@ MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, dou
     {
       int n ;
 
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
-        if (v->v[n] == Gdiag_no)
+        VERTEX * const vn = &mris->vertices[vt->v[n]] ;
+        if (vt->v[n] == Gdiag_no)
         {
           DiagBreak() ;
         }

@@ -138,7 +138,6 @@ int dijkstra(
     int             vno_c   = -1;
     int             vno_n   = -1;
     int             vno_i, vno_f;
-    VERTEX          *v_c, *v_n;
     float           cost, f_pathCost;
     struct d_node   *dn, *dn_next;
     int             rv;
@@ -207,7 +206,10 @@ int dijkstra(
     }
 
     vno_c  = d_list->vno;
-    v_c  = &surf->vertices[vno_c];
+    
+    
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
 
     /* mark it */
     if (mark(surf, vno_c, DIJK_DONE) != NO_ERROR)
@@ -215,10 +217,10 @@ int dijkstra(
 
     /* update neighbors */
     //cout << "neighbors = " << (int) v_c->num << endl;
-    for (j = 0; j < (int) v_c->vnum; j++) {
+    for (j = 0; j < (int) v_ct->vnum; j++) {
       //cout << "neighbor = " << j << endl;
-      vno_n = v_c->v[j];
-      v_n  = &surf->vertices[vno_n];
+      vno_n = v_ct->v[j];
+      VERTEX * const v_n  = &surf->vertices[vno_n];
 
       //if(v_n->ripflag) continue;
 

@@ -379,9 +379,7 @@ static float sphericaldistance(float x1,float y1,float z1,float x2,float y2,floa
 
 static void computeDistances(MRIS *mris) {
   int n,m,p,count;
-  int annotation;
   float dist,x,y,z;
-  VERTEX *v,*vp;
   int nlistvertices,*vertexlist;
 
   static int first=1; /* first time compute list of labels */
@@ -407,11 +405,15 @@ static void computeDistances(MRIS *mris) {
     mris->vertices[n].fieldsign=-1;
 
   for (n=0 ; n < mris->nvertices ; n++) {
-    v=&mris->vertices[n];
-    if (v->ripflag) continue;
-    if (v->fieldsign>=0) continue;
-    annotation=v->annotation;
-
+    
+    int annotation;
+    {
+      VERTEX const * const v  = &mris->vertices         [n];
+      if (v->ripflag) continue;
+      if (v->fieldsign>=0) continue;
+      annotation=v->annotation;
+    }
+    
     //fprintf(stderr,"\nANNOTATION %d [%f]",annotation,v->fieldsign);
 
     if (first) {
@@ -425,7 +427,8 @@ static void computeDistances(MRIS *mris) {
 
     /* first locate border labels */
     for ( nlistvertices = m = 0 ; m <  mris->nvertices ; m++) {
-      v=&mris->vertices[m];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[m];
+      VERTEX                * const v  = &mris->vertices         [m];
       if (v->ripflag) continue;
       if (v->annotation!=annotation) continue; /* not a label of interest */
       //if(v->fieldsign>0) fprintf(stderr,"#");
@@ -434,8 +437,8 @@ static void computeDistances(MRIS *mris) {
       x=v->x;
       y=v->y;
       z=v->z;
-      for ( p=0 ; p < v->vnum; p++) {
-        vp=&mris->vertices[v->v[p]];
+      for ( p=0 ; p < vt->vnum; p++) {
+        VERTEX const * const vp=&mris->vertices[vt->v[p]];
         if (vp->ripflag) continue;
         if (vp->annotation!=annotation) { /* border vertex */
           dist += sphericaldistance(x,y,z,vp->x,vp->y,vp->z);
@@ -453,7 +456,7 @@ static void computeDistances(MRIS *mris) {
     vertexlist=(int*)malloc(nlistvertices*sizeof(int));
     /* init the list */
     for ( nlistvertices = m = 0 ; m <  mris->nvertices ; m++) {
-      v=&mris->vertices[m];
+      VERTEX const * const v = &mris->vertices[m];
       if (v->ripflag) continue;
       if (v->annotation==annotation && v->fieldsign>=0) {
         //fprintf(stderr,"%d-",nlistvertices);
@@ -464,7 +467,7 @@ static void computeDistances(MRIS *mris) {
     //  fprintf(stderr,"/");
     /* compute the inside distance to the border*/
     for ( m = 0 ; m <  mris->nvertices ; m++) {
-      v=&mris->vertices[m];
+      VERTEX * const v = &mris->vertices[m];
       if (v->ripflag) continue;
       if (v->annotation!=annotation) continue; /* not a label of interest */
       if (v->fieldsign>=0) continue; /*border label */
@@ -474,7 +477,7 @@ static void computeDistances(MRIS *mris) {
       z=v->z;
       dist=10000.0f;
       for ( p = 0 ; p < nlistvertices ; p++) {
-        vp=&mris->vertices[vertexlist[p]];
+        VERTEX const * const vp = &mris->vertices[vertexlist[p]];
         dist=MIN(dist,sphericaldistance(x,y,z,vp->x,vp->y,vp->z));
       }
       v->fieldsign=dist;
@@ -524,7 +527,7 @@ int main(int argc, char *argv[]) {
   float brain_scale;
   MRI_SURFACE  *mris , *mris_atlas;
   MRI_SP *mrisp,*mrisp_template, *mrisp_average=NULL;
-  VERTEX *v;
+
   int n,m,nsubjects;
   // int          msec, minutes, seconds ;
   // struct timeb start;
@@ -610,7 +613,7 @@ int main(int argc, char *argv[]) {
 
     /* save annotation of manual into val and fieldsign into fsmask */
     for (m=0;m<mris->nvertices;m++) {
-      v=&mris->vertices[m];
+      VERTEX * const v = &mris->vertices[m];
       v->val=v->annotation;
       v->fsmask=v->fieldsign;
     }
@@ -624,7 +627,7 @@ int main(int argc, char *argv[]) {
 
     /* generating maps */
     for (m=0;m<mris->nvertices;m++) {
-      v=&mris->vertices[m];
+      VERTEX * const v = &mris->vertices[m];
       v->d=0;
       if (v->annotation==(int)v->val)
         v->curv=0;
@@ -660,8 +663,8 @@ int main(int argc, char *argv[]) {
     }
 
     for (m=0;m<mris->nvertices;m++) {
-      v=&mris->vertices[m];
-      if (v->val2==1)
+      VERTEX * const v  = &mris->vertices[m];
+      if (v->val2 == 1)
         v->curv=v->d;
     }
 
@@ -698,14 +701,14 @@ int main(int argc, char *argv[]) {
       MRISreadCurvature(mris,fname);
       MRISnormalizeCurvature(mris, NORM_MEAN) ;
       for (m=0;m<mris->nvertices;m++) {
-        v=&mris->vertices[m];
+        VERTEX * const v = &mris->vertices[m];
         v->valbak=v->curv;
       }
       MRISfromParameterization(mrisp_average,mris,6);
       MRISnormalizeCurvature(mris, NORM_MEAN) ;
 
       for (m=0;m<mris->nvertices;m++) {
-        v=&mris->vertices[m];
+        VERTEX * const v = &mris->vertices[m];
         v->curv = fabs(v->valbak-v->curv);
       }
       if (suffix)
@@ -726,7 +729,7 @@ int main(int argc, char *argv[]) {
 #if 0
       /* correlation */
       for (m=0;m<mris->nvertices;m++) {
-        v=&mris->vertices[m];
+        VERTEX * const v = &mris->vertices[m];
         v->curv = v->curv*v->val2;
       }
       mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;

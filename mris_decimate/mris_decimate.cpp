@@ -312,33 +312,14 @@ int decimateSurface(MRI_SURFACE **pmris,
                        fold);
 
   // Free the vertex and face buffers
+  // BRB 08/23/18 this seems wrong to me because it doesn't change the counts
   for (int vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (mris->vertices[vno].f)
-    {
-      free(mris->vertices[vno].f) ;
-      mris->vertices[vno].f = NULL ;
-    }
-    if (mris->vertices[vno].n)
-    {
-      free(mris->vertices[vno].n) ;
-      mris->vertices[vno].n = NULL ;
-    }
-    if (mris->vertices[vno].dist)
-    {
-      free(mris->vertices[vno].dist) ;
-      mris->vertices[vno].dist = NULL ;
-    }
-    if (mris->vertices[vno].dist_orig)
-    {
-      free(mris->vertices[vno].dist_orig) ;
-      mris->vertices[vno].dist_orig = NULL ;
-    }
-    if (mris->vertices[vno].v)
-    {
-      free(mris->vertices[vno].v) ;
-      mris->vertices[vno].v = NULL ;
-    }
+    freeAndNULL(mris->vertices_topology[vno].f);
+    freeAndNULL(mris->vertices_topology[vno].n);
+    freeAndNULL(mris->vertices_topology[vno].v);
+    freeAndNULL(mris->vertices[vno].dist);
+    freeAndNULL(mris->vertices[vno].dist_orig);
   }
 
   // DNG 7/16/18: these two frees were in the original. I don't know how it ever worked
