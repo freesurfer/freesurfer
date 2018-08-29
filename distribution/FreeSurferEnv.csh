@@ -458,7 +458,19 @@ set path = ( $FREESURFER_HOME/bin \
              $path \
             )
 
+### ----------- Python  ------------ ####
 setenv PYTHONPATH "$FREESURFER_HOME/python":"$PYTHONPATH"
+# check the required python version
+if ( ! fs_check_python ) then
+    set martinos_python /usr/pubsw/packages/python/anaconda3.6/bin
+    if ( -e  $martinos_python ) then
+        set path = ( $martinos_python $path )
+    else
+        echo "WARNING: Python >= 3.5 is required to run FreeSurfer"
+        echo "         Update the default python version before"
+        echo "         running recon-all"
+    endif
+endif
 
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than

@@ -2,8 +2,8 @@ import os
 import numpy as np
 import freesurfer.gems as gems
 
+from .utilities import require_np_array
 from .bias_correction import backprojectKroneckerProductBasisFunctions
-from .kvlWarpMesh import kvlWarpMesh
 from .figures import initVisualizer
 
 # from .dev_utils.debug_client import run_test_cases, create_checkpoint_manager, create_part3_inspection_team, load_starting_fixture
@@ -17,10 +17,6 @@ def ensure_dims(np_array, dims):
         return ensure_dims(np.expand_dims(np_array, axis=dims), dims)
     elif np_array.ndim == dims:
         return np_array
-
-
-def require_np_array(np_array):
-    return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
 
 def samsegment_part3(
@@ -89,7 +85,7 @@ def samsegment_part3(
     nodePositionsInTemplateSpace = tmp[:, 0: 3]
     
     # Get the estimated warp in template space
-    [estimatedNodeDeformationInTemplateSpace, estimated_averageDistance, estimated_maximumDistance] = kvlWarpMesh(
+    [estimatedNodeDeformationInTemplateSpace, estimated_averageDistance, estimated_maximumDistance] = gems.kvlWarpMesh(
         optimizationOptions.multiResolutionSpecification[-1].atlasFileName,
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
         modelSpecifications.atlasFileName

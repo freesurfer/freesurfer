@@ -1,6 +1,6 @@
-import numpy as np
 import scipy
-import freesurfer.gems as gems
+import numpy as np
+from . import KvlMeshCollection, KvlTransform, KvlOptimizer, KvlCostAndGradientCalculator, KvlImage
 
 
 def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName):
@@ -9,15 +9,16 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     # sourceMeshCollectionFileName, and computes a targetDeformation on the reference node positions of the
     # targetMeshCollection given by targetMeshCollectionFileName that mimicks the same overall dense 3D deformation.
     #
+
     # Set flexibility of mesh deformation
     K = .001
-    sourceMeshCollection = gems.KvlMeshCollection()
+    sourceMeshCollection = KvlMeshCollection()
     sourceMeshCollection.read(sourceMeshCollectionFileName)
     sourceReferenceMesh = sourceMeshCollection.reference_mesh
     sourceReferencePosition = sourceReferenceMesh.points
     sourceNumberOfNodes = sourceReferencePosition.shape[0]
-    identityTransform = gems.KvlTransform(np.identity(4))
-    targetMeshCollection = gems.KvlMeshCollection()
+    identityTransform = KvlTransform(np.identity(4))
+    targetMeshCollection = KvlMeshCollection()
     targetMeshCollection.read(targetMeshCollectionFileName)
     targetMeshCollection.transform(identityTransform)
     targetMeshCollection.k = K
@@ -80,9 +81,9 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     desiredTargetNodePosition = np.transpose(desiredTargetNodePosition)
 
     # Now deform the target mesh to try and bring the position of its mesh nodes close(r) to their target positions
-    image = gems.KvlImage(np.zeros((10, 10, 10), dtype=np.single))
-    transform = gems.KvlTransform(np.diag([1.0] * 4))
-    calculator = gems.KvlCostAndGradientCalculator('PointSet', [image], 'Sliding',
+    image = KvlImage(np.zeros((10, 10, 10), dtype=np.single))
+    transform = KvlTransform(np.diag([1.0] * 4))
+    calculator = KvlCostAndGradientCalculator('PointSet', [image], 'Sliding',
                                                           transform, [], [], [], [],
                                                           desiredTargetNodePosition
                                                           )
@@ -90,7 +91,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     optimizerType = 'L-BFGS'
     maximalDeformationStopCriterion = 0.005
     lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion
-    optimizer = gems.KvlOptimizer(optimizerType, targetReferenceMesh, calculator, {
+    optimizer = KvlOptimizer(optimizerType, targetReferenceMesh, calculator, {
         'Verbose': 1.0,
         'MaximalDeformationStopCriterion': maximalDeformationStopCriterion,
         'LineSearchMaximalDeformationIntervalStopCriterion': lineSearchMaximalDeformationIntervalStopCriterion,

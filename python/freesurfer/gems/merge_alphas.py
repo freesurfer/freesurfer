@@ -3,20 +3,20 @@ import math
 import numpy as np
 import colorsys
 
+
 logger = logging.getLogger(__name__)
+
 
 def mesh_validity_test(alphas, name):
     probability_discrepancy = np.max(np.abs(np.sum(alphas, axis=1) - 1))
     if probability_discrepancy > 1e-5:
-        message = '{0} invalid: class probabilities in the mesh should sum to one in all nodes'.format(name)
+        message = '%s invalid: class probabilities in the mesh should sum to one in all nodes' % name
         raise ValueError(message)
 
-def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=None ):
-    #
-    #  [ mergedAlphas, mergedNames, [ mergedFreeSurferLabels, mergedColors ] ] = ...
-    #          kvlMergeAlphas( alphas, names, mergeOptions, [ FreeSurferLabels, colors ] );
-    #
-    # where mergeOptions is of the form
+
+def kvlMergeAlphas(alphas, names, mergeOptions, FreeSurferLabels=None, colors=None):
+    # creates a 'mergedAlphas' matrix where one or more columns of the 'alphas' matrix have been "merged" (i.e., added together).
+    # Where mergeOptions is of the form
     #
     #    mergeOptions = struct;
     #    mergeOptions(1).mergedName = 'Global WM';
@@ -26,8 +26,6 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
     #    mergeOptions(3).mergedName = 'Unknown';
     #    mergeOptions(3).searchStrings = { 'CSF', '3', '4' };
     #
-    # creates a 'mergedAlphas' matrix where one or more columns of the 'alphas' matrix have been "merged" (i.e., added together).
-    #
     # If the 'mergedName' field contains an existing name (i.e., one that already occurs in variable 'names'), the corresponding FreeSurfer
     # label and color is preserved, and columns in alphas matching the 'searchStrings' are merged into the already existing column.
     # Conversely, if the 'mergedName' field contains a non-existing name, a new column is created that contains the sum of the 'alphas'
@@ -36,7 +34,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
     # The merging is done in first-order-first-serve basis: mergeOptions(1) is executed first, and the result is then fed into mergeOptions(2)
     # etc.
     #
-    #
+
     alpha_count, label_count = alphas.shape
     if FreeSurferLabels is None:
         FreeSurferLabels = [math.nan] * label_count

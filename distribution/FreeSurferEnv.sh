@@ -465,7 +465,21 @@ if [ -d $FREESURFER_HOME/tktools ]; then
     PATH=$FREESURFER_HOME/tktools:$PATH
 fi
 export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
+
+
+### ----------- Python  ------------ ####
 export PYTHONPATH=$FREESURFER_HOME/python:$PYTHONPATH
+# check the required python version
+if ! fs_check_python ; then
+    martinos_python=/usr/pubsw/packages/python/anaconda3.6/bin
+    if [ -e  $martinos_python ] ; then
+        export PATH=$martinos_python:$PATH
+    else
+        echo "WARNING: Python >= 3.5 is required to run FreeSurfer"
+        echo "         Update the default python version before"
+        echo "         running recon-all"
+    fi
+fi
 
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than

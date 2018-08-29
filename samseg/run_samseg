@@ -4,10 +4,9 @@ import os
 import argparse
 import numpy as np
 import freesurfer as fs
-import freesurfer.gems as gems
 
-from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, \
-    kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+from freesurfer.gems import setGlobalDefaultNumberOfThreads, kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, icv
 
 
 # ------ Parse Command Line Arguments ------
@@ -22,7 +21,7 @@ parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREA
 parser.add_argument('--init-lta', metavar='FILE', help='initial registration')
 parser.add_argument('--reg-only', action='store_true', default=False, dest='atlas_only', help='only perform registration')
 parser.add_argument('-r', '--regmat', metavar='FILE', help='skip registration and read transform from file')
-parser.add_argument('-m', '--missing', dest='missing_structures', action='append', metavar='LABEL', help='LABEL is a missing structure (repeat for multiple missing labels)')
+parser.add_argument('-m', '--missing', dest='missing_structures', action='append', metavar='LABEL', help='missing structure (repeat for multiple missing labels)')
 parser.add_argument('--nobrainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
 parser.add_argument('--diagcovs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
 # optional debugging options
@@ -35,6 +34,10 @@ args = parser.parse_args()
 
 # ------ Initial Setup ------
 
+# Make sure freesurfer has been sourced
+fs.checkfs()
+
+# Start the process timer
 timer = fs.Timer()
 
 # Create the output folder
@@ -42,7 +45,7 @@ os.makedirs(args.outputDirectory, exist_ok=True)
 
 # Specify the maximum number of threads the GEMS code will use
 if args.threads is not None:
-    gems.setGlobalDefaultNumberOfThreads(args.threads)
+    setGlobalDefaultNumberOfThreads(args.threads)
 
 # Get the atlas directory
 atlasDir = os.environ.get('SAMSEG_DATA_DIR')
@@ -142,6 +145,20 @@ optimizationOptions = Specification({
 
 # ------ Run Samsegment ------
 
-samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications, optimizationOptions, args.outputDirectory, visualizer)
+labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications,
+                                    optimizationOptions, args.outputDirectory, visualizer)
+
+
+# ------ Volumetric Stats ------
+
+# Write structural volumes
+with open(os.path.join(savePath, 'samseg.stats'), 'w') as fid:
+    for volume, name in zip(volumes, names):
+        fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
+
+# Write intracranial volume
+sbtiv = icv([names, volumes])
+with open(os.path.join(savePath, 'sbtiv.stats'), 'w') as fid:
+    fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
 timer.mark('samseg complete')

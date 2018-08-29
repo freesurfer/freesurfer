@@ -2,8 +2,6 @@ import os
 import math
 import numpy as np
 
-from .mri_util import load_mgh_header, construct_affine
-
 
 def filter_until_type(lines):
     yielding = False
@@ -142,6 +140,27 @@ class LTA:
 
     def calculate(self):
         pass
+
+
+def load_mgh_header(filename):
+    image = nib.load(filename)
+    header = image.header
+    volsz = header['dims']
+    if header['goodRASFlag']:
+        M = header.get_affine()
+    else:
+        M = None
+    return [None, M, header['mrparms'], np.array(volsz)]
+
+
+def construct_affine(mat, offset):
+    M = np.zeros([4, 4])
+    for row in range(3):
+        for column in range(3):
+            M[row, column] = mat[row, column]
+        M[row, 3] = offset[row]
+    M[3, 3] = 1.0
+    return M
 
 
 class MRI:

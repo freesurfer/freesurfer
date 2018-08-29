@@ -5,13 +5,10 @@ from operator import mul
 
 import freesurfer.gems as gems
 
-from .kvl_merge_alphas import kvlMergeAlphas
 from .figures import initVisualizer
 
 # from .dev_utils.debug_client import create_checkpoint_manager, run_test_cases, create_part1_inspection_team, load_starting_fixture
 
-
-SKIP_SHOW_FIGURES_SAMSEG_PART_1 = False
 
 def samsegment_part1(
         imageFileNames,
@@ -172,7 +169,7 @@ def samsegment_part1(
     names = modelSpecifications.names
     colors = modelSpecifications.colors
     [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable
-     ] = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
+     ] = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
 
     visualizer.show(
         mesh=mesh,

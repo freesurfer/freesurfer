@@ -5,6 +5,7 @@ import numpy as np
 import freesurfer as fs
 import freesurfer.gems as gems
 
+from .utilities import require_np_array
 from .lta import LTA, MRI
 from .figures import initVisualizer
 

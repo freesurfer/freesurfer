@@ -81,15 +81,12 @@ def samsegment(
     # ------ Done ------
 
     print('...all parts completed')
-    names = part1_results_dict['names']
-    FreeSurferLabels = part3_results_dict['FreeSurferLabels']
-    volumesInCubicMm = part3_results_dict['volumesInCubicMm']
-
-    with open(os.path.join(savePath, 'samseg.stats'), 'w') as fid:
-        for volume, name in zip(volumesInCubicMm, names):
-            fid.write('# Measure {}, {:.6f}, mm^3\n'.format(name, volume))
     
-    return [FreeSurferLabels, names, volumesInCubicMm]
+    labels = part3_results_dict['FreeSurferLabels']
+    names = part1_results_dict['names']
+    volumes = part3_results_dict['volumesInCubicMm']
+    
+    return [labels, names, volumes]
 
 
 def test_samsegment(case_name, case_file_folder, savePath):

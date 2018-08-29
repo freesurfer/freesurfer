@@ -3,9 +3,8 @@ import scipy.io
 import numpy as np
 import freesurfer.gems as gems
 
+from .utilities import require_np_array
 from .bias_correction import backprojectKroneckerProductBasisFunctions, projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
-from .kvlWarpMesh import kvlWarpMesh
-from .kvl_merge_alphas import kvlMergeAlphas
 from .figures import initVisualizer
 
 # from .dev_utils.debug_client import create_part2_inspection_team, run_test_cases, create_checkpoint_manager, load_starting_fixture
@@ -13,10 +12,6 @@ from .figures import initVisualizer
 
 logger = logging.getLogger(__name__)
 eps = np.finfo(float).eps
-
-
-def require_np_array(np_array):
-    return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
 
 def samsegment_part2(
@@ -104,7 +99,7 @@ def samsegment_part2(
         if multiResolutionLevel > 0:
             logger.debug('starting multiResolutionLevel=%d', multiResolutionLevel)
             # Get the warp in template space
-            [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = kvlWarpMesh(
+            [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = gems.kvlWarpMesh(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel - 1].atlasFileName,
                 nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
@@ -132,8 +127,8 @@ def samsegment_part2(
                 }, 'multiresWarp')
         # Set priors in mesh to the reduced (super-structure) ones
         alphas = mesh.alphas
-        reducedAlphas, _, _, _, _ = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
-                                                   FreeSurferLabels, colors);
+        reducedAlphas, _, _, _, _ = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
+                                                        FreeSurferLabels, colors);
         if checkpoint_manager:
             checkpoint_manager.increment_and_save({'reducedAlphas': reducedAlphas}, 'reducedAlphas')
         mesh.alphas = reducedAlphas
