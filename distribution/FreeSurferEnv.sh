@@ -470,17 +470,18 @@ export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 ### ----------- Python  ------------ ####
 export PYTHONPATH=$FREESURFER_HOME/python:$PYTHONPATH
 # make sure python3 exists
-if [ -x $(which python3) ] ; then
-    # check the required python version
-    fs_check_python
-else
+if [ -z "$(type -p python3)" ] ; then
     pubsw_bin=/usr/pubsw/bin
     if [ -e "${pubsw_bin}/python3" ] ; then
         export PATH=$pubsw_bin:$PATH
     else
         echo "WARNING: python3 is required to use FreeSurfer"
     fi
+else
+    # check the required python version
+    fs_check_python
 fi
+
 
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than

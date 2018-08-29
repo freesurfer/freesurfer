@@ -444,7 +444,7 @@ def samsegment_part2(
             # print summary of iteration
             print('iterationNumber: %d' % iterationNumber)
             print('maximalDeformationApplied: %.4f' % maximalDeformationApplied)
-            print('======================================================')
+            print('=======================================================')
             visualizer.show(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,

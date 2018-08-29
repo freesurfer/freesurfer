@@ -1,6 +1,8 @@
 import os
 import math
+import gzip
 import numpy as np
+import nibabel as nib
 
 
 def filter_until_type(lines):

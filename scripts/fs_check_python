@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
 
+# required python version
+required = (3, 5)
+
 import sys
-sys.exit(not sys.version_info >= (3, 5))
+if sys.version_info < required:
+  print('WARNING: python >= %s is required - ugrade the default version '
+        'before running recon-all' % '.'.join(map(str, required)))
+  exit(1)

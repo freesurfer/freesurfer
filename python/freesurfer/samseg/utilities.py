@@ -16,6 +16,7 @@ for funcname in ('array', 'zeros', 'empty', 'zeros_like', 'empty_like'):
 def dump_dict(value):
     return getattr(value, 'dump_dict', getattr(value, '__dict__', value))
 
+
 class Specification:
     def __init__(self, params):
         for key, value in params.items():
@@ -78,4 +79,4 @@ def icv(volumes, includeStructures=None):
             'non-WM-hypointensities',
             '5th-Ventricle'
         ]
-    return sum(structure[1] for structure in structures if structure[0] in includeStructures)
+    return sum(structure[1] for structure in volumes if structure[0] in includeStructures)

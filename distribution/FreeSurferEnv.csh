@@ -459,11 +459,15 @@ set path = ( $FREESURFER_HOME/bin \
             )
 
 ### ----------- Python  ------------ ####
-setenv PYTHONPATH "$FREESURFER_HOME/python":"$PYTHONPATH"
+if ( $?PYTHONPATH ) then
+    setenv PYTHONPATH "$FREESURFER_HOME/python":"$PYTHONPATH"
+else
+    setenv PYTHONPATH "$FREESURFER_HOME/python"
+endif
 # check the required python version
 if ( `where python3` == "" ) then
-    set pubsw_bin /usr/pubsw/bin
-    if ( -e  $pubsw_bin/python3 ) then
+    set pubsw_bin = /usr/pubsw/bin
+    if ( -e $pubsw_bin/python3 ) then
         set path = ( $pubsw_bin $path )
     else
         echo "WARNING: python3 is required to use FreeSurfer"

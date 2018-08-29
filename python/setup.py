@@ -24,7 +24,7 @@ packages = [
 no_vis_arg = '--no-visualization'
 if no_vis_arg not in sys.argv:
     requirements += ['pyqtgraph', 'pyqt5']
-    packages += ['samseg.hdav.hdav']
+    packages += ['freesurfer.samseg.hdav']
 else:
     sys.argv.remove(no_vis_arg)
 
