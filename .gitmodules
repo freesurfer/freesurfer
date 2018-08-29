@@ -1,3 +1,0 @@
-[submodule "python/freesurfer/samseg/hdav"]
-	path = python/freesurfer/samseg/hdav
-	url = https://github.com/innolitics/hdav.git
