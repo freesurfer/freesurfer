@@ -32,9 +32,7 @@ class Specification:
         return json.dumps(self, default=dump_dict, sort_keys=True)
 
 
-GMMparameter = namedtuple('GMMparameter', 'mergedName numberOfComponents searchStrings')
-
-def kvlReadSharedGMMParameters( fileName ):
+def kvlReadSharedGMMParameters(fileName):
     # Read text file where each line is formatted as:
     #   mergedName numberOfComponents searchString(s)
     print('Reading contexts of %s' % fileName)
@@ -50,6 +48,7 @@ def kvlReadSharedGMMParameters( fileName ):
                 numberOfComponents = int(components[1])
                 searchStrings = components[2:]
                 # Add to sharedGMMParameters structure array
+                GMMparameter = namedtuple('GMMparameter', 'mergedName numberOfComponents searchStrings')
                 sharedGMMParameters.append(GMMparameter(mergedName, numberOfComponents, searchStrings))
     return sharedGMMParameters
 
@@ -64,7 +63,7 @@ def kvlReadCompressionLookupTable(fileName):
                 data_type(value) for data_type, value in zip(
                     (int, int, str, int, int, int, int),
                     line.split())]
-            #   % Add contents to output matrices
+            # Add contents to output matrices
             table.append({
                 'FreeSurferLabel': FreeSurferLabel,
                 'compressedLabel': compressedLabel,
@@ -73,7 +72,5 @@ def kvlReadCompressionLookupTable(fileName):
             })
     # Sort output according to compressedLabel
     table = sorted(table, key=itemgetter('compressedLabel'))
-    FreeSurferLabels, names, colors = [
-        [entry[key] for entry in table] for key in ['FreeSurferLabel', 'name', 'color']
-    ]
+    FreeSurferLabels, names, colors = [[entry[key] for entry in table] for key in ['FreeSurferLabel', 'name', 'color']]
     return FreeSurferLabels, names, colors

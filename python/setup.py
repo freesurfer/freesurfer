@@ -35,7 +35,7 @@ class BinaryDistribution(Distribution):
         return True
 
 def find_shared_libraries(libname):
-    libraries = glob.glob('**/%s.*.so' % libname, recursive=True)
+    libraries = glob.glob('**/%s.*%s*.so' % (libname, platform.system().lower()), recursive=True)
     if not libraries:
         print('error: could not find %s library' % libname)
         sys.exit(1)
