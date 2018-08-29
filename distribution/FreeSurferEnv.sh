@@ -469,15 +469,16 @@ export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 
 ### ----------- Python  ------------ ####
 export PYTHONPATH=$FREESURFER_HOME/python:$PYTHONPATH
-# check the required python version
-if ! fs_check_python ; then
-    martinos_python=/usr/pubsw/packages/python/anaconda3.6/bin
-    if [ -e  $martinos_python ] ; then
-        export PATH=$martinos_python:$PATH
+# make sure python3 exists
+if [ -x $(which python3) ] ; then
+    # check the required python version
+    fs_check_python
+else
+    pubsw_bin=/usr/pubsw/bin
+    if [ -e "${pubsw_bin}/python3" ] ; then
+        export PATH=$pubsw_bin:$PATH
     else
-        echo "WARNING: Python >= 3.5 is required to run FreeSurfer"
-        echo "         Update the default python version before"
-        echo "         running recon-all"
+        echo "WARNING: python3 is required to use FreeSurfer"
     fi
 fi
 

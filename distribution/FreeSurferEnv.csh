@@ -461,15 +461,16 @@ set path = ( $FREESURFER_HOME/bin \
 ### ----------- Python  ------------ ####
 setenv PYTHONPATH "$FREESURFER_HOME/python":"$PYTHONPATH"
 # check the required python version
-if ( ! fs_check_python ) then
-    set martinos_python /usr/pubsw/packages/python/anaconda3.6/bin
-    if ( -e  $martinos_python ) then
-        set path = ( $martinos_python $path )
+if ( `where python3` == "" ) then
+    set pubsw_bin /usr/pubsw/bin
+    if ( -e  $pubsw_bin/python3 ) then
+        set path = ( $pubsw_bin $path )
     else
-        echo "WARNING: Python >= 3.5 is required to run FreeSurfer"
-        echo "         Update the default python version before"
-        echo "         running recon-all"
+        echo "WARNING: python3 is required to use FreeSurfer"
     endif
+else
+    # check the required python version
+    fs_check_python
 endif
 
 # This turns on "fixing" of group surface area. A group subject made
