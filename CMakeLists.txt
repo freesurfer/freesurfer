@@ -291,6 +291,7 @@ set(FS_INCLUDE_DIRS
 add_definitions(-DUSE_LOCAL_MINC)
 
 # initialize pybind for python wrapping
+set(PYBIND11_PYTHON_VERSION 3.5)
 add_subdirectory(packages/pybind11)
 
 # now build the freesurfer static libraries (order here matters!)
