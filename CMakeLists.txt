@@ -147,7 +147,10 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-find_package(OpenCV)
+# version issue for ./freesurfer/histo_register
+if(NOT APPLE)
+  find_package(OpenCV)
+endif()
 
 # -------- openCL --------
 find_package(OpenCL)
