@@ -46,8 +46,7 @@ def initVisualizer(showfigs, movie):
         try:
             import pyqtgraph as pg
             from PyQt5 import QtGui
-            from .hdav import hdav
-            from .hdav.hdav.hdav import HdavWindow
+            from . import hdav
         except ImportError:
             print('error: visualization tools are not installed')
             exit(1)
@@ -119,7 +118,7 @@ class ShowFigures:
             probability_layers = self.probability_layers(probabilities, names)
             image_alpha = self.image_alpha
         image_layers = self.image_layers(image_list, alpha=image_alpha)
-        probability_max = HdavWindow.MAX_LAYER_COUNT - len(image_layers)
+        probability_max = hdav.HdavWindow.MAX_LAYER_COUNT - len(image_layers)
         if len(probability_layers) > probability_max:
             tail = np.sum(layer['data'] for layer in probability_layers[probability_max - 1:])
             probability_layers[probability_max - 1]['data'] = tail

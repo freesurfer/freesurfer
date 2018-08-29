@@ -1,1 +1,1 @@
-from .hdav import view, view_arrays
+from .hdav import view, view_arrays, HdavWindow
