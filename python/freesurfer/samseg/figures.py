@@ -48,7 +48,8 @@ def initVisualizer(showfigs, movie):
             from PyQt5 import QtGui
             from . import hdav
         except ImportError:
-            print('error: visualization tools are not installed')
+            print('error: samseg visualization tool requirements (qt packages) are not available - '
+                  'they can be installed via "pip install pyqtgraph pyqt5"')
             exit(1)
         else:
             return ShowFigures(show_flag=showfigs, movie_flag=movie)
