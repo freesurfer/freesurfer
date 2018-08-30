@@ -9,6 +9,7 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(BUILD_GUIS "Build GUIs" ON)
+option(MINIMAL "Only build core components" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -151,7 +152,10 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-find_package(OpenCV)
+# version issue for ./freesurfer/histo_register
+if(NOT APPLE)
+  find_package(OpenCV)
+endif()
 
 # -------- openCL --------
 find_package(OpenCL)

@@ -90,9 +90,8 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 		int indexCell =0;
 		typedef MeshType::PointIdentifier PointIdentifier;
 		typedef MeshType::PointDataContainer PointDataContainerType;
-		int numCellsPase =0;
 		BasicMeshType::Pointer basicMesh = basicMeshes[i];
-		MeshType::Pointer mesh;
+		MeshType::Pointer mesh = MeshType::New();
 		for(CellIterator cellIt = basicMesh->GetCells()->Begin(); cellIt!= basicMesh->GetCells()->End(); cellIt++)
 		{
 			PointDataContainerType::Pointer dataContainer = PointDataContainerType::New();
@@ -101,17 +100,17 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 			BasicMeshType::CellTraits::PointIdIterator  pointIdIt  = cellIt.Value()->PointIdsBegin();
 
 			BasicMeshType::PointType pt=0;  
-			numCellsPase++;
 			for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
 			{
 				basicMesh->GetPoint(*pointIdIt, &pt);
-
+				
 				line.TakeOwnership ( new itk::PolylineCell<MeshType::CellType> );
 				mesh->SetPoint (globalIndex, pt);
 				line->SetPointId (withinIndex, globalIndex);
 
 				withinIndex++;
 				globalIndex++;
+				//std::cout << globalIndex << " "<< std::endl;
 			}
 
 			mesh->SetCell (indexCell, line);

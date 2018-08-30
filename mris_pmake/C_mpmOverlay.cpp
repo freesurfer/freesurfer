@@ -691,7 +691,8 @@ C_mpmOverlay_distance::costEdge_calc(int i, int j) {
     // a single edge.
     //
 
-    VERTEX*     pVrtx_i         = &mps_env->pMS_active->vertices[i];
+    VERTEX_TOPOLOGY const * const pVrtx_it = &mps_env->pMS_active->vertices_topology[i];
+    VERTEX          const * const pVrtx_i  = &mps_env->pMS_active->vertices         [i];
     float       wd              = mv_costWeight[0];
     float       f_distance      = 0.;
     float       f_cost          = 0.;
@@ -700,8 +701,8 @@ C_mpmOverlay_distance::costEdge_calc(int i, int j) {
 
     debug_push ("costEdge_calc (...)");
     
-    for(jrelcount=0; jrelcount< pVrtx_i->vnum; jrelcount++) {
-        if(pVrtx_i->v[jrelcount] == j) {
+    for(jrelcount=0; jrelcount< pVrtx_it->vnum; jrelcount++) {
+        if(pVrtx_it->v[jrelcount] == j) {
             jrel = jrelcount;
             break;
         }

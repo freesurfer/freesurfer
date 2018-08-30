@@ -1180,9 +1180,7 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
             mag, gm_mean, wm_mean, sample_dist, vertex_similarity,
             xw, yw, zw, xg, yg, zg ;
   int       vno, num, num_in_fov = 0 ;
-  VERTEX    *v ;
   static VECTOR *v1 = NULL, *v2 = NULL ;
-  VERTEX    *vn ;
   double    gm_var, wm_var, contrast, noise, total_contrast, total_noise ;
   int       n, num_nbrs ;
   MRI       *mri = NULL ;
@@ -1205,7 +1203,7 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
@@ -1260,7 +1258,8 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
   total_contrast = total_noise = 0.0 ; similarity = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno += skip)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no)
       DiagBreak() ;
     v->curv = 0 ;
@@ -1269,9 +1268,9 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
     gm_mean = v->val2 ; gm_var = v->val2*v->val2 ;
     vertex_similarity = 0 ;
     wm_mean = v->val ;  wm_var = v->val*v->val ;
-    for (n = 0, num_nbrs = 1 ; n < v->vtotal ; n++)
+    for (n = 0, num_nbrs = 1 ; n < vt->vtotal ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->marked == 0 || vn->ripflag)
         continue ;
       num_nbrs++ ;
@@ -1326,7 +1325,7 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
 
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
-        v = &mris->vertices[vno] ;
+        VERTEX const * const v = &mris->vertices[vno] ;
         if (v->ripflag == 0)
           continue ;
         V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;

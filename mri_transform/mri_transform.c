@@ -856,11 +856,12 @@ MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out, MRI_SURFACE *mris, int
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     int     n ;
-    VERTEX  *vn, *v ;
     double  dist, clen, len, cnx0, cny0, cnz0, cnx1, cny1, cnz1, dx, dy, dz, dcx, dcy, dcz, xi0, yi0, zi0 ;
     double  nx, ny, nz ;
 
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -870,12 +871,12 @@ MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out, MRI_SURFACE *mris, int
     r = sqrt(cnx0*cnx0 + cny0*cny0 + cnz0*cnz0) ;
     cnx0 /= r ; cny0 /= r ; cnz0 /= r ;
 
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->ripflag)
 	continue ;
-      if (v->v[n] == Gdiag_no)
+      if (vt->v[n] == Gdiag_no)
 	DiagBreak() ;
 
       dx =   vn->x - v->x ;   dy = vn->y - v->y ;    dz = vn->z - v->z ;

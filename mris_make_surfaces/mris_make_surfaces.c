@@ -1774,11 +1774,11 @@ int main(int argc, char *argv[])
 
       {// open scope
         int ii, vno, n, vtotal ;
-        VERTEX *v ;
         for (ii = 0; ii < pial_num ; ii++)
         {
           vno = pial_vnos[ii] ;
-          v = &mris->vertices[vno] ;
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+          VERTEX                * const v  = &mris->vertices         [vno];
           v->val = pial_vals[ii] ;
           v->marked = 1 ;
 	  if (v->val2 > 0)
@@ -1790,22 +1790,22 @@ int main(int argc, char *argv[])
           switch (pial_nbrs)
           {
           case 1:
-            vtotal = v->vnum ;
+            vtotal = vt->vnum ;
             break ;
           case 2:
-            vtotal = v->v2num ;
+            vtotal = vt->v2num ;
             break ;
           case 3:
-            vtotal = v->v3num ;
+            vtotal = vt->v3num ;
             break ;
           default:
             break ;
           }
           for (n = 0 ; n < vtotal ; n++)
           {
-            mris->vertices[v->v[n]].val = pial_vals[ii] ;
-            mris->vertices[v->v[n]].marked = 1 ;
-            mris->vertices[v->v[n]].val2 = current_sigma ;
+            mris->vertices[vt->v[n]].val = pial_vals[ii] ;
+            mris->vertices[vt->v[n]].marked = 1 ;
+            mris->vertices[vt->v[n]].val2 = current_sigma ;
           }
         }
        } // just an end of scope
@@ -1824,8 +1824,7 @@ int main(int argc, char *argv[])
         printf("averaging target values for %d iterations...\n",vavgs) ;
         MRISaverageMarkedVals(mris, vavgs) ;
         if (Gdiag_no >= 0){
-          VERTEX *v ;
-          v = &mris->vertices[Gdiag_no] ;
+          VERTEX const * const v = &mris->vertices[Gdiag_no] ;
           printf("v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
            Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
         }
@@ -1885,7 +1884,7 @@ int main(int argc, char *argv[])
       if(mristarget != NULL) MRISfree(&mristarget);
       mristarget = MRISclone(mris);
       for(vno=0; vno < mris->nvertices; vno++){
-        v = &(mristarget->vertices[vno]);
+        VERTEX * const v = &(mristarget->vertices[vno]);
         if(flair_or_T2_name == NULL) {
           v->d = mris->vertices[vno].d; // clone does not copy this
           v->val = mris->vertices[vno].val; // clone does not copy this
@@ -1894,7 +1893,7 @@ int main(int argc, char *argv[])
           v->z += (v->d*v->nz);
         }
 	else{
-	  v2 = &(mris->vertices[vno]);
+	  VERTEX const * const v2 = &(mris->vertices[vno]);
           v->x = v2->targx; // clone does not copy this
           v->y = v2->targy; 
           v->z = v2->targz; 
@@ -1912,12 +1911,11 @@ int main(int argc, char *argv[])
 
       if (parms.l_location > 0)  { // 0 by default, but turned on with T2
 	int vno ;
-	VERTEX *v ;
 	double dist ;
 
 	for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-	  v = &mris->vertices[vno] ;
+	  VERTEX * const v = &mris->vertices[vno] ;
 	  dist = sqrt(SQR(v->targx - v->x) + SQR(v->targy-v->y) + SQR(v->targz-v->z)) ;
 	  v->cropped = nint((float)v->cropped * dist) ;
 	}
@@ -3264,13 +3262,12 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
 {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
-  VERTEX *v, *vn ;
 
   // Compute the mean and stddev of the distance to max gradient
   d = dsq = 0.0f ;
   for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag || v->val <= 0)
     {
       continue ;
@@ -3286,7 +3283,8 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     v->curv = 0 ;
 
     if (v->ripflag || v->val <= 0) continue ;
@@ -3296,9 +3294,9 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
     // Only gets here if distance is not too big
 
     // Count number of neighbors with big distances
-    for (num_long = num = 1, n = 0 ; n < v->vnum ; n++)
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->val <= 0 || v->ripflag) continue ;
       if (fabs(vn->d) >= mean+2*std)
         num_long++ ;
