@@ -9,9 +9,8 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
   )
 
   # temporary macro to deal with BoundingBoxType
-  # this should be removed once we updgrade everything
+  # todo: this should be removed once we updgrade everything
   add_definitions(-DHAVE_ITK45)
-  set(CMAKE_CXX_STANDARD 11)
 
   set(SOURCES
     Tracer.cpp

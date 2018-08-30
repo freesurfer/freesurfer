@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import GEMS2Python
+import freesurfer.gems as gems
 
 MESH_COLLECTION_TEST_FILE_NAME = 'Testing/test.txt'
 TEST_FILE_POINT_COUNT = 58307
@@ -20,7 +20,7 @@ def writeable_mesh_file_name(tmpdir_factory):
 
 
 def make_a_test_mesh_collection(number_of_meshes):
-    mesh_collection = GEMS2Python.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.construct(
         CONSTRUCTED_MESH_SIZE,
         CONSTRUCTED_DOMAIN_SIZE,
@@ -61,7 +61,7 @@ class TestMeshCollection:
         # Read is very slow, so many tests operate on the same mesh collection.
         # TODO: separate these tests by reading once and then operating on copies of original
         if TestMeshCollection._collection is None and TestMeshCollection._okay_to_read:
-            TestMeshCollection._collection = GEMS2Python.KvlMeshCollection()
+            TestMeshCollection._collection = gems.KvlMeshCollection()
             print('reading mesh collection...')
             TestMeshCollection._collection.read(MESH_COLLECTION_TEST_FILE_NAME)
             print('..done reading mesh collection')
@@ -76,7 +76,7 @@ class TestMeshCollection:
         assert point_count == 105
 
     def test_bad_construction_mesh_size(self):
-        mesh_collection = GEMS2Python.KvlMeshCollection()
+        mesh_collection = gems.KvlMeshCollection()
         mesh_size = (3, 5)  # not 3d
         domain_size = (10, 11, 13)
         stiffness = 0.25
@@ -86,7 +86,7 @@ class TestMeshCollection:
             mesh_collection.construct(mesh_size, domain_size, stiffness, number_of_classes, number_of_meshes)
 
     def test_bad_construction_domain_size(self):
-        mesh_collection = GEMS2Python.KvlMeshCollection()
+        mesh_collection = gems.KvlMeshCollection()
         mesh_size = (3, 5, 7)
         domain_size = (10, 11, 13, 14)  # not 3d
         stiffness = 0.25
@@ -154,7 +154,7 @@ class TestMeshCollection:
 
     def test_bad_read(self):
         with pytest.raises(Exception):
-            bad_collection = GEMS2Python.KvlMeshCollection()
+            bad_collection = gems.KvlMeshCollection()
             bad_collection.read('nada_nada_nada')
 
     @pytest.mark.slowtest
@@ -164,7 +164,7 @@ class TestMeshCollection:
         print('...done writing mesh collection')
 
     def test_empty_write(self, writeable_mesh_file_name):
-        empty_collection = GEMS2Python.KvlMeshCollection()
+        empty_collection = gems.KvlMeshCollection()
         with pytest.raises(Exception):
             empty_collection.write(writeable_mesh_file_name)
 
@@ -175,7 +175,7 @@ class TestMeshCollection:
             [0, 0, 5, 40],
             [0, 0, 0, 1],
         ], dtype=np.double, order='F')
-        kvl_transform = GEMS2Python.KvlTransform(initial_transform)
+        kvl_transform = gems.KvlTransform(initial_transform)
 
         current_points = single_mesh_collection.reference_mesh.points;
         [x, y, z] = current_points[13]
