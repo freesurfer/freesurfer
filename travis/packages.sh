@@ -11,6 +11,5 @@ set -ex
 
 cd ..
 curl --connect-timeout 8 --retry 60 --retry-delay 3 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/${tarball}
-rm -r packages
 tar -xzf ${tarball}
 rm ${tarball}
