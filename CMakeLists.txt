@@ -126,7 +126,11 @@ find_package(PETSC)
 
 # -------- itk --------
 if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
+  if(APPLE)
+    set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
+  else()
+    set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
+  endif()
 endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
