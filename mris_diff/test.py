@@ -5,7 +5,7 @@ import freesurfer.test as fst
 
 rt = fst.RegressionTest()
 
-grep_pattern = 'grep -v "^timestamp" | grep -v "^sysname" | grep -v "^hostname" | grep -v "^machine" | grep -v "^user"'
+grep_pattern = 'grep -v "^timestamp" | grep -v "^sysname" | grep -v "^hostname" | grep -v "^machine" | grep -v "^user" | grep -v "^FREESURFER_HOME" | grep -v "^SUBJECTS_" | grep -v "^cwd"'
 
 # diff same surface
 cmd_1 = 'mris_diff --debug --s1 cvs_avg35 ./cvs_avg35/surf/lh.sphere ./cvs_avg35/surf/lh.sphere 2>&1 | tee -a diff_1_subj_left_left.out.raw'
