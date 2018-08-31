@@ -1,10 +1,10 @@
-SET( cudasrcs cudacontroller.cpp )
+set(cudasrcs cudacontroller.cpp)
 
-LIST(APPEND cudasrcs atlasmeshvisitcountercuda.cpp)
-LIST(APPEND cudasrcs visitcountersimplecudaimpl.cu)
-LIST(APPEND cudasrcs visitcountertetrahedralmeshcudaimpl.cu)
+list(APPEND cudasrcs atlasmeshvisitcountercuda.cpp)
+list(APPEND cudasrcs visitcountersimplecudaimpl.cu)
+list(APPEND cudasrcs visitcountertetrahedralmeshcudaimpl.cu)
 
-LIST(APPEND cudasrcs atlasmeshalphadrawercuda.cpp)
-LIST(APPEND cudasrcs atlasmeshalphadrawercudaimpl.cu)
+list(APPEND cudasrcs atlasmeshalphadrawercuda.cpp)
+list(APPEND cudasrcs atlasmeshalphadrawercudaimpl.cu)
 
-CUDA_ADD_LIBRARY( kvlGEMSCUDA ${cudasrcs} )
+cuda_add_library(kvlGEMSCUDA ${cudasrcs})

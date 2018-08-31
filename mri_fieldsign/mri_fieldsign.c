@@ -639,9 +639,9 @@ int MRISextendedHopNeighbors(MRIS *surf,int TargVtxNo, int CurVtxNo,
   if(nthhop > nhops) return(0);
 
   // Add nearest neighbors of current vertex
-  nNNbrs = surf->vertices[CurVtxNo].vnum;
+  nNNbrs = surf->vertices_topology[CurVtxNo].vnum;
   for (n = 0; n < nNNbrs; n++) {
-    NbrVtxNo = surf->vertices[CurVtxNo].v[n];
+    NbrVtxNo = surf->vertices_topology[CurVtxNo].v[n];
     vnbr = &surf->vertices[NbrVtxNo];
     if(vnbr->ripflag) continue;
     if(vnbr->val2bak == TargVtxNo) continue;
@@ -652,9 +652,9 @@ int MRISextendedHopNeighbors(MRIS *surf,int TargVtxNo, int CurVtxNo,
   }
 
   // Now, loop over the current nearest neighbors
-  nNNbrs = surf->vertices[CurVtxNo].vnum;
+  nNNbrs = surf->vertices_topology[CurVtxNo].vnum;
   for (n = 0; n < nNNbrs; n++) {
-    NbrVtxNo = surf->vertices[CurVtxNo].v[n];
+    NbrVtxNo = surf->vertices_topology[CurVtxNo].v[n];
     MRISextendedHopNeighbors(surf, TargVtxNo, NbrVtxNo, nhops,
 			     XNbrVtxNo, nXNbrs);
   }

@@ -9,6 +9,7 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(BUILD_GUIS "Build GUIs" ON)
+option(MINIMAL "Only build core components" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -40,9 +41,14 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   endif()
 endif()
 
+# set the default build type to 'Release' for optimization purposes
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "No build type selected - defaulting to Release")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Default build type" FORCE)
+endif()
+
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
-
 
 # --------------------------------------------------
 #   library dependencies and third-party packages
@@ -119,7 +125,7 @@ find_package(PETSC)
 
 # -------- itk --------
 if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
+  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
 endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
@@ -146,7 +152,10 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-find_package(OpenCV)
+# version issue for ./freesurfer/histo_register
+if(NOT APPLE)
+  find_package(OpenCV)
+endif()
 
 # -------- openCL --------
 find_package(OpenCL)
@@ -200,7 +209,6 @@ if(BUILD_GUIS)
 
 endif()
 
-
 # --------------------------------------------------
 #             global build configuration
 # --------------------------------------------------
@@ -222,27 +230,18 @@ endif()
 # ANSI
 add_definitions(-DANSI)
 
-# todo: write some logic to set this correctly
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
+# todo: write some logic to set this correctly
 add_definitions(-DUSE_SSE_MATHFUN)
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
-
-# -g compiles debugging info for use by debuggers like gdb. Normally we want
-# that in the build, but here we add the FS_DEBUG option, which greatly
-# reduces the size of compiled binaries when turned OFF
-option(DEBUG "Compile with the -g flag" ON)
-if(DEBUG)
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -g")
-endif()
 
 # large file support: support for files > 2GB
 if(APPLE)
   add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 endif()
 
-# optimization
 # todo: implement processor-based logic to determine this
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 
 # for stripping unused code
 if(APPLE)
@@ -258,7 +257,7 @@ if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
 endif()
 
-# check for 
+# check for clock_gettime on mac
 if(APPLE)
   check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
   if(HAVE_CLOCK_GETTIME)
@@ -270,13 +269,18 @@ endif()
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 
+# enable std c++11
+set(CMAKE_CXX_STANDARD 11)
 
 # --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
 
 # first, prepare the freesurfer distribution
-add_subdirectories(distribution images)
+add_subdirectory(distribution)
+if(NOT MINIMAL)
+  add_subdirectory(images)
+endif()
 
 # the top-level include dir contain the most commonly
 # included freesurfer header files
@@ -289,6 +293,10 @@ set(FS_INCLUDE_DIRS
 
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
+
+# initialize pybind for python wrapping
+set(PYBIND11_PYTHON_VERSION 3.5)
+add_subdirectory(packages/pybind11)
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -306,12 +314,14 @@ add_subdirectories(
   opencl_algorithms
 )
 
-# the following utility libs are required for freeview and qdec
+# the following utility libraries are required for freeview and qdec
 add_subdirectories(vtkfsio vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
+# build the gems python library
+add_subdirectories(GEMS2)
 
 # --------------------------------------------------
 #                      programs
@@ -401,6 +411,8 @@ add_subdirectories(
   mris_topo_fixer
   mris_volmask
   mrisp_paint
+  python
+  samseg
   scripts
   talairach_afd
   talairach_avi

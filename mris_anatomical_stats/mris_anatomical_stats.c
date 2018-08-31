@@ -544,7 +544,9 @@ main(int argc, char *argv[])
       int vno;
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
-        VERTEX *v = &mris->vertices[vno] ;
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+        VERTEX          const * const v  = &mris->vertices         [vno];
+        
         if (v->ripflag)
         {
           continue ;
@@ -564,9 +566,9 @@ main(int argc, char *argv[])
           {
             float area = 0.0 ;
             int fno;
-            for (fno = 0 ; fno < v->num ; fno++)
+            for (fno = 0 ; fno < vt->num ; fno++)
             {
-              FACE *face = &mris->faces[v->f[fno]];
+              FACE *face = &mris->faces[vt->f[fno]];
               if (face->ripflag)
               {
                 continue;

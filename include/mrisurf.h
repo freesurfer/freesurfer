@@ -1110,6 +1110,7 @@ int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValsToAnnotations(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
+int          MRIScopyStatsFromValues(MRI_SURFACE *mris) ;
 
 
 int MRISsetCroppedToZero(MRI_SURFACE *mris) ;
@@ -2153,6 +2154,7 @@ MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
 int MRISmarkedVertices(MRI_SURFACE *mris) ;
+int MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,

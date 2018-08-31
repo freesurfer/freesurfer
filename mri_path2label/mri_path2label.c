@@ -969,8 +969,8 @@ static int MRISfill(MRIS *mris, int seedvtxno)
 
   if(mris->vertices[seedvtxno].val) return(0);
   mris->vertices[seedvtxno].val = 1;
-  for (nthnbr=0; nthnbr < mris->vertices[seedvtxno].vnum; nthnbr++) {
-    nbrvtxno = mris->vertices[seedvtxno].v[nthnbr];
+  for (nthnbr=0; nthnbr < mris->vertices_topology[seedvtxno].vnum; nthnbr++) {
+    nbrvtxno = mris->vertices_topology[seedvtxno].v[nthnbr];
     MRISfill(mris, nbrvtxno);
   }
   return(0);

@@ -231,7 +231,6 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   int       caudal_acc, posterior_cingulate, rostral_acc ;
   int       s_caudal_acc, s_posterior_cingulate, s_rostral_acc, s_caudal_peri, s_rostral_peri, s_posterior_peri;
   int       g_caudal_acc, g_posterior_cingulate, g_rostral_acc, filled, n ;
-  VERTEX    *v, *vn ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     CTABprintASCII(ct, stdout) ;
@@ -342,7 +341,7 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
@@ -389,7 +388,7 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   {
     if (vno == Gdiag_no)
       DiagBreak() ;
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->annotation == s_cingulate)
       v->marked = 1 ;
   }
@@ -399,14 +398,15 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     filled = 0 ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->marked == 1) 
       {
-        for (n = 0 ; n < v->vnum ; n++)
+        for (n = 0 ; n < vt->vnum ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked < 0)
             continue ;
           
@@ -427,7 +427,7 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno] ;
       if (v->marked == -1)
         v->marked = 0 ;
     }
@@ -441,21 +441,22 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   {
     if (vno == Gdiag_no)
       DiagBreak() ;
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->annotation == s_pericallosal)
       v->marked = 1 ;
   }
   
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->marked == 1) 
     {
-      for (n = 0 ; n < v->vnum ; n++)
+      for (n = 0 ; n < vt->vnum ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked < 0)
           continue ;
         
@@ -477,7 +478,7 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->marked == -1)
       v->marked = 0 ;
   }
@@ -486,14 +487,15 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     filled = 0 ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->marked == 1) 
       {
-        for (n = 0 ; n < v->vnum ; n++)
+        for (n = 0 ; n < vt->vnum ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked < 0 || vn->marked == 1)
             continue ;
           
@@ -516,7 +518,7 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno] ;
       if (v->marked == -1)
         v->marked = 0 ;
     }
@@ -532,7 +534,6 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       int index ;
-      v = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, mris->vertices[vno].annotation, &index);
       if (index > max_i)
         max_i = index ;

@@ -298,13 +298,13 @@ double MRISmeanInterVertexDist(MRIS *surf) {
 
   dsum = 0.0;
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
-    nnbrs = surf->vertices[vtx].vnum;
+    nnbrs = surf->vertices_topology[vtx].vnum;
     x0 = surf->vertices[vtx].x;
     y0 = surf->vertices[vtx].y;
     z0 = surf->vertices[vtx].z;
     dnbrsum=0.0;
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      nbrvtx = surf->vertices[vtx].v[nthnbr];
+      nbrvtx = surf->vertices_topology[vtx].v[nthnbr];
       xn = surf->vertices[nbrvtx].x;
       yn = surf->vertices[nbrvtx].y;
       zn = surf->vertices[nbrvtx].z;
