@@ -295,8 +295,8 @@ set(FS_INCLUDE_DIRS
 add_definitions(-DUSE_LOCAL_MINC)
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)
-add_subdirectory(packages/pybind11)
+# set(PYBIND11_PYTHON_VERSION 3.5)
+# add_subdirectory(packages/pybind11)
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -411,7 +411,6 @@ add_subdirectories(
   mris_topo_fixer
   mris_volmask
   mrisp_paint
-  python
   samseg
   scripts
   talairach_afd
