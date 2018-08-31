@@ -31,7 +31,7 @@
 set VERSION = '$Id: make_average_subject,v 1.24 2016/08/02 21:19:46 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
-set average_subject = average;
+set average_subject = ();
 set DoLink = 0;
 set DoSurfaces = 1;
 set DoVolumes  = 1;
@@ -261,6 +261,10 @@ check_params:
     echo " Nothing to do!"
     exit 1;
   endif
+  if($#average_subject == 0) then
+    echo "ERROR: must specify the output subject name with --out"
+    exit 1;
+  endif
 goto check_params_return;
 ############--------------##################
 
@@ -273,9 +277,9 @@ usage_exit:
   echo "   --subjects <subj1> <subj2> ... <subjN>"
   echo "             : or declare subjects in SUBJECTS env var"
   echo "   --fsgd fsgdfile : get subject list from fsgd"
+  echo "   --out <average subject name>"
   echo ""
   echo "Optional Arguments"
-  echo "   --out <average subject name>    : default name is 'average'"
   echo "   --sd-out sdout : put output under sdout instead of SUBJECTS_DIR"
   echo "   --no-link : do not link back to the original SUBJECTS_DIR with --sd-out"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
@@ -290,6 +294,7 @@ usage_exit:
   echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
   echo "   --no-symlink : do not use symbolic links with surfs (just copy files)"
   echo "   --no-ribbon : do not create ribbon.mgz and aparc+aseg.mgz files"
+  echo "   --no-surf2surf : use old parametric surface mapping method (may give big faces at the poles)"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"

@@ -1,6 +1,6 @@
 project(mri_fit_bias)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_fit_bias mri_fit_bias.c)
 target_link_libraries(mri_fit_bias utils)

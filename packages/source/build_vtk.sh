@@ -2,16 +2,17 @@
 
 set -e
 
-if [ "$#" != "1" ] ; then echo "error: usage: build_vtk.sh <prefix>" && exit 1 ; fi
+[ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
 cd vtk-v5.10.1
 
-cmake . -DCMAKE_BUILD_TYPE=Release \
-        -DVTK_WRAP_TCL=ON \
-        -DCMAKE_C_FLAGS=-DGLX_GLXEXT_LEGACY \
-        -DCMAKE_CXX_FLAGS=-DGLX_GLXEXT_LEGACY \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+cmake . \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_FLAGS="-DGLX_GLXEXT_LEGACY" \
+  -DCMAKE_CXX_FLAGS="-DGLX_GLXEXT_LEGACY" \
+  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
+  -DVTK_WRAP_TCL=ON
 
 make -j8
 make install

@@ -1,0 +1,3 @@
+#!/bin/tcsh -ef
+source $FREESURFER_HOME/bin/tcl_setup
+exec $FREESURFER_HOME/tktools/tkregister2.bin $argv

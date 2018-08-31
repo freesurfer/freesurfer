@@ -5,17 +5,21 @@
 
 #include "argparse.hpp"
 
+extern "C" {
+#include "utils.h"
+}
+
 
 /// Makes sure option key is valid (i.e it isn't empty and
 /// has the correct number of leading dashes)
 static std::string verifyOption(const std::string& name)
 {
   if (name.empty())
-    errExit(1) << "invalid argument configuration. Argument names must not be empty";
+    fs_fatal(1) << "invalid argument configuration. Argument names must not be empty";
   if ((name.size() == 2 && name[0] != '-') || name.size() == 3)
-    errExit(1) << "invalid argument configuration for '" << name << "'. Short names must begin with '-'";
+    fs_fatal(1) << "invalid argument configuration for '" << name << "'. Short names must begin with '-'";
   if (name.size() > 3 && (name[0] != '-' || name[1] != '-'))
-    errExit(1) << "invalid argument configuration for '" << name << "'. Multi-character names must begin with '--'";
+    fs_fatal(1) << "invalid argument configuration for '" << name << "'. Multi-character names must begin with '--'";
   return name;
 }
 
@@ -99,12 +103,12 @@ ArgumentParser::Argument::Argument(const ArgumentParser::String& _short_name, co
 
   // check for illogical option flags
   if ((min_args == 0) && (argtype != ArgType::Bool)) {
-    errExit(1) << "invalid argument configuration for '" << canonicalName() << "'. "
-               << "Option flags that accept no input must be of type ArgType::Bool";
+    fs_fatal(1) << "invalid argument configuration for '" << canonicalName() << "'. "
+                << "Option flags that accept no input must be of type ArgType::Bool";
   }
   if ((min_args == 0) && required) {
-    errExit(1) << "invalid argument configuration for '" << canonicalName() << "'. "
-               << "Required flags must accept at least one input";
+    fs_fatal(1) << "invalid argument configuration for '" << canonicalName() << "'. "
+                << "Required flags must accept at least one input";
   }
 }
 
@@ -113,11 +117,11 @@ ArgumentParser::Argument::Argument(const ArgumentParser::String& _short_name, co
 void ArgumentParser::Argument::validate()
 {
   if (positional && consumed < min_args)
-    argError << "not enough positional arguments supplied";
+    fs_fatal(2) << "not enough positional arguments supplied";
   if (fixed && fixed_nargs != consumed)
-    argError << "not enough inputs passed to option '" << canonicalName() << "' (expected " << fixed_nargs << ")";
+    fs_fatal(2) << "not enough inputs passed to option '" << canonicalName() << "' (expected " << fixed_nargs << ")";
   if (!fixed && variable_nargs == '+' && consumed < 1)
-    argError << "option '" << canonicalName() << "' requires at least one input";
+    fs_fatal(2) << "option '" << canonicalName() << "' requires at least one input";
 }
 
 
@@ -172,6 +176,15 @@ void ArgumentParser::addArgument(const ArgumentParser::String& short_name, const
 }
 
 
+/// Configures a --help option that prints the supplied xml help text
+void ArgumentParser::addHelp(const unsigned char *text, unsigned int size)
+{
+  helptext = text;
+  helptextsize = size;
+  addArgument("-h", "--help", 0, Bool, false);
+}
+
+
 /// Parses the command line from the standard main() function arguments
 void ArgumentParser::parse(size_t argc, const char** argv)
 {
@@ -186,12 +199,18 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
   // name the app
   if (!argv.empty()) app_name = argv[0];
 
+  // make sure arguments were provided
+  if ((argv.size() <= 1) && (helptextsize > 0)) {
+    outputHelpXml(helptext, helptextsize);
+    exit(1);
+  }
+
   // first do a quick and dirty sweep of the options, making sure the minimum
   // amount of arguments have been provided
   for (StringVector::const_iterator in = argv.begin() + 1; in < argv.end(); ++in) {
     String element = *in;
     if (element[0] == '-') {
-      if (index.count(element) == 0) argError << "unknown flag '" << element << "'";
+      if (index.count(element) == 0) fs_fatal(2) << "unknown flag '" << element << "'";
       // count the number of input args following this option
       unsigned int args_following = 0;
       for (StringVector::const_iterator fin = in + 1 ; fin < argv.end() ; fin++) {
@@ -199,7 +218,7 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
         if (future[0] != '-') args_following++;
       }
       if (arguments[index[element]].min_args > args_following) {
-        argError << "not enough inputs supplied to '" << element << "'";
+        fs_fatal(2) << "not enough inputs supplied to '" << element << "'";
       }
     }
   }
@@ -221,7 +240,7 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
         // if so, let's get the next set of positional arguments
         posidx++;
         if (posidx >= positionals.size()) {
-          argError << "unexpected argument '" << element << "'";
+          fs_fatal(2) << "unexpected argument '" << element << "'";
         } else {
           active = positionals[posidx];
         }
@@ -267,7 +286,7 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
           }
         }
       } catch (...) {
-        argError << "input '" << element << "' cannot be converted to expected type (" << active.typeName() << ")";
+        fs_fatal(2) << "input '" << element << "' cannot be converted to expected type (" << active.typeName() << ")";
       }
       variables[N].exists = true;
       active.consumed++;
@@ -287,11 +306,17 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
   // validate the final argument
   if (active.valid) active.validate();
 
+  // check for the help flag
+  if ((exists("help")) && (helptextsize > 0)) {
+    outputHelpXml(helptext, helptextsize);
+    exit(0);
+  }
+
   // check that all of the required arguments have been provided
   for (ArgumentVector::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
     Argument arg = *it;
     if (arg.required && !exists(arg.canonicalName())) {
-      argError << "missing required input '" << arg.canonicalName() << "'";
+      fs_fatal(2) << "missing required input '" << arg.canonicalName() << "'";
     }
   }
 }
@@ -315,7 +340,7 @@ bool ArgumentParser::exists(const String& name)
 {
   // first check if name is a valid argument key
   String unstripped = unstrip(name);
-  if (index.count(unstripped) == 0) errExit(1) << "'" << unstripped << "' is not a known argument";
+  if (index.count(unstripped) == 0) fs_fatal(1) << "'" << unstripped << "' is not a known argument";
   return variables[index[unstripped]].exists;
 }
 
@@ -333,7 +358,7 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
       case ArgType::Float  : variables.push_back(float(0)); break;
       case ArgType::Bool   : variables.push_back(false); break;
       case ArgType::String : variables.push_back(String()); break;
-      default : errExit(1) << "unknown argument type for '" << arg.canonicalName() << "'";
+      default : fs_fatal(1) << "unknown argument type for '" << arg.canonicalName() << "'";
     }
   } else {
     switch(arg.argtype) {
@@ -341,7 +366,7 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
       case ArgType::Float  : variables.push_back(FloatVector()); break;
       case ArgType::Bool   : variables.push_back(std::vector<bool>()); break;
       case ArgType::String : variables.push_back(StringVector()); break;
-      default : errExit(1) << "unknown argument type for '" << arg.canonicalName() << "'";
+      default : fs_fatal(1) << "unknown argument type for '" << arg.canonicalName() << "'";
     }
   }
 
@@ -349,7 +374,7 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
   for (IndexMap::iterator it = index.begin(); it != index.end(); it++) {
     String stripped = strip(it->first);
     if (stripped == strip(arg.short_name) || stripped == strip(arg.name)) {
-      errExit(1) << "invalid argument configuration. '" << arg.canonicalName() << "' is used twice";
+      fs_fatal(1) << "invalid argument configuration. '" << arg.canonicalName() << "' is used twice";
     }
   }
 
@@ -357,18 +382,18 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
   if (!arg.fixed) {
     if (arg.positional) {
       if (variable_positional) {
-        errExit(1) << "invalid argument configuration for '" << arg.canonicalName() << "'. "
-                   << "Two positional arguments cannot both have a variable amount of inputs, "
-                   << "as this could lead to an undefined boundary between the two";
+        fs_fatal(1) << "invalid argument configuration for '" << arg.canonicalName() << "'. "
+                    << "Two positional arguments cannot both have a variable amount of inputs, "
+                    << "as this could lead to an undefined boundary between the two";
       }
       variable_positional = true;
     } else {
       variable_flag = true;
     }
     if (variable_positional && variable_flag) {
-      errExit(1) << "invalid argument configuration for '" << arg.canonicalName() << "'. "
-                 << "A positional argument and flagged argument cannot both have a variable "
-                 << "amount of inputs, as this could lead to an undefined boundary between the two";
+      fs_fatal(1) << "invalid argument configuration for '" << arg.canonicalName() << "'. "
+                  << "A positional argument and flagged argument cannot both have a variable "
+                  << "amount of inputs, as this could lead to an undefined boundary between the two";
     }
   }
 

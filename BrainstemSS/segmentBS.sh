@@ -145,6 +145,10 @@ if(-e $IsRunningFile) then
   exit 1;
 endif
 
+# If not explicitly specfied, set to 1
+if($?ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS == 0) then
+  setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1
+endif
 
 # If everything is in place, let's do it! First, we create the IsRunning file
 echo "------------------------------" > $IsRunningFile
@@ -182,12 +186,19 @@ echo "HOST `hostname`" >> $BSSLOG
 echo "PROCESSID $$ "   >> $BSSLOG
 echo "PROCESSOR `uname -m`" >> $BSSLOG
 echo "OS `uname -s`"       >> $BSSLOG
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS " >> $BSSLOG
 uname -a         >> $BSSLOG
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $BSSLOG
 endif
 echo "------------------------------" >> $BSSLOG
 echo " " >> $BSSLOG
+cat $FREESURFER_HOME/build-stamp.txt  >> $BSSLOG
+echo " " >> $BSSLOG
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  >> $BSSLOG
+echo "cd `pwd`"   >> $BSSLOG
+echo $0 $argv  >> $BSSLOG
+echo ""  >> $BSSLOG
 
 echo "#--------------------------------------------" \
   |& tee -a $BSSLOG
@@ -218,7 +229,17 @@ if ($returnVal) then
   exit 1;
 endif
 
- 
+# Convert the txt file into a stats file so that asegstats2table can
+# be run Note: the number of voxels is set to 0 and there is no info
+# about intensity. The only useful info is the volume in mm and the
+# structure name. The segmentation IDs also do not mean anything. 
+# Could run mri_segstats instead, but the volumes would not include
+# partial volume correction.
+set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/brainstemSsVolumes.$SUFFIX.txt
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/brainstem.$SUFFIX.stats
+echo "# Brainstem structure volumes as created by segmentBS.sh" > $stats
+cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
+
 # All done!
 rm -f $IsRunningFile
 

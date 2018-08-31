@@ -19,6 +19,7 @@
 
 import os
 import sys
+import platform
 import shutil
 import argparse
 import tarfile
@@ -48,20 +49,25 @@ class Package:
 #                              ~~ freesurfer dependencies ~~
 
 pkgs = [
-  Package('jpeg',        '6b',     'build_jpeg.sh',   'jpeg-6b.tar.gz'),
-  Package('tiff',        '3.6.1',  'build_tiff.sh',   'tiff-3.6.1.tar.gz'),
-  Package('expat',       '2.0.1',  'build_expat.sh',  'expat-2.0.1.tar.gz'),
-  Package('xml2',        '2.7.7',  'build_xml2.sh',   'xml2-2.7.7.tar.gz'),
-  Package('glut',        '3.7',    'build_glut.sh',   'glut-3.7.tar.gz'),
-  Package('netcdf',      '3.6.0',  'build_netcdf.sh', 'netcdf-3.6.0-p1.tar.gz'),
-  Package('minc',        '1.5',    'build_minc.sh',   'minc-1.5.tar.gz'),  # it's important that minc is built after netcdf  
-  Package('tetgen',      '1.4.1',  'build_tetgen.sh', 'tetgen-1.4.1.tar.gz'),
-  Package('petsc',       '2.3.3',  'build_petsc.sh',  'petsc-2.3.3.tar.gz', required=False),
-  Package('ann',         '1.1.2',  'build_ann.sh',    'ann-1.1.2.tar.gz', required=False),
-  Package('tcltktixblt', '8.4.6',  'build_tcl.sh',    'tcltktixblt-8.4.6.tar.gz', required=False),
-  Package('vtk',         '5.10.1', 'build_vtk.sh',    'vtk-5.10.1.tar.gz', required=False),
-  Package('itk',         '5.0.0',  'build_itk.sh',    'itk-5.0.0.tar.gz')
+  Package('jpeg',        '6b',     'build_jpeg.sh',      'jpeg-6b.tar.gz'),
+  Package('tiff',        '3.6.1',  'build_tiff.sh',      'tiff-3.6.1.tar.gz'),
+  Package('expat',       '2.0.1',  'build_expat.sh',     'expat-2.0.1.tar.gz'),
+  Package('xml2',        '2.7.7',  'build_xml2.sh',      'xml2-2.7.7.tar.gz'),
+  Package('glut',        '3.7',    'build_glut.sh',      'glut-3.7.tar.gz', required=False), # found in freesurfer/glut
+  Package('netcdf',      '3.6.0',  'build_netcdf.sh',    'netcdf-3.6.0-p1.tar.gz', required=False), # found in freesurfer/netcdf_3_6_0_p1
+  Package('minc',        '1.5',    'build_minc.sh',      'minc-1.5.tar.gz', required=False),  # found in freesurfer/minc_1_5_1 
+  Package('tetgen',      '1.4.1',  'build_tetgen.sh',    'tetgen-1.4.1.tar.gz'),
+  Package('itk',         '4.13.0', 'build_itk.sh',       'itk-4.13.0.tar.gz'),
+  Package('petsc',       '2.3.3',  'build_petsc.sh',     'petsc-2.3.3.tar.gz', required=False),
+  Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False),
+  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False),
+  Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False)  # must build kwwidgets after vtk
 ]
+
+# tcltk 8.4.6 cannot be built on modern OSX
+if platform.system() != 'Darwin':
+  pkgs.append(Package('tcltktixblt', '8.4.6', 'build_tcltk.sh', 'tcltktixblt-8.4.6.tar.gz', required=False))
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -70,20 +76,26 @@ parser = argparse.ArgumentParser()
 parser.add_argument('destination', help="installation dir for the packages")
 parser.add_argument('-f', '--force', action='store_true', help="force rebuild")
 for package in pkgs:
-  # add option to skip individual packages
   parser.add_argument('--no-%s' % package.name, action='store_true', help="don't build %s %s" % (package.name, package.version))
+  parser.add_argument('--only-%s' % package.name, action='store_true', help="only build %s %s" % (package.name, package.version))
 args = parser.parse_args()  # parse the cmd line
+
+# check to see if any '--only-package' flags were provided
+skip_by_default = False
+for package in pkgs:
+  if vars(args)['only_%s' % package.name]: skip_by_default = True
 
 # create the packages destination dir
 destination_dir = os.path.abspath(args.destination)
 if not os.path.exists(destination_dir): os.makedirs(destination_dir)
 
+failures = []
 for package in pkgs:
   # cd into packages install destination
   os.chdir(destination_dir)
   
   # make sure we aren't skipping this one
-  if vars(args)['no_%s' % package.name]:
+  if (vars(args)['no_%s' % package.name]) or (skip_by_default and not vars(args)['only_%s' % package.name]):
     print('skipping %s%s %s%s...' % (term.bold, package.name, package.version, term.end))
     continue
   
@@ -99,7 +111,7 @@ for package in pkgs:
     if not tardata: break
     md5.update(tardata)
   f.close()
-  with open(package.script, 'r') as f: md5.update(f.read().encode('utf-8'))
+  # with open(package.script, 'r') as f: md5.update(f.read().encode('utf-8'))
   md5_current = md5.hexdigest()
 
   # read in the previous MD5
@@ -129,15 +141,20 @@ for package in pkgs:
 
   # run the build script
   ret = subprocess.call('%s %s' % (package.script, package_dir), shell=True)
-  if ret != 0:
-    print('')
+  if ret == 0:
+    # if the build runs smoothly, save the tarball MD5
+    with open(md5_filename, "w") as f: f.write(md5_current)
+  else:
+    failures.append(package)
+
+# finish up
+print('')
+if failures:
+  for package in failures:
     error('could not build %s %s. Take a look at %s to debug' % (package.name, package.version, package.script))
     if not package.required:
       print('%snote:%s FreeSurfer can be (limitedly) built without %s. If building it locally is '
             'too troublesome, you can skip it by using the --no-%s flag' % (term.yellow, term.end, package.name, package.name))
-    exit(ret)
-
-  # if the build runs smoothly, save the tarball MD5
-  with open(md5_filename, "w") as f: f.write(md5_current)
-
-print('\n%sDONE: FreeSurfer packages succesfully built!%s\n' % (term.green, term.end))
+  exit(1)
+else:
+  print('%sDONE: FreeSurfer packages succesfully built!%s\n' % (term.green, term.end))

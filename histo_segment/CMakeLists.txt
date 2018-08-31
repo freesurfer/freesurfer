@@ -1,6 +1,6 @@
 project(histo_segment)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(histo_segment histo_segment.c)
 target_link_libraries(histo_segment utils)

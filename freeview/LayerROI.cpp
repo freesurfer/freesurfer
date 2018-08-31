@@ -503,7 +503,7 @@ void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
   }
 }
 
-void LayerROI::OnBaseVoxelEdited(const QVector<int> voxel_list, bool bAdd)
+void LayerROI::OnBaseVoxelEdited(const QVector<int>& voxel_list, bool bAdd)
 {
   if (true)
   {

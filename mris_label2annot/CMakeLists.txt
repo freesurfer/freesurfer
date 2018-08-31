@@ -1,6 +1,6 @@
 project(mris_label2annot)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_label2annot mris_label2annot.c)
 target_link_libraries(mris_label2annot utils)

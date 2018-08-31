@@ -1,6 +1,6 @@
 project(histo_register_block)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(histo_register_block histo_register_block.c)
 target_link_libraries(histo_register_block utils)

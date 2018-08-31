@@ -1,6 +1,6 @@
 project(mris_find_flat_regions)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_find_flat_regions mris_find_flat_regions.c)
 target_link_libraries(mris_find_flat_regions utils)

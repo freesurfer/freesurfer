@@ -1189,11 +1189,10 @@ int
 MRISfindExpansionRegions(MRI_SURFACE *mris) {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
-  VERTEX *v, *vn ;
 
   d = dsq = 0.0f ;
   for (total = num = vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag || v->val <= 0)
       continue ;
     num++ ;
@@ -1207,14 +1206,15 @@ MRISfindExpansionRegions(MRI_SURFACE *mris) {
   fprintf(stderr, "mean absolute distance = %2.2f +- %2.2f\n", mean, std) ;
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     v->curv = 0 ;
     if (v->ripflag || v->val <= 0)
       continue ;
     if (fabs(v->d) < mean+2*std)
       continue ;
-    for (num_long = num = 1, n = 0 ; n < v->vnum ; n++) {
-      vn = &mris->vertices[v->v[n]] ;
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->val <= 0 || v->ripflag)
         continue ;
       if (fabs(vn->d) >= mean+2*std)
@@ -2585,18 +2585,18 @@ static int  MRIcomputeClassStatistics_mef(MRI *mri_T1_30, MRI *mri_T1_5,
 int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs) {
   int    i, vno, vnb, *pnb, vnum ;
   float  val, num ;
-  VERTEX *v, *vn ;
 
   for (i = 0 ; i < navgs ; i++) {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 0)
         continue ;
       val = v->valbak ;
-      pnb = v->v ;
-      vnum = v->vnum ;
+      pnb = vt->v ;
+      vnum = vt->vnum ;
       for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++) {
-        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
         if (vn->ripflag || vn->marked == 0 )
           continue ;
         num++ ;
@@ -2606,7 +2606,7 @@ int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs) {
       v->tdx = val / num ;
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno] ;
       if (v->ripflag ||  v->marked == 0)
         continue ;
       v->valbak = v->tdx ;

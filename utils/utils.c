@@ -1554,7 +1554,41 @@ int *compute_permutation(int num, int *vec)
   return (vec);
 }
 
-// probably better to use getrusage(). see below
+/*!
+  \fn int GetVmPeak(void)
+  \brief returns Vm Peak by reading
+  /proc/self/status. Note that it is only as accurate as
+  /proc/self/status which is a file that needs to be updated by the
+  OS; not sure how often that happens. 
+*/
+int GetVmPeak(void)
+{
+  static int u[5];
+  GetMemUsage(u);
+  return(u[1]);
+}
+
+/*!
+  \fn int GetVmSize(void)
+  \brief returns Vm Size by reading /proc/self/status. Note that it is
+  only as accurate as /proc/self/status which is a file that needs to
+  be updated by the OS; not sure how often that happens.
+*/
+int GetVmSize(void)
+{
+  static int u[5];
+  GetMemUsage(u);
+  return(u[0]);
+}
+
+/*!
+  \fn int *GetMemUsage(int *u)
+  \brief returns Vm Size, Peak, RSS, Data, and Stk by reading
+  /proc/self/status. Note that it is only as accurate as
+  /proc/self/status which is a file that needs to be updated by the
+  OS; not sure how often that happens. Better to use this than
+  getrusage() below.
+*/
 int *GetMemUsage(int *u)
 {
   FILE *fp;
@@ -1588,7 +1622,6 @@ int PrintMemUsage(FILE *fp)
 {
   static int u[5];
   GetMemUsage(u);
-
   fprintf(fp, "MEM: Size %d  Peak: %d   RSS: %d  Data: %d  Stk: %d\n", u[0], u[1], u[2], u[3], u[4]);
   fflush(fp);
   return (0);
@@ -1598,8 +1631,9 @@ int PrintMemUsage(FILE *fp)
 /*!
   \fn int PrintRUsage(int who, char *pre, FILE *fp)
   \brief Returns usage statistics. See man page for getrusage.
-  probably want: who = RUSAGE_SELF;
-  pre is a string that will start each line.
+  probably want: who = RUSAGE_SELF. pre is a string that will start
+  each line. It appears that this will underestimate the actual
+  memory usage. GetMemUsage() is probably better.
 */
 int PrintRUsage(int who, const char *pre, FILE *fp)
 {

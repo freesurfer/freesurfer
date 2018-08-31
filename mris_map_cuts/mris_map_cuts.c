@@ -202,7 +202,6 @@ MRISmapCuts(MRI_SURFACE *mris_in, MRI_SURFACE *mris_out)
 {
   MHT    *mht_in, *mht_out ;
   int    vno_out /*, vno_in, fno_in, fno_out, n, ripflag*/ ;
-  VERTEX *v_out, *v_in ;
 #if 0
   FACE   *f_in, *f_out ;
 #endif
@@ -318,18 +317,19 @@ MRISmapCuts(MRI_SURFACE *mris_in, MRI_SURFACE *mris_out)
   {
     double d, dx, dy, dz ;
     int    n ;
-    VERTEX *vn ;
 
-    v_out = &mris_out->vertices[vno_out] ;
-    for (n = 0 ; n < v_out->vnum ; n++)
+    VERTEX_TOPOLOGY const * const v_outt = &mris_out->vertices_topology[vno_out] ;
+    VERTEX                * const v_out  = &mris_out->vertices         [vno_out] ;
+    
+    for (n = 0 ; n < v_outt->vnum ; n++)
     {
-      vn = &mris_out->vertices[v_out->v[n]] ;
+      VERTEX const * const vn = &mris_out->vertices[v_outt->v[n]] ;
       dx = vn->cx - v_out->cx ; 
       dy = vn->cy - v_out->cy ; 
       dz = vn->cz - v_out->cz ; 
       for (d = 0.0 ; d <= 1.0 ; d+= STEP_SIZE)
       {
-        v_in = MHTfindClosestVertexInTable(mht_in, mris_in, 
+        VERTEX const * const v_in = MHTfindClosestVertexInTable(mht_in, mris_in, 
                                            v_out->cx+dx*d, 
                                            v_out->cy+dy*d, 
                                            v_out->cz+dz*d, 

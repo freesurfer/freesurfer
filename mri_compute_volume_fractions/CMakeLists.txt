@@ -1,6 +1,6 @@
 project(mri_compute_volume_fractions)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_compute_volume_fractions mri_compute_volume_fractions.c)
 target_link_libraries(mri_compute_volume_fractions utils)

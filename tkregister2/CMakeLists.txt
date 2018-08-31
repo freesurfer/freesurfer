@@ -1,28 +1,40 @@
 project(tkregister2)
 
-# todo: move all tkregister2_cmdl stuff to this directory
-add_subdirectory(cmdl)
+include_directories(${FS_INCLUDE_DIRS})
 
-if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
+# first build without Tcl/Tk and OpenGL (command-line processing only)
+add_executable(tkregister2_cmdl tkregister2.c)
+target_compile_definitions(tkregister2_cmdl PRIVATE -DNO_GUI)
+target_link_libraries(tkregister2_cmdl utils)
+install(TARGETS tkregister2_cmdl DESTINATION bin)
 
-  include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/unix
-    ${TCLTKTIXBLT_INCLUDE_DIR}
-    ${GLUT_INCLUDE_DIR}/GL
-  )
+if(NOT MINIMAL AND BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
-  add_executable(tkregister2 tkregister2.c)
-  target_link_libraries(tkregister2 utils ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
+  if(APPLE AND NOT BUILD_OSX_TK_GUIS)
+    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/tkregister2.bin TYPE programs DESTINATION bin)
+  else()
 
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-exec $FREESURFER_HOME/tktools/tkregister2.bin $argv"
-  )
-  install_wrapped(TARGETS tkregister2 DESTINATION tktools WRAPCODE ${WRAPCODE})
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION bin RENAME tkregister)
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION tktools)
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION tktools RENAME tkregister)
+    include_directories(
+      ${CMAKE_SOURCE_DIR}/unix
+      ${TCLTKTIXBLT_INCLUDE_DIR}
+      ${GLUT_INCLUDE_DIR}/GL
+      ${X11_INCLUDE_DIR}
+    )
+
+    add_executable(tkregister2.bin tkregister2.c)
+    target_link_libraries(tkregister2.bin
+      utils
+      ${OPENGL_LIBRARIES}
+      ${GLUT_LIBRARIES}
+      ${X11_LIBRARIES}
+      ${TCLTKTIXBLT_LIBRARIES}
+    )
+
+    install(TARGETS  tkregister2.bin DESTINATION tktools)
+
+  endif()
+
+  install(PROGRAMS tkregister2_wrapper DESTINATION bin RENAME tkregister2)
+  install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister2)
 
 endif()

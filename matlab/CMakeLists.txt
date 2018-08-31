@@ -152,10 +152,14 @@ install(FILES
   DESTINATION matlab
 )
 
-# todo: nmr-install
-# read_meas_dat.m
-# read_meas_prot.m
-# read_meas_prot__struct.m
+install(FILES
+  read_meas_dat.m
+  read_meas_prot.m
+  read_meas_prot__struct.m
+  DESTINATION matlab
+  COMPONENT nmr
+  EXCLUDE_FROM_ALL
+)
 
 # lme
 install(FILES

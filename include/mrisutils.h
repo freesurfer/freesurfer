@@ -65,8 +65,8 @@ typedef struct {
   int UseHash; // use hash table for speed, generally 1
 } AVERAGE_SURFACE_PARAMS;
 MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp);
-AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects);
-int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp);
+AVERAGE_SURFACE_PARAMS *MRISaverageSurfaceParamAlloc(int nsubjects);
+int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp);
 
 void MRISsmoothSurface(MRI_SURFACE *mris,int niter,float step);
 void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg);
@@ -125,5 +125,7 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs
 int L2Sfree(LABEL2SURF **pl2s);
 int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 int L2Stest(char *subject);
+
+int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0);
 
 #endif

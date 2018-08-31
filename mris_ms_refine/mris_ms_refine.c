@@ -1232,15 +1232,14 @@ ms_errfunc_gradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 
   if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
     int   n, n_vno ;
-    VERTEX *v ;
     float  dx, dy, dz, dot ;
 
-    v = &mris->vertices[Gdiag_no] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
     dx = mris->dx2[Gdiag_no] ;
     dy = mris->dy2[Gdiag_no] ;
     dz = mris->dz2[Gdiag_no] ;
-    for (n = 0 ; n < v->vnum ; n++) {
-      n_vno = v->v[n] ;
+    for (n = 0 ; n < vt->vnum ; n++) {
+      n_vno = vt->v[n] ;
       dot = mris->dx2[n_vno]*dx + mris->dy2[n_vno]*dy + mris->dz2[n_vno]*dz ;
       if (dot < 0) {
         printf("vertex %d: dx = (%2.1f, %2.1f, %2.1f), dot = %2.2f\n",
@@ -2157,11 +2156,11 @@ static int
 smooth_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
   int    i, vno, vnb, *pnb, vnum, n_vno ;
   float  num, T1, PD, T1_nbr, PD_nbr, T1_avg, PD_avg ;
-  VERTEX *v, *vn ;
 
   for (i = 0 ; i < navgs ; i++) {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag)
         continue ;
       T1 = cv_T1[vno] ;
@@ -2170,13 +2169,13 @@ smooth_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
       v->tdy = T1 ;
       if ((PD < MIN_NONBRAIN_PD) || (T1 < MIN_NONBRAIN_T1))
         continue ;
-      pnb = v->v ;
-      vnum = v->vnum ;
+      pnb = vt->v ;
+      vnum = vt->vnum ;
       T1_avg = T1 ;
       PD_avg = PD ;
       for (num = 1.0f, vnb = 0 ; vnb < vnum ; vnb++) {
         n_vno = *pnb++ ;
-        vn = &mris->vertices[n_vno] ;    /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[n_vno] ;    /* neighboring vertex pointer */
         if (vn->ripflag)
           continue ;
         T1_nbr = cv_T1[n_vno] ;
@@ -2191,7 +2190,7 @@ smooth_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
       v->tdy = T1_avg / num ;
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX const * const v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
       cv_T1[vno] = v->tdy ;
@@ -2217,11 +2216,11 @@ static int
 smooth_marked_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
   int    i, vno, vnb, *pnb, vnum, n_vno ;
   float  num, T1, PD, T1_nbr, PD_nbr, T1_avg, PD_avg ;
-  VERTEX *v, *vn ;
 
   for (i = 0 ; i < navgs ; i++) {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 0)
         continue ;
 
@@ -2231,13 +2230,13 @@ smooth_marked_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) 
       v->tdy = T1 ;
       if ((PD < MIN_NONBRAIN_PD) || (T1 < MIN_NONBRAIN_T1))
         continue ;
-      pnb = v->v ;
-      vnum = v->vnum ;
+      pnb = vt->v ;
+      vnum = vt->vnum ;
       T1_avg = T1 ;
       PD_avg = PD ;
       for (num = 1.0f, vnb = 0 ; vnb < vnum ; vnb++) {
         n_vno = *pnb++ ;
-        vn = &mris->vertices[n_vno] ;    /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[n_vno] ;    /* neighboring vertex pointer */
         if (vn->ripflag)
           continue ;
         T1_nbr = cv_T1[n_vno] ;
@@ -2252,7 +2251,7 @@ smooth_marked_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) 
       v->tdy = T1_avg / num ;
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
+      VERTEX const * const v = &mris->vertices[vno] ;
       if (v->ripflag || v->marked == 0)
         continue ;
       cv_T1[vno] = v->tdy ;
@@ -2465,14 +2464,13 @@ find_nearest_pial_vertices(MRI_SURFACE *mris, int *nearest_pial_vertices,
 static int
 find_nearest_white_vertices(MRI_SURFACE *mris, int *nearest_white_vertices) {
   int     vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, nfilled ;
-  VERTEX  *v, *vn, *vn2 ;
   float   dx, dy, dz, dist, min_dist, nx, ny, nz, dot ;
 
   memset(nbr_count, 0, 100*sizeof(int)) ;
 
   /* pial vertex positions are gray matter, orig are white matter */
   for (nfilled = 0, vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v  = &mris->vertices[vno];
     if (v->ripflag)
       continue ;
     if (nearest_white_vertices[vno] >= 0)
@@ -2496,16 +2494,17 @@ find_nearest_white_vertices(MRI_SURFACE *mris, int *nearest_white_vertices) {
     for (ns = 1 ; ns <= nbhd_size ; ns++) {
       vnum = 0 ;  /* will be # of new neighbors added to list */
       for (i = 0 ; i < vtotal ; i++) {
-        vn = &mris->vertices[vlist[i]] ;
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX                * const vn  = &mris->vertices         [vlist[i]] ;
         if (vn->ripflag)
           continue ;
         if (vn->marked && vn->marked < ns-1)
           continue ;
-        for (n = 0 ; n < vn->vnum ; n++) {
-          vn2 = &mris->vertices[vn->v[n]] ;
+        for (n = 0 ; n < vnt->vnum ; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]] ;
           if (vn2->ripflag || vn2->marked)  /* already processed */
             continue ;
-          vlist[vtotal+vnum++] = vn->v[n] ;
+          vlist[vtotal+vnum++] = vnt->v[n] ;
           vn2->marked = ns ;
           dx = vn2->origx-v->pialx ;
           dy = vn2->origy-v->pialy ;
@@ -2520,10 +2519,10 @@ find_nearest_white_vertices(MRI_SURFACE *mris, int *nearest_white_vertices) {
           if (dist < min_dist) {
             min_n = ns ;
             min_dist = dist ;
-            nearest_white_vertices[vno] = vn->v[n] ;
+            nearest_white_vertices[vno] = vnt->v[n] ;
             if (min_n == nbhd_size && DIAG_VERBOSE_ON)
               fprintf(stdout, "%d --> %d = %2.3f\n",
-                      vno,vn->v[n], dist) ;
+                      vno,vnt->v[n], dist) ;
           }
         }
       }
@@ -2532,7 +2531,7 @@ find_nearest_white_vertices(MRI_SURFACE *mris, int *nearest_white_vertices) {
 
     nbr_count[min_n]++ ;
     for (n = 0 ; n < vtotal ; n++) {
-      vn = &mris->vertices[vlist[n]] ;
+      VERTEX * const vn = &mris->vertices[vlist[n]] ;
       if (vn->ripflag)
         continue ;
       vn->marked = 0 ;
@@ -4110,13 +4109,12 @@ compute_parameter_maps(MRI **mri_flash, int nvolumes, MRI **pmri_T1,
 static int
 ms_errfunc_rip_vertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   int         vno, ripped = 0, n ;
-  VERTEX      *v, *vn ;
   EXTRA_PARMS *ep ;
   double      white_delta, pial_delta ;
 
   ep = (EXTRA_PARMS *)parms->user_parms ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     compute_optimal_vertex_positions(mris, vno, ep,
@@ -4127,11 +4125,12 @@ ms_errfunc_rip_vertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     }
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
-    for (n = 0 ; n < v->vnum ; n++) {
-      vn = &mris->vertices[v->v[n]] ;
+    for (n = 0 ; n < vt->vnum ; n++) {
+      VERTEX * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->ripflag) {
         vn->ripflag = 0 ;   /* allow neighbors of unripped vertices to move */
         ripped-- ;

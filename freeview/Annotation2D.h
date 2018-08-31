@@ -54,6 +54,10 @@ public:
 
   QColor GetColor();
 
+  void SetAutoScaleText(bool b);
+
+  void SetTextSize(int nsize);
+
 public slots:
   void ShowScaleLine( bool bShow );
   void SetColor(const QColor& c);

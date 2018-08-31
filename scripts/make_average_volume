@@ -405,6 +405,7 @@ while( $#argv != 0 )
     case "--no-ribbon":
     case "--no-annot":
     case "--no-cortex-label":
+    case "--no-surf2surf":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

@@ -1,6 +1,6 @@
 project(mris_congeal)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_congeal mris_congeal.c)
 target_link_libraries(mris_congeal utils)

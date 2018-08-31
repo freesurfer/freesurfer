@@ -1,6 +1,6 @@
 project(mri_segstats)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_segstats mri_segstats.c)
 add_help(mri_segstats mri_segstats.help.xml)

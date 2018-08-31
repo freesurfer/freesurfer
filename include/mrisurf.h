@@ -70,6 +70,19 @@ int UnitizeNormalFace = 1;
 extern int UnitizeNormalFace;
 #endif
 
+#ifdef _MRISURF_SRC
+// This variable can be used to turn on the hires options
+// in MRIScomputeBorderValues_new()
+int BorderValsHiRes = 0;
+// This is used to record the actual value and difference
+// into v->valbak and v->val2bak when running mrisRmsValError()
+// for debugging or evaluation purposes.
+int RmsValErrorRecord = 0;
+#else
+extern int BorderValsHiRes;
+extern int RmsValErrorRecord;
+#endif
+
 typedef struct _area_label
 {
   char     name[STRLEN] ;     /* name of region */
@@ -173,12 +186,61 @@ face_type, FACE ;
 
 #include "colortab.h" // 'COLOR_TABLE'
 
+
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS \
+  ELTT(uchar,num) SEP           /* number neighboring faces */      	    	    	    \
+  ELTP(int,f) SEP               /* array neighboring face numbers */        	    	    \
+  ELTP(uchar,n) SEP           	/* [0-3, num long] */       	    	    	    	    \
+  ELTT(uchar,vnum) SEP       	/* number neighboring vertices */    	    	    	    \
+  ELTP(int,v) SEP               /* array neighboring vertex numbers, vnum long */    	    \
+  ELTP(int,e) SEP               /* edge state for neighboring vertices */    	    	    \
+  ELTT(int,v2num) SEP         	/* number of 2-connected neighbors */       	    	    \
+  ELTT(int,v3num) SEP         	/* number of 3-connected neighbors */       	    	    \
+  ELTT(short,vtotal) SEP        /* total # of neighbors will be same as one of above*/      \
+  ELTT(uchar,nsize) 	        /* size of neighborhood (e.g. 1, 2, 3) */    	    	    \
+  // end of macro
+
+
+// The above elements historically were in the VERTEX
+// and can still be there by
+//  having VERTEX_TOPOLOGY be a typedef of VERTEX
+//  having the mris->vertices and the mris->vertices_topology be the same pointer
+// and this is what the code is doing until the separation is completed.
+//
+//#define SEPARATE_VERTEX_TOPOLOGY
+#ifndef SEPARATE_VERTEX_TOPOLOGY
+
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX LIST_OF_VERTEX_TOPOLOGY_ELTS
+
+#else
+
+typedef struct VERTEX_TOPOLOGY {
+    // The topology of the vertex describes its neighbors
+    // but not its position nor any properties derived from its position.
+    //
+    // This data is not changed as the vertices are moved during distortion of the polyhedra.
+    //
+
+#define SEP
+#define ELTT(TYPE,NAME) TYPE NAME ;
+#define ELTP(TARGET,NAME) TARGET *NAME ;
+  LIST_OF_VERTEX_TOPOLOGY_ELTS
+#undef ELTP
+#undef ELTT
+#undef SEP
+} VERTEX_TOPOLOGY;
+
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX
+
+#endif
+
 typedef struct vertex_type_
 {
 // The LIST_OF_VERTEX_ELTS macro used here enables the the mris_hash
 // and other algorithms to process all the elements without having to explicitly name them there and here
 //
 #define LIST_OF_VERTEX_ELTS_1    \
+  LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
   ELTT(float,x) SEP    \
   ELTT(float,y) SEP    \
   ELTT(float,z) SEP           /* curr position */    \
@@ -283,18 +345,7 @@ typedef struct vertex_type_
     \
   ELTT(float,fieldsign) SEP       /* fieldsign--final: -1,0,1 (file: rh.fs) */    \
   ELTT(float,fsmask) SEP          /* significance mask (file: rh.fm) */    \
-  ELTT(uchar,num) SEP             /* number neighboring faces */    \
-  ELTP(int,f) SEP              /* array neighboring face numbers */    \
-  ELTP(uchar,n) SEP              /* [0-3, num long] */    \
-  ELTT(uchar,vnum) SEP            /* number neighboring vertices */    \
-  ELTP(int,v) SEP              /* array neighboring vertex numbers, vnum long */    \
-  ELTP(int,e) SEP              /* edge state for neighboring vertices */    \
-  ELTT(int,v2num) SEP         /* number of 2-connected neighbors */    \
-  ELTT(int,v3num) SEP         /* number of 3-connected neighbors */    \
-  ELTT(short,vtotal) SEP        /* total # of neighbors,    \
-                                    will be same as one of above*/    \
   ELTT(float,d) SEP              /* for distance calculations */    \
-  ELTT(uchar,nsize) SEP          /* size of neighborhood (e.g. 1, 2, 3) */    \
   // end of macro
   
 #if 0
@@ -402,6 +453,12 @@ typedef struct vertex_type_
 }
 vertex_type, VERTEX ;
 
+
+#ifndef SEPARATE_VERTEX_TOPOLOGY
+typedef vertex_type VERTEX_TOPOLOGY; 
+#endif
+
+
 #define VERTEX_SULCAL  0x00000001L
 
 typedef struct
@@ -428,6 +485,7 @@ typedef struct MRIS
   ELTT(const int,nfaces) SEP         /* # of faces on surface, change by calling MRISreallocVerticesAndFaces et al */    \
   ELTT(int,nedges) SEP         /* # of edges on surface*/    \
   ELTT(int,nstrips) SEP    \
+  ELTP(VERTEX_TOPOLOGY,vertices_topology) SEP    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
   ELTP(MRI_EDGE,edges) SEP    \
@@ -1052,6 +1110,7 @@ int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValsToAnnotations(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
+int          MRIScopyStatsFromValues(MRI_SURFACE *mris) ;
 
 
 int MRISsetCroppedToZero(MRI_SURFACE *mris) ;
@@ -1307,6 +1366,8 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) ;
+int MRIScountRipped(MRIS *mris);
+int MRIScountAllMarked(MRIS *mris);
 int          MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris,
@@ -2093,6 +2154,7 @@ MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
 int MRISmarkedVertices(MRI_SURFACE *mris) ;
+int MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,
@@ -2511,6 +2573,7 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
+double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 
 // for sorting vertices using qsort
 typedef struct{

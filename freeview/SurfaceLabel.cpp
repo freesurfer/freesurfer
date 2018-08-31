@@ -49,6 +49,7 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf, bool bInitializeLabel ) :
   m_nColorCode(SolidColor),
   m_dHeatscaleMin(0),
   m_dHeatscaleMax(1),
+  m_dOpacity(1.0),
   m_bModified(false)
 {
   m_rgbColor[0] = 1.0;
@@ -82,9 +83,13 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf, bool bInitializeLabel ) :
 SurfaceLabel::~SurfaceLabel ()
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
+
+  foreach (LABEL* l, m_undoBuffer)
+    ::LabelFree(&l);
+  foreach (LABEL* l, m_redoBuffer)
+    ::LabelFree(&l);
+
   if (m_nOutlineIndices)
     delete[] m_nOutlineIndices;
 }
@@ -281,6 +286,15 @@ void SurfaceLabel::SetHeatscaleMax(double dval)
   }
 }
 
+void SurfaceLabel::SetOpacity(double dval)
+{
+  if (dval != m_dOpacity)
+  {
+    m_dOpacity = dval;
+    emit SurfaceLabelChanged();
+  }
+}
+
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 {
   if ( !m_label)
@@ -292,9 +306,9 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
     int vno = m_label->lv[i].vno;
     if (vno < nVertexCount && !m_label->lv[i].deleted && (!m_bShowOutline || m_nOutlineIndices[i] > 0) )
     {
-      double opacity = 1;
+      double opacity;
       if (m_label->lv[i].stat >= m_dThreshold)
-        opacity = 1;
+        opacity = m_dOpacity;
       else
         opacity = 0;
       double rgb[4] = { m_rgbColor[0], m_rgbColor[1], m_rgbColor[2], 1 };
@@ -413,6 +427,7 @@ void SurfaceLabel::EditVertices(const QVector<int> &verts, bool bAdd)
 
   m_bModified = true;
   UpdateOutline();
+  emit SurfaceLabelChanged();
 }
 
 bool SurfaceLabel::SaveToFile(const QString &filename)
@@ -431,5 +446,48 @@ bool SurfaceLabel::SaveToFile(const QString &filename)
   if ( err != 0 )
   {
     cerr << "LabelWrite failed\n";
+    return false;
   }
+  return true;
+}
+
+void SurfaceLabel::Undo()
+{
+  if (!m_undoBuffer.isEmpty())
+  {
+    LABEL* l = m_undoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_undoBuffer.removeLast();
+    m_redoBuffer << l2;
+    UpdateOutline();
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::Redo()
+{
+  if (!m_redoBuffer.isEmpty())
+  {
+    LABEL* l = m_redoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_redoBuffer.removeLast();
+    m_undoBuffer << l2;
+    UpdateOutline();
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::SaveForUndo()
+{
+  LABEL* l = ::LabelCopy(m_label, NULL);
+  m_undoBuffer << l;
+
+  // clear redo buffer
+  foreach (LABEL* l, m_redoBuffer)
+    ::LabelFree(&l);
+  m_redoBuffer.clear();
 }

@@ -43,6 +43,8 @@
 #include <QMessageBox>
 #include <QClipboard>
 #include <QMimeData>
+#include <QToolTip>
+#include <QColorDialog>
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -56,15 +58,15 @@ bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
   bool bRet = false;
   if (SortType == ColorTableItem::ST_VALUE)
   {
-    bRet = (txt.split(" ", QString::SkipEmptyParts).first().toInt() >
-        other_txt.split(" ", QString::SkipEmptyParts).first().toInt());
+    bRet = (data(0, Qt::UserRole+1).toInt() >
+            other.data(0, Qt::UserRole+1).toInt());
   }
   else
   {
-//    if (txt.trimmed().contains(" "))
-//      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
-//    if (other_txt.trimmed().contains(" "))
-//      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
+    //    if (txt.trimmed().contains(" "))
+    //      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
+    //    if (other_txt.trimmed().contains(" "))
+    //      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
     if (txt.toLower() != other_txt.toLower())
     {
       txt = txt.toLower();
@@ -81,7 +83,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   PanelLayer("MRI", parent),
   ui(new Ui::PanelVolume),
   m_curCTAB( NULL ),
-  m_bShowExistingLabelsOnly(false)
+  m_bShowExistingLabelsOnly(false),
+  m_nCurrentVoxelIndex(-1)
 {
   ui->setupUi(this);
   ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -699,6 +702,7 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     ChangeLineEditNumber( ui->lineEditBrushValue, val );
     MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
     UpdateColorLabel();
+    m_nCurrentVoxelIndex = -1;
   }
 }
 
@@ -709,8 +713,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
     item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
-    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
-    double val = strglist[0].toDouble();
+    double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
     {
@@ -732,10 +735,10 @@ void PanelVolume::OnColorTableSortingChanged()
 {
   if (sender())
   {
-//    if (sender()->property("sort_by").toInt() == ColorTableItem::SortType)
-//      ColorTableItem::SortAscending = !ColorTableItem::SortAscending;
-//    else
-      ColorTableItem::SortType = sender()->property("sort_by").toInt();
+    //    if (sender()->property("sort_by").toInt() == ColorTableItem::SortType)
+    //      ColorTableItem::SortAscending = !ColorTableItem::SortAscending;
+    //    else
+    ColorTableItem::SortType = sender()->property("sort_by").toInt();
     BlockAllSignals(true);
     COLOR_TABLE* t = m_curCTAB;
     m_curCTAB = NULL;
@@ -778,7 +781,7 @@ void PanelVolume::UpdateTrackVolumeThreshold()
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
   if ( item && layer )
   {
-    int nLabel = item->text(0).split(" ").at(0).toInt();
+    int nLabel = item->data(0, Qt::UserRole+1).toInt();
     ui->sliderTrackVolumeThresholdLow->blockSignals(true);
     ui->lineEditTrackVolumeThresholdLow->blockSignals(true);
     double fMin = layer->GetProperty()->GetMinValue();
@@ -1009,7 +1012,7 @@ void PanelVolume::OnCheckShowContour(bool bShow)
 void PanelVolume::OnCheckShowLabelContour(bool bShow)
 {
   ShowWidgets( m_widgetlistContourNormal, !bShow);
-//  ShowWidgets( m_widgetlistContourLabel, bShow);
+  //  ShowWidgets( m_widgetlistContourLabel, bShow);
 }
 
 void PanelVolume::OnSliderOpacity( int nVal )
@@ -1387,7 +1390,7 @@ void PanelVolume::OnTrackVolumeThresholdChanged()
   if (!item)
     return;
 
-  int nLabel = item->text(0).split(" ").at(0).toInt();
+  int nLabel = item->data(0, Qt::UserRole+1).toInt();
   bool bOK;
   double fMin;
   fMin = ui->lineEditTrackVolumeThresholdLow->text().trimmed().toDouble(&bOK);
@@ -1475,7 +1478,7 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
     for (int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++)
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
-      if ( item->text(0).split(" ").at(0).toInt() == nLabel )
+      if ( item->data(0, Qt::UserRole+1).toInt() == nLabel )
       {
         ui->treeWidgetColorTable->setCurrentItem(item);
         return;
@@ -1676,7 +1679,7 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
-    int nVal = item->text(0).split(" ").at(0).toInt();
+    int nVal = item->data(0, Qt::UserRole+1).toInt();
     layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
     ui->checkBoxSelectAllLabels->setCheckState(layer->GetProperty()->GetSelectedLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
@@ -1707,8 +1710,7 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
     QTreeWidgetItem* item = ui->treeWidgetColorTable->itemAt(pt);
     if (item)
     {
-      QStringList strglist = item->text( 0 ).split(" ");
-      double val = strglist[0].toDouble();
+      double val = item->data(0, Qt::UserRole+1).toDouble();
       LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
       if ( layer )
       {
@@ -1717,9 +1719,25 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
         {
           act->setText("Go to Centroid");
           connect(act, SIGNAL(triggered()), SLOT(OnColorTableItemDoubleClicked()));
+          menu.addAction(act);
+          act = new QAction(this);
+#ifdef Q_OS_MAC
+          act->setText("Go Through Voxels (Cmd+Shift+N)");
+#else
+          act->setText("Go Through Voxels (Ctrl+Shift+N)");
+#endif
+          connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
+          menu.addAction(act);
         }
         else
+        {
           act->setText("Label does not exist in volume");
+          menu.addAction(act);
+        }
+        menu.addSeparator();
+        act = new QAction(this);
+        act->setText("Change Color...");
+        connect(act, SIGNAL(triggered()), SLOT(OnColorTableChangeColor()));
         menu.addAction(act);
         menu.addSeparator();
       }
@@ -1748,5 +1766,101 @@ void PanelVolume::OnButtonResetWindowLevel()
   foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->ResetWindowLevel();
+  }
+}
+
+void PanelVolume::OnGoToFirstPoint()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (item)
+  {
+    double val = item->data(0, Qt::UserRole+1).toDouble();
+    LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+    if ( layer )
+    {
+      double pos[3];
+      m_voxelList = layer->GetVoxelList((int)val);
+      if (!m_voxelList.isEmpty())
+      {
+        pos[0] = m_voxelList[0];
+        pos[1] = m_voxelList[1];
+        pos[2] = m_voxelList[2];
+        MainWindow::GetMainWindow()->SetSlicePosition(pos);
+        MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+        m_nCurrentVoxelIndex = 0;
+      }
+      else
+      {
+        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+      }
+    }
+  }
+}
+
+void PanelVolume::OnGoToNextPoint()
+{
+  if (m_nCurrentVoxelIndex < 0 || m_nCurrentVoxelIndex >= m_voxelList.size()/3)
+  {
+    OnGoToFirstPoint();
+  }
+  else if (!m_voxelList.isEmpty())
+  {
+    m_nCurrentVoxelIndex++;
+    if (m_nCurrentVoxelIndex >= m_voxelList.size()/3)
+      m_nCurrentVoxelIndex = 0;
+    double pos[3];
+    pos[0] = m_voxelList[m_nCurrentVoxelIndex*3];
+    pos[1] = m_voxelList[m_nCurrentVoxelIndex*3+1];
+    pos[2] = m_voxelList[m_nCurrentVoxelIndex*3+2];
+    MainWindow::GetMainWindow()->SetSlicePosition(pos);
+    MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+  }
+  if (m_nCurrentVoxelIndex >= 0 && !m_voxelList.isEmpty())
+  {
+    QWidget* w = MainWindow::GetMainWindow()->GetMainView();
+    QPoint pt(100,100);
+    if (w)
+    {
+      pt = w->mapToGlobal(w->rect().center() + QPoint(30, 30));
+    }
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
+    QToolTip::showText(pt, QString(" %1 / %2 ").arg(m_nCurrentVoxelIndex+1).arg(m_voxelList.size()/3), NULL, QRect(), 1500);
+#else
+    QToolTip::showText(pt, QString(" %1 / %2 ").arg(m_nCurrentVoxelIndex+1).arg(m_voxelList.size()/3), w);
+#endif
+  }
+  else
+    QToolTip::hideText();
+}
+
+void PanelVolume::OnColorTableChangeColor()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (item)
+  {
+    QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
+    color = QColorDialog::getColor(color, this);
+    if (color.isValid())
+    {
+      QPixmap pix(13, 13);
+      pix.fill( color );
+      item->setIcon(0, QIcon(pix) );
+      item->setData(0, Qt::UserRole, color );
+      int nIndex = item->data(0, Qt::UserRole+1).toInt();
+      if (m_curCTAB)
+      {
+        m_curCTAB->entries[nIndex]->rf = color.redF();
+        m_curCTAB->entries[nIndex]->gf = color.greenF();
+        m_curCTAB->entries[nIndex]->bf = color.blueF();
+        m_curCTAB->entries[nIndex]->ri = color.red();
+        m_curCTAB->entries[nIndex]->gi = color.green();
+        m_curCTAB->entries[nIndex]->bi = color.blue();
+      }
+      LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+      if ( layer )
+      {
+        layer->GetProperty()->UpdateLUTTable();
+      }
+    }
   }
 }

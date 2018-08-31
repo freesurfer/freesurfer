@@ -722,6 +722,7 @@ usage_exit(int code)
   printf("\t-rms            compute sqrt of average of sum of squares (RMS, same as -sqr)\n") ;
   printf("\t-u              print usage\n");
   printf("\t-p              compute %% \n");
+  printf("\t-b <float th>   binarize the input volumes using threshold th \n");
   printf("\t-abs            take abs value of volume \n");
   exit(code) ;
 }

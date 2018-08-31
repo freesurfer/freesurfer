@@ -1,4 +1,4 @@
-import GEMS2Python
+import freesurfer.gems as gems
 import numpy as np
 import pytest
 import scipy.io
@@ -15,18 +15,18 @@ def matlab_fixture():
 
 @pytest.fixture()
 def image_fixture():
-    return GEMS2Python.KvlImage(TEST_IMAGE_PATH)
+    return gems.KvlImage(TEST_IMAGE_PATH)
 
 
 @pytest.fixture()
 def cropped_image_fixture():
     # Two different images would be a better test
-    return GEMS2Python.KvlImage(TEST_IMAGE_PATH, TEST_IMAGE_PATH)
+    return gems.KvlImage(TEST_IMAGE_PATH, TEST_IMAGE_PATH)
 
 
 @pytest.fixture()
 def mesh_collection_fixture():
-    collection = GEMS2Python.KvlMeshCollection()
+    collection = gems.KvlMeshCollection()
     collection.read(MESHCOLLECTION_PATH)
     return collection
 
@@ -60,7 +60,7 @@ def test_smooth_image_buffer(matlab_fixture, image_fixture):
     SIGMA = 1.0
     sigmas = [2 * SIGMA, 3 * SIGMA, 5 * SIGMA]
     input_buffer = image_fixture.getImageBuffer()
-    smoothed_buffer = GEMS2Python.KvlImage.smooth_image_buffer(input_buffer, sigmas)
+    smoothed_buffer = gems.KvlImage.smooth_image_buffer(input_buffer, sigmas)
     assert input_buffer.shape == smoothed_buffer.shape
 
 
@@ -85,13 +85,13 @@ def test_mesh_binding_with_class_name(matlab_fixture, image_fixture, mesh_fixtur
 
 @pytest.mark.slowtest
 def test_calculator_and_optimzer_bindings(matlab_fixture, image_fixture, mesh_fixture):
-    calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image_fixture], 'Affine')
+    calculator = gems.KvlCostAndGradientCalculator('MutualInformation', [image_fixture], 'Affine')
     mutualInformation_cost, mutualInformation_gradient = calculator.evaluate_mesh_position(mesh_fixture)
     np.testing.assert_almost_equal(matlab_fixture['mutualInformation_cost'][0][0], mutualInformation_cost)
     np.testing.assert_allclose(matlab_fixture['mutualInformation_gradient'], mutualInformation_gradient)
 
     optimizerType = 'L-BFGS'
-    optimizer = GEMS2Python.KvlOptimizer(optimizerType, mesh_fixture, calculator, {
+    optimizer = gems.KvlOptimizer(optimizerType, mesh_fixture, calculator, {
         'Verbose': 1,
         'MaximalDeformationStopCriterion': 0.1,
         'LineSearchMaximalDeformationIntervalStopCriterion': 0.1,

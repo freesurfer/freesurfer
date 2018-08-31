@@ -1,6 +1,6 @@
 project(mri_divide_segmentation)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_divide_segmentation mri_divide_segmentation.c)
 target_link_libraries(mri_divide_segmentation utils)

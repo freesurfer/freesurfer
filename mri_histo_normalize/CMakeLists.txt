@@ -1,6 +1,6 @@
 project(mri_histo_normalize)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_histo_normalize mri_histo_normalize.c)
 target_link_libraries(mri_histo_normalize utils)

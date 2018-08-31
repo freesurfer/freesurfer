@@ -565,43 +565,45 @@ install(FILES
   DESTINATION fsfast/toolbox
 )
 
-# install(FILES
-#   tdr_b1map2d.m
-#   tdr_deghost.m
-#   tdr_dftmtx2d.m
-#   tdr_epi_phtraj.m
-#   tdr_epirecon.m
-#   tdr_fftshift2d.m
-#   tdr_fidb0.m
-#   tdr_fidmat2.m
-#   tdr_fidmat.m
-#   tdr_fidt2star.m
-#   tdr_ghostcomp.m
-#   tdr_graddumpinterp.m
-#   tdr_gradmtx.m
-#   tdr_ifftslice.m
-#   tdr_intpertrap.m
-#   tdr_kshift.m
-#   tdr_ldgraddump.m
-#   tdr_lininterp.m
-#   tdr_measasc.m
-#   tdr_pedmatrix.m
-#   tdr_peshift.m
-#   tdr_phdist_est.m
-#   tdr_rcolmat.m
-#   tdr_recon_cols.m
-#   tdr_recon.m
-#   tdr_recon_rows.m
-#   tdr_recon_sim.m
-#   tdr_regrid.m
-#   tdr_rledecode.m
-#   tdr_rotate_ktraj.m
-#   tdr_rtraj.m
-#   tdr_sliceorder.m
-#   tdr_smooth2d.m
-#   tdr_trapspect2d.m
-#   tdr_uniform_dft1d.m
-#   tdr_uniform_idft2d.m
-#   tdr_uniform_phtraj.m
-#   DESTINATION fsfast/toolbox
-# )
+install(FILES
+  tdr_b1map2d.m
+  tdr_deghost.m
+  tdr_dftmtx2d.m
+  tdr_epi_phtraj.m
+  tdr_epirecon.m
+  tdr_fftshift2d.m
+  tdr_fidb0.m
+  tdr_fidmat.m
+  tdr_fidmat2.m
+  tdr_fidt2star.m
+  tdr_ghostcomp.m
+  tdr_graddumpinterp.m
+  tdr_gradmtx.m
+  tdr_ifftslice.m
+  tdr_intpertrap.m
+  tdr_kshift.m
+  tdr_ldgraddump.m
+  tdr_lininterp.m
+  tdr_measasc.m
+  tdr_pedmatrix.m
+  tdr_peshift.m
+  tdr_phdist_est.m
+  tdr_rcolmat.m
+  tdr_recon.m
+  tdr_recon_cols.m
+  tdr_recon_rows.m
+  tdr_recon_sim.m
+  tdr_regrid.m
+  tdr_rledecode.m
+  tdr_rotate_ktraj.m
+  tdr_rtraj.m
+  tdr_sliceorder.m
+  tdr_smooth2d.m
+  tdr_trapspect2d.m
+  tdr_uniform_dft1d.m
+  tdr_uniform_idft2d.m
+  tdr_uniform_phtraj.m
+  DESTINATION fsfast/toolbox
+  COMPONENT nmr
+  EXCLUDE_FROM_ALL
+)

@@ -635,6 +635,8 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
+
+  printf("#VMPC# mri_hires_register VmPeak  %d\n",GetVmPeak());
   printf("registration took %d minutes and %d seconds.\n",
          minutes, seconds) ;
   exit(0) ;

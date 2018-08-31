@@ -1,6 +1,6 @@
 project(mri_gcab_train)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_gcab_train mri_gcab_train.c)
 target_link_libraries(mri_gcab_train utils)

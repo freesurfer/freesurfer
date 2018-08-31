@@ -1,0 +1,3 @@
+#!/bin/tcsh -ef
+source $FREESURFER_HOME/bin/vtk_setup
+AnatomiCuts_correspondences.bin $argv

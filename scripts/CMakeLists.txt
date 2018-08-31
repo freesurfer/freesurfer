@@ -55,6 +55,7 @@ install(PROGRAMS
   fix_subject-rh
   fname2ext
   fname2stem
+  fs_check_python
   fscalc
   fscalc.fsl
   fsdcmdecompress
@@ -181,7 +182,6 @@ install(PROGRAMS
   petsc_setup
   plot_structure_stats.tcl
   print_unique_labels.csh
-  process_exvivo_diff_data_bay3.sh
   progressbar.tcl
   fsr-checkxopts
   fsr-getxopts
@@ -279,65 +279,65 @@ install(PROGRAMS
   DESTINATION bin
 )
 
-install(PROGRAMS
-  tkanalyse.tcl
-  tkm_common.tcl
-  tkm_dialog.tcl
-  tkmedit.tcl
-  tkm_functional.tcl
-  tkm_graph.tcl
-  tkm_wrappers.tcl
-  tkregister.tcl
-  tkregister2.tcl
-  tksurfer.tcl
-  tkUtils.tcl
-  fsgdfPlot.tcl
-  DESTINATION tktools
-)
-
-install(PROGRAMS
-  allisons_surfaces.tcl
-  curv-flat.tcl
-  curv-views.tcl
-  dara_data.tcl
-  dipmovie-flat.tcl
-  eccen-flat.tcl
-  eccen-views.tcl
-  fs-flat.tcl
-  fs-make.tcl
-  fs-views.tcl
-  mk-fieldsign.tcl
-  offsetmovie.tcl
-  phasemovie.tcl
-  polar-flat.tcl
-  polar-views.tcl
-  readenv.tcl
-  real-flat.tcl
-  real-views.tcl
-  saveflat.tcl
-  saveviews.tcl
-  setdefpatchview.tcl
-  solmovie-flat.tcl
-  twocond-flat.tcl
-  twocond-masked-views.tcl
-  twocond-views.tcl
-  wrappers.tcl
-  fsgdfPlot.tcl
-  DESTINATION lib/tcl
-)
-
-set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/fsfget.tcl $argv")
-install_wrapped(PROGRAMS fsfget DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
-
-set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/unpacksdcmdir.tcl $argv")
-install_wrapped(PROGRAMS unpacksdcmdir DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
+install(PROGRAMS tkregister2.tcl DESTINATION tktools)
+install(PROGRAMS fsfget_wrapper DESTINATION bin RENAME fsfget)
+install(PROGRAMS fsfget DESTINATION bin RENAME fsfget.tcl)
+install(PROGRAMS unpacksdcmdir DESTINATION bin RENAME unpacksdcmdir.tcl)
+install(PROGRAMS unpacksdcmdir_wrapper DESTINATION bin RENAME unpacksdcmdir)
 
 install_append_help(bbregister bbregister.help.xml bin)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)
+
+# these tcl script should be excluded from a minimal distribution
+if(NOT MINIMAL)
+
+  install(PROGRAMS
+    tkanalyse.tcl
+    tkm_common.tcl
+    tkm_dialog.tcl
+    tkmedit.tcl
+    tkm_functional.tcl
+    tkm_graph.tcl
+    tkm_wrappers.tcl
+    tkregister.tcl
+    tksurfer.tcl
+    tkUtils.tcl
+    fsgdfPlot.tcl
+    DESTINATION tktools
+  )
+
+  install(PROGRAMS
+    allisons_surfaces.tcl
+    curv-flat.tcl
+    curv-views.tcl
+    dara_data.tcl
+    dipmovie-flat.tcl
+    eccen-flat.tcl
+    eccen-views.tcl
+    fs-flat.tcl
+    fs-make.tcl
+    fs-views.tcl
+    mk-fieldsign.tcl
+    offsetmovie.tcl
+    phasemovie.tcl
+    polar-flat.tcl
+    polar-views.tcl
+    readenv.tcl
+    real-flat.tcl
+    real-views.tcl
+    saveflat.tcl
+    saveviews.tcl
+    setdefpatchview.tcl
+    solmovie-flat.tcl
+    twocond-flat.tcl
+    twocond-masked-views.tcl
+    twocond-views.tcl
+    wrappers.tcl
+    fsgdfPlot.tcl
+    DESTINATION lib/tcl
+  )
+
+  install(PROGRAMS process_exvivo_diff_data_bay3.sh DESTINATION bin COMPONENT nmr EXCLUDE_FROM_ALL)
+
+endif()
