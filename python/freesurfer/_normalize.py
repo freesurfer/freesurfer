@@ -1,5 +1,5 @@
 import numpy as np
-
+from sklearn import mixture
 
 def piecewise_linear_normalize(in_img_data, ref_img_data):
     """Function to piecewise linearly scale image intensities to training data landmarks"""
@@ -63,6 +63,40 @@ def robust_normalize(in_img_data):
     in_img_data[(in_img_data < p01) & (in_img_data > 0 )] = p01
     print(scaling)
     out_img_data = (in_img_data) * scaling
+    return out_img_data
+
+def wm_peak_normalize_t2w(in_img_data):
+    """Function to scale image intensities by setting wm peak to 200"""
+
+
+    in_img_flat = np.ravel(in_img_data, 'C')
+
+    in_img_fg = in_img_flat[in_img_flat > 0].reshape(-1, 1)
+    p95 = np.percentile(in_img_fg, q=90)
+    p05 = np.percentile(in_img_fg, q=10)
+
+    in_img_fg = in_img_fg[(in_img_fg < p95) & (in_img_fg > p05)]
+    in_img_fg = in_img_fg.reshape(-1,1)
+
+    # clf = mixture.GMM(n_components=3, covariance_type='full')
+    #
+    clf = mixture.GaussianMixture(n_components=2, covariance_type='full')
+    clf.fit(in_img_fg)
+    print('GMM centroids are ')
+    print(sorted(clf.means_))
+    wm_peak_intensity = sorted(clf.means_)[0]
+    #
+    #
+    # h, bin_edges = np.histogram(in_img_fg, 500)
+    # max_bin = np.argmax(h)
+    # mode_h = max_bin * (bin_edges[1] - bin_edges[0])
+
+# max of means is the wm centroid for t1w images
+#     wm_peak_intensity  = mode_h
+    wm_scaling = 0.3 / wm_peak_intensity
+    print(wm_peak_intensity)
+
+    out_img_data = in_img_data * wm_scaling
     return out_img_data
 
 

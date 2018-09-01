@@ -10,6 +10,7 @@ from _utility import dice_coef_loss2
 K.set_image_data_format('channels_last')
 from _utility import dice_coef_loss2, grad_loss
 
+
 def unet_model_3d(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2, 2), n_labels=0,
                   loss='mean_absolute_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True, num_gpus=1):
     """
