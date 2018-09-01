@@ -11,6 +11,8 @@ if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
     ${KWWidgets_INCLUDE_DIR}
   )
 
+  set(CMAKE_CXX_STANDARD 98)
+
   # use vtkWrapTcl to create the tcl-wrapped code for these objects
   vtk_wrap_tcl(vtkKWRGBATransferFunctionEditor.h vtkKWRGBATransferFunctionEditorTcl.cxx)
   vtk_wrap_tcl(vtkKWBltGraph.h vtkKWBltGraphTcl.cxx)

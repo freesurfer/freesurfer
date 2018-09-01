@@ -1135,7 +1135,6 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
 							   int normalize, int curv_thresh, float *norm) {
   int     vno, n, vlist[100000], vtotal, ns, i, vnum, min_n,
   pial_vno, nsamples, min_vox ;
-  VERTEX  *v, *vn, *vn2 ;
   float   d, dx, dy, dz, dist, min_dist, nx, ny, nz, dot, sample_dist, thick,
   white_mode, gray_mode, min_gray, max_gray, csf_mode, min_gray_at_wm ;
   double  x, y, z, xv, yv, zv, val ;
@@ -1151,7 +1150,7 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
 
   /* current vertex positions are gray matter, orig are white matter */
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     MRISsurfaceRASToVoxelCached(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
@@ -1161,7 +1160,7 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     if (!(vno % 25000))
       fprintf(stdout, "%d of %d vertices processed\n", vno,mris->nvertices) ;
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (curv_thresh != 0 && curv_thresh*v->curv < 0)
@@ -1183,16 +1182,17 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
     for (ns = 1 ; ns <= nbhd_size ; ns++) {
       vnum = 0 ;  /* will be # of new neighbors added to list */
       for (i = 0 ; i < vtotal ; i++) {
-        vn = &mris->vertices[vlist[i]] ;
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX                * const vn  = &mris->vertices         [vlist[i]] ;
         if (vn->ripflag)
           continue ;
         if (vn->marked && vn->marked < ns-1)
           continue ;
-        for (n = 0 ; n < vn->vnum ; n++) {
-          vn2 = &mris->vertices[vn->v[n]] ;
+        for (n = 0 ; n < vnt->vnum ; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]] ;
           if (vn2->ripflag || vn2->marked)  /* already processed */
             continue ;
-          vlist[vtotal+vnum++] = vn->v[n] ;
+          vlist[vtotal+vnum++] = vnt->v[n] ;
           vn2->marked = ns ;
           dx = vn2->x-v->origx ;
           dy = vn2->y-v->origy ;
@@ -1209,8 +1209,8 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
             min_dist = dist ;
             if (min_n == nbhd_size && DIAG_VERBOSE_ON)
               fprintf(stdout, "%d --> %d = %2.3f\n",
-                      vno,vn->v[n], dist) ;
-            pial_vno = vn->v[n] ;
+                      vno,vnt->v[n], dist) ;
+            pial_vno = vnt->v[n] ;
           }
         }
       }
@@ -1219,35 +1219,38 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
 
     // unmark stuff for next time
     for (n = 0 ; n < vtotal ; n++) {
-      vn = &mris->vertices[vlist[n]] ;
+      VERTEX * const vn = &mris->vertices[vlist[n]] ;
       if (vn->ripflag)
         continue ;
       vn->marked = 0 ;
     }
 
     pial_vno = vno ;  // disable shortest distance!!!
-    vn2 = &mris->vertices[pial_vno] ;
-    if (use_normal)
     {
-      dx = vn2->x-v->origx ;
-      dy = vn2->y-v->origy ;
-      dz = vn2->z-v->origz ;
-      thick = sqrt(dx*dx + dy*dy + dz*dz) ;
-      dx = v->nx ; dy = v->ny ; dz = v->nz ;
-    }
-    else  // use vector pointing from white to pial
-    {
-      dx = vn2->x-v->origx ;
-      dy = vn2->y-v->origy ;
-      dz = vn2->z-v->origz ;
-      thick = sqrt(dx*dx + dy*dy + dz*dz) ;
-      if (FZERO(thick) == 0)
+      VERTEX const * const vn2 = &mris->vertices[pial_vno] ;
+      if (use_normal)
       {
-        dx /= thick ;
-        dy /= thick ;
-        dz /= thick ;
+        dx = vn2->x-v->origx ;
+        dy = vn2->y-v->origy ;
+        dz = vn2->z-v->origz ;
+        thick = sqrt(dx*dx + dy*dy + dz*dz) ;
+        dx = v->nx ; dy = v->ny ; dz = v->nz ;
+      }
+      else  // use vector pointing from white to pial
+      {
+        dx = vn2->x-v->origx ;
+        dy = vn2->y-v->origy ;
+        dz = vn2->z-v->origz ;
+        thick = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (FZERO(thick) == 0)
+        {
+          dx /= thick ;
+          dy /= thick ;
+          dz /= thick ;
+        }
       }
     }
+    
     if (use_pial == 0)
       thick = max_thick ;  // uniform length for samples
 #define SAMPLE_DIST 0.5
@@ -1372,7 +1375,7 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       if (!(vno % 25000))
         fprintf(stdout, "%d of %d vertices processed\n", vno,mris->nvertices) ;
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->ripflag)
@@ -1403,15 +1406,16 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
   }
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag == 1) {
       int n ;
-      for (n = 0 ; n < v->vnum ; n++)
-        mris->vertices[v->v[n]].ripflag = 2 ;
+      for (n = 0 ; n < vt->vnum ; n++)
+        mris->vertices[vt->v[n]].ripflag = 2 ;
     }
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->ripflag == 2)
       v->ripflag = 1 ;
   }

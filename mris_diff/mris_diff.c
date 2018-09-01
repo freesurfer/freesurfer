@@ -271,7 +271,6 @@ static const char* printHistograms() {
 int main(int argc, char *argv[]) {
   int nargs, nthvtx, nnbrs1, nnbrs2, nthnbr, nbrvtxno1, nbrvtxno2;
   int nthface, annot1, annot2;
-  VERTEX *vtx1, *vtx2;
   FACE *face1, *face2;
   float maxdiff, rms;
 
@@ -355,8 +354,8 @@ int main(int argc, char *argv[]) {
 
     mri_dist = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
-      vtx1 = &(surf1->vertices[nthvtx]);
-      vtx2 = &(surf2->vertices[nthvtx]);
+      VERTEX const * const vtx1 = &(surf1->vertices[nthvtx]);
+      VERTEX const * const vtx2 = &(surf2->vertices[nthvtx]);
       dx = vtx2->x-vtx1->x ;
       dy = vtx2->y-vtx1->y ;
       dz = vtx2->z-vtx1->z ;
@@ -375,8 +374,8 @@ int main(int argc, char *argv[]) {
     MRI *xyzRMS;
     xyzRMS = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;    
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
-      vtx1 = &(surf1->vertices[nthvtx]);
-      vtx2 = &(surf2->vertices[nthvtx]);
+      VERTEX const * const vtx1 = &(surf1->vertices[nthvtx]);
+      VERTEX const * const vtx2 = &(surf2->vertices[nthvtx]);
       rms = sqrt(pow(vtx1->x-vtx2->x,2) + pow(vtx1->y-vtx2->y,2) + pow(vtx1->z-vtx2->z,2));
       MRIsetVoxVal(xyzRMS,nthvtx,0,0,0,rms);
     }
@@ -390,8 +389,8 @@ int main(int argc, char *argv[]) {
     double dot, radius1, radius2;
     angleRMS = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;    
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
-      vtx1 = &(surf1->vertices[nthvtx]);
-      vtx2 = &(surf2->vertices[nthvtx]);
+      VERTEX const * const vtx1 = &(surf1->vertices[nthvtx]);
+      VERTEX const * const vtx2 = &(surf2->vertices[nthvtx]);
       radius1 = sqrt(vtx1->x*vtx1->x + vtx1->y*vtx1->y + vtx1->z*vtx1->z);
       radius2 = sqrt(vtx2->x*vtx2->x + vtx2->y*vtx2->y + vtx2->z*vtx2->z);
       dot = (vtx1->x*vtx2->x + vtx1->y*vtx2->y + vtx1->z*vtx2->z)/(radius1*radius2);
@@ -412,8 +411,10 @@ int main(int argc, char *argv[]) {
     // Loop over vertices ---------------------------------------
     error_count=0;
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
-      vtx1 = &(surf1->vertices[nthvtx]);
-      vtx2 = &(surf2->vertices[nthvtx]);
+      VERTEX_TOPOLOGY const * const vtx1t = &(surf1->vertices_topology[nthvtx]);
+      VERTEX          const * const vtx1  = &(surf1->vertices         [nthvtx]);
+      VERTEX_TOPOLOGY const * const vtx2t = &(surf2->vertices_topology[nthvtx]);
+      VERTEX          const * const vtx2  = &(surf2->vertices         [nthvtx]);
       if (vtx1->ripflag != vtx2->ripflag) {
         printf("Vertex %d differs in ripflag %c %c\n",
                nthvtx,vtx1->ripflag,vtx2->ripflag);
@@ -431,15 +432,15 @@ int main(int argc, char *argv[]) {
 	// the distances between the non-ripped vertices of the faces that come
 	// together at a vertex.
 	//
-	if (vtx1->num != vtx2->num) {
+	if (vtx1t->num != vtx2t->num) {
           printf("Vertex %d differs in num %d %d\n",
-               nthvtx,vtx1->num,vtx2->num);
+               nthvtx,vtx1t->num,vtx2t->num);
           if (++error_count>=MAX_NUM_ERRORS) break;
 	} else {
 	  int fn;
-	  for (fn = 0; fn < vtx1->num; fn++) {
-	    FACE* f1 = &(surf1->faces[vtx1->f[fn]]);
-	    FACE* f2 = &(surf2->faces[vtx2->f[fn]]);
+	  for (fn = 0; fn < vtx1t->num; fn++) {
+	    FACE* f1 = &(surf1->faces[vtx1t->f[fn]]);
+	    FACE* f2 = &(surf2->faces[vtx2t->f[fn]]);
 	    if (f1->ripflag || f2->ripflag) continue;
 	    int vn;
 	    for (vn = 0; vn < VERTICES_PER_FACE; vn++) {
@@ -464,16 +465,16 @@ int main(int argc, char *argv[]) {
         compare(&vertexNxnynzHistogram, vtx1->ny, vtx2->ny);
         compare(&vertexNxnynzHistogram, vtx1->nz, vtx2->nz);
       }
-      nnbrs1 = surf1->vertices[nthvtx].vnum;
-      nnbrs2 = surf2->vertices[nthvtx].vnum;
+      nnbrs1 = surf1->vertices_topology[nthvtx].vnum;
+      nnbrs2 = surf2->vertices_topology[nthvtx].vnum;
       if (nnbrs1 != nnbrs2) {
         printf("Vertex %d has a different number of neighbors %d %d\n",
                nthvtx,nnbrs1,nnbrs2);
         if (++error_count>=MAX_NUM_ERRORS) break;
       }
       for (nthnbr=0; nthnbr < nnbrs1; nthnbr++) {
-        nbrvtxno1 = surf1->vertices[nthvtx].v[nthnbr];
-        nbrvtxno2 = surf2->vertices[nthvtx].v[nthnbr];
+        nbrvtxno1 = surf1->vertices_topology[nthvtx].v[nthnbr];
+        nbrvtxno2 = surf2->vertices_topology[nthvtx].v[nthnbr];
         if (nbrvtxno1 != nbrvtxno2) {
           printf("Vertex %d differs in the identity of the "
                  "%dth neighbor %d %d\n",nthvtx,nthnbr,nbrvtxno1,nbrvtxno2);
@@ -552,8 +553,8 @@ int main(int argc, char *argv[]) {
     }
     error_count=0;
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
-      vtx1 = &(surf1->vertices[nthvtx]);
-      vtx2 = &(surf2->vertices[nthvtx]);
+      VERTEX const * const vtx1 = &(surf1->vertices[nthvtx]);
+      VERTEX const * const vtx2 = &(surf2->vertices[nthvtx]);
       compare(&vertexCurvHistogram, vtx1->curv, vtx2->curv);
     } // end loop over vertices
     if (maxdiff>0) printf("maxdiff=%g\n",maxdiff);

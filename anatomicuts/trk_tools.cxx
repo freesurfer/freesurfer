@@ -83,5 +83,5 @@ int main(int narg, char* arg[])
 //	trkReader->SetReferenceTrack(fiberFile);
 	trkReader->SetReferenceImage(image);
 	trkReader->VTKToTrk(output);
-
+	std::cout << " Saving trk with updated header  " << output << std::endl;
 }

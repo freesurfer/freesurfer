@@ -236,6 +236,7 @@ main(int argc,
     exit(1);
   }
 
+  printf("#VMPC# fcreateMorph VmPeak  %d\n",GetVmPeak());
   return 0;
 }
 

@@ -646,7 +646,6 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
     min_parcel,vno, n, nframes;
   double  energy, last_energy, parc_energy, menergy, energy_change, 
     best_energy_change, last_penergy ;
-  VERTEX  *v, *vn ;
 
   energy = last_energy = 0.0 ;
   nframes = mri_cmatrix->nframes ;
@@ -685,8 +684,9 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
     for (index = 0 ; index < nborder ; index++)
     {
       vno = vertex_permutation[index] ;
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+       if (v->ripflag)
         continue ;
       if (vno == Gdiag_no)
         DiagBreak() ;
@@ -697,10 +697,10 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
       // build list of all neihboring parcels at this point
       memset(nbrs, 0, nparcels*sizeof(int)) ;
       min_parcel = parcel ; best_energy_change = 0 ;
-      for (n = 0 ; n < v->vnum ; n++)
+      for (n = 0 ; n < vt->vnum ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
-        if (v->v[n] == Gdiag_no)
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
+        if (vt->v[n] == Gdiag_no)
           DiagBreak() ;
         if (vn->marked != parcel && nbrs[vn->marked] != 1) // not already done
         {
@@ -865,24 +865,24 @@ static int
 build_parcellation_border_permutation(MRI_SURFACE *mris, int *vertex_permutation, int *pnborder)
 {
   int    vno, nborder, n, tmp, index ;
-  VERTEX *v, *vn ;
 
   for (nborder = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
-      if (v->v[n] == Gdiag_no)
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
+      if (vt->v[n] == Gdiag_no)
         DiagBreak() ;
       if (vn->marked != v->marked)
         break ;
     }
-    if (n < v->vnum)   // is a border vertex
+    if (n < vt->vnum)   // is a border vertex
       vertex_permutation[nborder++] = vno ;
   }
 
@@ -1074,24 +1074,24 @@ static double
 markov_energy(MRI_SURFACE *mris)
 {
   int    vno, nborders, n ;
-  VERTEX *v, *vn ;
   double energy ;
 
   for (energy = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    for (nborders = n = 0 ; n < v->vnum ; n++)
+    for (nborders = n = 0 ; n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->marked != v->marked)
         nborders++ ;
     }
 #define EXP_K 10
-    energy += exp(EXP_K*(double)nborders/(double)v->vnum)-1 ;
+    energy += exp(EXP_K*(double)nborders/(double)vt->vnum)-1 ;
   }
   energy /= mris->nvertices ;
   return(energy) ;
@@ -1240,7 +1240,6 @@ compute_parcellation_median_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *par
   double  energy, var_within, var_between, mean, mean_nbr, var_between_total, val, 
     var_within_total, var_between_nbr ;
   int     **nbrs, parcel, vno, n, nparcels, n_nbrs, frame, nframes ;
-  VERTEX  *v, *vn ;
 
   return(0.0) ;
   nframes = mri_cmatrix->nframes ;
@@ -1252,7 +1251,8 @@ compute_parcellation_median_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *par
   // compute within-cluster L1 distance
   for (var_within_total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ; 
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
@@ -1263,9 +1263,9 @@ compute_parcellation_median_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *par
       printf("warning, v %d is marked with parcel %d\n", vno, parcel) ;
       continue ;
     }
-    for (n = 0 ; n < v->v[n] ; n++)
+    for (n = 0 ; n < vt->v[n] ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       nbrs[parcel][vn->marked] = 1 ;
     }
     for (var_within = 0.0, frame = 0 ; frame < nframes ; frame++)
@@ -1280,7 +1280,7 @@ compute_parcellation_median_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *par
   // compute between-cluster average L1 distance
   for (var_between_total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ; 
+    VERTEX const * const v = &mris->vertices[vno] ; 
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
@@ -1369,7 +1369,6 @@ static int
 allocate_stats(MRI_SURFACE *mris, PARMS *parms, int nparcels, MRI *mri_cmatrix)
 {
   int      n, vno, parcel, vno2 ;
-  VERTEX   *v, *vn ;
   double   L1_dist ;
 
   parms->stats.nparcels = nparcels ;
@@ -1387,15 +1386,16 @@ allocate_stats(MRI_SURFACE *mris, PARMS *parms, int nparcels, MRI *mri_cmatrix)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate complete distance matrix", Progname) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ; 
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
       continue;
     parcel = v->marked ;
-    for (n = 0 ; n < v->v[n] ; n++)
+    for (n = 0 ; n < vt->v[n] ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       parms->stats.nbrs[parcel][vn->marked] = 1 ;
     }
   }
@@ -1814,7 +1814,6 @@ segment_similarity_matrix(MRI_SURFACE *mris, MRI_SURFACE *mris_ico,
 {
   int      nchanged, min_border = 1, vno, vno2, n, max_parcel, iter, nparcels, parcel ;
   double   max_similarity, val, sims[MAX_PARCELS] ;
-  VERTEX   *v, *vn ;
 
   nparcels = mris_ico->nvertices ;
   iter = 0 ;
@@ -1828,7 +1827,8 @@ segment_similarity_matrix(MRI_SURFACE *mris, MRI_SURFACE *mris_ico,
 
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->ripflag || v->border < min_border)
@@ -1836,17 +1836,17 @@ segment_similarity_matrix(MRI_SURFACE *mris, MRI_SURFACE *mris_ico,
 
       // initialize parcel similarities to 0
       sims[v->marked] = 0 ;
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vno2 = v->v[n] ;
+        vno2 = vt->v[n] ;
         parcel = mris->vertices[vno2].marked ;
         sims[parcel] = 0 ;
       }
 
       // compute neighboring parcel similarities 
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vno2 = v->v[n] ;
+        vno2 = vt->v[n] ;
         parcel = mris->vertices[vno2].marked ;
         val = MRIgetVoxVal(mri_smatrix, vno, 0, 0, vno2) ;
 #if 0
@@ -1860,9 +1860,10 @@ segment_similarity_matrix(MRI_SURFACE *mris, MRI_SURFACE *mris_ico,
 
       // find max neighboring parcel similarity
       max_similarity = sims[v->marked]; max_parcel = v->marked;
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < vt->vtotal ; n++)
       {
-        vno2 = v->v[n] ; vn = &mris->vertices[vno2] ;
+        vno2 = vt->v[n] ; 
+        VERTEX const * const vn = &mris->vertices[vno2] ;
         if (sims[vn->marked] > max_similarity)
         {
           max_similarity = sims[vn->marked] ;
@@ -1894,18 +1895,18 @@ static int
 mark_border_vertices(MRI_SURFACE *mris) 
 {
   int     vno, n, nborder ;
-  VERTEX  *v ;
 
   for (nborder = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (v->ripflag)
       continue ;
     v->border = 0 ;
-    for (n = 0 ; n < v->vnum ; n++)
-      if (mris->vertices[v->v[n]].marked != v->marked)
+    for (n = 0 ; n < vt->vnum ; n++)
+      if (mris->vertices[vt->v[n]].marked != v->marked)
       {
         if (v->border == 0)  // only count it once
           nborder++ ;
@@ -1945,9 +1946,9 @@ mark_border_vertices(MRI_SURFACE *mris)
     parms->stats.var_within[parcel] = parms->stats.num[parcel] * (var_within / nframes) ;
     var_within_total += parms->stats.num[parcel] * (var_within / nframes) ;
 
-    for (var_between = 0.0, n_nbrs = n = 0 ; n < parms->mris_ico->vertices[parcel].vnum ; n++)
+    for (var_between = 0.0, n_nbrs = n = 0 ; n < parms->mris_ico->vertices_topology[parcel].vnum ; n++)
     {
-      nbr_parcel = parms->mris_ico->vertices[parcel].v[n] ;
+      nbr_parcel = parms->mris_ico->vertices_topology[parcel].v[n] ;
       for (var = 0.0, frame = 0 ; frame < nframes ; frame++)
       {
         mean = MRIFseq_vox(mri_means, parcel, 0, 0, frame)/parms->stats.num[parcel] ;
@@ -1957,7 +1958,7 @@ mark_border_vertices(MRI_SURFACE *mris)
       var /= nframes ;
       var_between += var ;
     }
-    var_between_total += (var_between/ parms->mris_ico->vertices[parcel].vnum ) ;
+    var_between_total += (var_between/ parms->mris_ico->vertices_topology[parcel].vnum ) ;
   }
   var_within_total /= mris->nvertices ;
   if (FZERO(var_between_total))
@@ -2004,9 +2005,9 @@ compute_variance_energy_for_vertex_change(MRI_SURFACE *mris, PARMS *parms,
       DiagBreak() ;
 
     nbr_parcel = 0 ;
-    for (n = 0 ; n < parms->mris_ico->vertices[parcel].vnum ; n++)
-      if (parms->mris_ico->vertices[parcel].v[n] == old_parcel ||
-          parms->mris_ico->vertices[parcel].v[n] == new_parcel)
+    for (n = 0 ; n < parms->mris_ico->vertices_topology[parcel].vnum ; n++)
+      if (parms->mris_ico->vertices_topology[parcel].v[n] == old_parcel ||
+          parms->mris_ico->vertices_topology[parcel].v[n] == new_parcel)
       {
         nbr_parcel = 1 ;
         break ;
@@ -2032,9 +2033,9 @@ compute_variance_energy_for_vertex_change(MRI_SURFACE *mris, PARMS *parms,
     var_within_total += parms->stats.num[parcel] * (var_within / nframes) ;
     parms->stats.var_within[parcel] = parms->stats.num[parcel] * (var_within / nframes) ;
 
-    for (var_between = 0.0, n_nbrs = n = 0 ; n < parms->mris_ico->vertices[parcel].vnum ; n++)
+    for (var_between = 0.0, n_nbrs = n = 0 ; n < parms->mris_ico->vertices_topology[parcel].vnum ; n++)
     {
-      nbr_parcel = parms->mris_ico->vertices[parcel].v[n] ;
+      nbr_parcel = parms->mris_ico->vertices_topology[parcel].v[n] ;
       for (var = 0.0, frame = 0 ; frame < nframes ; frame++)
       {
         mean = MRIFseq_vox(mri_means, parcel, 0, 0, frame)/parms->stats.num[parcel] ;
@@ -2044,8 +2045,8 @@ compute_variance_energy_for_vertex_change(MRI_SURFACE *mris, PARMS *parms,
       var /= nframes ;
       var_between += var ;
     }
-    var_between_total += (var_between/ parms->mris_ico->vertices[parcel].vnum ) ;
-    parms->stats.var_between[parcel] = (var_between/ parms->mris_ico->vertices[parcel].vnum ) ;
+    var_between_total += (var_between/ parms->mris_ico->vertices_topology[parcel].vnum ) ;
+    parms->stats.var_between[parcel] = (var_between/ parms->mris_ico->vertices_topology[parcel].vnum ) ;
   }
   var_within_total /= mris->nvertices ;
   if (FZERO(var_between_total))

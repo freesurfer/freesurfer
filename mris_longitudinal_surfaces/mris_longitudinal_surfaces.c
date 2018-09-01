@@ -1676,12 +1676,11 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
 {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
-  VERTEX *v, *vn ;
 
   d = dsq = 0.0f ;
   for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag || v->val <= 0)
     {
       continue ;
@@ -1698,7 +1697,8 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     v->curv = 0 ;
     if (v->ripflag || v->val <= 0)
     {
@@ -1708,9 +1708,9 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
     {
       continue ;
     }
-    for (num_long = num = 1, n = 0 ; n < v->vnum ; n++)
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->val <= 0 || v->ripflag)
       {
         continue ;

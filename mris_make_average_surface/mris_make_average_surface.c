@@ -141,7 +141,6 @@ main(int argc, char *argv[]) {
   char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN],
   *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
   int          ac, nargs, i, vno, n, err ;
-  VERTEX       *v ;
   MRI_SURFACE  *mris_ico, *surf ;
   MRI_SP       *mrisp_total ;
   LTA          *lta ;
@@ -369,15 +368,15 @@ main(int argc, char *argv[]) {
 
   if (Gdiag_no >= 0 && Gdiag_no < mris_ico->nvertices) {
     int n ;
-    VERTEX *vn ;
 
-    v = &mris_ico->vertices[Gdiag_no] ;
+    VERTEX_TOPOLOGY const * const vt = &mris_ico->vertices_topology[Gdiag_no] ;
+    VERTEX          const * const v  = &mris_ico->vertices         [Gdiag_no] ;
     printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
             Gdiag_no, v->origx, v->origy, v->origz) ;
-    for (n = 0 ; n < v->vnum ; n++) {
-      vn = &mris_ico->vertices[v->v[n]] ;
+    for (n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris_ico->vertices[vt->v[n]] ;
       printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
-              v->v[n], vn->origx, vn->origy, vn->origz) ;
+              vt->v[n], vn->origx, vn->origy, vn->origz) ;
     }
   }
   // write *h.sphere.reg
@@ -390,7 +389,7 @@ main(int argc, char *argv[]) {
   // get "pial vertices" from orig
   MRISrestoreVertexPositions(mris_ico, ORIG_VERTICES);
   for (vno = 0 ; vno < mris_ico->nvertices ; vno++) {
-    v = &mris_ico->vertices[vno] ;
+    VERTEX * const v = &mris_ico->vertices[vno] ;
     // n = number of subjects
     v->x /= (float)n ;
     v->y /= (float)n ;

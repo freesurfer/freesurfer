@@ -1,211 +1,119 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5)
+project(gems)
 
-PROJECT(GEMS)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(interfaces)
 
-# Output directories.
-SET (LIBRARY_OUTPUT_PATH ${GEMS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all libraries.")
-SET (EXECUTABLE_OUTPUT_PATH ${GEMS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
-MARK_AS_ADVANCED(LIBRARY_OUTPUT_PATH EXECUTABLE_OUTPUT_PATH)
-SET(GEMS_LIBRARY_PATH "${LIBRARY_OUTPUT_PATH}")
-SET(GEMS_EXECUTABLE_PATH "${EXECUTABLE_OUTPUT_PATH}")
+# find ITK if we're building independently of freesurfer
+if(NOT ITK_FOUND)
+  find_package(ITK REQUIRED)
+endif()
+include(${ITK_USE_FILE})
 
-#
-INCLUDE_DIRECTORIES(${GEMS_SOURCE_DIR})
-INCLUDE_DIRECTORIES(interfaces)
+# same with zlib
+if(NOT ZBLIB_FOUND)
+  find_package(ZLIB REQUIRED)
+endif()
 
-# Find ITK
-FIND_PACKAGE(ITK)
-IF(ITK_FOUND)
-   INCLUDE(${ITK_USE_FILE})
-ELSE(ITK_FOUND)
-   MESSAGE(FATAL_ERROR
-           "Cannot build without ITK.  Please set ITK_DIR.")
-ENDIF(ITK_FOUND)
+option(GEMS_BUILD_SHARED_LIBS "Build GEMS with shared libraries" OFF)
+option(GEMS_BUILD_EXECUTABLES "Build command line executables" OFF)
+option(GEMS_BUILD_TESTING "Build tests" OFF)
+option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
+option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
+option(GEMS_BUILD_PYTHON "Build Python wrappers" OFF)
+option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 
-OPTION( BUILD_SHARED_LIBS "Build GEMS with shared libraries." OFF )
+set(GEMS_RUNTIME_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
 
-OPTION( BUILD_EXECUTABLES "Build command line executables" OFF )
+# Check if GEMS is being added as a subdirectory (and not built independently)
+# if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+#   set(GEMS_BUILD_PYTHON ON)
+# endif()
 
-OPTION( BUILD_TESTING "Build tests" OFF )
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
-OPTION( BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF )
+if(GEMS_BUILD_EXECUTABLES OR GEMS_BUILD_GUI)
+  add_definitions(-DUSE_DYNAMIC_MESH)
+  message(WARNING "Since you're building executables to compute meshes, ITK dynamic meshes will"
+    "be used (internally using std::map instead of std::vector to store lists of points, cells, etc)."
+    "Everything will still work, but anything that only uses existing meshes will be"
+    "slower than it could be (up to 100% slower)"
+  )    
+endif()
 
-OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
+if(GEMS_BUILD_CUDA)
+  find_package(CUDA REQUIRED)
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+  include_directories(${CUDA_INCLUDE_DIRS})
+  set(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
+  include_directories(cuda)
+  add_subdirectory(cuda)
+endif()
 
-OPTION( BUILD_PYTHON "Build Python wrappers" OFF )
+# source
+set(SOURCES
+  gzstream.C
+  itkMGHImageIO.cxx
+  itkMGHImageIOFactory.cxx
+  kvlAtlasMeshAlphaDrawer.cxx
+  # kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
+  kvlAtlasMeshCollection.cxx
+  kvlAtlasMeshCollectionValidator.cxx
+  kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
+  kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
+  kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
+  kvlAtlasMeshDeformationLBFGSOptimizer.cxx
+  kvlAtlasMeshDeformationOptimizer.cxx
+  kvlAtlasMeshLabelImageStatisticsCollector.cxx
+  kvlAtlasMeshMultiAlphaDrawer.cxx
+  kvlAtlasMeshPositionCostAndGradientCalculator.cxx
+  kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
+  kvlAtlasMeshRasterizor.cxx
+  kvlAtlasMeshSmoother.cxx
+  kvlAtlasMeshStatisticsCollector.cxx
+  kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+  kvlAtlasMeshVisitCounter.cxx
+  kvlAtlasParameterEstimator.cxx
+  kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
+  kvlCompressionLookupTable.cxx
+  kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
+  kvlCroppedImageReader.cxx
+  kvlHistogrammer.cxx
+  kvlMutualInformationCostAndGradientCalculator.cxx
+)
 
-OPTION( BUILD_CUDA "Build CUDA stuff" OFF )
+# gems libary
+add_library(kvlGEMSCommon ${SOURCES})
+target_link_libraries(kvlGEMSCommon ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
 
-IF(BUILD_PYTHON)
-  # Enable C++11 syntax
-  set(CMAKE_CXX_STANDARD 11)
+# build python module
+if(GEMS_BUILD_PYTHON)
+  add_subdirectory(python)
+endif()
 
+# build command line executables
+if(GEMS_BUILD_EXECUTABLES)
+  add_subdirectory(Executables)
+endif()
 
-  add_subdirectory(pybind11)
-  pybind11_add_module(GEMS2Python
-          GEMS2Python.cxx
-          pyKvlCalculator.cxx
-          pyKvlImage.cxx
-          pyKvlMesh.cxx
-          pyKvlTransform.cxx
-          pyKvlOptimizer.cxx
-          kvlAtlasMeshCollection.cxx
-          gzstream.C
-          kvlAtlasMeshCollectionValidator.cxx
-          kvlAtlasParameterEstimator.cxx
-          kvlAtlasMeshSmoother.cxx
-          kvlCompressionLookupTable.cxx
-          kvlCroppedImageReader.cxx
-          #kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
-          kvlAtlasMeshRasterizor.cxx
-          kvlAtlasMeshAlphaDrawer.cxx
-          kvlAtlasMeshMultiAlphaDrawer.cxx
-          kvlAtlasMeshVisitCounter.cxx
-          kvlAtlasMeshStatisticsCollector.cxx
-          kvlAtlasMeshLabelImageStatisticsCollector.cxx
-          kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
-          kvlAtlasMeshDeformationOptimizer.cxx
-          kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
-          kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
-          kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
-          kvlAtlasMeshDeformationLBFGSOptimizer.cxx
-          kvlAtlasMeshPositionCostAndGradientCalculator.cxx
-          kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
-          kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
-          kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
-          kvlMutualInformationCostAndGradientCalculator.cxx
-          kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
-          kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
-          kvlHistogrammer.cxx
-          kvlAtlasMeshSummaryDrawer.cxx
-          itkMGHImageIO.cxx
-          itkMGHImageIOFactory.cxx
-          )
+# build tests
+if(GEMS_BUILD_TESTING)
+  add_subdirectory(Testing)
+endif()
 
-  TARGET_LINK_LIBRARIES(GEMS2Python
-          PRIVATE ${ITK_LIBRARIES}
-          PRIVATE ${ZLIB_LIBRARIES}
-          )
-ENDIF(BUILD_PYTHON)
+# build GUI
+if(GEMS_BUILD_GUI)
+  add_subdirectory(GUI)
+endif()
 
-#
-IF( BUILD_EXECUTABLES OR BUILD_GUI )
-  #
-  ADD_DEFINITIONS( -DUSE_DYNAMIC_MESH )
-  
-  # 
-  MESSAGE( WARNING 
-           "Since you're building executables to compute meshes, ITK dynamic meshes will be used (internally using std::map instead of std::vector to store lists of points, cells, etc). Everything will still work, but anything that only uses existing meshes will be slower than it could be (up to 100% slower)" )
-           
-ENDIF( BUILD_EXECUTABLES OR BUILD_GUI )
-
-
-IF( BUILD_CUDA )
-  FIND_PACKAGE( CUDA )
-  IF( CUDA_FOUND )
-    # Enable C++11 syntax
-    SET(CMAKE_CXX_FLAGS "-g -std=c++11 ${CMAKE_CXX_FLAGS}")
-
-    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
-    SET(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
-
-    INCLUDE_DIRECTORIES(cuda)
-    SUBDIRS(cuda)
-  ENDIF( CUDA_FOUND )
-ENDIF( BUILD_CUDA )
-
-
-# Add libary
-ADD_LIBRARY( kvlGEMSCommon
-             kvlAtlasMeshCollection.cxx
-             gzstream.C
-             kvlAtlasMeshCollectionValidator.cxx
-             kvlAtlasParameterEstimator.cxx
-             kvlAtlasMeshSmoother.cxx
-             kvlCompressionLookupTable.cxx
-             kvlCroppedImageReader.cxx
-             #kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
-             kvlAtlasMeshRasterizor.cxx
-             kvlAtlasMeshAlphaDrawer.cxx
-             kvlAtlasMeshMultiAlphaDrawer.cxx
-             kvlAtlasMeshVisitCounter.cxx
-             kvlAtlasMeshStatisticsCollector.cxx
-             kvlAtlasMeshLabelImageStatisticsCollector.cxx
-             kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
-             kvlAtlasMeshDeformationOptimizer.cxx
-             kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
-             kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
-             kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
-             kvlAtlasMeshDeformationLBFGSOptimizer.cxx
-             kvlAtlasMeshPositionCostAndGradientCalculator.cxx
-             kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
-             kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
-             kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
-             kvlMutualInformationCostAndGradientCalculator.cxx
-             kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
-             kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
-             kvlHistogrammer.cxx
-             kvlAtlasMeshSummaryDrawer.cxx
-             itkMGHImageIO.cxx
-             itkMGHImageIOFactory.cxx )
-TARGET_LINK_LIBRARIES( kvlGEMSCommon
-                       ${ITK_LIBRARIES}
-                       ${ZLIB_LIBRARIES}
-                     )
-
-
-# Build command line executables
-IF(BUILD_EXECUTABLES)
-
-  SUBDIRS( Executables )
-
-ENDIF(BUILD_EXECUTABLES)
-
-# Build tests
-IF(BUILD_TESTING)
-
-  SUBDIRS( Testing )
-
-  SET(Boost_USE_STATIC_LIBS ON)
-  FIND_PACKAGE( Boost 1.59.0 )
-  IF(Boost_FOUND)
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-  ENDIF(Boost_FOUND)
-
-ENDIF(BUILD_TESTING)
-
-
-# Build GUI
-IF(BUILD_GUI)
-
-  # Find FLTK
-  FIND_PACKAGE(FLTK)
-  IF(FLTK_FOUND)
-    INCLUDE_DIRECTORIES(${FLTK_INCLUDE_DIR})
-  ELSE(FLTK_FOUND)
-    MESSAGE(FATAL_ERROR
-            "Cannot build GUI components without FLTK.  Please set FLTK_DIR.")
-  ENDIF(FLTK_FOUND)
-
-
-  # Find VTK
-  FIND_PACKAGE(VTK)
-  IF(VTK_FOUND)
-    INCLUDE(${VTK_USE_FILE})
-  ELSE(VTK_FOUND)
-    MESSAGE(FATAL_ERROR
-           "Cannot build GUI components without VTK.  Please set VTK_DIR.")
-  ENDIF(VTK_FOUND)
-
-  SUBDIRS( GUI )
-
-ENDIF(BUILD_GUI)
-
-
-# Build Matlab wrappers
-IF(BUILD_MATLAB)
-  FIND_PACKAGE( Matlab REQUIRED )
-
-  SUBDIRS( Matlab )
-
-ENDIF(BUILD_MATLAB)
+# build Matlab wrappers
+if(GEMS_BUILD_MATLAB)
+  add_subdirectory(Matlab)
+endif()

@@ -115,12 +115,7 @@ AffineTransform3d::invert()
 
 //-=-----------------------------------------------
 
-
-#if HAVE_ITK5
-DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(nullptr), m_maskInterpolator(nullptr) {}
-#else
 DenseDisplacementField::DenseDisplacementField() : m_fieldInterpolator(NULL), m_maskInterpolator(NULL) {}
-#endif
 
 // the field is not kept per se
 //
@@ -1226,13 +1221,13 @@ VolumeMorph::save(const char* fname)
   os.write( strTag.c_str(), strTag.size() );
 
   // write transforms
+  ZlibStringCompressor compressor; // may have a mem leak, so move outside of loop
   for ( TransformContainerType::iterator it = m_transforms.begin();
         it != m_transforms.end(); ++it )
   {
     std::ostringstream osit(std::ios::binary);
     saveTransform(osit, *it);
 
-    ZlibStringCompressor compressor;
     std::string strBuf = compressor.compress( osit.str(),
                          Z_BEST_COMPRESSION );
     std::cout << " writing transform size = " << strBuf.size() << std::endl;
@@ -1376,6 +1371,7 @@ VolumeMorph::load_new(const char* fname,
                       unsigned int bufferMultiplier,
                       bool clearExisting)
 {
+  ZlibStringCompressor compressor; // memory leak in compressor?
   std::ifstream ifs(fname, std::ios::binary);
   if ( !ifs ) throw "VolumeMorph load - failed to open input stream";
 
@@ -1405,7 +1401,7 @@ VolumeMorph::load_new(const char* fname,
       break;
     case tagTransform:
     {
-      ZlibStringCompressor compressor;
+      //ZlibStringCompressor compressor;// might be a memleak, so made function scope
       compressor.m_bufferAllocationMultiplier = bufferMultiplier;
       std::cout << " data size = " << tagReader.m_len << std::endl;
 

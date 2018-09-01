@@ -408,15 +408,15 @@ costFunc_defaultDetermine(
     //
 
     int           vno_n;
-    VERTEX*       v_c;
     VERTEX*       v_n;
     float         dist, ave_curv, curv, max_height, max_curv, cost;
     s_weights*    pSTw = st_env.pSTw;
     MRIS*         surf = st_env.pMS_primary;
 
-    v_c = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
     if (b_relNextReference) {
-        vno_n = v_c->v[j];
+        vno_n = v_ct->v[j];
         v_n = &surf->vertices[vno_n];
     } else {
         v_n = &surf->vertices[j];
@@ -578,19 +578,19 @@ costFunc_distanceReturn(
     float       	f_distance  = 0.0;
     s_weights*  	pSTw        = st_env.pSTw;
     float       	wd          = pSTw->wd;
-    VERTEX*     	v_c         = NULL;
     MRIS*    		surf        = st_env.pMS_primary;
     const char*       	pch_proc    = "costFunc_distanceReturn(...)";
     char        	pch_txt[65536];
     static bool 	b_warned    = false;
 
-    v_c         = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
 
     if(!b_relNextReference) {
 	int 	jrelcount;
 	int 	jrel = 0;
-	for(jrelcount=0; jrelcount< v_c->vnum; jrelcount++) {
-	    if(v_c->v[jrelcount] == j) {
+	for(jrelcount=0; jrelcount< v_ct->vnum; jrelcount++) {
+	    if(v_ct->v[jrelcount] == j) {
 		jrel = jrelcount;
 		break;
 	    }
@@ -636,7 +636,6 @@ costFunc_EuclideanReturn(
     float       f_distance  = 0.0;
     int         vno_n       = 0;
 
-    VERTEX*     v_c         = NULL;
     VERTEX*     v_n         = NULL;
     MRIS*       surf        = st_env.pMS_primary;
     static int  calls       = 0;
@@ -644,9 +643,11 @@ costFunc_EuclideanReturn(
     char        pch_txt[65536];
     static bool b_warned = false;
 
-    v_c = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
+
     if (b_relNextReference) {
-        vno_n = v_c->v[j];
+        vno_n = v_ct->v[j];
         v_n = &surf->vertices[vno_n];
     } else {
         v_n = &surf->vertices[j];

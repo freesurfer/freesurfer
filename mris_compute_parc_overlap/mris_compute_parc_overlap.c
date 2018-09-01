@@ -501,7 +501,8 @@ int main(int argc, char *argv[])
      * surface 1: get the colortable index.for this vertex's annotation
      */
     int colorTabIndex1 = 0;
-    VERTEX *v1 = &surface1->vertices[n];
+    VERTEX_TOPOLOGY const * const v1t = &surface1->vertices_topology[n];
+    VERTEX                * const v1  = &surface1->vertices         [n];
     if ( v1->annotation )
     {
       //printf("v1->annotation=0x%8.8.8X\n",v1->annotation);
@@ -519,7 +520,8 @@ int main(int argc, char *argv[])
      * surface 2: get the colortable index.for this vertex's annotation
      */
     int colorTabIndex2 = 0;
-    VERTEX *v2 = &surface2->vertices[n];
+    VERTEX_TOPOLOGY const * const v2t = &surface2->vertices_topology[n];
+    VERTEX                * const v2  = &surface2->vertices         [n];
     if ( v2->annotation )
     {
       CTABfindAnnotation (surface2->ct, v2->annotation, &colorTabIndex2);
@@ -576,9 +578,9 @@ int main(int argc, char *argv[])
      */
     v1->border=0;
     int neighbor_vno;
-    for (neighbor_vno = 0; neighbor_vno < v1->vnum; neighbor_vno++ )
+    for (neighbor_vno = 0; neighbor_vno < v1t->vnum; neighbor_vno++ )
     {
-      VERTEX *v1Neighbor = &surface1->vertices[v1->v[neighbor_vno]];
+      VERTEX *v1Neighbor = &surface1->vertices[v1t->v[neighbor_vno]];
       if (v1Neighbor->annotation != v1->annotation)
       {
         v1->border=1; // this neighbor is a foreigner! (a different label)
@@ -587,9 +589,9 @@ int main(int argc, char *argv[])
       }
     }
     v2->border=0;
-    for (neighbor_vno = 0; neighbor_vno < v2->vnum; neighbor_vno++ )
+    for (neighbor_vno = 0; neighbor_vno < v2t->vnum; neighbor_vno++ )
     {
-      VERTEX *v2Neighbor = &surface2->vertices[v2->v[neighbor_vno]];
+      VERTEX *v2Neighbor = &surface2->vertices[v2t->v[neighbor_vno]];
       if (v2Neighbor->annotation != v2->annotation)
       {
         v2->border=1;

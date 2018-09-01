@@ -3,7 +3,7 @@ project(freeview)
 if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/freeview
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${FS_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/vtkutils
     ${CMAKE_SOURCE_DIR}/lineprof

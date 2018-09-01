@@ -1176,7 +1176,6 @@ static double
 compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
 {
   static int i= 0 ;
-  VERTEX  *v ;
   VERTEX_PARMS *vp = NULL ;
   int     vno, nfound, nmissed ;
   MRI     *mri_white = MRIclone(mri, NULL) ;
@@ -1235,7 +1234,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     if ((vno % 5000) == 0)
       printf("%d of %d vertices processed (%2.1f%%)\n",
              vno, mris->nvertices, 100.0*vno/mris->nvertices) ;
-    v = &mris->vertices[vno] ;
+    VERTEX * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     MRISvertexToVoxel(mris, v, mri, &xv, &yv, &zv) ;
@@ -1510,7 +1509,6 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
   {
     int    n, num, outliers ;
     double mn, std, mean_vdist, sigma_vdist ;
-    VERTEX *vn ;
 
     // now do consistency check on white distances
       vp_copy_to_surface(mris, WHITE_TARGETS, TARGET_VERTICES) ;
@@ -1518,14 +1516,15 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     vp_copy_to_surface_dist(mris, WHITE_VERTICES);
     for (outliers = vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->ripflag || v->marked == 0)
         continue ;
-      for (mn = std = 0.0, num = n = 0 ; n < v->vtotal ; n++)
+      for (mn = std = 0.0, num = n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked == 0 || vn->ripflag)
           continue ;
         num++ ;
@@ -1540,12 +1539,12 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         FILE *fp  ;
         fp = fopen("out.dat", "w") ;
-        for (n = 0 ; n < v->vtotal ; n++)
+        for (n = 0 ; n < vt->vtotal ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked == 0 || vn->ripflag)
             continue ;
-          fprintf(fp, "%d %f\n", v->v[n], vn->d) ;
+          fprintf(fp, "%d %f\n", vt->v[n], vn->d) ;
         }
         fclose(fp) ;
       }
@@ -1567,9 +1566,9 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
           fp = fopen("ldist.dat", "w") ;
-        for (mn = std = 0.0, num = n = 0 ; n < v->vnum ; n++)
+        for (mn = std = 0.0, num = n = 0 ; n < vt->vnum ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked != 1 || vn->ripflag)
             continue ;
           vnp = (VERTEX_PARMS *)(vn->vp) ;
@@ -1581,7 +1580,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
           mn += d ;
           std += d*d ;
           if (vno == Gdiag_no)
-            fprintf(fp, "%d %f\n", v->v[n], d) ;
+            fprintf(fp, "%d %f\n", vt->v[n], d) ;
         }
         std = sqrt((std - mn*mn/num)/(num-1)) ;
         mn /= num ;
@@ -1610,14 +1609,15 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     // now do consistency check on pial distances
     for (outliers = vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->ripflag || v->marked != 1)
         continue ;
-      for (mn = std = 0.0, num = n = 0 ; n < v->vtotal ; n++)
+      for (mn = std = 0.0, num = n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked != 1 || vn->ripflag)
           continue ;
         num++ ;
@@ -1632,12 +1632,12 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         FILE *fp = NULL  ;
         fp = fopen("pout.dat", "w") ;
-        for (n = 0 ; n < v->vtotal ; n++)
+        for (n = 0 ; n < vt->vtotal ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked == 0 || vn->ripflag)
             continue ;
-          fprintf(fp, "%d %f\n", v->v[n], vn->d) ;
+          fprintf(fp, "%d %f\n", vt->v[n], vn->d) ;
         }
         fclose(fp) ;
       }
@@ -1659,9 +1659,9 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
           fp = fopen("ldist.dat", "w") ;
-        for (mn = std = 0.0, num = n = 0 ; n < v->vnum ; n++)
+        for (mn = std = 0.0, num = n = 0 ; n < vt->vnum ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked != 1 || vn->ripflag)
             continue ;
           vnp = (VERTEX_PARMS *)(vn->vp) ;
@@ -1673,7 +1673,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
           mn += d ;
           std += d*d ;
           if (vno == Gdiag_no)
-            fprintf(fp, "%d %f\n", v->v[n], d) ;
+            fprintf(fp, "%d %f\n", vt->v[n], d) ;
         }
         std = sqrt((std - mn*mn/num)/(num-1)) ;
         mn /= num ;
@@ -1703,14 +1703,15 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     mean_vdist = MRIScomputeVertexSpacingStats(mris, &sigma_vdist, NULL,NULL,NULL,NULL,CURRENT_VERTICES) ;
     for (outliers = vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->ripflag || v->marked != 1)
         continue ;
-      for (mn = std = 0.0, num = n = 0 ; n < v->vtotal ; n++)
+      for (mn = std = 0.0, num = n = 0 ; n < vt->vtotal ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked != 1 || vn->ripflag)
           continue ;
         num++ ;
@@ -1725,12 +1726,12 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         FILE *fp  ;
         fp = fopen("pout.dat", "w") ;
-        for (n = 0 ; n < v->vtotal ; n++)
+        for (n = 0 ; n < vt->vtotal ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked == 0 || vn->ripflag)
             continue ;
-          fprintf(fp, "%d %f\n", v->v[n], vn->d) ;
+          fprintf(fp, "%d %f\n", vt->v[n], vn->d) ;
         }
         fclose(fp) ;
       }
@@ -1752,9 +1753,9 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
           fp = fopen("pdist.dat", "w") ;
-        for (mn = std = 0.0, num = n = 0 ; n < v->vnum ; n++)
+        for (mn = std = 0.0, num = n = 0 ; n < vt->vnum ; n++)
         {
-          vn = &mris->vertices[v->v[n]] ;
+          VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
           if (vn->marked != 1 || vn->ripflag)
             continue ;
           vnp = (VERTEX_PARMS *)(vn->vp) ;
@@ -1766,7 +1767,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
           mn += d ;
           std += d*d ;
           if (vno == Gdiag_no)
-            fprintf(fp, "%d %f\n", v->v[n], d) ;
+            fprintf(fp, "%d %f\n", vt->v[n], d) ;
         }
         std = sqrt((std - mn*mn/num)/(num-1)) ;
         mn /= num ;
@@ -1789,7 +1790,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
 
     if (Gdiag_no >= 0)
     {
-      v = &mris->vertices[Gdiag_no] ;
+      VERTEX const * const v = &mris->vertices[Gdiag_no] ;
       vp = (VERTEX_PARMS *)(v->vp) ;
     }
     // now do soap bubble smoothing to fill in the missing values
@@ -2544,7 +2545,6 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     wm_intensity_offset, min_wm_intensity, max_wm_intensity, best_nx, best_ny, best_nz,
     best_sg_intensity_offset, sg_intensity_offset, ig_intensity_offset=0,  best_ig_intensity_offset, 
     min_wm_len ;
-  VERTEX *vico ;
   
   int error_type = dp->error_type ;
   double (*profile_error_func)(double *kernel, double *intensity_profile, int nsamples, char *fname,
@@ -2618,7 +2618,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
   best_wm_len = best_ig_len = best_sg_len = best_start_index = best_csf_len = 0 ;
 
   ico_vno = MRISfindClosestVertex(mris_ico, vp->nx, vp->ny, vp->nz, NULL, CURRENT_VERTICES);
-  vico = &mris_ico->vertices[ico_vno] ;
+  VERTEX_TOPOLOGY const * const vico = &mris_ico->vertices_topology[ico_vno] ;
   best_nx = vp->nx ; best_ny = vp->ny ; best_nz = vp->nz ;
   best_ig_intensity_offset = best_sg_intensity_offset = best_wm_intensity_offset = 0.0 ;
   for (n = -1 ; n < vico->vnum ; n++)
@@ -3675,7 +3675,6 @@ static int
 is_outlier(MRI_SURFACE *mris, int vno, int which)
 {
   int       n, num ;
-  VERTEX    *vn, *v ;
   double    dists[MAX_DISTS], mn, std, min_dist, max_dist, dist ;
   HISTOGRAM *h ;
   VERTEX_PARMS *vp ;
@@ -3685,14 +3684,15 @@ is_outlier(MRI_SURFACE *mris, int vno, int which)
 #endif
 
   memset(dists, 0, sizeof(dists)) ;
-  v = &mris->vertices[vno] ;
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
 
   vp = (VERTEX_PARMS *)(v->vp) ;
   dist = which == WHITE_VERTICES ? vp->white_dist : vp->pial_dist ; ;
   min_dist = max_dist = dist ;
-  for (num = n = 0 ; n < v->vtotal ; n++)
+  for (num = n = 0 ; n < vt->vtotal ; n++)
   {
-    vn = &mris->vertices[v->v[n]];
+    VERTEX const * const vn = &mris->vertices[vt->v[n]];
     if (vn->ripflag || vn->marked != 1)
       continue ;
 
@@ -3721,13 +3721,13 @@ is_outlier(MRI_SURFACE *mris, int vno, int which)
     VERTEX_PARMS *vnp ;
     fp = fopen("out.dat", "w") ;
     HISTOplot(h, "h.plt") ;
-    for (n = 0 ; n < v->vtotal ; n++)
+    for (n = 0 ; n < vt->vtotal ; n++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->marked != 1 || vn->ripflag)
         continue ;
       vnp = (VERTEX_PARMS *)vn->vp ;
-      fprintf(fp, "%d %f\n", v->v[n], which == WHITE_VERTICES ? vnp->white_dist : vnp->pial_dist);
+      fprintf(fp, "%d %f\n", vt->v[n], which == WHITE_VERTICES ? vnp->white_dist : vnp->pial_dist);
     }
     fclose(fp) ;
   }
@@ -4169,7 +4169,7 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
   double kernel[MAX_PROFILE_LEN], nx, ny, nz, wm_intensity_offset, sg_intensity_offset, in_dist, wm_val,
          intensity_profile[MAX_PROFILE_LEN],norm, ig_dist, sg_dist, v1_rms_total, 
     generic_rms_total, generic_rms, v1_rms ;
-  VERTEX *v, *vn ;
+
   double (*profile_error_func)(double *kernel, double *intensity_profile, 
                                int nsamples, char *fname,double step, double in_dist,
                                double *errors);
@@ -4187,7 +4187,8 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
     fname = fname2 = NULL ;
 
   stria_len = nint((dp->stria_width+STRIA_OFFSET) / dp->step) ;
-  v = &mris->vertices[vno] ;
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
   switch (dp->error_type)
   {
   default:
@@ -4198,11 +4199,8 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
   }
 
   for (num = 0, v1_rms_total = generic_rms_total = 0.0, n = -1 ; n < 0 ; n++)
-  {
-    if (n < 0)
-      vn = v ;
-    else
-      vn = &mris->vertices[v->v[n]] ;
+  { 
+    VERTEX const * const vn = (n < 0) ? v : &mris->vertices[vt->v[n]] ;
     if (vn->ripflag)
       continue ;
     
@@ -4674,15 +4672,14 @@ static int
 rip_vertices_with_no_faces(MRI_SURFACE *mris)
 {
   int    vno, n, fnum ;
-  VERTEX *v ;
-
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
-    for (n = fnum = 0; n < v->num ; n++)
-      if (mris->faces[v->f[n]].ripflag == 0)
+    for (n = fnum = 0; n < vt->num ; n++)
+      if (mris->faces[vt->f[n]].ripflag == 0)
         fnum++ ;
     if (fnum == 0)
       v->ripflag = 1 ;

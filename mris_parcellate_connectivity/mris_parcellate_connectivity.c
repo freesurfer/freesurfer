@@ -137,7 +137,6 @@ main(int argc, char *argv[]) {
   {
     int     vno, fno, ico_down, n, bad_triangle, add_vertex, vno2 ;
     MRIS    *mris_ico_down, *mris_ico_base ;
-    VERTEX  *v, *vn ;
     FACE    *f ;
 
     sprintf(fname, "%s/lib/bem/ic%d.tri", cp, ico_no-(nsub-1)) ;
@@ -159,7 +158,7 @@ main(int argc, char *argv[]) {
           DiagBreak() ;
         for (bad_triangle = 1, n = 0 ; n < VERTICES_PER_FACE ; n++)
         {
-          v = &mris_ico->vertices[f->v[n]] ;
+          VERTEX const * const v = &mris_ico->vertices[f->v[n]] ;
           if (f->v[n] == Gdiag_no)
             DiagBreak() ;
           if (v->border == 1)
@@ -174,13 +173,13 @@ main(int argc, char *argv[]) {
           {
             if (f->v[n] == Gdiag_no)
               DiagBreak() ;
-            v = &mris_ico->vertices[f->v[n]] ;
+            VERTEX * const v = &mris_ico->vertices[f->v[n]] ;
             v->marked = 2 ; // part of a bad triangle
           }
       }
       for (vno = 0 ; vno < mris_ico->nvertices ; vno++)
       {
-        v = &mris_ico->vertices[vno] ;
+        VERTEX * const v = &mris_ico->vertices[vno] ;
         if (vno == Gdiag_no)
           DiagBreak() ;
         if (v->marked == 0)
@@ -200,16 +199,16 @@ main(int argc, char *argv[]) {
 
     for (vno = 0 ; vno < mris_ico->nvertices ; vno++)
     {
-      v = &mris_ico->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris_ico->vertices_topology[vno];
+      VERTEX                * const v  = &mris_ico->vertices         [vno] ;
       if (vno == Gdiag_no)
         DiagBreak() ;
 
       if (v->border == 1)  // already added
         continue ;
-      for (add_vertex = 0, n = 0 ; n < v->vnum ; n++)
+      for (add_vertex = 0, n = 0 ; n < vt->vnum ; n++)
       {
-        vno2 = v->v[n] ;
-        vn = &mris_ico->vertices[vno2] ;
+        vno2 = vt->v[n] ;
         if (vno2 == Gdiag_no)
           DiagBreak() ;
         if (vno2 < mris_ico_base->nvertices)
