@@ -1,5 +1,5 @@
 /**
- * @File  mris_graidient.c
+ * @File  mris_gradient.c
  * @brief program for computing the gradient of a surface-based vector field.
  *
  * Compute the gradient of a surface based vector field by first computing the individual
