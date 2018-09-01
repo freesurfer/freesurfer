@@ -297,6 +297,7 @@ main(int argc,
     << "\t = " << img << std::endl
     << (img.isValid() ? "valid": "not valid") << std::endl;
   }
+  printf("#VMPC# fapplyMorph VmPeak  %d\n",GetVmPeak());
   return 0;
 }
 

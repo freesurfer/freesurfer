@@ -145,15 +145,17 @@ main(int ac, char* av[])
     MRIfree(&mriOut);
   }
   // produce the GCAM
+  printf("#VMPC# exportGcam:pre-export VmPeak  %d\n",GetVmPeak());
   GCA_MORPH* gcam = pmorph->exportGcam(mriMoving,
                                        params.useBoundingBox,
                                        params.threshold);
-
+  printf("#VMPC# exportGcam:pre-write VmPeak  %d\n",GetVmPeak());
   GCAMwrite( gcam,
              const_cast<char*>
              (params.strGcam.c_str()));
 
   // test the presence of the gc structures -- LZ: WHAT DOES THAT DO???
+  printf("#VMPC# exportGcam:pre-norm VmPeak  %d\n",GetVmPeak());
   GCAMnormalizeIntensities(gcam, mriFixed);
 
   if ( params.doTest && (!params.useBoundingBox || 1) )
@@ -179,6 +181,7 @@ main(int ac, char* av[])
   }
 
   std::cout << " Export performed in " << timer.elapsed_min() << " minutes \n";
+  printf("#VMPC# exportGcam VmPeak  %d\n",GetVmPeak());
 
   return 0;
 }

@@ -1569,6 +1569,19 @@ int GetVmPeak(void)
 }
 
 /*!
+  \fn int GetVmSize(void)
+  \brief returns Vm Size by reading /proc/self/status. Note that it is
+  only as accurate as /proc/self/status which is a file that needs to
+  be updated by the OS; not sure how often that happens.
+*/
+int GetVmSize(void)
+{
+  static int u[5];
+  GetMemUsage(u);
+  return(u[0]);
+}
+
+/*!
   \fn int *GetMemUsage(int *u)
   \brief returns Vm Size, Peak, RSS, Data, and Stk by reading
   /proc/self/status. Note that it is only as accurate as
