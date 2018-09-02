@@ -53,7 +53,7 @@ extern "C"
 #include "error.h"
 #include "mrisurf.h"
 };
-char* Progname;
+const char* Progname;
 
 // local fct declarations
 

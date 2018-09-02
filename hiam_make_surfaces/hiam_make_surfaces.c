@@ -112,7 +112,7 @@ static int      smooth_spikes = 500;
 static int      nbrs = 3 ;
 //static float    weight_quadcur = 0.0, weight_label = 1.0, weight_repulse = 0.0, weight_Nspring = 0.1, weight_Tspring = 0.1;
 static float    weight_quadcur = 1.2, weight_label = 1.2, weight_repulse = 3.0, weight_Nspring = 0.5, weight_Tspring = 0.5;
-char            *Progname ;
+const char            *Progname ;
 int             t=0;
 int             table[2][20000];
 char            surf[5][10]= {"lh","rh","LA","RA","OTHER"

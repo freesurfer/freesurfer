@@ -45,7 +45,7 @@ extern "C"
 #include "chklc.h"
 }
 
-char* Progname;
+const char* Progname;
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)

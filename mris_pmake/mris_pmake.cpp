@@ -69,7 +69,7 @@ using namespace std;
 extern  const option longopts[];
 stringstream            Gsout("");
 char*   Gpch_Progname;
-char*   Progname        = Gpch_Progname;
+const char*   Progname        = Gpch_Progname;
 bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
