@@ -46,7 +46,7 @@ static int get_option(int argc, char *argv[]) ;
 static int test(MRI *mri1, MRI *mri2, MRI *mri3, MATRIX *m_vol1_to_vol2_ras) ;
 #endif
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static char *histo_parms = NULL ;

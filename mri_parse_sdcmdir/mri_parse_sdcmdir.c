@@ -61,7 +61,7 @@ extern int isblank(int c);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.22 2015/05/21 16:37:12 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);

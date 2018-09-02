@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 MRI *MRImarkTemporalWM(MRI *mri_seg, MRI *mri_dst) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static char *seg_dir = "seg" ;

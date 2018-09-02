@@ -62,7 +62,7 @@ static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
 static int thresh_low = 0 ;
 #endif
 
-char *Progname ;
+const char *Progname ;
 static int align = 1 ;
 static int window_flag = 0 ;
 static MORPH_PARMS  parms ;

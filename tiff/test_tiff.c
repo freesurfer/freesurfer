@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include "tiffio.h"
 
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int main ( int argc, char *argv[] ) {
 

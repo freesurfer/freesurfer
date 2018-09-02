@@ -51,7 +51,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 #define KTHRESH 1.5  // everything with kmin less than this will not move
 
-char *Progname ;
+const char *Progname ;
 
 static int which_norm = NORM_MEAN ;
 static int normalize_flag = 0 ;

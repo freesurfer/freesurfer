@@ -116,7 +116,7 @@ static char *white_fname = NULL ;
 static char *orig_white = NULL ;
 static char *orig_pial = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static double std_scale = 1.0;
 

@@ -63,7 +63,7 @@ static void print_version(void) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static char *wfile_name = NULL ;
 static char *c1_name = "class1" ;

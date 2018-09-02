@@ -113,7 +113,7 @@ static float mask_thresh = 0.0 ;
 static char *mask_orig_fname = NULL ;
 static float mask_orig_thresh = 150 ;
 
-char *Progname ;
+const char *Progname ;
 
 static int scan_type = MRI_UNKNOWN ;
 

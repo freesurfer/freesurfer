@@ -180,7 +180,7 @@ static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
 static char *dilate_label_name = NULL ;
 static int dilate_label_index = -1 ;
 static int dilate_label_annot = 0 ;
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

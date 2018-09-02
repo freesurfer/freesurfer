@@ -72,7 +72,7 @@ int    MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation) ;
 int    MRISreplaceAnnotations(MRI_SURFACE *mris,
                               int in_annotation,
                               int out_annotation) ;
-char *Progname ;
+const char *Progname ;
 static char *suffix = "" ;
 static double sigma = 0.0f ;
 static float ignore_below = 0 ;

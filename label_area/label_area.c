@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int verbose = 0 ;
 

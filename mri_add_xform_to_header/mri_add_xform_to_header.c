@@ -43,7 +43,7 @@ static int get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static void usage_exit(void);
 
-char *Progname ;
+const char *Progname ;
 
 int verbose = 0 ;
 int CopyNameOnly = 0;

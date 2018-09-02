@@ -1003,7 +1003,7 @@ void wmfilter_corslice(int imc) ;
 void alloc_second_im(void) ;
 void smooth_surface(int niter) ;
 
-char *Progname ;
+const char *Progname ;
 
 #ifdef USE_LICENSE
 

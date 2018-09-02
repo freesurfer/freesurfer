@@ -175,7 +175,7 @@ static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
 
-char *Progname ;
+const char *Progname ;
 
 static double std_scale = 1.0;
 

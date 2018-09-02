@@ -376,7 +376,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
 char *srchemi    = NULL;

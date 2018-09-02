@@ -60,7 +60,7 @@ static void print_version(void) ;
 static char vcid[] =
   "$Id: mri_info.c,v 1.87 2014/11/20 23:46:54 greve Exp $";
 
-char *Progname ;
+const char *Progname ;
 static char *inputlist[100];
 static int nthinput=0;
 static int PrintTR=0;

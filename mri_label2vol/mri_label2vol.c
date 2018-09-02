@@ -81,7 +81,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_label2vol.c,v 1.46 2014/12/08 21:11:54 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *LabelList[100];
 int nlabels = 0;

@@ -98,7 +98,7 @@ int MRI_correction=0;
 MRI *mri_T1,*mri_PD,*mri_Err,*mri_dst,*mri_test,*mri_CSF;
 MRI *mri_orig = NULL ;
 int mriT1=0, mriPD=0, mriErr=0,mriCSF=0,mriOut=0,mriSURF=0;
-char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,
+const char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,
 *CSF_fname,surf_fname[512];
 
 #if 0

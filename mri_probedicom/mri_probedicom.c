@@ -68,7 +68,7 @@
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);

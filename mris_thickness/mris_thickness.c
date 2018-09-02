@@ -56,7 +56,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 static char pial_name[100] = "pial" ;
 static char white_name[100] = WHITE_MATTER_NAME ;
 static int write_vertices = 0 ;

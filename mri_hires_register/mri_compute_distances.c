@@ -55,7 +55,7 @@
 #include "cma.h"
 #include "version.h"
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
 static float MRIcomputeAverageHausdorffDistance(MRI *mri1,

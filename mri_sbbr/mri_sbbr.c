@@ -143,7 +143,7 @@ int MRIScomputeFaceNormal(MRIS *surf, int faceno, double snorm[3]);
 int NormalizeVect3(double v[3]) ;
 
 static char vcid[] = "$Id: mri_sbbr.c,v 1.7 2016/09/23 20:23:11 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

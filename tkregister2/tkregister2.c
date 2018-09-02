@@ -315,7 +315,7 @@ float ptx[MAXPTS],pty[MAXPTS],ptz[MAXPTS];
 float par[MAXPARS],dpar[MAXPARS];
 int nslices=0,nperslice=0;
 
-char *Progname ;
+const char *Progname ;
 double fthresh = 0.35;
 double fsquash = 12.0;
 double fscale = 255;

@@ -132,7 +132,7 @@ static double find_optimal_linear_xform(VOXEL_LIST *vl_target,
                                         float trans_steps,
                                         int nreductions,
                                         int rigid);
-char *Progname ;
+const char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;

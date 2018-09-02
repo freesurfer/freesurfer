@@ -85,7 +85,7 @@ static LTA *hires_lta = 0 ;
 static char *orig_white = "white";
 static char *orig_pial = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static char *reg_fname = NULL ;
 static int graymid = 0 ;

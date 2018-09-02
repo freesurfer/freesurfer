@@ -64,7 +64,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int MRISscaleUp(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE     1.0

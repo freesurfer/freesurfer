@@ -49,7 +49,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char curvature_fname[STRLEN] = "" ;
 static int which_norm = NORM_MEAN ;

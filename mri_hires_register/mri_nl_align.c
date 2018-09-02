@@ -75,7 +75,7 @@ static char *source_surf = "";
 static char *target_surf = ".toM02100023.resample";
 static char *mask_fname = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;

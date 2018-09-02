@@ -49,7 +49,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 
 static char vcid[] = "$Id: mris_compute_volume_fractions.c,v 1.4 2013/05/17 15:19:06 enderk Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

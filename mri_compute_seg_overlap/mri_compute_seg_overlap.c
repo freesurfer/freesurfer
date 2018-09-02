@@ -52,7 +52,7 @@ static int do_wm = 1 ;
 static void usage(int exit_val);
 static int  get_option(int argc, char *argv[]) ;
 
-char *Progname;
+const char *Progname;
 
 static char *log_fname = NULL ; //dice coeff of individual structures
 static char *mlog_fname = NULL ; //mean of individual dice

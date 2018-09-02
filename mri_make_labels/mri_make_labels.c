@@ -10,7 +10,7 @@
 #include "mrisegment.h"
 
 
-char *Progname ;
+const char *Progname ;
 
 static int use_abs ;
 static int size_thresh = 10 ;

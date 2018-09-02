@@ -132,7 +132,7 @@ static int roi_flag = 0 ;
 static int cond_no1 = 0 ;
 static int cond_no2 = 1 ;
 
-char *Progname ;
+const char *Progname ;
 
 static float min_label_area = 30.0f ;
 static int write_flag = 0 ;
