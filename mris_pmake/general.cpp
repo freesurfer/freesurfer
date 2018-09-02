@@ -31,7 +31,7 @@
 #include "pathconvert.h"
 
 extern "C" {
-  const char     *Progname;
+  extern const char *Progname;
 }
 extern string   G_SELF;
 extern bool     Gb_stdout;
