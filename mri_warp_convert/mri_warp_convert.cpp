@@ -67,7 +67,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
     "$Id: mri_warp_convert.cpp,v 1.1 2016/06/16 19:57:06 ohinds Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 GCAM* readM3Z(const string& warp_file)
 // Read an m3z file. Just calls down to GCAMread

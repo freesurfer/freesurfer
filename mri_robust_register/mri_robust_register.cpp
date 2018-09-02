@@ -153,7 +153,7 @@ static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
     "$Id: mri_robust_register.cpp,v 1.77 2016/01/20 23:36:17 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
