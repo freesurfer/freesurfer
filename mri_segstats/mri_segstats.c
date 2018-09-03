@@ -110,7 +110,8 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] =
   "$Id: mri_segstats.c,v 1.122 2017/01/23 18:23:14 greve Exp $";
-const char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
+const char *Progname = NULL;
+char *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
 char *InVolRegFile = NULL;

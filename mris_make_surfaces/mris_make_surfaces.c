@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
-  VERTEX *v,*v2;
+  VERTEX *v;
 
   FSinit() ;
   make_cmd_version_string
