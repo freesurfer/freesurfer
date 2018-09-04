@@ -137,6 +137,7 @@ double  LabelVariance(LABEL *area, double ux, double uy, double uz) ;
 int     LabelMean(LABEL *area, double *px, double *py, double *pz) ;
 int     LabelMark(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) ;
+float   LabelMaxStat(LABEL *area) ;
 int     LabelMarkStats(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
