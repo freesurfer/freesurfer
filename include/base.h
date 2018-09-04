@@ -46,6 +46,8 @@ extern "C" {
 #endif
 
 
+extern const char *Progname;
+    // various of the utility programs define this global variable to be their name
 
 // you can do #if GCC_VERSION > 30200 for gcc 3.2.0
 #ifdef __GNUC__

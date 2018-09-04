@@ -151,6 +151,17 @@ set(SOURCES
   mrisp.c
   MRISrigidBodyAlignGlobal.c
   mrisurf.c
+  mrisurf_base.c
+  mrisurf_deform.c
+  mrisurf_defect.c
+  mrisurf_integrate.c
+  mrisurf_io.c
+  mrisurf_metricProperties.c
+  mrisurf_mri.c
+  mrisurf_obsolete.c
+  mrisurf_timeStep.c
+  mrisurf_topology.c
+  mrisurf_vals.c
   mriSurface.c
   mrisutils.c
   mriTransform.c
