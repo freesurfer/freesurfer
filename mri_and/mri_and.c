@@ -49,7 +49,7 @@ static void print_version(void) ;
 static int get_option(int argc, char *argv[]) ;
 static char vcid[] = "$Id: mri_and.c,v 1.4 2011/03/02 00:04:13 nicks Exp $";
 
-char *Progname ;
+const char *Progname ;
 
 
 /***-------------------------------------------------------****/

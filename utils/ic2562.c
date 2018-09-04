@@ -7729,8 +7729,6 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
 {
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
-  VERTEX *v;
-  FACE *f;
   static int first_time = 1;
 
   if (first_time) {
@@ -7750,7 +7748,7 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
 
   /* position vertices */
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
 
     v->x = 100.0 * ic2562_vertices[vno].x;
     v->y = 100.0 * ic2562_vertices[vno].y;
@@ -7759,29 +7757,29 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
 
   /* fill in faces, and count # of faces each vertex is part of */
   for (fno = 0; fno < ICO_NFACES; fno++) {
-    f = &mris->faces[fno];
+    FACE * const f = &mris->faces[fno];
     if (fno == 15) DiagBreak();
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       f->v[n] = ic2562_faces[fno].vno[n] - 1; /* make it zero-based */
-      v = &mris->vertices[f->v[n]];
-      v->num++;
-      v->vnum += 2; /* will remove duplicates later */
+      VERTEX_TOPOLOGY* vt = &mris->vertices_topology[f->v[n]];
+      vt->num++;
+      vt->vnum += 2; /* will remove duplicates later */
     }
   }
 
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    v = &mris->vertices[vno];
-    v->v = (int *)calloc(v->vnum / 2, sizeof(int));
-    if (!v->v) ErrorExit(ERROR_NOMEMORY, "ic2562: could not allocate %dth vertex list.", vno);
-    v->vnum = 0;
+    VERTEX_TOPOLOGY* vt = &mris->vertices_topology[vno];
+    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
+    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ic2562: could not allocate %dth vertex list.", vno);
+    vt->vnum = 0;
   }
 
   /* now build list of neighbors */
   for (fno = 0; fno < ICO_NFACES; fno++) {
-    f = &mris->faces[fno];
+    FACE* const f = &mris->faces[fno];
     if (fno == 3) DiagBreak();
     for (n = 0; n < VERTICES_PER_FACE; n++) {
-      v = &mris->vertices[f->v[n]];
+      VERTEX_TOPOLOGY* vt = &mris->vertices_topology[f->v[n]];
 
       /* now add an edge to other 2 vertices if not already in list */
       for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
@@ -7790,49 +7788,50 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
         vn = ic2562_faces[fno].vno[n1] - 1; /* make it zero-based */
 
         /* now check to make sure it's not a duplicate */
-        for (n2 = 0; n2 < v->vnum; n2++) {
-          if (v->v[n2] == vn) {
+        for (n2 = 0; n2 < vt->vnum; n2++) {
+          if (vt->v[n2] == vn) {
             vn = -1; /* mark it as a duplicate */
             break;
           }
         }
-        if (vn >= 0) v->v[v->vnum++] = vn;
+        if (vn >= 0) vt->v[vt->vnum++] = vn;
       }
     }
   }
 
   /* now allocate face arrays in vertices */
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    v = &mris->vertices[vno];
-    v->vtotal = v->vnum;
-    v->f = (int *)calloc(v->num, sizeof(int));
-    if (!v->f) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d faces", v->num);
-    v->n = (unsigned char *)calloc(v->num, sizeof(unsigned char));
-    if (!v->n) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d nbrs", v->n);
-    v->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(v->vnum, sizeof(float));
+    VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
+    VERTEX         * const v  = &mris->vertices         [vno];
+    vt->vtotal = vt->vnum;
+    vt->f = (int *)calloc(vt->num, sizeof(int));
+    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d faces", vt->num);
+    vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
+    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d nbrs", vt->n);
+    vt->num = 0; /* for use as counter in next section */
+    v->dist = (float *)calloc(vt->vnum, sizeof(float));
     if (!v->dist)
       ErrorExit(ERROR_NOMEMORY,
                 "ic2562: could not allocate list of %d "
                 "dists at v=%d",
-                v->vnum,
+                vt->vnum,
                 vno);
-    v->dist_orig = (float *)calloc(v->vnum, sizeof(float));
+    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
     if (!v->dist_orig)
       ErrorExit(ERROR_NOMEMORY,
                 "ic2562: could not allocate list of %d "
                 "dists at v=%d",
-                v->vnum,
+                vt->vnum,
                 vno);
   }
 
   /* fill in face indices in vertex structures */
   for (fno = 0; fno < ICO_NFACES; fno++) {
-    f = &mris->faces[fno];
+    FACE* const f = &mris->faces[fno];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
-      v = &mris->vertices[f->v[n]];
-      v->n[v->num] = n;
-      v->f[v->num++] = fno;
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
+      vt->n[vt->num] = n;
+      vt->f[vt->num++] = fno;
     }
   }
 
@@ -7850,7 +7849,7 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
        */
-    v = &mris->vertices[f->v[0]] ;
+    VERTEX const * const v = &mris->vertices[f->v[0]] ;
     dot = v->x * f->nx + v->y * f->ny + v->z * f->nz;
     if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
     {

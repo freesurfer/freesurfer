@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] =
   "$Id: mri_aparc2aseg.c,v 1.54 2016/12/26 15:29:30 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 static char *relabel_gca_name = NULL ;
 static char *relabel_norm_name = NULL ;
 static char *relabel_xform_name = NULL ;

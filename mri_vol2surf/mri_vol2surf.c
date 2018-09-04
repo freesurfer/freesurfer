@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = 
 "$Id: mri_vol2surf.c,v 1.68 2014/05/30 20:58:47 greve Exp $";
 
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static char *defaulttypestring;
 static int  defaulttype = MRI_VOLUME_TYPE_UNKNOWN;
@@ -1924,7 +1924,6 @@ build_sample_array(MRI_SURFACE *mris, MRI *mri_src, MATRIX *m,
   int    vno, vno_nbr, srcval, icol_src, irow_src, islc_src, n, nfound,  index,
     nbr, vnum,nsize, found, done, failed, vlist[MAX_NBRS],
     min_needed = 3*2 ; // 3 parameters estimated with 2x overdetermination
-  VERTEX *v, *vn ;
   MATRIX *Scrs, *Txyz, *m_A, *m_p, *m_S, *m_inv;
   MRI    *mri_samples, *mri_voxels_c, *mri_voxels_r, *mri_voxels_s, *mri_sampled ;
   double rms_mean, rms_var ;
@@ -1959,7 +1958,7 @@ build_sample_array(MRI_SURFACE *mris, MRI *mri_src, MATRIX *m,
   rms_mean = rms_var = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -1992,7 +1991,8 @@ build_sample_array(MRI_SURFACE *mris, MRI *mri_src, MATRIX *m,
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -2004,19 +2004,18 @@ build_sample_array(MRI_SURFACE *mris, MRI *mri_src, MATRIX *m,
     {
       switch (nsize)
       {
-      case 1: vnum = v->vnum ; break ;
-      case 2: vnum = v->v2num ; break ;
+      case 1: vnum = vt->vnum ; break ;
+      case 2: vnum = vt->v2num ; break ;
       default: 
-      case 3: vnum = v->v3num ; break ;
+      case 3: vnum = vt->v3num ; break ;
       }        
-      memmove(vlist+1, v->v, vnum*sizeof(v->v[0])) ;
+      memmove(vlist+1, vt->v, vnum*sizeof(vt->v[0])) ;
       vlist[0] = vno ; vnum++ ;
       for (nbr = 0 ; nbr < vnum ; nbr++)
       {
         float gm, wm, csf ;
 
         vno_nbr = vlist[nbr] ;
-        vn = &mris->vertices[vno_nbr] ;
         for (n = 0 ; n < nsamples ; n++)
         {
           icol_src = (int)MRIgetVoxVal(mri_voxels_c, vno_nbr, 0, 0, n);

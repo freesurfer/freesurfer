@@ -52,7 +52,7 @@ static void print_version(void) ;
 int MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris) ;
 double MRIScomputeCurvatureValueCorrelationCoefficient(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int navgs = 0 ;
 

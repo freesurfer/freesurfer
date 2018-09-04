@@ -98,7 +98,7 @@ static int get_option(int argc, char *argv[]) ;
 static MRI_REGION Gtarget_box, Gsource_box ;
 
 static char *source_intensity_fname = NULL ;
-char *Progname ;
+const char *Progname ;
 
 static int skip = 4 ;
 

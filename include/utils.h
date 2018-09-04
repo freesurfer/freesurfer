@@ -63,9 +63,9 @@ void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 char *fgetl(char *s, int n, FILE *fp) ;
 #endif
 
-#ifndef isfinite 
-#define isfinite(x) (finite(x))
-#endif
+  //#ifndef isfinite 
+  //#define isfinite(x) (finite(x))
+  //#endif
 
 int  IntSqrt(int n) ;
 
@@ -96,6 +96,8 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
+int GetVmPeak(void);
+int GetVmSize(void);
 int getMemoryUsed(void); // return total virtual memory used by Progname 
                      // in Kbytes. works only under Linux /proc system
 void printMemoryUsed(void); // print function of the above.

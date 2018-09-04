@@ -1,6 +1,6 @@
 project(mri_mcsim)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_mcsim mri_mcsim.c)
 target_link_libraries(mri_mcsim utils)

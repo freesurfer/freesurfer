@@ -47,6 +47,10 @@
       <explanation>do not save ?h.sulc</explanation>
       <argument>-sulc sulcname</argument>
       <explanation>save to ?h.sulcname</explanation>
+      <argument>-mm</argument>
+      <explanation>compute sulc in mm without zero meaning or scaling</explanation>
+      <argument>-scale 0/1</argument>
+      <explanation>disable or enable scaling of inflated brain</explanation>
     </optional-flagged>
   </arguments>
   <outputs>

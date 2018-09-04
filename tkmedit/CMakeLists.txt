@@ -2,29 +2,42 @@ project(tkmedit)
 
 if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
-  include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${TCLTKTIXBLT_INCLUDE_DIR}
-    ${TIFF_INCLUDE_DIR}
-    ${GLUT_INCLUDE_DIR}/GL
-  )
+  if(APPLE AND NOT BUILD_OSX_TK_GUIS)
+  
+    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/tkmedit.bin TYPE programs DESTINATION bin)
 
-  set(SOURCES
-    tkmDisplayArea.c
-    tkmedit.c
-    tkmFunctionalVolume.c
-    tkmMeditWindow.c
-  )
+  else()
 
-  add_executable(tkmedit ${SOURCES})
-  target_link_libraries(tkmedit utils fsgdf ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
+    include_directories(
+      ${FS_INCLUDE_DIRS}
+      ${TCLTKTIXBLT_INCLUDE_DIR}
+      ${TIFF_INCLUDE_DIR}
+      ${GLUT_INCLUDE_DIR}/GL
+      ${X11_INCLUDE_DIR}
+    )
 
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-exec $FREESURFER_HOME/tktools/tkmedit.bin $argv"
-  )
-  install_wrapped(TARGETS tkmedit DESTINATION tktools WRAPCODE ${WRAPCODE})
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkmedit DESTINATION tktools)
+    set(SOURCES
+      tkmDisplayArea.c
+      tkmedit.c
+      tkmFunctionalVolume.c
+      tkmMeditWindow.c
+    )
+
+    add_executable(tkmedit.bin ${SOURCES})
+    target_link_libraries(tkmedit.bin
+      utils
+      fsgdf
+      ${OPENGL_LIBRARIES}
+      ${GLUT_LIBRARIES}
+      ${X11_LIBRARIES}
+      ${TCLTKTIXBLT_LIBRARIES}
+    )
+
+    install(TARGETS  tkmedit.bin DESTINATION tktools)
+
+  endif()
+
+  install(PROGRAMS tkmedit_wrapper DESTINATION bin RENAME tkmedit)
+  install(PROGRAMS tkmedit_wrapper DESTINATION tktools RENAME tkmedit)
 
 endif()

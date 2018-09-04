@@ -1,4 +1,4 @@
-function [ mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, mergingLookupTable ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
+function [ mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, translationTable ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
 %
 %  [ mergedAlphas, mergedNames, [ mergedFreeSurferLabels, mergedColors ] ] = ...
 %          kvlMergeAlphas( alphas, names, mergeOptions, [ FreeSurferLabels, colors ] );
@@ -15,15 +15,20 @@ function [ mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, merg
 %
 % creates a 'mergedAlphas' matrix where one or more columns of the 'alphas' matrix have been "merged" (i.e., added together).
 %  
-% If the 'mergedName' field contains an existing name (i.e., one that already occurs in variable 'names'), the corresponding FreeSurfer 
-% label and color is preserved, and columns in alphas matching the 'searchStrings' are merged into the already existing column. 
-% Conversely, if the 'mergedName' field contains a non-existing name, a new column is created that contains the sum of the 'alphas' 
-% columns matching the 'searchStrings' - in that case a bogus (negative) "FreeSurfer" label and color is invented.
-% 
-% The merging is done in first-order-first-serve basis: mergeOptions(1) is executed first, and the result is then fed into mergeOptions(2)
-% etc. 
-%
-%
+
+
+%  if 0
+%    save xxx.mat alphas names mergeOptions FreeSurferLabels colors
+%  
+%    exit;
+%  else  
+%    close all
+%    clear all
+%    addpath /home/koen/software/freesurferGit/freesurfer/GEMS2/Matlab/
+%    load xxx.mat
+%  end
+%  
+
 
 %
 if ( nargin < 4 )
@@ -38,90 +43,54 @@ if ( max( abs( sum( alphas, 2 ) - 1 ) ) > 1e-5 )
 end
 
 
-% Start by copying everything
-mergedAlphas = alphas;
-mergedNames = names;
-mergedFreeSurferLabels = FreeSurferLabels;
-mergedColors = colors;
-
-% Also keep track of what class ends up being merged into what
-mergingTable = num2cell( [ 1 : size( mergedAlphas, 2 ) ]' );
 
 
-% 
-numberOfMergingTasks = length( mergeOptions );
-for mergingTaskNumber = 1 : numberOfMergingTasks
-
+%
+numberOfClasses = length( mergeOptions );  % Super-structures aka mixture models
+numberOfStructures = size( alphas, 2 ); % Number of freesurfer labels being segmented/outputed
+translationTable = zeros( numberOfClasses, numberOfStructures );
+mergedNames = [];
+for classNumber = 1 : numberOfClasses
+  % 
+  className = mergeOptions( classNumber ).mergedName;
+  mergedNames = strvcat( mergedNames, className );
+  
   %
-  mergedName = mergeOptions( mergingTaskNumber ).mergedName;
-  searchStrings = mergeOptions( mergingTaskNumber ).searchStrings;
-
-  % Retrieve the class number corresponding to the merged label. If it doesn't exist yet,
-  % create a new class
-  classNumberOfMerged = find( strcmp( cellstr( mergedNames ), mergedName ) );
-  if ( length( classNumberOfMerged ) ~= 1 )
-    classNumberOfMerged = size( mergedAlphas, 2 ) + 1;
-    
-    mergedAlphas = [ mergedAlphas zeros( size( mergedAlphas, 1 ), 1 ) ];
-    mergedNames = strvcat( mergedNames, mergedName );
-    mergedFreeSurferLabels = [ mergedFreeSurferLabels; NaN ]; % We'll take care of these when all is done
-    mergedColors = [ mergedColors; NaN NaN NaN NaN ]; % We'll take care of these when all is done
-    
-    mergingTable = [ mergingTable; cell(1) ];
-
-  end
-
-
-  % Get class numbers of all structures to be merged into classNumberOfMerged
-  classIsNotMerging = ones( size( mergedAlphas, 2 ), 1 );
-  classIsNotMerging( classNumberOfMerged ) = 0;
+  searchStrings = mergeOptions( classNumber ).searchStrings;
   for searchStringNumber = 1 : length( searchStrings )
     searchString = searchStrings{ searchStringNumber };
-    classIsNotMerging = classIsNotMerging .* cellfun( 'isempty', strfind( cellstr( mergedNames ), searchString ) );
+    structureNumbers = find( ~cellfun( 'isempty', strfind( cellstr( names ), searchString ) ) );
+    translationTable( classNumber, structureNumbers ) = 1;
   end
-  mergingClassNumbers = find( ~classIsNotMerging );
-  
 
-  % Now merge (i.e., add the probabilities) of those class numbers to that of classNumberOfMerged
-  mergedAlphas( :, classNumberOfMerged ) = sum( mergedAlphas( :, mergingClassNumbers ), 2 );
-  mergingTable{ classNumberOfMerged } = [ mergingTable{ mergingClassNumbers' } ];
-  
-  % Remove the corresponding rows/columns in the resulting variables
-  classDisappears = ( ~classIsNotMerging ); classDisappears( classNumberOfMerged ) = 0; 
-  disappearingClassNumbers = find( classDisappears );
-
-  disp( [ 'Moved the following structures into ''' mergedName ''':' ] )
-  disp( '-------------------------------------------------' )
-  disp( mergedNames( disappearingClassNumbers, : ) )
-  disp( ' ' )
-  
-  mergedAlphas( :, disappearingClassNumbers ) = [];                                       
-  mergedFreeSurferLabels( disappearingClassNumbers ) = [];
-  mergedNames( disappearingClassNumbers, : ) = [];
-  mergedColors( disappearingClassNumbers, : ) = [];
-  mergingTable( disappearingClassNumbers ) = [];
-  
-end % End loop over all merging tasks
-  
-  
-% Make sure we still have a valid mesh
-if ( max( abs( sum( mergedAlphas, 2 ) - 1 ) ) > 1e-5 )
-  error( 'mergedAlphas invalid: class probabilities in the mesh should sum to one in all nodes' )
 end
-
-
-% Take care of NaN's we temporily put in the mergedFreeSurferLabels and mergedColors
-classNumberOfNewlyInventedClasses = find( isnan( mergedFreeSurferLabels ) );
-numberOfNewlyInvitedClasses = length( classNumberOfNewlyInventedClasses );
-mergedFreeSurferLabels( classNumberOfNewlyInventedClasses ) = -[ 1 : numberOfNewlyInvitedClasses ];
-mergedColors( classNumberOfNewlyInventedClasses, : ) = ...
-      255 * [ hsv( numberOfNewlyInvitedClasses ) ones( numberOfNewlyInvitedClasses, 1 ) ];
-
-      
-% Also compute lookup table indicating for each original class number (column number in alphas) the final 
-% class number (column number) in mergedAlphas         
-numberOfClasses = size( alphas, 2 );
-mergingLookupTable = zeros( numberOfClasses, 1 );
-for mergedClassNumber = 1 : length( mergingTable )
-  mergingLookupTable( mergingTable{ mergedClassNumber } ) = mergedClassNumber;
+if sum( sum(translationTable) == 0 )
+  error( 'Some structures are not associated with any super-structures' )
 end
+translationTable = translationTable ./ sum( translationTable );
+
+
+
+%
+mergedAlphas = alphas * translationTable';
+
+
+%
+mergedFreeSurferLabels = -[ 1 : numberOfClasses ]';
+mergedColors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];
+
+
+% Print out 
+for classNumber = 1 : numberOfClasses
+  % 
+  disp( mergedNames( classNumber, : ) )
+  for structureNumber = 1 : numberOfStructures
+    percentage = translationTable( classNumber, structureNumber );
+    if ( percentage > 0 )
+      disp( [ '    ' names( structureNumber, : ) ' (' num2str( percentage * 100 )  '%)' ] )
+    end    
+  end
+     
+end 
+
+

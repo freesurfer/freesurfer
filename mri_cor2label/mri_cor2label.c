@@ -111,7 +111,7 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 
 static char vcid[] = "$Id: mri_cor2label.c,v 1.12 2011/03/02 00:04:14 nicks Exp $";
-char *Progname ;
+const char *Progname ;
 int main(int argc, char *argv[]) ;
 
 char *infile;

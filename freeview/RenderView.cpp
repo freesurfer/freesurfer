@@ -113,6 +113,7 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   m_actorScalarBar->SetWidth(0.09);
   m_actorScalarBar->VisibilityOff();
   m_actorScalarBar->SetLookupTable(vtkSmartPointer<vtkLookupTable>::New());
+  m_actorScalarBar->SetUseOpacity(1);
 
   this->setMouseTracking( true );
   connect( this, SIGNAL(BackgroundColorChanged(QColor)), this, SLOT(RequestRedraw()));

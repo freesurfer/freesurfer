@@ -27,6 +27,7 @@
 #define QdecUtilities_h
 
 #include <stdio.h>
+#include <unistd.h>
 #ifndef MAXPATHLEN
 #include <sys/param.h>
 #endif

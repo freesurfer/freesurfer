@@ -1,6 +1,6 @@
 project(mri_watershed)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_watershed mri_watershed.cpp)
 add_help(mri_watershed mri_watershed.help.xml)

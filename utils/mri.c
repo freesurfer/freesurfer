@@ -10732,6 +10732,19 @@ int MRIsampleVolumeDirectionScale(
   return (NO_ERROR);
 }
 
+/*!
+  \fn int MRIsampleVolumeDerivativeScale()
+  \brief Computes the derivative of the intensity at a CRS point
+  (x,y,z) by computing the finite difference of intensities near the
+  point along a given CRS direction (dx,dy,dz). The computation is
+  actually done by computing the mean inward and outward intensities
+  as samples along the direction out to a maximum distance. If
+  sigma=0, then these are just summed, otherwise they are gaussian
+  weighted.  The mag is then the diff between the out and the in
+  normalized to the distance (or total weight).  The step size is
+  either 0.25mm or sigma/5, whichever is larger. The distance is
+  either 2*sigma or the step size, whichever is larger.
+*/
 int MRIsampleVolumeDerivativeScale(
     MRI *mri, double x, double y, double z, double dx, double dy, double dz, double *pmag, double sigma)
 {
@@ -11718,7 +11731,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     long nonzero = 0;
 
     /* ----- build a histogram ----- */
-    printf("MRIchangeType: Building histogram \n");
+    printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n",
+	   src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
 
     for (i = 0; i < N_HIST_BINS; i++) hist_bins[i] = 0;

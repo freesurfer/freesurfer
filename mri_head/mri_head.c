@@ -52,7 +52,7 @@ void usage(int exit_val);
 void dummy_identify(void);
 void dummy_read(void);
 
-char *Progname;
+const char *Progname;
 
 static char *prog_name, *short_prog_name;
 static char *fname = NULL;

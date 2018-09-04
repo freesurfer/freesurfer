@@ -90,7 +90,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_fbirn_annot.c,v 1.2 2011/03/02 00:04:32 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

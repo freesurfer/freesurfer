@@ -78,7 +78,6 @@ public:
   virtual void keyReleaseEvent  ( QKeyEvent* event );
 
   bool GetShowScalarBar();
-  virtual void UpdateScalarBar();
 
   bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1, bool bAutoTrim = false);
 
@@ -102,6 +101,7 @@ public slots:
   void SetScalarBarLayer( QAction* act );
   void CenterAtWorldPosition( double* pos );
   void AlignViewToNormal(double* v);
+  virtual void UpdateScalarBar();
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

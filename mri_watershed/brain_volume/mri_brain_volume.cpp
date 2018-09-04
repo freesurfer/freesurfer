@@ -201,7 +201,7 @@ typedef struct {
 }
 MRI_variables;
 
-char *Progname;
+const char *Progname;
 
 static int type_changed = 0 ;
 static int old_type ;
@@ -2805,14 +2805,15 @@ static void MRISsmooth_surface(MRI_SURFACE *mris,int niter) {
     }
 
     for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       n=0;
       x = y = z = 0;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<vt->vnum;m++) {
         // use the cached value for update
-        x += mris->vertices[v->v[m]].tx;
-        y += mris->vertices[v->v[m]].ty;
-        z += mris->vertices[v->v[m]].tz;
+        x += mris->vertices[vt->v[m]].tx;
+        y += mris->vertices[vt->v[m]].ty;
+        z += mris->vertices[vt->v[m]].tz;
         n++;
       }
       // average
@@ -2866,7 +2867,6 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src) {
   float force,force1;
 
   float d,dx,dy,dz,nx,ny,nz;
-  VERTEX *v;
   int iter,k,m,n;
   float samp_mean[4];
   float test_samp[4][9];
@@ -2920,7 +2920,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src) {
   pcout=0;
 
   for (k=0;k<mris->nvertices;k++) {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -2931,14 +2931,15 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src) {
   for (iter=0;niter;iter++) {
     cout = lm = d10 = f1m = f2m = dm = 0;
     for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
 
     for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -2947,10 +2948,10 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src) {
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++) {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+      for (m=0;m<vt->vnum;m++) {
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -3717,7 +3718,6 @@ static void MRISfit(MRI_variables *MRI_var,
   double force,force1;
   double force0;
   double d;
-  VERTEX *v;
   int iter,k,m,n;
   int it, jt;
   int niter;
@@ -3766,7 +3766,7 @@ static void MRISfit(MRI_variables *MRI_var,
 
   /* momentum -> 0*/
   for (k=0;k<mris->nvertices;k++) {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -3777,15 +3777,15 @@ static void MRISfit(MRI_variables *MRI_var,
   for (iter=0;niter;iter++) {
     lm = d10 = f1m = f2m = dm = 0;
     for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;  // initialize t(mp)
       v->ty = v->y;
       v->tz = v->z;
     }
 
     for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
-      // vertex position
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];      // vertex position
       TVector Pos(v->tx, v->ty, v->tz);
       TVector S(0.,0.,0.);
       sd=0;
@@ -3793,10 +3793,10 @@ static void MRISfit(MRI_variables *MRI_var,
       // get the mean position of neighboring vertices
       // try to minimize
       TVector dX;
-      for (m=0;m<v->vnum;m++) {
-        TVector Vert(mris->vertices[v->v[m]].tx,
-                     mris->vertices[v->v[m]].ty,
-                     mris->vertices[v->v[m]].tz);
+      for (m=0;m<vt->vnum;m++) {
+        TVector Vert(mris->vertices[vt->v[m]].tx,
+                     mris->vertices[vt->v[m]].ty,
+                     mris->vertices[vt->v[m]].tz);
         dX = Vert - Pos;
         S += dX;
         sd += sqrt(dX*dX);

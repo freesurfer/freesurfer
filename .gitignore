@@ -2,11 +2,6 @@
 
 .vscode/
 
-# a bit more complicated for GEMS to go first so that
-# later patterns pick up ignores as well:
-GEMS/*
-!GEMS/*.*
-!GEMS/*/
 
 # make and configuration files:
 Makefile
@@ -27,15 +22,16 @@ cpuflags.mak
 *.[oa]
 ld_map.txt
 
-# cmake build files
+# cmake files:
+CMakeFiles
 cmake_install.cmake
 CTestTestfile.cmake
-CMakeFiles
+Testing
 
 # libtool files:
 libtool
 m4/libtool.m4
-m4/ltoptions.m4
+m4/ltoptions.m4m
 m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
@@ -54,31 +50,12 @@ GEMS2/ITKFactoryRegistration/**
 # licenses:
 distribution/.license
 distribution/license.txt
-distribution/SetUpFreeSurfer.csh
-distribution/SetUpFreeSurfer.sh
 
-# generated UI files
-ui_*.*
-moc_*.*
-
-# misc:
-*.log
-*_log.txt
-*.trs
-.deps/
-CVS/
-
-# help files:
+# generated help files:
 *.help.xml.h
 *.help.xml.html
 
-# cxx files:
-orient_mri/OrientMRILibInit.cxx
-orient_mri/orient_mri
-orient_mri/vtkKWOrientMRIAppTcl.cxx
-orient_mri/vtkKWOrientMRIView2DTcl.cxx
-orient_mri/vtkKWOrientMRIView3DTcl.cxx
-orient_mri/vtkKWOrientMRIWindowTcl.cxx
+# generated cxx files:
 qdec/QdecLibInit.cxx
 qdec/vtkKWQdecAppTcl.cxx
 qdec/vtkKWQdecViewTcl.cxx
@@ -86,10 +63,24 @@ qdec/vtkKWQdecWindowTcl.cxx
 vtkutils/vtkKWBltGraphTcl.cxx
 vtkutils/vtkKWRGBATransferFunctionEditorTcl.cxx
 
+# python cache:
+__pycache__
+*.pyc
+
+# generated Qt files
+ui_*.*
+moc_*.*
+
 # freeview:
 freeview/qtcolorpicker.moc
-freeview/resource/FreeSurferColorLUT.txt
 freeview/qrc_freeview.cpp
+
+# misc:
+*.log
+*_log.txt
+*.trs
+.deps/
+CVS/
 
 # binaries:
 check_siemens_dir/check_siemens_dir

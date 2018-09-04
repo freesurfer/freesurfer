@@ -84,7 +84,7 @@ CLUSTER *MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type,
 char *start_fname = NULL ;
 
 static int max_iterations = 500000 ;
-char *Progname ;
+const char *Progname ;
 #define MAX_LABELS 10000
 static char *label_names[MAX_LABELS] ;
 static int nlabels = 0 ;

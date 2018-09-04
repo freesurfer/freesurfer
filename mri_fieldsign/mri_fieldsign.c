@@ -87,7 +87,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_fieldsign.c,v 1.15 2011/10/05 21:57:21 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
@@ -639,9 +639,9 @@ int MRISextendedHopNeighbors(MRIS *surf,int TargVtxNo, int CurVtxNo,
   if(nthhop > nhops) return(0);
 
   // Add nearest neighbors of current vertex
-  nNNbrs = surf->vertices[CurVtxNo].vnum;
+  nNNbrs = surf->vertices_topology[CurVtxNo].vnum;
   for (n = 0; n < nNNbrs; n++) {
-    NbrVtxNo = surf->vertices[CurVtxNo].v[n];
+    NbrVtxNo = surf->vertices_topology[CurVtxNo].v[n];
     vnbr = &surf->vertices[NbrVtxNo];
     if(vnbr->ripflag) continue;
     if(vnbr->val2bak == TargVtxNo) continue;
@@ -652,9 +652,9 @@ int MRISextendedHopNeighbors(MRIS *surf,int TargVtxNo, int CurVtxNo,
   }
 
   // Now, loop over the current nearest neighbors
-  nNNbrs = surf->vertices[CurVtxNo].vnum;
+  nNNbrs = surf->vertices_topology[CurVtxNo].vnum;
   for (n = 0; n < nNNbrs; n++) {
-    NbrVtxNo = surf->vertices[CurVtxNo].v[n];
+    NbrVtxNo = surf->vertices_topology[CurVtxNo].v[n];
     MRISextendedHopNeighbors(surf, TargVtxNo, NbrVtxNo, nhops,
 			     XNbrVtxNo, nXNbrs);
   }

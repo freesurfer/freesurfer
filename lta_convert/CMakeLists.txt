@@ -1,6 +1,6 @@
 project(lta_convert)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(lta_convert lta_convert.cpp)
 add_help(lta_convert lta_convert.help.xml)

@@ -85,7 +85,7 @@ static double compute_mosaic_energy(MRI *mri_mosaic, int nimages)  ;
 static int    jacobian_correct(MRI *mri_src, MRI *mri_dst, double ax, double ay, double a, double b, double c, double d) ;
 #endif
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static double compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2, double dx, double dy, double *ax, double *ay, double a, double b, double c, double d) ;

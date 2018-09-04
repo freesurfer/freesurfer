@@ -896,7 +896,7 @@ connected to existing labels</string>
         <string>Tips:
 Shift + Ctrl + Left button to move cursor.
 Shift + C to pick color.
-Alt + L to turn on/off label outline display mode.</string>
+Ctrl + L to turn on/off label outline display mode.</string>
        </property>
       </widget>
      </item>

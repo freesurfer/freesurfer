@@ -49,7 +49,7 @@ extern "C" {
 #include "macros.h"
 #include "transform.h"
 #include "talairachex.h"
-  char *Progname;
+  const char *Progname;
 }
 
 using namespace std;

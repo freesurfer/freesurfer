@@ -14,7 +14,7 @@
  *    $Date: 2015/08/28 18:05:30 $
  *    $Revision: 1.18 $
  *
- * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2018 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -52,7 +52,7 @@ static int do_wm = 1 ;
 static void usage(int exit_val);
 static int  get_option(int argc, char *argv[]) ;
 
-char *Progname;
+const char *Progname;
 
 static char *log_fname = NULL ; //dice coeff of individual structures
 static char *mlog_fname = NULL ; //mean of individual dice
@@ -109,9 +109,12 @@ static int isOverallDiceLabel(int volVal)
   return 0;
 }
 
-/* maximum number of classes */
-#define MAX_CLASSES 256
-#define MAX_CLASS_NUM 255
+/* maximum number of classes: 
+   large enough to handle the maximum label value
+   in FreeSurferColorLUT.txt
+*/
+#define MAX_CLASSES 15000
+#define MAX_CLASS_NUM 14999
 
 int all_labels_flag = FALSE;
 int num_all_labels = 0;
@@ -457,7 +460,6 @@ static int get_option(int argc, char *argv[])
   else if (!stricmp(option, "-all_labels"))
   {
     all_labels_flag = TRUE;
-    nargs = 1;
     fprintf(stderr, "Computing overlap measures for all commonly existing labels. \n") ;
   }
   else if (!stricmp(option, "mlog"))

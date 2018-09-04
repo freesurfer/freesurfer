@@ -491,7 +491,7 @@ MATRIX *LoadRfsl(char *fname);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_vol2vol.c,v 1.89 2016/06/22 22:33:40 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 
@@ -695,6 +695,7 @@ int main(int argc, char **argv) {
     if(err) exit(1);
     printf("Saving\n");
     err = MRIwrite(cropnew,outvolfile);
+    printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
     printf("mri_vol2vol done\n");
     exit(err);
   }
@@ -767,6 +768,7 @@ int main(int argc, char **argv) {
     MRIbinarize(mri_soap_ctrl, mri_soap_ctrl, 1, 0, CONTROL_MARKED) ;
     mri_out = MRIsoapBubble(mov, mri_soap_ctrl, NULL, soap_bubble_iters, 0);
     MRIwrite(mri_out, outvolfile) ;
+    printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
     exit(0) ;
   }
   if(synth) {
@@ -853,6 +855,7 @@ int main(int argc, char **argv) {
     MRIwrite(DispMap,DispFile);
     if(outvolfile == NULL) {
       printf("No other output specified, so exiting now\n");
+      printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
       exit(0);
     }
   }
@@ -1488,6 +1491,7 @@ static int parse_commandline(int argc, char **argv) {
       err = MRIwrite(out,targvolfile);
       if(err) exit(1);
       printf("mri_vol2vol gcam done\n");
+      printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
       exit(0);
       nargsused = 7;
     } 

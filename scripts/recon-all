@@ -202,6 +202,16 @@ set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
+set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
+set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
+
+# Desired average face area of orig.nofix after decimation. This is
+# set to 0.5 by default because this is the value for the orig.nofix
+# 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
+# or for high res data. Decimation will have no effect if the average
+# face area is already => DecimationFaceArea.
+set DecimationFaceArea = 0.5;
+set DoDecimation = 0;
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
 # various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
@@ -630,6 +640,7 @@ set allinfocmds = (\
 	mris_convert \
 	mris_curvature \
 	mris_curvature_stats \
+	mris_decimate \
 	mris_diff \
 	mris_divide_parcellation \
 	mri_segment \
@@ -1117,7 +1128,6 @@ if($longitudinal) then
   endif
 endif
 
-
 #-----------                  -----------#
 #----------- Convert T1 Input -----------#
 ##----------    -i <file>     -----------#
@@ -1197,7 +1207,6 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
   endif
 
 endif
-
 
 #-------------                                                 ------------#
 #------------- Longitudinal 'base' subject input file creation ------------#
@@ -1359,7 +1368,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   end
   touch $touchdir/base.touch
 endif
-
 
 #-----------             -------------#
 ##---------- AUTORECON 1 -------------#
@@ -1719,6 +1727,18 @@ if($DoMotionCor) then
 
 endif # Motion Correction
 
+# MOD: this takes the externally supplied mask and resamples it into the
+# orig space so that it can be used with mri_em_register
+if($#EMRegMaskArg != 0) then
+  set cmd = (mri_vol2vol --mov $EMRegMaskArg --targ ${subjdir}/mri/orig.mgz\
+    --regheader --interp nearest --o ${subjdir}/mri/extern.emreg.mask.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  set EMRegMask = extern.emreg.mask.mgz
+endif
 
 #-----------          -----------#
 ##----------  -deface -----------#
@@ -1738,7 +1758,6 @@ if($DoDeface) then
   if($status) goto error_exit;
   touch $touchdir/deface.touch
 endif
-
 
 #-----------             -----------#
 ##----------  -talairach -----------#
@@ -2146,7 +2165,6 @@ if($DoNormalization) then
   echo $cmd > $touchdir/inorm1.touch
 endif
 
-
 #-----------                 -----------#
 #----------- Skull Stripping -----------#
 ##----------   -skullstrip   -----------#
@@ -2524,8 +2542,6 @@ skullstrip:
 
 endif
 
-
-
 #-----------             -------------#
 ##---------- AUTORECON 2 -------------#
 #-----------             -------------#
@@ -2562,7 +2578,7 @@ if($DoGCAReg) then
         # default processing:
         set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
+        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
                     nu.mgz ${GCADIR}/$GCA $lta)
       endif
     else
@@ -2579,7 +2595,6 @@ if($DoGCAReg) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/em_register.touch
 endif
-
 
 #------------                         --------------#
 #----------- Canonical Intensity Normalization -----#
@@ -2643,7 +2658,6 @@ if($DoCANormalize) then
 
 endif # DoCANormalize
 
-
 #------------                        --------------#
 #------------ Canonical Registration --------------#
 ##-----------        -careg          --------------#
@@ -2701,7 +2715,6 @@ if($DoCAReg) then
   echo $cmd > $touchdir/ca_register.touch
 endif
 
-
 #------------                                   --------------#
 #------------ Inverse of Canonical Registration --------------#
 ##-----------              -careginv            --------------#
@@ -2725,7 +2738,6 @@ if($DoCARegInv) then
   endif
   echo $cmd > $touchdir/ca_register_inv.touch
 endif
-
 
 #------------                                    --------------#
 #------------ Removes neck and part of the face  --------------#
@@ -2773,7 +2785,6 @@ if($DoSkullLTA) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/skull_2.lta.touch
 endif
-
 
 #--------------                      --------------#
 #-------------- SubCort Segmentation --------------#
@@ -2954,7 +2965,6 @@ if($DoASegMerge) then
   echo $cmd > $touchdir/asegmerge.touch
 endif
 
-
 #-----------                          -----------------#
 #----------- Intensity Normalization2 -----------------#
 ##----------     -normalization2      -----------------#
@@ -2988,7 +2998,6 @@ if($DoNormalization2) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/inorm2.touch
 endif
-
 
 #--------------                        ---------------#
 #-------------- Create BrainFinalSurfs ---------------#
@@ -3030,7 +3039,6 @@ if($DoMaskBFS) then
     endif
   endif
 endif
-
 
 #----------------                 -------------------#
 #---------------- WM Segmentation -------------------#
@@ -3153,7 +3161,6 @@ if($DoSegmentation) then
   echo $cmd > $touchdir/wmsegment.touch
 endif
 
-
 #----------------        -------------------#
 ##---------------  -fill -------------------#
 #----------------        -------------------#
@@ -3212,7 +3219,6 @@ endif
 #     check error status of reconbatchjobs
 #
 
-
 #----------------              -------------------#
 ##---------------  -tessellate -------------------#
 #----------------              -------------------#
@@ -3245,9 +3251,11 @@ if($DoTessellate && ( ! $longitudinal )) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
+    set outfile = ../surf/$hemi.orig.nofix
+    if($DoDecimation) set outfile = ../surf/$hemi.orig.nofix.predec
+
     set xopts = `fsr-getxopts mri_tessellate $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
-                $hemivalue ../surf/$hemi.orig.nofix)
+    set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz $hemivalue $outfile)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3257,16 +3265,24 @@ if($DoTessellate && ( ! $longitudinal )) then
 
     # remove possible extra components, per f.segonne
     set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_extract_main_component $xopts ../surf/$hemi.orig.nofix \
-               ../surf/$hemi.orig.nofix)
+    set cmd = (mris_extract_main_component $xopts $outfile $outfile)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
+    if($DoDecimation) then
+      # Reduce the number of faces such that the average face area is
+      # DecimationFaceArea.  If the average face area is already more
+      # than DecimationFaceArea, then the surface is not changed.
+      set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
     echo $cmd > $touchdir/$hemi.tessellate.touch
   end # Loop over hemilist
 endif
-
 
 #----------------           -------------------#
 ##---------------  -smooth1 -------------------#
@@ -3283,8 +3299,8 @@ if($DoSmooth1 && ( ! $longitudinal )) then
     # -nw prevents it from writing curv and area
     set cmd = (mris_smooth -nw)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
-    set cmd = ($cmd $xopts \
-        ../surf/$hemi.orig.nofix ../surf/$hemi.smoothwm.nofix)
+    set outfile = ../surf/$hemi.smoothwm.nofix
+    set cmd = ($cmd $xopts ../surf/$hemi.orig.nofix $outfile)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_smooth_${hemi}.cmd
@@ -3301,7 +3317,6 @@ if($DoSmooth1 && ( ! $longitudinal )) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------            -------------------#
 ##---------------  -inflate1 -------------------#
@@ -3337,7 +3352,6 @@ if($DoInflate1 && ( ! $longitudinal )) then
   endif
 endif
 
-
 #----------------           -------------------#
 ##---------------  -qsphere -------------------#
 #----------------           -------------------#
@@ -3372,42 +3386,24 @@ if($DoQSphere && ( ! $longitudinal )) then
   endif
 endif
 
-
 #----------------              -------------------#
 #---------------- Fix Topology -------------------#
 ##---------------     -fix     -------------------#
 #----------------              -------------------#
 if($DoFix && ( ! $longitudinal )) then
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Fix Topology Copy $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    # Must copy unfixed to fixed
-    set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.orig)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd = (cp ../surf/$hemi.inflated.nofix ../surf/$hemi.inflated)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  end # hemi first loop
 
   set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
 
-  # Now can run fixer
+  # Removed copying of orig.nofix and inflated.nofix to orig and inflated
+  # because they can be specified directly as input.
   if($UseOldTopoFix) then
     set CMDFS = () # see earlier notes on -parallel implementation
     foreach hemi ($hemilist)
       echo "#@# Fix Topology $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile $GlobXOptsFile`;
-      set cmd = (mris_fix_topology)
-      set cmd = ($cmd -rusage $touchdir/rusage.mris_fix_topology.$hemi.dat) 
-      set cmd = ($cmd -mgz -sphere qsphere.nofix)
+      set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix \
+        -inflated inflated.nofix -orig orig.nofix -out orig)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -3520,7 +3516,6 @@ endif
 
 # Smooth2 and Inflate2 stages run after make white surfs
 
-
 #----------------                     -------------------#
 #---------------- Make White Surfaces -------------------#
 ##---------------       -white        -------------------#
@@ -3567,7 +3562,7 @@ if($DoWhiteSurfs) then
           -max 3.5)
     else
       # default stream:
-      set cmd = (mris_make_surfaces)
+      set cmd = (mris_make_surfaces -save-res -save-target)
     endif
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
@@ -3607,7 +3602,6 @@ if($DoWhiteSurfs) then
   endif
 endif
 
-
 #----------------           -------------------#
 ##---------------  -smooth2 -------------------#
 #----------------           -------------------#
@@ -3643,7 +3637,6 @@ if($DoSmooth2) then
   endif
 endif
 
-
 #----------------            -------------------#
 ##---------------  -inflate2 -------------------#
 #----------------            -------------------#
@@ -3678,7 +3671,6 @@ if($DoInflate2) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------                     -----------#
 #---------- Curvature .H and .K -----------#
@@ -3772,7 +3764,6 @@ if($DoCurvHK) then
   end
 endif
 
-
 #----------                            -----------#
 #---------- Curvature Anatomical Stats -----------#
 ##---------        -curvstats          -----------#
@@ -3802,7 +3793,6 @@ endif
 #-----------             -------------#
 ##---------- AUTORECON 3 -------------#
 #-----------             -------------#
-
 
 #----------------          ----------------#
 ##---------------  -sphere ----------------#
@@ -3845,7 +3835,6 @@ if($DoSphere) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------                      -------------------#
 #---------------- Surface Registration -------------------#
@@ -3977,7 +3966,6 @@ if($DoContraSurfRegWithinSubject) then
   endif
 endif
 
-
 #----------                                         ----------------#
 #---------- Surface Registration to Average Subject ----------------#
 ##---------           -surfreg-to-subject           ----------------#
@@ -4013,7 +4001,6 @@ if($#SurfRegToSubj) then
   endif
 endif
 
-
 #----------------                  -------------------#
 ##---------------  -jacobian_white -------------------#
 #----------------                  -------------------#
@@ -4047,7 +4034,6 @@ if($DoJacobianWhite) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #---                                                                  ---#
 #--- Surface Registration, allow maximal distortion, produce Jacobian ---#
@@ -4086,7 +4072,6 @@ if($DoJacobianDist0) then
   endif
 endif
 
-
 #---------------                          ---------------#
 #--------------- Average Curv for Display ---------------#
 ##--------------         -avgcurv         ---------------#
@@ -4120,7 +4105,6 @@ if($DoAvgCurv) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------                       -----------------#
 #---------------- Cortical Parcellation -----------------#
@@ -4165,7 +4149,6 @@ if($DoCortParc) then
   endif
 endif
 
-
 #----------------                    -------------------#
 #---------------- Make Pial Surfaces -------------------#
 ##---------------       -pial        -------------------#
@@ -4201,7 +4184,8 @@ if($DoPialSurfs) then
     else
       # default stream:
       # NJS: -orig_pial white added 16Feb2015 per BF
-      set cmd = (mris_make_surfaces \
+      # MOD: by specifying -orig_pial, it does not do init smooth to reduce pinching
+      set cmd = (mris_make_surfaces  -save-res -save-target \
           -orig_white white.preaparc \
           -orig_pial  white.preaparc)
       if ($UseFixMtl) then
@@ -4239,7 +4223,6 @@ if($DoPialSurfs) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------                                     ----------------#
 #---------------- Refine Pial Surfaces Using T2/FLAIR ----------------#
@@ -4338,29 +4321,22 @@ if($DoT2pial || $DoFLAIRpial) then
     # both regular and long processing:
 
     # actually map the input (and make conform as the T1 target)
-    # this creates the ${t2flair}.prif (enorm.mgz
-    if ($HiRes) then
-      set mapcmd = (mri_vol2vol --no-resample \
-          --lta $mdir/transforms/${t2flair}raw.lta)
-      set mapcmd = ($mapcmd --targ $mdir/orig.mgz )
-      set mapcmd = ($mapcmd --mov $t2flairraw )
-      set mapcmd = ($mapcmd --o $mdir/${t2flair}.prenorm.mgz )
-      echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
-    else
-      set mapcmd = (mri_convert \
-          -odt float \
-          -at $mdir/transforms/${t2flair}raw.lta)
-      if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
-      set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
-      set mapcmd = ($mapcmd $t2flairraw )
-      set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
-    endif
+    # this creates the ${t2flair}.prenorm.mgz
+    # MOD: is it possible to pass the T2 surface placement
+    # a non-resampled image and a registration matrix (???)
+    # Before: used mri_vol2vol for highres
+    set mapcmd = (mri_convert -odt float -at $mdir/transforms/${t2flair}raw.lta)
+    # MOD: should we always use cubic here?
+    if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
+    set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
+    set mapcmd = ($mapcmd $t2flairraw )
+    set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
     if($RunIt) $fs_time $mapcmd |& tee -a $LF
     if($status) goto error_exit;
 
-    # then give the T2/FLAIR a little normalizing
-    # note: pre-normalized file remains for debug, with .prenorm in name
-    # this creates ${t2flair}.norm.mgz
+    # Then give the T2/FLAIR a little normalizing note: pre-normalized
+    # file remains for debug, with .prenorm in name this creates
+    # ${t2flair}.norm.mgz. MOD: may want to simply globaly rescale instead
     set surfaces = ()
     foreach hemi ($hemilist)
         set surfaces = ($surfaces -surface $sdir/$hemi.white identity.nofile)
@@ -4394,7 +4370,10 @@ if($DoT2pial || $DoFLAIRpial) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
+    # MOD: this allows the user to set xopts for this particular call to make_surfaces
+    # The user should put mris_make_surfaces.t2flair.pial instead of mris_make_surfaces
+    set xopts = `fsr-getxopts mris_make_surfaces.t2flair.pial $XOptsFile`;
+    # set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
     set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
     set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
     set touch1=($tdir/${hemi}.pial_refine.touch)
@@ -4407,7 +4386,7 @@ if($DoT2pial || $DoFLAIRpial) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    set cmd = (mris_make_surfaces \
+    set cmd = (mris_make_surfaces -save-res -save-target \
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
@@ -4426,6 +4405,8 @@ if($DoT2pial || $DoFLAIRpial) then
     endif
     if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
         -nsigma_above 3 -nsigma_below 3)
+    # MOD may want to use the parameters below
+    # set cmd = ($cmd -location 0.5  -nsigma_above 2 -nsigma_below 3) 
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -4462,7 +4443,6 @@ endif # if correct pial w/ T2/FLAIR
 
 
 # stats and GWcontrast must run here, after T2 pial refinement
-
 
 #----------------              -------------------#
 ##---------------  -surfvolume -------------------#
@@ -4510,7 +4490,6 @@ if($DoCortRibbonVolMask) then
   echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
-
 #----------                          -----------#
 #---------- Surface Anatomical Stats -----------#
 ##---------       -parcstats         -----------#
@@ -4552,7 +4531,6 @@ if($DoParcStats) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 2 -----------------#
@@ -4598,7 +4576,6 @@ if($DoCortParc2) then
   endif
 endif
 
-
 #----------                            ------------#
 #---------- Surface Anatomical Stats 2 ------------#
 ##---------         -parcstats2         -----------#
@@ -4636,7 +4613,6 @@ if($DoParcStats2) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 3 -----------------#
@@ -4682,7 +4658,6 @@ if($DoCortParc3) then
   endif
 endif
 
-
 #----------                            -----------#
 #---------- Surface Anatomical Stats 3 -----------#
 ##---------         -parcstats3        -----------#
@@ -4721,7 +4696,6 @@ if($DoParcStats3) then
   endif
 endif
 
-
 #----------                ----------#
 #---------- WM/GM Contrast ----------#
 ##---------  -pctsurfcon   ----------#
@@ -4757,7 +4731,6 @@ if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
   endif
 endif
 
-
 #-----------------                         ------------------#
 #----------------- Relabel Hypointensities ------------------#
 ##----------------      -hyporelabel       ------------------#
@@ -4783,7 +4756,6 @@ if($DoRelabelHypos) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/relabelhypos.touch
 endif
-
 
 #-----------------               -----------------#
 ##----------------  -aparc2aseg  -----------------#
@@ -4840,7 +4812,6 @@ if($DoAParc2ASeg) then
   endif
 endif
 
-
 #-----------------             ------------------ #
 #-----------------  Final Aseg ------------------ #
 ##----------------  -apas2aseg ------------------ #
@@ -4858,7 +4829,6 @@ if($DoAPas2ASeg) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/apas2aseg.touch
 endif
-
 
 #--------------            --------------#
 ##-------------  -segstats --------------#
@@ -4917,7 +4887,6 @@ if($DoSegStats) then
   echo $cmd > $touchdir/segstats.touch
 endif
 
-
 #-----------------          ------------------#
 ##----------------  -wmparc ------------------#
 #-----------------          ------------------#
@@ -4960,7 +4929,6 @@ if($DoWMParc) then
   echo $cmd > $touchdir/wmaparc.stats.touch
 endif
 
-
 #--------------                    -----------------#
 ##-------------  -aparc+aseg-stats -----------------#
 #--------------                    -----------------#
@@ -4996,7 +4964,6 @@ if($DoAParcASegStats) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/aparc+aseg.stats.touch
 endif
-
 
 #--------                      --------#
 #-------- Brodmann Area Labels --------#
@@ -5201,7 +5168,6 @@ if ($DoBaLabels) then
   end # hemi
 endif # DoBaLabels
 
-
 #----------            ------------#
 ##---------  -label-V1 ------------#
 #----------            ------------#
@@ -5237,7 +5203,6 @@ if($DoLabelV1) then
     if($status) goto error_exit;
   endif
 endif
-
 
 #--------                          --------#
 #-------- Entorhinal Cortex Labels --------#
@@ -5728,6 +5693,10 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
+      # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # This can backfire, eg, if not all the preceeding steps
+      # are included
+      set DoT2pial         = 1; 
       breaksw
 
     case "-t2max"
@@ -5756,6 +5725,10 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputFlairVol = "$FlairInVolDir/$FlairInVolBase";
       set DoConvertFlairInput = 1;
+      # MOD: turn on T2/FLAIR pial editing when FLAIR specified
+      # This can backfire, eg, if not all the preceeding steps
+      # are included
+      set DoT2pial         = 1; 
       breaksw
 
     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
@@ -6090,6 +6063,17 @@ while( $#argv != 0 )
       set DoGCAReg = 0;
       breaksw
 
+    case "-emregmask":
+      # MOD HCP: mask when running mri_em_reg, default is brainmask.mgz
+      if ( $#argv < 1) goto arg1err;
+      set EMRegMaskArg = $argv[1]; shift
+      if(! -e $EMRegMaskArg) then
+        echo "ERROR: cannot find $EMRegMaskArg"
+        exit 1;
+      endif
+      set EMRegMaskArg = `getfullpath $EMRegMaskArg`
+      breaksw
+
     case "-careginv":
       set DoCARegInv = 1;
       breaksw
@@ -6143,6 +6127,19 @@ while( $#argv != 0 )
       breaksw
     case "-normneck":
       set DoRemoveNeck = 0;
+      breaksw
+
+    # Decimation is done as part of DoTessellate
+    case "-decimate":
+      set DoDecimation = 1;
+      breaksw
+    case "-no-decimate":
+      set DoDecimation = 0;
+      breaksw
+    case "-decimation-area":
+      # desired average face area after decimation
+      set DecimationFaceArea = $argv[1]; shift 
+      set DoDecimation = 1;
       breaksw
 
     case "-skull-lta":

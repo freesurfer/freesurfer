@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] =
   "$Id: mri_volcluster.c,v 1.49 2016/11/01 19:51:04 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static char tmpstr[2000];
 

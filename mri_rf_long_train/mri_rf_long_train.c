@@ -65,7 +65,7 @@ static int binarize_out = 0 ;
 static char *wmsa_fname = NULL ;
 
 static COLOR_TABLE *ctab = NULL ;
-char *Progname ;
+const char *Progname ;
 static char *mask_fname = NULL ;
 static char *insert_fname = NULL ;
 static int  insert_label = 0 ;

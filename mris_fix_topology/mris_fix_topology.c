@@ -69,16 +69,17 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void print_parameters(void);
 
-char *Progname ;
+const char *Progname ;
 
 static int exit_after_diag = 0 ;
 extern int topology_fixing_exit_after_diag ;
 
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
-static char *sphere_name   = "qsphere" ;
-static char *inflated_name = "inflated" ;
-static char *orig_name     = "orig" ;
+static char *sphere_name   = "qsphere.nofix" ;
+static char *inflated_name = "inflated.nofix" ;
+static char *orig_name     = "orig.nofix" ;
+static char *out_name      = "orig" ;
 
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
@@ -91,7 +92,6 @@ static TOPOLOGY_PARMS parms ;
 static int MGZ = 1; // set to 1 for MGZ
 
 static double pct_over = 1.1;
-char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
@@ -266,11 +266,13 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE,
               "%s: could not read wm volume from %s", Progname, fname) ;
 
+  printf("Reading original properties of %s\n",orig_name);
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
               Progname, orig_name) ;
 
   /* at this point : canonical vertices but orig are in orignal vertices */
+  printf("Reading vertex positions of %s\n",inflated_name);
   if (MRISreadVertexPositions(mris, inflated_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read inflated surface %s",
               Progname, inflated_name) ;
@@ -291,13 +293,11 @@ main(int argc, char *argv[])
      real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;
   if (!mris_corrected || exit_after_diag)  /* for now */
-  {
     exit(0) ;
-  }
+
   if (noint)
-  {
     MRISremoveIntersections(mris_corrected) ;
-  }
+
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
@@ -320,7 +320,7 @@ main(int argc, char *argv[])
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   /* at this point : smoothed corrected orig vertices = solution */
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name,suffix);
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, out_name,suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
 
@@ -333,13 +333,8 @@ main(int argc, char *argv[])
     MRISwrite(mris_corrected, fname) ;
   */
 
-  // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mris_fix_topology ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
-
   msec = TimerStop(&then) ;
-  fprintf(stderr,"topology fixing took %2.1f minutes\n",
-          (float)msec/(60*1000.0f));
+  printf("topology fixing took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
@@ -349,6 +344,7 @@ main(int argc, char *argv[])
   printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),1);
 #endif
 
+  printf("#VMPC# mris_fix_topology VmPeak  %d\n",GetVmPeak());
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -410,8 +406,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "rusage"))
   {
-    // resource usage
-    rusage_file = argv[2] ;
+    // just ignore
     nargs = 1 ;
   }
   else if (!stricmp(option, "int"))
@@ -733,6 +728,12 @@ get_option(int argc, char *argv[])
   {
     orig_name = argv[2] ;
     fprintf(stderr,"reading original coordinates from '%s'\n",orig_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "out"))
+  {
+    out_name = argv[2] ;
+    printf("writing corrected surface to '%s'\n",out_name);
     nargs = 1 ;
   }
   else if (!stricmp(option, "brain"))

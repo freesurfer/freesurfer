@@ -204,7 +204,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_binarize.c,v 1.43 2016/06/09 20:46:21 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

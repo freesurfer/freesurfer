@@ -52,7 +52,7 @@ static int size_flag = 0;
 
 static int start_x, start_y, start_z, dx, dy, dz;
 
-char *Progname;
+const char *Progname;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;

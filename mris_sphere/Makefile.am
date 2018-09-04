@@ -40,7 +40,7 @@ mris_sphere_cuda_CXXFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
 mris_sphere_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
 mris_sphere_cuda_LDFLAGS = $(OS_LDFLAGS) 
 mris_sphere_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mris_sphere_cuda_CFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mris_sphere_cuda_CFLAGteS) \
         $(CFLAGS) $(mris_sphere_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 endif
@@ -54,13 +54,13 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test test_fs_posix $(top_builddir)/scripts/help_xml_validate
+TESTS=test.py test_fs_posix $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) \
-	make_mris_sphere_movie.tcl test
+	make_mris_sphere_movie.tcl test.py
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

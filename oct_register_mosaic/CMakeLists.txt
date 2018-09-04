@@ -1,6 +1,6 @@
 project(oct_register_mosaic)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(oct_register_mosaic oct_register_mosaic.c)
 target_link_libraries(oct_register_mosaic utils)

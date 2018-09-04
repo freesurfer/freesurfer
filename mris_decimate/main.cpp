@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) ;
 //  Global Variables
 //
 static char vcid[] = "$Id: main.cpp,v 1.3 2011/03/02 00:04:30 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline;
 int debug=0;
 int checkoptsonly=0;
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
   }
 
   MRIScomputeMetricProperties(mris);
-  avgfacearea = mris->total_area/mris->nvertices;
+  avgfacearea = mris->total_area/mris->nfaces;
   printf("Average Face Area of input is %8.6f\n",avgfacearea);
   if(gDecimationOptions.desiredFaceArea > 0){
     gDecimationOptions.decimationLevel = avgfacearea/gDecimationOptions.desiredFaceArea;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   decimateSurface(&mris, gDecimationOptions, DecimateProgressCallback);
 
   MRIScomputeMetricProperties(mris);
-  avgfacearea = mris->total_area/mris->nvertices;
+  avgfacearea = mris->total_area/mris->nfaces;
   printf("Average Face Area of output is %8.6f\n",avgfacearea);
 
   // Write out the results

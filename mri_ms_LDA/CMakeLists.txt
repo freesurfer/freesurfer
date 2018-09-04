@@ -1,6 +1,6 @@
 project(mri_ms_LDA)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_ms_LDA mri_ms_LDA.c)
 target_link_libraries(mri_ms_LDA utils)

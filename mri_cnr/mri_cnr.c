@@ -51,7 +51,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_version(void) ;
 static double compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) ;
-char *Progname ;
+const char *Progname ;
 static char *log_fname = NULL ;
 
 static char *slope_fname = NULL ;

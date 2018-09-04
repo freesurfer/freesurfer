@@ -210,7 +210,6 @@ if ( isempty( worldToWorldTransformMatrix ) )
   tic
   while true
     %
-    [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
     [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
     %return
     if ( maximalDeformation == 0 )

@@ -47,7 +47,7 @@ static int get_option(int argc, char *argv[]) ;
 static int update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_counts, int normalize) ;
 static int normalize_bias(MRI *mri_bias, MRI *mri_counts, int normalize);
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 

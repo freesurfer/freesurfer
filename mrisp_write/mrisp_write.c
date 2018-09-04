@@ -52,7 +52,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int compute_corr = 0 ;
 static int spherical_corr = 0 ;
@@ -63,6 +63,7 @@ static int navgs = 0 ;
 static float sigma=0;
 static int barycentric = 0 ;
 
+static int frame_to_read = -1 ;
 
 static char subjects_dir[STRLEN] ;
 
@@ -122,7 +123,10 @@ main(int argc, char *argv[])
     int   frame ;
     LABEL *area ;
 
-    mri_overlay = MRIread(in_overlay) ;
+    if (frame_to_read >= 0)
+      mri_overlay = MRIreadEx(in_overlay, frame_to_read) ;
+    else
+      mri_overlay = MRIread(in_overlay) ;
     if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface-encoded volume file from %s", Progname, in_overlay) ;
 
@@ -193,12 +197,22 @@ main(int argc, char *argv[])
     {
       int n ;
 
+      printf("reading input label from %s\n", in_overlay) ;
       area = LabelRead(NULL, in_overlay) ;
       if (area == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load label file %s to generate overlay",
 		  in_overlay) ;
-      for (n = 0 ; n < area->n_points ; n++)
-	mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
+      if (LabelMaxStat(area) > 0)
+      {
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
+      }
+      else
+      {
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = 1 ;
+      }
+
       LabelFree(&area) ;
     }
     else
@@ -295,6 +309,12 @@ get_option(int argc, char *argv[])
   {
     spherical_corr = 1 ;
     printf("computing correlations in spherical map\n") ;
+  }
+  else if (!stricmp(option, "FRAME"))
+  {
+    frame_to_read = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("extracting frame %d from input volume\n", frame_to_read) ;
   }
   else if (!stricmp(option, "BARYCENTRIC") || !stricmp(option, "BARY"))
   {
@@ -432,7 +452,7 @@ mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, M
 static MRI_SP *
 mrispComputeCorrelations(MRI_SP *mrisp)
 {
-  MRI_SP *mrisp_sphere ;
+  MRI_SP *mrisp_sphere, *mrisp_debug ;
   int    nframes, x, y, width, height, t ;
   double **norms, mean, val;
 
@@ -440,6 +460,16 @@ mrispComputeCorrelations(MRI_SP *mrisp)
   width = mrisp->Ip->cols ; height = mrisp->Ip->rows ;
   nframes = width*height ;
   mrisp_sphere = MRISPalloc(mrisp->scale, nframes);
+  
+  mrisp_debug = NULL ;
+  if (getenv("MRISP_DEBUG"))
+  {
+    char *cp = getenv("MRISP_DEBUG") ;
+    printf("using file %s for debugging\n", cp) ;
+    mrisp_debug = MRISPread(cp) ;
+    if (mrisp_debug == NULL)
+      ErrorExit(ERROR_NOFILE, "could not open %s", cp) ;
+  }
 
   // first compute norms and make timecourses zero mean
   norms = (double **)calloc(width, sizeof(double *));
@@ -487,6 +517,11 @@ mrispComputeCorrelations(MRI_SP *mrisp)
 	  norm2 = norms[x1][y1];
 	  if (FZERO(norm2))
 	    continue ;
+	  if (mrisp_debug && *IMAGEFseq_pix(mrisp_debug->Ip, x, y, frame)>0)
+	  {
+	    *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = 1 ;
+	    continue ;
+	  }
 	  for (dot = 0.0, t = 0 ; t < mrisp->Ip->num_frame ; t++)
 	    dot += *IMAGEFseq_pix(mrisp->Ip, x, y, t) * *IMAGEFseq_pix(mrisp->Ip, x1, y1, t);
 	  *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = dot / (norm1*norm2);

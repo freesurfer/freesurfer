@@ -1,6 +1,6 @@
 project(mri_segcentroids)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_segcentroids mri_segcentroids.cpp)
 add_help(mri_segcentroids mri_segcentroids.help.xml)

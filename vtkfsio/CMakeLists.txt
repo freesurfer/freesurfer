@@ -2,7 +2,7 @@ project(vtkfsio)
 
 if(VTK_FOUND)
 
-  include_directories(${CMAKE_SOURCE_DIR}/include ${VTK_INCLUDE_DIRS})
+  include_directories(${FS_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
 
   set(SOURCES
     vtkFSSurfaceLabelSource.cxx
@@ -15,6 +15,5 @@ if(VTK_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
   add_library(vtkfsio STATIC ${SOURCES})
-  target_link_libraries(vtkfsio ${VTK_LIBRARIES})
 
 endif()

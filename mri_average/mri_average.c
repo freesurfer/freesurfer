@@ -46,7 +46,7 @@ static MATRIX *align_pca(MRI *mri_src, MRI *mri_avg) ;
 static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
                           MATRIX *m_ref_evectors, double ref_means[3]) ;
 
-char *Progname ;
+const char *Progname ;
 static int align = 0 ;
 static int window_flag = 0 ;
 static MORPH_PARMS  parms ;
@@ -722,6 +722,7 @@ usage_exit(int code)
   printf("\t-rms            compute sqrt of average of sum of squares (RMS, same as -sqr)\n") ;
   printf("\t-u              print usage\n");
   printf("\t-p              compute %% \n");
+  printf("\t-b <float th>   binarize the input volumes using threshold th \n");
   printf("\t-abs            take abs value of volume \n");
   exit(code) ;
 }

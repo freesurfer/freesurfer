@@ -53,7 +53,7 @@
 #define FACEINCREASE 1.2
 #define VERTEXINCREASE 1.2
 
-char *Progname;
+const char *Progname;
 
 typedef struct quad_face_type_ {
   int imnr,i,j,f;
@@ -395,7 +395,6 @@ programming practice to copy entire functions to a new file.
 int mrisFindNeighbors2(MRI_SURFACE *mris) {
   int          n0,n1,i,k,m,n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS] ;
   FACE         *f;
-  VERTEX       *v ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "finding surface neighbors...") ;
@@ -403,32 +402,33 @@ int mrisFindNeighbors2(MRI_SURFACE *mris) {
   for (k=0;k<mris->nvertices;k++) {
     if (k == Gdiag_no)
       DiagBreak() ;
-    v = &mris->vertices[k];
-    v->vnum = 0;
-    for (m=0;m<v->num;m++) {
-      n = v->n[m];     /* # of this vertex in the mth face that it is in */
-      f = &mris->faces[v->f[m]];  /* ptr to the mth face */
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[k];
+    VERTEX          * const v  = &mris->vertices         [k];
+    vt->vnum = 0;
+    for (m=0;m<vt->num;m++) {
+      n = vt->n[m];     /* # of this vertex in the mth face that it is in */
+      f = &mris->faces[vt->f[m]];  /* ptr to the mth face */
       /* index of vertex we are connected to */
       n0 = (n == 0)                   ? VERTICES_PER_FACE-1 : n-1;
       n1 = (n == VERTICES_PER_FACE-1) ? 0                   : n+1;
-      for (i=0;i<v->vnum && vtmp[i]!=f->v[n0];i++);
-      if (i==v->vnum)
-        vtmp[(int)v->vnum++] = f->v[n0];
-      for (i=0;i<v->vnum && vtmp[i]!=f->v[n1];i++);
-      if (i==v->vnum)
-        vtmp[(int)v->vnum++] = f->v[n1];
+      for (i=0;i<vt->vnum && vtmp[i]!=f->v[n0];i++);
+      if (i==vt->vnum)
+        vtmp[(int)vt->vnum++] = f->v[n0];
+      for (i=0;i<vt->vnum && vtmp[i]!=f->v[n1];i++);
+      if (i==vt->vnum)
+        vtmp[(int)vt->vnum++] = f->v[n1];
     }
-    if (mris->vertices[k].v)
-      free(mris->vertices[k].v) ;
-    mris->vertices[k].v = (int *)calloc(mris->vertices[k].vnum,sizeof(int));
-    if (!mris->vertices[k].v)
+    if (mris->vertices_topology[k].v)
+      free(mris->vertices_topology[k].v) ;
+    mris->vertices_topology[k].v = (int *)calloc(mris->vertices_topology[k].vnum,sizeof(int));
+    if (!mris->vertices_topology[k].v)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisFindNeighbors: could not allocate nbr array") ;
 
-    v->vtotal = v->vnum ;
-    v->nsize = 1 ;
-    for (i=0;i<v->vnum;i++) {
-      v->v[i] = vtmp[i];
+    vt->vtotal = vt->vnum ;
+    vt->nsize = 1 ;
+    for (i=0;i<vt->vnum;i++) {
+      vt->v[i] = vtmp[i];
     }
 
     if (v->dist)
@@ -436,25 +436,25 @@ int mrisFindNeighbors2(MRI_SURFACE *mris) {
     if (v->dist_orig)
       free(v->dist_orig) ;
 
-    v->dist = (float *)calloc(v->vnum, sizeof(float)) ;
+    v->dist = (float *)calloc(vt->vnum, sizeof(float)) ;
     if (!v->dist)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", v->vnum, k) ;
-    v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
+                "dists at v=%d", vt->vnum, k) ;
+    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float)) ;
     if (!v->dist_orig)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", v->vnum, k) ;
+                "dists at v=%d", vt->vnum, k) ;
     /*
-        if (v->num != v->vnum)
-          printf("%d: num=%d vnum=%d\n",k,v->num,v->vnum);
+        if (v->num != vt->vnum)
+          printf("%d: num=%d vnum=%d\n",k,vt->num,vt->vnum);
     */
   }
   for (k=0;k<mris->nfaces;k++) {
     f = &mris->faces[k];
     for (m=0;m<VERTICES_PER_FACE;m++) {
-      v = &mris->vertices[f->v[m]];
+      VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[f->v[m]];
       for (i=0;i<v->num && k!=v->f[i];i++);
       if (i==v->num)   /* face has vertex, but vertex doesn't have face */
         ErrorExit(ERROR_BADPARM,
@@ -464,10 +464,11 @@ int mrisFindNeighbors2(MRI_SURFACE *mris) {
   }
 
   for (vno = ntotal = vtotal = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
-    vtotal += v->vtotal ;
+    vtotal += vt->vtotal ;
     ntotal++ ;
   }
 
@@ -482,7 +483,6 @@ int saveTesselation2(tesselation_parms *parms) {
   quad_face_type *face2;
   quad_vertex_type *vertex2;
   MRIS* mris;
-  VERTEX* vertex;
   FACE *face;
   float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo ;
   float st,ps,xx1,yy0,zz1;
@@ -507,7 +507,8 @@ int saveTesselation2(tesselation_parms *parms) {
   mris->type=MRIS_TRIANGULAR_SURFACE;
   /*first init vertices*/
   for (vno=0;vno<mris->nvertices;vno++) {
-    vertex = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY* const vertext = &mris->vertices_topology[vno] ;
+    VERTEX         * const vertex  = &mris->vertices         [vno] ;
     vertex2= &parms->vertex[vno];
     i=vertex2->i;
     j=vertex2->j;
@@ -526,7 +527,7 @@ int saveTesselation2(tesselation_parms *parms) {
     vertex->x=x;
     vertex->y=y;
     vertex->z=z;
-    vertex->num=0;
+    vertext->num=0;
   }
   /*then init faces*/
   for (m = 0 ; m < parms->face_index ; m ++) {
@@ -537,32 +538,32 @@ int saveTesselation2(tesselation_parms *parms) {
     mris->faces[m].v[1] = face2->v[1] ;
     mris->faces[m].v[2] = face2->v[2] ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-      mris->vertices[mris->faces[m].v[n]].num++;
+      mris->vertices_topology[mris->faces[m].v[n]].num++;
   }
 
   /*allocate indices & faces for each vertex*/
   for (vno = 0 ; vno< mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
-    mris->vertices[vno].f =
-      (int *)calloc(mris->vertices[vno].num,sizeof(int));
-    if (!mris->vertices[vno].f)
+    // vertex = &mris->vertices[vno] ;
+    mris->vertices_topology[vno].f =
+      (int *)calloc(mris->vertices_topology[vno].num,sizeof(int));
+    if (!mris->vertices_topology[vno].f)
       ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate %d faces at %dth vertex",
-                Progname, mris->vertices[vno].num,vno) ;
-    mris->vertices[vno].n =
-      (uchar *)calloc(mris->vertices[vno].num,sizeof(uchar));
-    if (!mris->vertices[vno].n)
+                Progname, mris->vertices_topology[vno].num,vno) ;
+    mris->vertices_topology[vno].n =
+      (uchar *)calloc(mris->vertices_topology[vno].num,sizeof(uchar));
+    if (!mris->vertices_topology[vno].n)
       ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate %d indices at %dth vertex",
-                Progname, mris->vertices[vno].num,vno) ;
-    mris->vertices[vno].num = 0 ;
+                Progname, mris->vertices_topology[vno].num,vno) ;
+    mris->vertices_topology[vno].num = 0 ;
   }
 
   /*init faces for each vertex*/
   for (fno = 0 ; fno < mris->nfaces ; fno++) {
     face = &mris->faces[fno] ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-      mris->vertices[face->v[n]].f[mris->vertices[face->v[n]].num++] = fno;
+      mris->vertices_topology[face->v[n]].f[mris->vertices_topology[face->v[n]].num++] = fno;
   }
 
   /*necessary initialization*/
@@ -573,10 +574,10 @@ int saveTesselation2(tesselation_parms *parms) {
     mris->vertices[vno].origarea = -1;
     mris->vertices[vno].border = 0;
 
-    for (n=0;n<mris->vertices[vno].num;n++) {
+    for (n=0;n<mris->vertices_topology[vno].num;n++) {
       for (m=0;m<VERTICES_PER_FACE;m++) {
-        if (mris->faces[mris->vertices[vno].f[n]].v[m] == vno)
-          mris->vertices[vno].n[n] = m;
+        if (mris->faces[mris->vertices_topology[vno].f[n]].v[m] == vno)
+          mris->vertices_topology[vno].n[n] = m;
       }
     }
     x = mris->vertices[vno].x;
@@ -980,13 +981,13 @@ int main(int argc, char *argv[]) {
   {
     float dist,max_e=0.0;
     int n,p,vn0,vn2;
-    VERTEX *v,*vp;
     fprintf(stderr,"computing the maximum edge length...");
     for (n = 0 ; n < mris->nvertices ; n++) {
-      v=&mris->vertices[n];
-      for (p = 0 ; p < v->vnum ; p++) {
-        vp = &mris->vertices[v->v[p]];
-        dist=SQR(vp->x-v->x)+SQR(vp->y-v->y)+SQR(vp->z-v->z);
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+      VERTEX          const * const v  = &mris->vertices         [n];
+      for (p = 0 ; p < vt->vnum ; p++) {
+        VERTEX const * const vp = &mris->vertices[vt->v[p]];
+        dist=SQR(vp->x - v->x)+SQR(vp->y - v->y)+SQR(vp->z - v->z);
         if (dist>max_e) max_e=dist;
       }
     }
@@ -996,17 +997,21 @@ int main(int argc, char *argv[]) {
       vn0=mris->faces[n].v[0];
       vn2=mris->faces[n].v[2];
       /* vertex 0 becomes vertex 2 */
-      v=&mris->vertices[vn0];
-      for (p = 0 ; p < v->num ; p++)
-        if (v->f[p]==n)
-          v->n[p]=2;
-      mris->faces[n].v[2]=vn0;
+      { 
+        VERTEX_TOPOLOGY* const v=&mris->vertices_topology[vn0];
+        for (p = 0 ; p < v->num ; p++)
+          if (v->f[p]==n)
+            v->n[p]=2;
+        mris->faces[n].v[2]=vn0;
+      }
       /* vertex 2 becomes vertex 0 */
-      v=&mris->vertices[vn2];
-      for (p = 0 ; p < v->num ; p++)
-        if (v->f[p]==n)
-          v->n[p]=0;
-      mris->faces[n].v[0]=vn2;
+      { 
+        VERTEX_TOPOLOGY* const v=&mris->vertices_topology[vn2];
+        for (p = 0 ; p < v->num ; p++)
+          if (v->f[p]==n)
+            v->n[p]=0;
+        mris->faces[n].v[0]=vn2;
+      }
     }
   }
 

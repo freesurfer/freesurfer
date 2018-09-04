@@ -31,7 +31,7 @@
 #include "volcluster.h"
 #include "numerics.h"
 
-char *Progname = "mri_cht2p";
+const char *Progname = "mri_cht2p";
 int n;
 CHT *cht, *cht2;
 

@@ -73,7 +73,7 @@ static int      TAL = 1;
 static int      ROT = 1;
 static int      NO_CORRECTION = 0;
 static int      alert=0;
-char            *Progname ;
+const char            *Progname ;
 MRI             *mri_wm, *mri_cc_tal ;
 MRI             *mri_intensity ;
 int             dxi=0;

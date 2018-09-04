@@ -47,7 +47,6 @@ def unet_model_3d(input_shape, num_filters, unet_depth, downsize_filters_factor=
     print('unet depth is ')
     print(unet_depth)
     for i in range(unet_depth):
-
         prev = input_img if i == 0 else pools[i - 1]
         print(int(num_filters * (2 ** i) / downsize_filters_factor))
         conv = Conv3D(int(num_filters * (2 ** i) / downsize_filters_factor), (3, 3, 3),
@@ -95,7 +94,6 @@ def unet_model_3d(input_shape, num_filters, unet_depth, downsize_filters_factor=
     if is_seg_network == False:
         print(loss)
         conv = Conv3D(1, (1, 1, 1), activation='relu', name='final_conv_3d')(up)
-
         if num_gpus > 1:
             with tf.device('/cpu:0'):
                 model = Model(inputs=inputs, outputs=conv)
@@ -853,7 +851,6 @@ def resnet_model(input_shape, num_filters, unet_depth, downsize_filters_factor=1
         UpSamplingL = UpSampling2D
         filter_shape = (5, 5)
         out_filter_shape = (1, 1)
-
     elif dim == 4:
         ConvL = Conv3D
         MaxPoolingL = MaxPooling3D

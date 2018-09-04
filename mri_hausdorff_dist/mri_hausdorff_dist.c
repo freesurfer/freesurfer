@@ -59,7 +59,7 @@ static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, 
 static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.14 2014/07/18 20:19:23 lzollei Exp $";
 static int fromFile = 0;
 
-char *Progname ;
+const char *Progname ;
 
 #define MAX_VOLUMES 100
 

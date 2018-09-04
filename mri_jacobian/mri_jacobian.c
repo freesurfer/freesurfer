@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
                 
 
-char *Progname ;
+const char *Progname ;
 
 static int use_log = 0 ;
 static float sigma = 0 ;

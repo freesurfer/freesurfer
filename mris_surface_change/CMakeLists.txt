@@ -1,6 +1,6 @@
 project(mris_surface_change)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_surface_change mris_surface_change.c)
 target_link_libraries(mris_surface_change utils)

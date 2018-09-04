@@ -818,24 +818,21 @@ LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name)
 ------------------------------------------------------*/
 int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris)
 {
-  int n, nfilled, nv;
-  float min_curv, max_curv, curv_thresh;
-  VERTEX *v, *vn;
-  LV *lv, *lvn;
-
   if (!max_vertices) {
     max_vertices = area->max_points;
   }
 
   MRISclearMarks(mris);
-  max_curv = min_curv = 0;
+  
+  float max_curv = 0, min_curv = 0;
+  int n;
   for (n = 0; n < nvertices; n++) {
-    v = &mris->vertices[vertex_list[n]];
+    VERTEX * const v = &mris->vertices[vertex_list[n]];
     if (v->ripflag) {
       continue;
     }
     v->marked = 1;
-    lv = &area->lv[n];
+    LV* const lv = &area->lv[n];
     lv->vno = vertex_list[n];
     lv->x = v->x;
     lv->y = v->y;
@@ -848,6 +845,8 @@ int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices
       min_curv = v->curv;
     }
   }
+  
+  float curv_thresh;
   if (-min_curv > max_curv) {
     curv_thresh = min_curv;
   }
@@ -855,27 +854,33 @@ int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices
     curv_thresh = max_curv;
   }
   curv_thresh *= 0.1; /* 10% of max */
+  
   fprintf(stderr, "starting fill with curvature threshold = %2.3f\n", curv_thresh);
+  int nfilled;
   do {
     nfilled = 0;
 
     for (n = 0; n < area->n_points && area->n_points + nfilled < area->max_points; n++) {
-      lv = &area->lv[n];
-      v = &mris->vertices[lv->vno];
+      LV const * const lv = &area->lv[n];
+      
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[lv->vno];
+      VERTEX                * const v  = &mris->vertices[lv->vno];
       if (v->ripflag) {
         continue;
       }
-      for (nv = 0; nv < v->vnum; nv++) /* go through neighbors */
+      
+      int nv;
+      for (nv = 0; nv < vt->vnum; nv++) /* go through neighbors */
       {
-        vn = &mris->vertices[v->v[nv]];
+        VERTEX * const vn = &mris->vertices[vt->v[nv]];
         if (vn->ripflag || vn->marked) {
           continue;
         }
         if (((curv_thresh > 0) && (vn->curv > curv_thresh)) || ((curv_thresh < 0) && (vn->curv < curv_thresh))) {
           vn->marked = 1;
-          lvn = &area->lv[area->n_points + nfilled];
+          LV* const lvn = &area->lv[area->n_points + nfilled];
           nfilled++;
-          lvn->vno = v->v[nv];
+          lvn->vno = vt->v[nv];
           lvn->x = vn->x;
           lvn->y = vn->y;
           lvn->z = vn->z;
@@ -904,32 +909,32 @@ int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices
 ------------------------------------------------------*/
 int LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
 {
-  int n, nfilled, nv;
-  VERTEX *v, *vn;
-  LV *lv, *lvn;
-
+  int nfilled;
   do {
     nfilled = 0;
-
+    int n;
     for (n = 0; n < area->n_points && area->n_points + nfilled < area->max_points; n++) {
-      lv = &area->lv[n];
-      v = &mris->vertices[lv->vno];
+      LV const * const lv = &area->lv[n];
+      
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[lv->vno];
+      VERTEX                * const v  = &mris->vertices         [lv->vno];
       v->marked = 2;
       if (v->ripflag) {
         continue;
       }
-      for (nv = 0; nv < v->vnum; nv++) /* go through neighbors */
+      int nv;
+      for (nv = 0; nv < vt->vnum; nv++) /* go through neighbors */
       {
-        vn = &mris->vertices[v->v[nv]];
+        VERTEX * const vn = &mris->vertices[vt->v[nv]];
         if (vn->ripflag) {
           continue;
         }
         if (vn->marked == 1) /* add it to the label */
         {
           vn->marked = 2;
-          lvn = &area->lv[area->n_points + nfilled];
+          LV * const lvn = &area->lv[area->n_points + nfilled];
           nfilled++;
-          lvn->vno = v->v[nv];
+          lvn->vno = vt->v[nv];
           lvn->x = vn->x;
           lvn->y = vn->y;
           lvn->z = vn->z;
@@ -959,33 +964,32 @@ int LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
 ------------------------------------------------------*/
 int LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
 {
-  int n, nfilled, nv, annotation;
-  VERTEX *v, *vn;
-  LV *lv, *lvn;
-
-  annotation = mris->vertices[area->lv[0].vno].annotation;
+  int const annotation = mris->vertices[area->lv[0].vno].annotation;
+  int nfilled;
   do {
     nfilled = 0;
-
+    int n;
     for (n = 0; n < area->n_points && area->n_points + nfilled < area->max_points; n++) {
-      lv = &area->lv[n];
-      v = &mris->vertices[lv->vno];
+      LV * const lv = &area->lv[n];
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[lv->vno];
+      VERTEX          * const v  = &mris->vertices         [lv->vno];
       v->marked = 1;
       if (v->ripflag) {
         continue;
       }
-      for (nv = 0; nv < v->vnum; nv++) /* go through neighbors */
+      int nv;
+      for (nv = 0; nv < vt->vnum; nv++) /* go through neighbors */
       {
-        vn = &mris->vertices[v->v[nv]];
+        VERTEX * const vn = &mris->vertices[vt->v[nv]];
         if (vn->ripflag || vn->marked) {
           continue;
         }
         if (vn->annotation == annotation) /* add it to the label */
         {
           vn->marked = 1;
-          lvn = &area->lv[area->n_points + nfilled];
+          LV * const lvn = &area->lv[area->n_points + nfilled];
           nfilled++;
-          lvn->vno = v->v[nv];
+          lvn->vno = vt->v[nv];
           lvn->x = vn->x;
           lvn->y = vn->y;
           lvn->z = vn->z;
@@ -1016,7 +1020,6 @@ int LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
 int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris)
 {
   int n, nfilled, nv;
-  VERTEX *v, *vn;
   LV *lv, *lvn;
 
   if (!max_vertices) {
@@ -1024,7 +1027,7 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
   }
 
   for (n = 0; n < nvertices; n++) {
-    v = &mris->vertices[vertex_list[n]];
+    VERTEX * const v = &mris->vertices[vertex_list[n]];
     if (v->ripflag) {
       continue;
     }
@@ -1042,20 +1045,21 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
 
     for (n = 0; n < area->n_points && area->n_points + nfilled < area->max_points; n++) {
       lv = &area->lv[n];
-      v = &mris->vertices[lv->vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[lv->vno];
+      VERTEX          const * const v  = &mris->vertices         [lv->vno];
       if (v->ripflag) {
         continue;
       }
-      for (nv = 0; nv < v->vnum; nv++) /* go through neighbors */
+      for (nv = 0; nv < vt->vnum; nv++) /* go through neighbors */
       {
-        vn = &mris->vertices[v->v[nv]];
+        VERTEX * const vn = &mris->vertices[vt->v[nv]];
         if (vn->ripflag || vn->marked) {
           continue;
         }
         vn->marked = 1;
         lvn = &area->lv[area->n_points + nfilled];
         nfilled++;
-        lvn->vno = v->v[nv];
+        lvn->vno = vt->v[nv];
         lvn->x = vn->x;
         lvn->y = vn->y;
         lvn->z = vn->z;
@@ -1896,7 +1900,6 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
 LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht, MRI_SURFACE *mris_dst, LABEL *adst)
 {
   int vno, n, nfilled, m;
-  VERTEX *v, *vdst, *vn, *vsrc;
   LABEL_VERTEX *lv_dst;
   MRIS_HASH_TABLE *mht_src;
   double max_len;
@@ -1921,11 +1924,11 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    v = &mris->vertices[vno];
+    VERTEX const * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
-    vdst = MHTfindClosestVertex(mht, mris_dst, v);
+    VERTEX * const vdst = MHTfindClosestVertex(mht, mris_dst, v);
     if (!vdst) {
       ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno);
       continue;
@@ -1973,7 +1976,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
     */
     nfilled = 0;
     for (n = 0; n < adst->n_points; n++) {
-      v = &mris_dst->vertices[adst->lv[n].vno];
+      VERTEX_TOPOLOGY const * const vt = &mris_dst->vertices_topology[adst->lv[n].vno];
+      VERTEX                * const v  = &mris_dst->vertices         [adst->lv[n].vno];
       if (adst->lv[n].vno == Gdiag_no) {
         DiagBreak();
       }
@@ -1982,19 +1986,19 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
       }
       if (v->marked == 0) /* hasn't been processed for this surface yet */
       {
-        vsrc = MHTfindClosestVertex(mht_src, mris, v);
+        VERTEX const * const vsrc = MHTfindClosestVertex(mht_src, mris, v);
         if (vsrc && vsrc->marked) /* in label */
         {
           adst->lv[n].stat += vsrc->stat;
           v->marked = 1;
         }
       }
-      for (m = 0; m < v->vnum; m++) {
-        vn = &mris_dst->vertices[v->v[m]];
+      for (m = 0; m < vt->vnum; m++) {
+        VERTEX * const vn = &mris_dst->vertices[vt->v[m]];
         if (vn->marked) {
           continue; /* already in label */
         }
-        vsrc = MHTfindClosestVertex(mht_src, mris, vn);
+        VERTEX const * const vsrc = MHTfindClosestVertex(mht_src, mris, vn);
         if (vsrc == NULL) {
           DiagBreak();
         }
@@ -2015,7 +2019,7 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
           }
 
           vn->marked = 1;
-          lv_dst = labelFindVertexNumber(adst, v->v[m]);
+          lv_dst = labelFindVertexNumber(adst, vt->v[m]);
           if (lv_dst == NULL) {
             lv_dst = &adst->lv[adst->n_points++];
           }
@@ -2025,7 +2029,7 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
           lv_dst->x = adst->lv[n].x;
           lv_dst->y = adst->lv[n].y;
           lv_dst->z = adst->lv[n].z;
-          lv_dst->vno = v->v[m];
+          lv_dst->vno = vt->v[m];
           lv_dst->stat += vsrc->stat;
           if (lv_dst->vno == Gdiag_no) {
             DiagBreak();
@@ -2164,8 +2168,8 @@ int LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
       // check to see if we should not add this label
       // (if one of it's nbrs is not in label)
       found_nbr_off = 0;
-      for (neighbor_index = 0; neighbor_index < mris->vertices[vno].vnum; neighbor_index++) {
-        neighbor_vno = mris->vertices[vno].v[neighbor_index];
+      for (neighbor_index = 0; neighbor_index < mris->vertices_topology[vno].vnum; neighbor_index++) {
+        neighbor_vno = mris->vertices_topology[vno].v[neighbor_index];
         if (neighbor_vno == Gdiag_no) DiagBreak();
         if (neighbor_vno < 0) continue;
         if (neighbor_vno >= mris->nvertices)
@@ -2200,7 +2204,6 @@ int LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
 int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords)
 {
   int n, neighbor_index, neighbor_vno, found, vno;
-  VERTEX *vn, *v;
 
   //  printf("LabelDilate(%d, %d)\n", num_times, coords) ;
   if (NULL == area) {
@@ -2219,7 +2222,8 @@ int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords)
 
     /* For each vertex in the label... */
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no) DiagBreak();
 
       if (v->marked == 1)  // already in label
@@ -2227,10 +2231,10 @@ int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords)
 
       // Check its neighbors. If any are in the label, add it
       found = 0;
-      for (neighbor_index = 0; neighbor_index < v->vnum; neighbor_index++) {
+      for (neighbor_index = 0; neighbor_index < vt->vnum; neighbor_index++) {
         /* Look for neighbor_vno in the label. */
-        neighbor_vno = mris->vertices[vno].v[neighbor_index];
-        vn = &mris->vertices[neighbor_vno];
+        neighbor_vno = mris->vertices_topology[vno].v[neighbor_index];
+        VERTEX const * const vn = &mris->vertices[neighbor_vno];
         if (vn->marked > 0) {
           if (neighbor_vno == Gdiag_no) DiagBreak();
 
@@ -2613,9 +2617,9 @@ LABEL *LabelBoundary(LABEL *label, MRIS *surf)
 
   for (n = 0; n < label->n_points; n++) {
     vtxno = label->lv[n].vno;
-    nnbrs = surf->vertices[vtxno].vnum;
+    nnbrs = surf->vertices_topology[vtxno].vnum;
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+      nbrvtxno = surf->vertices_topology[vtxno].v[nthnbr];
       if (!VertexIsInLabel(nbrvtxno, label)) {
         boundary->lv[boundary->n_points].vno = vtxno;
         boundary->lv[boundary->n_points].x = label->lv[n].x;
@@ -3326,7 +3330,6 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
   LV *lv;
   static MHT *mht = NULL;
   static MRI_SURFACE *mris_cached = NULL;
-  VERTEX *v;
   float dx, dy, dz, x, y, z, dist, min_dist;
   int num_not_found, nchanged, num_brute_force;
   float vx, vy, vz;
@@ -3384,7 +3387,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
         for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++)  // find min dist vertex
         {
           vno = bin->fno;
-          v = &mris->vertices[vno];
+          VERTEX const * const v = &mris->vertices[vno];
           if (vno == Gdiag_no) DiagBreak();
 
           MRISgetCoords(v, coords, &vx, &vy, &vz);
@@ -3459,9 +3462,10 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
     for (i = 0; i < area_dst->n_points; i++) {
       vno = area_dst->lv[i].vno;
       if (vno == Gdiag_no) DiagBreak();
-      v = &mris->vertices[vno];
-      for (nbr = 0; nbr < v->vnum; nbr++) {
-        vno2 = v->v[nbr];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
+      for (nbr = 0; nbr < vt->vnum; nbr++) {
+        vno2 = vt->v[nbr];
         if (vno2 == Gdiag_no) DiagBreak();
         vn = &mris->vertices[vno2];
         if (vn->marked != 0)  // already in the label
@@ -3607,10 +3611,10 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
       //      printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
 
       // now add other vertices that also map to this voxel
-      VERTEX* min_v = &((MRI_SURFACE *)(area->mris))->vertices[min_vno];
-      for (i = 0; i < min_v->vnum; i++)  // find min dist vertex
+      VERTEX_TOPOLOGY const * const min_vt = &((MRI_SURFACE *)(area->mris))->vertices_topology[min_vno];
+      for (i = 0; i < min_vt->vnum; i++)  // find min dist vertex
       {
-        vno = min_v->v[i];
+        vno = min_vt->v[i];
         if (area->vertex_label_ind[vno] >= 0) continue;  // already in the label
         v = &((MRI_SURFACE *)(area->mris))->vertices[vno];
         if (vno == Gdiag_no) DiagBreak();
@@ -3744,10 +3748,10 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   //    printf("min dist vertex %d already in label\n", min_vno) ;
 
   // now add other vertices that also map to this voxel
-  VERTEX* min_v = &((MRI_SURFACE *)(area->mris))->vertices[min_vno];
-  for (i = 0; i < min_v->vnum; i++)  // find min dist vertex
+  VERTEX_TOPOLOGY const * min_vt = &((MRI_SURFACE *)(area->mris))->vertices_topology[min_vno];
+  for (i = 0; i < min_vt->vnum; i++)  // find min dist vertex
   {
-    vno = min_v->v[i];
+    vno = min_vt->v[i];
     if (area->vertex_label_ind[vno] >= 0) continue;  // already in the label
     v = &((MRI_SURFACE *)(area->mris))->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
@@ -3971,4 +3975,41 @@ static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *
   *py = (float)yv;
   *pz = (float)zv;
   return (NO_ERROR);
+}
+
+double
+LabelAverageVal(LABEL *area, MRI_SURFACE *mris)
+{
+  int vno, n, num ;
+  VERTEX *v ;
+  double avg ;
+
+  for (avg = 0.0, num = n = 0; n < area->n_points; n++) {
+    if (area->lv[n].deleted)
+      continue ;
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    num++ ;
+    avg += v->val ;
+  }
+  if (num > 0)
+    avg /= num ;
+  return(avg) ;
+}
+float
+LabelMaxStat(LABEL *area) 
+{
+  int     n ;
+  float   max_stat ;
+
+  for (max_stat = -1e10, n = 0; n < area->n_points; n++) 
+  {
+    if (area->lv[n].deleted)
+      continue ;
+    if (area->lv[n].stat > max_stat)
+      max_stat = area->lv[n].stat;
+  }
+  return(max_stat) ;
 }

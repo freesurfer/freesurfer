@@ -36,7 +36,7 @@
 #define OLD_APPEND  ".orig"
 #define HEADER_LENGTH  6144
 
-char *Progname;
+const char *Progname;
 
 #ifndef Darwin
 #ifndef SunOS

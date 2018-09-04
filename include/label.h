@@ -137,6 +137,7 @@ double  LabelVariance(LABEL *area, double ux, double uy, double uz) ;
 int     LabelMean(LABEL *area, double *px, double *py, double *pz) ;
 int     LabelMark(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) ;
+float   LabelMaxStat(LABEL *area) ;
 int     LabelMarkStats(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
@@ -190,5 +191,6 @@ int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *
 LABEL *LabelAddPoint(LABEL *label, LV *lv);
 int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
+double LabelAverageVal(LABEL *area, MRI_SURFACE *mris) ;
 
 #endif

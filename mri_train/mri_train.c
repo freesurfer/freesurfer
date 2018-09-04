@@ -53,7 +53,7 @@ static int classifier = CLASSIFIER_RFOREST ;
 static char priors_fname[100] = "none" ;
 static int  verbose = 0 ;
 
-char *Progname ;
+const char *Progname ;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;

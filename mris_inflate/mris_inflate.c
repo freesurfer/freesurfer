@@ -61,7 +61,9 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+static int mrisComputeSulcInMM(MRI_SURFACE *mris) ;
+
+const char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
 static int talairach_flag = 0 ;
@@ -74,6 +76,8 @@ static float DEFAULT_DIST = 0.1f;
 static float base_dt_scale = BASE_DT_SCALE ;
 
 static int SaveSulc = 1;
+static int compute_sulc_mm = 0 ;
+static int scale_brain = 1 ;
 static char *sulc_name = "sulc" ;
 char *rusage_file=NULL;
 
@@ -198,6 +202,10 @@ main(int argc, char *argv[])
   fprintf(stderr, "avg radius = %2.1f mm, total surface area = %2.0f mm^2\n",
           radius, mris->total_area) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+  MRIScomputeNormals(mris) ;
+  MRISsaveNormals(mris, WHITE_VERTICES);  // will be used in normal term
+  
   MRISstoreMetricProperties(mris) ;  /* use current surface as reference */
   MRISaverageVertexPositions(mris, navgs) ;
   MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
@@ -234,13 +242,17 @@ main(int argc, char *argv[])
 
   fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
   MRIScenter(mris, mris) ;
-  MRISscaleBrainArea(mris) ;
+  if (scale_brain)
+    MRISscaleBrainArea(mris) ;
   MRISwrite(mris, out_fname) ;
   FileNamePath(out_fname, path) ;
-  MRISzeroMeanCurvature(mris) ;  /* make sulc zero mean */
+  if (compute_sulc_mm == 0)
+    MRISzeroMeanCurvature(mris) ;  /* make sulc zero mean */
 
   if (SaveSulc)
   {
+    if (compute_sulc_mm && 0)
+      mrisComputeSulcInMM(mris) ;   // disable this for now
     sprintf(fname, "%s/%s.%s", path,
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
@@ -381,6 +393,17 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "save-sulc"))
   {
     SaveSulc=1;
+  }
+  else if (!stricmp(option, "mm"))
+  {
+    printf("computing sulc as mm between inflated and white surfaces projected onto white normal\n") ;
+    compute_sulc_mm = 1 ;
+  }
+  else if (!stricmp(option, "scale_brain") || !stricmp(option, "scale"))
+  {
+    scale_brain = atoi(argv[2]) ;
+    printf("%sscaling brain after inflation\n", scale_brain ? "" : "not ");
+    nargs = 1;
   }
   else if (!stricmp(option, "no-save-sulc"))
   {
@@ -668,5 +691,29 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+static int
+mrisComputeSulcInMM(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  double nx, ny, nz, nc, dx, dy, dz, sgn ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    dx = v->x - v->whitex ; dy = v->y - v->whitey ; dz = v->z - v->whitez ;
+    nx = v->wnx ; ny = v->wny ; nz = v->wnz ;
+    nc = dx*nx + dy*ny + dz*nz ;
+    sgn = ((nc < 0) ? -1  : 1) ; 
+    v->curv = sqrt(fabs(nc)) * sgn;
+    if (vno == Gdiag_no)
+      printf("v %d: nc = %2.3f, dist = %2.3f N=(%2.2f,%2.2f, %2.2f), D=(%2.2f,%2.2f,%2.2f)\n", vno, nc, v->curv, nx, ny, nz, dx, dy, dz);
+  }
+
+  return(NO_ERROR) ;
 }
 

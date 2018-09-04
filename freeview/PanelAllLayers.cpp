@@ -457,3 +457,17 @@ void PanelAllLayers::DeselectAllLayers()
 {
   ui->treeWidgetLayers->DeselectAll();
 }
+
+PanelLayer* PanelAllLayers::GetPanel(const QString &layer_type)
+{
+  for (int i = 0; i < ui->stackedWidget->count(); i++)
+  {
+    PanelLayer* panel = qobject_cast<PanelLayer*>(ui->stackedWidget->widget(i));
+    if (panel && panel->GetLayerType() == layer_type)
+    {
+      ui->stackedWidget->setCurrentWidget(panel);
+      return panel;
+    }
+  }
+  return NULL;
+}

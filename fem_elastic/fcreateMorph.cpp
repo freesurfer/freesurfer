@@ -24,7 +24,7 @@ extern "C"
 #include "gcamorph.h"
 #include "mri.h"
 };
-char *Progname;
+const char *Progname;
 
 //==================================================
 
@@ -236,6 +236,7 @@ main(int argc,
     exit(1);
   }
 
+  printf("#VMPC# fcreateMorph VmPeak  %d\n",GetVmPeak());
   return 0;
 }
 

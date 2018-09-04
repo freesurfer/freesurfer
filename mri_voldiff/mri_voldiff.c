@@ -70,7 +70,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 static char vcid[] = "$Id: mri_voldiff.c,v 1.6 2011/03/02 00:04:25 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *vol1File = NULL, *vol2File=NULL;
 MRI *vol1=NULL, *vol2=NULL;

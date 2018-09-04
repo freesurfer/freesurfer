@@ -52,7 +52,7 @@ static int get_option(int argc, char *argv[]) ;
 
 static char *like_vol_name ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static int niter = 500 ;
 static MRI *mri_in = NULL ;

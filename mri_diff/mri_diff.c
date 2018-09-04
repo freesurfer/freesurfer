@@ -173,7 +173,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_diff.c,v 1.37 2017/01/11 18:15:33 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int verbose=0;

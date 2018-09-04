@@ -1,6 +1,6 @@
 project(mri_em_register)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 set(SOURCES
   mri_em_register.c

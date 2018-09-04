@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) ;
 MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg);
 
 static char vcid[] = "$Id: mri_gtmseg.c,v 1.10 2016/08/02 21:07:24 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

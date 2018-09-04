@@ -516,7 +516,7 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
   than faces.
   -------------------------------------------------------*/
 //------------------------------------
-int MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v)
+int MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v)
 //------------------------------------
 {
   int fi;
@@ -536,7 +536,7 @@ int MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *
   than faces.
   -------------------------------------------------------*/
 //------------------------------------
-int MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v)
+int MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v)
 //------------------------------------
 {
   int fno;
@@ -1054,11 +1054,11 @@ int MHTisVectorFilled(
   //-------------------------------------------
 
   if (trace) {
-    VERTEX const * vtx = &mris->vertices[vtxno];
+    VERTEX_TOPOLOGY const * vtxt = &mris->vertices_topology[vtxno];
     fprintf(stderr, "The faces surrounding vertex %d are ", vtxno);
     int fi;
-    for (fi = 0; fi < vtx->num; fi++) {
-      int fno = vtx->f[fi];
+    for (fi = 0; fi < vtxt->num; fi++) {
+      int fno = vtxt->f[fi];
       fprintf(stderr, " %d", fno);
     }
     fprintf(stderr, "\n");
@@ -1074,7 +1074,8 @@ if (do_old) {
   //----------------------------------------------------
   // Temporarily move the CURRENT_VERTICES
   //----------------------------------------------------
-  VERTEX /* BEVIN MAKE THIS const */ * vtx = &mris->vertices[vtxno];
+  VERTEX_TOPOLOGY const * const vtxt = &mris->vertices_topology[vtxno];
+  VERTEX                * const vtx  = &mris->vertices         [vtxno];
 
   float const savex = vtx->x;
   float const savey = vtx->y;
@@ -1091,8 +1092,8 @@ if (do_old) {
   old_result = 0; // assume doesn't intersect
   
   int fi;
-  for (fi = 0; fi < vtx->num; fi++) {
-    int fno = vtx->f[fi];
+  for (fi = 0; fi < vtxt->num; fi++) {
+    int fno = vtxt->f[fi];
     old_result = MHTdoesFaceIntersect_old(mht, mris, fno, trace && (fno==0));
     if (trace) {
       fprintf(stderr, " MHTdoesFaceIntersect_old face:%d returns %d\n", fno, old_result);
@@ -1112,7 +1113,8 @@ if (do_old) {
   int new_result = old_result;
   
 if (do_new) {
-  VERTEX const * vtx = &mris->vertices[vtxno];
+  VERTEX_TOPOLOGY const * const vtxt = &mris->vertices_topology[vtxno];
+  VERTEX          const * const vtx  = &mris->vertices         [vtxno];
   float const moved_x = vtx->x + dx;
   float const moved_y = vtx->y + dy;
   float const moved_z = vtx->z + dz;
@@ -1125,8 +1127,8 @@ if (do_new) {
   // Try each changed faced in turn
   //
   int fi;
-  for (fi = 0; fi < vtx->num; fi++) {
-    int const fno = vtx->f[fi];
+  for (fi = 0; fi < vtxt->num; fi++) {
+    int const fno = vtxt->f[fi];
     FACE const * face = &mris->faces[fno];
 
     MHT_TRIANGLE triangle;
@@ -1294,7 +1296,7 @@ static int MHTexpandToTouchingFaces(
   int vi;
   for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
     int const vno = face->v[vi];
-    VERTEX const * const vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertex = &mris->vertices_topology[vno];
 
     #if VERTICES_PER_FACE != 3
     #error assumes 3 vertices per face
@@ -1769,6 +1771,8 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
     AVtxNum = bin->fno;
 
     AVtx = &mris->vertices[AVtxNum];
+    if (AVtx->ripflag)
+      continue ;
 
     if (AVtxNum == Gdiag_no) DiagBreak();
 

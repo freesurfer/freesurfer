@@ -1,6 +1,6 @@
 project(mri_fieldsign)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_fieldsign mri_fieldsign.c)
 target_link_libraries(mri_fieldsign utils)

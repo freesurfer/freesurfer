@@ -75,7 +75,7 @@ static char *source_surf = "";
 static char *target_surf = ".toM02100023.resample";
 static char *mask_fname = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;
@@ -656,8 +656,8 @@ main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d minutes and %d seconds.\n",
-         minutes, seconds) ;
+  printf("mri_nl_align registration took %d minutes and %d seconds.\n",  minutes, seconds) ;
+  printf("#VMPC# mri_nl_align VmPeak  %d\n",GetVmPeak());
   exit(0) ;
   return(0) ;
 }

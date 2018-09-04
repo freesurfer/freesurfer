@@ -34,7 +34,7 @@ extern "C"
 };
 
 // required by FS
-char* Progname;
+const char* Progname;
 
 struct IoParams
 {
@@ -141,19 +141,21 @@ main(int ac, char* av[])
                                             true,
                                             &vgLike);
     std::cout << " morph completed in " << t1.elapsed_min() << " minutes\n";
-    MRIwrite(mriOut, "tmpout1.mgz");
+    //MRIwrite(mriOut, "tmpout1.mgz");
     MRIfree(&mriOut);
   }
   // produce the GCAM
+  printf("#VMPC# exportGcam:pre-export VmPeak  %d\n",GetVmPeak());
   GCA_MORPH* gcam = pmorph->exportGcam(mriMoving,
                                        params.useBoundingBox,
                                        params.threshold);
-
+  printf("#VMPC# exportGcam:pre-write VmPeak  %d\n",GetVmPeak());
   GCAMwrite( gcam,
              const_cast<char*>
              (params.strGcam.c_str()));
 
   // test the presence of the gc structures -- LZ: WHAT DOES THAT DO???
+  printf("#VMPC# exportGcam:pre-norm VmPeak  %d\n",GetVmPeak());
   GCAMnormalizeIntensities(gcam, mriFixed);
 
   if ( params.doTest && (!params.useBoundingBox || 1) )
@@ -171,7 +173,7 @@ main(int ac, char* av[])
     << " height = " << mriOut->height
     << " depth = " << mriOut->depth
     << " nframes = " << mriOut->nframes << std::endl;
-    MRIwrite(mriOut, "tmpout2.mgz");
+    //MRIwrite(mriOut, "tmpout2.mgz");
   }
   else
   {
@@ -179,6 +181,7 @@ main(int ac, char* av[])
   }
 
   std::cout << " Export performed in " << timer.elapsed_min() << " minutes \n";
+  printf("#VMPC# exportGcam VmPeak  %d\n",GetVmPeak());
 
   return 0;
 }

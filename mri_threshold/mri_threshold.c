@@ -48,7 +48,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int binarize = 0 ;
-char *Progname ;
+const char *Progname ;
 int specificframe = 0;
 int frame = 0;
 int upperthreshold = 0;

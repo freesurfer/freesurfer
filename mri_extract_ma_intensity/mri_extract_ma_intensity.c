@@ -65,7 +65,7 @@
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
-char            *Progname ;
+const char            *Progname ;
 
 static double cc_tal_x = 126 ;
 static double cc_tal_y = 107 ;
