@@ -28075,7 +28075,7 @@ int MRISfileNameType(const char *fname)
   else if (!strcmp(ext, "GII")) {
     type = MRIS_GIFTI_FILE;
   }
-  else if (!strcmp(ext, "MGH")) {
+  else if (!strcmp(ext, "MGH") || !strcmp(ext, "MGZ")) {
     type = MRI_MGH_FILE;  // surface-encoded volume
   }
   else if (!strcmp(ext, "ANNOT")) {
