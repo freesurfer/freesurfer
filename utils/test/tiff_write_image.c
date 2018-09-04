@@ -44,7 +44,7 @@
 #include "mrimorph.h"
 #include "mri_circulars.h"
 
-char *Progname;
+const char *Progname;
 
 int main ( int argc, char** argv ) 
 {

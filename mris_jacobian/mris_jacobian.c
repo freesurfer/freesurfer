@@ -55,7 +55,7 @@ static int log_flag = 0 ;
 static int invert_flag = 0 ;
 static int noscale = 0 ;
 
-char *Progname ;
+const char *Progname ;
 
 int
 main(int argc, char *argv[])

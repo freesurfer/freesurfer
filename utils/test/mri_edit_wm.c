@@ -44,7 +44,7 @@
 void usage(int exit_val);
 MRI *fliplr(MRI *src);
 
-char *Progname;
+const char *Progname;
 
 /* Modified from mri_fill.c */
 static int edit_segmentation(MRI *mri_im, MRI *mri_seg) ;

@@ -68,7 +68,7 @@ MRI *MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
 static MRI *MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR, double alpha, double TE) ;
 static int remap_T1(MRI *mri_T1, float mean, float scale) ;
 
-char *Progname ;
+const char *Progname ;
 static int normalize = 0 ;
 static int discard = 0 ;
 static int nl_remap_T1 = 0 ;

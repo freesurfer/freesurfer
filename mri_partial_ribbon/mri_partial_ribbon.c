@@ -39,7 +39,7 @@ char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.11 $";
 
 #define IMGSIZE 256
 
-char *Progname;
+const char *Progname;
 
 void usage() {
   printf("Usage: mri_partial_ribbon innerSurf_lh outerSurf_lh "

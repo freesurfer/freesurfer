@@ -45,7 +45,7 @@ static int get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static int  unmark_interior(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int verbose = 0 ;
 static int print_radius = 0 ;

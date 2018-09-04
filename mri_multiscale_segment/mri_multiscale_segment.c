@@ -44,7 +44,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static MRI *MRIupdateSegmentation(MRI *mri_hires, MRI *mri_wm_in,  MRI *mri_wm_out, MRI *mri_mask) ;

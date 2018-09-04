@@ -102,7 +102,7 @@ void mri_invert_contrast_and_scale(MRI *mri, MRI *mri_mask, double scale);
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int normflag = 0; /* normalize input volume */
 

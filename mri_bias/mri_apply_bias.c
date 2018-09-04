@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static MRI *apply_bias(MRI *mri_orig, MRI *mri_norm, MRI *mri_bias) ;
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 static char *xform_fname = NULL ;

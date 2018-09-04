@@ -41,7 +41,7 @@ int fix_genesis(char *fname, char *dname);
 int fix_siemens(char *fname, char *dname);
 
 extern int errno;
-char *Progname;
+const char *Progname;
 
 void usage(void) {
 

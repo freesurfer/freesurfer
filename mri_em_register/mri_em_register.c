@@ -108,7 +108,7 @@ static double find_optimal_linear_xform
  float angle_steps, float scale_steps, float trans_steps,
  int nreductions);
 
-char         *Progname ;
+const char         *Progname ;
 static MORPH_PARMS  parms ;
 
 static char *T2_mask_fname = NULL ;

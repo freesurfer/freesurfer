@@ -44,7 +44,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-char         *Progname ;
+const char         *Progname ;
 static MORPH_PARMS  parms ;
 
 static int mean_flag = 0 ;

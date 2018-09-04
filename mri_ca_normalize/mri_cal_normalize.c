@@ -43,7 +43,7 @@
 #include "version.h"
 
 
-char *Progname ;
+const char *Progname ;
 
 
 static int remove_cerebellum = 0 ;

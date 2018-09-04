@@ -145,7 +145,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
     "$Id: mri_robust_template.cpp,v 1.54 2016/05/05 21:17:08 mreuter Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
 // return n in [start,end]

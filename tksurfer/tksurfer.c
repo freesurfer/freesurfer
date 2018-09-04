@@ -169,7 +169,7 @@ int stricmp(const char* const str1, const char* const  str2)
 #endif
 #define TCL
 
-char *Progname = "surfer" ;
+const char *Progname = "surfer" ;
 
 #if defined(Linux) || defined(SunOS) || defined(sun)
 #define GL_ABGR_EXT                         0x8000

@@ -103,7 +103,7 @@ static float dgamma = 0.0f ;
 #define MAX_OVERLAYS 1000
 static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS]  ;
-char *Progname ;
+const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
 static char *canon_name = "sphere" ;

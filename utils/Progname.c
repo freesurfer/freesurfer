@@ -1,1 +1,1 @@
-char *Progname = "no name";
+const char *Progname = "no name";

@@ -271,7 +271,7 @@ int MRIS_surfaceRipFlags_filter(
 
 // Global variables
 
-char*  Progname ;
+const char*  Progname ;
 char*  hemi;
 
 static int    navgs         = 0;

@@ -49,7 +49,7 @@
 static void  usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 int DoWriteInverse = 0;
 int InvertGcam1 = 0;
 int InvertGcam2 = 0;

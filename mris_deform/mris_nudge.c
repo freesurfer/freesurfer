@@ -47,7 +47,7 @@
 #include "filter.h"
 
 
-char *Progname = NULL ;
+const char *Progname = NULL ;
 
 static void usage_exit(int code) ;
 int main(int argc, char *argv[]) ;

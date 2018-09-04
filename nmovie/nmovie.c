@@ -73,7 +73,7 @@ static int nocolor = 0 ;
 
 #define INTERVAL_INC 15
 
-char *Progname ;
+const char *Progname ;
 
 /* -------- Prototypes -------- */
 #ifdef __sun__

@@ -76,7 +76,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
     "$Id: lta_convert.cpp,v 1.10 2016/08/09 02:11:11 zkaufman Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
 {

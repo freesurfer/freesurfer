@@ -68,14 +68,14 @@
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_segment_tumor.c,v 1.3 2011/10/31 18:30:41 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 //char *cmdline, cwd[2000];
 //struct utsname uts;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static float mthresh = 2 ;
 

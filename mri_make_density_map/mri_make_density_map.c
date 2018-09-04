@@ -55,7 +55,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 static char *out_like_fname = NULL ;
 
 static int nreductions = 0 ;

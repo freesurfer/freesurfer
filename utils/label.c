@@ -3998,3 +3998,18 @@ LabelAverageVal(LABEL *area, MRI_SURFACE *mris)
     avg /= num ;
   return(avg) ;
 }
+float
+LabelMaxStat(LABEL *area) 
+{
+  int     n ;
+  float   max_stat ;
+
+  for (max_stat = -1e10, n = 0; n < area->n_points; n++) 
+  {
+    if (area->lv[n].deleted)
+      continue ;
+    if (area->lv[n].stat > max_stat)
+      max_stat = area->lv[n].stat;
+  }
+  return(max_stat) ;
+}

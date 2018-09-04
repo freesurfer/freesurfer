@@ -131,7 +131,7 @@ static void write_binary_surface(char *fname, MRI *mri, char *cmdline) ;
 static int get_option(int argc, char *argv[]) ;
 static void usage_exit(int code);
 
-char *Progname ;
+const char *Progname ;
 int UseMRIStessellate=0;
 
 int main(int argc, char *argv[])

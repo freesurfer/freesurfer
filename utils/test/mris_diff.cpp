@@ -124,7 +124,7 @@ int compute_distance = 0;
 
 static int nSmoothSteps = 0;
 
-char *Progname ;
+const char *Progname ;
 
 MRI *ComputeDifference(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res);
 MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res);

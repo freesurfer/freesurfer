@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_xvolavg.c,v 1.6 2011/03/02 00:04:26 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *defaulttypestring;
 int  defaulttype     = MRI_VOLUME_TYPE_UNKNOWN;

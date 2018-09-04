@@ -74,7 +74,7 @@ static int  compute_surface_distance(MRI_SURFACE *mris1, MRI_SURFACE *mris2,
                                      MRI_SURFACE *mris_out) ;
 
 static char vcid[] = "$Id: mris_surface_change.c,v 1.2 2011/03/02 00:04:34 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

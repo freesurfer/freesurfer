@@ -42,7 +42,7 @@
 #include "error.h"
 #include "mrishash.h"
 
-char *Progname;
+const char *Progname;
 
 MRI *MRIcropVolumeToLabel(MRI *mri_src, 
                           MRI *mri_dst, 

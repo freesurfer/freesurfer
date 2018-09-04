@@ -43,7 +43,7 @@
 #include "version.h"
 
 
-char *Progname ;
+const char *Progname ;
 
 
 static char *mask_fname = NULL ;

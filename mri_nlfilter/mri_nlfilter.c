@@ -55,7 +55,7 @@ static void print_version(void) ;
 #define OFFSET_WSIZE    3
 #define FILTER_WSIZE    3
 
-char *Progname ;
+const char *Progname ;
 
 static char *histo_template_fname ;
 static int crop = 1 ;

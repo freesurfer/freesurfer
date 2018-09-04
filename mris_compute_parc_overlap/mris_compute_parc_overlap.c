@@ -102,7 +102,7 @@ static void argnerr(char *option, int n);
 static int  singledash(char *flag);
 static void padWhite(char* str, int maxLen);
 
-char *Progname;
+const char *Progname;
 static char vcid[] =
   "$Id: mris_compute_parc_overlap.c,v 1.19 2016/03/28 17:20:11 fischl Exp $";
 static char *FREESURFER_HOME = NULL;

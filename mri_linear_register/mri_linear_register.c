@@ -44,7 +44,7 @@
 #include "matrix.h"
 #include "version.h"
 
-char         *Progname ;
+const char         *Progname ;
 static MORPH_PARMS  parms ;
 
 static int invert_flag = 0 ;

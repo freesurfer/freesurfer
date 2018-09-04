@@ -46,7 +46,7 @@ static MATRIX *align_pca(MRI *mri_src, MRI *mri_avg) ;
 static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
                           MATRIX *m_ref_evectors, double ref_means[3]) ;
 
-char *Progname ;
+const char *Progname ;
 static int align = 0 ;
 static int window_flag = 0 ;
 static MORPH_PARMS  parms ;

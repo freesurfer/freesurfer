@@ -112,7 +112,7 @@ static MRI *compute_mean_and_variance_across_frames(MRI **mri_label_avg, int nsu
 static MRI *compute_mean_and_variance(MRI **mri_label_avg, int nsubjects)  ;
 
 static char vcid[] = "$Id: mris_register_label_map.c,v 1.4 2016/12/11 14:33:31 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

@@ -52,7 +52,7 @@ extern "C"
 using namespace std;
 
 //static char vcid[] = "$Id: mris_label_calc.cpp,v 1.6 2016/12/10 22:57:58 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 void printUsage()
 {

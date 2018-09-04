@@ -47,7 +47,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int normalize = 0 ;
 static int variance =  0 ;

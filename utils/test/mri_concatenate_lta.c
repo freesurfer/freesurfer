@@ -56,7 +56,7 @@ static int invert2 = 0;
 
 static int out_type = 0;
 
-char *Progname;
+const char *Progname;
 char *tal_src_file = 0;
 char *tal_dst_file = 0;
 MRI *tal_src = 0;

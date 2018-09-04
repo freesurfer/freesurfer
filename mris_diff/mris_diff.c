@@ -112,7 +112,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_diff.c,v 1.20 2014/03/21 23:57:48 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
 static int checkoptsonly=0;

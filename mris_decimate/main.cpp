@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) ;
 //  Global Variables
 //
 static char vcid[] = "$Id: main.cpp,v 1.3 2011/03/02 00:04:30 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline;
 int debug=0;
 int checkoptsonly=0;

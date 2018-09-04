@@ -76,7 +76,7 @@ static int initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int o
 
 static MRI *MRIfindInnerBoundary(MRI *mri_src, MRI *mri_grad, MRI *mri_dst, float dist) ;
 static double compute_surface_sse(MRI_SURFACE *mris, MRI *mri, float sample_dist) ;
-char *Progname ;
+const char *Progname ;
 
 
 static INTEGRATION_PARMS  parms ;

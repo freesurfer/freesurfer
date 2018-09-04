@@ -68,7 +68,7 @@ static int compute_target_labels(MRI_SURFACE *mris, MRI *mri_labels, MRI *mri_in
                                  VERTEX_INFO *vi) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 static float resolution = 8.0 ;
 static char *label_vol_name = NULL ;

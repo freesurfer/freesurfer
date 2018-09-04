@@ -43,7 +43,7 @@ struct file {
   short rows, cols, bytes_per_voxel;
 };
 
-char *Progname;
+const char *Progname;
 
 #ifndef Darwin
 #ifndef SunOS

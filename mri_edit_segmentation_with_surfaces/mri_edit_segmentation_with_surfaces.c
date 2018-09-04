@@ -71,7 +71,7 @@ static char *annot_name = "aparc.annot" ;
 
 static int which_edits=HYPO_EDITS|CEREBELLUM_EDITS|CORTEX_EDITS|WM_EDITS;
 
-char *Progname ;
+const char *Progname ;
 
 static char *label_name = NULL ;
 static char *annotation_name = NULL ;

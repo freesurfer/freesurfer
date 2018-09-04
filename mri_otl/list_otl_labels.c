@@ -17,7 +17,7 @@
 #include "fmriutils.h"
 
 extern int errno;
-char *Progname;
+const char *Progname;
 
 void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);

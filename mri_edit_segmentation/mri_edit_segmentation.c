@@ -69,7 +69,7 @@ static MRI *edit_cortical_gray_matter(MRI *mri_in_labeled, MRI *mri_T1,
                                       MRI *mri_out_labeled) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 static int unknown_only = 0 ;
 static int border_only = 0 ;

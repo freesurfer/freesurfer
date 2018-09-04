@@ -61,7 +61,7 @@ int debug=0;
 
 extern int errno;
 
-char *Progname;
+const char *Progname;
 
 int ncutends = 0, cutends_flag = 0;
 

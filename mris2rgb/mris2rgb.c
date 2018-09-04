@@ -119,7 +119,7 @@ static float rescale = 1.0f ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 static MRI_SURFACE  *mris ;
 
 static long frame_xdim = 600;

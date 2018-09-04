@@ -66,7 +66,7 @@ static void print_version(void) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static float sigmas[] = { 0, .5, 1.0, 2.0 } ;
 #define NSCALES (sizeof(sigmas) / sizeof(sigmas[0]))

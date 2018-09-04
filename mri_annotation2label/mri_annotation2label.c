@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_annotation2label.c,v 1.32 2016/08/02 21:20:27 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char  *subject   = NULL;
 char  *annotation = "aparc";

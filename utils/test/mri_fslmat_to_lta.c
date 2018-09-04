@@ -47,7 +47,7 @@ void usage(int exit_val);
 
 static LTA  *ltaFSLread(const char *fname) ;
 
-char *Progname;
+const char *Progname;
 
 static int get_option(int argc, char *argv[]) ;
 

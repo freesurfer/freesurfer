@@ -59,7 +59,7 @@ static MRI *MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
                               int out_label) ;
 #endif
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 

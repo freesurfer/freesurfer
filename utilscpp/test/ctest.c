@@ -34,7 +34,7 @@
 #include "mri.h"
 #include "fastmarching.h"
 
-char *Progname = "ctest";
+const char *Progname = "ctest";
 
 int main(int argc, char *argv[]) {
   MRI *src;
