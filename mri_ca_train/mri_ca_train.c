@@ -70,7 +70,7 @@ static char *wmsa_fname = NULL ;
 static int gca_flags = GCA_NO_FLAGS ;
 
 static COLOR_TABLE *ctab = NULL ;
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static char *mask_fname = NULL ;
 static char *insert_fname = NULL ;

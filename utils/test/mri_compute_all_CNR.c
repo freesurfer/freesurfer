@@ -46,7 +46,7 @@
 void usage(int exit_val);
 MRI *fliplr(MRI *src);
 
-char *Progname;
+const char *Progname;
 
 static int xoff[6] =
   {

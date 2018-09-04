@@ -49,7 +49,7 @@ static void usage_exit(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char output_type[STRLEN] = "" ;
 static char *suffix = "" ;

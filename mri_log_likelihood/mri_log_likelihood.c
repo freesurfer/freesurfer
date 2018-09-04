@@ -55,7 +55,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;

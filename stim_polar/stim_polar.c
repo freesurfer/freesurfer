@@ -40,7 +40,7 @@
 #define EPS 1.0e-6
 
 /* Global variables */
-char *Progname ;
+const char *Progname ;
 static double flickerFreq;
 static double stimPeriod;
 static double minEcc;

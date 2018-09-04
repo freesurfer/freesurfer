@@ -51,7 +51,7 @@ extern "C"
 #include "gca.h"
 #include "version.h"
 };
-char *Progname;
+const char *Progname;
 
 typedef Math::Point<int> Pointd;
 

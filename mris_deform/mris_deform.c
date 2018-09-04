@@ -224,7 +224,7 @@ static int fill_aseg(MRI *mri, char *aseg_fname, DP *dp) ;
 static int use_partial_volume_model = 1 ;
 static int filter_type = FILTER_MEAN ;
 static char *read_name = NULL ;
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 #define T1 0

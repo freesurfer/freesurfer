@@ -51,7 +51,7 @@ float fct_slice_thickness;
 float fct_in_plane_resolution;
 int fct_rows, fct_cols, fct_slices;
 
-char *Progname;
+const char *Progname;
 
 void usage(int exit_val);
 void read_functional_header(char *fct_stem);

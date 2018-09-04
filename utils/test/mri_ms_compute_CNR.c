@@ -102,7 +102,7 @@ static int jlist[33] =
   };
 
 
-char *Progname ;
+const char *Progname ;
 
 static int MINLABEL = 2;
 static int MAXLABEL = 250;

@@ -53,7 +53,7 @@
 #define FACEINCREASE 1.2
 #define VERTEXINCREASE 1.2
 
-char *Progname;
+const char *Progname;
 
 typedef struct quad_face_type_ {
   int imnr,i,j,f;

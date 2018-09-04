@@ -46,7 +46,7 @@
 
 static char vcid[] =
   "$Id: histo_compute_joint_density.c,v 1.4 2011/03/02 00:04:09 nicks Exp $";
-char *Progname ;
+const char *Progname ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;

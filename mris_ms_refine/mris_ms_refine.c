@@ -253,7 +253,7 @@ static double compute_vertex_sse(EXTRA_PARMS *ep, double image_vals[MAX_FLASH_VO
                                  double white_dist, double cortical_dist, double T1_wm, double PD_wm,
                                  double T1_gm, double PD_gm, double T1_csf, double PD_csf, int debug,
                                  double *T1_vals, double *PD_vals, int vno) ;
-char *Progname ;
+const char *Progname ;
 static char *gSdir = NULL ;
 
 static int graymid = 0 ;

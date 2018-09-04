@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = 
 "$Id: mri_vol2surf.c,v 1.68 2014/05/30 20:58:47 greve Exp $";
 
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static char *defaulttypestring;
 static int  defaulttype = MRI_VOLUME_TYPE_UNKNOWN;

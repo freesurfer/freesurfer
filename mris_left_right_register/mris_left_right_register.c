@@ -97,7 +97,7 @@ static float dgamma = 0.0f ;
 
 static int navgs = 0 ;
 
-char *Progname ;
+const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
 static char *canon_name = "sphere" ;

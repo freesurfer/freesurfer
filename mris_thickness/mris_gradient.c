@@ -45,7 +45,7 @@
 
 static char vcid[] = "$Id: mris_gradient.c,v 1.23 2013/03/27 01:53:50 fischl Exp $";
 
-char *Progname ;
+const char *Progname ;
 int main(int argc, char *argv[]) ;
 
 #define FROBENIUS_NORM  0

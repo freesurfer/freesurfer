@@ -84,7 +84,7 @@ static double max_T2star = 1000 ;
 static int use_brain_mask = 0;
 /* compute brain mask and only use brain voxels when computing SSE */
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 

@@ -51,7 +51,7 @@ static void print_version(void) ;
 static void translate_annotation(MRI_SURFACE *mris, char *trans_name) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 static char subjects_dir[STRLEN] = "" ;
 

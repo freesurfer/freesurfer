@@ -57,7 +57,7 @@ static void print_version(void) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 static int voxval = 1 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/

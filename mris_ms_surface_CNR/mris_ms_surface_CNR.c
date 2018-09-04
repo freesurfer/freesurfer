@@ -65,7 +65,7 @@ static int get_option(int argc, char *argv[]) ;
 static int use_thickness = 0;
 static int conform = 0 ;
 
-char *Progname ;
+const char *Progname ;
 
 static char sdir[80] = ""; //SUBJECTS_DIR
 static char *sname = NULL;

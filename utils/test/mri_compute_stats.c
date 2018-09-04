@@ -45,7 +45,7 @@
 void usage(int exit_val);
 MRI *fliplr(MRI *src);
 
-char *Progname;
+const char *Progname;
 
 static int label1 = 0;
 static int label2 = 0;

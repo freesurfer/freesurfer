@@ -79,7 +79,7 @@ static int distance_to_label(MRI *mri_labeled, int label, int x,
                              int dz, int max_dist) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 static int fillven = 1 ;
 static int keep_edits = 0 ;

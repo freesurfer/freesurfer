@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] =
 "$Id: mri_volsynth.c,v 1.56 2017/02/16 19:50:57 greve Exp $";
 
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int debug = 0;
 

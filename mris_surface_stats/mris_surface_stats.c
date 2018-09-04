@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 MRI *MyMRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
 
-char *Progname ;
+const char *Progname ;
 
 static char *stat_fname = NULL; /* filename for output stat */
 static char *surf_fname = NULL; /* filename for underlying surface */

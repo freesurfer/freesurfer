@@ -89,7 +89,7 @@ int BTypeFromStem(char *stem);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_vol2roi.c,v 1.32 2011/03/02 00:04:25 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *roifile    = NULL;
 char *roifmt     = "bvolume";

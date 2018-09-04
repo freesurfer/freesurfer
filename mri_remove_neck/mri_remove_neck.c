@@ -42,7 +42,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-char         *Progname ;
+const char         *Progname ;
 
 static int fill_val = 0 ;
 static int radius = 25 ;

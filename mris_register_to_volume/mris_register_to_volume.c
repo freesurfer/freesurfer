@@ -164,7 +164,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static double tscale = 5.0 ;
 static int read_median = 0 ;

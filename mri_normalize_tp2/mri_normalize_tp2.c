@@ -46,7 +46,7 @@
 
 static int debug_flag = 0;
 
-char *Progname;
+const char *Progname;
 
 static char *tp1_T1_fname = NULL;
 static char *tp1_ctrl_fname  = NULL;

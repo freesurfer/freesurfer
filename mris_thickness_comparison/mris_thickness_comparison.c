@@ -54,7 +54,7 @@ static int  compute_thickness_stats(MRI_SURFACE *mris, LABEL *area,
                                     double *pmean_thick, double *pvar_thick,
                                     int *pn) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char subjects_dir[STRLEN] ;
 static int  avgs = 0 ;

@@ -68,7 +68,7 @@ static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_surfcluster.c,v 1.60 2016/11/01 19:49:22 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *subjectdir = NULL;
 char *hemi = NULL;

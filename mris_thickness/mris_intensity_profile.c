@@ -73,7 +73,7 @@ static int laplace_thick = 0 ;
 static char *write_thickness_fname = NULL ;
 static INTEGRATION_PARMS parms ;
 
-char *Progname ;
+const char *Progname ;
 static char *flat_name = NULL;
 static int smooth_iters = 1 ;
 static double flat_res = 0 ;

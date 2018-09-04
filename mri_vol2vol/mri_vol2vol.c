@@ -491,7 +491,7 @@ MATRIX *LoadRfsl(char *fname);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_vol2vol.c,v 1.89 2016/06/22 22:33:40 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 

@@ -49,7 +49,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int detrend = 0 ;
-char *Progname ;
+const char *Progname ;
 static int *conditions = NULL ;
 static float *timepoints = NULL ;
 

@@ -69,7 +69,7 @@ atom_type, MEDATOM ;
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
-char            *Progname ;
+const char            *Progname ;
 
 int
 main(int argc, char *argv[]) {

@@ -48,7 +48,7 @@
 
 #define USE_WM -1
 
-char *Progname;
+const char *Progname;
 
 int MRIaddEdgeVoxel(MRI *mri, int SetVal);
 

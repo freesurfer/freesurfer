@@ -34,7 +34,7 @@ extern "C"
 };
 
 // required by FS
-char* Progname;
+const char* Progname;
 
 struct IoParams
 {

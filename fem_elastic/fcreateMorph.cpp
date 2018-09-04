@@ -24,7 +24,7 @@ extern "C"
 #include "gcamorph.h"
 #include "mri.h"
 };
-char *Progname;
+const char *Progname;
 
 //==================================================
 

@@ -48,7 +48,7 @@
 #include "mri_identify.h"
 
 
-char *Progname = NULL;
+const char *Progname = NULL;
 static int  parse_commandline(int argc, char **argv);
 static void print_usage(void) ;
 static void usage_exit(void);

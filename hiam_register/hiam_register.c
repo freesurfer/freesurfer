@@ -82,7 +82,7 @@ static float dbeta = 0.0f ;
 static float dgamma = 0.0f ;
 
 
-char *Progname ;
+const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "hippocampus" ;
 static char *jacobian_fname = NULL ;

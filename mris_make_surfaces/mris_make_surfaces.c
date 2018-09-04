@@ -175,7 +175,7 @@ static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
 
-char *Progname ;
+const char *Progname ;
 
 static double std_scale = 1.0;
 
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
-  VERTEX *v,*v2;
+  VERTEX *v;
 
   FSinit() ;
   make_cmd_version_string

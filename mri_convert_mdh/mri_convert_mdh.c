@@ -203,7 +203,7 @@ int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
 int MDHdumpADC(char *measoutpath, char *outfile, int binary);
 
 /*--------------------------------------------------------------------*/
-char *Progname = NULL;
+const char *Progname = NULL;
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;

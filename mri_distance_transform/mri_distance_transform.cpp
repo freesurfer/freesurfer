@@ -45,7 +45,7 @@ extern "C" {
 }
 #include "fastmarching.h"
 
-char *Progname ;
+const char *Progname ;
 
 static float remove_csf_from_paths(MRI *mri_distance, MRI *mri_area, 
                                    MRI *mri_csf) ;

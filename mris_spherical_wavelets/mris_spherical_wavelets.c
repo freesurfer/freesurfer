@@ -64,7 +64,7 @@
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
-char            *Progname ;
+const char            *Progname ;
 static MRI_SURFACE *center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst);
 
 
