@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-import sys, os.path as op
+import sys, os, os.path as op
 sys.path.append(op.join(op.dirname(sys.argv[0]), '../python'))
 import freesurfer.test as fst
 
 rt = fst.RegressionTest()
 
-rt.run('mri_warp_convert --inm3z talairach.m3z --outitk out.nii.gz')
-rt.diff('out.nii.gz', 'ref.nii.gz')
+rt.run('mri_nu_correct.mni --i rawavg.mgz --o output.mgz --n 4 --no-uchar')
+rt.mridiff('output.mgz', 'output.ref.mgz')
 
 rt.cleanup()
