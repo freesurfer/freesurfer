@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn import mixture
+
 
 def piecewise_linear_normalize(in_img_data, ref_img_data):
     """Function to piecewise linearly scale image intensities to training data landmarks"""
@@ -65,9 +65,10 @@ def robust_normalize(in_img_data):
     out_img_data = (in_img_data) * scaling
     return out_img_data
 
+
 def wm_peak_normalize_t2w(in_img_data):
     """Function to scale image intensities by setting wm peak to 200"""
-
+    import sklearn.mixture
 
     in_img_flat = np.ravel(in_img_data, 'C')
 
@@ -91,8 +92,8 @@ def wm_peak_normalize_t2w(in_img_data):
     # max_bin = np.argmax(h)
     # mode_h = max_bin * (bin_edges[1] - bin_edges[0])
 
-# max of means is the wm centroid for t1w images
-#     wm_peak_intensity  = mode_h
+    # max of means is the wm centroid for t1w images
+    #     wm_peak_intensity  = mode_h
     wm_scaling = 0.3 / wm_peak_intensity
     print(wm_peak_intensity)
 
