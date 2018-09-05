@@ -1832,6 +1832,34 @@ bool MultiRegistration::writeLTAs(const std::vector<std::string> & nltas,
   return (error == 0);
 }
 
+bool MultiRegistration::writeMapMovHdr(
+  const std::vector<std::string>& mapmovhdr)
+{
+  assert(mapmovhdr.size() == mri_mov.size());
+  for (unsigned int i = 0; i < mapmovhdr.size(); i++)
+  {
+    if (!ltas[i])
+    {
+      std::cout << " ERROR: No LTAs exist! Skipping output.\n";
+      return false;
+    }
+    vnl_matrix<double> fMr2r = MyMatrix::LTA2RASmatrix(ltas[i]);
+    MATRIX * ras2ras = MyMatrix::convertVNL2MATRIX(fMr2r, NULL);
+    MATRIX * vox2ras = MRIgetVoxelToRasXform(mri_mov[i]);
+    vox2ras = MatrixMultiply(ras2ras, vox2ras, vox2ras);
+    MRI *mri_aligned = MRIcopy(mri_mov[i], NULL);
+    MRIsetVoxelToRasXform(mri_aligned, vox2ras);
+    const int error = MRIwrite(mri_aligned, mapmovhdr[i].c_str());
+    MRIfree(&mri_aligned);
+    if (error)
+    {
+      std::cout << "ERROR: Can't write " << mapmovhdr[i].c_str() << '\n';
+      return false;
+    }
+  }
+  return true;
+}
+
 bool MultiRegistration::writeWarps(const std::vector<std::string>& nwarps)
 {
   assert(nwarps.size() == mri_warps.size() || nwarps.size() == 1);
