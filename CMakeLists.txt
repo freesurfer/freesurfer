@@ -273,6 +273,36 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 set(CMAKE_CXX_STANDARD 11)
 
 # --------------------------------------------------
+#                   setup python
+# --------------------------------------------------
+
+option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
+
+if(DISTRIBUTE_FSPYTHON)
+  set(FSPYTHON_DIR /space/freesurfer/fspython/3.6/base)
+  if(EXISTS ${FSPYTHON_DIR}/bin/fspython)
+    # link the fspython distribution
+    symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
+    # specify the python to use
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/fspython)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.so)
+  else()
+    message(WARNING "Cannot find fspython distribution in FS_PACKAGES_DIR, "
+                    "so must use external python executable")
+    set(DISTRIBUTE_FSPYTHON OFF)
+  endif()
+endif()
+
+# initialize pybind for python wrapping
+set(PYBIND11_PYTHON_VERSION 3.5)  # minimum version required
+add_subdirectory(packages/pybind11)
+
+if(NOT DISTRIBUTE_FSPYTHON)
+  # link to an external python binary if fspython won't be distributed
+  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/bin/fspython)
+endif()
+
+# --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
 
@@ -293,10 +323,6 @@ set(FS_INCLUDE_DIRS
 
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
-
-# initialize pybind for python wrapping
-# set(PYBIND11_PYTHON_VERSION 3.5)
-# add_subdirectory(packages/pybind11)
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -411,6 +437,7 @@ add_subdirectories(
   mris_topo_fixer
   mris_volmask
   mrisp_paint
+  python
   samseg
   scripts
   talairach_afd
