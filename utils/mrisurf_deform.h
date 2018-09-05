@@ -112,8 +112,6 @@ int    mrisComputeWhichSurfaceRepulsionTerm     (MRI_SURFACE *mris, double l_rep
 
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse);
 
-int mrisClearExtraGradient(MRI_SURFACE *mris);
-
 int mrisOrientSurface     (MRI_SURFACE *mris);
 int mrisOrientPlane       (MRI_SURFACE *mris);
 int mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int base_averages, float min_area_pct, int max_passes);

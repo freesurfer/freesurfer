@@ -207,25 +207,6 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
   return (NO_ERROR);
 }
 
-static int compare_sort_vals(const void *pc1, const void *pc2)
-{
-  register float c1, c2;
-
-  c1 = *(float *)pc1;
-  c2 = *(float *)pc2;
-
-  /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
-  if (c1 > c2) {
-    return (1);
-  }
-  else if (c1 < c2) {
-    return (-1);
-  }
-
-  return (0);
-}
-
-
 // mostly for diagnostics
 #define MAXVERTICES 10000000
 #define MAXFACES (2 * MAXVERTICES)

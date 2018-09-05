@@ -1,4 +1,245 @@
 #if 0
+/*------------------------ STATIC PROTOTYPES -------------------------*/
+static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
+int MRIScomputeAllDistances(MRI_SURFACE *mris);
+#if 0
+static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
+                                   MRI_SP *mrisp_source,
+                                   MRI_SP *mrisp_dst,
+                                   float sigma, int frame) ;
+#endif
+static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
+static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname);
+static double mrisComputeSSE_MEF(
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, MRI *mri30, MRI *mri5, double weight30, double weight5, MHT *mht);
+static int mrisMarkIntersections(MRI_SURFACE *mris);
+static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs);
+#if 0
+static int mrisAverageWeightedGradients(MRI_SURFACE *mris, int num_avgs) ;
+#endif
+static int mrisComputeDuraTerm(MRI_SURFACE *mris, double l_dura, MRI *mri_dura, double dura_thresh);
+static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox);
+static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox);
+static int mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+int MRISrestoreExtraGradients(MRI_SURFACE *mris);
+static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri);
+static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark);
+static int mrisCheckSurface(MRI_SURFACE *mris);
+#if 0
+static int mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno,
+                                     double origin[3],double e0[3],
+                                     double e1[3]);
+#endif
+static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno);
+static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno);
+static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2);
+static int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2);
+static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2);
+#if (!SPHERE_INTERSECTION)
+static int mrisComputeCanonicalEdgeBasis(
+    MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2, double origin[3], double e0[3], double e1[3]);
+#endif
+
+static int triangleMarked(MRI_SURFACE *mris, int fno);
+
+static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
+static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
+static int mrisCalculateCanonicalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
+static int mrisDirectionTriangleIntersection(
+    MRI_SURFACE *mris, float x0, float y0, float z0, float nx, float ny, float nz, MHT *mht, double *pdist, int vno);
+static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris);
+static int mrisAllNormalDirectionCurrentTriangleIntersections(
+    MRI_SURFACE *mris, VERTEX *v, MHT *mht, double *pdist, int *flist);
+static int load_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3], int which);
+static int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3]);
+static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp);
+static int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2);
+
+static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris);
+// static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
+static float mrisNormalize(float v[3]);
+static float mrisTriangleArea(MRIS *mris, int fac, int n);
+static void mrisFaceAreaNormal(MRIS *mris, int fac, float norm[]);
+static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]);
+static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]);
+static int mrisComputeWhichSurfaceRepulsionTerm(
+    MRI_SURFACE *mris, double l_repulse, MHT *mht, int which, float max_dot);
+static int mrisComputePialNormal(MRIS *mris, int vno, float norm[]);
+static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[]);
+static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[]);
+static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[]);
+static int mrisReadTransform(MRIS *mris, const char *mris_fname);
+static MRI_SURFACE *mrisReadAsciiFile(const char *fname);
+static MRI_SURFACE *mrisReadGeoFile(const char *fname);
+static MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname);
+static MRI_SURFACE *mrisReadSTLfile(const char *fname);
+static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname);
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over);
+static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
+static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname);
+/*static int   mrisReadFieldsign(MRI_SURFACE *mris, const char *fname) ;*/
+static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris);
+static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris);
+static double mrisComputeSpringEnergy(MRI_SURFACE *mris);
+static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris);
+static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_repulse, INTEGRATION_PARMS *parms);
+static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms);
+static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms);
+static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms);
+static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms);
+static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
+                                                 double l_ashburner_triangle,
+                                                 INTEGRATION_PARMS *parms);
+static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht_v_current, MHT *mht_f_current);
+static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht_v, MHT *mht_f);
+static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse);
+static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht_v);
+static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht);
+static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht);
+static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms);
+static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms);
+static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms);
+static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms);
+static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms);
+static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburner_triangle, INTEGRATION_PARMS *parms);
+static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris);
+static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeDuraError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+
+static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris);
+static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double a);
+static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+
+static double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds, bool trace);
+static double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds);
+
+static int mrisComputeVertexDistances(MRI_SURFACE *mris);
+static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris);
+static double mrisComputeError(MRI_SURFACE *mris,
+                               INTEGRATION_PARMS *parms,
+                               float *parea_rms,
+                               float *pangle_rms,
+                               float *pcurv_rms,
+                               float *pdist_rms,
+                               float *pcorr_rms);
+static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
+static int mrisRemoveNegativeArea(
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs, float min_area_pct, int max_passes);
+static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float dt, MHT *mht, float max_mag);
+static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float dt, MHT *mht, float max_mag);
+static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisOrientEllipsoid(MRI_SURFACE *mris);
+static int mrisOrientPlane(MRI_SURFACE *mris);
+#if AVERAGE_AREAS
+static int mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which);
+#endif
+static int transform(float *xptr, float *yptr, float *zptr, float nx, float ny, float nz, float d);
+
+static int mrisComputeTangentPlanes(MRI_SURFACE *mris);
+static int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisRemoveFace(MRI_SURFACE *mris, int fno);
+static int mrisCountTotalNeighbors(MRI_SURFACE *mris);
+static int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border);
+static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_laplacian);
+static int mrisComputeLinkTerm(MRI_SURFACE *mris, double l_spring, int pial);
+static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int mrisComputeIntensityTerm(
+    MRI_SURFACE *mris, double l_intensity, MRI *mri_brain, MRI *mri_smooth, double sigma, INTEGRATION_PARMS *parms);
+static int mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, INTEGRATION_PARMS *parms);
+static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth);
+static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius, int explode_flag);
+static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex);
+static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand);
+static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv);
+static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht, double l_norm, double max_dist);
+static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv);
+static int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds);
+static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static int mrisClearDistances(MRI_SURFACE *mris);
+static int mrisClearExtraGradient(MRI_SURFACE *mris);
+static int mrisClearMomentum(MRI_SURFACE *mris);
+static int mrisValidFaces(MRI_SURFACE *mris);
+static int mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, int label, float radius);
+static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap);
+static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap);
+static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap);
+static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap, double target_radius);
+
+static int project_point_onto_sphere(float cx, float cy, float cz, float radius, float *pcx, float *pcy, float *pcz);
+static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices);
+static int mrisProjectSurface(MRI_SURFACE *mris);
+static int mrisOrientSurface(MRI_SURFACE *mris);
+static int mrisComputeBoundaryNormals(MRI_SURFACE *mris);
+static int mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter);
+static int mrisFlipPatch(MRI_SURFACE *mris);
+
+static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno);
+static int vertexInFace(MRI_SURFACE *mris, int vno, int fno);
+
+static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, INTEGRATION_PARMS *parms);
+static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist);
+static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
+static float minNeighborDistance(MRI_SURFACE *mris);
+static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno, 
+                                               MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx);
+static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+
+static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse);
+static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
+static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
+static int mrisTrackTotalDistance(MRI_SURFACE *mris);
+static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris);
+static bool mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno,
+                                     MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx);
+static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno);
+static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on);
+
+static double mrisRmsDistanceError(MRI_SURFACE *mris);
+static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisStoreVtotalInV3num(MRI_SURFACE *mris);
+static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int *flist);
+
+// The following two functions added for processing two channel MEF
+static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
+                                        double l_intensity,
+                                        MRI *mri_30,
+                                        MRI *mri_5,
+                                        double sigma_global,
+                                        float weight30,
+                                        float weight5,
+                                        INTEGRATION_PARMS *parms);
+static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5);
+
+static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2);
+static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no);
+
+static MATRIX *getSRASToTalSRAS(LT *lt);
+
+#endif
+
+#if 0
 static int mrisSamplePialCoordsInTangentPlane(MRI_SURFACE *mris, VERTEX *v,
     float x, float y, float z, float *pxp,
     float *pyp, float *pzp);
@@ -5915,3 +6156,345 @@ mrisComputeFaceStretch(MRI_SURFACE *mris, int fno)
   return(max_stretch) ;
 }
 #endif
+
+
+#if 0
+/*-----------------------------------------------------
+  MRISfastRead() just calls MRISRead()
+  Parameters:
+  Returns value:
+  Description
+  ------------------------------------------------------*/
+MRI_SURFACE *MRISfastRead(const char *fname)
+{
+/********* why you keep the rest ? ******************/
+#if 1
+  return (MRISread(fname));
+#else
+  MRI_SURFACE *mris;
+  int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
+  int imnr, imnr0, imnr1, type, vertices[4], num;
+  float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo;
+  FILE *fp;
+  VERTEX *vertex;
+  FACE *face;
+
+  mris = NULL;
+  fp = NULL;
+  type = MRISfileNameType(fname);
+  if (type == MRIS_ASCII_TRIANGLE_FILE) {
+    mris = mrisReadAsciiFile(fname);
+    if (!mris) {
+      return (NULL);
+    }
+    version = -3;
+  }
+  else if (type == MRIS_ICO_FILE) {
+    mris = ICOread(fname);
+    if (!mris) {
+      return (NULL);
+    }
+    return (mris);
+    version = -2;
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE) {
+    mris = mrisReadGeoFile(fname);
+    if (!mris) {
+      return (NULL);
+    }
+    version = -4;
+  }
+  else /* custom binary file - find out which type using magic # */
+  {
+    fp = fopen(fname, "rb");
+    if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISread(%s): could not open file", fname));
+
+    fread3(&magic, fp);
+    if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
+      fclose(fp);
+      mris = mrisReadTriangleFile(fname, 0.0);
+      if (!mris) {
+        ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
+      }
+      version = -3;
+    }
+    else if (magic == QUAD_FILE_MAGIC_NUMBER) {
+      version = -1;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+        fprintf(stdout, "new surface file format\n");
+      }
+    }
+    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
+      version = -2;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+        fprintf(stdout, "new surface file format\n");
+      }
+    }
+    else {
+      rewind(fp);
+      version = 0;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+        printf("surfer: old surface file format\n");
+      }
+    }
+  }
+  if (version >= -2) {
+    fread3(&nvertices, fp);
+    fread3(&nquads, fp);
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stdout, "reading %d vertices and %d faces.\n", nvertices, 2 * nquads);
+
+    mris = MRISalloc(nvertices, 2 * nquads);
+    mris->type = MRIS_BINARY_QUADRANGLE_FILE;
+
+    imnr0 = 1000;
+    imnr1 = 0;
+    for (vno = 0; vno < nvertices; vno++) {
+      vertex = &mris->vertices[vno];
+      if (version == -1) {
+        fread2(&ix, fp);
+        fread2(&iy, fp);
+        fread2(&iz, fp);
+        vertex->x = ix / 100.0;
+        vertex->y = iy / 100.0;
+        vertex->z = iz / 100.0;
+      }
+      else /* version == -2 */
+      {
+        vertex->x = freadFloat(fp);
+        vertex->y = freadFloat(fp);
+        vertex->z = freadFloat(fp);
+      }
+#if 0
+      vertex->label = NO_LABEL ;
+#endif
+      imnr = (int)((vertex->y - START_Y) / SLICE_THICKNESS + 0.5);
+      if (imnr > imnr1) {
+        imnr1 = imnr;
+      }
+      if (imnr < imnr0) {
+        imnr0 = imnr;
+      }
+      if (version == 0) /* old surface format */
+      {
+        fread1(&num, fp);
+        vertex->num = num;
+        vertex->f = (int *)calloc(vertex->num, sizeof(int));
+        if (!vertex->f) ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces", vertex->num);
+        vertex->n = (uchar *)calloc(vertex->num, sizeof(uchar));
+        if (!vertex->n) ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs", vertex->n);
+        for (n = 0; n < vertex->num; n++) {
+          fread3(&vertex->f[n], fp);
+        }
+      }
+      else {
+        vertex->num = 0;
+      }
+    }
+
+    for (fno = 0; fno < mris->nfaces; fno += 2) {
+      for (n = 0; n < 4; n++) /* read quandrangular face */
+      {
+        fread3(&vertices[n], fp);
+      }
+
+      /* 1st triangle */
+      mris->faces[fno].v[0] = vertices[0];
+      mris->faces[fno].v[1] = vertices[1];
+      mris->faces[fno].v[2] = vertices[3];
+      if (version < 0)
+        for (n = 0; n < VERTICES_PER_FACE; n++) {
+          mris->vertices[mris->faces[fno].v[n]].num++;
+        }
+
+      /* 2nd triangle */
+      mris->faces[fno + 1].v[0] = vertices[2];
+      mris->faces[fno + 1].v[1] = vertices[3];
+      mris->faces[fno + 1].v[2] = vertices[1];
+      if (version < 0)
+        for (n = 0; n < VERTICES_PER_FACE; n++) {
+          mris->vertices[mris->faces[fno + 1].v[n]].num++;
+        }
+    }
+    fclose(fp);
+  }
+  strcpy(mris->fname, fname);
+  {
+    char *surf_name;
+
+    surf_name = strrchr(fname, '/');
+    if (surf_name == NULL) {
+      surf_name = fname;
+    }
+    else {
+      surf_name++; /* past the last slash */
+    }
+    if (toupper(*surf_name) == 'R') {
+      mris->hemisphere = RIGHT_HEMISPHERE;
+    }
+    else {
+      mris->hemisphere = LEFT_HEMISPHERE;
+    }
+  }
+  if ((version < 0) || type == MRIS_ASCII_TRIANGLE_FILE) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      vertex = &mris->vertices[vno];
+      mris->vertices[vno].f = (int *)calloc(mris->vertices[vno].num, sizeof(int));
+      if (!mris->vertices[vno].f)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISread(%s): could not allocate %d faces at %dth vertex",
+                  fname,
+                  vno,
+                  mris->vertices[vno].num);
+
+      mris->vertices[vno].n = (uchar *)calloc(mris->vertices[vno].num, sizeof(uchar));
+      if (!mris->vertices[vno].n)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISread(%s): could not allocate %d indices at %dth vertex",
+                  fname,
+                  vno,
+                  mris->vertices[vno].num);
+      mris->vertices[vno].num = 0;
+    }
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      face = &mris->faces[fno];
+      for (n = 0; n < VERTICES_PER_FACE; n++) {
+        vertex = &mris->vertices[face->v[n]];
+        vertex->f[vertex->num++] = fno;
+      }
+    }
+  }
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].curv = 0;
+    mris->vertices[vno].origarea = -1;
+    mris->vertices[vno].border = 0;
+#if 0
+    mris->vertices[vno].origripflag = 0;
+    mris->vertices[vno].ripflag = 0;
+    mris->vertices[vno].val = 0;
+    mris->vertices[vno].dist = 0;
+    mris->vertices[vno].mx = 0;
+    mris->vertices[vno].my = 0;
+    mris->vertices[vno].mz = 0;
+    mris->vertices[vno].fieldsign = 0;
+    mris->vertices[vno].fsmask = 1;
+    mris->vertices[vno].nc = 0;
+    mris->vertices[vno].marked = 0;
+#endif
+    for (n = 0; n < mris->vertices[vno].num; n++) {
+      for (m = 0; m < VERTICES_PER_FACE; m++) {
+        if (mris->faces[mris->vertices[vno].f[n]].v[m] == vno) {
+          mris->vertices[vno].n[n] = m;
+        }
+      }
+    }
+    x = mris->vertices[vno].x;
+    y = mris->vertices[vno].y;
+    z = mris->vertices[vno].z;
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+  mris->xlo = xlo;
+  mris->ylo = ylo;
+  mris->zlo = zlo;
+  mris->xhi = xhi;
+  mris->yhi = yhi;
+  mris->zhi = zhi;
+  mris->xctr = (xhi + xlo) / 2;
+  mris->yctr = (yhi + ylo) / 2;
+  mris->zctr = (zhi + zlo) / 2;
+  mrisFindNeighbors(mris);
+  MRIScomputeNormals(mris);
+#if 0
+  mrisComputeVertexDistances(mris) ;
+  mrisReadTransform(mris, fname) ;
+#endif
+  if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
+    MRISsetNeighborhoodSize(mris, 2);
+    MRIScomputeSecondFundamentalForm(mris);
+    MRISuseMeanCurvature(mris);
+  }
+  else {
+    if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR) {
+      fprintf(stdout, "ignoring curvature file...\n"); /*return(NULL) ;*/
+    }
+#if 0
+    if (MRISreadBinaryAreas(mris, fname) != NO_ERROR)
+    {
+      return(NULL) ;
+    }
+#endif
+  }
+
+#if 0
+  if (IS_QUADRANGULAR(mris))
+  {
+    MRISremoveTriangleLinks(mris) ;
+  }
+#endif
+  MRISstoreCurrentPositions(mris);
+  return (mris);
+#endif
+}
+
+#endif
+
+
+#if 0
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisDebugVertex(MRI_SURFACE *mris, int vno)
+{
+  int     n ;
+  VERTEX  *v, *vn ;
+  float   d, dx, dy, dz ;
+
+  v = &mris->vertices[vno] ;
+  fprintf(stdout,
+          "vertex #%d @ (%2.2f, %2.2f, %2.2f), n = (%2.2f, %2.2f, %2.2f) "
+          "(%2.2f, %2.2f, %2.2f), val=%2.1f\n",
+          vno, v->x, v->y, v->z, v->nx, v->ny, v->nz, v->dx, v->dy, v->dz,
+          v->val) ;
+
+  for (n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    dx = vn->x - v->x ;
+    dy = vn->y - v->y ;
+    dz = vn->z - v->z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    fprintf(stdout,
+            "\tn %d: %6.6d, delta = (%2.3f, %2.3f, %2.3f), dist = %2.3f "
+            "(%2.2f, %2.2f, %2.2f), val=%2.1f\n",
+            n, v->v[n], dx, dy, dz, d, vn->dx, vn->dy, vn->dz, vn->val) ;
+  }
+  return(NO_ERROR) ;
+}
+#endif
+
