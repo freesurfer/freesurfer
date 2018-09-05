@@ -1836,28 +1836,34 @@ bool MultiRegistration::writeMapMovHdr(
   const std::vector<std::string>& mapmovhdr)
 {
   assert(mapmovhdr.size() == mri_mov.size());
+  MATRIX* ras2ras = MatrixAlloc(4, 4, MATRIX_REAL);
+  MATRIX* vox2ras;
+  int error = 0;
   for (unsigned int i = 0; i < mapmovhdr.size(); i++)
   {
     if (!ltas[i])
     {
       std::cout << " ERROR: No LTAs exist! Skipping output.\n";
-      return false;
+      error = 1;
+      break;
     }
     vnl_matrix<double> fMr2r = MyMatrix::LTA2RASmatrix(ltas[i]);
-    MATRIX * ras2ras = MyMatrix::convertVNL2MATRIX(fMr2r, NULL);
-    MATRIX * vox2ras = MRIgetVoxelToRasXform(mri_mov[i]);
+    ras2ras = MyMatrix::convertVNL2MATRIX(fMr2r, ras2ras);
+    vox2ras = MRIgetVoxelToRasXform(mri_mov[i]);
     vox2ras = MatrixMultiply(ras2ras, vox2ras, vox2ras);
     MRI *mri_aligned = MRIcopy(mri_mov[i], NULL);
     MRIsetVoxelToRasXform(mri_aligned, vox2ras);
-    const int error = MRIwrite(mri_aligned, mapmovhdr[i].c_str());
+    error = MRIwrite(mri_aligned, mapmovhdr[i].c_str());
     MRIfree(&mri_aligned);
+    MatrixFree(&vox2ras);
     if (error)
     {
       std::cout << "ERROR: Can't write " << mapmovhdr[i].c_str() << '\n';
-      return false;
+      break;
     }
   }
-  return true;
+  MatrixFree(&ras2ras);
+  return !error;
 }
 
 bool MultiRegistration::writeWarps(const std::vector<std::string>& nwarps)

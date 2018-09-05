@@ -51,6 +51,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>output xforms to template (for each input)</explanation>
       <argument>--mapmov &lt;aligned1.mgz&gt; ...</argument>
       <explanation>output images: map and resample each input to template</explanation>
+      <argument>--mapmovhdr &lt;aligned1.mgz&gt; ...</argument>
+      <explanation>output images: header-adjusted movables (no resampling) </explanation>
       <argument>--weights &lt;weights1.mgz&gt; ...</argument>
       <explanation>output weights (outliers) in target space</explanation>
       <argument>--oneminusw</argument>
