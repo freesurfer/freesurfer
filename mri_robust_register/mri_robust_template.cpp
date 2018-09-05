@@ -560,12 +560,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A"))
   {
     P.affine = true;
-    cout << "--affine: Enableing affine transform!" << endl;
+    cout << "--affine: Enabling affine transform!" << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I"))
   {
     P.iscale = true;
-    cout << "--iscale: Enableing intensity scaling!" << endl;
+    cout << "--iscale: Enabling intensity scaling!" << endl;
   }
   else if (!strcmp(option, "TRANSONLY"))
   {
