@@ -247,14 +247,16 @@ int main(int argc, char *argv[])
         P.iltas.size () == 0 || P.iltas.size() == P.mov.size() || (int)P.iltas.size() == nin);
     if (P.iltas.size() > 0)
     {
-      assert(MR.loadLTAs(P.iltas)==nin);
+      const int numLoaded = MR.loadLTAs(P.iltas);
+      assert(numLoaded==nin);
     }
 
     // load initial iscales if set:
     assert(P.iscalein.size () == 0 || (int)P.iscalein.size() == nin);
     if (P.iscalein.size() > 0)
     {
-      assert(MR.loadIntensities(P.iscalein)==nin);
+      const int numLoaded = MR.loadIntensities(P.iscalein);
+      assert(numLoaded==nin);
     }
 
     // Randomly pick target (default):
