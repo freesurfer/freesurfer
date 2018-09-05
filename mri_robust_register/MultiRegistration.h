@@ -129,6 +129,8 @@ public:
       const std::string & mean);
   //! Write all mapped movables
   bool writeWarps(const std::vector<std::string>& nwarps);
+  //! Write header-adjusted movables.
+  bool writeMapMovHdr(const std::vector<std::string>& mapmovhdr);
   //! Write all intensity scales
   bool writeIntensities(const std::vector<std::string>& nintens);
   //! Write all weights
