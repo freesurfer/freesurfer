@@ -276,10 +276,17 @@ set(CMAKE_CXX_STANDARD 11)
 #                   setup python
 # --------------------------------------------------
 
+# Unfortunately, the python version used to run wrapped c-libraries must be equal to
+# the version used to build the libraries. The easiest and least intrusive way of making freesurfer
+# python scripts run out-of-the-box (and to help guarantee reproducibility) requires
+# distributing a minimal, custom python installation called fspython. This fspython package
+# will get installed by default to "freesurfer/lib/python", but an external python can be
+# used instead by turning off the DISTRIBUTE_FSPYTHON option. Turning this off will create a
+# freesurfer/bin/fspython symlink that points to the external python executable located by pybind
 option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
 
 if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR /space/freesurfer/fspython/3.6/base)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6/base)
   if(EXISTS ${FSPYTHON_DIR}/bin/fspython)
     # link the fspython distribution
     symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
