@@ -87,7 +87,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_fieldsign.c,v 1.15 2011/10/05 21:57:21 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

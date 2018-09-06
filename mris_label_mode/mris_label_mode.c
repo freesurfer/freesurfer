@@ -64,7 +64,7 @@ static int WriteAnnotFile(MRI_SURFACE *mris, char *fname) ;
 static int WriteAnnotFreqFile(MRI_SURFACE *mris,char *fname) ;
 static int WriteAnnotHistFile(MRI_SURFACE *mris, char *fname) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int normalize_flag = 0 ;
 static int condition_no = 0 ;

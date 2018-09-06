@@ -45,7 +45,7 @@ static MRI *MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask,
     MRI *mri_dst,
     float threshold, int nsize) ;
 
-char *Progname ;
+const char *Progname ;
 
 static void usage_exit(int code) ;
 

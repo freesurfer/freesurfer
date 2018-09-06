@@ -39,7 +39,7 @@
 #include "gw_utils.h"
 #include "icosahedron.h"
 
-char * Progname;
+const char * Progname;
 char progver[] = "V1.11";
 char logfilepath[1000];
 char surffilepath[1000];

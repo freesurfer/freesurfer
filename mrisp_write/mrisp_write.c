@@ -52,7 +52,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int compute_corr = 0 ;
 static int spherical_corr = 0 ;
@@ -197,12 +197,22 @@ main(int argc, char *argv[])
     {
       int n ;
 
+      printf("reading input label from %s\n", in_overlay) ;
       area = LabelRead(NULL, in_overlay) ;
       if (area == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load label file %s to generate overlay",
 		  in_overlay) ;
-      for (n = 0 ; n < area->n_points ; n++)
-	mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
+      if (LabelMaxStat(area) > 0)
+      {
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
+      }
+      else
+      {
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = 1 ;
+      }
+
       LabelFree(&area) ;
     }
     else

@@ -175,7 +175,7 @@ static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
 
-char *Progname ;
+const char *Progname ;
 
 static double std_scale = 1.0;
 
@@ -336,7 +336,6 @@ int main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
-  VERTEX *v,*v2;
 
   FSinit() ;
   make_cmd_version_string
@@ -1043,8 +1042,7 @@ int main(int argc, char *argv[])
       // MRIScomputeBorderValues() sets v->marked=1 for all unripped
       MRISaverageMarkedVals(mris, vavgs) ;
       if (Gdiag_no > 0){
-        VERTEX *v ;
-        v = &mris->vertices[Gdiag_no] ;
+        VERTEX * const v = &mris->vertices[Gdiag_no] ;
         printf("v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
 	       Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
       }
@@ -1073,7 +1071,7 @@ int main(int argc, char *argv[])
     if(mristarget != NULL) MRISfree(&mristarget);
     mristarget = MRISclone(mris);
     for(vno=0; vno < mris->nvertices; vno++){
-      v = &(mristarget->vertices[vno]);
+      VERTEX* const v = &(mristarget->vertices[vno]);
       v->d = mris->vertices[vno].d; // clone does not copy this
       v->val = mris->vertices[vno].val; // clone does not copy this
       v->x += (v->d*v->nx); // d is the distance to the max gradient

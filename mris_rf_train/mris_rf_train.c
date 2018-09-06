@@ -53,7 +53,7 @@ static char *class_names[] =
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static char *hemi = "lh" ;
 static char *surf_name = "white" ;

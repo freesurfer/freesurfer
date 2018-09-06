@@ -51,6 +51,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>output xforms to template (for each input)</explanation>
       <argument>--mapmov &lt;aligned1.mgz&gt; ...</argument>
       <explanation>output images: map and resample each input to template</explanation>
+      <argument>--mapmovhdr &lt;aligned1.mgz&gt; ...</argument>
+      <explanation>output images: header-adjusted movables (no resampling) </explanation>
       <argument>--weights &lt;weights1.mgz&gt; ...</argument>
       <explanation>output weights (outliers) in target space</explanation>
       <argument>--oneminusw</argument>
@@ -69,6 +71,10 @@ Important Note: For best performance the input images should all have the same i
       <explanation>use initial intensity scales</explanation>
       <argument>--iscaleout &lt;is1.txt&gt; &lt;is2.txt&gt; ...</argument>
       <explanation>output final intensity scales (will activate --iscale)</explanation>
+      <argument>--transonly</argument>
+      <explanation>find 3 parameter translation only</explanation>
+      <argument>--affine</argument>
+      <explanation>find 12 parameter affine transform</explanation>
       <argument>--ixforms &lt;t1.lta&gt; &lt;t2.lta&gt; ...</argument>
       <explanation>use initial transforms (lta) on source  ('id'=identity)</explanation>
       <argument>--masks &lt;mask1.mgz&gt; ...</argument>

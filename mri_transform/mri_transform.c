@@ -71,7 +71,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 static int quiet_mode = 0 ;
 static char *subject_name ;
 static char *out_like_fname = NULL ;

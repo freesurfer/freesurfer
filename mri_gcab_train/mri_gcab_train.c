@@ -65,7 +65,7 @@ static int binarize_out = 0 ;
 
 static int gca_flags = GCA_NO_FLAGS ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static char *mask_fname = NULL ;
 static char *insert_fname = NULL ;

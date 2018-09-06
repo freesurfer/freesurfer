@@ -149,7 +149,7 @@ static int
 update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int new_parcel,
                                MRI *mri_cmatrix, MRI *mri_means, MRI *mri_vars, 
                                MRI *mri_stats, PARMS *parms);
-char *Progname ;
+const char *Progname ;
 
 static char *cmatrix_fname = NULL ;
 static MRI  *mri_cmatrix ;

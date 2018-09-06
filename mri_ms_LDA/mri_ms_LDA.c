@@ -78,7 +78,7 @@ MRI *MRInormalizeXH(MRI *mri_src, MRI *mri_dst, MRI *mri_mask);
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 
 /* Compute LDA only in a local neighborhood of the
  * specified debug voxel

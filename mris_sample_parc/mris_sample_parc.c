@@ -64,7 +64,7 @@ static int  fix_label_topology(MRI_SURFACE *mris, int nvertices) ;
 static int  resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 int MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) ;
 
-char *Progname ;
+const char *Progname ;
 static int   avgs = 0 ;
 static int nclose = 0 ;
 static char *color_table_fname = NULL ;

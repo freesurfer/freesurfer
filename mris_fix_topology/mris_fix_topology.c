@@ -69,7 +69,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void print_parameters(void);
 
-char *Progname ;
+const char *Progname ;
 
 static int exit_after_diag = 0 ;
 extern int topology_fixing_exit_after_diag ;

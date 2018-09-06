@@ -51,7 +51,7 @@ static void print_version(void) ;
 int MRISareaErrors(MRI_SURFACE *mris) ;
 int MRISangleErrors(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 static MRI_SURFACE  *mris ;
 
 static int patch_flag = 0 ;

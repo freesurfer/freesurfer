@@ -94,7 +94,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_gtmpvc.c,v 1.70 2016/07/07 15:39:49 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

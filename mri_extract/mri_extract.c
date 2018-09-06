@@ -39,7 +39,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static int reductions = 1 ;
 static int verbose = 0 ;
 static int pad = 0 ;

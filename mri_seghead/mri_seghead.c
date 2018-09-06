@@ -64,7 +64,7 @@ static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_seghead.c,v 1.8 2014/03/25 16:06:42 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 int debug = 0;
 char *subjid;
 

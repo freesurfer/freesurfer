@@ -69,7 +69,7 @@ static MATRIX *compute_ras_basis_vectors(MRI *mri_aseg_orig, MRI *mri_aseg_edit,
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static char *wfile_name ;
 static char *c1_name = "Left_Hippocampus" ;

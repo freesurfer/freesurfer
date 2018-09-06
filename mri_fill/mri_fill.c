@@ -179,7 +179,7 @@ static int lh_vol_z ;
 
 static int lhv = 0 ;
 static int rhv = 0 ;
-char *Progname ;
+const char *Progname ;
 
 static int min_filled = 0 ;
 

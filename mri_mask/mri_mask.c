@@ -53,7 +53,7 @@ static char vcid[] = "$Id: mri_mask.c,v 1.24 2016/11/28 20:30:57 fischl Exp $";
 
 void usage(int exit_val);
 
-char *Progname;
+const char *Progname;
 
 static int  get_option(int argc, char *argv[]) ;
 

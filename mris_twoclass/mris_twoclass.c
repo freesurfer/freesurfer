@@ -183,7 +183,7 @@ static int   cvector_track_best_stats(float *vsnr, float *vbest_snr,
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static int find_optimal_scale = TRUE ;
 static int navgs = 0 ;   /* only used if find_optimal_scale is 0 */

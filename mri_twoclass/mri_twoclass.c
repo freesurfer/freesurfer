@@ -119,7 +119,7 @@ static MRI *compute_voxel_statistics(VL ***voxel_labels_class1,
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static char *read_dir = NULL ;
 

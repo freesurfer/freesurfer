@@ -38,7 +38,7 @@ MRI * fill_leftover_voxels(MRI *segmri, MRI *inmri, MRI *outmri);
 static int get_option(int argc, char *argv[]) ;
 static char vcid[] = "$Id: mri_correct_segmentations.c,v 1.1 2015/08/25 01:18:09 lzollei Exp $";
 
-char *Progname ;
+const char *Progname ;
 // int use_orig_value = 0;
 int noGMWM = 0;
 

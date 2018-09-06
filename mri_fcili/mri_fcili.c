@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) ;
 MRI *MRIfcIntrinsicLI(MRI *lh, MRI *rh, double DenThresh);
 
 static char vcid[] = "$Id: mri_fcili.c,v 1.3 2013/11/22 19:41:44 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

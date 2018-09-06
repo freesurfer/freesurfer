@@ -55,7 +55,6 @@ install(PROGRAMS
   fix_subject-rh
   fname2ext
   fname2stem
-  fs_check_python
   fscalc
   fscalc.fsl
   fsdcmdecompress

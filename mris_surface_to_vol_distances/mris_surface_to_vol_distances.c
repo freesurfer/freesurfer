@@ -46,7 +46,7 @@ static int get_option(int argc, char *argv[]) ;
 static int update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms, int nbins) ;
 static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static char subjects_dir[STRLEN] = "";
 

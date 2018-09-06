@@ -73,7 +73,7 @@ static char *control_point_fname = NULL ;
 static float bias_sigma = 1.0 ;
 static float cross_time_sigma = -1 ;
 
-char *Progname ;
+const char *Progname ;
 
 #define MAX_TPS 1000
 

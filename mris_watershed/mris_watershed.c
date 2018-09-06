@@ -32,7 +32,7 @@ S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of 
 
 static char vcid[] = "$Id: mris_watershed.c,v 1.23 2013/03/27 01:53:50 fischl Exp $";
 
-char *Progname ;
+const char *Progname ;
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;

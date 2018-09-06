@@ -201,7 +201,7 @@ typedef struct {
 }
 MRI_variables;
 
-char *Progname;
+const char *Progname;
 
 static int type_changed = 0 ;
 static int old_type ;

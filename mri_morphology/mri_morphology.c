@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 #define ERODE          1
 #define DILATE         2

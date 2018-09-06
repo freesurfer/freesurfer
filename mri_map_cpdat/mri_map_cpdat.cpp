@@ -59,7 +59,7 @@ static void  usage_exit(int code) ;
 
 static char vcid[] =
   "$Id: mri_map_cpdat.cpp,v 1.6 2014/01/21 23:07:41 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 static LTA *LTAloadTalairachXFM(const char *subject);
 static LTA *LTAloadTalairachXFMInv(const char *subject);
 

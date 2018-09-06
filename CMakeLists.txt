@@ -273,6 +273,43 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 set(CMAKE_CXX_STANDARD 11)
 
 # --------------------------------------------------
+#                   setup python
+# --------------------------------------------------
+
+# Unfortunately, the python version used to run wrapped c-libraries must be equal to
+# the version used to build the libraries. The easiest and least intrusive way of making freesurfer
+# python scripts run out-of-the-box (and to help guarantee reproducibility) requires
+# distributing a minimal, custom python installation called fspython. This fspython package
+# will get installed by default to "freesurfer/lib/python", but an external python can be
+# used instead by turning off the DISTRIBUTE_FSPYTHON option. Turning this off will create a
+# freesurfer/bin/fspython symlink that points to the external python executable located by pybind
+option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
+
+if(DISTRIBUTE_FSPYTHON)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6/base)
+  if(EXISTS ${FSPYTHON_DIR}/bin/fspython)
+    # link the fspython distribution
+    symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
+    # specify the python to use
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/fspython)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.so)
+  else()
+    message(WARNING "Cannot find fspython distribution in FS_PACKAGES_DIR, "
+                    "so must use external python executable")
+    set(DISTRIBUTE_FSPYTHON OFF)
+  endif()
+endif()
+
+# initialize pybind for python wrapping
+set(PYBIND11_PYTHON_VERSION 3.5)  # minimum version required
+add_subdirectory(packages/pybind11)
+
+if(NOT DISTRIBUTE_FSPYTHON)
+  # link to an external python binary if fspython won't be distributed
+  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/bin/fspython)
+endif()
+
+# --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
 
@@ -293,10 +330,6 @@ set(FS_INCLUDE_DIRS
 
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
-
-# initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)
-add_subdirectory(packages/pybind11)
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(

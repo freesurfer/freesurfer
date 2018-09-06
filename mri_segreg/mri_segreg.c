@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] =
 "$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 

@@ -81,7 +81,7 @@ static double alpha = -1 ;
 static double TE = -1 ;
 static char *mask_volume_fname = NULL ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static int filter = 0 ;

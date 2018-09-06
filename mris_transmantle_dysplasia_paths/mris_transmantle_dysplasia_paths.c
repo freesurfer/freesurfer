@@ -73,7 +73,7 @@ static int energy_flags = SPLINE_WM_DIST | SPLINE_LENGTH | SPLINE_BELOW | SPLINE
 
 static double compute_spline_energy(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mri_wm_dist, double mean, int which, double spline_length_penalty, double spline_nonwm_penalty, double spline_interior_penalty) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static double noise = .1 ;

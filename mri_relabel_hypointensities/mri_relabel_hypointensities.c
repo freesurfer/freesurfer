@@ -53,7 +53,7 @@ static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
 static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int do_rh = 1 ;
 static int do_lh = 1 ;

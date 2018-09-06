@@ -63,7 +63,7 @@ static void print_version(void) ;
 
 static int mrisComputeSulcInMM(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
 static int talairach_flag = 0 ;

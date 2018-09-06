@@ -55,7 +55,7 @@
 #include "version.h"
 #include "label.h"
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
 static MRI *label_damaged_wm(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2, MRI *mri_aseg,

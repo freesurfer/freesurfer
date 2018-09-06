@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] =
   "$Id: mri_surf2vol.c,v 1.28 2014/12/08 19:49:02 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 

@@ -38,7 +38,7 @@ char sSetMethods[][256] = {
                             "XYZ", "Random", "Constant"
                           };
 
-char* Progname="makevol";
+const char* Progname="makevol";
 
 void PrintUsage ( char* isError ) {
 

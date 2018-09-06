@@ -133,7 +133,7 @@ static char *xform_name = "talairach.xfm" ;
 static int ico_no = 6 ;
 int UseSurf2Surf = 1; // use surf2surf instead of parametric surface
 
-char *Progname ;
+const char *Progname ;
 static char *sdir = NULL, *sdirout = NULL;
 
 int
