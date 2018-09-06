@@ -967,7 +967,7 @@ static void undeferSetFaceNorms(MRIS* mris) {
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
+MRI_SURFACE *MRISreadOverAlloc(const char *srcfname, double pct_over)
 {
   MRI_SURFACE *mris = NULL;
   int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
@@ -976,14 +976,38 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   FILE *fp = NULL;
   FACE *face;
   int tag, nread;
-  char tmpstr[2000];
+  char tmpstr[2000],fname[2000];
   MRI *mri;
 
   // default:
   version = -3;
 
+  // Automatically detect gifti input. This will use the passed file
+  // name if it exists. If it does not, then this will automatically
+  // look for the file name with a gii extension. If that does not
+  // exist, then it looks for a gii.gz extension.
+  if(!fio_FileExistsReadable(srcfname)){
+    sprintf(fname,"%s.gii",srcfname);
+    if(!fio_FileExistsReadable(fname)){
+      sprintf(fname,"%s.gii.gz",srcfname);
+      if(!fio_FileExistsReadable(fname)){
+        printf("ERROR: cannot open %s (or .gii or .gii.gz)\n",srcfname);
+        return(NULL);
+      }
+      else{
+        printf("ERROR: cannot open %s, but %s does exist\n",srcfname,fname);
+        printf("  however, FreeSurfer does not support compressed gifti right now");
+        return(NULL);
+      }
+    }
+    printf("MRISread(): reading %s\n",fname);
+  }
+  else  strcpy(fname,srcfname);
+
   chklc();                              /* check to make sure license.dat is present */
   type = MRISfileNameType(fname);       /* using extension to get type */
+  if(type == -1) return(NULL);
+
   if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
   {
     mris = mrisReadAsciiFile(fname);
@@ -1759,24 +1783,36 @@ int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices)
   return (retval);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*-----------------------------------------------------*/
 #define USE_NEW_QUAD_FILE 1  // new style stores float instead of int
 int MRISwrite(MRI_SURFACE *mris, const char *name)
 {
   int k, type;
   float x, y, z;
   FILE *fp;
-  char fname[STRLEN];
+  char fname[STRLEN],*GiiFormat;
 
   chklc();
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
+  if(type == -1) return(1);
+
+  // Determine whether the output should be gifti, automatically change name and type
+  GiiFormat = getenv("FS_OUTPUT_GII");
+  if(GiiFormat != NULL && strcmp(GiiFormat,"gii.gz")==0){
+    printf("ERROR: environment variable FS_OUTPUT_GII is set to gii.gz, but FS does not support compressed gifti\n");
+    return(1);
+  }
+  if(GiiFormat != NULL && type != MRIS_GIFTI_FILE) {
+    if(strcmp(GiiFormat,"gii")!=0 && strcmp(GiiFormat,"gii.gz")!=0){
+      printf("ERROR: environment variable FS_OUTPUT_GII is set to %s, must be gii or gii.gz\n",GiiFormat);
+      return(1);
+    }
+    sprintf(fname,"%s.%s",fname,GiiFormat);
+    type = MRIS_GIFTI_FILE;
+  }
+  printf("MRISwrite(): writing to %s\n",fname);
+
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
   }
@@ -28057,6 +28093,7 @@ int MRISfileNameType(const char *fname)
     }
   }
   StrUpper(ext);
+
   if (!strcmp(ext, "ASC")) {
     type = MRIS_ASCII_TRIANGLE_FILE;
   }
@@ -28074,6 +28111,10 @@ int MRISfileNameType(const char *fname)
   }
   else if (!strcmp(ext, "GII")) {
     type = MRIS_GIFTI_FILE;
+  }
+  else if (!strcmp(ext, "GZ")) {
+    printf("ERROR: no support for compressed surface files\n");
+    type = -1;
   }
   else if (!strcmp(ext, "MGH")) {
     type = MRI_MGH_FILE;  // surface-encoded volume
@@ -41043,13 +41084,7 @@ static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno,
 
   return true;
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*-----------------------------------------------------*/
 int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char path[STRLEN], *slash, *dot;
