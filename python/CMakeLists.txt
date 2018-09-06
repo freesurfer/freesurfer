@@ -10,7 +10,7 @@ endif()
 # run 'pip install' and direct package installs to freesufer/python
 install(CODE "
   message(STATUS \"Installing: ${CMAKE_INSTALL_PREFIX}/python/freesurfer\")
-  execute_process(COMMAND bash -c \"python3 -m pip install ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_FLAGS} --upgrade --target=${CMAKE_INSTALL_PREFIX}/python\" RESULT_VARIABLE retcode)
+  execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_FLAGS} --upgrade --target=${CMAKE_INSTALL_PREFIX}/python\" RESULT_VARIABLE retcode)
   if(NOT \${retcode} STREQUAL 0)
     message(FATAL_ERROR \"Could not install freesurfer python module\")
   endif()"
