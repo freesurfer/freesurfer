@@ -168,7 +168,7 @@ def samsegment_part1(
     FreeSurferLabels = modelSpecifications.FreeSurferLabels
     names = modelSpecifications.names
     colors = modelSpecifications.colors
-    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable
+    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, translationTable
      ] = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
 
     visualizer.show(
@@ -236,7 +236,7 @@ def samsegment_part1(
         'numberOfContrasts': numberOfContrasts,
         'numberOfGaussians': numberOfGaussians,
         'numberOfGaussiansPerClass': numberOfGaussiansPerClass,
-        'reducingLookupTable': reducingLookupTable,
+        'translationTable': translationTable,
         'savePath': savePath,
         'transformMatrix': transform.as_numpy_array,
         'voxelSpacing': voxelSpacing,
