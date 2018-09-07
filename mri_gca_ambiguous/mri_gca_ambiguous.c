@@ -58,7 +58,7 @@ static  MRI *GCAcompute1DAmbiguity(GCA *gca, MRI *mri, double *pamb, int class) 
 static  MRI *GCAcompute2DAmbiguity(GCA *gca, MRI *mri, double *pamb, int class) ;
 static  MRI *GCAcompute3DAmbiguity(GCA *gca, MRI *mri, double *pamb, int class) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int optimize = 0 ;
 static double lambda = 100.0 ;

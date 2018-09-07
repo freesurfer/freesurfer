@@ -49,7 +49,7 @@
 #define MIN_WM_BIAS_PCT 0.8
 #define MAX_WM_BIAS_PCT 1.2
 
-char *Progname ;
+const char *Progname ;
 
 static double extra_norm_range = 0.0 ;
 

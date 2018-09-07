@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 
 #define NAME_LEN      100

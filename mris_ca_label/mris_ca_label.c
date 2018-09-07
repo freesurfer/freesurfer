@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static void print_help(void) ;
 static void print_version(void) ;

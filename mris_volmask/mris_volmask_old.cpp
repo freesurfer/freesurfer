@@ -58,7 +58,7 @@ extern "C"
 #include "macros.h"
 #include "gca.h"
 };
-char *Progname;
+const char *Progname;
 
 // static function declarations
 // forward declaration

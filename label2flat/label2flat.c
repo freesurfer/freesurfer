@@ -48,7 +48,7 @@ static Transform *load_transform(char *subject_name, General_transform *xform);
 static void print_usage(void) ;
 void print_help(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int verbose = 0 ;
 

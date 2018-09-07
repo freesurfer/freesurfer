@@ -124,7 +124,7 @@ int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_mcsim.c,v 1.27 2016/11/01 19:47:46 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

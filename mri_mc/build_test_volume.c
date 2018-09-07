@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include "mri.h"
 
-char *Progname;
+const char *Progname;
 
 int main(int argc, char *argv[]) {
   MRI *mri;

@@ -38,7 +38,7 @@
 
 #define IN_OUT_NAMES  100
 
-char *Progname;
+const char *Progname;
 int verbose_flag = 0;
 
 int read_mat(int argc, char *argv[], int i, MATRIX *in_mat);

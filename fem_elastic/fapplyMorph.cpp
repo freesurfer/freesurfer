@@ -27,7 +27,7 @@ extern "C"
 };
 
 // required by FreeSurfer
-char *Progname;
+const char *Progname;
 
 int tractPointList = 0;
 

@@ -128,7 +128,7 @@ static double find_optimal_linear_xform(VOXEL_LIST *vl_lowres,
                                         float angle_steps, float scale_steps,
                                         float trans_steps,
                                         int nreductions);
-char *Progname ;
+const char *Progname ;
 static int target_label = Right_Hippocampus ;
 
 static int skip = 2 ;

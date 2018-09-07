@@ -55,7 +55,7 @@ static int compute_spherical_distances_to_vertex(MRI_SURFACE *mris, int vno0) ;
 static double compute_MT_log_likelihood(MRI_SURFACE *mris, MRI *mri_profiles, int vno0, double r,
                                         double exterior_mm) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int nbhd_size = 2 ;
 static int navgs = 0 ;

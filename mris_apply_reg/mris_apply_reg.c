@@ -79,7 +79,7 @@ void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_apply_reg.c,v 1.9 2016/12/06 19:40:48 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

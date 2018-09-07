@@ -50,7 +50,7 @@ static void print_version(void) ;
 static int get_option(int argc, char *argv[]) ;
 static char vcid[] = "$Id: mri_mi.c,v 1.1 2017/02/07 04:02:05 lzollei Exp $";
 
-char *Progname = NULL;
+const char *Progname = NULL;
 int silent_mode = 0;
 
 static int bins_1 = 64;

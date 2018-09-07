@@ -42,7 +42,7 @@
 
 static int  verbose = 0 ;
 
-char *Progname ;
+const char *Progname ;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;

@@ -107,7 +107,7 @@ static float dgamma = 0.0f ;
 #define MAX_OVERLAYS 1000
 static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS]  ;
-char *Progname ;
+const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
 static char *canon_name = "sphere" ;
@@ -607,9 +607,7 @@ main(int argc, char *argv[])
   msec = TimerStop(&start) ;
   printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
 
-  // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mris_register ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+  printf("#VMPC# mris_register VmPeak  %d\n",GetVmPeak());
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP

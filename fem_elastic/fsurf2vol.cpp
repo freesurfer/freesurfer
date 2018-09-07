@@ -49,7 +49,7 @@ extern "C"
 };
 
 
-char *Progname;
+const char *Progname;
 static char help[] = "Diffuse surface deformation to volumes";
 
 #define USE_SURF_SUBSAMPLING 1

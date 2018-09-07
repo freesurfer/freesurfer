@@ -42,7 +42,7 @@
 
 static char vcid[] =
   "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $";
-char *Progname ;
+const char *Progname ;
 static char sdir[STRLEN] = "" ;
 static double l_surf_repulse = 5.0 ;
 static int nbrs = 2 ;

@@ -72,7 +72,7 @@ FLOATTYPE **mat,**mati,*vec,*vec2;
 float xcor[MAXCOR],ycor[MAXCOR],zcor[MAXCOR];
 int nver,ncor;
 
-char *Progname ;
+const char *Progname ;
 
 static int central_plane = 0 ;
 static int grayscale_plane = 0 ;

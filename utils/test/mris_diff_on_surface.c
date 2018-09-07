@@ -71,7 +71,7 @@ int debugflag = 0;
 int debugvtx = 0;
 int pathflag = 0;
 
-char *Progname ;
+const char *Progname ;
 
 
 int main(int argc, char *argv[])

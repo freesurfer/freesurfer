@@ -55,7 +55,7 @@ static int  extract_labeled_image(MRI *mri_in,
                                   int label,
                                   MRI *mri_out) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char *out_like_fname = NULL ;
 static char *xform_fname = NULL ;

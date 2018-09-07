@@ -142,7 +142,7 @@ static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.12 2012/10/24 19:50:06 maritza Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
 

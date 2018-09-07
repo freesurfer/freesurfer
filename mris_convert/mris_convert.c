@@ -78,7 +78,7 @@ static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static int talairach_flag = 0 ;
 static char *talxfmsubject = NULL;

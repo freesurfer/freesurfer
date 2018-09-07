@@ -9,7 +9,7 @@
 #include "mri.h"
 #include "mrisurf.h"
 
-char *Progname ;
+const char *Progname ;
 
 
 int

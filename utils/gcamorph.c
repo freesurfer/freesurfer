@@ -1363,7 +1363,8 @@ GCA_MORPH *GCAMalloc(const int width, const int height, const int depth)
   gcam->width = width;
   gcam->height = height;
   gcam->depth = depth;
-  gcam->spacing = 1;  // may be changed by the user later
+  gcam->spacing = 1; // may be changed by the user later
+  gcam->type = GCAM_VOX;
 
   gcam->nodes = (GCA_MORPH_NODE ***)calloc(width, sizeof(GCA_MORPH_NODE **));
   if (!gcam->nodes) {

@@ -93,7 +93,7 @@ char *middle_name = NULL; /* compute a middle surface */
 
 int tflag = 0; /* if 1, using vertex-to-face distance to measure thickness */
 
-char *Progname ;
+const char *Progname ;
 
 MRI *ComputeThickness(MRI_SURFACE *Mesh1, MRI_SURFACE *Mesh2, MRI *mri_res);
 

@@ -52,7 +52,7 @@ void MyErrorExit( int nCode )
     throw nCode;
 }
 
-wxString Progname = _("mris_decimate_gui");
+wxString progname = _("mris_decimate_gui");
 
 IMPLEMENT_APP( MainApp )
 
@@ -159,7 +159,7 @@ bool MainApp::OnInit()
 void MainApp::InitializeGUI()
 {
     SetVendorName( _("Children's Hospital Boston") );
-    SetAppName( Progname );
+    SetAppName( progname );
 
     CreateMainWindow();
 }
@@ -172,7 +172,7 @@ void MainApp::CreateMainWindow()
 
     // create the main application window
     m_wndMain = new MainWindow( (wxWindow*)NULL );
-    m_wndMain->SetTitle( Progname );
+    m_wndMain->SetTitle( progname );
 
     // and show it (the frames, unlike simple controls, are not shown when
     // created initially)

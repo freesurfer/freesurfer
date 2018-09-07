@@ -64,7 +64,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_concat.c,v 1.67 2017/02/16 19:49:35 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000 // such a large number may break valgrind
 char *inlist[NInMAX];

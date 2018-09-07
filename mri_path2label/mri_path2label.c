@@ -57,7 +57,7 @@
 #include "getline.h"
 #endif
 
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static void print_usage (void) ;
 static void print_help (void) ;

@@ -9,7 +9,6 @@ cache:
 
 matrix:
   include:
-    - os: osx
     - os: linux
 
 addons:
