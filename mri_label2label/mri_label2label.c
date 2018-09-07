@@ -97,6 +97,7 @@ static int label_erode = 0 ;
 static int label_dilate = 0 ;
 static int label_open = 0 ;
 static int label_close = 0 ;
+static int label_ring = 0;
 
 char  *srclabelfile = NULL;
 static char  *sample_surf_file = NULL ;
@@ -691,6 +692,14 @@ int main(int argc, char **argv) {
       trglabel = tmplabel;
     }
 
+    if (label_ring > 0)
+    {
+      LABEL *label_interior;
+	
+      label_interior = LabelCopy(trglabel, NULL) ;
+      LabelDilate(trglabel, TrgSurf, label_ring, CURRENT_VERTICES) ;
+      LabelRemoveOverlap(trglabel, label_interior) ;
+    }
     if (label_dilate)
       LabelDilate(trglabel, TrgSurf, label_dilate, CURRENT_VERTICES) ;
     if (label_erode)
@@ -818,6 +827,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--dilate")) {
       if (nargc < 1) argnerr(option,1);
       label_dilate = atoi(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--ring")) {
+      if (nargc < 1) argnerr(option,1);
+      label_ring = atoi(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--erode")) {
       if (nargc < 1) argnerr(option,1);
@@ -1031,7 +1044,8 @@ static void print_usage(void) {
   printf("   --erode  N     erode the label N times before writing\n");
   printf("   --open   N     open the label N times before writing\n");
   printf("   --close  N     close the label N times before writing\n");
-  printf("   --dilate  N    dilate the label N times before writing\n");
+  printf("   --dilate N    dilate the label N times before writing\n");
+  printf("   --ring   N    dilate the label N times then remove the original before writing\n");
   printf("   --srcsubject   source subject\n");
   printf("   --trgsubject   target subject\n");
   printf("   --s subject : use for both target and source\n");
