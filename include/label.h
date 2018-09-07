@@ -192,5 +192,6 @@ LABEL *LabelAddPoint(LABEL *label, LV *lv);
 int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 double LabelAverageVal(LABEL *area, MRI_SURFACE *mris) ;
+LABEL  *LabelFromSurface(MRI_SURFACE *mris, int which, double thresh) ;
 
 #endif
