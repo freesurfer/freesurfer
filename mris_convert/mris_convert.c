@@ -587,7 +587,10 @@ main(int argc, char *argv[])
   }
   else if (output_normals)
   {
-    MRISwriteNormalsAscii(mris, out_fname) ;
+    if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
+      MRISwriteNormalsAscii(mris, out_fname) ;
+    else
+      MRISwriteNormals(mris, out_fname) ;
   }
   else if (write_vertex_neighbors)
   {
