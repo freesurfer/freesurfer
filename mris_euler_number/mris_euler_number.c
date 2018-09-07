@@ -58,7 +58,7 @@ char *outfile=NULL;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, fname[100] ;
+  char         **av, *in_fname, fname[STRLEN] ;
   int          ac, nargs, nvertices, nfaces, nedges, eno, dno ;
   MRI_SURFACE  *mris ;
 
