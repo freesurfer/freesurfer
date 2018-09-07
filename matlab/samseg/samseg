@@ -44,10 +44,10 @@ if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/koenAtlases/20Subjects_smoothing2_down2_smoothingForAffine2
 endif
 
-# Matlab (must be 8.0)
+# Matlab
 if($?SAMSEG_MCRROOT == 0) then
   # The mkbin script also uses this env var when compiling
-  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.4
+  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/R2018a
 endif
 
 # This is for when running matlab 
