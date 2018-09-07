@@ -55,7 +55,6 @@ install(PROGRAMS
   fix_subject-rh
   fname2ext
   fname2stem
-  fs_check_python
   fscalc
   fscalc.fsl
   fsdcmdecompress
@@ -288,8 +287,6 @@ install(PROGRAMS unpacksdcmdir_wrapper DESTINATION bin RENAME unpacksdcmdir)
 install_append_help(bbregister bbregister.help.xml bin)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)
-
-add_test_script(NAME mri_nu_correct_mni_test SCRIPT test.py DEPENDS mri_nu_correct.mni)
 
 # these tcl script should be excluded from a minimal distribution
 if(NOT MINIMAL)

@@ -99,6 +99,7 @@ struct Parameters
   vector<string> iltas;
   vector<string> nltas;
   vector<string> nweights;
+  vector<string> mapmovhdr;
   bool fixvoxel;
   bool floattype;
   bool lta_vox2vox;
@@ -136,9 +137,9 @@ struct Parameters
 // Initializations:
 static struct Parameters P =
 { vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
-    0), false, false, false, false, false, false, false, false, false, 5, -1.0, SAT, vector<
-    string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false, true,
-    vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01};
+    0), vector<string>(0), false, false, false, false, false, false, false, false, false,
+    5, -1.0, SAT, vector<string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false,
+    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -247,14 +248,16 @@ int main(int argc, char *argv[])
         P.iltas.size () == 0 || P.iltas.size() == P.mov.size() || (int)P.iltas.size() == nin);
     if (P.iltas.size() > 0)
     {
-      assert(MR.loadLTAs(P.iltas)==nin);
+      const int numLoaded = MR.loadLTAs(P.iltas);
+      assert(numLoaded==nin);
     }
 
     // load initial iscales if set:
     assert(P.iscalein.size () == 0 || (int)P.iscalein.size() == nin);
     if (P.iscalein.size() > 0)
     {
-      assert(MR.loadIntensities(P.iscalein)==nin);
+      const int numLoaded = MR.loadIntensities(P.iscalein);
+      assert(numLoaded==nin);
     }
 
     // Randomly pick target (default):
@@ -359,6 +362,10 @@ int main(int argc, char *argv[])
     if (P.nwarps.size() > 0)
     {
       MR.writeWarps(P.nwarps);
+    }
+    if (P.mapmovhdr.size() > 0)
+    {
+      MR.writeMapMovHdr(P.mapmovhdr);
     }
     if (P.iscaleout.size() > 0)
     {
@@ -553,12 +560,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A"))
   {
     P.affine = true;
-    cout << "--affine: Enableing affine transform!" << endl;
+    cout << "--affine: Enabling affine transform!" << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I"))
   {
     P.iscale = true;
-    cout << "--iscale: Enableing intensity scaling!" << endl;
+    cout << "--iscale: Enabling intensity scaling!" << endl;
   }
   else if (!strcmp(option, "TRANSONLY"))
   {
@@ -701,7 +708,22 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       }
     } while (nargs + 1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "--mapmov: Will save mapped movables/sources !" << endl;
+    cout << "--mapmov: Will save mapped movables/sources!" << endl;
+  }
+  else if (!strcmp(option, "MAPMOVHDR"))
+  {
+    nargs = 0;
+    do
+    {
+      option = argv[nargs + 1];
+      if (option[0] != '-')
+      {
+        nargs++;
+        P.mapmovhdr.push_back(string(argv[nargs]));
+      }
+    } while (nargs + 1 < argc && option[0] != '-');
+    assert(nargs > 0);
+    cout << "--mapmovhdr: Will save header-adjusted movables!" << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
@@ -839,15 +861,23 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --warp should agree with number of inputs!"
+        << "ERROR: Number of filenames for --warp should equal number of inputs!"
         << endl;
+    exit(1);
+  }
+  if (P.mapmovhdr.size()>0 && P.mov.size()!=P.mapmovhdr.size())
+  {
+    ntest = false;
+      std::cerr
+      << "ERROR: Number of filenames for --mapmovhdr should equal number of inputs!"
+      << std::endl;
     exit(1);
   }
   if (P.nltas.size() > 0 && P.mov.size() != P.nltas.size())
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --lta should agree with number of inputs!"
+        << "ERROR: Number of filenames for --lta should equal number of inputs!"
         << endl;
     exit(1);
   }
@@ -855,7 +885,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --ixforms should agree with number of inputs!"
+        << "ERROR: Number of filenames for --ixforms should equal number of inputs!"
         << endl;
     exit(1);
   }
@@ -863,7 +893,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --weights should agree with number of inputs!"
+        << "ERROR: Number of filenames for --weights should equal number of inputs!"
         << endl;
     exit(1);
   }
@@ -879,7 +909,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --iscaleout should agree with number of inputs!"
+        << "ERROR: Number of filenames for --iscaleout should equal number of inputs!"
         << endl;
     exit(1);
   }
