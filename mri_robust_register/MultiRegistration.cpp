@@ -888,7 +888,11 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
   exit(1);
 
   int nin = (int) mri_mov.size();
-  assert(nin == 2);
+  if (nin != 2)
+  {
+    cerr << "Error, need 2 movs" << endl;
+    exit(1);
+  }
 
   // register 1 with 2
 

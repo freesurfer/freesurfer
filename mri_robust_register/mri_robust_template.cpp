@@ -241,23 +241,32 @@ int main(int argc, char *argv[])
     //assert (P.mov.size() >1);
     //assert (MR.loadMovables(P.mov)==nin);
     int nin = MR.loadMovables(P.mov,P.masks);
-    assert( nin > 1);
+    if (nin <=1)
+    {
+      std::cerr << "Could not load movables!" << std::endl;
+      exit(1);
+    }
 
     // load initial ltas if set:
-    assert(
-        P.iltas.size () == 0 || P.iltas.size() == P.mov.size() || (int)P.iltas.size() == nin);
     if (P.iltas.size() > 0)
     {
       const int numLoaded = MR.loadLTAs(P.iltas);
-      assert(numLoaded==nin);
+      if (numLoaded != nin)
+      {
+        std::cerr << "Error: num LTA files != num movables!" << std::endl;
+	exit(1);
+      }
     }
 
     // load initial iscales if set:
-    assert(P.iscalein.size () == 0 || (int)P.iscalein.size() == nin);
     if (P.iscalein.size() > 0)
     {
       const int numLoaded = MR.loadIntensities(P.iscalein);
-      assert(numLoaded==nin);
+      if (numLoaded != nin) 
+      {
+        std::cerr << "Error: num intensity files != num movables!" << std::endl;
+	exit(1);
+      }
     }
 
     // Randomly pick target (default):
