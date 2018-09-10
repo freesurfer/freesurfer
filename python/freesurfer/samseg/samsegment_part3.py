@@ -39,6 +39,7 @@ def samsegment_part3(
     kroneckerProductBasisFunctions = part1_results_dict['kroneckerProductBasisFunctions']
     mask = part1_results_dict['mask']
     nonCroppedImageSize = part1_results_dict['nonCroppedImageSize']
+    numberOfClasses = part1_results_dict['numberOfClasses']
     numberOfContrasts = part1_results_dict['numberOfContrasts']
     numberOfGaussiansPerClass = part1_results_dict['numberOfGaussiansPerClass']
     translationTable = part1_results_dict['translationTable']
@@ -122,9 +123,9 @@ def samsegment_part3(
             if fraction < 1e-10: continue
             # Compute likelihood of this class (aka mixture model)
             likelihoods = np.zeros((likelihood_count, 1))
-            numberOfComponents = numberOfGaussiansPerClass[classNumber - 1]
+            numberOfComponents = numberOfGaussiansPerClass[classNumber]
             for componentNumber in range(numberOfComponents):
-                gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber - 1]) + componentNumber)
+                gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber]) + componentNumber)
                 mean = np.expand_dims(ensure_dims(means, 2)[gaussianNumber, :], 1)
                 variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
                 mixtureWeight = mixtureWeights[gaussianNumber]
