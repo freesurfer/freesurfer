@@ -220,7 +220,7 @@ def samsegment_part2(
             tmp = data - dataMean
             dataVariance = np.var(tmp, axis=0)
             numberOfPseudoMeasurementsOfWishartPrior = 1
-            pseudoVarianceOfWishartPrior = dataVariance / numberOfPseudoMeasurementsOfWishartPrior
+            pseudoVarianceOfWishartPrior = np.diag(dataVariance / numberOfPseudoMeasurementsOfWishartPrior)
             historyOfEMCost = [1 / eps]
             for EMIterationNumber in range(100):
                 logger.debug('EMIterationNumber=%d', EMIterationNumber)
@@ -266,10 +266,8 @@ def samsegment_part2(
                     #
                     # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
                     #
-                    minLogUnnormalizedWishart = np.trace(np.linalg.solve(
-                            variance,
-                            np.array(pseudoVarianceOfWishartPrior).reshape(numberOfContrasts, 1)
-                        )) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
+                    minLogUnnormalizedWishart = np.trace(np.linalg.solve(variance,pseudoVarianceOfWishartPrior)) * \
+                        numberOfPseudoMeasurementsOfWishartPrior / 2 + \
                         numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
                     intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
                 historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)
@@ -361,10 +359,8 @@ def samsegment_part2(
                         tmpImageBuffer[downSampledMaskIndices] = tmp.squeeze()
                         rhs[
                         contrastNumber1 * numberOfBasisFunctions_prod: contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
-                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
-                                                                    tmpImageBuffer).reshape(-1, 1)
-                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape(
-                        (np.prod(numberOfBasisFunctions), numberOfContrasts))
+                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, tmpImageBuffer).reshape(-1, 1)
+                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape((np.prod(numberOfBasisFunctions), numberOfContrasts), order='F')
                     downSampledBiasFields = bias_correct_data(biasCorrectedData, biasFieldCoefficients,
                                                               downSampledBiasCorrectedImageBuffers,
                                                               downSampledImageBuffers,
