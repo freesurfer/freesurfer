@@ -282,16 +282,16 @@ set(CMAKE_CXX_STANDARD 11)
 # distributing a minimal, custom python installation called fspython. This fspython package
 # will get installed by default to "freesurfer/lib/python", but an external python can be
 # used instead by turning off the DISTRIBUTE_FSPYTHON option. Turning this off will create a
-# freesurfer/bin/fspython symlink that points to the external python executable located by pybind
+# freesurfer/bin/fspythonlink symlink that points to the external python executable located by pybind
 option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
 
 if(DISTRIBUTE_FSPYTHON)
   set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6/base)
-  if(EXISTS ${FSPYTHON_DIR}/bin/fspython)
+  if(EXISTS ${FSPYTHON_DIR}/bin/python)
     # link the fspython distribution
     symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
     # specify the python to use
-    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/fspython)
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python)
     set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.so)
   else()
     message(WARNING "Cannot find fspython distribution in FS_PACKAGES_DIR, "
@@ -306,7 +306,7 @@ add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
   # link to an external python binary if fspython won't be distributed
-  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/bin/fspython)
+  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/bin/fspythonlink)
 endif()
 
 # --------------------------------------------------

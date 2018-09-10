@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [ -z "$FREESURFER_HOME" ] ; then
+  echo "error: FreeSurfer has not been sourced"
+  exit 1
+fi
+
+export PYTHONPATH="${FREESURFER_HOME}/python:${PYTHONPATH}"
+
+if [ -e "${FREESURFER_HOME}/lib/python/bin/python" ] ; then
+  ${FREESURFER_HOME}/lib/python/bin/python "$@"
+elif [ -e "${FREESURFER_HOME}/bin/fspythonlink" ] ; then
+  ${FREESURFER_HOME}/bin/fspythonlink "$@"
+else
+  echo "error: fspython has not been configured correctly"
+  exit 1
+fi
