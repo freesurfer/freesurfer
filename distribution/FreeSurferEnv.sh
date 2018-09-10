@@ -467,13 +467,6 @@ fi
 export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 
 
-### ----------- Python  ------------ ####
-export PYTHONPATH=$FREESURFER_HOME/python:$PYTHONPATH
-if [ -e "$FREESURFER_HOME/lib/python/bin/fspython" ] ; then
-    export PATH=$FREESURFER_HOME/lib/python/bin:$PATH
-fi
-
-
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than
 # the average of the subjects. This makes it appear to have a surface
