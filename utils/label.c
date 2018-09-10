@@ -4013,3 +4013,79 @@ LabelMaxStat(LABEL *area)
   }
   return(max_stat) ;
 }
+LABEL  *
+LabelFromSurface(MRI_SURFACE *mris, int which, double thresh) 
+{
+  int    vno, npoints ;
+  VERTEX *v ;
+  LABEL  *area ;
+  double val ;
+
+
+  for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    switch (which)
+    {
+    case VERTEX_VALS:
+      val = v->val ;
+      break;
+    case VERTEX_CURV:
+      val = v->curv ;
+      break;
+    case VERTEX_STATS:
+      val = v->stat ;
+      break;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "LabelFromSurface: unsupported which %d", which);
+      val = 0 ;
+      break ;
+    }
+    if (val >= thresh)
+      npoints++ ;
+  }
+
+  area = LabelAlloc(npoints, NULL, NULL) ;
+  for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    switch (which)
+    {
+    case VERTEX_VALS:
+      val = v->val ;
+      break;
+    case VERTEX_CURV:
+      val = v->curv ;
+      break;
+    case VERTEX_STATS:
+      val = v->stat ;
+      break;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "LabelFromSurface: unsupported which %d", which);
+      val = 0 ;
+      break ;
+    }
+    if (val >= thresh)
+    {
+      LABEL_VERTEX *lv ;
+
+      lv = &area->lv[npoints] ;
+      area->n_points++ ;
+      npoints++ ;
+      lv->stat = val ;
+      lv->vno = vno ;
+      lv->x = v->x ;
+      lv->y = v->y ;
+      lv->z = v->z ;
+    }
+  }
+
+  return(area) ;
+}
+

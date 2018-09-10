@@ -15,3 +15,5 @@ install(CODE "
     message(FATAL_ERROR \"Could not install freesurfer python module\")
   endif()"
 )
+
+install(PROGRAMS fspython DESTINATION bin)

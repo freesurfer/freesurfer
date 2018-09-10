@@ -458,16 +458,6 @@ set path = ( $FREESURFER_HOME/bin \
              $path \
             )
 
-### ----------- Python  ------------ ####
-if ( $?PYTHONPATH ) then
-    setenv PYTHONPATH "$FREESURFER_HOME/python":"$PYTHONPATH"
-else
-    setenv PYTHONPATH "$FREESURFER_HOME/python"
-endif
-if ( -e $FREESURFER_HOME/lib/python/bin/fspython ) then
-    set path = ( $FREESURFER_HOME/lib/python/bin $path )
-endif
-
 
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than
