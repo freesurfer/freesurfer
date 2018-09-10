@@ -126,6 +126,9 @@ static int overlay_t1 ;
 static int ratio_offsets[4] ;
 static int ratio = 0 ;
 
+static int use_normals = 0 ;
+static double dist_in, dist_out ;
+
 /* The following specifies the src and dst volumes of the input FSL/LTA transform */
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
@@ -133,6 +136,7 @@ static int invert = 0 ;
 static char *xform_fname = NULL;
 static char *mean_outname = NULL;
 static MRI *MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nsamples) ;
+static MRI *MRISmeasureNormalCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, int nsamples)  ;
 
 int
 main(int argc, char *argv[]) {
@@ -228,6 +232,16 @@ main(int argc, char *argv[]) {
     MRIscalarMul(mri, mri, 10.0/mean) ;
   }
 
+
+  if (use_normals)
+  {
+    MRI *mri_profiles ;
+
+    mri_profiles = MRISmeasureNormalCorticalIntensityProfiles(mris, mri, dist_in, dist_out, max_samples)  ;
+    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
+    MRIwrite(mri_profiles, out_fname) ;
+    exit(0) ;
+  }
 
   if (wm_norm_fname) {
     MRI *mri_wm ;
@@ -835,6 +849,13 @@ get_option(int argc, char *argv[]) {
     parms.l_thick_normal = atof(argv[2]) ;
     fprintf(stderr,  "setting l_thick_normal=%2.3f\n", parms.l_thick_normal) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "normal") || !stricmp(option, "normals")) {
+    use_normals = 1 ;
+    dist_in = atof(argv[2]) ;
+    dist_out = atof(argv[3]) ;
+    fprintf(stderr,  "computing profiles along surface normal in interval [-%2.2f, %2.2f] with %d samples (del=%2.3f)\n",
+	    -dist_in, dist_out, max_samples, (dist_in+dist_out)/(float)(max_samples-1)) ;
+    nargs = 2 ;
   } else if (!stricmp(option, "tspring")) {
     parms.l_thick_spring = atof(argv[2]) ;
     fprintf(stderr,  "setting l_thick_spring=%2.3f\n", parms.l_thick_spring) ;
@@ -1750,6 +1771,44 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nsamples)
     dx /= len ; dy /= len ; dz /= len ;
     del = len / (nsamples-1) ;
     for (dist = 0.0, n = 0 ; n < nsamples ; n++, dist += del) 
+    {
+      x = v->whitex + dist*dx ;
+      y = v->whitey + dist*dy ;
+      z = v->whitez + dist*dz ;
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv);
+      MRIsampleVolumeFrameType(mri, xv, yv, zv, 0, SAMPLE_TRILINEAR, &val) ;
+      MRIsetVoxVal(mri_profiles, vno, 0, 0, n, val) ;
+    }
+  }
+
+  return(mri_profiles) ;
+}
+
+static MRI *
+MRISmeasureNormalCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, int nsamples) 
+{
+  MRI     *mri_profiles ;
+  int     vno, n ;
+  double  del, dist, dx, dy, dz, len, xv, yv, zv, x, y, z, val ;
+  VERTEX  *v ;
+
+  mri_profiles = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nsamples);
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    dx = v->nx ; dy = v->ny ; dz = v->nz ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (len < 0.01)
+      continue ;
+    dx /= len ; dy /= len ; dz /= len ;
+    len = dist_in + dist_out ;
+    del = len / (nsamples-1) ;
+    for (dist = -dist_in, n = 0 ; n < nsamples ; n++, dist += del) 
     {
       x = v->whitex + dist*dx ;
       y = v->whitey + dist*dy ;
