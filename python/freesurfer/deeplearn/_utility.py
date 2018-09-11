@@ -10,23 +10,25 @@ from .. import wm_peak_normalize
 
 def dice_coef_loss2(y_true, y_pred):
     area_reg = 0.1
+
     y_true /= K.sum(y_true, axis=-1, keepdims=True)
     y_true = K.clip(y_true, K.epsilon(), 1)
-    # make sure pred is a probability
+    y_true_reshape = K.batch_flatten(y_true) #K.reshape(y_true, (num_samples, num_voxels, num_labels))
+
     y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     y_pred = K.clip(y_pred, K.epsilon(), 1)
-    y_pred_op = y_pred
-    y_true_op = y_true
-    # compute dice for each entry in batch.
-    # dice will now be [batch_size, nb_labels]
-    sum_dim = 1
-    top = 2 * K.sum(y_true_op * y_pred_op, sum_dim)
-    bottom = K.sum(K.square(y_true_op), sum_dim) + K.sum(K.square(y_pred_op), sum_dim)
-    # make sure we have no 0s on the bottom. K.epsilon()
-    bottom = K.maximum(bottom, area_reg)
-    dice_metric = top / bottom
+    y_pred_reshape = K.batch_flatten(y_pred)#K.reshape(y_pred, (num_samples, num_voxels, num_labels))
+
+
+    sum_over_axis = 1
+    numerator = 2 * K.sum(y_true_reshape * y_pred_reshape, sum_over_axis)
+    denominator = K.sum(K.square(y_true_reshape), sum_over_axis) + K.sum(K.square(y_pred_reshape), sum_over_axis)
+    denominator = K.maximum(denominator, area_reg)
+
+    dice_metric = numerator / denominator
     dice_loss = 1 - dice_metric
-    return K.mean(dice_loss)
+    mean_dice_loss = K.mean(dice_loss)
+    return mean_dice_loss
 
 
 def dice_coef(y_true, y_pred, smooth=1.):
