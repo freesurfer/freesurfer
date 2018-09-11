@@ -91,7 +91,7 @@ class RegressionTest:
 
 
   # run a test command (this is what should be called from the actual test script)
-  def run(self, cmd, threads=None, allow_failure=False):
+  def run(self, cmd, threads=None, allow_failure=False, expect_failure=False):
     self.cd(self.testdir)
     # extract the testdata
     rmdir(self.testdatadir)
@@ -103,8 +103,10 @@ class RegressionTest:
       os.environ['OMP_NUM_THREADS'] = str(threads)
       print('setting OMP_NUM_THREADS = %s' % os.environ['OMP_NUM_THREADS'])
     # run the test command - assumes the command is located in the testdir (above testdatadir)
-    if self.runcmd('../' + cmd, fatal=False) != 0 and not allow_failure:
-      errorExit('test command "%s" failed' % cmd)
+    ret = self.runcmd('../' + cmd, fatal=False)
+    if expect_failure:
+      if ret == 0: errorExit('test command "%s" returned 0, but expected a failure')
+    elif ret != 0 and not allow_failure: errorExit('test command "%s" failed' % cmd)
 
 
   # a simple diff using the standard unix diff command

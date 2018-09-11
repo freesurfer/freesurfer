@@ -39,6 +39,8 @@
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
+#include "label.h"
+#include "mri_identify.h"
 
 static char vcid[] = "$Id: mris_find_flat_regions.c,v 1.4 2011/03/02 00:04:32 nicks Exp $";
 
@@ -99,7 +101,14 @@ main(int argc, char *argv[]) {
       v->val = 1 ;
   }
 
-  MRISwriteValues(mris, wfile_name) ;
+  if (mri_identify(wfile_name) == MGH_LABEL_FILE)
+  {
+    LABEL *area ;
+    area = LabelFromSurface(mris, VERTEX_VALS, .9) ;
+    LabelWrite(area, wfile_name) ;
+  }
+  else
+    MRISwriteValues(mris, wfile_name) ;
 
   exit(0) ;
   return(0) ;  /* for ansi */

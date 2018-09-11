@@ -187,6 +187,14 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
                                         NULL);
   MATRIX* mov_lps2vox = MatrixInverse(mov_vox2lps, NULL);
 
+  VECTOR* orig_ind = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* dest_ind = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* orig_lps = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* dest_lps = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* warp_lps = VectorAlloc(4, MATRIX_REAL);
+
+  VECTOR_ELT(warp_lps, 4) = 0;
+  VECTOR_ELT(orig_ind, 4) = 1;
   for(int s=0; s < itk->depth; s++)
   {
     for(int c=0; c < itk->width; c++)
@@ -194,48 +202,37 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
       for(int r=0; r < itk->height; r++)
       {
         GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
-
         node->origx = c;
         node->origy = r;
         node->origz = s;
-
         node->xn = c;
         node->yn = r;
         node->zn = s;
 
-        MATRIX* orig_ind = VectorAlloc(4, MATRIX_REAL);
         VECTOR3_LOAD(orig_ind, c, r, s);
-        VECTOR_ELT(orig_ind, 4) = 1;
+        orig_lps = MatrixMultiplyD(ref_vox2lps, orig_ind, orig_lps);
 
-        MATRIX* orig_wld_lps = MatrixMultiplyD(ref_vox2lps, orig_ind, NULL);
-
-        MATRIX* delta = VectorAlloc(4, MATRIX_REAL);
-        VECTOR3_LOAD(delta,
+        VECTOR3_LOAD(warp_lps,
                      MRIgetVoxVal(itk, c, r, s, 0),
                      MRIgetVoxVal(itk, c, r, s, 1),
                      MRIgetVoxVal(itk, c, r, s, 2));
-        VECTOR_ELT(delta, 4) = 0;
-
-        MATRIX* dest_wld_lps = VectorAdd(orig_wld_lps, delta, NULL);
-
-        MATRIX* dest_ind = MatrixMultiplyD(mov_lps2vox, dest_wld_lps, NULL);
+        dest_lps = VectorAdd(orig_lps, warp_lps, dest_lps);
+        dest_ind = MatrixMultiplyD(mov_lps2vox, dest_lps, dest_ind);
 
         node->x = VECTOR_ELT(dest_ind, 1);
         node->y = VECTOR_ELT(dest_ind, 2);
         node->z = VECTOR_ELT(dest_ind, 3);
-
-        MatrixFree(&orig_ind);
-        MatrixFree(&orig_wld_lps);
-        MatrixFree(&delta);
-        MatrixFree(&dest_wld_lps);
-        MatrixFree(&dest_ind);
       }
     }
   }
   
   MRIfree(&itk);
   MRIfree(&src);
-
+  VectorFree(&orig_ind);
+  VectorFree(&orig_lps);
+  VectorFree(&warp_lps);
+  VectorFree(&dest_lps);
+  VectorFree(&dest_ind);
   MatrixFree(&ras2lps);
   MatrixFree(&ref_vox2lps);
   MatrixFree(&mov_vox2lps);

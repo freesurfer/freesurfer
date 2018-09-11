@@ -39,9 +39,10 @@ def samsegment_part3(
     kroneckerProductBasisFunctions = part1_results_dict['kroneckerProductBasisFunctions']
     mask = part1_results_dict['mask']
     nonCroppedImageSize = part1_results_dict['nonCroppedImageSize']
+    numberOfClasses = part1_results_dict['numberOfClasses']
     numberOfContrasts = part1_results_dict['numberOfContrasts']
     numberOfGaussiansPerClass = part1_results_dict['numberOfGaussiansPerClass']
-    reducingLookupTable = part1_results_dict['reducingLookupTable']
+    translationTable = part1_results_dict['translationTable']
     savePath = part1_results_dict['savePath']
 
     biasFieldCoefficients = part2_results_dict['biasFieldCoefficients']
@@ -116,22 +117,27 @@ def samsegment_part3(
     posteriors = np.zeros_like(priors, dtype=np.float64)
     for structureNumber in range(numberOfStructures):
         prior = priors[:, structureNumber] / 65535
-        classNumber = reducingLookupTable[structureNumber]
-        likelihoods = np.zeros((likelihood_count, 1))
-        numberOfComponents = numberOfGaussiansPerClass[classNumber - 1]
-        for componentNumber in range(numberOfComponents):
-            gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber - 1]) + componentNumber)
-            mean = np.expand_dims(ensure_dims(means, 2)[gaussianNumber, :], 1)
-            variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
-            mixtureWeight = mixtureWeights[gaussianNumber]
-            L = np.linalg.cholesky(variance)
-            tmp = np.linalg.solve(L, data.T - mean)
-            squaredMahalanobisDistances = (np.sum(tmp ** 2, axis=0)).T
-            sqrtDeterminantOfVariance = np.prod(np.diag(L))
-            gaussianLikelihoods = np.exp(-squaredMahalanobisDistances / 2) / (2 * np.pi) ** (
-                    numberOfContrasts / 2) / sqrtDeterminantOfVariance
-            likelihoods = likelihoods + ensure_dims(gaussianLikelihoods, 2) * mixtureWeight
-        posteriors[:, structureNumber] = np.squeeze(likelihoods) * prior
+        mixedLikelihoods = np.zeros((likelihood_count, 1))
+        for classNumber in range(numberOfClasses):
+            fraction = translationTable[classNumber, structureNumber]
+            if fraction < 1e-10: continue
+            # Compute likelihood of this class (aka mixture model)
+            likelihoods = np.zeros((likelihood_count, 1))
+            numberOfComponents = numberOfGaussiansPerClass[classNumber]
+            for componentNumber in range(numberOfComponents):
+                gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber]) + componentNumber)
+                mean = np.expand_dims(ensure_dims(means, 2)[gaussianNumber, :], 1)
+                variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
+                mixtureWeight = mixtureWeights[gaussianNumber]
+                L = np.linalg.cholesky(variance)
+                tmp = np.linalg.solve(L, data.T - mean)
+                squaredMahalanobisDistances = (np.sum(tmp ** 2, axis=0)).T
+                sqrtDeterminantOfVariance = np.prod(np.diag(L))
+                gaussianLikelihoods = np.exp(-squaredMahalanobisDistances / 2) / (2 * np.pi) ** (
+                        numberOfContrasts / 2) / sqrtDeterminantOfVariance
+                likelihoods = likelihoods + ensure_dims(gaussianLikelihoods, 2) * mixtureWeight
+            mixedLikelihoods = mixedLikelihoods + likelihoods * fraction
+        posteriors[:, structureNumber] = np.squeeze(mixedLikelihoods) * prior
     normalizer = np.sum(posteriors, 1) + eps
     posteriors = posteriors / ensure_dims(normalizer, 2)
     
