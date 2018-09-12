@@ -245,3 +245,9 @@ SET( runnerName "CreateMeshCollection" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_RUNTIME_PATH}/kvl${runnerName}.m )
+
+SET( runnerName "DrawJacobianDeterminant" )
+SET( runnerNumberOfOutputs "1" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_RUNTIME_PATH}/kvl${runnerName}.m )
+  

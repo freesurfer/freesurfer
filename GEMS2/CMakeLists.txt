@@ -87,6 +87,7 @@ set(SOURCES
   kvlCroppedImageReader.cxx
   kvlHistogrammer.cxx
   kvlMutualInformationCostAndGradientCalculator.cxx
+  kvlAtlasMeshJacobianDeterminantDrawer.cxx
 )
 
 # gems libary
