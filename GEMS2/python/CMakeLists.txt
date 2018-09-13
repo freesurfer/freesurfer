@@ -1,6 +1,10 @@
 foreach(filename ${SOURCES})
-  LIST(APPEND GEMS_SOURCES "../${filename}")
+  list(APPEND GEMS_SOURCES "../${filename}")
 endforeach()
+
+# temporary fix so that -g doesn't cause linker errors
+set(CMAKE_CXX_FLAGS_DEBUG "")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 
 pybind11_add_module(gems_python
   python.cxx
