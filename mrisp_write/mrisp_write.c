@@ -204,11 +204,13 @@ main(int argc, char *argv[])
 		  in_overlay) ;
       if (LabelMaxStat(area) > 0)
       {
+	printf("max stat %2.2f - transferring stats\n", LabelMaxStat(area)) ;
 	for (n = 0 ; n < area->n_points ; n++)
 	  mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
       }
       else
       {
+	printf("max stat %2.2f - setting to 1\n", LabelMaxStat(area)) ;
 	for (n = 0 ; n < area->n_points ; n++)
 	  mris->vertices[area->lv[n].vno].curv = 1 ;
       }

@@ -233,16 +233,6 @@ main(int argc, char *argv[]) {
   }
 
 
-  if (use_normals)
-  {
-    MRI *mri_profiles ;
-
-    mri_profiles = MRISmeasureNormalCorticalIntensityProfiles(mris, mri, dist_in, dist_out, max_samples)  ;
-    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
-    MRIwrite(mri_profiles, out_fname) ;
-    exit(0) ;
-  }
-
   if (wm_norm_fname) {
     MRI *mri_wm ;
     double mean ;
@@ -258,6 +248,19 @@ main(int argc, char *argv[]) {
   }
   if (MRISreadOriginalProperties(mris, white_name) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
+
+  if (use_normals)
+  {
+    MRI *mri_profiles ;
+
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    mri_profiles = MRISmeasureNormalCorticalIntensityProfiles(mris, mri, dist_in, dist_out, max_samples)  ;
+    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
+    MRIwrite(mri_profiles, out_fname) ;
+    exit(0) ;
+  }
+
+  
   fprintf(stderr, "measuring gray matter intensity profile...\n") ;
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -1810,12 +1813,15 @@ MRISmeasureNormalCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, double d
     del = len / (nsamples-1) ;
     for (dist = -dist_in, n = 0 ; n < nsamples ; n++, dist += del) 
     {
-      x = v->whitex + dist*dx ;
-      y = v->whitey + dist*dy ;
-      z = v->whitez + dist*dz ;
+      x = v->x + dist*dx ;
+      y = v->y + dist*dy ;
+      z = v->z + dist*dz ;
       MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv);
       MRIsampleVolumeFrameType(mri, xv, yv, zv, 0, SAMPLE_TRILINEAR, &val) ;
       MRIsetVoxVal(mri_profiles, vno, 0, 0, n, val) ;
+      if (vno == Gdiag_no)
+	printf("d %2.2f: (%2.1f, %2.1f, %2.1f) --> (%d, %d, %d): %2.1f\n",
+	       dist, x, y, z, (int)(nint(xv)),(int)(nint(yv)),(int)(nint(zv)),val);
     }
   }
 
