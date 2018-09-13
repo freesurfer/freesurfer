@@ -1848,7 +1848,9 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   }
   else
   {
+//    MRIwrite(m_MRI, "/tmp/foo.mgz");
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
+//    MRIwrite(rasMRI, "/tmp/foo2.mgz");
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {

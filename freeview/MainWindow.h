@@ -304,9 +304,9 @@ protected:
                         const QString& fn_target = "",
                         const QStringList& sup_files = QStringList(), const QVariantMap& sup_options = QVariantMap());
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
-  void LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color = Qt::yellow, double opacity = 1, double threshold = 0 );
-  void LoadWayPointsFile        ( const QString& fn );
-  void LoadControlPointsFile    ( const QString& fn );
+  void LoadROIFile( const QString& fn, const QString& ref_vol, const QVariantMap& args = QVariantMap() );
+  void LoadWayPointsFile        ( const QString& fn, const QVariantMap& args = QVariantMap() );
+  void LoadControlPointsFile    ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadTrackFile            ( const QString& fn );
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
@@ -415,12 +415,12 @@ protected slots:
   void OnLoadROI();
   void OnSaveROI();
   void OnSaveROIAs();
-  void OnCloseROI();
+  void OnCloseROI(const QList<Layer*>& layers = QList<Layer*>());
   void OnNewPointSet();
   void OnLoadPointSet();
   void OnSavePointSet(bool bForce = false);
   void OnSavePointSetAs();
-  void OnClosePointSet();
+  void OnClosePointSet(const QList<Layer*>& layers = QList<Layer*>());
   void OnLoadTrack();
   void OnCloseTrack();
   void OnIOError( Layer* layer, int ntype );
@@ -488,6 +488,8 @@ protected slots:
   void OnLoadFCD();
   void OnCloseFCD();
   void OnGoToSurfaceLabel(bool center = true);
+  void OnReloadROI();
+  void OnReloadPointSet();
 
   void OnViewSetCamera();
 
@@ -541,7 +543,7 @@ private:
   void SaveSettings();
   void LoadSettings();
   void SetCurrentFile( const QString &fileName, int type = 0 );
-  void LoadPointSetFile( const QString& fn, int type );
+  void LoadPointSetFile( const QString& fn, int type, const QVariantMap& args = QVariantMap() );
   void UpdateRecentFileActions();
   void ToggleShowLayer(const QString& type );
   void ToggleSpecialVolume(const QString& name);
@@ -617,8 +619,7 @@ private:
   QPoint                m_ptBackUpPos;      // for X11 geometry hack
   QMessageBox*          m_dlgMessage;
 
-  QMap<int, QVariantMap>  m_volumeSettings;
-  QMap<int, QVariantMap>  m_surfaceSettings;
+  QMap<int, QVariantMap>  m_layerSettings;
   QVariantMap           m_defaultSettings;
   bool                  m_bShowTransformWindow;
 
