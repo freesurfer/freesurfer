@@ -108,6 +108,10 @@ def registerAtlas(
         imageBuffer = image.getImageBuffer()
         visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
 
+        # Registration tends to fail when the input volume contains zero-valued voxels. As a temporary fix, we
+        # can replace the offending voxels with a small number close to zero
+        imageBuffer[imageBuffer == 0] = 1e-4
+
         # Downsample
         imageBuffer = imageBuffer[
                       ::int(downSamplingFactors[0]),
