@@ -1,61 +1,16 @@
-# git ls-files --others --exclude-from=.git/info/exclude
-
-.vscode/
-
-
-# make and configuration files:
+# build files
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
 Makefile
-Makefile.in
-config.h*
-config.log
-config.status
-configure
-config/compile
-config/config.guess
-config/config.sub
-config/depcomp
-config/ltmain.sh
-config/missing
-config/test-driver
-stamp-h1
-cpuflags.mak
 *.[oa]
 ld_map.txt
 
-# cmake files:
-CMakeFiles
-cmake_install.cmake
-CTestTestfile.cmake
-Testing
-
-# libtool files:
-libtool
-m4/libtool.m4
-m4/ltoptions.m4m
-m4/ltsugar.m4
-m4/ltversion.m4
-m4/lt~obsolete.m4
-aclocal.m4
-autom4te.cache/
-
-# built packages
-packages/*/build/**
-packages/*/include/**
-packages/*/share/**
-packages/*/src/**
-packages/*/bin/**
-packages/*/lib/**
-GEMS2/ITKFactoryRegistration/**
-
-# licenses:
-distribution/.license
-distribution/license.txt
-
-# generated help files:
+# generated help files
 *.help.xml.h
-*.help.xml.html
 
-# generated cxx files:
+# generated cxx files
 qdec/QdecLibInit.cxx
 qdec/vtkKWQdecAppTcl.cxx
 qdec/vtkKWQdecViewTcl.cxx
@@ -63,43 +18,46 @@ qdec/vtkKWQdecWindowTcl.cxx
 vtkutils/vtkKWBltGraphTcl.cxx
 vtkutils/vtkKWRGBATransferFunctionEditorTcl.cxx
 
-# python cache:
-__pycache__
-*.pyc
-
 # generated Qt files
 ui_*.*
 moc_*.*
+*_autogen/
 
-# freeview:
+# python cache
+__pycache__
+*.pyc
+
+# freeview
 freeview/qtcolorpicker.moc
 freeview/qrc_freeview.cpp
 
-# misc:
-*.log
-*_log.txt
-*.trs
-.deps/
-CVS/
+# misc
+.vscode/
+ITKFactoryRegistration/
 
-# binaries:
+# compiled binaries
+anatomicuts/AnatomiCuts.bin
+anatomicuts/AnatomiCuts_correspondences.bin
+anatomicuts/streamlineFilter.bin
+anatomicuts/trk_tools.bin
 check_siemens_dir/check_siemens_dir
 connectgraph/connectgraph
+diffusion_tool/diffusion_tool
 dmri_tensoreig/dmri_tensoreig
+dngtester/cpptester
 dngtester/dngtester
-dummy/dummy
 fem_elastic/applyMorph
 fem_elastic/createMorph
 fem_elastic/exportGcam
 fem_elastic/surf2vol
-freeview/freeview
+freeview/freeview.bin
 fslutils/fsl_label2voxel
 hiam_make_surfaces/hiam_make_surfaces
 hiam_make_template/hiam_make_template
 hiam_register/hiam_register
 histo_compute_joint_density/histo_compute_joint_density
 histo_fix_topology/histo_fix_topology
-histo_register/histo_register
+histo_register/histo_register.bin
 histo_register_block/histo_register_block
 histo_segment/histo_segment
 histo_synthesize/histo_synthesize
@@ -129,7 +87,6 @@ mri_ca_label/mri_ca_label
 mri_ca_normalize/mri_ca_normalize
 mri_ca_normalize/mri_cal_normalize
 mri_ca_register/mri_ca_register
-mri_ca_register/testdata/
 mri_ca_tissue_parms/mri_ca_tissue_parms
 mri_ca_train/mri_ca_train
 mri_cal_renormalize_gca/mri_cal_renormalize_gca
@@ -268,6 +225,7 @@ mri_robust_register/mri_robust_register
 mri_robust_register/mri_robust_template
 mri_sbbr/mri_sbbr
 mri_seg_diff/mri_seg_diff
+mri_segcentroids/mri_segcentroids
 mri_seghead/mri_seghead
 mri_segment/mri_segment
 mri_segment_tumor/mri_segment_tumor
@@ -300,6 +258,7 @@ mri_vol2vol/mri_vol2vol
 mri_volcluster/mri_volcluster
 mri_voldiff/mri_voldiff
 mri_volsynth/mri_volsynth
+mri_warp_concat/mri_warp_concat
 mri_warp_convert/mri_warp_convert
 mri_watershed/brain_volume/mri_brain_volume
 mri_watershed/mri_validate_skull_stripped
@@ -333,7 +292,8 @@ mris_copy_header/mris_copy_header
 mris_curvature/mris_curvature
 mris_curvature_stats/mris_curvature_stats
 mris_decimate/mris_decimate
-mris_decimate_gui/mris_decimate_gui
+mris_decimate_gui/mris_decimate_gui.bin
+mris_defects_pointset/mris_defects_pointset
 mris_deform/mris_ca_deform
 mris_deform/mris_deform
 mris_deform/mris_nudge
@@ -347,6 +307,7 @@ mris_entropy/mris_entropy
 mris_errors/mris_errors
 mris_euler_number/mris_euler_number
 mris_expand/mris_expand
+mris_extract_patches/mris_extract_patches
 mris_fbirn_annot/mris_fbirn_annot
 mris_fill/mris_fill
 mris_find_flat_regions/mris_find_flat_regions
@@ -377,7 +338,7 @@ mris_make_surfaces/mris_refine_surfaces
 mris_make_template/mris_make_template
 mris_map_cuts/mris_map_cuts
 mris_merge_parcellations/mris_merge_parcellations
-mris_mesh_subdivide/mris_mesh_subdivide
+mris_mesh_subdivide/mris_mesh_subdivide.bin
 mris_morph_stats/mris_morph_stats
 mris_ms_refine/mris_ms_refine
 mris_ms_surface_CNR/mris_ms_surface_CNR
@@ -402,14 +363,12 @@ mris_seg2annot/mris_seg2annot
 mris_segment/mris_segment
 mris_segment_vals/mris_segment_vals
 mris_segmentation_stats/mris_segmentation_stats
-mris_show/mris_show
 mris_shrinkwrap/mris_AA_shrinkwrap
 mris_shrinkwrap/mris_shrinkwrap
 mris_simulate_atrophy/mris_simulate_atrophy
 mris_smooth/mris_smooth
 mris_sphere/mris_remove_negative_vertices
 mris_sphere/mris_sphere
-mris_sphere/testdata/
 mris_spherical_average/mris_spherical_average
 mris_surface_change/mris_surface_change
 mris_surface_stats/mris_surface_stats
@@ -417,6 +376,7 @@ mris_surface_to_vol_distances/mris_surface_to_vol_distances
 mris_svm_classify/mris_svm_classify
 mris_svm_train/mris_svm_train
 mris_talairach/mris_talairach
+mris_thickness/mris_gradient
 mris_thickness/mris_intensity_profile
 mris_thickness/mris_thickness
 mris_thickness_comparison/mris_thickness_comparison
@@ -428,23 +388,24 @@ mris_transmantle_dysplasia_paths/mris_transmantle_dysplasia_paths
 mris_twoclass/mris_twoclass
 mris_volmask/mris_volmask
 mris_volmask/mris_volmask_novtk
-mris_volmask/mris_volmask_vtk
+mris_volmask/mris_volmask_vtk.bin
 mris_volume/mris_volume
 mris_volume/mris_wm_volume
 mris_w_to_curv/mris_w_to_curv
 mris_warp/mris_warp
+mris_watershed/mris_watershed
 mrisp_paint/mrisp_paint
-nmovie/nmovie
-nmovie_qt/nmovie_qt
+mrisp_write/mrisp_write
 oct_register_mosaic/oct_register_mosaic
 oct_train/oct_rf_train
 oct_train/oct_train
 optseq2/optseq2
-qdec/qdec
+qdec/qdec.bin
 qdec_glmfit/qdec_glmfit
 rbftest/rbftest
 regdat2xfm/regdat2xfm
 repair_siemens_file/repair_siemens_file
+resurf/mris_surf2resurf.bin
 spherical_stats/spherical_stats
 spline3/Spline3_test
 stat_normalize/stat_normalize
@@ -463,11 +424,10 @@ talairach_avi/t4imgs_4dfp
 talairach_avi/zero_lt_4dfp
 template/template
 test_makevol/makevol
-tetgen/tetgen
-tkmedit/tkmedit
-tkregister2/cmdl/tkregister2_cmdl
-tkregister2/tkregister2
-tksurfer/tksurfer
+tkmedit/tkmedit.bin
+tkregister2/tkregister2.bin
+tkregister2/tkregister2_cmdl
+tksurfer/tksurfer.bin
 trc/dmri_forrest
 trc/dmri_group
 trc/dmri_mergepaths

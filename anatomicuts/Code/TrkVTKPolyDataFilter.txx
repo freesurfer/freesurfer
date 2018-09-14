@@ -15,7 +15,7 @@
 #include "itkPoint.h"
 #include "itkImage.h"
 #include "itkContinuousIndex.h"
-
+#include <vnl/vnl_inverse.h>
 	template<class TImage>
 TrkVTKPolyDataFilter<TImage>::TrkVTKPolyDataFilter()
 {
@@ -74,19 +74,43 @@ void TrkVTKPolyDataFilter<TImage>::TrkToVTK()
 		iraw = rawpts;
 		itk::Point<float> pt;
 		itk::ContinuousIndex<float,3> index;
+		itk::ContinuousIndex<float,4> index4;
 		vtkIdType *ids = new vtkIdType [npts];
 
 		for (int ipt=0 ; ipt <npts; ipt++) {
 			// Divide by input voxel size and make 0-based to get voxel coords
-			for (int k = 0; k < 3; k++) {
+			for (int k = 0; k < 3; k++) 
+			{
 				pt[k] = *iraw  ;// / trkheadin.voxel_size[k]  ;//*trkheadin.voxel_size[k];
 				index[k]= pt[k]/trkheadin.voxel_size[k]; //*orientation[k];
+				index4[k]= index[k];
 				iraw++;
 			}
-			if (!this->m_refImage.IsNull())
+			index4[3]=1;
+			//if (!this->m_refImage.IsNull())
+			if(trkheadin.vox_to_ras[3][3]==0) //not recorded
 			{
 				this->m_refImage->TransformContinuousIndexToPhysicalPoint(index,pt);	
 			}
+			else
+			{
+				pt.Fill(0.0);
+				this->m_refImage->TransformContinuousIndexToPhysicalPoint(index,pt);	
+//				std::cout << "pt1 "<< pt << std::endl;
+				pt.Fill(0.0);
+				for (int k1 = 0; k1 < 3; k1++) 
+				{
+					for (int k2 = 0; k2 < 4; k2++) 
+					{
+						pt[k1] += index4[k2]*trkheadin.vox_to_ras[k1][k2];
+
+					}
+				}
+//				std::cout <<"p2 "<< pt << std::endl;
+
+			}
+
+			
 			points->InsertPoint (totalPoints, pt[0], pt[1], pt[2] );
 			ids[ipt] = totalPoints;
 			totalPoints++;
@@ -174,6 +198,15 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 	vtkCellArray *lines = m_vtk->GetLines();
 	lines->InitTraversal();
 	vtkIdType pointCount, *pointBuf;
+	vnl_matrix<float> vox_to_ras = vnl_matrix<float>(4,4);
+	for (int k1 = 0; k1 < 4; k1++) 
+		for (int k2 = 0; k2 < 4; k2++) 
+			vox_to_ras(k1,k2)= trkheadout.vox_to_ras[k1][k2];
+
+
+	vnl_matrix<float> ras_to_vox = 	vnl_inverse(vox_to_ras);
+	//std::cout << vox_to_ras<< std::endl;
+	//std::cout << ras_to_vox << std::endl;
 	while ( lines->GetNextCell(pointCount, pointBuf) )
 	{
 
@@ -185,10 +218,15 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 
 			itk::Point<float> pt2;
 			itk::ContinuousIndex<float,3> index;
+			itk::ContinuousIndex<float,4> point4;
 			for (int k = 0; k < 3; k++) {
 				pt2[k]= pt[k];
+				point4[k]=pt[k];
 			}
-			if(! this->m_refImage.IsNull())
+			point4[3]=1;
+			
+			//if(! this->m_refImage.IsNull())
+			if(this->m_refHeader==0) //not recorded
 			{
 				this->m_refImage->TransformPhysicalPointToContinuousIndex(pt2,index);	
 				for (unsigned int i=0; i<3; i++)
@@ -199,9 +237,19 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 			}
 			else
 			{
+				pt2.Fill(0.0);	
+				for (int k1 = 0; k1 < 3; k1++) 
+				{
+					for (int k2 = 0; k2 < 4; k2++) 
+					{
+						pt2[k1] += point4[k2]*ras_to_vox[k1][k2];
+					}
+				}
+
+
 				for (unsigned int i=0; i<3; i++)
 				{
-					points [n] = pt[i];
+					points [n] = pt2[i]*trkheadout.voxel_size[i];
 					n++;
 				}
 			}

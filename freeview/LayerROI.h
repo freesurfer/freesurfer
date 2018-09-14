@@ -98,6 +98,11 @@ public:
 
   LABEL*  GetRawLabel();
 
+  LayerMRI* GetRefMRI()
+  {
+    return m_layerSource;
+  }
+
 public slots:
   void UpdateOpacity();
   void UpdateColorMap();

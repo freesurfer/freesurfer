@@ -208,6 +208,8 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewROI);
     menu->addAction(wnd->ui->actionLoadROI);
+    menu->addAction(wnd->ui->actionReloadROI);
+    menu->addSeparator();
     menu->addAction(wnd->ui->actionGoToROI);
     menu->addAction(wnd->ui->actionShowLabelStats);
     menu->addSeparator();
@@ -216,6 +218,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewPointSet);
     menu->addAction(wnd->ui->actionLoadPointSet);
+    menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
   }
 

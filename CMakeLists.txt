@@ -4,7 +4,7 @@ find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PA
 
 # project info
 project(freesurfer)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 enable_language(C CXX Fortran)
 
 # a few build options
