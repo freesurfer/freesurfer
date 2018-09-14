@@ -1,7 +1,18 @@
 import math
 import numpy as np
+from freesurfer import errorExit
 
-# Generated via main method of ColorScheme.py
+try:
+    import pyqtgraph as pg
+    from PyQt5 import QtGui
+    from .hdav import view, HdavWindow
+except ImportError:
+    SAMSEG_HAVE_QT_PACKAGES = False
+else:
+    SAMSEG_HAVE_QT_PACKAGES = True
+
+
+# Color palette generated via main method of ColorScheme.py
 DEFAULT_PALETTE = [
     [0.7, 0.15, 1.0],    # luminosity=0.32830
     [0.3, 0.65, 0.0],    # luminosity=0.52866
@@ -43,14 +54,9 @@ DEFAULT_PALETTE = [
 
 def initVisualizer(showfigs, movie):
     if showfigs or movie:
-        try:
-            import pyqtgraph as pg
-            from PyQt5 import QtGui
-            from . import hdav
-        except ImportError:
-            print('error: samseg visualization tool requirements (qt packages) are not available - '
-                  'they can be installed via "pip install pyqtgraph pyqt5"')
-            exit(1)
+        if not SAMSEG_HAVE_QT_PACKAGES:
+            errorExit('the samseg visualization tool requires pyqtgraph and pyqt5 - '
+                      'please install these python packages to show figures')
         else:
             return ShowFigures(show_flag=showfigs, movie_flag=movie)
     else:
@@ -119,7 +125,7 @@ class ShowFigures:
             probability_layers = self.probability_layers(probabilities, names)
             image_alpha = self.image_alpha
         image_layers = self.image_layers(image_list, alpha=image_alpha)
-        probability_max = hdav.HdavWindow.MAX_LAYER_COUNT - len(image_layers)
+        probability_max = HdavWindow.MAX_LAYER_COUNT - len(image_layers)
         if len(probability_layers) > probability_max:
             tail = np.sum(layer['data'] for layer in probability_layers[probability_max - 1:])
             probability_layers[probability_max - 1]['data'] = tail
@@ -192,14 +198,14 @@ class ShowFigures:
 
     def hdav_view(self, layers, window_id, title, handle_events=True, legend_width=None):
         if layers:
-            hdav.view(layers,
-                      interactive=self.interactive,
-                      window_id=window_id,
-                      title=title,
-                      user_keys_callback=self.user_callbacks.get(window_id),
-                      handle_events=handle_events,
-                      legend_width=legend_width,
-                      )
+            view(layers,
+                 interactive=self.interactive,
+                 window_id=window_id,
+                 title=title,
+                 user_keys_callback=self.user_callbacks.get(window_id),
+                 handle_events=handle_events,
+                 legend_width=legend_width,
+            )
 
     def save_movie_frame(self, window_id, layers):
         if self.movie_flag:

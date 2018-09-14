@@ -30,8 +30,15 @@ class Specification:
         return json.dumps(self, default=dump_dict, sort_keys=True)
 
 
-def require_np_array(np_array):
+def requireNumpyArray(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
+
+
+def ensureDims(np_array, dims):
+    if np_array.ndim < dims:
+        return ensureDims(np.expand_dims(np_array, axis=dims), dims)
+    elif np_array.ndim == dims:
+        return np_array
 
 
 def icv(structures, includeStructures=None):
