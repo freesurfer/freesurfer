@@ -9307,7 +9307,7 @@ int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mr
 			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
 			    float *valForEachFrame) 	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
 {
-  if (1) {
+  if (0) {
       static int limit = 1;
       static int calls = 0;
       static int nFrames = 0;
