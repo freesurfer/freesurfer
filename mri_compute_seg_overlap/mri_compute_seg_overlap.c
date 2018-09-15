@@ -4,8 +4,6 @@
  *
  * This program compares two segmentation volumes and
  * computes the Dice and Jaccard Coefficients.
- * It considers only 12 major structures, except the 'overall dice' measure
- * which excludes white matter, cortex and accumbens.
  */
 /*
  * Original Authors: Xiao Han, Nick Schmansky
@@ -25,9 +23,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-// LZ: TODO: have an --all-labels option for computing Dice on all of the lables!
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -217,7 +212,7 @@ int main(int argc, char *argv[])
           v1 = (int) MRIgetVoxVal(mri_seg1,x,y,z,f);
           v2 = (int) MRIgetVoxVal(mri_seg2,x,y,z,f);
 
-          if (v1 > MAX_CLASS_NUM || v1 <= 0 || v2 > MAX_CLASS_NUM || v2 <= 0) continue;
+          if (v1 > MAX_CLASS_NUM || v1 < 0 || v2 > MAX_CLASS_NUM || v2 < 0) continue;
 
           /* do not include these in the overall Dice coefficient calculations:
              Left/Right-Cerebral-White-Matter (labels 2 and 41),
