@@ -26,7 +26,7 @@ install:
   - travis/packages.sh
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
       brew cask uninstall oclint ;
-      brew install gcc5 ;
+      brew install gcc5 glib ;
     fi
 
 before_script:
