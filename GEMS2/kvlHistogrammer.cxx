@@ -50,12 +50,6 @@ Histogrammer
   for ( itk::ImageRegionConstIterator< ImageType >  it( image, image->GetBufferedRegion() );
         !it.IsAtEnd(); ++it )
     {
-    // Skip zeroes
-    if ( it.Value() == 0 )
-      {
-      continue;  
-      }  
-      
     if ( it.Value() < min )
       {
       min = it.Value();
@@ -78,12 +72,6 @@ Histogrammer
   for ( itk::ImageRegionConstIterator< ImageType >  it( image, image->GetBufferedRegion() );
         !it.IsAtEnd(); ++it )
     {
-    // Skip zeroes
-    if ( it.Value() == 0 )
-      {
-      continue;  
-      }  
-      
     const int  binNumber = itk::Math::Round< int >( slope * ( static_cast< double >( it.Value() ) - offset ) );
     histogram[ binNumber ]++;
     sumOfHistogram++;
@@ -177,9 +165,8 @@ Histogrammer
     {
     int  binNumber = itk::Math::Round< int >( slope * ( static_cast< double >( it.Value() ) - offset ) );
 
-    // Zeroes or intensities outside of robust range get a sentinel value
-    if ( ( it.Value() == 0 ) || 
-         ( it.Value() < robustMin ) ||
+    // Intensities outside of robust range get a sentinel value
+    if ( ( it.Value() < robustMin ) ||
          ( it.Value() > robustMax ) )
       {
       binNumber = -1;

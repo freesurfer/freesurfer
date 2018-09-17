@@ -1,3 +1,3 @@
 project(samseg)
 
-install(PROGRAMS run_samseg sbtiv DESTINATION bin)
+install(PROGRAMS run_samseg sbtiv samseg DESTINATION bin)

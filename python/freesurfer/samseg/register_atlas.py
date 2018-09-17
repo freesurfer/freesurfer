@@ -19,7 +19,6 @@ def registerAtlas(
         visualizer=None,
         worldToWorldTransformMatrix=None,
         initLTAFile=None,
-        checkpoint_manager=None
     ):
 
     # ------ Setup ------
@@ -40,7 +39,7 @@ def registerAtlas(
     if worldToWorldTransformMatrix is not None:
         # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image 
         # transform (needed for subsequent computations) and be done
-        print('world-to-world transfrom supplied - skipping registration')
+        print('world-to-world transform supplied - skipping registration')
         imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
     else:
         # The solution is not externally (secretly) given, so we need to compute it.
@@ -107,10 +106,6 @@ def registerAtlas(
         # Get image data
         imageBuffer = image.getImageBuffer()
         visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
-
-        # Registration tends to fail when the input volume contains zero-valued voxels. As a temporary fix, we
-        # can replace the offending voxels with a small number close to zero
-        imageBuffer[imageBuffer == 0] = 1e-4
 
         # Downsample
         imageBuffer = imageBuffer[

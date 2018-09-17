@@ -3,6 +3,7 @@
 import os
 import argparse
 import numpy as np
+import scipy.io
 import freesurfer as fs
 
 from freesurfer.gems import setGlobalDefaultNumberOfThreads, kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
@@ -19,11 +20,11 @@ parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inpu
 # optional processing options
 parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='number of threads')
 parser.add_argument('--init-lta', metavar='FILE', help='initial registration')
-parser.add_argument('--reg-only', action='store_true', default=False, dest='atlas_only', help='only perform registration')
-parser.add_argument('-r', '--regmat', metavar='FILE', help='skip registration and read transform from file')
-parser.add_argument('-m', '--missing', dest='missing_structures', action='append', metavar='LABEL', help='missing structure (repeat for multiple missing labels)')
-parser.add_argument('--nobrainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
-parser.add_argument('--diagcovs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
+parser.add_argument('--reg-only', action='store_true', default=False, help='only perform registration')
+parser.add_argument('-r', '--reg-mat', metavar='FILE', help='skip registration and read transform from file')
+parser.add_argument('--no-brainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
+parser.add_argument('--diag-covs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
+parser.add_argument('--stiffness', type=float, default=0.1, help='stiffness of the mesh (default is 0.1)')
 # optional debugging options
 parser.add_argument('--showfigs', action='store_true', default=False, help='show figures during run')
 parser.add_argument('--movie', action='store_true', default=False, help='show as arrow key controlled time sequence')
@@ -61,11 +62,11 @@ visualizer = initVisualizer(args.showfigs, args.movie)
 
 templateFileName = os.path.join(atlasDir, 'template.nii')
 affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
-worldToWorldTransformMatrix = None
-# TODO: load RegMatFile
-# if ( ~isempty( RegMatFile ) )
-#   load( RegMatFile, 'worldToWorldTransformMatrix' );
-# end
+
+if args.reg_mat:
+    worldToWorldTransformMatrix = scipy.io.loadmat(args.reg_mat).get('worldToWorldTransformMatrix')
+else:
+    worldToWorldTransformMatrix = None
 
 worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
     args.inputFileNames[0],
@@ -78,7 +79,7 @@ worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
 )
 
 timer.mark('atlas registration complete')
-if args.atlas_only:
+if args.reg_only:
     print('registration-only requested, so quiting now')
     exit()
 
@@ -110,10 +111,10 @@ modelSpecifications = Specification({
     'names': names,
     'colors': colors,
     'sharedGMMParameters': sharedGMMParameters,
-    'useDiagonalCovarianceMatrices': args.diagcovs,
+    'useDiagonalCovarianceMatrices': args.diag_covs,
     'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
     'brainMaskingThreshold': -np.inf if args.nobrainmask else 0.01,
-    'K': 0.1,  # stiffness of the mesh
+    'K': args.stiffness,  # stiffness of the mesh
     'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
 })
 
