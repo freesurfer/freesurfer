@@ -113,7 +113,7 @@ modelSpecifications = Specification({
     'sharedGMMParameters': sharedGMMParameters,
     'useDiagonalCovarianceMatrices': args.diag_covs,
     'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
-    'brainMaskingThreshold': -np.inf if args.nobrainmask else 0.01,
+    'brainMaskingThreshold': -np.inf if args.no_brainmask else 0.01,
     'K': args.stiffness,  # stiffness of the mesh
     'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
 })
