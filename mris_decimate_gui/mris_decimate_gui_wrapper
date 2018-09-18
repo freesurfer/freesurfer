@@ -1,7 +1,0 @@
-#!/bin/tcsh -ef
-source $FREESURFER_HOME/bin/vtk_setup
-if (-e /bin/pwd) then
-  setenv HOME `cd $HOME && /bin/pwd`
-  setenv SUBJECTS_DIR `cd $SUBJECTS_DIR && /bin/pwd`
-endif
-mris_decimate_gui.bin $argv

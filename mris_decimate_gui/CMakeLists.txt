@@ -24,8 +24,8 @@ if(BUILD_GUIS AND GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
     res/DecimatePanelBase.cpp
   )
 
-  add_executable(mris_decimate_gui.bin ${SOURCES})
-  target_link_libraries(mris_decimate_gui.bin
+  add_executable(mris_decimate_gui ${SOURCES})
+  target_link_libraries(mris_decimate_gui
     utils
     fsgdf
     ${VTK_LIBRARIES}
@@ -35,7 +35,6 @@ if(BUILD_GUIS AND GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
     ${X11_LIBRARIES}
   )
 
-  install(PROGRAMS mris_decimate_gui_wrapper DESTINATION bin RENAME mris_decimate_gui)
-  install(TARGETS mris_decimate_gui.bin DESTINATION bin) 
+  install(TARGETS mris_decimate_gui DESTINATION bin) 
 
 endif()
