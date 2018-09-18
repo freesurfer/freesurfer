@@ -27,6 +27,10 @@ moc_*.*
 __pycache__
 *.pyc
 
+# fs license
+distribution/.license
+distribution/license.txt
+
 # freeview
 freeview/qtcolorpicker.moc
 freeview/qrc_freeview.cpp
