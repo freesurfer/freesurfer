@@ -8,7 +8,9 @@ from .log import error
 
 
 # run a shell command and return the exit code
-def run(cmd, silent=False, executable='/bin/bash'):
+def run(cmd, silent=False, executable='/bin/bash', background=False):
+  if background:
+    cmd += ' &'
   if silent:
     return sp.call(cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, shell=True, executable=executable)
   else:
