@@ -30,6 +30,7 @@ def registerAtlas(
     templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
     basepath, templateFileNameExtension = os.path.splitext(templateFileName)
     templateFileNameBase = os.path.basename(basepath)
+    costs = []
 
     # Setup null visualization if necessary
     if visualizer is None: visualizer = initVisualizer(False, False)
@@ -40,7 +41,7 @@ def registerAtlas(
         # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image 
         # transform (needed for subsequent computations) and be done
         print('world-to-world transform supplied - skipping registration')
-        imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
+        imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
     else:
         # The solution is not externally (secretly) given, so we need to compute it.
         print('performing affine atlas registration')
@@ -153,7 +154,6 @@ def registerAtlas(
         numberOfIterations = 0
         minLogLikelihoodTimesPriors = []
         maximalDeformations = []
-        costs = []
         gradients = []
         visualizer.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
         while True:
@@ -199,8 +199,7 @@ def registerAtlas(
     print('writing talairach transform to %s' % ltaFileName)
     lta.write(ltaFileName)
 
-    # Save the coregistered template. For historical reasons, we applied the estimated
-    # transformation to the template... let's do that now
+    # Save the coregistered template. For historical reasons, we applied the estimated transformation to the template... let's do that now
     desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
     transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
     template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
