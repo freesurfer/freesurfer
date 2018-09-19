@@ -60,12 +60,12 @@ def sourceFS(fspath):
 
 # get freesurfer home
 def fshome():
-  return os.environ['FREESURFER_HOME']
+  return os.environ.get('FREESURFER_HOME')
 
 
 # make sure freesurfer has been sourced
 def checkfs():
-  if not fshome:
+  if not fshome():
     errorExit('freesurfer has not been sourced')
 
 
