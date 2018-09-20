@@ -13,12 +13,10 @@ find_library(TIX_LIBRARY HINTS ${TCLTKTIXBLT_DIR} PATH_SUFFIXES lib NO_DEFAULT_P
 
 find_package_handle_standard_args(TCLTKTIXBLT DEFAULT_MSG TCLTKTIXBLT_INCLUDE_DIR TCL_LIBRARY TK_LIBRARY TIX_LIBRARY BLT_LIBRARY)
 
-# this is a bit of a hack to get qdec to properly link on modern osx
-if(APPLE)
-  find_library(TK_SYSTEM_LIBRARY PATH_SUFFIXES lib NAMES tk)
+set(TCLTKTIXBLT_LIBRARIES ${BLT_LIBRARY} ${TIX_LIBRARY} ${TK_LIBRARY} ${TCL_LIBRARY})
+
+# make sure the shared libs get installed on linux
+if(TCLTKTIXBLT_FOUND AND NOT APPLE)
+  file(GLOB TCL_LIBRARIES_TO_INSTALL "${TCLTKTIXBLT_DIR}/lib/lib*.so*")
+  install(PROGRAMS ${TCL_LIBRARIES_TO_INSTALL} DESTINATION lib)
 endif()
-
-set(TCLTKTIXBLT_LIBRARIES ${BLT_LIBRARY} ${TIX_LIBRARY} ${TK_LIBRARY} ${TCL_LIBRARY} ${TK_SYSTEM_LIBRARY})
-
-# make sure the tcltktixblt path gets linked from the lib directory during install
-symlink(${TCLTKTIXBLT_DIR} ${CMAKE_INSTALL_PREFIX}/lib/tcltktixblt)

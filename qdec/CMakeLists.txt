@@ -10,7 +10,7 @@ if(BUILD_GUIS
   
   if(APPLE AND NOT BUILD_OSX_TK_GUIS)
   
-    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/qdec.bin TYPE programs DESTINATION bin)
+    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/osx32b/qdec TYPE programs DESTINATION bin)
 
   else()
 
@@ -51,8 +51,8 @@ if(BUILD_GUIS
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework Carbon -framework IOKit")
     endif()
 
-    add_executable(qdec.bin ${SOURCES})
-    target_link_libraries(qdec.bin
+    add_executable(qdec ${SOURCES})
+    target_link_libraries(qdec
       utils
       fsgdf
       vtkfsio
@@ -66,11 +66,10 @@ if(BUILD_GUIS
       ${KWWidgets_LIBRARIES}
     )
 
-    install(TARGETS qdec.bin DESTINATION bin)
+    install(TARGETS qdec DESTINATION bin)
 
   endif()
   
-  install(PROGRAMS qdec_wrapper DESTINATION bin RENAME qdec)
   install_symlinks(qdec_splash.png TYPE files DESTINATION lib/images)
   install_symlinks(QdecIcons.txt TYPE files DESTINATION lib/resource)
 
