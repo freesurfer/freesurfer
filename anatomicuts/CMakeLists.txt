@@ -18,27 +18,23 @@ if(VTK_FOUND)
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
 #AnatomiCuts correspondences
-  add_executable(AnatomiCuts.bin AnatomiCuts.cxx ${TRACKIO})
-  target_link_libraries(AnatomiCuts.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS AnatomiCuts.bin DESTINATION bin)
-  install(PROGRAMS AnatomiCuts_wrapper DESTINATION bin RENAME AnatomiCuts)
+  add_executable(AnatomiCuts AnatomiCuts.cxx ${TRACKIO})
+  target_link_libraries(AnatomiCuts utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS AnatomiCuts DESTINATION bin)
 
 #AnatomiCuts
-  add_executable(AnatomiCuts_correspondences.bin AnatomiCuts_correspondences.cxx ${TRACKIO})
-  target_link_libraries(AnatomiCuts_correspondences.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS AnatomiCuts_correspondences.bin DESTINATION bin)
-  install(PROGRAMS AnatomiCuts_correspondences_wrapper DESTINATION bin RENAME AnatomiCuts_correspondences)
+  add_executable(AnatomiCuts_correspondences AnatomiCuts_correspondences.cxx ${TRACKIO})
+  target_link_libraries(AnatomiCuts_correspondences utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS AnatomiCuts_correspondences DESTINATION bin)
 
 #TRK tools for header
-  add_executable(trk_tools.bin trk_tools.cxx ${TRACKIO})
-  target_link_libraries(trk_tools.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS trk_tools.bin DESTINATION bin)
-  install(PROGRAMS trk_tools_wrapper DESTINATION bin RENAME trk_tools)
+  add_executable(trk_tools trk_tools.cxx ${TRACKIO})
+  target_link_libraries(trk_tools utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS trk_tools DESTINATION bin)
 
 #streamline filtering
-  add_executable(streamlineFilter.bin StreamlineFilter.cxx ${TRACKIO})
-  target_link_libraries(streamlineFilter.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS streamlineFilter.bin DESTINATION bin)
-  install(PROGRAMS streamlineFilter_wrapper DESTINATION bin RENAME streamlineFilter)
+  add_executable(streamlineFilter StreamlineFilter.cxx ${TRACKIO})
+  target_link_libraries(streamlineFilter utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS streamlineFilter DESTINATION bin)
   
 endif()

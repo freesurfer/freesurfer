@@ -90,9 +90,10 @@ if(VTK_FOUND)
       COMMAND ${VTK_WRAP_TCL_INIT_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} ${OUTFILE})
   endfunction()
 
-  # make sure the vtk path gets linked from the lib directory during install
-  if(VTK_INSTALL_PREFIX)
-    symlink(${VTK_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/lib/vtk)
+  # make sure the vtk shared libs get installed on linux
+  if(NOT APPLE)
+    file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
+    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib)
   endif()
 
 endif()
