@@ -1,6 +1,6 @@
 project(vtkutils)
 
-if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
+if(VTK_FOUND AND KWWidgets_FOUND)
 
   include_directories(
     ${FS_INCLUDE_DIRS}

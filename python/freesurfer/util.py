@@ -8,7 +8,9 @@ from .log import error
 
 
 # run a shell command and return the exit code
-def run(cmd, silent=False, executable='/bin/bash'):
+def run(cmd, silent=False, executable='/bin/bash', background=False):
+  if background:
+    cmd += ' &'
   if silent:
     return sp.call(cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, shell=True, executable=executable)
   else:
@@ -58,12 +60,12 @@ def sourceFS(fspath):
 
 # get freesurfer home
 def fshome():
-  return os.environ['FREESURFER_HOME']
+  return os.environ.get('FREESURFER_HOME')
 
 
 # make sure freesurfer has been sourced
 def checkfs():
-  if not fshome:
+  if not fshome():
     errorExit('freesurfer has not been sourced')
 
 

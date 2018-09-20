@@ -23,6 +23,3 @@ library_paths(
   mpich
   pmpich
 )
-
-# make sure the petsc path gets linked from the lib directory during install
-symlink(${PETSC_DIR} ${CMAKE_INSTALL_PREFIX}/lib/petsc)

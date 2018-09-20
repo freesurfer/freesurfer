@@ -29,8 +29,8 @@ int main(int argc, const char **argv)
   parser.addArgument("-d", "--defects", 1, String, true);
   parser.addArgument("-o", "--out",     1, String, true);
   // optional
-  parser.addArgument("-l", "--label",   1, String, false);
-  parser.addArgument("-c", "--control", 1, String, false);
+  parser.addArgument("-l", "--label",   1, String);
+  parser.addArgument("-c", "--control", 0);
   // help text
   parser.addHelp(mris_defects_pointset_help_xml, mris_defects_pointset_help_xml_len);
   parser.parse(argc, argv);
@@ -118,12 +118,11 @@ int main(int argc, const char **argv)
     centroids.vox2ras = "tkreg";
   }
 
-  std::string usectrl = parser.retrieve<std::string>("control");
-
-  if (usectrl.size() == 0) {
-    centroids.save(parser.retrieve<std::string>("out"));
+  std::string outfile = parser.retrieve<std::string>("out");
+  if (parser.exists("control")) {
+    centroids.save_as_ctrlpoint(outfile);
   } else {
-    centroids.save_as_ctrlpoint(parser.retrieve<std::string>("out"));
+    centroids.save(outfile);
   }
 
   // ---- cleanup ----
