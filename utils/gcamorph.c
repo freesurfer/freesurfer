@@ -2804,8 +2804,8 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   ROMP_PF_end
 
   for (i = 0; i < n_omp_threads; i++)
-    if (mn[tid] > max_norm) {
-      max_norm = mn[tid];
+    if (mn[i] > max_norm) {
+      max_norm = mn[i];
     }
 
   ROMP_PF_begin
