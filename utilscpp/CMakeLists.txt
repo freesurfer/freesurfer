@@ -8,6 +8,7 @@ set(SOURCES
   argparse.cpp
   log.cpp
   pointset.cpp
+  json.cpp
   mris_fastmarching.cpp
   globals.cpp
   face.cpp
