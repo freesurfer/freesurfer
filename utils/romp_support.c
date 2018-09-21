@@ -32,6 +32,24 @@ static const int debug = 0;
 #include <stdlib.h>
 #include <pthread.h>
 
+static void __attribute__((constructor)) before_main() 
+{
+    int n = omp_get_max_threads();
+    if (n <= _MAX_FS_THREADS) return;
+    omp_set_num_threads(_MAX_FS_THREADS);
+}
+
+int romp_omp_get_thread_num()  { 
+#undef omp_get_thread_num
+    int n = omp_get_thread_num();
+#define omp_get_thread_num romp_omp_get_thread_num
+    if (n >= _MAX_FS_THREADS) {
+        fprintf(stderr, "Freesurfer supports a maximum of %d threads, set OMP_NUM_THREADS accordingly\n", _MAX_FS_THREADS);
+        fprintf(stdout, "Freesurfer supports a maximum of %d threads, set OMP_NUM_THREADS accordingly\n", _MAX_FS_THREADS);
+        exit(1);
+    }
+    return n;
+}
 
 // removes implicit declaration
 #ifdef __APPLE__
