@@ -18,6 +18,8 @@ By default, only dice scores are computed, but this can be reconfigured with the
 
 Each structure in the input volumes will be considered by default, but an alternative list of labels can be specified with the -l flag. Additionally, the --seg flag will compute the overlap between the following 12 major anatomical structures:
 
+      Cerebral White Matter (2,41)
+      Cerebral Cortex (3,42)
       Hippocampus (17,53)
       Caudate (11,50)
       Putamen (12,51)
@@ -27,8 +29,6 @@ Each structure in the input volumes will be considered by default, but an altern
       Lateral Ventricle (4,43)
       Third and Fourth Ventricles (14,15)
       Inf Lateral Vent (5,44)
-      Cerebral White Matter (2,41)
-      Cerebral Cortex (3,42)
       Accumbens Area (26,58)
   </description>
 
@@ -43,9 +43,6 @@ Each structure in the input volumes will be considered by default, but an altern
 
     <argument>-l, --labels  [LABEL...]</argument>
     <explanation>Space-separated list of label values to include. By default, the overlap will be computed between all labels available in both input volumes.</explanation>
-
-    <argument>-f, --labelfile  [FILE]</argument>
-    <explanation>File specifying a list of labels to include. This file can either be a space-separated list of label values or in the format of a freesurfer color lookup-table.</explanation>
 
     <argument>-s, --seg</argument>
     <explanation>Compute overlap between the major segmentation structures listed above.</explanation>
