@@ -1,3 +1,4 @@
+#pragma once
 /**
  * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
@@ -25,8 +26,6 @@
  */
 
 
-#ifndef MRISURF_H
-#define MRISURF_H
 
 #include "minc_volume_io.h"
 #include "const.h"
@@ -179,16 +178,20 @@ face_type, FACE ;
 
 
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
-  ELTT(uchar,num) SEP           /* number neighboring faces */      	    	    	    \
-  ELTP(int,f) SEP               /* array neighboring face numbers */        	    	    \
-  ELTP(uchar,n) SEP           	/* [0-3, num long] */       	    	    	    	    \
-  ELTT(uchar,vnum) SEP       	/* number neighboring vertices */    	    	    	    \
-  ELTP(int,v) SEP               /* array neighboring vertex numbers, vnum long */    	    \
-  ELTP(int,e) SEP               /* edge state for neighboring vertices */    	    	    \
-  ELTT(int,v2num) SEP         	/* number of 2-connected neighbors */       	    	    \
-  ELTT(int,v3num) SEP         	/* number of 3-connected neighbors */       	    	    \
-  ELTT(short,vtotal) SEP        /* total # of neighbors will be same as one of above*/      \
-  ELTT(uchar,nsize) 	        /* size of neighborhood (e.g. 1, 2, 3) */    	    	    \
+  /* put the pointers before the ints, before the shorts, before uchars, to reduce size  */ \
+  /* the whole fits in much less than one cache line, so further ordering is no use      */ \
+  ELTP(int,f) SEP                                       /* array[v->num] the fno's of the neighboring faces     */ \
+  ELTP(uchar,n) SEP           	                        /* array[v->num] the face.v[*] index for this vertex    */ \
+  ELTP(int,e) SEP                                       /* edge state for neighboring vertices                  */ \
+  ELTP(int,v) SEP               /* array[v->vtotal] of sorted by hops neighbor vno      */ \
+  ELTT(short,vnum)              /* number of 1-hop neighbots                            */ \
+  ELTT(short,v2num) SEP         /* number of 1, or 2-hop neighbors                      */ \
+  ELTT(short,v3num) SEP         /* number of 1,2,or 3-hop neighbors                     */ \
+  ELTT(short,vtotal) SEP        /* total # of neighbors. copy of vnum.nsize             */ \
+  ELTX(short,nsizeMaxClock) SEP /* copy of mris->nsizeMaxClock when v#num                  */ \
+  ELTT(uchar,nsizeMax) SEP      /* the max nsize that was used to fill in vnum etc      */ \
+  ELTT(uchar,nsize) SEP         /* index of the current v#num in vtotal                 */ \
+  ELTT(uchar,num) SEP                                   /* number of neighboring faces                          */ \
   // end of macro
 
 
@@ -198,10 +201,10 @@ face_type, FACE ;
 //  having the mris->vertices and the mris->vertices_topology be the same pointer
 // and this is what the code is doing until the separation is completed.
 //
-//#define SEPARATE_VERTEX_TOPOLOGY
+#define SEPARATE_VERTEX_TOPOLOGY
 #ifndef SEPARATE_VERTEX_TOPOLOGY
 
-#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX LIST_OF_VERTEX_TOPOLOGY_ELTS
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX LIST_OF_VERTEX_TOPOLOGY_ELTS SEP
 
 #else
 
@@ -213,11 +216,13 @@ typedef struct VERTEX_TOPOLOGY {
     //
 
 #define SEP
+#define ELTX(TYPE,NAME) TYPE NAME ;
 #define ELTT(TYPE,NAME) TYPE NAME ;
 #define ELTP(TARGET,NAME) TARGET *NAME ;
   LIST_OF_VERTEX_TOPOLOGY_ELTS
 #undef ELTP
 #undef ELTT
+#undef ELTX
 #undef SEP
 } VERTEX_TOPOLOGY;
 
@@ -434,11 +439,13 @@ typedef struct vertex_type_
   // end of macro
 
 #define SEP
+#define ELTX(TYPE,NAME) TYPE NAME ;
 #define ELTT(TYPE,NAME) TYPE NAME ;
 #define ELTP(TARGET,NAME) TARGET *NAME ;
   LIST_OF_VERTEX_ELTS
 #undef ELTP
 #undef ELTT
+#undef ELTX
 #undef SEP
 
 }
@@ -472,11 +479,13 @@ typedef struct MRIS
 //
 #define LIST_OF_MRIS_ELTS_1     \
     \
-  ELTT(const int,nvertices) SEP      /* # of vertices on surface, SHOULD BE CONST AND change by calling MRISreallocVerticesAndFaces et al */    \
-  ELTT(const int,nfaces) SEP         /* # of faces on surface, change by calling MRISreallocVerticesAndFaces et al */    \
-  ELTT(int,nedges) SEP         /* # of edges on surface*/    \
+  ELTT(const int,nvertices) SEP                 /* # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al */         \
+  ELTT(const int,nfaces) SEP                    /* # of faces on surface,    change by calling MRISreallocVerticesAndFaces et al */         \
+  ELTT(const bool,faceAttachmentDeferred) SEP   /* defer connecting faces to vertices, for performance reasons                   */         \
+  ELTT(int,nedges) SEP                          /* # of edges on surface*/    \
   ELTT(int,nstrips) SEP    \
   ELTP(VERTEX_TOPOLOGY,vertices_topology) SEP    \
+  ELTT(const int,tempsAssigned) SEP             /* State of various temp fields that can be borrowed if not already in use   */    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
   ELTP(MRI_EDGE,edges) SEP    \
@@ -545,12 +554,14 @@ typedef struct MRIS
   ELTT(int,status) SEP              /* type of surface (e.g. sphere, plane) */    \
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
-  ELTP(MRIS_AREA_LABEL,labels) SEP       /* nlabels of these (may be null) */    \
-  ELTT(int,nsize) SEP            /* size of neighborhoods */    \
-  ELTT(int,max_nsize) SEP        /* max the neighborhood size has been set to (typically 3) */    \
-  ELTT(float,avg_nbrs) SEP         /* mean # of vertex neighbors */    \
-  ELTP(void,vp) SEP              /* for misc. use */    \
-  ELTT(float,alpha) SEP            /* rotation around z-axis */    \
+  ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
+  ELTT(int,nsize) SEP               /* size of neighborhoods */    \
+  ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
+  \
+  ELTT(int,max_nsize) SEP           /* max the neighborhood size has been set to (typically 3) */    \
+  ELTT(float,avg_nbrs) SEP          /* mean # of vertex neighbors */    \
+  ELTP(void,vp) SEP                 /* for misc. use */    \
+  ELTT(float,alpha) SEP             /* rotation around z-axis */    \
   ELTT(float,beta) SEP             /* rotation around y-axis */    \
   ELTT(float,gamma) SEP            /* rotation around x-axis */    \
   ELTT(float,da) SEP    \
@@ -2575,4 +2586,3 @@ int CompareFaceVertices(const void *vf1, const void *vf2);
 // for making the surface deterministic after decimation
 MRIS *MRISsortVertices(MRIS *mris0);
 
-#endif // MRISURF_H
