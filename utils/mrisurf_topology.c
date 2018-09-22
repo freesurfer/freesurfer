@@ -1,5 +1,5 @@
 /*
- * @file utilities operating on Original
+ * @file utilities dealing with the topology
  *
  */
 /*
@@ -16,42 +16,345 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+#define COMPILING_MRISURF_TOPOLOGY
+ 
 #include "mrisurf_topology.h"
 
 
-/*-----------------------------------------------------
-  This supports code that accelerates finding the vertices and faces needed during defect correction.
-  To do this, it must be able to tell when vertex orig[xyz] are changed.
-  Such changes need to be reported via noteVnoMovedInActiveRealmTrees.
-  To help decide where such calls had to be added, all changes to origx etc. that are not have a CHANGES_ORIG by them to check if should have been.
-  To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
-  ------------------------------------------------------*/
+// MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
+//                   and with their partitioning into sets (ripped, marked, ...)
+//                   but not with their placement in the xyz coordinate space
 
-int mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
+
+
+//=============================================================================
+// Vertexs and edges
+//
+bool mrisCheckVertexVertexTopology(MRIS const *mris)
 {
-  int vno, n, n2, found;
+  int vno1;
+  for (vno1 = 0; vno1 < mris->nvertices; vno1++) {
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
 
-  return (1);
-  
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    int n;
+    for (n = 0; n < v->vnum; n++) {
+      int vno2 = v->v[n];
 
-    for (n = 0; n < vt->vnum; n++) {
-      VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vt->v[n]];
-      found = 0;
-      for (n2 = 0; n2 < vnt->vnum; n2++)
-        if (vnt->v[n2] == vno) {
-          found = 1;
-          break;
+      // neighborlyness is commutative
+      if (!mrisVerticesAreNeighbors(mris, vno2, vno1)) {
+          fprintf(stdout, "[vno1:%d].v[%d] not found in [vno2:%d].v[*]\n", vno1, n, vno2);
+          DiagBreak();
+          return false;
+      }
+      
+      // neighbors should only appear once
+      int i;
+      for (i = 0; i < n; i++) {
+        if (vno2 == v->v[i]) {
+          fprintf(stdout, "[vno1:%d].v[%d]:%d same as [vno1:%d].v[%d]\n", vno1, n, vno2, i, v->v[i]);
+          DiagBreak();
+          return false;
         }
-      if (found == 0) {
+      }
+    }
+    
+    if (!mris->vertices[vno1].ripflag) {
+      
+      if (v->nsizeMax != 0 &&
+          v->nsize     > v->nsizeMax) {
+        fprintf(stdout, "[vno1:%d].nsize:%d exceeds nsizeMax:%d\n", vno1, v->nsize, v->nsizeMax);
         DiagBreak();
-        return (0);
+      }
+      
+      int vtotalExpected = 0;
+      switch (v->nsize) {
+      case 1: vtotalExpected = v->vnum;  break;
+      case 2: vtotalExpected = v->v2num; break;
+      case 3: vtotalExpected = v->v3num; break;
+      default: break;
+      }
+      if (mris->nsize > 0 && mris->nsize != v->nsize) {
+        fprintf(stdout, "[vno1:%d].nsize:%d differs from mris->nsize[%d]\n", vno1, v->nsize, mris->nsize);
+        DiagBreak();
+        return false;
+      }
+      if (v->nsize > 0 && v->vtotal != vtotalExpected) {
+        fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize);
+        DiagBreak();
+        return false;
       }
     }
   }
-  return (1);
+  
+  return true;
 }
+
+#define MAX_VLIST 255
+static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2) 
+{
+  int vlist[MAX_VLIST];
+
+  if (vno1 < 0 || vno2 < 0) {
+    DiagBreak();
+  }
+  if (vno1 == Gdiag_no || vno2 == Gdiag_no) {
+    DiagBreak();
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "adding edge %d <--> %d\n", vno1, vno2);
+  }
+
+  /* add v2 link to v1 struct */
+  {
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
+    if (v->vnum >= MAX_VLIST - 1) {
+      ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)", v->vnum);
+    }
+
+    memmove(vlist, v->v, v->vnum * sizeof(int));
+    vlist[(unsigned int)v->vnum++] = vno2;
+    v->vtotal = v->vnum;
+    if (v->v) {
+      free(v->v);
+    }
+    v->v = (int *)calloc(v->vnum, sizeof(int));
+    if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
+
+    memmove(v->v, vlist, v->vnum * sizeof(int));
+  }
+  
+  /* add v1 link to v2 struct */
+  {
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno2];
+    memmove(vlist, v->v, v->vnum * sizeof(int));
+    vlist[(unsigned int)v->vnum++] = vno1;
+    v->vtotal = v->vnum;
+    if (v->v) {
+      free(v->v);
+    }
+    v->v = (int *)calloc(v->vnum, sizeof(int));
+    if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
+
+    memmove(v->v, vlist, v->vnum * sizeof(int));
+  }
+  
+}
+
+void mrisAddEdge(MRIS *mris, int vno1, int vno2)
+{
+  costlyAssert(!mrisVerticesAreNeighbors(mris, vno1, vno2));
+  mrisAddEdgeWkr(mris, vno1, vno2);
+}
+
+void mrisRemoveEdge(MRIS *mris, int vno1, int vno2)
+{
+  int i;
+  VERTEX_TOPOLOGY * const v1 = &mris->vertices_topology[vno1];
+
+  for (i = 0; i < v1->vnum; i++)
+    if (v1->v[i] == vno2) {
+      v1->vnum--;
+      if (i < v1->vnum) /* not the (previous) last index */
+      {
+        memmove(&v1->v[i], &v1->v[i + 1], (v1->vnum - i) * sizeof(v1->v[0]));
+      }
+      return ;
+    }
+  // TODO what about any faces that use this edge?
+}
+
+//=============================================================================
+// Neighbourhoods
+//
+// These are the vertexs that can be reached by following vno = mris->vertex_topology[vno]->v[<all>] nsize hops.
+// They are stored, sorted, in the v->v vector with the vnum, v2num, and v3num storing where the hop count changes.
+//
+// Obviously adding or removing edges invalids v2num and v3num.
+//      mris->nsizeMaxClock changes to help detect this bug, but it wraps so is not a guarantee.
+//      Here it is checked to assert vtotal is valid.
+
+void MRISgetNeighborsBeginEnd(
+  MRIS const * mris, 
+  int     vno, 
+  size_t  inner_nbhd_size, 
+  size_t  outer_nbhd_size, 
+  size_t* neighborsIndexBegin,    // set so VERTEX v[*neighborsIndexBegin] is the first in this list with inner <= links <= outer 
+  size_t* neighborsIndexEnd) {    // set so VERTEX v[*neighborsIndexEnd]   is the first in this list with outer < links
+    
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    
+  size_t b = 0, e = 0;
+    
+  if (inner_nbhd_size <= outer_nbhd_size) {
+
+    cheapAssert(mris->nsizeMaxClock == vt->nsizeMaxClock || outer_nbhd_size <= 1);
+
+    switch (inner_nbhd_size) {
+    case 1: b = 0;         break;
+    case 2: b = vt->vnum;  break;
+    case 3: b = vt->v2num; break;
+    default: cheapAssert(false);
+    }
+    switch (outer_nbhd_size) {
+    case 1: e = vt->vnum;  break;
+    case 2: e = vt->v2num; break;
+    case 3: e = vt->v3num; break;
+    default: cheapAssert(false);
+    }
+  }
+    
+  *neighborsIndexBegin = b;
+  *neighborsIndexEnd   = e;
+}
+    
+// Faces
+//
+bool mrisCheckVertexFaceTopology(MRIS const * mris) {
+  if (!mrisCheckVertexVertexTopology(mris)) return false;
+  
+  int fno;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    FACE const * const f = &mris->faces[fno];
+
+    int prevVno = f->v[VERTICES_PER_FACE-1];
+    int n;
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      int const vno = f->v[n];
+      VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+
+      int i = -1;
+
+      // The vertex points to the face exactly once
+      //
+      int iTrial;
+      for (iTrial = 0; iTrial < v->num; iTrial++) {
+        if (v->f[iTrial] == fno) {
+          if (i == v->num) {
+            fprintf(stdout, "fno:%d found twice in [vno:%d].f[i:%d && iTrial:%d]\n", fno, vno, i, iTrial);
+            DiagBreak();
+            return false;
+          }
+          i = iTrial;
+        }
+      }
+      if (i < 0) {
+        fprintf(stdout, "fno:%d not found in [vno:%d].f[*]\n", fno, vno);
+        DiagBreak();
+        return false;
+      }
+
+      if (v->n[i] != n) {
+        fprintf(stdout, "[fno:%d].v[n:%d] holds vno:%d but [vno:%d].n[i:%d]:%d != n:%d\n", 
+            fno, n, vno, vno, i, v->n[i], n);
+        DiagBreak();
+        return false;
+      }
+      
+      // The vertices are neighbours
+      //
+      if (!mrisVerticesAreNeighbors(mris, vno, prevVno)) {
+        fprintf(stdout, "[fno:%d] holds adjacent vno:%d and vno:%d but they are not neighbours\n", 
+            fno, vno, prevVno);
+        DiagBreak();
+        return false;
+      }
+      
+      prevVno = vno;
+    }
+  }
+  
+  return true;
+}
+
+
+int mrisVertexFaceIndex(MRIS *mris, int vno, int fno) {
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+  int i;
+  for (i = 0; i < v->num; i++) {
+    if (v->f[i] == fno) return i;
+  }
+  return -1;
+}
+
+
+void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno)
+{
+  FACE const *      const f = &mris->faces[fno];
+  VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
+
+  int n;
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    if (f->v[n] == vno) break;
+  }
+  cheapAssert(n < VERTICES_PER_FACE);
+
+  int i;
+  for (i = 0; i < v->num; i++)
+    if (v->f[i] == fno) {
+      v->n[i] = n;
+    }
+}
+
+static void mrisAddFaceToVertex(MRIS *mris, int vno, int fno, int n) {
+  costlyAssert(mrisVertexFaceIndex(mris, vno, fno) < 0);     // check not already added
+  FACE *            const f = &mris->faces[fno];
+  VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
+  f->v[n] = vno;
+  int const i = v->num++;
+  v->f = (int  *)realloc(v->f, v->num*sizeof(int));
+  v->n = (uchar*)realloc(v->n, v->num*sizeof(int));
+  v->f[i] = fno;
+  v->n[i] = n;
+}
+
+static void mrisAttachFaceWkr(MRIS* mris, int fno, int vno0, int vno1, int vno2, bool edgesMustExist) {
+  cheapAssertValidFno(mris,fno);
+  cheapAssertValidVno(mris,vno0);
+  cheapAssertValidVno(mris,vno1);
+  cheapAssertValidVno(mris,vno2);
+  
+  cheapAssert(vno0 != vno1 && vno0 != vno2 && vno1 != vno2);
+    //
+    // This assertion was seen when a triangular tesselation written as a quad file did so by creating quad with two identical vertices
+    // which then might be read back as two triangles, one of which has identical vertices!  This would ruin euler
+    // calculations as well as create huge numbers of zero-area badly-defined-norm FACE.
+
+  int vno[4]; vno[0] = vno0; vno[1] = vno1;  vno[2] = vno2;  vno[3] = vno0;
+  if (edgesMustExist) {
+    int i; 
+    for (i = 0; i < 3; i++) {
+      costlyAssert(mrisVerticesAreNeighbors(mris, vno[i], vno[i+1]));
+    }
+  } else {
+    int i; 
+    for (i = 0; i < 3; i++) {
+      if (!mrisVerticesAreNeighbors(mris, vno[i], vno[i+1]))
+           mrisAddEdgeWkr          (mris, vno[i], vno[i+1]);
+    }
+  }
+  
+  FACE * const f = &mris->faces[fno];
+  cheapAssert((f->v[0]|f->v[1]|f->v[2]) == 0);  // not currently attached
+  int i;
+  for (i = 0; i < 3; i++)
+    mrisAddFaceToVertex(mris, vno[i], fno, i);
+}
+
+void setFaceAttachmentDeferred(MRIS* mris, bool to) {
+  // currently mostly NYI until seen to be a performance problem
+  if (!to) cheapAssert(mrisCheckVertexFaceTopology(mris));
+}
+
+void mrisAttachFaceToEdges   (MRIS* mris, int fno, int vno1, int vno2, int vno3) {
+  mrisAttachFaceWkr(mris, fno, vno1, vno2, vno3, true);
+}
+
+void mrisAttachFaceToVertices(MRIS* mris, int fno, int vno1, int vno2, int vno3) {
+  mrisAttachFaceWkr(mris, fno, vno1, vno2, vno3, false);
+}
+
+
 
 short FACE_vertexIndex_find(FACE *pFace, int avertex)
 {
@@ -486,7 +789,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   Description
   Is vno a vertex of face fno?
   ------------------------------------------------------*/
-int vertexInFace(MRI_SURFACE *mris, int vno, int fno)
+int vertexInFace(MRIS *mris, int vno, int fno)
 {
   VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
@@ -554,6 +857,24 @@ int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1)
 }
 
 
+//=============================================================================
+// marks
+//
+bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno)
+{
+  FACE const * const f = &mris->faces[fno];
+
+  int n;
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    if (mris->vertices[f->v[n]].marked != 0) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+
 int findNonMarkedFace(MRIS *mris, int vno, int vn1)
 {
   int i, nf;
@@ -593,70 +914,9 @@ int findNonMarkedFace(MRIS *mris, int vno, int vn1)
   Returns value:
 
   Description
-  Add the edge vnot <--> vno2 to the tessellation
-  ------------------------------------------------------*/
-#define MAX_VLIST 255
-int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
-{
-  int vlist[MAX_VLIST];
-
-  if (vno1 < 0 || vno2 < 0) {
-    DiagBreak();
-  }
-  if (vno1 == Gdiag_no || vno2 == Gdiag_no) {
-    DiagBreak();
-  }
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "adding edge %d <--> %d\n", vno1, vno2);
-  }
-
-  /* add v2 link to v1 struct */
-  {
-    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
-    if (v->vnum >= MAX_VLIST - 1) {
-      ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)", v->vnum);
-    }
-
-    memmove(vlist, v->v, v->vnum * sizeof(int));
-    vlist[(unsigned int)v->vnum++] = vno2;
-    v->vtotal = v->vnum;
-    if (v->v) {
-      free(v->v);
-    }
-    v->v = (int *)calloc(v->vnum, sizeof(int));
-    if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
-
-    memmove(v->v, vlist, v->vnum * sizeof(int));
-  }
-  
-  /* add v1 link to v2 struct */
-  {
-    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno2];
-    memmove(vlist, v->v, v->vnum * sizeof(int));
-    vlist[(unsigned int)v->vnum++] = vno1;
-    v->vtotal = v->vnum;
-    if (v->v) {
-      free(v->v);
-    }
-    v->v = (int *)calloc(v->vnum, sizeof(int));
-    if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
-
-    memmove(v->v, vlist, v->vnum * sizeof(int));
-  }
-  
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   Is the triangle vno0-->vno1-->vno2 already in the tessellation
   ------------------------------------------------------*/
-int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
+int isFace(MRIS *mris, int vno0, int vno1, int vno2)
 {
   FACE *f;
   int n, n1, vno;
@@ -684,7 +944,7 @@ int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
   Description
   Is the triangle vno0-->vno1-->vno2 already in the tessellation
   ------------------------------------------------------*/
-int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
+int findFace(MRIS *mris, int vno0, int vno1, int vno2)
 {
   FACE *f;
   int n, n1, vno, fno;
@@ -704,40 +964,6 @@ int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     }
   }
   return (-1);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Search the face for vno and set the v->n[] field
-  appropriately.
-  ------------------------------------------------------*/
-int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
-{
-  FACE *f;
-  int n, i;
-
-  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-  f = &mris->faces[fno];
-
-  for (n = 0; n < VERTICES_PER_FACE; n++) {
-    if (f->v[n] == vno) {
-      break;
-    }
-  }
-  if (n >= VERTICES_PER_FACE) {
-    return (ERROR_BADPARM);
-  }
-
-  for (i = 0; i < vt->num; i++)
-    if (vt->f[i] == fno) {
-      vt->n[i] = n;
-    }
-
-  return (n);
 }
 
 int computeOrientation(MRIS *mris, int f, int v0, int v1)
@@ -776,7 +1002,7 @@ int computeOrientation(MRIS *mris, int f, int v0, int v1)
 
   Description
   ------------------------------------------------------*/
-int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
+int mrisMarkBadEdgeVertices(MRIS *mris, int mark)
 {
   int vno, n, nfaces, m, vno2, nmarked;
 
@@ -814,11 +1040,11 @@ int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
   return (nmarked);
 }
 /*! -----------------------------------------------------
-  \fn int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
+  \fn int MRISdilateMarked(MRIS *mris, int ndil)
   \brief Dilates the marked vertices by marking a vertex
   if any of its non-ripped neighbors is ripped.
   ------------------------------------------------------*/
-int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
+int MRISdilateMarked(MRIS *mris, int ndil)
 {
   int vno, i, n, mx;
 
@@ -863,7 +1089,7 @@ int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
 
   Description
   ------------------------------------------------------*/
-int MRISdilateRipped(MRI_SURFACE *mris, int ndil)
+int MRISdilateRipped(MRIS *mris, int ndil)
 {
   int vno, i, n;
 
@@ -974,7 +1200,7 @@ MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int 
   Returns value:
   Description
   ------------------------------------------------------*/
-int MRISerodeRipped(MRI_SURFACE *mris, int ndil)
+int MRISerodeRipped(MRIS *mris, int ndil)
 {
   int vno, i, n, mn;
 
@@ -1009,7 +1235,7 @@ int MRISerodeRipped(MRI_SURFACE *mris, int ndil)
 
   Description
   ------------------------------------------------------*/
-int MRISerodeMarked(MRI_SURFACE *mris, int num)
+int MRISerodeMarked(MRIS *mris, int num)
 {
   int vno, i, n, mn;
 
@@ -1052,7 +1278,7 @@ int MRISerodeMarked(MRI_SURFACE *mris, int num)
 
   Description
   ------------------------------------------------------*/
-int MRIScloseMarked(MRI_SURFACE *mris, int order)
+int MRIScloseMarked(MRIS *mris, int order)
 {
   MRISdilateMarked(mris, order);
   MRISerodeMarked(mris, order);
@@ -1065,7 +1291,7 @@ int MRIScloseMarked(MRI_SURFACE *mris, int order)
 
   Description
   ------------------------------------------------------*/
-int MRISopenMarked(MRI_SURFACE *mris, int order)
+int MRISopenMarked(MRIS *mris, int order)
 {
   MRISerodeMarked(mris, order);
   MRISdilateMarked(mris, order);
@@ -1073,7 +1299,7 @@ int MRISopenMarked(MRI_SURFACE *mris, int order)
 }
 
 
-int MRISripLabel(MRI_SURFACE *mris, LABEL *area)
+int MRISripLabel(MRIS *mris, LABEL *area)
 {
   int i;
   VERTEX *v;
@@ -1084,7 +1310,7 @@ int MRISripLabel(MRI_SURFACE *mris, LABEL *area)
   }
   return (NO_ERROR);
 }
-int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area)
+int MRISripNotLabel(MRIS *mris, LABEL *area)
 {
   int i, vno;
   VERTEX *v;
@@ -1106,7 +1332,7 @@ int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area)
   }
   return (NO_ERROR);
 }
-int MRISinvertMarks(MRI_SURFACE *mris)
+int MRISinvertMarks(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1121,7 +1347,7 @@ int MRISinvertMarks(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRISsetFlags(MRI_SURFACE *mris, int flags)
+int MRISsetFlags(MRIS *mris, int flags)
 {
   int vno;
 
@@ -1131,7 +1357,7 @@ int MRISsetFlags(MRI_SURFACE *mris, int flags)
   return (NO_ERROR);
 }
 
-int MRISclearFlags(MRI_SURFACE *mris, int flags)
+int MRISclearFlags(MRIS *mris, int flags)
 {
   int vno;
 
@@ -1141,7 +1367,7 @@ int MRISclearFlags(MRI_SURFACE *mris, int flags)
   return (NO_ERROR);
 }
 
-int MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
+int MRIScopyMarkedToMarked2(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1152,7 +1378,7 @@ int MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
-int MRIScopyValsToAnnotations(MRI_SURFACE *mris)
+int MRIScopyValsToAnnotations(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1164,7 +1390,7 @@ int MRIScopyValsToAnnotations(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRIScopyMarked2ToMarked(MRI_SURFACE *mris)
+int MRIScopyMarked2ToMarked(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1176,7 +1402,7 @@ int MRIScopyMarked2ToMarked(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRIScopyMarkedToMarked3(MRI_SURFACE *mris)
+int MRIScopyMarkedToMarked3(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1188,7 +1414,7 @@ int MRIScopyMarkedToMarked3(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRIScopyMarked3ToMarked(MRI_SURFACE *mris)
+int MRIScopyMarked3ToMarked(MRIS *mris)
 {
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -1199,7 +1425,7 @@ int MRIScopyMarked3ToMarked(MRI_SURFACE *mris)
 }
 
 /* assume that the mark is 1 */
-int MRISexpandMarked(MRI_SURFACE *mris)
+int MRISexpandMarked(MRIS *mris)
 {
   int vno, n;
 
@@ -1224,7 +1450,7 @@ int MRISexpandMarked(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRISstoreRipFlags(MRI_SURFACE *mris)
+int MRISstoreRipFlags(MRIS *mris)
 {
   int vno, fno;
   VERTEX *v;
@@ -1241,7 +1467,7 @@ int MRISstoreRipFlags(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-int MRISrestoreRipFlags(MRI_SURFACE *mris)
+int MRISrestoreRipFlags(MRIS *mris)
 {
   int vno, fno;
   VERTEX *v;
@@ -1261,11 +1487,11 @@ int MRISrestoreRipFlags(MRI_SURFACE *mris)
 }
 
 /*!
-  \fn int MRISripMarked(MRI_SURFACE *mris)
+  \fn int MRISripMarked(MRIS *mris)
   \brief Sets v->ripflag=1 if v->marked==1.
   Note: does not unrip any vertices.
 */
-int MRISripMarked(MRI_SURFACE *mris)
+int MRISripMarked(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1278,7 +1504,7 @@ int MRISripMarked(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
-int MRISripUnmarked(MRI_SURFACE *mris)
+int MRISripUnmarked(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1293,7 +1519,7 @@ int MRISripUnmarked(MRI_SURFACE *mris)
 }
 
 // set all the marks to a user specified value INCLUDING RIPPED VERTICES!
-int MRISsetAllMarks(MRI_SURFACE *mris, int mark)
+int MRISsetAllMarks(MRIS *mris, int mark)
 {
   int vno;
   VERTEX *v;
@@ -1357,11 +1583,6 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   mris->nsize = nsize;
   return (NO_ERROR);
 }
-
-#define MAX_4_NEIGHBORS 100
-#define MAX_3_NEIGHBORS 70
-#define MAX_2_NEIGHBORS 20
-#define MAX_1_NEIGHBORS 8
 
 
 /*
@@ -1499,7 +1720,7 @@ int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int
 
   Description
   ------------------------------------------------------*/
-int MRIStopologicalDefectIndex(MRI_SURFACE *mris)
+int MRIStopologicalDefectIndex(MRIS *mris)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;
 
@@ -1541,33 +1762,9 @@ int MRIStopologicalDefectIndex(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2)
-{
-  int i;
-  VERTEX_TOPOLOGY * const v1 = &mris->vertices_topology[vno1];
-
-  for (i = 0; i < v1->vnum; i++)
-    if (v1->v[i] == vno2) {
-      v1->vnum--;
-      if (i < v1->vnum) /* not the (previous) last index */
-      {
-        memmove(&v1->v[i], &v1->v[i + 1], (v1->vnum - i) * sizeof(v1->v[0]));
-      }
-      return (NO_ERROR);
-    }
-  return (ERROR_BADPARM);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int mrisRemoveFace(MRI_SURFACE *mris, int fno);
+int mrisRemoveFace(MRIS *mris, int fno);
   
-int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2)
+int mrisRemoveLink(MRIS *mris, int vno1, int vno2)
 {
   FACE *face;
   int vno, fno, nvalid;
@@ -1621,7 +1818,7 @@ int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2)
   remove this face, as well as the link two vertices if
   they only exist through this face.
   ------------------------------------------------------*/
-int mrisRemoveFace(MRI_SURFACE *mris, int fno)
+int mrisRemoveFace(MRIS *mris, int fno)
 {
   int vno1, vno2, vno;
   FACE *face;
@@ -1647,7 +1844,7 @@ int mrisRemoveFace(MRI_SURFACE *mris, int fno)
 
   Description
   ------------------------------------------------------*/
-int MRISvalidVertices(MRI_SURFACE *mris)
+int MRISvalidVertices(MRIS *mris)
 {
   int vno, nvertices, nvalid;
 
@@ -1666,7 +1863,7 @@ int MRISvalidVertices(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISmarkedVertices(MRI_SURFACE *mris)
+int MRISmarkedVertices(MRIS *mris)
 {
   int vno, nvertices, nmarked;
 
@@ -1686,7 +1883,7 @@ int MRISmarkedVertices(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int mrisValidFaces(MRI_SURFACE *mris)
+int mrisValidFaces(MRIS *mris)
 {
   int fno, nfaces, nvalid;
 
@@ -1733,7 +1930,7 @@ void MRISreverseFaceOrder(MRIS *mris)
   Go through all the (valid) faces in vno1 and see how man
   valid links to vno2 exists.
   ------------------------------------------------------*/
-int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
+int mrisCountValidLinks(MRIS *mris, int vno1, int vno2)
 {
   int nvalid, fno, vno;
   FACE *face;
@@ -1862,7 +2059,7 @@ int MRISedges(MRIS *surf)
 }
 
 
-int MRISnotMarked(MRI_SURFACE *mris)
+int MRISnotMarked(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -1882,7 +2079,7 @@ int MRISnotMarked(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISripFaces(MRI_SURFACE *mris)
+int MRISripFaces(MRIS *mris)
 {
   int n, k;
   face_type *f;
@@ -1912,7 +2109,7 @@ int MRISripFaces(MRI_SURFACE *mris)
 }
 
 
-int MRISevertSurface(MRI_SURFACE *mris)
+int MRISevertSurface(MRIS *mris)
 {
   int v0, fno;
   FACE *face;
@@ -1929,7 +2126,7 @@ int MRISevertSurface(MRI_SURFACE *mris)
 }
 
 
-int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2)
+int mrisRemoveVertexLink(MRIS *mris, int vno1, int vno2)
 {
   int n;
   VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
@@ -1946,7 +2143,7 @@ int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2)
   return (NO_ERROR);
 }
 
-int MRISremoveTriangleLinks(MRI_SURFACE *mris)
+int MRISremoveTriangleLinks(MRIS *mris)
 {
   int fno, which;
   FACE *f;
@@ -2108,9 +2305,9 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
   ------------------------------------------------------*/
 #define MAX_VERTEX_NEIGHBORS 50
 #define MAX_FACES 50
-int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no);
+int mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no);
 
-int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
+int mrisDivideEdge(MRIS *mris, int vno1, int vno2)
 {
   int n, m, n1, n2;
 
@@ -2303,7 +2500,7 @@ int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
         = 3 --> divide edge in half three times, add 7 vertices
 */
 #define MAX_SURFACE_FACES 200000
-int MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions)
+int MRISdivideEdges(MRIS *mris, int nsubdivisions)
 {
   int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
   FACE *f;
@@ -2370,7 +2567,7 @@ int MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions)
 
   Description
   ------------------------------------------------------*/
-int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
+int MRISdivideLongEdges(MRIS *mris, double thresh)
 {
   double dist;
   int vno, nadded, n /*,nvertices, nfaces, nedges, eno*/;
@@ -2429,7 +2626,7 @@ int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
   Description
   ------------------------------------------------------*/
 int
-mrisAddVertices(MRI_SURFACE *mris, double thresh)
+mrisAddVertices(MRIS *mris, double thresh)
 {
   double   dist ;
   int      vno, nadded, n,nvertices, nfaces, nedges, eno ;
@@ -2492,7 +2689,7 @@ mrisAddVertices(MRI_SURFACE *mris, double thresh)
 
   Description
   ------------------------------------------------------*/
-int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
+int mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no)
 {
   int fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000];
 
@@ -2590,6 +2787,8 @@ int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
     fprintf(stdout, "face %d: (%d, %d, %d)\n", fnew_no, f2->v[0], f2->v[1], f2->v[2]);
   }
 
+  // MRISfindNeighborsAtVertex needs to be called on all the vertices within some extended neighborhood of the added vertex
+  //
   mrisInitializeNeighborhood(mris, vno3);
 
   return (NO_ERROR);
@@ -2602,7 +2801,7 @@ int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
 
   Description
   ------------------------------------------------------*/
-int mrisStoreVtotalInV3num(MRI_SURFACE *mris)
+int mrisStoreVtotalInV3num(MRIS *mris)
 {
   int vno;
 
@@ -2621,7 +2820,7 @@ int mrisStoreVtotalInV3num(MRI_SURFACE *mris)
   Description
   restore ripflag to 0 (NOTE: Won't undo MRISremoveRipped!!)
   ------------------------------------------------------*/
-int MRISunrip(MRI_SURFACE *mris)
+int MRISunrip(MRIS *mris)
 {
   int vno, fno;
 
@@ -2635,7 +2834,7 @@ int MRISunrip(MRI_SURFACE *mris)
 }
 
 
-int MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize)
+int MRIScountTotalNeighbors(MRIS *mris, int nsize)
 {
   int vno, total_nbrs;
 
@@ -2690,11 +2889,11 @@ int MRIScountAllMarked(MRIS *mris)
   return(nmarked);
 }
 /*!
-  \fn int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
+  \fn int MRIScountMarked(MRIS *mris, int mark_threshold)
   \brief Returns the total number of non-ripped vertices 
   that have v->marked >= threshold
  */
-int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
+int MRIScountMarked(MRIS *mris, int mark_threshold)
 {
   int vno, total_marked;
   VERTEX *v;
@@ -2719,7 +2918,7 @@ int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
   Description
   ------------------------------------------------------*/
 
-int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
+int MRISmarkRandomVertices(MRIS *mris, float prob_marked)
 {
   int vno;
   VERTEX *v;
@@ -2738,10 +2937,10 @@ int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
   return (NO_ERROR);
 }
 /*!
-  \fn int MRISclearMarks(MRI_SURFACE *mris)
+  \fn int MRISclearMarks(MRIS *mris)
   \brief Sets v->marked=0 for all unripped vertices
 */
-int MRISclearMarks(MRI_SURFACE *mris)
+int MRISclearMarks(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -2756,10 +2955,10 @@ int MRISclearMarks(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 /*!
-  \fn int MRISclearMarks(MRI_SURFACE *mris)
+  \fn int MRISclearMark2s(MRIS *mris)
   \brief Sets v->marked2=0 for all unripped vertices
 */
-int MRISclearMark2s(MRI_SURFACE *mris)
+int MRISclearMark2s(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -2793,7 +2992,7 @@ int MRISclearFaceMarks(MRIS *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISclearAnnotations(MRI_SURFACE *mris)
+int MRISclearAnnotations(MRIS *mris)
 {
   int vno;
   VERTEX *v;
@@ -2814,7 +3013,7 @@ int MRISclearAnnotations(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISsetMarks(MRI_SURFACE *mris, int mark)
+int MRISsetMarks(MRIS *mris, int mark)
 {
   int vno;
   VERTEX *v;

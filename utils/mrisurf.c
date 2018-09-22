@@ -121,7 +121,6 @@ int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
-
 static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const ** mrisPVector, FILE* showDiff, int vno)
 {
     int i;
@@ -224,10 +223,12 @@ static bool mris_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
     
     return true;
 }
+
 void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
 {
     mris_n_hash_add(1, hash, &mris, NULL);
 }
+
 void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
 {
     hash->hash = fnv_init();
