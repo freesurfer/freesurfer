@@ -170,8 +170,7 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    # since we have OpenGL, make sure we have glut too!
-    find_package(GLUT REQUIRED)
+    find_package(GLUT REQUIRED)  # since we have OpenGL, make sure we have glut too
     add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
@@ -190,7 +189,8 @@ if(BUILD_GUIS)
   if(Qt5_FOUND)
     get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
     if(NOT APPLE)
-      symlink(${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/lib/qt)
+      file(GLOB QT_LIBRARIES_TO_INSTALL "${QT_INSTALL_DIR}/lib/lib*.so*")
+      install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib)
     endif()
   endif()
 
@@ -271,6 +271,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 
 # enable std c++11
 set(CMAKE_CXX_STANDARD 11)
+
+# set executable rpath
+if(NOT APPLE)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+endif()
 
 # --------------------------------------------------
 #                   setup python

@@ -21,12 +21,9 @@ install(TARGETS mris_volmask_novtk DESTINATION bin)
 if(VTK_FOUND AND NOT MINIMAL)
 
   include_directories(${VTK_INCLUDE_DIRS})
-
-  add_executable(mris_volmask_vtk.bin mris_volmask_old.cpp cmd_line_interface.cpp)
-  add_help(mris_volmask_vtk.bin mris_volmask.help.xml)
-  target_link_libraries(mris_volmask_vtk.bin utils ${VTK_LIBRARIES})
-
-  install(PROGRAMS mris_volmask_vtk_wrapper DESTINATION bin RENAME mris_volmask_vtk)
-  install(TARGETS mris_volmask_vtk.bin DESTINATION bin)
+  add_executable(mris_volmask_vtk mris_volmask_old.cpp cmd_line_interface.cpp)
+  add_help(mris_volmask_vtk mris_volmask.help.xml)
+  target_link_libraries(mris_volmask_vtk utils ${VTK_LIBRARIES})
+  install(TARGETS mris_volmask_vtk DESTINATION bin)
 
 endif()

@@ -1,4 +1,3 @@
-
 project(resurf)
 
 if(ITK_FOUND AND VTK_FOUND)
@@ -9,17 +8,12 @@ if(ITK_FOUND AND VTK_FOUND)
     ${FS_INCLUDE_DIRS}
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/anatomicuts/Code
     Code
-    ../anatomicuts/Code/
   )
 
-
-  add_executable(mris_surf2resurf.bin
-    mris_surf2resurf.cxx 
-  )
-  target_link_libraries(mris_surf2resurf.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
-  install(TARGETS mris_surf2resurf.bin DESTINATION bin)
-  install(PROGRAMS mris_surf2resurf_wrapper DESTINATION bin RENAME mris_surf2resurf)
-
+  add_executable(mris_surf2resurf mris_surf2resurf.cxx)
+  target_link_libraries(mris_surf2resurf utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_surf2resurf DESTINATION bin)
   
 endif()
