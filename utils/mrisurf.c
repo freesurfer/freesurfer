@@ -137,7 +137,7 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
             VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];                                 \
             hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vt->MBR), sizeof(vt->MBR));        \
             if (showHashCalc) {                                                                         \
-                fprintf(stdout, "After %s hash is %ld", #MBR, hash->hash);                              \
+                fprintf(stdout, "After %s hash is %ld\n", #MBR, hash->hash);                            \
             }                                                                                           \
             if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
                 fprintf(showDiff, "Differ at vertices_topology:%d field %s\n", vno, #MBR);              \
@@ -155,7 +155,7 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
             VERTEX const * v = &mris->vertices[vno];                                                    \
             hash->hash = fnv_add(hash->hash, (const unsigned char*)(&v->MBR), sizeof(v->MBR));          \
             if (showHashCalc) {                                                                         \
-                fprintf(stdout, "After %s hash is %ld", #MBR, hash->hash);                              \
+                fprintf(stdout, "After %s hash is %ld\n", #MBR, hash->hash);                            \
             }                                                                                           \
             if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
                 fprintf(showDiff, "Differ at vertices:%d field %s\n", vno, #MBR);                       \
@@ -251,9 +251,12 @@ void mris_hash_print(MRIS_HASH const* hash, FILE* file)
 void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix) {
     MRIS_HASH hash;
     
-    showHashCalc++;
+    static size_t showHashCount = 0, showHashLimit = 1;
+    bool showHash = (++showHashCount == showHashLimit);
+    
+    if (showHash) { showHashCalc++; showHashLimit *= 2; fprintf(stdout, "showHashCount:%ld\n", showHashCount); }
     mris_hash_init(&hash, mris);
-    --showHashCalc;
+    if (showHash) --showHashCalc;
 
     fprintf(file, "%sMRIS_HASH{",prefix);
     mris_hash_print(&hash, file);
