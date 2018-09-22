@@ -511,7 +511,7 @@ typedef struct MRIS
   ELTT(float,min_curv) SEP    \
   ELTT(float,total_area) SEP    \
   ELTT(double,avg_vertex_area) SEP    \
-  ELTT(double,avg_vertex_dist) SEP    \
+  ELTT(const double,avg_vertex_dist) SEP  /* set by MRIScomputeAvgInterVertexDist */ \
   ELTT(double,std_vertex_dist) SEP    \
   ELTT(float,orig_area) SEP    \
   ELTT(float,neg_area) SEP    \

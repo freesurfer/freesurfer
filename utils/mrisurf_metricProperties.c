@@ -5494,19 +5494,19 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
 // More complicated properties
 //
 /*-------------------------------------------------------------
-  MRISavgInterVertexDist() - computes the average and stddev of
+  MRIScomputeAvgInterVertexDist() - computes the average and stddev of
   the distance between neighboring vertices. If StdDev is NULL,
   it is ignored. Requires that mrisComputeVertexDistances()
   have been run in order to compute vertex->dist[n].
   -------------------------------------------------------------*/
-double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
+void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
   double Sum, Sum2;
 
   Sum = 0;
   Sum2 = 0;
 
-  if (debugNonDeterminism) {
+  if (true || debugNonDeterminism) {
     fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
     mris_print_hash(stdout, Surf, "Surf ", "\n");
   }
@@ -5595,7 +5595,14 @@ double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   // printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
   // N,Sum,Sum2,Avg,*StdDev);
 
-  return (Avg);
+  mrisSetAvgInterVertexDist(Surf, Avg);
+}
+
+void mrisSetAvgInterVertexDist(MRIS *mris, double to) 
+{
+  double const * pc = &mris->avg_vertex_dist;
+  double       * p  = (double*)pc;
+  *p = to;
 }
 
 /*-----------------------------------------------------

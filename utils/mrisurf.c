@@ -256,6 +256,7 @@ void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const ch
     union { double d; struct { void *p0, *p1; } p; } volatile hack;
     hack.d = mris->avg_vertex_dist;
     fprintf(stdout, "avg_vertex_dist:%f %p %p\n", hack.d, hack.p.p0, hack.p.p1);
+    
     static size_t showHashCount = 0, showHashLimit = 1;
     bool showHash = (++showHashCount == showHashLimit);
     

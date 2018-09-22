@@ -10774,7 +10774,7 @@ double MRISrescaleMetricProperties(MRIS *surf)
     }
   }
   surf->total_area *= (scale * scale);
-  surf->avg_vertex_dist *= scale;
+  mrisSetAvgInterVertexDist(surf, surf->avg_vertex_dist * scale);
   surf->std_vertex_dist *= scale;
   surf->avg_vertex_area *= (scale * scale);
   return (scale);
@@ -11093,7 +11093,7 @@ int MRIScomputeMetricProperties(MRI_SURFACE *mris)
   MRIScomputeTriangleProperties(mris);                                      // compute areas and normals
   
   mris->avg_vertex_area = mris->total_area / mris->nvertices;
-  mris->avg_vertex_dist = MRISavgInterVertexDist(mris, &mris->std_vertex_dist);
+  MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);
   mrisOrientSurface(mris);
   // See also MRISrescaleMetricProperties()
   if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_RIGID_BODY || mris->status == MRIS_SPHERE) {
@@ -11193,7 +11193,7 @@ int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
   mris->avg_vertex_area = mris->total_area / mris->nvertices;
   // this would obviously require the distances
 
-  mris->avg_vertex_dist = MRISavgInterVertexDist(mris, &mris->std_vertex_dist);
+  MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);
   mrisOrientSurface(mris);
   // See also MRISrescaleMetricProperties()
   if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_RIGID_BODY || mris->status == MRIS_SPHERE) {
@@ -16109,7 +16109,7 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
   mris_dst->radius = mris_src->radius;  // to be checked
 
   mris_dst->avg_vertex_area = mris_src->avg_vertex_area;
-  mris_dst->avg_vertex_dist = mris_src->avg_vertex_dist;
+  mrisSetAvgInterVertexDist(mris_dst, mris_src->avg_vertex_dist);
   mris_dst->std_vertex_dist = mris_src->std_vertex_dist;
 
   // just copy the pointer ///////////////////////////////////
