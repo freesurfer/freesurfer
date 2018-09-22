@@ -3,8 +3,8 @@ project(tkmedit)
 if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   if(APPLE AND NOT BUILD_OSX_TK_GUIS)
-  
-    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/tkmedit.bin TYPE programs DESTINATION bin)
+
+    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/osx32b/tkmedit TYPE programs DESTINATION bin)
 
   else()
 
@@ -23,8 +23,8 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
       tkmMeditWindow.c
     )
 
-    add_executable(tkmedit.bin ${SOURCES})
-    target_link_libraries(tkmedit.bin
+    add_executable(tkmedit ${SOURCES})
+    target_link_libraries(tkmedit
       utils
       fsgdf
       ${OPENGL_LIBRARIES}
@@ -33,11 +33,8 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
       ${TCLTKTIXBLT_LIBRARIES}
     )
 
-    install(TARGETS  tkmedit.bin DESTINATION tktools)
+    install(TARGETS tkmedit DESTINATION bin)
 
   endif()
-
-  install(PROGRAMS tkmedit_wrapper DESTINATION bin RENAME tkmedit)
-  install(PROGRAMS tkmedit_wrapper DESTINATION tktools RENAME tkmedit)
 
 endif()

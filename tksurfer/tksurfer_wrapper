@@ -1,3 +1,0 @@
-#!/bin/tcsh -ef
-source $FREESURFER_HOME/bin/tcl_setup
-exec $FREESURFER_HOME/tktools/tksurfer.bin $argv
