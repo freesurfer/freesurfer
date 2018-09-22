@@ -23,11 +23,11 @@
 // MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
 //                   and with their partitioning into sets (ripped, marked, ...)
 //                   but not with their placement in the xyz coordinate space
-int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno);
+void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno);
 
 
-int edgeExists(MRI_SURFACE *mris, int vno1, int vno2);
-int triangleMarked(MRI_SURFACE *mris, int fno);
+int edgeExists(MRIS *mris, int vno1, int vno2);
+int triangleMarked(MRIS *mris, int fno);
 
 // Vertices and Faces interact via edges
 //
@@ -42,7 +42,7 @@ int findNonMarkedFace(MRIS *mris, int vno, int vn1);
 
 int computeOrientation(MRIS *mris, int f, int v0, int v1);
 
-static int vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2)
+static int vertexNeighbor(MRIS *mris, int vno1, int vno2)
 {
   int n;
 
@@ -57,6 +57,6 @@ static int vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2)
 int mrisMarkBadEdgeVertices(MRIS *mris, int mark);
 
 #define MAX_VLIST 255
-int mrisAddEdge(MRIS *mris, int vno1, int vno2);
-int mrisAddFace(MRIS *mris, int vno0, int vno1, int vno2);
+void mrisAddEdge(MRIS *mris, int vno1, int vno2);
+int  mrisAddFace(MRIS *mris, int vno0, int vno1, int vno2);
 
