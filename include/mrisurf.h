@@ -2616,7 +2616,6 @@ int CompareFaceVertices(const void *vf1, const void *vf2);
 // for making the surface deterministic after decimation
 MRIS *MRISsortVertices(MRIS *mris0);
 
-
 // mrisurf_topology needed by more
 //
 //  Vertices, like Faces, come into existence when the surface is created with a vertex and face count.
