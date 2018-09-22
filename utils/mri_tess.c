@@ -636,7 +636,7 @@ static int saveTesselation(tesselation_parms *parms)
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   MRIScomputeSecondFundamentalForm(mris);
   MRISuseMeanCurvature(mris);
   mris->radius = MRISaverageRadius(mris);

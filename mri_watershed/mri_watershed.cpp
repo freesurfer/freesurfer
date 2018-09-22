@@ -6483,7 +6483,7 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   MRIScomputeNormals(mris);
 
   /////////////////////////////////////////////////////////////////////
@@ -7727,7 +7727,7 @@ void MRISinitSurfaces(MRIS *mris_curv,
   MRISsmooth_surface(mris_curv,iter_smooth);
   //
   MRISsaveVertexPositions(mris_curv, ORIGINAL_VERTICES) ;
-  MRISsetNeighborhoodSize(mris_curv, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_curv, nbrs) ;
   MRIScomputeMetricProperties(mris_curv) ;
   //
   MRIScomputeSecondFundamentalForm(mris_curv) ;
@@ -7739,7 +7739,7 @@ void MRISinitSurfaces(MRIS *mris_curv,
   // use the mris_curv vertex positions (smoothed values)
   //
   MRISsaveVertexPositions(mris_dCOG, ORIGINAL_VERTICES) ;
-  MRISsetNeighborhoodSize(mris_dCOG, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_dCOG, nbrs) ;
   MRIScomputeMetricProperties(mris_dCOG) ;
   //
   MRISdistanceToCOG(mris_dCOG);
@@ -8088,7 +8088,7 @@ int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,
   mean_sse/=nvertices;
   var_sse=var_sse/nvertices-SQR(mean_sse);
 
-  MRISsetNeighborhoodSize(mrisphere, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mrisphere, 1) ;
   //Erosion step
   MRISaverageVals(mrisphere,3);
   // change mrisphere with neighboring averaged grey scale (iterated 3 times)
@@ -8200,7 +8200,7 @@ void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
       fprintf(stdout,"\n      scaling Curvature Field      ");
     }
     MRISrestoreVertexPositions(mris_src, ORIGINAL_VERTICES) ;
-    MRISsetNeighborhoodSize(mris_src, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_src, nbrs) ;
     MRIScomputeMetricProperties(mris_src) ;
     MRIScomputeSecondFundamentalForm(mris_src) ;
     MRISuseMeanCurvature(mris_src) ;
@@ -8214,7 +8214,7 @@ void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
     }
     //Initialize distance to COG surface
     MRISrestoreVertexPositions(mris_src, ORIGINAL_VERTICES) ;
-    MRISsetNeighborhoodSize(mris_src, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_src, nbrs) ;
     MRIScomputeMetricProperties(mris_src) ;
     MRISdistanceToCOG(mris_src);
     MRISaverageCurvatures(mris_src, navgs) ;
@@ -8484,7 +8484,7 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   MRIScomputeNormals(mris);
 
   dist = (float ***) malloc( mris->nvertices*sizeof(float**) );
@@ -8863,7 +8863,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
   if (MRI_var->atlas)
   {
     posvertices=negvertices=0;
-    MRISsetNeighborhoodSize(mris,1) ;
+    MRISsetNeighborhoodSizeAndDist(mris,1) ;
     MRIScomputeMetricProperties(mris) ;
     MRISdistanceToCOG(mris);
     MRISaverageCurvatures(mris, 20) ;
@@ -9133,7 +9133,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
     }
     niter--;
   }
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   for (k=0; k<nvertices; k++)
   {
     vsphere = &mrisphere->vertices[k] ;
@@ -9171,7 +9171,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
     vsphere->odz=MAX(5.,MIN(20.,sqrt(vsphere->odz)));
   }
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   /*reaverage the local values*/
   niter=5;
   while (niter)
@@ -9262,7 +9262,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
 
   if (MRI_var->atlas)
   {
-    MRISsetNeighborhoodSize(mris, 2) ;
+    MRISsetNeighborhoodSizeAndDist(mris, 2) ;
     MRIScomputeMetricProperties(mris) ;
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
@@ -9670,7 +9670,7 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   mris_tmp=MRISclone(mris);
 #endif
 
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   MRIScomputeNormals(mris);
 
   fmax=MRI_var->WM_MAX + 25.0f ; /* being careful */
@@ -10303,7 +10303,7 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ; // 1-connected neighbors only
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ; // 1-connected neighbors only
 
   MRIScomputeNormals(mris);
 

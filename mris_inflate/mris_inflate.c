@@ -201,7 +201,7 @@ main(int argc, char *argv[])
 #endif
   fprintf(stderr, "avg radius = %2.1f mm, total surface area = %2.0f mm^2\n",
           radius, mris->total_area) ;
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
   MRIScomputeNormals(mris) ;
   MRISsaveNormals(mris, WHITE_VERTICES);  // will be used in normal term

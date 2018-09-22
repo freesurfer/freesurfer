@@ -3627,14 +3627,14 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms)
   mrisRipAllDefects(mris, (DEFECT_LIST *)parms->defect_list, 0);
 
   // computing curvature statistics
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   parms->h_k1 = HISTOalloc(100);
   parms->h_k2 = HISTOalloc(100);
   parms->mri_k1_k2 = MRIalloc(100, 100, 1, MRI_FLOAT);
   parms->h_dot = HISTOalloc(100);
   mrisComputePrincipalCurvatureDistributions(mris, parms->h_k1, parms->h_k2, parms->mri_k1_k2);
   mrisComputeNormalDotDistribution(mris, parms->h_dot);
-  MRISsetNeighborhoodSize(mris, 1);
+  MRISsetNeighborhoodSizeAndDist(mris, 1);
 
   // computing mri statistics
   MRIScomputeMetricProperties(mris);
@@ -8393,7 +8393,7 @@ MRI_SURFACE *MRIScorrectTopology(
      current = original (non smoothed)
   */
 
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   h_k1 = HISTOalloc(100);
   h_k2 = HISTOalloc(100);
   mri_k1_k2 = MRIalloc(100, 100, 1, MRI_FLOAT);
@@ -11846,7 +11846,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   EDGE *edge;
 
   /* first neighbors only */
-  MRISsetNeighborhoodSize(mris_src, 1);
+  MRISsetNeighborhoodSizeAndDist(mris_src, 1);
 
   nvertices = defect->nvertices + defect->nchull;
   vertex_list = (int *)malloc(nvertices * sizeof(int));
@@ -16102,7 +16102,7 @@ static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, in
     }
   }
 
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
 
   i = 0;
   do {
@@ -16224,7 +16224,7 @@ static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, in
   oriented = 0;
   MRISsaveVertexPositions(mris, TMP_VERTICES);
   MRIScomputeMetricProperties(mris);
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
 
   /* first orient vertices */
 

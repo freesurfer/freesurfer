@@ -15074,7 +15074,7 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
     mris->hemisphere = mris1->hemisphere;
   mris->type = mris1->type;
   mris->nsize = mris1->nsize;
-  MRISsetNeighborhoodSize(mris, mris->nsize);
+  MRISsetNeighborhoodSizeAndDist(mris, mris->nsize);
 
   memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg));
   MRIScomputeMetricProperties(mris);

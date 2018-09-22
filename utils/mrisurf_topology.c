@@ -1362,7 +1362,6 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 #define MAX_3_NEIGHBORS 70
 #define MAX_2_NEIGHBORS 20
 #define MAX_1_NEIGHBORS 8
-#define MAX_NEIGHBORS (10000)
 
 
 /*
@@ -1706,7 +1705,7 @@ int mrisValidFaces(MRI_SURFACE *mris)
   \brief Reverse order of the vertices in each face. This
   is needed when changing the sign of the x surface coord.
 */
-int MRISreverseFaceOrder(MRIS *mris)
+void MRISreverseFaceOrder(MRIS *mris)
 {
   int fno, vno0, vno1, vno2;
   FACE *f;
@@ -1723,7 +1722,6 @@ int MRISreverseFaceOrder(MRIS *mris)
     mrisSetVertexFaceIndex(mris, vno1, fno);
     mrisSetVertexFaceIndex(mris, vno2, fno);
   }
-  return (NO_ERROR);
 }
 
 /*-----------------------------------------------------

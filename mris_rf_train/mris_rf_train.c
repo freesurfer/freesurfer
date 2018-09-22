@@ -164,7 +164,7 @@ main(int argc, char *argv[]) {
     
     MRIScomputeMetricProperties(mris[sno]) ;
     if (nbhd_size > mris[sno]->nsize)
-      MRISsetNeighborhoodSize(mris[sno], nbhd_size) ;
+      MRISsetNeighborhoodSizeAndDist(mris[sno], nbhd_size) ;
     sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name) ;
     cortex_label = LabelRead(NULL, fname) ;
     if (cortex_label == NULL)

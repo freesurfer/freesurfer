@@ -1766,7 +1766,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
         parms->fields[n].l_corr = parms->fields[n].l_pcorr = 0.0;
         continue;
       }
-      MRISsetNeighborhoodSize(mris, -1); /* back to max */
+      MRISsetNeighborhoodSizeAndDist(mris, -1); /* back to max */
       MRIScomputeMetricProperties(mris);
       MRIScomputeSecondFundamentalForm(mris);
       MRISuseMeanCurvature(mris);

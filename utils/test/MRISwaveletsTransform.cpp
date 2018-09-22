@@ -521,7 +521,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "Reading wavelet coefficients from %s\n", argv[1]);
     for (i = 0; i<mris_out->nvertices; i++)
       mris_out->vertices[i].nsize=1;
-    MRISsetNeighborhoodSize(mris_out, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_out, 3) ;
 
     fprintf(stdout, "Recover the surface using %s order coefficients\n",argv[2]);
     if (atoi(argv[2])==-1) number = 0;
@@ -641,7 +641,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "Reading wavelet coefficients from %s\n", argv[1]);
     for (i = 0; i<mris_out->nvertices; i++)
       mris_out->vertices[i].nsize=1;
-    MRISsetNeighborhoodSize(mris_out, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_out, 3) ;
 
 
     fprintf(stdout, "Recover the surface using %s order coefficients\n",argv[2]);
@@ -685,7 +685,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "Reading wavelet coefficients from %s\n", argv[1]);
     for (i = 0; i<mris_out->nvertices; i++)
       mris_out->vertices[i].nsize=1;
-    MRISsetNeighborhoodSize(mris_out, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_out, 3) ;
 
     fprintf(stdout, "Recover the surface using %s order coefficients\n",argv[2]);
     number = IcoNVtxsFromOrder(atoi(argv[2]));
@@ -769,7 +769,7 @@ main(int argc, char *argv[])
     volume = brain_volume(mris_out);
     fprintf(stdout, "Writing recovered surface to %s volume %f\n", argv[4],volume);
     MRISwrite(mris_out,argv[4]) ;
-    MRISsetNeighborhoodSize(mris_out, 2) ;
+    MRISsetNeighborhoodSizeAndDist(mris_out, 2) ;
     MRIScomputeSecondFundamentalForm(mris_out) ;
     MRISuseMeanCurvature(mris_out) ;
     sprintf(afname,"%s.curv", argv[4]);
@@ -807,7 +807,7 @@ wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     for (m = number; m<mris_high->nvertices; m++)
     {
@@ -855,7 +855,7 @@ wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
 
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     /* compute Yj,m for each m vertices */
@@ -945,7 +945,7 @@ wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     for (m = number; m<mris_high->nvertices; m++)
     {
@@ -994,7 +994,7 @@ wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
 
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     /* compute Yj,m for each m vertices */
@@ -1089,7 +1089,7 @@ wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     for (m = number; m<mris_high->nvertices; m++)
     {
@@ -1137,7 +1137,7 @@ wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
 
     /* Synthesis Stage I */
@@ -1222,7 +1222,7 @@ wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
     for (m = number; m<mris_high->nvertices; m++)
     {
@@ -1270,7 +1270,7 @@ wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
     mris_high = ReadIcoByOrder(i, 100); //higher order surface
     for (m = 0; m<mris_high->nvertices; m++)
       mris_high->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_high, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
     number = IcoNVtxsFromOrder(i-1); //the start of m vertices
 
     /* Synthesis Stage I */

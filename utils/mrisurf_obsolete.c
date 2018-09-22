@@ -6430,7 +6430,7 @@ MRI_SURFACE *MRISfastRead(const char *fname)
   mrisReadTransform(mris, fname) ;
 #endif
   if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
-    MRISsetNeighborhoodSize(mris, 2);
+    MRISsetNeighborhoodSizeAndDist(mris, 2);
     MRIScomputeSecondFundamentalForm(mris);
     MRISuseMeanCurvature(mris);
   }

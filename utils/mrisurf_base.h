@@ -347,7 +347,6 @@ int mrisWriteSnapshot (MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
 #define MAX_3_NEIGHBORS 70
 #define MAX_2_NEIGHBORS 20
 #define MAX_1_NEIGHBORS 8
-#define MAX_NEIGHBORS (10000)
 
 extern const float * sigmas;
 extern       double nsigmas;
@@ -370,7 +369,6 @@ extern int noteVnoMovedInActiveRealmTreesCount;
 void noteVnoMovedInActiveRealmTrees              (MRIS const * const mris, int vno);
 void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 
-extern char *mrisurf_surface_names[3];
-extern char *curvature_names[3];
-int MRISsetCurvatureName(int nth, char *name);
+extern const char *mrisurf_surface_names[3];
+extern const char *curvature_names[3];
 int MRISprintCurvatureNames(FILE *fp);

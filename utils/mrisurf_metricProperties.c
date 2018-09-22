@@ -1449,7 +1449,7 @@ double MRIScomputeTotalVertexSpacingStats(
 
 
 
-int mrisFindNeighbors(MRI_SURFACE *mris)
+void mrisFindNeighbors(MRI_SURFACE *mris)
 {
   int n0, n1, i, k, m, n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS];
   FACE *f;
@@ -1554,7 +1554,6 @@ int mrisFindNeighbors(MRI_SURFACE *mris)
   }
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  return (NO_ERROR);
 }
 
 
@@ -1567,7 +1566,7 @@ int mrisFindNeighbors(MRI_SURFACE *mris)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
+void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
 {
   int vno, niter, ntotal, vtotal;
 
@@ -1604,7 +1603,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
     ROMP_PF_end
     mris->nsize = nsize;
-    return (NO_ERROR);
+    return;
   }
   
   // setting neighborhood size to a value larger than it has been in the past
@@ -1800,7 +1799,6 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   mrisComputeVertexDistances(mris);
   mrisComputeOriginalVertexDistances(mris);
-  return (NO_ERROR);
 }
 
 

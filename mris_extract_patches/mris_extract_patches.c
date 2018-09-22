@@ -130,8 +130,8 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris_ohemi) ;
   if (MRISreadCanonicalCoordinates(mris_ohemi, sphere_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: MRISreadCanonicalCoordinates(%s) failed", Progname, sphere_name);
-  MRISsetNeighborhoodSize(mris, nbrs) ;
-  MRISsetNeighborhoodSize(mris_ohemi, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_ohemi, nbrs) ;
   MRIScomputeMetricProperties(mris) ;
   MRIScomputeMetricProperties(mris_ohemi) ;
   MRIScomputeSecondFundamentalForm(mris);
