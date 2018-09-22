@@ -205,6 +205,9 @@ static bool mris_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
             MRIS_HASH  * hash = &hashVector[i];                                                         \
             MRIS const * mris = mrisPVector[i];                                                         \
             hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));    \
+            if (showHashCalc) {                                                                         \
+                fprintf(stdout, "After mris.%s hash is %ld\n", #MBR, hash->hash);                       \
+            }                                                                                           \
             if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
                 fprintf(showDiff, "Differ at field %s\n", #MBR);                                        \
                 return false;                                                                           \
