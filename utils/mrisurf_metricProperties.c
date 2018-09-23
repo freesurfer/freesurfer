@@ -5501,7 +5501,7 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   -------------------------------------------------------------*/
 void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
-  bool const showHashs = debugNonDeterminism || true;
+  bool const showHashs = false || debugNonDeterminism;
 
   if (showHashs) {
     fprintf(stdout, "%s:%d MRIScomputeAvgInterVertexDist starting ",__FILE__,__LINE__);
