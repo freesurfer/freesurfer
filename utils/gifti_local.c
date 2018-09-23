@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  gifti_local.c
  * @brief local utilities for GIFTI library
@@ -740,6 +741,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       }
     }
 
+    mrisCheckVertexFaceTopology(mris);
+    
     // check-for and read coordsys struct for talairach xform
     if (coords->coordsys && (coords->numCS > 0)) {
       int idx;

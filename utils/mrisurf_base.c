@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities common to mrisurf*.c but not used outside them
  *

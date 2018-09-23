@@ -126,10 +126,10 @@ typedef struct edge_type_
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
 
-#ifndef COMPILING_MRISURF_TOPOLOGY
-#define CONST_EXCEPT_MRISURF_TOPOLOGY // NYI const
+#if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
+#define CONST_EXCEPT_MRISURF_TOPOLOGY 
 #else
-#define CONST_EXCEPT_MRISURF_TOPOLOGY
+#define CONST_EXCEPT_MRISURF_TOPOLOGY const
 #endif
     //
     // Used to find and control where various fields are written
@@ -189,18 +189,18 @@ face_type, FACE ;
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
   /* put the pointers before the ints, before the shorts, before uchars, to reduce size  */ \
   /* the whole fits in much less than one cache line, so further ordering is no use      */ \
-  ELTP(int,f) SEP                                       /* array[v->num] the fno's of the neighboring faces     */ \
-  ELTP(uchar,n) SEP           	                        /* array[v->num] the face.v[*] index for this vertex    */ \
-  ELTP(int,e) SEP                                       /* edge state for neighboring vertices                  */ \
-  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP               /* array[v->vtotal] of sorted by hops neighbor vno      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)              /* number of 1-hop neighbots                            */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP         /* number of 1, or 2-hop neighbors                      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP         /* number of 1,2,or 3-hop neighbors                     */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP        /* total # of neighbors. copy of vnum.nsize             */ \
-  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP /* copy of mris->nsizeMaxClock when v#num                  */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP      /* the max nsize that was used to fill in vnum etc      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsize) SEP         /* index of the current v#num in vtotal                 */ \
-  ELTT(uchar,num) SEP                                   /* number of neighboring faces                          */ \
+  ELTP(int,f) SEP                                               /* array[v->num] the fno's of the neighboring faces     */ \
+  ELTP(uchar,n) SEP           	                                /* array[v->num] the face.v[*] index for this vertex    */ \
+  ELTP(int,e) SEP                                               /* edge state for neighboring vertices                  */ \
+  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP                 /* array[v->vtotal] of sorted by hops neighbor vno      */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)                /* number of 1-hop neighbots                            */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP           /* number of 1, or 2-hop neighbors                      */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP           /* number of 1,2,or 3-hop neighbors                     */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsize             */ \
+  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP   /* copy of mris->nsizeMaxClock when v#num               */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP        /* the max nsize that was used to fill in vnum etc      */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsize) SEP           /* index of the current v#num in vtotal                 */ \
+  ELTT(uchar,num) SEP                                           /* number of neighboring faces                          */ \
   // end of macro
 
 
@@ -208,7 +208,7 @@ face_type, FACE ;
 // and can still be there by
 //  having VERTEX_TOPOLOGY be a typedef of VERTEX
 //  having the mris->vertices and the mris->vertices_topology be the same pointer
-// and this is what the code is doing until the separation is completed.
+// and this is what the code was doing until the separation was completed.
 //
 #define SEPARATE_VERTEX_TOPOLOGY
 #ifndef SEPARATE_VERTEX_TOPOLOGY
@@ -2667,8 +2667,10 @@ MRIS *MRISsortVertices(MRIS *mris0);
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-bool mrisCheckVertexVertexTopology(MRIS const * mris);
-bool mrisCheckVertexFaceTopology  (MRIS const * mris);  // includes a mrisCheckVertexVertexTopology check
+#define mrisCheckVertexVertexTopology(_MRIS) mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS)
+#define mrisCheckVertexFaceTopology(_MRIS)   mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS)
+bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris);
+bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris);  // includes a mrisCheckVertexVertexTopology check
 
 //  Vertices
 //

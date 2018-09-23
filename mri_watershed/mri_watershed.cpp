@@ -8399,7 +8399,7 @@ int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
 
 int mrisAverageGradients(MRIS *mris,int niter)
 {
-  int vno, vnum,*pnb,vnb;
+  int vno, vnum,vnb;
   float dx,dy,dz,dot,num;
 
   while (niter--)
@@ -8412,7 +8412,7 @@ int mrisAverageGradients(MRIS *mris,int niter)
       dx = v->odx ;
       dy = v->ody ;
       dz = v->odz ;
-      pnb = vt->v ;
+      int const * pnb = vt->v ;
 
       vnum = vt->vnum ;
       for (num = 0.0f , vnb = 0 ; vnb < vnum ; vnb++)

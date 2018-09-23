@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities operating on Original
  *
@@ -5023,6 +5024,8 @@ static MRIS *extractDefect(MRIS *mris, DEFECT *defect)
 
   free(vtrans);
 
+  mrisCheckVertexFaceTopology(mris_small);
+  
   return mris_small;
 }
 
@@ -6847,6 +6850,8 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
         }
     }
   }
+  
+  mrisCheckVertexFaceTopology(mris);
 }
 
 /* used to temporary rip the faces of the defect so we don't process them many times */
@@ -7458,6 +7463,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         it[i].intersected = 1;
       }
     }
+    
+    mrisCheckVertexFaceTopology(mris_corrected);
   }
 
   if (++stats_count >= stats_limit) {
@@ -7891,6 +7898,8 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     }
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   return (NO_ERROR);
 }
 
@@ -8759,6 +8768,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   MRISclearMarks(mris);
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
   /* at this point : back to smoothed original vertices for mris */
@@ -9235,6 +9246,8 @@ MRI_SURFACE *MRIScorrectTopology(
     v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
     if (!v->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
   }
+  
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   fprintf(WHICH_OUTPUT, "computing original vertex metric properties...\n");
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES);
@@ -12018,6 +12031,8 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     }
   }
 
+  mrisCheckVertexFaceTopology(mris_dst);
+  
   /* unmark vertices */
   mrisMarkDefectConvexHull(mris_src, defect, 0);
   mrisMarkDefect(mris_src, defect, 0);
@@ -15977,6 +15992,8 @@ static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, in
     }
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   MRIScomputeMetricProperties(mris);
 
   for (vno = 0; vno < mris->nvertices; vno++) {

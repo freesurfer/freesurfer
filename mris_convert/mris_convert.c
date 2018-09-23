@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mris_convert.c
  * @brief Format conversions of surface files and scalar overlay files
@@ -639,6 +640,8 @@ main(int argc, char *argv[])
       mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
       mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
     }
+    mrisCheckVertexFaceTopology(mris3);
+    
     MRISwrite(mris3, out_fname);
     MRISfree(&mris2);
     MRISfree(&mris3);

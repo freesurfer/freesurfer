@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities operating on Original
  *
@@ -3122,6 +3123,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   }
 
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3420,6 +3424,9 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
     mris->status = MRIS_PLANE;
   }
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3491,6 +3498,9 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   }
 
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3908,6 +3918,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
     }
   }
 #endif
+
+  mrisCheckVertexFaceTopology(mris);
 
   return (mris);
 }
@@ -4366,6 +4378,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
     printf("Average area loaded %d\n", mris->group_avg_vtxarea_loaded);
   }
+
+  mrisCheckVertexFaceTopology(mris);
 
   return (mris);
 }
@@ -5534,6 +5548,9 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   }
 
   fclose(fp);
+
+  mrisCheckVertexFaceTopology(mris);
+
   return (mris);
 }
 /*-----------------------------------------------------

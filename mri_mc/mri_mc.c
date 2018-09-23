@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mri_mc.c
  * @brief generates a marching cubes triangulation
@@ -472,6 +473,8 @@ int mrisFindNeighbors2(MRI_SURFACE *mris) {
     ntotal++ ;
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   mris->avg_nbrs = (float)vtotal / (float)ntotal ;
   return(NO_ERROR) ;
 }
@@ -565,6 +568,8 @@ int saveTesselation2(tesselation_parms *parms) {
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       mris->vertices_topology[face->v[n]].f[mris->vertices_topology[face->v[n]].num++] = fno;
   }
+
+  mrisCheckVertexFaceTopology(mris);
 
   /*necessary initialization*/
   xhi=yhi=zhi= -10000;
@@ -1014,6 +1019,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  mrisCheckVertexFaceTopology(mris);
 
   fprintf(stderr,"\nchecking orientation of surface...");
   MRISmarkOrientationChanges(mris);

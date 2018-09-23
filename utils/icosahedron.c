@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  icosahedron.c
  * @brief utilies for readind and converting icosahedra
@@ -1810,6 +1811,7 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
                 "dists at v=%d",
                 vt->vnum,
                 vno);
+    vt->nsize  = 1;
     vt->vtotal = vt->vnum;
   }
 
@@ -1823,11 +1825,7 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
     }
   }
 
-  fflush(stdout);
-  fprintf(stderr, "%s:%d ICOtoMRIS has built an MRIS\n", __FILE__, __LINE__);
-  if (!mrisCheckVertexFaceTopology(mris)) {
-    fprintf(stderr, "%s:%d ICOtoMRIS has built an MRIS that has inconsistencies\n", __FILE__, __LINE__);
-  }
+  mrisCheckVertexFaceTopology(mris);
   
   MRIScomputeMetricProperties(mris);
   mris->radius = MRISaverageRadius(mris);

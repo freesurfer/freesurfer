@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND
 /*
  * @file utilities operating on Original
  *
@@ -4800,9 +4801,12 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
         else if (!strcmp(Field, "z")) {
           Surf->vertices[vtx].z = val;
         }
-        else if (!strcmp(Field, "vnum")) {
-          Surf->vertices_topology[vtx].vnum = val;
-        }
+        
+        // Setting this field requires lots of related changes
+        //else if (!strcmp(Field, "vnum")) {
+        //  Surf->vertices_topology[vtx].vnum = val;
+        //}
+        
         else if (!strcmp(Field, "annotation")) {
           Surf->vertices[vtx].annotation = val;
         }

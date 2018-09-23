@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mri_tess.c
  * @brief tesselation routines
@@ -476,6 +477,8 @@ static int mrisFindNeighbors2(MRI_SURFACE *mris)
     ntotal++;
   }
 
+  mrisCheckVertexFaceTopology(mris);
+
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
   return (NO_ERROR);
 }
@@ -592,6 +595,9 @@ static int saveTesselation(tesselation_parms *parms)
     for (n = 0; n < VERTICES_PER_FACE; n++) 
     	mris->vertices_topology[face->v[n]].f[mris->vertices_topology[face->v[n]].num++] = fno;
   }
+
+  mrisCheckVertexFaceTopology(mris);
+
   /*necessary initialization*/
   xhi = yhi = zhi = -10000;
   xlo = ylo = zlo = 10000;
@@ -668,6 +674,9 @@ MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab)
     }
     countvnbr += mris_tab[n]->nvertices;
   }
+
+  mrisCheckVertexFaceTopology(mris);
+
   return mris;
 }
 
