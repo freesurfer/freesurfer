@@ -276,9 +276,9 @@ void mris_hash_print(MRIS_HASH const* hash, FILE* file)
 
 void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix) {
     MRIS_HASH hash;
-    union { double d; struct { void *p0, *p1; } p; } volatile hack;
-    hack.d = mris->avg_vertex_dist;
-    fprintf(stdout, "mris.nsize:%d mris.avg_vertex_dist:%f %p %p\n", mris->nsize, hack.d, hack.p.p0, hack.p.p1);
+    double const * pd = &mris->avg_vertex_dist;
+    void*  const * pp = (void**)pd;
+    fprintf(stdout, "mris.nsize:%d mris.avg_vertex_dist:%f %p\n", mris->nsize, *pd, *pp);
     
     static size_t 
         showHashCount = 0, 
