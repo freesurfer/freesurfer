@@ -5499,15 +5499,14 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   -------------------------------------------------------------*/
 void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
-  double Sum, Sum2;
+  bool const showHashs = debugNonDeterminism || true;
 
-  Sum = 0;
-  Sum2 = 0;
-
-  if (true || debugNonDeterminism) {
-    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+  if (showHashs) {
+    fprintf(stdout, "%s:%d MRIScomputeAvgInterVertexDist starting ",__FILE__,__LINE__);
     mris_print_hash(stdout, Surf, "Surf ", "\n");
   }
+  
+  double Sum = 0, Sum2 = 0;
 
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
@@ -5584,8 +5583,7 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate
   // but it seems to work for us because the double has enough accuracy to sum the few hundred thousand small but not
   // too small floats that we have
-  double Avg;
-  Avg = Sum / N;
+  double Avg = Sum / N;
   if (StdDev != NULL) {
     *StdDev = sqrt(N * (Sum2 / N - Avg * Avg) / (N - 1));
   }
