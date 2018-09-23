@@ -1823,6 +1823,12 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
     }
   }
 
+  fflush(stdout);
+  fprintf(stderr, "%s:%d ICOtoMRIS has built an MRIS\n", __FILE__, __LINE__);
+  if (!mrisCheckVertexFaceTopology(mris)) {
+    fprintf(stderr, "%s:%d ICOtoMRIS has built an MRIS that has inconsistencies\n", __FILE__, __LINE__);
+  }
+  
   MRIScomputeMetricProperties(mris);
   mris->radius = MRISaverageRadius(mris);
 
