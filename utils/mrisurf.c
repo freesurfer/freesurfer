@@ -167,6 +167,29 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
     #undef ELTX
     #undef ELTP
     #undef SEP
+    
+    // Now include some of the pointer targets
+    //
+    for (i = 0; i < vectorSize; i++) {
+        MRIS_HASH  * hash = &hashVector[i];
+        MRIS const * mris = mrisPVector[i];
+        VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
+        VERTEX          const * v  = &mris->vertices         [vno];
+        
+        hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist),      vt->vnum * sizeof(v->dist[0]));
+        if (showHashCalc) {
+            fprintf(stdout, "After dist hash is %ld\n", hash->hash);
+        }
+        hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist_orig), vt->vnum * sizeof(v->dist_orig[0]));
+        if (showHashCalc) {
+            fprintf(stdout, "After dist_orig hash is %ld\n", hash->hash);
+        }
+        if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {
+            fprintf(showDiff, "Differ at vertices:%d field dist and dist_orig\n", vno);
+            return false;
+        }
+    }
+
     return true;
 }
 
