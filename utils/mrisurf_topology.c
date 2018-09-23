@@ -279,6 +279,7 @@ int mrisVertexFaceIndex(MRIS *mris, int vno, int fno) {
 
 
 void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno)
+  // HACK - external usage of this should be eliminated!
 {
   FACE const *      const f = &mris->faces[fno];
   VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
@@ -309,10 +310,10 @@ static void mrisAddFaceToVertex(MRIS *mris, int vno, int fno, int n) {
 }
 
 static void mrisAttachFaceWkr(MRIS* mris, int fno, int vno0, int vno1, int vno2, bool edgesMustExist) {
-//  cheapAssertValidFno(mris,fno);
-//  cheapAssertValidVno(mris,vno0);
-//  cheapAssertValidVno(mris,vno1);
-//  cheapAssertValidVno(mris,vno2);
+  cheapAssertValidFno(mris,fno);
+  cheapAssertValidVno(mris,vno0);
+  cheapAssertValidVno(mris,vno1);
+  cheapAssertValidVno(mris,vno2);
   
   cheapAssert(vno0 != vno1 && vno0 != vno2 && vno1 != vno2);
     //

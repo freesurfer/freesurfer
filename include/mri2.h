@@ -143,7 +143,7 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
 MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmseg);
 MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
-  MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB);
+MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB);
 
 #if defined(__cplusplus)
 };

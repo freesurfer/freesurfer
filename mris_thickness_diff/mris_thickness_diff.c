@@ -131,7 +131,6 @@ static MRI *mri_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 
-static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno);
 double v_to_f_distance(VERTEX *P0,
                        MRI_SURFACE *mri_surf,
                        int face_number,
@@ -1777,39 +1776,6 @@ static void jacobi(float **a, int n,float *d, float **v, int *nrot)
     }
   }
   printf("Too many iterations in routine JACOBI\n");
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Search the face for vno and set the v->n[] field
-  appropriately.
-  ------------------------------------------------------*/
-static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
-{
-  FACE    *f ;
-  int     n, i ;
-
-  VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno] ;
-  f = &mris->faces[fno] ;
-
-  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-  {
-    if (f->v[n] == vno)
-      break ;
-  }
-  if (n >= VERTICES_PER_FACE)
-    return(ERROR_BADPARM) ;
-
-  for (i = 0 ; i < v->num ; i++)
-    if (v->f[i] == fno)
-      v->n[i] = n ;
-
-  return(n) ;
 }
 
 

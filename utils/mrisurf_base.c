@@ -201,6 +201,18 @@ static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
   freeAndNULL(v->n);
 }
 
+void MRISfreeDists(MRI_SURFACE *mris)
+  // Maybe should not be here...
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    freeAndNULL(mris->vertices[vno].dist);
+    freeAndNULL(mris->vertices[vno].dist_orig);
+    mris->vertices_topology[vno].vtotal = 0;
+  }
+}
+
+
 static void VERTEXdtr(VERTEX* v) {
   free((void*)v->dist     ); *(void**)(&v->dist     ) = NULL;
   free((void*)v->dist_orig); *(void**)(&v->dist_orig) = NULL;
@@ -446,27 +458,9 @@ void MRISfree(MRIS **pmris)
 }
 
 
-int MRISfreeDists(MRI_SURFACE *mris)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    if (mris->vertices[vno].dist) {
-      free(mris->vertices[vno].dist);
-    }
-    if (mris->vertices[vno].dist_orig) {
-      free(mris->vertices[vno].dist_orig);
-    }
-    mris->vertices         [vno].dist = mris->vertices[vno].dist_orig = NULL;
-    mris->vertices_topology[vno].vtotal = 0;
-  }
-
-  return (NO_ERROR);
-}
-
-
 char const * mrisurf_surface_names[3] = {"inflated", "smoothwm", "smoothwm"};
 char const * curvature_names      [3] = {"inflated.H", "sulc", NULL};
+
 int MRISsetCurvatureName(int nth, char const *name)
 {
   if (nth > 2) {
@@ -476,6 +470,7 @@ int MRISsetCurvatureName(int nth, char const *name)
   curvature_names[nth] = strcpyalloc(name);
   return (0);
 }
+
 int MRISprintCurvatureNames(FILE *fp)
 {
   int k;

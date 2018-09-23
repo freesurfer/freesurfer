@@ -23,7 +23,7 @@
 // MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
 //                   and with their partitioning into sets (ripped, marked, ...)
 //                   but not with their placement in the xyz coordinate space
-void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno);
+
 
 
 int edgeExists(MRIS *mris, int vno1, int vno2);
@@ -57,6 +57,6 @@ static int vertexNeighbor(MRIS *mris, int vno1, int vno2)
 int mrisMarkBadEdgeVertices(MRIS *mris, int mark);
 
 #define MAX_VLIST 255
-void mrisAddEdge(MRIS *mris, int vno1, int vno2);
-int  mrisAddFace(MRIS *mris, int vno0, int vno1, int vno2);
+
+int mrisAddFace(MRIS *mris, int vno0, int vno1, int vno2);
 
