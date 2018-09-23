@@ -2710,6 +2710,7 @@ bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno);
 static int mrisVertexNeighborIndex(MRIS const *mris, int vno1, int vno2) {
   cheapAssert(0 <= vno1 && vno1 < mris->nvertices);
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno1];
+  if (!vt->v) return -1;    // happens in invalid surfaces 
   int n;
   for (n = 0; n < vt->vnum; n++) {
     if (vt->v[n] == vno2) return n;

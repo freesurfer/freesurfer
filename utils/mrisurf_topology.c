@@ -74,8 +74,9 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       case 3: vtotalExpected = v->v3num; break;
       default: break;
       }
-      if (mris->nsize > 0 && mris->nsize != v->nsize && !(reported & Reported_ns2)) { reported |= Reported_ns2;
-        fprintf(stdout, "[vno1:%d].nsize:%d differs from mris->nsize[%d]\n", vno1, v->nsize, mris->nsize);
+      if (mris->nsize > v->nsize 
+       && !(reported & Reported_ns2)) { reported |= Reported_ns2;
+        fprintf(stdout, "[vno1:%d].nsize:%d < mris->nsize:%d\n", vno1, v->nsize, mris->nsize);
         DiagBreak();
       }
       if (v->nsize > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
@@ -212,7 +213,10 @@ void MRISgetNeighborsBeginEnd(
 // Faces
 //
 bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mris) {
-  enum Reported { Reported_top = 1, Reported_f2 = 2, Reported_f0 = 4, Reported_fv = 8, Reported_fn = 16  } reported = 0;
+  enum Reported { 
+    Reported_top = 1, Reported_f2 = 2,  Reported_f0 = 4, 
+    Reported_fv = 8,  Reported_fn = 16, Reported_nf = 32,
+    Reported_nv = 64  } reported = 0;
   
   if (!mrisCheckVertexVertexTopologyWkr(file,line,mris)) reported |= Reported_top;
   
@@ -230,14 +234,21 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
 
       // The vertex points to the face exactly once
       //
-      int iTrial;
-      for (iTrial = 0; iTrial < v->num; iTrial++) {
-        if (v->f[iTrial] == fno) {
-          if (i == v->num && !(reported & Reported_f2)) { reported |= Reported_f2;
-            fprintf(stdout, "fno:%d found twice in [vno:%d].f[i:%d && iTrial:%d]\n", fno, vno, i, iTrial);
-            DiagBreak();
+      if (v->num && !v->f) {
+        if (!(reported & Reported_nf)) { reported |= Reported_nf;
+          fprintf(stdout, "nullptr in [vno:%d].f when num:%d\n", vno, v->num);
+          DiagBreak();
+        }
+      } else {
+        int iTrial;
+        for (iTrial = 0; iTrial < v->num; iTrial++) {
+          if (v->f[iTrial] == fno) {
+            if (i == v->num && !(reported & Reported_f2)) { reported |= Reported_f2;
+              fprintf(stdout, "fno:%d found twice in [vno:%d].f[i:%d && iTrial:%d]\n", fno, vno, i, iTrial);
+              DiagBreak();
+            }
+            i = iTrial;
           }
-          i = iTrial;
         }
       }
       if (i < 0 && !(reported & Reported_f0)) { reported |= Reported_f0;
@@ -245,12 +256,19 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
         DiagBreak();
       }
 
-      if (v->n[i] != n && !(reported & Reported_fv)) { reported |= Reported_fv;
-        fprintf(stdout, "[fno:%d].v[n:%d] holds vno:%d but [vno:%d].n[i:%d]:%d != n:%d\n", 
-            fno, n, vno, vno, i, v->n[i], n);
-        DiagBreak();
+      if (!v->n) {
+        if (!(reported & Reported_nv)) { reported |= Reported_nv;
+          fprintf(stdout, "nullptr in [vno:%d].n\n", vno);
+          DiagBreak();
+        }
+      } else {
+        if (v->n[i] != n && !(reported & Reported_fv)) { reported |= Reported_fv;
+          fprintf(stdout, "[fno:%d].v[n:%d] holds vno:%d but [vno:%d].n[i:%d]:%d != n:%d\n", 
+              fno, n, vno, vno, i, v->n[i], n);
+          DiagBreak();
+        }
       }
-      
+            
       // The vertices are neighbours
       //
       if (!mrisVerticesAreNeighbors(mris, vno, prevVno) && !(reported & Reported_fn)) { reported |= Reported_fn;
