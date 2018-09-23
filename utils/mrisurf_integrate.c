@@ -3495,7 +3495,7 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, (float)rms_height, parms->n_averages);
     else
-      fprintf(stdout, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   \n", 0, rms_height, desired_rms_height);
+      fprintf(stdout, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, rms_height, desired_rms_height);
     if (Gdiag & DIAG_WRITE) {
       fprintf(
           parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d", 0, 0.0f, (float)rms_height, parms->n_averages);
@@ -3562,7 +3562,7 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       rms_height = MRISrmsTPHeight(mris);
       if (0) mris_print_hash(stdout, mris, "\nAfter calling MRISrmsTPHeight",  "\n");
       
-      if (!((n + 1) % 1)) /* print some diagnostics */
+      if (!((n + 1) % 5)) /* print some diagnostics */
       {
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout,
