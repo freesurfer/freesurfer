@@ -34,12 +34,14 @@ static bool shouldReport(const char* file, int line, int reported) {
     while (*ep && strcmp((*ep)->file,file)) ep = &(*ep)->next;
     Entry* e = *ep;
     if (!e) {
-        (Entry*)malloc(sizeof(Entry)); e->next = NULL; e->file = file;  e->reported = 0;
+        e = (Entry*)malloc(sizeof(Entry)); 
+        e->next = NULL; e->file = file;  e->reported = 0;
         *ep = e;
     }
     if (~e->reported & reported) { 
         e->reported |= reported; 
-        fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", file, line);
+        fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", 
+            file, line);
         return true; 
     }
     return false;
