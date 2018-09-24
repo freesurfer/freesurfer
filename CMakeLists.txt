@@ -406,12 +406,12 @@ add_subdirectories(
   mri_mc
   mri_normalize
   mri_normalize_tp2
-  mri_overlap
   mri_probedicom
   mri_relabel_hypointensities
   mri_relabel_nonwm_hypos
   mri_remove_neck
   mri_robust_register
+  mri_seg_overlap
   mri_segment
   mri_segreg
   mri_segstats

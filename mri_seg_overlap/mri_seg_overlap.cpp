@@ -5,8 +5,9 @@
 #include <algorithm>
 #include <map>
 
-#include "mri_overlap.help.xml.h"
+#include "mri_seg_overlap.help.xml.h"
 #include "argparse.hpp"
+#include "lut.hpp"
 #include "json.hpp"
 #include "log.hpp"
 
@@ -47,7 +48,7 @@ int main(int argc, const char **argv)
   // ------ parse arguments ------
 
   ArgumentParser parser;
-  parser.addHelp(mri_overlap_help_xml, mri_overlap_help_xml_len);
+  parser.addHelp(mri_seg_overlap_help_xml, mri_seg_overlap_help_xml_len);
   parser.addArgument("seg1");
   parser.addArgument("seg2");
   parser.addArgument("-o", "--out", 1);
@@ -121,9 +122,11 @@ int main(int argc, const char **argv)
       for (unsigned int i = 0 ; i < labels.size() ; i++) labelnames[labels[i]] = names[i];
     }
   } else if (parser.exists("labelfile")) {
-    // todo: user specified labels via a file - assume lookup-table format
-    fs_warning << "importing from labelfile is not implemented yet - defaulting to all labels for now";
-    all_labels = true;
+    // user specified labels via a file - assume lookup-table format
+    LookupTable lut(parser.retrieve<std::string>("labelfile"));
+    if (lut.empty()) fs_fatal(1) << "provided label file contains no valid labels";
+    labels = lut.labels();
+    if (lut.hasNameInfo()) for (int i : labels) labelnames[i] = lut[i].name;
   } else if (parser.exists("seg")) {
     // use the major anatomical segmentation structures
     labels = {
@@ -177,8 +180,8 @@ int main(int argc, const char **argv)
   // ------ finalize labels and label names ------
 
   if (all_labels) {
-    // if we're using all of the unique labels, populate the labels vector with the
-    // keys of the intermediate_metrics map
+    // if we're using all of the unique labels in the volumes, populate the labels
+    // vector with the keys of the intermediate_metrics map
     for (auto const &m : intermediate_metrics) if (m.first != 0) labels.push_back(m.first);
   } else {
     // otherwise, remove any labels that were not found in the segmentations
@@ -191,23 +194,14 @@ int main(int argc, const char **argv)
 
   // determine default label names (if not already known) via FreeSurferColorLUT
   if (reportNames && labelnames.empty()) {
-    std::string ctabfile = std::string(std::getenv("FREESURFER_HOME")) + "/FreeSurferColorLUT.txt";
-    COLOR_TABLE *ctab = CTABreadASCII(ctabfile.c_str());
-    if (!ctab) {
+    LookupTable lut(std::string(std::getenv("FREESURFER_HOME")) + "/FreeSurferColorLUT.txt");
+    if (lut.empty()) {
       fs_warning << "can't load default FreeSurferColorLUT - is FREESURFER_HOME set?";
       reportNames = false;
+    } else if (lut.hasNameInfo()) {
+      for (int l : labels) labelnames[l] = lut[l].name;
     } else {
-      char *charname = new char[200];
-      for (int l : labels) {
-        int valid;
-        CTABisEntryValid(ctab, l, &valid);
-        if (valid) {
-          CTABcopyName(ctab, l, charname, 200);
-          labelnames[l] = charname;
-        }
-      }
-      delete[] charname;
-      CTABfree(&ctab);
+      reportNames = false;
     }
   }
 
@@ -218,7 +212,7 @@ int main(int argc, const char **argv)
     IntermediateMetrics &im = intermediate_metrics[l];
     // combine label volumes from both segs (used for weighted mean)
     double combined_volume = im.volume1 + im.volume2;
-    // check if the label is wm or cortex
+    // check if the label is wm or cortex so we can created a weighted mean of all other structures
     bool subcortical = false;
     if ((parser.exists("seg")) && (l != 2) && (l != 41) && (l != 3) && (l != 42)) subcortical = true;
     // compute measures
@@ -235,6 +229,7 @@ int main(int argc, const char **argv)
 
   // compute final statistics
   for (auto &measure : measures) {
+    // mean and std
     measure.mean /= labels.size();
     double sqr_diff_sum = 0;
     for (auto const &v : measure.labels) sqr_diff_sum += pow(v.second - measure.mean, 2);
@@ -250,7 +245,9 @@ int main(int argc, const char **argv)
   if (!parser.exists("quiet")) {
     // determine the longest label name for table formatting
     unsigned int name_width = 7;
-    for (int l : labels) if (labelnames[l].length() + 2 > name_width) name_width = labelnames[l].length() + 2;
+    if (reportNames) {
+      for (int l : labels) if (labelnames[l].length() + 2 > name_width) name_width = labelnames[l].length() + 2;
+    }
     // print the table header
     std::cout << std::fixed << std::left << std::setprecision(4) << fs::term::bold();
     std::cout << std::setw(7) << "label";
