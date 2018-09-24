@@ -454,7 +454,7 @@ main(int argc, char *argv[]) {
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", 
           white_matter_name, output_suffix, suffix) ;

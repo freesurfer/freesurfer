@@ -361,11 +361,12 @@ resampleSurface( MRIS* mrisAtlasReg,
     if ( passAnnotation )
       vertex->annotation = mrisSubject->vertices[annIndex[0]].annotation;
 
-    for (k=0; k < mrisSubject->vertices[annIndex[0]].num; k++)
+    VERTEX_TOPOLOGY const * const vt = &mrisSubject->vertices_topology[annIndex[0]];
+    
+    for (k=0; k < vt->num; k++)
     {
 
-      facenumber =
-        mrisSubject->vertices[annIndex[0]].f[k]; /* index of the k-th face */
+      facenumber = vt->f[k]; /* index of the k-th face */
       if (facenumber < 0 || facenumber >= mrisSubject->nfaces) continue;
       value = v_to_f_distance(vertex, 
                               mrisSubject, 

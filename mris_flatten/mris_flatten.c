@@ -425,7 +425,7 @@ main(int argc, char *argv[])
         v->nsize = 1 ;
       }
     }
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 #endif
   }
 

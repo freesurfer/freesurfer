@@ -5461,7 +5461,7 @@ MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
     strcpy(lparms.base_name, "ref_skull.geo");
 
   mris = ic2562_make_surface(0, 0);
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   max_radius = mriMaxRadius(mri, 120, 255, &x0, &y0, &z0);
   radius = MRISaverageRadius(mris);
   scale = (max_radius + 1.0f) / radius;

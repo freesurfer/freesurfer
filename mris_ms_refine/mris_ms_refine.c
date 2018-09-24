@@ -606,7 +606,7 @@ main(int argc, char *argv[]) {
     write_maps(mris, &ep, 0, output_suffix) ;
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
 

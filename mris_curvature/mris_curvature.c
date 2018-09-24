@@ -152,7 +152,7 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
 
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   if (nbhd_size > 0)
   {

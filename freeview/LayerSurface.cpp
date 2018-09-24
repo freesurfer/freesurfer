@@ -2306,7 +2306,7 @@ void LayerSurface::SetNeighborhoodSize(int nSize)
   if (mris->nsize == nSize)
     return;
 
-  ::MRISsetNeighborhoodSize(mris, nSize);
+  ::MRISsetNeighborhoodSizeAndDist(mris, nSize);
 }
 
 QVector<int> LayerSurface::GetVertexNeighbors(int vno)

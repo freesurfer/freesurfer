@@ -1766,7 +1766,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
         parms->fields[n].l_corr = parms->fields[n].l_pcorr = 0.0;
         continue;
       }
-      MRISsetNeighborhoodSize(mris, -1); /* back to max */
+      MRISsetNeighborhoodSizeAndDist(mris, -1); /* back to max */
       MRIScomputeMetricProperties(mris);
       MRIScomputeSecondFundamentalForm(mris);
       MRISuseMeanCurvature(mris);
@@ -3498,7 +3498,7 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fprintf(stdout, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, rms_height, desired_rms_height);
     if (Gdiag & DIAG_WRITE) {
       fprintf(
-          parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, (float)rms_height, parms->n_averages);
+          parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d", 0, 0.0f, (float)rms_height, parms->n_averages);
       fflush(parms->fp);
     }
 
@@ -3557,7 +3557,11 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisTrackTotalDistanceNew(mris); /* update sulc */
       MRIScomputeMetricProperties(mris);
       sse = MRIScomputeSSE(mris, parms);
+      
+      if (0) mris_print_hash(stdout, mris, "\nBefore calling MRISrmsTPHeight", "\n");
       rms_height = MRISrmsTPHeight(mris);
+      if (0) mris_print_hash(stdout, mris, "\nAfter calling MRISrmsTPHeight",  "\n");
+      
       if (!((n + 1) % 5)) /* print some diagnostics */
       {
         if (Gdiag & DIAG_SHOW)
@@ -3569,8 +3573,10 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                   (float)rms_height,
                   n_averages,
                   parms->l_dist);
-        else
+        else {
           fprintf(stdout, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", n + 1, rms_height, desired_rms_height);
+          fflush(stdout);
+        }
         if (Gdiag & DIAG_WRITE) {
           fprintf(parms->fp,
                   "%3.3d: dt: %2.4f, rms height=%2.3f, "

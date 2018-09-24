@@ -155,8 +155,8 @@ main(int argc, char *argv[])
   mris_rh = MRISread(fname) ;
   if (nbrs > 1)
   {
-    MRISsetNeighborhoodSize(mris_lh, nbrs) ;
-    MRISsetNeighborhoodSize(mris_rh, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_lh, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_rh, nbrs) ;
   }
   MRIScomputeMetricProperties(mris_lh) ;
   MRIScomputeMetricProperties(mris_rh) ;
@@ -170,7 +170,7 @@ main(int argc, char *argv[])
   mris = MRISconcat(mris_lh, mris_rh, NULL) ;
   if (nbrs > 1)
   {
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   }
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRISstoreMetricProperties(mris) ;

@@ -389,13 +389,6 @@ static void freeTesselation(tesselation_parms *parms)
   //  free(parms->vertex_index_table);
 }
 
-#define VERTICES_PER_FACE 3
-#define MAX_4_NEIGHBORS 100
-#define MAX_3_NEIGHBORS 70
-#define MAX_2_NEIGHBORS 20
-#define MAX_1_NEIGHBORS 8
-#define MAX_NEIGHBORS (400)
-
 /* This may be the same as that in mrisurf.c. Whoever wrote it should
    NOT have done this. Very bad programming. */
 static int mrisFindNeighbors2(MRI_SURFACE *mris)
@@ -636,7 +629,7 @@ static int saveTesselation(tesselation_parms *parms)
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   MRIScomputeSecondFundamentalForm(mris);
   MRISuseMeanCurvature(mris);
   mris->radius = MRISaverageRadius(mris);

@@ -167,7 +167,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   MRIScomputeMetricProperties(mris);
 
   mris->type = MRIS_ICO_SURFACE;
-  MRISsetNeighborhoodSize(mris, 1);
+  MRISsetNeighborhoodSizeAndDist(mris, 1);
   return (mris);
 }
 

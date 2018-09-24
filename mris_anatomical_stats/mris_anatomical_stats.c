@@ -315,7 +315,7 @@ main(int argc, char *argv[])
 #endif
   MRIScopyCurvatureToImagValues(mris) ;   /* save thickness measures */
 
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   MRIScomputeSecondFundamentalForm(mris) ;
 
   if (annotation_name)
