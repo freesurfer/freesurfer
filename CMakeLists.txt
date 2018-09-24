@@ -721,7 +721,7 @@ if(NOT MINIMAL)
     test_makevol
     ThalamicNuclei
     tkmedit
-    tksurfer
+    # tksurfer
     trc
     tridec
   )
