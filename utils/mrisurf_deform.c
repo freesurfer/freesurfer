@@ -16158,9 +16158,10 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     vdst->cz = vsrc->cz;
     vdst->curv = vsrc->curv;
     vdstt->num = vsrct->num;
-    vdstt->vnum = vsrct->vnum;
+    vdstt->vnum  = vsrct->vnum;
     vdstt->v2num = vsrct->v2num;
     vdstt->v3num = vsrct->v3num;
+    vdstt->nsize = vsrct->nsize;
     vdstt->vtotal = vsrct->vtotal;
 #if 0
     vdst->ox = vsrc->ox ;

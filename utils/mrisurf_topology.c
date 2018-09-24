@@ -26,6 +26,24 @@
 //                   but not with their placement in the xyz coordinate space
 
 
+static bool shouldReport(const char* file, int line, int reported) {
+    typedef struct Entry { struct Entry* next; const char* file; int reported; } Entry;
+    static Entry* entries[1000000];
+    if (line >= 1000000) return true;
+    Entry** ep = &entries[line];
+    while (*ep && strcmp((*ep)->file,file)) ep = &(*ep)->next;
+    Entry* e = *ep;
+    if (!e) {
+        (Entry*)malloc(sizeof(Entry)); e->next = NULL; e->file = file;  e->reported = 0;
+        *ep = e;
+    }
+    if (~e->reported & reported) { 
+        e->reported |= reported; 
+        fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", file, line);
+        return true; 
+    }
+    return false;
+}
 
 //=============================================================================
 // Vertexs and edges
@@ -52,7 +70,8 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       int i;
       for (i = 0; i < n; i++) {
         if ((vno2 == v->v[i]) && !(reported & Reported_no)) { reported |= Reported_no;
-          fprintf(stdout, "[vno1:%d].v[%d]:%d same as [vno1:%d].v[%d]\n", vno1, n, vno2, i, v->v[i]);
+          if (shouldReport(file,line,reported))
+            fprintf(stdout, "[vno1:%d].v[%d]:%d same as [vno1:%d].v[%d]\n", vno1, n, vno2, i, v->v[i]);
           DiagBreak();
         }
       }
@@ -63,7 +82,8 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       if (v->nsizeMax != 0 &&
           v->nsize     > v->nsizeMax && 
           !(reported & Reported_ns)) { reported |= Reported_ns; 
-        fprintf(stdout, "[vno1:%d].nsize:%d exceeds nsizeMax:%d\n", vno1, v->nsize, v->nsizeMax);
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "[vno1:%d].nsize:%d exceeds nsizeMax:%d\n", vno1, v->nsize, v->nsizeMax);
         DiagBreak();
       }
       
@@ -76,17 +96,17 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       }
       if (mris->nsize > v->nsize 
        && !(reported & Reported_ns2)) { reported |= Reported_ns2;
-        fprintf(stdout, "[vno1:%d].nsize:%d < mris->nsize:%d\n", vno1, v->nsize, mris->nsize);
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "[vno1:%d].nsize:%d < mris->nsize:%d\n", vno1, v->nsize, mris->nsize);
         DiagBreak();
       }
       if (v->nsize > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
-        fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize);
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize);
         DiagBreak();
       }
     }
   }
-  
-  if (reported) fprintf(stdout, "ERROR: Bad vertex topology found at %s:%d\n", file, line);
   
   return reported == 0;
 }
@@ -236,7 +256,8 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
       //
       if (v->num && !v->f) {
         if (!(reported & Reported_nf)) { reported |= Reported_nf;
-          fprintf(stdout, "nullptr in [vno:%d].f when num:%d\n", vno, v->num);
+          if (shouldReport(file,line,reported))
+            fprintf(stdout, "nullptr in [vno:%d].f when num:%d\n", vno, v->num);
           DiagBreak();
         }
       } else {
@@ -244,7 +265,8 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
         for (iTrial = 0; iTrial < v->num; iTrial++) {
           if (v->f[iTrial] == fno) {
             if (i == v->num && !(reported & Reported_f2)) { reported |= Reported_f2;
-              fprintf(stdout, "fno:%d found twice in [vno:%d].f[i:%d && iTrial:%d]\n", fno, vno, i, iTrial);
+              if (shouldReport(file,line,reported))
+                fprintf(stdout, "fno:%d found twice in [vno:%d].f[i:%d && iTrial:%d]\n", fno, vno, i, iTrial);
               DiagBreak();
             }
             i = iTrial;
@@ -252,18 +274,21 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
         }
       }
       if (i < 0 && !(reported & Reported_f0)) { reported |= Reported_f0;
-        fprintf(stdout, "fno:%d not found in [vno:%d].f[*]\n", fno, vno);
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "fno:%d not found in [vno:%d].f[*]\n", fno, vno);
         DiagBreak();
       }
 
       if (!v->n) {
         if (!(reported & Reported_nv)) { reported |= Reported_nv;
-          fprintf(stdout, "nullptr in [vno:%d].n\n", vno);
+          if (shouldReport(file,line,reported))
+            fprintf(stdout, "nullptr in [vno:%d].n\n", vno);
           DiagBreak();
         }
       } else {
         if (v->n[i] != n && !(reported & Reported_fv)) { reported |= Reported_fv;
-          fprintf(stdout, "[fno:%d].v[n:%d] holds vno:%d but [vno:%d].n[i:%d]:%d != n:%d\n", 
+          if (shouldReport(file,line,reported))
+            fprintf(stdout, "[fno:%d].v[n:%d] holds vno:%d but [vno:%d].n[i:%d]:%d != n:%d\n", 
               fno, n, vno, vno, i, v->n[i], n);
           DiagBreak();
         }
@@ -272,7 +297,8 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
       // The vertices are neighbours
       //
       if (!mrisVerticesAreNeighbors(mris, vno, prevVno) && !(reported & Reported_fn)) { reported |= Reported_fn;
-        fprintf(stdout, "[fno:%d] holds adjacent vno:%d and vno:%d but they are not neighbours\n", 
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "[fno:%d] holds adjacent vno:%d and vno:%d but they are not neighbours\n", 
             fno, vno, prevVno);
         DiagBreak();
       }
@@ -281,8 +307,6 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
     }
   }
   
-  if (reported) fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", file, line);
-
   return reported == 0;
 }
 

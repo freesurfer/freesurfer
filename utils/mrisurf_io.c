@@ -4315,6 +4315,9 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   mris->yctr = (yhi + ylo) / 2;
   mris->zctr = (zhi + zlo) / 2;
   mrisFindNeighbors(mris);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris);
   mrisReadTransform(mris, fname);
@@ -4378,8 +4381,6 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
     printf("Average area loaded %d\n", mris->group_avg_vtxarea_loaded);
   }
-
-  mrisCheckVertexFaceTopology(mris);
 
   return (mris);
 }
@@ -5453,7 +5454,6 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   int nvertices, nfaces, magic, vno, fno, n;
   char line[STRLEN];
   FILE *fp;
-  MRI_SURFACE *mris;
   int tag;
 
   fp = fopen(fname, "rb");
@@ -5469,7 +5469,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
-  mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
+  MRIS * mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
   mris->type = MRIS_TRIANGULAR_SURFACE;
 
   for (vno = 0; vno < nvertices; vno++) {
@@ -5549,7 +5549,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
 
   fclose(fp);
 
-  mrisCheckVertexFaceTopology(mris);
+  // IT IS NOT YET COMPLETE mrisCheckVertexFaceTopology(mris);
 
   return (mris);
 }
