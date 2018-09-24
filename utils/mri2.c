@@ -692,6 +692,19 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   int FreeMats = 0;
   MRI_BSPLINE *bspline = NULL;
+  int (*nintfunc)( double );
+
+  /*
+    This is a little bit of a hack for the case where there is only
+    one slice. If the source and target are aligned by half a voxel
+    off, then nint() will never map a target voxel to a valide index
+    in the source, and the output will always be 0. nint2() has very
+    slightly different behavior that will allow this case to work
+    while only mildly affecting more generic cases.
+   */
+  nintfunc = &nint;
+  if(src->width == 1 || src->height == 1 || src->depth == 1)
+    nintfunc = &nint2;
 
 #ifdef VERBOSE_MODE
   Chronometer tTotal, tSample;
@@ -783,17 +796,17 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
       for (st = 0; st < targ->depth; st++) {
         /* Column in source corresponding to CRS in Target */
         fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt + Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4];
-        ics = nint(fcs);
+        ics = nintfunc(fcs);
         if (ics < 0 || ics >= src->width) continue;
 
         /* Row in source corresponding to CRS in Target */
         frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt + Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4];
-        irs = nint(frs);
+        irs = nintfunc(frs);
         if (irs < 0 || irs >= src->height) continue;
 
         /* Slice in source corresponding to CRS in Target */
         fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt + Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4];
-        iss = nint(fss);
+        iss = nintfunc(fss);
         if (iss < 0 || iss >= src->depth) continue;
 
         /* Assign output volume values */
