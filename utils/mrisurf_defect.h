@@ -74,7 +74,8 @@ typedef struct
 typedef struct
 {
   int vno;  /* vertex # in surface */
-  int vnum; /* original # of 1 neighbors */
+  int nsize;
+  int vnum,v2num,v3num; /* original # of neighbors */
   int vtotal;
   int *v; /* list of original neighbors */
 

@@ -13563,6 +13563,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->vnum++;
       }
+    vdstt->nsize  = 1;
     vdstt->vtotal = vdstt->vnum;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
@@ -14314,6 +14315,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
         vdstt->vnum++;
       }
+    vdstt->nsize  = 1;
     vdstt->vtotal = vdstt->vnum;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
@@ -15431,13 +15433,13 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
     switch (mris->nsize) {
     default:
     case 1:
-      v->vtotal = v->vnum;
+      v->vtotal = v->vnum; v->nsize = 1;
       break;
     case 2:
-      v->vtotal = v->v2num;
+      v->vtotal = v->v2num; v->nsize = 2;
       break;
     case 3:
-      v->vtotal = v->v3num;
+      v->vtotal = v->v3num; v->nsize = 3;
       break;
     }
   }

@@ -2853,6 +2853,8 @@ int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_dist
 #define QUADRANGLE_DISTANCE_CORRECTION ((1 + sqrt(2)) / 2) /* 1.2071  */
 int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 {
+  mrisCheckVertexFaceTopology(mris);
+  
   int i, n, vno, vnum, old_vnum, total_nbrs, max_possible, max_v, vtotal;
   int *vnbrs, *vall, *vnb, found, n2, vnbrs_num, vall_num, nbhd_size, done, checks = 0;
   float xd, yd, zd, min_dist, dist, dist_scale, *old_dist;

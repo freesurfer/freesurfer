@@ -41,7 +41,7 @@ static bool shouldReport(const char* file, int line, int reported) {
     if (~e->reported & reported) { 
         e->reported |= reported; 
         fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", 
-            file, line);
+            strrchr(file,'/'), line);
         return true; 
     }
     return false;
@@ -104,7 +104,7 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       }
       if (v->nsize > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
         if (shouldReport(file,line,reported))
-          fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize);
+          fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d, ripflag:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize, 0);
         DiagBreak();
       }
     }
