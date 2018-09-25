@@ -52,20 +52,67 @@ static bool shouldReport(const char* file, int line, int reported) {
 //
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris)
 {
-  enum Reported { Reported_nc = 1, Reported_no = 2, Reported_ns = 4, Reported_ns2 = 8, Reported_vt = 16  } reported = 0;
+  enum Reported { Reported_nc = 1, Reported_no = 2, Reported_ns = 4, Reported_ns2 = 8, Reported_vt = 16, Reported_bv = 32 } reported = 0;
   
   int vno1;
   for (vno1 = 0; vno1 < mris->nvertices; vno1++) {
     VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
 
+    if (mris->vertices[vno1].ripflag) continue;
+      
+    if (mris->nsize > 0 && mris->nsize != v->nsizeCur 
+     && !(reported & Reported_ns2)) { reported |= Reported_ns2;
+      if (shouldReport(file,line,reported))
+        fprintf(stdout, "[vno1:%d].nsizeCur:%d != mris->nsize:%d\n", vno1, v->nsizeCur, mris->nsize);
+      DiagBreak();
+    }
+
+    if (v->nsizeMax > 0 &&
+        v->nsizeCur > v->nsizeMax && 
+        !(reported & Reported_ns)) { reported |= Reported_ns; 
+      if (shouldReport(file,line,reported))
+        fprintf(stdout, "[vno1:%d].nsizeCur:%d exceeds nsizeMax:%d\n", vno1, v->nsizeCur, v->nsizeMax);
+      DiagBreak();
+    }
+
+    int vtotalExpected = 0;
+    switch (v->nsizeCur) {
+    case 1: vtotalExpected = v->vnum;  break;
+    case 2: vtotalExpected = v->v2num; break;
+    case 3: vtotalExpected = v->v3num; break;
+    default: break;
+    }
+    if (v->nsizeCur > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
+      if (shouldReport(file,line,reported))
+        fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d, ripflag:%d\n", vno1, v->vtotal, vtotalExpected, v->nsizeCur, 0);
+      DiagBreak();
+    }
+
+    int vSize = 0;
+    switch (v->nsizeMax) {
+    case 1: vSize = v->vnum;  break;
+    case 2: vSize = v->v2num; break;
+    case 3: vSize = v->v3num; break;
+    default: break;
+    }
+
     int n;
-    for (n = 0; n < v->vnum; n++) {
+    for (n = 0; n < vSize; n++) {
       int vno2 = v->v[n];
 
-      // neighborlyness is commutative
+      if ((vno2 < 0 || mris->nvertices <= vno2) && !(reported & Reported_bv)) { reported |= Reported_bv;
+        if (shouldReport(file,line,reported))
+          fprintf(stdout, "[vno1:%d].v[%d] is bad vno2:%d\n", vno1, n, vno2);
+        DiagBreak();
+      }
+
+      if (v->vnum <= n) continue;
+      
+      // immediate neighborlyness is commutative
       if (!mrisVerticesAreNeighbors(mris, vno2, vno1) && !(reported & Reported_nc)) { reported |= Reported_nc;
+        if (shouldReport(file,line,reported))
           fprintf(stdout, "[vno1:%d].v[%d] not found in [vno2:%d].v[*]\n", vno1, n, vno2);
-          DiagBreak();
+        DiagBreak();
       }
       
       // neighbors should only appear once
@@ -76,36 +123,6 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
             fprintf(stdout, "[vno1:%d].v[%d]:%d same as [vno1:%d].v[%d]\n", vno1, n, vno2, i, v->v[i]);
           DiagBreak();
         }
-      }
-    }
-    
-    if (!mris->vertices[vno1].ripflag) {
-      
-      if (v->nsizeMax != 0 &&
-          v->nsize     > v->nsizeMax && 
-          !(reported & Reported_ns)) { reported |= Reported_ns; 
-        if (shouldReport(file,line,reported))
-          fprintf(stdout, "[vno1:%d].nsize:%d exceeds nsizeMax:%d\n", vno1, v->nsize, v->nsizeMax);
-        DiagBreak();
-      }
-      
-      int vtotalExpected = 0;
-      switch (v->nsize) {
-      case 1: vtotalExpected = v->vnum;  break;
-      case 2: vtotalExpected = v->v2num; break;
-      case 3: vtotalExpected = v->v3num; break;
-      default: break;
-      }
-      if (mris->nsize > v->nsize 
-       && !(reported & Reported_ns2)) { reported |= Reported_ns2;
-        if (shouldReport(file,line,reported))
-          fprintf(stdout, "[vno1:%d].nsize:%d < mris->nsize:%d\n", vno1, v->nsize, mris->nsize);
-        DiagBreak();
-      }
-      if (v->nsize > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
-        if (shouldReport(file,line,reported))
-          fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d, ripflag:%d\n", vno1, v->vtotal, vtotalExpected, v->nsize, 0);
-        DiagBreak();
       }
     }
   }
@@ -1602,7 +1619,7 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
     switch (nsize) {
       default: /* reset back to original */
-        switch (vt->nsize) {
+        switch (vt->nsizeMax) {
           default:
           case 1:
             vt->vtotal = vt->vnum;
@@ -1614,19 +1631,21 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
             vt->vtotal = vt->v3num;
             break;
         }
+        vt->nsizeCur = vt->nsizeMax;
         break;
       case 1:
-        vt->vtotal = vt->vnum;
+        vt->vtotal = vt->vnum;  cheapAssert(nsize <= vt->nsizeMax); vt->nsizeCur = nsize;
         break;
       case 2:
-        vt->vtotal = vt->v2num;
+        vt->vtotal = vt->v2num; cheapAssert(nsize <= vt->nsizeMax); vt->nsizeCur = nsize;
         break;
       case 3:
-        vt->vtotal = vt->v3num;
+        vt->vtotal = vt->v3num; cheapAssert(nsize <= vt->nsizeMax); vt->nsizeCur = nsize;
         break;
     }
   }
   mris->nsize = nsize;
+  mrisCheckVertexFaceTopology(mris);
   return (NO_ERROR);
 }
 
@@ -2237,22 +2256,32 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
     DiagBreak();
   }
 
-  vt->nsize = mris->nsize;
+  cheapAssert(mris->nsize > 0);
+  
+  vt->nsizeMax = 1;
+
+  // vt->nsize = mris->nsize;   
+  //    This was because nsizeMax did not exist in the VERTEX_TOPOLOGY
+  //    and it assumed that mris->nsize was the max for the vertex, 
+  //    which was not always true
+
   if (v->ripflag || !vt->vnum) {
     return (ERROR_BADPARM);
   }
   memmove(vtmp, vt->v, vt->vnum * sizeof(int));
 
-  /* mark 1-neighbors so we don't count them twice */
+  /* mark center so not included */
   v->marked = 1;
 
+  /* mark 1-neighbors so we don't count them twice */
   vnum = neighbors = vt->vnum;
-  for (nsize = 2; nsize <= vt->nsize; nsize++) {
+  for (nsize = 2; nsize <= mris->nsize; nsize++) {
     /* mark all current neighbors */
     vnum = neighbors; /* neighbors will be incremented during loop */
     for (i = 0; i < neighbors; i++) {
       mris->vertices[vtmp[i]].marked = 1;
     }
+    /* look at the candidates for the next ring out */
     for (i = 0; neighbors < MAX_NEIGHBORS && i < vnum; i++) {
       n = vtmp[i];
       VERTEX_TOPOLOGY const * const vnbt = &mris->vertices_topology[n];
@@ -2274,6 +2303,20 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
         }
       }
     }
+    
+    // Fill in the next layer's details
+    switch (nsize) {
+      case 2:
+        vt->v2num = neighbors;
+        break;
+      case 3:
+        vt->v3num = neighbors;
+        break;
+      default:
+        cheapAssert(false);
+        break;
+    }
+    vt->nsizeMax = nsize;
   }
   /*
     now reallocate the v->v structure and place the 2-connected neighbors
@@ -2314,18 +2357,23 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
               "dists at v=%d",
               neighbors,
               vno);
-  switch (vt->nsize) {
-    case 2:
-      vt->v2num = neighbors;
-      break;
-    case 3:
-      vt->v3num = neighbors;
-      break;
-    default: /* store old neighborhood size in v3num */
-      vt->v3num = vt->vtotal;
-      break;
-  }
-  vt->vtotal = neighbors;
+  
+  // There was a bug here - it could fill in v3num without filling in v2num
+  //
+  //switch (vt->nsizeCur) {
+  //  case 2:
+  //    vt->v2num = neighbors;
+  //    break;
+  //  case 3:
+  //    vt->v3num = neighbors;
+  //    break;
+  //  default: /* store old neighborhood size in v3num */
+  //    vt->v3num = vt->vtotal;
+  //    break;
+  //}
+  vt->nsizeCur = vt->nsizeMax;
+  vt->vtotal   = neighbors;
+  
   for (n = 0; n < neighbors; n++)
     for (i = 0; i < neighbors; i++)
       if (i != n && vt->v[i] == vt->v[n])

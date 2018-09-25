@@ -196,10 +196,10 @@ face_type, FACE ;
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)                /* number of 1-hop neighbots                            */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP           /* number of 1, or 2-hop neighbors                      */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP           /* number of 1,2,or 3-hop neighbors                     */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsize             */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsizeCur          */ \
   ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP   /* copy of mris->nsizeMaxClock when v#num               */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP        /* the max nsize that was used to fill in vnum etc      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsize) SEP           /* index of the current v#num in vtotal                 */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP        /* index of the current v#num in vtotal                 */ \
   ELTT(uchar,num) SEP                                           /* number of neighboring faces                          */ \
   // end of macro
 
@@ -564,10 +564,11 @@ typedef struct MRIS
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
+  \
   ELTT(int,nsize) SEP               /* size of neighborhoods */    \
   ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
-  \
   ELTT(int,max_nsize) SEP           /* max the neighborhood size has been set to (typically 3) */    \
+  \
   ELTT(float,avg_nbrs) SEP          /* mean # of vertex neighbors */    \
   ELTP(void,vp) SEP                 /* for misc. use */    \
   ELTT(float,alpha) SEP             /* rotation around z-axis */    \

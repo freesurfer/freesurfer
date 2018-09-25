@@ -1811,8 +1811,9 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
                 "dists at v=%d",
                 vt->vnum,
                 vno);
-    vt->nsize  = 1;
-    vt->vtotal = vt->vnum;
+    vt->nsizeMax = 1;
+    vt->nsizeCur = 1;
+    vt->vtotal   = vt->vnum;
   }
 
   /* fill in face indices in vertex structures */

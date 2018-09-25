@@ -427,7 +427,7 @@ int mrisFindNeighbors2(MRI_SURFACE *mris) {
                 "mrisFindNeighbors: could not allocate nbr array") ;
 
     vt->vtotal = vt->vnum ;
-    vt->nsize = 1 ;
+    vt->nsizeMax = vt->nsizeCur = 1;
     for (i=0;i<vt->vnum;i++) {
       vt->v[i] = vtmp[i];
     }

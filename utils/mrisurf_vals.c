@@ -2937,16 +2937,17 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
     /* small neighborhood is always fixed, don't overwrite them */
     vtotal = vt->vtotal;
-    if (vt->nsize == 3) {
+    if (vt->nsizeMax == 3) {
       vt->vtotal = vt->v3num;
     }
-    else if (vt->nsize == 2) {
+    else if (vt->nsizeMax == 2) {
       vt->vtotal = vt->v2num;
     }
-    else {
+    else { cheapAssert(vt->nsizeMax == 1);
       vt->vtotal = vt->vnum;
     }
-
+    vt->nsizeCur = vt->nsizeMax;
+   
     max_v = vt->vtotal + max_possible;
     if (vtotal < max_v) /* won't fit in current allocation,
                          reallocate stuff */
@@ -3286,15 +3287,18 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if (v->ripflag) {
       continue;
     }
-    if (vt->nsize == 3) {
+
+    if (vt->nsizeMax == 3) {
       vtotal = vt->v3num;
     }
-    else if (vt->nsize == 2) {
+    else if (vt->nsizeMax == 2) {
       vtotal = vt->v2num;
     }
     else {
+      cheapAssert(vt->nsizeMax == 1);
       vtotal = vt->vnum;
     }
+
     for (n = 0; n < vtotal; n++) {
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {

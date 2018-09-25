@@ -590,7 +590,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
       vlist[n] = vt->v[n] ;
     }
 
-    nbhd = vt->nsize+1 ;
+    nbhd = vt->nsizeCur+1 ;
     nbrs = vt->vtotal ;
     do
     {

@@ -1492,7 +1492,7 @@ void mrisFindNeighbors(MRI_SURFACE *mris)
     if (!mris->vertices_topology[k].v) ErrorExit(ERROR_NOMEMORY, "mrisFindNeighbors: could not allocate nbr array");
 
     vt->vtotal = vt->vnum;
-    vt->nsize = 1;
+    vt->nsizeMax = vt->nsizeCur = 1;
     for (i = 0; i < vt->vnum; i++) {
       vt->v[i] = vtmp[i];
     }
@@ -1567,8 +1567,17 @@ void mrisFindNeighbors(MRI_SURFACE *mris)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
+static void MRISsetNeighborhoodSizeAndDistWkr(MRI_SURFACE *mris, int nsize);
+
+void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize) {
+  mrisCheckVertexFaceTopology(mris);
+  MRISsetNeighborhoodSizeAndDistWkr(mris, nsize);
+  mrisCheckVertexFaceTopology(mris);
+}
+
+static void MRISsetNeighborhoodSizeAndDistWkr(MRI_SURFACE *mris, int nsize)
 {
+  cheapAssert(1 <= nsize && nsize < 4);
   int vno, niter, ntotal, vtotal;
 
   /*
@@ -1584,9 +1593,13 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
+
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
+      
+      if (mris->vertices[vno].ripflag) continue;
       if (vno == Gdiag_no) DiagBreak();
 
+      cheapAssert(nsize <= v->nsizeMax);
       switch (nsize) {
         case 1:
           v->vtotal = v->vnum;
@@ -1598,11 +1611,14 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
           v->vtotal = v->v3num;
           break;
         default:
-          break;
+          cheapAssert(false);
       }
+      v->nsizeCur = nsize;
+
       ROMP_PFLB_end
     }
     ROMP_PF_end
+
     mris->nsize = nsize;
     return;
   }
@@ -1687,8 +1703,8 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
                   "dists at v=%d",
                   neighbors,
                   vno);
-      vt->nsize++;
-      switch (vt->nsize) {
+      vt->nsizeMax = vt->nsizeCur = vt->nsizeCur+1;
+      switch (vt->nsizeCur) {
         case 2:
           vt->v2num = neighbors;
           break;
@@ -1794,8 +1810,6 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
   }
   ROMP_PF_end
 
-  mrisCheckVertexFaceTopology(mris);
-  
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
   mris->nsize = nsize;
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
@@ -5503,6 +5517,14 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   -------------------------------------------------------------*/
 void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
+  static int debugCount;
+  debugCount++;
+  if (debugCount == 15) {
+    fprintf(stdout, "%s:%d debugCount:%d\n", __FILE__,__LINE__,debugCount);
+  }
+
+  mrisCheckVertexFaceTopology(Surf);
+  
   bool const showHashs = false || debugNonDeterminism;
 
   if (showHashs) {
@@ -5512,6 +5534,7 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
   
   double Sum = 0, Sum2 = 0;
 
+#undef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE        // HACK WHILE DEBUGGING - remove this!
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
   double N = 0.0;
@@ -5542,13 +5565,7 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 
   long N = 0;
 
-  ROMP_PF_begin		// mris_fix_topology
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
-#endif
-
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
-    ROMP_PFLB_begin
 #endif
     
     VERTEX *vtx1, *vtx2;
@@ -5579,9 +5596,7 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 
   #include "romp_for_end.h"
 #else
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
 #endif
   
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate

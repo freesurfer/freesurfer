@@ -7014,9 +7014,10 @@ static void removeVertex(MRIS *mris, int vno)
     else {
       vnt->v = NULL;
     }
-    vnt->vnum   = vnum;
-    vnt->nsize  = 1;
-    vnt->vtotal = vnum;
+    vnt->vnum     = vnum;
+    vnt->nsizeMax = 1;
+    vnt->nsizeCur = 1;
+    vnt->vtotal   = vnum;
     /* check if the vertex became singled out */
     if (vnt->vnum == 0) {
       vn->marked = INSIDE_VERTEX;
@@ -7775,11 +7776,12 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     vs->ny = v->ny;
     vs->nz = v->nz;
 
-    vs->nsize  = vt->nsize;
-    vs->vtotal = vt->vtotal;
-    vs->vnum   = vt->vnum;
-    vs->v2num  = vt->v2num;
-    vs->v3num  = vt->v3num;
+    vs->nsizeCur = vt->nsizeCur;
+    vs->nsizeMax = vt->nsizeMax;
+    vs->vtotal   = vt->vtotal;
+    vs->vnum     = vt->vnum;
+    vs->v2num    = vt->v2num;
+    vs->v3num    = vt->v3num;
     if (vt->vtotal) {
       vs->v = (int *)calloc(vs->vtotal, sizeof(int));
       if (!vs->v) {
@@ -7872,11 +7874,12 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     v->nz = vs->nz;
 
     freeAndNULL(vt->v);
-    vt->nsize  = vs->nsize;
-    vt->vtotal = vs->vtotal;
-    vt->vnum   = vs->vnum;
-    vt->v2num  = vs->v2num;
-    vt->v3num  = vs->v3num;
+    vt->nsizeMax = vs->nsizeMax;
+    vt->nsizeCur = vs->nsizeCur;
+    vt->vtotal   = vs->vtotal;
+    vt->vnum     = vs->vnum;
+    vt->v2num    = vs->v2num;
+    vt->v3num    = vs->v3num;
 
 #if 1
     free(vt->f);
@@ -8598,7 +8601,8 @@ MRI_SURFACE *MRIScorrectTopology(
       DiagBreak();
     }
 
-    vdstt->nsize = vt->nsize;
+    vdstt->nsizeMax = vt->nsizeMax;
+    vdstt->nsizeCur = vt->nsizeCur;
     /* original vertices */
     vdst->x = v->x;
     vdst->y = v->y;
@@ -8646,8 +8650,8 @@ MRI_SURFACE *MRIScorrectTopology(
       /* only add the kept vertices in greedy_search mode */
       if (parms->search_mode != GREEDY_SEARCH || defect->status[n] == KEEP_VERTEX) {
         vno = defect->vertices[n];
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-        VERTEX          const * const v  = &mris->vertices         [vno];
+        
+        VERTEX const * const v  = &mris->vertices[vno];
         if (vno == Gdiag_no) {
           DiagBreak();
         }
@@ -8658,7 +8662,9 @@ MRI_SURFACE *MRIScorrectTopology(
           DiagBreak();
         }
 
-        vdstt->nsize = vt->nsize;
+        vdstt->nsizeMax = vdstt->nsizeCur = 1;
+        vdstt->vtotal   = vdstt->vnum;
+        
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
@@ -8772,7 +8778,7 @@ MRI_SURFACE *MRIScorrectTopology(
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->vnum++;
       }
-    vdstt->nsize  = 1;
+    vdstt->nsizeCur = vdstt->nsizeMax = 1;
     vdstt->vtotal = vdstt->vnum;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
@@ -9249,7 +9255,7 @@ MRI_SURFACE *MRIScorrectTopology(
     VERTEX          * const v  = &mris_corrected->vertices         [vno];
     freeAndNULL(v->dist);
     freeAndNULL(v->dist_orig);
-    vt->nsize    = 1;
+    vt->nsizeCur = vt->nsizeMax = 1;
     vt->vtotal   = vt->vnum;
     v->dist      = (float *)calloc(vt->vtotal, sizeof(float));
     v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
@@ -11983,7 +11989,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
         if (mris_src->vertices[v_srct->v[m]].marked) {
           v_dstt->vnum++;
         }
-      v_dstt->nsize  = 1;
+      v_dstt->nsizeCur = v_dstt->nsizeMax = 1;
       v_dstt->vtotal = v_dstt->vnum;
       v_dstt->v = (int *)calloc(v_dstt->vnum, sizeof(int));
       v_dst->dist = (float *)calloc(v_dstt->vnum, sizeof(float));
@@ -12021,7 +12027,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     else {
       /* neighboring vertices */
       v_dstt->vnum = v_srct->vnum;
-      v_dstt->nsize  = 1;
+      v_dstt->nsizeCur = v_dstt->nsizeMax = 1;
       v_dstt->vtotal = v_dstt->vnum;
       v_dstt->v = (int *)calloc(v_dstt->vnum, sizeof(int));
       v_dst->dist = (float *)calloc(v_dstt->vnum, sizeof(float));
