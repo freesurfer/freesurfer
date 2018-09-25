@@ -5038,12 +5038,14 @@ static void savePatch(MRI *mri, MRIS *mris, MRIS *mris_corrected, DVS *dvs, DP *
   MRIS *mris_small;
 
   retessellateDefect(mris, mris_corrected, dvs, dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, dp);
 
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   if (parms->verbose == VERBOSE_MODE_LOW)
     fprintf(WHICH_OUTPUT,
@@ -6850,9 +6852,7 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
         }
     }
   }
-  
-  mrisCheckVertexFaceTopology(mris);
-}
+  }
 
 /* used to temporary rip the faces of the defect so we don't process them many times */
 // FLO TO BE CHECKED
@@ -7227,8 +7227,11 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
     return result;
 }
 
-static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
+static int retessellateDefect_wkr(MRIS *mris, MRIS *mris_corrected, DVS *dvs, DP *dp)
 {
+  mrisCheckVertexFaceTopology(mris);
+  mrisCheckVertexFaceTopology(mris_corrected);
+
   static bool const showStats = false;
 
   double max_len;
@@ -7572,6 +7575,7 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   /* reset the number of original faces in the surface before the retessellation */
   if (dp->retessellation_mode == USE_SOME_VERTICES) {
     mrisRestoreFaceVertexState(mris_corrected, dvs);
+    mrisCheckVertexFaceTopology(mris_corrected);
   }
 
   /* free the allocated memory for the intersection_table */
@@ -7630,6 +7634,7 @@ static double mrisDefectPatchFitness(
   TPinit(&dp->tp);
 
   retessellateDefect(mris, mris_corrected, dvs, dp);    // BEVIN mris_fix_topology
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, dp);
@@ -7639,6 +7644,7 @@ static double mrisDefectPatchFitness(
 
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* save original coord into flattened coordinates */
   for (i = 0; i < defect->nvertices; i++) {
@@ -9234,16 +9240,13 @@ MRI_SURFACE *MRIScorrectTopology(
   for (vno = 0; vno < mris_corrected->nvertices; vno++) {
     VERTEX_TOPOLOGY * const vt = &mris_corrected->vertices_topology[vno];
     VERTEX          * const v  = &mris_corrected->vertices         [vno];
-    if (v->dist) {
-      free(v->dist);
-    }
-    if (v->dist_orig) {
-      free(v->dist_orig);
-    }
-    vt->vtotal = vt->vnum;
-    v->dist = (float *)calloc(vt->vtotal, sizeof(float));
-    if (!v->dist) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
+    freeAndNULL(v->dist);
+    freeAndNULL(v->dist_orig);
+    vt->nsize    = 1;
+    vt->vtotal   = vt->vnum;
+    v->dist      = (float *)calloc(vt->vtotal, sizeof(float));
     v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
+    if (!v->dist)      ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
     if (!v->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
   }
   
@@ -13012,6 +13015,7 @@ static int tessellatePatch(MRI *mri,
 
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, &dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* free */
   mrisFreeDefectVertexState(dvs);
@@ -13021,6 +13025,7 @@ static int tessellatePatch(MRI *mri,
 
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, &dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, &dp, parms->smooth, parms->match);
@@ -14579,6 +14584,7 @@ debug_use_this_patch:
   
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   ROMP_SCOPE_end
   ROMP_SCOPE_begin
@@ -14588,6 +14594,7 @@ debug_use_this_patch:
 
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
 
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, dp, parms->smooth, parms->match);
@@ -15073,11 +15080,15 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
 
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, &dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
+
 
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, &dp);
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, &dp);
+  mrisCheckVertexFaceTopology(mris_corrected);
+
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, &dp, parms->smooth, parms->match);
 

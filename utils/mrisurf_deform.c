@@ -16099,6 +16099,8 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
   ------------------------------------------------------*/
 MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 {
+  mrisCheckVertexFaceTopology(mris_src);
+
   MRI_SURFACE *mris_dst;
   int vno, fno, n;
   FACE *fsrc, *fdst;
