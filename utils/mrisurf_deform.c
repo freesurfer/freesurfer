@@ -16170,8 +16170,9 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     VERTEX_TOPOLOGY       * const vdstt = &mris_dst->vertices_topology[vno];
     VERTEX                * const vdst  = &mris_dst->vertices         [vno];
     
-    cheapAssert(!vsrc->ripflag);
-    
+    vdst->ripflag = vsrc->ripflag;
+    if (vdst->ripflag) continue;
+
     vdst->x = vsrc->x;
     vdst->y = vsrc->y;
     vdst->z = vsrc->z;
@@ -16192,8 +16193,8 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 
     if (vdstt->num) {
       vdstt->f = (int *)calloc(vdstt->num, sizeof(int));
-      if (!vdstt->f) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces", vdstt->num);
       vdstt->n = (uchar *)calloc(vdstt->num, sizeof(uchar));
+      if (!vdstt->f) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces", vdstt->num);
       if (!vdstt->n) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vdstt->num);
       for (n = 0; n < vdstt->num; n++) {
         vdstt->n[n] = vsrct->n[n];
