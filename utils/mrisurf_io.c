@@ -4308,7 +4308,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   mrisReadTransform(mris, fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
 #if 0
-    MRISsetNeighborhoodSize(mris, 2) ;
+    MRISsetNeighborhoodSizeAndDist(mris, 2) ;
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
 #endif
@@ -4318,7 +4318,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
     {
       fprintf(stdout, "computing surface curvature directly...\n") ;
-      MRISsetNeighborhoodSize(mris, 2) ;
+      MRISsetNeighborhoodSizeAndDist(mris, 2) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
     }
@@ -4394,7 +4394,7 @@ MRI_SURFACE *MRISread(const char *fname)
 
   mris = MRISreadOverAlloc(fname, 0.0);
   if (mris == NULL) return (NULL);
-  MRISsetNeighborhoodSize(mris, 3);    // find nbhds out to 3-nbrs
+  MRISsetNeighborhoodSizeAndDist(mris, 3);    // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1);  // reset current size to 1-nbrs
   return (mris);
 }

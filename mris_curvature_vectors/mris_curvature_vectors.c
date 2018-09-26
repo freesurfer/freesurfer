@@ -136,7 +136,7 @@ main(int argc, char *argv[]) {
   // the 2-nbrs (probably 3 is the most you would want. 1 might not be
   // enough to do the fit and would be noisy)".
 
-  MRISsetNeighborhoodSize(mris, G_nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, G_nbrs) ;
 
   cprints("calculating second fundamental form...", "") ;
   MRIScomputeSecondFundamentalForm(mris) ;

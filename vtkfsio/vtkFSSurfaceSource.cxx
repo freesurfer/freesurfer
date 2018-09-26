@@ -538,30 +538,31 @@ vtkFSSurfaceSource::FindPath ( int inStartVertex, int inEndVertex,
     } else {
       
       // Otherwise, look at all our neighbors. We'll call this vertex v.
-      VERTEX* v = &(mMRIS->vertices[nClosestVertex]);
-      for( int nNeighbor = 0; nNeighbor < v->vnum; nNeighbor++ ) {
+      VERTEX *v = &(mMRIS->vertices[nClosestVertex]);
+      VERTEX_TOPOLOGY* vt = &(mMRIS->vertices_topology[nClosestVertex]);
+      for( int nNeighbor = 0; nNeighbor < vt->vnum; nNeighbor++ ) {
 	
-	// Get a neighbor. We'll call it u.
-	int nNeighborVertex = v->v[nNeighbor];
-	VERTEX* u = &(mMRIS->vertices[nNeighborVertex]);
-	
-	// Calc the vector from u to v.
-	float vuX = u->x - v->x;
-	float vuY = u->y - v->y;
-	float vuZ = u->z - v->z;
+        // Get a neighbor. We'll call it u.
+        int nNeighborVertex = vt->v[nNeighbor];
+        VERTEX* u = &(mMRIS->vertices[nNeighborVertex]);
 
-	// Calc the distance here.
-	float distance = sqrt( vuX*vuX + vuY*vuY + vuZ*vuZ );
+        // Calc the vector from u to v.
+        float vuX = u->x - v->x;
+        float vuY = u->y - v->y;
+        float vuZ = u->z - v->z;
 
-	// If this is a new shortest path to this vertex, update the
-	// predecessor and the distance here, and add it to the list
-	// of vertices to check next.
-	if( distance + aDistance[nClosestVertex] < 
-	    aDistance[nNeighborVertex] ) {
-	  aPredecessor[nNeighborVertex] = nClosestVertex;
-	  aDistance[nNeighborVertex] = distance + aDistance[nClosestVertex];
-	  aCheck.push_back( nNeighborVertex );
-	}
+        // Calc the distance here.
+        float distance = sqrt( vuX*vuX + vuY*vuY + vuZ*vuZ );
+
+        // If this is a new shortest path to this vertex, update the
+        // predecessor and the distance here, and add it to the list
+        // of vertices to check next.
+        if( distance + aDistance[nClosestVertex] < 
+            aDistance[nNeighborVertex] ) {
+          aPredecessor[nNeighborVertex] = nClosestVertex;
+          aDistance[nNeighborVertex] = distance + aDistance[nClosestVertex];
+          aCheck.push_back( nNeighborVertex );
+        }
       }
     }
   }
@@ -606,14 +607,14 @@ vtkFSSurfaceSource::SmoothValuesOnSurface ( vtkFloatArray& iValues,
     for( int nVertex = 0; nVertex < mMRIS->nvertices; nVertex++ ) {
 
       // Sum up the values of this vertex and its neighbors.
-      VERTEX* v = &mMRIS->vertices[nVertex];
+      VERTEX_TOPOLOGY* vt = &mMRIS->vertices_topology[nVertex];
       float sum = aTmpValues[nVertex];
 
-      for( int nNeighbor = 0; nNeighbor < v->vnum; nNeighbor++ )
-	sum += aTmpValues[v->v[nNeighbor]];
+      for( int nNeighbor = 0; nNeighbor < vt->vnum; nNeighbor++ )
+        sum += aTmpValues[vt->v[nNeighbor]];
 
       // Set the average in the values array.
-      iValues.SetTuple1( nVertex, sum / (float)(1 + v->vnum) );
+      iValues.SetTuple1( nVertex, sum / (float)(1 + vt->vnum) );
     }
   }
 

@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
   MRISremoveIntersections(mris) ;
   
   if (pial_nbrs > 2)
-    MRISsetNeighborhoodSize(mris, pial_nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, pial_nbrs) ;
   
   if (auto_detect_stats)
   {
@@ -803,7 +803,7 @@ int main(int argc, char *argv[])
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
   if(orig_white){

@@ -666,7 +666,7 @@ main(int argc, char *argv[])
   // This is a surface-based calculation, and does not depend on the
   // curvature processing loop - thus the 'curv' input is irrelevant
   if (Gb_gaussianAndMean) {
-    MRISsetNeighborhoodSize(mris, G_nbrs);
+    MRISsetNeighborhoodSizeAndDist(mris, G_nbrs);
     if(!Gb_discreteCurvaturesUse) {
       cprints("Calculating Continuous Principal Curvatures...", "");
       MRIScomputeSecondFundamentalForm(mris);

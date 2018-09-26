@@ -119,8 +119,8 @@ void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp);
 int     mrisComputeSurfaceDimensions        (MRI_SURFACE *mris);
 int     mrisComputeVertexDistances          (MRI_SURFACE *mris);
 int     mrisComputeOriginalVertexDistances  (MRI_SURFACE *mris);
-double  MRISavgInterVertexDist              (MRIS *Surf, double *StdDev);
-
+void    MRIScomputeAvgInterVertexDist       (MRIS *Surf, double *StdDev);
+void    mrisSetAvgInterVertexDist           (MRIS *Surf, double to);
 int    mrisTrackTotalDistance               (MRI_SURFACE *mris);
 int    mrisTrackTotalDistanceNew            (MRI_SURFACE *mris);
 

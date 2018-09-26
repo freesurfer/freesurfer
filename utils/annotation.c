@@ -378,7 +378,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     ErrorExit(ERROR_NOMEMORY, "ERROR: MRISdivideAnnotation: could not allocate %d index table\n", mris->ct->nentries);
 
   MRISclearMarks(mris);
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   for (nadded = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag || v->annotation <= 0) {

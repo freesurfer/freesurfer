@@ -15,8 +15,10 @@ find_package_handle_standard_args(TCLTKTIXBLT DEFAULT_MSG TCLTKTIXBLT_INCLUDE_DI
 
 set(TCLTKTIXBLT_LIBRARIES ${BLT_LIBRARY} ${TIX_LIBRARY} ${TK_LIBRARY} ${TCL_LIBRARY})
 
-# make sure the shared libs get installed on linux
 if(TCLTKTIXBLT_FOUND AND NOT APPLE)
+  # make sure the shared libs get installed on linux
   file(GLOB TCL_LIBRARIES_TO_INSTALL "${TCLTKTIXBLT_DIR}/lib/lib*.so*")
   install(PROGRAMS ${TCL_LIBRARIES_TO_INSTALL} DESTINATION lib)
+  # make sure the tcltktixblt path gets linked from the lib directory during install
+ symlink(${TCLTKTIXBLT_DIR} ${CMAKE_INSTALL_PREFIX}/lib/tcltktixblt)
 endif()

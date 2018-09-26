@@ -127,7 +127,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
 
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRIScomputeMetricProperties(mris) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISuseMeanCurvature(mris) ;

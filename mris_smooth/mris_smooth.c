@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   if (gaussian_thresh > 0)
   {

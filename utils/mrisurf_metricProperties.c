@@ -1449,7 +1449,7 @@ double MRIScomputeTotalVertexSpacingStats(
 
 
 
-int mrisFindNeighbors(MRI_SURFACE *mris)
+void mrisFindNeighbors(MRI_SURFACE *mris)
 {
   int n0, n1, i, k, m, n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS];
   FACE *f;
@@ -1554,7 +1554,6 @@ int mrisFindNeighbors(MRI_SURFACE *mris)
   }
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  return (NO_ERROR);
 }
 
 
@@ -1567,7 +1566,7 @@ int mrisFindNeighbors(MRI_SURFACE *mris)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
+void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
 {
   int vno, niter, ntotal, vtotal;
 
@@ -1604,7 +1603,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
     ROMP_PF_end
     mris->nsize = nsize;
-    return (NO_ERROR);
+    return;
   }
   
   // setting neighborhood size to a value larger than it has been in the past
@@ -1800,7 +1799,6 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   mrisComputeVertexDistances(mris);
   mrisComputeOriginalVertexDistances(mris);
-  return (NO_ERROR);
 }
 
 
@@ -5494,22 +5492,21 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
 // More complicated properties
 //
 /*-------------------------------------------------------------
-  MRISavgInterVertexDist() - computes the average and stddev of
+  MRIScomputeAvgInterVertexDist() - computes the average and stddev of
   the distance between neighboring vertices. If StdDev is NULL,
   it is ignored. Requires that mrisComputeVertexDistances()
   have been run in order to compute vertex->dist[n].
   -------------------------------------------------------------*/
-double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
+void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
-  double Sum, Sum2;
+  bool const showHashs = false || debugNonDeterminism;
 
-  Sum = 0;
-  Sum2 = 0;
-
-  if (debugNonDeterminism) {
-    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+  if (showHashs) {
+    fprintf(stdout, "%s:%d MRIScomputeAvgInterVertexDist starting ",__FILE__,__LINE__);
     mris_print_hash(stdout, Surf, "Surf ", "\n");
   }
+  
+  double Sum = 0, Sum2 = 0;
 
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
@@ -5586,8 +5583,7 @@ double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate
   // but it seems to work for us because the double has enough accuracy to sum the few hundred thousand small but not
   // too small floats that we have
-  double Avg;
-  Avg = Sum / N;
+  double Avg = Sum / N;
   if (StdDev != NULL) {
     *StdDev = sqrt(N * (Sum2 / N - Avg * Avg) / (N - 1));
   }
@@ -5595,7 +5591,14 @@ double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   // printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
   // N,Sum,Sum2,Avg,*StdDev);
 
-  return (Avg);
+  mrisSetAvgInterVertexDist(Surf, Avg);
+}
+
+void mrisSetAvgInterVertexDist(MRIS *mris, double to) 
+{
+  double const * pc = &mris->avg_vertex_dist;
+  double       * p  = (double*)pc;
+  *p = to;
 }
 
 /*-----------------------------------------------------

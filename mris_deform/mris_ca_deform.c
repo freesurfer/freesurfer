@@ -236,7 +236,7 @@ main(int argc, char *argv[]) {
   
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   build_label_histograms(mri_labels, mri_intensities, histos) ;
   
   vi = (VERTEX_INFO *)calloc(mris->nvertices, sizeof(VERTEX_INFO)) ;

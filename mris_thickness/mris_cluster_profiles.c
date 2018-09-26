@@ -142,7 +142,7 @@ main(int argc, char *argv[]) {
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
 
   if (MRISreadAnnotation(mris, "ad_aparc") != NO_ERROR) {
     if (MRISreadAnnotation(mris, "aparc") != NO_ERROR)

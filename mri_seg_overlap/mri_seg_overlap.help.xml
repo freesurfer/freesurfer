@@ -1,0 +1,65 @@
+<help>
+
+  <name>mri_seg_overlap</name>
+
+  <usage>mri_seg_overlap [options] &lt;vol1&gt; &lt;vol2&gt;</usage>
+
+  <description>
+This program computes the structural overlap between two segmentation volumes. The following statistics can be calculated for each label:
+
+      dice coefficient     -  F1-measure of the similarity between
+                              the two labels.
+      jaccard coefficient  -  Intersecting volume over the combined
+                              volume of the two labels.
+      volume difference    -  Fractional difference in volumes of
+                              the labels.
+
+By default, only dice scores are computed, but this can be reconfigured with the --measures flag.
+
+Each structure in the input volumes will be considered by default, but an alternative list of labels can be specified with the --labels or -labelfile flags. Additionally, the --seg flag will compute the overlap between the following 12 major anatomical structures:
+
+      Cerebral White Matter (2,41)
+      Cerebral Cortex (3,42)
+      Hippocampus (17,53)
+      Caudate (11,50)
+      Putamen (12,51)
+      Pallidum (13,52)
+      Amygdala (18,54)
+      Thalamus Proper (10,49)
+      Lateral Ventricle (4,43)
+      Third and Fourth Ventricles (14,15)
+      Inf Lateral Vent (5,44)
+      Accumbens Area (26,58)
+  </description>
+
+  <arguments>
+  <optional>
+
+    <argument>-o, --out [FILE]</argument>
+    <explanation>Save detailed overlap report to a JSON file.</explanation>
+
+    <argument>-m, --measures  [MEASURE...]</argument>
+    <explanation>List of measures to compute. By default, only dice scores are computed. Options include: dice, jaccard, voldiff</explanation>
+
+    <argument>-l, --labels  [LABEL...]</argument>
+    <explanation>Space-separated list of label values to include. By default, the overlap will be computed between all labels available in both input volumes.</explanation>
+
+    <argument>-n, --names  [LABELNAME...]</argument>
+    <explanation>Custom label names corresponding to the values specified with the --labels flag.</explanation>
+
+    <argument>-f, --labelfile  [FILE]</argument>
+    <explanation>Text file specifying the label values to include. This file must be in the format of a freesurfer lookup-table, in which each line contains a label value and, optionally, a corresponding label name.</explanation>
+
+    <argument>-x, --no-names</argument>
+    <explanation>Do not report label names.</explanation>
+
+    <argument>-s, --seg</argument>
+    <explanation>Compute overlap between the the major segmentation structures listed above.</explanation>
+
+    <argument>-q, --quiet</argument>
+    <explanation>Quiet mode - do not print results to stdout.</explanation>
+
+  </optional>
+  </arguments>
+
+</help>

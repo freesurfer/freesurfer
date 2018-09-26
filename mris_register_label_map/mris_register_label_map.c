@@ -438,10 +438,10 @@ int main(int argc, char *argv[])
   if (!mris_rh_fixed)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname, fname) ;
 
-  MRISsetNeighborhoodSize(mris_lh_mov, 2) ;
-  MRISsetNeighborhoodSize(mris_rh_mov, 2) ;
-  MRISsetNeighborhoodSize(mris_lh_fixed, 2) ;
-  MRISsetNeighborhoodSize(mris_rh_fixed, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris_lh_mov, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris_rh_mov, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris_lh_fixed, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris_rh_fixed, 2) ;
   MRIScomputeSecondFundamentalForm(mris_lh_mov) ;
   MRIScomputeSecondFundamentalForm(mris_rh_mov) ;
   MRIScomputeSecondFundamentalForm(mris_lh_fixed) ;

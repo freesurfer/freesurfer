@@ -203,7 +203,7 @@ main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 #endif
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRISupdateSurface(mris);
   
   MHTfree(&mht_v_current);

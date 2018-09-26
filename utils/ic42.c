@@ -199,6 +199,6 @@ MRI_SURFACE *ic42_make_surface(int max_vertices, int max_faces)
   }
 #endif
   mris->type = MRIS_ICO_SURFACE;
-  MRISsetNeighborhoodSize(mris, 1);
+  MRISsetNeighborhoodSizeAndDist(mris, 1);
   return (mris);
 }
