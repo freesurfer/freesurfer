@@ -25,32 +25,53 @@
 //                   and with their partitioning into sets (ripped, marked, ...)
 //                   but not with their placement in the xyz coordinate space
 
-static bool shouldReport(const char* file, int line, int reported) {
-    typedef struct Entry { struct Entry* next; const char* file; int reported; } Entry;
-    static Entry* entries[1000000];
-    if (line >= 1000000) return true;
-    Entry** ep = &entries[line];
+typedef struct ReportEntry { struct ReportEntry* next; const char* file; int reported; int count; int elideUntil; } ReportEntry;
+
+static ReportEntry* reportEntry(const char* file, int line) {
+    static ReportEntry* entries[1000000];
+    if (line >= 1000000) return NULL;
+    ReportEntry** ep = &entries[line];
     while (*ep && strcmp((*ep)->file,file)) ep = &(*ep)->next;
-    Entry* e = *ep;
+    ReportEntry* e = *ep;
     if (!e) {
-        e = (Entry*)malloc(sizeof(Entry)); 
-        e->next = NULL; e->file = file;  e->reported = 0;
+        e = (ReportEntry*)calloc(1,sizeof(ReportEntry)); 
+        e->file = file;
+        e->elideUntil = 1;
         *ep = e;
     }
+    return e;
+}
+
+static bool lookForReportable(const char* file, int line) {
+    ReportEntry* e = reportEntry(file, line);
+    if (!e) return false;
+    e->count++;
+    if (e->count < e->elideUntil) return false;
+    e->elideUntil = (e->elideUntil < 32) ? e->elideUntil + 1 : e->elideUntil*2;
+    return true;
+}
+
+static bool shouldReport(const char* file, int line, int reported) {
+    ReportEntry* e = reportEntry(file, line);
+    if (!e) return false;
+
     if (~e->reported & reported) { 
         e->reported |= reported; 
         fprintf(stdout, "ERROR: Bad vertex or face found at %s:%d\n", 
             strrchr(file,'/'), line);
         return true; 
     }
-    return false;
+    
+    return true;
 }
 
 //=============================================================================
 // Vertexs and edges
 //
-bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris)
+bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris, bool always)
 {
+  if (!always && !lookForReportable(file, line)) return true;
+
   enum Reported { Reported_nc = 1, Reported_no = 2, Reported_ns = 4, Reported_ns2 = 8, Reported_vt = 16, Reported_bv = 32 } reported = 0;
   
   int vno1;
@@ -250,13 +271,16 @@ void MRISgetNeighborsBeginEnd(
     
 // Faces
 //
-bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mris) {
+bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mris, bool always) {
+
+  if (!always && !lookForReportable(file, line)) return true;
+
   enum Reported { 
     Reported_top = 1, Reported_f2 = 2,  Reported_f0 = 4, 
     Reported_fv = 8,  Reported_fn = 16, Reported_nf = 32,
     Reported_nv = 64  } reported = 0;
   
-  if (!mrisCheckVertexVertexTopologyWkr(file,line,mris)) reported |= Reported_top;
+  if (!mrisCheckVertexVertexTopologyWkr(file,line,mris,true)) reported |= Reported_top;
   
   int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
