@@ -5528,7 +5528,6 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
   
   double Sum = 0, Sum2 = 0;
 
-#undef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE        // HACK WHILE DEBUGGING - remove this!
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
   double N = 0.0;
