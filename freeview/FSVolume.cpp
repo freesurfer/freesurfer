@@ -1849,11 +1849,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   }
   else
   {
-//    MRIwrite(m_MRI, "/tmp/test.mgz");
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
-//    qDebug() << m_MRI->width << m_MRI->height << m_MRI->depth;
-//    qDebug() << rasMRI->width << rasMRI->height << rasMRI->depth;
-    MRIwrite(rasMRI, "/tmp/target.mgz");
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {
