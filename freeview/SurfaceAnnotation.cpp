@@ -189,6 +189,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       for (int i = 0; i < m_nAnnotations; i++)
       {
         VERTEX *v;
+        VERTEX_TOPOLOGY* vt;
         MRISclearMarks(mris);
         LABEL* label = MRISannotation_to_label(mris, annotIndices[i]);
 
@@ -201,12 +202,13 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
             {
               m_nOutlineIndices[label->lv[n].vno] = -1;
               v = &mris->vertices[label->lv[n].vno] ;
+              vt = &mris->vertices_topology[label->lv[n].vno] ;
               if (v->ripflag)
                 continue;
 
-              for (int m = 0 ; m < v->vnum ; m++)
+              for (int m = 0 ; m < vt->vnum ; m++)
               {
-                if (mris->vertices[v->v[m]].marked == 0)
+                if (mris->vertices[vt->v[m]].marked == 0)
                 {
                   m_nOutlineIndices[label->lv[n].vno] = m_nIndices[label->lv[n].vno];
                   break;

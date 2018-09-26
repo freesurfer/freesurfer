@@ -25,7 +25,6 @@
 //                   and with their partitioning into sets (ripped, marked, ...)
 //                   but not with their placement in the xyz coordinate space
 
-
 static bool shouldReport(const char* file, int line, int reported) {
     typedef struct Entry { struct Entry* next; const char* file; int reported; } Entry;
     static Entry* entries[1000000];
@@ -376,7 +375,7 @@ static void mrisAttachFaceWkr(MRIS* mris, int fno, int vno0, int vno1, int vno2,
   cheapAssertValidVno(mris,vno0);
   cheapAssertValidVno(mris,vno1);
   cheapAssertValidVno(mris,vno2);
-  
+ 
   cheapAssert(vno0 != vno1 && vno0 != vno2 && vno1 != vno2);
     //
     // This assertion was seen when a triangular tesselation written as a quad file did so by creating quad with two identical vertices

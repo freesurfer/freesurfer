@@ -411,6 +411,7 @@ add_subdirectories(
   mri_relabel_nonwm_hypos
   mri_remove_neck
   mri_robust_register
+  mri_seg_overlap
   mri_segment
   mri_segreg
   mri_segstats
@@ -720,7 +721,7 @@ if(NOT MINIMAL)
     test_makevol
     ThalamicNuclei
     tkmedit
-    tksurfer
+    # tksurfer
     trc
     tridec
   )

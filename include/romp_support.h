@@ -39,6 +39,10 @@
 #include <omp.h>
 #endif
 
+int romp_omp_get_thread_num();
+#define omp_get_thread_num romp_omp_get_thread_num
+
+
 
 // The source of the times
 //

@@ -128,6 +128,7 @@ float mad(float a[], int n);
 
 /* define nint as a function now */
 int nint( double f );
+int nint2( double f ); // slightly diff implmentation, see C code
 
 /* Outputs the help files (found in utils/fsPrintHelp.c) */
 int outputHelpXml(const unsigned char *text, unsigned int size);

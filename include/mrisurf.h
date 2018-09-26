@@ -1,5 +1,4 @@
 #pragma once
-
 /**
  * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
@@ -25,6 +24,9 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+
+
 #include "minc_volume_io.h"
 #include "const.h"
 #include "matrix.h"
@@ -125,6 +127,7 @@ typedef struct edge_type_
   double J; // Angle Cost of this edge
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
+
 
 #if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
 #define CONST_EXCEPT_MRISURF_TOPOLOGY 
