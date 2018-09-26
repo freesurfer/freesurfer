@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+
+function error_exit()
+{
+    errcode=$?
+    echo FAILED
+    exit $errcode
+}
+
+
+set -e # Exit on error.
+set -x
+trap error_exit ERR
+
+# Set up.
+source fsenv.sh &> /dev/null
+#export FREESURFER_HOME=../distribution
+#export SUBJECTS_DIR=""
+datafile=testdata.tar.gz
+datadir2=$PWD/${datafile%%.*} # Substring before first point.
+datadir=testdata2
+cp -r $datadir2 $datadir
+cmd=./mri_concatenate_gcam
+lt1=$datadir/lt1.lta
+lt2=$datadir/lt2.lta
+gcam=$datadir/gcam.m3z
+mri=$datadir/nu.mgz
+fsaverage=$FREESURFER_HOME/subjects/fsaverage/mri/orig.mgz
+
+
+lt1copy=$datadir/lt1copy.lta
+$cmd $lt1 $lt1copy
+diff -I '#' $lt1 $lt1copy
+
+
+lt1geom=$datadir/lt1geom.lta
+$cmd --source $fsaverage --dest $fsaverage $lt1 $lt1geom
+srcgeom=$(sed -n '16,21p' $lt1geom)
+dstgeom=$(sed -n '25,30p' $lt1geom)
+refgeom=$(sed -n '16,21p' $lt2)
+diff <(echo "$srcgeom") <(echo "$refgeom")
+diff <(echo "$dstgeom") <(echo "$refgeom")
+
+
+lt12=$datadir/lt12.lta
+$cmd $lt1geom $lt2 $lt12
+numlt=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $lt12)
+[[ $numlt -eq 2 ]] || exit 1
+
+
+lt12r=$datadir/lt12r.lta
+lt12i=$datadir/lt12i.lta
+lt12ir=$datadir/lt12ir.lta
+lt12ri=$datadir/lt12ri.lta
+$cmd --reduce $lt12 $lt12r
+$cmd --invert $lt12 $lt12i
+$cmd --reduce $lt12i $lt12ir
+$cmd --invert $lt12r $lt12ri
+im1=$datadir/12ir.mgz
+im2=$datadir/12ri.mgz
+mrif=$datadir/nuf.mgz
+mri_convert --out_data_type float $mri $mrif
+mri_convert --apply_transform $lt12ir $mrif $im1
+mri_convert --apply_transform $lt12ri $mrif $im2
+mri_diff --thresh '0.1' $im1 $im2
+
+gcamlt=gcamlt.m3z
+im1=$datadir/separate1.mgz
+im2=$datadir/separate2.mgz
+im3=$datadir/combined.mgz
+$cmd $gcam $lt1 $gcamlt
+mri_convert --apply_transform $gcam $mrif $im1
+mri_convert --apply_transform $gcam $im1 $im2
+mri_convert --apply_transform $gcamlt $mrif $im3
+mri_diff $im2 $im3
+
+exit 1
+
+rm $datadir/*
+rmdir $datadir
+echo PASSED
+exit 0
+
+$cmd --source $fsaverage --dest $fsaverage identity.nofile test.lta
+
+
+mri_convert --apply_transform $lta1 $nu a.mgz
+mri_convert --apply_transform tmp.lta nu.mgz tmp.mgz
+mri_diff a.mgz tmp.mgz
+
+
+
+
+
+#datafile=testdata.tar.gz
+#datadir=$PWD/${datafile%%.*} # Substring before first point.
+#insurf=$datadir/rh.pial.src
+#refsurf=$datadir/rh.pial.ref
+#outsurf=$datadir/rh.pial.out
+#
+#
+## Extract test data.
+#umask 002
+#tar -zxvf $datafile
+#
+#
+## Apply linear warp and check return value of program.
+#./mris_transform \
+#  --src $datadir/src.mgz \
+#  --dst $datadir/dst.mgz \
+#  $insurf $datadir/wrp.m3z $outsurf
+#assertpass
+#
+#
+## Compare result against reference surface.
+#../mris_diff/mris_diff $outsurf $refsurf
+#assertpass
+
+
+

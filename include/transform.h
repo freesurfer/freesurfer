@@ -103,8 +103,8 @@ void mincGetVolInfo(const char *infoline, const char *infoline2,
                     VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
 
 int      LTAfree(LTA **plta) ;
-LTA      *LTAcopy(LTA *lta, LTA *ltacp);
-LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp);
+LTA      *LTAcopy(const LTA *lta, LTA *ltacp);
+LINEAR_TRANSFORM *LTcopy(const LT *lt, LT *ltcp);
 int      LTAdiff(LTA *lta1, LTA *lta2, double thresh);
 LTA      *LTAreadInVoxelCoords(const char *fname, MRI *mri) ;
 LTA      *LTAread(const char *fname) ;
@@ -139,7 +139,7 @@ int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ; // don't use this
 MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta);
 
 LTA *LTAinvert(LTA *lta, LTA *ltainv); // now actually computes the inverse 
-LTA *LTAreduce(LTA *lta0);
+LTA *LTAreduce(const LTA *lta0);
 LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce);
 LTA *LTAconcat2(LTA *lta1, LTA *lta2, int Reduce);
 LTA *LTAfillInverse(LTA *lta); // fill inverse part of LTA
@@ -202,9 +202,10 @@ int       TransformSampleInverseVoxel(TRANSFORM *transform,
                                       int xv, int yv, int zv,
                                       int *px, int *py, int *pz) ;
 TRANSFORM *TransformAlloc(int type, MRI *mri) ;
-TRANSFORM *TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst) ;
-
+TRANSFORM *TransformCopy(const TRANSFORM *tsrc, TRANSFORM *tdst) ;
+TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx);
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
+void      TransformInvertReplace(TRANSFORM *transform, MRI *mri) ;
 int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformCreateDensityMap(TRANSFORM *transform,
@@ -219,11 +220,12 @@ MRI       *TransformApplyInverse(TRANSFORM *transform,
 TRANSFORM *TransformCompose(TRANSFORM *t_src, MATRIX *m_left, MATRIX *m_right, TRANSFORM *t_dst);
 LTA       *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst) ;
 
-int     TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
-int     TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
-int     TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri) ;
-int     TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri) ;
-
+int     TransformGetSrcVolGeom(const TRANSFORM *transform, VOL_GEOM *vg) ;
+int     TransformGetDstVolGeom(const TRANSFORM *transform, VOL_GEOM *vg) ;
+int     TransformSetMRIVolGeomToSrc(const TRANSFORM *transform, MRI *mri) ;
+int     TransformSetMRIVolGeomToDst(const TRANSFORM *transform, MRI *mri) ;
+int     TransformSetSrcVolGeomFromMRI(const MRI *mri, TRANSFORM *transform) ;
+int     TransformSetDstVolGeomFromMRI(const MRI *mri, TRANSFORM *transform) ;
 
 // VOL_GEOM utilities
 void initVolGeom(VOL_GEOM *vg);
