@@ -71,7 +71,7 @@ static LTA *ltaReadFileEx(const char *fname);
   \brief Copys lta to ltacp. If ltacp is NULL, allocs a new lta.
    If ltacp is not NULL, num_xforms must match that of lta.
  */
-LTA *LTAcopy(LTA *lta, LTA *ltacp)
+LTA *LTAcopy(const LTA *lta, LTA *ltacp)
 {
   int i;
 
@@ -96,7 +96,7 @@ LTA *LTAcopy(LTA *lta, LTA *ltacp)
   \fn LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp)
   \brief Copys lt to ltcp. If ltcp cannot be NULL.
  */
-LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp)
+LINEAR_TRANSFORM *LTcopy(const LT *lt, LT *ltcp)
 {
   if (ltcp == NULL) {
     printf("ERROR: LTcopy() destination LT cannot be NULL\n");
@@ -3480,8 +3480,10 @@ LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce)
     nx = lta1->num_xforms;
     if (vg_isEqual(&lta->xforms[k - 1].dst, &lta1->xforms[0].src))
       DoInv = 0;
-    else if (vg_isEqual(&lta->xforms[k - 1].dst, &lta1->xforms[nx - 1].dst))
+    else if (vg_isEqual(&lta->xforms[k - 1].dst, &lta1->xforms[nx - 1].dst)) {
       DoInv = 1;
+      printf("WARNING: LTAconcat(): inverting LTA %d to match geometry\n", n);
+    }
     else {
       printf("ERROR: LTAconcat(): LTAs %d and %d do not match\n", n - 1, n);
       printf("LTA %d -------------------\n", n - 1);
@@ -3520,7 +3522,7 @@ LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce)
    correct direction (direction is figured out from the volume
    geometry).
  */
-LTA *LTAreduce(LTA *lta0)
+LTA *LTAreduce(const LTA *lta0)
 {
   LTA *ltar, *lta;
   LT *lt0, *lt, *ltinv, *ltprev;
@@ -3547,8 +3549,10 @@ LTA *LTAreduce(LTA *lta0)
     ltinv = &lta->inv_xforms[n];
     if (vg_isEqual(&ltprev->dst, &lt->src))
       DoInv = 0;
-    else if (vg_isEqual(&ltprev->dst, &lt->dst))
+    else if (vg_isEqual(&ltprev->dst, &lt->dst)) {
       DoInv = 1;
+      printf("WARNING: LTAreduce(): inverting LT %d to match geometry\n", n);
+    }
     else {
       printf("ERROR: LTAreduce(): LTs %d and %d do not match\n", n - 1, n);
       return (NULL);
@@ -3579,10 +3583,27 @@ LTA *LTAreduce(LTA *lta0)
  */
 LTA *LTAinvert(LTA *lta, LTA *ltainv)
 {
+  int i, j;
   LINEAR_TRANSFORM *lt;
   ltainv = LTAcopy(lta, ltainv);
   if (ltainv == NULL) return (NULL);
   LTAfillInverse(ltainv);
+  
+  // Because inv(A*B) = inv(B)*inv(A), we have to flip first. Flip xforms, too,
+  // such that inv_xforms[n] stays the inverse of xforms[n]. Deep copy
+  // unnecessary here.
+  lt = (LT *)calloc(1, sizeof(LT));
+  if (!lt) ErrorExit(ERROR_NOMEMORY, "ERROR LTAinvert(): no memory");
+  for (i=0, j=lta->num_xforms-1; i<(lta->num_xforms+1)/2; i++, j--) {
+    *lt = ltainv->inv_xforms[i];
+    ltainv->inv_xforms[i] = ltainv->inv_xforms[j];
+    ltainv->inv_xforms[j] = *lt;
+    *lt = ltainv->xforms[i];
+    ltainv->xforms[i] = ltainv->xforms[j];
+    ltainv->xforms[j] = *lt;
+  }
+  free(lt);
+  
   lt = ltainv->inv_xforms;
   ltainv->inv_xforms = ltainv->xforms;
   ltainv->xforms = lt;
@@ -3605,9 +3626,9 @@ LTA *LTAfillInverse(LTA *lta)
   for (i = 0; i < lta->num_xforms; ++i) {
     if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible");
+    memmove(&lta->inv_xforms[i].src, &lta->xforms[i].dst, sizeof(VOL_GEOM));
+    memmove(&lta->inv_xforms[i].dst, &lta->xforms[i].src, sizeof(VOL_GEOM));
   }
-  memmove(&lta->inv_xforms[0].src, &lta->xforms[0].dst, sizeof(lta->xforms[0].dst));
-  memmove(&lta->inv_xforms[0].dst, &lta->xforms[0].src, sizeof(lta->xforms[0].dst));
   return lta;
 }
 
@@ -4204,21 +4225,28 @@ int TransformWrite(TRANSFORM *transform, const char *fname)
   return (NO_ERROR); /* will never get here */
 }
 
-TRANSFORM *TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst)
+// Allocates memory for new transform if destination NULL.
+TRANSFORM *TransformCopy(const TRANSFORM *tsrc, TRANSFORM *tdst)
 {
-  if (!tdst) tdst = TransformAlloc(tsrc->type, NULL);
-
+  GCAM *gcam_src, *gcam_dst;
+  LTA *lta_src, *lta_dst;
+  
+  if (!tdst) tdst = (TRANSFORM *)calloc(1, sizeof(TRANSFORM));
+  tdst->type = tsrc->type;
+  tdst->mri_xn = tsrc->mri_xn ? MRIcopy(tsrc->mri_xn, tdst->mri_xn) : NULL;
+  tdst->mri_yn = tsrc->mri_yn ? MRIcopy(tsrc->mri_yn, tdst->mri_yn) : NULL;
+  tdst->mri_zn = tsrc->mri_zn ? MRIcopy(tsrc->mri_zn, tdst->mri_zn) : NULL;
   switch (tsrc->type) {
     case MORPH_3D_TYPE:
-      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "TransformCopy(MORPH_3D_TYPE): unsupported"));
+      gcam_src = (GCAM *)tsrc->xform;
+      gcam_dst = (GCAM *)tdst->xform;
+      tdst->xform = (void *)GCAMcopy(gcam_src, gcam_dst);
       break;
-    default: {
-      LTA *lta_src, *lta_dst;
+    default:
       lta_src = (LTA *)(tsrc->xform);
       lta_dst = (LTA *)(tdst->xform);
-      MatrixCopy(lta_src->xforms[0].m_L, lta_dst->xforms[0].m_L);
+      tdst->xform = (void *)LTAcopy(lta_src, lta_dst);
       break;
-    }
   }
   return (tdst);
 }
@@ -4851,7 +4879,7 @@ MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
   return (disp);
 }
 
-int TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
+int TransformGetSrcVolGeom(const TRANSFORM *transform, VOL_GEOM *vg)
 {
   GCAM *gcam;
   LTA *lta;
@@ -4868,7 +4896,7 @@ int TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
   }
   return (NO_ERROR);
 }
-int TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
+int TransformGetDstVolGeom(const TRANSFORM *transform, VOL_GEOM *vg)
 {
   GCAM *gcam;
   LTA *lta;
@@ -4885,7 +4913,7 @@ int TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
   }
   return (NO_ERROR);
 }
-int TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri)
+int TransformSetMRIVolGeomToSrc(const TRANSFORM *transform, MRI *mri)
 {
   VOL_GEOM vg;
 
@@ -4893,13 +4921,47 @@ int TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri)
   MRIcopyVolGeomToMRI(mri, &vg);
   return (NO_ERROR);
 }
-int TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri)
+int TransformSetMRIVolGeomToDst(const TRANSFORM *transform, MRI *mri)
 {
   VOL_GEOM vg;
 
   TransformGetDstVolGeom(transform, &vg);
   MRIcopyVolGeomToMRI(mri, &vg);
   return (NO_ERROR);
+}
+int TransformSetSrcVolGeomFromMRI(const MRI *mri, TRANSFORM *transform)
+{
+  GCAM *gcam;
+  LTA *lta;
+  switch (transform->type) {
+    case MORPH_3D_TYPE:
+      gcam = (GCA_MORPH *)transform->xform;
+      getVolGeom(mri, &gcam->image);
+      break;
+    default:
+      lta = (LTA *)transform->xform;
+      getVolGeom(mri, &lta->xforms[0].src);
+      break;
+  }
+  return NO_ERROR;
+}
+int TransformSetDstVolGeomFromMRI(const MRI *mri, TRANSFORM *transform)
+{
+  GCAM *gcam;
+  LTA *lta;
+  int last_xform;
+  switch (transform->type) {
+    case MORPH_3D_TYPE:
+      gcam = (GCA_MORPH *)transform->xform;
+      getVolGeom(mri, &gcam->atlas);
+      break;
+    default:
+      lta = (LTA *)transform->xform;
+      last_xform = lta->num_xforms - 1;
+      getVolGeom(mri, &lta->xforms[last_xform].dst);
+      break;
+  }
+  return NO_ERROR;
 }
 
 LTA *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst)
@@ -5043,3 +5105,81 @@ double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
 
   return (rms);
 }
+
+// Concatenate any combination of LTAs and GCAMs. New nemory is allocated.
+// Reduction is only considered for LTAs. Inverse of any GCAM will be freed.
+TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
+{
+  GCAM *gcam;
+  LTA *lta;
+  TRANSFORM *out;
+  TRANSFORM *next;
+  if (numTrx == 0)
+  {
+    ErrorExit(ERROR_BADPARM, "TransformConcat(): no transform passed\n");
+  }
+
+  next = trxArray[--numTrx];
+  out = TransformCopy(next, NULL);
+  
+  while (numTrx > 0)
+  {
+    next = trxArray[--numTrx];
+    if (out->type == MORPH_3D_TYPE)
+    {
+      gcam = (GCAM *)out->xform;
+      if (next->type == MORPH_3D_TYPE)
+      {
+        GCAMconcat2(/*gcam1*/(GCAM *)next->xform, /*gcam2*/gcam, /*out*/gcam);
+      }
+      else
+      {
+        lta = (LTA *)next->xform;
+        out->xform = (void *)GCAMconcat3(lta, gcam, /*lta2*/NULL, /*out*/NULL);
+        GCAMfree(&gcam);
+      }
+      continue;
+    }
+    
+    lta = (LTA *)out->xform;
+    if (next->type == MORPH_3D_TYPE)
+    {
+      gcam = (GCAM *)next->xform;
+      out->xform = (void *)GCAMconcat3(/*lta1*/NULL, gcam, lta, /*out*/NULL);
+      out->type = MORPH_3D_TYPE;
+    }
+    else
+    {
+      out->xform = (void *)LTAconcat2((LTA *)next->xform, lta, /*Reduce*/0);
+      if (!out->xform)
+      {
+        ErrorExit(ERROR_BADPARM, "ERROR: TransformConcat(): LTAs do not match");
+      }
+    }
+    LTAfree(&lta);
+  }
+  return out;
+}
+
+// Inverts transform in-place, i.e. the original transform is replaced. MRI not
+// needed for LTAs.
+void TransformInvertReplace(TRANSFORM *transform, MRI *mri)
+{
+  LTA *lta;
+  GCAM *gcam;
+  switch (transform->type)
+  {
+    case MORPH_3D_TYPE:
+      gcam = (GCAM *)transform->xform;
+      if (mri) getVolGeom(mri, /*to*/&gcam->image); // For GCAMfillInverse.
+      transform->xform = (void *)GCAMfillInverse(gcam);
+      GCAMfree(&gcam);
+      break;
+    default:
+      lta = transform->xform;
+      transform->xform = (void *)LTAinvert(lta, NULL);
+      LTAfree(&lta);
+      break;
+  }
+}
+
