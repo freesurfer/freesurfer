@@ -5517,12 +5517,6 @@ int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   -------------------------------------------------------------*/
 void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 {
-  static int debugCount;
-  debugCount++;
-  if (debugCount == 15) {
-    fprintf(stdout, "%s:%d debugCount:%d\n", __FILE__,__LINE__,debugCount);
-  }
-
   mrisCheckVertexFaceTopology(Surf);
   
   bool const showHashs = false || debugNonDeterminism;
