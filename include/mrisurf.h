@@ -568,7 +568,8 @@ typedef struct MRIS
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
   \
-  ELTT(int,nsize) SEP               /* size of neighborhoods */    \
+  ELTT(char,nsize) SEP              /* size of neighborhoods, or -1 */    \
+  ELTT(uchar,vtotalsMightBeTooBig) SEP /* MRISsampleDistances sets this */ \
   ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
   ELTT(int,max_nsize) SEP           /* max the neighborhood size has been set to (typically 3) */    \
   \

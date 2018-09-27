@@ -43,6 +43,14 @@ static ReportEntry* reportEntry(const char* file, int line) {
 }
 
 static bool lookForReportable(const char* file, int line) {
+
+    if (0) {
+      static bool laterTime;
+      if (!laterTime) fprintf(stdout, "%s:%d always checking topology\n", __FILE__, __LINE__);
+      laterTime = true;
+      return true;
+    }
+    
     ReportEntry* e = reportEntry(file, line);
     if (!e) return false;
     e->count++;
@@ -102,7 +110,13 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
     case 3: vtotalExpected = v->v3num; break;
     default: break;
     }
-    if (v->nsizeCur > 0 && v->vtotal != vtotalExpected && !(reported & Reported_vt)) { reported |= Reported_vt;
+    
+    if (v->nsizeCur > 0 
+     && (mris->vtotalsMightBeTooBig ? (v->vtotal < vtotalExpected) : (v->vtotal != vtotalExpected))
+     && !(reported & Reported_vt)) { reported |= Reported_vt;
+      //
+      // MRISsampleDistances sets vtotal beyond vtotalExpected for its own nefarious purposes...
+      //
       if (shouldReport(file,line,reported))
         fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d, ripflag:%d\n", vno1, v->vtotal, vtotalExpected, v->nsizeCur, 0);
       DiagBreak();
