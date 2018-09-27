@@ -29,6 +29,8 @@
 
 int mrisCheckSurface(MRI_SURFACE *mris);
 
+int MRISfreeDists(MRI_SURFACE *mris) ;
+
 typedef struct PerThreadMRIDistance {
   MRI const * mri_distance;
   int heightTimesDepth,depth;

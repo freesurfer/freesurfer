@@ -1491,7 +1491,7 @@ void mrisFindNeighbors(MRI_SURFACE *mris)
     if (!mris->vertices_topology[k].v) ErrorExit(ERROR_NOMEMORY, "mrisFindNeighbors: could not allocate nbr array");
 
     vt->vtotal = vt->vnum;
-    vt->nsize = 1;
+    vt->nsizeMax = vt->nsizeCur = 1;
     for (i = 0; i < vt->vnum; i++) {
       vt->v[i] = vtmp[i];
     }
@@ -1686,8 +1686,8 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
                   "dists at v=%d",
                   neighbors,
                   vno);
-      vt->nsize++;
-      switch (vt->nsize) {
+      vt->nsizeMax++;
+      switch (vt->nsizeMax) {
         case 2:
           vt->v2num = neighbors;
           break;
@@ -1698,6 +1698,7 @@ void MRISsetNeighborhoodSizeAndDist(MRI_SURFACE *mris, int nsize)
           vt->v3num = vt->vtotal;
           break;
       }
+      vt->nsizeCur = vt->nsizeMax;
       vt->vtotal = neighbors;
       for (n = 0; n < neighbors; n++)
         for (i = 0; i < neighbors; i++)

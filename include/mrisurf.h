@@ -51,6 +51,7 @@
 #define MAX_CMDS 1000
 
 #define NEW_VERSION_MAGIC_NUMBER  16777215 // was in mrisurf.c
+
 #define WHICH_FACE_SPLIT(vno0, vno1) (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)))
     //
     // This is used in a repeatable arbitrary true false selector based on the resulting int being EVEN or ODD
@@ -127,10 +128,11 @@ typedef struct edge_type_
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
 
-#ifndef COMPILING_MRISURF_TOPOLOGY
-#define CONST_EXCEPT_MRISURF_TOPOLOGY // NYI const
+
+#if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
+#define CONST_EXCEPT_MRISURF_TOPOLOGY 
 #else
-#define CONST_EXCEPT_MRISURF_TOPOLOGY
+#define CONST_EXCEPT_MRISURF_TOPOLOGY // NYI const
 #endif
     //
     // Used to find and control where various fields are written
@@ -198,9 +200,9 @@ face_type, FACE ;
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP         /* number of 1, or 2-hop neighbors                      */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP         /* number of 1,2,or 3-hop neighbors                     */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP        /* total # of neighbors. copy of vnum.nsize             */ \
-  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP /* copy of mris->nsizeMaxClock when v#num                  */ \
+  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP /* copy of mris->nsizeMaxClock when v#num               */ \
   ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP      /* the max nsize that was used to fill in vnum etc      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsize) SEP         /* index of the current v#num in vtotal                 */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP      /* index of the current v#num in vtotal                 */ \
   ELTT(uchar,num) SEP                                   /* number of neighboring faces                          */ \
   // end of macro
 
@@ -209,7 +211,7 @@ face_type, FACE ;
 // and can still be there by
 //  having VERTEX_TOPOLOGY be a typedef of VERTEX
 //  having the mris->vertices and the mris->vertices_topology be the same pointer
-// and this is what the code is doing until the separation is completed.
+// and this is what the code was doing until the separation was completed.
 //
 #define SEPARATE_VERTEX_TOPOLOGY
 #ifndef SEPARATE_VERTEX_TOPOLOGY
@@ -565,10 +567,12 @@ typedef struct MRIS
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
-  ELTT(int,nsize) SEP               /* size of neighborhoods */    \
-  ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
   \
+  ELTT(char,nsize) SEP              /* size of neighborhoods, or -1 */    \
+  ELTT(uchar,vtotalsMightBeTooBig) SEP /* MRISsampleDistances sets this */ \
+  ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
   ELTT(int,max_nsize) SEP           /* max the neighborhood size has been set to (typically 3) */    \
+  \
   ELTT(float,avg_nbrs) SEP          /* mean # of vertex neighbors */    \
   ELTP(void,vp) SEP                 /* for misc. use */    \
   ELTT(float,alpha) SEP             /* rotation around z-axis */    \
@@ -623,6 +627,7 @@ MRI_SURFACE, MRIS ;
 
 typedef const MRIS MRIS_const;
     // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept esaily.
+
 void MRISctr(MRIS *mris, int max_vertices, int max_faces, int nvertices, int nfaces);
 void MRISdtr(MRIS *mris);
     //
@@ -631,14 +636,15 @@ void MRISdtr(MRIS *mris);
     //
     // There are functions below for editing the surface by adding vertex positions, edges, face information, etc.
     // There is even one for creating one similar to a subset of another's vertices and faces - MRIScreateWithSimilarTopologyAsSubset
+
 MRI_SURFACE* MRISoverAlloc              (                   int max_vertices, int max_faces, int nvertices, int nfaces) ;
 MRI_SURFACE* MRISalloc                  (                                                    int nvertices, int nfaces) ;
     //
     // Allocates an MRIS then calls MRISctr
+
 void MRISfree(MRIS **pmris) ;
     //
     // The only way to delete a surface.  All the substructures are also freed, and the *pmris set to nullptr
-int MRISfreeDists(MRI_SURFACE *mris);
     
 void MRISreallocVerticesAndFaces(MRI_SURFACE *mris, int nvertices, int nfaces) ;
     //
@@ -2613,14 +2619,19 @@ int CompareFaceVertices(const void *vf1, const void *vf2);
 // for making the surface deterministic after decimation
 MRIS *MRISsortVertices(MRIS *mris0);
 
+
 // mrisurf_topology needed by more
 //
 //  Vertices, like Faces, come into existence when the surface is created with a vertex and face count.
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-bool mrisCheckVertexVertexTopology(MRIS const * mris);
-bool mrisCheckVertexFaceTopology  (MRIS const * mris);  // includes a mrisCheckVertexVertexTopology check
+#define mrisCheckVertexVertexTopology(_MRIS) mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexFaceTopology(_MRIS)   mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
+bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
+                                            // includes a mrisCheckVertexVertexTopology check
+
 //  Vertices
 //
 static int  mrisVertexNeighborIndex (MRIS const * mris, int vno1, int vno2);
@@ -2632,22 +2643,31 @@ void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, int *vlist);
 void mrisFindNeighbors              (MRIS *mris);
+
+//  Faces
+//
 void  MRISflipFaceAroundV1(MRIS *mris, int fno);
 void  MRISreverseFaceOrder(MRIS *mris);
+
 // Marked
 //
 bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno);
+
+
 // Static function implementations
 //
 static int mrisVertexNeighborIndex(MRIS const *mris, int vno1, int vno2) {
   cheapAssert(0 <= vno1 && vno1 < mris->nvertices);
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno1];
+  if (!vt->v) return -1;    // happens in invalid surfaces 
   int n;
   for (n = 0; n < vt->vnum; n++) {
     if (vt->v[n] == vno2) return n;
   }
   return -1;
 }
+
+
 static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, int const vno2)
 {
   return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
