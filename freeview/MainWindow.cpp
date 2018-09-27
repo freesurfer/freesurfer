@@ -121,6 +121,8 @@
 #include <QtWidgets>
 #endif
 
+#define LAYER_ID_OFFSET 1000000
+
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
   ui(new Ui::MainWindow),
@@ -1871,6 +1873,10 @@ void MainWindow::RunScript()
   else if (cmd == "setactiveframe")
   {
     CommandSetActiveFrame(sa);
+  }
+  else if (cmd == "setactivelayer")
+  {
+    CommandSetActiveLayer(sa);
   }
   else
   {
@@ -5732,6 +5738,8 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         lc_mri->ReorderLayers(layers);
       }
       mri->GetProperty()->RestoreFullSettings(settings);
+      if (settings.contains("frame"))
+        mri->SetActiveFrame(settings["frame"].toInt());
       m_layerSettings.remove(layer->GetID());
     }
   }
@@ -7228,10 +7236,14 @@ void MainWindow::OnReloadVolume()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      int active_layer_id = GetActiveLayer("MRI")->GetID();
       for (int i = 0; i < sel_layers.size(); i++)
       {
         LayerMRI* mri = qobject_cast<LayerMRI*>(sel_layers[i]);
-        m_layerSettings[mri->GetID()] = mri->GetProperty()->GetFullSettings();
+        QVariantMap map = mri->GetProperty()->GetFullSettings();
+        if (mri->GetActiveFrame() > 0)
+          map["frame"] = mri->GetActiveFrame();
+        m_layerSettings[mri->GetID()] = map;
       }
 
       QList<Layer*> all_layers = GetLayers("MRI");
@@ -7252,7 +7264,7 @@ void MainWindow::OnReloadVolume()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7266,7 +7278,7 @@ void MainWindow::OnReloadVolume()
           args += ":reg=" + reg_fn;
         args += QString(":id=%1").arg(mri->GetID());
 
-        mri->SetID(mri->GetID()+1000000);
+        mri->SetID(mri->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadvolume") << args);
       }
       if (dlg.GetCloseLayerFirst())
@@ -7274,6 +7286,9 @@ void MainWindow::OnReloadVolume()
         AddScript(QStringList("unloadlayers") << "mri" << layer_ids.join(","));
       }
       AddScript(QStringList("reorderlayers") << "mri" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "mri" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
   else
@@ -7288,6 +7303,7 @@ void MainWindow::OnReloadROI()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      int active_layer_id = GetActiveLayer("ROI")->GetID();
 //      for (int i = 0; i < sel_layers.size(); i++)
 //      {
 //        LayerROI* roi = qobject_cast<LayerROI*>(sel_layers[i]);
@@ -7304,7 +7320,7 @@ void MainWindow::OnReloadROI()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7318,7 +7334,7 @@ void MainWindow::OnReloadROI()
             .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(roi->GetProperty()->GetOpacity())
             .arg(roi->GetProperty()->GetThreshold()).arg(roi->GetRefMRI()->GetID());
 
-        roi->SetID(roi->GetID()+1000000);
+        roi->SetID(roi->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadroi") << args);
       }
       if (dlg.GetCloseLayerFirst())
@@ -7326,6 +7342,9 @@ void MainWindow::OnReloadROI()
         AddScript(QStringList("unloadlayers") << "roi" << layer_ids.join(","));
       }
       AddScript(QStringList("reorderlayers") << "roi" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "roi" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
 }
@@ -7344,6 +7363,7 @@ void MainWindow::OnReloadPointSet()
 //        m_layerSettings[roi->GetID()] = roi->GetProperty()->GetFullSettings();
 //      }
 
+      int active_layer_id = GetActiveLayer("PointSet")->GetID();
       QList<Layer*> all_layers = GetLayers("PointSet");
       QStringList layer_order;
       foreach (Layer* layer, all_layers)
@@ -7354,7 +7374,7 @@ void MainWindow::OnReloadPointSet()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7366,7 +7386,7 @@ void MainWindow::OnReloadPointSet()
             .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(ps->GetName())
             .arg(ps->GetProperty()->GetRadius()).arg(ps->IsVisible()?1:0);
 
-        ps->SetID(ps->GetID()+1000000);
+        ps->SetID(ps->GetID()+LAYER_ID_OFFSET);
         if (ps->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint )
           AddScript(QStringList("loadcontrolpoints") << args);
         else
@@ -7382,6 +7402,9 @@ void MainWindow::OnReloadPointSet()
         AddScript(QStringList("unloadlayers") << "pointset" << layer_ids.join(","));
       }
       AddScript(QStringList("reorderlayers") << "pointset" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "pointset" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
 }
@@ -7394,6 +7417,7 @@ void MainWindow::OnReloadSurface()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      int active_layer_id = GetActiveLayer("Surface")->GetID();
       for (int i = sel_layers.size()-1; i >= 0; i--)
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
@@ -7410,7 +7434,7 @@ void MainWindow::OnReloadSurface()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7423,7 +7447,7 @@ void MainWindow::OnReloadSurface()
             .arg(surf->GetProperty()->GetZOrderOverlay())
             .arg(surf->GetProperty()->GetZOrderLabel())
             .arg(surf->GetProperty()->GetZOrderAnnotation());
-        surf->SetID(surf->GetID()+1000000);
+        surf->SetID(surf->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadsurface") << args);
 
         for (int j = surf->GetNumberOfOverlays()-1; j >= 0; j--)
@@ -7470,6 +7494,9 @@ void MainWindow::OnReloadSurface()
       }
 
       AddScript(QStringList("reorderlayers") << "surface" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "surface" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
 }
@@ -7691,6 +7718,41 @@ void MainWindow::CommandReorderLayers(const QStringList &cmd)
       ids << list[i].toInt();
     }
     lc->UpdateLayerOrder(ids);
+  }
+}
+
+void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
+{
+  if (cmd.size() < 3)
+    return;
+
+  LayerCollection* lc = NULL;
+  QString type = cmd[1].toLower();
+  if (type == "mri")
+    lc = GetLayerCollection("MRI");
+  else if (type == "surface")
+    lc = GetLayerCollection("Surface");
+  else if (type == "roi")
+    lc = GetLayerCollection("ROI");
+  else if (type == "pointset")
+    lc = GetLayerCollection("PointSet");
+
+  if (lc)
+  {
+    int nId = cmd[2].toInt();
+    Layer* layer = lc->GetLayerById(nId);
+    if (layer)
+      lc->SetActiveLayer(layer);
+    if (cmd.size() >= 4)
+    {
+      QList<int> ids;
+      QStringList list = cmd[3].split(",");
+      for (int i = 0; i < list.size(); i++)
+      {
+        ids << list[i].toInt();
+      }
+      ui->widgetAllLayers->SetSelectedLayers(ids);
+    }
   }
 }
 

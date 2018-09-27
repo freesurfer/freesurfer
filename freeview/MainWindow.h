@@ -388,6 +388,7 @@ protected:
   void CommandReorderLayers   ( const QStringList& cmd );
   void CommandUnloadLayers    ( const QStringList& cmd );
   void CommandSetActiveFrame    ( const QStringList& cmd );
+  void CommandSetActiveLayer    ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
