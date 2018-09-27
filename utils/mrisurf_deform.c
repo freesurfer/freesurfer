@@ -16124,8 +16124,10 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 
   mris_dst->type = mris_src->type;
   
-  mris_dst->nsize     = mris_src->nsize;
-  mris_dst->max_nsize = mris_src->max_nsize;
+  mris_dst->nsize                   = mris_src->nsize;
+  mris_dst->max_nsize               = mris_src->max_nsize;
+  mris_dst->vtotalsMightBeTooBig    = mris_src->vtotalsMightBeTooBig;
+  mris_dst->nsizeMaxClock           = mris_src->nsizeMaxClock;
   
   mris_dst->hemisphere = mris_src->hemisphere;
   mris_dst->xctr = mris_src->xctr;
@@ -16153,7 +16155,9 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
   mris_dst->SRASToTalSRAS_ = mris_src->SRASToTalSRAS_;
   mris_dst->TalSRASToSRAS_ = mris_src->TalSRASToSRAS_;
   mris_dst->free_transform = 0;  // mark not to try to free them
+  //                             // BUG - THE mris_src may still free them!  reference counting needed.
   /////////////////////////////////////////////////////////////
+  
   if (mris_src->v_frontal_pole)
     mris_dst->v_frontal_pole = &mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices];
   if (mris_src->v_occipital_pole)
@@ -16171,8 +16175,9 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     VERTEX                * const vdst  = &mris_dst->vertices         [vno];
     
     vdst->ripflag = vsrc->ripflag;
-    if (vdst->ripflag) continue;
-
+        //
+        // Even in ripped vertices, the topology below must be maintained
+        
     vdst->x = vsrc->x;
     vdst->y = vsrc->y;
     vdst->z = vsrc->z;
@@ -16208,6 +16213,7 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     vdstt->nsizeMax = vsrct->nsizeMax;
     vdstt->nsizeCur = vsrct->nsizeCur;
     vdstt->vtotal   = vsrct->vtotal;
+    vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
     
     {
       int vSize = 0;
@@ -16217,7 +16223,8 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
       case 3: vSize = vsrct->v3num; break;
       default: cheapAssert(false);
       }
-
+      if (vSize < vsrct->vtotal) vSize = vsrct->vtotal;
+      
       if (vSize) {
         vdstt->v = (int *)calloc(vSize, sizeof(int));
         if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vSize);
@@ -16254,6 +16261,13 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     fsrc = &mris_src->faces[fno];
     fdst = &mris_dst->faces[fno];
     memmove(fdst, fsrc, sizeof(FACE));
+    
+    // The pointer fields need special handling
+    if (fsrc->norm) fdst->norm = DMatrixCopy(fsrc->norm, NULL);
+    int i;
+    for (i = 0; i < 3; i++) {
+      if (fsrc->gradNorm[i]) fdst->gradNorm[i] = DMatrixCopy(fsrc->gradNorm[i], NULL);
+    }
   }
 
   mrisCheckVertexFaceTopology(mris_dst);
