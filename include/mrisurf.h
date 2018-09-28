@@ -2677,6 +2677,7 @@ bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * m
 
 //  Vertices
 //
+int mrisVertexVSize                 (MRIS const * mris, int vno);
 static int  mrisVertexNeighborIndex (MRIS const * mris, int vno1, int vno2);
 static bool mrisVerticesAreNeighbors(MRIS const * mris, int vno1, int vno2);
 

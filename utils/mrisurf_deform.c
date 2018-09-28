@@ -13477,11 +13477,6 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
     VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
     
-    // vdstt->nsize = vt->nsize;    copying this without copying vnum, v2num, v3num was wrong
-    //
-    vdstt->nsizeCur = 1;
-    vdstt->nsizeMax = 1;
-
     /* original vertices */
     vdst->x = v->x;
     vdst->y = v->y;
@@ -13574,6 +13569,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
       }
     vdstt->nsizeCur = vdstt->nsizeMax = 1;
     vdstt->vtotal = vdstt->vnum;
+    vdstt->nsizeCur = vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
@@ -14231,12 +14227,9 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save vertex information */
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+    // VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
     VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
 
-    // vdstt->nsize = vt->nsize;    copying without copying v2num v3num is wrong
-    vdstt->nsizeCur = vdstt->nsizeMax = 1;
-    
     vdst->x = v->x;
     vdst->y = v->y;
     vdst->z = v->z;
@@ -14328,6 +14321,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       }
     vdstt->nsizeCur = vdstt->nsizeMax = 1;
     vdstt->vtotal = vdstt->vnum;
+    vdstt->nsizeMax = vdstt->nsizeCur = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
@@ -16216,15 +16210,8 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
     
     {
-      int vSize = 0;
-      switch (vsrct->nsizeMax) {
-      case 1: vSize = vsrct->vnum;  break;
-      case 2: vSize = vsrct->v2num; break;
-      case 3: vSize = vsrct->v3num; break;
-      default: cheapAssert(false);
-      }
-      if (vSize < vsrct->vtotal) vSize = vsrct->vtotal;
-      
+      int vSize = mrisVertexVSize(mris_src, vno);
+
       if (vSize) {
         vdstt->v = (int *)calloc(vSize, sizeof(int));
         if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vSize);

@@ -76,6 +76,19 @@ static bool shouldReport(const char* file, int line, int reported) {
 //=============================================================================
 // Vertexs and edges
 //
+int mrisVertexVSize(MRIS const * mris, int vno) {
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+  int c = 0;
+  switch (v->nsizeMax) {
+  case 1: c = v->vnum;  break;
+  case 2: c = v->v2num; break;
+  case 3: c = v->v3num; break;
+  default: break;
+  }
+  if (c < v->vtotal) c = v->vtotal;
+  return c;
+}
+
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris, bool always)
 {
   if (!always && !lookForReportable(file, line)) return true;
@@ -122,13 +135,7 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       DiagBreak();
     }
 
-    int vSize = 0;
-    switch (v->nsizeMax) {
-    case 1: vSize = v->vnum;  break;
-    case 2: vSize = v->v2num; break;
-    case 3: vSize = v->v3num; break;
-    default: break;
-    }
+    int vSize = mrisVertexVSize(mris, vno1);
 
     int n;
     for (n = 0; n < vSize; n++) {
@@ -1644,15 +1651,17 @@ int MRISsetAllMarks(MRIS *mris, int mark)
   ------------------------------------------------------*/
 int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 {
+  int new_mris_nsize = nsize;
+
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
     VERTEX          * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
     if (vno == Gdiag_no) {
       DiagBreak();
+    }
+    if (v->ripflag) {
+      continue;
     }
     switch (nsize) {
       default: /* reset back to original */
@@ -1668,6 +1677,8 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
             vt->vtotal = vt->v3num;
             break;
         }
+        if (new_mris_nsize < 0) new_mris_nsize = vt->nsizeMax;
+        else                    cheapAssert(new_mris_nsize == vt->nsizeMax);
         vt->nsizeCur = vt->nsizeMax;
         break;
       case 1:
@@ -1681,8 +1692,10 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         break;
     }
   }
-  mris->nsize = nsize;
+  mris->nsize = new_mris_nsize;
+
   mrisCheckVertexFaceTopology(mris);
+
   return (NO_ERROR);
 }
 
@@ -2293,18 +2306,15 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
     DiagBreak();
   }
 
-  cheapAssert(mris->nsize > 0);
-  
+  vt->nsizeCur = 1;
   vt->nsizeMax = 1;
-
-  // vt->nsize = mris->nsize;   
-  //    This was because nsizeMax did not exist in the VERTEX_TOPOLOGY
-  //    and it assumed that mris->nsize was the max for the vertex, 
-  //    which was not always true
-
+  vt->vtotal   = vt->vnum;
+  
   if (v->ripflag || !vt->vnum) {
     return (ERROR_BADPARM);
   }
+  
+  cheapAssert(vt->vnum < MAX_NEIGHBORS);
   memmove(vtmp, vt->v, vt->vnum * sizeof(int));
 
   /* mark center so not included */
@@ -2312,6 +2322,9 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
 
   /* mark 1-neighbors so we don't count them twice */
   vnum = neighbors = vt->vnum;
+
+  cheapAssert(mris->nsize > 0);
+
   for (nsize = 2; nsize <= mris->nsize; nsize++) {
     /* mark all current neighbors */
     vnum = neighbors; /* neighbors will be incremented during loop */
@@ -2340,7 +2353,7 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
         }
       }
     }
-    
+
     // Fill in the next layer's details
     switch (nsize) {
       case 2:
@@ -2354,10 +2367,12 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
         break;
     }
     vt->nsizeMax = nsize;
+    vt->nsizeCur = nsize;
+    vt->vtotal   = neighbors;
   }
   /*
     now reallocate the v->v structure and place the 2-connected neighbors
-    suquentially after the 1-connected neighbors.
+    sequentially after the 1-connected neighbors.
   */
   free(vt->v);
   vt->v = (int *)calloc(neighbors, sizeof(int));
@@ -2394,27 +2409,12 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
               "dists at v=%d",
               neighbors,
               vno);
-  
-  // There was a bug here - it could fill in v3num without filling in v2num
-  //
-  //switch (vt->nsizeCur) {
-  //  case 2:
-  //    vt->v2num = neighbors;
-  //    break;
-  //  case 3:
-  //    vt->v3num = neighbors;
-  //    break;
-  //  default: /* store old neighborhood size in v3num */
-  //    vt->v3num = vt->vtotal;
-  //    break;
-  //}
-  vt->nsizeCur = vt->nsizeMax;
-  vt->vtotal   = neighbors;
-  
+
   for (n = 0; n < neighbors; n++)
     for (i = 0; i < neighbors; i++)
       if (i != n && vt->v[i] == vt->v[n])
         fprintf(stdout, "warning: vertex %d has duplicate neighbors %d and %d!\n", vno, i, n);
+
   if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
     fprintf(stdout, "v %d: vnum=%d, v2num=%d, vtotal=%d\n", vno, vt->vnum, vt->v2num, vt->vtotal);
     for (n = 0; n < neighbors; n++) {
