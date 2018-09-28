@@ -2858,7 +2858,7 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
     static bool later_time, use_old;
     if (!later_time) {
       later_time = false;
-      use_old = getenv("USE_OLD_MRISsampleDistances");
+      use_old = !getenv("USE_NEW_MRISsampleDistances");
     }
    if (use_old) return MRISsampleDistances_old(mris, nbrs, max_nbhd);
    else         return MRISsampleDistances_new(mris, nbrs, max_nbhd);

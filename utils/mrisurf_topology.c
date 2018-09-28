@@ -2413,8 +2413,9 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
       vt->v3num = vt->vtotal;
       break;
   }
+  vt->nsizeCur = vt->nsizeMax;
+  vt->vtotal   = neighbors;
 #endif
-  vt->vtotal = neighbors;
 
   for (n = 0; n < neighbors; n++)
     for (i = 0; i < neighbors; i++)
