@@ -224,6 +224,49 @@ static void MRIS_EDGEdtr(MRI_EDGE* e) {
 
 // MRIS 
 //
+void mrisDumpVertex(FILE* file, MRIS const * mris, int vno) {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
+  
+  fprintf(file, "vno:%d ripflag:%d marked:%d nsizeCur:%d nsizeMax:%d vnum:%d v2num:%d v3num:%d vtotal:%d nsizeCur:%d nsizeMax:%d x:%f y:%f z:%f",
+    vno, v->ripflag, v->marked, vt->nsizeCur, vt->nsizeMax, vt->vnum, vt->v2num, vt->v3num, vt->vtotal, vt->nsizeCur, vt->nsizeMax, v->x, v->y, v->z);
+  
+  int const vsize = mrisVertexVSize(mris, vno);
+  int i;
+  for (i = 0; i < vsize; i++) {
+    fprintf(file, " [%d] v:%d dist:%f dist_orig:%f",
+      i, vt->v[i], v->dist[i], v->dist_orig[i]);
+  } fprintf(file, "\n");
+
+  for (i = 0; i < vt->num; i++) {
+    fprintf(file, " [%d] f:%d n:%d",
+      i, vt->f[i], vt->n[i]);
+  } fprintf(file, "\n");
+  
+}
+
+void mrisDumpFace(FILE* file, MRIS const * mris, int fno) {
+  FACE const * const f = &mris->faces[fno];
+  fprintf(file, "fno:%d ripflag:%d marked:%d\n",
+    fno, f->ripflag, f->marked);
+  int i;
+  for (i = 0; i < VERTICES_PER_FACE; i++) {
+    fprintf(file, " [%d] v:%d",
+      i, f->v[i]);
+  } fprintf(file, "\n");
+}
+
+void mrisDumpShape(FILE* file, MRIS const * mris) {
+  fprintf(file, "mrisDumpShape {\n");
+  fprintf(file, "nvertices:%d nfaces:%d max_nsize:%d nsize:%d\n",
+    mris->nvertices, mris->nfaces, mris->max_nsize, mris->nsize);
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) mrisDumpVertex(file, mris, vno);
+  int fno;
+  for (fno = 0; fno < mris->nfaces; fno++) mrisDumpFace(file, mris, fno);
+  fprintf(file, "} // mrisDumpShape\n");
+}
+
 static void MRISchangedNFacesNVertices(MRIS * mris, bool scrambled) {
   // useful for debugging
 }

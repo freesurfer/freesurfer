@@ -76,6 +76,19 @@ static bool shouldReport(const char* file, int line, int reported) {
 //=============================================================================
 // Vertexs and edges
 //
+int mrisVertexVSize(MRIS const * mris, int vno) {
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+  int c = 0;
+  switch (v->nsizeMax) {
+  case 1: c = v->vnum;  break;
+  case 2: c = v->v2num; break;
+  case 3: c = v->v3num; break;
+  default: break;
+  }
+  if (c < v->vtotal) c = v->vtotal;
+  return c;
+}
+
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris, bool always)
 {
   if (!always && !lookForReportable(file, line)) return true;
@@ -124,13 +137,7 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       DiagBreak();
     }
 
-    int vSize = 0;
-    switch (v->nsizeMax) {
-    case 1: vSize = v->vnum;  break;
-    case 2: vSize = v->v2num; break;
-    case 3: vSize = v->v3num; break;
-    default: break;
-    }
+    int vSize = mrisVertexVSize(mris, vno1);
 
     int n;
     for (n = 0; n < vSize; n++) {

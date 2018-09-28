@@ -16191,15 +16191,8 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
     
     {
-      int vSize = 0;
-      switch (vsrct->nsizeMax) {
-      case 1: vSize = vsrct->vnum;  break;
-      case 2: vSize = vsrct->v2num; break;
-      case 3: vSize = vsrct->v3num; break;
-      default: cheapAssert(false);
-      }
-      if (vSize < vsrct->vtotal) vSize = vsrct->vtotal;
-      
+      int vSize = mrisVertexVSize(mris_src, vno);
+
       if (vSize) {
         vdstt->v = (int *)calloc(vSize, sizeof(int));
         if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vSize);

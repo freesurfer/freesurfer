@@ -2851,21 +2851,42 @@ int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_dist
 /*1.066f*/ /*1.12578*/ /* 1.13105f*/                       /*1.1501f  (1.1364f)*/
 #define QUADRANGLE_DISTANCE_CORRECTION ((1 + sqrt(2)) / 2) /* 1.2071  */
 
-static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd);
-static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd);
+static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace);
+static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace);
 
 int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
-    static bool later_time, use_old;
-    if (!later_time) {
-      later_time = false;
-      use_old = !getenv("USE_NEW_MRISsampleDistances");
-    }
-   if (use_old) return MRISsampleDistances_old(mris, nbrs, max_nbhd);
-   else         return MRISsampleDistances_new(mris, nbrs, max_nbhd);
+  static bool later_time, use_old;
+  static int  traceCount;
+  if (!later_time) {
+    later_time = false;
+    use_old = getenv("USE_OLD_MRISsampleDistances");
+  }
+  
+  const char* traceFnm = (++traceCount > 0) ? NULL : 
+    use_old ? "./MRISsampleDistances_old.txt"
+            : "./MRISsampleDistances_new.txt";
+            
+  FILE* trace = traceFnm ? fopen(traceFnm, "w") : NULL;
+  if (trace) fprintf(trace, "MRISsampleDistances %d max_nbhd:%d\n", traceCount, max_nbhd);
+  
+  int result;
+  if (use_old) result = MRISsampleDistances_old(mris, nbrs, max_nbhd, trace);
+  else         result = MRISsampleDistances_new(mris, nbrs, max_nbhd, trace);
+  
+  if (trace) {
+    mrisDumpShape(trace, mris);
+    fclose(trace);
+    fprintf(stdout, "%s:%d IMMEDIATE EXIT\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  
+  return result;
 }
 
-static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
+static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace)
 {
+  if (trace) fprintf(trace, "MRISsampleDistances initial mris.nsize:%d\n", mris->nsize);
+  
   int i, n, vno, vnum, old_vnum, total_nbrs, max_possible, max_v, vtotal;
   int *vnbrs, *vall, *vnb, found, n2, vnbrs_num, vall_num, nbhd_size, done, checks = 0;
   float xd, yd, zd, min_dist, dist, dist_scale, *old_dist;
@@ -2927,21 +2948,22 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             (float)vtotal / ((float)max_nbhd - (float)mris->nsize),
             (float)vtotal * MRISvalidVertices(mris) * sizeof(float) * 3.0f / (1024.0f * 1024.0f));
 
+#define BUG_FIX
+#ifdef BUG_FIX
+  bool adjusted_mris_nsize = false;
+#endif
+
   for (vno = 0; vno < mris->nvertices; vno++) {
-  
+    
     if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices / 10))))
       fprintf(stdout, "%%%1.0f done\n", 100.0f * (float)vno / (float)mris->nvertices);
-    if ((vno > 139000 || (!(vno % 100))) && 0) {
-      if (checks++ == 0) {
-        printf("checking surface at vno %d\n", vno);
-      }
-    }
+    
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
     VERTEX          * const v  = &mris->vertices         [vno];
+    
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-
     if (v->ripflag) {
       continue;
     }
@@ -2957,8 +2979,24 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     else {
       vt->vtotal = vt->vnum;
     }
+#ifdef BUG_FIX
+    vt->nsizeCur = vt->nsizeMax;
+
+    if (!adjusted_mris_nsize) {
+      adjusted_mris_nsize = true;
+      mris->nsize = vt->nsizeCur;
+    } else {
+      if (mris->nsize != vt->nsizeCur) {
+        ErrorExit(ERROR_OUT_OF_BOUNDS,
+          "MRISsampleDistances: different vertexs had different nsizeMax");
+      }
+    }
+#endif
+#undef BUG_FIX
 
     max_v = vt->vtotal + max_possible;
+    if (trace && vno == 0) fprintf(trace, "vCapacity:%d\n", max_v);
+    
     if (vtotal < max_v) /* won't fit in current allocation,
                          reallocate stuff */
     {
@@ -3179,6 +3217,8 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
        at ALL distances, while the vnbrs list contains ONLY the
        nbhd_size-neighbors.
       */
+      if (trace && vno == 0) fprintf(trace, "nbhd_size:%d found:%d\n", nbhd_size, found);
+
       if (found <= nbrs[nbhd_size]) /* just copy them all in */
       {
         for (n = 0; n < found; n++, vt->vtotal++) {
@@ -3187,6 +3227,7 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           if (v->dist_orig[vt->vtotal] > 60) {
             DiagBreak();
           }
+          if (trace && vno == 0) fprintf(trace, "copy dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
         }
       }
       else /* randomly sample from them */
@@ -3230,6 +3271,7 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             DiagBreak();
           }
           vnbrs[i] = -1;
+          if (trace && vno == 0) fprintf(trace, "rand dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
         }
       }
     }
@@ -3297,6 +3339,7 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if (v->ripflag) {
       continue;
     }
+    
     if (vt->nsizeMax == 3) {
       vtotal = vt->v3num;
     }
@@ -3315,6 +3358,7 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       yd = v->y - vn->y;
       zd = v->z - vn->z;
       v->dist_orig[n] = sqrt(xd * xd + yd * yd + zd * zd);
+      if (trace && vno == 0) fprintf(trace, "eucliod dist_orig[%d]:%f\n", n, v->dist_orig[n]);
     }
   }
 
@@ -3411,8 +3455,10 @@ static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   return (NO_ERROR);
 }
 
-static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
+static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace)
 {
+  if (trace) fprintf(trace, "MRISsampleDistances initial mris.nsize:%d\n", mris->nsize);
+
   mrisCheckVertexFaceTopology(mris);
   
   int diag_vno1 = -1, diag_vno2 = -1;
@@ -3492,6 +3538,7 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
     VERTEX          * const v  = &mris->vertices         [vno];
+    
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -3529,6 +3576,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     // Zero the expansion to prevent weird variations
     //
     int const vCapacity = vt->vtotal + max_possible;
+    if (trace && vno == 0) fprintf(trace, "vCapacity:%d\n", vCapacity);
+    
     {
       vt->v        = (int  *)realloc(vt->v,        vCapacity*sizeof(int  ));
       v->dist      = (float*)realloc(v->dist,      vCapacity*sizeof(float));
@@ -3742,6 +3791,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
        at ALL distances, while the vnbrs list contains ONLY the
        nbhd_size-neighbors.
       */
+      if (trace && vno == 0) fprintf(trace, "nbhd_size:%d found:%d\n", nbhd_size, found);
+
       if (found <= nbrs[nbhd_size]) /* just copy them all in */
       {
         // THIS IS WEIRD BECAUSE IT IS PUTTING REPEATS OF THE 1..v->nsize rings
@@ -3754,6 +3805,7 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           if (v->dist_orig[vt->vtotal] > 60) {
             DiagBreak();
           }
+          if (trace && vno == 0) fprintf(trace, "copy dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
         }
       }
       else /* randomly sample from them */
@@ -3802,6 +3854,7 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             DiagBreak();
           }
           vnbrs[i] = -1;
+          if (trace && vno == 0) fprintf(trace, "rand dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
         }
       }
     }
@@ -3868,11 +3921,22 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       continue;
     }
 
-    // The above code made nsizeCur == nsizeMax
+    // The above code made nsizeCur == nsizeMax, but vtotal may be beyond these
+    // so must determine the nsizeMax v#num
     //
-    // cheapAssert(vt->nsizeCur == vt->nsizeMax);
+    int immediateCount = 0;
+    if (vt->nsizeMax == 3) {
+      immediateCount = vt->v3num;
+    }
+    else if (vt->nsizeMax == 2) {
+      immediateCount = vt->v2num;
+    }
+    else {
+      immediateCount = vt->vnum;
+    }
+    
     int n;
-    for (n = 0; n < vt->vtotal; n++) {
+    for (n = 0; n < immediateCount; n++) {
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
@@ -3887,6 +3951,7 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       // WEIRD - WHY IS DIST NOT CHANGED?
       //
       v->dist_orig[n] = sqrt(xd * xd + yd * yd + zd * zd);
+      if (trace && vno == 0) fprintf(trace, "eucliod dist_orig[%d]:%f\n", n, v->dist_orig[n]);
     }
   }
 

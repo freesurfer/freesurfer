@@ -2424,36 +2424,6 @@ int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp)
-{
-  FACE *f;
-  VERTEX *v;
-  int n;
-
-  f = &mris->faces[fno];
-  FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
-  fprintf(fp, "face %d, area %2.1f, orig area %2.1f\n", fno, f->area, fNorm->orig_area);
-  for (n = 0; n < VERTICES_PER_FACE; n++) {
-    v = &mris->vertices[f->v[n]];
-    fprintf(fp,
-            "\tv %d (%d) @ (%2.1f, %2.1f, %2.1f) o (%2.1f, %2.1f, %2.1f)\n",
-            n,
-            f->v[n],
-            v->x,
-            v->y,
-            v->z,
-            v->origx,
-            v->origy,
-            v->origz);
-  }
-}
 
 /*-----------------------------------------------------
   Parameters:
