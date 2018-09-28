@@ -2228,10 +2228,26 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
         }
       }
     }
+
+#define BUG_FIX
+#if defined(BUG_FIX)
+    // Fill in the next layer's details
+    switch (nsize) {
+      case 2:
+        vt->v2num = neighbors;
+        break;
+      case 3:
+        vt->v3num = neighbors;
+        break;
+      default:
+        cheapAssert(false);
+        break;
+    }
+#endif
   }
   /*
     now reallocate the v->v structure and place the 2-connected neighbors
-    suquentially after the 1-connected neighbors.
+    sequentially after the 1-connected neighbors.
   */
   free(vt->v);
   vt->v = (int *)calloc(neighbors, sizeof(int));
@@ -2268,7 +2284,10 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
               "dists at v=%d",
               neighbors,
               vno);
-  switch (vt->nsize) {
+  // There is a bug here - it could fill in v3num without filling in v2num - so this is now done above
+  //
+#if !defined(BUG_FIX)
+  switch (vt->nsizeMax) {
     case 2:
       vt->v2num = neighbors;
       break;
@@ -2279,7 +2298,9 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
       vt->v3num = vt->vtotal;
       break;
   }
+#endif
   vt->vtotal = neighbors;
+
   for (n = 0; n < neighbors; n++)
     for (i = 0; i < neighbors; i++)
       if (i != n && vt->v[i] == vt->v[n])
