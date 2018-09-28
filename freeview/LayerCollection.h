@@ -72,6 +72,8 @@ public:
 
   Layer* GetLayerByName( const QString& name );
 
+  Layer* GetLayerById( int nId );
+
   double* GetSlicePosition();
   void GetSlicePosition( double* slicePos );
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );

@@ -461,6 +461,22 @@ void LayerTreeWidget::DeselectAll()
   }
 }
 
+void LayerTreeWidget::SetSelectedLayers(const QList<int>& layer_ids)
+{
+  QList<QTreeWidgetItem*> items;
+  for (int i = 0; i < topLevelItemCount(); i++)
+  {
+    QTreeWidgetItem* topItem = topLevelItem(i);
+    for (int j = 0; j < topItem->childCount(); j++)
+      items << topItem->child(j);
+  }
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+    item->setSelected(layer && layer_ids.contains(layer->GetID()));
+  }
+}
+
 bool LayerTreeWidget::event(QEvent *e)
 {
   if (e->type() == QEvent::ShortcutOverride || e->type() == QEvent::KeyPress)

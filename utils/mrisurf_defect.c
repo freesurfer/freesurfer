@@ -8230,13 +8230,17 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
 //    CAREFUL: the fiedls v->curvbak, v->val, v->val2,
 //             v->valbak are used by some functions
 //
+//    Defect output files (label, chull, borders) will be called
+//      defectbase_{label,chull,borders}. If left NULL, defectbase
+//      will be set to "defect"
 //////////////////////////////////////////////////////////////////////
 
 int topology_fixing_exit_after_diag = 0;
 
 
 MRI_SURFACE *MRIScorrectTopology(
-    MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms)
+    MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm, 
+    int nsmooth, TOPOLOGY_PARMS *parms, char *defectbase)
 {
   FACE_DEFECT_LIST *fdl;
   DEFECT_LIST *dl;
@@ -8247,6 +8251,9 @@ MRI_SURFACE *MRIScorrectTopology(
   HISTOGRAM *h_k1, *h_k2, *h_gray, *h_white, *h_dot, *h_border, *h_grad;
   MRI *mri_gray_white, *mri_k1_k2;
   MRIS *mris_corrected_final;
+  char tmpstr[2000];
+
+  if(defectbase == NULL) defectbase = "defect";
 
 #if ADD_EXTRA_VERTICES
   int retessellation_error = -1;
@@ -8516,7 +8523,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    MRISwriteCurvature(mris, "defect_labels");
+    sprintf(tmpstr,"%s_labels",defectbase);
+    MRISwriteCurvature(mris, tmpstr);
     for (i = 0; i < dl->ndefects; i++) {
       defect = &dl->defects[i];
       for (n = 0; n < defect->nborder; n++) {
@@ -8527,7 +8535,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    MRISwriteCurvature(mris, "defect_borders");
+    sprintf(tmpstr,"%s_borders",defectbase);
+    MRISwriteCurvature(mris, tmpstr);
     for (i = 0; i < dl->ndefects; i++) {
       defect = &dl->defects[i];
       for (n = 0; n < defect->nchull; n++) {
@@ -8544,7 +8553,8 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     // if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-    MRISwriteCurvature(mris, "defect_chull");
+    sprintf(tmpstr,"%s_chull",defectbase);
+    MRISwriteCurvature(mris, tmpstr);
   }
   if (topology_fixing_exit_after_diag) {
     return (NULL);

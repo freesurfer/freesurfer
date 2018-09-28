@@ -195,7 +195,7 @@ if($UseNew == 1) set cmd = (mkcontrast2 -config $analname/$contrast.config)
 set cmd = ($cmd -anadir $analname)
 set cmd = ($cmd -wcond $wcond $sumconds -o $cmtxfile)
 
-set cmd = ($cmd  $sumdelays $showcmtx $rmprestim)
+set cmd = ($cmd  $sumdelays $showcmtx $rmprestim -prestim $TPreStim)
 if($nircorr != 0) then
   set cmd = ($cmd -ircorr $nircorr -deltarange $deltarange -taurange $taurange)
 else
@@ -454,6 +454,12 @@ check_params:
     echo "ERROR: analysis $analname does not exist"
     exit 1;
   endif
+
+  if(! -e $analname/analysis.info ) then
+    echo "ERROR: analysis $analname/analysis.info does not exist"
+    exit 1;
+  endif
+  set TPreStim = `cat $analname/analysis.info | awk '{if($1=="prestim")print $2}'`
 
   if($#wcond == 0) then
     if($#actcond == 0) then
