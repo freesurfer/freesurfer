@@ -19278,33 +19278,26 @@ GCA_MORPH *GCAMconcat2(GCAM *gcam1, GCAM *gcam2, GCAM *out)
   float xd, yd, zd, xdd, ydd, zdd; // Deformed coordinates.
   GCA_MORPH_NODE *node2, *node_out;
   
-  if (!vg_isEqual(&gcam1->atlas, &gcam2->image))
-  {
-    printf("WARNING: GCAMconcat2(): geometry does not match.\n");
-    //ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): geometry does not match");
+  if (!vg_isEqual(&gcam1->atlas, &gcam2->image)) {
+    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): geometry does not match");
   }
   if (out && (out->width != gcam2->width || out->height != gcam2->height ||
-              out->depth != gcam2->depth))
-  {
-    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): size does not match");
+              out->depth != gcam2->depth)) {
+    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): output size does not match");
   }
-  if (out == gcam1)
-  {
-    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): output cannot be GCAM1");
+  if (out == gcam1) {
+    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat2(): output cannot be GCAM 1");
   }
-  if (!out)
-  {
+  if (!out) {
     out = GCAMalloc(gcam2->width, gcam2->height, gcam2->depth);
   }
   
-  if (gcam1->type == GCAM_RAS)
-  {
-    printf("GCAMconcat2(): converting GCAM1 from GCAM_RAS to GCAM_VOX\n");
+  if (gcam1->type == GCAM_RAS) {
+    printf("GCAMconcat2(): converting GCAM 1 from GCAM_RAS to GCAM_VOX\n");
     GCAMrasToVox(gcam1, NULL);
   }
-  if (gcam2->type == GCAM_RAS)
-  {
-    printf("GCAMconcat2(): converting GCAM2 from GCAM_RAS to GCAM_VOX\n");
+  if (gcam2->type == GCAM_RAS) {
+    printf("GCAMconcat2(): converting GCAM 2 from GCAM_RAS to GCAM_VOX\n");
     GCAMrasToVox(gcam2, NULL);
   }
   copyVolGeom(/*from*/&gcam1->image, /*to*/&out->image);
@@ -19313,14 +19306,10 @@ GCA_MORPH *GCAMconcat2(GCAM *gcam1, GCAM *gcam2, GCAM *out)
   out->spacing = gcam2->spacing;
   out->type = GCAM_VOX;
   
-  for (c = 0; c < gcam2->width; c++)
-  {
-    for (r = 0; r < gcam2->height; r++)
-    {
-      for (s = 0; s < gcam2->depth; s++)
-      {
-        if (r == Gx && r == Gy && s == Gz)
-        {
+  for (c = 0; c < gcam2->width; c++) {
+    for (r = 0; r < gcam2->height; r++) {
+      for (s = 0; s < gcam2->depth; s++) {
+        if (r == Gx && r == Gy && s == Gz) {
           DiagBreak();
         }
         node2 = &gcam2->nodes[c][r][s];
@@ -19329,9 +19318,13 @@ GCA_MORPH *GCAMconcat2(GCAM *gcam1, GCAM *gcam2, GCAM *out)
         zd = node2->z;
         out_of_gcam1 = GCAMsampleMorph(gcam1, xd, yd, zd, &xdd, &ydd, &zdd);
         node_out = &out->nodes[c][r][s];
-        if (out_of_gcam1)
-        {
+        
+        if (out_of_gcam1) {
+          // Marking as invalid is insufficient, as not written to disk. Set
+          // x/y/z and origx/origy/origz to zero (see GCAMread).
           node_out->invalid = GCAM_POSITION_INVALID;
+          node_out->x = node_out->y = node_out->z = 0.0;
+          node_out->origx = node_out->origy = node_out->origz = 0.0;
           continue;
         }
         node_out->x = xdd;
@@ -19347,7 +19340,7 @@ GCA_MORPH *GCAMconcat2(GCAM *gcam1, GCAM *gcam2, GCAM *out)
       }
     }
   }
-  return out;
+  return (out);
 }
 
 // Create composite morph for warping a source image -> LTA1 -> GCAM -> LTA2 ->
@@ -19358,32 +19351,36 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   GCA_MORPH_NODE *node;
   VECTOR *orig, *v, *w;
   
-  if (lta2)
-  {
+  if (lta2) {
     lta2 = LTAreduce(lta2); // Reduce to single matrix, allocation.
-    if (!vg_isEqual(&gcam->atlas, &lta2->xforms[0].src))
-    {
-      printf("WARNING: GCAMconcat3(): LTA2 geometry does not match\n");
-      //ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): invalid LTA2 geometry");
+    if (!vg_isEqual(&gcam->atlas, &lta2->xforms[0].src)) {
+      if (vg_isEqual(&gcam->atlas, &lta2->xforms[0].dst)) {
+        printf("WARNING: GCAMconcat3(): inverting LTA 2 to match geometry\n");
+        lta2 = LTAinvert(lta2, /*output*/lta2);
+      }
+      else {
+        ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): LTA 2 geometry does not match");
+      }
     }
   }
-  else
-  {
+  else {
     lta2 = LTAalloc(/*nxforms*/1, NULL); // Identity.
     lta2->xforms[0].src = lta2->xforms[0].dst = gcam->atlas;
   }
   
-  if (lta1)
-  {
+  if (lta1) {
     lta1 = LTAreduce(lta1);
-    if (!vg_isEqual(&lta1->xforms[0].dst, &gcam->image))
-    {
-      printf("WARNING: GCAMconcat3(): LTA1 geometry does not match\n");
-      //ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): invalid LTA1 geometry");
+    if (!vg_isEqual(&lta1->xforms[0].dst, &gcam->image)) {
+      if (vg_isEqual(&lta1->xforms[0].src, &gcam->image)) {
+        printf("WARNING: GCAMconcat3(): inverting LTA 1 to match geometry\n");
+        lta1 = LTAinvert(lta1, /*output*/lta1);
+      }
+      else {
+        ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): LTA 1 geometry does not match");
+      }
     }
   }
-  else
-  {
+  else {
     lta1 = LTAalloc(/*nxforms*/1, NULL);
     lta1->xforms[0].src = lta1->xforms[0].dst = gcam->image;
   }
@@ -19392,22 +19389,18 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   LTAfillInverse(lta2);
   LTAfillInverse(lta1);
   
-  if (gcam == out)
-  {
+  if (gcam == out) {
     ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output cannot be input");
   }
   if (out && (out->width != gcam->width || out->height != gcam->height ||
-              out->depth != gcam->depth))
-  {
-    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): size does not match");
+              out->depth != gcam->depth)) {
+    ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output size does not match");
   }
-  if (!out)
-  {
+  if (!out) {
     out = GCAMalloc(gcam->width, gcam->height, gcam->depth);
   }
   
-  if (gcam->type == GCAM_RAS)
-  {
+  if (gcam->type == GCAM_RAS) {
     printf("GCAMconcat3(): converting from GCAM_RAS to GCAM_VOX\n");
     GCAMrasToVox(gcam, NULL);
   }
@@ -19422,14 +19415,10 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   w = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(orig, 4) = 1.0;
   VECTOR_ELT(w, 4) = 1.0;
-  for (c = 0; c < gcam->width; c++)
-  {
-    for (r = 0; r < gcam->height; r++)
-    {
-      for (s = 0; s < gcam->depth; s++)
-      {
-        if (c == Gx && r == Gy && s == Gz)
-        {
+  for (c = 0; c < gcam->width; c++) {
+    for (r = 0; r < gcam->height; r++) {
+      for (s = 0; s < gcam->depth; s++) {
+        if (c == Gx && r == Gy && s == Gz) {
           DiagBreak();
         }
         VECTOR3_LOAD(orig, c, r, s);
@@ -19438,9 +19427,12 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
         out_of_gcam = GCAMsampleMorph(gcam, V3_X(v), V3_Y(v), V3_Z(v),
                                       &V3_X(w), &V3_Y(w), &V3_Z(w));
         node = &out->nodes[c][r][s];
-        if (out_of_gcam)
-        {
+        if (out_of_gcam) {
+          // Marking as invalid is insufficient, as not written to disk. Set
+          // x/y/z and origx/origy/origz to zero (see GCAMread).
           node->invalid = GCAM_POSITION_INVALID;
+          node->x = node->y = node->z = 0.0;
+          node->origx = node->origy = node->origz = 0.0;
           continue;
         }
         MatrixMultiplyD(lta1->inv_xforms[0].m_L, w, v);
@@ -19461,7 +19453,7 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   VectorFree(&orig);
   VectorFree(&v);
   VectorFree(&w);
-  return out;
+  return (out);
 }
 
 GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
@@ -20419,12 +20411,10 @@ GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst)
   int c, r, s;
   if (gcamdst && (gcamdst->width != gcamsrc->width ||
                   gcamdst->height != gcamsrc->height ||
-                  gcamdst->depth != gcamsrc->depth) )
-  {
+                  gcamdst->depth != gcamsrc->depth) ) {
     ErrorExit(ERROR_BADPARM, "GCAMcopy: incompatible size.\n");
   }
-  if (!gcamdst)
-  {
+  if (!gcamdst) {
     gcamdst = GCAMalloc(gcamsrc->width, gcamsrc->height, gcamsrc->depth);
   }
   gcamdst->width = gcamsrc->width;
@@ -20434,14 +20424,12 @@ GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst)
   gcamdst->neg = gcamsrc->neg;
   gcamdst->exp_k = gcamsrc->exp_k;
   gcamdst->spacing = gcamsrc->spacing;
-  if (gcamsrc->mri_xind)
-  {
+  if (gcamsrc->mri_xind) {
     MRIcopy(/*mri_src*/gcamsrc->mri_xind, /*mri_dst*/gcamdst->mri_xind);
     MRIcopy(/*mri_src*/gcamsrc->mri_yind, /*mri_dst*/gcamdst->mri_yind);
     MRIcopy(/*mri_src*/gcamsrc->mri_zind, /*mri_dst*/gcamdst->mri_zind);
   }
-  else
-  {
+  else {
     gcamdst->mri_xind = gcamdst->mri_yind = gcamdst->mri_zind = NULL;
   }
   copyVolGeom(/*from*/&gcamsrc->image, /*to*/&gcamdst->image);
@@ -20453,16 +20441,60 @@ GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst)
   gcamdst->det = gcamsrc->det;
   gcamdst->type = gcamsrc->type;
   // Only GC1D pointer in node, target doesn't not get saved.
-  for (c=0; c<gcamsrc->width; c++)
-  {
-    for (r=0; r<gcamsrc->height; r++)
-    {
-      for (s=0; s<gcamsrc->depth; s++)
-      {
+  for (c=0; c<gcamsrc->width; c++) {
+    for (r=0; r<gcamsrc->height; r++) {
+      for (s=0; s<gcamsrc->depth; s++) {
         memcpy(&gcamdst->nodes[c][r][s], &gcamsrc->nodes[c][r][s], sizeof(GMN));
       }
     }
   }
   gcamdst->vgcam_ms = gcamsrc->vgcam_ms; // Not saved.
-  return gcamdst;
+  return (gcamdst);
 }
+
+// In contrast to LTAs, the geometry of GCA_MORPHs is igored when resampling,
+// e.g. by mri_convert or mri_vol2vol. This function changes the
+// source/destination geometry and modifies the morph accordingly.
+GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst)
+{
+  LTA *lta_src = NULL;
+  LTA *lta_dst = NULL;
+  GCAM *gcam_out = NULL;
+  MATRIX *src_i_to_r;
+  MATRIX *trg_r_to_i;
+  LT *lt;
+  if (mri_src==NULL && mri_dst==NULL) {
+    return (gcam_out);
+  }
+  if (mri_src) {
+    lta_src = LTAalloc(1, NULL);
+    lt = &lta_src->xforms[0];
+    lt->type = LINEAR_VOX_TO_VOX;
+    getVolGeom(mri_src, &lt->src);
+    copyVolGeom(&gcam->image, &lt->dst);
+    src_i_to_r = vg_i_to_r(&lt->src);
+    trg_r_to_i = vg_r_to_i(&lt->dst);
+    lt->m_L = MatrixMultiplyD(trg_r_to_i, src_i_to_r, lt->m_L);
+  }
+  if (mri_dst) {
+    lta_dst = LTAalloc(1, NULL);
+    lt = &lta_dst->xforms[0];
+    lt->type = LINEAR_VOX_TO_VOX;
+    copyVolGeom(&gcam->atlas, &lt->src);
+    getVolGeom(mri_dst, &lt->dst);
+    src_i_to_r = vg_i_to_r(&lt->src);
+    trg_r_to_i = vg_r_to_i(&lt->dst);
+    lt->m_L = MatrixMultiplyD(trg_r_to_i, src_i_to_r, lt->m_L);
+    MatrixFree(&src_i_to_r);
+    MatrixFree(&trg_r_to_i);
+  }
+  gcam_out = GCAMconcat3(lta_src, gcam, lta_dst, NULL); // Allocation.
+  if (lta_src) {
+    LTAfree(&lta_src);
+  }
+  if (lta_dst) {
+    LTAfree(&lta_dst);
+  }
+  return (gcam_out);
+}
+

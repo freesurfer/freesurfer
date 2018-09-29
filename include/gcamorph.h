@@ -263,8 +263,9 @@ int GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations) ;
   int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_vent, int navgs) ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
-GCA_MORPH *GCAMconcat2(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *out);
-GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out);
+GCA_MORPH *GCAMconcat2(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *out) ;
+GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out) ;
+GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst) ;
 GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 
