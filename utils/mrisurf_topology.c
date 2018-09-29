@@ -25,6 +25,25 @@
 //                   and with their partitioning into sets (ripped, marked, ...)
 //                   but not with their placement in the xyz coordinate space
 
+
+//=============================================================================
+// Support for consistency checking
+//
+typedef enum Reported { 
+  Reported_nc  = 1<<1, 
+  Reported_no  = 1<<2,  
+  Reported_ns  = 1<<3, 
+  Reported_ns2 = 1<<4,
+  Reported_vt  = 1<<5, 
+  Reported_bv  = 1<<6,
+  Reported_top = 1<<7, 
+  Reported_f2  = 1<<8,  
+  Reported_f0  = 1<<9, 
+  Reported_fv  = 1<<10,  
+  Reported_fn  = 1<<11, 
+  Reported_nf  = 1<<12,
+  Reported_nv  = 1<<13 } Reported;
+
 typedef struct ReportEntry { struct ReportEntry* next; const char* file; int reported; int count; int elideUntil; } ReportEntry;
 
 static ReportEntry* reportEntry(const char* file, int line) {
@@ -73,27 +92,15 @@ static bool shouldReport(const char* file, int line, int reported) {
     return true;
 }
 
+
 //=============================================================================
 // Vertexs and edges
 //
-int mrisVertexVSize(MRIS const * mris, int vno) {
-  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
-  int c = 0;
-  switch (v->nsizeMax) {
-  case 1: c = v->vnum;  break;
-  case 2: c = v->v2num; break;
-  case 3: c = v->v3num; break;
-  default: break;
-  }
-  if (c < v->vtotal) c = v->vtotal;
-  return c;
-}
-
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mris, bool always)
 {
   if (!always && !lookForReportable(file, line)) return true;
 
-  enum Reported { Reported_nc = 1, Reported_no = 2, Reported_ns = 4, Reported_ns2 = 8, Reported_vt = 16, Reported_bv = 32 } reported = 0;
+  Reported reported = 0;
   
   int vno1;
   for (vno1 = 0; vno1 < mris->nvertices; vno1++) {
@@ -108,7 +115,8 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
      && vSize > 0                                                   // if no neighbors, then these aren't set right
      && !(reported & Reported_ns2)) { reported |= Reported_ns2;
       if (shouldReport(file,line,reported))
-        fprintf(stdout, "[vno1:%d].nsizeCur:%d != mris->nsize:%d vSize:%d vnum:%d vtotal:%d\n", vno1, v->nsizeCur, mris->nsize, vSize, v->vnum, v->vtotal);
+        fprintf(stdout, "[vno1:%d].nsizeCur:%d != mris->nsize:%d vSize:%d vnum:%d vtotal:%d\n", 
+            vno1, v->nsizeCur, mris->nsize, vSize, v->vnum, v->vtotal);
       DiagBreak();
     }
 
@@ -174,6 +182,20 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
 }
 
 
+int mrisVertexVSize(MRIS const * mris, int vno) {
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+  int c = 0;
+  switch (v->nsizeMax) {
+  case 1: c = v->vnum;  break;
+  case 2: c = v->v2num; break;
+  case 3: c = v->v3num; break;
+  default: break;
+  }
+  if (c < v->vtotal) c = v->vtotal;
+  return c;
+}
+
+
 int MRISvalidVertices(MRIS *mris)
 {
   int vno, nvertices, nvalid;
@@ -201,7 +223,7 @@ int edgeExists(MRI_SURFACE *mris, int vno1, int vno2)
 
 
 /*-----------------------------------------------------
-  Go through all the (valid) faces in vno1 and see how man
+  Go through all the (valid) faces in vno1 and see how many
   valid links to vno2 exists.
   ------------------------------------------------------*/
 int mrisCountValidLinks(MRIS *mris, int vno1, int vno2)
@@ -226,114 +248,6 @@ int mrisCountValidLinks(MRIS *mris, int vno1, int vno2)
   }
   return (nvalid);
 }
-
-/*
-  \fn int MRISedges(MRIS *surf)
-  \brief Allocates and assigns edge structures. I think the corner values
-  are not correct.
-*/
-int MRISedges(MRIS *surf)
-{
-  surf->nedges = MRIScountEdges(surf);
-  surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
-
-  // This is not thread safe and cannot be made thread safe
-  int edgeno = 0;
-  int vtxno0;
-  for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
-    VERTEX_TOPOLOGY const * const v0t = &surf->vertices_topology[vtxno0];
-    
-    int nthnbr;
-    for(nthnbr = 0; nthnbr < v0t->vnum; nthnbr++){
-      int const vtxno1 = v0t->v[nthnbr];
-      if(vtxno1 < vtxno0) continue;
-      
-      
-      VERTEX_TOPOLOGY const * const v1t = &surf->vertices_topology[vtxno1];
-      MRI_EDGE * const edge = &(surf->edges[edgeno]);
-      edge->vtxno[0] = vtxno0;
-      edge->vtxno[1] = vtxno1;
-
-      // Find the two faces that adjoin this edge
-      {
-        int k = 0; // k is the nthface out of 2
-        int n;
-        for(n=0; n < v0t->num; n++){ // go thru faces of vtx1
-          int m;
-	  for(m=0; m < v1t->num; m++){ // go thru faces of vtx2
-	    if(v0t->f[n] == v1t->f[m]){ // same face
-	      if(k>1){
-	        printf("ERROR: MRISedge(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
-	        return(1);
-	      }
-	      FACE const * const f = &(surf->faces[v0t->f[n]]);
-	      // get the ordinal corner numbers for the two vertices
-              int c;
-	      for(c=0; c<2; c++){
-	        if(f->v[c] == vtxno0) edge->corner[k][0] = c;
-	        if(f->v[c] == vtxno1) edge->corner[k][1] = c;
-	      }
-	      edge->faceno[k] = v0t->f[n];
-	      k++;
-	    }
-	  }
-        }
-        if(k != 2){
-	  printf("ERROR: MRISedge(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
-	  return(1);
-        }
-      }
-      
-      // Now find the two vertices of the faces that are not common between the faces;
-      // these are the 3rd corner for the two triangles
-      {
-        int k;
-        for(k=0; k<2; k++){ // go thru the two faces
-	  FACE const * const f = &(surf->faces[edge->faceno[k]]); // kth face
-          int c;
-	  for(c=0; c<3; c++){ // go thru the vertices of the kth face
-	    if(f->v[c] != vtxno0 && f->v[c] != vtxno1){
-	      // this is the 3rd corner if it is not vtx1 or vtx2
-	      edge->vtxno[k+2] = f->v[c];
-	      break;
-	    }
-	  }
-        }
-      }
-      
-      // Fill the corner matrix
-      {
-        int n;
-        for(n=0; n<4; n++){ // go thru the four edge vertices
-	  int const m = edge->vtxno[n];
-          int k;
-	  for(k=0; k<2; k++){ // go thru the two faces
-	    FACE const * const f = &(surf->faces[edge->faceno[k]]); // kth face
-            int c;
-	    for(c=0; c<3; c++){ // go thru the vertices of the kth face
-	      // Compare the edge vertex no against the face vertex no
-	      if(f->v[c] == m){
-	        edge->corner[n][k] = c;
-	        break;
-	      }
-	    }
-	  }
-        }
-      }
-      
-      // Note: corner[2][1] and corner[3][0] are not used
-      edge->corner[2][1] = 9;
-      edge->corner[3][0] = 9;
-
-      edgeno++;
-    }
-  }
-
-  return(0);
-}
-
-
-
 
 static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2) 
 {
@@ -454,9 +368,7 @@ int MRISremoveTriangleLinks(MRIS *mris)
 
 
 /*
-  \fn int MRIScountEdges(MRIS *surf)
-  \brief Counts the number of edges on the surface. Edge struct
-  is not needed.
+  Counts the number of edges on the surface. 
 */
 int MRIScountEdges(MRIS *surf)
 {
@@ -476,6 +388,9 @@ int MRIScountEdges(MRIS *surf)
 }
 
 
+//=============================================================================
+// EulerNumber and similar calculations
+//
 int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int *pnedges)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i;
@@ -547,6 +462,114 @@ int MRIStopologicalDefectIndex(MRIS *mris)
 
 
 //=============================================================================
+// MRI_EDGE support
+
+/*
+  Allocates and assigns edge structures. 
+  I think the corner values are not correct.
+*/
+int MRISedges(MRIS *surf)
+{
+  surf->nedges = MRIScountEdges(surf);
+  surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
+
+  // This is not thread safe and cannot be made thread safe
+  int edgeno = 0;
+  int vtxno0;
+  for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
+    VERTEX_TOPOLOGY const * const v0t = &surf->vertices_topology[vtxno0];
+    
+    int nthnbr;
+    for(nthnbr = 0; nthnbr < v0t->vnum; nthnbr++){
+      int const vtxno1 = v0t->v[nthnbr];
+      if(vtxno1 < vtxno0) continue;
+      
+      
+      VERTEX_TOPOLOGY const * const v1t = &surf->vertices_topology[vtxno1];
+      MRI_EDGE * const edge = &(surf->edges[edgeno]);
+      edge->vtxno[0] = vtxno0;
+      edge->vtxno[1] = vtxno1;
+
+      // Find the two faces that adjoin this edge
+      {
+        int k = 0; // k is the nthface out of 2
+        int n;
+        for(n=0; n < v0t->num; n++){ // go thru faces of vtx1
+          int m;
+	  for(m=0; m < v1t->num; m++){ // go thru faces of vtx2
+	    if(v0t->f[n] == v1t->f[m]){ // same face
+	      if(k>1){
+	        printf("ERROR: MRISedge(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
+	        return(1);
+	      }
+	      FACE const * const f = &(surf->faces[v0t->f[n]]);
+	      // get the ordinal corner numbers for the two vertices
+              int c;
+	      for(c=0; c<2; c++){
+	        if(f->v[c] == vtxno0) edge->corner[k][0] = c;
+	        if(f->v[c] == vtxno1) edge->corner[k][1] = c;
+	      }
+	      edge->faceno[k] = v0t->f[n];
+	      k++;
+	    }
+	  }
+        }
+        if(k != 2){
+	  printf("ERROR: MRISedge(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
+	  return(1);
+        }
+      }
+      
+      // Now find the two vertices of the faces that are not common between the faces;
+      // these are the 3rd corner for the two triangles
+      {
+        int k;
+        for(k=0; k<2; k++){ // go thru the two faces
+	  FACE const * const f = &(surf->faces[edge->faceno[k]]); // kth face
+          int c;
+	  for(c=0; c<3; c++){ // go thru the vertices of the kth face
+	    if(f->v[c] != vtxno0 && f->v[c] != vtxno1){
+	      // this is the 3rd corner if it is not vtx1 or vtx2
+	      edge->vtxno[k+2] = f->v[c];
+	      break;
+	    }
+	  }
+        }
+      }
+      
+      // Fill the corner matrix
+      {
+        int n;
+        for(n=0; n<4; n++){ // go thru the four edge vertices
+	  int const m = edge->vtxno[n];
+          int k;
+	  for(k=0; k<2; k++){ // go thru the two faces
+	    FACE const * const f = &(surf->faces[edge->faceno[k]]); // kth face
+            int c;
+	    for(c=0; c<3; c++){ // go thru the vertices of the kth face
+	      // Compare the edge vertex no against the face vertex no
+	      if(f->v[c] == m){
+	        edge->corner[n][k] = c;
+	        break;
+	      }
+	    }
+	  }
+        }
+      }
+      
+      // Note: corner[2][1] and corner[3][0] are not used
+      edge->corner[2][1] = 9;
+      edge->corner[3][0] = 9;
+
+      edgeno++;
+    }
+  }
+
+  return(0);
+}
+
+
+//=============================================================================
 // Neighbourhoods
 //
 // These are the vertexs that can be reached by following vno = mris->vertex_topology[vno]->v[<all>] nsize hops.
@@ -556,6 +579,7 @@ int MRIStopologicalDefectIndex(MRIS *mris)
 //      mris->nsizeMaxClock changes to help detect this bug, but it wraps so is not a guarantee.
 //      Here it is checked to assert vtotal is valid.
 //
+
 int mrisStoreVtotalInV3num(MRIS *mris)
 {
   BUG find out who is doing this and why
@@ -569,7 +593,6 @@ int mrisStoreVtotalInV3num(MRIS *mris)
   
   return (NO_ERROR);
 }
-
 
 
 void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int const vnum)
@@ -655,15 +678,6 @@ void MRISgetNeighborsBeginEnd(
 }
 
     
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  if nsize <=0 then neighborhood size gets reset back to whatever
-  it's max was.
-  ------------------------------------------------------*/
 int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 {
   int new_mris_nsize = nsize;
@@ -779,8 +793,6 @@ int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist
 }
 
 
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
 static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
 {
   int vtmp[MAX_NEIGHBORS], vnum, i, j, n, neighbors, nsize;
@@ -949,10 +961,7 @@ bool mrisCheckVertexFaceTopologyWkr(const char* file, int line, MRIS const * mri
 
   if (!always && !lookForReportable(file, line)) return true;
 
-  enum Reported { 
-    Reported_top = 1, Reported_f2 = 2,  Reported_f0 = 4, 
-    Reported_fv = 8,  Reported_fn = 16, Reported_nf = 32,
-    Reported_nv = 64  } reported = 0;
+  Reported reported = 0;
   
   if (!mrisCheckVertexVertexTopologyWkr(file,line,mris,true)) reported |= Reported_top;
   
