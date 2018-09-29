@@ -224,8 +224,6 @@ int     TransformGetSrcVolGeom(const TRANSFORM *transform, VOL_GEOM *vg) ;
 int     TransformGetDstVolGeom(const TRANSFORM *transform, VOL_GEOM *vg) ;
 int     TransformSetMRIVolGeomToSrc(const TRANSFORM *transform, MRI *mri) ;
 int     TransformSetMRIVolGeomToDst(const TRANSFORM *transform, MRI *mri) ;
-int     TransformSetSrcVolGeomFromMRI(const MRI *mri, TRANSFORM *transform) ;
-int     TransformSetDstVolGeomFromMRI(const MRI *mri, TRANSFORM *transform) ;
 
 // VOL_GEOM utilities
 void initVolGeom(VOL_GEOM *vg);

@@ -3585,7 +3585,7 @@ LTA *LTAinvert(LTA *lta, LTA *ltainv)
 {
   int i, j;
   LINEAR_TRANSFORM *lt;
-  ltainv = LTAcopy(lta, ltainv);
+  if (lta != ltainv) ltainv = LTAcopy(lta, ltainv);
   if (ltainv == NULL) return (NULL);
   LTAfillInverse(ltainv);
   
@@ -4929,40 +4929,6 @@ int TransformSetMRIVolGeomToDst(const TRANSFORM *transform, MRI *mri)
   MRIcopyVolGeomToMRI(mri, &vg);
   return (NO_ERROR);
 }
-int TransformSetSrcVolGeomFromMRI(const MRI *mri, TRANSFORM *transform)
-{
-  GCAM *gcam;
-  LTA *lta;
-  switch (transform->type) {
-    case MORPH_3D_TYPE:
-      gcam = (GCA_MORPH *)transform->xform;
-      getVolGeom(mri, &gcam->image);
-      break;
-    default:
-      lta = (LTA *)transform->xform;
-      getVolGeom(mri, &lta->xforms[0].src);
-      break;
-  }
-  return NO_ERROR;
-}
-int TransformSetDstVolGeomFromMRI(const MRI *mri, TRANSFORM *transform)
-{
-  GCAM *gcam;
-  LTA *lta;
-  int last_xform;
-  switch (transform->type) {
-    case MORPH_3D_TYPE:
-      gcam = (GCA_MORPH *)transform->xform;
-      getVolGeom(mri, &gcam->atlas);
-      break;
-    default:
-      lta = (LTA *)transform->xform;
-      last_xform = lta->num_xforms - 1;
-      getVolGeom(mri, &lta->xforms[last_xform].dst);
-      break;
-  }
-  return NO_ERROR;
-}
 
 LTA *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst)
 {
@@ -5108,32 +5074,29 @@ double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
 
 // Concatenate any combination of LTAs and GCAMs. New nemory is allocated.
 // Reduction is only considered for LTAs. Inverse of any GCAM will be freed.
+// LTAs will be inverted if geometies don't match, or error. The first transform
+// would be applied to images first (to coordinates last).
 TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
 {
   GCAM *gcam;
   LTA *lta;
   TRANSFORM *out;
   TRANSFORM *next;
-  if (numTrx == 0)
-  {
+  if (numTrx == 0) {
     ErrorExit(ERROR_BADPARM, "TransformConcat(): no transform passed\n");
   }
 
   next = trxArray[--numTrx];
   out = TransformCopy(next, NULL);
   
-  while (numTrx > 0)
-  {
+  while (numTrx > 0) {
     next = trxArray[--numTrx];
-    if (out->type == MORPH_3D_TYPE)
-    {
+    if (out->type == MORPH_3D_TYPE) {
       gcam = (GCAM *)out->xform;
-      if (next->type == MORPH_3D_TYPE)
-      {
+      if (next->type == MORPH_3D_TYPE) {
         GCAMconcat2(/*gcam1*/(GCAM *)next->xform, /*gcam2*/gcam, /*out*/gcam);
       }
-      else
-      {
+      else {
         lta = (LTA *)next->xform;
         out->xform = (void *)GCAMconcat3(lta, gcam, /*lta2*/NULL, /*out*/NULL);
         GCAMfree(&gcam);
@@ -5142,23 +5105,20 @@ TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
     }
     
     lta = (LTA *)out->xform;
-    if (next->type == MORPH_3D_TYPE)
-    {
+    if (next->type == MORPH_3D_TYPE) {
       gcam = (GCAM *)next->xform;
       out->xform = (void *)GCAMconcat3(/*lta1*/NULL, gcam, lta, /*out*/NULL);
       out->type = MORPH_3D_TYPE;
     }
-    else
-    {
+    else {
       out->xform = (void *)LTAconcat2((LTA *)next->xform, lta, /*Reduce*/0);
-      if (!out->xform)
-      {
+      if (!out->xform) {
         ErrorExit(ERROR_BADPARM, "ERROR: TransformConcat(): LTAs do not match");
       }
     }
     LTAfree(&lta);
   }
-  return out;
+  return (out);
 }
 
 // Inverts transform in-place, i.e. the original transform is replaced. MRI not
@@ -5167,8 +5127,7 @@ void TransformInvertReplace(TRANSFORM *transform, MRI *mri)
 {
   LTA *lta;
   GCAM *gcam;
-  switch (transform->type)
-  {
+  switch (transform->type) {
     case MORPH_3D_TYPE:
       gcam = (GCAM *)transform->xform;
       if (mri) getVolGeom(mri, /*to*/&gcam->image); // For GCAMfillInverse.

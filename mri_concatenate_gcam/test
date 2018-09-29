@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Test for mri_concatenate_gcam.
+
+
 function error_exit()
 {
     errcode=$?
@@ -9,112 +12,117 @@ function error_exit()
 
 
 set -e # Exit on error.
-set -x
+set -x # Print commands.
 trap error_exit ERR
+
 
 # Set up.
 source fsenv.sh &> /dev/null
 #export FREESURFER_HOME=../distribution
-#export SUBJECTS_DIR=""
-datafile=testdata.tar.gz
-datadir2=$PWD/${datafile%%.*} # Substring before first point.
-datadir=testdata2
-cp -r $datadir2 $datadir
+export SUBJECTS_DIR=""
 cmd=./mri_concatenate_gcam
-lt1=$datadir/lt1.lta
-lt2=$datadir/lt2.lta
-gcam=$datadir/gcam.m3z
-mri=$datadir/nu.mgz
-fsaverage=$FREESURFER_HOME/subjects/fsaverage/mri/orig.mgz
+data=testdata.tar.gz
+dir=$PWD/${data%%.*} # Substring before first point.
+umask 002
+tar -zxvf $data
 
 
-lt1copy=$datadir/lt1copy.lta
-$cmd $lt1 $lt1copy
-diff -I '#' $lt1 $lt1copy
+# Copy LTA:
+in=$dir/im1_to_im2.lta
+out=$dir/out.lta
+$cmd $in $out
+diff -I '#' $out $out # Ignore comments.
 
 
-lt1geom=$datadir/lt1geom.lta
-$cmd --source $fsaverage --dest $fsaverage $lt1 $lt1geom
-srcgeom=$(sed -n '16,21p' $lt1geom)
-dstgeom=$(sed -n '25,30p' $lt1geom)
-refgeom=$(sed -n '16,21p' $lt2)
-diff <(echo "$srcgeom") <(echo "$refgeom")
-diff <(echo "$dstgeom") <(echo "$refgeom")
+# Concatenate LTAs:
+out=$dir/out.lta
+$cmd $dir/{im3_to_im1,im1_to_im2}.lta $out
+num_lta=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $out)
+[[ $num_lta -eq 2 ]] || exit 1
 
 
-lt12=$datadir/lt12.lta
-$cmd $lt1geom $lt2 $lt12
-numlt=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $lt12)
-[[ $numlt -eq 2 ]] || exit 1
+# Ensure inv(A*B) = inv(B) * inv(A):
+in=$out
+lta1=$dir/out1.lta
+$cmd --reduce $in $lta1
+$cmd --invert $lta1 $lta1
+num_lta=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $lta1)
+[[ $num_lta -eq 1 ]] || exit 1
+
+lta2=$dir/out2.lta
+$cmd --invert $in $lta2
+$cmd --reduce $lta2 $lta2
+num_lta=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $lta2)
+[[ $num_lta -eq 1 ]] || exit 1
+
+in=$dir/im1.mgz
+out1=$dir/out1.mgz
+out2=$dir/out1.mgz
+mri_convert --apply_transform $lta1 $in $out1
+mri_convert --apply_transform $lta2 $in $out2
+mri_diff --thresh '0.01' $out1 $out2
 
 
-lt12r=$datadir/lt12r.lta
-lt12i=$datadir/lt12i.lta
-lt12ir=$datadir/lt12ir.lta
-lt12ri=$datadir/lt12ri.lta
-$cmd --reduce $lt12 $lt12r
-$cmd --invert $lt12 $lt12i
-$cmd --reduce $lt12i $lt12ir
-$cmd --invert $lt12r $lt12ri
-im1=$datadir/12ir.mgz
-im2=$datadir/12ri.mgz
-mrif=$datadir/nuf.mgz
-mri_convert --out_data_type float $mri $mrif
-mri_convert --apply_transform $lt12ir $mrif $im1
-mri_convert --apply_transform $lt12ri $mrif $im2
-mri_diff --thresh '0.1' $im1 $im2
+# Change the GCAM source image space:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+src=$dir/im2_in_space1.mgz
+$cmd --srcgeom $dir/im1.mgz $dir/im2_to_im3.m3z $gcam
+mri_convert --like $dir/im1.mgz $dir/im2.mgz $src
+mri_convert -at $gcam $src $out
+mri_diff $out $dir/ref1.mgz
 
-gcamlt=gcamlt.m3z
-im1=$datadir/separate1.mgz
-im2=$datadir/separate2.mgz
-im3=$datadir/combined.mgz
-$cmd $gcam $lt1 $gcamlt
-mri_convert --apply_transform $gcam $mrif $im1
-mri_convert --apply_transform $gcam $im1 $im2
-mri_convert --apply_transform $gcamlt $mrif $im3
-mri_diff $im2 $im3
 
-exit 1
+# Change the GCAM destination space:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+$cmd --dstgeom $dir/im1.mgz $dir/im2_to_im3.m3z $gcam
+mri_convert -at $gcam $dir/im2.mgz $out
+mri_diff $out $dir/ref2.mgz
 
-rm $datadir/*
-rmdir $datadir
+
+# Concatenate LTA with GCAM:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+$cmd $dir/im1_to_im2.lta $dir/im2_to_im3.m3z $gcam
+mri_convert -at $gcam $dir/im1.mgz $out
+mri_diff $out $dir/ref3.mgz
+
+
+# Concatenate GCAM with LTA:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+$cmd $dir/im2_to_im3.m3z $dir/im3_to_im1.lta $gcam
+mri_convert -at $gcam $dir/im2.mgz $out
+mri_diff $out $dir/ref4.mgz
+
+
+# Concatenate LTA with GCAm with LTA:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+$cmd $dir/im1_to_im2.lta $dir/im2_to_im3.m3z $dir/im3_to_im1.lta $gcam
+mri_convert -at $gcam $dir/im1.mgz $out
+mri_diff $out $dir/ref5.mgz
+
+
+# Concatenate two GCAMs:
+out=$dir/out.mgz
+gcam=$dir/gcam.m3z
+$cmd $dir/im2_to_im3.m3z $dir/im3_to_im2.m3z $gcam
+mri_convert -at $gcam $dir/im2.mgz $out
+mri_diff $out $dir/ref6.mgz
+
+
+# Compare to repeatedly interpolating, e.g.:
+# out=$dir/out.mgz
+# in=$dir/im1.mgz
+# mri_convert -at $dir/im1_to_im2.lta $in $out
+# mri_convert -at $dir/im2_to_im3.m3z $out $out
+# mri_convert -at $dir/im3_to_im1.lta $out $out
+
+
 echo PASSED
+rm $dir/*
+rmdir $dir
 exit 0
-
-$cmd --source $fsaverage --dest $fsaverage identity.nofile test.lta
-
-
-mri_convert --apply_transform $lta1 $nu a.mgz
-mri_convert --apply_transform tmp.lta nu.mgz tmp.mgz
-mri_diff a.mgz tmp.mgz
-
-
-
-
-
-#datafile=testdata.tar.gz
-#datadir=$PWD/${datafile%%.*} # Substring before first point.
-#insurf=$datadir/rh.pial.src
-#refsurf=$datadir/rh.pial.ref
-#outsurf=$datadir/rh.pial.out
-#
-#
-## Extract test data.
-#umask 002
-#tar -zxvf $datafile
-#
-#
-## Apply linear warp and check return value of program.
-#./mris_transform \
-#  --src $datadir/src.mgz \
-#  --dst $datadir/dst.mgz \
-#  $insurf $datadir/wrp.m3z $outsurf
-#assertpass
-#
-#
-## Compare result against reference surface.
-#../mris_diff/mris_diff $outsurf $refsurf
-#assertpass
-
-
 

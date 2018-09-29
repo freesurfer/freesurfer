@@ -26,7 +26,9 @@
 <help>
   <name>mri_concatenate_gcam -- concatenate transforms</name>
   <synopsis>mri_concatenate_gcam [options] input ... ouput</synopsis>
-  <description>This program concatenates a combination of input LTAs (linear transform) and GCAMs (non-linear M3Z warps). The passed transforms are applied in the order specified on the command line, that is the first transform would be applied to an image first (but to coordinates last, as the transforms applied to coordinates are the inverse of those applied to images).</description>
+  <description>This program concatenates a combination of input LTAs (linear transform) and GCAMs (non-linear M3Z warps). The passed transforms are applied in the order specified on the command line, that is the first transform would be applied to an image first (but to coordinates last, as the transforms applied to coordinates are the inverse of those applied to images).
+      Note that binaries such as mri_convert or mri_vol2vol ignore the source and target geometry of M3Zs. To morph an image from or to a differrent space, the M3Z geometry needs to be changed first.
+  </description>
   <arguments>
     <positional>
       <argument>input</argument>
@@ -38,14 +40,12 @@
       <intro>None</intro>
     </required-flagged>
     <optional-flagged>
-      <argument>-w, --ras</argument>
-      <explanation>Create transform in RAS world space, default is voxel space of source image</explanation>
-      <argument>-s, --source</argument>
-      <explanation>Override source image geometry of output transform, useful e.g. for GCAM inversion if the path of the original source volume changed</explanation>
-      <argument>-d, --dest</argument>
-      <explanation>Override destination image geometry of output transform, the transform itself is not changed</explanation>
+      <argument>-s, --srcgeom</argument>
+      <explanation>Change source image geometry of output M3Z, useful e.g. for GCAM inversion if the path of the original source volume changed (ignored if output is M3Z)</explanation>
+      <argument>-d, --dstgeom</argument>
+      <explanation>Change destination image geometry of output transform, the transform is modified accordingly (ignored if output is M3Z)</explanation>
       <argument>-r, --reduce</argument>
-      <explanation>Reduce to single LTA, ignored if output is M3Z</explanation>
+      <explanation>Reduce to single LTA (ignored if output is M3Z)</explanation>
       <argument>-i, --invert</argument>
       <explanation>Invert the output transformation</explanation>
     </optional-flagged>
@@ -58,8 +58,8 @@
     mri_concatenate_gcam -r -i in.lta out.lta</example>
   <example>Concatenate transforms:
     mri_concatenate_gcam in1.fslmat in2.m3z in3.m3z in4.lta out.m3z</example>
-  <example>Change source image geometry:
-    mri_concatenate_gcam --dest norm.nii in.m3z out.m3z</example>
+  <example>Change M3Z to reflect different source image geometry:
+    mri_concatenate_gcam --srcgeom norm.nii in.m3z out.m3z</example>
   <bugs>None</bugs>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
   <see-also>mri_concatenate_lta, mri_warp_convert</see-also>
