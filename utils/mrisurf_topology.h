@@ -27,17 +27,24 @@
 
 
 int edgeExists(MRIS *mris, int vno1, int vno2);
-int triangleMarked(MRIS *mris, int fno);
+int mrisRemoveLink(MRIS *mris, int vno1, int vno2);
+
 
 // Vertices and Faces interact via edges
 //
 int mrisCountValidLinks(MRIS *mris, int vno1, int vno2);
-int isFace(MRIS *mris, int vno0, int vno1, int vno2);
+
 int findFace(MRIS *mris, int vno0, int vno1, int vno2);
+    // Return the index of the triangular face vno0-->vno1-->vno2, or -1
+bool isFace(MRIS *mris, int vno0, int vno1, int vno2);
+    // Like findFace but returns findFace(...) >= 0
+    
 int mrisValidFaces(MRIS *mris);
 int vertexInFace(MRIS *mris, int vno, int fno);
 int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1);
-int mrisRemoveLink(MRIS *mris, int vno1, int vno2);
+
+
+bool triangleMarked(MRIS *mris, int fno);               // are any of the face's vertices marked?
 int findNonMarkedFace(MRIS *mris, int vno, int vn1);
 
 int computeOrientation(MRIS *mris, int f, int v0, int v1);
