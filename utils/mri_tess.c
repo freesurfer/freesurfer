@@ -422,7 +422,7 @@ static int mrisFindNeighbors2(MRI_SURFACE *mris)
     if (!mris->vertices_topology[k].v) ErrorExit(ERROR_NOMEMORY, "mrisFindNeighbors2: could not allocate nbr array");
 
     vt->vtotal = vt->vnum;
-    vt->nsizeMax = vt->nsizeCur = 1;
+    vt->nsize = 1;
     for (i = 0; i < vt->vnum; i++) {
       vt->v[i] = vtmp[i];
     }

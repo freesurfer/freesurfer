@@ -157,7 +157,7 @@ MRI_SURFACE *ic42_make_surface(int max_vertices, int max_faces)
                 "dists at v=%d",
                 vt->vnum,
                 vno);
-    vt->nsizeMax = vt->nsizeCur = 1;
+    vt->nsize = 1;
     vt->vtotal = vt->vnum;
   }
 

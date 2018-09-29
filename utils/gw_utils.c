@@ -145,7 +145,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
                 __func__,
                 vt->vnum,
                 vno);
-    vt->nsizeMax = vt->nsizeCur = 1;
+    vt->nsize = 1;
     vt->vtotal = vt->vnum;
   }
 
