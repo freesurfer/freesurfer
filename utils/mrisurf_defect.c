@@ -87,46 +87,50 @@ static DEFECT_VERTEX_STATE* mrisRecordVertexState(MRIS const * const mris, DEFEC
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
 
-    cheapAssert(!v->ripflag);
+    if (v->ripflag) {
+      vs->vtotal = -1;
+    } else {
 
-    // save the topology
-    //
-    vs->nsizeCur = vt->nsizeCur;
-    vs->nsizeMax = vt->nsizeMax;
-    vs->vtotal   = vt->vtotal;
-    vs->vnum     = vt->vnum;
-    vs->v2num    = vt->v2num;
-    vs->v3num    = vt->v3num;
+      // save the topology
+      //
+      vs->nsizeCur = vt->nsizeCur;
+      vs->nsizeMax = vt->nsizeMax;
+      vs->vtotal   = vt->vtotal;
+      vs->vnum     = vt->vnum;
+      vs->v2num    = vt->v2num;
+      vs->v3num    = vt->v3num;
 
-    int const vsize = mrisVertexVSize(mris, vno);   // vtotal is based on nsizeCur, but may be bigger
-    if (vsize) {                                    // and we need to restore up to nsizeMax
-      int* vv = (int *)malloc(vs->vtotal*sizeof(int));
-      if (!vv) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
-      memcpy(vv,vt->v,vsize*sizeof(int));
-      vs->v = vv;
+      int const vsize = mrisVertexVSize(mris, vno);   // vtotal is based on nsizeCur, but may be bigger
+      if (vsize) {                                    // and we need to restore up to nsizeMax
+        int* vv = (int *)malloc(vs->vtotal*sizeof(int));
+        if (!vv) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
+        memcpy(vv,vt->v,vsize*sizeof(int));
+        vs->v = vv;
+      }
+
+      if (vt->num > 0) {
+        int num = vt->num;
+        vs->f = (int           *)malloc(num*sizeof(int));
+        vs->n = (unsigned char *)malloc(num*sizeof(unsigned char));
+        if (!vs->f || !vs->n) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
+        memcpy(vs->f,vt->f,num*sizeof(int));
+        memcpy(vs->n,vt->n,num*sizeof(unsigned char));
+        vs->num = num;
+      }
+
+      // Save the original position
+      //
+      vs->origx = v->origx; 
+      vs->origy = v->origy;
+      vs->origz = v->origz;
+
+      vs->nx = v->nx;
+      vs->ny = v->ny;
+      vs->nz = v->nz;
     }
-    
-    if (vt->num > 0) {
-      int num = vt->num;
-      vs->f = (int           *)malloc(num*sizeof(int));
-      vs->n = (unsigned char *)malloc(num*sizeof(unsigned char));
-      if (!vs->f || !vs->n) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
-      memcpy(vs->f,vt->f,num*sizeof(int));
-      memcpy(vs->n,vt->n,num*sizeof(unsigned char));
-      vs->num = num;
-    }
-
-    // Save the original position
+        
+    // Save the checksum to test all put back correctly.
     //
-    vs->origx = v->origx; 
-    vs->origy = v->origy;
-    vs->origz = v->origz;
-
-    vs->nx = v->nx;
-    vs->ny = v->ny;
-    vs->nz = v->nz;
-    
-    // Save the checksum to make sure nothing else changes
     // For performance reasons, can't afford to check the hash every time, so vs->hash.hash is usually left 0
     //
     static size_t count, limit = 1; // no locking needed - doesn't matter if it gets it wrong...
@@ -147,6 +151,8 @@ static void mrisRestoreOneVertexFaceState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE
   if (vno < 0) return;
 
   VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+
+  if (vs->vtotal == -1) return;
 
   int const num = vs->num;
   vt->num = num;
@@ -170,6 +176,8 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
 
   VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
   VERTEX          * const v  = &mris->vertices         [vno];
+
+  if (vs->vtotal == -1) goto Done;     // was ripped
 
   // Do the face
   //
@@ -206,6 +214,7 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
     
   memcpy(vt->v,vs->v,vsize*sizeof(int));
 
+Done:
   if (vs->hash.hash) {
     MRIS_HASH hash;
     mrisVertexHash(&hash, mris, vno);
