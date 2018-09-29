@@ -54,6 +54,14 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order);
 MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order);
 MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order);
 
+static void resetAllVertexNsize(MRIS* mris_high) {
+  int m;
+  for (m = 0; m < mris_high->nvertices; m++) {
+    mris_high->vertices_topology[m].nsizeMax = 1; 
+    mris_high->vertices_topology[m].nsizeCur = 1;
+  }
+}
+
 MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
 {
   /* Initialize Ij,k*/
@@ -69,7 +77,7 @@ MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
     MRIS* mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -123,7 +131,7 @@ MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
     MRIS* mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
 
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -208,7 +216,7 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
     MRIS* mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -263,7 +271,7 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
     MRIS* mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
 
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -373,7 +381,7 @@ MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order)
     MRIS * mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -424,7 +432,7 @@ MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order)
   for (i = 1; i <= order; i++) {
     MRIS* mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -509,7 +517,7 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
     MRIS * mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
 
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices
@@ -563,7 +571,7 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
     MRIS * mris_high = ReadIcoByOrder(i, 100);  // higher order surface
     
     int m;
-    for (m = 0; m < mris_high->nvertices; m++) mris_high->vertices_topology[m].nsize = 1;
+    resetAllVertexNsize(mris_high);
     
     MRISsetNeighborhoodSizeAndDist(mris_high, 3);
     int const number = IcoNVtxsFromOrder(i - 1);  // the start of m vertices

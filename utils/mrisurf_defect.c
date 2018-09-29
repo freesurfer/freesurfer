@@ -8588,7 +8588,9 @@ MRI_SURFACE *MRIScorrectTopology(
       DiagBreak();
     }
 
-    vdstt->nsize = vt->nsize;
+    // vdstt->nsize = vt->nsize;
+        // This is wrong because the code below does not copy v2num etc
+        
     /* original vertices */
     vdst->x = v->x;
     vdst->y = v->y;
@@ -8636,7 +8638,6 @@ MRI_SURFACE *MRIScorrectTopology(
       /* only add the kept vertices in greedy_search mode */
       if (parms->search_mode != GREEDY_SEARCH || defect->status[n] == KEEP_VERTEX) {
         vno = defect->vertices[n];
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
         VERTEX          const * const v  = &mris->vertices         [vno];
         if (vno == Gdiag_no) {
           DiagBreak();
@@ -8648,7 +8649,9 @@ MRI_SURFACE *MRIScorrectTopology(
           DiagBreak();
         }
 
-        vdstt->nsize = vt->nsize;
+        // vdstt->nsize = vt->nsize;
+            // This is wrong because the code below does not copy dist, dist_orig, nsizeCur, etc. nor v2num nor v3num
+                    
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
@@ -8762,12 +8765,14 @@ MRI_SURFACE *MRIScorrectTopology(
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->vnum++;
       }
-    vdstt->vtotal = vdstt->vnum;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
+      
+    vdstt->nsizeCur = vdstt->nsizeMax = 1;
+    vdstt->vtotal = vdstt->vnum;
   }
 
   MRISclearMarks(mris);

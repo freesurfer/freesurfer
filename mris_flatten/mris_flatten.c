@@ -377,7 +377,7 @@ main(int argc, char *argv[])
   } 
   else
   {
-    MRISresetNeighborhoodSize(mris, mris->vertices_topology[0].nsize) ; // set back to max
+    MRISresetNeighborhoodSize(mris, mris->vertices_topology[0].nsizeMax) ; // set back to max
     if (label_fname) // read in a label instead of a patch
     {
       LABEL *area ;
