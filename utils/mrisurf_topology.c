@@ -556,36 +556,6 @@ int MRIStopologicalDefectIndex(MRIS *mris)
 //      mris->nsizeMaxClock changes to help detect this bug, but it wraps so is not a guarantee.
 //      Here it is checked to assert vtotal is valid.
 //
-void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int const vnum)
-{
-  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-  VERTEX          * const v  = &mris->vertices         [vno];
-
-  vt->vnum  = vnum; 
-  vt->v2num = 0;
-  vt->v3num = 0;
-  
-  vt->nsizeCur = vt->nsizeMax = 1; 
-  vt->vtotal   = vt->vnum;
-
-  if (vt->vnum > 0) {
-  
-    // allocating zero is a free, but keep the pointers around to optimize growing them again
-    //
-    int const intSize   = vnum*sizeof(int);
-    int const floatSize = vnum*sizeof(float);
-
-    vt->v        = (int   *)realloc(vt->v,        intSize);   bzero(vt->v,        intSize);
-    v->dist      = (float *)realloc(v->dist,      floatSize); bzero(v->dist,      floatSize);
-    v->dist_orig = (float *)realloc(v->dist_orig, floatSize); bzero(v->dist_orig, floatSize);
-
-    if (!v->dist || !v->dist_orig) {
-      ErrorExit(ERROR_NO_MEMORY, "mrisVertexReplacingNeighbors: could not allocate dist %d num", vt->vtotal);
-    }
-  }
-}
-
-
 int mrisStoreVtotalInV3num(MRIS *mris)
 {
   BUG find out who is doing this and why
@@ -602,10 +572,50 @@ int mrisStoreVtotalInV3num(MRIS *mris)
 
 
 
-void mrisReplacingNeighbors(MRIS const * const mris) {
+void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int const vnum)
+{
+  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+  VERTEX          * const v  = &mris->vertices         [vno];
+
+  int const oldVnum = vt->vnum;
+  
+  vt->vnum  = vnum; 
+  vt->v2num = 0;
+  vt->v3num = 0;
+  
+  vt->nsizeCur = vt->nsizeMax = 1; 
+  vt->vtotal   = vt->vnum;
+
+  // allocating zero is a free: keep the pointers around to optimize growing them again
+  //           non-zero:        change to the new size
+  //
+  if (vt->vnum > 0) {
+    int const intSize   = vnum*sizeof(int);
+    int const floatSize = vnum*sizeof(float);
+    vt->v        = (int   *)realloc(vt->v,        intSize);
+    v->dist      = (float *)realloc(v->dist,      floatSize);
+    v->dist_orig = (float *)realloc(v->dist_orig, floatSize);
+    if (!vt->v || !v->dist || !v->dist_orig) {
+      ErrorExit(ERROR_NO_MEMORY, "mrisVertexReplacingNeighbors: could not allocate dist %d num", vt->vtotal);
+    }
+  }
+      
+  // Zero the added storage, if any
+  //
+  if (oldVnum < vnum) {
+    int const intSizeChange   = (vnum - oldVnum)*sizeof(int);
+    int const floatSizeChange = (vnum - oldVnum)*sizeof(float);
+    bzero(vt->v        + oldVnum,   intSizeChange);
+    bzero(v->dist      + oldVnum, floatSizeChange); 
+    bzero(v->dist_orig + oldVnum, floatSizeChange);
+  }
+}
+
+
+void mrisForgetNeighborhoods(MRIS const * const mris) {
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    mrisVertexReplacingNeighbors(mris, vno, 0);
+    mrisVertexReplacingNeighbors(mris, vno, mris->vertices_topology[vno].vnum);
   }
 }
 
