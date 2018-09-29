@@ -13471,7 +13471,9 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
     VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
     
-    vdstt->nsize = vt->nsize;
+    // vdstt->nsize = vt->nsize;
+        // this is wrong because the code below doesnt copy v2num etc
+        
     /* original vertices */
     vdst->x = v->x;
     vdst->y = v->y;
@@ -13563,6 +13565,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
         vdstt->vnum++;
       }
     vdstt->vtotal = vdstt->vnum;
+    vdstt->nsizeCur = vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
@@ -14211,7 +14214,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   int newNVertices = 0;
   for (nrippedvertices = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
     /* ignore the ripped vertices */
     if (v->ripflag) {
@@ -14219,9 +14222,10 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save vertex information */
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+    // VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
     VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
-    vdstt->nsize = vt->nsize;
+    // vdstt->nsizeMax = vt->nsize;
+        // This is wrong because the code below does not copy v2num etc
     vdst->x = v->x;
     vdst->y = v->y;
     vdst->z = v->z;
@@ -14312,6 +14316,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
         vdstt->vnum++;
       }
     vdstt->vtotal = vdstt->vnum;
+    vdstt->nsizeMax = vdstt->nsizeCur = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
@@ -16084,13 +16089,20 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
   ------------------------------------------------------*/
 MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 {
+  mrisCheckVertexFaceTopology(mris_src);
+
   MRI_SURFACE *mris_dst;
   int vno, fno, n;
   FACE *fsrc, *fdst;
 
   mris_dst = MRISalloc(mris_src->nvertices, mris_src->nfaces);
 
-  mris_dst->type = mris_src->type;  // missing
+  mris_dst->type = mris_src->type;
+  
+  mris_dst->nsize                   = mris_src->nsize;
+  mris_dst->max_nsize               = mris_src->max_nsize;
+  mris_dst->nsizeMaxClock           = mris_src->nsizeMaxClock;
+  
   mris_dst->hemisphere = mris_src->hemisphere;
   mris_dst->xctr = mris_src->xctr;
   mris_dst->yctr = mris_src->yctr;
@@ -16117,6 +16129,7 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
   mris_dst->SRASToTalSRAS_ = mris_src->SRASToTalSRAS_;
   mris_dst->TalSRASToSRAS_ = mris_src->TalSRASToSRAS_;
   mris_dst->free_transform = 0;  // mark not to try to free them
+  //                             // BUG - THE mris_src may still free them!  reference counting needed.
   /////////////////////////////////////////////////////////////
   if (mris_src->v_frontal_pole)
     mris_dst->v_frontal_pole = &mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices];
@@ -16132,6 +16145,11 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     VERTEX          const * const vsrc  = &mris_src->vertices         [vno];
     VERTEX_TOPOLOGY       * const vdstt = &mris_dst->vertices_topology[vno];
     VERTEX                * const vdst  = &mris_dst->vertices         [vno];
+    
+    vdst->ripflag = vsrc->ripflag;
+        //
+        // Even in ripped vertices, the topology below must be maintained
+        
     vdst->x = vsrc->x;
     vdst->y = vsrc->y;
     vdst->z = vsrc->z;
@@ -16155,36 +16173,50 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 
     if (vdstt->num) {
       vdstt->f = (int *)calloc(vdstt->num, sizeof(int));
-      if (!vdstt->f) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces", vdstt->num);
       vdstt->n = (uchar *)calloc(vdstt->num, sizeof(uchar));
+      if (!vdstt->f) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces", vdstt->num);
       if (!vdstt->n) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vdstt->num);
-      vdst->dist = (float *)calloc(vdstt->vtotal, sizeof(float));
-      if (!vdst->dist) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vdstt->vtotal);
-      vdst->dist_orig = (float *)calloc(vdstt->vtotal, sizeof(float));
-      if (!vdst->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vdstt->vtotal);
       for (n = 0; n < vdstt->num; n++) {
         vdstt->n[n] = vsrct->n[n];
         vdstt->f[n] = vsrct->f[n];
       }
+    }
+    
+    vdstt->vnum     = vsrct->vnum;
+    vdstt->v2num    = vsrct->v2num;
+    vdstt->v3num    = vsrct->v3num;
+    vdstt->nsizeMax = vsrct->nsizeMax;
+    vdstt->nsizeCur = vsrct->nsizeCur;
+    vdstt->vtotal   = vsrct->vtotal;
+    vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
+    
+    {
+      int vSize = mrisVertexVSize(mris_src, vno);
+
+      if (vSize) {
+        vdstt->v = (int *)calloc(vSize, sizeof(int));
+        if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vSize);
+        for (n = 0; n < vSize; n++) {
+          vdstt->v[n] = vsrct->v[n];
+        }
+      }
+
+      vdst->dist      = (float *)calloc(vSize, sizeof(float));
+      vdst->dist_orig = (float *)calloc(vSize, sizeof(float));
+      if (!vdst->dist     ) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
+      if (!vdst->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
       if (vsrc->dist)
-        for (n = 0; n < vdstt->vtotal; n++) {
+        for (n = 0; n < vSize; n++) {
           vdst->dist[n] = vsrc->dist[n];
         }
       if (vsrc->dist_orig)
-        for (n = 0; n < vdstt->vtotal; n++) {
+        for (n = 0; n < vSize; n++) {
           vdst->dist_orig[n] = vsrc->dist_orig[n];
         }
     }
-    if (vdstt->vnum) {
-      vdstt->v = (int *)calloc(vdstt->vtotal, sizeof(int));
-      if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vdstt->vtotal);
-      for (n = 0; n < vdstt->vtotal; n++) {
-        vdstt->v[n] = vsrct->v[n];
-      }
-    }
-    vdst->ripflag = vsrc->ripflag;
-    vdst->border = vsrc->border;
-    vdst->area = vsrc->area;
+    
+    vdst->border   = vsrc->border;
+    vdst->area     = vsrc->area;
     vdst->origarea = vsrc->origarea;
 #if 0
     vdst->oripflag = vsrc->oripflag ;
@@ -16197,7 +16229,17 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
     fsrc = &mris_src->faces[fno];
     fdst = &mris_dst->faces[fno];
     memmove(fdst, fsrc, sizeof(FACE));
+    
+    // The pointer fields need special handling
+    if (fsrc->norm) fdst->norm = DMatrixCopy(fsrc->norm, NULL);
+    int i;
+    for (i = 0; i < 3; i++) {
+      if (fsrc->gradNorm[i]) fdst->gradNorm[i] = DMatrixCopy(fsrc->gradNorm[i], NULL);
+    }
   }
+
+  mrisCheckVertexFaceTopology(mris_dst);
+
   // copy geometry info
   copyVolGeom(&mris_src->vg, &mris_dst->vg);
 
