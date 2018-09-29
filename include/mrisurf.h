@@ -2690,6 +2690,9 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 // Neighbourhoods
 //
 #define MAX_NEIGHBORS (400)
+void mrisVertexReplacingNeighbors(MRIS const * mris, int vno, int vnum);
+void mrisReplacingNeighbors      (MRIS const * mris);
+
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, int *vlist);
