@@ -9278,12 +9278,21 @@ MRI_SURFACE *MRIScorrectTopology(
   }
 #endif
 
-  mrisReplacingNeighbors(mris_corrected);
+  mrisForgetNeighborhoods(mris_corrected);
   
   mrisCheckVertexFaceTopology(mris_corrected);
 
   fprintf(WHICH_OUTPUT, "computing original vertex metric properties...\n");
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES);
+  
+  if (0) {
+    const char * fnm = "./after_MRISrestoreVertexPositions.log";
+    fprintf(stdout, "%s:%d Dump shape to %s\n",__FILE__,__LINE__,fnm);
+    FILE* file = fopen(fnm,"w");
+    mrisDumpShape(file, mris_corrected);
+    fclose(file);
+  }
+  
   /* at this point : smoothed corrected orig vertices */
   MRIScomputeMetricProperties(mris_corrected);
   fprintf(WHICH_OUTPUT, "storing new metric properties...\n");
