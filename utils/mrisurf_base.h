@@ -336,8 +336,6 @@ int mrisDirectionTriangleIntersection(
 int mrisAllNormalDirectionCurrentTriangleIntersections(
     MRIS *mris, VERTEX *v, MHT *mht, double *pdist, int *flist);
 
-void mrisDumpShape(FILE* file, MRIS const * mris);
-
 int mrisWriteSnapshots(MRIS *mris, INTEGRATION_PARMS *parms, int t);
 int mrisWriteSnapshot (MRIS *mris, INTEGRATION_PARMS *parms, int t);
     // not yet moved there, because saves and restores vertices
