@@ -289,7 +289,7 @@ main(int argc, char *argv[])
           "cortical surface...\n") ;
 
   mris_corrected =
-    MRIScorrectTopology(mris, NULL, mri, mri_wm, nsmooth, &parms, defectbasename) ;
+    MRIScorrectTopology(mris, mri, mri_wm, nsmooth, &parms, defectbasename) ;
   /* at this point : original vertices
      real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;

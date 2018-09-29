@@ -175,17 +175,35 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
         MRIS const * mris = mrisPVector[i];
         VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
         VERTEX          const * v  = &mris->vertices         [vno];
-        
-        hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist),      vt->vnum * sizeof(v->dist[0]));
-        if (showHashCalc) {
-            fprintf(stdout, "After dist hash is %ld\n", hash->hash);
+        int vsize = mrisVertexVSize(mris, vno);
+        if (vt->v) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->v),        vsize * sizeof(vt->v[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After v hash is %ld\n", hash->hash);
+            }
         }
-        hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist_orig), vt->vnum * sizeof(v->dist_orig[0]));
-        if (showHashCalc) {
-            fprintf(stdout, "After dist_orig hash is %ld\n", hash->hash);
+        if (vt->f) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->f),        vt->num * sizeof(vt->f[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After f hash is %ld\n", hash->hash);
+            }
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->n),        vt->num * sizeof(vt->n[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After n hash is %ld\n", hash->hash);
+            }
+        }
+        if (v->dist) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist),      vsize * sizeof(v->dist[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After dist hash is %ld\n", hash->hash);
+            }
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist_orig), vsize * sizeof(v->dist_orig[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After dist_orig hash is %ld\n", hash->hash);
+            }
         }
         if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {
-            fprintf(showDiff, "Differ at vertices:%d field dist and dist_orig\n", vno);
+            fprintf(showDiff, "Differ at vertices:%d field v f n dist and dist_orig\n", vno);
             return false;
         }
     }

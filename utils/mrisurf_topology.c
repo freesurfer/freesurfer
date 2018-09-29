@@ -101,10 +101,14 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
 
     if (mris->vertices[vno1].ripflag) continue;
       
-    if (mris->nsize > 0 && mris->nsize != v->nsizeCur 
+    int vSize = mrisVertexVSize(mris, vno1);
+
+    if (mris->nsize > 0 
+     && mris->nsize != v->nsizeCur 
+     && vSize > 0                                                   // if no neighbors, then these aren't set right
      && !(reported & Reported_ns2)) { reported |= Reported_ns2;
       if (shouldReport(file,line,reported))
-        fprintf(stdout, "[vno1:%d].nsizeCur:%d != mris->nsize:%d\n", vno1, v->nsizeCur, mris->nsize);
+        fprintf(stdout, "[vno1:%d].nsizeCur:%d != mris->nsize:%d vSize:%d vnum:%d vtotal:%d\n", vno1, v->nsizeCur, mris->nsize, vSize, v->vnum, v->vtotal);
       DiagBreak();
     }
 
@@ -134,8 +138,6 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
         fprintf(stdout, "[vno1:%d].vtotal:%d differs from expected:%d for nsize:%d, ripflag:%d\n", vno1, v->vtotal, vtotalExpected, v->nsizeCur, 0);
       DiagBreak();
     }
-
-    int vSize = mrisVertexVSize(mris, vno1);
 
     int n;
     for (n = 0; n < vSize; n++) {
@@ -174,8 +176,6 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
 #define MAX_VLIST 255
 static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2) 
 {
-  int vlist[MAX_VLIST];
-
   if (vno1 < 0 || vno2 < 0) {
     DiagBreak();
   }
@@ -190,35 +190,21 @@ static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2)
   /* add v2 link to v1 struct */
   {
     VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
-    if (v->vnum >= MAX_VLIST - 1) {
-      ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)", v->vnum);
-    }
-
-    memmove(vlist, v->v, v->vnum * sizeof(int));
-    vlist[(unsigned int)v->vnum++] = vno2;
-    v->vtotal = v->vnum;
-    if (v->v) {
-      free(v->v);
-    }
-    v->v = (int *)calloc(v->vnum, sizeof(int));
+    v->v = (int*)realloc(v->v, (v->vnum+1)*sizeof(int));
     if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-    memmove(v->v, vlist, v->vnum * sizeof(int));
+    v->v[v->vnum++] = vno2;
+    v->vtotal = v->vnum; v->nsizeCur = v->nsizeMax = 1;
   }
   
   /* add v1 link to v2 struct */
   {
     VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno2];
-    memmove(vlist, v->v, v->vnum * sizeof(int));
-    vlist[(unsigned int)v->vnum++] = vno1;
-    v->vtotal = v->vnum;
-    if (v->v) {
-      free(v->v);
-    }
-    v->v = (int *)calloc(v->vnum, sizeof(int));
+    v->v = (int*)realloc(v->v, (v->vnum+1)*sizeof(int));
     if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-    memmove(v->v, vlist, v->vnum * sizeof(int));
+    v->v[v->vnum++] = vno1;
+    v->vtotal = v->vnum; v->nsizeCur = v->nsizeMax = 1;
   }
   
 }
@@ -269,14 +255,21 @@ void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int co
   vt->nsizeCur = vt->nsizeMax = 1; 
   vt->vtotal   = vt->vnum;
 
-  int const intSize   = vnum*sizeof(int);
-  int const floatSize = vnum*sizeof(float);
-    
-  vt->v        = (int   *)realloc(vt->v,        intSize);   bzero(vt->v,        intSize);
-  v->dist      = (float *)realloc(v->dist,      floatSize); bzero(v->dist,      floatSize);
-  v->dist_orig = (float *)realloc(v->dist_orig, floatSize); bzero(v->dist_orig, floatSize);
-    
-  if (!v->dist || !v->dist_orig) ErrorExit(ERROR_NO_MEMORY, "mrisVertexReplacingNeighbors: could not allocate dist %d num", vt->vtotal);
+  if (vt->vnum > 0) {
+  
+    // allocating zero is a free, but keep the pointers around to optimize growing them again
+    //
+    int const intSize   = vnum*sizeof(int);
+    int const floatSize = vnum*sizeof(float);
+
+    vt->v        = (int   *)realloc(vt->v,        intSize);   bzero(vt->v,        intSize);
+    v->dist      = (float *)realloc(v->dist,      floatSize); bzero(v->dist,      floatSize);
+    v->dist_orig = (float *)realloc(v->dist_orig, floatSize); bzero(v->dist_orig, floatSize);
+
+    if (!v->dist || !v->dist_orig) {
+      ErrorExit(ERROR_NO_MEMORY, "mrisVertexReplacingNeighbors: could not allocate dist %d num", vt->vtotal);
+    }
+  }
 }
 
 

@@ -1920,7 +1920,7 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,
 MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
-MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, 
+MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI *mri, 
    MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, char *defectbasename);
 
 int MRISsmoothOnSphere(MRIS* mris, int niters);
