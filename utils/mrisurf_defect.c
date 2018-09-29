@@ -6853,7 +6853,7 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
         }
     }
   }
-  }
+}
 
 /* used to temporary rip the faces of the defect so we don't process them many times */
 // FLO TO BE CHECKED
@@ -7719,16 +7719,12 @@ static int mrisFreeDefectVertexState(DEFECT_VERTEX_STATE *dvs)
 
 static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans)
 {
-  DEFECT_VERTEX_STATE *dvs;
-  int i, n, vno;
-
-  dvs = calloc(1, sizeof(DVS));
-  if (!dvs) {
-    ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate dvs");
-  }
+  DEFECT_VERTEX_STATE *dvs = calloc(1, sizeof(DVS));
+  if (!dvs) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate dvs");
 
   dvs->defect = defect;
   dvs->vertex_trans = vertex_trans;
+
 
 /* in theory, the convex hull vertices should not be changed */
 /* however, numerical errors might generate some unexpected 'bugs' */
@@ -7745,6 +7741,7 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
   /* keep the # of faces before retessellation */
   dvs->nfaces = mris->nfaces;
 
+  int n;
   for (n = 0; n < defect->nvertices; n++) {
     dvs->vs[n].vno = vertex_trans[defect->vertices[n]];
   }
@@ -7758,56 +7755,65 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
   }
 #endif
 
+  int i;
   for (i = 0; i < dvs->nvertices; i++) {
-    VERTEX_STATE *vs = &dvs->vs[i];
-    vno = vs->vno;
+    VERTEX_STATE * const vs = &dvs->vs[i];
+    int const vno = vs->vno;
 
-    if (vno < 0) {
-      continue;
-    }
+    if (vno < 0) continue;
+
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
 
-    vs->origx = v->origx; 
-    vs->origy = v->origy;
-    vs->origz = v->origz;
-    noteVnoMovedInActiveRealmTrees(mris, vno);
+    cheapAssert(!v->ripflag);
 
-    vs->nx = v->nx;
-    vs->ny = v->ny;
-    vs->nz = v->nz;
-
+    // save the topology
+    //
     vs->nsizeCur = vt->nsizeCur;
     vs->nsizeMax = vt->nsizeMax;
     vs->vtotal   = vt->vtotal;
     vs->vnum     = vt->vnum;
     vs->v2num    = vt->v2num;
     vs->v3num    = vt->v3num;
-    if (vt->vtotal) {
-      vs->v = (int *)calloc(vs->vtotal, sizeof(int));
-      if (!vs->v) {
-        ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vs->vtotal);
-      }
-      for (n = 0; n < vt->vtotal; n++) {
-        vs->v[n] = vt->v[n];
-      }
+
+    int const vsize = mrisVertexVSize(mris, vno);   // vtotal is based on nsizeCur, but may be bigger
+    if (vsize) {                                    // and we need to restore up to nsizeMax
+      int* vv = (int *)malloc(vs->vtotal, sizeof(int));
+      if (!vv) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
+      memcpy(vv,vt->v,vsize*sizeof(int));
+      vs->v = vv;
     }
-#if 1
+    
     if (vt->num > 0) {
-      vs->num = vt->num;
-      vs->f = (int *)calloc(vt->num, sizeof(int));
-      vs->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
-      for (n = 0; n < vt->num; n++) {
-        vs->f[n] = vt->f[n];
-        vs->n[n] = vt->n[n];
-      }
+      int num = vt->num;
+      vs->f = (int           *)malloc(num*sizeof(int));
+      vs->n = (unsigned char *)malloc(num*sizeof(unsigned char));
+      if (!vs->f || !vs->n) ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vsize);
+      memcpy(vs->f,vt->f,num*sizeof(int));
+      memcpy(vs->n,vt->n,num*sizeof(unsigned char));
+      vs->num = num;
     }
-    else {
-      vs->num = 0;
-      vs->f = NULL;
-      vs->n = NULL;
+
+    // Save the original position
+    //
+    vs->origx = v->origx; 
+    vs->origy = v->origy;
+    vs->origz = v->origz;
+
+    vs->nx = v->nx;
+    vs->ny = v->ny;
+    vs->nz = v->nz;
+    
+    // Save the checksum to make sure nothing else changes
+    // For performance reasons, can't afford to check the hash every time,
+    // so it is usually left 0
+    //
+    static size_t count, limit = 1; // no locking needed - doesn't matter if it gets it wrong...
+    if (count++ > limit) {
+      limit *= 2;
+      if (limit > 1024*1024) limit = 1;
+      mrisVertexHash(&vs->hash, mris, vno);
     }
-#endif
   }
 
   return (dvs);
@@ -7852,29 +7858,33 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
 
 static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
 {
-  int i, n, vno;
-
-  /* remove the added faces */
+  // remove the added faces
+  //
   MRIStruncateNFaces(mris, dvs->nfaces);
 
+  int i;
   for (i = 0; i < dvs->nvertices; i++) {
     VERTEX_STATE const * const vs = &dvs->vs[i];
-    vno = vs->vno;
-    if (vno < 0) {
-      continue;
-    }
+    int const vno = vs->vno; 
+    if (vno < 0) continue;
+
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
     VERTEX          * const v  = &mris->vertices         [vno];
-    v->origx = vs->origx; 
-    v->origy = vs->origy;
-    v->origz = vs->origz;
-    noteVnoMovedInActiveRealmTrees(mris, vno);
 
+    // Restore original position
+    //
     v->nx = vs->nx;
     v->ny = vs->ny;
     v->nz = vs->nz;
 
-    freeAndNULL(vt->v);
+    v->origx = vs->origx; 
+    v->origy = vs->origy;
+    v->origz = vs->origz;
+
+    noteVnoMovedInActiveRealmTrees(mris, vno);
+
+    // Restore the topology
+    //
     vt->nsizeMax = vs->nsizeMax;
     vt->nsizeCur = vs->nsizeCur;
     vt->vtotal   = vs->vtotal;
@@ -7882,35 +7892,28 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     vt->v2num    = vs->v2num;
     vt->v3num    = vs->v3num;
 
-#if 1
-    free(vt->f);
-    vt->f = NULL;
-    free(vt->n);
-    vt->n = NULL;
+    int const vsize = mrisVertexVSize(mris, vno);
+
+    vt->n = (unsigned char *)realloc(vt->n, vt->num*sizeof(unsigned char));
+    vt->f = (int *)          realloc(vt->f, vt->num*sizeof(int));
+    vt->v = (int*)           realloc(vt->v, vsize  *sizeof(int));
+        // use realloc for efficiency
+        
+    if (!vt->f || !vt->n || !vt->v)
+      ErrorExit(ERROR_NOMEMORY, "mrisRestoreVertexState: could not reallocate topology arrays for num:%d vsize:%d", vt->num, vsize);
+    
     vt->num = vs->num;
 
-    if (vs->num) {
-      vt->f = (int *)calloc(vs->num, sizeof(int));
-      if (!vt->f)
-        ErrorExit(ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate first %dth array of %d elts", i, vs->num);
-      vt->n = (unsigned char *)calloc(vs->num, sizeof(unsigned char));
-      if (!vt->n)
-        ErrorExit(
-            ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate second %dth array of %d elts", i, vs->num);
-      for (n = 0; n < vt->num; n++) {
-        vt->f[n] = vs->f[n];
-        vt->n[n] = vs->n[n];
-      }
-    }
-#endif
-    if (!vt->vtotal) {
-      continue;
-    }
-    vt->v = (int *)calloc(vs->vtotal, sizeof(int));
-    if (!vt->v)
-      ErrorExit(ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate %dth array of %d elts", i, vs->vtotal);
-    for (n = 0; n < vt->vtotal; n++) {
-      vt->v[n] = vs->v[n];
+    memcpy(vt->n,vs->n,num  *sizeof(unsigned char));
+    memcpy(vt->f,vs->f,num  *sizeof(int));
+    memcpy(vt->v,vs->v,vsize*sizeof(int));
+
+    // For performance reasons, can't afford to check the hash every time
+    //
+    if (vs->hash.hash) {
+      MRIS_HASH hash;
+      mrisVertexHash(&hash, mris, vno);
+      cheapAssert(hash.hash == vs->hash.hash);
     }
   }
 

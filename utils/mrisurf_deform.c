@@ -17238,7 +17238,7 @@ int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     memmove(v->n, ulist, v->num * sizeof(uchar));
   }
 
-  // THIS IS TOO EXPENSIVE mrisCheckVertexFaceTopology(mris);
+  mrisCheckVertexFaceTopology(mris);
 
   mrisCalculateCanonicalFaceCentroid(mris, fno, &cx, &cy, &cz);
   for (n = 0; n < VERTICES_PER_FACE; n++) {

@@ -192,18 +192,18 @@ face_type, FACE ;
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
   /* put the pointers before the ints, before the shorts, before uchars, to reduce size  */ \
   /* the whole fits in much less than one cache line, so further ordering is no use      */ \
-  ELTP(int,f) SEP                                               /* array[v->num] the fno's of the neighboring faces     */ \
-  ELTP(uchar,n) SEP           	                                /* array[v->num] the face.v[*] index for this vertex    */ \
-  ELTP(int,e) SEP                                               /* edge state for neighboring vertices                  */ \
-  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP                 /* array[v->vtotal] of sorted by hops neighbor vno      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)                /* number of 1-hop neighbots                            */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP           /* number of 1, or 2-hop neighbors                      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP           /* number of 1,2,or 3-hop neighbors                     */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsizeCur          */ \
-  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP   /* copy of mris->nsizeMaxClock when v#num               */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP        /* the max nsize that was used to fill in vnum etc      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP        /* index of the current v#num in vtotal                 */ \
-  ELTT(uchar,num) SEP                                           /* number of neighboring faces                          */ \
+  ELTP(int,f) SEP                                               /* array[v->num] the fno's of the neighboring faces         */ \
+  ELTP(uchar,n) SEP           	                                /* array[v->num] the face.v[*] index for this vertex        */ \
+  ELTP(int,e) SEP                                               /* edge state for neighboring vertices                      */ \
+  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP                 /* array[v->vtotal or more] of vno, head sorted by hops     */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)                /* number of 1-hop neighbots                                */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP           /* number of 1, or 2-hop neighbors                          */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP           /* number of 1,2,or 3-hop neighbors                         */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsizeCur              */ \
+  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP   /* copy of mris->nsizeMaxClock when v#num                   */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP        /* the max nsize that was used to fill in vnum etc          */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP        /* index of the current v#num in vtotal                     */ \
+  ELTT(uchar,num) SEP                                           /* number of neighboring faces                              */ \
   // end of macro
 
 
@@ -703,11 +703,14 @@ void MRIS_releaseTemp      (MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquire
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
 void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
 
+
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
 typedef struct {
     unsigned long hash;
 } MRIS_HASH;
+
+void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno);
 
 void mris_hash_init (MRIS_HASH* hash, MRIS const * mris);
 void mris_hash_add  (MRIS_HASH* hash, MRIS const * mris);

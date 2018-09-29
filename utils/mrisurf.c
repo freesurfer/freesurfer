@@ -258,6 +258,11 @@ static bool mris_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
     return true;
 }
 
+void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno) {
+    hash->hash = fnv_init();
+    vertix_n_hash_add(1, hash, &mris, false, vno);
+}
+
 void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
 {
     mris_n_hash_add(1, hash, &mris, NULL);
