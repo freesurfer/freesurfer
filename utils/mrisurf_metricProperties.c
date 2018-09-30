@@ -2496,6 +2496,9 @@ double MRISrmsTPHeight(MRI_SURFACE *mris)
 */
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
 {
+  if (debugNonDeterminism) {
+    mris_print_hash(stdout, mris, "mrisRmsValError", "\n");
+  }
   int vno, n; // xv, yv, zv;
   double val, total, delta, x, y, z;
   VERTEX *v;
@@ -2516,7 +2519,10 @@ double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
       v->val2bak = delta;
     }
   }
-  //printf("mrisRmsValError() total = %f, n=%d\n",total,n);
+  if (debugNonDeterminism) {
+    mris_print_hash(stdout, mris, "mrisRmsValError", "\n");
+    printf("mrisRmsValError() total = %f, n=%d\n",total,n);
+  }
   return (sqrt(total / (double)n));
 }
 

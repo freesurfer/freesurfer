@@ -274,9 +274,9 @@ void mrisDumpShape(FILE* file, MRIS const * mris) {
   fprintf(file, "nvertices:%d nfaces:%d max_nsize:%d nsize:%d\n",
     mris->nvertices, mris->nfaces, mris->max_nsize, mris->nsize);
   int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) mrisDumpVertex(file, mris, vno);
+  for (vno = 0; vno < MIN(10,mris->nvertices); vno++) mrisDumpVertex(file, mris, vno);
   int fno;
-  for (fno = 0; fno < mris->nfaces; fno++) mrisDumpFace(file, mris, fno);
+  for (fno = 0; fno < MIN(10,mris->nfaces); fno++) mrisDumpFace(file, mris, fno);
   fprintf(file, "} // mrisDumpShape\n");
 }
 
