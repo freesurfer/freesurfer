@@ -5395,7 +5395,7 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 
   double N = 0.0;
 
-  #define ROMP_VARIABLE       VtxNo
+  #define ROMP_VARIABLE       vno
   #define ROMP_LO             0
   #define ROMP_HI             Surf->nvertices
     
@@ -5417,28 +5417,28 @@ void MRIScomputeAvgInterVertexDist(MRIS *Surf, double *StdDev)
 
 #else
 
-  int VtxNo;
-
   long N = 0;
 
-  for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
+  int vno;
+  for (vno = 0; vno < Surf->nvertices; vno++) {
 #endif
-    
-    VERTEX *vtx1, *vtx2;
-    int nNNbrs, nthNNbr, NbrVtxNo;
-    vtx1 = &Surf->vertices[VtxNo];
-    if (vtx1->ripflag) {
+    VERTEX_TOPOLOGY const * const vt = &Surf->vertices_topology[vno];
+    VERTEX          const * const v  = &Surf->vertices         [vno];
+    if (v->ripflag) {
       continue;
     }
-    nNNbrs = Surf->vertices_topology[VtxNo].vnum;
-    for (nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++) {
-      NbrVtxNo = Surf->vertices_topology[VtxNo].v[nthNNbr];
-      vtx2 = &Surf->vertices[NbrVtxNo];
-      if (vtx2->ripflag) {
+    int const vnum = vt->vnum;
+    int m;
+    for (m = 0; m < vnum; m++) {
+      int const vno2 = vt->v[m];
+      
+      VERTEX const * const v2 = &Surf->vertices[vno2];
+      
+      if (v2->ripflag) {
         continue;
       }
-      double d;
-      d = vtx1->dist[nthNNbr];
+      
+      double d = v->dist[m];
       Sum  += d;
       Sum2 += (d * d);
       N    += 1;
