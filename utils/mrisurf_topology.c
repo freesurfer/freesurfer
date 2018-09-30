@@ -580,19 +580,16 @@ int mrisStoreVtotalInV3num(MRIS *mris)
   return (NO_ERROR);
 }
 
-
-static void resizeVertexV(VERTEX_TOPOLOGY* const vt, VERTEX* const v, int newSize, int oldSize) {
+static void resizeVertexD(VERTEX_TOPOLOGY const * const vt, VERTEX* const v, int newSize, int oldSize) {
 
   // allocating zero is a free: keep the pointers around to optimize growing them again
   //           non-zero:        change to the new size
   
   if (newSize > 0) {
-    int const intSize   = newSize*sizeof(int);
     int const floatSize = newSize*sizeof(float);
-    vt->v        = (int   *)realloc(vt->v,        intSize);
     v->dist      = (float *)realloc(v->dist,      floatSize);
     v->dist_orig = (float *)realloc(v->dist_orig, floatSize);
-    if (!vt->v || !v->dist || !v->dist_orig) {
+    if (!v->dist || !v->dist_orig) {
       ErrorExit(ERROR_NO_MEMORY, "mrisVertexReplacingNeighbors: could not allocate dist %d num", newSize);
     }
   }
@@ -600,12 +597,30 @@ static void resizeVertexV(VERTEX_TOPOLOGY* const vt, VERTEX* const v, int newSiz
   // Zero the added storage, if any
   //
   if (oldSize < newSize) {
-    int const intSizeChange   = (newSize - oldSize)*sizeof(int);
     int const floatSizeChange = (newSize - oldSize)*sizeof(float);
-    bzero(vt->v        + oldSize,   intSizeChange);
     bzero(v->dist      + oldSize, floatSizeChange); 
     bzero(v->dist_orig + oldSize, floatSizeChange);
   }
+}
+
+static void resizeVertexVandD(VERTEX_TOPOLOGY* const vt, VERTEX* const v, int newSize, int oldSize) {
+
+  // allocating zero is a free: keep the pointers around to optimize growing them again
+  //           non-zero:        change to the new size
+  
+  if (newSize > 0) {
+    int const intSize   = newSize*sizeof(int);
+    vt->v        = (int   *)realloc(vt->v,        intSize);
+  }
+      
+  // Zero the added storage, if any
+  //
+  if (oldSize < newSize) {
+    int const intSizeChange   = (newSize - oldSize)*sizeof(int);
+    bzero(vt->v        + oldSize,   intSizeChange);
+  }
+  
+  resizeVertexD(vt, v, newSize, oldSize);
 }
 
 
@@ -614,7 +629,7 @@ void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int co
   VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
   VERTEX          * const v  = &mris->vertices         [vno];
 
-  resizeVertexV(vt,v, vnum, vt->vnum);
+  resizeVertexVandD(vt,v, vnum, vt->vnum);
 
   vt->vnum  = vnum; 
   vt->v2num = 0;
@@ -952,7 +967,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
 
     int oldSize = vnums[nsize];
     int newSize = vnums[newPossibleNsizeMax];    
-    resizeVertexV(vt,v, newSize, oldSize);
+    resizeVertexVandD(vt,v, newSize, oldSize);
     
     int cachedRing;
     for (cachedRing = nsize; cachedRing <= newPossibleNsizeMax; cachedRing++) {
@@ -1755,8 +1770,14 @@ void mrisCompleteTopology(MRI_SURFACE *mris)
   }
   setFaceAttachmentDeferred(mris,false);
 
-  int ntotal = 0, vtotal = 0;
   int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
+    VERTEX                * const v  = &mris->vertices         [vno];
+    if (!v->dist) resizeVertexD(vt, v, mrisVertexVSize(mris,vno), 0);
+  }
+  
+  int ntotal = 0, vtotal = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX          const * const v  = &mris->vertices         [vno];
