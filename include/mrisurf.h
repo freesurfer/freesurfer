@@ -2695,8 +2695,12 @@ void mrisForgetNeighborhoods     (MRIS const * mris);
 
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
-int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, int *vlist);
-void mrisFindNeighbors              (MRIS *mris);
+
+#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
+int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
+    // sets vlist[*] to the neighboring vno
+    // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist
+    // returns the number of neighbors
 
 //  Faces
 //
@@ -2709,6 +2713,17 @@ void mrisAttachFaceToVertices(MRIS* mris, int fno, int vno1, int vno2, int vno3)
 
 void  MRISflipFaceAroundV1(MRIS *mris, int fno);
 void  MRISreverseFaceOrder(MRIS *mris);
+
+
+void mrisCompleteTopology(MRIS *mris);
+    //
+    // The best way to build a tesselation is to simply create all the vertices then ...
+    //      setFaceAttachmentDeferred(true)
+    //      lots of calls to mrisAttachFaceToVertices()  
+    //      setFaceAttachmentDeferred(false)
+    //
+    // However lots of existing code just adds a misc set of edges and faces by mechanisms
+    // then they call this function to add any missing edges and to calculate the mris->avg_nbrs
 
 // Marked
 //

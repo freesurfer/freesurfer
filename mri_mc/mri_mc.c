@@ -387,99 +387,6 @@ void reallocateFaces(tesselation_parms *parms) {
 #define MAX_NEIGHBORS       (400)
 
 
-/* Might be the same as in mrisurf.c. Here's a clue: if you need a
-function that is defined statically in a library, delete the word
-"static" and copy the function declaration to the include file, then
-call the function that is already there. It is just terrible
-programming practice to copy entire functions to a new file.
- */
-int mrisFindNeighbors2(MRI_SURFACE *mris) {
-  int          n0,n1,i,k,m,n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS] ;
-  FACE         *f;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout, "finding surface neighbors...") ;
-
-  for (k=0;k<mris->nvertices;k++) {
-    if (k == Gdiag_no)
-      DiagBreak() ;
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[k];
-    VERTEX          * const v  = &mris->vertices         [k];
-    vt->vnum = 0;
-    for (m=0;m<vt->num;m++) {
-      n = vt->n[m];     /* # of this vertex in the mth face that it is in */
-      f = &mris->faces[vt->f[m]];  /* ptr to the mth face */
-      /* index of vertex we are connected to */
-      n0 = (n == 0)                   ? VERTICES_PER_FACE-1 : n-1;
-      n1 = (n == VERTICES_PER_FACE-1) ? 0                   : n+1;
-      for (i=0;i<vt->vnum && vtmp[i]!=f->v[n0];i++);
-      if (i==vt->vnum)
-        vtmp[(int)vt->vnum++] = f->v[n0];
-      for (i=0;i<vt->vnum && vtmp[i]!=f->v[n1];i++);
-      if (i==vt->vnum)
-        vtmp[(int)vt->vnum++] = f->v[n1];
-    }
-    if (mris->vertices_topology[k].v)
-      free(mris->vertices_topology[k].v) ;
-    mris->vertices_topology[k].v = (int *)calloc(mris->vertices_topology[k].vnum,sizeof(int));
-    if (!mris->vertices_topology[k].v)
-      ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate nbr array") ;
-
-    vt->vtotal = vt->vnum ;
-    vt->nsizeMax = vt->nsizeCur = 1;
-    for (i=0;i<vt->vnum;i++) {
-      vt->v[i] = vtmp[i];
-    }
-
-    if (v->dist)
-      free(v->dist) ;
-    if (v->dist_orig)
-      free(v->dist_orig) ;
-
-    v->dist = (float *)calloc(vt->vnum, sizeof(float)) ;
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", vt->vnum, k) ;
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float)) ;
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", vt->vnum, k) ;
-    /*
-        if (v->num != vt->vnum)
-          printf("%d: num=%d vnum=%d\n",k,vt->num,vt->vnum);
-    */
-  }
-  for (k=0;k<mris->nfaces;k++) {
-    f = &mris->faces[k];
-    for (m=0;m<VERTICES_PER_FACE;m++) {
-      VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[f->v[m]];
-      for (i=0;i<v->num && k!=v->f[i];i++);
-      if (i==v->num)   /* face has vertex, but vertex doesn't have face */
-        ErrorExit(ERROR_BADPARM,
-                  "%s: face[%d].v[%d] = %d, but face %d not in vertex %d "
-                  "face list\n", mris->fname,k,m,f->v[m], k, f->v[m]);
-    }
-  }
-
-  for (vno = ntotal = vtotal = 0 ; vno < mris->nvertices ; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag)
-      continue ;
-    vtotal += vt->vtotal ;
-    ntotal++ ;
-  }
-
-  mrisCheckVertexFaceTopology(mris);
-  
-  mris->avg_nbrs = (float)vtotal / (float)ntotal ;
-  return(NO_ERROR) ;
-}
-
-
 int saveTesselation2(tesselation_parms *parms) {
   int vno,m,n,fno;
   int pct_over=1;
@@ -606,7 +513,7 @@ int saveTesselation2(tesselation_parms *parms) {
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
 
-  mrisFindNeighbors2(mris);
+  mrisCompleteTopology(mris);
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/

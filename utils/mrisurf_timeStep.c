@@ -1944,7 +1944,7 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
   mrisCheckVertexFaceTopology(surf);
   
   getVolGeom(mri, &(surf->vg));
-  mrisFindNeighbors(surf);
+  mrisCompleteTopology(surf);
   MRIScomputeMetricProperties(surf);
 
   return (surf);

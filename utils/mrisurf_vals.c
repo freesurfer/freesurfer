@@ -19,6 +19,752 @@
  */
 #include "mrisurf_vals.h"
 
+//=============================================================================
+// marks, and other flags
+//
+int MRISmarkedVertices(MRIS *mris)
+{
+  int vno, nvertices, nmarked;
+
+  nvertices = mris->nvertices;
+  for (vno = nmarked = 0; vno < nvertices; vno++)
+    if (!mris->vertices[vno].ripflag && mris->vertices[vno].marked > 0) {
+      nmarked++;
+    }
+
+  return (nmarked);
+}
+
+
+int MRISclearMarks(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = 0;
+  }
+  return (NO_ERROR);
+}
+
+int MRISclearMark2s(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked2 = 0;
+  }
+  return (NO_ERROR);
+}
+
+int MRISclearFaceMarks(MRIS *mris)
+{
+  int fno;
+  FACE *f;
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->marked = 0;
+  }
+  return (NO_ERROR);
+}
+
+int MRISclearAnnotations(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->annotation = 0;
+  }
+  return (NO_ERROR);
+}
+
+int MRISsetMarks(MRIS *mris, int mark)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = mark;
+  }
+  return (NO_ERROR);
+}
+
+
+
+int MRISinvertMarks(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = !v->marked;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISnotMarked(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag == 0) v->marked = !v->marked;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISunrip(MRIS *mris)
+{
+  int vno, fno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].ripflag = 0;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    mris->faces[fno].ripflag = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+
+int MRISripLabel(MRIS *mris, LABEL *area)
+{
+  int i;
+  VERTEX *v;
+
+  for (i = 0; i < area->n_points; i++) {
+    v = &mris->vertices[area->lv[i].vno];
+    v->ripflag = 1;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISripNotLabel(MRIS *mris, LABEL *area)
+{
+  int i, vno;
+  VERTEX *v;
+
+  for (i = 0; i < area->n_points; i++) {
+    v = &mris->vertices[area->lv[i].vno];
+    v->marked = 1;
+  }
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->marked) {
+      continue;
+    }
+    v->ripflag = 1;
+  }
+  for (i = 0; i < area->n_points; i++) {
+    v = &mris->vertices[area->lv[i].vno];
+    v->marked = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISsetFlags(MRIS *mris, int flags)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].flags |= flags;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclearFlags(MRIS *mris, int flags)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].flags &= (~flags);
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyMarkedToMarked2(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked2 = v->marked;
+  }
+  return (NO_ERROR);
+}
+int MRIScopyValsToAnnotations(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->annotation = v->val;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyMarked2ToMarked(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked = v->marked2;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyMarkedToMarked3(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked3 = v->marked;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyMarked3ToMarked(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+    v->marked = v->marked3;
+  }
+  return (NO_ERROR);
+}
+
+/* assume that the mark is 1 */
+int MRISexpandMarked(MRIS *mris)
+{
+  int vno, n;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->marked == 1) {
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        if (vn->marked == 0) {
+          vn->marked = 2;
+        }
+      }
+    }
+  }
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+    if (v->marked == 2) {
+      v->marked = 1;
+    }
+  }
+  return (NO_ERROR);
+}
+
+int MRISstoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->oripflag = v->ripflag;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->oripflag = f->ripflag;
+  }
+  return (NO_ERROR);
+}
+
+int MRISrestoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = v->oripflag;
+  }
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->ripflag = f->oripflag;
+  }
+
+  return (NO_ERROR);
+}
+
+/*!
+  \fn int MRISripMarked(MRIS *mris)
+  \brief Sets v->ripflag=1 if v->marked==1.
+  Note: does not unrip any vertices.
+*/
+int MRISripMarked(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->marked) {
+      v->ripflag = 1;
+    }
+  }
+  return (NO_ERROR);
+}
+int MRISripUnmarked(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->marked == 0) {
+      v->ripflag = 1;
+    }
+  }
+  return (NO_ERROR);
+}
+
+// set all the marks to a user specified value INCLUDING RIPPED VERTICES!
+int MRISsetAllMarks(MRIS *mris, int mark)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked = mark;
+  }
+  return (NO_ERROR);
+}
+
+
+/*!
+  \fn int MRIScountRipped(MRIS *mris)
+  \brief Returns the total number of ripped vertices
+ */
+int MRIScountRipped(MRIS *mris)
+{
+  int nripped=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  return(nripped);
+}
+/*!
+  \fn int MRIScountAllMarked(MRIS *mris)
+  \brief Returns the total number of vertices have v->marked > 0
+ */
+int MRIScountAllMarked(MRIS *mris)
+{
+  int nmarked=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].marked>0) nmarked++;
+  }
+  return(nmarked);
+}
+/*!
+  \fn int MRIScountMarked(MRIS *mris, int mark_threshold)
+  \brief Returns the total number of non-ripped vertices 
+  that have v->marked >= threshold
+ */
+int MRIScountMarked(MRIS *mris, int mark_threshold)
+{
+  int vno, total_marked;
+  VERTEX *v;
+
+  for (total_marked = vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (v->marked >= mark_threshold) {
+      total_marked++;
+    }
+  }
+  return (total_marked);
+}
+
+
+
+/*! -----------------------------------------------------
+  \fn int MRISdilateMarked(MRIS *mris, int ndil)
+  \brief Dilates the marked vertices by marking a vertex
+  if any of its non-ripped neighbors is ripped.
+  ------------------------------------------------------*/
+int MRISdilateMarked(MRIS *mris, int ndil)
+{
+  int vno, i, n, mx;
+
+  // Loop through each dilation
+  for (i = 0; i < ndil; i++) {
+
+    // Set v->tx to 0 for unripped vertices
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if(v->ripflag) continue;
+      v->tx = 0;
+    }
+
+    // Loop through vertices (skip ripped)
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      if(v->ripflag) continue;
+      // set v->tx=1 if this vertex or any of its neightbors is marked
+      mx = v->marked;
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
+        mx = MAX(vn->marked, mx);
+      }
+      v->tx = mx;
+    }
+
+    // Now copy tx into marked
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) continue;
+      v->marked = (int)v->tx;
+    }
+
+  }// end loop over dilations
+  return (NO_ERROR);
+}
+
+
+int MRISdilateRipped(MRIS *mris, int ndil)
+{
+  int vno, i, n;
+
+  for (i = 0; i < ndil; i++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      v->tx = v->ripflag;
+    }
+
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      
+      if (v->ripflag == 0) {
+        continue;
+      }
+
+      // turn on ripflag of all neighbors of this (ripped) vertex
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        if (vn->ripflag == 0) {
+          vn->tx = 1;
+        }
+      }
+    }
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      v->ripflag = (int)v->tx;
+    }
+  }
+  MRISripFaces(mris);
+  return (NO_ERROR);
+}
+
+int MRISerodeRipped(MRIS *mris, int ndil)
+{
+  int vno, i, n, mn;
+
+  for (i = 0; i < ndil; i++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      v->tx = 0;
+    }
+
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      mn = v->ripflag;
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        mn = MIN(vn->ripflag, mn);
+      }
+      v->tx = mn;
+    }
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      v->ripflag = (int)v->tx;
+    }
+  }
+  MRISripFaces(mris);
+  return (NO_ERROR);
+}
+
+int MRISerodeMarked(MRIS *mris, int num)
+{
+  int vno, i, n, mn;
+
+  for (i = 0; i < num; i++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) {
+        continue;
+      }
+      v->tx = 0;
+    }
+
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      if (v->ripflag) {
+        continue;
+      }
+      mn = v->marked;
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        mn = MIN(vn->marked, mn);
+      }
+      v->tx = mn;
+    }
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) {
+        continue;
+      }
+      v->marked = (int)v->tx;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScloseMarked(MRIS *mris, int order)
+{
+  MRISdilateMarked(mris, order);
+  MRISerodeMarked(mris, order);
+  return (NO_ERROR);
+}
+
+
+int MRISopenMarked(MRIS *mris, int order)
+{
+  MRISerodeMarked(mris, order);
+  MRISdilateMarked(mris, order);
+  return (NO_ERROR);
+}
+
+
+
+/*---------------------------------------------------------------------
+  MRI *MRISdilateConfined() - dilates surface mask niters iterations.
+  If annotidmask >= 0, then dilation is confined to the annotidmask
+  annotation. If newid >= 0, then the surface annot field of vertices
+  in the dilated mask is set to the annot corresponding to newid.
+  -------------------------------------------------------------------*/
+MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter, new_annot;
+  MRI *mri1, *mri2;
+  float val;
+
+  mri1 = MRIcopy(mask, NULL);
+  mri2 = MRIcopy(mask, NULL);
+
+  for (nthiter = 0; nthiter < niters; nthiter++) {
+    // printf("iter %d\n",nthiter);
+
+    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+
+      /* Set to 0 if not in annotidmask (ie, dont dilate outside
+      of annotidmask (if it is set) */
+      if (annotidmask > -1) {
+        annot = surf->vertices[vtxno].annotation;
+        CTABfindAnnotation(surf->ct, annot, &annotid);
+        if (annotid != annotidmask) {
+          MRIsetVoxVal(mri2, vtxno, 0, 0, 0, 0);
+          continue;
+        }
+      }
+
+      // Check whether this vertex has been set
+      val = MRIgetVoxVal(mri1, vtxno, 0, 0, 0);
+      if (val) {
+        MRIsetVoxVal(mri2, vtxno, 0, 0, 0, 1);
+        continue;
+      }
+
+      // If it gets here, the vtx is in the annot and has not been set
+      nnbrs = surf->vertices_topology[vtxno].vnum;
+      for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+        nbrvtxno = surf->vertices_topology[vtxno].v[nthnbr];
+        if (surf->vertices[nbrvtxno].ripflag) {
+          continue;  // skip ripped vtxs
+        }
+        val = MRIgetVoxVal(mri1, nbrvtxno, 0, 0, 0);
+        if (val) {
+          MRIsetVoxVal(mri2, vtxno, 0, 0, 0, 1);
+          continue;
+        }
+      }
+    }
+    MRIcopy(mri2, mri1);
+  }
+
+  MRIfree(&mri2);
+  // MRIwrite(mri1,"mymask2.mgh");
+
+  if (newid > 0) {
+    // Set annots in this mask to the given annot
+    CTABannotationAtIndex(surf->ct, newid, &new_annot);
+    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+      if (MRIgetVoxVal(mri1, vtxno, 0, 0, 0)) {
+        surf->vertices[vtxno].annotation = new_annot;
+      }
+    }
+  }
+
+  return (mri1);
+}
+
+
+int mrisMarkBadEdgeVertices(MRIS *mris, int mark)
+{
+  int vno, n, nfaces, m, vno2, nmarked;
+
+  for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+
+    for (n = 0; n < vt->vnum; n++) {
+      vno2 = vt->v[n];
+      if (vno2 < vno) {
+        continue;
+      }
+      for (nfaces = m = 0; m < vt->vnum; m++) {
+        if (vt->v[m] == vno2) {
+          continue;
+        }
+        if (vertexNeighbor(mris, vno2, vt->v[m]) && isFace(mris, vno, vno2, vt->v[m])) {
+          nfaces++;
+        }
+      }
+      if (nfaces != 2) {
+        v->marked = mark;
+        mris->vertices[vno2].marked = mark;
+        nmarked += 2;
+        break;
+      }
+    }
+  }
+  return (nmarked);
+}
+
+
+int MRISmarkRandomVertices(MRIS *mris, float prob_marked)
+{
+  int vno;
+  VERTEX *v;
+  float r;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    r = randomNumber(0.0, 1.0);
+    if (r < prob_marked) {
+      v->marked = 1;
+    }
+  }
+  return (NO_ERROR);
+}
+
+bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno)
+{
+  FACE const * const f = &mris->faces[fno];
+
+  int marked = 0;
+  int n;
+  for (n = 0; n < VERTICES_PER_FACE; n++) {     // check all, to avoid branch mispredicts
+    marked |= mris->vertices[f->v[n]].marked;   // 
+  }
+
+  return !!marked;
+}
+
+
+bool triangleMarked(MRI_SURFACE *mris, int fno)
+{
+  return mrisAnyVertexOfFaceMarked(mris, fno);
+}
+
+
+
+int findNonMarkedFace(MRIS *mris, int vno, int vn1)
+{
+  cheapAssertValidVno(mris,vno);
+  cheapAssert        (vno != vn1);
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
+  
+  int nf;
+  for (nf = 0; nf < v->num; nf++) {
+    int const          fn = v->f[nf];
+    FACE const * const f  = &mris->faces[fn];
+    if (f->marked) continue;
+
+    int i;
+    for (i = 0; i < VERTICES_PER_FACE; i++) {
+      if (f->v[i] == vn1) {
+        return fn;
+      }
+    }
+  }
+
+  return -1;
+}
+
+
 void MRISsetCurvaturesToValues(MRIS *mris, int fno)
 {
   int n;

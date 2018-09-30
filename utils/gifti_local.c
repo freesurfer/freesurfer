@@ -762,7 +762,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
 
     /* other data structure essentials, namely:
-     *  mrisFindNeighbors(mris);
      *  mrisComputeVertexDistances(mris);
      *  mrisReadTransform(mris, fname) ;
      *  mris->radius = MRISaverageRadius(mris) ;
