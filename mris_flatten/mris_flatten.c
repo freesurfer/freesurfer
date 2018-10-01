@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int MRISscaleUp(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char *synth_name = NULL ;
 static INTEGRATION_PARMS  parms ;
@@ -65,7 +65,7 @@ static INTEGRATION_PARMS  parms ;
 static float base_dt_scale = BASE_DT_SCALE ;
 static char *label_fname = NULL ;
 static int nbrs = 2 ;
-static int inflate = 0 ;
+static int do_inflate = 0 ;
 static double disturb = 0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
@@ -358,9 +358,9 @@ main(int argc, char *argv[])
   {
     int n ;
     printf("vertex %d has %d nbrs before patch:\n",
-           Gdiag_no, mris->vertices[Gdiag_no].vnum) ;
-    for (n = 0 ; n < mris->vertices[Gdiag_no].vnum ; n++)
-      printf("\t%d\n", mris->vertices[Gdiag_no].v[n]) ;
+           Gdiag_no, mris->vertices_topology[Gdiag_no].vnum) ;
+    for (n = 0 ; n < mris->vertices_topology[Gdiag_no].vnum ; n++)
+      printf("\t%d\n", mris->vertices_topology[Gdiag_no].v[n]) ;
   }
   if (one_surf_flag)  /* only have the 1 surface - no patch file */
   {
@@ -377,7 +377,7 @@ main(int argc, char *argv[])
   } 
   else
   {
-    MRISresetNeighborhoodSize(mris, mris->vertices[0].nsize) ; // set back to max
+    MRISresetNeighborhoodSize(mris, mris->vertices_topology[0].nsizeMax) ; // set back to max
     if (label_fname) // read in a label instead of a patch
     {
       LABEL *area ;
@@ -425,7 +425,7 @@ main(int argc, char *argv[])
         v->nsize = 1 ;
       }
     }
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 #endif
   }
 
@@ -437,9 +437,9 @@ main(int argc, char *argv[])
   {
     int n ;
     printf("vertex %d has %d nbrs after patch:\n",
-           Gdiag_no, mris->vertices[Gdiag_no].vnum) ;
-    for (n = 0 ; n < mris->vertices[Gdiag_no].vnum ; n++)
-      printf("\t%d\n", mris->vertices[Gdiag_no].v[n]) ;
+           Gdiag_no, mris->vertices_topology[Gdiag_no].vnum) ;
+    for (n = 0 ; n < mris->vertices_topology[Gdiag_no].vnum ; n++)
+      printf("\t%d\n", mris->vertices_topology[Gdiag_no].v[n]) ;
   }
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
@@ -954,7 +954,7 @@ get_option(int argc, char *argv[])
               parms.write_iterations) ;
       break ;
     case 'I':
-      inflate = 1 ;
+      do_inflate = 1 ;
       fprintf(stderr, "inflating brain...\n") ;
       break ;
     case 'A':
@@ -1033,19 +1033,19 @@ int
 MRISscaleUp(MRI_SURFACE *mris)
 {
   int     vno, n, max_v, max_n ;
-  VERTEX  *v ;
   float   ratio, max_ratio ;
 
   max_ratio = 0.0f ;
   max_v = max_n = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
     {
       if (FZERO(v->dist[n]))   /* would require infinite scaling */
         continue ;
@@ -1066,12 +1066,13 @@ MRISscaleUp(MRI_SURFACE *mris)
 #else
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
       v->dist_orig[n] /= max_ratio ;
   }
 #endif

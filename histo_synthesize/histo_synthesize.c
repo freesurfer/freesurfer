@@ -67,7 +67,7 @@ static int find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, 
 				      int x0, int y0, int z0, double min_dist) ;
 static double feature_distance(FEATURE *f1, FEATURE *f2, int which) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static char base_name[STRLEN] = "" ;

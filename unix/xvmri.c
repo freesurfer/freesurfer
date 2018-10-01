@@ -101,7 +101,7 @@ static int            show_three_views = 0 ;
 static void viewMenuItem(Menu menu, Menu_item menu_item) ;
 static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
 static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
-static int mri_write_func(Event *event, DIMAGE *dimage, char *fname) ;
+static int mri_write_func(Event *event, DIMAGE *dimage, const char *fname) ;
 #if 0
 static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
 #endif
@@ -948,13 +948,13 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
 
   if (mri_surface && !dont_redraw)
   {
-    VERTEX  *v, *vn ;
     int     vno, n ;
     double  xv, yv, zv, slice, xv2, yv2, zv2, dx, dy ;
 
     for (vno = 0 ; vno < mri_surface->nvertices ; vno++)
     {
-      v = &mri_surface->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mri_surface->vertices_topology[vno] ;
+      VERTEX          const * const v  = &mri_surface->vertices         [vno] ;
       if (v->ripflag)
         continue ;
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
@@ -971,9 +971,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_depths[which] - mri->imnr0 ;
         if ((zv > slice-1) && (zv < slice+1))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri,vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((zv2 > slice-.5) && (zv2 < slice+.5))
             {
@@ -993,9 +993,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_slices[which] ;
         if ((xv > slice-.5) && (xv < slice+.5))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2);
             if ((xv2 > slice-.5) && (xv2 < slice+.5))
             {
@@ -1015,9 +1015,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_depths[which] ;
         if ((yv > slice-.5) && (yv < slice+.5))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((yv2 > slice-.5) && (yv2 < slice+.5))
             {
@@ -1056,11 +1056,11 @@ XVMRIfree(MRI **pmri, int which)
 int
 XVMRIsetView(XV_FRAME *xvf, int which, int view)
 {
-  int     slice, which2, offset, slice2, sync ;
-  DIMAGE  *dimage, *dimage2 ;
-  MRI     *mri, *mri2 ;
-  char    *menu_str ;
-  float   xsize, ysize, zsize ;
+  int         slice, which2, offset, slice2, sync ;
+  DIMAGE     *dimage, *dimage2 ;
+  MRI        *mri, *mri2 ;
+  const char *menu_str ;
+  float       xsize, ysize, zsize ;
 
   if (!mris[which])
     return(NO_ERROR) ;
@@ -1186,7 +1186,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
            Description:
 ----------------------------------------------------------------------*/
 static int
-mri_write_func(Event *event, DIMAGE *dimage, char *fname)
+mri_write_func(Event *event, DIMAGE *dimage, const char *fname)
 {
   int  which ;
   MRI  *mri ;

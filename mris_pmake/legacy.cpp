@@ -169,15 +169,16 @@ s_Dweights_scan(
                207);
 }
 
+#if 1
 void
 s_weights_print(
   s_weights& asw
 ) {
   int lw     = 20;
   int rw     = 20;
-  std::_Ios_Fmtflags origFlags;
+  //std::_Ios_Fmtflags origFlags;
 
-  origFlags  = cout.flags();
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   cout << "_________________________"  << endl;
@@ -202,8 +203,9 @@ s_weights_print(
   CW(lw, "wdir");
   CWn(rw, asw.wdir);
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
 }
+#endif
 
 void
 s_weights_setAll(
@@ -220,15 +222,16 @@ s_weights_setAll(
     asw.wdir    = af;
 }
 
+#if 1
 void
 s_Dweights_print(
   s_Dweights& asw
 ) {
   int lw     = 20;
   int rw     = 20;
-  std::_Ios_Fmtflags origFlags;
+  //std::_Ios_Fmtflags origFlags;
 
-  origFlags  = cout.flags();
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   cout << "_________________________"  << endl;
@@ -253,8 +256,9 @@ s_Dweights_print(
   CW(lw, "Dwdir");
   CWn(rw, asw.Dwdir);
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
 }
+#endif
 
 void
 s_Dweights_setAll(
@@ -404,15 +408,15 @@ costFunc_defaultDetermine(
     //
 
     int           vno_n;
-    VERTEX*       v_c;
     VERTEX*       v_n;
     float         dist, ave_curv, curv, max_height, max_curv, cost;
     s_weights*    pSTw = st_env.pSTw;
     MRIS*         surf = st_env.pMS_primary;
 
-    v_c = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
     if (b_relNextReference) {
-        vno_n = v_c->v[j];
+        vno_n = v_ct->v[j];
         v_n = &surf->vertices[vno_n];
     } else {
         v_n = &surf->vertices[j];
@@ -574,19 +578,19 @@ costFunc_distanceReturn(
     float       	f_distance  = 0.0;
     s_weights*  	pSTw        = st_env.pSTw;
     float       	wd          = pSTw->wd;
-    VERTEX*     	v_c         = NULL;
     MRIS*    		surf        = st_env.pMS_primary;
     const char*       	pch_proc    = "costFunc_distanceReturn(...)";
     char        	pch_txt[65536];
     static bool 	b_warned    = false;
 
-    v_c         = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
 
     if(!b_relNextReference) {
 	int 	jrelcount;
 	int 	jrel = 0;
-	for(jrelcount=0; jrelcount< v_c->vnum; jrelcount++) {
-	    if(v_c->v[jrelcount] == j) {
+	for(jrelcount=0; jrelcount< v_ct->vnum; jrelcount++) {
+	    if(v_ct->v[jrelcount] == j) {
 		jrel = jrelcount;
 		break;
 	    }
@@ -632,7 +636,6 @@ costFunc_EuclideanReturn(
     float       f_distance  = 0.0;
     int         vno_n       = 0;
 
-    VERTEX*     v_c         = NULL;
     VERTEX*     v_n         = NULL;
     MRIS*       surf        = st_env.pMS_primary;
     static int  calls       = 0;
@@ -640,9 +643,11 @@ costFunc_EuclideanReturn(
     char        pch_txt[65536];
     static bool b_warned = false;
 
-    v_c = &surf->vertices[vno_c];
+    VERTEX_TOPOLOGY const * const v_ct = &surf->vertices_topology[vno_c];
+    VERTEX          const * const v_c  = &surf->vertices         [vno_c];
+
     if (b_relNextReference) {
-        vno_n = v_c->v[j];
+        vno_n = v_ct->v[j];
         v_n = &surf->vertices[vno_n];
     } else {
         v_n = &surf->vertices[j];
@@ -681,6 +686,7 @@ costFunc_EuclideanReturn(
     return(f_cost);
 }
 
+#if 0
 bool
 asynchEvent_processWGHT(
   s_env&    ast_env,
@@ -698,8 +704,8 @@ asynchEvent_processWGHT(
   string str_sep  = " ";
   float f_val  = 0.0;
 
-  std::_Ios_Fmtflags origFlags;
-  origFlags  = cout.flags();
+  //std::_Ios_Fmtflags origFlags;
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
@@ -804,10 +810,12 @@ asynchEvent_processWGHT(
     }
   }
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   return true;
 }
+#endif
 
+#if 0
 bool
 asynchEvent_processDWGHT(
   s_env&    ast_env,
@@ -825,8 +833,8 @@ asynchEvent_processDWGHT(
   string str_sep  = " ";
   float f_val  = 0.0;
 
-  std::_Ios_Fmtflags origFlags;
-  origFlags  = cout.flags();
+  //std::_Ios_Fmtflags origFlags;
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
@@ -931,8 +939,9 @@ asynchEvent_processDWGHT(
     }
   }
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   return true;
 }
+#endif
 
 /* eof */

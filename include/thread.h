@@ -47,7 +47,7 @@
 int ThreadResume(int iTid, int iSignal) ;
 int ThreadInit(int machine_id, int nthreads, int stacksize, int npriorities) ;
 int ThreadEnd(int tid) ;
-int ThreadStart(char *name, void (*func)(int iTid, void *parm),
+int ThreadStart(const char *name, void (*func)(int iTid, void *parm),
                 void *parm,int priority);
 int ThreadSuspend(int tid, int iSignal) ;
 int ThreadSleep(int tid, long usec) ;

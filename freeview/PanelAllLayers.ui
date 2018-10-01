@@ -68,6 +68,9 @@
        <property name="focusPolicy">
         <enum>Qt::ClickFocus</enum>
        </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::SelectedClicked</set>
+       </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::ExtendedSelection</enum>
        </property>
@@ -103,7 +106,7 @@
            <number>0</number>
           </property>
           <property name="currentIndex">
-           <number>6</number>
+           <number>0</number>
           </property>
           <widget class="PanelVolume" name="pageVolume"/>
           <widget class="PanelSurface" name="pageSurface"/>

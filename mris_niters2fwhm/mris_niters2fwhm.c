@@ -73,7 +73,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.14 2011/03/02 00:04:33 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
@@ -298,13 +298,13 @@ double MRISmeanInterVertexDist(MRIS *surf) {
 
   dsum = 0.0;
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
-    nnbrs = surf->vertices[vtx].vnum;
+    nnbrs = surf->vertices_topology[vtx].vnum;
     x0 = surf->vertices[vtx].x;
     y0 = surf->vertices[vtx].y;
     z0 = surf->vertices[vtx].z;
     dnbrsum=0.0;
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      nbrvtx = surf->vertices[vtx].v[nthnbr];
+      nbrvtx = surf->vertices_topology[vtx].v[nthnbr];
       xn = surf->vertices[nbrvtx].x;
       yn = surf->vertices[nbrvtx].y;
       zn = surf->vertices[nbrvtx].z;

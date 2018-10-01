@@ -1,0 +1,29 @@
+<help>
+
+  <name>mris_defects_pointset</name>
+  <synopsis>mris_defects_pointset [options] -s &lt;surface&gt; -d &lt;defects&gt; -o &lt;pointset&gt;</synopsis>
+  <description>Produces a pointset file containing the locations of each topological defect in a surface</description>
+
+  <arguments>
+
+    <required-flagged>
+      <argument>-s, --surf FILE</argument>
+      <explanation>Input surface</explanation>
+      <argument>-d, --defects FILE</argument>
+      <explanation>Input defect label (must match the surface dimensions)</explanation>
+      <argument>-o, --out FILE</argument>
+      <explanation>Output pointset file (json)</explanation>
+    </required-flagged>
+
+    <optional-flagged>
+      <argument>-l, --label FILE</argument>
+      <explanation>Restrict pointset to this label (must be in input surface space)</explanation>
+      <argument>-c, --control</argument>
+      <explanation>Save output in old control point format (v6 compatible)</explanation>
+    </optional-flagged>
+
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+</help>

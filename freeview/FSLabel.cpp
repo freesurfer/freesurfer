@@ -86,7 +86,7 @@ bool FSLabel::LabelRead( const QString& filename )
     LABEL* l = m_label;
     m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
     LabelFree(&l);
-    cout << "Label coordinates are converted to scanner ras for " << qPrintable(filename) << endl << endl;
+    qDebug() << "Label coordinates are converted to scanner ras for " << qPrintable(filename);
   }
 
   if (m_label && m_label->n_points > 0)

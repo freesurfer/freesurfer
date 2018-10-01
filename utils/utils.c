@@ -1501,7 +1501,16 @@ float mad(float a[], int n)
   return d * mm;
 }
 
-int nint(const double f) { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.5))); }
+/* These two functions will do rounding. The difference between them
+   is that {nint(-0.5)=-1,nint(+0.5)=+1} whereas
+   {nint2(-0.5)=-1,nint(+0.5)=0} In a very specific case (mapping a
+   single slice into a volume where the source is aligned with the
+   target but only 0.5vox offset) this caused the output slice to have
+   all 0s because nint() never allowed a legal index (was always -1 or
+   +1 and never 0).
+ */
+int nint(const double f)  { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.5))); }
+int nint2(const double f) { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.49999999))); }
 
 void (*progress_callback)(int) = 0;
 int global_progress_range[2] = {0, 100};
@@ -1554,7 +1563,41 @@ int *compute_permutation(int num, int *vec)
   return (vec);
 }
 
-// probably better to use getrusage(). see below
+/*!
+  \fn int GetVmPeak(void)
+  \brief returns Vm Peak by reading
+  /proc/self/status. Note that it is only as accurate as
+  /proc/self/status which is a file that needs to be updated by the
+  OS; not sure how often that happens. 
+*/
+int GetVmPeak(void)
+{
+  static int u[5];
+  GetMemUsage(u);
+  return(u[1]);
+}
+
+/*!
+  \fn int GetVmSize(void)
+  \brief returns Vm Size by reading /proc/self/status. Note that it is
+  only as accurate as /proc/self/status which is a file that needs to
+  be updated by the OS; not sure how often that happens.
+*/
+int GetVmSize(void)
+{
+  static int u[5];
+  GetMemUsage(u);
+  return(u[0]);
+}
+
+/*!
+  \fn int *GetMemUsage(int *u)
+  \brief returns Vm Size, Peak, RSS, Data, and Stk by reading
+  /proc/self/status. Note that it is only as accurate as
+  /proc/self/status which is a file that needs to be updated by the
+  OS; not sure how often that happens. Better to use this than
+  getrusage() below.
+*/
 int *GetMemUsage(int *u)
 {
   FILE *fp;
@@ -1588,7 +1631,6 @@ int PrintMemUsage(FILE *fp)
 {
   static int u[5];
   GetMemUsage(u);
-
   fprintf(fp, "MEM: Size %d  Peak: %d   RSS: %d  Data: %d  Stk: %d\n", u[0], u[1], u[2], u[3], u[4]);
   fflush(fp);
   return (0);
@@ -1598,8 +1640,9 @@ int PrintMemUsage(FILE *fp)
 /*!
   \fn int PrintRUsage(int who, char *pre, FILE *fp)
   \brief Returns usage statistics. See man page for getrusage.
-  probably want: who = RUSAGE_SELF;
-  pre is a string that will start each line.
+  probably want: who = RUSAGE_SELF. pre is a string that will start
+  each line. It appears that this will underestimate the actual
+  memory usage. GetMemUsage() is probably better.
 */
 int PrintRUsage(int who, const char *pre, FILE *fp)
 {

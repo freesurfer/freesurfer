@@ -2678,7 +2678,7 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   if (fabs(dot) > norm) norm = fabs(dot);
 
-  float acosInput = dot / norm;
+  double acosInput = dot / norm;
 
   // disabling this warning because the code below fails when -fopenmp is not used during compile. 
   // This is an ongoing issue in gcc 4.9.4 - clarsen

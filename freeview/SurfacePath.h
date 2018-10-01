@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QColor>
 #include <QList>
+#include <QVector>
 
 class vtkRenderer;
 class vtkActor;
@@ -30,6 +31,8 @@ public:
   bool RemovePoint( double* pt);
 
   bool RemovePoint( int nvo );
+
+  void Clear();
 
   QColor GetColor();
   void SetColor( const QColor& color );
@@ -59,17 +62,17 @@ public:
 
   bool Contains(int nvo);
 
-  QList<int> GetPathVerts()
+  QVector<int> GetPathVerts()
   {
     return m_listVertices;
   }
 
-  void SetUndoVerts(const QList<int>& verts)
+  void SetUndoVerts(const QVector<int>& verts)
   {
     m_undoVertices = verts;
   }
 
-  QList<int> GetUndoVerts()
+  QVector<int> GetUndoVerts()
   {
     return m_undoVertices;
   }
@@ -79,6 +82,7 @@ signals:
   void Progress(int n);
   void Updated();
   void CutLineMade();
+  void PathMade();
 
 public slots:
   bool MakePath(bool bClosed);
@@ -88,13 +92,13 @@ public slots:
 
 private:
   void RebuildActor();
-  QList<int> DoMakePath(const QList<int>& verts);
+  QVector<int> DoMakePath(const QVector<int>& verts);
   void UpdatePoints();
 
   vtkSmartPointer<vtkActor>   m_actorOutline;
   vtkSmartPointer<vtkPoints>  m_points;
-  QList<int>        m_listVertices;
-  QList<int>        m_undoVertices;
+  QVector<int>        m_listVertices;
+  QVector<int>        m_undoVertices;
   bool  m_bPathMade;
   bool  m_bCutLineMade;
   bool  m_bClosed;

@@ -60,7 +60,7 @@ static char *hemi = NULL ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static int FS_names = 0 ;
@@ -283,7 +283,7 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
   {
     MRISsaveVertexPositions(mris[n], TMP_VERTICES) ;
     MRISaverageVertexPositions(mris[n], 5) ;
-    MRISsetNeighborhoodSize(mris[n],3);
+    MRISsetNeighborhoodSizeAndDist(mris[n],3);
     MRIScomputeSecondFundamentalForm(mris[n]) ;
     MRISsmoothCurvatures(mris[n], 5) ;
     MRISrestoreVertexPositions(mris[n], TMP_VERTICES) ;
@@ -564,7 +564,7 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
   {
     MRISsaveVertexPositions(mris[n], TMP_VERTICES) ;
     MRISaverageVertexPositions(mris[n], 5) ;
-    MRISsetNeighborhoodSize(mris[n],3);
+    MRISsetNeighborhoodSizeAndDist(mris[n],3);
     MRIScomputeSecondFundamentalForm(mris[n]) ;
     MRISsmoothCurvatures(mris[n], 5) ;
     MRISrestoreVertexPositions(mris[n], TMP_VERTICES) ;

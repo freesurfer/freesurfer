@@ -1,15 +1,11 @@
 project(mris_smooth)
-include_directories(${mris_smooth_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_smooth_SRCS
-mris_smooth.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mris_smooth mris_smooth.c)
+add_help(mris_smooth mris_smooth.help.xml)
+target_link_libraries(mris_smooth utils)
 
-add_executable(mris_smooth ${mris_smooth_SRCS})
-target_link_libraries(mris_smooth ${FS_LIBS})
-install(TARGETS mris_smooth DESTINATION bin)	
+add_test_script(NAME mris_smooth_posix_test SCRIPT test_fs_posix DEPENDS mris_smooth)
 
+install(TARGETS mris_smooth DESTINATION bin)

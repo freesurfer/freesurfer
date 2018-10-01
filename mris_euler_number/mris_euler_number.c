@@ -49,7 +49,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static float curv_thresh = 2.0f ;
 static int patch_flag = 0 ;
@@ -58,7 +58,7 @@ char *outfile=NULL;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, fname[100] ;
+  char         **av, *in_fname, fname[STRLEN] ;
   int          ac, nargs, nvertices, nfaces, nedges, eno, dno ;
   MRI_SURFACE  *mris ;
 

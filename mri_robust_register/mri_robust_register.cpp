@@ -153,7 +153,7 @@ static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
     "$Id: mri_robust_register.cpp,v 1.77 2016/01/20 23:36:17 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
@@ -1835,24 +1835,24 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A"))
   {
     P.affine = true;
-    cout << "--affine: Enableing affine transform!" << endl;
+    cout << "--affine: Enabling affine transform!" << endl;
   }
   else if (!strcmp(option, "ISOSCALE"))
   {
     P.isoscale = true;
-    cout << "--isoscale: Enableing isotropic scaling!" << endl;
+    cout << "--isoscale: Enabling isotropic scaling!" << endl;
   }
   else if (!strcmp(option, "INITSCALING"))
   {
     P.initscaling = true;
     cout
-        << "--initscaling: Enableing initial scale adjustment based on image dimensions!"
+        << "--initscaling: Enabling initial scale adjustment based on image dimensions!"
         << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I"))
   {
     P.iscale = true;
-    cout << "--iscale: Enableing intensity scaling!" << endl;
+    cout << "--iscale: Enabling intensity scaling!" << endl;
   }
   else if (!strcmp(option, "ISCALEONLY") )
   {

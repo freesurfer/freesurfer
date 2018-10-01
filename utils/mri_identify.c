@@ -188,6 +188,7 @@ int string_to_type(const char *string)
   if (strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
   if (strcmp(ls, "gii") == 0) type = GIFTI_FILE;
   if (strcmp(ls, "vtk") == 0) type = VTK_FILE;
+  if (strcmp(ls, "label") == 0) type = MGH_LABEL_FILE;
 
   return (type);
 
@@ -317,6 +318,9 @@ int mri_identify(const char *fname_passed)
           case VTK_FILE:
             return type;
             break;
+	case MGH_LABEL_FILE:
+	  return type ;
+	  break ;
           default:
             break;
         }

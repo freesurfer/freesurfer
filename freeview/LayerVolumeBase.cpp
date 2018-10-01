@@ -79,9 +79,9 @@ LayerVolumeBase::~LayerVolumeBase()
   delete m_livewire;
 }
 
-QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd, bool ignore_brush_size )
+QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd, bool ignore_brush_size )
 {
-  QList<int> indices;
+  QVector<int> indices;
   int* nDim = m_imageData->GetDimensions();
   /* for ( int i = 0; i < 3; i++ )
    {
@@ -282,7 +282,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd, bool ig
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  QList<int> list = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
+  QVector<int> list = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
   if ( !list.isEmpty() )
   {
     SetModified();
@@ -306,7 +306,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
     n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  QList<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd, ignore_brush_size );
+  QVector<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd, ignore_brush_size );
   if ( !list.isEmpty() )
   {
     SetModified();
@@ -319,7 +319,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
   }
 }
 
-QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd, bool ignore_brush_size )
+QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   int nx = 1, ny = 2;
   if ( nPlane == 1 )
@@ -338,7 +338,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
   int dy = y1 - y0;
   double t = 0.5;
   int n[3];
-  QList<int> list;
+  QVector<int> list;
   list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
   if ( abs( dx ) > abs( dy ) )
   {
@@ -353,7 +353,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
       n[nx] = x0;
       n[ny] = (int) t;
       n[nPlane] = n1[nPlane];
-      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
+      QVector<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
       if (!list1.isEmpty())
         list << list1;
     }
@@ -371,7 +371,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
       n[nx] = (int) t;
       n[ny] = y0;
       n[nPlane] = n1[nPlane];
-      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
+      QVector<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
       if (!list1.isEmpty())
         list << list1;
     }
@@ -490,7 +490,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
 
   if (!b3D)
   {
-    QList<int> list = FloodFillByIndex( n, nPlane, bAdd, true, mask_out, ignore_exclusion );
+    QVector<int> list = FloodFillByIndex( n, nPlane, bAdd, true, mask_out, ignore_exclusion );
     if ( !list.isEmpty() )
     {
       if ( !mask_out )
@@ -508,12 +508,12 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
   }
   else
   {
-    QList<int> list_all;
+    QVector<int> list_all;
     int n0[3] = { n[0], n[1], n[2]};
     for (int i = n0[nPlane]; i < dim[nPlane]; i++)
     {
       n[nPlane] = i;
-      QList<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
+      QVector<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
       if (list.isEmpty())
         break;
       else
@@ -522,7 +522,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
     for (int i = n0[nPlane]-1; i >= 0; i--)
     {
       n[nPlane] = i;
-      QList<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
+      QVector<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
       if (list.isEmpty())
         break;
       else
@@ -536,9 +536,9 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
-QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out, bool ignore_exclusion )
+QVector<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out, bool ignore_exclusion )
 {
-  QList<int> voxel_list;
+  QVector<int> voxel_list;
   int* nDim = m_imageData->GetDimensions();
   int nx = 0, ny = 0, x = 0, y = 0;
   switch ( nPlane )
@@ -811,7 +811,7 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 
   m_livewire->GetLivewirePoints( image, nPlane, n1[nPlane], pt1, pt2, pts );
   int n[3];
-  QList<int> list;
+  QVector<int> list;
   for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
   {
     double* p = pts->GetPoint( i );

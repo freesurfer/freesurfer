@@ -39,7 +39,7 @@
       exit(1); \
     } \
 
-char *Progname="fsgdf_test_app";
+const char *Progname="fsgdf_test_app";
 
 int main (int argc, char** argv) {
   FSGD *gd;

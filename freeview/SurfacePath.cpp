@@ -161,11 +161,16 @@ bool SurfacePath::AddPoint(int nVert)
 //    }
 
     m_listVertices << nVert;
-    UpdatePoints();
-    RebuildActor();
+    Update();
     return true;
   }
   return false;
+}
+
+void SurfacePath::Update()
+{
+  UpdatePoints();
+  RebuildActor();
 }
 
 bool SurfacePath::RemovePoint(int nVert)
@@ -173,18 +178,24 @@ bool SurfacePath::RemovePoint(int nVert)
   if (nVert >= 0 && m_listVertices.contains(nVert))
   {
     int n = m_listVertices.indexOf(nVert);
-    m_listVertices.removeOne(nVert);
-    UpdatePoints();
-    RebuildActor();
+    m_listVertices.remove(m_listVertices.indexOf(nVert));
+    Update();
     return true;
   }
   return false;
 }
 
+
 bool SurfacePath::RemovePoint( double* pos )
 {
   int nVert = m_mris->GetVertexIndexAtTarget(pos, NULL);
   return RemovePoint(nVert);
+}
+
+void SurfacePath::Clear()
+{
+  m_listVertices.clear();
+  Update();
 }
 
 void SurfacePath::UpdatePoints()
@@ -216,7 +227,9 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
   int* pred;
   char done;
   VERTEX* v;
+  VERTEX_TOPOLOGY* vt;
   VERTEX* u;
+  VERTEX_TOPOLOGY* ut;
   float closest_dist;
   int closest_vno;
   int neighbor;
@@ -275,6 +288,7 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
             closest_vno = vno;
           }
       v = &(mris->vertices[closest_vno]);
+      vt = &(mris->vertices_topology[closest_vno]);
       check[closest_vno] = FALSE;
 
       /* if this is the dest node, we're done. */
@@ -285,9 +299,9 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
       else
       {
         /* relax its neighbors. */
-        for (neighbor = 0; neighbor < v->vnum; neighbor++)
+        for (neighbor = 0; neighbor < vt->vnum; neighbor++)
         {
-          neighbor_vno = v->v[neighbor];
+          neighbor_vno = vt->v[neighbor];
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
@@ -341,9 +355,9 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
   return true;
 }
 
-QList<int> SurfacePath::DoMakePath(const QList<int> &verts)
+QVector<int> SurfacePath::DoMakePath(const QVector<int> &verts)
 {
-  QList<int> verts_out;
+  QVector<int> verts_out;
 
   int nverts = verts.size();
   int* pverts = new int[nverts];
@@ -365,7 +379,7 @@ bool SurfacePath::MakePath(bool bClosed)
   if (m_listVertices.size() < 2)
     return false;
 
-  QList<int> verts = m_listVertices;
+  QVector<int> verts = m_listVertices;
   if (bClosed)
     verts << verts.first();
 
@@ -375,8 +389,8 @@ bool SurfacePath::MakePath(bool bClosed)
     m_listVertices = verts;
     m_bClosed = bClosed;
     m_bPathMade = true;
-    UpdatePoints();
-    RebuildActor();
+    Update();
+    emit PathMade();
     return true;
   }
   else
@@ -388,7 +402,7 @@ bool SurfacePath::MakeCutLine(bool bClosed)
   if (m_listVertices.size() < 2)
     return false;
 
-  QList<int> verts = m_listVertices;
+  QVector<int> verts = m_listVertices;
   if (bClosed)
     verts << verts.first();
 
@@ -399,8 +413,7 @@ bool SurfacePath::MakeCutLine(bool bClosed)
     m_bClosed = bClosed;
     m_bPathMade = true;
     m_bCutLineMade = true;
-    UpdatePoints();
-    RebuildActor();
+    Update();
     emit CutLineMade();
     return true;
   }

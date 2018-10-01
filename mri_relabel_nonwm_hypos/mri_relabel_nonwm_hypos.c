@@ -78,7 +78,7 @@ int PrintSegIds(int nsegs, int *segidlist, int *outsegidlist);
 int DefaultSegIds(int *segidlist, int *outsegidlist);
 
 static char vcid[] = "$Id: mri_relabel_nonwm_hypos.c,v 1.2 2014/04/17 18:03:22 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

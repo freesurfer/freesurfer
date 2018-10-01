@@ -62,6 +62,7 @@ extern "C"
 #include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
+#include "mrisurf.h"
 }
 
 
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) ;
 //  Global Variables
 //
 static char vcid[] = "$Id: main.cpp,v 1.3 2011/03/02 00:04:30 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline;
 int debug=0;
 int checkoptsonly=0;
@@ -117,11 +118,23 @@ int main(int argc, char *argv[])
 {
   // Initialize Decimation options
   memset(&gDecimationOptions, 0, sizeof(DECIMATION_OPTIONS));
+  gDecimationOptions.desiredNumFaces = -1;
+  gDecimationOptions.desiredFaceArea = -1;
   gDecimationOptions.decimationLevel = 0.5; // Default decimation level if not specified
+
+  // This flag is to run code to sort output vertices. This was needed
+  // when compiling GTS with hashes instead of btrees to make the
+  // output deterministic. Even then it did not always give the same
+  // output when the input was ?h.orig.nofix, because the underlying
+  // algorithm did not give the same vertices. The algorithm appears
+  // to give deterministic output when using btrees, so the sorting
+  // feature is off by default.
+  gDecimationOptions.SortVertices = 0;
 
   char *in_fname, out_fpath[STRLEN] ;
   int nargs;
-  MRI_SURFACE *mris ;
+  MRI_SURFACE *mris;
+  double avgfacearea ;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1)
@@ -153,10 +166,13 @@ int main(int argc, char *argv[])
     usage_exit();
   }
 
+  if(gDecimationOptions.desiredNumFaces > 0 && gDecimationOptions.desiredFaceArea > 0){
+    printf("ERROR: cannot set -n and -a\n");
+    exit(1);
+  }
+
   in_fname = argv[1] ;
   FileNameAbsolute(argv[2], out_fpath);
-
-  dump_options(stdout);
 
   mris = MRISread(in_fname) ;
   if (!mris)
@@ -168,8 +184,32 @@ int main(int argc, char *argv[])
   std::cout << "Original Surface Number of vertices: " << mris->nvertices << std::endl;
   std::cout << "Original Surface Number of faces: " << mris->nfaces << std::endl;
 
+  if(gDecimationOptions.desiredNumFaces > 0){
+    gDecimationOptions.decimationLevel = (float)gDecimationOptions.desiredNumFaces/mris->nfaces;
+    printf("Setting decimation level to %f based on %d/%d\n",gDecimationOptions.decimationLevel,
+	   gDecimationOptions.desiredNumFaces,mris->nfaces);
+  }
+
+  MRIScomputeMetricProperties(mris);
+  avgfacearea = mris->total_area/mris->nfaces;
+  printf("Average Face Area of input is %8.6f\n",avgfacearea);
+  if(gDecimationOptions.desiredFaceArea > 0){
+    gDecimationOptions.decimationLevel = avgfacearea/gDecimationOptions.desiredFaceArea;
+    printf("Setting decimation level to %f based on %g/%g\n",gDecimationOptions.decimationLevel,
+	   avgfacearea,gDecimationOptions.desiredFaceArea);
+    if(gDecimationOptions.decimationLevel > 1.0){
+      printf("  INFO: decimation level > 1, so setting to 1. There will be no change to the output\n");
+    }
+  }
+
+  dump_options(stdout);
+
   // Decimate the surface
   decimateSurface(&mris, gDecimationOptions, DecimateProgressCallback);
+
+  MRIScomputeMetricProperties(mris);
+  avgfacearea = mris->total_area/mris->nfaces;
+  printf("Average Face Area of output is %8.6f\n",avgfacearea);
 
   // Write out the results
   MRISwrite(mris, out_fpath);
@@ -204,6 +244,20 @@ static int get_option(int argc, char *argv[])
       gDecimationOptions.decimationLevel = atof(argv[2]) ;
       printf("using decimation = %2.2f\n", gDecimationOptions.decimationLevel) ;
       nargs = 1 ;
+      break ;
+    case 'A':
+      gDecimationOptions.desiredFaceArea = atof(argv[2]) ;
+      printf("desired face area = %7.6f\n", gDecimationOptions.desiredFaceArea);
+      nargs = 1 ;
+      break ;
+    case 'N':
+      gDecimationOptions.desiredNumFaces = atoi(argv[2]) ;
+      printf("desired number of vertices = %d\n", gDecimationOptions.desiredNumFaces);
+      nargs = 1 ;
+      break ;
+    case 'Q':
+      gDecimationOptions.SortVertices = 1;
+      printf("turning on vertex sorting\n");
       break ;
     case 'M':
       gDecimationOptions.setMinimumAngle = true;

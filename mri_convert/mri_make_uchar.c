@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 MRI *MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 

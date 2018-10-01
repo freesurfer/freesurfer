@@ -1,15 +1,9 @@
 project(mri_cc)
-include_directories(${mri_cc_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_cc_SRCS
-mri_cc.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_cc mri_cc.c)
+add_help(mri_cc mri_cc.help.xml)
+target_link_libraries(mri_cc utils)
 
-add_executable(mri_cc ${mri_cc_SRCS})
-target_link_libraries(mri_cc ${FS_LIBS})
-install(TARGETS mri_cc DESTINATION bin)	
-
+install(TARGETS mri_cc DESTINATION bin)

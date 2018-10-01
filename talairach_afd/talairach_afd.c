@@ -64,7 +64,7 @@ float ComputeArea(HISTO *h, int nbin);
 
 int main(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 
 int main(int argc, char *argv[])
 {

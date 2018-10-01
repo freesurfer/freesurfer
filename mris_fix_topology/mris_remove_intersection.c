@@ -51,7 +51,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 int main(int argc, char *argv[])
 {
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
   MRISaddCommandLine(mris, cmdline) ;
 
-  // MRISsetNeighborhoodSize(mris, 2) ;
+  // MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   MRISremoveIntersections(mris) ;
 
   printf("writing corrected surface to %s\n", out_fname) ;

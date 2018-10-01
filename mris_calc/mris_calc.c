@@ -226,7 +226,7 @@ const char* Gppch_operation[] =
 //--------------------------------
 
 char*             G_pch_progname ;
-char*             Progname ;
+const char*             Progname ;
 
 static int        G_verbosity             = 0;
 static FILE*      G_FP                    = NULL;

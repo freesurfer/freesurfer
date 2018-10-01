@@ -46,7 +46,7 @@ public:
   RenderView( QWidget* parent = NULL );
 
   enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ReconEdit,
-                         IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop, IM_SurfacePath };
+                         IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop, IM_SurfaceCut, IM_SurfacePath };
 
   void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}
@@ -78,7 +78,6 @@ public:
   virtual void keyReleaseEvent  ( QKeyEvent* event );
 
   bool GetShowScalarBar();
-  virtual void UpdateScalarBar();
 
   bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1, bool bAutoTrim = false);
 
@@ -102,6 +101,7 @@ public slots:
   void SetScalarBarLayer( QAction* act );
   void CenterAtWorldPosition( double* pos );
   void AlignViewToNormal(double* v);
+  virtual void UpdateScalarBar();
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

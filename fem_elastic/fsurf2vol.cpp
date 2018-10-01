@@ -19,6 +19,9 @@
 #include "surf_powell.h" // use Powell to compute the best lin. transform to
 // do rigid registration of the surfaces.
 
+// the isfinite defined in utils conflicts with vnl
+#undef isfinite
+
 #include "simple_timer.h"
 #include "transformUtils.h"
 #include "morph.h"
@@ -46,7 +49,7 @@ extern "C"
 };
 
 
-char *Progname;
+const char *Progname;
 static char help[] = "Diffuse surface deformation to volumes";
 
 #define USE_SURF_SUBSAMPLING 1

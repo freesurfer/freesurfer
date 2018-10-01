@@ -378,7 +378,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     ErrorExit(ERROR_NOMEMORY, "ERROR: MRISdivideAnnotation: could not allocate %d index table\n", mris->ct->nentries);
 
   MRISclearMarks(mris);
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   for (nadded = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag || v->annotation <= 0) {
@@ -739,18 +739,16 @@ MRI *MRISannot2seg(MRIS *surf, int base)
 */
 MRI *MRISannot2border(MRIS *surf)
 {
-  int k, annot, nnbrs, nthnbr, knbr, nbrannot, isborder;
-  MRI *border;
-
-  border = MRIalloc(surf->nvertices, 1, 1, MRI_INT);
-
+  MRI* const border = MRIalloc(surf->nvertices, 1, 1, MRI_INT);
+  int k;
   for (k = 0; k < surf->nvertices; k++) {
-    annot = surf->vertices[k].annotation;
-    nnbrs = surf->vertices[k].vnum;
-    isborder = 0;
+    int const nnbrs = surf->vertices_topology[k].vnum;
+    int const annot = surf->vertices[k].annotation;
+    int isborder = 0;
+    int nthnbr;
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      knbr = surf->vertices[k].v[nthnbr];
-      nbrannot = surf->vertices[knbr].annotation;
+      int const knbr     = surf->vertices_topology[k].v[nthnbr];
+      int const nbrannot = surf->vertices[knbr].annotation;
       if (nbrannot != annot) {
         isborder = 1;
         break;

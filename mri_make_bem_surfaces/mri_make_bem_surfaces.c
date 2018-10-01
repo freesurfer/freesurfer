@@ -174,7 +174,7 @@ int openglwindowflag = FALSE;
 int peeledflag = FALSE;
 int initsurftoimageflag = FALSE;
 
-char *Progname ;
+const char *Progname ;
 int
 main(int argc,char *argv[])
 {

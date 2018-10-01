@@ -120,6 +120,10 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>-oval  val</argument>
       <argument>--outside_val  val</argument>
       <explanation>set the values outside of the image that may rotate in if a transform is applied to val </explanation>
+      <argument>--no-rescale-dicom</argument>
+      <explanation>Do NOT apply DICOM rescale intercept and slope based on (0028,1052) (0028,1053). Same as setenv FS_RESCALE_DICOM 0</explanation>
+      <argument>--rescale-dicom</argument>
+      <explanation>DO apply DICOM rescale intercept and slope based on (0028,1052) (0028,1053). Same as setenv FS_RESCALE_DICOM 1</explanation>
       <intro>APPLYING TRANSFORMS (INCLUDING TALAIRACH) </intro>
       <argument>--apply_transform xfmfile (-T or -at) </argument>
       <explanation>apply tranform given by xfm or m3z files </explanation> 
@@ -260,6 +264,8 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <explanation>input intensity scale factor</explanation> 
       <argument>-osc, --out-scale factor</argument>
       <explanation>output intensity scale factor</explanation> 
+      <argument>--rescale rescalefactor </argument>
+      <explanation>Rescale input so that the global mean is rescalefactor</explanation> 
       <argument>-il, --in_like</argument>
       <argument>-roi</argument>
       <argument>-fp, --fill_parcellation</argument>

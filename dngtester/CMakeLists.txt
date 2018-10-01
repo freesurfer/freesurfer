@@ -1,20 +1,16 @@
 project(dngtester)
-include_directories(${dngtester_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(dngtester_SRCS
-dngtester.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
-SET (dngtester_LIBS
-fsgdf
-${FS_LIBS}
-)
+# always debug
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
+# dngtester
+add_executable(dngtester dngtester.c)
+target_link_libraries(dngtester utils fsgdf)
 
-add_executable(dngtester ${dngtester_SRCS})
-target_link_libraries(dngtester ${dngtester_LIBS})
-install(TARGETS dngtester DESTINATION bin)	
-
+# cpptester
+include_directories(${ITK_INCLUDE_DIR})
+add_executable(cpptester cpptester.cpp)
+target_link_libraries(cpptester utils fsgdf ${ITK_LIBRARIES})

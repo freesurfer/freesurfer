@@ -7,8 +7,6 @@
 set inputargs = ($argv);
 set VERSION = '$Id: infant_recon_all,v 1.00 2017/01/10 12:27:40 lzollei Exp $';
 
-# set filetype = mgz
-set filetype = nii.gz
 set checkresults        = 0 # after each processing step FreeView is called to visualize the results
 set nolog               = 0 # keep logging the processing steps
 set cleanup             = 0 # eventually turn this on
@@ -36,17 +34,31 @@ set avoidtraining       = 0
 set setksize            = 0
 
 set useMI               = 0
+set PrintHelp = 0;
 
-source set_infant_recon_params.csh
+source $FREESURFER_HOME/bin/set_infant_recon_params.csh
 set TEMPLATE_SUBJECTS = ($CNYBCH_SUBJECTS) # the full CNYBCH training set
 set TEMPLATE_AGES     = ($CNYBCH_AGES)
 setenv TEMPLATE_SUBJECTS_DIR  $CNYBCH_TEMPLATE_SUBJECTS_DIR 
 
 ## read input
 set cmdline = ($argv);
+
+if($#argv == 0) goto usage_exit;
+
 while( $#argv != 0 )
   set flag = $argv[1]; shift;
   switch($flag)
+    case "-h"
+    case "-u"
+    case "-usage"
+    case "--usage"
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+    case "--subject":
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subj = $argv[1]; shift;
@@ -70,7 +82,7 @@ while( $#argv != 0 )
       breaksw
     case "--masked":
       if ( $#argv < 1) goto arg1err;
-      set maskedinputfile = $argv[1]; shift; # TODO: check whether it is conf and file extension!!
+      set maskedinputfile = $argv[1]; shift; 
       set maskedinput = 1;
       breaksw
     case "--newborn":
@@ -226,8 +238,18 @@ echo "Preprocessing step..." >> $sLF
 
 if !($maskedinput) then # the input file is not skullstripped yet
 
-set originput = $origdir/mprage.$filetype
-set infile    = $originput
+set originput = $origdir/mprage.mgz
+if !(-e $originput) then
+  set originput = $origdir/mprage.nii.gz
+else
+  set cmd = (mri_convert $originput ${originput:r}.nii.gz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1; 
+endif
+
+set infile   = $originput
 if !(-e $infile) then 
   echo "ERROR: The input data to be processed does not exist:" $infile
   exit 1;
@@ -296,7 +318,7 @@ endif
 
 else
  set maskedfile = $maskedinputfile
- set cmd = (mri_convert $maskedfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
+ set cmd = (mri_convert --conform-dc $maskedfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
  echo $cmd >> $LF
  echo $cmd >> $sLF
  $cmd |& tee -a $LF
@@ -779,7 +801,7 @@ echo Creating wm surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.white) then
 # if !(-e $SUBJECTS_DIR/$subj/label/rh.aparc.annot) then
 if (1) then # 06/14/2017
-  set cmd = (source create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (source $FREESURFER_HOME/bin/create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -790,7 +812,7 @@ endif
 echo Creating pial surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.pial) then
 if !(-e $SUBJECTS_DIR/$subj/surf/rh.thickness) then
-  set cmd = (source create_pial_surfaces_mprage_subject.csh --s $subj)
+  set cmd = (source $FREESURFER_HOME/bin/create_pial_surfaces_mprage_subject.csh --s $subj)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -885,3 +907,22 @@ set EndTime = `date +%s`;
 set TimeMsg = "infant_recon_all: The whole process took $DiffTime seconds"
 echo $TimeMsg |& tee -a $sLF
 echo $TimeMsg >> $LF
+
+
+############--------------##################
+usage_exit:
+
+if($PrintHelp) then
+  cat $0 | \
+    awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+else
+  echo "Usage: infant_recon_all --s <subj> --age <age_in_months>"
+  echo "Help:  infant_recon_all --help"
+endif
+
+exit 1;
+
+#---- Everything below is printed out as part of help -----#
+#-- During make install, the output of 'fsPrintHelp infant_recon_all.help.xml' -- #
+#-- is concatenated to this file --#
+BEGINHELP

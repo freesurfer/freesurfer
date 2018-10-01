@@ -50,7 +50,7 @@
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_probe_ima.c,v 1.13 2011/03/02 00:04:24 nicks Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);

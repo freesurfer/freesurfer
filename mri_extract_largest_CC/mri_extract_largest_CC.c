@@ -55,7 +55,7 @@ static float threshold = 90;
 static char hemi[80] = "lh";
 static int inverse = 0 ;
 
-char *Progname;
+const char *Progname;
 static MRI *mri_orig = NULL ;
 
 int main(int argc, char *argv[]) {

@@ -45,7 +45,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static INTEGRATION_PARMS parms ;
 static int use_thickness = 0 ;
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   
   if (nbrs > 1)
   {
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   }
   if (use_thickness)
   {

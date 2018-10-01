@@ -1,15 +1,10 @@
 project(mri_concatenate_lta)
-include_directories(${mri_concatenate_lta_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_concatenate_lta_SRCS
-mri_concatenate_lta.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_concatenate_lta mri_concatenate_lta.c)
+target_link_libraries(mri_concatenate_lta utils)
 
-add_executable(mri_concatenate_lta ${mri_concatenate_lta_SRCS})
-target_link_libraries(mri_concatenate_lta ${FS_LIBS})
-install(TARGETS mri_concatenate_lta DESTINATION bin)	
+add_test_script(NAME mri_concatenate_lta_test SCRIPT test_mri_concatenate_lta DEPENDS mri_concatenate_lta)
 
+install(TARGETS mri_concatenate_lta DESTINATION bin)

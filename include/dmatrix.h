@@ -65,7 +65,7 @@ DMATRIX *DMatrixAdd(DMATRIX *m1, DMATRIX *m2, DMATRIX *mout);
 DMATRIX *DMatrixSubtract(DMATRIX *m1, DMATRIX *m2, DMATRIX *mout);
 DMATRIX *DMatrixScalarMul(DMATRIX *m, double v, DMATRIX *mout);
 double DVectorDot(const DVECTOR *v1, const DVECTOR *v2);
-DMATRIX *DMatrixConstVal(double val, int rows, int cols, DMATRIX *X);
+DMATRIX *DMatrixConstVal(const double val, const int rows, const int cols, DMATRIX *X);
 DMATRIX *DMatrixZero(const int rows, const int cols, DMATRIX *X);
 double DVectorLen(const DVECTOR *v);
 DVECTOR *DVectorCrossProduct(const DVECTOR *v1, const DVECTOR *v2, DVECTOR *vdst);

@@ -75,7 +75,7 @@ static char *source_surf = "";
 static char *target_surf = ".toM02100023.resample";
 static char *mask_fname = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;
@@ -170,14 +170,6 @@ main(int argc, char *argv[])
   mp.tol = 0.1 ;
   mp.niterations = 1000 ;
 
-#ifdef HAVE_OPENMP
-  n_omp_threads = omp_get_max_threads();
-  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
-         n_omp_threads);
-#else
-  n_omp_threads = 1;
-#endif
-
   TimerStart(&start) ;
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -198,6 +190,14 @@ main(int argc, char *argv[])
   {
     usage_exit(1) ;
   }
+
+#ifdef HAVE_OPENMP
+  n_omp_threads = omp_get_max_threads();
+  printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
+  //printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n", n_omp_threads);
+#else
+  n_omp_threads = 1;
+#endif
 
   source_fname = argv[1] ;
   target_fname = argv[2] ;
@@ -656,8 +656,8 @@ main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d minutes and %d seconds.\n",
-         minutes, seconds) ;
+  printf("mri_nl_align registration took %d minutes and %d seconds.\n",  minutes, seconds) ;
+  printf("#VMPC# mri_nl_align done VmPeak  %d\n",GetVmPeak());
   exit(0) ;
   return(0) ;
 }
@@ -832,6 +832,17 @@ get_option(int argc, char *argv[])
     mp.l_dtrans = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting distance transform coefficient to %2.3f\n", mp.l_dtrans) ;
+  }
+  else if (!stricmp(option, "threads"))
+  {
+    int nthreads;
+    sscanf(argv[2],"%d",&nthreads);
+    setenv("OMP_NUM_THREADS",argv[2],1);
+    #ifdef _OPENMP
+    omp_set_num_threads(nthreads);
+    #endif
+    printf("setting threads to %d\n",nthreads);
+    nargs = 1 ;
   }
   else if (!stricmp(option, "match_peak"))
   {

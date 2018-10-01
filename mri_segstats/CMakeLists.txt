@@ -1,15 +1,11 @@
 project(mri_segstats)
-include_directories(${mri_segstats_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_segstats_SRCS
-mri_segstats.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_segstats mri_segstats.c)
+add_help(mri_segstats mri_segstats.help.xml)
+target_link_libraries(mri_segstats utils)
 
-add_executable(mri_segstats ${mri_segstats_SRCS})
-target_link_libraries(mri_segstats ${FS_LIBS})
-install(TARGETS mri_segstats DESTINATION bin)	
+add_test_script(NAME mri_segstats_test SCRIPT test_mri_segstats DEPENDS mri_segstats)
 
+install(TARGETS mri_segstats DESTINATION bin)

@@ -45,7 +45,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 static char *surf_name = "white" ;
 static char *sphere_name = "sphere.d1.left_right";
@@ -130,8 +130,8 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris_ohemi) ;
   if (MRISreadCanonicalCoordinates(mris_ohemi, sphere_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: MRISreadCanonicalCoordinates(%s) failed", Progname, sphere_name);
-  MRISsetNeighborhoodSize(mris, nbrs) ;
-  MRISsetNeighborhoodSize(mris_ohemi, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_ohemi, nbrs) ;
   MRIScomputeMetricProperties(mris) ;
   MRIScomputeMetricProperties(mris_ohemi) ;
   MRIScomputeSecondFundamentalForm(mris);

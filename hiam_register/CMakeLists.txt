@@ -1,14 +1,8 @@
 project(hiam_register)
-include_directories(${hiam_register_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(hiam_register_SRCS
-hiam_register.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(hiam_register hiam_register.c)
+target_link_libraries(hiam_register utils)
 
-add_executable(hiam_register ${hiam_register_SRCS})
-target_link_libraries(hiam_register ${FS_LIBS})
-install(TARGETS hiam_register DESTINATION bin)	
+install(TARGETS hiam_register DESTINATION bin)

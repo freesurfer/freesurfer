@@ -68,7 +68,7 @@ static int compute_target_labels(MRI_SURFACE *mris, MRI *mri_labels, MRI *mri_in
                                  VERTEX_INFO *vi) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 static float resolution = 8.0 ;
 static char *label_vol_name = NULL ;
@@ -236,7 +236,7 @@ main(int argc, char *argv[]) {
   
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   build_label_histograms(mri_labels, mri_intensities, histos) ;
   
   vi = (VERTEX_INFO *)calloc(mris->nvertices, sizeof(VERTEX_INFO)) ;

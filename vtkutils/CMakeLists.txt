@@ -1,64 +1,40 @@
 project(vtkutils)
-include_directories(${vtkutils_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-execute_process ( 
-COMMAND ${VTK_RUNTIME_LIBRARY_DIRS}/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h ${VTK_WRAP_HINTS} 1 vtkKWRGBATransferFunctionEditorTcl.cxx
-WORKING_DIRECTORY ${vtkutils_SOURCE_DIR} 
-)
+if(VTK_FOUND AND KWWidgets_FOUND)
 
-execute_process ( 
-COMMAND ${VTK_RUNTIME_LIBRARY_DIRS}/vtkWrapTcl vtkKWBltGraph.h ${VTK_WRAP_HINTS} 1 vtkKWBltGraphTcl.cxx
-WORKING_DIRECTORY ${vtkutils_SOURCE_DIR} 
-)
+  include_directories(
+    ${FS_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${TIFF_INCLUDE_DIR}
+    ${VTK_INCLUDE_DIRS}
+    ${X11_INCLUDE_DIR}
+    ${KWWidgets_INCLUDE_DIR}
+  )
 
-SET(vtkutils_SRCS
-	vtkKWProgressDialog.cxx
-	vtkKWRGBATransferFunctionEditor.cxx
-	vtkKWRGBATransferFunctionEditorTcl.cxx
-	vtkKWBltGraph.cxx vtkKWBltGraphTcl.cxx
-	vtkFreesurferLookupTable.cxx
-	vtkArrowPipeline.cxx
-	vtkRGBATransferFunction.cxx
-	vtkFDTensorGlyph.cxx
-	vtkODFGlyph.cxx
-	vtkInflatePolyData.cxx
-	IconLoader.cxx
-)
-add_library (vtkutils ${vtkutils_SRCS})
+  set(CMAKE_CXX_STANDARD 98)
 
-SET (IconLoaderTest_SOURCES
-	IconLoaderTest.cxx 
-)
-execute_process ( 
-COMMAND ${VTK_RUNTIME_LIBRARY_DIRS}/vtkWrapTcl vtkKWRGBATransferFunctionEditorTester.h ${VTK_WRAP_HINTS} 1 vtkKWRGBATransferFunctionEditorTesterTcl.cxx
-WORKING_DIRECTORY ${vtkutils_SOURCE_DIR} 
-)
-execute_process ( 
-COMMAND ${VTK_RUNTIME_LIBRARY_DIRS}/vtkWrapTclInit RgbatransferfunctioneditortesterLibInit.data RgbatransferfunctioneditortesterLibInit.cxx
-WORKING_DIRECTORY ${vtkutils_SOURCE_DIR} 
-)
+  # use vtkWrapTcl to create the tcl-wrapped code for these objects
+  vtk_wrap_tcl(vtkKWRGBATransferFunctionEditor.h vtkKWRGBATransferFunctionEditorTcl.cxx)
+  vtk_wrap_tcl(vtkKWBltGraph.h vtkKWBltGraphTcl.cxx)
 
-SET (vtkKWRGBATransferFunctionEditorTester_SRCS
-	vtkKWRGBATransferFunctionEditorTester.cxx
-	vtkKWRGBATransferFunctionEditorTesterTcl.cxx
-	RgbatransferfunctioneditortesterLibInit.cxx
-)
+  set(SOURCES
+    vtkKWProgressDialog.cxx
+    vtkKWRGBATransferFunctionEditor.cxx
+    vtkKWRGBATransferFunctionEditorTcl.cxx
+    vtkKWBltGraph.cxx vtkKWBltGraphTcl.cxx
+    vtkFreesurferLookupTable.cxx
+    vtkArrowPipeline.cxx
+    vtkRGBATransferFunction.cxx
+    vtkRGBAColorTransferFunction.cxx
+    vtkFDTensorGlyph.cxx
+    vtkODFGlyph.cxx
+    vtkInflatePolyData.cxx
+    IconLoader.cxx
+  )
 
-SET (MVTKUTILS_TEST_LIBS
-vtkfsio
-vtkutils
-${FS_LIBS}
-)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
-add_executable(IconLoaderTest ${IconLoaderTest_SOURCES})
-target_link_libraries(IconLoaderTest ${MVTKUTILS_TEST_LIBS})
+  add_library(vtkutils STATIC ${SOURCES})
+  target_link_libraries(vtkutils ${TIFF_LIBRARIES})
 
-add_executable(vtkKWRGBATransferFunctionEditorTester ${vtkKWRGBATransferFunctionEditorTester_SRCS})
-target_link_libraries(vtkKWRGBATransferFunctionEditorTester ${MVTKUTILS_TEST_LIBS})
-
-add_executable(vtkArrowPipelineTester vtkArrowPipelineTester.cxx)
-target_link_libraries(vtkArrowPipelineTester ${MVTKUTILS_TEST_LIBS})
-
+endif()

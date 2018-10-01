@@ -1,8 +1,8 @@
-#!/bin/tcsh -ef    
+#!/bin/tcsh -ef
 
 #setenv CMDDIR `pwd`
-setenv CMDDIR $FREESURFER_HOME/scripts/LabelFusionBetterDist/
-setenv MLAB /autofs/cluster/matlab/8.0/
+setenv CMDDIR $FREESURFER_HOME/bin/
+setenv MLAB $MATLAB_ROOT
 setenv MRFparams "1 5"
 
 setenv LFOPTIONS1 "2 41 3 42" # new -- cerebral WM hack

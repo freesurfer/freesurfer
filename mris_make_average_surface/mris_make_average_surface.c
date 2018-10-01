@@ -97,6 +97,7 @@ ENDHELP
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "macros.h"
 #include "error.h"
@@ -104,6 +105,7 @@ ENDHELP
 #include "proto.h"
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "macros.h"
 #include "icosahedron.h"
 #include "transform.h"
@@ -129,17 +131,17 @@ static char *orig_name = "orig" ;
 static char *xform_name = "talairach.xfm" ;
 
 static int ico_no = 6 ;
+int UseSurf2Surf = 1; // use surf2surf instead of parametric surface
 
-char *Progname ;
+const char *Progname ;
 static char *sdir = NULL, *sdirout = NULL;
 
 int
 main(int argc, char *argv[]) {
   char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN],
   *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
-  int          ac, nargs, i, vno, n ;
-  VERTEX       *v ;
-  MRI_SURFACE  *mris_ico ;
+  int          ac, nargs, i, vno, n, err ;
+  MRI_SURFACE  *mris_ico, *surf ;
   MRI_SP       *mrisp_total ;
   LTA          *lta ;
   VOL_GEOM     vg;
@@ -197,6 +199,46 @@ main(int argc, char *argv[]) {
   printf("---------------------------------------------------\n");
   printf("\n\n");
   fflush(stdout);
+
+  // create the output directory now
+  sprintf(fname, "%s/%s/surf", sdirout,out_sname);
+  err = fio_mkdirp(fname,0777);
+  if (err != 0 && errno != EEXIST) {
+    printf("ERROR: creating directory %s\n",fname);
+    perror(NULL);
+    exit(1);
+  }
+
+  if(UseSurf2Surf){
+    printf("Using surf2surf instead of parametric surface.\n");
+    printf(" To use the old method include -no-surf2surf\n");
+
+    AVERAGE_SURFACE_PARAMS *asp;
+    asp = MRISaverageSurfaceParamAlloc(argc-5);
+    asp->icoorder = ico_no;
+    asp->hemi = hemi;
+    asp->surfname = avg_surf_name;
+    asp->surfregname = canon_surf_name;
+    asp->xform_name = xform_name;
+    n=0;
+    for (i = 5 ; i < argc ; i++) {
+      asp->subjectlist[n] = strcpyalloc(argv[i]);
+      n++;
+    }
+    surf = MakeAverageSurf(asp);
+    MRISaverageSurfaceParamFree(&asp);
+    
+    sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
+    printf("writing average %s surface to %s\n", avg_surf_name, fname);
+    MRISwrite(surf,fname) ;
+    printf("#VMPC# mris_make_average_surface VmPeak  %d\n",GetVmPeak());
+    printf("mris_make_average_surface done\n");
+    exit(0);
+  }
+
+  printf("Using parametric surface instead of surf2surf.\n");
+  printf(" To use the surf2surf specify -surf2surf\n");
+
 
 #define SCALE 1
   mrisp_total = MRISPalloc(SCALE, 3) ;
@@ -326,15 +368,15 @@ main(int argc, char *argv[]) {
 
   if (Gdiag_no >= 0 && Gdiag_no < mris_ico->nvertices) {
     int n ;
-    VERTEX *vn ;
 
-    v = &mris_ico->vertices[Gdiag_no] ;
+    VERTEX_TOPOLOGY const * const vt = &mris_ico->vertices_topology[Gdiag_no] ;
+    VERTEX          const * const v  = &mris_ico->vertices         [Gdiag_no] ;
     printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
             Gdiag_no, v->origx, v->origy, v->origz) ;
-    for (n = 0 ; n < v->vnum ; n++) {
-      vn = &mris_ico->vertices[v->v[n]] ;
+    for (n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris_ico->vertices[vt->v[n]] ;
       printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
-              v->v[n], vn->origx, vn->origy, vn->origz) ;
+              vt->v[n], vn->origx, vn->origy, vn->origz) ;
     }
   }
   // write *h.sphere.reg
@@ -347,7 +389,7 @@ main(int argc, char *argv[]) {
   // get "pial vertices" from orig
   MRISrestoreVertexPositions(mris_ico, ORIG_VERTICES);
   for (vno = 0 ; vno < mris_ico->nvertices ; vno++) {
-    v = &mris_ico->vertices[vno] ;
+    VERTEX * const v = &mris_ico->vertices[vno] ;
     // n = number of subjects
     v->x /= (float)n ;
     v->y /= (float)n ;
@@ -375,6 +417,9 @@ main(int argc, char *argv[]) {
   getVolGeom(mritemplate, &mris_ico->vg);
   MRIfree(&mritemplate);
 
+  // This catches cases where vertex 0 and vertex 40969 have the same coordinate
+  if(mris_ico->nvertices == 163842)
+    MRISfixAverageSurf7(mris_ico);
   sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
@@ -394,6 +439,7 @@ main(int argc, char *argv[]) {
   MRISfree(&mris_ico) ;
   MRISPfree(&mrisp_total) ;
 
+  printf("#VMPC# mris_make_average_surface VmPeak  %d\n",GetVmPeak());
   printf("mris_make_average_surface done\n");
 
   exit(0) ;
@@ -424,10 +470,18 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "sdir-out")) {
     sdirout = argv[2];
     nargs = 1 ;
-  } else if (!stricmp(option, "nonorm")) {
+  } 
+  else if (!stricmp(option, "nonorm")) {
     normalize_area = 0 ;
     printf("not normalizing surface area\n") ;
-  } else switch (toupper(*option)) {
+  } 
+  else if (!stricmp(option, "surf2surf")) {
+    UseSurf2Surf = 1;
+  } 
+  else if (!stricmp(option, "no-surf2surf")) {
+    UseSurf2Surf = 0;
+  } 
+  else switch (toupper(*option)) {
     case 'I':
       ico_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -536,8 +590,11 @@ print_help(void) {
   printf("  Use transforms/xfmname instead of talairach.xfm\n");
   printf("\n");
   printf("  -s surfname\n");
-  printf("\n");
   printf("  Use surfname instead of orig\n");
+  printf("\n");
+  printf("-surf2surf, -no-surf2surf\n");
+  printf("  Use (don't use) surf2surf transform instead of parametric surface.\n");
+  printf("  The parametric surface often creates large faces near the poles.\n");
   printf("\n");
   printf("  -v diagno\n");
   printf("\n");

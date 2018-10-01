@@ -77,7 +77,7 @@ Can something be done to affect the off-diagonals?
 #endif
 
 static char vcid[] = "$Id: optseq2.c,v 2.22 2011/04/21 19:48:51 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);

@@ -24,13 +24,17 @@
 #include "RenderView2D.h"
 #include "LayerCollection.h"
 #include "MainWindow.h"
+#include "LayerLineProfile.h"
+#include "LayerSurface.h"
 #include "LayerMRI.h"
+// #undef isfinite
 #include "LayerPropertyMRI.h"
 #include "Contour2D.h"
 #include "VolumeCropper.h"
 #include <vtkRenderer.h>
 #include <vtkCamera.h>
 #include <vtkImageActor.h>
+#include <vtkTextActor.h>
 #include "Annotation2D.h"
 #include "Interactor2DNavigate.h"
 #include "Interactor2DMeasure.h"
@@ -47,8 +51,6 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
-#include "LayerLineProfile.h"
-#include "LayerSurface.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -542,6 +544,28 @@ void RenderView2D::ShowCoordinateAnnotation( bool bShow )
 bool RenderView2D::GetShowCoordinateAnnotation()
 {
   return m_annotation2D->IsVisible();
+}
+
+void RenderView2D::SetAutoScaleText(bool b)
+{
+  m_bAutoScaleText = b;
+  m_annotation2D->SetAutoScaleText(b);
+  for (int i = 0; i < m_regions.size(); i++)
+  {
+    m_regions[i]->SetAutoScaleText(b);
+  }
+  RequestRedraw();
+}
+
+void RenderView2D::SetTextSize(int nsize)
+{
+  m_nTextSize = nsize;
+  m_annotation2D->SetTextSize(nsize);
+  for (int i = 0; i < m_regions.size(); i++)
+  {
+    m_regions[i]->SetTextSize(nsize);
+  }
+  RequestRedraw();
 }
 
 bool RenderView2D::SetSliceNumber( int nNum )

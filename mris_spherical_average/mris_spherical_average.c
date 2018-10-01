@@ -54,7 +54,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int erode = 0 ;
 static int dilate = 0 ;

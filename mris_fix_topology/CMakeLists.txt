@@ -1,16 +1,15 @@
 project(mris_fix_topology)
-include_directories(${mris_fix_topology_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_fix_topology_SRCS
-mris_fix_topology.c
-mris_remove_intersection.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mris_fix_topology mris_fix_topology.c)
+add_help(mris_fix_topology mris_fix_topology.help.xml)
+target_link_libraries(mris_fix_topology utils)
+install(TARGETS mris_fix_topology DESTINATION bin)
 
-add_executable(mris_fix_topology ${mris_fix_topology_SRCS})
-target_link_libraries(mris_fix_topology ${FS_LIBS})
-install(TARGETS mris_fix_topology DESTINATION bin)	
+add_test_script(NAME mris_fix_topology_test SCRIPT test.py DEPENDS mris_fix_topology)
 
+add_executable(mris_remove_intersection mris_remove_intersection.c)
+add_help(mris_remove_intersection mris_remove_intersection.help.xml)
+target_link_libraries(mris_remove_intersection utils)
+install(TARGETS mris_remove_intersection DESTINATION bin)

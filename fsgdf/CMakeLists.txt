@@ -1,22 +1,17 @@
 project(fsgdf)
-include_directories(${fsgdf_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(fsgdf_SRCS
-fsgdf.c
-fsgdf_wrap.c
-FsgdfPlot.cxx
-)
+include_directories(${FS_INCLUDE_DIRS} ${X11_INCLUDE_DIR})
 
-SET (test-fsgdf-libs
-fsgdf
-${FS_LIBS}
-)
+if(TCLTKTIXBLT_FOUND)
+  include_directories(${TCLTKTIXBLT_INCLUDE_DIR})
+  set(SOURCES fsgdf_wrap.c FsgdfPlot.cxx)
+endif()
 
-add_library(fsgdf STATIC ${fsgdf_SRCS})
-add_executable(test-fsgdf test.c)
-target_link_libraries(test-fsgdf ${test-fsgdf-libs})
-install(TARGETS test-fsgdf DESTINATION bin)	
+add_library(fsgdf STATIC fsgdf.c ${SOURCES})
+target_link_libraries(fsgdf utils)
 
+if(TCLTKTIXBLT_FOUND AND NOT APPLE)
+  add_executable(test_fsgdf EXCLUDE_FROM_ALL test.c fsgdf_wrap.c)
+  target_link_libraries(test_fsgdf fsgdf ${TCLTKTIXBLT_LIBRARIES})
+  add_test_script(NAME fsgdf_test SCRIPT test.py DEPENDS test_fsgdf)
+endif()

@@ -52,7 +52,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int write_vals = 0 ;
 
@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
               Progname, fname) ;
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;

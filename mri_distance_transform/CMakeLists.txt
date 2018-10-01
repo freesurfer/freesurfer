@@ -1,15 +1,7 @@
 project(mri_distance_transform)
-include_directories(${mri_distance_transform_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_distance_transform_SRCS
-mri_distance_transform.cpp
-)
+include_directories(${FS_INCLUDE_DIRS})
 
-
-add_executable(mri_distance_transform ${mri_distance_transform_SRCS})
-target_link_libraries(mri_distance_transform ${FS_LIBS})
-install(TARGETS mri_distance_transform DESTINATION bin)	
-
+add_executable(mri_distance_transform mri_distance_transform.cpp)
+target_link_libraries(mri_distance_transform utilscpp)
+install(TARGETS mri_distance_transform DESTINATION bin)

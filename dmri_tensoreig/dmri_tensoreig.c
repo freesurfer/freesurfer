@@ -70,7 +70,7 @@ static float avgsnr(MRI *invol, MRI *mask, int frame0, int nframe);
 
 static char vcid[] = "$Id$";
 
-char *Progname ;
+const char *Progname ;
 FILE *fpin;
 char *InFile = NULL;
 char *OutDir = NULL;

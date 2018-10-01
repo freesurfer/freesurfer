@@ -50,7 +50,7 @@ static void print_version(void) ;
 
 static float sigma = 10 ;
 
-char *Progname ;
+const char *Progname ;
 
 int
 main(int argc, char *argv[]) {

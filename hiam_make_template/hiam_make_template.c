@@ -48,7 +48,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int which_norm = NORM_MEAN;
 
@@ -171,7 +171,7 @@ main(int argc, char *argv[]) {
                     Progname, surf_fname) ;
 
         if (nbrs > 1)
-          MRISsetNeighborhoodSize(mris, nbrs) ;
+          MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
         MRIScomputeMetricProperties(mris) ;
         MRIScomputeSecondFundamentalForm(mris) ;
         MRISuseMeanCurvature(mris) ;
@@ -263,7 +263,7 @@ main(int argc, char *argv[]) {
                       Progname, surf_fname) ;
 
           if (nbrs > 1)
-            MRISsetNeighborhoodSize(mris, nbrs) ;
+            MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
           MRIScomputeSecondFundamentalForm(mris) ;
           MRISuseMeanCurvature(mris) ;

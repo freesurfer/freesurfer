@@ -62,7 +62,7 @@ MRI *MRIScomputeDistanceMap(MRI_SURFACE *mris, MRI *mri_distance, int ref_vertex
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static int ref_vertex_no = 0 ;
 

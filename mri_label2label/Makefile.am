@@ -10,6 +10,10 @@ mri_label2label_SOURCES=mri_label2label.c
 mri_label2label_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_label2label_LDFLAGS=$(OS_LDFLAGS)
 
+TESTS=test.py
+
+EXTRA_DIST= test.py
+
 # mri_label2label is called by qdec. On Mac OSX
 # systems 10.11 (El Capitan) and greater implemented SIP
 # which necessitates a wrapper script to pass the DYLD_LIBRARY_PATH env var.

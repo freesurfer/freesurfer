@@ -48,7 +48,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static char *annot_name = NULL ;
 static char *surface_names[] =
@@ -294,7 +294,7 @@ main(int argc, char *argv[])
             break;
           }
 
-          if (nbrs > 1) MRISsetNeighborhoodSize(mris, nbrs) ;
+          if (nbrs > 1) MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
           MRIScomputeSecondFundamentalForm(mris) ;
           MRISuseMeanCurvature(mris) ;
@@ -429,7 +429,7 @@ main(int argc, char *argv[])
           }
 
           if (nbrs > 1)
-            MRISsetNeighborhoodSize(mris, nbrs) ;
+            MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
           MRIScomputeSecondFundamentalForm(mris) ;
           MRISuseMeanCurvature(mris) ;
@@ -538,7 +538,7 @@ main(int argc, char *argv[])
                       Progname, surf_fname) ;
 
           if (nbrs > 1)
-            MRISsetNeighborhoodSize(mris, nbrs) ;
+            MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
           MRIScomputeSecondFundamentalForm(mris) ;
           MRISuseMeanCurvature(mris) ;

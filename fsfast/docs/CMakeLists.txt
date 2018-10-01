@@ -1,1 +1,30 @@
-project(docs)
+install_symlinks(
+  bert-functional.howto.pdf
+  bfile.pdf
+  condfit.pdf
+  fmri-analysis-theory.pdf
+  func2roi-sess.pdf
+  inorm.pdf
+  INSTALL.pdf
+  intergroup-sess.pdf
+  isxavg-fe.pdf
+  isxavg-re.pdf
+  mc-afni.pdf
+  mkcontrast.pdf
+  mkmosaic16.pdf
+  mkmosaic.pdf
+  mtp-repack.pdf
+  optseq.pdf
+  overview.pdf
+  paint.pdf
+  paradigm.pdf
+  selfreq.pdf
+  selxavg.pdf
+  seqefficiency.pdf
+  stxgrinder.pdf
+  univar-analysis.pdf
+  vol2roi.pdf
+  yakview.pdf
+  TYPE files
+  DESTINATION fsfast/docs
+)

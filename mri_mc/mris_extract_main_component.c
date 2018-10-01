@@ -41,7 +41,7 @@
 #include "gca.h"
 #include "MC.h"
 
-char *Progname;
+const char *Progname;
 
 static void usage_exit(int code);
 

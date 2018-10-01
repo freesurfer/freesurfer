@@ -652,10 +652,10 @@ GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
   else {
     // Must invert explicitly
     printf("Inverting Morph\n");
-    mridir = fio_dirname(gcamdir);
-    //  sprintf(tmpstr,"%s/orig.mgz",mridir);
     // Need template mri
-    sprintf(tmpstr, "%s", (gcam->image).fname);
+    mridir = fio_dirname(gcamdir);
+    sprintf(tmpstr, "%s/%s", mridir,(gcam->image).fname);
+    //sprintf(tmpstr, "%s", (gcam->image).fname); // was this. always fail?
     mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
     if (mri == NULL) {
       printf("ERROR: reading %s\n", tmpstr);
@@ -1363,7 +1363,8 @@ GCA_MORPH *GCAMalloc(const int width, const int height, const int depth)
   gcam->width = width;
   gcam->height = height;
   gcam->depth = depth;
-  gcam->spacing = 1;  // may be changed by the user later
+  gcam->spacing = 1; // may be changed by the user later
+  gcam->type = GCAM_VOX;
 
   gcam->nodes = (GCA_MORPH_NODE ***)calloc(width, sizeof(GCA_MORPH_NODE **));
   if (!gcam->nodes) {
@@ -2803,8 +2804,8 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   ROMP_PF_end
 
   for (i = 0; i < n_omp_threads; i++)
-    if (mn[tid] > max_norm) {
-      max_norm = mn[tid];
+    if (mn[i] > max_norm) {
+      max_norm = mn[i];
     }
 
   ROMP_PF_begin

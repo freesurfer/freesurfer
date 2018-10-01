@@ -6483,7 +6483,7 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   MRIScomputeNormals(mris);
 
   /////////////////////////////////////////////////////////////////////
@@ -6539,7 +6539,8 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -6549,11 +6550,11 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
       sx=sy=sz=sd=0;
       n=0;
       // calculate a vector points to average neighbor
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -6798,14 +6799,15 @@ void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       n=0;
       x = y = z = 0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        x += mris->vertices[v->v[m]].tx;
-        y += mris->vertices[v->v[m]].ty;
-        z += mris->vertices[v->v[m]].tz;
+        x += mris->vertices[vt->v[m]].tx;
+        y += mris->vertices[vt->v[m]].ty;
+        z += mris->vertices[vt->v[m]].tz;
         n++;
       }
       // get neighboring points average
@@ -6961,7 +6963,8 @@ void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -6970,11 +6973,11 @@ void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -7724,7 +7727,7 @@ void MRISinitSurfaces(MRIS *mris_curv,
   MRISsmooth_surface(mris_curv,iter_smooth);
   //
   MRISsaveVertexPositions(mris_curv, ORIGINAL_VERTICES) ;
-  MRISsetNeighborhoodSize(mris_curv, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_curv, nbrs) ;
   MRIScomputeMetricProperties(mris_curv) ;
   //
   MRIScomputeSecondFundamentalForm(mris_curv) ;
@@ -7736,7 +7739,7 @@ void MRISinitSurfaces(MRIS *mris_curv,
   // use the mris_curv vertex positions (smoothed values)
   //
   MRISsaveVertexPositions(mris_dCOG, ORIGINAL_VERTICES) ;
-  MRISsetNeighborhoodSize(mris_dCOG, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris_dCOG, nbrs) ;
   MRIScomputeMetricProperties(mris_dCOG) ;
   //
   MRISdistanceToCOG(mris_dCOG);
@@ -8085,7 +8088,7 @@ int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,
   mean_sse/=nvertices;
   var_sse=var_sse/nvertices-SQR(mean_sse);
 
-  MRISsetNeighborhoodSize(mrisphere, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mrisphere, 1) ;
   //Erosion step
   MRISaverageVals(mrisphere,3);
   // change mrisphere with neighboring averaged grey scale (iterated 3 times)
@@ -8197,7 +8200,7 @@ void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
       fprintf(stdout,"\n      scaling Curvature Field      ");
     }
     MRISrestoreVertexPositions(mris_src, ORIGINAL_VERTICES) ;
-    MRISsetNeighborhoodSize(mris_src, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_src, nbrs) ;
     MRIScomputeMetricProperties(mris_src) ;
     MRIScomputeSecondFundamentalForm(mris_src) ;
     MRISuseMeanCurvature(mris_src) ;
@@ -8211,7 +8214,7 @@ void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
     }
     //Initialize distance to COG surface
     MRISrestoreVertexPositions(mris_src, ORIGINAL_VERTICES) ;
-    MRISsetNeighborhoodSize(mris_src, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris_src, nbrs) ;
     MRIScomputeMetricProperties(mris_src) ;
     MRISdistanceToCOG(mris_src);
     MRISaverageCurvatures(mris_src, navgs) ;
@@ -8398,23 +8401,23 @@ int mrisAverageGradients(MRIS *mris,int niter)
 {
   int vno, vnum,*pnb,vnb;
   float dx,dy,dz,dot,num;
-  VERTEX *v,*vn;
 
   while (niter--)
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
 
       dx = v->odx ;
       dy = v->ody ;
       dz = v->odz ;
-      pnb = v->v ;
+      pnb = vt->v ;
 
-      vnum = v->vnum ;
+      vnum = vt->vnum ;
       for (num = 0.0f , vnb = 0 ; vnb < vnum ; vnb++)
       {
-        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
 
         dot = vn->odx * v->odx + vn->ody * v->ody + vn->odz*v->odz ;
         if (dot < 0)
@@ -8434,7 +8437,7 @@ int mrisAverageGradients(MRIS *mris,int niter)
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno] ;
       v->odx=v->tdx;
       v->ody=v->tdy;
       v->odz=v->tdz;
@@ -8452,7 +8455,6 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
   float ct;
 
   float d,dx,dy,dz,nx,ny,nz;
-  VERTEX *v;
   int iter,k,m,n;
   int it,jt,niter;
   float decay=0.8,update=0.9;
@@ -8482,7 +8484,7 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   MRIScomputeNormals(mris);
 
   dist = (float ***) malloc( mris->nvertices*sizeof(float**) );
@@ -8518,7 +8520,7 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
   for (k=0; k<mris->nvertices; k++)
   {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -8542,7 +8544,7 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
     xCOG = yCOG = zCOG = 0;
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
@@ -8600,7 +8602,8 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -8609,11 +8612,11 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -8685,7 +8688,7 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -8816,7 +8819,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
   MRIS *mris,*mrisphere;
   MRI* mri;
   int k,m,n,total_vertices,nmissing;
-  VERTEX *v,*vsphere;
+  VERTEX *vsphere;
   float dist,distance;
   double gm_val,csf_val,val,x,y,z, xw, yw, zw;
   double xw1,yw1,zw1,xw2,yw2,zw2,nx, ny, nz, mag, max_mag ;
@@ -8860,7 +8863,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
   if (MRI_var->atlas)
   {
     posvertices=negvertices=0;
-    MRISsetNeighborhoodSize(mris,1) ;
+    MRISsetNeighborhoodSizeAndDist(mris,1) ;
     MRIScomputeMetricProperties(mris) ;
     MRISdistanceToCOG(mris);
     MRISaverageCurvatures(mris, 20) ;
@@ -8894,7 +8897,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
 
   for (ref=0,k=0; k<nvertices; k++)
   {
-    v = &mris->vertices[k] ;
+    VERTEX * const v  = &mris->vertices         [k];
     vsphere = &mrisphere->vertices[k];
     v->marked=0 ;
 
@@ -9014,7 +9017,8 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
   }
   for (nmissing=0,k=0; k<nvertices; k++)
   {
-    v = &mris->vertices[k] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+    VERTEX          const * const v  = &mris->vertices         [k];       
     vsphere=&mrisphere->vertices[k];
     vsphere->marked=0;
 
@@ -9022,11 +9026,11 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
     {
       distance=0;
       n=0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        if (mris->vertices[v->v[m]].marked==1)
+        if (mris->vertices[vt->v[m]].marked==1)
         {
-          distance+=mris->vertices[v->v[m]].mean;
+          distance+=mris->vertices[vt->v[m]].mean;
           n++;
         }
       }
@@ -9106,7 +9110,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
 
     for (k=0; k<nvertices; k++)
     {
-      v=&mris->vertices[k];
+      VERTEX_TOPOLOGY const * const v=&mris->vertices_topology[k];
       vsphere = &mrisphere->vertices[k] ;
 
       w1=vsphere->ty;
@@ -9129,7 +9133,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
     }
     niter--;
   }
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   for (k=0; k<nvertices; k++)
   {
     vsphere = &mrisphere->vertices[k] ;
@@ -9138,7 +9142,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
   }
   for (k=0; k<nvertices; k++)
   {
-    v=&mris->vertices[k];
+    VERTEX_TOPOLOGY const * const v=&mris->vertices_topology[k];
     vsphere = &mrisphere->vertices[k] ;
     /*after two iterations compute the local statistics*/
 
@@ -9167,7 +9171,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
     vsphere->odz=MAX(5.,MIN(20.,sqrt(vsphere->odz)));
   }
 
-  MRISsetNeighborhoodSize(mris, 1) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ;
   /*reaverage the local values*/
   niter=5;
   while (niter)
@@ -9184,7 +9188,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
 
     for (k=0; k<nvertices; k++)
     {
-      v=&mris->vertices[k];
+      VERTEX_TOPOLOGY const * const v=&mris->vertices_topology[k];
       vsphere = &mrisphere->vertices[k] ;
 
       w1=vsphere->ty;
@@ -9258,7 +9262,7 @@ void MRISComputeLocalValues(MRI_variables *MRI_var)
 
   if (MRI_var->atlas)
   {
-    MRISsetNeighborhoodSize(mris, 2) ;
+    MRISsetNeighborhoodSizeAndDist(mris, 2) ;
     MRIScomputeMetricProperties(mris) ;
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
@@ -9611,7 +9615,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   float force,force1,force3,force4;
 
   float d,dx,dy,dz,nx,ny,nz;
-  VERTEX *v;
   int iter,k,m,n;
   float samp_mean[4];
   float test_samp[4][9];
@@ -9667,7 +9670,7 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   mris_tmp=MRISclone(mris);
 #endif
 
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
   MRIScomputeNormals(mris);
 
   fmax=MRI_var->WM_MAX + 25.0f ; /* being careful */
@@ -9738,7 +9741,7 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
 
   for (k=0; k<mris->nvertices; k++)
   {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -9757,7 +9760,7 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
@@ -9823,7 +9826,8 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
       trn=int(mrisphere->vertices[k].y);
       grm=int(mrisphere->vertices[k].z);
 
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       // get the vertex coords and normal
       x = v->tx;
       y = v->ty;
@@ -9833,11 +9837,11 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -10285,7 +10289,6 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
   float force,force1;
 
   float d,dx,dy,dz,nx,ny,nz;
-  VERTEX *v;
   int iter,k,m,n;
 
   int h;
@@ -10300,7 +10303,7 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 
   mris=MRI_var->mris;
 
-  MRISsetNeighborhoodSize(mris, 1) ; // 1-connected neighbors only
+  MRISsetNeighborhoodSizeAndDist(mris, 1) ; // 1-connected neighbors only
 
   MRIScomputeNormals(mris);
 
@@ -10308,7 +10311,7 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 
   for (k=0; k<mris->nvertices; k++)
   {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -10325,7 +10328,7 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
     MRIScomputeNormals(mris);
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
@@ -10385,7 +10388,8 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
     //////////////////////////////////////////////////////////////////////
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
@@ -10394,11 +10398,11 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
@@ -10884,7 +10888,6 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   double fN,fST,fSN;
   float d,dx,dy,dz,nx,ny,nz;
-  VERTEX *v;
   int iter,k,m,n;
 
   int it,jt, niter;
@@ -10943,7 +10946,7 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
   /* momentum -> 0*/
   for (k=0; k<mris->nvertices; k++)
   {
-    v = &mris->vertices[k];
+    VERTEX * const v = &mris->vertices[k];
     v->odx = 0;
     v->ody = 0;
     v->odz = 0;
@@ -10956,7 +10959,7 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
     lm = d10 = f1m = f2m = dm = 0;
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX * const v = &mris->vertices[k];
       v->tx = v->x;  // initialize t(mp)
       v->ty = v->y;
       v->tz = v->z;
@@ -10969,7 +10972,8 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
 
     for (k=0; k<mris->nvertices; k++)
     {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       // vertex position
       x = v->tx;
       y = v->ty;
@@ -10982,11 +10986,11 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
       n=0;
       // get the mean position of neighboring vertices
       // try to minimize
-      for (m=0; m<v->vnum; m++)
+      for (m=0; m<vt->vnum; m++)
       {
-        sx += dx =mris->vertices[v->v[m]].tx - x;
-        sy += dy =mris->vertices[v->v[m]].ty - y;
-        sz += dz =mris->vertices[v->v[m]].tz - z;
+        sx += dx =mris->vertices[vt->v[m]].tx - x;
+        sy += dy =mris->vertices[vt->v[m]].ty - y;
+        sz += dz =mris->vertices[vt->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }

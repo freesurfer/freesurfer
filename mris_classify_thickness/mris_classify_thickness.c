@@ -131,7 +131,7 @@ static float *cvector_alloc(int num) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static int nsort = -1 ;
 static int use_buggy_snr = 0 ;

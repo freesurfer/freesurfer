@@ -60,7 +60,7 @@ extern "C"
 {
 #endif
 
-  CONDITION COND_PushCondition(CONDITION cond, char *controlString,...);
+  CONDITION COND_PushCondition(CONDITION cond, const char *controlString,...);
   CONDITION
   COND_ExtractConditions(CTNBOOLEAN(*callback) ());
   CONDITION

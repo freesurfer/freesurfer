@@ -1,16 +1,6 @@
-project(brain_volume)
-include_directories(${brain_volume_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
+add_executable(mri_brain_volume mri_brain_volume.cpp)
+target_link_libraries(mri_brain_volume utils)
+install(TARGETS mri_brain_volume DESTINATION bin)
 
-SET(brain_volume_SRCS
-mri_brain_volume.cpp
-)
-
-
-add_executable(brain_volume ${brain_volume_SRCS})
-target_link_libraries(brain_volume ${FS_LIBS})
-install(TARGETS brain_volume DESTINATION bin)	
-
-add_subdirectory(test)
+add_test_executable(mri_brain_volume_test test.cpp)
+target_link_libraries(mri_brain_volume_test utils)

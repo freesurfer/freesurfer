@@ -1,16 +1,10 @@
 project(optseq2)
-include_directories(${optseq2_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(optseq2_SRCS
-optseq2.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(optseq2 optseq2.c)
+target_link_libraries(optseq2 utils)
 
-add_executable(optseq2 ${optseq2_SRCS})
-target_link_libraries(optseq2 ${FS_LIBS})
-install(TARGETS optseq2 DESTINATION bin)	
+add_test_script(NAME optseq2_test SCRIPT test_optseq2.csh DEPENDS optseq2)
 
-
+install(TARGETS optseq2 DESTINATION bin)

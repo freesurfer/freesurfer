@@ -112,7 +112,7 @@ static int      smooth_spikes = 500;
 static int      nbrs = 3 ;
 //static float    weight_quadcur = 0.0, weight_label = 1.0, weight_repulse = 0.0, weight_Nspring = 0.1, weight_Tspring = 0.1;
 static float    weight_quadcur = 1.2, weight_label = 1.2, weight_repulse = 3.0, weight_Nspring = 0.5, weight_Tspring = 0.5;
-char            *Progname ;
+const char            *Progname ;
 int             t=0;
 int             table[2][20000];
 char            surf[5][10]= {"lh","rh","LA","RA","OTHER"
@@ -203,7 +203,7 @@ main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 #endif
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRISupdateSurface(mris);
   
   MHTfree(&mht_v_current);
@@ -714,14 +714,14 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
 static int
 mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) {
   int     vno, n, m ;
-  VERTEX  *vertex, *vn ;
   float   sx, sy, sz, nx, ny, nz, nc, x, y, z ;
 
   if (FZERO(l_spring))
     return(NO_ERROR) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -736,8 +736,8 @@ mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) {
 
     sx = sy = sz = 0.0 ;
     n=0;
-    for (m = 0 ; m < vertex->vnum ; m++) {
-      vn = &mris->vertices[vertex->v[m]] ;
+    for (m = 0 ; m < vertext->vnum ; m++) {
+      VERTEX const * const vn = &mris->vertices[vertext->v[m]] ;
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -771,7 +771,6 @@ static double
 mrisComputeNormalSpringEnergy(MRI_SURFACE *mris) {
   int     vno, n ;
   double  area_scale, sse_spring, v_sse ;
-  VERTEX  *v, *vn ;
   float   dx, dy, dz, x, y, z, nc, dist_sq ;
 
 #if METRIC_SCALE
@@ -784,7 +783,8 @@ mrisComputeNormalSpringEnergy(MRI_SURFACE *mris) {
 #endif
 
   for (sse_spring = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
 
@@ -792,8 +792,8 @@ mrisComputeNormalSpringEnergy(MRI_SURFACE *mris) {
     y = v->y ;
     z = v->z ;
 
-    for (v_sse = 0.0, n = 0 ; n < v->vnum ; n++) {
-      vn = &mris->vertices[v->v[n]] ;
+    for (v_sse = 0.0, n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       dx = vn->x - x ;
       dy = vn->y - y ;
       dz = vn->z - z ;
@@ -809,14 +809,14 @@ mrisComputeNormalSpringEnergy(MRI_SURFACE *mris) {
 static int
 mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring) {
   int     vno, n, m ;
-  VERTEX  *v, *vn ;
   float   sx, sy, sz, x, y, z, nc ;
 
   if (FZERO(l_spring))
     return(NO_ERROR) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -831,8 +831,8 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring) {
 
     sx = sy = sz = 0.0 ;
     n=0;
-    for (m = 0 ; m < v->vnum ; m++) {
-      vn = &mris->vertices[v->v[m]] ;
+    for (m = 0 ; m < vt->vnum ; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]] ;
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -871,7 +871,6 @@ static double
 mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
   int     vno, n ;
   double  area_scale, sse_spring, v_sse ;
-  VERTEX  *v, *vn ;
   float   dx, dy, dz, x, y, z, nc, dist_sq ;
 
 #if METRIC_SCALE
@@ -884,7 +883,8 @@ mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
 #endif
 
   for (sse_spring = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
 
@@ -892,8 +892,8 @@ mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
     y = v->y ;
     z = v->z ;
 
-    for (v_sse = 0.0, n = 0 ; n < v->vnum ; n++) {
-      vn = &mris->vertices[v->v[n]] ;
+    for (v_sse = 0.0, n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       dx = vn->x - x ;
       dy = vn->y - y ;
       dz = vn->z - z ;
@@ -1117,7 +1117,6 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
   MATRIX   *m_R, *m_R_inv ;
   VECTOR   *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr ;
   int      vno, n ;
-  VERTEX   *v, *vn ;
   float    ui, vi, rsq, a, b ;
 
   if (FZERO(l_curv))
@@ -1130,17 +1129,18 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
   v_e2 = VectorAlloc(3, MATRIX_REAL) ;
   v_nbr = VectorAlloc(3, MATRIX_REAL) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
-    m_R = MatrixAlloc(v->vtotal, 2, MATRIX_REAL) ; /* radial distances */
+    v_Y = VectorAlloc(vt->vtotal, MATRIX_REAL) ;    /* heights above TpS */
+    m_R = MatrixAlloc(vt->vtotal, 2, MATRIX_REAL) ; /* radial distances */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
     VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z) ;
     VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z) ;
-    for (n = 0 ; n < v->vtotal ; n++)  /* build data matrices */
+    for (n = 0 ; n < vt->vtotal ; n++)  /* build data matrices */
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       VERTEX_EDGE(v_nbr, v, vn) ;
       VECTOR_ELT(v_Y, n+1) = V3_DOT(v_nbr, v_n) ;
       ui = V3_DOT(v_e1, v_nbr) ;
@@ -1193,7 +1193,6 @@ mrisComputeQuadraticCurvatureEnergy(MRI_SURFACE *mris) {
   MATRIX   *m_R, *m_R_inv ;
   VECTOR   *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr ;
   int      vno, n ;
-  VERTEX   *v, *vn ;
   float    ui, vi, rsq, a, b ;
   double   sse = 0.0 ;
 
@@ -1205,17 +1204,18 @@ mrisComputeQuadraticCurvatureEnergy(MRI_SURFACE *mris) {
   v_e2 = VectorAlloc(3, MATRIX_REAL) ;
   v_nbr = VectorAlloc(3, MATRIX_REAL) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
-    m_R = MatrixAlloc(v->vtotal, 2, MATRIX_REAL) ; /* radial distances */
+    v_Y = VectorAlloc(vt->vtotal, MATRIX_REAL) ;    /* heights above TpS */
+    m_R = MatrixAlloc(vt->vtotal, 2, MATRIX_REAL) ; /* radial distances */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
     VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z) ;
     VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z) ;
-    for (n = 0 ; n < v->vtotal ; n++)  /* build data matrices */
+    for (n = 0 ; n < vt->vtotal ; n++)  /* build data matrices */
     {
-      vn = &mris->vertices[v->v[n]] ;
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       VERTEX_EDGE(v_nbr, v, vn) ;
       VECTOR_ELT(v_Y, n+1) = V3_DOT(v_nbr, v_n) ;
       ui = V3_DOT(v_e1, v_nbr) ;
@@ -1333,7 +1333,6 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   int     vno, num, min_vno, i, n ;
   float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm ;
   double  scale=0 ;
-  VERTEX  *v, *vn ;
 
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
@@ -1342,7 +1341,8 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   min_scale = 1.0 ;
   min_vno = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     x = v->x ;
@@ -1356,12 +1356,12 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
     for (bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++) {
       if (bin->fno == vno)
         continue ;  /* don't be repelled by myself */
-      for (n = 0 ; n < v->vtotal ; n++)
-        if (v->v[n] == bin->fno)
+      for (n = 0 ; n < vt->vtotal ; n++)
+        if (vt->v[n] == bin->fno)
           break ;
-      if (n < v->vtotal)   /* don't be repelled by a neighbor */
+      if (n < vt->vtotal)   /* don't be repelled by a neighbor */
         continue ;
-      vn = &mris->vertices[bin->fno] ;
+      VERTEX const * const vn = &mris->vertices[bin->fno] ;
       if (!vn->ripflag) {
         dx = vn->x - x ;
         dy = vn->y - y ;
@@ -1395,7 +1395,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
     v->dy += sy ;
     v->dz += sz ;
     if ((vno == Gdiag_no) && min_d < 1000) {
-      vn = &mris->vertices[min_vno] ;
+      VERTEX const * const vn = &mris->vertices[min_vno] ;
       dx = x - vn->x ;
       dy = y - vn->y ;
       dz = z - vn->z ;
@@ -1416,7 +1416,6 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   int     vno, num, min_vno, i, n ;
   float   dist, dx, dy, dz, x, y, z, min_d ;
   double  sse_repulse, v_sse ;
-  VERTEX  *v, *vn ;
 
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
@@ -1424,7 +1423,8 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   min_d = 1000.0 ;
   min_vno = 0 ;
   for (sse_repulse = vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag)
       continue ;
     x = v->x ;
@@ -1437,12 +1437,12 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++) {
       if (bin->fno == vno)
         continue ;  /* don't be repelled by myself */
-      for (n = 0 ; n < v->vtotal ; n++)
-        if (v->v[n] == bin->fno)
+      for (n = 0 ; n < vt->vtotal ; n++)
+        if (vt->v[n] == bin->fno)
           break ;
-      if (n < v->vtotal)   /* don't be repelled by a neighbor */
+      if (n < vt->vtotal)   /* don't be repelled by a neighbor */
         continue ;
-      vn = &mris->vertices[bin->fno] ;
+      VERTEX const * const vn = &mris->vertices[bin->fno] ;
       if (!vn->ripflag) {
         dx = vn->x - x ;
         dy = vn->y - y ;
@@ -1473,14 +1473,14 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
 static int
 mriSspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) {
   int     vno, n, m ;
-  VERTEX  *vertex, *vn ;
   float   sx, sy, sz, x, y, z, scale ;
 
   if (FZERO(l_spring))
     return(NO_ERROR) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -1492,8 +1492,8 @@ mriSspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, dou
 
     sx = sy = sz = 0.0 ;
     n=0;
-    for (m = 0 ; m < vertex->vnum ; m++) {
-      vn = &mris->vertices[vertex->v[m]] ;
+    for (m = 0 ; m < vertext->vnum ; m++) {
+      VERTEX const * const vn = &mris->vertices[vertext->v[m]] ;
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -1528,13 +1528,13 @@ mriSspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, dou
 static double
 mrisComputeGaussianCurvatureSpringEnergy(MRI_SURFACE *mris, double gaussian_norm ) {
   int     vno, m ;
-  VERTEX  *vertex, *vn ;
   float   sx, sy, sz, x, y, z, scale ;
   double  sse_spring, v_sse;
 
 
   for (sse_spring = 0, vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX          const * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag)
       continue ;
     if (vno == Gdiag_no)
@@ -1546,8 +1546,8 @@ mrisComputeGaussianCurvatureSpringEnergy(MRI_SURFACE *mris, double gaussian_norm
 
     sx = sy = sz = 0.0 ;
 
-    for (v_sse = 0,m = 0 ; m < vertex->vnum ; m++) {
-      vn = &mris->vertices[vertex->v[m]] ;
+    for (v_sse = 0,m = 0 ; m < vertext->vnum ; m++) {
+      VERTEX const * const vn = &mris->vertices[vertext->v[m]] ;
       if (!vn->ripflag) {
         sx = vn->x - x;
         sy = vn->y - y;
@@ -1922,7 +1922,6 @@ FindSpikes(MRI_SURFACE *mris, int iter) {
 static int
 SmoothSpikes(MRI_SURFACE *mris, int niter) {
   float    x, y, z, num ;
-  VERTEX   *vertex, *vn ;
   int      vno, n, i=0, j=0;
 
   if (FZERO(niter))
@@ -1930,14 +1929,15 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
 
   for (i=0; i<niter; i++) {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      vertex = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+      VERTEX                * const vertex  = &mris->vertices         [vno];
       if (vertex->marked ==1) {
         num=0;
         x = vertex->x ;
         y = vertex->y ;
         z = vertex->z ;
-        for (n = 0 ; n < vertex->vtotal ; n++) {
-          vn = &mris->vertices[vertex->v[n]] ;
+        for (n = 0 ; n < vertext->vtotal ; n++) {
+          VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
           if (vn->ripflag)
             continue ;
           num++ ;
@@ -1953,7 +1953,7 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
     }
 
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      vertex = &mris->vertices[vno] ;
+      VERTEX * const vertex = &mris->vertices[vno] ;
       if (vertex->marked == 1) {
         vertex->x = vertex->tdx ;
         vertex->y = vertex->tdy ;
@@ -1963,14 +1963,15 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
 #if 1
     for (j=0; j<2; j++) {
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
-        vertex = &mris->vertices[vno];
+        VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+        VERTEX                * const vertex  = &mris->vertices         [vno];
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
           num=0;
           x = vertex->x ;
           y = vertex->y ;
           z = vertex->z ;
-          for (n = 0 ; n < vertex->vtotal ; n++) {
-            vn = &mris->vertices[vertex->v[n]] ;
+          for (n = 0 ; n < vertext->vtotal ; n++) {
+            VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
             if (vn->ripflag)
               continue ;
             num++ ;
@@ -1985,7 +1986,7 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
         }
       }
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
-        vertex = &mris->vertices[vno] ;
+        VERTEX * const vertex = &mris->vertices[vno] ;
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
           vertex->x = vertex->tdx ;
           vertex->y = vertex->tdy ;

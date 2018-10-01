@@ -77,6 +77,7 @@ public slots:
     SelectAll();
   }
   void DeselectAll();
+  void SetSelectedLayers(const QList<int>& layer_ids);
 
 protected:
   bool event(QEvent* e);

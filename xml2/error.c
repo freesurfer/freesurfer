@@ -276,7 +276,7 @@ xmlReportError(xmlErrorPtr err, xmlParserCtxtPtr ctxt, const char *str,
   code = err->code;
   domain = err->domain;
   level = err->level;
-  node = err->node;
+  node = (xmlNodePtr)err->node;
 
   if (code == XML_ERR_OK)
     return;

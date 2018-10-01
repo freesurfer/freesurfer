@@ -129,7 +129,7 @@ MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-char *Progname ;
+const char *Progname ;
 static int window_flag = 0 ;
 
 static void usage_exit(int code) ;

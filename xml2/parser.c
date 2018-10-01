@@ -1192,7 +1192,7 @@ xmlAddDefAttrs(xmlParserCtxtPtr ctxt,
   /*
    * make sure there is some storage
    */
-  defaults = xmlHashLookup2(ctxt->attsDefault, name, prefix);
+  defaults = (xmlDefAttrsPtr)xmlHashLookup2(ctxt->attsDefault, name, prefix);
   if (defaults == NULL)
   {
     defaults = (xmlDefAttrsPtr) xmlMalloc(sizeof(xmlDefAttrs) +
@@ -2380,7 +2380,7 @@ xmlNewBlanksWrapperInputStream(xmlParserCtxtPtr ctxt, xmlEntityPtr entity)
     return(NULL);
   }
   length = xmlStrlen(entity->name) + 5;
-  buffer = xmlMallocAtomic(length);
+  buffer = (xmlChar*)xmlMallocAtomic(length);
   if (buffer == NULL)
   {
     xmlErrMemory(ctxt, NULL);
@@ -10055,7 +10055,7 @@ failed:
   {
     xmlDefAttrsPtr defaults;
 
-    defaults = xmlHashLookup2(ctxt->attsDefault, localname, prefix);
+    defaults = (xmlDefAttrsPtr)xmlHashLookup2(ctxt->attsDefault, localname, prefix);
     if (defaults != NULL)
     {
       for (i = 0;i < defaults->nbAttrs;i++)
@@ -12405,8 +12405,8 @@ xmlParseTryOrFinish(xmlParserCtxtPtr ctxt, int terminate)
       if (ctxt->sax2)
       {
         xmlParseEndTag2(ctxt,
-                        (void *) ctxt->pushTab[ctxt->nameNr * 3 - 3],
-                        (void *) ctxt->pushTab[ctxt->nameNr * 3 - 2], 0,
+                        (const xmlChar *) ctxt->pushTab[ctxt->nameNr * 3 - 3],
+                        (const xmlChar *) ctxt->pushTab[ctxt->nameNr * 3 - 2], 0,
                         (int) (long) ctxt->pushTab[ctxt->nameNr * 3 - 1], 0);
         nameNsPop(ctxt);
       }
@@ -12958,11 +12958,13 @@ encoding_error:
  * Returns zero if no error, the xmlParserErrors otherwise.
  */
 int
-xmlParseChunk(xmlParserCtxtPtr ctxt, const char *chunk, int size,
+xmlParseChunk(xmlParserCtxtPtr ctxt, const char *chunk, int signed_size,
               int terminate)
 {
+  unsigned int size = (unsigned int)signed_size;
+  
   int end_in_lf = 0;
-  int remain = 0;
+  unsigned int remain = 0;
 
   if (ctxt == NULL)
     return(XML_ERR_INTERNAL_ERROR);

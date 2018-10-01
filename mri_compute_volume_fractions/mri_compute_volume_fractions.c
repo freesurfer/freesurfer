@@ -58,7 +58,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 
 static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.22 2015/09/14 12:25:01 fischl Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

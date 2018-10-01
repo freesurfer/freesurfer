@@ -64,13 +64,13 @@ static void print_help(void) ;
 static void print_version(void) ;
 int MRISscaleUp(MRI_SURFACE *mris) ;
 
-char *Progname ;
+const char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE     1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 static int nbrs = 2 ;
-static int inflate = 0 ;
+static int do_inflate = 0 ;
 static double disturb = 0 ;
 static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
@@ -317,7 +317,7 @@ main(int argc, char *argv[])
            target_radius) ;
   }
   //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
-  if (!load && inflate)
+  if (!load && do_inflate)
   {
     INTEGRATION_PARMS inflation_parms ;
 
@@ -378,7 +378,7 @@ main(int argc, char *argv[])
     MRISwrite(mris, "after") ;
   }
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
   {
     printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;
@@ -737,7 +737,7 @@ get_option(int argc, char *argv[])
     case 'Q':
       remove_negative = 0 ;
       quick = 1 ;
-      inflate = 1 ;
+      do_inflate = 1 ;
       inflate_iterations = 300 ;
       max_passes = 3 ;
       fprintf(stderr, "doing quick spherical unfolding.\n") ;
@@ -789,7 +789,7 @@ get_option(int argc, char *argv[])
       (stderr, "using write iterations = %d\n", parms.write_iterations) ;
       break ;
     case 'I':
-      inflate = 1 ;
+      do_inflate = 1 ;
       fprintf(stderr, "inflating brain...\n") ;
       break ;
     case 'A':
@@ -870,14 +870,14 @@ int
 MRISscaleUp(MRI_SURFACE *mris)
 {
   int     vno, n, max_v, max_n ;
-  VERTEX  *v ;
   float   ratio, max_ratio ;
 
   max_ratio = 0.0f ;
   max_v = max_n = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno] ;
+    VERTEX          const * const v  = &mris->vertices         [vno] ;
     if (v->ripflag)
     {
       continue ;
@@ -886,7 +886,7 @@ MRISscaleUp(MRI_SURFACE *mris)
     {
       DiagBreak() ;
     }
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
     {
       if (FZERO(v->dist[n]))   /* would require infinite scaling */
       {
@@ -909,7 +909,8 @@ MRISscaleUp(MRI_SURFACE *mris)
 #else
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno] ;
+    VERTEX                * const v  = &mris->vertices         [vno] ;
     if (v->ripflag)
     {
       continue ;
@@ -918,7 +919,7 @@ MRISscaleUp(MRI_SURFACE *mris)
     {
       DiagBreak() ;
     }
-    for (n = 0 ; n < v->vnum ; n++)
+    for (n = 0 ; n < vt->vnum ; n++)
     {
       v->dist_orig[n] /= max_ratio ;
     }

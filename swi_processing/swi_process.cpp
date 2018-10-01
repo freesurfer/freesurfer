@@ -34,7 +34,7 @@ extern "C"
 #include <iterator>
 #include <algorithm>
 #include "cmd_line_interface.h"
-char *Progname;
+const char *Progname;
 
 // static function declarations
 // forward declaration

@@ -68,7 +68,7 @@ TIFFClose(TIFF* tif)
  	    if (fld->field_bit == FIELD_CUSTOM && 
 		strncmp("Tag ", fld->field_name, 4) == 0) 
 	    {
-                _TIFFfree(fld->field_name);
+                _TIFFfree((void*)fld->field_name);
                 _TIFFfree(fld);
 	    }
         }   

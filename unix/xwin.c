@@ -54,8 +54,8 @@
 #define FONT            "-adobe-courier-bold-r-normal--*-100-*-*-*-*-iso8859-1"
 #define NCOLORS         255
 
-void open_xwindow(xwindow_type *xwindow, char displayname[], int xpos,int ypos,
-                  int xsize, int ysize,char title[],long eventmask) ;
+void open_xwindow(xwindow_type *xwindow, const char displayname[], int xpos,int ypos,
+                  int xsize, int ysize, const char title[],long eventmask) ;
 void close_xwindow(xwindow_type *xwindow) ;
 
 /* colors for gray scale */
@@ -110,12 +110,8 @@ xInit(xwindow_type *xwin, int xsize, int ysize)
 /**     Greg Lesher (lesher@park.bu.edu)                                **/
 /*************************************************************************/
 void
-open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
-xwindow_type *xwin;
-char displayname[];
-int xpos,ypos,xsize,ysize;
-char title[];
-long eventmask;
+open_xwindow(xwindow_type *xwin, const char displayname[], int xpos,int ypos,
+                  int xsize, int ysize, const char title[],long eventmask)
 {
   GC create_gc();
   XWMHints xwmh;
@@ -228,8 +224,7 @@ long eventmask;
 /**     Steve Lehar (slehar@park.bu.edu)                                **/
 /*************************************************************************/
 void
-close_xwindow(xwin)
-xwindow_type *xwin;
+close_xwindow(xwindow_type *xwin)
 {
   XDestroyWindow(xwin->display,xwin->window);
   XCloseDisplay(xwin->display);

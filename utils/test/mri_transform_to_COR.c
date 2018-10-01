@@ -66,7 +66,7 @@ static void print_version(void) ;
 static int debug_flag = 0;
 static int sinchalfwindow = 6;
 static int SplineDegree = 3;
-char *Progname ;
+const char *Progname ;
 static char *out_like_fname = NULL ;
 static int invert_flag = 0 ;
 //static int InterpMethod = SAMPLE_BSPLINE;

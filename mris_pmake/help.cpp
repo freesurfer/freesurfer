@@ -354,6 +354,7 @@ commandLineOptions_process(
   return str_asynchComms;
 }
 
+#if 1
 void    asynchEvent_processHELP(
   s_env&   st_env,
   string   str_event
@@ -374,9 +375,9 @@ void    asynchEvent_processHELP(
 
   int lc         = 30;
   int rc         = 50;
-  std::_Ios_Fmtflags    origFlags;
+  //std::_Ios_Fmtflags    origFlags;
 
-  origFlags    = cout.flags();
+  //origFlags    = cout.flags();
   cout.setf(ios::left);
 
   cout << endl;
@@ -385,7 +386,7 @@ void    asynchEvent_processHELP(
   CCn(rc+lc, "Currently understood commands (case-sensitive):");
   CWn(rc+lc, "");
   cout.fill(' ');
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   cout.fill('_');
   CWn(rc+lc, "");
   CCn(rc+lc, "No argument commands:");
@@ -440,13 +441,13 @@ void    asynchEvent_processHELP(
   CWn(rc, "Perform operations on <OBJECT>.");
   cout.setf(ios::right);
   CW(lc/2, "<qualifier> \\");
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "depends on <OBJECT> -- see below");
   cout.setf(ios::right);
   CW(lc/2, "<verb> \\");
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "one of {'get', 'set', 'do', ...");
@@ -454,7 +455,7 @@ void    asynchEvent_processHELP(
   CWn(rc, "\t'saveFrom', 'loadTo'}");
   cout.setf(ios::right);
   CW(lc/2, "[<modifier>]");
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "(value depends on <OBJECT><qualifier><verb>");
@@ -462,16 +463,16 @@ void    asynchEvent_processHELP(
   cout.fill('_');
   CWn(rc+lc, "");
   cout.fill(' ');
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   cout.setf(ios::right);
   CW(lc/2, "<OBJECT>");
   CW(lc/2, "");
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   cout.setf(ios::left);
   CWn(rc+lc/2, "<qualifier>");
   cout.setf(ios::right);
   CW(lc/2, "WGHT");
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'all' 'wd' 'wc' 'wh' 'wdc' 'wdh'");
@@ -479,7 +480,7 @@ void    asynchEvent_processHELP(
   CWn(rc, "\t'wch' 'wdch' 'wdir'}");
   cout.setf(ios::right);
   CW(lc/2, "dWGHT");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'all'  'Dwd' 'Dwc' 'Dwh' 'Dwdc' 'Dwdh'");
@@ -487,19 +488,19 @@ void    asynchEvent_processHELP(
   CWn(rc, "\t'Dwch' 'Dwdch' 'Dwdir'}");
   cout.setf(ios::right);
   CW(lc/2, "VERTEX");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'start' 'end'}");
   cout.setf(ios::right);
   CW(lc/2, "LABEL");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'ply' 'workingSurface' 'auxSurface'}");
   cout.setf(ios::right);
   CW(lc/2, "SURFACE");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'active'}");
@@ -507,40 +508,40 @@ void    asynchEvent_processHELP(
   cout.fill('_');
   CWn(rc+lc, "");
   cout.fill(' ');
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   cout.setf(ios::right);
   CW(lc/2, "<qualifier>");
   CW(lc/2, "");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   cout.setf(ios::left);
   CWn(rc+lc/2, "<verb> (object specific)");
   cout.setf(ios::right);
   CW(lc/2, "all");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'get' 'set <value>'}");
   cout.setf(ios::right);
   CW(lc/2, "start");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'get' 'set <value>'}");
   cout.setf(ios::right);
   CW(lc/2, "end");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'get' 'set <value>'}");
   cout.setf(ios::right);
   CW(lc/2, "ply");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'get' 'set <depth>' 'do' 'save <prefix>'");
   cout.setf(ios::right);
   CW(lc/2, "active");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'get' 'set aux|working' ");
@@ -549,7 +550,7 @@ void    asynchEvent_processHELP(
   CWn(rc, "'functionList' 'functionAssign <index>'}");
   cout.setf(ios::right);
   CW(lc/2, "workingSurface");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'loadTo <fileToLoadToSurface>'");
@@ -559,7 +560,7 @@ void    asynchEvent_processHELP(
   CWn(rc, "'singleVertexSet <vertexIndex>'}");
   cout.setf(ios::right);
   CW(lc/2, "auxSurface");
-  cout.flags(origFlags);
+  //  cout.flags(origFlags);
   CW(lc/2, "");
   cout.setf(ios::left);
   CWn(rc, "{'loadTo <fileToLoadToSurface>'");
@@ -638,8 +639,8 @@ void    asynchEvent_processHELP(
   CWn(rc, "to the auxillary surface");
   cout << endl;
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
 }
-
+#endif
 
 /* eof */

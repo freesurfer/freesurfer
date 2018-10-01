@@ -105,7 +105,7 @@ static int   fill_acorr_holes(double *acorr, double *counts, int nbins) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static char *output_subject = NULL ;
 static int navgs = 0 ;

@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 
-char *Progname ;
+const char *Progname ;
 
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 static void usage_exit(int code) ;

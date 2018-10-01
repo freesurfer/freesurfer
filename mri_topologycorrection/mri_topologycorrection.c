@@ -76,7 +76,7 @@ check_volume(MRI *mri_save, MRI *mri_out, int target_label) {
 }
 #endif
 
-char *Progname;
+const char *Progname;
 
 static int resegment_erased_voxels(MRI *mri_T1, MRI *mri_in, MRI *mri_out, int label) ;
 static int build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos) ;
@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
       mristb[n]->type=MRIS_TRIANGULAR_SURFACE;//MRIS_BINARY_QUADRANGLE_FILE;
       MRISwrite(mristb[n],fname);
 
-      MRISsetNeighborhoodSize(mristb[n],3) ;
+      MRISsetNeighborhoodSizeAndDist(mristb[n],3) ;
       MRIScomputeMetricProperties(mristb[n]) ;
       MRIScomputeSecondFundamentalForm(mristb[n]) ;
       MRISuseMeanCurvature(mristb[n]);

@@ -1656,6 +1656,27 @@
     <string>Unload Transform...</string>
    </property>
   </action>
+  <action name="actionNextLabelPoint">
+   <property name="text">
+    <string>Go to Next Label Point</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
+  <action name="actionReloadROI">
+   <property name="text">
+    <string>Reload ROI...</string>
+   </property>
+   <property name="toolTip">
+    <string>Reload ROI</string>
+   </property>
+  </action>
+  <action name="actionReloadPointSet">
+   <property name="text">
+    <string>Reload Point Set...</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3431,6 +3452,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionReloadPointSet</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadPointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReloadROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3530,5 +3583,8 @@
   <slot>OnSavePatchAs()</slot>
   <slot>OnLoadVolumeTransform()</slot>
   <slot>OnUnloadVolumeTransform()</slot>
+  <slot>OnGoToNextLabelPoint()</slot>
+  <slot>OnReloadROI()</slot>
+  <slot>OnReloadPointSet()</slot>
  </slots>
 </ui>

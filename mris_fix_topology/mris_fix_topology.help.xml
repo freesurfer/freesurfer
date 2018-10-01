@@ -37,9 +37,11 @@
       <intro>None</intro>
     </required-flagged>
     <optional-flagged>
-      <argument>-orig origname</argument>
-      <argument>-sphere spherename</argument>
-      <argument>-inflated inflatedname</argument>
+      <argument>-orig origname (input, default is orig.nofix)</argument>
+      <argument>-sphere spherename (default is qsphere.nofix)</argument>
+      <argument>-inflated inflatedname (default is inflated.nofix)</argument>
+      <argument>-out outputname (default is orig)</argument>
+      <argument>-defect defectbasename : defectbase_{label,chull,borders} (default is defect)</argument>
       <argument>-wi</argument>
       <explanation>write fixed inflated</explanation>
       <argument>-verbose </argument>
@@ -77,6 +79,8 @@
       <explanation>print help and exit</explanation>
       <argument>-version</argument>
       <explanation>print version and exit</explanation>
+      <argument>-threads N</argument>
+      <explanation>Set number of Open MP threads</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

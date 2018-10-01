@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) ;
 MRI *MRIpolyfitBiasField(MRI *vol2, int order2, MRI *seg2, MRI *bias2);
 
 static char vcid[] = "$Id: mri_fit_bias.c,v 1.3 2012/04/30 21:32:21 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;

@@ -128,7 +128,7 @@ static double find_optimal_linear_xform(VOXEL_LIST *vl_lowres,
                                         float angle_steps, float scale_steps,
                                         float trans_steps,
                                         int nreductions);
-char *Progname ;
+const char *Progname ;
 static int target_label = Right_Hippocampus ;
 
 static int skip = 2 ;
@@ -635,6 +635,8 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
+
+  printf("#VMPC# mri_hires_register VmPeak  %d\n",GetVmPeak());
   printf("registration took %d minutes and %d seconds.\n",
          minutes, seconds) ;
   exit(0) ;

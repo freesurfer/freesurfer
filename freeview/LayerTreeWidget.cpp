@@ -208,6 +208,8 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewROI);
     menu->addAction(wnd->ui->actionLoadROI);
+    menu->addAction(wnd->ui->actionReloadROI);
+    menu->addSeparator();
     menu->addAction(wnd->ui->actionGoToROI);
     menu->addAction(wnd->ui->actionShowLabelStats);
     menu->addSeparator();
@@ -216,6 +218,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewPointSet);
     menu->addAction(wnd->ui->actionLoadPointSet);
+    menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
   }
 
@@ -455,6 +458,22 @@ void LayerTreeWidget::DeselectAll()
   foreach (QTreeWidgetItem* item, items)
   {
     item->setSelected(false);
+  }
+}
+
+void LayerTreeWidget::SetSelectedLayers(const QList<int>& layer_ids)
+{
+  QList<QTreeWidgetItem*> items;
+  for (int i = 0; i < topLevelItemCount(); i++)
+  {
+    QTreeWidgetItem* topItem = topLevelItem(i);
+    for (int j = 0; j < topItem->childCount(); j++)
+      items << topItem->child(j);
+  }
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+    item->setSelected(layer && layer_ids.contains(layer->GetID()));
   }
 }
 

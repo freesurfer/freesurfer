@@ -1,14 +1,10 @@
 project(mris_expand)
-include_directories(${mris_expand_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_expand_SRCS
-mris_expand.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mris_expand mris_expand.c)
+target_link_libraries(mris_expand utils)
 
-add_executable(mris_expand ${mris_expand_SRCS})
-target_link_libraries(mris_expand ${FS_LIBS})
-install(TARGETS mris_expand DESTINATION bin)	
+add_test_script(NAME mris_expand_test SCRIPT test_mris_expand DEPENDS mris_expand)
+
+install(TARGETS mris_expand DESTINATION bin)

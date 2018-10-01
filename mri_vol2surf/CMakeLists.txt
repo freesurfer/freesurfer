@@ -1,15 +1,8 @@
 project(mri_vol2surf)
-include_directories(${mri_vol2surf_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_vol2surf_SRCS
-mri_vol2surf.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_vol2surf mri_vol2surf.c)
+target_link_libraries(mri_vol2surf utils)
 
-add_executable(mri_vol2surf ${mri_vol2surf_SRCS})
-target_link_libraries(mri_vol2surf ${FS_LIBS})
-install(TARGETS mri_vol2surf DESTINATION bin)	
-
+install(TARGETS mri_vol2surf DESTINATION bin)

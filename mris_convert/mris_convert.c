@@ -78,7 +78,7 @@ static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
-char *Progname ;
+const char *Progname ;
 
 static int talairach_flag = 0 ;
 static char *talxfmsubject = NULL;
@@ -587,7 +587,10 @@ main(int argc, char *argv[])
   }
   else if (output_normals)
   {
-    MRISwriteNormalsAscii(mris, out_fname) ;
+    if (MRISfileNameType(out_fname) == MRIS_ASCII_TRIANGLE_FILE)
+      MRISwriteNormalsAscii(mris, out_fname) ;
+    else
+      MRISwriteNormals(mris, out_fname) ;
   }
   else if (write_vertex_neighbors)
   {
@@ -1084,11 +1087,11 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
 
   for(vno=0; vno < mris->nvertices; vno++)
   {
-    nnbrs = mris->vertices[vno].vnum;
+    nnbrs = mris->vertices_topology[vno].vnum;
     fprintf(fp,"%6d %2d   ",vno,nnbrs);
     for (nbrvno = 0; nbrvno < nnbrs; nbrvno++)
     {
-      fprintf(fp,"%6d ",mris->vertices[vno].v[nbrvno]);
+      fprintf(fp,"%6d ",mris->vertices_topology[vno].v[nbrvno]);
     }
     fprintf(fp,"\n");
   }

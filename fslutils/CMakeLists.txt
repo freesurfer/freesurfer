@@ -1,16 +1,7 @@
 project(fslutils)
-include_directories(${fslutils_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(fslutils_SRCS
-fsl_label2voxel.cpp
-)
+include_directories(${FS_INCLUDE_DIRS})
 
-
-add_executable(fslutils ${fslutils_SRCS})
-target_link_libraries(fslutils ${FS_LIBS})
-install(TARGETS fslutils DESTINATION bin)	
-
-
+add_executable(fsl_label2voxel fsl_label2voxel.cpp)
+target_link_libraries(fsl_label2voxel utils)
+install(TARGETS fsl_label2voxel DESTINATION bin)

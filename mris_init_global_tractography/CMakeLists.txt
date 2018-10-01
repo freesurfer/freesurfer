@@ -1,0 +1,8 @@
+project(mris_init_global_tractography)
+
+include_directories(${FS_INCLUDE_DIRS})
+
+add_executable(mris_init_global_tractography mris_init_global_tractography.c)
+target_link_libraries(mris_init_global_tractography utils)
+
+install(TARGETS mris_init_global_tractography DESTINATION bin)

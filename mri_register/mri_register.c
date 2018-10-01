@@ -69,7 +69,7 @@ static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
-char         *Progname ;
+const char         *Progname ;
 static GCA_MORPH_PARMS  parms ;
 
 static int avgs = 0 ;  /* for smoothing conditional densities */

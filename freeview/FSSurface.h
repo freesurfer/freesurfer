@@ -32,6 +32,8 @@
 #include "vtkImageData.h"
 #include "vtkPolyData.h"
 #include "vtkMatrix4x4.h"
+#include <QVector>
+#include <QVariantMap>
 
 #include <vector>
 #include <string>
@@ -231,10 +233,10 @@ public:
 
   void UpdatePolyData();
   void RipFaces();
-  QList<int> MakeCutLine(const QList<int>& verts);
-  void ClearCuts(const QList<int>& verts = QList<int>());
+  QVector<int> MakeCutLine(const QVector<int>& verts);
+  void ClearCuts(const QVector<int>& verts = QVector<int>());
 
-  QList<int> FloodFillFromSeed(int seed_vno);
+  QVector<int> FloodFillFromSeed(int seed_vno);
 
   void UpdateHashTable(int nSet = 0, int coord = CURRENT_VERTICES);
 
@@ -338,7 +340,7 @@ protected:
 
   double    m_dMaxSegmentLength;
 
-  QList<int>  m_originalRipflags;
+  QVector<int>  m_originalRipflags;
 };
 
 #endif

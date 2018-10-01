@@ -1,1 +1,0 @@
-project(orient_mri)

@@ -1,17 +1,14 @@
 project(mri_watershed)
-include_directories(${mri_watershed_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_watershed_SRCS
-mri_validate_skull_stripped.cpp
-mri_watershed.cpp
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_watershed mri_watershed.cpp)
+add_help(mri_watershed mri_watershed.help.xml)
+target_link_libraries(mri_watershed utils)
+install(TARGETS mri_watershed DESTINATION bin)
 
-add_executable(mri_watershed ${mri_watershed_SRCS})
-target_link_libraries(mri_watershed ${FS_LIBS})
-install(TARGETS mri_watershed DESTINATION bin)	
+add_executable(mri_validate_skull_stripped mri_validate_skull_stripped.cpp)
+target_link_libraries(mri_validate_skull_stripped utils)
+install(TARGETS mri_validate_skull_stripped DESTINATION bin)
 
 add_subdirectory(brain_volume)

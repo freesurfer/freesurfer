@@ -1,17 +1,29 @@
 project(mris_volmask)
-include_directories(${mris_volmask_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_volmask_SRCS
-cmd_line_interface.cpp
-mris_volmask.c
-mris_volmask.cpp
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
-add_executable(mris_volmask ${mris_volmask_SRCS})
-target_link_libraries(mris_volmask ${FS_LIBS})
-install(TARGETS mris_volmask DESTINATION bin)	
+add_executable(mris_volmask mris_volmask.cpp cmd_line_interface.cpp)
+target_compile_definitions(mris_volmask PRIVATE NO_VTK)
+add_help(mris_volmask mris_volmask.help.xml)
+target_link_libraries(mris_volmask utils)
+install(TARGETS mris_volmask DESTINATION bin)
 
+add_test_script(NAME mris_volmask_test SCRIPT test_mris_volmask DEPENDS mris_volmask)
+
+add_executable(mris_volmask_novtk mris_volmask_old.cpp cmd_line_interface.cpp)
+target_compile_definitions(mris_volmask_novtk PRIVATE NO_VTK)
+add_help(mris_volmask_novtk mris_volmask.help.xml)
+target_link_libraries(mris_volmask_novtk utils)
+install(TARGETS mris_volmask_novtk DESTINATION bin)
+
+if(VTK_FOUND AND NOT MINIMAL)
+
+  include_directories(${VTK_INCLUDE_DIRS})
+  add_executable(mris_volmask_vtk mris_volmask_old.cpp cmd_line_interface.cpp)
+  add_help(mris_volmask_vtk mris_volmask.help.xml)
+  target_link_libraries(mris_volmask_vtk utils ${VTK_LIBRARIES})
+  install(TARGETS mris_volmask_vtk DESTINATION bin)
+
+endif()

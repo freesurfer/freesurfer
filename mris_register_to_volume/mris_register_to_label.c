@@ -185,9 +185,10 @@ static double angle_steps = (2/ANGLE_STEP_SIZE)*DEGREES(MAX_ROT)+1 ;
 static double scale_steps = 1 ;
 
 
+const char *Progname ;
+
 static char base_name[STRLEN] ;
 static char *SUBJECTS_DIR ;
-static char *Progname ;
 static MATRIX *R0 ;
 static char vcid[] = "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $";
 int

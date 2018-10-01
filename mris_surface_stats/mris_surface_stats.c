@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 MRI *MyMRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
 
-char *Progname ;
+const char *Progname ;
 
 static char *stat_fname = NULL; /* filename for output stat */
 static char *surf_fname = NULL; /* filename for underlying surface */
@@ -778,7 +778,7 @@ MRI *MyMRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 
     for (vtx = 0; vtx < Surf->nvertices; vtx++)
     {
-      nnbrs = Surf->vertices[vtx].vnum;
+      nnbrs = Surf->vertices_topology[vtx].vnum;
 
       for (frame = 0; frame < Targ->nframes; frame ++)
       {
@@ -786,7 +786,7 @@ MRI *MyMRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
         truenbr = 0;
         for (nthnbr = 0; nthnbr < nnbrs; nthnbr++)
         {
-          nbrvtx = Surf->vertices[vtx].v[nthnbr];
+          nbrvtx = Surf->vertices_topology[vtx].v[nthnbr];
           if (Surf->vertices[nbrvtx].ripflag) continue;
           truenbr++;
           val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;

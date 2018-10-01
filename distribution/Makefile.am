@@ -16,7 +16,6 @@ foo_DATA= \
 	Simple_surface_labels2009.txt	\
 	FreeSurferColorLUT.txt \
 	WMParcStatsLUT.txt \
-	numaris4-protocols.unpackcfg \
 	ASegStatsLUT.txt \
 	DefectLUT.txt \
 	SegmentNoLUT.txt
@@ -28,20 +27,6 @@ foo_SCRIPTS= \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh \
 	sources.sh
-
-clean-local:
-	rm -f SetUpFreeSurfer.csh SetUpFreeSurfer.sh
-
-EXTRA_DIST=$(foo_DATA) $(foo_SCRIPTS) \
-	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
-
-SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
-	cat $< > $@
-	chmod a+x $@
-
-SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
-	cat $< > $@
-	chmod a+x $@
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

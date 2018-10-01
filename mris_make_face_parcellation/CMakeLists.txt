@@ -1,0 +1,8 @@
+project(mris_make_face_parcellation)
+
+include_directories(${FS_INCLUDE_DIRS})
+
+add_executable(mris_make_face_parcellation mris_make_face_parcellation.c)
+target_link_libraries(mris_make_face_parcellation utils)
+
+install(TARGETS mris_make_face_parcellation DESTINATION bin)

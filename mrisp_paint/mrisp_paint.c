@@ -47,7 +47,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int normalize = 0 ;
 static int variance =  0 ;
@@ -187,7 +187,7 @@ main(int argc, char *argv[])
         MRISfree(&mris_var);
         ErrorExit(ERROR_BADPARM,"%s: could not load file %s\n",fname);
       }
-      MRISsetNeighborhoodSize(mris_var, -1) ;  /* back to max */
+      MRISsetNeighborhoodSizeAndDist(mris_var, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris_var) ;
       MRIScomputeSecondFundamentalForm(mris_var) ;
       MRISuseMeanCurvature(mris_var) ;

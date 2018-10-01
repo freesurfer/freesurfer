@@ -195,7 +195,7 @@ static char *tissue_parms_fname = NULL ;
 static char *mask_volume_fname = NULL ;
 static int histo_norm = 0 ;
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static int novar = 0 ;

@@ -120,7 +120,7 @@ extern VOXLIST *MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, flo
 					    float source_val,float target_val, float outside_val);
 
 
-char *Progname ;
+const char *Progname ;
 static void usage_exit(int code) ;
 
 static char sdir[STRLEN] = "" ;

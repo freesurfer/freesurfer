@@ -3,12 +3,9 @@
 ##### scripts location
 
 set FS_HOME = $FREESURFER_HOME
-setenv FSSCRIPTSDIR      $FS_HOME/scripts/InfantFS/
+setenv FSSCRIPTSDIR      $FS_HOME/bin/
 setenv BABYDEVSCRIPTSDIR $FSSCRIPTSDIR
 set BabyDevPath = $BABYDEVSCRIPTSDIR
-
-##### FOR LABELFUSION
-source $BABYDEVSCRIPTSDIR/SetLabelFusionParams.csh
 
 ##### IN ORDER TO ENABLE PICASSO TO RUN
 
@@ -35,5 +32,11 @@ set AllPicassoPath = ()
 
 #####
 
-setenv PATH $PATH${AllPicassoPath}:${BabyDevPath}:${FSSCRIPTSDIR}
+setenv PATH $PATH${AllPicassoPath}:${BabyDevPath}:${FSSCRIPTSDIR}:$FS_HOME/scripts/infantFS
 echo $PATH
+
+
+#####
+##### FOR LABELFUSION
+source $BABYDEVSCRIPTSDIR/SetLabelFusionParams.csh
+

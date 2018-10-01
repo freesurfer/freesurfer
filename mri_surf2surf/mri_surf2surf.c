@@ -376,7 +376,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $";
-char *Progname = NULL;
+const char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
 char *srchemi    = NULL;
@@ -1147,7 +1147,7 @@ int main(int argc, char **argv)
     SurfTrg->patch = 1 ;
     SurfTrg->status = MRIS_CUT ;
     for (tvtx = 0 ; tvtx < SurfTrg->nvertices ; tvtx++)
-      if (SurfTrg->vertices[tvtx].num == 0 || SurfTrg->vertices[tvtx].vnum == 0)
+      if (SurfTrg->vertices_topology[tvtx].num == 0 || SurfTrg->vertices_topology[tvtx].vnum == 0)
 	SurfTrg->vertices[tvtx].ripflag = 1 ;
     MRISupdateSurface(SurfTrg);
     printf("Writing patch to %s\n", trgvalfile);
@@ -2351,7 +2351,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri)
     if (val == 0.0) {
       continue;
     }
-    nnbrs = surf->vertices[vtxno].vnum;
+    nnbrs = surf->vertices_topology[vtxno].vnum;
     vtx = &surf->vertices[vtxno];
     fprintf(fp,"%5d  %2d  %8.4f %8.4f %8.4f   %g\n",
             vtxno,nnbrs,vtx->x,vtx->y,vtx->z,val);
@@ -2409,10 +2409,10 @@ MRI *MRISdiffusionWeights(MRIS *surf)
   double area, wtmp;
 
   /* count the maximum number of neighbors */
-  nnbrsmax = surf->vertices[0].vnum;
+  nnbrsmax = surf->vertices_topology[0].vnum;
   for (vtxno = 0; vtxno < surf->nvertices; vtxno++)
-    if (nnbrsmax < surf->vertices[vtxno].vnum) {
-      nnbrsmax = surf->vertices[vtxno].vnum;
+    if (nnbrsmax < surf->vertices_topology[vtxno].vnum) {
+      nnbrsmax = surf->vertices_topology[vtxno].vnum;
     }
   printf("nnbrsmax = %d\n",nnbrsmax);
 
@@ -2421,10 +2421,10 @@ MRI *MRISdiffusionWeights(MRIS *surf)
   w = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, nnbrsmax);
   for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
     area = MRISsumVertexFaceArea(surf, vtxno);
-    nnbrs = surf->vertices[vtxno].vnum;
+    nnbrs = surf->vertices_topology[vtxno].vnum;
     //printf("%d %6.4f   ",vtxno,area);
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      vtxnonbr = surf->vertices[vtxno].v[nthnbr];
+      vtxnonbr = surf->vertices_topology[vtxno].v[nthnbr];
       wtmp = MRISdiffusionEdgeWeight(surf, vtxno, vtxnonbr);
       MRIFseq_vox(w,vtxno,0,0,nthnbr) = (float)wtmp/area;
       //printf("%6.4f ",wtmp);
@@ -2485,14 +2485,14 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
     //printf("Step = %d\n",nthiter); fflush(stdout);
 
     for (vtxno = 0; vtxno < Surf->nvertices; vtxno++) {
-      nnbrs = Surf->vertices[vtxno].vnum;
+      nnbrs = Surf->vertices_topology[vtxno].vnum;
 
       for (frame = 0; frame < Targ->nframes; frame ++) {
         val0 = MRIFseq_vox(SrcTmp,vtxno,0,0,frame);
         val = val0;
         //printf("%2d %5d %7.4f   ",nthiter,vtxno,val0);
         for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-          nbrvtxno = Surf->vertices[vtxno].v[nthnbr];
+          nbrvtxno = Surf->vertices_topology[vtxno].v[nthnbr];
           valnbr = MRIFseq_vox(SrcTmp,nbrvtxno,0,0,frame) ;
           wtmp = dt*MRIFseq_vox(w,vtxno,0,0,nthnbr);
           val += wtmp*(valnbr-val0);
@@ -2519,9 +2519,9 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
 int MRISareNeighbors(MRIS *surf, int vtxno1, int vtxno2)
 {
   int nnbrs, nthnbr, nbrvtxno;
-  nnbrs = surf->vertices[vtxno1].vnum;
+  nnbrs = surf->vertices_topology[vtxno1].vnum;
   for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-    nbrvtxno = surf->vertices[vtxno1].v[nthnbr];
+    nbrvtxno = surf->vertices_topology[vtxno1].v[nthnbr];
     if (nbrvtxno == vtxno2) {
       return(1);
     }
@@ -2539,9 +2539,9 @@ int MRIScommonNeighbors(MRIS *surf, int vtxno1, int vtxno2,
   int nnbrs, nthnbr, nbrvtxno;
 
   *cvtxno1 = -1;
-  nnbrs = surf->vertices[vtxno1].vnum;
+  nnbrs = surf->vertices_topology[vtxno1].vnum;
   for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-    nbrvtxno = surf->vertices[vtxno1].v[nthnbr];
+    nbrvtxno = surf->vertices_topology[vtxno1].v[nthnbr];
     if (nbrvtxno == vtxno2) {
       continue;
     }
@@ -2603,10 +2603,10 @@ double MRISsumVertexFaceArea(MRIS *surf, int vtxno)
     }
   }
 
-  if (surf->vertices[vtxno].vnum != nfvtx) {
+  if (surf->vertices_topology[vtxno].vnum != nfvtx) {
     printf("ERROR: MRISsumVertexFaceArea: number of adjacent faces (%d) "
            "does not equal number of neighbors (%d)\n",
-           nfvtx,surf->vertices[vtxno].vnum);
+           nfvtx,surf->vertices_topology[vtxno].vnum);
     exit(1);
   }
 
@@ -2618,24 +2618,23 @@ double MRISsumVertexFaceArea(MRIS *surf, int vtxno)
 int MRISdumpVertexNeighborhood(MRIS *surf, int vtxno)
 {
   int  n, nnbrs, nthnbr, nbrvtxno, nnbrnbrs, nthnbrnbr, nbrnbrvtxno;
-  VERTEX *v0, *v;
   FACE *face;
 
-  v0 = &surf->vertices[vtxno];
-  nnbrs = surf->vertices[vtxno].vnum;
+  VERTEX const * const v0 = &surf->vertices[vtxno];
+  nnbrs = surf->vertices_topology[vtxno].vnum;
 
   printf("  seed vtx %d vc = [%6.3f %6.3f %6.3f], nnbrs = %d\n",vtxno,
          v0->x,v0->y,v0->z,nnbrs);
 
   for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-    nbrvtxno = surf->vertices[vtxno].v[nthnbr];
-    v = &surf->vertices[nbrvtxno];
+    nbrvtxno = surf->vertices_topology[vtxno].v[nthnbr];
+    VERTEX const * const v = &surf->vertices[nbrvtxno];
     printf("   nbr vtx %5d v%d = [%6.3f %6.3f %6.3f]    ",
            nbrvtxno,nthnbr,v->x,v->y,v->z);
 
-    nnbrnbrs = surf->vertices[nbrvtxno].vnum;
+    nnbrnbrs = surf->vertices_topology[nbrvtxno].vnum;
     for (nthnbrnbr = 0; nthnbrnbr < nnbrnbrs; nthnbrnbr++) {
-      nbrnbrvtxno = surf->vertices[nbrvtxno].v[nthnbrnbr];
+      nbrnbrvtxno = surf->vertices_topology[nbrvtxno].v[nthnbrnbr];
       if (MRISareNeighbors(surf,vtxno,nbrnbrvtxno)) {
         printf("%5d ",nbrnbrvtxno);
       }
@@ -2660,7 +2659,6 @@ int MRISdumpVertexNeighborhood(MRIS *surf, int vtxno)
 MRI *MRISheatkernel(MRIS *surf, double sigma)
 {
   int vtxno, nbrvtxno, nnbrs, nnbrsmax;
-  VERTEX *cvtx, *nbrvtx;
   double K, Ksum, two_sigma_sqr, dx, dy, dz, d2;
   MRI *hk;
 
@@ -2669,7 +2667,7 @@ MRI *MRISheatkernel(MRIS *surf, double sigma)
   // Count the maximum number of neighbors
   nnbrsmax = 0;
   for (vtxno=0; vtxno < surf->nvertices; vtxno++) {
-    nnbrs = surf->vertices[vtxno].vnum;
+    nnbrs = surf->vertices_topology[vtxno].vnum;
     if (nnbrsmax < nnbrs) {
       nnbrsmax = nnbrs;
     }
@@ -2681,12 +2679,13 @@ MRI *MRISheatkernel(MRIS *surf, double sigma)
 
   printf("Filling in heat kernel weights\n");
   for (vtxno=0; vtxno < surf->nvertices; vtxno++) {
-    cvtx = &(surf->vertices[vtxno]);
-    nnbrs = cvtx->vnum;
+    VERTEX_TOPOLOGY const * const cvtxt = &surf->vertices_topology[vtxno];
+    VERTEX          const * const cvtx  = &surf->vertices         [vtxno];
+    nnbrs = cvtxt->vnum;
     Ksum = 0;
     for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-      nbrvtxno = cvtx->v[nthnbr];
-      nbrvtx = &(surf->vertices[nbrvtxno]);
+      nbrvtxno = cvtxt->v[nthnbr];
+      VERTEX const * const nbrvtx = &surf->vertices[nbrvtxno];
       dx = (cvtx->x - nbrvtx->x);
       dy = (cvtx->y - nbrvtx->y);
       dz = (cvtx->z - nbrvtx->z);
@@ -2754,7 +2753,7 @@ MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma,
     //printf("Step = %d\n",nthstep); fflush(stdout);
 
     for (vtx = 0; vtx < Surf->nvertices; vtx++) {
-      nnbrs = Surf->vertices[vtx].vnum;
+      nnbrs = Surf->vertices_topology[vtx].vnum;
 
       for (frame = 0; frame < Targ->nframes; frame ++) {
         w   = MRIgetVoxVal(hk,vtx,0,0,nnbrs); // weight for center
@@ -2766,7 +2765,7 @@ MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma,
         val *= w;
 
         for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
-          nbrvtx = Surf->vertices[vtx].v[nthnbr];
+          nbrvtx = Surf->vertices_topology[vtx].v[nthnbr];
           w = MRIgetVoxVal(hk,vtx,0,0,nthnbr);
           val += w*MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
           if(0 && vtx == 10000) {
@@ -2793,14 +2792,13 @@ int DumpSurface(MRIS *surf, char *outfile)
 {
   FILE *fp;
   int nnbrsmax, vtxno, nnbrs, nbrvtxno;
-  VERTEX *cvtx;
 
   printf("Dumping surface to %s\n",outfile);
 
   // Count the maximum number of neighbors
   nnbrsmax = 0;
   for (vtxno=0; vtxno < surf->nvertices; vtxno++) {
-    nnbrs = surf->vertices[vtxno].vnum;
+    nnbrs = surf->vertices_topology[vtxno].vnum;
     if (nnbrsmax < nnbrs) {
       nnbrsmax = nnbrs;
     }
@@ -2813,13 +2811,14 @@ int DumpSurface(MRIS *surf, char *outfile)
   }
 
   for (vtxno=0; vtxno < surf->nvertices; vtxno++) {
-    nnbrs = surf->vertices[vtxno].vnum;
-    cvtx = &(surf->vertices[vtxno]);
+    nnbrs = surf->vertices_topology[vtxno].vnum;
+    VERTEX_TOPOLOGY const * const cvtxt = &surf->vertices_topology[vtxno];
+    VERTEX          const * const cvtx  = &surf->vertices         [vtxno];
     fprintf(fp,"%6d   %8.3f %8.3f %8.3f   %2d   ",
             vtxno+1,cvtx->x,cvtx->y,cvtx->z,nnbrs);
     for (nthnbr = 0; nthnbr < nnbrsmax; nthnbr++) {
       if (nthnbr < nnbrs) {
-        nbrvtxno = cvtx->v[nthnbr];
+        nbrvtxno = cvtxt->v[nthnbr];
       } else {
         nbrvtxno = -1;
       }

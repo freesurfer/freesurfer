@@ -85,7 +85,7 @@ static LTA *hires_lta = 0 ;
 static char *orig_white = "white";
 static char *orig_pial = NULL ;
 
-char *Progname ;
+const char *Progname ;
 
 static char *reg_fname = NULL ;
 static int graymid = 0 ;
@@ -563,7 +563,7 @@ main(int argc, char *argv[]) {
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", 
           white_matter_name, output_suffix, suffix) ;
@@ -1191,11 +1191,10 @@ int
 MRISfindExpansionRegions(MRI_SURFACE *mris) {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
-  VERTEX *v, *vn ;
 
   d = dsq = 0.0f ;
   for (total = num = vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->ripflag || v->val <= 0)
       continue ;
     num++ ;
@@ -1209,14 +1208,15 @@ MRISfindExpansionRegions(MRI_SURFACE *mris) {
   fprintf(stderr, "mean absolute distance = %2.2f +- %2.2f\n", mean, std) ;
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     v->curv = 0 ;
     if (v->ripflag || v->val <= 0)
       continue ;
     if (fabs(v->d) < mean+2*std)
       continue ;
-    for (num_long = num = 1, n = 0 ; n < v->vnum ; n++) {
-      vn = &mris->vertices[v->v[n]] ;
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
       if (vn->val <= 0 || v->ripflag)
         continue ;
       if (fabs(vn->d) >= mean+2*std)

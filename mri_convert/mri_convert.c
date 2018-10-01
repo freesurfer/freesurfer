@@ -61,7 +61,7 @@ int debug=0;
 
 extern int errno;
 
-char *Progname;
+const char *Progname;
 
 int ncutends = 0, cutends_flag = 0;
 
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
   int DevXFM = 0;
   char devxfm_subject[STRLEN];
   MATRIX *T;
-  float scale_factor, out_scale_factor ;
+  float scale_factor, out_scale_factor, rescale_factor ;
   int nthframe=-1;
   int reduce = 0 ;
   float fwhm, gstd;
@@ -274,6 +274,7 @@ int main(int argc, char *argv[])
 
   /* ----- initialize values ----- */
   scale_factor = 1 ;
+  rescale_factor = 1 ;
   out_scale_factor = 1 ;
   in_name[0] = '\0';
   out_name[0] = '\0';
@@ -476,6 +477,16 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[i], "--sphinx") == 0 )
     {
       sphinx_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--rescale-dicom") == 0 )
+    {
+      // DO  apply rescale intercept and slope based on (0028,1052) (0028,1053).
+      setenv("FS_RESCALE_DICOM","1",1);
+    }
+    else if (strcmp(argv[i], "--no-rescale-dicom") == 0 )
+    {
+      // Do NOT apply rescale intercept and slope based on (0028,1052) (0028,1053).
+      setenv("FS_RESCALE_DICOM","0",1);
     }
     else if (strcmp(argv[i], "--bvec-scanner") == 0 )
     {
@@ -1046,6 +1057,11 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(argv[i], "--bfile-little-endian") == 0 )
       setenv("BFILE_LITTLE_ENDIAN","1",1);
+    else if(strcmp(argv[i], "--rescale") == 0){
+      // Rescale so that the global mean of input is rescale_factor
+      rescale_factor = atof(argv[i+1]) ;
+      i++ ;
+    }
     else if(strcmp(argv[i], "-sc") == 0 ||
             strcmp(argv[i], "--scale") == 0)
     {
@@ -2244,6 +2260,24 @@ int main(int argc, char *argv[])
     MRIgaussianSmooth(mri, gstd, 1, mri);
   }
 
+  if (!FEQUAL(rescale_factor,1.0)){
+    // Rescale so that the global mean of input is rescale_factor
+    double globalmean = 0;
+    for(c=0; c < mri->width; c++){
+      for(r=0; r < mri->height; r++){
+        for(s=0; s < mri->depth; s++){
+          for(f=0; f < mri->nframes; f++){
+            v = MRIgetVoxVal(mri,c,r,s,f);
+	    globalmean += v;
+          }
+        }
+      }
+    }
+    globalmean /= (double)(mri->width*mri->height*mri->depth*mri->nframes);
+    printf("Global rescaling input mean from %g to %g\n",globalmean,rescale_factor);
+    MRIscalarMul(mri, mri, rescale_factor/globalmean) ;
+  }
+
   MRIaddCommandLine(mri, cmdline) ;
   if (!FEQUAL(scale_factor,1.0))
   {
@@ -2731,15 +2765,24 @@ int main(int argc, char *argv[])
   /* ----- apply command-line parameters ----- */
   if (out_i_size_flag)
   {
+    float scale ;
+    scale = template->xsize / out_i_size ;
     template->xsize = out_i_size;
+    template->width = nint(template->width *scale) ;
   }
   if (out_j_size_flag)
   {
+    float scale ;
+    scale = template->ysize / out_j_size ;
     template->ysize = out_j_size;
+    template->height = nint(template->height *scale) ;
   }
   if (out_k_size_flag)
   {
+    float scale ;
+    scale = template->zsize / out_k_size ;
     template->zsize = out_k_size;
+    template->depth = nint(template->depth *scale) ;
   }
   if (out_n_i_flag)
   {

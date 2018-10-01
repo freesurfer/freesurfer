@@ -75,7 +75,8 @@ LST_Create(void)
   LST_HEAD
   * ptr;
 
-  ptr = CTN_MALLOC(sizeof(LST_HEAD));
+  ptr = (LST_HEAD*)CTN_MALLOC(sizeof(LST_HEAD));
+  
   if (ptr == NULL)
     return NULL;
 
@@ -474,7 +475,7 @@ LST_Position(LST_HEAD ** list, LST_NODE * node)
  *
  */
 CONDITION
-LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ()) {
+LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) (LST_NODE*, LST_NODE*)) {
   LST_NODE
   * n1,
   *n2;

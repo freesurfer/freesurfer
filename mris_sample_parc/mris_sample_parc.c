@@ -64,10 +64,11 @@ static int  fix_label_topology(MRI_SURFACE *mris, int nvertices) ;
 static int  resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 int MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) ;
 
-char *Progname ;
+const char *Progname ;
 static int   avgs = 0 ;
 static int nclose = 0 ;
 static char *color_table_fname = NULL ;
+static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
 static int   mode_filter = 0 ;
 static char *surf_name = WHITE_MATTER_NAME ;
 static char *thickness_name = "thickness" ;
@@ -198,6 +199,8 @@ main(int argc, char *argv[]) {
   if (sample_from_vol_to_surf) // sample from volume to surface */
   {
     MRIsampleParcellationToSurface(mris, mri_parc) ;
+    if (cortex_label)
+      LabelMaskSurface(cortex_label,mris);
   } else  /* sample from surface to volume */
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -363,6 +366,18 @@ get_option(int argc, char *argv[]) {
     surf_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as surface name\n", surf_name) ;
+  }
+  else if (!stricmp(option, "cortex"))
+  {
+    cortex_label = LabelRead(NULL, argv[2]) ;
+    if (cortex_label == NULL)
+    {
+      ErrorExit(ERROR_NOFILE, "") ;
+    }
+    nargs = 1 ;
+    printf("INFO: using %s as mask to calc cortex "
+           "NumVert, SurfArea and MeanThickness.\n",
+           argv[2]);
   } else if (!stricmp(option, "mask")) {
     mask_fname = argv[2] ;
     mask_val = atoi(argv[3]) ;
@@ -526,6 +541,9 @@ print_help(void) {
   fprintf(stderr,
           "  -trans <number_in> <number_out>      translate <number_in> to \n"
           "                                       <number_out>\n\n");
+  fprintf(stderr,
+          "  -cortex <cortex label file>          mask regions outside of the \n"
+          "                                       specified cortex label\n\n");
   fprintf(stderr,
           "  -projmm <number>     project <number> millimeters along \n"
           "                       surface normal (default=0.0)\n\n");
@@ -726,12 +744,11 @@ static int
 resegment_label(MRI_SURFACE *mris, LABEL *segment) {
   int    *histo, max_label, i, n, vno, ino, index;
   int    max_histo, max_index, nchanged, lno, label ;
-  VERTEX *v, *vn ;
 
   max_label = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX const * const v = &mris->vertices[vno] ;
     if (v->val > max_label)
       max_label = v->val ;
   }
@@ -744,15 +761,16 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
     nchanged = 0 ;
     for (lno = 0 ; lno < segment->n_points ; lno++) {
       vno = segment->lv[lno].vno ;
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
         DiagBreak() ;
       if (v->val != label || v->ripflag)
         continue ;   /* already changed */
 
       memset(histo, 0, (max_label+1)*sizeof(*histo)) ;
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
+      for (n = 0 ; n < vt->vnum ; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
         index = (int)nint(vn->val) ;
         if (index < 0)
           continue ;
@@ -772,7 +790,7 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
     }
     for (lno = 0 ; lno < segment->n_points ; lno++) {
       vno = segment->lv[lno].vno ;
-      v = &mris->vertices[vno] ;
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->val != label)
         continue ;
       if (vno == Gdiag_no)

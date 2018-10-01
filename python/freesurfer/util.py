@@ -2,12 +2,15 @@ import sys
 import os
 import shutil
 import select
+import datetime as dt
 import subprocess as sp
 from .log import error
 
 
 # run a shell command and return the exit code
-def run(cmd, silent=False, executable='/bin/bash'):
+def run(cmd, silent=False, executable='/bin/bash', background=False):
+  if background:
+    cmd += ' &'
   if silent:
     return sp.call(cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, shell=True, executable=executable)
   else:
@@ -55,6 +58,32 @@ def sourceFS(fspath):
   return True
 
 
+# get freesurfer home
+def fshome():
+  return os.environ.get('FREESURFER_HOME')
+
+
+# make sure freesurfer has been sourced
+def checkfs():
+  if not fshome():
+    errorExit('freesurfer has not been sourced')
+
+
+# print an error message and exit
 def errorExit(message, ret=1):
   error(message)
   exit(ret)
+
+
+# simple timer class
+class Timer:
+    def __init__(self, message=None):
+        if message: print(message)
+        self.start_time = dt.datetime.now()
+
+    @property
+    def elapsed(self):
+        return dt.datetime.now() - self.start_time
+
+    def mark(self, message):
+        print('%s: %s' % (message, str(self.elapsed)))

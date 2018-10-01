@@ -39,7 +39,7 @@
 #include "LayerMRI.h"
 #include "FSVolume.h"
 
-SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
+SurfaceLabel::SurfaceLabel ( LayerSurface* surf, bool bInitializeLabel ) :
   QObject( surf ),
   m_label( NULL ),
   m_surface( surf ),
@@ -48,7 +48,9 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   m_dThreshold(0),
   m_nColorCode(SolidColor),
   m_dHeatscaleMin(0),
-  m_dHeatscaleMax(1)
+  m_dHeatscaleMax(1),
+  m_dOpacity(1.0),
+  m_bModified(false)
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
@@ -58,14 +60,36 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   SetColor(1.0, 1.0, 0);
   m_lut = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   UpdateLut();
+
+  if (bInitializeLabel)
+  {
+    MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+    m_label = ::LabelAlloc( mris->nvertices, NULL, (char*)"" );
+    int unassigned;
+    LabelIsCompletelyUnassigned(m_label, &unassigned);
+    if (unassigned)
+    {
+      LabelFillUnassignedVertices(mris, m_label, CURRENT_VERTICES);
+    }
+    m_label->vertex_label_ind = (int *)calloc(mris->nvertices, sizeof(int));
+    for (int n = 0; n < mris->nvertices; n++)
+      m_label->vertex_label_ind[n] = -1;
+
+    m_nOutlineIndices = new int[mris->nvertices];
+    UpdateOutline();
+  }
 }
 
 SurfaceLabel::~SurfaceLabel ()
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
+
+  foreach (LABEL* l, m_undoBuffer)
+    ::LabelFree(&l);
+  foreach (LABEL* l, m_redoBuffer)
+    ::LabelFree(&l);
+
   if (m_nOutlineIndices)
     delete[] m_nOutlineIndices;
 }
@@ -117,6 +141,22 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     cout << "label assigned to surface";
   }
 
+  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+  m_label->vertex_label_ind = (int *)calloc(mris->nvertices, sizeof(int));
+  for (int n = 0; n < mris->nvertices; n++)
+    m_label->vertex_label_ind[n] = -1;
+
+  for (int n = 0; n < m_label->n_points; n++)
+  {
+    LV* lv = &m_label->lv[n];
+
+    if (lv->deleted) continue;
+    if (lv->vno >= 0 && lv->vno <= mris->nvertices)  // vertex already assigned
+    {
+      m_label->vertex_label_ind[lv->vno] = n;
+    }
+  }
+
   QFile file( filename );
   if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
   {
@@ -137,7 +177,6 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   }
 
   // update vno if it is -1
-  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
@@ -166,10 +205,9 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   }
 
   // create outline
-  m_nOutlineIndices = new int[m_label->n_points];
+  m_nOutlineIndices = new int[mris->nvertices];
   UpdateOutline();
   UpdateLut();
-
 
   return true;
 }
@@ -177,21 +215,23 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 void SurfaceLabel::UpdateOutline()
 {
   VERTEX *v;
+  VERTEX_TOPOLOGY* vt;
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
   MRISclearMarks(mris);
   LabelMarkSurface(m_label, mris);
   for (int n = 0 ; n < m_label->n_points ; n++)
   {
     m_nOutlineIndices[n] = 0;
-    if (m_label->lv[n].vno >= 0) // && m_label->lv[n].stat > m_dThreshold)
+    if (m_label->lv[n].vno >= 0 && !m_label->lv[n].deleted) // && m_label->lv[n].stat > m_dThreshold)
     {
-      v = &mris->vertices[m_label->lv[n].vno] ;
+      v = &mris->vertices[m_label->lv[n].vno];
+      vt = &mris->vertices_topology[m_label->lv[n].vno];
       if (v->ripflag)
         continue;
 
-      for (int m = 0 ; m < v->vnum ; m++)
+      for (int m = 0 ; m < vt->vnum ; m++)
       {
-        if (mris->vertices[v->v[m]].marked == 0)
+        if (mris->vertices[vt->v[m]].marked == 0)
         {
           m_nOutlineIndices[n] = 1;
           break;
@@ -248,6 +288,15 @@ void SurfaceLabel::SetHeatscaleMax(double dval)
   }
 }
 
+void SurfaceLabel::SetOpacity(double dval)
+{
+  if (dval != m_dOpacity)
+  {
+    m_dOpacity = dval;
+    emit SurfaceLabelChanged();
+  }
+}
+
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 {
   if ( !m_label)
@@ -259,9 +308,9 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
     int vno = m_label->lv[i].vno;
     if (vno < nVertexCount && !m_label->lv[i].deleted && (!m_bShowOutline || m_nOutlineIndices[i] > 0) )
     {
-      double opacity = 1;
+      double opacity;
       if (m_label->lv[i].stat >= m_dThreshold)
-        opacity = 1;
+        opacity = m_dOpacity;
       else
         opacity = 0;
       double rgb[4] = { m_rgbColor[0], m_rgbColor[1], m_rgbColor[2], 1 };
@@ -307,4 +356,140 @@ void SurfaceLabel::Resample(LayerMRI *mri)
     LabelFree(&label);
     emit SurfaceLabelChanged();
   }
+}
+
+bool SurfaceLabel::HasVertex(int nvo)
+{
+  for (int n = 0; n < m_label->n_points; n++)
+  {
+    if (m_label->lv[n].vno == nvo && !m_label->lv[n].deleted)
+      return true;
+  }
+  return false;
+}
+
+void SurfaceLabel::EditVertices(const QVector<int> &verts, bool bAdd)
+{
+  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+  LV *lv;
+  VERTEX *v;
+  double x, y, z;
+  int coord = m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES;
+  if (bAdd)
+  {
+    for (int i = 0; i < verts.size(); i++)
+    {
+      int vno = verts[i];
+      if (m_label->vertex_label_ind[vno] >= 0)
+        continue;
+
+      if (m_label->n_points >= m_label->max_points)
+      {
+        LabelRealloc(m_label, mris->nvertices);
+        qDebug() << "reallocated label";
+      }
+
+      int n = m_label->n_points++;  // n is the number of points before incr
+      lv = &m_label->lv[n];
+      v = &(mris->vertices[vno]);
+      MRISgetCoords(v, coord, &x, &y, &z);
+
+      lv->vno = vno;
+      lv->x = x;
+      lv->y = y;
+      lv->z = z;
+      lv->deleted = 0;
+      m_label->vertex_label_ind[vno] = n;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < verts.size(); i++)
+    {
+      int vno = verts[i];
+      int n = m_label->vertex_label_ind[vno];
+      if (n < 0)
+        continue;
+
+      m_label->lv[n].deleted = 1;
+      m_label->vertex_label_ind[vno] = -1;
+    }
+
+    // compress label data
+    QVector<LV> list;
+    for (int i = 0; i < m_label->n_points; i++)
+    {
+      if (!m_label->lv[i].deleted)
+        list << m_label->lv[i];
+    }
+    for (int i = 0; i < list.size(); i++)
+      m_label->lv[i] = list[i];
+    m_label->n_points = list.size();
+  }
+
+  m_bModified = true;
+  UpdateOutline();
+  emit SurfaceLabelChanged();
+}
+
+bool SurfaceLabel::SaveToFile(const QString &filename)
+{
+  QString fn = filename;
+  if (fn.isEmpty())
+    fn = m_strFilename;
+
+  if (fn.isEmpty())
+  {
+    cerr << "Can not write to empty filename\n";
+    return false;
+  }
+
+  int err = ::LabelWrite( m_label, fn.toLatin1().data() );
+  if ( err != 0 )
+  {
+    cerr << "LabelWrite failed\n";
+    return false;
+  }
+  return true;
+}
+
+void SurfaceLabel::Undo()
+{
+  if (!m_undoBuffer.isEmpty())
+  {
+    LABEL* l = m_undoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_undoBuffer.removeLast();
+    m_redoBuffer << l2;
+    UpdateOutline();
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::Redo()
+{
+  if (!m_redoBuffer.isEmpty())
+  {
+    LABEL* l = m_redoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_redoBuffer.removeLast();
+    m_undoBuffer << l2;
+    UpdateOutline();
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::SaveForUndo()
+{
+  LABEL* l = ::LabelCopy(m_label, NULL);
+  m_undoBuffer << l;
+
+  // clear redo buffer
+  foreach (LABEL* l, m_redoBuffer)
+    ::LabelFree(&l);
+  m_redoBuffer.clear();
 }

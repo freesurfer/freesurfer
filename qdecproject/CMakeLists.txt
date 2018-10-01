@@ -1,16 +1,17 @@
 project(qdecproject)
 
-include_directories(${qdecproject_SOURCE_DIR}
-${qdecproject_SOURCE_DIR}/include
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
+include_directories(${FS_INCLUDE_DIRS})
 
-FILE (GLOB sfiles *.c* )
-
-SET(qdecproject_SRCS
-${sfiles}
+set(SOURCES
+  QdecContrast.cxx
+  QdecDataTable.cxx
+  QdecFactor.cxx
+  QdecGlmDesign.cxx
+  QdecGlmFit.cxx
+  QdecGlmFitResults.cxx
+  QdecProject.cxx
+  QdecSubject.cxx
 )
 
-add_library(qdecproject STATIC ${qdecproject_SRCS})
-
+add_library(qdecproject STATIC ${SOURCES})
+target_link_libraries(qdecproject utils)

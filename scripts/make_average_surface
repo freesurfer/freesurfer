@@ -56,6 +56,7 @@ set measlist = ()
 set UseAnnot = 1;
 set annotlist = ()
 set DoCortexLabel = 1;
+set NoSurf2Surf = "";
 
 # these should match latest declarations in recon-all
 set DESIKAN_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
@@ -196,7 +197,7 @@ foreach hemi ($hemilist)
   foreach s ($surflist)
     echo "#@# Making average $hemi.$s surface ---------------------"  | tee -a $LF
     date  | tee -a $LF
-    set cmd = (mris_make_average_surface $XFORM_FLAG \
+    set cmd = (mris_make_average_surface $NoSurf2Surf $XFORM_FLAG \
                 -i $ico_no -o $s -sdir-out $sdout\
                 ${hemi} \
                 ${s} ${sphere_reg} \
@@ -214,9 +215,9 @@ foreach hemi ($hemilist)
   end # loop over surfaces
 
   #--------------------------------------------------------------
-  # Create sphere and sphere.reg
-  # mris_make_average_surface creates its own sphere.reg, 
-  # so delete it and copy ico
+  # Create sphere and sphere.reg.  mris_make_average_surface creates
+  # its own sphere.reg (unless using the surf2surf option) so delete
+  # it and copy ico
   rm -f surf/$hemi.$sphere_reg
   if($ico_no == 7) then
     # for historical reasons, use ?h.sphere.reg for ico7
@@ -550,6 +551,16 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--no-surf2surf":
+      # for mris_make_average_surface to use old method of parametric surface
+      set NoSurf2Surf = "-no-surf2surf"; 
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+
     case "--debug":
     case "--echo":
       set echo = 1;
@@ -722,6 +733,7 @@ usage_exit:
   echo "   --no-cortex-label : do not create ?h.cortex.label"
   echo "   --annot annotname <--annot annotname > : supply list of annots to use (default $annotlist)"
   echo "   --meas measname <--meas measname > : supply list of meass to use (default $measlist)"
+  echo "   --no-surf2surf : use old parametric surface method (may give big faces at the poles)"
   echo ""
   echo "   --help       : short descriptive help"
   echo "   --no-symlink : do not use symbolic links (just copy files)"

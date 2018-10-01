@@ -180,7 +180,7 @@ static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
 static char *dilate_label_name = NULL ;
 static int dilate_label_index = -1 ;
 static int dilate_label_annot = 0 ;
-char *Progname = NULL;
+const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
@@ -703,7 +703,6 @@ static int
 dilate_label_into_unknown(MRI_SURFACE *mris, int annot) 
 {
   int    vno, n, nchanged, iter ;
-  VERTEX *v, *vn ;
 
   iter = 0 ;
   do
@@ -712,12 +711,13 @@ dilate_label_into_unknown(MRI_SURFACE *mris, int annot)
 
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      v = &mris->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->annotation != annot)
         continue ;
-      for (n = 0 ; n < v->vnum ; n++)
+      for (n = 0 ; n < vt->vnum ; n++)
       {
-        vn = &mris->vertices[v->v[n]] ;
+        VERTEX * const vn = &mris->vertices[vt->v[n]] ;
         if (vn->ripflag || vn->annotation != 0)
           continue ;
 

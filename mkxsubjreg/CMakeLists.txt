@@ -1,15 +1,8 @@
 project(mkxsubjreg)
-include_directories(${mkxsubjreg_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mkxsubjreg_SRCS
-mkxsubjreg.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mkxsubjreg mkxsubjreg.c)
+target_link_libraries(mkxsubjreg utils)
 
-add_executable(mkxsubjreg ${mkxsubjreg_SRCS})
-target_link_libraries(mkxsubjreg ${FS_LIBS})
-install(TARGETS mkxsubjreg DESTINATION bin)	
-
+install(TARGETS mkxsubjreg DESTINATION bin)

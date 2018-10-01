@@ -68,7 +68,7 @@ int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 static void     print_usage();
 static char     *wmvolume = "mri/wm" ;
-char            *Progname ;
+const char            *Progname ;
 static int      dxi=2;  // thickness on either side of midline
 static int      x_edge=0, y_edge=0;
 static int      write_cc = 0 ;

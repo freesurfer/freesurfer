@@ -84,7 +84,7 @@ CLUSTER *MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type,
 char *start_fname = NULL ;
 
 static int max_iterations = 500000 ;
-char *Progname ;
+const char *Progname ;
 #define MAX_LABELS 10000
 static char *label_names[MAX_LABELS] ;
 static int nlabels = 0 ;
@@ -142,7 +142,7 @@ main(int argc, char *argv[]) {
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
-  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISsetNeighborhoodSizeAndDist(mris, 2) ;
 
   if (MRISreadAnnotation(mris, "ad_aparc") != NO_ERROR) {
     if (MRISreadAnnotation(mris, "aparc") != NO_ERROR)

@@ -27,7 +27,7 @@ extern "C"
 };
 
 // required by FreeSurfer
-char *Progname;
+const char *Progname;
 
 int tractPointList = 0;
 
@@ -297,6 +297,7 @@ main(int argc,
     << "\t = " << img << std::endl
     << (img.isValid() ? "valid": "not valid") << std::endl;
   }
+  printf("#VMPC# fapplyMorph VmPeak  %d\n",GetVmPeak());
   return 0;
 }
 

@@ -208,6 +208,7 @@ int decimateSurface(MRI_SURFACE **pmris,
                     void *userData)
 {
   MRI_SURFACE *mris = (*pmris);
+  MRI_SURFACE *mris0 = MRISclone(mris); // make a copy
 
   // Special case: if decimation level is 1.0, just make a copy of the
   // surface and return
@@ -311,36 +312,20 @@ int decimateSurface(MRI_SURFACE **pmris,
                        fold);
 
   // Free the vertex and face buffers
+  // BRB 08/23/18 this seems wrong to me because it doesn't change the counts
   for (int vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (mris->vertices[vno].f)
-    {
-      free(mris->vertices[vno].f) ;
-      mris->vertices[vno].f = NULL ;
-    }
-    if (mris->vertices[vno].n)
-    {
-      free(mris->vertices[vno].n) ;
-      mris->vertices[vno].n = NULL ;
-    }
-    if (mris->vertices[vno].dist)
-    {
-      free(mris->vertices[vno].dist) ;
-      mris->vertices[vno].dist = NULL ;
-    }
-    if (mris->vertices[vno].dist_orig)
-    {
-      free(mris->vertices[vno].dist_orig) ;
-      mris->vertices[vno].dist_orig = NULL ;
-    }
-    if (mris->vertices[vno].v)
-    {
-      free(mris->vertices[vno].v) ;
-      mris->vertices[vno].v = NULL ;
-    }
+    freeAndNULL(mris->vertices_topology[vno].f);
+    freeAndNULL(mris->vertices_topology[vno].n);
+    freeAndNULL(mris->vertices_topology[vno].v);
+    freeAndNULL(mris->vertices[vno].dist);
+    freeAndNULL(mris->vertices[vno].dist_orig);
   }
-  free(mris->vertices);
-  free(mris->faces);
+
+  // DNG 7/16/18: these two frees were in the original. I don't know how it ever worked
+  // because the realloc below needs these to be valid pointers
+  //free(mris->vertices);
+  //free(mris->faces);
 
   GtsSurfaceStats stats;
   gts_surface_stats( gtsSurface, &stats);
@@ -390,20 +375,38 @@ int decimateSurface(MRI_SURFACE **pmris,
   char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
   int fd = mkstemp(tmpName);
   char tmp_fpath[STRLEN];
-
-  if (fd == -1)
-  {
-    std::cerr << "Error creating temporary file: " 
-              << std::string(tmpName) << std::endl;
+  if (fd == -1)  {
+    std::cerr << "Error creating temporary file: "<< std::string(tmpName) << std::endl;
     return -1;
   }
-
   FileNameAbsolute(tmpName, tmp_fpath);
-
   MRISwrite(mris, tmp_fpath);
   MRISfree(pmris);
   *pmris = MRISread(tmp_fpath);
   remove(tmp_fpath);
+  mris = *pmris;
+
+  if(decimationOptions.SortVertices){
+    // The gts_surface_coarsen() function will always produce the same
+    // surface for the same input in that the xyz of the vertices will
+    // be the same. However, when GTS is compiled with hashes, the
+    // order of the vertices and faces will be different from run to
+    // run. The code below makes it so the output will always be the
+    // same. When GTS is compiled with BTREES (which we just changed
+    // to in July 2018), it will produce the same output. So, by
+    // default, the sorting code is not run. It can be turned on with
+    // mris_decimate -q. There may still be some non-deterministic
+    // behavior. For example, when the orig.nofix is input. Not sure
+    // why, but probably because the lengths of the edges are all
+    // either 1 or sqrt(2) thus creating some abiguity which is
+    // handled differently on different runs.
+    printf("Sorting surface vertices\n");
+    MRI_SURFACE *mris2;
+    mris2 = MRISsortVertices(mris);
+    MRISfree(&mris);
+    mris = mris2;
+    *pmris = mris;
+  }
 
   g_free(gtsVertices);
   g_free(gtsEdges);
@@ -414,6 +417,7 @@ int decimateSurface(MRI_SURFACE **pmris,
     decimateProgressFn(1.0, "Done.", userData);
   }
 
+  MRISfree(&mris0);
   return 0;
 }
 

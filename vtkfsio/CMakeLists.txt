@@ -1,29 +1,19 @@
 project(vtkfsio)
-include_directories(${vtkfsio_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(vtkfsio_SRCS
-	vtkFSSurfaceLabelSource.cxx
-	vtkFSSurfaceLabelSource.h
-	vtkFSSurfaceWriter.cxx
-	vtkFSSurfaceWriter.h
-	vtkFSSurfaceScalarsReader.cxx
-	vtkFSSurfaceScalarsReader.h
-	vtkFSSurfaceSource.cxx
-	vtkFSSurfaceSource.h
-	vtkFSVolumeSource.cxx
-	vtkFSVolumeSource.h
-)
+if(VTK_FOUND)
 
-SET (MVTKFSIO_TEST_LIBS
-vtkfsio
-${FS_LIBS}
-)
+  include_directories(${FS_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
 
-add_library(vtkfsio ${vtkfsio_SRCS})
+  set(SOURCES
+    vtkFSSurfaceLabelSource.cxx
+    vtkFSSurfaceWriter.cxx
+    vtkFSSurfaceScalarsReader.cxx
+    vtkFSSurfaceSource.cxx
+    vtkFSVolumeSource.cxx
+  )
 
-add_executable (vtkFSSurfaceWriterTester vtkFSSurfaceWriterTester.cxx)
-target_link_libraries(vtkFSSurfaceWriterTester ${MVTKFSIO_TEST_LIBS})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
+  add_library(vtkfsio STATIC ${SOURCES})
+
+endif()

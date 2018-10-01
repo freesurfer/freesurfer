@@ -1,10 +1,10 @@
 #include "DialogLineProfile.h"
 #include "ui_DialogLineProfile.h"
 #include "MainWindow.h"
+#include "LayerLineProfile.h"
 #include "LayerMRI.h"
 #include "LayerPointSet.h"
 #include "LayerCollection.h"
-#include "LayerLineProfile.h"
 #include "RenderView.h"
 #include <QFileDialog>
 #include <QDebug>

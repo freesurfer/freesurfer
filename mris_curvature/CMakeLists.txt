@@ -1,15 +1,11 @@
 project(mris_curvature)
-include_directories(${mris_curvature_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_curvature_SRCS
-mris_curvature.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mris_curvature mris_curvature.c)
+add_help(mris_curvature mris_curvature.help.xml)
+target_link_libraries(mris_curvature utils)
 
-add_executable(mris_curvature ${mris_curvature_SRCS})
-target_link_libraries(mris_curvature ${FS_LIBS})
-install(TARGETS mris_curvature DESTINATION bin)	
+add_test_script(NAME mris_curvature_test SCRIPT test_mris_curvature DEPENDS mris_curvature)
 
+install(TARGETS mris_curvature DESTINATION bin)

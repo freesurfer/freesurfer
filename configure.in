@@ -33,16 +33,6 @@ AC_CANONICAL_SYSTEM
 AC_CONFIG_MACRO_DIR([m4])
 
 ########################################################################
-# To use the Intel C/C++ compiler, assuming it is installed here:
-#   /somepath/intel
-# do this prior to configuring:
-#
-#   source /somepath/intel/bin/iccvars.csh -arch intel64 -platform linux
-#   setenv CC icc
-#   setenv CXX icpc
-#   setenv LD icpc
-#   setenv LDFLAGS "-L/somepath/intel/lib"
-#   setenv AR xiar
 #
 ac_enable_icc=no
 AC_ARG_ENABLE(icc,
@@ -60,6 +50,24 @@ if test "$ac_enable_icc" = "yes"; then
   LDFLAGS="-L/opt/intel/lib"
   AR="xiar"
 fi
+
+########################################################################
+#
+ac_enable_c_as_cpp=no
+AC_ARG_ENABLE(c-as-cpp,
+ [  --enable-c-as-cpp         compile .c files as c++],
+ [case "${enableval}" in
+  yes)  ac_enable_c_as_cpp=yes ;;
+  no)   ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-c-as-cpp]) ;;
+  esac])
+if test "$ac_enable_c_as_cpp" = "yes"; then
+  AC_MSG_NOTICE([using cpp for all c files])
+  # c_plusplus is needed for unix/xwin*.c to compile as c++
+  CFLAGS="${CFLAGS} -x c++ -Dc_plusplus"
+  AC_MSG_NOTICE([CFLAGS is ${CFLAGS}])
+fi
+
 
 ########################################################################
 
@@ -103,9 +111,9 @@ AC_ARG_WITH(open64-dir,
   [  --with-open64-dir=DIR   where the root of Open64 is installed.],
   [  ac_open64_binaries="$withval/bin"
      CC="${ac_open64_binaries}/opencc"
-     CFLAGS="-Wno-uninitialized -OPT:Olimit=0"
+     CFLAGS="$CFLAGS -Wno-uninitialized -OPT:Olimit=0"
      CXX="${ac_open64_binaries}/openCC"
-     CXXFLAGS="-Wno-uninitialized -OPT:Olimit=0"
+     CXXFLAGS="$CXXFLAGS -Wno-uninitialized -OPT:Olimit=0"
      LD="${ac_open64_binaries}/openCC"
      F77="${ac_open64_binaries}/openf90"
      FFLAGS="-extend_source"
@@ -4279,7 +4287,6 @@ AC_CONFIG_FILES([
 	oct_train/Makefile
 	opencl_algorithms/Makefile
 	optseq2/Makefile
-	orient_mri/Makefile
 	qdec/Makefile
 	qdec_glmfit/Makefile
 	qdecproject/Makefile

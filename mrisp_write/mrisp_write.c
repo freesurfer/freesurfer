@@ -44,6 +44,7 @@ static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $
 
 int main(int argc, char *argv[]) ;
 
+static MRI_SP *mrispComputeCorrelations(MRI_SP *mrisp);
 MRI *mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, MRI *mri_corr) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -51,15 +52,18 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int compute_corr = 0 ;
+static int spherical_corr = 0 ;
 static char *label_fname = NULL;
 static char *seed_label_fname = NULL;
 static int normalize = 0 ;
 static int navgs = 0 ;
 static float sigma=0;
+static int barycentric = 0 ;
 
+static int frame_to_read = -1 ;
 
 static char subjects_dir[STRLEN] ;
 
@@ -111,6 +115,7 @@ main(int argc, char *argv[])
   mris = MRISread(in_surf) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, in_surf) ;
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   file_type = mri_identify(in_overlay);
   if (file_type == MRI_MGH_FILE || file_type == NIFTI1_FILE || file_type == NII_FILE)
@@ -118,7 +123,10 @@ main(int argc, char *argv[])
     int   frame ;
     LABEL *area ;
 
-    mri_overlay = MRIread(in_overlay) ;
+    if (frame_to_read >= 0)
+      mri_overlay = MRIreadEx(in_overlay, frame_to_read) ;
+    else
+      mri_overlay = MRIread(in_overlay) ;
     if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface-encoded volume file from %s", Progname, in_overlay) ;
 
@@ -166,19 +174,55 @@ main(int argc, char *argv[])
 	extern int DEBUG_U, DEBUG_V ;
 	DEBUG_U = Gx ; DEBUG_V = Gy ;
       }
-      MRIStoParameterization(mris, mrisp, scale, frame) ;
+      if (barycentric)
+	MRIStoParameterizationBarycentric(mris, mrisp, scale, frame) ;
+      else
+	MRIStoParameterization(mris, mrisp, scale, frame) ;
     }
-      printf("\n") ;
+    if (spherical_corr)
+    {
+      MRI_SP *mrisp_sphere ;
+      mrisp_sphere = mrispComputeCorrelations(mrisp);
+      MRISPfree(&mrisp) ;
+      mrisp = mrisp_sphere ;
+    }
+    printf("\n") ;
   }
   else // process a 'curvature' file like thickness with a single frame
   {
     LABEL *area ;
     mrisp = MRISPalloc(scale, 1) ;
-    mri_overlay = NULL ;
-    file_type = MRI_CURV_FILE ;
-    printf("reading overlay from %s\n", in_overlay) ;
-    if (MRISreadCurvatureFile(mris, in_overlay) != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read input overlay %s", Progname, in_overlay) ;
+    file_type = mri_identify(in_overlay);
+    if (file_type == MGH_LABEL_FILE)  // read in a label and create an overlay from it
+    {
+      int n ;
+
+      printf("reading input label from %s\n", in_overlay) ;
+      area = LabelRead(NULL, in_overlay) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not load label file %s to generate overlay",
+		  in_overlay) ;
+      if (LabelMaxStat(area) > 0)
+      {
+	printf("max stat %2.2f - transferring stats\n", LabelMaxStat(area)) ;
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = area->lv[n].stat ;
+      }
+      else
+      {
+	printf("max stat %2.2f - setting to 1\n", LabelMaxStat(area)) ;
+	for (n = 0 ; n < area->n_points ; n++)
+	  mris->vertices[area->lv[n].vno].curv = 1 ;
+      }
+
+      LabelFree(&area) ;
+    }
+    else
+    {
+      printf("reading overlay from %s\n", in_overlay) ;
+      if (MRISreadCurvatureFile(mris, in_overlay) != NO_ERROR)
+	ErrorExit(ERROR_NOFILE, "%s: could not read input overlay %s", Progname, in_overlay) ;
+    }
 
     if (label_fname)
     {
@@ -262,6 +306,23 @@ get_option(int argc, char *argv[])
     printf("computing vertex correlations inside label %s\n", seed_label_fname) ;
     compute_corr = 1 ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "SPCORR"))
+  {
+    spherical_corr = 1 ;
+    printf("computing correlations in spherical map\n") ;
+  }
+  else if (!stricmp(option, "FRAME"))
+  {
+    frame_to_read = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("extracting frame %d from input volume\n", frame_to_read) ;
+  }
+  else if (!stricmp(option, "BARYCENTRIC") || !stricmp(option, "BARY"))
+  {
+    printf("computing spherical mapping using barycentric interpolation\n") ;
+    barycentric = 1 ;
+    nargs = 0 ;
   }
   else if (!stricmp(option, "sigma"))
   {
@@ -388,5 +449,92 @@ mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, M
   }
 
   return(mri_corr) ;
+}
+
+static MRI_SP *
+mrispComputeCorrelations(MRI_SP *mrisp)
+{
+  MRI_SP *mrisp_sphere, *mrisp_debug ;
+  int    nframes, x, y, width, height, t ;
+  double **norms, mean, val;
+
+  mrisp = MRISPclone(mrisp) ;  // we will modify this one and free it later
+  width = mrisp->Ip->cols ; height = mrisp->Ip->rows ;
+  nframes = width*height ;
+  mrisp_sphere = MRISPalloc(mrisp->scale, nframes);
+  
+  mrisp_debug = NULL ;
+  if (getenv("MRISP_DEBUG"))
+  {
+    char *cp = getenv("MRISP_DEBUG") ;
+    printf("using file %s for debugging\n", cp) ;
+    mrisp_debug = MRISPread(cp) ;
+    if (mrisp_debug == NULL)
+      ErrorExit(ERROR_NOFILE, "could not open %s", cp) ;
+  }
+
+  // first compute norms and make timecourses zero mean
+  norms = (double **)calloc(width, sizeof(double *));
+  if (!norms)
+    ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+  for (x = 0 ; x < width ; x++)
+  {
+    norms[x] = (double *)calloc(height, sizeof(double));
+    if (!norms[x])
+      ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+    for (y = 0 ; y < height ; y++)
+    {
+      mean = 0.0 ;
+      for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
+      {
+	val = *IMAGEFseq_pix(mrisp->Ip, x, y, t) ;
+	mean += val ;
+	norms[x][y] += val*val ;
+      }
+      norms[x][y] = sqrt(norms[x][y]) ;
+      mean /= mrisp->Ip->num_frame ;
+      for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
+	*IMAGEFseq_pix(mrisp->Ip, x, y, t) -= mean ;
+    }
+  }
+
+  // now compute correlations
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+  for (x = 0 ; x < width ; x++)
+  {
+    int x1, y1, y, frame, t ;
+    double norm1, norm2, dot ;
+
+    for (y = 0 ; y < height ; y++)
+    {
+      norm1 = norms[x][y];
+      if (FZERO(norm1))
+	continue ;
+      for (x1 = 0 ; x1 < width ; x1++)
+	for (y1 = 0 ; y1 < height ; y1++)
+	{
+	  frame = y1*width + x1 ;
+	  norm2 = norms[x1][y1];
+	  if (FZERO(norm2))
+	    continue ;
+	  if (mrisp_debug && *IMAGEFseq_pix(mrisp_debug->Ip, x, y, frame)>0)
+	  {
+	    *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = 1 ;
+	    continue ;
+	  }
+	  for (dot = 0.0, t = 0 ; t < mrisp->Ip->num_frame ; t++)
+	    dot += *IMAGEFseq_pix(mrisp->Ip, x, y, t) * *IMAGEFseq_pix(mrisp->Ip, x1, y1, t);
+	  *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = dot / (norm1*norm2);
+	}
+    }
+  }
+
+  for (x = 0 ; x < width ; x++)
+    free(norms[x]);
+  free(norms) ;
+  MRISPfree(&mrisp) ; // not passed version - the one we allocated
+  return(mrisp_sphere) ;
 }
 

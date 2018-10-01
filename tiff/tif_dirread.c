@@ -108,7 +108,7 @@ TIFFReadDirectory(TIFF* tif)
 			return (0);
 	}
 	tif->tif_dirnumber++;
-	tif->tif_dirlist = _TIFFrealloc(tif->tif_dirlist,
+	tif->tif_dirlist = (toff_t*)_TIFFrealloc(tif->tif_dirlist,
 					tif->tif_dirnumber * sizeof(toff_t));
 	if (!tif->tif_dirlist) {
 		TIFFError(module,
@@ -1226,7 +1226,7 @@ TIFFFetchNormalTag(TIFF* tif, TIFFDirEntry* dp)
 static int
 TIFFFetchPerSampleShorts(TIFF* tif, TIFFDirEntry* dir, int* pl)
 {
-	int samples = tif->tif_dir.td_samplesperpixel;
+	size_t samples = tif->tif_dir.td_samplesperpixel;
 	int status = 0;
 
 	if (CheckDirCount(tif, dir, (uint32) samples)) {
@@ -1236,7 +1236,7 @@ TIFFFetchPerSampleShorts(TIFF* tif, TIFFDirEntry* dir, int* pl)
 		if (samples > NITEMS(buf))
 			v = (uint16*) _TIFFmalloc(samples * sizeof (uint16));
 		if (TIFFFetchShortArray(tif, dir, v)) {
-			int i;
+			size_t i;
 			for (i = 1; i < samples; i++)
 				if (v[i] != v[0]) {
 					TIFFError(tif->tif_name,
@@ -1262,7 +1262,7 @@ TIFFFetchPerSampleShorts(TIFF* tif, TIFFDirEntry* dir, int* pl)
 static int
 TIFFFetchPerSampleAnys(TIFF* tif, TIFFDirEntry* dir, double* pl)
 {
-	int samples = (int) tif->tif_dir.td_samplesperpixel;
+	size_t samples = tif->tif_dir.td_samplesperpixel;
 	int status = 0;
 
 	if (CheckDirCount(tif, dir, (uint32) samples)) {
@@ -1272,7 +1272,7 @@ TIFFFetchPerSampleAnys(TIFF* tif, TIFFDirEntry* dir, double* pl)
 		if (samples > NITEMS(buf))
 			v = (double*) _TIFFmalloc(samples * sizeof (double));
 		if (TIFFFetchAnyArray(tif, dir, v)) {
-			int i;
+			size_t i;
 			for (i = 1; i < samples; i++)
 				if (v[i] != v[0]) {
 					TIFFError(tif->tif_name,

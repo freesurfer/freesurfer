@@ -1,15 +1,10 @@
 project(mri_surf2surf)
-include_directories(${mri_surf2surf_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_surf2surf_SRCS
-mri_surf2surf.c
-)
+include_directories(${FS_INCLUDE_DIRS})
 
+add_executable(mri_surf2surf mri_surf2surf.c)
+target_link_libraries(mri_surf2surf utils)
 
-add_executable(mri_surf2surf ${mri_surf2surf_SRCS})
-target_link_libraries(mri_surf2surf ${FS_LIBS})
-install(TARGETS mri_surf2surf DESTINATION bin)	
+add_test_script(NAME mri_surf2surf_test SCRIPT test.py DEPENDS mri_surf2surf)
 
+install(TARGETS mri_surf2surf DESTINATION bin)

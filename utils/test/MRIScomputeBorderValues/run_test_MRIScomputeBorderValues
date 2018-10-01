@@ -12,27 +12,23 @@ gunzip -c testdata.tar.gz | tar xvf -
 
 
 #
-# run test_MRIScomputeBorderValues with the source and reference files:
+# run test_border_values with the source and reference files:
 #
 
 cd testdata
-
-setenv FREESURFER_HOME ../../distribution
-setenv SUBJECTS_DIR ""
-
 
 set threads=( 1 8 )
 foreach num ($threads)
 
     setenv OMP_NUM_THREADS $num
     echo
-    echo "running test_MRIScomputeBorderValues with $num thread(s)"
+    echo "running test_border_values with $num thread(s)"
 
-    set cmd=(../test_MRIScomputeBorderValues lh.surf mri_brain.mgz mri_smooth.mgz  mri_aseg.mgz)
+    set cmd=(../test_border_values lh.surf mri_brain.mgz mri_smooth.mgz  mri_aseg.mgz)
     echo
     $cmd
     if ($status != 0) then
-      echo "test_MRIScomputeBorderValues FAILED"
+      echo "test_border_values FAILED"
       exit 1
     endif
 

@@ -98,7 +98,7 @@ static int gdfGetDefVarLabelNo(FSGD *gd);
 
 /* RKT - hack to get the .so to have Progname declared. I hate this. */
 #ifdef DECLARE_PROGNAME
-char *Progname = "fsgdf";
+const char *Progname = "fsgdf";
 #endif
 
 /*--------------------------------------------------*/

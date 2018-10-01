@@ -109,7 +109,7 @@ DCM_ListToString(LST_HEAD * list, long offset, char **string) {
   if (list == NULL)
     return DCM_NORMAL;
 
-  g = LST_Head(&list);
+  g = (GENERIC*)LST_Head(&list);
   if (g == NULL)
     return DCM_NORMAL;
 
@@ -119,17 +119,17 @@ DCM_ListToString(LST_HEAD * list, long offset, char **string) {
   while (g != NULL) {
     c = ((char *) g) + offset;
     length += strlen(c) + 1;
-    g = LST_Next(&list);
+    g = (GENERIC*)LST_Next(&list);
   }
 
-  p = CTN_MALLOC(length);
+  p = (char*)CTN_MALLOC(length);
   if (p == NULL)
     return COND_PushCondition(DCM_MALLOCFAILURE,
                               DCM_Message(DCM_MALLOCFAILURE), 
                               length, "DCM_ListToString");
 
   *string = p;
-  g = LST_Head(&list);
+  g = (GENERIC*)LST_Head(&list);
   if (g == NULL)
     return COND_PushCondition(DCM_LISTFAILURE, DCM_Message(DCM_LISTFAILURE),
                               "DCM_ListToString");
@@ -142,7 +142,7 @@ DCM_ListToString(LST_HEAD * list, long offset, char **string) {
     (void) memcpy(p, c, length);
     p += length;
     *p++ = '\\';
-    g = LST_Next(&list);
+    g = (GENERIC*)LST_Next(&list);
   }
   *--p = '\0';
   return DCM_NORMAL;

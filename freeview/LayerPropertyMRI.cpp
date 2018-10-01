@@ -103,8 +103,9 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mColorMapTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
-  mGrayScaleTable->ClampingOff();
+  mGrayScaleTable->ClampingOn();
   mHeatScaleTable->ClampingOn();
+  mColorMapTable->ClampingOn();
   m_rgbContour[0] = 0.92;
   m_rgbContour[1] = 0.78;
   m_rgbContour[2] = 0.54;
@@ -622,9 +623,9 @@ void LayerPropertyMRI::OnColorMapChanged ()
     {
       mMinVisibleValue = MinGrayscaleWindow;
     }
-    if ( MaxGrayscaleWindow > mMaxVisibleValue )
+    if ( MaxGrayscaleWindow >= mMaxVisibleValue )
     {
-      mMaxVisibleValue = MaxGrayscaleWindow;
+      mMaxVisibleValue = MaxGrayscaleWindow+1;
     }
 
     // Build our lookup table.
@@ -645,7 +646,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
     mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow,    0, 0, 0, 1 );
     mGrayScaleTable->AddRGBAPoint( MaxGrayscaleWindow,    1, 1, 1, 1 );
     mGrayScaleTable->AddRGBAPoint( mMaxVisibleValue,       1, 1, 1, 1 );
-    mGrayScaleTable->AddRGBAPoint( mMaxVisibleValue + tiny_fraction, 1, 1, 1, 0 );
+//    mGrayScaleTable->AddRGBAPoint( mMaxVisibleValue + tiny_fraction, 1, 1, 1, 0 );
     mGrayScaleTable->Build();
     break;
 
@@ -660,11 +661,11 @@ void LayerPropertyMRI::OnColorMapChanged ()
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
-      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
+//      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
     }
     else if ( m_bHeatScaleTruncate )
     {
-      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
+//      mHeatScaleTable->AddRGBAPoint(  0 + HeatScaleOffset, 0, 0, 0, 0 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMinThreshold + HeatScaleOffset, 1, 0, 0, 0 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMidThreshold + HeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint(  HeatScaleMaxThreshold + HeatScaleOffset, 1, 1, 0, 1 );

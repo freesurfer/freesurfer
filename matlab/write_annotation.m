@@ -45,8 +45,8 @@ function write_annotation(filename, vertices, label, ct)
 % ct.orig_tab = name of original ct
 % ct.struct_names = list of structure names (e.g. central sulcus and so on)
 % ct.table = n x 5 matrix. 1st column is r, 2nd column is g, 3rd column
-% is b, 4th column is flag, 5th column is resultant integer values
-% calculated from r + g*2^8 + b*2^16 + flag*2^24. flag expected to be all 0
+% is b, 4th column is transparency (1 - alpha), 5th column is resultant integer
+% values calculated from r + g*2^8 + b*2^16.
 
 fp = fopen(filename, 'w', 'b');
 
@@ -137,7 +137,7 @@ for i = 1:ct.numEntries
     
     count = fwrite(fp, int32(ct.table(i, 4)), 'int');
     if(count~=1)
-       error('write_annotation: Unable to write padded color'); 
+       error('write_annotation: Unable to write transparency');
     end 
     
 end

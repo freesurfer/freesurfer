@@ -179,9 +179,9 @@ public:
 
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
 
-  bool GetVoxelStats(QList<int>& indices, double* mean_out, double* sd_out = NULL);
+  bool GetVoxelStats(QVector<int>& indices, double* mean_out, double* sd_out = NULL);
 
-  bool GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out = NULL);
+  bool GetVoxelStatsByTargetRAS(QVector<float> &coords, double* mean_out, double *sd_out = NULL);
 
   void ResetWindowLevel();
 
@@ -329,6 +329,8 @@ public:
   {
     m_bIgnoreHeader = b;
   }
+
+  QVector<double> GetVoxelList(int nVal);
   
 public slots:
   void SetActiveFrame( int nFrame );
@@ -468,6 +470,7 @@ private:
   LayerMRIWorkerThread* m_worker;
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
+  QMap<int, QVector<double> > m_voxelLists;
 
   QMap<QObject*, double>  m_mapMaskThresholds;
   double      m_dMaskThreshold;

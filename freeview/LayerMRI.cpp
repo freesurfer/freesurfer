@@ -290,6 +290,9 @@ bool LayerMRI::LoadVolumeFromFile()
   
   GetProperty()->SetVolumeSource( m_volumeSource );
   GetProperty()->RestoreSettings( m_sFilename );
+
+//  int* dim = m_imageData->GetDimensions();
+//  qDebug() << dim[0] << dim[1] << dim[2];
   
   if (m_nGotoLabelOrientation >= 0)
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
@@ -2263,7 +2266,7 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
   return true;
 }
 
-bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_out)
+bool LayerMRI::GetVoxelStats(QVector<int> &indices, double *mean_out, double *sd_out)
 {
   int nActiveComp = GetActiveFrame();
   double dMean = 0;
@@ -2314,12 +2317,12 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
   return true;
 }
 
-bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out)
+bool LayerMRI::GetVoxelStatsByTargetRAS(QVector<float> &coords, double* mean_out, double *sd_out)
 {
   double* orig = m_imageData->GetOrigin();
   double* vsize = m_imageData->GetSpacing();
   
-  QList<int> indices;
+  QVector<int> indices;
   for (int i = 0; i < coords.size(); i+=3)
   {
     indices << (int)( ( coords[i] - orig[0] ) / vsize[0] + 0.5 )
@@ -2587,7 +2590,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   int ext[3][2] = { { 0, dim[0]-1 }, {0, dim[1]-1}, {0, dim[2]-1} };
   ext[nPlane][0] = ext[nPlane][1] = n[nPlane];
   //  QList<int> indices;
-  QList<float> coords;
+  QVector<float> coords;
   for ( int i = ext[0][0]; i <= ext[0][1]; i++ )
   {
     for ( int j = ext[1][0]; j <= ext[1][1]; j++ )
@@ -3761,3 +3764,33 @@ void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
   image->GetDimensions(dim);
   image->GetSpacing(voxel_size);
 }
+
+QVector<double> LayerMRI::GetVoxelList(int nVal)
+{
+  if (m_voxelLists.contains(nVal))
+    return m_voxelLists[nVal];
+
+  QVector<double> vlist;
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  double* origin = m_imageData->GetOrigin();
+  double* vs = m_imageData->GetSpacing();
+  for ( int k = 0; k < dim[2]; k++ )
+  {
+    for ( int j = 0; j < dim[1]; j++ )
+    {
+      for ( int i = 0; i < dim[0]; i++ )
+      {
+        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, m_nActiveFrame, scalar_type);
+        if (val == nVal)
+        {
+          vlist << i*vs[0] + origin[0] << j*vs[1] + origin[1] << k*vs[2] + origin[2];
+        }
+      }
+    }
+  }
+  return vlist;
+}
+

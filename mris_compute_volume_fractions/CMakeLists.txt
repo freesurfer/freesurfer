@@ -1,0 +1,8 @@
+project(mris_compute_volume_fractions)
+
+include_directories(${FS_INCLUDE_DIRS})
+
+add_executable(mris_compute_volume_fractions mris_compute_volume_fractions.c)
+target_link_libraries(mris_compute_volume_fractions utils)
+
+install(TARGETS mris_compute_volume_fractions DESTINATION bin)

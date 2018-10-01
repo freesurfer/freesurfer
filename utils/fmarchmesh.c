@@ -108,9 +108,9 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
   for (i = 0; i < VN; i++) {
     if (label[i] == (unsigned char)ALIVE) {
       /* put its neighbors into the NarrowBand */
-      if (DEBUG) printf("mesh->vertices[i].vnum = %d\n", mesh->vertices[i].vnum);
-      for (j = 0; j < mesh->vertices[i].vnum; j++) {
-        neighVId = mesh->vertices[i].v[j];
+      if (DEBUG) printf("mesh->vertices[i].vnum = %d\n", mesh->vertices_topology[i].vnum);
+      for (j = 0; j < mesh->vertices_topology[i].vnum; j++) {
+        neighVId = mesh->vertices_topology[i].v[j];
         if (DEBUG) printf("neighVId = %d\n", neighVId);
         if (label[neighVId] == (unsigned char)FAWAY) {
           /* compute the distance to this point and add it to the heap */
@@ -120,13 +120,13 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
           newvalue = INFINITY;
           /* Compute distance from each face the vertex shares */
           /* k is the index of faces shared by the vertex neighVId */
-          if (DEBUG) printf("mesh->vertices[neighVId].num = %d\n", mesh->vertices[neighVId].num);
-          for (k = 0; k < mesh->vertices[neighVId].num; k++) {
-            index = mesh->vertices[neighVId].n[k]; /* # of vertex with ID
+          if (DEBUG) printf("mesh->vertices[neighVId].num = %d\n", mesh->vertices_topology[neighVId].num);
+          for (k = 0; k < mesh->vertices_topology[neighVId].num; k++) {
+            index = mesh->vertices_topology[neighVId].n[k]; /* # of vertex with ID
                                                            neighVId in the k-th face
                                                            that it is in */
             if (DEBUG) printf("index = %d\n", index);
-            face = &mesh->faces[mesh->vertices[neighVId].f[k]]; /* ptr to the
+            face = &mesh->faces[mesh->vertices_topology[neighVId].f[k]]; /* ptr to the
                                                             k-th face */
             n0 = face->v[(index + VERTICES_PER_FACE - 1) % VERTICES_PER_FACE];
             n1 = face->v[(index + 1) % VERTICES_PER_FACE];
@@ -165,8 +165,8 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
      * NarrowBand neighbors,
      * Keep ALIVE (Accepted) neighbor unchanged
      */
-    for (i = 0; i < mesh->vertices[VId].vnum; i++) {
-      neighVId = mesh->vertices[VId].v[i];
+    for (i = 0; i < mesh->vertices_topology[VId].vnum; i++) {
+      neighVId = mesh->vertices_topology[VId].v[i];
 
       /* Don't change ALIVE neighbors */
       if (label[neighVId] != (unsigned char)ALIVE) {
@@ -174,11 +174,11 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
 
         /* Compute distance from each face the vertex shares */
         /* j is the index of faces shared by the vertex neighVId */
-        for (j = 0; j < mesh->vertices[neighVId].num; j++) {
-          face = &mesh->faces[mesh->vertices[neighVId].f[j]]; /* ptr to the
+        for (j = 0; j < mesh->vertices_topology[neighVId].num; j++) {
+          face = &mesh->faces[mesh->vertices_topology[neighVId].f[j]]; /* ptr to the
                                                   j-th face */
 
-          index = mesh->vertices[neighVId].n[j]; /* index of the vertex
+          index = mesh->vertices_topology[neighVId].n[j]; /* index of the vertex
                                                    (neighVId) in the j-th
                                                    face that it belongs to */
           /* Take the ID of the remaining two vertices of the j-th face */
@@ -327,11 +327,11 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
     /* The following code assumes the neighbors form a circle, thus need be
      modified. But how?  */
     UID = -1;
-    for (i = 0; i < mesh->vertices[P1ID].num; i++) {
-      index = mesh->vertices[P1ID].n[i];              /* # of vertex with ID
+    for (i = 0; i < mesh->vertices_topology[P1ID].num; i++) {
+      index = mesh->vertices_topology[P1ID].n[i];              /* # of vertex with ID
                                                P1ID in the i-th face
                                                that it is in */
-      face = &mesh->faces[mesh->vertices[P1ID].f[i]]; /* ptr to the
+      face = &mesh->faces[mesh->vertices_topology[P1ID].f[i]]; /* ptr to the
                                  i-th face */
       n0 = face->v[(index + VERTICES_PER_FACE - 1) % VERTICES_PER_FACE];
       n1 = face->v[(index + 1) % VERTICES_PER_FACE];

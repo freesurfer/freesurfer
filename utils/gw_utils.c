@@ -46,8 +46,6 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
 {
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
-  VERTEX *v = NULL;
-  FACE *f;
 
   mris = MRISoverAlloc(0, 0, vertexcount, facecount);
 
@@ -55,7 +53,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   // Read vertex data into mris
   //-----------------------------------------
   for (vno = 0; vno < vertexcount; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX* const v = &mris->vertices[vno];
 
     v->x = vertices[vno].x;
     v->y = vertices[vno].y;
@@ -67,13 +65,13 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   // # of faces each vertex is part of
   //-----------------------------------------
   for (fno = 0; fno < facecount; fno++) {
-    f = &mris->faces[fno];
+    FACE* const f = &mris->faces[fno];
 
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       f->v[n] = faces[fno].vno[n];  // already zero-based
-      v = &mris->vertices[f->v[n]];
-      v->num++;
-      v->vnum += 2;  // Not sure what the extra +2 is for...
+      VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[f->v[n]];
+      vt->num++;
+      vt->vnum += 2;  // Not sure what the extra +2 is for...
     }
   }
 
@@ -82,10 +80,10 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   // v->v is neighbor vertex list; v->vnum is count
   //-----------------------------------------
   for (vno = 0; vno < vertexcount; vno++) {
-    v = &mris->vertices[vno];
-    v->v = (int *)calloc(v->vnum / 2, sizeof(int));
-    if (!v->v) ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dth vertex list.", __func__, vno);
-    v->vnum = 0;
+    VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
+    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
+    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dth vertex list.", __func__, vno);
+    vt->vnum = 0;
   }
 
   //-----------------------------------------
@@ -94,10 +92,10 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   //     Tell vertex that other vertices in face are its neighbors
   //-----------------------------------------
   for (fno = 0; fno < facecount; fno++) {
-    f = &mris->faces[fno];
+    FACE* const f = &mris->faces[fno];
 
     for (n = 0; n < VERTICES_PER_FACE; n++) {
-      v = &mris->vertices[f->v[n]];
+      VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[f->v[n]];
 
       // [sic] now add an edge to other 2 vertices if not already in list
       // [GW] Ie: tell each vertex about its neighbors from this face
@@ -107,15 +105,15 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
         vn = faces[fno].vno[n1];  // already zero-based
 
         // now check to make sure it's not a duplicate
-        for (n2 = 0; n2 < v->vnum; n2++) {
-          if (v->v[n2] == vn) {
+        for (n2 = 0; n2 < vt->vnum; n2++) {
+          if (vt->v[n2] == vn) {
             vn = -1;  // mark it as a duplicate
             break;
           }
         }
 
         if (vn >= 0)  // add only non-duplicates
-          v->v[v->vnum++] = vn;
+          vt->v[vt->vnum++] = vn;
       }
     }
   }
@@ -124,40 +122,40 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   // In each vertex, allocate face array
   //--------------------------------------------
   for (vno = 0; vno < vertexcount; vno++) {
-    v->vtotal = v->vnum;
-    v = &mris->vertices[vno];
-    v->f = (int *)calloc(v->num, sizeof(int));
-    if (!v->f) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d faces", __func__, v->num);
-    v->n = (uchar *)calloc(v->num, sizeof(uchar));
-    if (!v->n) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d nbrs", __func__, v->n);
-    v->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(v->vnum, sizeof(float));
+    VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
+    VERTEX         * const v  = &mris->vertices         [vno];
+    vt->f = (int *)calloc(vt->num, sizeof(int));
+    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d faces", __func__, vt->num);
+    vt->n = (uchar *)calloc(vt->num, sizeof(uchar));
+    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d nbrs", __func__, vt->n);
+    vt->num = 0; /* for use as counter in next section */
+    v->dist = (float *)calloc(vt->vnum, sizeof(float));
     if (!v->dist)
       ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate list of %d "
                 "dists at v=%d",
                 __func__,
-                v->vnum,
+                vt->vnum,
                 vno);
-    v->dist_orig = (float *)calloc(v->vnum, sizeof(float));
+    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
     if (!v->dist_orig)
       ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate list of %d "
                 "dists at v=%d",
                 __func__,
-                v->vnum,
+                vt->vnum,
                 vno);
-    v->nsize = 1;
-    v->vtotal = v->vnum;
+    vt->nsizeMax = vt->nsizeCur = 1;
+    vt->vtotal = vt->vnum;
   }
 
   //---------------------------------------------
   // Tell each vertex what faces it is part of
   //---------------------------------------------
   for (fno = 0; fno < facecount; fno++) {
-    f = &mris->faces[fno];
+    FACE* const f = &mris->faces[fno];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
-      v = &mris->vertices[f->v[n]];
+      VERTEX_TOPOLOGY* const v = &mris->vertices_topology[f->v[n]];
       v->n[v->num] = n;
       v->f[v->num++] = fno;
     }
@@ -169,7 +167,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   MRIScomputeMetricProperties(mris);
 
   mris->type = MRIS_ICO_SURFACE;
-  MRISsetNeighborhoodSize(mris, 1);
+  MRISsetNeighborhoodSizeAndDist(mris, 1);
   return (mris);
 }
 
