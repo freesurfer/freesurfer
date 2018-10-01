@@ -1167,7 +1167,7 @@ int main(int argc, char *argv[])
       MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
       MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
       if (getenv("FS_POSIX")) {
-        sprintf(fname,"%s.%s.res.%s%s.mgz", hemi, white_matter_name, output_suffix, suffix);
+        sprintf(fname,"./%s.%s.res.%s%s.mgz", hemi, white_matter_name, output_suffix, suffix);
       } else {
         sprintf(fname,"%s/%s/surf/%s.%s.res.%s%s.mgz", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
       }
@@ -1178,7 +1178,7 @@ int main(int argc, char *argv[])
 
     if(SaveTarget) {
       if (getenv("FS_POSIX")) {
-        sprintf(fname, "%s.%s.target%s%s", hemi, white_matter_name, output_suffix, suffix);
+        sprintf(fname, "./%s.%s.target%s%s", hemi, white_matter_name, output_suffix, suffix);
       } else {
         sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
       }
@@ -1192,7 +1192,7 @@ int main(int argc, char *argv[])
       MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
     }
     if (getenv("FS_POSIX")) {
-      sprintf(fname,"%s.%s%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+      sprintf(fname,"./%s.%s%s%s", hemi, white_matter_name, output_suffix, suffix);
     } else {
       sprintf(fname,"%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
     }
