@@ -2711,6 +2711,19 @@ void mrisAttachFaceToVertices(MRIS* mris, int fno, int vno1, int vno2, int vno3)
 void  MRISflipFaceAroundV1(MRIS *mris, int fno);
 void  MRISreverseFaceOrder(MRIS *mris);
 
+
+// Adding missing parts of the topology representation
+//
+void mrisCompleteTopology(MRIS *mris);
+    //
+    // The best way to build a tesselation is to simply create all the vertices then ...
+    //      setFaceAttachmentDeferred(true)
+    //      lots of calls to mrisAttachFaceToVertices()  
+    //      setFaceAttachmentDeferred(false)
+    //
+    // However lots of existing code just adds a misc set of edges and faces by mechanisms
+    // then they call this function to add any missing edges and to calculate the mris->avg_nbrs
+
 // Marked
 //
 bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno);

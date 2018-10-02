@@ -395,6 +395,8 @@ int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh,
   vtkSmartPointer<vtkIdList> pointIdList =
     vtkSmartPointer<vtkIdList>::New();
 
+  // place all the vertices
+  //
   for (uvno = 0, vno = 0 ; vno < mris_dst->nvertices ; uvno++, vno++)
   {
     v = &mris_dst->vertices[vno] ;
@@ -406,15 +408,19 @@ int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh,
 
   }
 
+  // attach all the faces
+  //
+  setFaceAttachmentDeferred(mris_dst, true);
+    // for performance reasons, defer doing work that would change if another attached to the same vertex
+
   for (fno = 0; fno < mris_dst->nfaces; fno++)
   {
     mesh->GetCellPoints(fno, pointIdList);
-
-    mris_dst->faces[fno].v[0] = pointIdList->GetId(0);
-    mris_dst->faces[fno].v[1] = pointIdList->GetId(1);
-    mris_dst->faces[fno].v[2] = pointIdList->GetId(2);
+    mrisAttachFaceToVertices(fno, pointIdList->GetId(0), pointIdList->GetId(1), pointIdList->GetId(2));
   }
 
+  setFaceAttachmentDeferred(false);
+    // finish all the work needed to have the topology of the surface fully defined
 
   return 0;
 }
