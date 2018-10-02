@@ -379,10 +379,6 @@ void reallocateFaces(tesselation_parms *parms) {
   parms->face=tmp;
 }
 
-int mrisFindNeighbors2(MRI_SURFACE *mris) {
-  mrisCompleteTopology(mris);
-  return(NO_ERROR) ;
-}
 
 int saveTesselation2(tesselation_parms *parms) {
   int vno,m,n,fno;
