@@ -618,20 +618,24 @@ static void do_file(char *fname)
     {
       return;
     }
-    fprintf(fpout,"3D morph source geometry:\n");
-    vg_print(&gcam->image);
-    fprintf(fpout,"3D morph atlas geometry:\n");
-    vg_print(&gcam->atlas);
 
-    char *type = "not set";
+    char *type = "UNKNOWN";
     if (gcam->type == GCAM_RAS) {
         type = "GCAM_RAS";
     }
     else if (gcam->type == GCAM_VOX) {
         type = "GCAM_VOX";
     }
-    fprintf(fpout,"3D morph type: %s\n", type);
-
+    fprintf(fpout,"type    : %s\n", type);
+    fprintf(fpout,"size    : (%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);
+    fprintf(fpout,"spacing : %d\n", gcam->spacing);
+    fprintf(fpout,"\n");
+    fprintf(fpout,"3D morph source geometry:\n");
+    vg_print(&gcam->image);
+    fprintf(fpout,"\n");
+    fprintf(fpout,"3D morph atlas geometry:\n");
+    vg_print(&gcam->atlas);
+    
     GCAMfree(&gcam);
     return;
   }
