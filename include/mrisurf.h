@@ -2672,8 +2672,8 @@ MRIS *MRISsortVertices(MRIS *mris0);
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) true // && mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexFaceTopology(_MRIS)   true // && mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
                                             // includes a mrisCheckVertexVertexTopology check
@@ -2715,6 +2715,8 @@ void  MRISflipFaceAroundV1(MRIS *mris, int fno);
 void  MRISreverseFaceOrder(MRIS *mris);
 
 
+// Adding missing parts of the topology representation
+//
 void mrisCompleteTopology(MRIS *mris);
     //
     // The best way to build a tesselation is to simply create all the vertices then ...

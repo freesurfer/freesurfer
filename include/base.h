@@ -93,10 +93,10 @@ extern const char *Progname;
 //
 void assertFailed(const char* file, int line, const char* tst);
 #define cheapAssert(TST)        { if (!(TST)) assertFailed(__FILE__, __LINE__, #TST); }
-#define costlyAssert(TST)   //  { if (!(TST)) assertFailed(__FILE__, __LINE__, #TST); }
+#define costlyAssert(TST) //    { if (!(TST)) assertFailed(__FILE__, __LINE__, #TST); }
 
-#define cheapAssertValidFno(_MRIS, _FNO) // cheapAssert((0 <= _FNO) && (_FNO < _MRIS->nfaces))
-#define cheapAssertValidVno(_MRIS, _VNO) // cheapAssert((0 <= _VNO) && (_VNO < _MRIS->nvertices))
+#define cheapAssertValidFno(_MRIS, _FNO) cheapAssert((0 <= _FNO) && (_FNO < _MRIS->nfaces))
+#define cheapAssertValidVno(_MRIS, _VNO) cheapAssert((0 <= _VNO) && (_VNO < _MRIS->nvertices))
 
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.

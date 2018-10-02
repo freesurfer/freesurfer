@@ -11361,12 +11361,22 @@ float triangle_area(int fac,int n)
 
 #define MAX_NEIGHBORS 300  /* ridiculously large */
 
+
 void
 find_neighbors(void)
 {
   int n0,n1,i,k,m,n;
   FACE *f;
   VERTEX *v;
+
+#if 1
+  mrisCompleteTopology(mris);
+
+#else
+  //
+  // This code is a duplicate of mrisFindNeighbors2 in mri_mc.c and several other places
+  // and that operation is now being done in one place - mrisCompleteTopology
+  //
   int vtmp[MAX_NEIGHBORS];
 
   for (k=0;k<mris->nvertices;k++)
@@ -11396,6 +11406,7 @@ find_neighbors(void)
       printf("%d: num=%d vnum=%d\n",k,v->num,v->vnum);
     */
   }
+#endif
   for (k=0;k<mris->nfaces;k++)
   {
     f = &mris->faces[k];

@@ -1134,7 +1134,7 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
     {
       if ( m_MRIS->faces[fno].ripflag == 0 )
       {
-        int* np = m_MRIS->faces[fno].v;
+        const int * np = m_MRIS->faces[fno].v;
         vtkIdType lines[3][2] = { {np[0], np[1]}, {np[1], np[2]}, {np[2], np[0]} };
         for ( int i = 0; i < 3; i++ )
         {

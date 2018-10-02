@@ -379,13 +379,10 @@ void reallocateFaces(tesselation_parms *parms) {
   parms->face=tmp;
 }
 
-#define VERTICES_PER_FACE    3
-#define MAX_4_NEIGHBORS     100
-#define MAX_3_NEIGHBORS     70
-#define MAX_2_NEIGHBORS     20
-#define MAX_1_NEIGHBORS     8
-#define MAX_NEIGHBORS       (400)
-
+int mrisFindNeighbors2(MRI_SURFACE *mris) {
+  mrisCompleteTopology(mris);
+  return(NO_ERROR) ;
+}
 
 int saveTesselation2(tesselation_parms *parms) {
   int vno,m,n,fno;

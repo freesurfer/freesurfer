@@ -4159,7 +4159,6 @@ AC_CONFIG_FILES([
 	mri_volcluster/Makefile
 	mri_voldiff/Makefile
 	mri_volsynth/Makefile
-	mri_warp_concat/Makefile
 	mri_warp_convert/Makefile
 	mri_watershed/Makefile
 	mri_watershed/brain_volume/Makefile
