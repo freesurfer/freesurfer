@@ -4409,7 +4409,7 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
+MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *PxyzOffset, *Pcrs;
 
@@ -4470,11 +4470,11 @@ MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
   return (m);
 }
 
-MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
+MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *m_inv;
 
-  m_inv = VGgetRasToVoxelXform(vg, NULL, base);
+  m_inv = VGgetVoxelToRasXform(vg, NULL, base);
   m = MatrixInverse(m_inv, m);
   MatrixFree(&m_inv);
   return (m);
