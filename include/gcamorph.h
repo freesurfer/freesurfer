@@ -117,7 +117,7 @@ typedef struct
   int     status ;
   MATRIX   *m_affine ;         // affine transform to initialize with
   double   det ;               // determinant of affine transform
-  void    *vgcam_ms ;
+  void    *vgcam_ms ; // Not saved.
 }
 GCA_MORPH, GCAM ;
 
@@ -262,8 +262,10 @@ MRI_SUBCORTCONN ;
 int GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations) ;
   int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_vent, int navgs) ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
-int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
-int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
+GCA_MORPH *GCAMcopy(const GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
+GCA_MORPH *GCAMconcat2(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *out) ;
+GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out) ;
+GCA_MORPH *GCAMchangeVolGeom(GCA_MORPH *gcam, MRI *mri_src, MRI *mri_dst) ;
 GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 
