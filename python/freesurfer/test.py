@@ -110,12 +110,14 @@ class RegressionTest:
 
 
   # a simple diff using the standard unix diff command
-  def diff(self, orig, ref):
+  def diff(self, orig, ref, ignore_comments=False):
     if self.regenerate:
       self._regen(orig, ref)
     else:
       self.cd(self.testdatadir)
       cmd = 'diff %s %s' % (orig, ref)
+      if ignore_comments:
+        cmd += " -I '#'"
       if self.runcmd(cmd, fatal=False) != 0:
         errorExit('diff of %s and %s failed' % (orig, ref))
 
