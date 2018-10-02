@@ -5,20 +5,17 @@
 
 function error_exit()
 {
-    errcode=$?
-    echo FAILED
-    exit $errcode
+  errcode=$?
+  echo FAILED
+  exit $errcode
 }
 
 
+# Set up.
 set -e # Exit on error.
 set -x # Print commands.
 trap error_exit ERR
-
-
-# Set up.
-source fsenv.sh &> /dev/null
-#export FREESURFER_HOME=../distribution
+export FREESURFER_HOME=../distribution
 export SUBJECTS_DIR=""
 cmd=./mri_concatenate_gcam
 data=testdata.tar.gz
@@ -58,9 +55,9 @@ num_lta=$(sed -n 's/^nxforms[ ]*=[ ]*//p' $lta2)
 in=$dir/im1.mgz
 out1=$dir/out1.mgz
 out2=$dir/out1.mgz
-mri_convert --apply_transform $lta1 $in $out1
-mri_convert --apply_transform $lta2 $in $out2
-mri_diff --thresh '0.01' $out1 $out2
+../mri_convert/mri_convert --apply_transform $lta1 $in $out1
+../mri_convert/mri_convert --apply_transform $lta2 $in $out2
+../mri_diff/mri_diff --thresh '0.01' $out1 $out2
 
 
 # Change the GCAM source image space:
@@ -68,61 +65,61 @@ out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 src=$dir/im2_in_space1.mgz
 $cmd --srcgeom $dir/im1.mgz $dir/im2_to_im3.m3z $gcam
-mri_convert --like $dir/im1.mgz $dir/im2.mgz $src
-mri_convert -at $gcam $src $out
-mri_diff $out $dir/ref1.mgz
+../mri_convert/mri_convert --like $dir/im1.mgz $dir/im2.mgz $src
+../mri_convert/mri_convert -at $gcam $src $out
+../mri_diff/mri_diff $out $dir/ref1.mgz
 
 
 # Change the GCAM destination space:
 out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 $cmd --dstgeom $dir/im1.mgz $dir/im2_to_im3.m3z $gcam
-mri_convert -at $gcam $dir/im2.mgz $out
-mri_diff $out $dir/ref2.mgz
+../mri_convert/mri_convert -at $gcam $dir/im2.mgz $out
+../mri_diff/mri_diff $out $dir/ref2.mgz
 
 
 # Concatenate LTA with GCAM:
 out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 $cmd $dir/im1_to_im2.lta $dir/im2_to_im3.m3z $gcam
-mri_convert -at $gcam $dir/im1.mgz $out
-mri_diff $out $dir/ref3.mgz
+../mri_convert/mri_convert -at $gcam $dir/im1.mgz $out
+../mri_diff/mri_diff $out $dir/ref3.mgz
 
 
 # Concatenate GCAM with LTA:
 out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 $cmd $dir/im2_to_im3.m3z $dir/im3_to_im1.lta $gcam
-mri_convert -at $gcam $dir/im2.mgz $out
-mri_diff $out $dir/ref4.mgz
+../mri_convert/mri_convert -at $gcam $dir/im2.mgz $out
+../mri_diff/mri_diff $out $dir/ref4.mgz
 
 
 # Concatenate LTA with GCAm with LTA:
 out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 $cmd $dir/im1_to_im2.lta $dir/im2_to_im3.m3z $dir/im3_to_im1.lta $gcam
-mri_convert -at $gcam $dir/im1.mgz $out
-mri_diff $out $dir/ref5.mgz
+../mri_convert/mri_convert -at $gcam $dir/im1.mgz $out
+../mri_diff/mri_diff $out $dir/ref5.mgz
 
 
 # Concatenate two GCAMs:
 out=$dir/out.mgz
 gcam=$dir/gcam.m3z
 $cmd $dir/im2_to_im3.m3z $dir/im3_to_im2.m3z $gcam
-mri_convert -at $gcam $dir/im2.mgz $out
-mri_diff $out $dir/ref6.mgz
+../mri_convert/mri_convert -at $gcam $dir/im2.mgz $out
+../mri_diff/mri_diff $out $dir/ref6.mgz
 
 
 # Compare to repeatedly interpolating, e.g.:
 # out=$dir/out.mgz
 # in=$dir/im1.mgz
-# mri_convert -at $dir/im1_to_im2.lta $in $out
-# mri_convert -at $dir/im2_to_im3.m3z $out $out
-# mri_convert -at $dir/im3_to_im1.lta $out $out
+# ../mri_convert/mri_convert -at $dir/im1_to_im2.lta $in $out
+# ../mri_convert/mri_convert -at $dir/im2_to_im3.m3z $out $out
+# ../mri_convert/mri_convert -at $dir/im3_to_im1.lta $out $out
 
 
-echo PASSED
 rm $dir/*
 rmdir $dir
+echo PASSED
 exit 0
 
