@@ -171,7 +171,7 @@ main(int argc, char *argv[]) {
                     Progname, surf_fname) ;
 
         if (nbrs > 1)
-          MRISsetNeighborhoodSize(mris, nbrs) ;
+          MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
         MRIScomputeMetricProperties(mris) ;
         MRIScomputeSecondFundamentalForm(mris) ;
         MRISuseMeanCurvature(mris) ;
@@ -263,7 +263,7 @@ main(int argc, char *argv[]) {
                       Progname, surf_fname) ;
 
           if (nbrs > 1)
-            MRISsetNeighborhoodSize(mris, nbrs) ;
+            MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
           MRIScomputeSecondFundamentalForm(mris) ;
           MRISuseMeanCurvature(mris) ;

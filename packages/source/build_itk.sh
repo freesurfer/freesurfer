@@ -22,8 +22,7 @@ cmake ../ITK \
   -DITKGroup_Segmentation=ON \
   -DITKGroup_IO=ON \
   -DModule_AnisotropicDiffusionLBR=ON \
-  -DBUILD_TESTING=OFF \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10
+  -DBUILD_TESTING=OFF
 
 make -j8
 make install

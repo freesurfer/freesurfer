@@ -187,7 +187,7 @@ main(int argc, char *argv[])
         MRISfree(&mris_var);
         ErrorExit(ERROR_BADPARM,"%s: could not load file %s\n",fname);
       }
-      MRISsetNeighborhoodSize(mris_var, -1) ;  /* back to max */
+      MRISsetNeighborhoodSizeAndDist(mris_var, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris_var) ;
       MRIScomputeSecondFundamentalForm(mris_var) ;
       MRISuseMeanCurvature(mris_var) ;

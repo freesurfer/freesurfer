@@ -320,15 +320,17 @@ main(int argc, char *argv[]) {
     for (i = 0 ; i < num_tpoints ; i++) {
       int    vno, n ;
       VERTEX *v, *vn ;
+      VERTEX_TOPOLOGY *vt ;
 
       MRISreadOriginalProperties(mris, NULL) ;
       vno = MRIStalairachToVertex(mris, x_tpoint[i], y_tpoint[i], z_tpoint[i]);
       if (vno >= 0) {
         fprintf(stderr, "marking talairach vertex %d\n", vno) ;
         v = &mris->vertices[vno] ;
+        vt = &mris->vertices_topology[vno] ;
         v->marked = i+1 ;
-        for (n = 0 ; n < v->vnum ; n++) {
-          vn = &mris->vertices[v->v[n]] ;
+        for (n = 0 ; n < vt->vnum ; n++) {
+          vn = &mris->vertices[vt->v[n]] ;
           vn->marked = i+1 ;
         }
       }
@@ -338,6 +340,7 @@ main(int argc, char *argv[]) {
     for (i = 0 ; i < num_spoints ; i++) {
       int    vno, n ;
       VERTEX *v, *vn ;
+      VERTEX_TOPOLOGY *vt ;
 
       if (!coord_fname)
         ErrorExit(ERROR_BADPARM,
@@ -348,10 +351,11 @@ main(int argc, char *argv[]) {
       if (vno >= 0) {
         fprintf(stderr, "marking spherical vertex %d\n", vno) ;
         v = &mris->vertices[vno] ;
+        vt = &mris->vertices_topology[vno] ;
         v->marked = i+1 ;
 #if 1
-        for (n = 0 ; n < v->vnum ; n++) {
-          vn = &mris->vertices[v->v[n]] ;
+        for (n = 0 ; n < vt->vnum ; n++) {
+          vn = &mris->vertices[vt->v[n]] ;
           vn->marked = i+1 ;
         }
 #endif
@@ -1243,6 +1247,7 @@ int
 MRISsoapBubble(MRI_SURFACE *mris, int niter) {
   int     vno, n, i, cmpt ;
   VERTEX  *v, *vn ;
+  VERTEX_TOPOLOGY *vt ;
   double  mean ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -1259,14 +1264,15 @@ MRISsoapBubble(MRI_SURFACE *mris, int niter) {
       fprintf(stderr, ".") ;
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       v = &mris->vertices[vno] ;
+      vt = &mris->vertices_topology[vno] ;
       if (v->ripflag || (v->marked==1))
         continue ;
 
       /* compute average of self and neighbors */
       mean = 0.0 ;
       cmpt = 0 ;
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
+      for (n = 0 ; n < vt->vnum ; n++) {
+        vn = &mris->vertices[vt->v[n]] ;
         if (vn->marked) {
           mean += vn->val ;
           cmpt++ ;

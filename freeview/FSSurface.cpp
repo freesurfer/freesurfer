@@ -1134,7 +1134,7 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
     {
       if ( m_MRIS->faces[fno].ripflag == 0 )
       {
-        int* np = m_MRIS->faces[fno].v;
+        const int * np = m_MRIS->faces[fno].v;
         vtkIdType lines[3][2] = { {np[0], np[1]}, {np[1], np[2]}, {np[2], np[0]} };
         for ( int i = 0; i < 3; i++ )
         {
@@ -1441,6 +1441,7 @@ void FSSurface::ComputeNormals()
   MRIS* mris = m_MRIS;
   int k,n;
   VERTEX *v;
+  VERTEX_TOPOLOGY* vt;
   FACE *f;
   float norm[3],snorm[3];
 
@@ -1458,18 +1459,19 @@ void FSSurface::ComputeNormals()
   for (k=0; k<mris->nvertices; k++)
   {
     v = &mris->vertices[k];
+    vt = &mris->vertices_topology[k];
     if (!mris->vertices[k].ripflag)
     {
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
-      for (n=0; n<v->num; n++)
-        if (!mris->faces[v->f[n]].ripflag)
+      for (n=0; n<vt->num; n++)
+        if (!mris->faces[vt->f[n]].ripflag)
         {
-          NormalFace(v->f[n],v->n[n],norm);
+          NormalFace(vt->f[n],vt->n[n],norm);
           snorm[0] += norm[0];
           snorm[1] += norm[1];
           snorm[2] += norm[2];
-          v->area += TriangleArea(v->f[n],v->n[n]);
+          v->area += TriangleArea(vt->f[n],vt->n[n]);
           /* Note: overest. area by 2! */
         }
       Normalize( snorm );
@@ -1854,9 +1856,9 @@ void FSSurface::RepositionSmooth(int vert_n, int nbhd_size, int nsmoothing_steps
   {
     m_MRIS->vertices[vno].ripflag = 1;
   }
-  for (int n = 0 ; n < m_MRIS->vertices[vert_n].vnum ; n++)
+  for (int n = 0 ; n < m_MRIS->vertices_topology[vert_n].vnum ; n++)
   {
-    m_MRIS->vertices[m_MRIS->vertices[vert_n].v[n]].ripflag = 0;
+    m_MRIS->vertices[m_MRIS->vertices_topology[vert_n].v[n]].ripflag = 0;
   }
   m_MRIS->vertices[vert_n].ripflag = 0;
   MRISerodeRipped(m_MRIS, nbhd_size);
@@ -1932,6 +1934,7 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
   int* pred;
   char done;
   VERTEX* v;
+  VERTEX_TOPOLOGY* vt;
   VERTEX* u;
   float closest_dist;
   int closest_vno;
@@ -1991,6 +1994,7 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
             closest_vno = vno;
           }
       v = &(mris->vertices[closest_vno]);
+      vt = &(mris->vertices_topology[closest_vno]);
       check[closest_vno] = FALSE;
 
       /* if this is the dest node, we're done. */
@@ -2001,9 +2005,9 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
       else
       {
         /* relax its neighbors. */
-        for (neighbor = 0; neighbor < v->vnum; neighbor++)
+        for (neighbor = 0; neighbor < vt->vnum; neighbor++)
         {
-          neighbor_vno = v->v[neighbor];
+          neighbor_vno = vt->v[neighbor];
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
@@ -2097,6 +2101,7 @@ QVector<int> FSSurface::FloodFillFromSeed(int seed_vno)
   int neighbor_index;
   int neighbor_vno;
   VERTEX* v;
+  VERTEX_TOPOLOGY* vt;
   VERTEX* neighbor_v;
 //  float fvalue = 0;
 //  float seed_curv = 0;
@@ -2161,6 +2166,7 @@ QVector<int> FSSurface::FloodFillFromSeed(int seed_vno)
 
         /* check the neighbors... */
         v = &mris->vertices[vno];
+        vt = &mris->vertices_topology[vno];
 
         /* if this vert is ripped, move on. */
         if (v->ripflag)
@@ -2187,10 +2193,10 @@ QVector<int> FSSurface::FloodFillFromSeed(int seed_vno)
         //        }
 
         for (neighbor_index = 0;
-             neighbor_index < v->vnum;
+             neighbor_index < vt->vnum;
              neighbor_index++)
         {
-          neighbor_vno = v->v[neighbor_index];
+          neighbor_vno = vt->v[neighbor_index];
           neighbor_v = &mris->vertices[neighbor_vno] ;
 
           /* if the neighbor is filled, move on. */

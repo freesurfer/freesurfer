@@ -221,11 +221,11 @@ surface_averageIntegratedCurveArea_do(
 
   if (!calls) {
     ULOUT("Computing Second Fundamental Form on primary\t\t\t");
-    MRISsetNeighborhoodSize(st_env.pMS_primary, 2) ;
+    MRISsetNeighborhoodSizeAndDist(st_env.pMS_primary, 2) ;
     MRIScomputeSecondFundamentalForm(st_env.pMS_primary);
     nULOUT("[ ok ]\n");
     ULOUT("Computing Second Fundamental Form on secondary\t\t\t");
-    MRISsetNeighborhoodSize(st_env.pMS_secondary, 2) ;
+    MRISsetNeighborhoodSizeAndDist(st_env.pMS_secondary, 2) ;
     MRIScomputeSecondFundamentalForm(st_env.pMS_secondary);
     nULOUT("[ ok ]\n");
   }

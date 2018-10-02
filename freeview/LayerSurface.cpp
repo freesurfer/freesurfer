@@ -2306,16 +2306,16 @@ void LayerSurface::SetNeighborhoodSize(int nSize)
   if (mris->nsize == nSize)
     return;
 
-  ::MRISsetNeighborhoodSize(mris, nSize);
+  ::MRISsetNeighborhoodSizeAndDist(mris, nSize);
 }
 
 QVector<int> LayerSurface::GetVertexNeighbors(int vno)
 {
   QVector<int> vno_list;
   MRIS* mris = m_surfaceSource->GetMRIS();
-  VERTEX* v = &mris->vertices[vno];
-  for (int i = 0; i < v->vtotal; i++)
-    vno_list << v->v[i];
+  VERTEX_TOPOLOGY* vt = &mris->vertices_topology[vno];
+  for (int i = 0; i < vt->vtotal; i++)
+    vno_list << vt->v[i];
   return vno_list;
 }
 
@@ -2554,6 +2554,7 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
   int neighbor_index;
   int neighbor_vno;
   VERTEX* v;
+  VERTEX_TOPOLOGY* vt;
   VERTEX* neighbor_v;
   //  float fvalue = 0;
   //  float seed_curv = 0;
@@ -2634,6 +2635,7 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
 
         /* check the neighbors... */
         v = &mris->vertices[vno];
+        vt = &mris->vertices_topology[vno];
 
         /* if this vert is ripped, move on. */
         if (v->ripflag)
@@ -2659,10 +2661,10 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
         //        }
 
         for (neighbor_index = 0;
-             neighbor_index < v->vnum;
+             neighbor_index < vt->vnum;
              neighbor_index++)
         {
-          neighbor_vno = v->v[neighbor_index];
+          neighbor_vno = vt->v[neighbor_index];
           neighbor_v = &mris->vertices[neighbor_vno] ;
 
           /* if the neighbor is filled, move on. */

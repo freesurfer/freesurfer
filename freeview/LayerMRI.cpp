@@ -290,6 +290,9 @@ bool LayerMRI::LoadVolumeFromFile()
   
   GetProperty()->SetVolumeSource( m_volumeSource );
   GetProperty()->RestoreSettings( m_sFilename );
+
+//  int* dim = m_imageData->GetDimensions();
+//  qDebug() << dim[0] << dim[1] << dim[2];
   
   if (m_nGotoLabelOrientation >= 0)
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);

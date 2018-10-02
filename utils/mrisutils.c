@@ -2416,7 +2416,7 @@ MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemi
             printf("ERROR: could not load %s\n", tmpstr);
             return (NULL);
           }
-          if (nbrs > 1) MRISsetNeighborhoodSize(mris, nbrs);
+          if (nbrs > 1) MRISsetNeighborhoodSizeAndDist(mris, nbrs);
           MRIScomputeMetricProperties(mris);
           MRIScomputeSecondFundamentalForm(mris);
           MRISuseMeanCurvature(mris);

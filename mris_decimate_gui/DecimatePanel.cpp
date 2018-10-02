@@ -174,7 +174,7 @@ void DecimatePanel::DoDecimate()
 	m_decAvgVertexDistText->SetLabel(wxString::Format(_T("%.3f mm"), m_decimatedSurface->avg_vertex_dist));
 	    
 	MRIScomputeMetricProperties(m_decimatedSurface);
-	MRISsetNeighborhoodSize(m_decimatedSurface, 2);
+	MRISsetNeighborhoodSizeAndDist(m_decimatedSurface, 2);
 	MRIScomputeSecondFundamentalFormDiscrete(m_decimatedSurface, 0);
 	
     SetCurvatureType(m_curvatureChoice->GetSelection());
@@ -194,7 +194,7 @@ void DecimatePanel::SetOrigSurface(MRI_SURFACE *origSurface)
 		m_origAvgVertexDistText->SetLabel(wxString::Format(wxT("%.3f mm"), m_origSurface->avg_vertex_dist));	
 
 		MRIScomputeMetricProperties(m_origSurface);
-		MRISsetNeighborhoodSize(m_origSurface, 2);
+		MRISsetNeighborhoodSizeAndDist(m_origSurface, 2);
 	    MRIScomputeSecondFundamentalFormDiscrete(m_origSurface, 0);
 	}
     else

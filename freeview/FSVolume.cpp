@@ -60,6 +60,7 @@ extern "C"
 #include "macros.h"
 #include "mrisegment.h"
 #include "mri.h"
+#include "mri2.h"
 }
 
 #define NUM_OF_HISTO_BINS 10000

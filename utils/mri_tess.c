@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mri_tess.c
  * @brief tesselation routines
@@ -389,13 +390,6 @@ static void freeTesselation(tesselation_parms *parms)
   //  free(parms->vertex_index_table);
 }
 
-#define VERTICES_PER_FACE 3
-#define MAX_4_NEIGHBORS 100
-#define MAX_3_NEIGHBORS 70
-#define MAX_2_NEIGHBORS 20
-#define MAX_1_NEIGHBORS 8
-#define MAX_NEIGHBORS (400)
-
 /* This may be the same as that in mrisurf.c. Whoever wrote it should
    NOT have done this. Very bad programming. */
 static int mrisFindNeighbors2(MRI_SURFACE *mris)
@@ -429,7 +423,7 @@ static int mrisFindNeighbors2(MRI_SURFACE *mris)
     if (!mris->vertices_topology[k].v) ErrorExit(ERROR_NOMEMORY, "mrisFindNeighbors2: could not allocate nbr array");
 
     vt->vtotal = vt->vnum;
-    vt->nsize = 1;
+    vt->nsizeMax = vt->nsizeCur = 1;
     for (i = 0; i < vt->vnum; i++) {
       vt->v[i] = vtmp[i];
     }
@@ -482,6 +476,8 @@ static int mrisFindNeighbors2(MRI_SURFACE *mris)
     vtotal += vt->vtotal;
     ntotal++;
   }
+
+  mrisCheckVertexFaceTopology(mris);
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
   return (NO_ERROR);
@@ -599,6 +595,9 @@ static int saveTesselation(tesselation_parms *parms)
     for (n = 0; n < VERTICES_PER_FACE; n++) 
     	mris->vertices_topology[face->v[n]].f[mris->vertices_topology[face->v[n]].num++] = fno;
   }
+
+  mrisCheckVertexFaceTopology(mris);
+
   /*necessary initialization*/
   xhi = yhi = zhi = -10000;
   xlo = ylo = zlo = 10000;
@@ -636,7 +635,7 @@ static int saveTesselation(tesselation_parms *parms)
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
-  MRISsetNeighborhoodSize(mris, 2);
+  MRISsetNeighborhoodSizeAndDist(mris, 2);
   MRIScomputeSecondFundamentalForm(mris);
   MRISuseMeanCurvature(mris);
   mris->radius = MRISaverageRadius(mris);
@@ -675,6 +674,9 @@ MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab)
     }
     countvnbr += mris_tab[n]->nvertices;
   }
+
+  mrisCheckVertexFaceTopology(mris);
+
   return mris;
 }
 

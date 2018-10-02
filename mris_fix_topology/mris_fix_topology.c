@@ -80,6 +80,7 @@ static char *sphere_name   = "qsphere.nofix" ;
 static char *inflated_name = "inflated.nofix" ;
 static char *orig_name     = "orig.nofix" ;
 static char *out_name      = "orig" ;
+char *defectbasename = "defect";
 
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
@@ -288,7 +289,7 @@ main(int argc, char *argv[])
           "cortical surface...\n") ;
 
   mris_corrected =
-    MRIScorrectTopology(mris, NULL, mri, mri_wm, nsmooth, &parms) ;
+    MRIScorrectTopology(mris, mri, mri_wm, nsmooth, &parms, defectbasename) ;
   /* at this point : original vertices
      real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;
@@ -724,10 +725,29 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"not adding vertices after retessellation\n") ;
     add = 0 ;
   }
+  else if (!stricmp(option, "openmp") || !stricmp(option, "threads") )
+  {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+#ifdef HAVE_OPENMP
+    omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
+  }
   else if (!stricmp(option, "orig"))
   {
     orig_name = argv[2] ;
     fprintf(stderr,"reading original coordinates from '%s'\n",orig_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "defect"))
+  {
+    defectbasename = argv[2] ;
+    printf("defect basename set to '%s'\n",defectbasename);
     nargs = 1 ;
   }
   else if (!stricmp(option, "out"))

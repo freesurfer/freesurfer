@@ -83,6 +83,15 @@ static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) = vfprintf;
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
+void assertFailed(const char* file, int line, const char* tst) {
+    fprintf(stdout, "ASSERTION FAILED: %s:%d %s\n", file, line, tst);
+    fprintf(stderr, "ASSERTION FAILED: %s:%d %s\n", file, line, tst);
+    fflush(stdout);
+    fflush(stderr);
+    *(int*)(-1) = 0;
+}
+
+
 /*------------------------------------------------------------------------
        Parameters:
 

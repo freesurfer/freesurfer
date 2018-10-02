@@ -121,6 +121,8 @@
 #include <QtWidgets>
 #endif
 
+#define LAYER_ID_OFFSET 1000000
+
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
   ui(new Ui::MainWindow),
@@ -134,6 +136,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
 {
+
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -159,6 +162,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
 
   ui->setupUi(this);
+  addAction(ui->actionReloadROI);
+  addAction(ui->actionReloadPointSet);
 
   ui->treeWidgetCursorInfo->SetForCursor(true);
 
@@ -1869,6 +1874,10 @@ void MainWindow::RunScript()
   {
     CommandSetActiveFrame(sa);
   }
+  else if (cmd == "setactivelayer")
+  {
+    CommandSetActiveLayer(sa);
+  }
   else
   {
     cerr << "Command '" << qPrintable(cmd) << "' was not recognized.\n";
@@ -2848,9 +2857,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
   QStringList options = cmd[1].split(":");
   QString fn = options[0];
   QString ref;
-  QColor color = Qt::yellow;
-  double opacity = 1;
-  double threshold = 0;
+  QVariantMap args;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -2865,22 +2872,30 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
       }
       else if (option == "color")
       {
-        color = ParseColorInput(argu);
-        if (!color.isValid())
-          color = Qt::yellow;
+        QColor color = ParseColorInput(argu);
+        if (color.isValid())
+          args["color"] = color;
       }
       else if (option == "opacity")
       {
-        opacity = argu.toDouble();
+        args["opacity"] = argu.toDouble();
       }
       else if (option == "threshold")
       {
-        threshold = argu.toDouble();
+        args["threshold"] = argu.toDouble();
+      }
+      else if (option == "id")
+      {
+        args["id"] = argu.toInt();
       }
       else if (option == "centroid")
       {
         AddScript(QStringList("gotoroi"));
         AddScript(QStringList("center"));
+      }
+      else if (option == "name")
+      {
+        args["name"] = argu;
       }
       else
       {
@@ -2889,7 +2904,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
     }
   }
 
-  LoadROIFile( fn, ref, color, opacity, threshold );
+  LoadROIFile( fn, ref, args );
 }
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
@@ -3804,6 +3819,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   QString radius = "1";
   QString spline_radius = "0";
   QString spline_heatmap;
+  QVariantMap args;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -3840,6 +3856,8 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
       {
         m_scripts.insert( 0, QStringList("showlayer") << "PointSet" << argu );
       }
+      else if ( option == "id")
+        args["id"] = argu;
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -3861,7 +3879,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
     m_scripts.insert( 0, QStringList("setpointsetheatmap") << spline_heatmap.split(",", QString::SkipEmptyParts));
   }
 
-  LoadWayPointsFile( fn );
+  LoadWayPointsFile( fn, args );
 }
 
 void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
@@ -3870,6 +3888,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
   QString fn = options[0];
   QString color = "null";
   QString radius = "0";
+  QVariantMap args;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -3894,6 +3913,8 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       {
         m_scripts.insert( 0, QStringList("showlayer") << "PointSet" << argu );
       }
+      else if ( option == "id")
+        args["id"] = argu;
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -3910,7 +3931,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
   {
     m_scripts.insert( 0, QStringList("setpointsetradius") << radius);
   }
-  LoadControlPointsFile( fn );
+  LoadControlPointsFile( fn, args );
 }
 
 void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
@@ -5085,7 +5106,7 @@ void MainWindow::OnLoadROI()
   }
 }
 
-void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color, double opacity, double threshold )
+void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const QVariantMap& args )
 {
   LayerMRI* ref = NULL;
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
@@ -5099,12 +5120,8 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
     for ( int i = 0; i < col_mri->GetNumberOfLayers(); i++ )
     {
       LayerMRI* mri = ( LayerMRI* )col_mri->GetLayer( i );
-      if ( ref_vol == mri->GetName() )
-      {
-        ref = mri;
-        break;
-      }
-      else if ( QFileInfo( mri->GetFileName() ).fileName() == ref_vol )
+      if (ref_vol == QString::number(mri->GetID()) || ref_vol == mri->GetName()
+          || QFileInfo( mri->GetFileName() ).fileName() == ref_vol )
       {
         ref = mri;
         break;
@@ -5118,10 +5135,17 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
     }
   }
   LayerROI* roi = new LayerROI( ref );
-  roi->SetName( QFileInfo(fn).completeBaseName()  );
-  roi->GetProperty()->SetColor(color);
-  roi->GetProperty()->SetOpacity(opacity);
-  roi->GetProperty()->SetThreshold(threshold);
+  roi->SetName( QFileInfo(fn).completeBaseName() );
+  if (args.contains("color"))
+    roi->GetProperty()->SetColor(args["color"].value<QColor>());
+  if (args.contains("opacity"))
+    roi->GetProperty()->SetOpacity(args["opacity"].toDouble());
+  if (args.contains("threshold"))
+    roi->GetProperty()->SetThreshold(args["threshold"].toDouble());
+  if (args.contains("id"))
+    roi->SetID(args["id"].toInt());
+  if (args.contains("name"))
+    roi->SetName(args["name"].toString());
   if ( roi->LoadROIFromFile( fn ) )
   {
     LayerCollection* col_roi = GetLayerCollection( "ROI" );
@@ -5211,9 +5235,11 @@ void MainWindow::OnSaveROIAs()
   }
 }
 
-void MainWindow::OnCloseROI()
+void MainWindow::OnCloseROI(const QList<Layer*>& layers_in)
 {
-  QList<Layer*> layers = GetSelectedLayers( "ROI" );
+  QList<Layer*> layers = layers_in;
+  if (layers.isEmpty())
+    layers = GetSelectedLayers( "ROI" );
   if ( layers.isEmpty() )
   {
     return;
@@ -5266,17 +5292,17 @@ void MainWindow::OnNewPointSet()
   }
 }
 
-void MainWindow::LoadWayPointsFile( const QString& fn )
+void MainWindow::LoadWayPointsFile( const QString& fn, const QVariantMap& args )
 {
-  this->LoadPointSetFile( fn, LayerPropertyPointSet::WayPoint);
+  this->LoadPointSetFile( fn, LayerPropertyPointSet::WayPoint, args);
 }
 
-void MainWindow::LoadControlPointsFile( const QString& fn )
+void MainWindow::LoadControlPointsFile( const QString& fn, const QVariantMap& args )
 {
-  this->LoadPointSetFile( fn, LayerPropertyPointSet::ControlPoint );
+  this->LoadPointSetFile( fn, LayerPropertyPointSet::ControlPoint, args );
 }
 
-void MainWindow::LoadPointSetFile( const QString& fn, int type )
+void MainWindow::LoadPointSetFile( const QString& fn, int type, const QVariantMap& args )
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
@@ -5284,6 +5310,9 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type )
   wp->SetName( QFileInfo( fn ).fileName() );
   if ( wp->LoadFromFile( fn ) )
   {
+    if (args.contains("id"))
+      wp->SetID(args["id"].toInt());
+
     LayerCollection* col_wp = GetLayerCollection( "PointSet" );
     if ( col_wp->IsEmpty() )
     {
@@ -5295,8 +5324,6 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type )
     col_wp->AddLayer( wp );
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
-
-    //  ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
   }
   else
   {
@@ -5406,9 +5433,12 @@ void MainWindow::OnSavePointSetAs()
   }
 }
 
-void MainWindow::OnClosePointSet()
+void MainWindow::OnClosePointSet(const QList<Layer*>& layers_in)
 {
-  QList<Layer*> layers = GetSelectedLayers( "PointSet" );
+  QList<Layer*> layers = layers_in;
+  if (layers.isEmpty())
+    layers = GetSelectedLayers( "PointSet" );
+
   if ( layers.isEmpty() )
   {
     return;
@@ -5612,8 +5642,7 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
       QMessageBox::warning( this, "Error", msg);
   }
   m_bProcessing = false;
-  m_volumeSettings.clear();
-  m_surfaceSettings.clear();
+  m_layerSettings.clear();
   if (bQuit)
   {
     qDebug() << msg;
@@ -5696,9 +5725,9 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 0 );
     //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
-    if (m_volumeSettings.contains(layer->GetID()))
+    if (m_layerSettings.contains(layer->GetID()))
     {
-      QVariantMap settings = m_volumeSettings[layer->GetID()];
+      QVariantMap settings = m_layerSettings[layer->GetID()];
       if (settings.contains("name"))
         mri->SetName(settings["name"].toString());
       if (settings.contains("index"))
@@ -5709,7 +5738,9 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         lc_mri->ReorderLayers(layers);
       }
       mri->GetProperty()->RestoreFullSettings(settings);
-      m_volumeSettings.remove(layer->GetID());
+      if (settings.contains("frame"))
+        mri->SetActiveFrame(settings["frame"].toInt());
+      m_layerSettings.remove(layer->GetID());
     }
   }
   else if ( jobtype == ThreadIOWorker::JT_SaveVolume && layer->IsTypeOf( "MRI" ) )
@@ -5781,11 +5812,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 1 );
     //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
-    if (m_surfaceSettings.contains(layer->GetID()))
+    if (m_layerSettings.contains(layer->GetID()))
     {
-      QVariantMap settings = m_surfaceSettings[layer->GetID()];
+      QVariantMap settings = m_layerSettings[layer->GetID()];
       sf->GetProperty()->RestoreFullSettings(settings);
-      m_surfaceSettings.remove(layer->GetID());
+      m_layerSettings.remove(layer->GetID());
     }
     if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
     {
@@ -7205,10 +7236,14 @@ void MainWindow::OnReloadVolume()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      int active_layer_id = GetActiveLayer("MRI")->GetID();
       for (int i = 0; i < sel_layers.size(); i++)
       {
         LayerMRI* mri = qobject_cast<LayerMRI*>(sel_layers[i]);
-        m_volumeSettings[mri->GetID()] = mri->GetProperty()->GetFullSettings();
+        QVariantMap map = mri->GetProperty()->GetFullSettings();
+        if (mri->GetActiveFrame() > 0)
+          map["frame"] = mri->GetActiveFrame();
+        m_layerSettings[mri->GetID()] = map;
       }
 
       QList<Layer*> all_layers = GetLayers("MRI");
@@ -7229,7 +7264,7 @@ void MainWindow::OnReloadVolume()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7243,18 +7278,130 @@ void MainWindow::OnReloadVolume()
           args += ":reg=" + reg_fn;
         args += QString(":id=%1").arg(mri->GetID());
 
-        mri->SetID(mri->GetID()+1000000);
+        mri->SetID(mri->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadvolume") << args);
+        if (dlg.GetCloseLayerFirst())
+          AddScript(QStringList("unloadlayers") << "mri" << QString::number(mri->GetID()));
       }
-      if (dlg.GetCloseLayerFirst())
-      {
-        AddScript(QStringList("unloadlayers") << "mri" << layer_ids.join(","));
-      }
+
       AddScript(QStringList("reorderlayers") << "mri" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "mri" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
   else
     QMessageBox::warning(this, "Reload Volume", "Select at least one volume to reload.");
+}
+
+void MainWindow::OnReloadROI()
+{
+  QList<Layer*> sel_layers = GetSelectedLayers("ROI");
+  if (!sel_layers.isEmpty())
+  {
+    DialogReloadLayer dlg;
+    if (dlg.Execute(sel_layers) == QDialog::Accepted)
+    {
+      int active_layer_id = GetActiveLayer("ROI")->GetID();
+      //      for (int i = 0; i < sel_layers.size(); i++)
+      //      {
+      //        LayerROI* roi = qobject_cast<LayerROI*>(sel_layers[i]);
+      //        m_layerSettings[roi->GetID()] = roi->GetProperty()->GetFullSettings();
+      //      }
+
+      QList<Layer*> all_layers = GetLayers("ROI");
+      QStringList layer_order;
+      foreach (Layer* layer, all_layers)
+        layer_order << QString::number(layer->GetID());
+
+      QStringList layer_ids;
+      if (dlg.GetCloseLayerFirst())
+      {
+        for (int i = 0; i < sel_layers.size(); i++)
+        {
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
+        }
+      }
+      for (int i = sel_layers.size()-1; i >= 0; i--)
+      {
+        LayerROI* roi = qobject_cast<LayerROI*>(sel_layers[i]);
+        QString name = roi->GetName();
+        QString filename = roi->GetFileName();
+        QString args = filename + ":name=" + name;
+        double* rgb = roi->GetProperty()->GetColor();
+        args += QString(":id=%1:color=%2,%3,%4:opacity=%5:threshold=%6:ref=%7").arg(roi->GetID())
+            .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(roi->GetProperty()->GetOpacity())
+            .arg(roi->GetProperty()->GetThreshold()).arg(roi->GetRefMRI()->GetID());
+
+        roi->SetID(roi->GetID()+LAYER_ID_OFFSET);
+        AddScript(QStringList("loadroi") << args);
+        if (dlg.GetCloseLayerFirst())
+          AddScript(QStringList("unloadlayers") << "roi" << QString::number(roi->GetID()));
+      }
+      AddScript(QStringList("reorderlayers") << "roi" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "roi" << QString::number(active_layer_id) << layer_ids.join(","));
+    }
+  }
+}
+
+void MainWindow::OnReloadPointSet()
+{
+  QList<Layer*> sel_layers = GetSelectedLayers("PointSet");
+  if (!sel_layers.isEmpty())
+  {
+    DialogReloadLayer dlg;
+    if (dlg.Execute(sel_layers) == QDialog::Accepted)
+    {
+      //      for (int i = 0; i < sel_layers.size(); i++)
+      //      {
+      //        LayerROI* roi = qobject_cast<LayerROI*>(sel_layers[i]);
+      //        m_layerSettings[roi->GetID()] = roi->GetProperty()->GetFullSettings();
+      //      }
+
+      int active_layer_id = GetActiveLayer("PointSet")->GetID();
+      QList<Layer*> all_layers = GetLayers("PointSet");
+      QStringList layer_order;
+      foreach (Layer* layer, all_layers)
+        layer_order << QString::number(layer->GetID());
+
+      QStringList layer_ids;
+      if (dlg.GetCloseLayerFirst())
+      {
+        for (int i = 0; i < sel_layers.size(); i++)
+        {
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
+        }
+      }
+      for (int i = sel_layers.size()-1; i >= 0; i--)
+      {
+        LayerPointSet* ps = qobject_cast<LayerPointSet*>(sel_layers[i]);
+        QString filename = ps->GetFileName();
+        double* rgb = ps->GetProperty()->GetColor();
+        QString args = filename + QString(":id=%1:color=%2,%3,%4:name=%5:radius=%6:visible=%7").arg(ps->GetID())
+            .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(ps->GetName())
+            .arg(ps->GetProperty()->GetRadius()).arg(ps->IsVisible()?1:0);
+
+        ps->SetID(ps->GetID()+LAYER_ID_OFFSET);
+        if (ps->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint )
+          AddScript(QStringList("loadcontrolpoints") << args);
+        else
+        {
+          double* rgb = ps->GetProperty()->GetSplineColor();
+          args += QString(":splinecolor=%1,%2,%3:splineradius=%4").arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255))
+              .arg(ps->GetProperty()->GetSplineRadius());
+          AddScript(QStringList("loadwaypoints") << args);
+          if (dlg.GetCloseLayerFirst())
+            AddScript(QStringList("unloadlayers") << "pointset" << QString::number(ps->GetID()));
+        }
+      }
+      AddScript(QStringList("reorderlayers") << "pointset" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "pointset" << QString::number(active_layer_id) << layer_ids.join(","));
+    }
+  }
 }
 
 void MainWindow::OnReloadSurface()
@@ -7265,10 +7412,11 @@ void MainWindow::OnReloadSurface()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      int active_layer_id = GetActiveLayer("Surface")->GetID();
       for (int i = sel_layers.size()-1; i >= 0; i--)
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
-        m_surfaceSettings[surf->GetID()] = surf->GetProperty()->GetFullSettings();
+        m_layerSettings[surf->GetID()] = surf->GetProperty()->GetFullSettings();
       }
 
       QList<Layer*> all_layers = GetLayers("Surface");
@@ -7281,7 +7429,7 @@ void MainWindow::OnReloadSurface()
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
-          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+          layer_ids << QString::number(sel_layers[i]->GetID()+LAYER_ID_OFFSET);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7294,7 +7442,7 @@ void MainWindow::OnReloadSurface()
             .arg(surf->GetProperty()->GetZOrderOverlay())
             .arg(surf->GetProperty()->GetZOrderLabel())
             .arg(surf->GetProperty()->GetZOrderAnnotation());
-        surf->SetID(surf->GetID()+1000000);
+        surf->SetID(surf->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadsurface") << args);
 
         for (int j = surf->GetNumberOfOverlays()-1; j >= 0; j--)
@@ -7334,13 +7482,14 @@ void MainWindow::OnReloadSurface()
           }
         }
         surf->MarkAboutToDelete();
-      }
-      if (dlg.GetCloseLayerFirst())
-      {
-        AddScript(QStringList("unloadlayers") << "surface" << layer_ids.join(","));
+        if (dlg.GetCloseLayerFirst())
+          AddScript(QStringList("unloadlayers") << "surface" << QString::number(surf->GetID()));
       }
 
       AddScript(QStringList("reorderlayers") << "surface" << layer_order.join(","));
+      for (int i = 0; i < layer_ids.size(); i++)
+        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+      AddScript(QStringList("setactivelayer") << "surface" << QString::number(active_layer_id) << layer_ids.join(","));
     }
   }
 }
@@ -7543,10 +7692,15 @@ void MainWindow::CommandReorderLayers(const QStringList &cmd)
     return;
 
   LayerCollection* lc = NULL;
-  if (cmd[1].toLower() == "mri")
+  QString type = cmd[1].toLower();
+  if (type == "mri")
     lc = GetLayerCollection("MRI");
-  else if (cmd[1].toLower() == "surface")
+  else if (type == "surface")
     lc = GetLayerCollection("Surface");
+  else if (type == "roi")
+    lc = GetLayerCollection("ROI");
+  else if (type == "pointset")
+    lc = GetLayerCollection("PointSet");
 
   if (lc)
   {
@@ -7560,6 +7714,40 @@ void MainWindow::CommandReorderLayers(const QStringList &cmd)
   }
 }
 
+void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
+{
+  if (cmd.size() < 3)
+    return;
+
+  LayerCollection* lc = NULL;
+  QString type = cmd[1].toLower();
+  if (type == "mri")
+    lc = GetLayerCollection("MRI");
+  else if (type == "surface")
+    lc = GetLayerCollection("Surface");
+  else if (type == "roi")
+    lc = GetLayerCollection("ROI");
+  else if (type == "pointset")
+    lc = GetLayerCollection("PointSet");
+
+  if (lc)
+  {
+    int nId = cmd[2].toInt();
+    Layer* layer = lc->GetLayerById(nId);
+    if (layer)
+      lc->SetActiveLayer(layer);
+    if (cmd.size() >= 4)
+    {
+      QList<int> ids;
+      QStringList list = cmd[3].split(",");
+      for (int i = 0; i < list.size(); i++)
+      {
+        ids << list[i].toInt();
+      }
+      ui->widgetAllLayers->SetSelectedLayers(ids);
+    }
+  }
+}
 
 void MainWindow::CommandUnloadLayers(const QStringList &cmd)
 {
@@ -7567,10 +7755,15 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
     return;
 
   LayerCollection* lc = NULL;
-  if (cmd[1].toLower() == "mri")
+  QString type = cmd[1].toLower();
+  if (type == "mri")
     lc = GetLayerCollection("MRI");
-  else if (cmd[1].toLower() == "surface")
+  else if (type == "surface")
     lc = GetLayerCollection("Surface");
+  else if (type == "roi")
+    lc = GetLayerCollection("ROI");
+  else if (type == "pointset")
+    lc = GetLayerCollection("PointSet");
 
   if (lc)
   {
@@ -7588,10 +7781,14 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
     }
     if (!layers.isEmpty())
     {
-      if (cmd[1].toLower() == "mri")
+      if (type == "mri")
         OnCloseVolume(layers);
-      else
+      else if (type == "surface")
         OnCloseSurface(layers);
+      else if (type == "roi")
+        OnCloseROI(layers);
+      else if (type == "pointset")
+        OnClosePointSet(layers);
     }
   }
 }
@@ -7915,10 +8112,10 @@ void MainWindow::OnApplyVolumeTransform()
       map["name"] = mri->GetName();
       map["index"] = GetLayerCollection("MRI")->GetLayerIndex(mri);
       int layer_id = mri->GetID();
-      m_volumeSettings[layer_id] = map;
+      m_layerSettings[layer_id] = map;
       if (!OnCloseVolume())
       {
-        m_volumeSettings.clear();
+        m_layerSettings.remove(layer_id);
         return;
       }
       QVariantMap sup_data;

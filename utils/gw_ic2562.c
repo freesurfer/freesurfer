@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  gw_ic2562.c
  *
@@ -2079,6 +2080,8 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
       vt->f[vt->num++] = fno;
     }
   }
+
+  mrisCheckVertexFaceTopology(mris);
 
   MRIScomputeMetricProperties(mris);
 

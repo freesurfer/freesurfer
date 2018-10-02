@@ -152,7 +152,8 @@ def load_mgh_header(filename):
         M = header.get_affine()
     else:
         M = None
-    return [None, M, header['mrparms'], np.array(volsz)]
+    mrparms = [header['tr'], header['flip_angle'], header['te'], header['ti']]
+    return [None, M, mrparms, np.array(volsz)]
 
 
 def construct_affine(mat, offset):
@@ -181,14 +182,14 @@ class MRI:
         self.volsize = volsz[0:3]
 
         self.nframes = volsz[3]
-        # %--------------------------------------------------------------------%
-        # % Everything below is redundant in that they can be derivied from
-        # % stuff above, but they are in the MRI struct defined in mri.h, so I
-        # % thought I would add them here for completeness.  Note: MRIwrite()
-        # % derives all geometry information (ie, direction cosines, voxel
-        # % resolution, and P0 from vox2ras0. If you change other geometry
-        # % elements below, it will not be reflected in the output volume.
-        #
+
+        # Everything below is redundant in that they can be derivied from
+        # stuff above, but they are in the MRI struct defined in mri.h, so I
+        # thought I would add them here for completeness.  Note: MRIwrite()
+        # derives all geometry information (ie, direction cosines, voxel
+        # resolution, and P0 from vox2ras0. If you change other geometry
+        # elements below, it will not be reflected in the output volume.
+
         M2 = M * M
 
         self.volres = [

@@ -386,7 +386,7 @@ main(int argc, char *argv[]) {
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", 
           white_matter_name, output_suffix, suffix) ;
@@ -2564,7 +2564,7 @@ static int  MRIcomputeClassStatistics_mef(MRI *mri_T1_30,
 
 
 int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs) {
-  int    i, vno, vnb, *pnb, vnum ;
+  int    i, vno, vnb, vnum ;
   float  val, num ;
 
   for (i = 0 ; i < navgs ; i++) {
@@ -2574,7 +2574,7 @@ int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs) {
       if (v->ripflag || v->marked == 0)
         continue ;
       val = v->valbak ;
-      pnb = vt->v ;
+      int const * pnb = vt->v ;
       vnum = vt->vnum ;
       for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++) {
         VERTEX const * const vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */

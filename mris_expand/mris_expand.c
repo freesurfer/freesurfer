@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   
   if (nbrs > 1)
   {
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   }
   if (use_thickness)
   {

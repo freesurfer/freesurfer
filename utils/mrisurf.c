@@ -121,67 +121,175 @@ int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
-void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
-{
-    hash->hash = fnv_init();
-    if (mris) mris_hash_add(hash, mris);
-}
+static size_t showHashCalc;
 
-static void vertix_hash_add(MRIS_HASH* hash, MRIS const * mris, int vno)
+static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const ** mrisPVector, FILE* showDiff, int vno)
 {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-
+    int i;
     #define SEP
     #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
-    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&v->MBR), sizeof(v->MBR));
-    LIST_OF_VERTEX_ELTS
-    #undef ELTT
+    #define ELTX(TYPE,   MBR) // don't hash excluded elements
 #ifdef SEPARATE_VERTEX_TOPOLOGY
-    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vt->MBR), sizeof(vt->MBR));
+    #define ELTT(TYPE,   MBR) \
+        for (i = 0; i < vectorSize; i++) {                                                              \
+            MRIS_HASH  * hash = &hashVector[i];                                                         \
+            MRIS const * mris = mrisPVector[i];                                                         \
+            VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];                                 \
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vt->MBR), sizeof(vt->MBR));        \
+            if (showHashCalc) {                                                                         \
+                fprintf(stdout, "After %s hash is %ld\n", #MBR, hash->hash);                            \
+            }                                                                                           \
+            if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
+                fprintf(showDiff, "Differ at vertices_topology:%d field %s\n", vno, #MBR);              \
+                return false;                                                                           \
+            }                                                                                           \
+        }                                                                                               \
+        // end of macro
     LIST_OF_VERTEX_TOPOLOGY_ELTS
     #undef ELTT
 #endif
+    #define ELTT(TYPE,   MBR) \
+        for (i = 0; i < vectorSize; i++) {                                                              \
+            MRIS_HASH  * hash = &hashVector[i];                                                         \
+            MRIS const * mris = mrisPVector[i];                                                         \
+            VERTEX const * v = &mris->vertices[vno];                                                    \
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(&v->MBR), sizeof(v->MBR));          \
+            if (showHashCalc) {                                                                         \
+                fprintf(stdout, "After %s hash is %ld\n", #MBR, hash->hash);                            \
+            }                                                                                           \
+            if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
+                fprintf(showDiff, "Differ at vertices:%d field %s\n", vno, #MBR);                       \
+                return false;                                                                           \
+            }                                                                                           \
+        }                                                                                               \
+        // end of macro
+    #undef ELTT
+    #undef ELTX
     #undef ELTP
     #undef SEP
     
-    hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->v), sizeof(*(vt->v))*vt->vtotal );
+    // Now include some of the pointer targets
+    //
+    for (i = 0; i < vectorSize; i++) {
+        MRIS_HASH  * hash = &hashVector[i];
+        MRIS const * mris = mrisPVector[i];
+        VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
+        VERTEX          const * v  = &mris->vertices         [vno];
+        int vsize = mrisVertexVSize(mris, vno);
+        if (vt->v) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->v),        vsize * sizeof(vt->v[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After v hash is %ld\n", hash->hash);
+            }
+        }
+        if (vt->f) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->f),        vt->num * sizeof(vt->f[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After f hash is %ld\n", hash->hash);
+            }
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(vt->n),        vt->num * sizeof(vt->n[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After n hash is %ld\n", hash->hash);
+            }
+        }
+        if (v->dist) {
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist),      vsize * sizeof(v->dist[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After dist hash is %ld\n", hash->hash);
+            }
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist_orig), vsize * sizeof(v->dist_orig[0]));
+            if (showHashCalc) {
+                fprintf(stdout, "After dist_orig hash is %ld\n", hash->hash);
+            }
+        }
+        if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {
+            fprintf(showDiff, "Differ at vertices:%d field v f n dist and dist_orig\n", vno);
+            return false;
+        }
+    }
+
+    return true;
 }
 
-static void face_hash_add(MRIS_HASH* hash, FACE const * face)
+static bool face_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const ** mrisPVector, FILE* showDiff, int fno)
 {
-#define SEP
-#define ELTT(TYPE,       MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&face->MBR), sizeof(face->MBR));
-#define ELTP(TARGET,NAME) // don't hash pointers
-LIST_OF_FACE_ELTS
-#undef ELTT
-#undef ELTP
-#undef SEP
+    int i;
+    #define SEP
+    #define ELTP(TARGET,NAME) // don't hash pointers
+    #define ELTT(TYPE,       MBR) \
+        for (i = 0; i < vectorSize; i++) {                                                              \
+            MRIS_HASH  * hash = &hashVector[i];                                                         \
+            MRIS const * mris = mrisPVector[i];                                                         \
+            FACE* face = &mris->faces[fno];                                                             \
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(&face->MBR), sizeof(face->MBR));    \
+            if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
+                fprintf(showDiff, "Differ at face:%d field %s\n", fno, #MBR);                           \
+                return false;                                                                           \
+            }                                                                                           \
+        }                                                                                               \
+        // end of macro
+    LIST_OF_FACE_ELTS
+    #undef ELTP
+    #undef ELTT
+    #undef SEP
+    return true;
 }
 
-void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
+static bool mris_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const ** mrisPVector, FILE* showDiff)
 {
+    size_t i;
     #define SEP
     #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
-    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));
     #define ELTX(TYPE,   MBR) 
+    #define ELTT(TYPE,   MBR)                                                                           \
+        for (i = 0; i < vectorSize; i++) {                                                              \
+            MRIS_HASH  * hash = &hashVector[i];                                                         \
+            MRIS const * mris = mrisPVector[i];                                                         \
+            hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));    \
+            if (showHashCalc) {                                                                         \
+                fprintf(stdout, "After mris.%s hash is %ld\n", #MBR, hash->hash);                       \
+            }                                                                                           \
+            if (showDiff && i > 0 && hash->hash != hashVector[0].hash) {                                \
+                fprintf(showDiff, "Differ at field %s\n", #MBR);                                        \
+                return false;                                                                           \
+            }                                                                                           \
+        }                                                                                               \
+        // end of macro
     LIST_OF_MRIS_ELTS
-    #undef ELTX
     #undef ELTT
+    #undef ELTX
     #undef ELTP
     #undef SEP
 
     // Now include some of the pointer targets
     //
     int vno;
-    for (vno = 0; vno < mris->nvertices; vno++) {
-        vertix_hash_add(hash, mris, vno);
+    for (vno = 0; vno < mrisPVector[0]->nvertices; vno++) {
+        if (!vertix_n_hash_add(vectorSize, hashVector, mrisPVector, showDiff, vno)) return false;
     }
     
     int fno;
-    for (fno = 0; fno < mris->nfaces; fno++) {
-        face_hash_add(hash, &mris->faces[fno]);
+    for (fno = 0; fno < mrisPVector[0]->nfaces; fno++) {
+        if (!face_n_hash_add(vectorSize, hashVector, mrisPVector, showDiff, fno)) return false;
     }
+    
+    return true;
+}
+
+void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno) {
+    hash->hash = fnv_init();
+    vertix_n_hash_add(1, hash, &mris, false, vno);
+}
+
+void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
+{
+    mris_n_hash_add(1, hash, &mris, NULL);
+}
+
+void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
+{
+    hash->hash = fnv_init();
+    if (mris) mris_hash_add(hash, mris);
 }
 
 void mris_hash_print(MRIS_HASH const* hash, FILE* file)
@@ -191,11 +299,28 @@ void mris_hash_print(MRIS_HASH const* hash, FILE* file)
 
 void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix) {
     MRIS_HASH hash;
+    double const * pd = &mris->avg_vertex_dist;
+    void*  const * pp = (void**)pd;
+    fprintf(stdout, "mris.nsize:%d mris.avg_vertex_dist:%f %p\n", mris->nsize, *pd, *pp);
+    
+    static size_t 
+        showHashCount = 0, 
+        showHashLimit = 0;  // 0 means never shows details
+
+    bool showHash = (++showHashCount == showHashLimit);
+    
+    if (showHash) { showHashCalc++; showHashLimit *= 2; fprintf(stdout, "showHashCount:%ld\n", showHashCount); }
     mris_hash_init(&hash, mris);
+    if (showHash) --showHashCalc;
+
     fprintf(file, "%sMRIS_HASH{",prefix);
     mris_hash_print(&hash, file);
     fprintf(file, "}%s",suffix);
 }
 
 
-
+void mris_print_diff(FILE* file, MRIS const * lhs, MRIS const * rhs) {
+    MRIS_HASH hashPair[2]; hashPair[0].hash = hashPair[1].hash = fnv_init();
+    MRIS const * mrisPair[2]; mrisPair[0] = lhs; mrisPair[1] = rhs; 
+    mris_n_hash_add(2, hashPair, mrisPair, file);
+}

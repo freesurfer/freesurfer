@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
   MRISremoveIntersections(mris) ;
   
   if (pial_nbrs > 2)
-    MRISsetNeighborhoodSize(mris, pial_nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, pial_nbrs) ;
   
   if (auto_detect_stats)
   {
@@ -803,7 +803,7 @@ int main(int argc, char *argv[])
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
   if(orig_white){
@@ -1166,15 +1166,22 @@ int main(int argc, char *argv[])
       MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
       MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
       MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
-      sprintf(fname,"%s/%s/surf/%s.%s.res.%s%smgz",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s.res.%s%s.mgz", hemi, white_matter_name, output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/surf/%s.%s.res.%s%s.mgz", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+      }
       printf("Saving white value residual to %s\n",fname);
       MRIwrite(ValResid,fname);
       MRIfree(&ValResid);
     }
 
-    if(SaveTarget){
-      sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, white_matter_name,
-	      output_suffix, suffix) ;
+    if(SaveTarget) {
+      if (getenv("FS_POSIX")) {
+        sprintf(fname, "./%s.%s.target%s%s", hemi, white_matter_name, output_suffix, suffix);
+      } else {
+        sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+      }
       printf("writing white target surface to %s...\n", fname) ;
       MRISwrite(mristarget, fname) ;
     }
@@ -1184,7 +1191,11 @@ int main(int argc, char *argv[])
       printf("Averaging white surface by %d iterations\n",smoothwm);
       MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
     }
-    sprintf(fname,"%s/%s/surf/%s.%s%s%s",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
+    if (getenv("FS_POSIX")) {
+      sprintf(fname,"./%s.%s%s%s", hemi, white_matter_name, output_suffix, suffix);
+    } else {
+      sprintf(fname,"%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+    }
     fprintf(stdout, "writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
@@ -1196,23 +1207,35 @@ int main(int argc, char *argv[])
       // Label cortex based on aseg
       lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
       if (Gdiag & DIAG_VERBOSE_ON) {
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+        if (getenv("FS_POSIX")) {
+          sprintf(fname,"./%s.%s%s%s_orig.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
 
       // Erode the label by 4
       LabelErode(lcortex, mris, 4) ;
-      if (Gdiag & DIAG_VERBOSE_ON){
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_erode.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON) {
+        if (getenv("FS_POSIX")) {
+          sprintf(fname, "./%s.%s%s%s_erode.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname, "%s/%s/label/%s.%s%s%s_erode.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
 
       // Dilate the label by 4
       LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
-      if (Gdiag & DIAG_VERBOSE_ON)      {
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON) {
+        if (getenv("FS_POSIX")) {
+          sprintf(fname,"./%s.%s%s%s_dilate.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
@@ -1242,7 +1265,12 @@ int main(int argc, char *argv[])
       // Get the final cortex label
       lcortex = LabelFromMarkedSurface(mris) ;
 
-      sprintf(fname,"%s/%s/label/%s.%s%s%s.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s%s%s.label", hemi, "cortex", output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+      }
+
       printf("writing cortex label to %s...\n", fname) ;
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;

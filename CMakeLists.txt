@@ -170,8 +170,7 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    # since we have OpenGL, make sure we have glut too!
-    find_package(GLUT REQUIRED)
+    find_package(GLUT REQUIRED)  # since we have OpenGL, make sure we have glut too
     add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
@@ -190,7 +189,8 @@ if(BUILD_GUIS)
   if(Qt5_FOUND)
     get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
     if(NOT APPLE)
-      symlink(${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/lib/qt)
+      file(GLOB QT_LIBRARIES_TO_INSTALL "${QT_INSTALL_DIR}/lib/lib*.so*")
+      install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib)
     endif()
   endif()
 
@@ -271,6 +271,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 
 # enable std c++11
 set(CMAKE_CXX_STANDARD 11)
+
+# set executable rpath
+if(NOT APPLE)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+endif()
 
 # --------------------------------------------------
 #                   setup python
@@ -378,6 +383,7 @@ add_subdirectories(
   mri_compute_overlap
   mri_compute_seg_overlap
   mri_concat
+  mri_concatenate_gcam
   mri_concatenate_lta
   mri_convert
   mri_coreg
@@ -406,6 +412,7 @@ add_subdirectories(
   mri_relabel_nonwm_hypos
   mri_remove_neck
   mri_robust_register
+  mri_seg_overlap
   mri_segment
   mri_segreg
   mri_segstats
@@ -501,7 +508,6 @@ if(NOT MINIMAL)
     mri_compute_change_map
     mri_compute_structure_transforms
     mri_compute_volume_fractions
-    mri_concatenate_gcam
     mri_convert_mdh
     mri_copy_values
     mri_cor2label
@@ -600,7 +606,6 @@ if(NOT MINIMAL)
     mri_vol2roi
     mri_volcluster
     mri_volsynth
-    mri_warp_concat
     mri_warp_convert
     mri_wbc
     mri_wmfilter
@@ -715,7 +720,7 @@ if(NOT MINIMAL)
     test_makevol
     ThalamicNuclei
     tkmedit
-    tksurfer
+    # tksurfer
     trc
     tridec
   )

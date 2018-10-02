@@ -152,7 +152,7 @@ if($FS_MKCON_USE_BIN == 0) then
   rm -f $mfile
   echo "Matlab file is $mfile"
   echo "mkcontrast2m('$config');" >> $mfile
-  if($monly) exit 1;
+  if($monly) exit 0;
   echo "quit;" >> $mfile
   if($UseOctave == 0) then
     echo "------- matlab output --------------------" 

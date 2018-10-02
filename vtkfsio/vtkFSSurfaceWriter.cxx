@@ -93,19 +93,22 @@ vtkFSSurfaceWriter::WriteData () {
   vtkIdType* pPointIDs = NULL;
   vtkCellArray* polys = input->GetPolys();
   assert( polys );
+
+  setFaceAttachmentDeferred(mris, true);
+
   for( polys->InitTraversal(); 
        polys->GetNextCell( cPointIDs, pPointIDs ); nFace++ ) {
 
     if( cPointIDs != 3 ) {
-      vtkErrorMacro("Face with invalid number of points: face "
-		    << nFace << " with " << cPointIDs << " points." );
+      vtkErrorMacro("Face with invalid number of points: face " << nFace << " with " << cPointIDs << " points.");
       MRISfree( &mris );
       return;
     }
 
-    for( int nPointID = 0; nPointID < 3; nPointID++ )
-      mris->faces[nFace].v[nPointID] = pPointIDs[nPointID];
+    mrisAttachFaceToVertices(mris, nFace, pPointIDs[0], pPointIDs[1], pPointIDs[2]);
   }
+
+  setFaceAttachmentDeferred(mris, false);
 
   // Delete the last MRIS and save this one.
   if( NULL != mMRIS )

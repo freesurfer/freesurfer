@@ -215,6 +215,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 void SurfaceLabel::UpdateOutline()
 {
   VERTEX *v;
+  VERTEX_TOPOLOGY* vt;
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
   MRISclearMarks(mris);
   LabelMarkSurface(m_label, mris);
@@ -224,12 +225,13 @@ void SurfaceLabel::UpdateOutline()
     if (m_label->lv[n].vno >= 0 && !m_label->lv[n].deleted) // && m_label->lv[n].stat > m_dThreshold)
     {
       v = &mris->vertices[m_label->lv[n].vno];
+      vt = &mris->vertices_topology[m_label->lv[n].vno];
       if (v->ripflag)
         continue;
 
-      for (int m = 0 ; m < v->vnum ; m++)
+      for (int m = 0 ; m < vt->vnum ; m++)
       {
-        if (mris->vertices[v->v[m]].marked == 0)
+        if (mris->vertices[vt->v[m]].marked == 0)
         {
           m_nOutlineIndices[n] = 1;
           break;

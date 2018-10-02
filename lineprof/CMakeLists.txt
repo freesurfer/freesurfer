@@ -23,6 +23,10 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   add_library(lineprof STATIC ${SOURCES})
 
+  if(APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
+  endif()
+
   add_test_executable(lineprof_test LineProfTest.cpp)
   target_link_libraries(lineprof_test
     lineprof

@@ -1501,7 +1501,16 @@ float mad(float a[], int n)
   return d * mm;
 }
 
-int nint(const double f) { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.5))); }
+/* These two functions will do rounding. The difference between them
+   is that {nint(-0.5)=-1,nint(+0.5)=+1} whereas
+   {nint2(-0.5)=-1,nint(+0.5)=0} In a very specific case (mapping a
+   single slice into a volume where the source is aligned with the
+   target but only 0.5vox offset) this caused the output slice to have
+   all 0s because nint() never allowed a legal index (was always -1 or
+   +1 and never 0).
+ */
+int nint(const double f)  { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.5))); }
+int nint2(const double f) { return (f < 0 ? ((int)(f - 0.5)) : ((int)(f + 0.49999999))); }
 
 void (*progress_callback)(int) = 0;
 int global_progress_range[2] = {0, 100};
