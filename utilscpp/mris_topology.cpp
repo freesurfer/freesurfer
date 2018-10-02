@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mris_topology.cpp
  * @brief surface topology correction utilities
@@ -858,6 +859,8 @@ void MRISinitSurface(MRIS *mris)
     v->v3num = v->vnum;
     v->vtotal = v->vnum;
   }
+
+  mrisCheckVertexFaceTopology(mris);
 }
 
 
@@ -999,8 +1002,7 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
     vdst->ripflag = 0;
     vdst->marked = 0;
     //vertices
-    if (vdstt->v) free(vdstt->v);
-    vdstt->v=NULL;
+    freeAndNULL(vdstt->v);
     vdstt->v = (int*)calloc(vsrc->vnum , sizeof(int));
     for (int p = 0 ; p < vsrc->vnum ; p++)
       vdstt->v[p]=vsrc->v[p];
@@ -1030,6 +1032,8 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
     fdst->v[2]=fsrc->v[2];
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   MRIScomputeNormals(mris);
   MRIScomputeTriangleProperties(mris);
   MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);

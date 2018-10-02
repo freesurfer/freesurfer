@@ -132,7 +132,7 @@ typedef struct edge_type_
 #if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
 #define CONST_EXCEPT_MRISURF_TOPOLOGY 
 #else
-#define CONST_EXCEPT_MRISURF_TOPOLOGY // NYI const
+#define CONST_EXCEPT_MRISURF_TOPOLOGY const
 #endif
     //
     // Used to find and control where various fields are written
@@ -192,18 +192,18 @@ face_type, FACE ;
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
   /* put the pointers before the ints, before the shorts, before uchars, to reduce size  */ \
   /* the whole fits in much less than one cache line, so further ordering is no use      */ \
-  ELTP(int,f) SEP                                       /* array[v->num] the fno's of the neighboring faces     */ \
-  ELTP(uchar,n) SEP           	                        /* array[v->num] the face.v[*] index for this vertex    */ \
-  ELTP(int,e) SEP                                       /* edge state for neighboring vertices                  */ \
-  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP               /* array[v->vtotal] of sorted by hops neighbor vno      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)              /* number of 1-hop neighbots                            */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP         /* number of 1, or 2-hop neighbors                      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP         /* number of 1,2,or 3-hop neighbors                     */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP        /* total # of neighbors. copy of vnum.nsize             */ \
-  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP /* copy of mris->nsizeMaxClock when v#num               */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP      /* the max nsize that was used to fill in vnum etc      */ \
-  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP      /* index of the current v#num in vtotal                 */ \
-  ELTT(uchar,num) SEP                                   /* number of neighboring faces                          */ \
+  ELTP(int,f) SEP                                               /* array[v->num] the fno's of the neighboring faces         */ \
+  ELTP(uchar,n) SEP           	                                /* array[v->num] the face.v[*] index for this vertex        */ \
+  ELTP(int,e) SEP                                               /* edge state for neighboring vertices                      */ \
+  ELTP(CONST_EXCEPT_MRISURF_TOPOLOGY int,v) SEP                 /* array[v->vtotal or more] of vno, head sorted by hops     */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vnum)                /* number of 1-hop neighbots                                */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v2num) SEP           /* number of 1, or 2-hop neighbors                          */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,v3num) SEP           /* number of 1,2,or 3-hop neighbors                         */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY short,vtotal) SEP          /* total # of neighbors. copy of vnum.nsizeCur              */ \
+  ELTX(CONST_EXCEPT_MRISURF_TOPOLOGY short,nsizeMaxClock) SEP   /* copy of mris->nsizeMaxClock when v#num                   */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeMax) SEP        /* the max nsize that was used to fill in vnum etc          */ \
+  ELTT(CONST_EXCEPT_MRISURF_TOPOLOGY uchar,nsizeCur) SEP        /* index of the current v#num in vtotal                     */ \
+  ELTT(uchar,num) SEP                                           /* number of neighboring faces                              */ \
   // end of macro
 
 
@@ -649,22 +649,68 @@ void MRISfree(MRIS **pmris) ;
 void MRISreallocVerticesAndFaces(MRI_SURFACE *mris, int nvertices, int nfaces) ;
     //
     // Used by code that is deforming the surface
+
+// The following create a copy of a surface, whilest deleteing some vertices and some faces
+// The faces that are kept must not reference any vertices which are not kept.
+// There is a function to help generate such a mapping...
+//
+MRIS* MRIScreateWithSimilarTopologyAsSubset(
+    MRIS_const * src,
+    size_t       nvertices,     // the mapToDstVno entries must each be less than this
+    int const*   mapToDstVno,   // src->nvertices entries, with the entries being -1 (vertex should be ignored) or the vno within the dst surface the face maps to
+    size_t       nfaces,        // the mapToDstFno entries must each be less than this
+    int const*   mapToDstFno);  // src->nfaces entries, with the entries being -1 (face should be ignored) or the fno within the dst surface the face maps to
+    //
+    // Used to extract some of the vertices, some of the faces, and to renumber them.
+    // mrisurf_deform uses this for several purposes.
+
+MRIS* MRIScreateWithSimilarXYZAsSubset(
+    MRIS_const * src,
+    size_t       nvertices,     // the mapToDstVno entries must each be less than this
+    int const*   mapToDstVno,   // src->nvertices entries, with the entries being -1 (vertex should be ignored) or the vno within the dst surface the face maps to
+    size_t       nfaces,        // the mapToDstFno entries must each be less than this
+    int const*   mapToDstFno);  // src->nfaces entries, with the entries being -1 (face should be ignored) or the fno within the dst surface the face maps to
+
+MRIS* MRIScreateWithSimilarPropertiesAsSubset(
+    MRIS_const * src,
+    size_t       nvertices,     // the mapToDstVno entries must each be less than this
+    int const*   mapToDstVno,   // src->nvertices entries, with the entries being -1 (vertex should be ignored) or the vno within the dst surface the face maps to
+    size_t       nfaces,        // the mapToDstFno entries must each be less than this
+    int const*   mapToDstFno);  // src->nfaces entries, with the entries being -1 (face should be ignored) or the fno within the dst surface the face maps to
+
+void MRIScreateSimilarTopologyMapsForNonripped(
+    MRIS_const * src,
+    size_t     * pnvertices,     // the mapToDstVno entries must each be less than this
+    int const* * pmapToDstVno,   // src->nvertices entries, with the entries being -1 (vertex should be ignored) or the vno within the dst surface the face maps to
+    size_t     * pnfaces,        // the mapToDstFno entries must each be less than this
+    int const* * pmapToDstFno);  // src->nfaces entries, with the entries being -1 (face should be ignored) or the fno within the dst surface the face maps to
+    // The caller should free the * pmapToDstVno and * pmapToDstFno
+
+// There are various fields in the VERTEX and FACE and others that are used for many purposes at different
+// times, and clashing uses could cause a big problem.  Start working towards a reservation system.
+//
 typedef enum MRIS_TempAssigned {
     MRIS_TempAssigned_Vertex_marked,
     MRIS_TempAssigned_Vertex_marked2,
     MRIS_TempAssigned__end
 } MRIS_TempAssigned;
+
 int  MRIS_acquireTemp      (MRIS* mris, MRIS_TempAssigned temp);                               // save the result to use later to ...
 void MRIS_checkAcquiredTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_result);  // ... check that you own it
 void MRIS_releaseTemp      (MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_result);  // ... be allowed to release it
+
+
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
 void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
+
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
 typedef struct {
     unsigned long hash;
 } MRIS_HASH;
+
+void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno);
 
 void mris_hash_init (MRIS_HASH* hash, MRIS const * mris);
 void mris_hash_add  (MRIS_HASH* hash, MRIS const * mris);
@@ -1874,7 +1920,7 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,
 MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
-MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, 
+MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI *mri, 
    MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, char *defectbasename);
 
 int MRISsmoothOnSphere(MRIS* mris, int niters);
@@ -2638,9 +2684,16 @@ bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * m
 int mrisVertexVSize                 (MRIS const * mris, int vno);
 static int  mrisVertexNeighborIndex (MRIS const * mris, int vno1, int vno2);
 static bool mrisVerticesAreNeighbors(MRIS const * mris, int vno1, int vno2);
+
+void mrisAddEdge   (MRIS* mris, int vno1, int vno2);
+void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
+
 // Neighbourhoods
 //
 #define MAX_NEIGHBORS (400)
+void mrisVertexReplacingNeighbors(MRIS const * mris, int vno, int vnum);
+void mrisForgetNeighborhoods     (MRIS const * mris);
+
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, int *vlist);
@@ -2648,8 +2701,28 @@ void mrisFindNeighbors              (MRIS *mris);
 
 //  Faces
 //
+void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno);
+    // is being used outside mrissurf_topology but shouldn't be
+    
+void setFaceAttachmentDeferred(MRIS* mris, bool to);                                // for performance reasons, defer adding them; or do all the deferred ones
+void mrisAttachFaceToEdges   (MRIS* mris, int fno, int vno1, int vno2, int vno3);   // edges must already exist
+void mrisAttachFaceToVertices(MRIS* mris, int fno, int vno1, int vno2, int vno3);   // adds any needed edges
+
 void  MRISflipFaceAroundV1(MRIS *mris, int fno);
 void  MRISreverseFaceOrder(MRIS *mris);
+
+
+// Adding missing parts of the topology representation
+//
+void mrisCompleteTopology(MRIS *mris);
+    //
+    // The best way to build a tesselation is to simply create all the vertices then ...
+    //      setFaceAttachmentDeferred(true)
+    //      lots of calls to mrisAttachFaceToVertices()  
+    //      setFaceAttachmentDeferred(false)
+    //
+    // However lots of existing code just adds a misc set of edges and faces by mechanisms
+    // then they call this function to add any missing edges and to calculate the mris->avg_nbrs
 
 // Marked
 //

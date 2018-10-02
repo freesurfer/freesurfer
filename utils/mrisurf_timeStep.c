@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities operating on Original
  *
@@ -1940,6 +1941,8 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
     }
   }
 
+  mrisCheckVertexFaceTopology(surf);
+  
   getVolGeom(mri, &(surf->vg));
   mrisFindNeighbors(surf);
   MRIScomputeMetricProperties(surf);

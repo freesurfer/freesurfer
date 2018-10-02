@@ -51,14 +51,15 @@ typedef struct
 }
 ICOSAHEDRON ;
 
-MRI_SURFACE *ic642_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic42_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic40962_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic10242_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic162_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
+MRI_SURFACE *ic642_make_surface     (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic42_make_surface      (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic40962_make_surface   (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic10242_make_surface   (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic2562_make_surface    (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic162_make_surface     (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic163842_make_surface  (int max_vertices, int max_faces) ;
+MRI_SURFACE *ic12_make_surface      (int max_vertices, int max_faces) ;
+
 MRI_SURFACE *ICOread(const char *fname) ;
 MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over) ;
 int          ICOreadVertexPositions(MRI_SURFACE *mris, 
@@ -74,9 +75,9 @@ int          IcoNVtxsFromOrder(int IcoOrder);
 #define ICO0_NVERTICES    12
 
 extern IC_VERTEX ic2562_vertices[] ;
-extern IC_FACE   ic2562_faces[] ;
+extern IC_FACE   ic2562_faces   [] ;
 extern IC_VERTEX ic0_vertices[12] ;
-extern IC_FACE ic0_faces[20] ;
+extern IC_FACE   ic0_faces   [20] ;
 
 
 // version of ic2562 used for testing mrishash.c, contributed by G. Wideman
@@ -107,6 +108,9 @@ typedef struct
 
 ICO_PYRAMID *ICPread(int min_level, int max_level) ;
 int          ICPfree(ICP **picp) ;
+
+
+MRIS* ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces);
 
 #endif
 

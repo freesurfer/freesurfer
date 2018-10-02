@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
@@ -358,6 +359,7 @@ int decimateSurface(MRI_SURFACE **pmris,
 	faceLoadContext.nextFace = 0;
   gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, (gpointer)&faceLoadContext);
 
+  mrisCheckVertexFaceTopology(mris);
 
   if (decimateProgressFn != NULL)
   {

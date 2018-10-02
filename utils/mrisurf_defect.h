@@ -71,31 +71,37 @@ typedef struct
 
 } DEFECT_PATCH, DP;
 
+
 typedef struct
 {
-  int vno;  /* vertex # in surface */
-  int vnum; /* original # of 1 neighbors */
+  int vno;                          // vertex # in surface
+  
+  // copied from VERTEX (malloc used for pointers)
+  unsigned char nsizeMax,nsizeCur;
+  int vnum,v2num,v3num;
   int vtotal;
-  int *v; /* list of original neighbors */
-
+  int *v;
   float origx, origy, origz;
+  float nx, ny, nz; 
+  int *f;
+  uchar *n;
+  uchar num;
 
-  float nx, ny, nz; /* curr normal */
-  int *f;           /* list of original faces */
-  uchar *n;         /* list of original vertex position */
-  uchar num;        /* original number of faces */
-
+  // A hash that can be checked after restore to test for other changes
+  //
+  MRIS_HASH  hash;
 } VERTEX_STATE, VS;
+
 
 typedef struct
 {
   DEFECT *defect;
   VERTEX_STATE *vs;
   int nvertices;
-  int *vertex_trans; /* not allocated -
-                        pointer to preexisting table */
+  int *vertex_trans; /* not allocated - pointer to preexisting table */
   int nfaces;        /* number of used faces before retessellation */
 } DEFECT_VERTEX_STATE, DVS;
+
 
 /* this structure is used in the VERTEX structure (*vp) */
 typedef struct

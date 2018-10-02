@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  gw_utils.c
  * @brief miscellaneous utility functions contributed by Graham Wideman
@@ -164,6 +165,8 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   //---------------------------------------------
   // Final housekeeping
   //---------------------------------------------
+  mrisCheckVertexFaceTopology(mris);
+
   MRIScomputeMetricProperties(mris);
 
   mris->type = MRIS_ICO_SURFACE;

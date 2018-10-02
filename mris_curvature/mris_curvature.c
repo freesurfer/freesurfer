@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mris_curvature.c
  * @brief program for computing various curvature metrics of a surface
@@ -590,6 +591,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
     }
 
     cheapAssert(vt->nsizeCur == vt->nsizeMax);
+
     nbhd = vt->nsizeCur+1 ;
     nbrs = vt->vtotal ;
     do
@@ -644,5 +646,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
     }
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   return(NO_ERROR) ;
 }
