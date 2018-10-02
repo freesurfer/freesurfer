@@ -416,10 +416,10 @@ int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh,
   for (fno = 0; fno < mris_dst->nfaces; fno++)
   {
     mesh->GetCellPoints(fno, pointIdList);
-    mrisAttachFaceToVertices(fno, pointIdList->GetId(0), pointIdList->GetId(1), pointIdList->GetId(2));
+    mrisAttachFaceToVertices(mris_dst, fno, pointIdList->GetId(0), pointIdList->GetId(1), pointIdList->GetId(2));
   }
 
-  setFaceAttachmentDeferred(false);
+  setFaceAttachmentDeferred(mris_dst, false);
     // finish all the work needed to have the topology of the surface fully defined
 
   return 0;
