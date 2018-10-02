@@ -326,11 +326,7 @@ CopyGcamToDeltaField(GCA_MORPH* gcam, MRI* field)
 
   GMN* pnode = NULL;
 
-  // currently bug in transform.c - names are swapped
-  //MATRIX* v2r_atlas = VGgetVoxelToRasXform( &gcam->atlas, NULL, 0);
-  //MATRIX* r2v_image = VGgetRasToVoxelXform( &gcam->image, NULL, 0);
-  MATRIX* v2r_atlas = VGgetRasToVoxelXform( &gcam->atlas, NULL, 0);
-  //MATRIX* r2v_image = VGgetVoxelToRasXform( &gcam->image, NULL, 0);
+  MATRIX* v2r_atlas = VGgetVoxelToRasXform( &gcam->atlas, NULL, 0);
   MATRIX* r2v_image = extract_r_to_i( field );
   MATRIX* transform = MatrixMultiply( r2v_image, v2r_atlas, NULL);
 
