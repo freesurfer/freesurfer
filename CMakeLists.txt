@@ -383,7 +383,6 @@ add_subdirectories(
   mri_compute_overlap
   mri_compute_seg_overlap
   mri_concat
-  mri_concatenate_gcam
   mri_concatenate_lta
   mri_convert
   mri_coreg
@@ -508,6 +507,7 @@ if(NOT MINIMAL)
     mri_compute_change_map
     mri_compute_structure_transforms
     mri_compute_volume_fractions
+    mri_concatenate_gcam
     mri_convert_mdh
     mri_copy_values
     mri_cor2label
