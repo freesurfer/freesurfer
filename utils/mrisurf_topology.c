@@ -893,11 +893,12 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   int neighborCount = 0;
 
   cheapAssert(vt->nsizeMax > 0);
-  int ringLinks = 1;
 
-  // add the known rings
+  // add the known rings, 
+  // during this loop ringLinks is the ring being added
   //
-  for (ringLinks = 1; ringLinks <= nsize && ringLinks <= nlinks; ringLinks++) {
+  int ringLinks;
+  for (ringLinks = 1; ringLinks < nsize && ringLinks <= nlinks; ringLinks++) {
   
     int ringBegin = vnums[ringLinks-1];
     int ringEnd   = vnums[ringLinks  ];
@@ -924,20 +925,24 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
       neighborCount++;
     }
   }
-  vnums[ringLinks] = neighborCount;
+  
+  // ringLinks is the first ring to be added, which will be 2 or more because 1
+  // is the immediate neighbors.
+  //
+  cheapAssert(ringLinks >= 2);
   
   // compute the new rings
   //
   for (; ringLinks <= nlinks; ringLinks++) {
-
-    int ringBegin = vnums[ringLinks-1];
-    int ringEnd   = vnums[ringLinks  ];
+    //
+    int knownRingBegin = vnums[ringLinks-2];
+    int knownRingEnd   = vnums[ringLinks-1];
     
     // Scan all the vertexs in the current border ring
     // Add their immediate neighbors that are further away
     //
     int i;        
-    for (i = ringBegin; i < ringEnd; i++) {
+    for (i = knownRingBegin; i < knownRingEnd; i++) {
       int                     const vnoRing = vlist[i];
       VERTEX_TOPOLOGY const * const vtRing  = &mris->vertices_topology[vnoRing];
           
@@ -989,7 +994,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   temp->status[vno] = Status_notInSet;
   int i;
   for (i = 0; i < neighborCount; i++) {
-    temp->status[vnums[i]] = Status_notInSet;
+    temp->status[vlist[i]] = Status_notInSet;
   }
   
   // Done
@@ -1057,7 +1062,9 @@ static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t
   
   for (n = 0; n < vtotal; n++) {
     hops[n] = mris->vertices[vlist[n]].marked;
+    mris->vertices[vlist[n]].marked = 0;
   }
+  mris->vertices[vno].marked = 0;
   
   return (vtotal);
 }
