@@ -58,17 +58,25 @@ typedef  itk::Image< double,3> ImageType;
 typedef ImageType::IndexType IndexType;
 typedef LabelPerPointVariableLengthVector<float, MeshType> MeasurementVectorType;	
 typedef LabelsEntropyAndIntersectionMembershipFunction<MeasurementVectorType>  MembershipFunctionType;	
+
+
+static 	std::string left = "Left";
+static	std::string right = "Right";
+static 	std::string left2 = "lh";
+static	std::string right2 = "rh";
+
+COLOR_TABLE *ct=NULL;
+
 int SymmetricLabelId(int id)
 {
-	std::string left = "Left";
-	std::string right = "Right";
 
-	COLOR_TABLE *ct;
-
-	FSENV *fsenv = FSENVgetenv();
-	char tmpstr[2000];	
-	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
-	ct = CTABreadASCII(tmpstr);
+	if( ct == NULL)
+	{
+		FSENV *fsenv = FSENVgetenv();
+		char tmpstr[2000];	
+		sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+		ct = CTABreadASCII(tmpstr);
+	}
 
 	std::string str = std::string(ct->entries[id]->name);
 	int symId = id;
@@ -77,7 +85,27 @@ int SymmetricLabelId(int id)
 		char* hola= (char*)str.replace(str.find(left),left.length(), right).c_str();
 		symId = CTABentryNameToIndex(hola, ct); 
 		//std::cout << sval << std::endl;
+	}else if( str.find(left2) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(left2),left2.length(), right2).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+
+	} else	if( str.find(right) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(right),right.length(), left).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+		//std::cout << sval << std::endl;
+	}else if( str.find(right2) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(right2),right2.length(), left2).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+
 	}
+
+	/*if( id == symId && id!=0 && id !=5001 && id != 5002)
+	{
+		std::cout << "label " << id << std::endl;
+	}*/
 	return  symId;
 }
 std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes)
@@ -153,7 +181,9 @@ std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType:
 				if (symmetry)	
 				{
 					label= SymmetricLabelId(labelOrig);
+//					std::cout << " labeled " << labelOrig  << " mirrowed label " << label << std::endl;
 				} 
+
 				pointData->push_back(label);
 
 
