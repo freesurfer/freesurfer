@@ -14822,7 +14822,7 @@ int MRISzeroMedialWallCurvature(MRI_SURFACE *mris)
 
 void UpdateMRIS(MRI_SURFACE *mris, const char *fname)
 {
-  mrisFindNeighbors(mris);
+  mrisCompleteTopology(mris);
   mrisComputeVertexDistances(mris);
   if (fname) {
     mrisReadTransform(mris, fname);

@@ -2674,7 +2674,6 @@ MRIS *MRISsortVertices(MRIS *mris0);
 //
 #define mrisCheckVertexVertexTopology(_MRIS) true // && mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
 #define mrisCheckVertexFaceTopology(_MRIS)   true // && mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
-
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
                                             // includes a mrisCheckVertexVertexTopology check
@@ -2696,8 +2695,12 @@ void mrisForgetNeighborhoods     (MRIS const * mris);
 
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
-int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, int *vlist);
-void mrisFindNeighbors              (MRIS *mris);
+
+#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
+int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
+    // sets vlist[*] to the neighboring vno
+    // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist
+    // returns the number of neighbors
 
 //  Faces
 //

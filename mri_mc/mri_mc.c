@@ -380,12 +380,6 @@ void reallocateFaces(tesselation_parms *parms) {
 }
 
 
-int mrisFindNeighbors2(MRI_SURFACE *mris) {
-  mrisCompleteTopology(mris);
-  return(NO_ERROR) ;
-}
-
-
 int saveTesselation2(tesselation_parms *parms) {
   int vno,m,n,fno;
   int pct_over=1;
@@ -512,7 +506,7 @@ int saveTesselation2(tesselation_parms *parms) {
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
 
-  mrisFindNeighbors2(mris);
+  mrisCompleteTopology(mris);
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/

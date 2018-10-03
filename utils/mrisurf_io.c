@@ -4314,7 +4314,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   mris->xctr = (xhi + xlo) / 2;
   mris->yctr = (yhi + ylo) / 2;
   mris->zctr = (zhi + zlo) / 2;
-  mrisFindNeighbors(mris);
+  mrisCompleteTopology(mris);
   
   mrisCheckVertexFaceTopology(mris);
   
