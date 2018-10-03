@@ -61,6 +61,8 @@ static int out_label = -1 ;
 
 static int isSeg  = 0;
 
+static int do_summary  = 1;
+
 #define MAX_STRINGS 100
 static char *strings[MAX_STRINGS] ;
 static int nstrings = 0 ;
@@ -284,6 +286,7 @@ main(int argc, char *argv[]) {
       fclose(log_fp) ;
   }
 
+  if (do_summary) {
   if (nlabels > 1) {
     nvox_mean = (total_nvox1 + total_nvox2) / 2 ;
     printf("total: volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f%%\n",
@@ -298,7 +301,8 @@ main(int argc, char *argv[]) {
     printf("total: volume overlap (Jaccard) = %d / %2.1f (%%)= %2.2f%%\n",
 	   total_nshared, total_nunion, 100.0f*tmp) ;
     }
-  
+  }
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -336,6 +340,11 @@ get_option(int argc, char *argv[]) {
   {
     total_flag = 1 ;
     fprintf(stderr, "computing total # of matching voxels of any label\n") ;
+  }
+  else if (stricmp(option, "nosummary") == 0)
+  {
+    do_summary = 0 ;
+    fprintf(stderr, "not computing total label summary\n") ;
   }
   else if (stricmp(option, "string") == 0)
   {
@@ -398,6 +407,7 @@ usage_exit(int code) {
   printf("  -a\t\tcompute overlap of all labels (if missing, labels of interest should be listed)\n");
   printf("  -s\t\tshow label name for segmentation\n");
   printf("  -total\tcompute the total overlap (# of voxels that are the same)\n");
+  printf("  -nosummary\tnot computing total label summary\n");
   printf("  -mask <vol>\tlimit the domain of the calculation to the nonzero voxels in <vol>\n");
 
   printf("  -l <fname>\tfilename to write results to\n");
