@@ -2,10 +2,11 @@ import os
 import scipy.io
 import scipy.ndimage
 import numpy as np
+
 import freesurfer as fs
 import freesurfer.gems as gems
 
-from .utilities import require_np_array
+from .utilities import requireNumpyArray
 from .lta import LTA, MRI
 from .figures import initVisualizer
 
@@ -18,7 +19,6 @@ def registerAtlas(
         visualizer=None,
         worldToWorldTransformMatrix=None,
         initLTAFile=None,
-        checkpoint_manager=None
     ):
 
     # ------ Setup ------
@@ -30,18 +30,18 @@ def registerAtlas(
     templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
     basepath, templateFileNameExtension = os.path.splitext(templateFileName)
     templateFileNameBase = os.path.basename(basepath)
+    costs = []
 
     # Setup null visualization if necessary
     if visualizer is None: visualizer = initVisualizer(False, False)
-
 
     # ------ Register Image ------
 
     if worldToWorldTransformMatrix is not None:
         # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image 
         # transform (needed for subsequent computations) and be done
-        print('world-to-world transfrom supplied - skipping registration')
-        imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
+        print('world-to-world transform supplied - skipping registration')
+        imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
     else:
         # The solution is not externally (secretly) given, so we need to compute it.
         print('performing affine atlas registration')
@@ -101,19 +101,19 @@ def registerAtlas(
         mesh_collection = gems.KvlMeshCollection()
         mesh_collection.read(meshCollectionFileName)
         mesh_collection.k = K * np.prod(downSamplingFactors)
-        mesh_collection.transform(gems.KvlTransform(require_np_array(initialImageToImageTransformMatrix)))
+        mesh_collection.transform(gems.KvlTransform(requireNumpyArray(initialImageToImageTransformMatrix)))
         mesh = mesh_collection.reference_mesh
         
         # Get image data
         imageBuffer = image.getImageBuffer()
         visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
-        
+
         # Downsample
         imageBuffer = imageBuffer[
                       ::int(downSamplingFactors[0]),
                       ::int(downSamplingFactors[1]),
                       ::int(downSamplingFactors[2])]
-        image = gems.KvlImage(require_np_array(imageBuffer))
+        image = gems.KvlImage(requireNumpyArray(imageBuffer))
         mesh.scale(1 / downSamplingFactors)
         alphas = mesh.alphas
         gmClassNumber = 3  # Needed for displaying purposes
@@ -154,7 +154,6 @@ def registerAtlas(
         numberOfIterations = 0
         minLogLikelihoodTimesPriors = []
         maximalDeformations = []
-        costs = []
         gradients = []
         visualizer.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
         while True:
@@ -200,17 +199,12 @@ def registerAtlas(
     print('writing talairach transform to %s' % ltaFileName)
     lta.write(ltaFileName)
 
-    # Save the coregistered template. For historical reasons, we applied the estimated
-    # transformation to the template... let's do that now
+    # Save the coregistered template. For historical reasons, we applied the estimated transformation to the template... let's do that now
     desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
     transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
     template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
 
     return worldToWorldTransformMatrix, transformedTemplateFileName
-
-
-def require_np_array(np_array):
-    return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
 
 def computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix):

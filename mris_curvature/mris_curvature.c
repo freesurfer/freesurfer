@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mris_curvature.c
  * @brief program for computing various curvature metrics of a surface
@@ -152,7 +153,7 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
 
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   if (nbhd_size > 0)
   {
@@ -589,7 +590,9 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
       vlist[n] = vt->v[n] ;
     }
 
-    nbhd = vt->nsize+1 ;
+    cheapAssert(vt->nsizeCur == vt->nsizeMax);
+
+    nbhd = vt->nsizeCur+1 ;
     nbrs = vt->vtotal ;
     do
     {
@@ -643,5 +646,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
     }
   }
 
+  mrisCheckVertexFaceTopology(mris);
+  
   return(NO_ERROR) ;
 }

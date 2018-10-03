@@ -181,9 +181,6 @@ static int closeEnough(float a, float b) {
 }
 
 
-int mrisCheckSurfaceNbrs(MRI_SURFACE *mris);
-
-
 static int project_point_onto_sphere(float cx, float cy, float cz, float radius, float *pcx, float *pcy, float *pcz)
 {
   float x2, y2, z2, d, dist, dx, dy, dz;
@@ -210,7 +207,7 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
 // mostly for diagnostics
 #define MAXVERTICES 10000000
 #define MAXFACES (2 * MAXVERTICES)
-#define MAX_NBHD_VERTICES 20000
+#define MAX_NBHD_VERTICES 20000     // must fit in short because VERTEX.vnum etc are short
 
 
 // uncomment this to expose code which shows timings of gpu activities:
@@ -324,44 +321,40 @@ extern double NEG_AREA_K;
 /* limit the size of the ratio so that the exp() doesn't explode */
 #define MAX_NEG_RATIO (400 / NEG_AREA_K)
 
-VOXEL_LIST **vlst_alloc(MRI_SURFACE *mris, int max_vox);
-int vlst_free(MRI_SURFACE *mris, VOXEL_LIST ***pvl);
-int vlst_enough_data(MRI_SURFACE *mris, int vno, VOXEL_LIST *vl, double displacement);
+VOXEL_LIST **vlst_alloc(MRIS *mris, int max_vox);
+int vlst_free(MRIS *mris, VOXEL_LIST ***pvl);
+int vlst_enough_data(MRIS *mris, int vno, VOXEL_LIST *vl, double displacement);
 int vlst_add_to_list(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst);
 
-int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2);
+int edgesIntersect(MRIS *mris, EDGE *edge1, EDGE *edge2);
 
-int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3]);
-int load_triangle_vertices     (MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3], int which);
+int load_orig_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3]);
+int load_triangle_vertices     (MRIS *mris, int fno, double U0[3], double U1[3], double U2[3], int which);
 
 int mrisDirectionTriangleIntersection(
-    MRI_SURFACE *mris, float x0, float y0, float z0, float nx, float ny, float nz, MHT *mht, double *pdist, int vno);
+    MRIS *mris, float x0, float y0, float z0, float nx, float ny, float nz, MHT *mht, double *pdist, int vno);
 int mrisAllNormalDirectionCurrentTriangleIntersections(
-    MRI_SURFACE *mris, VERTEX *v, MHT *mht, double *pdist, int *flist);
+    MRIS *mris, VERTEX *v, MHT *mht, double *pdist, int *flist);
 
-int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
-int mrisWriteSnapshot (MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
+void mrisDumpShape(FILE* file, MRIS const * mris);
+
+int mrisWriteSnapshots(MRIS *mris, INTEGRATION_PARMS *parms, int t);
+int mrisWriteSnapshot (MRIS *mris, INTEGRATION_PARMS *parms, int t);
     // not yet moved there, because saves and restores vertices
-
-#define MAX_4_NEIGHBORS 100
-#define MAX_3_NEIGHBORS 70
-#define MAX_2_NEIGHBORS 20
-#define MAX_1_NEIGHBORS 8
-#define MAX_NEIGHBORS (10000)
 
 extern const float * sigmas;
 extern       double nsigmas;
 
-bool MRISreallocVertices            (MRI_SURFACE* mris, int max_vertices, int nvertices);
-void MRISgrowNVertices              (MRI_SURFACE* mris, int nvertices);
-void MRIStruncateNVertices          (MRI_SURFACE* mris, int nvertices);
-void MRISremovedVertices            (MRI_SURFACE* mris, int nvertices);
-bool MRISreallocFaces               (MRI_SURFACE* mris, int max_faces, int nfaces);
-bool MRISallocateFaces              (MRI_SURFACE* mris, int nfaces);
-void MRISgrowNFaces                 (MRI_SURFACE* mris, int nfaces);
-void MRIStruncateNFaces             (MRI_SURFACE* mris, int nfaces);
-void MRISremovedFaces               (MRI_SURFACE* mris, int nfaces);
-void MRISoverAllocVerticesAndFaces  (MRI_SURFACE* mris, int max_vertices, int max_faces, int nvertices, int nfaces);
+bool MRISreallocVertices            (MRIS* mris, int max_vertices, int nvertices);
+void MRISgrowNVertices              (MRIS* mris, int nvertices);
+void MRIStruncateNVertices          (MRIS* mris, int nvertices);
+void MRISremovedVertices            (MRIS* mris, int nvertices);
+bool MRISreallocFaces               (MRIS* mris, int max_faces, int nfaces);
+bool MRISallocateFaces              (MRIS* mris, int nfaces);
+void MRISgrowNFaces                 (MRIS* mris, int nfaces);
+void MRIStruncateNFaces             (MRIS* mris, int nfaces);
+void MRISremovedFaces               (MRIS* mris, int nfaces);
+void MRISoverAllocVerticesAndFaces  (MRIS* mris, int max_vertices, int max_faces, int nvertices, int nfaces);
 
 void insertActiveRealmTree(MRIS const * const mris, RealmTree* realmTree, GetXYZ_FunctionType getXYZ);
 void removeActiveRealmTree(RealmTree* realmTree);
@@ -370,7 +363,6 @@ extern int noteVnoMovedInActiveRealmTreesCount;
 void noteVnoMovedInActiveRealmTrees              (MRIS const * const mris, int vno);
 void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 
-extern char *mrisurf_surface_names[3];
-extern char *curvature_names[3];
-int MRISsetCurvatureName(int nth, char *name);
+extern const char *mrisurf_surface_names[3];
+extern const char *curvature_names[3];
 int MRISprintCurvatureNames(FILE *fp);

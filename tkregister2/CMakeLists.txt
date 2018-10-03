@@ -11,7 +11,7 @@ install(TARGETS tkregister2_cmdl DESTINATION bin)
 if(NOT MINIMAL AND BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   if(APPLE AND NOT BUILD_OSX_TK_GUIS)
-    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/tkregister2.bin TYPE programs DESTINATION bin)
+    install_symlinks(${CMAKE_SOURCE_DIR}/distribution/osx32b/tkregister2 TYPE programs DESTINATION bin)
   else()
 
     include_directories(
@@ -21,8 +21,8 @@ if(NOT MINIMAL AND BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
       ${X11_INCLUDE_DIR}
     )
 
-    add_executable(tkregister2.bin tkregister2.c)
-    target_link_libraries(tkregister2.bin
+    add_executable(tkregister2 tkregister2.c)
+    target_link_libraries(tkregister2
       utils
       ${OPENGL_LIBRARIES}
       ${GLUT_LIBRARIES}
@@ -30,11 +30,8 @@ if(NOT MINIMAL AND BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
       ${TCLTKTIXBLT_LIBRARIES}
     )
 
-    install(TARGETS  tkregister2.bin DESTINATION tktools)
+    install(TARGETS tkregister2 DESTINATION bin)
 
   endif()
-
-  install(PROGRAMS tkregister2_wrapper DESTINATION bin RENAME tkregister2)
-  install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister2)
 
 endif()

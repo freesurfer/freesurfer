@@ -1,19 +1,24 @@
 #! /bin/tcsh -f
 
-#
 # recon-all.v6.hires - modification of the v6.0 recon-all to better
-# handle hires and T2 surface placement. There are four main
-# modifications (search for MOD below).  (1) the tessellation is done
-# in 1mm/conformed space to create the orig.nofix.  If done in hires
-# space, then there are lots of defects, and the topofixer sometimes
-# cuts off a gyrus. (2) The default parameters for mris_make_surfaces
-# when creating the pial were changed; the xopts call for this
-# particular mris_make_surfaces has been modified so that parameters
-# for this call can be specified independently from other
-# mris_make_surfaces calls. (3) cubic interpolation is forced when
-# applying the BBR registration to the T2/FLAIR. (4) The T2 is
-# globally normalized so that the mean in WM is 57. 
+# handle hires and T2 surface placement and accomodate HCP. These
+# changes include: (1) adding ability to specify a mask for
+# mri_em_register, (2) surface decimation with -hires to reduce the
+# number of faces/vertices to that of a 1mm scan (tessellation is done
+# at hires, then the surface is downsampled rather than tessllating at
+# 1mm), (3) uses cubic interpolation when sampling the T2 to the
+# orig.mgz space, (4) 255 and manual deletions are transferred from
+# the brainmask when masking the T2 (5) xopts for mris_make_surfaces
+# during T2 placement is now keyed by the string
+# mris_make_surfaces.t2flair.pial so that customized options for T2
+# placement can be used. In the previous version of this script, only
+# global intensity normalization was used.  In this version, the
+# normalization has been reverted back to the standard bias
+# correction.
 
+#
+# recon-all
+#
 # script to run all of the reconstruction routines
 #
 # Original Author: Doug Greve
@@ -207,8 +212,17 @@ set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
+
 set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
 set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
+
+# MOD: Desired average face area of orig.nofix after decimation. This is
+# set to 0.5 by default because this is the value for the orig.nofix
+# 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
+# or for high res data. Decimation will have no effect if the average
+# face area is already => DecimationFaceArea.
+set DecimationFaceArea = 0.5;
+set DoDecimation = 0;
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
 # various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
@@ -1316,6 +1330,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   touch $touchdir/base.touch
 endif
 
+
 #-----------             -------------#
 ##---------- AUTORECON 1 -------------#
 #-----------             -------------#
@@ -1673,7 +1688,6 @@ if($DoMotionCor) then
   endif
 
 endif # Motion Correction
-
 
 # MOD: this takes the externally supplied mask and resamples it into the
 # orig space so that it can be used with mri_em_register
@@ -3149,92 +3163,69 @@ endif
 ##---------------  -tessellate -------------------#
 #----------------              -------------------#
 if($DoTessellate && ( ! $longitudinal )) then
-  cd $subjdir/scripts > /dev/null
+  # no need to run hemis in parallel, as this already runs in seconds
+  foreach hemi ($hemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Tessellate $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
 
-  # check whether input is conformed
-  set cmd = (mri_info --conformed --o /tmp/recon-all.v6.hires.$$.isconf ../mri/orig.mgz)
-  $PWD |& tee -a $LF |& tee -a $CF
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
+    if($hemi == "lh") then
+      set hemivalue = 255;
+    else
+      set hemivalue = 127;
+    endif
 
-  # MOD: this section of code was added to detmine whether the analysis is being
-  # done in conformed 1mm space or a high-res space. If high-res, then the
-  # tesselation is done differently
-  set isconfyn = `cat /tmp/recon-all.v6.hires.$$.isconf | head -n 1`
-  if($isconfyn == "yes") set isconf = 1;
-  if($isconfyn != "yes") set isconf = 0;
-  echo "conformed $isconfyn $isconf" | tee -a $LF
-  rm -f /tmp/recon-all.v6.hires.$$.isconf
+    # necessary second pretess, per f.segonne
+    set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
+    if($NoNormMGZ) then
+      set norm_vol = brain.mgz
+    else
+      set norm_vol = norm.mgz
+    endif
+    set cmd = (mri_pretess $xopts ../mri/filled.mgz $hemivalue \
+                ../mri/$norm_vol ../mri/filled-pretess$hemivalue.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
 
-  if($isconf) then
-    # Input is conformed, proceed normally
-    foreach hemi ($hemilist)
-      echo "#--------------------------------------------" \
-        |& tee -a $LF |& tee -a $CF
-      echo "#@# Tessellate $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      $PWD |& tee -a $LF
+    set outfile = ../surf/$hemi.orig.nofix
+    if($DoDecimation) set outfile = ../surf/$hemi.orig.nofix.predec
 
-      if($hemi == "lh") then
-        set hemivalue = 255;
-      else
-        set hemivalue = 127;
-      endif
+    set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
+    set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
+                $hemivalue $outfile)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (rm -f ../mri/filled-pretess$hemivalue.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
 
-      # necessary second pretess, per f.segonne
-      set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
-      if($NoNormMGZ) then
-        set norm_vol = brain.mgz
-      else
-        set norm_vol = norm.mgz
-      endif
-      set cmd = (mri_pretess $xopts ../mri/filled.mgz $hemivalue \
-                  ../mri/$norm_vol ../mri/filled-pretess$hemivalue.mgz)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-  
-      set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
-      set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
-                  $hemivalue ../surf/$hemi.orig.nofix)
+    # remove possible extra components, per f.segonne
+    set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
+    set cmd = (mris_extract_main_component $xopts $outfile \
+               $outfile)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # MOD. Now reducing the number of faces to match that of a 1mm scan
+    if($DoDecimation) then
+      # Reduce the number of faces such that the average face area is 0.5 (that of conformed)
+      set a = (`mri_info --res ../mri/orig.mgz`)
+      set declevel = `echo "$a[1]*$a[2]" | bc -l`; # technically only works for isotropic
+      echo "Decimation Level $declevel" | tee -a $LF
+      set cmd = (mris_decimate -d $declevel ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      set cmd = (rm -f ../mri/filled-pretess$hemivalue.mgz)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
+    endif
 
-      # remove possible extra components, per f.segonne
-      set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
-      set cmd = (mris_extract_main_component $xopts ../surf/$hemi.orig.nofix \
-                 ../surf/$hemi.orig.nofix)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-
-      echo $cmd > $touchdir/$hemi.tessellate.touch
-    end # Loop over hemilist
-  else 
-    # MOD. Input is not conformed. Generate orig.nofix using conformed
-    # 1mm volumes This reduces the number of defects and helps the
-    # topo fixer. Otherwise the fixer will tend to cut off gyri
-    foreach hemi ($hemilist)    
-      set cmd = (tess1mm --s $subjid --$hemi)
-      $PWD |& tee -a $LF |& tee -a $CF
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      # Make a symlink to the conformed surface
-      pushd $SUBJECTS_DIR/$subjid/surf
-      rm -f $hemi.orig.nofix
-      set cmd = (ln -s ../tess1mm/surf/$hemi.orig.nofix .)
-      $PWD |& tee -a $LF |& tee -a $CF
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      popd
-    end
-  endif
+    echo $cmd > $touchdir/$hemi.tessellate.touch
+  end # Loop over hemilist
 endif
 
 
@@ -4314,52 +4305,26 @@ if($DoT2pial || $DoFLAIRpial) then
     if($RunIt) $fs_time $mapcmd |& tee -a $LF
     if($status) goto error_exit;
 
-    if(0) then
-      echo "Performing standard intensity normalization, def par" |& tee -a $LF
-      # then give the T2/FLAIR a little normalizing
-      # note: pre-normalized file remains for debug, with .prenorm in name
-      # this creates ${t2flair}.norm.mgz
-      # MOD: removed -sigma 0.5 -nonmax_suppress 0 -min_dist 1 so now just
-      # uses default parameters. But this does not seem to work very well, so if(0)
-      set normcmd = (mri_normalize \
-          -aseg $mdir/aseg.presurf.mgz \
-          -surface $sdir/rh.white identity.nofile \
-          -surface $sdir/lh.white identity.nofile \
-          $mdir/${t2flair}.prenorm.mgz \
-          $mdir/${t2flair}.norm.mgz)
-      echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $normcmd |& tee -a $LF
-      if($status) goto error_exit;
-    else  
-      # MOD: performs global intesity scaling
-      set TargValue = 57; # or 110, HCP uses 57
-      echo "Performing global intensity normalization $TargValue" |& tee -a $LF
-      # Compute mean and scaling factor to make mean in WM = TargValue
-      # WM is defined as voxels in wm.mgz = 100
-      set T2prenorm = $mdir/${t2flair}.prenorm.mgz \
-      set T2meanfile = $mdir/${t2flair}.prenorm.mean.dat
-      set cmd = (mri_segstats --seg $mdir/wm.mgz --id 110 --i $T2prenorm --avgwf $T2meanfile)
-      echo $cmd | tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd | tee -a $LF
-      if($status) goto error_exit;
-      set T2mean = `cat $T2meanfile`
-      set F = `echo "$TargValue/$T2mean" | bc -l`
-      echo "T2mean = $T2mean , F = $F" | tee -a $LF
-      # Now do the global rescaling 
-      set T2gnorm = $mdir/${t2flair}.norm.mgz 
-      set cmd = (fscalc $T2prenorm mul $F -o $T2gnorm)
-      echo $cmd | tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd | tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-    # then mask the T2/FLAIR 
+    # then give the T2/FLAIR a little normalizing
+    # note: pre-normalized file remains for debug, with .prenorm in name
+    # this creates ${t2flair}.norm.mgz
+    set normcmd = (mri_normalize \
+        -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
+        -aseg $mdir/aseg.presurf.mgz \
+        -surface $sdir/rh.white identity.nofile \
+        -surface $sdir/lh.white identity.nofile \
+        $mdir/${t2flair}.prenorm.mgz \
+        $mdir/${t2flair}.norm.mgz)
+    echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $normcmd |& tee -a $LF
+    if($status) goto error_exit;
+    
+    # Mask the T2/FLAIR 
     # note: post-normalized file remains for debug, with .norm in name
-    # this creates ${t2flair}.mgz
-    # MOD: Mask with brain.finalsurfs instead
-    set maskcmd = (mri_mask \
+    # this creates ${t2flair}.mgz. MOD: added -transfer 255 -keep_mask_deletion_edits 
+    set maskcmd = (mri_mask  -transfer 255 -keep_mask_deletion_edits \
         $mdir/${t2flair}.norm.mgz \
-        $mdir/brain.finalsurfs.mgz \
+        $mdir/brainmask.mgz \
         $mdir/${t2flair}.mgz)
     echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $maskcmd |& tee -a $LF
@@ -4404,13 +4369,7 @@ if($DoT2pial || $DoFLAIRpial) then
     endif
     if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
         -nsigma_above 3 -nsigma_below 3)
-    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi)
-    # MOD: these params makes T2 pial better. Adding them after the 
-    # above settings will cause them to override
-    # set cmd = ($cmd -location 1.0  -nsigma_above 2 -nsigma_below 3) 
-    # MOD of MOD: changed location to 0.5 to smooth surface out a little
-    set cmd = ($cmd -location 0.5  -nsigma_above 2 -nsigma_below 3) 
-    set cmd = ($cmd $xopts $subjid $hemi);
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_make_surfaces_${hemi}.cmd
@@ -6264,6 +6223,14 @@ while( $#argv != 0 )
       set DoRemoveNeck = 0;
       breaksw
 
+    # MOD: Decimation is done as part of DoTessellate, forced with -hires
+    case "-decimate":
+      set DoDecimation = 1;
+      breaksw
+    case "-no-decimate":
+      set DoDecimation = 0;
+      breaksw
+
     case "-skull-lta":
       set DoSkullLTA  = 1;
       breaksw
@@ -7344,6 +7311,7 @@ while( $#argv != 0 )
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;
+      set DoDecimation = 1; # MOD: force decimation with hires
       echo "INFO: hi-res volumes are conformed to the min voxel size"
       # per testing by Natalia Zaretskaya, Mar 2015, the flags which
       # normally disable the aseg steps are no longer necessary (which

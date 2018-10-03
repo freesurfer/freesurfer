@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities operating on Original
  *
@@ -1940,8 +1941,10 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
     }
   }
 
+  mrisCheckVertexFaceTopology(surf);
+  
   getVolGeom(mri, &(surf->vg));
-  mrisFindNeighbors(surf);
+  mrisCompleteTopology(surf);
   MRIScomputeMetricProperties(surf);
 
   return (surf);
@@ -2666,7 +2669,7 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
     printf("removing compressed regions in tessellation\n");
   }
   nsize = mris->nsize;
-  MRISsetNeighborhoodSize(mris, 3);
+  MRISsetNeighborhoodSizeAndDist(mris, 3);
   MRIScomputeSecondFundamentalForm(mris);
   sprintf(fname, "uncompress%4.4d", iters);
   MRISwrite(mris, fname);
@@ -2711,7 +2714,7 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
   if (mht) {
     MHTfree(&mht);
   }
-  MRISsetNeighborhoodSize(mris, nsize);
+  MRISsetNeighborhoodSizeAndDist(mris, nsize);
   return (NO_ERROR);
 }
 

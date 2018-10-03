@@ -18,7 +18,7 @@
     <optional-flagged>
       <argument>-l, --label FILE</argument>
       <explanation>Restrict pointset to this label (must be in input surface space)</explanation>
-      <argument>-c, --ctrl 1</argument>
+      <argument>-c, --control</argument>
       <explanation>Save output in old control point format (v6 compatible)</explanation>
     </optional-flagged>
 

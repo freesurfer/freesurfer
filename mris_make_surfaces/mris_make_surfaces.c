@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
   MRISremoveIntersections(mris) ;
   
   if (pial_nbrs > 2)
-    MRISsetNeighborhoodSize(mris, pial_nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, pial_nbrs) ;
   
   if (auto_detect_stats)
   {
@@ -803,7 +803,7 @@ int main(int argc, char *argv[])
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
   if(orig_white){
@@ -1166,15 +1166,22 @@ int main(int argc, char *argv[])
       MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
       MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
       MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
-      sprintf(fname,"%s/%s/surf/%s.%s.res.%s%smgz",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s.res.%s%s.mgz", hemi, white_matter_name, output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/surf/%s.%s.res.%s%s.mgz", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+      }
       printf("Saving white value residual to %s\n",fname);
       MRIwrite(ValResid,fname);
       MRIfree(&ValResid);
     }
 
-    if(SaveTarget){
-      sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, white_matter_name,
-	      output_suffix, suffix) ;
+    if(SaveTarget) {
+      if (getenv("FS_POSIX")) {
+        sprintf(fname, "./%s.%s.target%s%s", hemi, white_matter_name, output_suffix, suffix);
+      } else {
+        sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+      }
       printf("writing white target surface to %s...\n", fname) ;
       MRISwrite(mristarget, fname) ;
     }
@@ -1184,7 +1191,11 @@ int main(int argc, char *argv[])
       printf("Averaging white surface by %d iterations\n",smoothwm);
       MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
     }
-    sprintf(fname,"%s/%s/surf/%s.%s%s%s",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
+    if (getenv("FS_POSIX")) {
+      sprintf(fname,"./%s.%s%s%s", hemi, white_matter_name, output_suffix, suffix);
+    } else {
+      sprintf(fname,"%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
+    }
     fprintf(stdout, "writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
@@ -1196,23 +1207,35 @@ int main(int argc, char *argv[])
       // Label cortex based on aseg
       lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
       if (Gdiag & DIAG_VERBOSE_ON) {
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+        if (getenv("FS_POSIX")) {
+          sprintf(fname,"./%s.%s%s%s_orig.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
 
       // Erode the label by 4
       LabelErode(lcortex, mris, 4) ;
-      if (Gdiag & DIAG_VERBOSE_ON){
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_erode.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON) {
+        if (getenv("FS_POSIX")) {
+          sprintf(fname, "./%s.%s%s%s_erode.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname, "%s/%s/label/%s.%s%s%s_erode.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
 
       // Dilate the label by 4
       LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
-      if (Gdiag & DIAG_VERBOSE_ON)      {
-        sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON) {
+        if (getenv("FS_POSIX")) {
+          sprintf(fname,"./%s.%s%s%s_dilate.label", hemi, "cortex", output_suffix, suffix);
+        } else {
+          sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
@@ -1242,7 +1265,12 @@ int main(int argc, char *argv[])
       // Get the final cortex label
       lcortex = LabelFromMarkedSurface(mris) ;
 
-      sprintf(fname,"%s/%s/label/%s.%s%s%s.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s%s%s.label", hemi, "cortex", output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+      }
+
       printf("writing cortex label to %s...\n", fname) ;
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
@@ -4701,7 +4729,7 @@ compute_white_target_locations(MRI_SURFACE *mris,
 			       int contrast_type, float T2_min_inside, float T2_max_inside, 
 			       int below_set, int above_set, double wsigma, double max_out)
 {
-  int       *vlist, vno, vnum, outer_nbhd_size = 11, inner_nbhd_size = 3, n ;
+  int       vno, vnum, outer_nbhd_size = 11, inner_nbhd_size = 3, n ;
   int       num_in, num_out ;
   VERTEX    *v, *vn ;
   double    min_grad, max_grad, min_inside, max_inside, min_outside, max_outside, sample_dist ;
@@ -4709,8 +4737,10 @@ compute_white_target_locations(MRI_SURFACE *mris,
   double    grad_val, inside_val, outside_val, xv, yv, zv, xs, ys, zs  ;
   HISTOGRAM *h_inside, *h_outside, *h_grad, *hs ;
 
-  vlist = (int *)calloc(mris->nvertices, sizeof(vlist[0])) ;
-  if (vlist == NULL)
+  int const vlistCapacity = mris->nvertices;
+  int * vlist = (int *)malloc(vlistCapacity*sizeof(vlist[0])) ;
+  int * hops  = (int *)malloc(vlistCapacity*sizeof(hops [0])) ;
+  if (!vlist|| !hops)
     ErrorExit(ERROR_NOFILE, "compute_white_target_locations: could not allocate vlist") ;
 
   sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
@@ -4775,7 +4805,10 @@ compute_white_target_locations(MRI_SURFACE *mris,
 
   num_in = num_out = 0 ;
   MRISsaveVertexPositions(mris, TARGET_VERTICES) ;
+  
+  MRISclearMarks(mris) ;    // used by the old implementation of MRISfindNeighborsAtVertex
   MRISclearMark2s(mris) ;
+  
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     double dist_from_current_white, pin, pout, best_dist, best_dist_prelim ;
@@ -4798,11 +4831,11 @@ compute_white_target_locations(MRI_SURFACE *mris,
       continue ;
 
     d = 2*sample_dist ;
-    vnum = MRISfindNeighborsAtVertex(mris, vno, outer_nbhd_size, vlist);
+    vnum = MRISfindNeighborsAtVertex(mris, vno, outer_nbhd_size, vlistCapacity, vlist, hops);
     for (n = 0 ; n < vnum ; n++)
     {
       vn = &mris->vertices[vlist[n]] ;
-      if (vn->ripflag || vn->marked <= inner_nbhd_size)
+      if (vn->ripflag || hops[n] <= inner_nbhd_size)
 	continue ;
 
       MRISvertexToVoxel(mris, vn, mri_T2, &xv, &yv, &zv) ;
@@ -4994,8 +5027,7 @@ compute_white_target_locations(MRI_SURFACE *mris,
     HISTOclearCounts(h_inside, h_inside) ;
     HISTOclearCounts(h_outside, h_outside) ;
     HISTOclearCounts(h_grad, h_grad) ;
-    for (n = 0 ; n < vnum ; n++)
-      mris->vertices[vlist[n]].marked = 0 ;
+    
     if (best_dist > 0)
       num_out++ ;
     else if (best_dist < 0)
@@ -5008,6 +5040,10 @@ compute_white_target_locations(MRI_SURFACE *mris,
 
   printf("%d surface locations found to contain inconsistent values (%d in, %d out)\n",
          num_in+num_out, num_in, num_out) ;
+
+  freeAndNULL(hops);
+  freeAndNULL(vlist);
+  
   return(NO_ERROR) ;
 }
 

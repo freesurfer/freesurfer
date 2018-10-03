@@ -74,8 +74,6 @@ if(AFNIDIR)
 endif()
 
 # symlink MNI installation
-if(NOT "$ENV{MNI_DIR}" STREQUAL "")
-  symlink("$ENV{MNI_DIR}" ${CMAKE_INSTALL_PREFIX}/mni)
-elseif(EXISTS ${FS_PACKAGES_DIR}/mni/current)
+if(EXISTS ${FS_PACKAGES_DIR}/mni/current)
   symlink(${FS_PACKAGES_DIR}/mni/current ${CMAKE_INSTALL_PREFIX}/mni)
 endif()

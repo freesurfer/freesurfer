@@ -106,7 +106,9 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
       emit CursorLocationClicked();
     }
   }
-  else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )
+  else if ( (event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier )) ||
+            (event->button() == Qt::RightButton && ( event->modifiers() & CONTROL_MODIFIER ) &&
+            ( event->modifiers() & Qt::ShiftModifier )) )
   {
     m_bSelecting = true;
     view->StartSelection( m_nMousePosX, m_nMousePosY );

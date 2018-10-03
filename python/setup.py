@@ -16,7 +16,7 @@ packages = [
 
 # required dependencies
 requirements = [
-    'nibabel == 2.2.1',
+    'nibabel == 2.3.0',
     'numpy == 1.13.3',
     'scipy == 1.0.0'
 ]

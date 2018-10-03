@@ -234,7 +234,7 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE,
                   "%s: could not read surface file %s for %s",
                   Progname, fname, subject_name) ;
-      MRISsetNeighborhoodSize(mris, nbrs) ;
+      MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       if (label_name)

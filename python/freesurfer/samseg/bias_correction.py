@@ -65,3 +65,24 @@ def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFuncti
     result = np.transpose(result, permutationIndices)
     precisionMatrix = result.reshape( ( np.prod( Ms ), np.prod( Ms ) ) )
     return precisionMatrix
+
+
+def biasCorrectData(
+    biasCorrectedData,
+    biasFieldCoefficients,
+    downSampledBiasCorrectedImageBuffers,
+    downSampledImageBuffers,
+    downSampledKroneckerProductBasisFunctions,
+    downSampledMask,
+    downSampledMaskIndices,
+    numberOfContrasts
+):
+    downSampledBiasFields = []
+    for contrastNumber in range(numberOfContrasts):
+        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
+            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
+        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
+        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+        downSampledBiasFields += [downSampledBiasField]
+    return downSampledBiasFields

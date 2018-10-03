@@ -39,118 +39,39 @@ IC_FACE *ic163842_faces = NULL;
 
 MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces)
 {
-  MRI_SURFACE *mris;
-  int vno, fno, n, vn, n1, n2;
-  static int first_time = 1;
+  static_read_icosahedron();
 
-  if (first_time) {
-    static_read_icosahedron();
-    first_time = 0;
-    for (fno = 0; fno < ICO_NFACES; fno++) {
-      vno = ic163842_faces[fno].vno[1];
-      ic163842_faces[fno].vno[1] = ic163842_faces[fno].vno[2];
-      ic163842_faces[fno].vno[2] = vno;
-    }
+  int fno;
+  for (fno = 0; fno < ICO_NFACES; fno++) {
+    int vno = ic163842_faces[fno].vno[1];
+    ic163842_faces[fno].vno[1] = ic163842_faces[fno].vno[2];
+    ic163842_faces[fno].vno[2] = vno;
   }
-
-  mris = MRISoverAlloc(max_vertices, max_faces, ICO_NVERTICES, ICO_NFACES);
 
   /* position vertices */
+  int vno;
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    VERTEX* const v = &mris->vertices[vno];
-
-    v->x = 100.0 * ic163842_vertices[vno].x;
-    v->y = 100.0 * ic163842_vertices[vno].y;
-    v->z = 100.0 * ic163842_vertices[vno].z;
+    ic163842_vertices[vno].x *= 100;
+    ic163842_vertices[vno].y *= 100;
+    ic163842_vertices[vno].z *= 100;
   }
 
-  /* fill in faces, and count # of faces each vertex is part of */
-  for (fno = 0; fno < ICO_NFACES; fno++) {
-    FACE* const f = &mris->faces[fno];
-    if (fno == 15) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      f->v[n] = ic163842_faces[fno].vno[n] - 1; /* make it zero-based */
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
-    }
-  }
+  ICOSAHEDRON icos =
+    {
+        ICO_NVERTICES, 
+        ICO_NFACES, 
+        ic163842_vertices,
+        ic163842_faces
+    };
+    
+  MRIS* mris = ICOtoMRIS(&icos, max_vertices, max_faces);
 
-  for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
-    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ic163842: could not allocate %dth vertex list.", vno);
-    vt->vnum = 0;
-  }
+  freeAndNULL(ic163842_vertices);
+  freeAndNULL(ic163842_faces);
 
-  /* now build list of neighbors */
-  for (fno = 0; fno < ICO_NFACES; fno++) {
-    FACE* const f = &mris->faces[fno];
-    if (fno == 3) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-
-      /* now add an edge to other 2 vertices if not already in list */
-      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
-        if (n1 == n) /* don't connect vertex to itself */
-          continue;
-        vn = ic163842_faces[fno].vno[n1] - 1; /* make it zero-based */
-
-        /* now check to make sure it's not a duplicate */
-        for (n2 = 0; n2 < vt->vnum; n2++) {
-          if (vt->v[n2] == vn) {
-            vn = -1; /* mark it as a duplicate */
-            break;
-          }
-        }
-        if (vn >= 0) vt->v[vt->vnum++] = vn;
-      }
-    }
-  }
-
-  /* now allocate face arrays in vertices */
-  for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    VERTEX          * const v  = &mris->vertices         [vno];
-    vt->vtotal = vt->vnum;
-    vt->f = (int *)calloc(vt->num, sizeof(int));
-    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ic163842: could not allocate %d faces", vt->num);
-    vt->n = (uchar *)calloc(vt->num, sizeof(uchar));
-    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ic163842: could not allocate %d nbrs", vt->n);
-    vt->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "ic163842: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "ic163842: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-  }
-
-  /* fill in face indices in vertex structures */
-  for (fno = 0; fno < ICO_NFACES; fno++) {
-    FACE* const f = &mris->faces[fno];
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->n[vt->num] = n;
-      vt->f[vt->num++] = fno;
-    }
-  }
-
-  MRIScomputeMetricProperties(mris);
-  mris->type = MRIS_ICO_SURFACE;
-  free(ic163842_vertices);
-  free(ic163842_faces);
-  first_time = 1;
   return (mris);
 }
+
 static int static_read_icosahedron(void)
 {
   FILE *fp;

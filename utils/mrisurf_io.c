@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
  * @file utilities operating on Original
  *
@@ -3122,6 +3123,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   }
 
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3420,6 +3424,9 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
     mris->status = MRIS_PLANE;
   }
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3491,6 +3498,9 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   }
 
   fclose(fp);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   return (mris);
 }
 
@@ -3909,6 +3919,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
   }
 #endif
 
+  mrisCheckVertexFaceTopology(mris);
+
   return (mris);
 }
 
@@ -4302,13 +4314,16 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   mris->xctr = (xhi + xlo) / 2;
   mris->yctr = (yhi + ylo) / 2;
   mris->zctr = (zhi + zlo) / 2;
-  mrisFindNeighbors(mris);
+  mrisCompleteTopology(mris);
+  
+  mrisCheckVertexFaceTopology(mris);
+  
   MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris);
   mrisReadTransform(mris, fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
 #if 0
-    MRISsetNeighborhoodSize(mris, 2) ;
+    MRISsetNeighborhoodSizeAndDist(mris, 2) ;
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
 #endif
@@ -4318,7 +4333,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
     {
       fprintf(stdout, "computing surface curvature directly...\n") ;
-      MRISsetNeighborhoodSize(mris, 2) ;
+      MRISsetNeighborhoodSizeAndDist(mris, 2) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
     }
@@ -4390,12 +4405,10 @@ MRI_SURFACE *MRISfastRead(const char *fname)
   ------------------------------------------------------*/
 MRI_SURFACE *MRISread(const char *fname)
 {
-  MRI_SURFACE *mris;
-
-  mris = MRISreadOverAlloc(fname, 0.0);
+  MRIS *mris = MRISreadOverAlloc(fname, 0.0);
   if (mris == NULL) return (NULL);
-  MRISsetNeighborhoodSize(mris, 3);    // find nbhds out to 3-nbrs
-  MRISresetNeighborhoodSize(mris, 1);  // reset current size to 1-nbrs
+  MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
+  MRISresetNeighborhoodSize(mris, 1);       // reset current size to 1-nbrs
   return (mris);
 }
 
@@ -5439,7 +5452,6 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   int nvertices, nfaces, magic, vno, fno, n;
   char line[STRLEN];
   FILE *fp;
-  MRI_SURFACE *mris;
   int tag;
 
   fp = fopen(fname, "rb");
@@ -5455,7 +5467,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
-  mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
+  MRIS * mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
   mris->type = MRIS_TRIANGULAR_SURFACE;
 
   for (vno = 0; vno < nvertices; vno++) {
@@ -5534,6 +5546,9 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   }
 
   fclose(fp);
+
+  // IT IS NOT YET COMPLETE mrisCheckVertexFaceTopology(mris);
+
   return (mris);
 }
 /*-----------------------------------------------------

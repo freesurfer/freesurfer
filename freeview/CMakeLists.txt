@@ -192,7 +192,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework IOKit -framework Accelerate")
     set(FREEVIEW_EXEC_NAME Freeview)
   else()
-    set(FREEVIEW_EXEC_NAME freeview.bin)
+    set(FREEVIEW_EXEC_NAME freeview)
   endif()
 
   add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
@@ -232,7 +232,6 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     )
   else()
     install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION bin)
-    install(PROGRAMS freeview_wrapper DESTINATION bin RENAME freeview)
   endif()
 
 endif()

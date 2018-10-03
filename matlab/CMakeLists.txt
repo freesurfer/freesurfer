@@ -145,6 +145,7 @@ install(FILES
   write_annotation.m
   write_ascii_curv.m
   write_curv.m
+  write_patch.m
   write_label.m
   write_surf.m
   write_wfile.m

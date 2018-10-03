@@ -819,6 +819,16 @@ Layer* LayerCollection::GetLayerByName(const QString &name)
   return NULL;
 }
 
+Layer* LayerCollection::GetLayerById(int nId)
+{
+  for (int i = 0; i < m_layers.size(); i++)
+  {
+    if (m_layers[i]->GetID() == nId)
+      return m_layers[i];
+  }
+  return NULL;
+}
+
 void LayerCollection::ClearLayerIndices()
 {
   for (int i = 0; i < m_layers.size(); i++)

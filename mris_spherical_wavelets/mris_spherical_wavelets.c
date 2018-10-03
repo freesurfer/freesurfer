@@ -155,7 +155,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
       for (m = number; m<mris_high->nvertices; m++) {
         vm_out = &mris_out->vertices[m];
@@ -201,7 +201,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
 
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
       /* compute Yj,m for each m vertices */
@@ -318,7 +318,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
       for (m = number; m<mris_high->nvertices; m++) {
         vm_out = &mris_out->vertices[m];
@@ -364,7 +364,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
 
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
       /* compute Yj,m for each m vertices */
@@ -436,7 +436,7 @@ main(int argc, char *argv[]) {
     fprintf(stdout, "Reading wavelet coefficients from %s\n", argv[1]);
     for (m = 0; m<mris_out->nvertices; m++)
       mris_out->vertices[m].nsize=1;
-    MRISsetNeighborhoodSize(mris_out, 3) ;
+    MRISsetNeighborhoodSizeAndDist(mris_out, 3) ;
 
     if (COMPARE) {
       mris_in = MRISread(fname);
@@ -485,7 +485,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
       for (m = number; m<mris_high->nvertices; m++) {
         vm_out = &mris_out->vertices[m];
@@ -530,7 +530,7 @@ main(int argc, char *argv[]) {
       mris_high = ReadIcoByOrder(i, 100); //higher order surface
       for (m = 0; m<mris_high->nvertices; m++)
         mris_high->vertices[m].nsize=1;
-      MRISsetNeighborhoodSize(mris_high, 3) ;
+      MRISsetNeighborhoodSizeAndDist(mris_high, 3) ;
       number = IcoNVtxsFromOrder(i-1); //the start of m vertices
 
       /* Synthesis Stage I */

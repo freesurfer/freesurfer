@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  icosahedron.c
  * @brief utilies for readind and converting icosahedra
@@ -1717,293 +1718,147 @@ IC_FACE ic4_faces[5120] = {
     {{2561, 2559, 2197}}, {{2561, 2197, 558}},  {{624, 2560, 2562}},  {{2560, 642, 2561}},  {{2562, 2560, 2561}},
     {{2562, 2561, 558}},  {{624, 2562, 2478}},  {{2562, 558, 2202}},  {{2478, 2562, 2202}}, {{2478, 2202, 12}}};
 
+
+MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) {
+  int fno, vno;
+
+  for (fno = 0; fno < ico->nfaces; fno++) {
+    vno = ico->faces[fno].vno[1];
+    ico->faces[fno].vno[1] = ico->faces[fno].vno[2];
+    ico->faces[fno].vno[2] = vno;
+  }
+
+  MRI_SURFACE * const mris = 
+    MRISoverAlloc(
+        max_vertices,   max_faces,
+        ico->nvertices, ico->nfaces);
+
+  /* position vertices */
+  for (vno = 0; vno < ico->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+
+    v->x = ico->vertices[vno].x;
+    v->y = ico->vertices[vno].y;
+    v->z = ico->vertices[vno].z;
+  }
+
+  int n1, n2, n, vn;
+
+  /* fill in faces, and count # of faces each vertex is part of */
+  for (fno = 0; fno < ico->nfaces; fno++) {
+    FACE * const f = &mris->faces[fno];
+    if (fno == 15) DiagBreak();
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      f->v[n] = ico->faces[fno].vno[n] - 1; /* make it zero-based */
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
+      vt->num++;
+      vt->vnum += 2; /* will remove duplicates later */
+    }
+  }
+
+  for (vno = 0; vno < ico->nvertices; vno++) {
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
+    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ICread: could not allocate %dth vertex list.", vno);
+    vt->vnum = 0;
+  }
+
+  /* now build list of neighbors */
+  for (fno = 0; fno < ico->nfaces; fno++) {
+    FACE const * const f = &mris->faces[fno];
+    if (fno == 3) DiagBreak();
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
+
+      /* now add an edge to other 2 vertices if not already in list */
+      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
+        if (n1 == n) /* don't connect vertex to itself */
+          continue;
+        vn = ico->faces[fno].vno[n1] - 1; /* make it zero-based */
+
+        /* now check to make sure it's not a duplicate */
+        for (n2 = 0; n2 < vt->vnum; n2++) {
+          if (vt->v[n2] == vn) {
+            vn = -1; /* mark it as a duplicate */
+            break;
+          }
+        }
+        if (vn >= 0) vt->v[vt->vnum++] = vn;
+      }
+    }
+  }
+
+  /* now allocate face arrays in vertices */
+  for (vno = 0; vno < ico->nvertices; vno++) {
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+    VERTEX          * const v  = &mris->vertices         [vno];
+    vt->f = (int *)calloc(vt->num, sizeof(int));
+    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d faces", vt->num);
+    vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
+    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d nbrs", vt->n);
+    vt->num = 0; /* for use as counter in next section */
+    v->dist = (float *)calloc(vt->vnum, sizeof(float));
+    if (!v->dist)
+      ErrorExit(ERROR_NOMEMORY,
+                "ICOread: could not allocate list of %d "
+                "dists at v=%d",
+                vt->vnum,
+                vno);
+    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
+    if (!v->dist_orig)
+      ErrorExit(ERROR_NOMEMORY,
+                "ICOread: could not allocate list of %d "
+                "dists at v=%d",
+                vt->vnum,
+                vno);
+    vt->nsizeMax = 1;
+    vt->nsizeCur = 1;
+    vt->vtotal   = vt->vnum;
+  }
+
+  /* fill in face indices in vertex structures */
+  for (fno = 0; fno < ico->nfaces; fno++) {
+    FACE const * const f = &mris->faces[fno];
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
+      vt->n[vt->num] = n;
+      vt->f[vt->num++] = fno;
+    }
+  }
+
+  mrisCheckVertexFaceTopology(mris);
+  
+  MRIScomputeMetricProperties(mris);
+  mris->radius = MRISaverageRadius(mris);
+
+  mris->type = MRIS_ICO_SURFACE;
+
+  return (mris);
+}
+
+
 MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over)
 {
-  int fno, vno, n1, n2, n, vn;
-
   ICOSAHEDRON * const ico = read_icosahedron(fname);
   if (ico == NULL) ErrorReturn(NULL, (ERROR_NOFILE, "ICOreadOverAlloc(%s): could not open file", fname));
 
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    vno = ico->faces[fno].vno[1];
-    ico->faces[fno].vno[1] = ico->faces[fno].vno[2];
-    ico->faces[fno].vno[2] = vno;
-  }
-
-  MRI_SURFACE * const mris = MRISoverAlloc(pct_over * ico->nvertices, pct_over * ico->nfaces, ico->nvertices, ico->nfaces);
-
-  /* position vertices */
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-
-#if 0
-    v->x = 100.0*ico->vertices[vno].x ;
-    v->y = 100.0*ico->vertices[vno].y ;
-    v->z = 100.0*ico->vertices[vno].z ;
-#else
-    v->x = ico->vertices[vno].x;
-    v->y = ico->vertices[vno].y;
-    v->z = ico->vertices[vno].z;
-#endif
-  }
-
-  /* fill in faces, and count # of faces each vertex is part of */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE * const f = &mris->faces[fno];
-    if (fno == 15) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      f->v[n] = ico->faces[fno].vno[n] - 1; /* make it zero-based */
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
-    }
-  }
-
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
-    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ICread: could not allocate %dth vertex list.", vno);
-    vt->vnum = 0;
-  }
-
-  /* now build list of neighbors */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE const * const f = &mris->faces[fno];
-    if (fno == 3) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-
-      /* now add an edge to other 2 vertices if not already in list */
-      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
-        if (n1 == n) /* don't connect vertex to itself */
-          continue;
-        vn = ico->faces[fno].vno[n1] - 1; /* make it zero-based */
-
-        /* now check to make sure it's not a duplicate */
-        for (n2 = 0; n2 < vt->vnum; n2++) {
-          if (vt->v[n2] == vn) {
-            vn = -1; /* mark it as a duplicate */
-            break;
-          }
-        }
-        if (vn >= 0) vt->v[vt->vnum++] = vn;
-      }
-    }
-  }
-
-  /* now allocate face arrays in vertices */
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    VERTEX          * const v  = &mris->vertices         [vno];
-    vt->f = (int *)calloc(vt->num, sizeof(int));
-    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d faces", vt->num);
-    vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
-    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d nbrs", vt->n);
-    vt->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "ICOread: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "ICOread: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    vt->vtotal = vt->vnum;
-  }
-
-  /* fill in face indices in vertex structures */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE const * const f = &mris->faces[fno];
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->n[vt->num] = n;
-      vt->f[vt->num++] = fno;
-    }
-  }
-
-  MRIScomputeMetricProperties(mris);
-  mris->radius = MRISaverageRadius(mris);
-#if 0
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    float dot ;
-    int   ano ;
-
-    FACE const * const f = &mris->faces[fno] ;
-    if (f->ripflag)
-      continue ;
-
-    /* now give the area an orientation: if the unit normal is pointing
-       inwards on the ellipsoid then the area should be negative.
-       */
-    VERTEX * const v = &mris->vertices[f->v[0]] ;
-    dot = v->x * f->nx + v->y * f->ny + v->z * f->nz;
-    if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
-    {
-      f->area *= -1.0f ;
-      f->nx *= -1.0f;
-      f->ny *= -1.0f;
-      f->nz *= -1.0f;
-      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-        f->angle[ano] *= -1.0f ;
-    }
-  }
-#endif
-  mris->type = MRIS_ICO_SURFACE;
+  MRIS* mris = 
+    ICOtoMRIS(ico, pct_over * ico->nvertices, pct_over * ico->nfaces);
+  
   free(ico->vertices);
   free(ico->faces);
   free(ico);
+
   return (mris);
 }
+
+
 MRI_SURFACE *ICOread(const char *fname)
 {
-  int fno, vno, n1, n2, n, vn;
-
-  ICOSAHEDRON * const ico = read_icosahedron(fname);
-
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    vno = ico->faces[fno].vno[1];
-    ico->faces[fno].vno[1] = ico->faces[fno].vno[2];
-    ico->faces[fno].vno[2] = vno;
-  }
-
-  MRI_SURFACE * const mris = MRISalloc(ico->nvertices, ico->nfaces);
-
-  /* position vertices */
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-
-#if 0
-    v->x = 100.0*ico->vertices[vno].x ;
-    v->y = 100.0*ico->vertices[vno].y ;
-    v->z = 100.0*ico->vertices[vno].z ;
-#else
-    v->x = ico->vertices[vno].x;
-    v->y = ico->vertices[vno].y;
-    v->z = ico->vertices[vno].z;
-#endif
-  }
-
-  /* fill in faces, and count # of faces each vertex is part of */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE * const f = &mris->faces[fno];
-    if (fno == 15) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      f->v[n] = ico->faces[fno].vno[n] - 1; /* make it zero-based */
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
-    }
-  }
-
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
-    if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ICread: could not allocate %dth vertex list.", vno);
-    vt->vnum = 0;
-  }
-
-  /* now build list of neighbors */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE const * const f = &mris->faces[fno];
-    if (fno == 3) DiagBreak();
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-
-      /* now add an edge to other 2 vertices if not already in list */
-      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
-        if (n1 == n) /* don't connect vertex to itself */
-          continue;
-        vn = ico->faces[fno].vno[n1] - 1; /* make it zero-based */
-
-        /* now check to make sure it's not a duplicate */
-        for (n2 = 0; n2 < vt->vnum; n2++) {
-          if (vt->v[n2] == vn) {
-            vn = -1; /* mark it as a duplicate */
-            break;
-          }
-        }
-        if (vn >= 0) vt->v[vt->vnum++] = vn;
-      }
-    }
-  }
-
-  /* now allocate face arrays in vertices */
-  for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-    VERTEX          * const v  = &mris->vertices         [vno];
-    vt->f = (int *)calloc(vt->num, sizeof(int));
-    if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d faces", vt->num);
-    vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
-    if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ICOread: could not allocate %d nbrs", vt->n);
-    vt->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "ICOread: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "ICOread: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    vt->vtotal = vt->vnum;
-  }
-
-  /* fill in face indices in vertex structures */
-  for (fno = 0; fno < ico->nfaces; fno++) {
-    FACE const * const f = &mris->faces[fno];
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
-      vt->n[vt->num] = n;
-      vt->f[vt->num++] = fno;
-    }
-  }
-
-  MRISsetNeighborhoodSize(mris, -1);
-  MRIScomputeMetricProperties(mris);
-#if 0
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    float dot ;
-    int   ano ;
-
-    FACE const * const f = &mris->faces[fno] ;
-    if (f->ripflag)
-      continue ;
-
-    /* now give the area an orientation: if the unit normal is pointing
-       inwards on the ellipsoid then the area should be negative.
-       */
-    VERTEX const * const v = &mris->vertices[f->v[0]] ;
-    dot = v->x * f->nx + v->y * f->ny + v->z * f->nz;
-    if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
-    {
-      f->area *= -1.0f ;
-      f->nx *= -1.0f;
-      f->ny *= -1.0f;
-      f->nz *= -1.0f;
-      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-        f->angle[ano] *= -1.0f ;
-    }
-  }
-#endif
-  mris->type = MRIS_ICO_SURFACE;
-  free(ico->vertices);
-  free(ico->faces);
-  free(ico);
-  return (mris);
+  return ICOreadOverAlloc(fname, 1.0);
 }
+
+
 /*------------------------------------------------------------------
   ICOSAHEDRON *read_icosahedron_by_order() -- loads an icosaheron given it's
   "order".  Reads the FREESURFER_HOME environment variable, then loads the

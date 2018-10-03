@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
       mristb[n]->type=MRIS_TRIANGULAR_SURFACE;//MRIS_BINARY_QUADRANGLE_FILE;
       MRISwrite(mristb[n],fname);
 
-      MRISsetNeighborhoodSize(mristb[n],3) ;
+      MRISsetNeighborhoodSizeAndDist(mristb[n],3) ;
       MRIScomputeMetricProperties(mristb[n]) ;
       MRIScomputeSecondFundamentalForm(mristb[n]) ;
       MRISuseMeanCurvature(mristb[n]);

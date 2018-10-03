@@ -47,7 +47,7 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
      less than thred are all computed
   */
   /* The program assumes that the neighborhood structure of the surface mesh
-     is already built, e.g., using function mrisFindNeighbors, which seems
+     is already built, e.g., using function mrisCompleteTopology, which seems
      to be always performed during surface-file-reading
      Thus, the total number of neighors of vertex i is mesh->vertices[i].vnum,
      and the j-th neighbor of i is mesh->vertices[i].v[j].

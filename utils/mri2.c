@@ -692,6 +692,19 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   int FreeMats = 0;
   MRI_BSPLINE *bspline = NULL;
+  int (*nintfunc)( double );
+
+  /*
+    This is a little bit of a hack for the case where there is only
+    one slice. If the source and target are aligned by half a voxel
+    off, then nint() will never map a target voxel to a valide index
+    in the source, and the output will always be 0. nint2() has very
+    slightly different behavior that will allow this case to work
+    while only mildly affecting more generic cases.
+   */
+  nintfunc = &nint;
+  if(src->width == 1 || src->height == 1 || src->depth == 1)
+    nintfunc = &nint2;
 
 #ifdef VERBOSE_MODE
   Chronometer tTotal, tSample;
@@ -783,17 +796,17 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
       for (st = 0; st < targ->depth; st++) {
         /* Column in source corresponding to CRS in Target */
         fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt + Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4];
-        ics = nint(fcs);
+        ics = nintfunc(fcs);
         if (ics < 0 || ics >= src->width) continue;
 
         /* Row in source corresponding to CRS in Target */
         frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt + Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4];
-        irs = nint(frs);
+        irs = nintfunc(frs);
         if (irs < 0 || irs >= src->height) continue;
 
         /* Slice in source corresponding to CRS in Target */
         fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt + Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4];
-        iss = nint(fss);
+        iss = nintfunc(fss);
         if (iss < 0 || iss >= src->depth) continue;
 
         /* Assign output volume values */
@@ -5117,7 +5130,7 @@ MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlis
   return (newseg);
 }
 
-/*
+/*!
 \fn MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
 \brief Creates an MRI structure with number of columns equal to the
 number of non-null entries in the table. The value is set the to count
@@ -5144,4 +5157,86 @@ MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
     }
 
   return (mri);
+}
+
+/*!
+  MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB)
+  Reorient a volume that is LIA to be RAS
+ */
+MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB)
+{
+  MATRIX *vox2rasA, *MdcA, *MdcB, *crs0, *P0B, *DB, *vox2rasB;
+  int r;
+  char ostr[4];
+
+  MRIdircosToOrientationString(mriA, ostr);
+  if(strcmp(ostr,"LIA") != 0){
+    printf("ERROR: MRIreorientLIA2RAS(): input ostring is %s, must be LIA\n",ostr);
+    return(NULL);
+  }
+  if(mriB){
+    MRIdircosToOrientationString(mriB, ostr);
+    if(strcmp(ostr,"RAS") != 0){
+      printf("ERROR: MRIreorientLIA2RAS(): output ostring is %s, must be RAS\n",ostr);
+      return(NULL);
+    }
+    if(mriA->width != mriB->width){
+      printf("ERROR: MRIreorientLIA2RAS(): input/output width mismatch %d %d\n",mriA->width,mriB->width);
+      return(NULL);
+    }
+    if(mriA->height != mriB->depth){
+      printf("ERROR: MRIreorientLIA2RAS(): input/output height mismatch %d %d\n",mriA->height,mriB->depth);
+      return(NULL);
+    }
+    if(mriA->depth != mriB->height){
+      printf("ERROR: MRIreorientLIA2RAS(): input/output depth mismatch %d %d\n",mriA->depth,mriB->height);
+      return(NULL);
+    }
+  }
+
+  vox2rasA = MRIxfmCRS2XYZ(mriA,0);
+
+  // Create the new MdcB by swaping and negating apporpriately
+  MdcA = MRImatrixOfDirectionCosines(mriA, NULL);
+  MdcB = MatrixAlloc(4,4,MATRIX_REAL);
+  for(r=1; r<=3; r++) MdcB->rptr[r][1] = -MdcA->rptr[r][1];
+  for(r=1; r<=3; r++) MdcB->rptr[r][2] = +MdcA->rptr[r][3];
+  for(r=1; r<=3; r++) MdcB->rptr[r][3] = -MdcA->rptr[r][2];
+
+  // The origin (P0B) of the new volume will land at (Nx,0,Nz) of original
+  crs0 = MatrixAlloc(4,1,MATRIX_REAL);
+  crs0->rptr[1][1] = mriA->width-1;
+  crs0->rptr[2][1] = mriA->height-1;
+  crs0->rptr[3][1] = 0;
+  crs0->rptr[4][1] = 1;
+  P0B = MatrixMultiply(vox2rasA,crs0,NULL);
+
+  // Matrix of voxel sizes for the new volume
+  DB = MatrixIdentity(4,NULL);
+  DB->rptr[1][1] = mriA->xsize;
+  DB->rptr[2][2] = mriA->zsize;
+  DB->rptr[3][3] = mriA->ysize;
+
+  //vox2rasB = Mdc*DB, then fill in P0
+  vox2rasB = MatrixMultiply(MdcB,DB,NULL);
+  for(r=1; r<=3; r++) vox2rasB->rptr[r][4] = P0B->rptr[r][1];
+
+  if(mriB == NULL) 
+    mriB = MRIalloc(mriA->width,mriA->depth,mriA->height,mriA->type);
+
+  // Set the MRI structure geometry from the vox2ras for B
+  MRIsetVox2RASFromMatrix(mriB, vox2rasB);
+
+  // Now do the resampling (might want to take this out so that caller can choose)
+  MRIvol2Vol(mriA,mriB,NULL,SAMPLE_NEAREST,0);
+
+  MatrixFree(&vox2rasA);
+  MatrixFree(&MdcA);
+  MatrixFree(&MdcB);
+  MatrixFree(&crs0);
+  MatrixFree(&P0B);
+  MatrixFree(&DB);
+  MatrixFree(&vox2rasB);
+
+  return(mriB);
 }

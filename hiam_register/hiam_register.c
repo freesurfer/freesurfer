@@ -198,7 +198,7 @@ main(int argc, char *argv[]) {
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag)
     MRISreverse(mris, REVERSE_X, 1) ;
@@ -524,7 +524,7 @@ mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   "mrisRegister", fname) ;
 
-      MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
+      MRISsetNeighborhoodSizeAndDist(mris, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;

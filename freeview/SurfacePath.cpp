@@ -227,7 +227,9 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
   int* pred;
   char done;
   VERTEX* v;
+  VERTEX_TOPOLOGY* vt;
   VERTEX* u;
+  VERTEX_TOPOLOGY* ut;
   float closest_dist;
   int closest_vno;
   int neighbor;
@@ -286,6 +288,7 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
             closest_vno = vno;
           }
       v = &(mris->vertices[closest_vno]);
+      vt = &(mris->vertices_topology[closest_vno]);
       check[closest_vno] = FALSE;
 
       /* if this is the dest node, we're done. */
@@ -296,9 +299,9 @@ bool find_path ( MRIS* mris, int* vert_vno, int num_vno, int max_path_length,
       else
       {
         /* relax its neighbors. */
-        for (neighbor = 0; neighbor < v->vnum; neighbor++)
+        for (neighbor = 0; neighbor < vt->vnum; neighbor++)
         {
-          neighbor_vno = v->v[neighbor];
+          neighbor_vno = vt->v[neighbor];
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */

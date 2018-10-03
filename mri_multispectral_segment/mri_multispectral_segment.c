@@ -1,3 +1,4 @@
+#define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
  * @file  mri_multispectral_segment.c
  * @brief segment tissue classes based on T1/PD volumes
@@ -2162,6 +2163,8 @@ static void write_surface(char *fname) {
   for (k=0;k<nfaces;k++)
     for (n = 0 ; n < 3 ; n++)
       mris->faces[k].v[n] = face[k][n] ;
+  
+  mrisCheckVertexFaceTopology(mris);
   
   mris->type = MRIS_TRIANGULAR_SURFACE ;
   MRISwrite(mris, fname) ;

@@ -606,7 +606,7 @@ main(int argc, char *argv[]) {
     write_maps(mris, &ep, 0, output_suffix) ;
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
 
@@ -2154,7 +2154,7 @@ soap_bubble_map(MRI_SURFACE *mris, float *cv, int navgs) {
 
 static int
 smooth_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
-  int    i, vno, vnb, *pnb, vnum, n_vno ;
+  int    i, vno, vnb, vnum, n_vno ;
   float  num, T1, PD, T1_nbr, PD_nbr, T1_avg, PD_avg ;
 
   for (i = 0 ; i < navgs ; i++) {
@@ -2169,7 +2169,7 @@ smooth_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
       v->tdy = T1 ;
       if ((PD < MIN_NONBRAIN_PD) || (T1 < MIN_NONBRAIN_T1))
         continue ;
-      pnb = vt->v ;
+      int const * pnb = vt->v ;
       vnum = vt->vnum ;
       T1_avg = T1 ;
       PD_avg = PD ;
@@ -2214,7 +2214,7 @@ smooth_map(MRI_SURFACE *mris, float *cv, int navgs) {
 
 static int
 smooth_marked_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) {
-  int    i, vno, vnb, *pnb, vnum, n_vno ;
+  int    i, vno, vnb, vnum, n_vno ;
   float  num, T1, PD, T1_nbr, PD_nbr, T1_avg, PD_avg ;
 
   for (i = 0 ; i < navgs ; i++) {
@@ -2230,7 +2230,7 @@ smooth_marked_csf_map(MRI_SURFACE *mris, float *cv_T1, float *cv_PD, int navgs) 
       v->tdy = T1 ;
       if ((PD < MIN_NONBRAIN_PD) || (T1 < MIN_NONBRAIN_T1))
         continue ;
-      pnb = vt->v ;
+      int const * pnb = vt->v ;
       vnum = vt->vnum ;
       T1_avg = T1 ;
       PD_avg = PD ;
