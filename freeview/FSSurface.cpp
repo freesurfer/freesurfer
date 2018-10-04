@@ -186,6 +186,7 @@ bool FSSurface::MRISRead( const QString& filename,
   }
   else
   {
+    MRISreadCanonicalCoordinates(m_MRIS, "sphere.reg");
     return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
   }
 }

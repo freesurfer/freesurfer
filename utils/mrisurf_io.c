@@ -5914,6 +5914,10 @@ MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
   MRI    *mri ;
   int    frame, nframes, vno ;
 
+//  MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
+  MRISsaveVertexPositions(mris, TMP_VERTICES);
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
   mrisp = MRISPread(fname) ;
   if (mrisp == NULL)
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadParameterizationToSurface: could not open file %s",fname));
@@ -5929,5 +5933,7 @@ MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
   }
 
   MRISPfree(&mrisp) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
   return(mri) ;
 }
