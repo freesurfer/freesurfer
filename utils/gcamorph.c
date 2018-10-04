@@ -13795,7 +13795,12 @@ int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
   }
 
   if (mri == NULL) {
-    m = VGgetRasToVoxelXform(&gcam->image, NULL, 0);
+    // Before 10/2018, VGget*To*Xform() returned the inverse of the
+    // transform one would expect from the function name. This is now
+    // fixed. It seems the problem was unnoticed here, however. To keep the
+    // output of GCAMrasToVox() unchanged, we swapped the following
+    // function invocation:
+    m = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
   }
   else {
     m = MRIgetRasToVoxelXform(mri);
