@@ -18,6 +18,7 @@
  *
  */
 #include "mrisurf_io.h"
+#include "mrisp.h"
 
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
@@ -5905,3 +5906,34 @@ int MRISwriteArea(MRI_SURFACE *mris, const char *sname)
   return (NO_ERROR);
 }
 
+
+MRI *
+MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
+{
+  MRI_SP *mrisp ;
+  MRI    *mri ;
+  int    frame, nframes, vno ;
+
+//  MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
+  MRISsaveVertexPositions(mris, TMP_VERTICES);
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  mrisp = MRISPread(fname) ;
+  if (mrisp == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadParameterizationToSurface: could not open file %s",fname));
+
+  nframes = mrisp->Ip->num_frame;
+  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
+
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    MRISfromParameterizationBarycentric(mrisp, mris, frame) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      MRIsetVoxVal(mri, vno, 0, 0, frame, mris->vertices[vno].curv) ;
+  }
+
+  MRISPfree(&mrisp) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  return(mri) ;
+}

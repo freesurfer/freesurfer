@@ -277,6 +277,8 @@ public slots:
 
   void CenterAtWorldPosition(double* pos, bool mainview_only = false);
 
+  void OnLoadSurfaceParameterization();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -309,6 +311,7 @@ protected:
   void LoadControlPointsFile    ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadTrackFile            ( const QString& fn );
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
+  void LoadSurfaceParameterization(const QString& filename);
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 

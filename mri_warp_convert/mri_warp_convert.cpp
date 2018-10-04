@@ -264,9 +264,9 @@ void writeITK(const string& fname, GCAM* gcam)
   ras2lps->rptr[1][1] = -1;
   ras2lps->rptr[2][2] = -1;
 
-  MATRIX* ref_vox2ras = VGgetRasToVoxelXform(&gcam->atlas, NULL, 0);
+  MATRIX* ref_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
   MATRIX* ref_vox2lps = MatrixMultiplyD(ras2lps, ref_vox2ras, NULL);
-  MATRIX* mov_vox2ras = VGgetRasToVoxelXform(&gcam->image, NULL, 0);
+  MATRIX* mov_vox2ras = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
   MATRIX* mov_vox2lps = MatrixMultiplyD(ras2lps, mov_vox2ras, NULL);
 
   MRI* itk = MRIallocSequence(gcam->atlas.width,
