@@ -1900,7 +1900,7 @@ int LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
       // output of LTAvoxelToRasXform() unchanged, we swapped the following
       // two function invocations:
       m_source_r2v = VGgetVoxelToRasXform(&lta->xforms[i].src, NULL, 0);
-      m_dst_v2r = VGgetRasToVoxelXform(&lta->xforms[i].dst, NULL, 0
+      m_dst_v2r = VGgetRasToVoxelXform(&lta->xforms[i].dst, NULL, 0);
       m_tmp = MatrixMultiply(lta->xforms[i].m_L, m_source_r2v, NULL);
       m_L = MatrixMultiply(m_dst_v2r, m_tmp, NULL);
       MatrixFree(&m_tmp);
