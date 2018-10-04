@@ -2558,7 +2558,6 @@ int MRIStkr2Scanner(MRIS *mris)
 {
   MATRIX *M, *T, *Tinv, *S;
 
-  // S = VGgetVoxelToRasXform(&mris->vg,NULL,0); // this is wrong
   S = vg_i_to_r(&mris->vg);
   T = TkrVox2RASfromVolGeom(&mris->vg);
   Tinv = MatrixInverse(T, NULL);
@@ -2583,7 +2582,6 @@ int MRISscanner2Tkr(MRIS *mris)
 {
   MATRIX *Q, *T, *Sinv, *S;
 
-  // S = VGgetVoxelToRasXform(&mris->vg,NULL,0); // this is wrong
   S = vg_i_to_r(&mris->vg);
   Sinv = MatrixInverse(S, NULL);
   T = TkrVox2RASfromVolGeom(&mris->vg);
