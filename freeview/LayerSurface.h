@@ -355,6 +355,8 @@ public:
 
   SurfaceLabel* CreateNewLabel(const QString& name = "");
 
+  bool LoadParameterization(const QString& filename);
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);

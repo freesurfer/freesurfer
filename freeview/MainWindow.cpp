@@ -1401,6 +1401,9 @@ void MainWindow::OnIdle()
   ui->actionSavePointSetAs  ->setEnabled( layerPointSet );
   ui->actionSaveSurface     ->setEnabled( !bBusy && layerSurface && layerSurface->IsModified() );
   ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
+  ui->actionLoadPatch       ->setEnabled( layerSurface );
+  ui->actionSavePatchAs     ->setEnabled( layerSurface );
+  ui->actionLoadParameterization->setEnabled( layerSurface );
   ui->actionShowColorScale  ->setEnabled( bHasLayer );
   ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
   ui->actionShowSliceFrames ->blockSignals(true);
@@ -3071,7 +3074,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert(0, QStringList("setsurfacecurvaturemap") << subArgu);
         }
-        else if ( subOption == "overlay" || subOption == "correlation" )
+        else if ( subOption == "overlay" || subOption == "correlation" ||
+                  subOption == "mrisp" || subOption == "parameterization_overlay")
         {
           // add script to load surface overlay files
           QStringList script("loadsurfaceoverlay");
@@ -3080,6 +3084,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           script << overlay_reg;
           if (subOption == "correlation")
             script << "correlation";
+          else if (subOption == "mrisp" || subOption == "parameterization_overlay")
+            script << "mrisp";
           else
             script << "n/a";
 
@@ -3785,7 +3791,10 @@ void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
-  LoadSurfaceOverlayFile( cmd[1], reg_file, cmd.size() > 3 && cmd[3] == "correlation", cmd.size() > 4 && cmd[4] == "rh" );
+  if (cmd[3] == "mrisp")
+    LoadSurfaceParameterization(cmd[1]);
+  else
+    LoadSurfaceOverlayFile( cmd[1], reg_file, cmd.size() > 3 && cmd[3] == "correlation", cmd.size() > 4 && cmd[4] == "rh" );
 }
 
 void MainWindow::CommandLoadSurfaceAnnotation( const QStringList& cmd )
@@ -7280,6 +7289,7 @@ void MainWindow::OnReloadVolume()
 
         mri->SetID(mri->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadvolume") << args);
+        mri->MarkAboutToDelete();
         if (dlg.GetCloseLayerFirst())
           AddScript(QStringList("unloadlayers") << "mri" << QString::number(mri->GetID()));
       }
@@ -8194,3 +8204,20 @@ void MainWindow::OnUnloadVolumeTransform()
   m_threadIOWorker->TransformVolume(mri, args);
 }
 
+void MainWindow::OnLoadSurfaceParameterization()
+{
+  QString filename = QFileDialog::getOpenFileName( this, "Select Parameterization File",
+                                                   AutoSelectLastDir( "surf" ),
+                                                   "Parameterization files (*)", 0, QFileDialog::DontConfirmOverwrite);
+  if ( !filename.isEmpty() )
+    LoadSurfaceParameterization(filename);
+}
+
+void MainWindow::LoadSurfaceParameterization(const QString &filename)
+{
+  LayerSurface* surf = ( LayerSurface* )GetActiveLayer("Surface");
+  if (surf && !surf->LoadParameterization(filename) )
+  {
+    QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
+  }
+}

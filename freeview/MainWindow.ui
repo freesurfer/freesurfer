@@ -284,6 +284,7 @@
     <addaction name="actionSaveSurfaceAs"/>
     <addaction name="actionLoadPatch"/>
     <addaction name="actionSavePatchAs"/>
+    <addaction name="actionLoadParameterization"/>
     <addaction name="separator"/>
     <addaction name="actionNewROI"/>
     <addaction name="actionLoadROI"/>
@@ -1675,6 +1676,11 @@
   <action name="actionReloadPointSet">
    <property name="text">
     <string>Reload Point Set...</string>
+   </property>
+  </action>
+  <action name="actionLoadParameterization">
+   <property name="text">
+    <string>Load Parameterization...</string>
    </property>
   </action>
  </widget>
@@ -3484,6 +3490,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadParameterization</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadSurfaceParameterization()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3586,5 +3608,6 @@
   <slot>OnGoToNextLabelPoint()</slot>
   <slot>OnReloadROI()</slot>
   <slot>OnReloadPointSet()</slot>
+  <slot>OnLoadSurfaceParameterization()</slot>
  </slots>
 </ui>
