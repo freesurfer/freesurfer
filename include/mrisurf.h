@@ -1952,6 +1952,7 @@ int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) ;
 int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) ;
 int MRISimportValFromMRI(MRI_SURFACE *mris, MRI *mri, int frame) ;
+MRI *MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname) ;
 
 
 /* multi-timepoint (or stc) files */
