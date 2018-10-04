@@ -1894,8 +1894,13 @@ int LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
   for (i = 0; i < lta->num_xforms; i++) {
     if (mri_src == NULL) {
       MATRIX *m_source_r2v, *m_dst_v2r, *m_tmp;
-      m_source_r2v = VGgetRasToVoxelXform(&lta->xforms[i].src, NULL, 0);
-      m_dst_v2r = VGgetVoxelToRasXform(&lta->xforms[i].dst, NULL, 0);
+      // Before 10/2018, VGget*To*Xform() returned the inverse of the
+      // transform one would expect from the function name. This is now
+      // fixed. It seems the problem was unnoticed here, however. To keep the
+      // output of LTAvoxelToRasXform() unchanged, we swapped the following
+      // two function invocations:
+      m_source_r2v = VGgetVoxelToRasXform(&lta->xforms[i].src, NULL, 0);
+      m_dst_v2r = VGgetRasToVoxelXform(&lta->xforms[i].dst, NULL, 0
       m_tmp = MatrixMultiply(lta->xforms[i].m_L, m_source_r2v, NULL);
       m_L = MatrixMultiply(m_dst_v2r, m_tmp, NULL);
       MatrixFree(&m_tmp);
