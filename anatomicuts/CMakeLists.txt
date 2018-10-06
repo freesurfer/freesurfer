@@ -18,14 +18,14 @@ if(VTK_FOUND)
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
 #AnatomiCuts correspondences
-  add_executable(AnatomiCuts AnatomiCuts.cxx ${TRACKIO})
-  target_link_libraries(AnatomiCuts utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS AnatomiCuts DESTINATION bin)
+  add_executable(dmri_AnatomiCuts AnatomiCuts.cxx ${TRACKIO})
+  target_link_libraries(dmri_AnatomiCuts utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_AnatomiCuts DESTINATION bin)
 
 #AnatomiCuts
-  add_executable(AnatomiCuts_correspondences AnatomiCuts_correspondences.cxx ${TRACKIO})
-  target_link_libraries(AnatomiCuts_correspondences utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS AnatomiCuts_correspondences DESTINATION bin)
+  add_executable(dmri_match AnatomiCuts_correspondences.cxx ${TRACKIO})
+  target_link_libraries(dmri_match utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_match DESTINATION bin)
 
 #TRK tools for header
   add_executable(trk_tools trk_tools.cxx ${TRACKIO})

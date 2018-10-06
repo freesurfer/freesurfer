@@ -58,30 +58,66 @@ typedef  itk::Image< double,3> ImageType;
 typedef ImageType::IndexType IndexType;
 typedef LabelPerPointVariableLengthVector<float, MeshType> MeasurementVectorType;	
 typedef LabelsEntropyAndIntersectionMembershipFunction<MeasurementVectorType>  MembershipFunctionType;	
+
+
+static 	std::string LEFT = "Left";
+static	std::string RIGHT = "Right";
+static 	std::string LEFT2 = "lh";
+static	std::string RIGHT2 = "rh";
+
+COLOR_TABLE *ct=NULL;
+
 int SymmetricLabelId(int id)
 {
-	std::string left = "Left";
-	std::string right = "Right";
 
-	COLOR_TABLE *ct;
-
-	FSENV *fsenv = FSENVgetenv();
-	char tmpstr[2000];	
-	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
-	ct = CTABreadASCII(tmpstr);
+	if( ct == NULL)
+	{
+		FSENV *fsenv = FSENVgetenv();
+		char tmpstr[2000];	
+		sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+		ct = CTABreadASCII(tmpstr);
+	}
 
 	std::string str = std::string(ct->entries[id]->name);
 	int symId = id;
-	if( str.find(left) != std::string::npos)
+	if( str.find(LEFT) != std::string::npos)
 	{
-		char* hola= (char*)str.replace(str.find(left),left.length(), right).c_str();
+		char* hola= (char*)str.replace(str.find(LEFT),LEFT.length(), RIGHT).c_str();
 		symId = CTABentryNameToIndex(hola, ct); 
 		//std::cout << sval << std::endl;
+	}else if( str.find(LEFT2) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(LEFT2),LEFT2.length(), RIGHT2).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+
+	} else	if( str.find(RIGHT) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(RIGHT),RIGHT.length(), LEFT).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+		//std::cout << sval << std::endl;
+	}else if( str.find(RIGHT2) != std::string::npos)
+	{
+		char* hola= (char*)str.replace(str.find(RIGHT2),RIGHT2.length(), LEFT2).c_str();
+		symId = CTABentryNameToIndex(hola, ct); 
+
 	}
+
+	/*if( id == symId && id!=0 && id !=5001 && id != 5002)
+	{
+		std::cout << "label " << id << std::endl;
+	}*/
 	return  symId;
 }
-std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes)
+std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes, ImageType::Pointer segmentation, bool removeInterHemispheric)
 {
+	if( ct == NULL)
+	{
+		FSENV *fsenv = FSENVgetenv();
+		char tmpstr[2000];	
+		sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+		ct = CTABreadASCII(tmpstr);
+	}
+	
 	std::vector<MeshType::Pointer> meshes;
 	for(unsigned int i=0;i<basicMeshes.size();i++)
 	{
@@ -92,6 +128,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 		typedef MeshType::PointDataContainer PointDataContainerType;
 		BasicMeshType::Pointer basicMesh = basicMeshes[i];
 		MeshType::Pointer mesh = MeshType::New();
+		int out =0;
 		for(CellIterator cellIt = basicMesh->GetCells()->Begin(); cellIt!= basicMesh->GetCells()->End(); cellIt++)
 		{
 			PointDataContainerType::Pointer dataContainer = PointDataContainerType::New();
@@ -99,24 +136,66 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 			MeshType::CellAutoPointer line;
 			BasicMeshType::CellTraits::PointIdIterator  pointIdIt  = cellIt.Value()->PointIdsBegin();
 
-			BasicMeshType::PointType pt=0;  
-			for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
-			{
-				basicMesh->GetPoint(*pointIdIt, &pt);
-				
-				line.TakeOwnership ( new itk::PolylineCell<MeshType::CellType> );
-				mesh->SetPoint (globalIndex, pt);
-				line->SetPointId (withinIndex, globalIndex);
+			BasicMeshType::PointType pt=0; 
+			int left=0, right=0;
+			
+			if(removeInterHemispheric)
+			{ 
+				for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
+				{
+					basicMesh->GetPoint(*pointIdIt, &pt);
+					ImageType::IndexType index;
+					if (segmentation->TransformPhysicalPointToIndex(pt,index))
+					{
+						ImageType::PixelType label = segmentation->GetPixel(index);
 
-				withinIndex++;
-				globalIndex++;
-				//std::cout << globalIndex << " "<< std::endl;
+						std::string str = std::string(ct->entries[(int)label]->name);
+						if( str.find(LEFT) != std::string::npos ||  str.find(LEFT2) != std::string::npos)
+						{
+							left++;						
+
+						} else	if( str.find(RIGHT) != std::string::npos ||  str.find(RIGHT2) != std::string::npos)
+						{
+							right++;
+						}				
+					}
+
+				}
 			}
+			if (right == 0 || left ==0 || !removeInterHemispheric )
+			{
+				for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
+				{
+					basicMesh->GetPoint(*pointIdIt, &pt);
 
-			mesh->SetCell (indexCell, line);
-			indexCell++;
+					line.TakeOwnership ( new itk::PolylineCell<MeshType::CellType> );
+					mesh->SetPoint (globalIndex, pt);
+					line->SetPointId (withinIndex, globalIndex);
+
+					withinIndex++;
+					globalIndex++;
+					//std::cout << globalIndex << " "<< std::endl;
+				}
+
+				mesh->SetCell (indexCell, line);
+				indexCell++;
+			}
+			else
+			{
+				out++;
+				//	std::cout << "right " << right << " left " << left << " remove "<< removeInterHemispheric << std::endl;
+			}
 		}
-		meshes.push_back(mesh);
+		float val =(float)out / ((float)indexCell+out);
+		std::cout << " val " << val << std::endl;
+		if( val> 0.20)
+		{
+			meshes.push_back(MeshType::New());
+		}
+		else
+		{
+			meshes.push_back(mesh);
+		}
 	}
 	return meshes;
 }
@@ -153,7 +232,9 @@ std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType:
 				if (symmetry)	
 				{
 					label= SymmetricLabelId(labelOrig);
+//					std::cout << " labeled " << labelOrig  << " mirrowed label " << label << std::endl;
 				} 
+
 				pointData->push_back(label);
 
 
@@ -389,7 +470,7 @@ int main(int narg, char*  arg[])
 		hierarchyPruner->Update();
 		std::vector<long long> meshes1Files = hierarchyPruner->GetClustersIds(); 
 		std::vector<BasicMeshType::Pointer> basicMeshes1= FixSampleClusters(hierarchyPruner->GetOutputBundles());	
-		std::vector<MeshType::Pointer> meshes1= BasicMeshToMesh(basicMeshes1);
+		std::vector<MeshType::Pointer> meshes1= BasicMeshToMesh(basicMeshes1, segmentation1, symm);
 
 		hierarchyFilename  = std::string(cl.follow("","-h2"));
 
@@ -398,7 +479,7 @@ int main(int narg, char*  arg[])
 		hierarchyPruner->SetClustersPath(hierarchyFilename);
 		hierarchyPruner->Update();
 		std::vector<BasicMeshType::Pointer> basicMeshes2 = FixSampleClusters(hierarchyPruner->GetOutputBundles());	
-		std::vector<MeshType::Pointer> meshes2 = BasicMeshToMesh(basicMeshes2);
+		std::vector<MeshType::Pointer> meshes2 = BasicMeshToMesh(basicMeshes2, segmentation2, symm);
 
 
 		std::vector<long long> meshes2Files = hierarchyPruner->GetClustersIds();
