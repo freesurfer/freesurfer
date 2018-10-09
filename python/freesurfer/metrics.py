@@ -1,6 +1,4 @@
 import numpy as np
-from scipy.ndimage.morphology import binary_erosion
-from scipy.spatial.distance import cdist
 from . import error
 
 
@@ -23,6 +21,9 @@ def hausdorffDistance(vol1, vol2, thresh=0.01, measure=np.max):
         The Hausdorff distance.
 
     """
+    # temporarily import these within the function
+    from scipy.ndimage.morphology import binary_erosion
+    from scipy.spatial.distance import cdist
     # make sure inputs are the same shape
     if vol1.shape != vol2.shape:
       error('hausdorffDistance - inputs must have the same shape')
