@@ -103,6 +103,14 @@ if($st) then
   exit 1;
 endif
 
+# Create an LTA version of the XFM.
+set target = ${MINC_BIN_DIR}/../share/mni_autoreg/average_305.mnc
+set cmd = (lta_convert --src $InVol --trg $target)
+set cmd = ($cmd --inxfm $XFM --outlta $XFM.lta --subject fsaverage)
+echo $cmd |& tee -a $LF
+$cmd >> $LF
+if($status) exit 1;
+
 echo " " |& tee -a $LF
 echo " " |& tee -a $LF
 date | tee -a $LF
