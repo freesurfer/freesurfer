@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
 	{
 		std::cout<<"Usage: " << std::endl;
-		std::cout << argv[0] << " -i streamlines -o streamlines -l maxLength -r refImage -m mask/segmentation -nu (filter ushape fibers) -s subsample" << std::endl;
+		std::cout << argv[0] << " -i streamlines -o streamlines -l minLength  -m mask/segmentation -nu (filter ushape fibers) -s subsample" << std::endl;
 		return EXIT_FAILURE;
 	}
 	const char* inputName= cl.follow("",2,"-i","-I");
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	ImageType::Pointer refImage;
 	ImageType::Pointer mask;
 
-	if(cl.search(2,"-r","-R"))
+	/*if(cl.search(2,"-r","-R"))
 	{
 		typedef itk::ImageFileReader<ImageType> ImageReaderType;
 		ImageReaderType::Pointer reader = ImageReaderType::New();
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 		reader->Update();
 		refImage = reader->GetOutput();
 	}
-
+	*/
 	if(cl.search(2,"-m","-M"))
 	{
 		typedef itk::ImageFileReader<ImageType> ImageReaderType;
@@ -72,7 +72,10 @@ int main(int argc, char *argv[])
 	{
 		itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 		trkReader->SetTrkFileName(inputName);
-		trkReader->SetReferenceImage(refImage);
+		if( cl.search(2,"-m","-M"))
+		{
+			trkReader->SetReferenceImage(mask);
+		}
 		trkReader->TrkToVTK();
 		converter->SetVTKPolyData ( trkReader->GetOutputPolyData() );
 	}
@@ -104,7 +107,8 @@ int main(int argc, char *argv[])
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 		input->GetPoint(*it,&firstPt);
 		double lenghtSoFar = 0;
-		for( ; it!=inputCellIt.Value()->PointIdsEnd()&& lenghtSoFar < maxLenght; it++)
+		bool masked = false;
+		for( ; it!=inputCellIt.Value()->PointIdsEnd(); it++)
 		{
 			PointType pt;
 			pt.Fill(0);
@@ -116,15 +120,18 @@ int main(int argc, char *argv[])
 				ImageType::IndexType  index ;
 				mask->TransformPhysicalPointToIndex(firstPt,index);
 				float value= mask->GetPixel(index);
+				//std::cout <<  value << std::endl;
 				if (val1 ==0 && value!=0)
 					val1 =value;
 	
 				if( value!=0)
 					val2 = value;
+				else
+					masked=true;
 			}
 		}
 		
-		if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( (val1!=val2 && val1!= 0) || !filterUShape) &&(( val1!=0 && val2!= 0 )|| !maskFibers))
+		if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( (val1!=val2 && val1!= 0) || !filterUShape) &&(( !masked )|| !maskFibers))
 		{	
 			CellAutoPointer line;
 			line.TakeOwnership ( new PolylineCellType);
@@ -159,7 +166,10 @@ int main(int argc, char *argv[])
 	{
 		itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 		trkReader->SetInput(vtkConverter->GetOutputPolyData());
-		trkReader->SetReferenceImage(refImage);
+		if( cl.search(2,"-m","-M"))
+		{
+			trkReader->SetReferenceImage(mask);
+		}
 		trkReader->SetReferenceTrack(	std::string(inputName));
 		trkReader->VTKToTrk(std::string(outputName));
 
