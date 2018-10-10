@@ -1,9 +1,10 @@
-import sys
-import os
-import shutil
-import select
 import datetime as dt
+import os
+import select
+import shutil
 import subprocess as sp
+import sys
+
 from .log import error
 
 

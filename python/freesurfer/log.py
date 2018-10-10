@@ -1,6 +1,6 @@
-import sys
 import re
 import platform
+import sys
 
 
 # check if file descriptor is a terminal device

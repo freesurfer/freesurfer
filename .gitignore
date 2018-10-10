@@ -229,6 +229,7 @@ mri_robust_register/mri_robust_register
 mri_robust_register/mri_robust_template
 mri_sbbr/mri_sbbr
 mri_seg_diff/mri_seg_diff
+mri_seg_overlap/mri_seg_overlap
 mri_segcentroids/mri_segcentroids
 mri_seghead/mri_seghead
 mri_segment/mri_segment
