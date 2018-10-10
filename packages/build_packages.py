@@ -26,11 +26,8 @@ import tarfile
 import subprocess
 import hashlib
 
-# get the absolute path of this build_packages.py script, so we can
-# locate the source tarballs and scripts (and import the log module while we're at it)
+# get the absolute path of this build_packages.py script, so we can locate the source tarballs and scripts
 fs_source_dir = os.path.dirname(os.path.abspath(os.path.dirname(sys.argv[0])))
-sys.path.append(os.path.join(fs_source_dir, 'python'))
-from freesurfer.log import *
 
 # simple package class to store package source information
 class Package:
@@ -40,10 +37,12 @@ class Package:
     self.required = required
     self.script = os.path.join(fs_source_dir, 'packages/source', script)
     if not os.path.exists(self.script):
-      errorExit('%s does not exist' % self.script)
+      print('error: %s does not exist' % self.script)
+      exit(1)
     self.tarball = os.path.join(fs_source_dir, 'packages/source', tarball)
     if not os.path.exists(self.tarball):
-      errorExit('%s does not exist' % self.tarball)
+      print('error: %s does not exist' % self.tarball)
+      exit(1)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #                              ~~ freesurfer dependencies ~~
@@ -96,7 +95,7 @@ for package in pkgs:
   
   # make sure we aren't skipping this one
   if (vars(args)['no_%s' % package.name]) or (skip_by_default and not vars(args)['only_%s' % package.name]):
-    print('skipping %s%s %s%s...' % (term.bold, package.name, package.version, term.end))
+    print('skipping %s %s...' % (package.name, package.version))
     continue
   
   # get the actual package install dir
@@ -120,12 +119,11 @@ for package in pkgs:
     with open(md5_filename, 'r') as f: md5_old = f.read().replace('\n', '')
     # check for any difference
     if md5_old == md5_current and not args.force:
-      print('It appears that %s%s %s%s has already been built successfully. '
-            'To force a rebuild, use the --force option or delete %s' % (term.bold, package.name,
-             package.version, term.end, md5_filename))
+      print('It appears that %s %s has already been built successfully. '
+            'To force a rebuild, use the --force option or delete %s' % (package.name, package.version, md5_filename))
       continue
 
-  print('\n%sBuilding %s %s...%s\n' % (term.bold, package.name, package.version, term.end))
+  print('\nBuilding %s %s...\n' % (package.name, package.version))
 
   # setup the package install directory
   if not os.path.exists(package_dir): os.makedirs(package_dir)
@@ -151,10 +149,10 @@ for package in pkgs:
 print('')
 if failures:
   for package in failures:
-    error('could not build %s %s. Take a look at %s to debug' % (package.name, package.version, package.script))
+    print('error: could not build %s %s. Take a look at %s to debug' % (package.name, package.version, package.script))
     if not package.required:
-      print('%snote:%s FreeSurfer can be (limitedly) built without %s. If building it locally is '
-            'too troublesome, you can skip it by using the --no-%s flag' % (term.yellow, term.end, package.name, package.name))
+      print('note: FreeSurfer can be (limitedly) built without %s. If building it locally is '
+            'too troublesome, you can skip it by using the --no-%s flag' % (package.name, package.name))
   exit(1)
 else:
-  print('%sDONE: FreeSurfer packages succesfully built!%s\n' % (term.green, term.end))
+  print('DONE: FreeSurfer packages succesfully built!\n')
