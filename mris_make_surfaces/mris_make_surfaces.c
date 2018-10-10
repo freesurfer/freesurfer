@@ -1960,8 +1960,11 @@ int main(int argc, char *argv[])
   } // end loop over j (only 1 for now)
 
   MRISremoveIntersections(mris) ;
-  sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
-          output_suffix, suffix) ;
+  if (getenv("FS_POSIX")) {
+    sprintf(fname, "./%s.%s%s%s", hemi, pial_name, output_suffix, suffix);
+  } else {
+    sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name, output_suffix, suffix);
+  }
   fprintf(stdout, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
   if(create)   /* write out curvature and area files */
@@ -1992,14 +1995,22 @@ int main(int argc, char *argv[])
     MRIcopyMRIS(ValResid, mristarget, 2, "val"); // target val
     MRIcopyMRIS(ValResid, mris, 1, "valbak"); // value sampled at vertex
     MRIcopyMRIS(ValResid, mris, 0, "val2bak"); // residual = sample-target
-    sprintf(fname,"%s/%s/surf/%s.%s.res%s%s.mgz",sdir, sname,hemi,pial_name,output_suffix,suffix);
+    if (getenv("FS_POSIX")) {
+      sprintf(fname, "./%s.%s.res.%s%s.mgz", hemi, pial_name, output_suffix, suffix);
+    } else {
+      sprintf(fname, "%s/%s/surf/%s.%s.res%s%s.mgz", sdir, sname, hemi, pial_name, output_suffix, suffix);
+    }
     printf("Saving pial value residual to %s\n",fname);
     MRIwrite(ValResid,fname);
     MRIfree(&ValResid);
   }
 
   if(SaveTarget){
-    sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, pial_name,output_suffix, suffix) ;
+    if (getenv("FS_POSIX")) {
+      sprintf(fname, "./%s.%s.target%s%s", hemi, pial_name, output_suffix, suffix);
+    } else {
+      sprintf(fname, "%s/%s/surf/%s.%s.target%s%s", sdir, sname, hemi, pial_name,output_suffix, suffix) ;
+    }
     printf("writing pial target surface to %s...\n", fname) ;
     MRISwrite(mristarget, fname) ;
   }
