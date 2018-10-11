@@ -4898,6 +4898,7 @@ void MainWindow::OnNewVolume()
     layer_new->SetName( dlg.GetVolumeName() );
     col_mri->AddLayer(layer_new);
     ConnectMRILayer(layer_new);
+    emit NewVolumeCreated();
   }
 }
 
