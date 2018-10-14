@@ -45,6 +45,20 @@ void MRIS_releaseTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_r
 }
 
 
+// Create temps, and don't let the nvertices change until it is freed
+//
+float* MRISmakeFloatPerVertex(MRIS *mris) {
+  MRISacquireNverticesFrozen(mris);
+  float* p = (float*)malloc(mris->nvertices*sizeof(float));
+  return p;  
+}
+
+void MRISfreeFloatPerVertex(MRIS *mris, float** pp) {
+  freeAndNULL(*pp);
+  MRISreleaseNverticesFrozen(mris);
+}
+
+
 // This is for backwards compatibility for when we don't want to fix the vertex area. 
 // Default is to fix, but this can be changed by setting to 0.
 //
@@ -284,10 +298,20 @@ static void MRISchangedNFacesNVertices(MRIS * mris, bool scrambled) {
   // useful for debugging
 }
 
+void MRISacquireNverticesFrozen(MRIS *mris) {
+  #pragma omp atomic
+  (*(int*)&mris->nverticesFrozen)++;
+}
+void MRISreleaseNverticesFrozen(MRIS *mris) {
+  #pragma omp atomic
+  (*(int*)&mris->nverticesFrozen)--;
+}
+
 bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
   cheapAssert(nvertices >= 0);
   cheapAssert(max_vertices >= nvertices);
-
+  cheapAssert(!mris->nverticesFrozen);
+  
   mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
   if (!mris->vertices) return false;
   #ifndef SEPARATE_VERTEX_TOPOLOGY

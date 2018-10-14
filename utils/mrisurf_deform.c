@@ -988,6 +988,109 @@ int MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz)
 }
 
 
+/*-------------------------------------------------------*/
+/* Replaces x,y,z with theta,phi,radius. Assumes
+    that the surface xyz are already on the sphere.
+    Note: this is not related to the surface-based
+    spherical coords.
+ */
+int MRISsphericalCoords(MRIS *surf)
+{
+  int k;
+  double x, y, z, d2, d, r, theta, phi;
+
+  for (k = 0; k < surf->nvertices; k++) {
+    x = surf->vertices[k].x;
+    y = surf->vertices[k].y;
+    z = surf->vertices[k].z;
+    d2 = x * x + y * y;
+    d = sqrt(d2);
+    r = sqrt(d2 + z * z);
+    theta = atan2(y, x);
+    phi = atan2(z, d);
+    surf->vertices[k].x = theta;
+    surf->vertices[k].y = phi;
+    surf->vertices[k].z = r;
+  }
+  return (0);
+}
+
+
+// translate the COG of a surface to (0,0,0)
+void MRIScenterCOG2(MRI_SURFACE *mris, double *xCOG, double *yCOG, double *zCOG)
+{
+  int k;
+  double x, y, z;
+  x = 0;
+  y = 0;
+  z = 0;
+  for (k = 0; k < mris->nvertices; k++) {
+    x += mris->vertices[k].x;
+    y += mris->vertices[k].y;
+    z += mris->vertices[k].z;
+  }
+  x /= mris->nvertices;
+  y /= mris->nvertices;
+  z /= mris->nvertices;
+  for (k = 0; k < mris->nvertices; k++) {
+    mris->vertices[k].x -= x;
+    mris->vertices[k].y -= y;
+    mris->vertices[k].z -= z;
+  }
+  if (xCOG && yCOG && zCOG) {
+    (*xCOG) = x;
+    (*yCOG) = y;
+    (*zCOG) = z;
+  }
+  /*       fprintf(stderr,"\nCOG Centered at x=%f y=%f z=%f",
+     (float)x,(float)y,(float)z);*/
+}
+
+void MRIScenterCOG(MRIS *mris) { MRIScenterCOG2(mris, NULL, NULL, NULL); }
+
+
+
+// smooth a surface 'niter' times with a step (should be around 0.5)
+void MRISsmoothSurface(MRI_SURFACE *mris, int niter, float step)
+{
+  if (step > 1) step = 1.0f;
+
+  int iter;
+  for (iter = 0; iter < niter; iter++) {
+    MRIScomputeMetricProperties(mris);
+
+    int k;
+    for (k = 0; k < mris->nvertices; k++) {
+      VERTEX * v = &mris->vertices[k];
+      v->tx = v->x;
+      v->ty = v->y;
+      v->tz = v->z;
+    }
+
+    for (k = 0; k < mris->nvertices; k++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
+      int n = 0;
+      float x = 0, y = 0, z = 0;
+      int m;
+      for (m = 0; m < vt->vnum; m++) {
+        x += mris->vertices[vt->v[m]].tx;
+        y += mris->vertices[vt->v[m]].ty;
+        z += mris->vertices[vt->v[m]].tz;
+        n++;
+      }
+      x /= n;
+      y /= n;
+      z /= n;
+
+      v->x = v->x + step * (x - v->x);
+      v->y = v->y + step * (y - v->y);
+      v->z = v->z + step * (z - v->z);
+    }
+  }
+}
+
+
 /*-----------------------------------------------------
   MRIStransform
 

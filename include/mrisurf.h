@@ -247,8 +247,22 @@ typedef struct vertex_type_
 // The LIST_OF_VERTEX_ELTS macro used here enables the the mris_hash
 // and other algorithms to process all the elements without having to explicitly name them there and here
 //
+// The order is important because
+//      . it affects the hash (until a better hash algorithm is implemented)
+//      . it affects the size (each item must be aligned on its appropriate boundary for its size)
+//      . it affects the number of cache lines that must be read and written
+//
+// By putting the ripflag at the end, reading it will cause its whole cache line to be read, perhaps the 
+// first few elements of the next vertex earlier, and the ripflag test will probably be correctly predicted
+// and so the cpu won't wait.
+//
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
+  ELTX(float*,dist) SEP                 /* distance to neighboring vertices */    \
+  ELTX(float*,dist_orig) SEP            /* original distance to neighboring vertices */    \
+  ELTT(float,origx) SEP    \
+  ELTT(float,origy) SEP    \
+  ELTT(float,origz) SEP   /* original coordinates */    \
   ELTT(float,x) SEP    \
   ELTT(float,y) SEP    \
   ELTT(float,z) SEP           /* curr position */    \
@@ -258,6 +272,7 @@ typedef struct vertex_type_
   ELTT(float,pnx) SEP    \
   ELTT(float,pny) SEP    \
   ELTT(float,pnz) SEP     /* pial normal */    \
+  /* the above is the first cache line */ \
   ELTT(float,wnx) SEP    \
   ELTT(float,wny) SEP    \
   ELTT(float,wnz) SEP     /* white normal */    \
@@ -286,9 +301,6 @@ typedef struct vertex_type_
   ELTT(float,tx2) SEP    \
   ELTT(float,ty2) SEP    \
   ELTT(float,tz2) SEP  /* tmp coordinate storage */    \
-  ELTT(float,origx) SEP    \
-  ELTT(float,origy) SEP    \
-  ELTT(float,origz) SEP   /* original coordinates */    \
   ELTT(float,targx) SEP    \
   ELTT(float,targy) SEP    \
   ELTT(float,targz) SEP   /* target coordinates */    \
@@ -414,30 +426,28 @@ typedef struct vertex_type_
 #endif
 
 #define LIST_OF_VERTEX_ELTS_7    \
+  ELTP(void,vp) SEP                     /* to store user's information */    \
   ELTT(float,theta) SEP    \
-  ELTT(float,phi) SEP     /* parameterization */    \
-  ELTT(short,marked) SEP         /* for a variety of uses */    \
-  ELTT(short,marked2) SEP    \
-  ELTT(short,marked3) SEP    \
-  ELTT(char,ripflag) SEP    \
-  ELTT(char,border) SEP         /* flag */    \
+  ELTT(float,phi) SEP               /* parameterization */    \
   ELTT(float,area) SEP    \
   ELTT(float,origarea) SEP    \
   ELTT(float,group_avg_area) SEP    \
-  ELTT(float,K) SEP              /* Gaussian curvature */    \
-  ELTT(float,H) SEP                     /* mean curvature */    \
+  ELTT(float,K) SEP                 /* Gaussian curvature */    \
+  ELTT(float,H) SEP                 /* mean curvature */    \
   ELTT(float,k1) SEP    \
   ELTT(float,k2) SEP                    /* the principal curvatures */    \
-  ELTX(float*,dist) SEP                 /* distance to neighboring vertices */    \
-  ELTX(float*,dist_orig) SEP            /* original distance to neighboring vertices */    \
-  ELTT(char,neg) SEP                    /* 1 if the normal vector is inverted */    \
   ELTT(float,mean) SEP    \
-  ELTT(float,mean_imag) SEP      /* imaginary part of complex statistic */    \
+  ELTT(float,mean_imag) SEP         /* imaginary part of complex statistic */    \
   ELTT(float,std_error) SEP    \
   ELTT(unsigned int,flags) SEP    \
-  ELTP(void,vp) SEP /* to store user's information */    \
-  ELTT(int,fno) SEP            /* face that this vertex is in */    \
-  ELTT(int,cropped)     \
+  ELTT(int,fno) SEP                 /* face that this vertex is in */    \
+  ELTT(int,cropped) SEP \
+  ELTT(short,marked) SEP            /* for a variety of uses */    \
+  ELTT(short,marked2) SEP    \
+  ELTT(short,marked3) SEP    \
+  ELTT(char,neg) SEP                /* 1 if the normal vector is inverted */    \
+  ELTT(char,border) SEP             /* flag */    \
+  ELTT(char,ripflag)                /* vertex no longer exists - placed last to load the next vertex into cache */ \
   // end of macro
   
 #define LIST_OF_VERTEX_ELTS \
@@ -491,6 +501,7 @@ typedef struct MRIS
 //
 #define LIST_OF_MRIS_ELTS_1     \
     \
+  ELTT(const int,nverticesFrozen) SEP           /* # of vertices on surface is frozen */                                                    \
   ELTT(const int,nvertices) SEP                 /* # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al */         \
   ELTT(const int,nfaces) SEP                    /* # of faces on surface,    change by calling MRISreallocVerticesAndFaces et al */         \
   ELTT(const bool,faceAttachmentDeferred) SEP   /* defer connecting faces to vertices, for performance reasons                   */         \
@@ -597,13 +608,14 @@ typedef struct MRIS
   ELTT(VOL_GEOM,vg) SEP           /* volume info from which this surface is created. valid iff vg.valid = 1 */    \
   ELTX(MRIS_cmdlines_t, cmdlines) SEP    \
   ELTT(int,ncmds) SEP    \
-  ELTT(float,group_avg_surface_area) SEP  /* average of total surface area for group */    \
-  ELTT(int,group_avg_vtxarea_loaded) SEP /* average vertex area for group at each vertex */    \
-  ELTT(int,triangle_links_removed) SEP  /* for quad surfaces                         */    \
-  ELTP(void,user_parms) SEP             /* for whatever the user wants to hang here  */    \
-  ELTP(MATRIX,m_sras2vox) SEP             /* for converting surface ras to voxel       */    \
-  ELTP(MRI,mri_sras2vox) SEP           /* volume that the above matrix is for       */    \
-  ELTP(void,mht)     \
+  ELTT(float,group_avg_surface_area) SEP    /* average of total surface area for group */       \
+  ELTT(int,group_avg_vtxarea_loaded) SEP    /* average vertex area for group at each vertex */  \
+  ELTT(int,triangle_links_removed) SEP      /* for quad surfaces                         */     \
+  ELTP(void,user_parms) SEP                 /* for whatever the user wants to hang here  */     \
+  ELTP(MATRIX,m_sras2vox) SEP               /* for converting surface ras to voxel       */     \
+  ELTP(MRI,mri_sras2vox) SEP                /* volume that the above matrix is for       */     \
+  ELTP(void,mht) SEP \
+  ELTP(void,temps)  \
   // end of macro
   
 #define LIST_OF_MRIS_ELTS       \
@@ -626,7 +638,7 @@ LIST_OF_MRIS_ELTS ;
 MRI_SURFACE, MRIS ;
 
 typedef const MRIS MRIS_const;
-    // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept esaily.
+    // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept easily.
 
 void MRISctr(MRIS *mris, int max_vertices, int max_faces, int nvertices, int nfaces);
 void MRISdtr(MRIS *mris);
@@ -646,9 +658,21 @@ void MRISfree(MRIS **pmris) ;
     //
     // The only way to delete a surface.  All the substructures are also freed, and the *pmris set to nullptr
     
-void MRISreallocVerticesAndFaces(MRI_SURFACE *mris, int nvertices, int nfaces) ;
+void MRISreallocVerticesAndFaces(MRIS *mris, int nvertices, int nfaces) ;
     //
     // Used by code that is deforming the surface
+
+void MRISacquireNverticesFrozen(MRIS *mris);
+void MRISreleaseNverticesFrozen(MRIS *mris);
+    //
+    // Used by some code that depends on this number not changing
+    // but lots of such dependent code have not been changed to use this
+    
+// Make and free temp properties for all the vertices
+// whilest making sure they are the right size by stopping the nvertices changing when any such exist
+//
+float* MRISmakeFloatPerVertex(MRIS *mris);
+void   MRISfreeFloatPerVertex(MRIS *mris, float** pp);
 
 // The following create a copy of a surface, whilest deleteing some vertices and some faces
 // The faces that are kept must not reference any vertices which are not kept.
