@@ -46,9 +46,10 @@ rt.run('mri_concatenate_gcam im2_to_im3.m3z im3_to_im2.m3z gcam.m3z && ' +
        mri_convert + ' -at gcam.m3z im2.mgz gcam_gcam.mgz')
 rt.mridiff('gcam_gcam.mgz', 'gcam_gcam.ref.mgz')
 
-# downsample GCAM by factor of 2
+# downsample GCAM - leave some capacity for change
 rt.run('mri_concatenate_gcam -d im2_to_im3.m3z gcam.m3z && ' +
        mri_convert + ' -at gcam.m3z im2.mgz down.mgz')
-rt.mridiff('down.mgz', 'down.ref.mgz', thresh=1.0)
+rt.mridiff('down.mgz', 'down.ref.mgz', thresh=0.5)
 
 rt.cleanup()
+
