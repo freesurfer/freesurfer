@@ -19,9 +19,68 @@
  */
 #include "mrisurf_vals.h"
 
-//=============================================================================
-// marks, and other flags
+// Vals are scalar properties of vertexs or faces
 //
+// vertices
+//              marked  marked2     annotations     flags   marked3     val     mean    cropped
+//  count       x
+//  set all     x
+//  set         x                                   x
+//  clear       x       x           x               x
+//  invert      x
+//  negate                                                              x
+//  dilate      x
+//  erode       x
+//      two-operand
+//          copy    
+//              marked2=marked      marked3=marked
+//              marked=marked2      marked=marked3
+//              anotation=val
+//              val=mean            val=mean_imag       val=std_error
+//
+// faces
+//              marks
+//  clear       x
+//
+
+//=============================================================================
+// vertex
+//
+/*!
+  \fn int MRIScountAllMarked(MRIS *mris)
+  \brief Returns the total number of vertices have v->marked > 0
+ */
+int MRIScountAllMarked(MRIS *mris)
+{
+  int nmarked=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].marked>0) nmarked++;
+  }
+  return(nmarked);
+}
+/*!
+  \fn int MRIScountMarked(MRIS *mris, int mark_threshold)
+  \brief Returns the total number of non-ripped vertices 
+  that have v->marked >= threshold
+ */
+int MRIScountMarked(MRIS *mris, int mark_threshold)
+{
+  int vno, total_marked;
+  VERTEX *v;
+
+  for (total_marked = vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (v->marked >= mark_threshold) {
+      total_marked++;
+    }
+  }
+  return (total_marked);
+}
+
+
 int MRISmarkedVertices(MRIS *mris)
 {
   int vno, nvertices, nmarked;
@@ -36,62 +95,19 @@ int MRISmarkedVertices(MRIS *mris)
 }
 
 
-int MRISclearMarks(MRIS *mris)
+// set all the marks to a user specified value INCLUDING RIPPED VERTICES!
+int MRISsetAllMarks(MRIS *mris, int mark)
 {
   int vno;
   VERTEX *v;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked = 0;
+    v->marked = mark;
   }
   return (NO_ERROR);
 }
 
-int MRISclearMark2s(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked2 = 0;
-  }
-  return (NO_ERROR);
-}
-
-int MRISclearFaceMarks(MRIS *mris)
-{
-  int fno;
-  FACE *f;
-
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    f = &mris->faces[fno];
-    f->marked = 0;
-  }
-  return (NO_ERROR);
-}
-
-int MRISclearAnnotations(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->annotation = 0;
-  }
-  return (NO_ERROR);
-}
 
 int MRISsetMarks(MRIS *mris, int mark)
 {
@@ -108,7 +124,10 @@ int MRISsetMarks(MRIS *mris, int mark)
   return (NO_ERROR);
 }
 
-
+int MRISclearMarks(MRIS *mris)
+{
+  return MRISsetMarks(mris, 0);
+}
 
 int MRISinvertMarks(MRIS *mris)
 {
@@ -128,16 +147,1228 @@ int MRISinvertMarks(MRIS *mris)
 
 int MRISnotMarked(MRIS *mris)
 {
+  return MRISinvertMarks(mris);
+}
+
+
+int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh)
+{
   int vno;
   VERTEX *v;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
-    if (v->ripflag == 0) v->marked = !v->marked;
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = v->val >= thresh;
+  }
+
+  return (NO_ERROR);
+}
+
+
+/* assume that the mark is 1 */
+int MRISexpandMarked(MRIS *mris)
+{
+  int vno, n;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->marked == 1) {
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        if (vn->marked == 0) {
+          vn->marked = 2;
+        }
+      }
+    }
+  }
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+    if (v->marked == 2) {
+      v->marked = 1;
+    }
   }
   return (NO_ERROR);
 }
 
+/*! -----------------------------------------------------
+  \fn int MRISdilateMarked(MRIS *mris, int ndil)
+  \brief Dilates the marked vertices by marking a vertex
+  if any of its non-ripped neighbors is ripped.
+  ------------------------------------------------------*/
+int MRISdilateMarked(MRIS *mris, int ndil)
+{
+  int vno, i, n, mx;
+
+  // Loop through each dilation
+  for (i = 0; i < ndil; i++) {
+
+    // Set v->tx to 0 for unripped vertices
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if(v->ripflag) continue;
+      v->tx = 0;
+    }
+
+    // Loop through vertices (skip ripped)
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      if(v->ripflag) continue;
+      // set v->tx=1 if this vertex or any of its neightbors is marked
+      mx = v->marked;
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
+        mx = MAX(vn->marked, mx);
+      }
+      v->tx = mx;
+    }
+
+    // Now copy tx into marked
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) continue;
+      v->marked = (int)v->tx;
+    }
+
+  }// end loop over dilations
+  return (NO_ERROR);
+}
+
+int MRISerodeMarked(MRIS *mris, int num)
+{
+  int vno, i, n, mn;
+
+  for (i = 0; i < num; i++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) {
+        continue;
+      }
+      v->tx = 0;
+    }
+
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      if (v->ripflag) {
+        continue;
+      }
+      mn = v->marked;
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        mn = MIN(vn->marked, mn);
+      }
+      v->tx = mn;
+    }
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) {
+        continue;
+      }
+      v->marked = (int)v->tx;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScloseMarked(MRIS *mris, int order)
+{
+  MRISdilateMarked(mris, order);
+  MRISerodeMarked(mris, order);
+  return (NO_ERROR);
+}
+
+
+int MRISopenMarked(MRIS *mris, int order)
+{
+  MRISerodeMarked(mris, order);
+  MRISdilateMarked(mris, order);
+  return (NO_ERROR);
+}
+
+
+
+// marks2
+//
+int MRISclearMark2s(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked2 = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+// annotations
+//
+int MRISclearAnnotations(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->annotation = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISsetCroppedToZero(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+    v->cropped = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+// flags
+//
+int MRISsetFlags(MRIS *mris, int flags)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].flags |= flags;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclearFlags(MRIS *mris, int flags)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].flags &= (~flags);
+  }
+  return (NO_ERROR);
+}
+
+
+// val
+//
+
+void mrisSetVal(MRIS *mris, float val)
+{
+  int n;
+  for (n = 0; n < mris->nvertices; n++) mris->vertices[n].val = val;
+}
+
+
+int mrisClearGradient(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+    v->dx = 0;
+    v->dy = 0;
+    v->dz = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+#if 0
+int mrisClearExtraGradient(MRI_SURFACE *mris)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (mris->dx2)
+      mris->dx2[vno] = mris->dy2[vno] = mris->dz2[vno] = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+#endif
+
+
+
+int MRISaddToValues(MRI_SURFACE *mris, float val)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val += val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISnegateValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val *= -1.0;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISsetVals(MRI_SURFACE *mris, float val)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISscaleVals(MRI_SURFACE *mris, float scale)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val *= scale;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISmulVal(MRI_SURFACE *mris, float mul)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val *= mul;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISsqrtVal(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (v->val > 0) {
+      v->val = sqrt(v->val);
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)
+{
+  int vno;
+  VERTEX *v;
+  double p;
+
+  MRISdistanceTransform(mris, area, DTRANS_MODE_SIGNED);
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+    p = v->val;
+    if (p < 0) {
+      p = 0;
+    }
+    p = exp(-p * slope);
+    v->val = p;
+  }
+  return (NO_ERROR);
+}
+
+
+
+int MRISsetVal2(MRI_SURFACE *mris, float val)
+{
+  VERTEX *v;
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val2 = val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISsetValues(MRI_SURFACE *mris, float val)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclearFixedValFlags(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->fixedval = FALSE;
+  }
+  return (NO_ERROR);
+}
+
+
+//
+//
+int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    curvs[vno] = mris->vertices[vno].curv;
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    curvs[vno + offset] = (double)mris->vertices[vno].curv;
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    curvs[vno] = (double)mris->vertices[vno].curv;
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].curv = curvs[vno];
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISimportValVector(MRI_SURFACE *mris, float *vals)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].val = vals[vno];
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].val = *MATRIX_RELT(m, vno + 1, col);
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISexportValVector(MRI_SURFACE *mris, float *vals)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    vals[vno] = mris->vertices[vno].val;
+  }
+
+  return (NO_ERROR);
+}
+
+
+int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset)
+{
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    vals[vno + offset] = (double)mris->vertices[vno].val;
+  }
+
+  return (NO_ERROR);
+}
+
+
+// grad
+//
+int MRISclearGradient(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->dx = v->dy = v->dz = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+int mrisClearExtraGradient(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (mris->dx2) {
+      mris->dx2[vno] = mris->dy2[vno] = mris->dz2[vno] = 0;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int mrisClearMomentum(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->odx = v->ody = v->odz = 0;
+  }
+  return (NO_ERROR);
+}
+
+int MRISabsVals(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = fabs(v->val);
+  }
+  return (NO_ERROR);
+}
+
+int MRISabsCurvature(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = fabs(v->curv);
+  }
+  return (NO_ERROR);
+}
+
+
+// Two-operand
+//
+int MRIScopyMarkedToMarked2(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked2 = v->marked;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyMarked2ToMarked(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked = v->marked2;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyMarkedToMarked3(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->marked3 = v->marked;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyMarked3ToMarked(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+    v->marked = v->marked3;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValsToAnnotations(MRIS *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->annotation = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyMeansToValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->mean;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->mean_imag;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyStandardErrorsToValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->std_error;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyStatsToValues(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->stat;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyStatsFromValues(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->stat = v->val ;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyValuesToImagValues(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->imag_val = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyImagValuesToValues(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->imag_val;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyVal2ToVal(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->val2;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyCurvatureToValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->curv;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyVal2BakToVal(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val = v->val2bak;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyCurvatureToImagValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->imag_val = v->curv;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValuesToCurvature(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyImagValuesToCurvature(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->imag_val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyCurvatureFromValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->imag_val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValToVal2(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val2 = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValuesToVal2Bak(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val2bak = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValToValBak(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->valbak = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyValToVal2Bak(MRI_SURFACE *mris)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->val2bak = v->val;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyFromCropped(MRI_SURFACE *mris, int which)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+
+    switch (which) {
+      case VERTEX_VALS:
+        v->val = v->cropped;
+        break;
+      case VERTEX_MARKS:
+        v->marked = v->cropped;
+        break;
+      default:
+        ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which);
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRIScopyToCropped(MRI_SURFACE *mris, int which)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+
+    switch (which) {
+      case VERTEX_VALS:
+        v->cropped = v->val;
+        break;
+      case VERTEX_MARKS:
+        v->cropped = v->marked;
+        break;
+      default:
+        ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which);
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISorigAreaToCurv(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->origarea;
+  }
+  return (NO_ERROR);
+}
+
+int MRISareaToCurv(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = v->area;
+  }
+  return (NO_ERROR);
+}
+
+int MRISmarkedToCurv(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = (float)v->marked;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScurvToMarked(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = (int)v->curv;
+  }
+  return (NO_ERROR);
+}
+
+int MRISdToCurv(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->curv = (float)v->d;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScurvToD(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->d = v->curv;
+  }
+  return (NO_ERROR);
+}
+
+int MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->marked = v->fixedval;
+  }
+  return (NO_ERROR);
+}
+
+
+//======
+// faces
+//
+int MRISclearFaceMarks(MRIS *mris)
+{
+  int fno;
+  FACE *f;
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->marked = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+//======
+// ripped
+//
+/*!
+  \fn int MRIScountRipped(MRIS *mris)
+  \brief Returns the total number of ripped vertices
+ */
+int MRIScountRipped(MRIS *mris)
+{
+  int nripped=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  return(nripped);
+}
+
+
+int MRISstoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->oripflag = v->ripflag;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->oripflag = f->ripflag;
+  }
+  return (NO_ERROR);
+}
+
+int MRISrestoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = v->oripflag;
+  }
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->ripflag = f->oripflag;
+  }
+
+  return (NO_ERROR);
+}
 
 int MRISunrip(MRIS *mris)
 {
@@ -190,147 +1421,6 @@ int MRISripNotLabel(MRIS *mris, LABEL *area)
   return (NO_ERROR);
 }
 
-
-int MRISsetFlags(MRIS *mris, int flags)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].flags |= flags;
-  }
-  return (NO_ERROR);
-}
-
-
-int MRISclearFlags(MRIS *mris, int flags)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].flags &= (~flags);
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyMarkedToMarked2(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->marked2 = v->marked;
-  }
-  return (NO_ERROR);
-}
-int MRIScopyValsToAnnotations(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->annotation = v->val;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyMarked2ToMarked(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->marked = v->marked2;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyMarkedToMarked3(MRIS *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->marked3 = v->marked;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyMarked3ToMarked(MRIS *mris)
-{
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-    v->marked = v->marked3;
-  }
-  return (NO_ERROR);
-}
-
-/* assume that the mark is 1 */
-int MRISexpandMarked(MRIS *mris)
-{
-  int vno, n;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->marked == 1) {
-      for (n = 0; n < vt->vnum; n++) {
-        VERTEX * const vn = &mris->vertices[vt->v[n]];
-        if (vn->marked == 0) {
-          vn->marked = 2;
-        }
-      }
-    }
-  }
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-    if (v->marked == 2) {
-      v->marked = 1;
-    }
-  }
-  return (NO_ERROR);
-}
-
-int MRISstoreRipFlags(MRIS *mris)
-{
-  int vno, fno;
-  VERTEX *v;
-  FACE *f;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->oripflag = v->ripflag;
-  }
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    f = &mris->faces[fno];
-    f->oripflag = f->ripflag;
-  }
-  return (NO_ERROR);
-}
-
-int MRISrestoreRipFlags(MRIS *mris)
-{
-  int vno, fno;
-  VERTEX *v;
-  FACE *f;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->ripflag = v->oripflag;
-  }
-
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    f = &mris->faces[fno];
-    f->ripflag = f->oripflag;
-  }
-
-  return (NO_ERROR);
-}
-
 /*!
   \fn int MRISripMarked(MRIS *mris)
   \brief Sets v->ripflag=1 if v->marked==1.
@@ -349,6 +1439,8 @@ int MRISripMarked(MRIS *mris)
   }
   return (NO_ERROR);
 }
+
+
 int MRISripUnmarked(MRIS *mris)
 {
   int vno;
@@ -363,110 +1455,24 @@ int MRISripUnmarked(MRIS *mris)
   return (NO_ERROR);
 }
 
-// set all the marks to a user specified value INCLUDING RIPPED VERTICES!
-int MRISsetAllMarks(MRIS *mris, int mark)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->marked = mark;
-  }
-  return (NO_ERROR);
-}
-
 
 /*!
-  \fn int MRIScountRipped(MRIS *mris)
-  \brief Returns the total number of ripped vertices
+  \fn int MRISripUnknown(MRIS *surf)
+  \brief Sets the ripflag = 1 in places where the annotation is unknown
  */
-int MRIScountRipped(MRIS *mris)
+int MRISripUnknown(MRIS *surf)
 {
-  int nripped=0, vno;
-  for (vno = 0 ; vno < mris->nvertices ; vno++){
-    if(mris->vertices[vno].ripflag) nripped++;
-  }
-  return(nripped);
-}
-/*!
-  \fn int MRIScountAllMarked(MRIS *mris)
-  \brief Returns the total number of vertices have v->marked > 0
- */
-int MRIScountAllMarked(MRIS *mris)
-{
-  int nmarked=0, vno;
-  for (vno = 0 ; vno < mris->nvertices ; vno++){
-    if(mris->vertices[vno].marked>0) nmarked++;
-  }
-  return(nmarked);
-}
-/*!
-  \fn int MRIScountMarked(MRIS *mris, int mark_threshold)
-  \brief Returns the total number of non-ripped vertices 
-  that have v->marked >= threshold
- */
-int MRIScountMarked(MRIS *mris, int mark_threshold)
-{
-  int vno, total_marked;
-  VERTEX *v;
+  int nripped = 0, vtxno, annot, annotid;
 
-  for (total_marked = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (v->marked >= mark_threshold) {
-      total_marked++;
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+    if (annotid == 0 || annotid == -1) {
+      surf->vertices[vtxno].ripflag = 1;
+      nripped++;
     }
   }
-  return (total_marked);
-}
-
-
-
-/*! -----------------------------------------------------
-  \fn int MRISdilateMarked(MRIS *mris, int ndil)
-  \brief Dilates the marked vertices by marking a vertex
-  if any of its non-ripped neighbors is ripped.
-  ------------------------------------------------------*/
-int MRISdilateMarked(MRIS *mris, int ndil)
-{
-  int vno, i, n, mx;
-
-  // Loop through each dilation
-  for (i = 0; i < ndil; i++) {
-
-    // Set v->tx to 0 for unripped vertices
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX * const v = &mris->vertices[vno];
-      if(v->ripflag) continue;
-      v->tx = 0;
-    }
-
-    // Loop through vertices (skip ripped)
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-      VERTEX                * const v  = &mris->vertices         [vno];
-      if(v->ripflag) continue;
-      // set v->tx=1 if this vertex or any of its neightbors is marked
-      mx = v->marked;
-      for (n = 0; n < vt->vnum; n++) {
-        VERTEX const * const vn = &mris->vertices[vt->v[n]];
-        mx = MAX(vn->marked, mx);
-      }
-      v->tx = mx;
-    }
-
-    // Now copy tx into marked
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX * const v = &mris->vertices[vno];
-      if (v->ripflag) continue;
-      v->marked = (int)v->tx;
-    }
-
-  }// end loop over dilations
-  return (NO_ERROR);
+  return (0);
 }
 
 
@@ -534,59 +1540,7 @@ int MRISerodeRipped(MRIS *mris, int ndil)
   return (NO_ERROR);
 }
 
-int MRISerodeMarked(MRIS *mris, int num)
-{
-  int vno, i, n, mn;
-
-  for (i = 0; i < num; i++) {
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX * const v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
-      v->tx = 0;
-    }
-
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-      VERTEX                * const v  = &mris->vertices         [vno];
-      if (v->ripflag) {
-        continue;
-      }
-      mn = v->marked;
-      for (n = 0; n < vt->vnum; n++) {
-        VERTEX * const vn = &mris->vertices[vt->v[n]];
-        mn = MIN(vn->marked, mn);
-      }
-      v->tx = mn;
-    }
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX * const v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
-      v->marked = (int)v->tx;
-    }
-  }
-  return (NO_ERROR);
-}
-
-
-int MRIScloseMarked(MRIS *mris, int order)
-{
-  MRISdilateMarked(mris, order);
-  MRISerodeMarked(mris, order);
-  return (NO_ERROR);
-}
-
-
-int MRISopenMarked(MRIS *mris, int order)
-{
-  MRISerodeMarked(mris, order);
-  MRISdilateMarked(mris, order);
-  return (NO_ERROR);
-}
-
+//=========================================================NOT YET REFURBISHED==================================================
 
 
 /*---------------------------------------------------------------------
@@ -817,6 +1771,7 @@ void MRISsetOrigValuesToValues(MRIS *mris, int fno)
   }
 }
 
+
 void MRISsetValuesToCurvatures(MRIS *mris, int fno)
 {
   int n;
@@ -830,165 +1785,8 @@ void MRISsetValuesToCurvatures(MRIS *mris, int fno)
   }
 }
 
-int MRIScopyStatsToValues(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
 
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->stat;
-  }
-  return (NO_ERROR);
-}
-int MRIScopyStatsFromValues(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->stat = v->val ;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValuesToImagValues(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->imag_val = v->val;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyImagValuesToValues(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->imag_val;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISclearGradient(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->dx = 0;
-    v->dy = 0;
-    v->dz = 0;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int mrisClearExtraGradient(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (mris->dx2) {
-      mris->dx2[vno] = mris->dy2[vno] = mris->dz2[vno] = 0;
-    }
-  }
-  return (NO_ERROR);
-}
-
-/*! ----------------------------------------------------
-  \fn int mrisClearMomentum(MRI_SURFACE *mris)
-  \brief sets v->od{xyz}=0 for unripped vertices.
-  ------------------------------------------------------*/
-int mrisClearMomentum(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->odx = 0;
-    v->ody = 0;
-    v->odz = 0;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-
-int
-MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh)
+int MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh)
 {
   int vno;
   VERTEX *v;
@@ -1002,103 +1800,7 @@ MRISmarkVerticesWithValOverThresh(MRI_SURFACE *mris, float thresh)
   return (NO_ERROR);
 }
 
-int MRISsetCroppedToZero(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
 
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-    v->cropped = 0;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyFromCropped(MRI_SURFACE *mris, int which)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-
-    switch (which) {
-      case VERTEX_VALS:
-        v->val = v->cropped;
-        break;
-      case VERTEX_MARKS:
-        v->marked = v->cropped;
-        break;
-      default:
-        ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which);
-    }
-  }
-  return (NO_ERROR);
-}
-
-int MRIScopyToCropped(MRI_SURFACE *mris, int which)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-
-    switch (which) {
-      case VERTEX_VALS:
-        v->cropped = v->val;
-        break;
-      case VERTEX_MARKS:
-        v->cropped = v->marked;
-        break;
-      default:
-        ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which);
-    }
-  }
-  return (NO_ERROR);
-}
-
-
-#if 0
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-static int
-mrisCheck(MRI_SURFACE *mris)
-{
-  int       vno ;
-  VERTEX    *v ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (fabs(v->curv) > 10000.0)
-    {
-      DiagBreak() ;
-      return(ERROR_BADPARM) ;
-    }
-  }
-  return(NO_ERROR) ;
-}
-#endif
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
 {
   int i, vno, vnb, vnum;
@@ -1136,13 +1838,8 @@ int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
   mrisComputeCurvatureMinMax(mris);
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
 {
   int i, vno, vnb, vnum;
@@ -1180,6 +1877,7 @@ int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
   mrisComputeCurvatureMinMax(mris);
   return (NO_ERROR);
 }
+
 /*-----------------------------------------------------
 int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
 Performs navgs steps of iterative spatial smoothing on curv.
@@ -1221,13 +1919,7 @@ int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
   mrisComputeCurvatureMinMax(mris);
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, vnum;
@@ -1265,13 +1957,7 @@ int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
   mrisComputeCurvatureMinMax(mris);
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, vnum;
@@ -1308,13 +1994,7 @@ int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISaverageVals(MRI_SURFACE *mris, int navgs)
 {
   int i, vno;
@@ -1367,14 +2047,8 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  spatially average the v->d field
-  ------------------------------------------------------*/
+// spatially average the v->d field
 int MRISaverageD(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, vnum;
@@ -1412,13 +2086,7 @@ int MRISaverageD(MRI_SURFACE *mris, int navgs)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -1461,13 +2129,7 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -1549,13 +2211,7 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
 {
   int vno, vnb, *pnb, vnum;
@@ -1593,13 +2249,7 @@ int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
 {
   int i, vno, vnb, vnum, num;
@@ -1646,13 +2296,8 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -1694,13 +2339,8 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -1742,13 +2382,8 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -1790,13 +2425,8 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISaverageVal2s(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, vnum;
@@ -1833,99 +2463,8 @@ int MRISaverageVal2s(MRI_SURFACE *mris, int navgs)
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISnegateValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val *= -1.0;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyMeansToValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->mean;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->mean_imag;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyStandardErrorsToValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->std_error;
-  }
-  return (NO_ERROR);
-}
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
 {
   int vno, ndof;
@@ -1943,13 +2482,8 @@ int MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  ------------------------------------------------------*/
 int MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
 {
   int vno, ndof;
@@ -1967,14 +2501,8 @@ int MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof, int 
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  actually these are squared standard errors
-  ------------------------------------------------------*/
 int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
 {
   int vno, ndof;
@@ -1996,14 +2524,6 @@ int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int 
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  actually these are squared standard errors
-  ------------------------------------------------------*/
 int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, float *pdx, float *pdy, float *pdz)
 {
   int N, vno, n, i;
@@ -2098,13 +2618,7 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, vnum;
@@ -2143,184 +2657,6 @@ int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyCurvatureToValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->curv;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyVal2ToVal(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->val2;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-   copy the v->val2bak field into the v->val for every vertex
-  ------------------------------------------------------*/
-int MRIScopyVal2BakToVal(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = v->val2bak;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyCurvatureToImagValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->imag_val = v->curv;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValuesToCurvature(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyImagValuesToCurvature(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->imag_val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyCurvatureFromValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->imag_val;
-  }
-  return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 {
   int *histo;
@@ -2403,13 +2739,7 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
   MRISclearMarks(mris);
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 {
   int *histo, i, n, vno, ino, max_val, index, max_histo, max_index, nchanged, nzero;
@@ -2496,13 +2826,7 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
   free(histo);
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
   int *histo, i, n, vno, ino, index, max_histo, max_index, max_annotation, *annotations, nchanged = 0;
@@ -2578,13 +2902,7 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
 {
   int vno, n, i, cmpt, nmarked;
@@ -2631,12 +2949,9 @@ int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
   /*  fprintf(stdout, "\n") ;*/
   return (NO_ERROR);
 }
+
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
     apply a soap bubble to the vertex->d field
      (used for target distances frequently)
   ------------------------------------------------------*/
@@ -2688,49 +3003,6 @@ int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISsetVals(MRI_SURFACE *mris, float val)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISscaleVals(MRI_SURFACE *mris, float scale)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val *= scale;
-  }
-  return (NO_ERROR);
-}
-
 int detectContrast(MRIS *mris)
 {
   int n, nv;
@@ -2762,226 +3034,6 @@ int detectContrast(MRIS *mris)
   }
 }
 
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValToVal2(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val2 = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValuesToVal2Bak(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val2bak = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValToValBak(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->valbak = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyValToVal2Bak(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val2bak = v->val;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-
-Parameters:
-
-Returns value:
-
-Description
-------------------------------------------------------*/
-int MRISsqrtVal(MRI_SURFACE *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (v->val > 0) {
-      v->val = sqrt(v->val);
-    }
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-
-Parameters:
-
-Returns value:
-
-Description
-------------------------------------------------------*/
-int MRISmulVal(MRI_SURFACE *mris, float mul)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val *= mul;
-  }
-  return (NO_ERROR);
-}
-
-int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    curvs[vno] = mris->vertices[vno].curv;
-  }
-
-  return (NO_ERROR);
-}
-int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    curvs[vno + offset] = (double)mris->vertices[vno].curv;
-  }
-
-  return (NO_ERROR);
-}
-int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    curvs[vno] = (double)mris->vertices[vno].curv;
-  }
-
-  return (NO_ERROR);
-}
-int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].curv = curvs[vno];
-  }
-
-  return (NO_ERROR);
-}
-
-int MRISimportValVector(MRI_SURFACE *mris, float *vals)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].val = vals[vno];
-  }
-
-  return (NO_ERROR);
-}
-int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].val = *MATRIX_RELT(m, vno + 1, col);
-  }
-
-  return (NO_ERROR);
-}
-int MRISexportValVector(MRI_SURFACE *mris, float *vals)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    vals[vno] = mris->vertices[vno].val;
-  }
-
-  return (NO_ERROR);
-}
-int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset)
-{
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    vals[vno + offset] = (double)mris->vertices[vno].val;
-  }
-
-  return (NO_ERROR);
-}
 
 int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo)
 {
@@ -3095,156 +3147,6 @@ SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
   return (shl);
 }
 
-int MRISorigAreaToCurv(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->origarea;
-  }
-  return (NO_ERROR);
-}
-
-int MRISareaToCurv(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = v->area;
-  }
-  return (NO_ERROR);
-}
-
-int MRISmarkedToCurv(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = (float)v->marked;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScurvToMarked(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked = (int)v->curv;
-  }
-  return (NO_ERROR);
-}
-
-int MRISdToCurv(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = (float)v->d;
-  }
-  return (NO_ERROR);
-}
-
-int MRIScurvToD(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->d = v->curv;
-  }
-  return (NO_ERROR);
-}
-
-int MRISabsVals(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = fabs(v->val);
-  }
-  return (NO_ERROR);
-}
-int MRISabsCurvature(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->curv = fabs(v->curv);
-  }
-  return (NO_ERROR);
-}
-
-int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked = v->val >= thresh;
-  }
-
-  return (NO_ERROR);
-}
-
-int MRISsetVal2(MRI_SURFACE *mris, float val)
-{
-  VERTEX *v;
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val2 = val;
-  }
-  return (NO_ERROR);
-}
-
 
 // average the stats on the surface, and propagate marks
 // outwards to new non-zero locations
@@ -3297,34 +3199,6 @@ int MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
   return (NO_ERROR);
 }
 
-int MRISsetValues(MRI_SURFACE *mris, float val)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val = val;
-  }
-  return (NO_ERROR);
-}
-int MRISaddToValues(MRI_SURFACE *mris, float val)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->val += val;
-  }
-  return (NO_ERROR);
-}
 
 LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index)
 {
@@ -3359,6 +3233,8 @@ LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index)
   }
   return (area);
 }
+
+
 #include "histo.h"
 HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
 {
@@ -3471,102 +3347,7 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
 }
 
 
-int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)
-{
-  int vno;
-  VERTEX *v;
-  double p;
 
-  MRISdistanceTransform(mris, area, DTRANS_MODE_SIGNED);
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    p = v->val;
-    if (p < 0) {
-      p = 0;
-    }
-    p = exp(-p * slope);
-    v->val = p;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-    Returns value:
-
-    Description
-    ------------------------------------------------------*/
-int MRISclearFixedValFlags(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->fixedval = FALSE;
-  }
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->marked = v->fixedval;
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta, double *pxw, double *pyw, double *pzw)
-{
-  double x, y, z, radius;
-
-  radius = mris->radius;
-  *pxw = x = radius * sin(phi) * cos(theta);
-  *pyw = y = radius * sin(phi) * sin(theta);
-  *pzw = z = radius * cos(phi);
-  return (NO_ERROR);
-}
-
-
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_distance)
 {
   int n, nbrs_array[MAX_NBHD_SIZE];

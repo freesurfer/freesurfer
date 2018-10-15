@@ -466,6 +466,20 @@ int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale)
 }
 
 
+int MRISscale(MRIS *mris, double scale)
+{
+  int vno;
+  VERTEX *v;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->x *= scale;
+    v->y *= scale;
+    v->z *= scale;
+  }
+  return (0);
+}
+
+
 float FACES_commonEdgeLength_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
 {
   //
