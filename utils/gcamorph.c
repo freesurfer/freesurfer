@@ -19537,7 +19537,9 @@ GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
   gcam_dst->type = gcam->type;
   gcam_dst->m_affine = gcam->m_affine;
   gcam_dst->det = gcam->det;
-
+  // Averaging neighboring nodes not necessary: when applied, e.g. using
+  // GCAMmorphToAtlas(), a weighted mean is computed. Interpolating twice
+  // increases differences between downsampled and original warp.
   for (xd = 0; xd < gcam_dst->width; xd++) {
     for (yd = 0; yd < gcam_dst->height; yd++) {
       for (zd = 0; zd < gcam_dst->depth; zd++) {
