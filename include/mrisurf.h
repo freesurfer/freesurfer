@@ -134,6 +134,12 @@ typedef struct edge_type_
 #else
 #define CONST_EXCEPT_MRISURF_TOPOLOGY const
 #endif
+
+#if defined(COMPILING_MRISURF_METRIC_PROPERTIES)
+#define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES 
+#else
+#define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES const
+#endif
     //
     // Used to find and control where various fields are written
     
@@ -258,11 +264,11 @@ typedef struct vertex_type_
 //
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
-  ELTX(float*,dist) SEP                 /* distance to neighboring vertices */    \
-  ELTX(float*,dist_orig) SEP            /* original distance to neighboring vertices */    \
-  ELTT(float,origx) SEP    \
-  ELTT(float,origy) SEP    \
-  ELTT(float,origz) SEP   /* original coordinates */    \
+  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP             /* distance to neighboring vertices */          \
+  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP             /* original distance to neighboring vertices */ \
+  ELTT(const float,origx)                                       SEP             /* original coordinates */                      \
+  ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() to set */           \
+  ELTT(const float,origz)                                       SEP                                                             \
   ELTT(float,x) SEP    \
   ELTT(float,y) SEP    \
   ELTT(float,z) SEP           /* curr position */    \
@@ -2775,3 +2781,9 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 {
   return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
 }
+
+
+// Inputs to the metric properties
+//
+void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz);
+

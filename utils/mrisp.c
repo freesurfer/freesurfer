@@ -1,8 +1,8 @@
 /**
  * @file  mrisp.c
- * @brief utilities for spherical parameterization of an MRI_SURFACE
+ * @brief utilities for spherical parameterization of an MRIS
  *
- * mrisp = MRI_SURFACE parameterization contains utilities for writing various
+ * mrisp = MRIS parameterization contains utilities for writing various
  * fields over the surface (e.g. curvature, coordinate functions) into a
  * spherical (longitude/colatitude) parameterization in the form of a 2D
  * image. Also for Gaussian blurring and other utilities.
@@ -72,7 +72,7 @@ static int spherical_coordinate(double x, double y, double z, double *pphi, doub
 ------------------------------------------------------*/
 #if 0
 MRI_SP *
-MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
+MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale,int fno)
 {
   float     a, b, c, phi, theta, x, y, z, total, uf, vf, d, du, dv, total_d,
   **distances, sigma, two_sigma_sq ;
@@ -393,7 +393,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
   return(mrisp) ;
 }
 #else
-MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno)
+MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *fp;
   int vno, u, v, unfilled, **filled, npasses, nfilled;
@@ -647,7 +647,7 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
 #endif
 
 MRI_SP *
-MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int frameno)
+MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, float scale, int frameno)
 
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *fp;
@@ -830,8 +830,8 @@ MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,
 
   return (mrisp);
 }
-MRI_SURFACE  *
-MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris,int fno)
+MRIS  *
+MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRIS *mris,int fno)
 
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d;
@@ -892,7 +892,7 @@ MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris,int fno)
 
 static double UF = 254.8, VF = 409.5;
 
-MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int which_vertices)
+MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int which_vertices)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances;
   int vno, u, v, unfilled, **filled, npasses, nfilled;
@@ -1136,7 +1136,7 @@ MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float sca
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
+MRIS *MRISfromParameterization(MRI_SP *mrisp, MRIS *mris, int fno)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d;
   int vno, u0, v0, u1, v1;
@@ -1216,20 +1216,19 @@ MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices)
+MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_vertices)
 {
-  float rad, phi, theta, x, y, z, uf, vf, du, dv, origx, origy, origz, d, val1, val2, val3, val4;
+  float rad, phi, theta, uf, vf, du, dv, origx, origy, origz, d, val1, val2, val3, val4;
   int vno, u0, v0, u1, v1;
-  VERTEX *vertex;
 
-  if (!mris) mris = MRISclone(mrisp->mris);
+  MRIS * const mris = (!mrisInit) ? MRISclone(mrisp->mris) : mrisInit;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+    VERTEX * const vertex = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
-    x = vertex->x;
-    y = vertex->y;
-    z = vertex->z;
+    float x = vertex->x;
+    float y = vertex->y;
+    float z = vertex->z;
     // DNG 7/19/18: changed to use a vertex specific radius rather than the mean radius
     rad = sqrt(x*x + y*y + z*z);
     theta = atan2(vertex->y / rad, vertex->x / rad);
@@ -1306,9 +1305,7 @@ MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, in
 
     switch (which_vertices) {
       case ORIGINAL_VERTICES:
-        vertex->origx = origx;
-        vertex->origy = origy;
-        vertex->origz = origz;
+        MRISsetOriginalXYZ(mris, vno, origx, origy, origz);
         break;
       case TMP_VERTICES:
         vertex->tx = origx;
@@ -1329,7 +1326,7 @@ MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, in
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
+MRIS *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRIS *mris, int fno)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d, var;
   int vno, u0, v0, u1, v1;
@@ -1405,7 +1402,7 @@ MRI_SURFACE *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
+MRI_SP *MRISgradientToParameterization(MRIS *mris, MRI_SP *mrisp, float scale)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, sigma, two_sigma_sq;
   int vno, u, v, unfilled, **filled;
@@ -1574,7 +1571,7 @@ MRI_SP *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float s
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
+MRIS *MRISgradientFromParameterization(MRI_SP *mrisp, MRIS *mris)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, d;
   int vno, u0, v0, u1, v1;
@@ -1665,7 +1662,7 @@ MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
 void MRISPfunctionVal_radiusR(                                                      // returns the value that would be stored in resultsForEachFno[0] for fnoLo
                               MRI_SURFACE_PARAMETERIZATION *mrisp,  
                               MRISPfunctionValResultForAlpha* resultsForEachAlpha,  // must be numAlphas elements
-                              MRI_SURFACE *mris,
+                              MRIS *mris,
                               float r, float x, float y, float z, 
                               int fnoLo, bool getNextAlso,                          // always fills in resultsForEachAlpha.curr for fno, optionally fills in .next for fno+1
                               float const * alphas, float numAlphas,                // rotate x,y,z by these alphas (radians) and get the values
@@ -1768,7 +1765,7 @@ void MRISPfunctionVal_radiusR(                                                  
 }
 
 
-double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno, bool trace)
+double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno, bool trace)
 {
   double r = sqrt(x * x + y * y + z * z);
 
@@ -1799,7 +1796,7 @@ double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFAC
   return result.curr;
 }
 
-double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno) {
+double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno) {
     return MRISPfunctionValTraceable(mrisp, mris, x, y, z, fno, false);
 }
 
@@ -2672,7 +2669,7 @@ double MRISParea(MRI_SP *mrisp)
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRIS *mris, LABEL *area)
 {
   int n, vno, u, v;
   float r, x, y, z, phi, theta, d, rsq;
@@ -2703,7 +2700,7 @@ MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+MRI_SP *MRISPandLabel(MRI_SP *mrisp, MRIS *mris, LABEL *area)
 {
   int n, vno, u, v;
   float r, x, y, z, phi, theta, d, rsq;
@@ -2817,7 +2814,7 @@ MRI_SP *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno)
 }
 
 int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
-                            MRI_SURFACE *mris,
+                            MRIS *mris,
                             float x,
                             float y,
                             float z,
@@ -2917,7 +2914,7 @@ int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
   return (NO_ERROR);
 }
 
-MRI_SURFACE *MRISfromParameterizations(MRI_SP *mrisp, MRI_SURFACE *mris, int *frames, int *indices, int nframes)
+MRIS *MRISfromParameterizations(MRI_SP *mrisp, MRIS *mris, int *frames, int *indices, int nframes)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d;
   int n, fno, vno, u0, v0, u1, v1;
@@ -2985,7 +2982,7 @@ MRI_SURFACE *MRISfromParameterizations(MRI_SP *mrisp, MRI_SURFACE *mris, int *fr
   return (mris);
 }
 
-MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int *frames, int *indices, int nframes)
+MRI_SP *MRIStoParameterizations(MRIS *mris, MRI_SP *mrisp, float scale, int *frames, int *indices, int nframes)
 {
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *total;
   int m, vno, u, v, unfilled, **filled, npasses, nfilled;

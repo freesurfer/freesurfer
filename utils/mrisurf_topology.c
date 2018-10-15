@@ -1988,6 +1988,455 @@ int MRISripFaces(MRIS *mris)
 }
 
 
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Remove ripped vertices and faces from the v->v and the
+  v->f arrays respectively.
+  ------------------------------------------------------*/
+int MRISremoveRippedFaces(MRI_SURFACE *mris)
+{
+  int    vno, n, fno, *out_faces, out_fno, nfaces;
+  FACE   *face;
+
+  out_faces = (int *)calloc(mris->nfaces, sizeof(int)) ;
+  nfaces = mris->nfaces ;
+  for (out_fno = fno = 0; fno < mris->nfaces; fno++) 
+  {
+    face = &mris->faces[fno];
+    if (fno == Gdiag_no)
+      DiagBreak() ;
+    if (face->ripflag) 
+    {
+      out_faces[fno] = -1 ;
+      nfaces-- ;
+    }
+    else
+    {
+      out_faces[fno] = out_fno ;
+      if (out_fno == Gdiag_no)
+	DiagBreak() ;
+      if (fno != out_fno) { // at least one compressed out already
+	mris->faces                  [out_fno] = mris->faces                  [fno];    // should free memory here
+	mris->faceNormCacheEntries   [out_fno] = mris->faceNormCacheEntries   [fno];
+      }
+      out_fno++ ;
+    }
+  }
+
+  cheapAssert(nfaces == out_fno);
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int num ;
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];    
+    num = v->num ; v->num = 0 ;
+    for (n = 0 ; n < num ; n++)
+    {
+      int fno = out_faces[v->f[n]] ;
+      if (fno == Gdiag_no)
+	DiagBreak() ;
+      if (fno < 0 || mris->faces[fno].ripflag == 1)
+	continue ;
+
+      v->f[v->num++] = out_faces[v->f[n]] ;
+    }
+  }
+
+  MRISremovedFaces(mris, nfaces);
+
+  free(out_faces) ;
+
+  /* now recompute total original area for scaling */
+  mris->orig_area = 0.0f;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    mris->orig_area += fNorm->orig_area;
+  }
+  return (NO_ERROR);
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Remove ripped vertices and faces from the v->v and the
+  v->f arrays respectively.
+  ------------------------------------------------------*/
+int MRISremoveRippedVertices(MRI_SURFACE *mris)
+{
+  int    vno, n, fno, *out_vnos, out_vno, nvertices;
+  FACE   *face;
+
+  out_vnos = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  nvertices = mris->nvertices ;
+  for (out_vno = vno = 0; vno < mris->nvertices; vno++) 
+  {
+    VERTEX const * const v = &mris->vertices[vno];
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag) 
+    {
+      nvertices-- ;
+      out_vnos[vno] = -1 ;  // mark it as ripped - fixes boundary condition when coming to end of array
+    }
+    else
+    {
+      if (out_vno == Gdiag_no)
+	DiagBreak() ;
+      out_vnos[vno] = out_vno ;
+      if (vno != out_vno)  // at least one compressed out already
+	*(mris->vertices+out_vno) = *(mris->vertices+vno) ;
+      out_vno++ ;
+    }
+  }
+  
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno] ;
+
+    int vnum, v2num, v3num ;
+
+    vnum = v->vnum ; v2num = v->v2num ; v3num = v->v3num ;
+    v->v3num = v->v2num = v->vnum = 0 ;
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      int vno2 = v->v[n] ;
+      if (vno2 < 0 || mris->vertices[vno2].ripflag == 1)
+	continue ;
+
+      v->v[v->v3num++] = out_vnos[v->v[n]] ;
+      if (n < v2num)
+	v->v2num++ ;
+      if (n < vnum)
+	v->vnum++ ;
+    }
+    v->nsizeMax = v->nsizeCur;  // since the above loop only went to v->vtotal
+    cheapAssert(mris->nsize <= v->nsizeMax);
+    switch (mris->nsize) {
+    default:
+    case 1:
+      v->vtotal = v->vnum; v->nsizeCur = 1;
+      break;
+    case 2:
+      v->vtotal = v->v2num; v->nsizeCur = 2;
+      break;
+    case 3:
+      v->vtotal = v->v3num; v->nsizeCur = 3;
+      break;
+    }
+  }
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      face->v[n] = out_vnos[face->v[n]] ;
+  }
+
+  MRISremovedVertices(mris, nvertices);
+
+  free(out_vnos) ;
+
+  mrisCheckVertexFaceTopology(mris);
+
+
+  /* now recompute total original area for scaling */
+  mris->orig_area = 0.0f;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    mris->orig_area += fNorm->orig_area;
+  }
+  
+  return (NO_ERROR);
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Remove ripped vertices and faces from the v->v and the
+  v->f arrays respectively.
+  ------------------------------------------------------*/
+int MRISremoveRipped(MRI_SURFACE *mris)
+{
+  int vno, n, fno, nripped, remove, vno2;
+  FACE *face;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "removing ripped vertices and faces...\n");
+  }
+  do {
+    nripped = 0;
+    // go through all vertices
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+      VERTEX          * const v  = &mris->vertices         [vno];
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      // if rip flag set
+      if (v->ripflag) {
+// remove it
+#if 0
+        if (v->dist)
+        {
+          free(v->dist) ;
+        }
+        if (v->dist_orig)
+        {
+          free(v->dist_orig) ;
+        }
+        v->dist = v->dist_orig = NULL ;
+#endif
+        continue;
+      }
+
+      for (n = 0; n < vt->vnum; n++) {
+        /* remove this vertex from neighbor list if it is ripped */
+        if (mris->vertices[vt->v[n]].ripflag) {
+          if (n < vt->vtotal - 1) /* not the last one in the list */
+          {
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
+          }
+          if (n < vt->vnum) /* it was a 1-neighbor */
+          {
+            vt->vnum--;
+          }
+          if (n < vt->v2num) /* it was a 2-neighbor */
+          {
+            vt->v2num--;
+          }
+          if (n < vt->v3num) /* it was a 3-neighbor */
+          {
+            vt->v3num--;
+          }
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
+          }
+          n--;
+        }
+      }
+
+      // make sure every nbr is a member of at least one unripped face
+      for (n = 0; n < vt->vnum; n++) {
+        int members, m;
+
+        vno2 = vt->v[n];
+        if (mris->vertices[vt->v[n]].ripflag) {
+          continue;
+        }
+
+        remove = 1;
+        for (fno = 0; fno < vt->num; fno++) {
+          face = &mris->faces[vt->f[fno]];
+          if (face->ripflag == 1)  // only consider unripped
+          {
+            continue;
+          }
+          for (members = m = 0; m < VERTICES_PER_FACE; m++)
+            if (face->v[m] == vno || face->v[m] == vno2) {
+              members++;
+            }
+          if (members >= 2) {
+            remove = 0;
+            break;
+          }
+        }
+
+        if (remove) {
+          if (n < vt->vtotal - 1) /* not the last one in the list */
+          {
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
+          }
+          if (n < vt->vnum) /* it was a 1-neighbor */
+          {
+            vt->vnum--;
+          }
+          if (n < vt->v2num) /* it was a 2-neighbor */
+          {
+            vt->v2num--;
+          }
+          if (n < vt->v3num) /* it was a 3-neighbor */
+          {
+            vt->v3num--;
+          }
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
+          }
+          n--;
+        }
+      }
+
+      // go through 2-nbr list and make sure each one is a nbr of a 1-nbr
+      for (n = vt->vnum; n < vt->v2num; n++) {
+        int n2, n3;
+
+        remove = 1;
+
+        vno2 = vt->v[n];
+        VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[vno2];
+        for (n2 = 0; n2 < vn->vnum; n2++)  // 1-nbrs of the central node
+        {
+          VERTEX_TOPOLOGY const * const vn2 = &mris->vertices_topology[vn->v[n2]];
+          for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
+            if (vn2->v[n3] == vno2) {
+              remove = 0;  // they still share a 1-nbr, keep it
+              break;
+            }
+        }
+        if (remove) {
+          nripped++;
+          if (n < vt->vtotal - 1) /* not the last one in the list */
+          {
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
+          }
+          if (n < vt->vnum) /* it was a 1-neighbor */
+          {
+            vt->vnum--;
+          }
+          if (n < vt->v2num) /* it was a 2-neighbor */
+          {
+            vt->v2num--;
+          }
+          if (n < vt->v3num) /* it was a 3-neighbor */
+          {
+            vt->v3num--;
+          }
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
+          }
+          n--;
+        }
+      }
+
+      // go through 3-nbr list and make sure each one is a nbr of a 2-nbr
+      for (n = vt->v2num; n < vt->v3num; n++) {
+        int n2, n3;
+
+        remove = 1;
+
+        vno2 = vt->v[n];
+        VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[vno2];
+        for (n2 = vn->vnum; n2 < vn->v2num; n2++)  // 2-nbrs of the central node
+        {
+          VERTEX_TOPOLOGY const * const vn2 = &mris->vertices_topology[vn->v[n2]];
+          for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
+            if (vn2->v[n3] == vno2) {
+              remove = 0;  // they still share a 1- or 2-nbr, keep it
+              break;
+            }
+        }
+        if (remove) {
+          if (n < vt->vtotal - 1) /* not the last one in the list */
+          {
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
+          }
+          if (n < vt->vnum) /* it was a 1-neighbor */
+          {
+            vt->vnum--;
+          }
+          if (n < vt->v2num) /* it was a 2-neighbor */
+          {
+            vt->v2num--;
+          }
+          if (n < vt->v3num) /* it was a 3-neighbor */
+          {
+            vt->v3num--;
+          }
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
+          }
+          n--;
+        }
+      }
+
+      for (fno = 0; fno < vt->num; fno++) {
+        /* remove this face from face list if it is ripped */
+        if (mris->faces[vt->f[fno]].ripflag) {
+          if (fno < vt->num - 1) /* not the last one in the list */
+          {
+            memmove(vt->f + fno, vt->f + fno + 1, (vt->num - fno - 1) * sizeof(int));
+            memmove(vt->n + fno, vt->n + fno + 1, (vt->num - fno - 1) * sizeof(uchar));
+          }
+          vt->num--;
+          fno--;
+        }
+      }
+#if 0
+      if (vt->num <= 0 || vt->vnum <= 0)  /* degenerate vertex */
+      {
+        v->ripflag = 1 ;
+        nripped++ ;
+      }
+#endif
+    }
+  } while (nripped > 0);
+
+  // rip all faces that each ripped vertex is part of
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    if (v->ripflag)
+    {
+      for (n = 0 ; n < vt->num ; n++)
+      {
+	int  n2, fno ;
+	FACE *face ;
+
+	fno = vt->f[n] ;
+	if (fno == Gdiag_no)
+	  DiagBreak() ;
+	face = &mris->faces[fno] ;
+	face->ripflag = 1 ;
+	// find the other vertices that have this face in their
+	// face list and remove it
+	for (n2 = 0 ; n2 < VERTICES_PER_FACE ; n2++)
+	  if (face->v[n2] != vno)
+	  {
+	    int n3 ;
+
+	    VERTEX_TOPOLOGY * const vn = &mris->vertices_topology[face->v[n2]] ;
+	    for (n3 = 0 ; n3 < vn->num ; n3++)
+	      if (vn->f[n3] == fno)  // found the ripped face - remove it
+	      {
+		memmove(vn->f+n3, vn->f+n3+1, (vn->num-n3-1) * sizeof(*(vn->f)));
+		memmove(vn->n+n3, vn->n+n3+1, (vn->num-n3-1) * sizeof(*(vn->n)));
+		vn->num-- ;
+		n3-- ;
+	      }
+	  }
+      }
+    }
+  }
+
+  mrisCheckVertexFaceTopology(mris);
+
+  return (NO_ERROR);
+}
+
+
 //======================================================================
 // Functions that deal with the way the faces are attached to the vertices
 // 
