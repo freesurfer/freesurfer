@@ -546,8 +546,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
 bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double *pos_out, bool bAutoOrient, bool bCursor)
 {
   int nVertex = surf->GetVertexIndexAtTarget(pos_in, NULL);
-//  if (bCursor)
-//    qDebug() << bAutoOrient << pos_in[0] << pos_in[1] << pos_in[2] << nVertex;
   if (bCursor)
     surf->SetCurrentVertex(nVertex);
   else
