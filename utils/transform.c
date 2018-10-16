@@ -5128,7 +5128,7 @@ TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
 
 // Inverts transform in-place, i.e. the original transform is replaced. MRI not
 // needed for LTAs.
-void TransformInvertReplace(TRANSFORM *transform, MRI *mri)
+void TransformInvertReplace(TRANSFORM *transform, const MRI *mri)
 {
   LTA *lta;
   GCAM *gcam;
