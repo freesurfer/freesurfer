@@ -106,6 +106,11 @@ protected slots:
 
   void OnShowExistingLabelsOnly(bool b);
 
+  void ShowAllLabels()
+  {
+      OnShowExistingLabelsOnly(false);
+  }
+
   void OnComboMask( int nSel );
 
   void OnComboCorrelationSurface(int nSel);

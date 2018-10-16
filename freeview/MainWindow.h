@@ -232,6 +232,7 @@ Q_SIGNALS:
   void SlicePositionChanged(bool bCenterView = false);
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
+  void NewVolumeCreated();
 
 public slots:
   void SetMode( int nMode );

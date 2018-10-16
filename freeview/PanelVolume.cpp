@@ -83,7 +83,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   PanelLayer("MRI", parent),
   ui(new Ui::PanelVolume),
   m_curCTAB( NULL ),
-  m_bShowExistingLabelsOnly(false),
+  m_bShowExistingLabelsOnly(true),
   m_nCurrentVoxelIndex(-1)
 {
   ui->setupUi(this);
@@ -96,6 +96,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   {
     return;
   }
+
+  connect(mainwnd, SIGNAL(NewVolumeCreated()), SLOT(ShowAllLabels()));
 
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionNewVolume);
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionLoadVolume);
