@@ -306,7 +306,7 @@ if(DISTRIBUTE_FSPYTHON)
 endif()
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)  # minimum version required
+set(PYBIND11_PYTHON_VERSION 3.6)  # minimum version required
 add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)

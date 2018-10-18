@@ -37,7 +37,7 @@ else()
   set(FS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/..)
   # Make sure pybind is accessible during GEMS-only build
   if(GEMS_BUILD_PYTHON)
-    set(PYBIND11_PYTHON_VERSION 3.5)
+    set(PYBIND11_PYTHON_VERSION 3.6)
     add_subdirectory(${CMAKE_SOURCE_DIR}/../packages/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
   endif()
 endif()
