@@ -17,4 +17,4 @@ pybind11_add_module(gems_python
 )
 
 target_link_libraries(gems_python PRIVATE ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
-set_target_properties(gems_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/freesurfer/gems)
+set_target_properties(gems_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${FS_SOURCE_DIR}/python/freesurfer/gems)

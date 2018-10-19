@@ -205,7 +205,7 @@ TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 TRANSFORM *TransformCopy(const TRANSFORM *tsrc, TRANSFORM *tdst) ;
 TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx);
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
-void      TransformInvertReplace(TRANSFORM *transform, MRI *mri) ;
+void      TransformInvertReplace(TRANSFORM *transform, const MRI *mri) ;
 int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformCreateDensityMap(TRANSFORM *transform,
