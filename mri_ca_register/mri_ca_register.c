@@ -180,6 +180,7 @@ static int do_secondpass_renorm = 0;
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 
 char *rusage_file=NULL;
+int n_omp_threads;
 
 int
 main(int argc, char *argv[])
@@ -191,7 +192,6 @@ main(int argc, char *argv[])
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
   int          msec, hours, minutes, seconds /*, iter*/ ;
-  int          n_omp_threads;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
@@ -1641,10 +1641,11 @@ main(int argc, char *argv[])
          hours, minutes, seconds) ;
 
   // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mri_ca_register ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+  //PrintRUsage(RUSAGE_SELF, "mri_ca_register ", stdout);
+  //if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   // Output formatted so it can be easily grepped
+  printf("#VMPC# mri_ca_register VmPeak  %d\n",GetVmPeak());
   printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
 
 #ifdef FS_CUDA
@@ -1926,6 +1927,14 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "THREADS"))
+  {
+    sscanf(argv[2],"%d",&n_omp_threads);
+    #ifdef _OPENMP
+    omp_set_num_threads(n_omp_threads);
+    #endif
+    nargs = 1 ;
   }
   else if (!stricmp(option, "RUSAGE"))
   {
