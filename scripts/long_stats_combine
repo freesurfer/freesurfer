@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: latin-1 -*-
 
 #
@@ -251,7 +251,7 @@ if __name__=="__main__":
         retcode = 0
         all = ""
         slist = []
-        for subjectid, tplist in qdectable.subjects_tp_map.items():
+        for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
             print('\nSubject-Template: '+subjectid)
                     
             # extract ids:

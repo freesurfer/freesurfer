@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: latin-1 -*-
 
 #
@@ -232,7 +232,7 @@ if __name__=="__main__":
     qcolidx = -1;
     if options.qcol is not None:
         foundidx = False
-        for index in (i for i in xrange(len(variables)) if variables[i].upper()==options.qcol.upper()):
+        for index in (i for i in range(len(variables)) if variables[i].upper()==options.qcol.upper()):
             qcolidx = index
             foundidx = True
             #print('found: '+str(varidx)+' '+variables[varidx])
@@ -254,7 +254,7 @@ if __name__=="__main__":
     all = ""
     qcoldata = []
     slist = []
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
+    for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
         print('\nSubject-Template: '+subjectid)
                 
         # check if 2 or more time points

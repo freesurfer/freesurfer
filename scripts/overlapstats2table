@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
@@ -180,9 +180,9 @@ def sanitize_table(options, disorganized_table):
 
     _union = []
     _spec, _label_measure_map = dt[0]
-    intersection = _label_measure_map.keys()
+    intersection = list(_label_measure_map.keys())
     for spec, label_measure_map in dt:
-        labels = label_measure_map.keys()
+        labels = list(label_measure_map.keys())
         _union.append(labels)
         intersection = fsutils.intersect_order(intersection, labels)
         l.debug('-'*20)

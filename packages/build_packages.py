@@ -17,6 +17,7 @@
 # if this script is rerun, the package is only rebuilt when the source code has been
 # modified/updated.
 
+from __future__ import print_function
 import os
 import sys
 import platform

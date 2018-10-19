@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: latin-1 -*-
 
 #
@@ -329,7 +329,7 @@ def make_table2d(disorganized_table, segnamelist):
     for _spec, _id_name_map, _ml in dt:
         for seg in segnamelist:
             try:
-                idindex = _id_name_map.values().index(seg)
+                idindex = list(_id_name_map.values()).index(seg)
                 table[_spec][seg] = _ml[idindex]
             except ValueError:
                 table[_spec][seg] = 0.0
