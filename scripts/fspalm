@@ -2,6 +2,7 @@
 
 # user will need dev (3/15/2018) version of mri_surfcluster and mri_volcluster
 
+from __future__ import print_function
 import os
 import sys
 import shlex

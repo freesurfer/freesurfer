@@ -531,7 +531,7 @@ def run_cross(qdectable,options):
     error    = []
     submitted= 0
     total = 0
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
+    for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
         print('\n========================================\n')
         print('[CROSS] Subject: '+subjectid+'\n')
 
@@ -640,7 +640,7 @@ def run_base(qdectable,options):
     submitted= 0
     total = 0
     less2 = 0
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
+    for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
         print('\n========================================\n')
         print('[BASE] Subject: '+subjectid+'\n')
         total = total+1
@@ -813,7 +813,7 @@ def run_long(qdectable,options):
     norights = []
     error    = []
     submitted= 0
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
+    for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
         print('\n========================================\n')
         print('[LONG] Subject: '+subjectid+'\n')
 
@@ -1005,7 +1005,7 @@ def check_long(qdectable,options):
     donetps = 0
     notexist = []
     running = []
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
+    for subjectid, tplist in list(qdectable.subjects_tp_map.items()):
         allids = allids + 1
         alltps = alltps + len(tplist)
         print('\n========================================\n')

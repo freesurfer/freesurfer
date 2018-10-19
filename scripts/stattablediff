@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys;
 import os;
 import string;
@@ -6,24 +7,24 @@ from numpy  import *;
 
 #---------------------------------------------------------
 def print_help():
-  print "USAGE: stattablediff - creates a table of the differences between two tables";
-  print "  --t1 table1 : input table 1 (output of asegstats2table or aparcstats2table)";
-  print "  --t2 table2 : input table 2 (output of asegstats2table or aparcstats2table)";
-  print "  --o  tablediff : output file";
-  print "  --percent compute percent diff with respect to mean of tables";
-  print "  --percent1 compute percent diff with respect to table1";
-  print "  --percent2 compute percent diff with respect to table2";
-  print "  --mul mulval : multiply by mulval";
-  print "  --div divval : divide by divval";
-  print "  --common : compute diff on common segs (may reorder)";
-  print "  --rm-exvivo : remove the string 'exvivo' from the column header"
-  print "  --debug : print out debugging info";
+  print("USAGE: stattablediff - creates a table of the differences between two tables");
+  print("  --t1 table1 : input table 1 (output of asegstats2table or aparcstats2table)");
+  print("  --t2 table2 : input table 2 (output of asegstats2table or aparcstats2table)");
+  print("  --o  tablediff : output file");
+  print("  --percent compute percent diff with respect to mean of tables");
+  print("  --percent1 compute percent diff with respect to table1");
+  print("  --percent2 compute percent diff with respect to table2");
+  print("  --mul mulval : multiply by mulval");
+  print("  --div divval : divide by divval");
+  print("  --common : compute diff on common segs (may reorder)");
+  print("  --rm-exvivo : remove the string 'exvivo' from the column header")
+  print("  --debug : print out debugging info");
   return 0;
 #end def print_help:
 
 #---------------------------------------------------------
 def argnerr(narg,flag):
-  print "ERROR: flag %s requires %d arguments" % (flag,narg);
+  print("ERROR: flag %s requires %d arguments" % (flag,narg));
   sys.exit(1);
 #end def parse_args(argv)
 
@@ -44,7 +45,7 @@ def parse_args(argv):
   while(len(argv) != 0):
     flag = argv[0];
     del argv[0];
-    if(debug): print "flag = %s" % flag;
+    if(debug): print("flag = %s" % flag);
     if(flag == "--t1"):
       if(len(argv) < 1): argnerr(1,flag);
       table1 = argv[0]; del argv[0];
@@ -73,7 +74,7 @@ def parse_args(argv):
     elif(flag == "--debug"):
       debug = 1;
     else:
-      print "ERROR: flag %s not recognized" % flag; 
+      print("ERROR: flag %s not recognized" % flag); 
       sys.exit(1);
     #endif
   #endwhile
@@ -95,15 +96,15 @@ def check_args():
   global tablediff;
 
   if(len(table1) == 0):
-    print "ERROR: table1 needed";
+    print("ERROR: table1 needed");
     sys.exit(1);
   #endif    
   if(len(table2) == 0):
-    print "ERROR: table2 needed";
+    print("ERROR: table2 needed");
     sys.exit(1);
   #endif    
   if(len(tablediff) == 0):
-    print "ERROR: output needed";
+    print("ERROR: output needed");
     sys.exit(1);
   #endif    
 
@@ -136,7 +137,7 @@ check_args();
 try:
   fp = open(table1, 'r');
 except:
-  print "ERROR: opening %s" % (table1);
+  print("ERROR: opening %s" % (table1));
   sys.exit(1);
 #endtry
 header1 = fp.readline();
@@ -155,7 +156,7 @@ fp.close;
 try:
   fp = open(table2, 'r');
 except:
-  print "ERROR: opening %s" % (table2);
+  print("ERROR: opening %s" % (table2));
   sys.exit(1);
 #endtry
 fp = open(table2, 'r');
@@ -172,12 +173,12 @@ for line in fp:
 fp.close;
 
 if(debug):
-  print "nrows1 %d, ncols1 %d" % (nrows1,ncols1);
-  print "nrows2 %d, ncols2 %d" % (nrows2,ncols2);
+  print("nrows1 %d, ncols1 %d" % (nrows1,ncols1));
+  print("nrows2 %d, ncols2 %d" % (nrows2,ncols2));
 #endif
 
 if(nrows1 != nrows2):
-  print "ERROR: rows are not equal %d %d" % (nrows1,nrows2);
+  print("ERROR: rows are not equal %d %d" % (nrows1,nrows2));
   sys.exit(0);
 #end
 
@@ -186,13 +187,13 @@ comcollist = list(set(collist1) & set(collist2));
 ncolscom = len(comcollist);
 if(ncols1 != ncolscom or ncols2 != ncolscom):
   if(AllowCommon): 
-    print "INFO: cols have different segs, doing common segs (%d,%d)" % (ncols1,ncols2);
+    print("INFO: cols have different segs, doing common segs (%d,%d)" % (ncols1,ncols2));
     DoCommon = 1;
     ncols1 = ncolscom;
     ncols2 = ncolscom;
   else:
-    print "ERROR: cols have different segs (%d,%d)" % (ncols1,ncols2);
-    print "  Use --common to only compute the difference on the common segs"
+    print("ERROR: cols have different segs (%d,%d)" % (ncols1,ncols2));
+    print("  Use --common to only compute the difference on the common segs")
     sys.exit(0);
   #end
 #end
@@ -276,7 +277,7 @@ for row in range(0, nrows1):
 #end
 fp.close;
 
-print "stattablediff done";
+print("stattablediff done");
 sys.exit(0);
 #-------------------------------------------------#
 

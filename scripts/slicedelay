@@ -1,30 +1,31 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys;
 import os;
 import string;
 
 #---------------------------------------------------------
 def print_usage():
-  print "USAGE: slicedelay --help";
-  print "  --o slicedelayfile";
-  print "  --nslices nslices : total number of slices in the volume";
-  print "  --order order (up,down,odd,even,siemens)";
-  print "  --ngroups ngroups (number of slice groups for SMS)";
+  print("USAGE: slicedelay --help");
+  print("  --o slicedelayfile");
+  print("  --nslices nslices : total number of slices in the volume");
+  print("  --order order (up,down,odd,even,siemens)");
+  print("  --ngroups ngroups (number of slice groups for SMS)");
   return 0;
 #end def print_usage:
 
 #---------------------------------------------------------
 def print_help():
   print_usage();
-  print "\nCreates an FSL custom slice delay file for use with slicetimer (--tcustom=sdfile).\n"\
+  print("\nCreates an FSL custom slice delay file for use with slicetimer (--tcustom=sdfile).\n"\
       "It has a single column of values, one for each slice. Each value is the slice delay\n" \
       "measured as a fraction of the TR and range from +0.5 (beginning of the TR) to \n"\
-      "-0.5 (end of the TR). Used for slice-time correction of fMRI.\n"
+      "-0.5 (end of the TR). Used for slice-time correction of fMRI.\n")
 #end def print_help:
 
 #---------------------------------------------------------
 def argnerr(narg,flag):
-  print "ERROR: flag %s requires %d arguments" % (flag,narg);
+  print("ERROR: flag %s requires %d arguments" % (flag,narg));
   sys.exit(1);
 #end def parse_args(argv)
 
@@ -41,7 +42,7 @@ def parse_args(argv):
   while(len(argv) != 0):
     flag = argv[0];
     del argv[0];
-    if(debug): print "flag = %s" % flag;
+    if(debug): print("flag = %s" % flag);
 
     if(flag == "--o"):
       if(len(argv) < 1): argnerr(1,flag);
@@ -66,7 +67,7 @@ def parse_args(argv):
     elif(flag == "--debug"):
       debug = 1;
     else:
-      print "ERROR: flag %s not recognized" % flag; 
+      print("ERROR: flag %s not recognized" % flag); 
       sys.exit(1);
     #endif
   #endwhile
@@ -90,15 +91,15 @@ def check_args():
   global debug;
 
   if(len(sdf) == 0):
-    print "ERROR: output file needed";
+    print("ERROR: output file needed");
     sys.exit(1);
   #endif    
   if(nslices == 0):
-    print "ERROR: nslices needed";
+    print("ERROR: nslices needed");
     sys.exit(1);
   #endif    
   if(len(order) == 0):
-    print "ERROR: order needed";
+    print("ERROR: order needed");
     sys.exit(1);
   #endif  
 
@@ -125,28 +126,28 @@ check_args();
 
 err = nslices%ngroups;
 if(err):
-  print "ERROR: cannot divide nslices=%d by ngroups=%d " % (nslices,ngroups);
+  print("ERROR: cannot divide nslices=%d by ngroups=%d " % (nslices,ngroups));
   sys.exit(0);
 #endif
 nslicespg = nslices/ngroups;
 
-print "sdf %s" % sdf;
-print "nslices %d" % nslices;
-print "order %s" % order;
-print "ngroups %d" % ngroups;
-print "nslicespg %d" % nslicespg;
+print("sdf %s" % sdf);
+print("nslices %d" % nslices);
+print("order %s" % order);
+print("ngroups %d" % ngroups);
+print("nslicespg %d" % nslicespg);
 
 AcqSliceDelay = [];
 for sno in range(1,nslicespg+1):
   D = ((nslicespg-1.0)/2.0-(sno-1.0))/nslicespg;
   AcqSliceDelay.append(D);
 #end
-print  AcqSliceDelay
+print(AcqSliceDelay)
 
 AnatSliceDelay = [];
 AnatSliceOrder = ();
 for sg in range(1,ngroups+1):
-  print "sg %d" % (sg);
+  print("sg %d" % (sg));
   if(order == "up"):   AnatSliceOrder = range(1,nslicespg+1,+1);
   if(order == "down"): AnatSliceOrder = range(nslicespg,0,-1);
   if(order == "odd"):  AnatSliceOrder = range(1,nslicespg+1,+2) + range(2,nslicespg+1,+2);
@@ -159,7 +160,7 @@ for sg in range(1,ngroups+1):
     #endif
   #endif
   if(len(AnatSliceOrder) == 0):
-    print "ERROR: slice order %s not recognized " % (order);
+    print("ERROR: slice order %s not recognized " % (order));
     sys.exit(0);
   #endif
 

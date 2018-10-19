@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import 	os
 import 	sys
 import 	getopt
@@ -214,7 +215,7 @@ G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :
 	def handle(self):
-		print self.request[0]
+		print(self.request[0])
 			
 class dijkSysLogHandler(SocketServer.BaseRequestHandler) :
 	def handle(self):
@@ -226,26 +227,26 @@ class dijkSysLogHandler(SocketServer.BaseRequestHandler) :
 			Gb_threadREADY = 1
 def vprint(str_msg):
 	global verbose
-	if(verbose): print str_msg
+	if(verbose): print(str_msg)
 
 def synopsis_show(void=0):
-	print G_SYNOPSIS
+	print(G_SYNOPSIS)
 	
 def shutdown(exitCode):
 	global verbose
 	if(verbose):
-		print Gstr_SELF
-		print "\n\tNormal termination to system with code %d.\n" % exitCode
+		print(Gstr_SELF)
+		print("\n\tNormal termination to system with code %d.\n" % exitCode)
 	sys.exit(exitCode)
 
 def error_exit(str_action, str_msg, code):
-	print Gstr_SELF
-	print "\n"
-	print "\tSorry, but some error occurred."
-	print "\tWhile " + str_action + ','
-	print "\t" + str_msg
-	print "\n"
-	print "Exiting to system with code %d.\n" % code
+	print(Gstr_SELF)
+	print("\n")
+	print("\tSorry, but some error occurred.")
+	print("\tWhile " + str_action + ',')
+	print("\t" + str_msg)
+	print("\n")
+	print("Exiting to system with code %d.\n" % code)
 	os._exit(code)
 	sys.exit(code)
 	
@@ -269,7 +270,7 @@ def transmit(str_msg):
 	global verbose
 		
 	if(verbose): 
-		print "\n(%d): Transmitting <%s>" % (thread.get_ident(), str_msg)
+		print("\n(%d): Transmitting <%s>" % (thread.get_ident(), str_msg))
 	str_transmit =  'SSocket_client --silent --host ' + Gstr_host
 	str_transmit += ' --port ' + Gstr_port
 	str_transmit += ' --msg "' + str_msg + '"'
@@ -294,7 +295,7 @@ def dijkstra_spawn(str_port):
 	str_start	= '%s' 		% Gstr_exec
         str_cmd         = '%s'          % Gstr_exec
         str_arg         = ''
-	if(verbose): print "Starting " + str_start
+	if(verbose): print("Starting " + str_start)
 	#(dijkstra_stdout, dijkstra_stdin, dijkstra_stderr)	= popen2.popen3(str_start)
         p       = Popen([str_cmd, str_arg], bufsize=-1,                 \
                     stdin=PIPE, stdout=PIPE, close_fds=True)
@@ -308,10 +309,10 @@ def dijkstra_spawn(str_port):
 		#else:
 			#break
 		if line:
-			print line,
+			print(line, end=' ')
 		else:
 			break
-	print "process died."
+	print("process died.")
  	#print "stdout:\t" + dijkstra_stdout.read() + "\n"
  	#print "stderr:\t" + dijkstra_stderr.read() + "\n"
 	error_exit(	"attempting dijkstra_spawn()", 
@@ -331,9 +332,9 @@ def thread_dijkstra(str_port):
 	
 	global verbose
 	
-	if(verbose): print "thread dijkstra start"
+	if(verbose): print("thread dijkstra start")
 	thread.start_new_thread(dijkstra_spawn, (str_port,))
-	if(verbose): print "thread dijkstra return"
+	if(verbose): print("thread dijkstra return")
 	
 		
 def thread_transmit(str_msg):
@@ -347,9 +348,9 @@ def thread_transmit(str_msg):
 	
 	global verbose, Gb_timerReset
 	
-	if(verbose): print "thread transmit start"
+	if(verbose): print("thread transmit start")
 	thread.start_new_thread(transmit, (str_msg,))
-	if(verbose): print "thread transmit return"
+	if(verbose): print("thread transmit return")
 	Gb_timerReset = 1
 
 def sysLog_listenFor(port, str_ready):
@@ -390,9 +391,9 @@ def thread_sysLog_listenFor(str_port, str_ready):
 	
 	global verbose
 	
-	if(verbose): print "thread sysLog_listenFor start"
+	if(verbose): print("thread sysLog_listenFor start")
 	thread.start_new_thread(sysLog_listenFor, (string.atoi(str_port), str_ready))
-	if(verbose): print "thread sysLog_listenFor return"
+	if(verbose): print("thread sysLog_listenFor return")
 	
 		
 def resultLog_listenFor(port):
@@ -425,9 +426,9 @@ def thread_resultLog_listenFor(str_port):
 	
 	global verbose
 	
-	if(verbose): print "thread resultLog_listenFor start"
+	if(verbose): print("thread resultLog_listenFor start")
 	thread.start_new_thread(resultLog_listenFor, (string.atoi(str_port),))
-	if(verbose): print "thread resultLog_listenFor return"
+	if(verbose): print("thread resultLog_listenFor return")
 
 def line_send(str_line, b_synchronise = 1):
 	#
@@ -458,7 +459,7 @@ def thread_waitTERM():
 	
 	global	Gb_threadTERM, verbose
 	
-	if(verbose): print "Waiting for thread termination..."
+	if(verbose): print("Waiting for thread termination...")
 	while(not Gb_threadTERM):
 		pass
 	Gb_threadTERM	= 0
@@ -467,15 +468,15 @@ def SYNCsend():
 	global Gb_timerReset, Gb_threadTimerStarted
 	global Gtimer_READY
         if Gb_syncSend:
-            print "%s %s pulsing engine with 'SYNC'... " % \
-                (time.asctime(time.localtime()), Gstr_thisHost)
+            print("%s %s pulsing engine with 'SYNC'... " % \
+                (time.asctime(time.localtime()), Gstr_thisHost))
             thread_transmit("SYNC")
             Gtimer_READY.cancel()
             Gb_timerReset 		= 1
             Gb_threadTimerStarted 	= 0
             dijkstraRunning		= dijkstra_isRunning()
             if(dijkstraRunning == 256):
-                    print "(Engine failure detected - code %s)" % dijkstraRunning
+                    print("(Engine failure detected - code %s)" % dijkstraRunning)
                     error_exit("sending 'SYNC'",
                             "it appears as though the engine has died.",
                             10)
@@ -497,7 +498,7 @@ def thread_waitREADY():
 	Gb_timerReset 		= 1
 	Gb_threadTimerStarted	= 0
 	
-	if(verbose): print "Waiting for Gb_threadREADY to become TRUE..."
+	if(verbose): print("Waiting for Gb_threadREADY to become TRUE...")
 	while(not Gb_threadREADY):
 		if(Gb_timerReset):
 			if(Gb_threadTimerStarted):
@@ -530,8 +531,8 @@ def userInput_get():
 
         count = staticUserInputCount()
         if count == 1:
-            print "Engine successfully started and environment parsed."
-            print "Ready for user input. Type 'HELP' for help."
+            print("Engine successfully started and environment parsed.")
+            print("Ready for user input. Type 'HELP' for help.")
 	str_userInput = raw_input("%d > " % count)
 	return str_userInput	
 	
@@ -573,11 +574,11 @@ for o, a in opts:
 		Gstr_optionsFile 	= a
 	if(o == '-h'):
 		Gstr_host		= a
-		print "Warning! I cannot start a '%s' process" % Gstr_exec
-		print "on any host other than localhost! The <host>"
-		print "option is currently only useful in controlling"
-		print "a '%s' process that has already been"    % Gstr_exec
-		print "started."
+		print("Warning! I cannot start a '%s' process" % Gstr_exec)
+		print("on any host other than localhost! The <host>")
+		print("option is currently only useful in controlling")
+		print("a '%s' process that has already been"    % Gstr_exec)
+		print("started.")
 	if(o == '-p'):
 		Gstr_port		= a
 	if(o == '-R'):
@@ -588,7 +589,7 @@ for o, a in opts:
 		str_verbose		= a
 		verbose			= string.atoi(str_verbose)
 	if(o == '-V'):
-		print Gstr_VERSION
+		print(Gstr_VERSION)
 		sys.exit(0)
 	if(o == '-x'):
 		synopsis_show()
@@ -604,12 +605,12 @@ for o, a in opts:
 # Startup messages
 #
 if(not Gb_nonInteractive):
-	print "Welcome to the mris_pmake shell, 'dsh', running on '%s'" % Gstr_thisHost
-	print "CVS version " + Gstr_VERSION
-	print "\nType 'quit' to return gracefully to system."
-	print "Note that this will terminate any running 'mris_pmake' engine.\n"
-	print "Type 'exit' to terminate this shell."
-	print "Note that any 'mris_pmake' engine active will remain running.\n"
+	print("Welcome to the mris_pmake shell, 'dsh', running on '%s'" % Gstr_thisHost)
+	print("CVS version " + Gstr_VERSION)
+	print("\nType 'quit' to return gracefully to system.")
+	print("Note that this will terminate any running 'mris_pmake' engine.\n")
+	print("Type 'exit' to terminate this shell.")
+	print("Note that any 'mris_pmake' engine active will remain running.\n")
 															
 # Check if dijsktra_p1 has already been started on 'localhost'
 if Gstr_host == 'localhost':
@@ -620,7 +621,7 @@ if Gstr_host == 'localhost':
             str_msg += "\tThere might be a delay of a few seconds as the program\n"
             str_msg += "\tstarts and parses its initial environment.\n\n"
             str_msg += "\tPlease be patient..."
-            if(not Gb_nonInteractive): print str_msg
+            if(not Gb_nonInteractive): print(str_msg)
 
             thread_dijkstra(Gstr_port)
 
@@ -628,31 +629,31 @@ if Gstr_host == 'localhost':
                 sys.exit(G_dieNow)
 
             if(not Gb_nonInteractive):
-                print "\tBack-end engine has been successfully started!"
-                print "\tAny console output from this 'mris_pmake' process"
-                print "\twill be captured by this shell.\n"
-                print "\tWaiting on threads while environment is parsed...\n"
+                print("\tBack-end engine has been successfully started!")
+                print("\tAny console output from this 'mris_pmake' process")
+                print("\twill be captured by this shell.\n")
+                print("\tWaiting on threads while environment is parsed...\n")
         else:
             if(not Gb_nonInteractive):
-                print "\n\t'mris_pmake' is already running on ",
-                print "host '" + Gstr_thisHost + "'."
-                print "\n\tI will connect to this process."
-                print "\tPlease note that I cannot capture console output"
-                print "\tfrom an already running 'mris_pmake' process. Any."
-                print "\tdata transmitted to my resultLog server, however, will"
-                print "\tbe captured and displayed.\n"
-                print "\tIf you want a fully interactive session, please type"
-                print "\t'quit' at the prompt and re-run 'dsh'.\n"
+                print("\n\t'mris_pmake' is already running on ", end=' ')
+                print("host '" + Gstr_thisHost + "'.")
+                print("\n\tI will connect to this process.")
+                print("\tPlease note that I cannot capture console output")
+                print("\tfrom an already running 'mris_pmake' process. Any.")
+                print("\tdata transmitted to my resultLog server, however, will")
+                print("\tbe captured and displayed.\n")
+                print("\tIf you want a fully interactive session, please type")
+                print("\t'quit' at the prompt and re-run 'dsh'.\n")
 else:
 	if(not Gb_nonInteractive):
-            print "\tYou have specified a host other than <localhost>. I cannot"
-            print "\tstart 'mris_pmake' on any host other than <localhost>, and"
-            print "\twill assume that this process is running on <"+Gstr_host+">."
-            print "\tIf the back end engine is not currently started on that host"
-            print "\tplease login and start. Note that this shell will block until"
-            print "\tit receives a transmission from the engine. Also note that"
-            print "\tthis engine needs to at the very least direct its syslog"
-            print "\tto this shell - use 'ENV syslog set <hostname>:<port>.'"
+            print("\tYou have specified a host other than <localhost>. I cannot")
+            print("\tstart 'mris_pmake' on any host other than <localhost>, and")
+            print("\twill assume that this process is running on <"+Gstr_host+">.")
+            print("\tIf the back end engine is not currently started on that host")
+            print("\tplease login and start. Note that this shell will block until")
+            print("\tit receives a transmission from the engine. Also note that")
+            print("\tthis engine needs to at the very least direct its syslog")
+            print("\tto this shell - use 'ENV syslog set <hostname>:<port>.'")
 	
 # Start the result and system log server threads
 thread_resultLog_listenFor(Gstr_portResult)
@@ -693,30 +694,30 @@ if Gb_nonInteractive:
 else:
 	while (str_userInput != "exit" and str_userInput != "quit"):
 		str_userInput = userInput_get()
-		if str_userInput == "help": print G_SYNOPSIS
+		if str_userInput == "help": print(G_SYNOPSIS)
 		if re.search("source", str_userInput):
 			words = string.split(str_userInput)
 			if len(words) >= 2:
 				str_sourceScript = words[1]
 				if len(str_sourceScript):
-					print "Sourcing " + str_sourceScript + "..."
+					print("Sourcing " + str_sourceScript + "...")
 					F_sourceScript	= open(str_sourceScript, 'r')
 					for line in F_sourceScript.readlines():
 						line_send(line)
 					F_sourceScript.close()
                 elif str_userInput == "noSync":
-                        print "Disabling re-sync pulsing"
+                        print("Disabling re-sync pulsing")
                         Gb_syncSend     = 0
 		elif str_userInput == "version":
-			print Gstr_VERSION
+			print(Gstr_VERSION)
 		else:
 			line_send(str_userInput)
 		time.sleep(0.2)
 	if(str_userInput == "quit"):	
-		print "Quitting (and turning off any running engines)..."
+		print("Quitting (and turning off any running engines)...")
 		thread_transmit("TERM")
 	if(str_userInput == "exit"):
-		print "Exiting from shell. Note that the engine is still running."
+		print("Exiting from shell. Note that the engine is still running.")
 
 # goodbye
 str_cheers	= "SYSECHO Goodbye from " + Gstr_SELF

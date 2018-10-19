@@ -1,6 +1,7 @@
 # Original author - Martin Reuter
 # $Id: LongQdecTable.py,v 1.5 2012/05/30 22:50:21 mreuter Exp $
 from __future__ import print_function
+from __future__ import division
 import os
 import logging
 import sys
@@ -154,7 +155,7 @@ class LongQdecTable:
             sys.exit(1)        
         
         if col == 'fsid-base':
-            for key,value in self.subjects_tp_map.items():
+            for key,value in list(self.subjects_tp_map.items()):
                 stpmap = StableDict()
                 stpmap[key] = value
                 alltables.append(LongQdecTable(stpmap,self.variables,"",key,self.cross))        
@@ -167,7 +168,7 @@ class LongQdecTable:
                 sys.exit(1)
             colnum = poscols[0] + 1
               
-            for bid,value in self.subjects_tp_map.items():
+            for bid,value in list(self.subjects_tp_map.items()):
                 key = value[0][colnum]
                 print('Key: '+str(key)+'\n')
                 for tpdata in value:
@@ -196,7 +197,7 @@ class LongQdecTable:
         # numerical values will be averaged
         # for other values we take the first occurence (hopefully basline if the table was sorted)
         #subjects_new_map = StableDict()        
-        for key,value in self.subjects_tp_map.items():
+        for key,value in list(self.subjects_tp_map.items()):
             subjentry = [ key ]
             for i in range(1,len(value[0])):
                 try:
@@ -223,7 +224,7 @@ class LongQdecTable:
                sys.exit(1)
             colnum = poscols[0]   
         
-        for key,value in self.subjects_tp_map.items():
+        for key,value in list(self.subjects_tp_map.items()):
             #print('Key before: '+key+'  ->  '+str(value)+'\n')
             #a = sorted(value, key=lambda tpdata: tpdata[colnum])
             #print('Key after : '+key+'  ->  '+str(a)+'\n')
@@ -246,7 +247,7 @@ class LongQdecTable:
         first = True
         crossnames = True
         #iterate through current table
-        for subjectid, tplist in self.subjects_tp_map.items():
+        for subjectid, tplist in list(self.subjects_tp_map.items()):
             
         
             if not statstable.cross:
@@ -261,7 +262,7 @@ class LongQdecTable:
                 addtplist = statstable.subjects_tp_map[subjectid]
                 
                 # check if all time points are in same order
-                for i,tpdata,addtpdata in itertools.izip(itertools.count(),tplist,addtplist):
+                for i,tpdata,addtpdata in zip(itertools.count(),tplist,addtplist):
                     if tpdata[0] != addtpdata[0]:
                         print('ERROR: time point id'+tpdata[0]+' not found in other table!')
                         sys.exit(1)
@@ -269,7 +270,7 @@ class LongQdecTable:
                     self.subjects_tp_map[subjectid][i] = list(itertools.chain(*[self.subjects_tp_map[subjectid][i], addtplist[i][1:]]))
             else:
                 # if saved in cross format
-                for i,tpdata in itertools.izip(itertools.count(),tplist):
+                for i,tpdata in zip(itertools.count(),tplist):
                     #determin if fsid is cross or long (only once)
                     if first:
                         first=False
@@ -302,7 +303,7 @@ class LongQdecTable:
             fp.write('fsid '+" ".join(self.variables)+'\n')
         else:
             fp.write('fsid fsid-base '+" ".join(self.variables)+'\n')
-        for key,value in self.subjects_tp_map.items():
+        for key,value in list(self.subjects_tp_map.items()):
             for tpdata in value:
                 if self.cross:
                     fp.write(tpdata[0]+' '+ ' '.join(tpdata[1:])+'\n')
