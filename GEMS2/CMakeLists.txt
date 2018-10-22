@@ -47,7 +47,7 @@ endif()
 
 if(GEMS_BUILD_CUDA)
   find_package(CUDA REQUIRED)
-  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS} -std=c++11")
   include_directories(${CUDA_INCLUDE_DIRS})
   set(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
   include_directories(cuda)
