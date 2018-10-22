@@ -11,10 +11,12 @@
 # the brainmask when masking the T2 (5) xopts for mris_make_surfaces
 # during T2 placement is now keyed by the string
 # mris_make_surfaces.t2flair.pial so that customized options for T2
-# placement can be used. In the previous version of this script, only
-# global intensity normalization was used.  In this version, the
-# normalization has been reverted back to the standard bias
-# correction.
+# placement can be used. (6) Now uses a dev version of
+# mris_make_surfaces copied to a binary called
+# mris_make_surfaces.t2flair.pial.  In the previous version of this
+# script, only global intensity normalization was used.  In this
+# version, the normalization has been reverted back to the standard
+# bias correction.
 
 #
 # recon-all
@@ -4347,9 +4349,10 @@ if($DoT2pial || $DoFLAIRpial) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    set cmd = (mris_make_surfaces \
-        -orig_white white \
-        -orig_pial wo${t2flair}.pial)
+    # MOD: now using a binary named mris_make_surfaces.t2flair.pial. This is a renamed 
+    # version from the dev env that BRF modified to make it make fit the pial
+    # surface a little better than that in v6.
+    set cmd = (mris_make_surfaces.t2flair.pial -orig_white white -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
     else
@@ -4361,8 +4364,12 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
     if($DoT2pial) then
-      set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 5)
+      set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 3) #MOD: changed below to 3 from 5
       if($#T2max) set cmd = ($cmd -T2_max $T2max);
+      #MOD: these are args that BF that require a dev version of make_surfaces
+      set cmd = ($cmd -T2_max_inside 225 -wm_weight 0 \
+       -T2_min_outside 110 -min_peak_pct .01 .1 .5 .5 \
+       -location 1.0)
     endif
     if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
         -nsigma_above 3 -nsigma_below 3)
@@ -7626,6 +7633,15 @@ check_params:
   if($DoT2pial && $DoFLAIRpial) then
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
+  endif
+  if($DoT2pial || $DoFLAIRpial) then
+    which mris_make_surfaces.t2flair.pial >& /dev/null
+    if($status) then
+      echo "\nERROR: cannot find mris_make_surfaces.t2flair.pial needed for T2 or FLAIR pial placement"
+      echo "Download it from ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0-patch/mris_make_surfaces.t2flair.pial"
+      echo "and copy it to $FREESURFER_HOME/bin or put into your path\n"
+      goto error_exit;
+    endif
   endif
 
   if($DoHippoSF_T1T2 || $DoHippoSF_T2) then
