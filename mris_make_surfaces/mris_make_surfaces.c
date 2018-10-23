@@ -4486,6 +4486,24 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         found_bad_intensity = 1 ;
         break ; // from loop over the ribbon 
       }
+
+      if (contrast_type == CONTRAST_T2 && dist_to_white > mri_aseg->xsize && val > previous_val && val > mean+2*sigma)
+      {
+	double next_val, dout, xs1, ys1, zs1, xv1, yv1, zv1 ;
+	dout = d+1;
+	xs1 = v->whitex + dout*nx ; ys1 = v->whitey + dout*ny ; zs1 = v->whitez + dout*nz ; 
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs1, ys1, zs1, &xv1, &yv1, &zv1);
+	MRIsampleVolumeType(mri_T2, xv1, yv1, zv1, &next_val, SAMPLE_TRILINEAR) ;
+	if (next_val < min_gray_inside)
+	{
+	  if (vno == Gdiag_no)
+	    printf("v %d: prev %2.1f, current %2.1f>%2.1f, next %2.1f<%2.1f, illegal\n",
+		   vno, previous_val, val, mean+2*sigma, next_val, min_gray_inside);
+	  found_bad_intensity = 1 ;
+	  break ; // from loop over the ribbon 
+	}
+      }
+
 #endif
       previous_val = val ;
 
