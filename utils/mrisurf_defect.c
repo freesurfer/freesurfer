@@ -191,9 +191,7 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   v->ny = vs->ny;
   v->nz = vs->nz;
 
-  v->origx = vs->origx; 
-  v->origy = vs->origy;
-  v->origz = vs->origz;
+  MRISsetOriginalXYZ(mris, vno, vs->origx, vs->origy, vs->origz);
 
   noteVnoMovedInActiveRealmTrees(mris, vno);
 
@@ -6276,8 +6274,9 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
-          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+          VERTEX                * const v  = &mris->vertices         [vno];
 
           for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
             VERTEX const * const vn = &mris->vertices[vt->v[n]];
@@ -6297,11 +6296,11 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < ninside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
 
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          MRISsetOriginalXYZ(mris, vno, 
+            v->tx, v->ty, v->tz); CHANGES_ORIG
         }
       }
       break;
@@ -6365,12 +6364,12 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->tz = v->origz + alpha * (szt + f * szn);
         }
         for (i = 0; i < ninside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
 
-          v->origx = v->tx;
-          v->origy = v->ty;
-          v->origz = v->tz;
-          noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
+          
+          noteVnoMovedInActiveRealmTrees(mris, vno);
         }
       }
       break;
@@ -6448,14 +6447,12 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nstrictlyinside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
           if (v->old_undefval == 0) {
             continue;
           }
-
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
         }
       }
       /* finally we apply a light smoothing of the whole surface */
@@ -6576,11 +6573,9 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nvertices; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]];
-
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          int const vno = dp->tp.vertices[vertices[i]];
+          VERTEX * const v = &mris->vertices[vno];
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
         }
       }
       free(vertices);
@@ -6800,11 +6795,10 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx;
-      v->origy = v->ty;
-      v->origz = v->tz;
-      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      int const vno = dp->tp.vertices[i]l
+      VERTEX* const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
+      noteVnoMovedInActiveRealmTrees(mris, vno);
     }
 
     /* recompute normals */
@@ -8632,9 +8626,10 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->z = v->z;
     
     /* smoothed vertices */
-    vdst->origx = v->origx; CHANGES_ORIG
+    vdst->origx = v->origx;
     vdst->origy = v->origy;
-    vdst->origz = v->origz;
+    vdst->origz = v->origz; CHANGES_ORIG
+    
     vdst->tx = v->tx;
     vdst->ty = v->ty;
     vdst->tz = v->tz;
