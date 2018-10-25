@@ -215,10 +215,15 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           m_bEditing = true;
           mri->CloneVoxelByRAS( ras, view->GetViewPlane() );
         }
-        else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
+        else if ( m_nAction == EM_Fill )
         {
           mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
+          if (event->modifiers() & CONTROL_MODIFIER)
+          {
+            mri->BorderFillByRAS(ras, view->GetViewPlane(), true);
+          }
+          else
+            mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
         {

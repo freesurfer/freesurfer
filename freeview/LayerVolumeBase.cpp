@@ -39,6 +39,8 @@
 #include <QFile>
 #include <QDir>
 #include <QDebug>
+#include "vtkSimpleLabelEdgeFilter.h"
+#include "vtkImageReslice.h"
 
 LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
 {
@@ -144,7 +146,7 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd,
             }
             else
             {
-           //   m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+              //   m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, n[0], n[1], n[2], nActiveComp, scalar_type, m_fFillValue);
               indices << n[0] << n[1] << n[2];
               UpdateVoxelValueRange( m_fFillValue );
@@ -161,7 +163,7 @@ QVector<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd,
             }
             else
             {
-            //  m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+              //  m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, n[0], n[1], n[2], nActiveComp, scalar_type, m_fBlankValue);
               indices << n[0] << n[1] << n[2];
             }
@@ -475,6 +477,141 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n1, int* n2, int nPlane)
     }
   }
   return true;
+}
+
+bool LayerVolumeBase::BorderFillByRAS(double *ras, int nPlane, bool b3D)
+{
+  int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+  {
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
+
+  QVector<int> list = BorderFillByRAS(n, nPlane);
+  if (!list.isEmpty())
+  {
+
+    SetModified();
+    emit ActorUpdated();
+    emit BaseVoxelEdited(list, true);
+    return true;
+  }
+  else
+    return false;
+}
+
+QVector<int> LayerVolumeBase::BorderFillByRAS(int *n, int nPlane)
+{
+  QVector<int> voxel_list;
+  int* nDim = m_imageData->GetDimensions();
+  int nx = 0, ny = 0, x = 0, y = 0;
+  vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
+  reslice->SetOutputDimensionality(2);
+  switch ( nPlane )
+  {
+  case 0:
+    nx = nDim[1];
+    ny = nDim[2];
+    x = n[1];
+    y = n[2];
+    reslice->SetResliceAxesDirectionCosines( 0, 1, 0,
+                                                 0, 0, 1,
+                                                 1, 0, 0 );
+    reslice->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
+    break;
+  case 1:
+    nx = nDim[0];
+    ny = nDim[2];
+    x = n[0];
+    y = n[2];
+    reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+                                                 0, 0, 1,
+                                                 0, 1, 0 );
+    reslice->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+    break;
+  case 2:
+    nx = nDim[0];
+    ny = nDim[1];
+    x = n[0];
+    y = n[1];
+    reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
+    reslice->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2] );
+    break;
+  }
+
+  LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
+  vtkImageData* ref = m_imageData;
+  int nActiveCompRef = 0;
+  if ( ref_layer != NULL )
+  {
+    ref = ref_layer->GetImageData();
+    nActiveCompRef = ref_layer->GetActiveFrame();
+  }
+  int nActiveComp = this->GetActiveFrame();
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
+  char* ref_ptr = (char*)ref->GetScalarPointer();
+  int* ref_dim = ref->GetDimensions();
+  int ref_scalar_type = ref->GetScalarType();
+  int ref_n_frames = ref->GetNumberOfScalarComponents();
+  float fVoxelValue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, n[0], n[1], n[2], 0, ref_scalar_type);
+  vtkSmartPointer<vtkSimpleLabelEdgeFilter> filter = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
+  reslice->SetInput(ref);
+  filter->SetInput(reslice->GetOutput());
+  filter->Update();
+  vtkSmartPointer<vtkImageData> outline_image = filter->GetOutput();
+  ref_ptr = (char*)outline_image->GetScalarPointer();
+  ref_dim = outline_image->GetDimensions();
+  float fTolerance = 0;
+  switch ( nPlane )
+  {
+  case 0:
+    for ( int i = 0; i < nx; i++ )
+    {
+      for ( int j = 0; j < ny; j++ )
+      {
+        if (fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, i, j, 0, nActiveCompRef, scalar_type ) - fVoxelValue) <= fTolerance)
+        {
+          MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, n[nPlane], i, j, nActiveComp, scalar_type, m_fFillValue);
+          voxel_list << n[nPlane] << i << j;
+        }
+      }
+    }
+    break;
+  case 1:
+    for ( int i = 0; i < nx; i++ )
+    {
+      for ( int j = 0; j < ny; j++ )
+      {
+        if (fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, i, j, 0, nActiveCompRef, ref_scalar_type ) - fVoxelValue ) <= fTolerance)
+        {
+          MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, n[nPlane], j, nActiveComp, scalar_type, m_fFillValue);
+          voxel_list << i << n[nPlane] << j;
+        }
+      }
+    }
+    break;
+  case 2:
+    for ( int i = 0; i < nx; i++ )
+    {
+      for ( int j = 0; j < ny; j++ )
+      {
+        if (fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, i, j, 0, nActiveCompRef, ref_scalar_type ) - fVoxelValue ) <= fTolerance)
+        {
+          MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, j, n[nPlane], nActiveComp, scalar_type, m_fFillValue );
+          voxel_list << i << j << n[nPlane];
+        }
+      }
+    }
+    break;
+  }
+  return voxel_list;
 }
 
 bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b3D, char* mask_out, bool ignore_exclusion )
@@ -793,7 +930,7 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
   for ( int i = 0; i < 3; i++ )
   {
     n1[i] = ( int )( ( pt1[i] - orig[i] ) / vxlsize[i] );
-//    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
+    //    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
   }
 
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
@@ -847,7 +984,7 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
   for ( int i = 0; i < 3; i++ )
   {
     n1[i] = ( int )( ( pt1[i] - orig[i] ) / vxlsize[i] );
-//    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
+    //    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
   }
 
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
@@ -869,7 +1006,7 @@ bool LayerVolumeBase::SetLiveWireByIndex( int* n1, int* n2, int nPlane )
   Q_UNUSED(n1);
   Q_UNUSED(n2);
   Q_UNUSED(nPlane);
-//  vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+  //  vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   // MyUtils::GetLivewirePoints( m_imageData, nPlane, n1[nPlane], n1, n2, pts );
   return true;
 }

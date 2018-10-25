@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mri_fuse_segmentations -- fuse a set of segmentations (asegs)</name>
+  <synopsis>mri_fuse_segmentations -a &lt;aseg.mgz&gt; ... -c &lt;aseg.auto_noCCseg.mgz&gt; ... -n &lt;norm.mgz&gt; ... [options] &lt;input&gt; &lt;output&gt;</synopsis>
+  <description>This program fuses a group of cross-sectional segmentations (asegs) into an initial estimate of a longitudinal one. See Sabuncu et al., MICCA 2009 (SNIP paper).</description>
+  <arguments>
+    <positional>
+      <argument>input</argument>
+      <explanation>Input norm.mgz file</explanation>
+      <argument>output</argument>
+      <explanation>Fused output aseg.fused.mgz file</explanation>
+    </positional>
+    <required-flagged>
+      <argument>-a, --aseg &lt;asegs&gt;</argument>
+      <explanation>Path to aseg.mgz files, one per TP</explanation>
+      <argument>-c, --nocc &lt;no-CC asegs&gt;</argument>
+      <explanation>Path to aseg.auto_noCCseg.mgz files without CC labels, one per TP</explanation>
+      <argument>-n, --norm &lt;norm volumes&gt;</argument>
+      <explanation>Path to norm.mgz files, one per TP</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-t, --trx  &lt;transforms&gt;</argument>
+      <explanation>Transform files from each TP to the input norm.mgz, can be LTA, M3Z or identity.nofile</explanation>
+      <argument>-s, --sigma &lt;sigma&gt;</argument>
+      <explanation>Cross-time sigma (default 3.0)</explanation>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>aseg.fused.mgz</output>
+    <explanation>Resulting fused segmentation</explanation>
+  </outputs>
+  <example>mri_fuse_segmentations \
+    --aseg $SUBJECTS_DIR/tp{1,2,3}/mri/aseg.mgz \
+    --nocc $SUBJECTS_DIR/tp{1,2,3}/mri/aseg.auto_noCCseg.mgz \
+    --norm $SUBJECTS_DIR/tp{1,2,3}/mri/norm.mgz \
+    norm.mgz aseg.fused.mgz</example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mri_concatenate_lta, mri_concatenate_gcam</see-also>
+</help>
+

@@ -82,6 +82,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>specify the size (mm) - useful for upsampling or downsampling</explanation>
       <argument>-ds, --downsample &lt;ds_x&gt; &lt;ds_y&gt; &lt;ds_z&gt;</argument>
       <explanation>specify the downsampling or upsampling factor</explanation>
+      <argument>-ds2, --downsample2</argument>
+      <explanation>downsample m3z file by factor of 2</explanation>
       <argument>-ois, --out_i_size &lt;size&gt;</argument>
       <argument>-ojs, --out_j_size &lt;size&gt;</argument>
       <argument>-oks, --out_k_size &lt;size&gt;</argument>

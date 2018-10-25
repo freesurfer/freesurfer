@@ -225,6 +225,8 @@ public:
   void SetID(int n)
   {
     m_nID = n;
+    if (m_nLastID <= m_nID)
+      m_nLastID = m_nID+1;
   }
 
   bool GetAboutToDelete()

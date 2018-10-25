@@ -970,7 +970,8 @@ int main(int argc, char *argv[])
       get_floats(argc, argv, &i, downsample_factor, 3);
       downsample_flag = TRUE;
     }
-    else if(strcmp(argv[i], "--downsample2") == 0)
+    else if(strcmp(argv[i], "-ds2") == 0 ||
+            strcmp(argv[i], "--downsample2") == 0)
     {
       downsample2_flag = TRUE;
     }
@@ -1737,7 +1738,6 @@ int main(int argc, char *argv[])
   printf("$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
-#if  0
   if (in_volume_type == MGH_MORPH)
   {
     GCA_MORPH *gcam, *gcam_out ;
@@ -1754,7 +1754,6 @@ int main(int argc, char *argv[])
     GCAMwrite(gcam_out, out_name) ;
     exit(0) ;
   }
-#endif
 
   if (in_volume_type == OTL_FILE)
   {
