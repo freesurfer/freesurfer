@@ -3390,7 +3390,8 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       }
       else
       {
-        cerr << "Invalid input for overlay frame.\n";
+	if (!ok)
+	  cerr << "Invalid input for overlay smoothing.\n";
       }
     }
   }
