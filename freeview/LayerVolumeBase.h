@@ -51,6 +51,8 @@ public:
   void CloneVoxelByRAS( double* ras, int nPlane );
   void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
 
+  bool BorderFillByRAS( double* ras, int nPlane, bool b3D = false);
+
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
 
@@ -120,6 +122,7 @@ protected:
   QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
   QVector<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
   QVector<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
+  QVector<int> BorderFillByRAS(int *n, int nPlane);
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );
   bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );
