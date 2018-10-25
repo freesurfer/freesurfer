@@ -3271,6 +3271,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert(0, QStringList("gotosurfacevertex") << subArgu);
         }
+        else if (subOption == "sphere")
+        {
+          sup_options["sphere"] = subArgu;
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -5551,6 +5555,8 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetLoadSupSurfaces(sup_files);
   if (sup_options.contains("ID"))
     layer->SetID(sup_options.value("ID").toInt());
+  if (sup_options.contains("sphere"))
+    layer->SetSphereFileName(sup_options["sphere"].toString());
   layer->GetProperty()->blockSignals(true);
   if (sup_options.contains("ZOrderAnnotation"))
     layer->GetProperty()->SetZOrderAnnotation(sup_options["ZOrderAnnotation"].toInt());
