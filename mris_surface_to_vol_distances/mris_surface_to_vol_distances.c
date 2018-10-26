@@ -351,26 +351,27 @@ update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms,
 
 static int
 mrisFindMiddleOfGray(MRI_SURFACE *mris) {
-  int     vno ;
-  VERTEX  *v ;
-  float   nx, ny, nz, thickness ;
 
   MRISaverageCurvatures(mris, 3) ;
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris);  /* compute orig surface normals */
+
+  int vno ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-    thickness = 0.5 * v->curv ;
-    v->origx = v->origx + thickness * nx ;
-    v->origy = v->origy + thickness * ny ;
-    v->origz = v->origz + thickness * nz ;
+    float nx = v->nx ;
+    float ny = v->ny ;
+    float nz = v->nz ;
+    float thickness = 0.5 * v->curv ;
+    MRISsetOriginalXYZ(mris, vno,
+      v->origx + thickness * nx,
+      v->origy + thickness * ny,
+      v->origz + thickness * nz);
   }
+  
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris);
   return(NO_ERROR) ;
