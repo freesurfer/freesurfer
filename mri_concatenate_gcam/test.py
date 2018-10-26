@@ -17,12 +17,12 @@ rt.diff('concat.lta', 'concat.ref.lta', ignore_comments=True)
 mri_convert = rt.findPath(rt.testdatadir, 'mri_convert/mri_convert')
 
 # change the GCAM source image space
-rt.run('mri_concatenate_gcam --srcgeom im1.mgz im2_to_im3.m3z gcam.m3z && ' +
+rt.run('mri_concatenate_gcam -s im1.mgz im2_to_im3.m3z gcam.m3z && ' +
         mri_convert + ' -at gcam.m3z im2_in_space1.mgz src.mgz')
 rt.mridiff('src.mgz', 'src.ref.mgz')
 
-# change the GCAM destination space
-rt.run('mri_concatenate_gcam --dstgeom im1.mgz im2_to_im3.m3z gcam.m3z && ' +
+# change the GCAM target image space
+rt.run('mri_concatenate_gcam -t im1.mgz im2_to_im3.m3z gcam.m3z && ' +
         mri_convert + ' -at gcam.m3z im2.mgz dest.mgz')
 rt.mridiff('dest.mgz', 'dest.ref.mgz')
 
@@ -46,4 +46,10 @@ rt.run('mri_concatenate_gcam im2_to_im3.m3z im3_to_im2.m3z gcam.m3z && ' +
        mri_convert + ' -at gcam.m3z im2.mgz gcam_gcam.mgz')
 rt.mridiff('gcam_gcam.mgz', 'gcam_gcam.ref.mgz')
 
+# downsample GCAM - leave some capacity for change
+rt.run('mri_concatenate_gcam -d im2_to_im3.m3z gcam.m3z && ' +
+       mri_convert + ' -at gcam.m3z im2.mgz down.mgz')
+rt.mridiff('down.mgz', 'down.ref.mgz', thresh=0.5)
+
 rt.cleanup()
+

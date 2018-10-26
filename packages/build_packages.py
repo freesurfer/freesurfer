@@ -40,9 +40,6 @@ class Package:
       print('error: %s does not exist' % self.script)
       exit(1)
     self.tarball = os.path.join(fs_source_dir, 'packages/source', tarball)
-    if not os.path.exists(self.tarball):
-      print('error: %s does not exist' % self.tarball)
-      exit(1)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #                              ~~ freesurfer dependencies ~~
@@ -97,7 +94,12 @@ for package in pkgs:
   if (vars(args)['no_%s' % package.name]) or (skip_by_default and not vars(args)['only_%s' % package.name]):
     print('skipping %s %s...' % (package.name, package.version))
     continue
-  
+
+  # make sure tarball is valid
+  if not os.path.exists(package.tarball):
+    print('error: %s does not exist' % package.tarball)
+    exit(1)
+
   # get the actual package install dir
   package_dir = os.path.join(destination_dir, package.name, package.version)
   src_dir = os.path.join(package_dir, 'src')

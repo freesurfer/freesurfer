@@ -228,6 +228,9 @@ apply_transform(MRI *mri, GCA *gca, MATRIX *m_L)
 }
 
 char *rusage_file=NULL;
+#ifdef HAVE_OPENMP
+  int          n_omp_threads;
+#endif
 
 int
 main(int argc, char *argv[])
@@ -253,9 +256,6 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, min_left_cbm, min_right_cbm ;
   struct timeb start ;
   float        old_log_p, log_p ;
-#ifdef HAVE_OPENMP
-  int          n_omp_threads;
-#endif
 
   FSinit() ;
 #ifdef FS_CUDA
@@ -1178,16 +1178,17 @@ main(int argc, char *argv[])
   }
 
   // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mri_em_register ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+  //PrintRUsage(RUSAGE_SELF, "mri_em_register ", stdout);
+  //if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+  printf("#VMPC# mri_em_register VmPeak  %d\n",GetVmPeak());
 
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
+  printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d minutes and %d seconds.\n",
-         minutes, seconds) ;
+  printf("registration took %d minutes and %d seconds.\n",minutes, seconds) ;
   if (diag_fp)
   {
     fclose(diag_fp) ;
@@ -1822,6 +1823,15 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n", 
 	   aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
+  }
+  else if (!stricmp(option, "THREADS"))
+  {
+    sscanf(argv[2],"%d",&n_omp_threads);
+    #ifdef _OPENMP
+    omp_set_num_threads(n_omp_threads);
+    #endif
+    printf("threads %d\n",n_omp_threads);
+    nargs = 1 ;
   }
   else if (!strcmp(option, "MASK"))
   {

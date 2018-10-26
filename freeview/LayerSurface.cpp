@@ -98,6 +98,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_sPrimaryType = "Surface";
 
   m_sMappingSurfaceName = "white";
+  m_sSphereFilename = "sphere.reg";
 
   // create property before actors!
   mProperty = new LayerPropertySurface( this );
@@ -210,7 +211,8 @@ bool LayerSurface::LoadSurfaceFromFile()
                                    m_sVectorFilename,
                                    m_sPatchFilename,
                                    m_sTargetFilename,
-                                   m_listSupFiles )
+                                   m_sSphereFilename,
+                                   m_listSupFiles)
        )
   {
     return false;

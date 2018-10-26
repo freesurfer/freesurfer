@@ -357,6 +357,11 @@ public:
 
   bool LoadParameterization(const QString& filename);
 
+  void SetSphereFileName(const QString& fn)
+  {
+    m_sSphereFilename = fn;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
@@ -482,6 +487,7 @@ protected:
   QString   m_sPatchFilename;
   QString   m_sVectorFilename;
   QString   m_sTargetFilename;
+  QString   m_sSphereFilename;
 
   vtkSmartPointer<vtkActor>   m_sliceActor2D[3];
   vtkSmartPointer<vtkActor>   m_sliceActor3D[3];
