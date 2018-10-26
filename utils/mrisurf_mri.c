@@ -6272,9 +6272,7 @@ int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
     // original
     V4_LOAD(sX, mris->vertices[i].origx, mris->vertices[i].origy, mris->vertices[i].origz, 1.);
     MatrixMultiply(surf2surf, sX, dX);
-    mris->vertices[i].origx = VECTOR_ELT(dX, 1); CHANGES_ORIG
-    mris->vertices[i].origy = VECTOR_ELT(dX, 2);
-    mris->vertices[i].origz = VECTOR_ELT(dX, 3);
+    MRISsetOriginalXYZ(mris, i, VECTOR_ELT(dX, 1), VECTOR_ELT(dX, 2), VECTOR_ELT(dX, 3)); CHANGES_ORIG
 
     // white
     V4_LOAD(sX, mris->vertices[i].whitex, mris->vertices[i].whitey, mris->vertices[i].whitez, 1.);

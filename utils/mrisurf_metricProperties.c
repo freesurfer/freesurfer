@@ -107,11 +107,11 @@ int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)
 void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz) 
 {
   cheapAssertValidVno(mris,vno);
-  VERTEX * v = mris->vertices[vno];
+  VERTEX * v = &mris->vertices[vno];
     
-  const float * pcx = &v-=>origx;  float * px = (float*)pcx; *pxm = origx;
-  const float * pcy = &v-=>origy;  float * py = (float*)pcy; *pym = origy;
-  const float * pcz = &v-=>origz;  float * pz = (float*)pcz; *pzm = origz;
+  const float * pcx = &v->origx;  float * px = (float*)pcx; *px = origx;
+  const float * pcy = &v->origy;  float * py = (float*)pcy; *py = origy;
+  const float * pcz = &v->origz;  float * pz = (float*)pcz; *pz = origz;
 }
 
 
@@ -263,14 +263,13 @@ int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
   return (NO_ERROR);
 }
 
-int MRISimportVertexCoords(MRIS *mris, float *locations[3], int which)
+int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const which)
 {
-  int vno, nvertices;
-  VERTEX *v;
+  int const nvertices = mris->nvertices;
 
-  nvertices = mris->nvertices;
+  int vno;
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX *v = &mris->vertices[vno];
     switch (which) {
       default:
         ErrorExit(ERROR_UNSUPPORTED, "MRISimportVertexCoords: which %d not supported", which);
@@ -316,9 +315,7 @@ int MRISimportVertexCoords(MRIS *mris, float *locations[3], int which)
         v->cz = locations[2][vno];
         break;
       case ORIGINAL_VERTICES:
-        v->origx = locations[0][vno]; CHANGES_ORIG
-        v->origy = locations[1][vno];
-        v->origz = locations[2][vno];
+        MRISsetOriginalXYZ(mris, vno, locations[0][vno], locations[1][vno], locations[2][vno]); CHANGES_ORIG
         break;
       case TMP2_VERTICES:
         v->tx2 = locations[0][vno];
@@ -345,14 +342,14 @@ int MRISimportVertexCoords(MRIS *mris, float *locations[3], int which)
 int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, int which_coords)
 {
   int vno;
-  float x = 0, y = 0, z = 0;
-  VERTEX *v;
-
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
+
+    float x = 0, y = 0, z = 0;
+
     switch (which_coords) {
       case CURRENT_VERTICES:
         x = v->x;
@@ -397,9 +394,7 @@ int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, i
         v->cz = z;
         break;
       case ORIGINAL_VERTICES:
-        v->origx = x; CHANGES_ORIG
-        v->origy = y;
-        v->origz = z;
+        MRISsetOriginalXYZ(mris, vno, x,y,z); CHANGES_ORIG
         break;
       default:
         ErrorExit(ERROR_UNSUPPORTED, "MRISreverseCoords: unsupported which_vertices %d", which_coords);
@@ -2142,12 +2137,11 @@ int MRISrestoreMetricProperties(MRIS *mris)
   ------------------------------------------------------*/
 int MRISsaveVertexPositions(MRIS *mris, int which)
 {
-  int vno, nvertices;
-  VERTEX *v;
+  int const nvertices = mris->nvertices;
 
-  nvertices = mris->nvertices;
+  int vno;
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
 #if 0
     if (v->ripflag)
     {
@@ -2191,9 +2185,7 @@ int MRISsaveVertexPositions(MRIS *mris, int which)
         v->cz = v->z;
         break;
       case ORIGINAL_VERTICES:
-        v->origx = v->x; CHANGES_ORIG
-        v->origy = v->y;
-        v->origz = v->z;
+        MRISsetOriginalXYZ(mris, vno, v->x, v->y, v->z); CHANGES_ORIG
         break;
       case TMP2_VERTICES:
         v->tx2 = v->x;
@@ -2213,6 +2205,7 @@ int MRISsaveVertexPositions(MRIS *mris, int which)
   }
   return (NO_ERROR);
 }
+
 /*-----------------------------------------------------
   Parameters:
 

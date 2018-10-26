@@ -6690,10 +6690,9 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX * const v = &mris->vertices[vertices[i]];
-      v->origx = v->tx; CHANGES_ORIG
-      v->origy = v->ty;
-      v->origz = v->tz;
+      int const vno = vertices[i];
+      VERTEX * const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
     }
 
     /* recompute normals */
@@ -6795,7 +6794,7 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      int const vno = dp->tp.vertices[i]l
+      int const vno = dp->tp.vertices[i];
       VERTEX* const v = &mris->vertices[vno];
       MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
       noteVnoMovedInActiveRealmTrees(mris, vno);
@@ -6893,11 +6892,10 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx;
-      v->origy = v->ty;
-      v->origz = v->tz;
-      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      int const vno = dp->tp.vertices[i];
+      VERTEX * const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
+      noteVnoMovedInActiveRealmTrees(mris, vno);
     }
 
     /* recompute normals */
@@ -8626,9 +8624,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->z = v->z;
     
     /* smoothed vertices */
-    vdst->origx = v->origx;
-    vdst->origy = v->origy;
-    vdst->origz = v->origz; CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -8687,9 +8683,9 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
-        vdst->origx = v->origx; CHANGES_ORIG
-        vdst->origy = v->origy;
-        vdst->origz = v->origz;
+        
+        MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+        
         vdst->tx = v->tx;
         vdst->ty = v->ty;
         vdst->tz = v->tz;
@@ -11986,9 +11982,9 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     v_dst->cx = v_src->cx;
     v_dst->cy = v_src->cy;
     v_dst->cz = v_src->cz;
-    v_dst->origx = v_src->origx; CHANGES_ORIG
-    v_dst->origy = v_src->origy;
-    v_dst->origz = v_src->origz;
+    
+    MRISsetOriginalXYZ(mris_dst, vno_dst, v_src->origx, v_src->origy, v_src->origz);  CHANGES_ORIG
+    
     v_dst->ripflag = v_src->ripflag; /* none of them should be ripped */
 
     if (n < nchull) /* vertex in the convex hull */

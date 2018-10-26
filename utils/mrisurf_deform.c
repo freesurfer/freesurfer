@@ -11386,9 +11386,10 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
       }
       if (v->marked) /* update value */
       {
-        v->origx = v->tdx; CHANGES_ORIG
-        v->origy = v->tdy;
-        v->origz = v->tdz;
+        MRISsetOriginalXYZ(mris, vno,
+          v->tdx,
+          v->tdy,
+          v->tdz);  CHANGES_ORIG
       }
       if (v->marked == 3) /* needs modification */
       {
@@ -11536,9 +11537,12 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     vdst->y = v->y;
     vdst->z = v->z;
     /* smoothed vertices */
-    vdst->origx = v->origx; CHANGES_ORIG
-    vdst->origy = v->origy;
-    vdst->origz = v->origz;
+    
+    MRISsetOriginalXYZ(mris_corrected, newNVertices,
+      v->origx, 
+      v->origy,
+      v->origz); CHANGES_ORIG
+    
     vdst->tx = v->tx;
     vdst->ty = v->ty;
     vdst->tz = v->tz;
@@ -11809,11 +11813,13 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     }
     vdst->marked++;
     switch (which) {
-      case VERTEX_COORDS:
-        vdst->origx += v->origx; CHANGES_ORIG
-        vdst->origy += v->origy;
-        vdst->origz += v->origz;
-        break;
+      case VERTEX_COORDS: {
+        int const vdst_vno = vdst - mris_total->vertices;   // GROSS HACK since MHTfindClosestVertex doesn't return the vno
+        MRISsetOriginalXYZ(mris_total, vdst_vno,
+          vdst->origx + v->origx,
+          vdst->origy + v->origy,
+          vdst->origz + v->origz); CHANGES_ORIG
+        } break;
       case VERTEX_AREA:
         vdst->d += v->origarea;
         break;
@@ -11842,9 +11848,10 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     mean = vdst->d / (float)vdst->marked;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx /= (float)vdst->marked; CHANGES_ORIG
-        vdst->origy /= (float)vdst->marked;
-        vdst->origz /= (float)vdst->marked;
+        MRISsetOriginalXYZ(mris_total, vno,
+          vdst->origx / (float)vdst->marked,
+          vdst->origy / (float)vdst->marked,
+          vdst->origz / (float)vdst->marked); CHANGES_ORIG
         break;
       case VERTEX_AREA: /* don't normalize by # of vertices mapped!! */
         vdst->origarea += vdst->d;
@@ -11891,9 +11898,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     vdst->marked++;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx = v->origx; CHANGES_ORIG
-        vdst->origy = v->origy;
-        vdst->origz = v->origz;
+        MRISsetOriginalXYZ(mris_total, vno, v->origx, v->origy, v->origz); CHANGES_ORIG
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -11924,13 +11929,12 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which)
 {
   int vno;
-  VERTEX *v, *vdst;
   MHT *mht_src = NULL;
   double max_len;
 
   MRISclear(mris_dst, which);
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
-    vdst = &mris_dst->vertices[vno];
+    VERTEX * const vdst = &mris_dst->vertices[vno];
     vdst->d = 0;
     vdst->val2 = 0;
   }
@@ -11943,11 +11947,11 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    vdst = &mris_dst->vertices[vno];
+    VERTEX * const vdst = &mris_dst->vertices[vno];
     if (vdst->ripflag) {
       continue;
     }
-    v = MHTfindClosestVertex(mht_src, mris_src, vdst);
+    VERTEX const * const v = MHTfindClosestVertex(mht_src, mris_src, vdst);
     if (!v) {
       ErrorPrintf(ERROR_BADPARM, "MRISsphericalCopy: cannot map dst vno %d", vno);
       continue;
@@ -11959,9 +11963,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     vdst->val2 = v->val2;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx = v->origx; CHANGES_ORIG
-        vdst->origy = v->origy;
-        vdst->origz = v->origz;
+        MRISsetOriginalXYZ(mris_dst, vno, v->origx, v->origy, v->origz);  CHANGES_ORIG
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -12281,15 +12283,15 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save vertex information */
-    // VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+    // TEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
     VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
 
     vdst->x = v->x;
     vdst->y = v->y;
     vdst->z = v->z;
-    vdst->origx = v->origx; CHANGES_ORIG
-    vdst->origy = v->origy;
-    vdst->origz = v->origz;
+    
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+    
     vdst->tx = v->tx;
     vdst->ty = v->ty;
     vdst->tz = v->tz;
@@ -12666,21 +12668,22 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ, double Tru
 
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
 {
-  int vno;
-  VERTEX *vold, *vnew;
-
   MRISclearMarks(mris_new);
+
+  int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vold = &mris->vertices[vno];
-    vnew = &mris_new->vertices[vno];
+    VERTEX * const vold = &mris->vertices[vno];
+    VERTEX * const vnew = &mris_new->vertices[vno];
+
     vnew->x = vold->x;
     vnew->y = vold->y;
     vnew->z = vold->z;
-    vnew->origx = vold->origx; CHANGES_ORIG
-    vnew->origy = vold->origy;
-    vnew->origz = vold->origz;
+    
+    MRISsetOriginalXYZ(mris_new, vno, vold->origx, vold->origy, vold->origz); CHANGES_ORIG
+    
     vnew->marked = 1;
   }
+
   MRISsoapBubbleVertexPositions(mris_new, 100);
   MRISsoapBubbleOrigVertexPositions(mris_new, 100);
   copyVolGeom(&mris->vg, &mris_new->vg);
@@ -14540,8 +14543,10 @@ int MRISrigidBodyAlignVectorGlobal(
   note that fno refers to a face in mris and
   v is a vertex in mris_ico (not given), NOT mris.
   ------------------------------------------------------*/
-static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno)
+static int mrisPlaceVertexInOrigFace(MRIS * const mris_vno, int const vno, MRIS * const mris, int const fno)
 {
+  VERTEX * const v = &mris_vno->vertices[vno];
+  
   double U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], l1[3], l2[3], l2_len, l1_len, l_len, P[3], theta1, theta2, dot,
       theta_ratio, len_scale, e1[3], e2[3], etmp[3], x, y;
   int ret;
@@ -14656,23 +14661,18 @@ static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno)
   ADD(e1, e2, P);
   ADD(P, U0, P);
 
-  v->origx = P[0]; CHANGES_ORIG
-  v->origy = P[1];
-  v->origz = P[2];
+  MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]); CHANGES_ORIG
 
   return (NO_ERROR);
 }
 
 
 
-int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
+int MRISinverseSphericalMap(MRIS *mris, MRIS *mris_ico)
 {
   double r;
   int fno, vno, num_ambiguous = 0, nfound, i, max_count;
-  VERTEX *v;
-  short *vcount;
-
-  vcount = (short *)calloc(mris->nfaces, sizeof(short));
+  short *vcount = (short *)calloc(mris->nfaces, sizeof(short));
 
   MRISfreeDists(mris);
 
@@ -14698,7 +14698,7 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
   MRISclearMarks(mris_ico);
   MRISclearMarks(mris);
   for (vno = 0; vno < mris_ico->nvertices; vno++) {
-    v = &mris_ico->vertices[vno];
+    VERTEX * const v = &mris_ico->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -14708,7 +14708,7 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
     fno = mrisFindUnambiguousFace(mris, mht, v, &nfound);
     if (fno >= 0) {
       vcount[fno]++;
-      mrisPlaceVertexInOrigFace(mris, v, fno);
+      mrisPlaceVertexInOrigFace(mris_ico, vno, mris, fno);
       if (vno == Gdiag_no) {
         fprintf(stdout, "vertex %d maps to face %d at (%2.1f, %2.1f, %2.1f)\n", vno, fno, v->origx, v->origy, v->origz);
         mrisDumpFace(mris, fno, stderr);
@@ -14726,7 +14726,7 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
 
   MRISsoapBubbleOrigVertexPositions(mris_ico, 100);
   for (vno = 0; vno < mris_ico->nvertices; vno++) {
-    v = &mris_ico->vertices[vno];
+    VERTEX * const v = &mris_ico->vertices[vno];
     if (v->marked || v->ripflag) {
       continue;
     }
@@ -14737,7 +14737,7 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
     if (fno < 0)
       ErrorPrintf(ERROR_BADPARM, "unable to find face for ico vertex %d!!!\n", vno);
     else {
-      mrisPlaceVertexInOrigFace(mris, v, fno);
+      mrisPlaceVertexInOrigFace(mris, vno, mris, fno);
       vcount[fno]++;
     }
   }

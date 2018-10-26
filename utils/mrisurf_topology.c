@@ -2094,7 +2094,7 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
 	DiagBreak() ;
       out_vnos[vno] = out_vno ;
       if (vno != out_vno)  // at least one compressed out already
-	*(mris->vertices+out_vno) = *(mris->vertices+vno) ;
+	memcpy(mris->vertices+out_vno, mris->vertices+vno, sizeof(VERTEX)) ;    // GROSS HACK
       out_vno++ ;
     }
   }
@@ -2735,9 +2735,12 @@ int mrisDivideEdge(MRIS *mris, int vno1, int vno2)
   vnew->ody = (v1->ody + v2->ody) / 2;
   vnew->odz = (v1->odz + v2->odz) / 2;
   vnew->val = (v1->val + v2->val) / 2;
-  vnew->origx = (v1->origx + v2->origx) / 2; CHANGES_ORIG
-  vnew->origy = (v1->origy + v2->origy) / 2;
-  vnew->origz = (v1->origz + v2->origz) / 2;
+  
+  MRISsetOriginalXYZ(mris, vnew_no, 
+    (v1->origx + v2->origx) / 2,
+    (v1->origy + v2->origy) / 2,
+    (v1->origz + v2->origz) / 2); CHANGES_ORIG
+    
   vnewt->vnum = 2; /* at least connected to two bisected vertices */
 
   /* count the # of faces that both vertices are part of */
