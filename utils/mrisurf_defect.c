@@ -8674,8 +8674,11 @@ MRI_SURFACE *MRIScorrectTopology(
           DiagBreak();
         }
         
-        VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
-        VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
+        int const vno_dst = newNVertices++;
+        MRISgrowNVertices(mris_corrected, newNVertices);
+
+        VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
+        VERTEX          * const vdst  = &mris_corrected->vertices         [vno_dst];
         if (mris_corrected->nvertices == Gdiag_no) {
           DiagBreak();
         }
@@ -8684,7 +8687,7 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->y = v->y;
         vdst->z = v->z;
         
-        MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_corrected, vno_dst, v->origx, v->origy, v->origz); CHANGES_ORIG
         
         vdst->tx = v->tx;
         vdst->ty = v->ty;
@@ -8715,9 +8718,8 @@ MRI_SURFACE *MRIScorrectTopology(
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
-        vertex_trans[vno] = newNVertices++;
+        vertex_trans[vno] = vno_dst;
       }
-      MRISgrowNVertices(mris_corrected, newNVertices);
     }
   }
 
