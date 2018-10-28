@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 #include <cuda_runtime.h>
 
