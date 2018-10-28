@@ -291,21 +291,37 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
+// TODO these should be combined
+//
+static VERTEX *GCSAsourceToClassifierVertexXYZ(GCSA *gcsa, float x, float y, float z)
+{
+  float min_dist;
+  int vno = MHTfindClosestVertexNoXYZ(gcsa->mht_classifiers, gcsa->mris_classifiers, x,y,z, &min_dist);
+  VERTEX* vdst = &gcsa->mris_classifiers->vertices[vno];
+  return vdst;
+}
+
 VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX const *v)
 {
-  VERTEX *vdst;
-
-  vdst = MHTfindClosestVertex(gcsa->mht_classifiers, gcsa->mris_classifiers, v);
-  return (vdst);
+  cheapAssert(MHTwhich(gcsa->mht_classifiers) == CURRENT_VERTICES);
+  return GCSAsourceToClassifierVertexXYZ(gcsa, v->x, v->y, v->z);
 }
-/*------------------------------------------------------------------*/
+
+static VERTEX *GCSAsourceToPriorVertexXYZ(GCSA *gcsa, float x, float y, float z)
+{
+  float min_dist;
+  int vno = MHTfindClosestVertexNoXYZ(gcsa->mht_priors, gcsa->mris_priors, x,y,z, &min_dist);
+  VERTEX* vdst = &gcsa->mris_priors->vertices[vno];
+  return vdst;
+}
+
 VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX const *v)
 {
-  VERTEX *vdst;
-  vdst = MHTfindClosestVertex(gcsa->mht_priors, gcsa->mris_priors, v);
-  return (vdst);
+  cheapAssert(MHTwhich(gcsa->mht_priors) == CURRENT_VERTICES);
+  return GCSAsourceToPriorVertexXYZ(gcsa, v->x, v->y, v->z);
 }
-/*------------------------------------------------------------------*/
+
+
 int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX const *v)
 {
   int vdstno;
@@ -313,6 +329,7 @@ int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX const *v)
   vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin);
   return (vdstno);
 }
+
 
 static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs)
 {
@@ -928,30 +945,22 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose)
 
 int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp)
 {
-  int vno_classifier, vno_prior;
-  VERTEX *vclassifier, *v, *vprior;
-  GCSA_NODE *gcsan;
-  CP_NODE *cpn;
+  VERTEX * v = &mris->vertices[vno];
 
-  v = &mris->vertices[vno];
-  v->tx = v->x;
-  v->ty = v->y;
-  v->tz = v->z;
-  v->x = v->cx;
-  v->y = v->cy;
-  v->z = v->cz;
-  vprior = GCSAsourceToPriorVertex(gcsa, v);
-  vclassifier = GCSAsourceToClassifierVertex(gcsa, vprior);
-  vno_classifier = vclassifier - gcsa->mris_classifiers->vertices;
-  vno_prior = vprior - gcsa->mris_priors->vertices;
-  gcsan = &gcsa->gc_nodes[vno_classifier];
-  cpn = &gcsa->cp_nodes[vno_prior];
+  cheapAssert(MHTwhich(gcsa->mht_priors) == CURRENT_VERTICES);  // previous code overwrote xyz then fetched via CURRENT_VERTICES
+  cheapAssert(gcsa->mris_priors != gcsa->mris_classifiers);     // if same, then vprior might equal v!
+  
+  VERTEX * const vprior      = GCSAsourceToPriorVertexXYZ     (gcsa, v->cx,     v->cy,     v->cz);
+  VERTEX * const vclassifier = GCSAsourceToClassifierVertexXYZ(gcsa, vprior->x, vprior->y, vprior->z);
+
+  int const vno_classifier = vclassifier - gcsa->mris_classifiers->vertices;
+  int const vno_prior      = vprior      - gcsa->mris_priors->vertices;
+  GCSA_NODE * gcsan = &gcsa->gc_nodes[vno_classifier];
+  CP_NODE   * cpn   = &gcsa->cp_nodes[vno_prior];
+  
   fprintf(fp, "v %d --> vclassifier %d, vprior %d\n", vno, vno_classifier, vno_prior);
   dump_gcsan(gcsan, cpn, fp, 0);
-  v->x = v->tx;
-  v->y = v->ty;
-  v->z = v->tz;
-
+  
   return (NO_ERROR);
 }
 

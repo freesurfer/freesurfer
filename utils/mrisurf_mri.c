@@ -1,4 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
+
 /*
  * @file utilities operating on Original
  *
@@ -6272,7 +6274,7 @@ int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
     // original
     V4_LOAD(sX, mris->vertices[i].origx, mris->vertices[i].origy, mris->vertices[i].origz, 1.);
     MatrixMultiply(surf2surf, sX, dX);
-    MRISsetOriginalXYZ(mris, i, VECTOR_ELT(dX, 1), VECTOR_ELT(dX, 2), VECTOR_ELT(dX, 3)); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris, i, VECTOR_ELT(dX, 1), VECTOR_ELT(dX, 2), VECTOR_ELT(dX, 3));
 
     // white
     V4_LOAD(sX, mris->vertices[i].whitex, mris->vertices[i].whitey, mris->vertices[i].whitez, 1.);

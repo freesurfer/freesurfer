@@ -1,4 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
+
 /*
  * @file utilities operating on Original
  *
@@ -192,8 +194,6 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   v->nz = vs->nz;
 
   MRISsetOriginalXYZ(mris, vno, vs->origx, vs->origy, vs->origz);
-
-  noteVnoMovedInActiveRealmTrees(mris, vno);
 
   // Restore the topology
   //
@@ -6299,8 +6299,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           int const vno = dp->tp.vertices[i];
           VERTEX * const v = &mris->vertices[vno];
 
-          MRISsetOriginalXYZ(mris, vno, 
-            v->tx, v->ty, v->tz); CHANGES_ORIG
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       break;
@@ -6368,8 +6367,6 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           VERTEX * const v = &mris->vertices[vno];
 
           MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
-          
-          noteVnoMovedInActiveRealmTrees(mris, vno);
         }
       }
       break;
@@ -6452,7 +6449,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           if (v->old_undefval == 0) {
             continue;
           }
-          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       /* finally we apply a light smoothing of the whole surface */
@@ -6575,7 +6572,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         for (i = 0; i < nvertices; i++) {
           int const vno = dp->tp.vertices[vertices[i]];
           VERTEX * const v = &mris->vertices[vno];
-          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       free(vertices);
@@ -6692,7 +6689,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     for (i = 0; i < nvertices; i++) {
       int const vno = vertices[i];
       VERTEX * const v = &mris->vertices[vno];
-      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz); CHANGES_ORIG
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
     }
 
     /* recompute normals */
@@ -6797,7 +6794,6 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
       int const vno = dp->tp.vertices[i];
       VERTEX* const v = &mris->vertices[vno];
       MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
-      noteVnoMovedInActiveRealmTrees(mris, vno);
     }
 
     /* recompute normals */
@@ -6895,7 +6891,6 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
       int const vno = dp->tp.vertices[i];
       VERTEX * const v = &mris->vertices[vno];
       MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
-      noteVnoMovedInActiveRealmTrees(mris, vno);
     }
 
     /* recompute normals */
@@ -8624,7 +8619,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->z = v->z;
     
     /* smoothed vertices */
-    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz);
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -8687,7 +8682,7 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->y = v->y;
         vdst->z = v->z;
         
-        MRISsetOriginalXYZ(mris_corrected, vno_dst, v->origx, v->origy, v->origz); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_corrected, vno_dst, v->origx, v->origy, v->origz);
         
         vdst->tx = v->tx;
         vdst->ty = v->ty;
@@ -11985,7 +11980,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     v_dst->cy = v_src->cy;
     v_dst->cz = v_src->cz;
     
-    MRISsetOriginalXYZ(mris_dst, vno_dst, v_src->origx, v_src->origy, v_src->origz);  CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_dst, vno_dst, v_src->origx, v_src->origy, v_src->origz);
     
     v_dst->ripflag = v_src->ripflag; /* none of them should be ripped */
 

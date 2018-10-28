@@ -6138,23 +6138,18 @@ int GCAMsampleInverseMorphRAS(
   ---------------------------------------------------------------------*/
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
-  int vtxno, err;
-  VERTEX *v;
-  float Mx = 0, My = 0, Mz = 0;
-
-  // printf("Appling Inverse Morph \n");
+  // printf("Applying Inverse Morph \n");
+  int vtxno;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
-    v = &(mris->vertices[vtxno]);
-    err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    VERTEX *v = &mris->vertices[vtxno];
+    float Mx, My, Mz;
+    int err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
     if (err) {
       printf("WARNING: GCAMmorphSurf(): error converting vertex %d\n", vtxno);
       printf("  Avxyz = (%g,%g,%g), Mvxyz = (%g,%g,%g), \n", v->x, v->y, v->z, Mx, My, Mz);
       printf(" ... Continuing\n");
     }
-    // pack it back into the vertex
-    v->x = Mx;
-    v->y = My;
-    v->z = Mz;
+    MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
   return (0);
 }

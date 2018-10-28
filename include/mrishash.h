@@ -41,46 +41,48 @@ int MHT_gw_version(void);  // version of that unit
 void MHTfindReportCounts(int * BucketsChecked, 
                          int * BucketsPresent, 
                          int * VtxNumByMHT);
-int MHTtestIsMRISselfIntersecting(MRI_SURFACE const *mris, float res);
+int MHTtestIsMRISselfIntersecting(MRIS const *mris, float res);
 
 
 void MHTfree(MRIS_HASH_TABLE**);
+
+int MHTwhich(MRIS_HASH_TABLE*);
 
 //------------------------------------------------
 // Surface --> MHT, store Face Numbers
 //------------------------------------------------
 
 MRIS_HASH_TABLE* MHTcreateFaceTable(
-    MRI_SURFACE const   *mris) ;
+    MRIS const   *mris) ;
 
 MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
-    MRI_SURFACE const *mris, 
+    MRIS const *mris, 
     int   which, 
     float res) ;
 
 // Add/remove the faces of which vertex V is a part
-int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v) ;
-int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v) ;
+int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX_TOPOLOGY const *v) ;
+int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX_TOPOLOGY const *v) ;
 
 //------------------------------------------------
 // Surface --> MHT, store Vertex Numbers
 //------------------------------------------------
 MRIS_HASH_TABLE *MHTcreateVertexTable(
-    MRI_SURFACE const *mris, 
+    MRIS const *mris, 
     int which) ;
                                     
 MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(
-    MRI_SURFACE const *mris,
+    MRIS const *mris,
     int which,
     float res) ;
 
 //------------------------------------------------
 // Surface self-intersection (Uses MHT initialized with FACES)
 //------------------------------------------------
-int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris,int fno);
+int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRIS const *mris,int fno);
 
 
-int MHTisVectorFilled(MRIS_HASH_TABLE const *mht,    MRI_SURFACE const *mris,
+int MHTisVectorFilled(MRIS_HASH_TABLE const *mht,    MRIS const *mris,
                          int vno,  float dx, float dy, float dz) ;
 
 //------------------------------------------------
@@ -88,7 +90,7 @@ int MHTisVectorFilled(MRIS_HASH_TABLE const *mht,    MRI_SURFACE const *mris,
 //------------------------------------------------
 //------- new generic find function ------------
 int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht, 
-                                MRI_SURFACE const *mris,
+                                MRIS const *mris,
                                 double probex, double probey, double probez,
                                 double in_max_distance_mm, 
                                 int in_max_halfmhts,
@@ -97,43 +99,50 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
                                 double *vtx_distance);
 
 //------- original mrishash find functions ------------
-VERTEX *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
-                             MRI_SURFACE const *mris, 
-                             VERTEX const *v) ;
+
+VERTEX *MHTfindClosestVertex  (MRIS_HASH_TABLE *mht, 
+                               MRIS const *mris, 
+                               VERTEX const *v) ;
+int     MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
+                               MRIS const *mris, 
+                               VERTEX const *v, 
+                               float *min_dist);
+int     MHTfindClosestVertexNoXYZ(MRIS_HASH_TABLE *mht, 
+                               MRIS const *mris, 
+                               float x, float y, float z, 
+                               float *min_dist);
+
+                             
 VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
-                                MRI_SURFACE const *mris, 
+                                MRIS const *mris, 
                                 VERTEX const *v, 
                                 int which) ;
 VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht, 
-                                            MRI_SURFACE const *mris, 
+                                            MRIS const *mris, 
                                             VERTEX const *v, 
                                             int which,
                                             double nx, double ny, double nz);
 int    *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, 
-                                        MRI_SURFACE const *mris,
+                                        MRIS const *mris,
                                         int vno, 
                                         float max_dist, 
                                         int *pvnum);
-int     MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
-                               MRI_SURFACE const *mris, 
-                               VERTEX const *v, 
-                               float *min_dist);
 VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
-                                    MRI_SURFACE const *mris,
+                                    MRIS const *mris,
                                     float x, float y, float z, int do_global_search) ;
 
 //------------------------------------------------
 // Diagnostic
 //------------------------------------------------
-int MHTcheckFaces(MRI_SURFACE const *mris,MRIS_HASH_TABLE *mht) ;
-int MHTcheckSurface(MRI_SURFACE const *mris,MRIS_HASH_TABLE *mht);
+int MHTcheckFaces(MRIS const *mris,MRIS_HASH_TABLE *mht) ;
+int MHTcheckSurface(MRIS const *mris,MRIS_HASH_TABLE *mht);
 
 
 //------------------------------------------------
 // utilities for finding closest face
 //------------------------------------------------
 int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht, 
-                              MRI_SURFACE const *mris,
+                              MRIS const *mris,
                               //---------- inputs --------------
                               double probex, double probey, double probez,
                               // How far to search: set one or both
@@ -147,7 +156,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                               int *pfno, 
                               double *pface_distance);
                               
-int mhtBruteForceClosestFace(MRI_SURFACE const *mris, 
+int mhtBruteForceClosestFace(MRIS const *mris, 
                              float x, float y, float z, 
                              int which,                  // which surface within mris to search
                              float *dmin);

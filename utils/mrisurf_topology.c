@@ -2739,7 +2739,7 @@ int mrisDivideEdge(MRIS *mris, int vno1, int vno2)
   MRISsetOriginalXYZ(mris, vnew_no, 
     (v1->origx + v2->origx) / 2,
     (v1->origy + v2->origy) / 2,
-    (v1->origz + v2->origz) / 2); CHANGES_ORIG
+    (v1->origz + v2->origz) / 2);
     
   vnewt->vnum = 2; /* at least connected to two bisected vertices */
 

@@ -1,4 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 /*
  * @file utilities operating on Original
  *
@@ -11386,10 +11387,7 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
       }
       if (v->marked) /* update value */
       {
-        MRISsetOriginalXYZ(mris, vno,
-          v->tdx,
-          v->tdy,
-          v->tdz);  CHANGES_ORIG
+        MRISsetOriginalXYZ(mris, vno, v->tdx, v->tdy, v->tdz);
       }
       if (v->marked == 3) /* needs modification */
       {
@@ -11539,9 +11537,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     /* smoothed vertices */
     
     MRISsetOriginalXYZ(mris_corrected, newNVertices,
-      v->origx, 
-      v->origy,
-      v->origz); CHANGES_ORIG
+      v->origx, v->origy, v->origz);
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -11818,7 +11814,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
         MRISsetOriginalXYZ(mris_total, vdst_vno,
           vdst->origx + v->origx,
           vdst->origy + v->origy,
-          vdst->origz + v->origz); CHANGES_ORIG
+          vdst->origz + v->origz);
         } break;
       case VERTEX_AREA:
         vdst->d += v->origarea;
@@ -11851,7 +11847,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
         MRISsetOriginalXYZ(mris_total, vno,
           vdst->origx / (float)vdst->marked,
           vdst->origy / (float)vdst->marked,
-          vdst->origz / (float)vdst->marked); CHANGES_ORIG
+          vdst->origz / (float)vdst->marked);
         break;
       case VERTEX_AREA: /* don't normalize by # of vertices mapped!! */
         vdst->origarea += vdst->d;
@@ -11898,7 +11894,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     vdst->marked++;
     switch (which) {
       case VERTEX_COORDS:
-        MRISsetOriginalXYZ(mris_total, vno, v->origx, v->origy, v->origz); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_total, vno, v->origx, v->origy, v->origz);
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -11963,7 +11959,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     vdst->val2 = v->val2;
     switch (which) {
       case VERTEX_COORDS:
-        MRISsetOriginalXYZ(mris_dst, vno, v->origx, v->origy, v->origz);  CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_dst, vno, v->origx, v->origy, v->origz);
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -12290,7 +12286,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
     vdst->y = v->y;
     vdst->z = v->z;
     
-    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz);
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -12679,7 +12675,7 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
     vnew->y = vold->y;
     vnew->z = vold->z;
     
-    MRISsetOriginalXYZ(mris_new, vno, vold->origx, vold->origy, vold->origz); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_new, vno, vold->origx, vold->origy, vold->origz);
     
     vnew->marked = 1;
   }
@@ -14661,7 +14657,7 @@ static int mrisPlaceVertexInOrigFace(MRIS * const mris_vno, int const vno, MRIS 
   ADD(e1, e2, P);
   ADD(P, U0, P);
 
-  MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]); CHANGES_ORIG
+  MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]);
 
   return (NO_ERROR);
 }

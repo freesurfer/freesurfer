@@ -1965,21 +1965,21 @@ int ICOreadVertexPositions(MRI_SURFACE * const mris, const char * const fname, i
     VERTEX * const v = &mris->vertices[vno];
 
     switch (which) {
-      default:
       case CURRENT_VERTICES:
         v->x = ico->vertices[vno].x;
         v->y = ico->vertices[vno].y;
         v->z = ico->vertices[vno].z;
         break;
+#if 0
       case CANONICAL_VERTICES:
         v->cx = ico->vertices[vno].x;
         v->cy = ico->vertices[vno].y;
         v->cz = ico->vertices[vno].z;
         break;
-      case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, ico->vertices[vno].x, ico->vertices[vno].y, ico->vertices[vno].z);
-        break;
-    }
+#endif
+      default:
+        cheapAssert(!"ICOreadVertexPositions bad which");
+     }
   }
   return (NO_ERROR);
 }
