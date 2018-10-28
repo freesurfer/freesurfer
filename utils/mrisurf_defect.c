@@ -21,6 +21,162 @@
  */
 #include "mrisurf_defect.h"
 
+
+//==================================================================
+// Utilities for editing a surface
+// Some of these need to be refactored to move portions of them into mrisurf_topology.c
+//
+void mrisDivideEdge(MRIS * const mris, int const vno1, int const vno2)
+{
+  int const vnew_no = mrisDivideEdgeTopologically(mris, vno1, vno2);
+
+  VERTEX const * const v1   = &mris->vertices[vno1];
+  VERTEX const * const v2   = &mris->vertices[vno2];
+  VERTEX       * const vnew = &mris->vertices[vnew_no];
+
+  vnew->x = (v1->x + v2->x) / 2;
+  vnew->y = (v1->y + v2->y) / 2;
+  vnew->z = (v1->z + v2->z) / 2;
+  vnew->tx = (v1->tx + v2->tx) / 2;
+  vnew->ty = (v1->ty + v2->ty) / 2;
+  vnew->tz = (v1->tz + v2->tz) / 2;
+
+  vnew->infx = (v1->infx + v2->infx) / 2;
+  vnew->infy = (v1->infy + v2->infy) / 2;
+  vnew->infz = (v1->infz + v2->infz) / 2;
+
+  vnew->pialx = (v1->pialx + v2->pialx) / 2;
+  vnew->pialy = (v1->pialy + v2->pialy) / 2;
+  vnew->pialz = (v1->pialz + v2->pialz) / 2;
+
+  vnew->cx = (v1->cx + v2->cx) / 2;
+  vnew->cy = (v1->cy + v2->cy) / 2;
+  vnew->cz = (v1->cz + v2->cz) / 2;
+  vnew->x = (v1->x + v2->x) / 2;
+  vnew->y = (v1->y + v2->y) / 2;
+  vnew->z = (v1->z + v2->z) / 2;
+  vnew->odx = (v1->odx + v2->odx) / 2;
+  vnew->ody = (v1->ody + v2->ody) / 2;
+  vnew->odz = (v1->odz + v2->odz) / 2;
+  vnew->val = (v1->val + v2->val) / 2;
+  
+  MRISsetOriginalXYZ(mris, vnew_no, 
+    (v1->origx + v2->origx) / 2,
+    (v1->origy + v2->origy) / 2,
+    (v1->origz + v2->origz) / 2);
+}
+
+
+/*
+  nsubs = 1 --> divide edge in half
+        = 2 --> divide edge in half twice, add 3 vertices
+        = 3 --> divide edge in half three times, add 7 vertices
+*/
+#define MAX_SURFACE_FACES 200000
+int MRISdivideEdges(MRIS *mris, int nsubdivisions)
+{
+  int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
+  FACE *f;
+
+  for (nadded = sub = 0; sub < nsubdivisions; sub++) {
+    nfaces = mris->nfaces;
+    nvertices = mris->nvertices;  // before adding any
+    for (fno = 0; fno < nfaces; fno++) {
+      faces[fno] = fno;
+    }
+    for (fno = 0; fno < nfaces; fno++) {
+      int tmp;
+
+      index = (int)randomNumber(0.0, (double)(nfaces - 0.0001));
+      tmp = faces[fno];
+      if (faces[fno] == Gdiag_no || faces[index] == Gdiag_no) {
+        DiagBreak();
+      }
+      faces[fno] = faces[index];
+      faces[index] = tmp;
+    }
+
+    for (index = 0; index < nfaces; index++) {
+      fno = faces[index];
+      f = &mris->faces[fno];
+      if (fno == Gdiag_no) {
+        DiagBreak();
+      }
+
+      if (f->v[0] < nvertices && f->v[1] < nvertices) { mrisDivideEdge(mris, f->v[0], f->v[1]); nadded++; }
+      if (f->v[0] < nvertices && f->v[2] < nvertices) { mrisDivideEdge(mris, f->v[0], f->v[2]); nadded++; }
+      if (f->v[1] < nvertices && f->v[2] < nvertices) { mrisDivideEdge(mris, f->v[1], f->v[2]); nadded++; }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && nadded > 0) {
+    fprintf(stdout,
+            "MRISdivideEdges(%d): %d vertices added: # of vertices=%d, # of faces=%d.\n",
+            nsubdivisions,
+            nadded,
+            mris->nvertices,
+            mris->nfaces);
+#if 0
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+#endif
+  }
+  return (nadded);
+}
+
+
+int MRISdivideLongEdges(MRIS *mris, double thresh)
+{
+  int nadded = 0;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+    float const x = v->x;
+    float const y = v->y;
+    float const z = v->z;
+
+    /*
+      only add vertices if average neighbor vector is in normal direction, 
+      that is, if the region is concave or sulcal.
+    */
+    int n;
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
+      double dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
+      if (dist > thresh) {
+        mrisDivideEdge(mris, vno, vt->v[n]);
+        nadded++;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && nadded > 0) {
+    fprintf(stdout,
+            "%2.2f mm: %d vertices added: # of vertices=%d, # of faces=%d.\n",
+            thresh,
+            nadded,
+            mris->nvertices,
+            mris->nfaces);
+#if 0
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+#endif
+  }
+  
+  return (nadded);
+}
+
+
 //==================================================================
 // Saving and restoring portions of the surface
 // This holds a strong hint to what fields of the surface the rest of this code should be allowed to modify!
@@ -17142,5 +17298,4 @@ static void mrisComputeSurfaceStatistics(
   /* free arrays */
   TPfree(&tp);
 }
-
 

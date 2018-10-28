@@ -61,7 +61,7 @@ MRI_SURFACE *ic163842_make_surface  (int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface      (int max_vertices, int max_faces) ;
 
 MRI_SURFACE *ICOread(const char *fname) ;
-MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over) ;
+MRI_SURFACE *ICOreadOverAlloc(const char *fname, double nVFMultiplier, float RescaleFactor) ;
 int          ICOreadVertexPositions(MRI_SURFACE *mris, 
                                     const char *fname, 
                                     int which) ;

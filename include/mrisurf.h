@@ -1178,7 +1178,7 @@ double       MRIScomputeCorrelationError(MRI_SURFACE *mris,
     MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
-MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double pct_over) ;
+MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double nVFMultiplier) ;
 MRI_SURFACE  *MRISfastRead(const char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris,

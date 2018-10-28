@@ -67,3 +67,4 @@ int mrisMarkBadEdgeVertices(MRIS *mris, int mark);
 
 int mrisAddFace(MRIS *mris, int vno0, int vno1, int vno2);
 
+int mrisDivideEdgeTopologically(MRIS *mris, int vno1, int vno2);

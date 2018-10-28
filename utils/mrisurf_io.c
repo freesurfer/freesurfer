@@ -31,7 +31,7 @@
 
 static int mrisReadGeoFilePositions     (MRI_SURFACE *mris, const char *fname);
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
-static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over);
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier);
 static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname);
 
 
@@ -3929,7 +3929,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
+MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 {
   MRI_SURFACE *mris = NULL;
   int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
@@ -3956,7 +3956,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   }
   else if (type == MRIS_ICO_FILE) /* .TRI, .ICO */
   {
-    mris = ICOreadOverAlloc(fname, pct_over);
+    mris = ICOreadOverAlloc(fname, nVFMultiplier, 1.0);
     if (!mris) {
       return (NULL);
     }
@@ -4023,7 +4023,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     }
     else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
       fclose(fp);
-      mris = mrisReadTriangleFile(fname, pct_over);
+      mris = mrisReadTriangleFile(fname, nVFMultiplier);
       if (!mris) {
         ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
       }
@@ -4061,7 +4061,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout, "reading %d vertices and %d faces.\n", nvertices, 2 * nquads);
 
-    mris = MRISoverAlloc(pct_over * nvertices, pct_over * 2 * nquads, nvertices, 2 * nquads);
+    mris = MRISoverAlloc(nVFMultiplier * nvertices, nVFMultiplier * 2 * nquads, nvertices, 2 * nquads);
     mris->type = MRIS_BINARY_QUADRANGLE_FILE;
 
     imnr0 = 1000;
@@ -5449,7 +5449,7 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
 
   Description
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier)
 {
   FACE *f;
   int nvertices, nfaces, magic, vno, fno, n;
@@ -5470,7 +5470,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
-  MRIS * mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
+  MRIS * mris = MRISoverAlloc(nVFMultiplier * nvertices, nVFMultiplier * nfaces, nvertices, nfaces);
   mris->type = MRIS_TRIANGULAR_SURFACE;
 
   for (vno = 0; vno < nvertices; vno++) {
