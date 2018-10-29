@@ -220,6 +220,131 @@ int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, i
 
   return (NO_ERROR);
 }
+
+
+MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
+{
+  int vno;
+  VERTEX *vdst;
+  float x, y, z, x0, y0, z0, xlo, xhi, zlo, zhi, ylo, yhi;
+
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+
+  x = y = z = 0; /* silly compiler warning */
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    vdst = &mris_dst->vertices[vno];
+    if (vdst->ripflag) {
+      continue;
+    }
+    x = vdst->x;
+    y = vdst->y;
+    z = vdst->z;
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+  x0 = (xlo + xhi) / 2.0f;
+  y0 = (ylo + yhi) / 2.0f;
+  z0 = (zlo + zhi) / 2.0f;
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    vdst = &mris_dst->vertices[vno];
+    if (vdst->ripflag) {
+      continue;
+    }
+    vdst->x -= x0;
+    vdst->y -= y0;
+    vdst->z -= z0;
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+
+  mris_dst->xctr = mris_dst->yctr = mris_dst->zctr = 0;
+  mris_dst->xlo = xlo;
+  mris_dst->ylo = ylo;
+  mris_dst->zlo = zlo;
+  mris_dst->xhi = xhi;
+  mris_dst->yhi = yhi;
+  mris_dst->zhi = zhi;
+
+  return (mris_dst);
+}
+
+
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
+{
+  int vno;
+  VERTEX *v;
+  float x, y, z, xlo, xhi, zlo, zhi, ylo, yhi;
+
+  MRIScenter(mris, mris);
+  x = y = z = 0; /* silly compiler warning */
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+    v->x += x0;
+    v->y += y0;
+    v->z += z0;
+    x = v->x;
+    y = v->y;
+    z = v->z;
+    if (x > xhi) xhi = x;
+    if (x < xlo) xlo = x;
+    if (y > yhi) yhi = y;
+    if (y < ylo) ylo = y;
+    if (z > zhi) zhi = z;
+    if (z < zlo) zlo = z;
+  }
+  mris->xlo = xlo;
+  mris->ylo = ylo;
+  mris->zlo = zlo;
+  mris->xhi = xhi;
+  mris->yhi = yhi;
+  mris->zhi = zhi;
+  mris->xctr = x0;
+  mris->yctr = y0;
+  mris->zctr = z0;
+}
+
+
 /*-----------------------------------------------------*/
 /*!
   \fn int MRISreverse(MRIS *mris, int which)
@@ -294,6 +419,109 @@ int MRISscale(MRIS *mris, double scale)
   }
   return (0);
 }
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+
+  The following function is broken, since it is applying a
+  transform for surfaceRAS space.  If transform has c_(ras)
+  values, the result would be different.
+
+  conformed -----> surfaceRAS
+  |                |        [ 1 Csrc]
+  V                V        [ 0  1  ]
+  src    ----->    RAS
+  |                |
+  |                |  Xfm
+  V                V
+  talvol   ----->  talRAS
+  |                |        [ 1 -Ctal]
+  |                |        [ 0  1   ]
+  V                V
+  conformed -----> surfaceRAS
+
+  Thus
+
+  surfRASToTalSurfRAS = [ 1 -Ctal ]*[ R  T ]*[ 1 Csrc ]=
+  [ R  T + R*Csrc - Ctal ]
+  [ 0   1   ] [ 0  1 ] [ 0   1  ]  [ 0         1          ]
+
+  We need to know the Csrc and Ctal values
+  ------------------------------------------------------*/
+MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
+  int vno;
+  VERTEX *v;
+  double x, y, z, xt, yt, zt;
+  float xlo, ylo, zlo, xhi, yhi, zhi;
+
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+
+  if (!mris_src->lta) {
+    return (mris_dst);
+  }
+
+#if 0
+  if (!mris_src->linear_transform)
+  {
+    return(mris_dst) ;
+  }
+
+  ErrorReturn(mris_dst,
+              (ERROR_BADPARM, "MRIStalairachTransform: no xform loaded")) ;
+#endif
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    v = &mris_dst->vertices[vno];
+
+    x = v->x;
+    y = v->y;
+    z = v->z;  // we cloned the src
+    TransformWithMatrix(mris_src->SRASToTalSRAS_, x, y, z, &xt, &yt, &zt);
+    // transform_point(mris_src->linear_transform, -x, z, y, &xt, &yt, &zt) ;
+    // v->x = -xt ; v->y = zt ; v->z = yt ;
+    v->x = xt;
+    v->y = yt;
+    v->z = zt;
+
+    if (v->x > xhi) {
+      xhi = v->x;
+    }
+    if (v->x < xlo) {
+      xlo = v->x;
+    }
+    if (v->y > yhi) {
+      yhi = v->y;
+    }
+    if (v->y < ylo) {
+      ylo = v->y;
+    }
+    if (v->z > zhi) {
+      zhi = v->z;
+    }
+    if (v->z < zlo) {
+      zlo = v->z;
+    }
+  }
+
+  mris_dst->xlo = xlo;
+  mris_dst->ylo = ylo;
+  mris_dst->zlo = zlo;
+  mris_dst->xctr = (xhi + xlo) / 2;
+  mris_dst->yctr = (yhi + ylo) / 2;
+  mris_dst->zctr = (zhi + zlo) / 2;
+
+  return (mris_dst);
+}
+
 
 int mrisFlipPatch(MRIS *mris)
 {

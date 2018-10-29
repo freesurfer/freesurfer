@@ -2807,3 +2807,8 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
 void MRISsetXYZ        (MRIS *mris, int vno, float x, float y, float z);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
+
+
+// Deforming the MRIS
+//
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);

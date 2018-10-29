@@ -1508,6 +1508,24 @@ int MRISripUnknown(MRIS *surf)
 }
 
 
+int MRISripZeroThicknessRegions(MRI_SURFACE *mris)
+{
+  VERTEX *v;
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (FZERO(v->whitex - v->pialx) && FZERO(v->whitey - v->pialy) && FZERO(v->whitez - v->pialz)) {
+      v->ripflag = 1;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
 int MRISdilateRipped(MRIS *mris, int ndil)
 {
   int vno, i, n;
