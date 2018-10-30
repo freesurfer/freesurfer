@@ -127,12 +127,6 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[2]) ;
 
-//  if(mri_src->width != mri_mask->width)
-//  {
-//    printf("ERROR: dimension mismatch between source and mask\n");
-//    exit(1);
-//  }
-
   printf("DoAbs = %d\n",DoAbs);
 
   /* Read LTA transform and apply it to mri_mask */
@@ -155,22 +149,6 @@ int main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
                   Progname, xform_fname) ;
 
-      if (transform_type == FSLREG_TYPE)
-      {
-        if (lta_src == 0 || lta_dst == 0)
-        {
-          fprintf(stderr,
-                  "ERROR: fslmat does not have information on "
-                  "the src and dst volumes\n");
-          fprintf(stderr,
-                  "ERROR: you must give options '-lta_src' "
-                  "and '-lta_dst' to specify the src and dst volume infos\n");
-        }
-
-        LTAmodifySrcDstGeom(lta, lta_src, lta_dst);
-        // add src and dst information
-        LTAchangeType(lta, LINEAR_VOX_TO_VOX);
-      }
       if (lta->xforms[0].src.valid == 0)
       {
         if (lta_src == 0)
@@ -186,7 +164,6 @@ int main(int argc, char *argv[])
         else
         {
           LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
-          //      getVolGeom(lta_src, &lt->src);
         }
       }
       if (lta->xforms[0].dst.valid == 0)
@@ -218,7 +195,8 @@ int main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM,
                 "transform is not of MNI, nor Register.dat, nor FSLMAT type");
     }
-
+    LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+    
     if (invert)
     {
       VOL_GEOM vgtmp;
@@ -244,7 +222,6 @@ int main(int argc, char *argv[])
       copyVolGeom(&vgtmp, &lt->src);
     }
 
-    //    LTAchangeType(lta, LINEAR_VOX_TO_VOX);
     mri_tmp =
       MRIalloc(mri_src->width,
                mri_src->height,
