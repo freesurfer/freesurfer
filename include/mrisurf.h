@@ -476,6 +476,11 @@ typedef struct vertex_type_
 #undef ELTX
 #undef SEP
 
+#if defined(__cplusplus)
+    // C++ requires const members be initialized
+    vertex_type() : dist(nullptr), dist_orig(nullptr), origx(0), origy(0), origz(0), x(0), y(0), z(0) {}
+#endif
+
 }
 vertex_type, VERTEX ;
 
