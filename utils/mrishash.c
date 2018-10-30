@@ -1067,55 +1067,8 @@ int MHTisVectorFilled(
     fprintf(stderr, "\n");
   }
 
-  int old_result = 0;
+  int result = 0;
   
-  static const bool do_old = false;
-  static const bool do_new = true;
-  
-if (do_old) {
-  
-  //----------------------------------------------------
-  // Temporarily move the CURRENT_VERTICES
-  //----------------------------------------------------
-  VERTEX_TOPOLOGY const * const vtxt = &mris->vertices_topology[vtxno];
-  VERTEX                * const vtx  = &mris->vertices         [vtxno];
-
-  float const savex = vtx->x;
-  float const savey = vtx->y;
-  float const savez = vtx->z;
-
-  vtx->x += dx;
-  vtx->y += dy;
-  vtx->z += dz;
-
-  //-------------------------------------------
-  // Check whether the faces adjoining current
-  // vertex will now intersect
-  //-------------------------------------------
-  old_result = 0; // assume doesn't intersect
-  
-  int fi;
-  for (fi = 0; fi < vtxt->num; fi++) {
-    int fno = vtxt->f[fi];
-    old_result = MHTdoesFaceIntersect_old(mht, mris, fno, trace && (fno==0));
-    if (trace) {
-      fprintf(stderr, " MHTdoesFaceIntersect_old face:%d returns %d\n", fno, old_result);
-    }
-    if (old_result) break;
-  }
-
-  //----------------------------------------------------
-  // Restore CURRENT_VERTICES
-  //----------------------------------------------------
-  vtx->x = savex;
-  vtx->y = savey;
-  vtx->z = savez;
-
-}
-  
-  int new_result = old_result;
-  
-if (do_new) {
   VERTEX_TOPOLOGY const * const vtxt = &mris->vertices_topology[vtxno];
   VERTEX          const * const vtx  = &mris->vertices         [vtxno];
   float const moved_x = vtx->x + dx;
@@ -1157,20 +1110,14 @@ if (do_new) {
     int touchingFnos[MHT_MAX_TOUCHING_FACES];
     int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, touchingFnos, trace);
     
-    new_result = MHTdoesTriangleIntersect(mht, &triangle, touchingFnosSize, touchingFnos, trace);
+    result = MHTdoesTriangleIntersect(mht, &triangle, touchingFnosSize, touchingFnos, trace);
     if (trace) {
-      fprintf(stderr, " MHTdoesFaceIntersect_new face:%d returns %d\n", fno, new_result);
+      fprintf(stderr, " MHTdoesFaceIntersect_new face:%d returns %d\n", fno, result);
     }
-    if (new_result) break;
-  }
-}
-  
-  if (do_old && do_new && old_result != new_result) {
-    fprintf(stderr, "%s:%d new and old code get diff result count:%d\n", __FILE__, __LINE__, count);
-    exit(1);
+    if (result) break;
   }
   
-  return do_old ? old_result : new_result;
+  return result;
 }
 
 /*-------------------------------------------------------------

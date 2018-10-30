@@ -394,7 +394,6 @@ static int saveTesselation(tesselation_parms *parms)
 {
   int vno, m, n, fno;
   quad_face_type *face2;
-  quad_vertex_type *vertex2;
   FACE *face;
   float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo;
   float st, ps, xx1, yy0, zz1;
@@ -409,14 +408,17 @@ static int saveTesselation(tesselation_parms *parms)
   xx1 = parms->mri->xend;
   zz1 = parms->mri->zend;
 
-  MRIS *mris = MRISoverAlloc(parms->vertex_index, 2 * parms->face_index, parms->vertex_index, 2 * parms->face_index);
+  MRIS *mris = MRISoverAlloc(
+                    parms->vertex_index, 2 * parms->face_index, 
+                    parms->vertex_index, 2 * parms->face_index);
   mris->type = MRIS_BINARY_QUADRANGLE_FILE;
 
   /*first init vertices*/
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY * const vertex_topology = &mris->vertices_topology[vno];
-    VERTEX          * const vertex          = &mris->vertices         [vno];
-    vertex2 = &parms->vertex[vno];
+
+    quad_vertex_type const * const vertex2 = &parms->vertex[vno];
+    
     i = vertex2->i;
     j = vertex2->j;
     imnr = vertex2->imnr;
@@ -436,11 +438,10 @@ static int saveTesselation(tesselation_parms *parms)
     y = yw;
     z = zw;
 
-    vertex->x = x;
-    vertex->y = y;
-    vertex->z = z;
+    MRISsetXYZ(mris,vno, x, y, z);
     vertex_topology->num = 0;
   }
+  
   /*then init faces by dividing each quadrant into two triangles*/
   for (m = 0; m < parms->face_index; m++) {
     int which;
@@ -564,9 +565,10 @@ MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab)
 
   for (n = 0, count = 0; n < number_of_labels; n++)
     for (vno = 0; vno < mris_tab[n]->nvertices; vno++, count++) {
-      mris->vertices[count].x = mris_tab[n]->vertices[vno].x;
-      mris->vertices[count].y = mris_tab[n]->vertices[vno].y;
-      mris->vertices[count].z = mris_tab[n]->vertices[vno].z;
+      MRISsetXYZ(mris,count, 
+        mris_tab[n]->vertices[vno].x,
+        mris_tab[n]->vertices[vno].y,
+        mris_tab[n]->vertices[vno].z);
       mris->vertices[count].curv = mris_tab[n]->vertices[vno].curv;
       mris->vertices[count].val = (float)(n - number_of_labels / 2.) / number_of_labels;
     }

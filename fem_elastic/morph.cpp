@@ -1080,18 +1080,14 @@ VolumeMorph::convert_transforms() const
 MRIS*
 VolumeMorph::apply_transforms(MRIS* input) const
 {
-  MRI_SURFACE* mris = MRISclone( input );
+  MRI_SURFACE* const mris = MRISclone( input );
 
-  unsigned int nvertices = (unsigned int)input->nvertices;
-  VERTEX* pvtxIn = &( input->vertices[0] );
-  VERTEX* pvtxOut = &( mris->vertices[0] );
-
-  tDblCoords pt;
-
-  for (unsigned int ui=0;
-       ui < nvertices;
-       ++ui, ++pvtxIn, ++pvtxOut )
+  int const nvertices = input->nvertices;
+  for (int ui = 0; ui < nvertices; ++ui) 
   {
+    VERTEX* pvtxIn = &input->vertices[ui];
+
+    tDblCoords pt;
     pt.validate();
     pt(0) = pvtxIn->x;
     pt(1) = pvtxIn->y;
@@ -1100,10 +1096,8 @@ VolumeMorph::apply_transforms(MRIS* input) const
     pt = image( pt );
     if ( !pt.isValid() ) continue; // better leave it as it was if it's not working
 
-    pvtxOut->x = pt(0);
-    pvtxOut->y = pt(1);
-    pvtxOut->z = pt(2);
-  } // next ui, pvtxIn, pvtxOut
+    MRISsetXYZ(mris, ui, pt(0), pt(1), pt(2));
+  }
 
   return mris;
 }
