@@ -78,7 +78,7 @@ int DoBB = 0, nPadBB=0;
 int main(int argc, char *argv[])
 {
   char **av;
-  MRI *mri_src, *mri_mask, *mri_dst, *mri_mask_orig, *mri_tmp;
+  MRI *mri_in, *mri_mask, *mri_out, *mri_mask_orig, *mri_tmp;
   int nargs, ac, nmask;
   int x, y, z;
   float value;
@@ -115,8 +115,8 @@ int main(int argc, char *argv[])
     usage(1);
   }
 
-  mri_src = MRIread(argv[1]) ;
-  if (!mri_src)
+  mri_in = MRIread(argv[1]) ;
+  if (!mri_in)
     ErrorExit(ERROR_BADPARM, "%s: could not read source volume %s",
               Progname, argv[1]) ;
   mri_mask = MRIread(argv[2]) ;
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
     TransformGetSrcVolGeom(transform, &vg_transform_src);
     TransformGetDstVolGeom(transform, &vg_transform_dst);
     getVolGeom(mri_mask, &vg_mask);
-    getVolGeom(mri_src, &vg_in);
+    getVolGeom(mri_in, &vg_in);
     if (!vg_isEqual(&vg_mask, &vg_transform_src) ||
         !vg_isEqual(&vg_in, &vg_transform_dst))
     {
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
       }
       printf("Inverting transform to match MRI geometries\n");
       // Pass MRI in case path changed (see GCAMfillInverse):
-      TransformInvertReplace(transform, mri_src);
+      TransformInvertReplace(transform, mri_in);
     }
     
     mri_tmp = TransformApplyType(transform, mri_mask, NULL, InterpMethod);
@@ -240,10 +240,10 @@ int main(int argc, char *argv[])
     if(mri_tmp == NULL) exit(1);
     MRIfree(&mri_mask);
     mri_mask = mri_tmp;
-    mri_tmp = MRIextractRegion(mri_src, NULL, region);
+    mri_tmp = MRIextractRegion(mri_in, NULL, region);
     if(mri_tmp == NULL) exit(1);
-    MRIfree(&mri_src);
-    mri_src = mri_tmp;
+    MRIfree(&mri_in);
+    mri_in = mri_tmp;
   }
 
   int mask=0;
@@ -252,8 +252,8 @@ int main(int argc, char *argv[])
     mask = (int)transfer_val;
     out_val = transfer_val;
   }
-  mri_dst = MRImask(mri_src, mri_mask, NULL, mask, out_val) ;
-  if (!mri_dst)
+  mri_out = MRImask(mri_in, mri_mask, NULL, mask, out_val) ;
+  if (!mri_out)
   {
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
   }
@@ -261,20 +261,20 @@ int main(int argc, char *argv[])
   if (keep_mask_deletion_edits)
   {
     MRI *mri_tmp ;
-    mri_tmp = MRImask(mri_dst, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
+    mri_tmp = MRImask(mri_out, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_tmp)
       ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
                 Progname) ;
-    MRIfree(&mri_dst) ; mri_dst = mri_tmp ;
+    MRIfree(&mri_out) ; mri_out = mri_tmp ;
   }
 
   printf("Writing masked volume to %s...", argv[3]) ;
-  MRIwrite(mri_dst, argv[3]);
+  MRIwrite(mri_out, argv[3]);
   printf("done.\n") ;
 
-  MRIfree(&mri_src);
+  MRIfree(&mri_in);
   MRIfree(&mri_mask);
-  MRIfree(&mri_dst);
+  MRIfree(&mri_out);
   MRIfree(&mri_mask_orig);
 
   exit(0);
@@ -398,3 +398,4 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+
