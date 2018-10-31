@@ -2242,7 +2242,6 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
 int MRISshiftCRAS(MRIS *mris, int shift)
 {
   double dx, dy, dz;
-  int vno;
 
   if (shift == +1) {
     mris->useRealRAS = 1;
@@ -2262,11 +2261,11 @@ int MRISshiftCRAS(MRIS *mris, int shift)
     mris->yctr = 0;
     mris->zctr = 0;
   }
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].x += dx;
-    mris->vertices[vno].y += dy;
-    mris->vertices[vno].z += dz;
-  }
+  
+  MRIStranslate(mris, dx, dy, dz);
+    // The old code did not call mrisComputeSurfaceDimensions
+    // leaving various values wrong
+  
   return (0);
 }
 
@@ -2433,7 +2432,7 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation)
 {
   int n, nmin, vtxnominmin, vtxno, pointno;
-  VERTEX v;
+  struct { float x,y,z; } v;
   static MATRIX *crs = NULL, *ras = NULL;
   float dminsurf;
   float dminmin = 0.0;
@@ -2476,7 +2475,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
       // If it gets here, then remove the vertex
       if (l2s->debug)
         printf(
-            "Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n", nmin, vtxno, col, row, slice, v.x, v.y, v.z);
+            "Removing surf=%d vtxno=%d %g %g %g \n", nmin, vtxno, col, row, slice);
       lv->deleted = 1;
       MRIsetVoxVal(l2s->masks[nmin], lv->vno, 0, 0, 0, 0);
       return (1);
@@ -2504,7 +2503,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
   vtxnominmin = -1;  // number of closest vertex
   nmin = -1;         // index of the surface with the closest vertex
   for (n = 0; n < l2s->nsurfs; n++) {
-    vtxno = MHTfindClosestVertexNo(l2s->hashes[n], l2s->surfs[n], &v, &dminsurf);
+    vtxno = MHTfindClosestVertexNoXYZ(l2s->hashes[n], l2s->surfs[n], v.x,v.y,v.z, &dminsurf);
     if (vtxno >= 0) {
       if (l2s->debug > 1)
         printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",

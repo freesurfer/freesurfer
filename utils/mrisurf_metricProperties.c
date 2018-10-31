@@ -222,6 +222,185 @@ int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, i
 }
 
 
+
+/*-----------------------------------------------------*/
+/*!
+  \fn int MRISreverse(MRIS *mris, int which)
+  \brief Reverse sign of one of the dimensions of the surface coords.
+  If reversing X, the order of the verticies is also reversed.
+*/
+int MRISreverse(MRIS *mris, int which, int reverse_face_order)
+{
+  int vno;
+  float x, y, z;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    x = v->x;
+    y = v->y;
+    z = v->z;
+    switch (which) {
+      default:
+      case REVERSE_X:
+        x = -x;
+        break;
+      case REVERSE_Y:
+        y = -y;
+        break;
+      case REVERSE_Z:
+        z = -z;
+        break;
+    }
+    v->x = x;
+    v->y = y;
+    v->z = z;
+  }
+  if (which == REVERSE_X && reverse_face_order)  // swap order of faces
+  {
+    MRISreverseFaceOrder(mris);
+  }
+
+  return (NO_ERROR);
+}
+
+
+int mrisComputeSurfaceDimensions(MRIS *mris)
+{
+  float xlo, ylo, zlo, xhi, yhi, zhi;
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *vertex = &mris->vertices[vno];
+#if 0
+    if (vertex->ripflag)
+    {
+      continue ;
+    }
+#endif
+    float const x = vertex->x;
+    float const y = vertex->y;
+    float const z = vertex->z;
+    if (x > xhi) xhi = x;
+    if (x < xlo) xlo = x;
+    if (y > yhi) yhi = y;
+    if (y < ylo) ylo = y;
+    if (z > zhi) zhi = z;
+    if (z < zlo) zlo = z;
+  }
+  mris->xlo = xlo;
+  mris->xhi = xhi;
+  mris->ylo = ylo;
+  mris->yhi = yhi;
+  mris->zlo = zlo;
+  mris->zhi = zhi;
+  
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
+  
+  return (NO_ERROR);
+}
+
+
+int MRISscaleVertexCoordinates(MRIS *mris, double scale)
+{
+  return MRISscale(mris, scale);
+}
+
+
+int MRISscale(MRIS *mris, double scale)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x *= scale;
+    v->y *= scale;
+    v->z *= scale;
+  }
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  mris->xlo *= scale;
+  mris->xhi *= scale;
+  mris->ylo *= scale;
+  mris->yhi *= scale;
+  mris->zlo *= scale;
+  mris->zhi *= scale;
+  
+  if (scale < 0) {
+    float xlo = mris->xlo; mris->xlo = mris->xhi; mris->xlo = xlo;
+    float ylo = mris->ylo; mris->ylo = mris->yhi; mris->ylo = ylo;
+    float zlo = mris->zlo; mris->zlo = mris->zhi; mris->zlo = zlo;
+  }
+  
+  mris->xctr *= scale;
+  mris->yctr *= scale;
+  mris->zctr *= scale;
+  
+  return (NO_ERROR);
+}
+
+
+int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x += dx;
+    v->y += dy;
+    v->z += dz;
+  }
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  mris->xlo += dx;
+  mris->xhi += dx;
+  mris->ylo += dy;
+  mris->yhi += dy;
+  mris->zlo += dz;
+  mris->zhi += dz;
+  
+  mris->xctr += dx;
+  mris->yctr += dy;
+  mris->zctr += dz;
+
+  return (NO_ERROR);
+}
+
+
+int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
+{
+  mrisComputeSurfaceDimensions(mris);
+  
+  /* scale around the center */
+  float const x0 = mris->xctr;
+  float const y0 = mris->yctr;
+  float const z0 = mris->zctr;
+
+  int k;
+  for (k = 0; k < mris->nvertices; k++) {
+    VERTEX *v = &mris->vertices[k];
+    if (v->ripflag) {
+      continue;
+    }
+    v->x = (v->x - x0) * sx + x0;
+    v->y = (v->y - y0) * sy + y0;
+    v->z = (v->z - z0) * sz + z0;
+  }
+
+  mrisComputeSurfaceDimensions(mris);
+  
+  return (NO_ERROR);
+}
+
+
 MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
 {
   int vno;
@@ -309,23 +488,23 @@ MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
 
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
 {
-  int vno;
-  VERTEX *v;
-  float x, y, z, xlo, xhi, zlo, zhi, ylo, yhi;
-
   MRIScenter(mris, mris);
-  x = y = z = 0; /* silly compiler warning */
+
+  float xlo, xhi, zlo, zhi, ylo, yhi;
+
   xhi = yhi = zhi = -10000;
   xlo = ylo = zlo = 10000;
+  
+  int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX *v = &mris->vertices[vno];
     if (v->ripflag) continue;
     v->x += x0;
     v->y += y0;
     v->z += z0;
-    x = v->x;
-    y = v->y;
-    z = v->z;
+    float x = v->x;
+    float y = v->y;
+    float z = v->z;
     if (x > xhi) xhi = x;
     if (x < xlo) xlo = x;
     if (y > yhi) yhi = y;
@@ -345,80 +524,7 @@ void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
 }
 
 
-/*-----------------------------------------------------*/
-/*!
-  \fn int MRISreverse(MRIS *mris, int which)
-  \brief Reverse sign of one of the dimensions of the surface coords.
-  If reversing X, the order of the verticies is also reversed.
-*/
-int MRISreverse(MRIS *mris, int which, int reverse_face_order)
-{
-  int vno;
-  float x, y, z;
-  VERTEX *v;
 
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    x = v->x;
-    y = v->y;
-    z = v->z;
-    switch (which) {
-      default:
-      case REVERSE_X:
-        x = -x;
-        break;
-      case REVERSE_Y:
-        y = -y;
-        break;
-      case REVERSE_Z:
-        z = -z;
-        break;
-    }
-    v->x = x;
-    v->y = y;
-    v->z = z;
-  }
-  if (which == REVERSE_X && reverse_face_order)  // swap order of faces
-  {
-    MRISreverseFaceOrder(mris);
-  }
-
-  return (NO_ERROR);
-}
-
-int MRISscaleVertexCoordinates(MRIS *mris, double scale)
-{
-  VERTEX *v;
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x *= scale;
-    v->y *= scale;
-    v->z *= scale;
-  }
-  return (NO_ERROR);
-}
-
-
-int MRISscale(MRIS *mris, double scale)
-{
-  int vno;
-  VERTEX *v;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->x *= scale;
-    v->y *= scale;
-    v->z *= scale;
-  }
-  return (0);
-}
 
 /*-----------------------------------------------------
   Parameters:
@@ -994,33 +1100,6 @@ int MRISscaleBrainArea(MRIS *mris)
   Returns value:
 
   Description
-  Translate a surface by (dx, dy, dz)
-  ------------------------------------------------------*/
-int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x += dx;
-    v->y += dy;
-    v->z += dz;
-  }
-  mrisComputeSurfaceDimensions(mris);
-  return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   ------------------------------------------------------*/
 MRIS *MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float gamma)
 {
@@ -1117,41 +1196,6 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
   ROMP_PF_end
   
   return (0);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Scale a surface anisotropically.
-  ------------------------------------------------------*/
-int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
-{
-  VERTEX *v;
-  int k;
-  float x0, y0, z0;
-
-  mrisComputeSurfaceDimensions(mris);
-  /* scale around the center */
-  x0 = mris->xctr;
-  y0 = mris->yctr;
-  z0 = mris->zctr;
-
-  for (k = 0; k < mris->nvertices; k++) {
-    v = &mris->vertices[k];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x = (v->x - x0) * sx + x0;
-    v->y = (v->y - y0) * sy + y0;
-    v->z = (v->z - z0) * sz + z0;
-  }
-
-  mrisComputeSurfaceDimensions(mris);
-  return (NO_ERROR);
 }
 
 
@@ -7330,58 +7374,6 @@ int MRIScountNegativeTriangles(MRIS *mris)
 
   return (negative);
 }
-
-
-int mrisComputeSurfaceDimensions(MRIS *mris)
-{
-  int vno;
-  VERTEX *vertex;
-  double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi;
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
-#if 0
-    if (vertex->ripflag)
-    {
-      continue ;
-    }
-#endif
-    x = (double)vertex->x;
-    y = (double)vertex->y;
-    z = (double)vertex->z;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-  mris->xlo = xlo;
-  mris->xhi = xhi;
-  mris->ylo = ylo;
-  mris->yhi = yhi;
-  mris->zlo = zlo;
-  mris->zhi = zhi;
-  mris->xctr = (xlo + xhi) / 2.0f;
-  mris->yctr = (ylo + yhi) / 2.0f;
-  mris->zctr = (zlo + zhi) / 2.0f;
-  return (NO_ERROR);
-}
-
 
 
 /*-----------------------------------------------------

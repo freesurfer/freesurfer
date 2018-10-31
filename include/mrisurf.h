@@ -1318,8 +1318,7 @@ int          MRISscaleDistances(MRI_SURFACE *mris, float scale) ;
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
     MRI_SURFACE *mris_dst,
     float a, float b, float c);
-MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
-MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+    
 int MRISorigVertexToVoxel(MRI_SURFACE *,
                           VERTEX *v,
                           MRI *mri,
@@ -1677,7 +1676,6 @@ int MRISsaveNormals   (MRIS *mris, int which) ;
 #define REVERSE_Y     1
 #define REVERSE_Z     2
 
-int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash,
@@ -2721,6 +2719,11 @@ int CompareFaceVertices(const void *vf1, const void *vf2);
 MRIS *MRISsortVertices(MRIS *mris0);
 
 
+// Create a surface
+//
+MRIS *MRISclone(MRIS *mris_src) ;
+
+
 // mrisurf_topology needed by more
 //
 //  Vertices, like Faces, come into existence when the surface is created with a vertex and face count.
@@ -2816,4 +2819,9 @@ void MRISsetOriginalXYZfromXYZ(MRIS *mris);
 
 // Deforming the MRIS
 //
+int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
+int  MRISscale     (MRIS *mris, double scale);
+
+MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
+
