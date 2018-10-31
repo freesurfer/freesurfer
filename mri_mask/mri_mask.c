@@ -78,14 +78,11 @@ int DoBB = 0, nPadBB=0;
 int main(int argc, char *argv[])
 {
   char **av;
-  MRI *mri_src, *mri_mask, *mri_dst, *mri_mask_orig ;
+  MRI *mri_src, *mri_mask, *mri_dst, *mri_mask_orig, *mri_tmp;
   int nargs, ac, nmask;
   int x, y, z;
   float value;
   MRI_REGION *region;
-  LTA          *lta = 0;
-  int          transform_type;
-  MRI *mri_tmp;
 
   nargs =
     handle_version_option
@@ -129,27 +126,22 @@ int main(int argc, char *argv[])
 
   printf("DoAbs = %d\n",DoAbs);
 
-  /* Read LTA transform and apply it to mri_mask */
+  /* Read transform and apply it to mri_mask */
   if (xform_fname != NULL)
   {
-
-    printf("Apply the given LTA xfrom to the mask volume\n");
-    // read transform
-    transform_type =  TransformFileNameType(xform_fname);
-
-    if (transform_type == MNI_TRANSFORM_TYPE ||
-        transform_type == TRANSFORM_ARRAY_TYPE ||
-        transform_type == REGISTER_DAT ||
-        transform_type == FSLREG_TYPE
-       )
+    printf("Applying transform to the mask volume\n");
+    TRANSFORM *transform = TransformRead(xform_fname);
+    
+    if (!transform)
+      ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+                Progname, xform_fname) ;
+  
+    if (transform->type != MORPH_3D_TYPE)
     {
-      printf("Reading transform ...\n");
-      lta = LTAreadEx(xform_fname) ;
-      if (!lta)
-        ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-                  Progname, xform_fname) ;
-
-      if (lta->xforms[0].src.valid == 0)
+      LTA *tmp = (LTA *)transform->xform;
+      LTA *lta = LTAreduce(tmp); // Apply full array, allocation.
+      LTAfree(&tmp);
+      if (lta->xforms[0].src.valid == 0) // For LTAs such as FSLREG_TYPE.
       {
         if (lta_src == 0)
         {
@@ -161,11 +153,9 @@ int main(int argc, char *argv[])
                   "make the transform to have the valid src info.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
         }
-        else
-        {
-          LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
-        }
+        LTAmodifySrcDstGeom(lta, lta_src, NULL);
       }
+      
       if (lta->xforms[0].dst.valid == 0)
       {
         if (lta_dst == 0)
@@ -184,77 +174,41 @@ int main(int argc, char *argv[])
                   "without giving the dst volume for RAS-to-RAS transform.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
         }
-        else
-        {
-          LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
-        }
+        LTAmodifySrcDstGeom(lta, NULL, lta_dst);
       }
-    }
-    else
-    {
-      ErrorExit(ERROR_BADPARM,
-                "transform is not of MNI, nor Register.dat, nor FSLMAT type");
-    }
-    LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      
+      LTAchangeType(lta, LINEAR_VOX_TO_VOX); // Support more types.
+      transform->type = LINEAR_VOX_TO_VOX;
+      transform->xform = (void *)lta;
+    } /* if (transform->type != MORPH_3D_TYPE) */
     
-    if (invert)
+    vg_isEqual_Threshold = 10e-4; // Override, include/transform.h.
+    VOL_GEOM vg_mask, vg_in, vg_transform_src, vg_transform_dst;
+    TransformGetSrcVolGeom(transform, &vg_transform_src);
+    TransformGetDstVolGeom(transform, &vg_transform_dst);
+    getVolGeom(mri_mask, &vg_mask);
+    getVolGeom(mri_src, &vg_in);
+    if (!vg_isEqual(&vg_mask, &vg_transform_src) ||
+        !vg_isEqual(&vg_in, &vg_transform_dst))
     {
-      VOL_GEOM vgtmp;
-      LT *lt;
-      MATRIX *m_tmp = lta->xforms[0].m_L ;
-      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
-      MatrixFree(&m_tmp) ;
-      lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0)
+      if (!vg_isEqual(&vg_mask, &vg_transform_dst) ||
+          !vg_isEqual(&vg_in, &vg_transform_src))
       {
-        fprintf(stderr,
-                "WARNING:**************************************"
-                "*************************\n");
-        fprintf(stderr,
-                "WARNING:dst volume information is invalid.  "
-                "Most likely produced wrong inverse.\n");
-        fprintf(stderr,
-                "WARNING:**************************************"
-                "*************************\n");
+        ErrorExit(ERROR_BADPARM, "ERROR: transform geometry does not match");
       }
-      copyVolGeom(&lt->dst, &vgtmp);
-      copyVolGeom(&lt->src, &lt->dst);
-      copyVolGeom(&vgtmp, &lt->src);
+      printf("Inverting transform to match MRI geometries\n");
+      // Pass MRI in case path changed (see GCAMfillInverse):
+      TransformInvertReplace(transform, mri_src);
     }
-
-    mri_tmp =
-      MRIalloc(mri_src->width,
-               mri_src->height,
-               mri_src->depth,
-               mri_mask->type) ;
-    MRIcopyHeader(mri_src, mri_tmp) ;
-
-    mri_tmp = LTAtransformInterp(mri_mask, mri_tmp, lta, InterpMethod);
-
-    // mri_tmp =
-    //MRIlinearTransformInterp
-    //  (
-    //   mri_mask, mri_tmp, lta->xforms[0].m_L, InterpMethod
-    //  );
-
+    
+    mri_tmp = TransformApplyType(transform, mri_mask, NULL, InterpMethod);
     MRIfree(&mri_mask);
-
     mri_mask = mri_tmp;
-
-    if (lta_src)
-    {
-      MRIfree(&lta_src);
-    }
-    if (lta_dst)
-    {
-      MRIfree(&lta_dst);
-    }
-    if (lta)
-    {
-      LTAfree(&lta);
-    }
-  }   /* if (xform_fname != NULL) */
-
+    TransformFree(&transform);
+  } /* if (xform_fname != NULL) */
+  
+  if (lta_src) MRIfree(&lta_src);
+  if (lta_dst) MRIfree(&lta_dst);
   mri_mask_orig = MRIcopy(mri_mask, NULL);
 
   // Threshold and binarize mask. Without binarization, this fails 
@@ -394,7 +348,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "invert"))
   {
     invert = 1;
-    fprintf(stderr, "Inversely apply the given LTA transform\n");
+    fprintf(stderr, "Inversely apply the given transform\n");
   }
   else if (!stricmp(option, "oval"))
   {
