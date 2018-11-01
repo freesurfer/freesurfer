@@ -29,12 +29,28 @@ rt.mridiff('fslmat.mgz', 'fslmat.ref.mgz')
 rt.run('mri_mask -xform 2_to_1.m3z nu.1.mgz brainmask.2.mgz gcam.mgz')
 rt.mridiff('gcam.mgz', 'gcam.ref.mgz')
 
-# only transfer WM edits (255) and deletions (1)
+# transfer edits
 rt.run(('mri_mask'
         ' -transfer 255'
         ' -keep_mask_deletion_edits'
         ' nu.2.mgz wm.2.mgz edits.mgz'))
 rt.mridiff('edits.mgz', 'edits.ref.mgz')
+
+# transfer edits using LTA
+rt.run(('mri_mask'
+        ' -xform 2_to_1.lta'
+        ' -transfer 255'
+        ' -keep_mask_deletion_edits'
+        ' nu.1.mgz wm.2.mgz edits.lta.mgz'))
+rt.mridiff('edits.lta.mgz', 'edits.lta.ref.mgz')
+
+# transfer edits using GCAM
+rt.run(('mri_mask'
+        ' -xform 2_to_1.m3z'
+        ' -transfer 255'
+        ' -keep_mask_deletion_edits'
+        ' nu.1.mgz wm.2.mgz edits.gcam.mgz'))
+rt.mridiff('edits.gcam.mgz', 'edits.gcam.ref.mgz')
 
 rt.cleanup()
 
