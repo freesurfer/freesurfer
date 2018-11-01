@@ -82,8 +82,8 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
-    usage_exit() ;
+  if (argc != 4)
+    ErrorExit(ERROR_BADPARM, "ERROR: incorrect number of arguments");
 
   in_fname = argv[1] ;
   xform_fname = argv[2] ;
