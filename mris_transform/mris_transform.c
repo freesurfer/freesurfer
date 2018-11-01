@@ -53,7 +53,7 @@ const char *Progname ;
 static MRI_SURFACE  *mris ;
 static int invert = 0 ;
 
-MRI          *mri = 0;
+MRI          *mri_src = 0;
 MRI          *mri_dst = 0;
 
 int
@@ -105,7 +105,7 @@ main(int argc, char *argv[]) {
       transform->type  == REGISTER_DAT) {
     lta = (LTA *)(transform->xform) ;
 
-    if (mri == 0 && lta->xforms[0].src.valid == 0) {
+    if (mri_src == 0 && lta->xforms[0].src.valid == 0) {
       fprintf(stderr, "The transform does not have the valid src volume info.\n");
       fprintf(stderr, "Either you give src volume info by option --src or\n");
       fprintf(stderr, "make the transform to have the valid src info.\n");
@@ -168,14 +168,14 @@ main(int argc, char *argv[]) {
     //    ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat type");
   }
   //
-  MRIStransform(mris, mri, transform, mri_dst) ;
+  MRIStransform(mris, mri_src, transform, mri_dst) ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing surface to %s\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
 
-  if (mri)
-    MRIfree(&mri);
+  if (mri_src)
+    MRIfree(&mri_src);
   if (mri_dst)
     MRIfree(&mri_dst);
 
@@ -197,8 +197,8 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-src")) {
     fprintf(stderr, "Reading src volume...\n");
-    mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri) {
+    mri_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri_src) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
