@@ -44,9 +44,7 @@ static char vcid[] = "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
-static void usage_exit(void) ;
 static void print_usage(void) ;
-static void print_help(void) ;
 static void print_version(void) ;
 
 const char *Progname ;
@@ -61,6 +59,9 @@ main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname, *xform_fname ;
   int          ac, nargs ;
 
+  if (argc == 1)
+    print_usage();
+  
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
@@ -88,13 +89,13 @@ main(int argc, char *argv[]) {
 
   mris = MRISread(in_fname) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
+    ErrorExit(ERROR_NOFILE, "ERROR: could not read surface file %s",
+              in_fname) ;
 
   TRANSFORM *transform = TransformRead(xform_fname) ;
   if (!transform)
-    ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-              Progname, xform_fname) ;
+    ErrorExit(ERROR_NOFILE, "ERROR: could not read transform file %s",
+              xform_fname) ;
   
   if (transform->type != MORPH_3D_TYPE) {
     LTA *tmp = (LTA *)transform->xform;
@@ -167,8 +168,9 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help") || !stricmp(option, "h"))
-    print_help() ;
+  if (!stricmp(option, "-help") || !stricmp(option, "h")
+      || !stricmp(option, "u") || !stricmp(option, "?"))
+    print_usage() ;
   else if (!stricmp(option, "-trx-src") || !stricmp(option, "s")) {
     fprintf(stderr, "Reading src volume of transform...\n");
     mri_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
@@ -180,56 +182,24 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "Reading dst volume of transform...\n");
     mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
     if (!mri_dst) {
-      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+      ErrorExit(ERROR_BADPARM, "ERROR: could not read file %s\n", argv[2]);
     }
     nargs = 1;
   } else if (!stricmp(option, "-version") || !stricmp(option, "v"))
     print_version() ;
   else if (!stricmp(option, "-is-inverse") || !stricmp(option, "i"))
     inverse_flag = 1 ;
-  else switch (toupper(*option)) {
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  else
+    ErrorExit(ERROR_BADPARM, "ERROR: unknown option %s", argv[1]);
 
   return(nargs) ;
 }
 
-static void
-usage_exit(void) {
-  print_usage() ;
-  exit(1) ;
-}
-
+#include "mris_transform.help.xml.h"
 static void
 print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <input surf> <transform file> <output surf>\n",
-          Progname) ;
-  fprintf(stderr, "  options: --src <volumename>  src volume\n");
-  fprintf(stderr, "                 use this option if the transform is created by MNI mritotal\n");
-  fprintf(stderr, "         : --dst <volumename>  dst volume\n");
-  fprintf(stderr, "                 use this option if the transform target is <not> average_305\n");
-  fprintf(stderr, "         : --invert    apply inverted transform\n");
-  fprintf(stderr, "         : --help     print help\n");
-  fprintf(stderr, "         : --version  print version\n");
-  fprintf(stderr, "         : -?, -U     print usage.\n");
-}
-
-static void
-print_help(void) {
-  print_usage() ;
-  fprintf(stderr,
-          "\nThis program will transform an MRI surface into Talairach space.\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-  exit(1) ;
+  outputHelpXml(mris_transform_help_xml, mris_transform_help_xml_len);
+  exit(EXIT_SUCCESS);
 }
 
 static void
