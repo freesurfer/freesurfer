@@ -2824,4 +2824,3 @@ void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
 MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
-
