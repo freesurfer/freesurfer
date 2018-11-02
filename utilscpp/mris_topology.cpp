@@ -478,18 +478,21 @@ bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms)
 
 extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode) 
 {
-  MRIS *mris_dst;
   //clone the surface mris
-  mris_dst = MRISclone(mris);
+  MRIS * mris_dst = MRISclone(mris);
+  
   for (int n = 0 ; n < mris->nvertices ; n++) {
     VERTEX *vdst = &mris_dst->vertices[n];
     VERTEX *vsrc = &mris->vertices[n];
-    vdst->marked2=vsrc->marked2;
-    vdst->marked = 0 ;
+    vdst->marked2 = vsrc->marked2;
+    vdst->marked  = 0 ;
     vdst->ripflag = 0 ;
-    vdst->origx = vsrc->origx;
-    vdst->origy =  vsrc->origy;
-    vdst->origz =  vsrc->origz;
+    
+    MRISsetOriginalXYZ(mris_dst, n,
+      vsrc->origx,
+      vsrc->origy,
+      vsrc->origz);
+    
     vdst->val = vsrc->val;
     vdst->val2 = vsrc->val2;
     vdst->val2bak = vsrc->val2bak;
@@ -1066,9 +1069,11 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
     vdst->x=vsrc->x;
     vdst->y=vsrc->y;
     vdst->z=vsrc->z;
-    vdst->origx = vsrc->x;
-    vdst->origy = vsrc->y;
-    vdst->origz = vsrc->z;
+    
+    MRISsetOriginalXYZ(mris_dst, vto[n], 
+      vsrc->x, 
+      vsrc->y, 
+      vsrc->z);
   }
 
   //faces

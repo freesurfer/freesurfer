@@ -20,6 +20,25 @@
 #include "mrisurf_base.h"
 
 
+int mris_sort_compare_float(const void *pc1, const void *pc2)
+{
+  register float c1, c2;
+
+  c1 = *(float *)pc1;
+  c2 = *(float *)pc2;
+
+  /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
+  if (c1 > c2) {
+    return (1);
+  }
+  else if (c1 < c2) {
+    return (-1);
+  }
+
+  return (0);
+}
+
+
 int  MRIS_acquireTemp(MRIS* mris, MRIS_TempAssigned temp) {
   int const bits = 1 << temp;
   int const * tc = &mris->tempsAssigned;
@@ -42,6 +61,20 @@ void MRIS_releaseTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_r
   cheapAssert((bits & *tc));
   int* tv = (int*)tc;
   *tv &= ~bits;
+}
+
+
+// Create temps, and don't let the nvertices change until it is freed
+//
+float* MRISmakeFloatPerVertex(MRIS *mris) {
+  MRISacquireNverticesFrozen(mris);
+  float* p = (float*)malloc(mris->nvertices*sizeof(float));
+  return p;  
+}
+
+void MRISfreeFloatPerVertex(MRIS *mris, float** pp) {
+  freeAndNULL(*pp);
+  MRISreleaseNverticesFrozen(mris);
 }
 
 
@@ -284,10 +317,20 @@ static void MRISchangedNFacesNVertices(MRIS * mris, bool scrambled) {
   // useful for debugging
 }
 
+void MRISacquireNverticesFrozen(MRIS *mris) {
+  #pragma omp atomic
+  (*(int*)&mris->nverticesFrozen)++;
+}
+void MRISreleaseNverticesFrozen(MRIS *mris) {
+  #pragma omp atomic
+  (*(int*)&mris->nverticesFrozen)--;
+}
+
 bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
   cheapAssert(nvertices >= 0);
   cheapAssert(max_vertices >= nvertices);
-
+  cheapAssert(!mris->nverticesFrozen);
+  
   mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
   if (!mris->vertices) return false;
   #ifndef SEPARATE_VERTEX_TOPOLOGY

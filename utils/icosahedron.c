@@ -1951,21 +1951,18 @@ ICOSAHEDRON *read_icosahedron(const char *fname)
   return (ico);
 }
 
-int ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which)
+int ICOreadVertexPositions(MRI_SURFACE * const mris, const char * const fname, int const which)
 {
-  ICOSAHEDRON *ico;
-  int vno;
-  VERTEX *v;
-
-  ico = read_icosahedron(fname);
+  ICOSAHEDRON * const ico = read_icosahedron(fname);
   if (!ico) return (Gerror);
 
   if (ico->nvertices != mris->nvertices || ico->nfaces != mris->nfaces)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "ICOreadVertexPositions: different size surfaces"));
 
   /* position vertices */
+  int vno;
   for (vno = 0; vno < ico->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
 
     switch (which) {
       default:
@@ -1980,9 +1977,7 @@ int ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which)
         v->cz = ico->vertices[vno].z;
         break;
       case ORIGINAL_VERTICES:
-        v->origx = ico->vertices[vno].x;
-        v->origy = ico->vertices[vno].y;
-        v->origz = ico->vertices[vno].z;
+        MRISsetOriginalXYZ(mris, vno, ico->vertices[vno].x, ico->vertices[vno].y, ico->vertices[vno].z);
         break;
     }
   }

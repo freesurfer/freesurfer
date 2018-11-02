@@ -20,6 +20,7 @@
 #include "mrisurf_vals.h"
 
 // Vals are scalar properties of vertexs or faces
+// that are independent of 
 //
 // vertices
 //              marked  marked2     annotations     flags   marked3     val     mean    cropped
@@ -1456,6 +1457,37 @@ int MRISripUnmarked(MRIS *mris)
 }
 
 
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRISripZeros(MRIS *surf, MRI *mri)
+  \brief Sets ripflag=1 for vertices where the mri value is 0
+    (actually less than 1e-5). If mri is null, then uses the
+    val field. No change to a vertex if ripflag already = 1.
+*/
+int MRISripZeros(MRIS *surf, MRI *mri)
+{
+  int k;
+  double v;
+
+  if (mri) {
+    if (mri->width != surf->nvertices) {
+      printf("ERROR: MRISripZeros(): dimension mismatch\n");
+      return (1);
+    }
+  }
+
+  for (k = 0; k < surf->nvertices; k++) {
+    if (surf->vertices[k].ripflag) continue;
+    if (mri)
+      v = MRIgetVoxVal(mri, k, 0, 0, 0);
+    else
+      v = surf->vertices[k].val;
+    if (fabs(v) < 1e-5) surf->vertices[k].ripflag = 1;
+  }
+  return (0);
+}
+
+
 /*!
   \fn int MRISripUnknown(MRIS *surf)
   \brief Sets the ripflag = 1 in places where the annotation is unknown
@@ -2086,7 +2118,6 @@ int MRISaverageD(MRI_SURFACE *mris, int navgs)
   return (NO_ERROR);
 }
 
-
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -2111,7 +2142,7 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->val;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }
@@ -2130,6 +2161,8 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
   return (NO_ERROR);
 }
 
+
+#if 0
 int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, vnum, num;
@@ -2153,7 +2186,7 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->x;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }
@@ -2172,7 +2205,7 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->y;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdy = val_list[(num - 1) / 2];
       }
@@ -2191,7 +2224,7 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->z;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdz = val_list[(num - 1) / 2];
       }
@@ -2211,6 +2244,8 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
   }
   return (NO_ERROR);
 }
+#endif
+
 
 int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
 {
@@ -2278,7 +2313,7 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
 
         val_list[num++] = vn->d;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }
@@ -2321,7 +2356,7 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->curv;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }
@@ -2364,7 +2399,7 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->val2;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }
@@ -2407,7 +2442,7 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
 
         val_list[num++] = vn->val2bak;
       }
-      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
+      qsort(val_list, num, sizeof(val_list[0]), mris_sort_compare_float);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
       }

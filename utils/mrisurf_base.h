@@ -167,6 +167,9 @@ static float mrisNormalize(float v[3])
 }
 
 
+int mris_sort_compare_float(const void *pc1, const void *pc2);
+
+
 //#define ILL_CONDITIONED   5000.0
 #define ILL_CONDITIONED 500000.0
 
