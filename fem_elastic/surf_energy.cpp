@@ -58,9 +58,6 @@ float energy(const PointsContainerType& container,
 void
 apply_lin_transform(MRI_SURFACE* mris, float* transform)
 {
-  VERTEX *vertex;
-  float  im_pt[3];
-
   std::cout << " linear transform = \n";
   for (int i=0; i<4; i++)
   {
@@ -71,14 +68,17 @@ apply_lin_transform(MRI_SURFACE* mris, float* transform)
 
   for (int index = 0; index < mris->nvertices; index++)
   {
-    vertex = &mris->vertices[index];
+    VERTEX * const vertex = &mris->vertices[index];
+
+    float  im_pt[3];
 
     for (int j=0; j<3; j++)
       im_pt[j] = transform[j] * vertex->x + transform[j+3]*vertex->y
                  + transform[j+6]* vertex->z + transform[j+9];
 
-    vertex->x = im_pt[0];
-    vertex->y = im_pt[1];
-    vertex->z = im_pt[2];
+    MRISsetXYZ(mris, index,
+      im_pt[0],
+      im_pt[1],
+      im_pt[2]);
   }
 }

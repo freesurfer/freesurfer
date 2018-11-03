@@ -14763,6 +14763,32 @@ MRI *MRIcomputeLaminarVolumeFractions(MRIS *mris, double resolution, MRI *mri_sr
 }
 
 
+void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
+  int     vno ;
+  VERTEX  *v ;
+  float   nx, ny, nz, thickness ;
+
+  MRISaverageCurvatures(mris, 3) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris);
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nx = v->nx ;
+    ny = v->ny ;
+    nz = v->nz ;
+    thickness = 0.5 * v->curv ;
+    MRISsetXYZ(mris,vno,
+      v->origx + thickness * nx,
+      v->origy + thickness * ny,
+      v->origz + thickness * nz);
+  }
+}
+
+
 int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)
 {
   double mn, d;

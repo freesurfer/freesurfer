@@ -411,7 +411,7 @@ int saveTesselation2(tesselation_parms *parms) {
   /*first init vertices*/
   for (vno=0;vno<mris->nvertices;vno++) {
     VERTEX_TOPOLOGY* const vertext = &mris->vertices_topology[vno] ;
-    VERTEX         * const vertex  = &mris->vertices         [vno] ;
+
     vertex2= &parms->vertex[vno];
     i=vertex2->i;
     j=vertex2->j;
@@ -427,9 +427,10 @@ int saveTesselation2(tesselation_parms *parms) {
     y=yw;
     z=zw;
 
-    vertex->x=x;
-    vertex->y=y;
-    vertex->z=z;
+    MRISsetXYZ(mris, vno,
+      x,
+      y,
+      z);
     vertext->num=0;
   }
   /*then init faces*/

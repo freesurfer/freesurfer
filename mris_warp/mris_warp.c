@@ -341,12 +341,10 @@ int main(int argc, char *argv[])
   // (whose positions will take the value '0') and leave these vertices
   // unchanged.
 
-  int      vno, f;
-  VERTEX   *v ;
-
+  int vno;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX* v = &mris->vertices[vno] ;
     if (v->ripflag)
     {
       continue ;
@@ -365,6 +363,7 @@ int main(int argc, char *argv[])
     // do not need register.dat matrix here
     surfaceRAS = MatrixMultiply(iM, p_ras, NULL);
 
+    int f;
     for(f=0; f < 3; f++)
     {
       MRIsetVoxVal(overlay,vno,0,0,f, surfaceRAS->rptr[f+1][1]);
@@ -385,10 +384,10 @@ int main(int argc, char *argv[])
              surfaceRAS->rptr[3][1]);
     }
 
-    v->x = surfaceRAS->rptr[1][1];
-    v->y = surfaceRAS->rptr[2][1];
-    v->z = surfaceRAS->rptr[3][1];
-
+    MRISsetXYZ(mris, vno,
+      surfaceRAS->rptr[1][1],
+      surfaceRAS->rptr[2][1],
+      surfaceRAS->rptr[3][1]);
   }
 
   MatrixFree(&p_vox);

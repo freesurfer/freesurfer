@@ -2816,6 +2816,8 @@ void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
 void MRISsetXYZ        (MRIS *mris, int vno, float x, float y, float z);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
 
+void mrisFindMiddleOfGray(MRIS *mris);
+
 
 // Deforming the MRIS
 //
