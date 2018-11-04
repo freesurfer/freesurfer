@@ -458,7 +458,7 @@ double v_to_f_distance(VERTEX *P0,
   VERTEX *V1, *V2, *V3;
   FACE *face;
 
-  VERTEX E0, E1, D;
+  struct { float x,y,z; } E0, E1, D;
 
   face = &mri_surf->faces[face_number];
   V1 = &mri_surf->vertices[face->v[0]];

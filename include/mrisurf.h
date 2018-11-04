@@ -1963,7 +1963,6 @@ typedef struct
 }
 TOPOLOGY_PARMS ;
 
-int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
 MRIS* MRISextractMainComponent(MRI_SURFACE *mris,
                                int do_not_extract,
@@ -2826,3 +2825,5 @@ void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
 MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
+void  MRIScenterSphere(MRIS *mris);
+void  MRISrecenter(MRIS *mris, int which_move, int which_target) ;
