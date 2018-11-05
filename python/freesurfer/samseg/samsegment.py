@@ -7,12 +7,11 @@ from functools import reduce
 from operator import mul
 
 import freesurfer.gems as gems
-
+from .mcmcCRBM import sampleCRBM
 from .utilities import Specification, requireNumpyArray, ensureDims
 from .figures import initVisualizer
 from .bias_correction import projectKroneckerProductBasisFunctions, backprojectKroneckerProductBasisFunctions, \
     computePrecisionOfKroneckerProductBasisFunctions, biasCorrectData
-
 
 logger = logging.getLogger(__name__)
 eps = np.finfo(float).eps
@@ -26,7 +25,6 @@ def samsegment(
     savePath,
     visualizer=None,
 ):
-
     # Print input options
     print()
     print('----------------------------------------------')
@@ -46,12 +44,17 @@ def samsegment(
     print('    brainMaskingThreshold: %s' % model.brainMaskingThreshold)
     print('    K: %s' % model.K)
     print('    biasFieldSmoothingKernelSize: %s' % model.biasFieldSmoothingKernelSize)
+    print('    segmentLesion: %s' % model.segmentLesion)
+    if model.segmentLesion:
+        print('    outlierFactor: %s' % model.outlierFactor)
+        print('    samplingSteps: %s' % model.samplingSteps)
+        print('    lesionMask: %s' % model.lesionMask)
     print('    sharedGMMParameters:')
     for i, params in enumerate(model.sharedGMMParameters):
         print('        mergedName: %s' % params.mergedName)
         print('        numberOfComponents: %s' % params.numberOfComponents)
         print('        searchStrings: %s' % params.searchStrings)
-        if i != len(model.sharedGMMParameters)-1:
+        if i != len(model.sharedGMMParameters) - 1:
             print('        ----')
     print('----------------------------------------------')
     options = optimizationOptions
@@ -60,7 +63,8 @@ def samsegment(
     print('    absoluteCostPerVoxelDecreaseStopCriterion: %s' % options.absoluteCostPerVoxelDecreaseStopCriterion)
     print('    verbose: %s' % options.verbose)
     print('    maximalDeformationStopCriterion: %s' % options.maximalDeformationStopCriterion)
-    print('    lineSearchMaximalDeformationIntervalStopCriterion: %s' % options.lineSearchMaximalDeformationIntervalStopCriterion)
+    print(
+        '    lineSearchMaximalDeformationIntervalStopCriterion: %s' % options.lineSearchMaximalDeformationIntervalStopCriterion)
     print('    maximalDeformationAppliedStopCriterion: %s' % options.maximalDeformationAppliedStopCriterion)
     print('    BFGSMaximumMemoryLength: %s' % options.BFGSMaximumMemoryLength)
     print('    multiResolutionSpecification:')
@@ -69,7 +73,7 @@ def samsegment(
         print('        targetDownsampledVoxelSpacing: %s' % spec.targetDownsampledVoxelSpacing)
         print('        maximumNumberOfIterations: %s' % spec.maximumNumberOfIterations)
         print('        estimateBiasField: %s' % spec.estimateBiasField)
-        if i != len(options.multiResolutionSpecification)-1:
+        if i != len(options.multiResolutionSpecification) - 1:
             print('        ----')
     print('----------------------------------------------')
     print()
@@ -117,7 +121,6 @@ def samsegment(
     meshCollection.k = modelSpecifications.K
     meshCollection.transform(transform)
 
-
     # Retrieve the reference mesh, i.e., the mesh representing the average shape.
     mesh = meshCollection.reference_mesh
 
@@ -139,10 +142,12 @@ def samsegment(
         np.ma.masked_greater(backgroundPrior, backGroundThreshold),
         backGroundPeak).astype(np.float32)
 
-    visualizer.show(probabilities=backgroundPrior, images=imageBuffers, window_id='samsegment background', title='Background Priors')
+    visualizer.show(probabilities=backgroundPrior, images=imageBuffers, window_id='samsegment background',
+                    title='Background Priors')
     smoothingSigmas = [1.0 * modelSpecifications.brainMaskingSmoothingSigma] * 3
     smoothedBackgroundPrior = gems.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
-    visualizer.show(probabilities=smoothedBackgroundPrior, window_id='samsegment smoothed', title='Smoothed Background Priors')
+    visualizer.show(probabilities=smoothedBackgroundPrior, window_id='samsegment smoothed',
+                    title='Smoothed Background Priors')
 
     # 65535 = 2^16 - 1. priors are stored as 16bit ints
     # To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance
@@ -204,9 +209,35 @@ def samsegment(
     names = modelSpecifications.names
     colors = modelSpecifications.colors
     [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, translationTable
-        ] = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
+     ] = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
 
-    visualizer.show(mesh=mesh, shape=imageBuffers.shape, window_id='samsegment mesh', title='Mesh', names=names, legend_width=350)
+    visualizer.show(mesh=mesh, shape=imageBuffers.shape, window_id='samsegment mesh', title='Mesh', names=names,
+                    legend_width=350)
+
+    if model.segmentLesion:
+        # Make sure there is a lesion class (and only one), and get the index
+        exist = [s for s in reducedNames if "Lesions".lower() in s.lower()]
+        if not exist:
+            print('There seems to be no lesion class to model.')
+            exit()
+        if len(exist) > 1:
+            print('There seems to be more than one lesion class')
+            exit()
+        lesion_idx = reducedNames.index(exist[0])
+
+        # Check where the white matter class is, try a couple of different names
+        exist = [s for s in reducedNames if "wm".lower() in s.lower()]
+        if not exist:
+            exist = [s for s in reducedNames if "white matter".lower() in s.lower()]
+            if not exist:
+                exist = [s for s in reducedNames if "white_matter".lower() in s.lower()]
+                if not exist:
+                    print('Cannot find a white matter class, tried names: "WM", "White matter", "White_matter".')
+                    exit()
+        wm_idx = reducedNames.index(exist[0])
+
+        # Let's take the inverse of it so we can multiply instead of dividing
+        outlier_factor = 1 / modelSpecifications.outlierFactor
 
     # The fact that we merge several neuroanatomical structures into "super"-structures for the purpose of model
     # parameter estimaton, but at the same time represent each of these super-structures with a mixture of Gaussians,
@@ -253,7 +284,8 @@ def samsegment(
         #  If the movie flag is on then making a movie archives a lot of data.
         #  Saving some memory here by making, showing, then erasing the movie at each resolution level.
         visualizer.start_movie(window_id='samsegment', title='Samsegment Mesh Registration - the movie')
-        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].maximumNumberOfIterations
+        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
+            multiResolutionLevel].maximumNumberOfIterations
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
         historyOfCost = [1 / eps]
         logger.debug('maximumNumberOfIterations: %d', maximumNumberOfIterations)
@@ -303,19 +335,22 @@ def samsegment(
         # If this is not the first multi-resolution level, apply the warp computed during the previous level
         if multiResolutionLevel > 0:
             # Get the warp in template space
-            [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = gems.kvlWarpMesh(
+            [initialNodeDeformationInTemplateSpace, initial_averageDistance,
+             initial_maximumDistance] = gems.kvlWarpMesh(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel - 1].atlasFileName,
                 nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
             # Apply this warp on the mesh node positions in template space, and transform into current space
             desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace
-            tmp = (totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
+            tmp = (totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), 'constant',
+                                                      constant_values=1).T).T
             desiredNodePositions = tmp[:, 0:3]
             mesh.points = requireNumpyArray(desiredNodePositions)
 
         # Set priors in mesh to the reduced (super-structure) ones
         alphas = mesh.alphas
-        reducedAlphas, _, _, _, _ = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
+        reducedAlphas, _, _, _, _ = gems.kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
+                                                        FreeSurferLabels, colors)
         mesh.alphas = reducedAlphas
 
         # Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
@@ -341,7 +376,7 @@ def samsegment(
             downSampledMaskIndices,
             numberOfContrasts
         )
-        visualizer.show( image_list=downSampledBiasFields, auto_scale=True, window_id='bias field', title='Bias Fields')
+        visualizer.show(image_list=downSampledBiasFields, auto_scale=True, window_id='bias field', title='Bias Fields')
 
         # Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
         # we start deforming. We'll use this just for visualization purposes
@@ -398,6 +433,14 @@ def samsegment(
                             componentNumber) * intervalSize).T
                         mixtureWeights[gaussianNumber] = 1 / numberOfComponents
 
+                if model.segmentLesion:
+                    # Assign the lesion class parameters correctly (shared with WM)
+                    gaussianNumbers_lesions = [sum(numberOfGaussiansPerClass[0:lesion_idx])]
+                    gaussianNumbers_wm = [sum(numberOfGaussiansPerClass[0:wm_idx])]
+
+                    means[gaussianNumbers_lesions, :] = means[gaussianNumbers_wm, :]
+                    variances[gaussianNumbers_lesions, :, :] = variances[gaussianNumbers_wm, :, :] / outlier_factor
+
             # Also remember the overall data variance for later usage in a conjugate prior on the variances
             dataMean = np.mean(data)
             tmp = data - dataMean
@@ -437,22 +480,33 @@ def samsegment(
 
                 minLogLikelihood = -np.sum(np.log(normalizer))
                 intensityModelParameterCost = 0
-                for gaussianNumber in range(numberOfGaussians):
-                    variance = variances[gaussianNumber, :, :]
-                    # Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
-                    #
-                    #   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
-                    #
-                    # and
-                    #
-                    #   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
-                    #
-                    # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
-                    #
-                    minLogUnnormalizedWishart = np.trace(np.linalg.solve(variance,pseudoVarianceOfWishartPrior)) * \
-                        numberOfPseudoMeasurementsOfWishartPrior / 2 + \
-                        numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
-                    intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
+
+                for classNumber in range(numberOfClasses):
+                    if modelSpecifications.segmentLesion:
+                        # We need to skip the lesion Gaussians as they share their
+                        # parameters with the WM Gaussians, thus the effective number of
+                        # parameters is actually smaller.
+                        if classNumber == lesion_idx:
+                            continue
+
+                    for gaussianNumber in range(numberOfGaussians):
+                        variance = variances[gaussianNumber, :, :]
+                        # Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
+                        #
+                        #   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
+                        #
+                        # and
+                        #
+                        #   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
+                        #
+                        # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
+                        #
+                        minLogUnnormalizedWishart = np.trace(np.linalg.solve(variance, pseudoVarianceOfWishartPrior)) * \
+                                                    numberOfPseudoMeasurementsOfWishartPrior / 2 + \
+                                                    numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(
+                            np.linalg.det(variance))
+                        intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
+
                 historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)
 
                 priorEMCost = historyOfEMCost[-2]
@@ -468,20 +522,53 @@ def samsegment(
                 # M-step: update the model parameters based on the current posterior
                 #
                 # First the mixture model parameters
+                for classNumber in range(numberOfClasses):
+                    if modelSpecifications.segmentLesion:
+                        # We need to skip the lesion and wm classes here
+                        if classNumber == lesion_idx or classNumber == wm_idx:
+                            continue
 
-                for gaussianNumber in range(numberOfGaussians):
-                    posterior = posteriors[:, gaussianNumber]
-                    posterior = posterior.reshape(-1, 1)
-                    mean = biasCorrectedData.T @ posterior / np.sum(posterior)
-                    tmp = biasCorrectedData - mean.T
-                    variance = (tmp.T @ (tmp * posterior) + \
-                                pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior) \
-                               / (np.sum(posterior) + numberOfPseudoMeasurementsOfWishartPrior)
-                    if modelSpecifications.useDiagonalCovarianceMatrices:
-                        # Force diagonal covariance matrices
-                        variance = np.diag(np.diag(variance));
-                    variances[gaussianNumber, :, :] = variance
-                    means[gaussianNumber, :] = mean.T
+                    for gaussianNumber in range(numberOfGaussians):
+                        posterior = posteriors[:, gaussianNumber]
+                        posterior = posterior.reshape(-1, 1)
+                        mean = biasCorrectedData.T @ posterior / np.sum(posterior)
+                        tmp = biasCorrectedData - mean.T
+                        variance = (tmp.T @ (tmp * posterior) + \
+                                    pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior) \
+                                   / (np.sum(posterior) + numberOfPseudoMeasurementsOfWishartPrior)
+                        if modelSpecifications.useDiagonalCovarianceMatrices:
+                            # Force diagonal covariance matrices
+                            variance = np.diag(np.diag(variance))
+                        variances[gaussianNumber, :, :] = variance
+                        means[gaussianNumber, :] = mean.T
+
+                if modelSpecifications.segmentLesion:
+                    # Now update the the white matter and lesion Gaussian parameters (which are tied)
+                    for componentNumber in range(numberOfGaussiansPerClass[wm_idx]):
+                        gaussianNumber_wm = sum(numberOfGaussiansPerClass[0: wm_idx]) + componentNumber
+                        gaussianNumber_lesion = sum(numberOfGaussiansPerClass[0: lesion_idx]) + componentNumber
+                        posterior_wm = posteriors[:, gaussianNumber_wm]
+                        posterior_lesion = posteriors[:, gaussianNumber_lesion]
+                        posterior_wm = posterior_wm.reshape(-1, 1)
+                        posterior_lesion = posterior_lesion.reshape(-1, 1)
+
+                        mean = biasCorrectedData.T @ (posterior_wm + outlier_factor * posterior_lesion) \
+                               / np.sum(posterior_wm + outlier_factor * posterior_lesion)
+                        tmp = biasCorrectedData - mean.T
+                        variance = (tmp.T @ (tmp * (posterior_wm + outlier_factor * posterior_lesion)) +
+                                    pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior) \
+                                   / (np.sum(
+                            posterior_wm + posterior_lesion) + numberOfPseudoMeasurementsOfWishartPrior)
+                        if modelSpecifications.useDiagonalCovarianceMatrices:
+                            # Force diagonal covariance matrices
+                            variance = np.diag(np.diag(variance))
+
+                        variances[gaussianNumber_wm, :, :] = variance
+                        means[gaussianNumber_wm, :] = mean.T
+
+                        variances[gaussianNumber_lesion, :, :] = variance / outlier_factor
+                        means[gaussianNumber_lesion, :] = mean.T
+
                 mixtureWeights = np.sum(posteriors + eps, axis=0).T
                 for classNumber in range(numberOfClasses):
                     # mixture weights are normalized (those belonging to one mixture sum to one)
@@ -514,7 +601,7 @@ def samsegment(
                         tmp = np.zeros((data.shape[0], 1), order='F')
                         for contrastNumber2 in range(numberOfContrasts):
                             classSpecificWeights = posteriors * precisions[:, contrastNumber1, contrastNumber2].T
-                            weights = np.sum(classSpecificWeights, 1);
+                            weights = np.sum(classSpecificWeights, 1)
                             # Build up stuff needed for rhs
                             predicted = np.sum(classSpecificWeights * np.expand_dims(means[:, contrastNumber2], 2).T / (
                                     np.expand_dims(weights, 1) + eps), 1)
@@ -531,8 +618,10 @@ def samsegment(
                         tmpImageBuffer[downSampledMaskIndices] = tmp.squeeze()
                         rhs[
                         contrastNumber1 * numberOfBasisFunctions_prod: contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
-                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, tmpImageBuffer).reshape(-1, 1)
-                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape((np.prod(numberOfBasisFunctions), numberOfContrasts), order='F')
+                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
+                                                                    tmpImageBuffer).reshape(-1, 1)
+                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape(
+                        (np.prod(numberOfBasisFunctions), numberOfContrasts), order='F')
                     downSampledBiasFields = biasCorrectData(biasCorrectedData, biasFieldCoefficients,
                                                             downSampledBiasCorrectedImageBuffers,
                                                             downSampledImageBuffers,
@@ -565,7 +654,7 @@ def samsegment(
                 mixtureWeights=mixtureWeights,
                 numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-            optimizerType = 'L-BFGS';
+            optimizerType = 'L-BFGS'
             optimization_parameters = {
                 'Verbose': optimizationOptions.verbose,
                 'MaximalDeformationStopCriterion': optimizationOptions.maximalDeformationStopCriterion,
@@ -574,12 +663,13 @@ def samsegment(
                 'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
             }
             optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
-            historyOfDeformationCost = [];
-            historyOfMaximalDeformation = [];
+            historyOfDeformationCost = []
+            historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
             while True:
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
-                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
+                maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 if maximalDeformation == 0:
                     break
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
@@ -614,7 +704,8 @@ def samsegment(
         # Transform back in template space (i.e., undoing the affine registration
         # that we applied), and save for later usage
 
-        tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
+        tmp = np.linalg.solve(totalTransformationMatrix,
+                              np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
         # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
@@ -627,7 +718,8 @@ def samsegment(
     biasFields = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
 
     for contrastNumber in range(numberOfContrasts):
-        biasField = backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+        biasField = backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions,
+                                                              biasFieldCoefficients[:, contrastNumber])
         biasCorrectedImageBuffers[:, :, :, contrastNumber] = imageBuffers[:, :, :, contrastNumber] - biasField * mask
         biasFields[:, :, :, contrastNumber] = biasField
 
@@ -642,7 +734,8 @@ def samsegment(
     nodePositions = mesh.points
     numberOfNodes = nodePositions.shape[0]
     transformMatrix = transform.as_numpy_array
-    tmp = np.linalg.solve(transformMatrix, np.pad(nodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
+    tmp = np.linalg.solve(transformMatrix,
+                          np.pad(nodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
     nodePositionsInTemplateSpace = tmp[:, 0: 3]
     
     # Get the estimated warp in template space
@@ -654,7 +747,8 @@ def samsegment(
 
     # Apply this warp on the mesh node positions in template space, and transform into current space
     desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace
-    tmp = (transformMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
+    tmp = (transformMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), mode='constant',
+                                    constant_values=1).T).T
     desiredNodePositions = tmp[:, 0: 3]
     mesh.points = requireNumpyArray(desiredNodePositions)
     alphas = mesh.alphas
@@ -669,7 +763,11 @@ def samsegment(
     priors = priors[mask == 1, :]
     data = data[mask == 1, :]
     likelihood_count = data.shape[0]
-    
+
+    if modelSpecifications.segmentLesion:
+        # Saved the likelihoods, need these for the lesion sampling
+        likelihoods_all = np.zeros_like(priors, dtype=np.float64)
+
     # Calculate the posteriors
     posteriors = np.zeros_like(priors, dtype=np.float64)
     for structureNumber in range(numberOfStructures):
@@ -695,6 +793,9 @@ def samsegment(
                 likelihoods = likelihoods + ensureDims(gaussianLikelihoods, 2) * mixtureWeight
             mixedLikelihoods = mixedLikelihoods + likelihoods * fraction
         posteriors[:, structureNumber] = np.squeeze(mixedLikelihoods) * prior
+        if modelSpecifications.segmentLesion:
+            likelihoods_all[:, structureNumber] = np.squeeze(mixedLikelihoods)
+
     normalizer = np.sum(posteriors, 1) + eps
     posteriors = posteriors / ensureDims(normalizer, 2)
     
@@ -745,6 +846,27 @@ def samsegment(
             croppingOffset[2]:croppingOffset[2] + imageSize[2],
             ] = np.exp(biasCorrectedImageBuffers[:, :, :, contrastNumber])
         outputFileName = os.path.join(savePath, scanName + '_biasCorrected.nii')
-        gems.KvlImage(biasCorrected).write(outputFileName, gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix)))
+        gems.KvlImage(biasCorrected).write(outputFileName,
+                                           gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix)))
+
+    if modelSpecifications.segmentLesion:
+        print('Start lesion sampling phase')
+        # Get the WM means, this will be used to mask out lesion with the user vector parameter lesion mask
+        wm_means = means[sum(numberOfGaussiansPerClass[0:wm_idx]), :].T
+
+        # Get the lesion segmentation, we use this to initialize sampling, the lesion label is 77,
+        # get the index as well so we don't need to assume it's the last structure in the atlas
+        lesion_init = np.where(freeSurferSegmentation == 77)
+        lesion_atlas_idx = np.where(FreeSurferLabels == 77)[0][0]
+
+        # Model path
+        modelPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'CRBModel.npz')
+
+        # Call sampling function
+        [FreeSurferLabels, volumesInCubicMm] = sampleCRBM(model.samplingSteps, imageSize, modelPath, numberOfContrasts,
+                                                          wm_means, mask, priors, lesion_atlas_idx, data, lesion_init,
+                                                          likelihoods_all, savePath, imageToWorldTransformMatrix,
+                                                          FreeSurferLabels, nonCroppedImageSize, croppingOffset,
+                                                          model.lesionMask, names)
 
     return [FreeSurferLabels, names, volumesInCubicMm]
