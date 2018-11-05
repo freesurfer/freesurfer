@@ -18,92 +18,21 @@
 
 
 //==================================================================================================================
-// Configuration
+// Support code that accelerates finding the vertices and faces needed during defect correction.
 //
-void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
-    memcpy(dst, src, sizeof(*src)); // note: copies the const fp et. al.!
-}
-
-void INTEGRATION_PARMS_setFp  (INTEGRATION_PARMS* parms, FILE* file) {
-  FILE* const* fpcp = &parms->fp;
-  FILE*      * fpp  = (FILE**)fpcp;
-  *fpp = file;
-}
-
-void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode) {
-  FILE* file = fopen(name, mode);
-  if (!file) {
-    fprintf(stderr, "%s:%d Error opening parms.fp using filename %s mode %s\n", __FILE__, __LINE__, name, mode);
-    exit(1);
-  }
-  INTEGRATION_PARMS_setFp(parms, file);
-}
-
-void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms) {
-  if (!parms->fp) return;
-  fclose(parms->fp);
-  INTEGRATION_PARMS_setFp(parms, NULL);
-}
-
-void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
-  INTEGRATION_PARMS_setFp(dst, src->fp);
-}
-
+int mrisurf_activeRealmTreesSize;
+int mrisurf_orig_clock;
+  // To do this, it must be able to tell when vertex orig[xyz] are changed.
+  // Such changes, when relevant, need to be reported via noteVnoMovedInActiveRealmTrees.
+  // To test it is correct, the code can scan all vertices of an mris and verify their origxyz are what was expected.
 
 
 //==================================================================================================================
 // Simple properties
 //
-/*-----------------------------------------------------
-  This supports code that accelerates finding the vertices and faces needed during defect correction.
-  To do this, it must be able to tell when vertex orig[xyz] are changed.
-  Such changes need to be reported via noteVnoMovedInActiveRealmTrees.
-  To help decide where such calls had to be added, all changes to origx etc. that are not have a CHANGES_ORIG by them to check if should have been.
-  To test it is correct, the code can scan all vertices of an mris and verify their origxyz are what was expected.
-  ------------------------------------------------------*/
-
-int mrisurf_activeRealmTreesSize;
-int mrisurf_orig_clock;
-
-int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)
-{
-  double mn, d;
-  int n, num;
-  float x0, y0, z0, x, y, z, dx, dy, dz;
-
-  if (vno < 0) {
-    return (NO_ERROR);
-  }
-  x0 = y0 = z0 = x = y = z = 0;
-  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-  VERTEX          * const v  = &mris->vertices         [vno];
-  MRISvertexCoord2XYZ_float(v, which_vertices, &x0, &y0, &z0);
-  printf("vertex %d spacing for %s surface\n",
-         vno,
-         which_vertices == ORIGINAL_VERTICES
-             ? "orig"
-             : which_vertices == CURRENT_VERTICES ? "current" : which_vertices == WHITE_VERTICES ? "white" : "unknown");
-  for (mn = 0.0, num = n = 0; n < vt->vnum; n++) {
-    VERTEX * const vn = &mris->vertices[vt->v[n]];
-    if (vn->ripflag) {
-      printf("nbr %d = %d is ripped\n", n, vt->v[n]);
-      continue;
-    }
-    num++;
-    MRISvertexCoord2XYZ_float(vn, which_vertices, &x, &y, &z);
-    dx = x - x0;
-    dy = y - y0;
-    dz = z - z0;
-    d = sqrt(dx * dx + dy * dy + dz * dz);
-    printf("\tvn %d: %d = %2.3f mm distant\n", n, vt->v[n], d);
-    mn += d;
-  }
-  printf("\tmean = %2.3f\n", mn / (double)num);
-
-  return (NO_ERROR);
-}
-
-
+//  orig[xyz] are set during the creation of a surface
+//  and during deformations that create an improved 'original' surface.
+//
 void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz) 
 {
   cheapAssertValidVno(mris,vno);
@@ -112,156 +41,38 @@ void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float ori
   const float * pcx = &v->origx;  float * px = (float*)pcx; *px = origx;
   const float * pcy = &v->origy;  float * py = (float*)pcy; *py = origy;
   const float * pcz = &v->origz;  float * pz = (float*)pcz; *pz = origz;
-}
 
-
-int load_orig_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3])
-{
-  VERTEX *v;
-  FACE *face;
-
-  face = &mris->faces[fno];
-  v = &mris->vertices[face->v[0]];
-  U0[0] = v->origx;
-  U0[1] = v->origy;
-  U0[2] = v->origz;
-  v = &mris->vertices[face->v[1]];
-  U1[0] = v->origx;
-  U1[1] = v->origy;
-  U1[2] = v->origz;
-  v = &mris->vertices[face->v[2]];
-  U2[0] = v->origx;
-  U2[1] = v->origy;
-  U2[2] = v->origz;
-  return (NO_ERROR);
-}
-
-int load_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3], int which)
-{
-  VERTEX *v;
-  FACE *face;
-
-  face = &mris->faces[fno];
-  switch (which) {
-    default:
-    case CURRENT_VERTICES:
-      v = &mris->vertices[face->v[0]];
-      U0[0] = v->x;
-      U0[1] = v->y;
-      U0[2] = v->z;
-      v = &mris->vertices[face->v[1]];
-      U1[0] = v->x;
-      U1[1] = v->y;
-      U1[2] = v->z;
-      v = &mris->vertices[face->v[2]];
-      U2[0] = v->x;
-      U2[1] = v->y;
-      U2[2] = v->z;
-      break;
-    case WHITE_VERTICES:
-      v = &mris->vertices[face->v[0]];
-      U0[0] = v->whitex;
-      U0[1] = v->whitey;
-      U0[2] = v->whitez;
-      v = &mris->vertices[face->v[1]];
-      U1[0] = v->whitex;
-      U1[1] = v->whitey;
-      U1[2] = v->whitez;
-      v = &mris->vertices[face->v[2]];
-      U2[0] = v->whitex;
-      U2[1] = v->whitey;
-      U2[2] = v->whitez;
-      break;
-    case PIAL_VERTICES:
-      v = &mris->vertices[face->v[0]];
-      U0[0] = v->pialx;
-      U0[1] = v->pialy;
-      U0[2] = v->pialz;
-      v = &mris->vertices[face->v[1]];
-      U1[0] = v->pialx;
-      U1[1] = v->pialy;
-      U1[2] = v->pialz;
-      v = &mris->vertices[face->v[2]];
-      U2[0] = v->pialx;
-      U2[1] = v->pialy;
-      U2[2] = v->pialz;
-      break;
+  if (hasActiveRealmTrees()) {
+    noteVnoMovedInActiveRealmTrees(mris, vno);
   }
-  return (NO_ERROR);
 }
 
-
-int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    switch (which) {
-      default:
-        ErrorExit(ERROR_UNSUPPORTED, "MRISextractVertexCoords: which %d not supported", which);
-        break;
-      case CURRENT_VERTICES:
-        locations[0][vno] = v->x;
-        locations[1][vno] = v->y;
-        locations[2][vno] = v->z;
-        break;
-      case TARGET_VERTICES:
-        locations[0][vno] = v->targx;
-        locations[1][vno] = v->targy;
-        locations[2][vno] = v->targz;
-        break;
-      case WHITE_VERTICES:
-        locations[0][vno] = v->whitex;
-        locations[1][vno] = v->whitey;
-        locations[2][vno] = v->whitez;
-        break;
-      case LAYERIV_VERTICES:
-        locations[0][vno] = v->l4x;
-        locations[1][vno] = v->l4y;
-        locations[2][vno] = v->l4z;
-        break;
-      case PIAL_VERTICES:
-        locations[0][vno] = v->pialx;
-        locations[1][vno] = v->pialy;
-        locations[2][vno] = v->pialz;
-        break;
-      case INFLATED_VERTICES:
-        locations[0][vno] = v->infx;
-        locations[1][vno] = v->infy;
-        locations[2][vno] = v->infz;
-        break;
-      case FLATTENED_VERTICES:
-        locations[0][vno] = v->fx;
-        locations[1][vno] = v->fy;
-        locations[2][vno] = v->fz;
-        break;
-      case CANONICAL_VERTICES:
-        locations[0][vno] = v->cx;
-        locations[1][vno] = v->cy;
-        locations[2][vno] = v->cz;
-        break;
-      case ORIGINAL_VERTICES:
-        locations[0][vno] = v->origx;
-        locations[1][vno] = v->origy;
-        locations[2][vno] = v->origz;
-        break;
-      case TMP2_VERTICES:
-        locations[0][vno] = v->tx2;
-        locations[1][vno] = v->ty2;
-        locations[2][vno] = v->tz2;
-        break;
-      case TMP_VERTICES:
-        locations[0][vno] = v->tx;
-        locations[1][vno] = v->ty;
-        locations[2][vno] = v->tz;
-        break;
-    }
+void MRISsetOriginalXYZfromXYZ(MRIS *mris) {
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * v = &mris->vertices[vno];
+    const float * pcx = &v->origx;  float * px = (float*)pcx; *px = v->x;
+    const float * pcy = &v->origy;  float * py = (float*)pcy; *py = v->y;
+    const float * pcz = &v->origz;  float * pz = (float*)pcz; *pz = v->z;
   }
-  return (NO_ERROR);
+  if (hasActiveRealmTrees()) {
+    noteVnoMovedInActiveRealmTrees(mris, vno);
+  }
 }
+
+
+// xyz are set in over 100 places
+//
+void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z) 
+{
+  cheapAssertValidVno(mris,vno);
+  VERTEX * v = &mris->vertices[vno];
+    
+  const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
+  const float * pcy = &v->y;  float * py = (float*)pcy; *py = y;
+  const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
+}
+
 
 int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const which)
 {
@@ -279,6 +90,10 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
         v->y = locations[1][vno];
         v->z = locations[2][vno];
         break;
+#if 0
+      // These are all consequences of the orig[xyz]
+      // and hence should not be replaceable
+      //
       case LAYERIV_VERTICES:
         v->l4x = locations[0][vno];
         v->l4y = locations[1][vno];
@@ -314,9 +129,6 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
         v->cy = locations[1][vno];
         v->cz = locations[2][vno];
         break;
-      case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, locations[0][vno], locations[1][vno], locations[2][vno]); CHANGES_ORIG
-        break;
       case TMP2_VERTICES:
         v->tx2 = locations[0][vno];
         v->ty2 = locations[1][vno];
@@ -327,6 +139,7 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
         v->ty = locations[1][vno];
         v->tz = locations[2][vno];
         break;
+#endif
     }
   }
   return (NO_ERROR);
@@ -394,7 +207,7 @@ int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, i
         v->cz = z;
         break;
       case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, x,y,z); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris, vno, x,y,z);
         break;
       default:
         ErrorExit(ERROR_UNSUPPORTED, "MRISreverseCoords: unsupported which_vertices %d", which_coords);
@@ -407,6 +220,9 @@ int MRISreverseCoords(MRIS *mris, int which_direction, int reverse_face_order, i
 
   return (NO_ERROR);
 }
+
+
+
 /*-----------------------------------------------------*/
 /*!
   \fn int MRISreverse(MRIS *mris, int which)
@@ -451,36 +267,367 @@ int MRISreverse(MRIS *mris, int which, int reverse_face_order)
   return (NO_ERROR);
 }
 
+
+int mrisComputeSurfaceDimensions(MRIS *mris)
+{
+  float xlo, ylo, zlo, xhi, yhi, zhi;
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *vertex = &mris->vertices[vno];
+#if 0
+    if (vertex->ripflag)
+    {
+      continue ;
+    }
+#endif
+    float const x = vertex->x;
+    float const y = vertex->y;
+    float const z = vertex->z;
+    if (x > xhi) xhi = x;
+    if (x < xlo) xlo = x;
+    if (y > yhi) yhi = y;
+    if (y < ylo) ylo = y;
+    if (z > zhi) zhi = z;
+    if (z < zlo) zlo = z;
+  }
+  mris->xlo = xlo;
+  mris->xhi = xhi;
+  mris->ylo = ylo;
+  mris->yhi = yhi;
+  mris->zlo = zlo;
+  mris->zhi = zhi;
+  
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
+  
+  return (NO_ERROR);
+}
+
+
 int MRISscaleVertexCoordinates(MRIS *mris, double scale)
 {
-  VERTEX *v;
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x *= scale;
-    v->y *= scale;
-    v->z *= scale;
-  }
-  return (NO_ERROR);
+  return MRISscale(mris, scale);
 }
 
 
 int MRISscale(MRIS *mris, double scale)
 {
   int vno;
-  VERTEX *v;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX *v = &mris->vertices[vno];
     v->x *= scale;
     v->y *= scale;
     v->z *= scale;
   }
-  return (0);
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  mris->xlo *= scale;
+  mris->xhi *= scale;
+  mris->ylo *= scale;
+  mris->yhi *= scale;
+  mris->zlo *= scale;
+  mris->zhi *= scale;
+  
+  if (scale < 0) {
+    float xlo = mris->xlo; mris->xlo = mris->xhi; mris->xlo = xlo;
+    float ylo = mris->ylo; mris->ylo = mris->yhi; mris->ylo = ylo;
+    float zlo = mris->zlo; mris->zlo = mris->zhi; mris->zlo = zlo;
+  }
+  
+  mris->xctr *= scale;
+  mris->yctr *= scale;
+  mris->zctr *= scale;
+  
+  return (NO_ERROR);
 }
+
+
+int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x += dx;
+    v->y += dy;
+    v->z += dz;
+  }
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  mris->xlo += dx;
+  mris->xhi += dx;
+  mris->ylo += dy;
+  mris->yhi += dy;
+  mris->zlo += dz;
+  mris->zhi += dz;
+  
+  mris->xctr += dx;
+  mris->yctr += dy;
+  mris->zctr += dz;
+
+  return (NO_ERROR);
+}
+
+
+int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
+{
+  mrisComputeSurfaceDimensions(mris);
+  
+  /* scale around the center */
+  float const x0 = mris->xctr;
+  float const y0 = mris->yctr;
+  float const z0 = mris->zctr;
+
+  int k;
+  for (k = 0; k < mris->nvertices; k++) {
+    VERTEX *v = &mris->vertices[k];
+    if (v->ripflag) {
+      continue;
+    }
+    v->x = (v->x - x0) * sx + x0;
+    v->y = (v->y - y0) * sy + y0;
+    v->z = (v->z - z0) * sz + z0;
+  }
+
+  mrisComputeSurfaceDimensions(mris);
+  
+  return (NO_ERROR);
+}
+
+
+MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
+{
+  int vno;
+  VERTEX *vdst;
+  float x, y, z, x0, y0, z0, xlo, xhi, zlo, zhi, ylo, yhi;
+
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+
+  x = y = z = 0; /* silly compiler warning */
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    vdst = &mris_dst->vertices[vno];
+    if (vdst->ripflag) {
+      continue;
+    }
+    x = vdst->x;
+    y = vdst->y;
+    z = vdst->z;
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+  x0 = (xlo + xhi) / 2.0f;
+  y0 = (ylo + yhi) / 2.0f;
+  z0 = (zlo + zhi) / 2.0f;
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    vdst = &mris_dst->vertices[vno];
+    if (vdst->ripflag) {
+      continue;
+    }
+    vdst->x -= x0;
+    vdst->y -= y0;
+    vdst->z -= z0;
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+
+  mris_dst->xctr = mris_dst->yctr = mris_dst->zctr = 0;
+  mris_dst->xlo = xlo;
+  mris_dst->ylo = ylo;
+  mris_dst->zlo = zlo;
+  mris_dst->xhi = xhi;
+  mris_dst->yhi = yhi;
+  mris_dst->zhi = zhi;
+
+  return (mris_dst);
+}
+
+
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
+{
+  MRIScenter(mris, mris);
+
+  float xlo, xhi, zlo, zhi, ylo, yhi;
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    if (v->ripflag) continue;
+    v->x += x0;
+    v->y += y0;
+    v->z += z0;
+    float x = v->x;
+    float y = v->y;
+    float z = v->z;
+    if (x > xhi) xhi = x;
+    if (x < xlo) xlo = x;
+    if (y > yhi) yhi = y;
+    if (y < ylo) ylo = y;
+    if (z > zhi) zhi = z;
+    if (z < zlo) zlo = z;
+  }
+  mris->xlo = xlo;
+  mris->ylo = ylo;
+  mris->zlo = zlo;
+  mris->xhi = xhi;
+  mris->yhi = yhi;
+  mris->zhi = zhi;
+  mris->xctr = x0;
+  mris->yctr = y0;
+  mris->zctr = z0;
+}
+
+
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+
+  The following function is broken, since it is applying a
+  transform for surfaceRAS space.  If transform has c_(ras)
+  values, the result would be different.
+
+  conformed -----> surfaceRAS
+  |                |        [ 1 Csrc]
+  V                V        [ 0  1  ]
+  src    ----->    RAS
+  |                |
+  |                |  Xfm
+  V                V
+  talvol   ----->  talRAS
+  |                |        [ 1 -Ctal]
+  |                |        [ 0  1   ]
+  V                V
+  conformed -----> surfaceRAS
+
+  Thus
+
+  surfRASToTalSurfRAS = [ 1 -Ctal ]*[ R  T ]*[ 1 Csrc ]=
+  [ R  T + R*Csrc - Ctal ]
+  [ 0   1   ] [ 0  1 ] [ 0   1  ]  [ 0         1          ]
+
+  We need to know the Csrc and Ctal values
+  ------------------------------------------------------*/
+MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
+  int vno;
+  VERTEX *v;
+  double x, y, z, xt, yt, zt;
+  float xlo, ylo, zlo, xhi, yhi, zhi;
+
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+
+  if (!mris_src->lta) {
+    return (mris_dst);
+  }
+
+#if 0
+  if (!mris_src->linear_transform)
+  {
+    return(mris_dst) ;
+  }
+
+  ErrorReturn(mris_dst,
+              (ERROR_BADPARM, "MRIStalairachTransform: no xform loaded")) ;
+#endif
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    v = &mris_dst->vertices[vno];
+
+    x = v->x;
+    y = v->y;
+    z = v->z;  // we cloned the src
+    TransformWithMatrix(mris_src->SRASToTalSRAS_, x, y, z, &xt, &yt, &zt);
+    // transform_point(mris_src->linear_transform, -x, z, y, &xt, &yt, &zt) ;
+    // v->x = -xt ; v->y = zt ; v->z = yt ;
+    v->x = xt;
+    v->y = yt;
+    v->z = zt;
+
+    if (v->x > xhi) {
+      xhi = v->x;
+    }
+    if (v->x < xlo) {
+      xlo = v->x;
+    }
+    if (v->y > yhi) {
+      yhi = v->y;
+    }
+    if (v->y < ylo) {
+      ylo = v->y;
+    }
+    if (v->z > zhi) {
+      zhi = v->z;
+    }
+    if (v->z < zlo) {
+      zlo = v->z;
+    }
+  }
+
+  mris_dst->xlo = xlo;
+  mris_dst->ylo = ylo;
+  mris_dst->zlo = zlo;
+  mris_dst->xctr = (xhi + xlo) / 2;
+  mris_dst->yctr = (yhi + ylo) / 2;
+  mris_dst->zctr = (zhi + zlo) / 2;
+
+  return (mris_dst);
+}
+
 
 int mrisFlipPatch(MRIS *mris)
 {
@@ -645,6 +792,159 @@ int MRISsequentialAverageVertexPositions(MRIS *mris, int navgs)
   }
   return (NO_ERROR);
 }
+
+
+// Convenience functions
+//
+int load_orig_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3])
+{
+  FACE const * const face = &mris->faces[fno];
+  
+  VERTEX *v;
+  
+  v = &mris->vertices[face->v[0]];
+  U0[0] = v->origx;
+  U0[1] = v->origy;
+  U0[2] = v->origz;
+  v = &mris->vertices[face->v[1]];
+  U1[0] = v->origx;
+  U1[1] = v->origy;
+  U1[2] = v->origz;
+  v = &mris->vertices[face->v[2]];
+  U2[0] = v->origx;
+  U2[1] = v->origy;
+  U2[2] = v->origz;
+  return (NO_ERROR);
+}
+
+int load_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3], int which)
+{
+  VERTEX *v;
+  FACE *face;
+
+  face = &mris->faces[fno];
+  switch (which) {
+    default:
+    case CURRENT_VERTICES:
+      v = &mris->vertices[face->v[0]];
+      U0[0] = v->x;
+      U0[1] = v->y;
+      U0[2] = v->z;
+      v = &mris->vertices[face->v[1]];
+      U1[0] = v->x;
+      U1[1] = v->y;
+      U1[2] = v->z;
+      v = &mris->vertices[face->v[2]];
+      U2[0] = v->x;
+      U2[1] = v->y;
+      U2[2] = v->z;
+      break;
+    case WHITE_VERTICES:
+      v = &mris->vertices[face->v[0]];
+      U0[0] = v->whitex;
+      U0[1] = v->whitey;
+      U0[2] = v->whitez;
+      v = &mris->vertices[face->v[1]];
+      U1[0] = v->whitex;
+      U1[1] = v->whitey;
+      U1[2] = v->whitez;
+      v = &mris->vertices[face->v[2]];
+      U2[0] = v->whitex;
+      U2[1] = v->whitey;
+      U2[2] = v->whitez;
+      break;
+    case PIAL_VERTICES:
+      v = &mris->vertices[face->v[0]];
+      U0[0] = v->pialx;
+      U0[1] = v->pialy;
+      U0[2] = v->pialz;
+      v = &mris->vertices[face->v[1]];
+      U1[0] = v->pialx;
+      U1[1] = v->pialy;
+      U1[2] = v->pialz;
+      v = &mris->vertices[face->v[2]];
+      U2[0] = v->pialx;
+      U2[1] = v->pialy;
+      U2[2] = v->pialz;
+      break;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    switch (which) {
+      default:
+        ErrorExit(ERROR_UNSUPPORTED, "MRISextractVertexCoords: which %d not supported", which);
+        break;
+      case CURRENT_VERTICES:
+        locations[0][vno] = v->x;
+        locations[1][vno] = v->y;
+        locations[2][vno] = v->z;
+        break;
+      case TARGET_VERTICES:
+        locations[0][vno] = v->targx;
+        locations[1][vno] = v->targy;
+        locations[2][vno] = v->targz;
+        break;
+      case WHITE_VERTICES:
+        locations[0][vno] = v->whitex;
+        locations[1][vno] = v->whitey;
+        locations[2][vno] = v->whitez;
+        break;
+      case LAYERIV_VERTICES:
+        locations[0][vno] = v->l4x;
+        locations[1][vno] = v->l4y;
+        locations[2][vno] = v->l4z;
+        break;
+      case PIAL_VERTICES:
+        locations[0][vno] = v->pialx;
+        locations[1][vno] = v->pialy;
+        locations[2][vno] = v->pialz;
+        break;
+      case INFLATED_VERTICES:
+        locations[0][vno] = v->infx;
+        locations[1][vno] = v->infy;
+        locations[2][vno] = v->infz;
+        break;
+      case FLATTENED_VERTICES:
+        locations[0][vno] = v->fx;
+        locations[1][vno] = v->fy;
+        locations[2][vno] = v->fz;
+        break;
+      case CANONICAL_VERTICES:
+        locations[0][vno] = v->cx;
+        locations[1][vno] = v->cy;
+        locations[2][vno] = v->cz;
+        break;
+      case ORIGINAL_VERTICES:
+        locations[0][vno] = v->origx;
+        locations[1][vno] = v->origy;
+        locations[2][vno] = v->origz;
+        break;
+      case TMP2_VERTICES:
+        locations[0][vno] = v->tx2;
+        locations[1][vno] = v->ty2;
+        locations[2][vno] = v->tz2;
+        break;
+      case TMP_VERTICES:
+        locations[0][vno] = v->tx;
+        locations[1][vno] = v->ty;
+        locations[2][vno] = v->tz;
+        break;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -800,33 +1100,6 @@ int MRISscaleBrainArea(MRIS *mris)
   Returns value:
 
   Description
-  Translate a surface by (dx, dy, dz)
-  ------------------------------------------------------*/
-int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
-{
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x += dx;
-    v->y += dy;
-    v->z += dz;
-  }
-  mrisComputeSurfaceDimensions(mris);
-  return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   ------------------------------------------------------*/
 MRIS *MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float gamma)
 {
@@ -923,41 +1196,6 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
   ROMP_PF_end
   
   return (0);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Scale a surface anisotropically.
-  ------------------------------------------------------*/
-int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
-{
-  VERTEX *v;
-  int k;
-  float x0, y0, z0;
-
-  mrisComputeSurfaceDimensions(mris);
-  /* scale around the center */
-  x0 = mris->xctr;
-  y0 = mris->yctr;
-  z0 = mris->zctr;
-
-  for (k = 0; k < mris->nvertices; k++) {
-    v = &mris->vertices[k];
-    if (v->ripflag) {
-      continue;
-    }
-    v->x = (v->x - x0) * sx + x0;
-    v->y = (v->y - y0) * sy + y0;
-    v->z = (v->z - z0) * sz + z0;
-  }
-
-  mrisComputeSurfaceDimensions(mris);
-  return (NO_ERROR);
 }
 
 
@@ -2128,13 +2366,52 @@ int MRISrestoreMetricProperties(MRIS *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
+// Two ways of saving and restoring the VERTEX:xyz values
+//
+// The push/pop is preferable to using VERTEX members because it uses all the entries in a cache line
+//
+struct MRISsavedXYZ {
+  int       nvertices;
+  MRIS_XYZ* p;
+};
 
-  Description
-  ------------------------------------------------------*/
+MRISsavedXYZ* MRISsaveXYZ(MRIS *mris) {
+  MRISsavedXYZ* saved = (MRISsavedXYZ*)malloc(sizeof(MRISsavedXYZ));
+  int       const nvertices = saved->nvertices = mris->nvertices;
+  MRIS_XYZ* const p         = saved->p         = (MRIS_XYZ*)malloc(nvertices*sizeof(MRIS_XYZ));
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX const * const v = &mris->vertices[vno];
+    p[vno].x = v->x;
+    p[vno].y = v->y;
+    p[vno].z = v->z;
+  }
+  return saved;
+}
+
+void MRISloadXYZ (MRIS *mris, MRISsavedXYZ const * const pMRISsavedXYZ) {
+  MRIS_XYZ* const p         = pMRISsavedXYZ->p;
+  int       const nvertices = pMRISsavedXYZ->nvertices;
+  cheapAssert(nvertices == mris->nvertices);
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    MRISsetXYZ(mris,vno,p[vno].x,p[vno].y,p[vno].z);
+  }
+}
+
+void MRISfreeXYZ (MRIS *mris, MRISsavedXYZ ** ppMRISsavedXYZ) {
+  MRISsavedXYZ* p = *ppMRISsavedXYZ; *ppMRISsavedXYZ = NULL;
+  freeAndNULL(p->p);
+  freeAndNULL(p);
+}
+
+void MRISpopXYZ (MRIS *mris, MRISsavedXYZ ** ppMRISsavedXYZ) {
+  MRISloadXYZ(mris, *ppMRISsavedXYZ);
+  MRISfreeXYZ(mris,  ppMRISsavedXYZ);
+}
+
+
 int MRISsaveVertexPositions(MRIS *mris, int which)
 {
   int const nvertices = mris->nvertices;
@@ -2185,7 +2462,7 @@ int MRISsaveVertexPositions(MRIS *mris, int which)
         v->cz = v->z;
         break;
       case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, v->x, v->y, v->z); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris, vno, v->x, v->y, v->z);
         break;
       case TMP2_VERTICES:
         v->tx2 = v->x;
@@ -7099,58 +7376,6 @@ int MRIScountNegativeTriangles(MRIS *mris)
 }
 
 
-int mrisComputeSurfaceDimensions(MRIS *mris)
-{
-  int vno;
-  VERTEX *vertex;
-  double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi;
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
-#if 0
-    if (vertex->ripflag)
-    {
-      continue ;
-    }
-#endif
-    x = (double)vertex->x;
-    y = (double)vertex->y;
-    z = (double)vertex->z;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-  mris->xlo = xlo;
-  mris->xhi = xhi;
-  mris->ylo = ylo;
-  mris->yhi = yhi;
-  mris->zlo = zlo;
-  mris->zhi = zhi;
-  mris->xctr = (xlo + xhi) / 2.0f;
-  mris->yctr = (ylo + yhi) / 2.0f;
-  mris->zctr = (zlo + zhi) / 2.0f;
-  return (NO_ERROR);
-}
-
-
-
 /*-----------------------------------------------------
   Parameters:
 
@@ -9566,6 +9791,40 @@ static int get_face_axes(
   *pe2z = e2[2];
   return (NO_ERROR);
 }
+
+
+//==================================================================================================================
+// Deformity support
+//
+void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
+    memcpy(dst, src, sizeof(*src)); // note: copies the const fp et. al.!
+}
+
+void INTEGRATION_PARMS_setFp  (INTEGRATION_PARMS* parms, FILE* file) {
+  FILE* const* fpcp = &parms->fp;
+  FILE*      * fpp  = (FILE**)fpcp;
+  *fpp = file;
+}
+
+void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode) {
+  FILE* file = fopen(name, mode);
+  if (!file) {
+    fprintf(stderr, "%s:%d Error opening parms.fp using filename %s mode %s\n", __FILE__, __LINE__, name, mode);
+    exit(1);
+  }
+  INTEGRATION_PARMS_setFp(parms, file);
+}
+
+void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms) {
+  if (!parms->fp) return;
+  fclose(parms->fp);
+  INTEGRATION_PARMS_setFp(parms, NULL);
+}
+
+void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
+  INTEGRATION_PARMS_setFp(dst, src->fp);
+}
+
 
 
 static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
@@ -14501,6 +14760,45 @@ MRI *MRIcomputeLaminarVolumeFractions(MRIS *mris, double resolution, MRI *mri_sr
   MRISrestoreVertexPositions(mris, TMP2_VERTICES);
   MRIScomputeMetricProperties(mris);
   return (mri_fractions);
+}
+
+
+int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)
+{
+  double mn, d;
+  int n, num;
+  float x0, y0, z0, x, y, z, dx, dy, dz;
+
+  if (vno < 0) {
+    return (NO_ERROR);
+  }
+  x0 = y0 = z0 = x = y = z = 0;
+  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+  VERTEX          * const v  = &mris->vertices         [vno];
+  MRISvertexCoord2XYZ_float(v, which_vertices, &x0, &y0, &z0);
+  printf("vertex %d spacing for %s surface\n",
+         vno,
+         which_vertices == ORIGINAL_VERTICES
+             ? "orig"
+             : which_vertices == CURRENT_VERTICES ? "current" : which_vertices == WHITE_VERTICES ? "white" : "unknown");
+  for (mn = 0.0, num = n = 0; n < vt->vnum; n++) {
+    VERTEX * const vn = &mris->vertices[vt->v[n]];
+    if (vn->ripflag) {
+      printf("nbr %d = %d is ripped\n", n, vt->v[n]);
+      continue;
+    }
+    num++;
+    MRISvertexCoord2XYZ_float(vn, which_vertices, &x, &y, &z);
+    dx = x - x0;
+    dy = y - y0;
+    dz = z - z0;
+    d = sqrt(dx * dx + dy * dy + dz * dz);
+    printf("\tvn %d: %d = %2.3f mm distant\n", n, vt->v[n], d);
+    mn += d;
+  }
+  printf("\tmean = %2.3f\n", mn / (double)num);
+
+  return (NO_ERROR);
 }
 
 

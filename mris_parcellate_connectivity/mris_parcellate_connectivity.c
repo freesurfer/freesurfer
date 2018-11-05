@@ -113,7 +113,12 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: FREESURFER_HOME must be defined in the env",
               Progname) ;
   sprintf(fname, "%s/lib/bem/ic%d.tri", cp, ico_no) ;
-  mris_ico = ICOreadOverAlloc(fname, 100) ;
+  mris_ico = ICOreadOverAlloc(fname, 100, 1.0f) ;
+                //
+                // This is overallocating by 100x 
+                // The parameter used to be called pct_ but was multiplied by without dividing by 100
+                // so I don't know if the 100 is deliberate or not.  Left unchanged to not change the behaviour.
+                
   printf("ico %d read, %d faces, %d vertices (%d, %d max)\n",
          ico_no, mris_ico->nvertices, mris_ico->nfaces,
          mris_ico->max_vertices, mris_ico->max_faces) ;

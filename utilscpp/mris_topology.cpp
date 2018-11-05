@@ -225,7 +225,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 
 
     //transfer data into MRIS structure
-    MRIS *mris_work = SurfaceToMRIS(surface,NULL);
+    MRIS *mris_work = SurfaceToMRIS(surface);
     delete surface;
 
     MRIScopyHeader(mris,mris_work);
@@ -306,7 +306,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 #endif
 
 			//transfer data into MRIS structure
-			mris_work = SurfaceToMRIS(surface,NULL);
+			mris_work = SurfaceToMRIS(surface);
 			delete surface;
 
 			MRIScopyHeader(mris,mris_work);
@@ -750,9 +750,10 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
       vt_from[n]=nvertices;
       vt_to[nvertices++]=n;
       //copy the strict necessary
-      v->x = vsrc->x;
-      v->y = vsrc->y;
-      v->z = vsrc->z;
+      MRISsetXYZ(mris_dst, nvertices,
+        vsrc->x,
+        vsrc->y,
+        vsrc->z);
     };
   }
   mrip->vtrans_to = vt_to;
@@ -984,40 +985,76 @@ void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst)
   copyVolGeom(&mris_src->vg, &mris_dst->vg);
 }
 
-MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris) 
+static MRIS* SurfaceToMRISwkr_new(Surface *surface) 
 {
-  if (mris==NULL) {//allocate the new surface
-    mris=MRISoverAlloc(surface->maxvertices,
+  MRIS *mris =
+      MRISoverAlloc(surface->maxvertices,
                        surface->maxfaces,
                        surface->nvertices,
                        surface->nfaces);
+
+  for (int n = 0 ; n < surface->nvertices ; n++) {
+    Vertex const * const vsrc = &surface->vertices[n];
+    
+    VERTEX_TOPOLOGY * const vdstt = &mris->vertices_topology[n];
+    VERTEX          * const vdst  = &mris->vertices         [n];
+    
+    MRISsetXYZ(mris,n,
+      vsrc->x,
+      vsrc->y,
+      vsrc->z);
   }
-  MRISreallocVerticesAndFaces(mris,surface->nvertices,surface->nfaces);
+  
+  for (int n = 0 ; n < surface->nfaces ; n++) {
+    Face const * const fsrc = &surface->faces[n];
+    mrisAttachFaceToVertices(mris, n, fsrc->v[0], fsrc->v[1], fsrc->v[2]);
+  }
+
+  mrisCompleteTopology(mris);
+  
+  return mris;
+}
+
+static MRIS* SurfaceToMRISwkr_old(Surface *surface) 
+{
+  MRIS *mris =
+      MRISoverAlloc(surface->maxvertices,
+                       surface->maxfaces,
+                       surface->nvertices,
+                       surface->nfaces);
 
   //Vertices
   for (int n = 0 ; n < surface->nvertices ; n++) {
+    Vertex const * const vsrc = &surface->vertices[n];
+    
     VERTEX_TOPOLOGY * const vdstt = &mris->vertices_topology[n];
     VERTEX          * const vdst  = &mris->vertices         [n];
-    Vertex *vsrc = &surface->vertices[n];
-    vdst->x=vsrc->x;
-    vdst->y=vsrc->y;
-    vdst->z=vsrc->z;
+    
+    MRISsetXYZ(mris,n,
+      vsrc->x,
+      vsrc->y,
+      vsrc->z);
+    
     vdst->ripflag = 0;
-    vdst->marked = 0;
+    vdst->marked  = 0;
     //vertices
     freeAndNULL(vdstt->v);
     vdstt->v = (int*)calloc(vsrc->vnum , sizeof(int));
     for (int p = 0 ; p < vsrc->vnum ; p++)
       vdstt->v[p]=vsrc->v[p];
-    vdstt->vnum=vsrc->vnum;
-    vdstt->v2num = vsrc->vnum;
-    vdstt->v3num=vsrc->vnum;
-    vdstt->vtotal=vsrc->vnum;
+      
+    vdstt->vnum   = vsrc->vnum;
+    vdstt->v2num  = vsrc->vnum;
+    vdstt->v3num  = vsrc->vnum;
+    vdstt->vtotal = vsrc->vnum;
+    
     //faces
     if (vdstt->f) free(vdstt->f);
     vdstt->f=NULL;
+    
     if (vdstt->n) free(vdstt->n);
     vdstt->n=NULL;
+    
     vdstt->f = (int*)calloc(vsrc->fnum , sizeof(int));
     vdstt->n = (uchar*)calloc(vsrc->fnum , sizeof(uchar));
     for (int p = 0 ; p < vsrc->fnum ; p++) {
@@ -1026,6 +1063,7 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
     }
     vdstt->num=vsrc->fnum;
   }
+  
   //Faces
   for (int n = 0 ; n < surface->nfaces ; n++) {
     FACE *fdst=&mris->faces[n];
@@ -1037,6 +1075,19 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
 
   mrisCheckVertexFaceTopology(mris);
   
+  return mris;
+}
+
+MRIS* SurfaceToMRIS(Surface *surface) {
+  //
+  // The possible difference in the order of faces around the vertices may cause slight differences
+  // hence the old code is kept for comparison purposes
+  //
+  MRIS* mris =
+    false 
+    ? SurfaceToMRISwkr_old(surface) 
+    : SurfaceToMRISwkr_new(surface);
+    
   MRIScomputeNormals(mris);
   MRIScomputeTriangleProperties(mris);
   MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
@@ -1044,33 +1095,38 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
   return mris;
 }
 
-
 bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip) 
 {
-  int nvertices = mrip->n_vertices;
-  int nfaces = mrip->n_faces;
-  int *vto = mrip->vtrans_to;
-  int *fto = mrip->ftrans_to;
+  MRIS * const mris = mrip->mris;
 
-  MRIS *mris = mrip->mris;
+  int const nvertices = mrip->n_vertices;
+  int const nfaces    = mrip->n_faces;
+  
+  int * const vto     = mrip->vtrans_to;
+  int * const fto     = mrip->ftrans_to;
 
   int currNumVertices = mris_dst->nvertices;
-  int newNumVertices = currNumVertices + mris->nvertices - nvertices;
-  int currNumFaces = mris_dst->nfaces;
-  int newNumFaces = currNumFaces + mris->nfaces - nfaces;
+  int currNumFaces    = mris_dst->nfaces;
+  int newNumVertices  = currNumVertices + mris->nvertices - nvertices;
+  int newNumFaces     = currNumFaces    + mris->nfaces    - nfaces;
+
   MRISreallocVerticesAndFaces(mris_dst, newNumVertices, newNumFaces);
 
   //vertices
   for (int n = 0 ; n < mris->nvertices ; n++) {
-    VERTEX *vsrc = &mris->vertices[n];
-    if (n >= nvertices) vto[n] = currNumVertices++;
-    VERTEX *vdst = &mris_dst->vertices[vto[n]];
-    //coordonnees
-    vdst->x=vsrc->x;
-    vdst->y=vsrc->y;
-    vdst->z=vsrc->z;
+    VERTEX const * const vsrc = &mris->vertices[n];
     
-    MRISsetOriginalXYZ(mris_dst, vto[n], 
+    if (n >= nvertices) vto[n] = currNumVertices++;
+    int const vno_dst = vto[n];
+    
+    VERTEX * const vdst = &mris_dst->vertices[vno_dst];
+    
+    MRISsetXYZ(mris_dst, vno_dst,
+      vsrc->x,
+      vsrc->y,
+      vsrc->z);
+    
+    MRISsetOriginalXYZ(mris_dst, vno_dst, 
       vsrc->x, 
       vsrc->y, 
       vsrc->z);
@@ -1078,9 +1134,12 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
 
   //faces
   for (int n = 0 ; n < mris->nfaces ; n++) {
-    FACE *fsrc = &mris->faces[n];
+    FACE const * const fsrc = &mris->faces[n];
+    
     if (n >= nfaces) fto[n] = currNumFaces++;
-    FACE *fdst = &mris_dst->faces[fto[n]];
+    
+    FACE * const fdst = &mris_dst->faces[fto[n]];
+    
     //vertex indices
     fdst->v[0] = vto[fsrc->v[0]];
     fdst->v[1] = vto[fsrc->v[1]];

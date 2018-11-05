@@ -161,25 +161,21 @@ namespace Math
   */
   void ConvertSurfaceRASToVoxel(MRIS *mris, MRI *mri_template)
   {
-    VERTEX* vertex;
-    double cx, cy, cz; 
-    double vx, vy, vz;
     for (int i=0; i< mris->nvertices; i++)
     {
-      vertex = &mris->vertices[i];
-      cx = vertex->x;
-      cy = vertex->y;
-      cz = vertex->z;
+      VERTEX const * const vertex = &mris->vertices[i];
+      double cx = vertex->x;
+      double cy = vertex->y;
+      double cz = vertex->z;
 
       // for every surface vertex do this call
+      double vx, vy, vz;
       MRISsurfaceRASToVoxelCached(mris,
                                   mri_template,
                                   cx, cy, cz,
                                   &vx, &vy, &vz);
       // and reassign the vertices
-      vertex->x = vx;
-      vertex->y = vy; 
-      vertex->z = vz;
+      MRISsetXYZ(mris,i, (float)vx,(float)vy,(float)vz);
     }
   }
 

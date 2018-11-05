@@ -1,4 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 /*
  * @file utilities operating on Original
  *
@@ -11386,10 +11387,7 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
       }
       if (v->marked) /* update value */
       {
-        MRISsetOriginalXYZ(mris, vno,
-          v->tdx,
-          v->tdy,
-          v->tdz);  CHANGES_ORIG
+        MRISsetOriginalXYZ(mris, vno, v->tdx, v->tdy, v->tdz);
       }
       if (v->marked == 3) /* needs modification */
       {
@@ -11539,9 +11537,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     /* smoothed vertices */
     
     MRISsetOriginalXYZ(mris_corrected, newNVertices,
-      v->origx, 
-      v->origy,
-      v->origz); CHANGES_ORIG
+      v->origx, v->origy, v->origz);
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -11818,7 +11814,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
         MRISsetOriginalXYZ(mris_total, vdst_vno,
           vdst->origx + v->origx,
           vdst->origy + v->origy,
-          vdst->origz + v->origz); CHANGES_ORIG
+          vdst->origz + v->origz);
         } break;
       case VERTEX_AREA:
         vdst->d += v->origarea;
@@ -11851,7 +11847,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
         MRISsetOriginalXYZ(mris_total, vno,
           vdst->origx / (float)vdst->marked,
           vdst->origy / (float)vdst->marked,
-          vdst->origz / (float)vdst->marked); CHANGES_ORIG
+          vdst->origz / (float)vdst->marked);
         break;
       case VERTEX_AREA: /* don't normalize by # of vertices mapped!! */
         vdst->origarea += vdst->d;
@@ -11898,7 +11894,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     vdst->marked++;
     switch (which) {
       case VERTEX_COORDS:
-        MRISsetOriginalXYZ(mris_total, vno, v->origx, v->origy, v->origz); CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_total, vno, v->origx, v->origy, v->origz);
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -11963,7 +11959,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     vdst->val2 = v->val2;
     switch (which) {
       case VERTEX_COORDS:
-        MRISsetOriginalXYZ(mris_dst, vno, v->origx, v->origy, v->origz);  CHANGES_ORIG
+        MRISsetOriginalXYZ(mris_dst, vno, v->origx, v->origy, v->origz);
         break;
       case VERTEX_ANNOTATION:
         vdst->annotation = v->annotation;
@@ -12290,7 +12286,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
     vdst->y = v->y;
     vdst->z = v->z;
     
-    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz);
     
     vdst->tx = v->tx;
     vdst->ty = v->ty;
@@ -12679,7 +12675,7 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
     vnew->y = vold->y;
     vnew->z = vold->z;
     
-    MRISsetOriginalXYZ(mris_new, vno, vold->origx, vold->origy, vold->origz); CHANGES_ORIG
+    MRISsetOriginalXYZ(mris_new, vno, vold->origx, vold->origy, vold->origz);
     
     vnew->marked = 1;
   }
@@ -13885,200 +13881,6 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
-{
-  int vno;
-  VERTEX *vdst;
-  float x, y, z, x0, y0, z0, xlo, xhi, zlo, zhi, ylo, yhi;
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  x = y = z = 0; /* silly compiler warning */
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    vdst = &mris_dst->vertices[vno];
-    if (vdst->ripflag) {
-      continue;
-    }
-    x = vdst->x;
-    y = vdst->y;
-    z = vdst->z;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-  x0 = (xlo + xhi) / 2.0f;
-  y0 = (ylo + yhi) / 2.0f;
-  z0 = (zlo + zhi) / 2.0f;
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    vdst = &mris_dst->vertices[vno];
-    if (vdst->ripflag) {
-      continue;
-    }
-    vdst->x -= x0;
-    vdst->y -= y0;
-    vdst->z -= z0;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-
-  mris_dst->xctr = mris_dst->yctr = mris_dst->zctr = 0;
-  mris_dst->xlo = xlo;
-  mris_dst->ylo = ylo;
-  mris_dst->zlo = zlo;
-  mris_dst->xhi = xhi;
-  mris_dst->yhi = yhi;
-  mris_dst->zhi = zhi;
-
-  return (mris_dst);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-
-  The following function is broken, since it is applying a
-  transform for surfaceRAS space.  If transform has c_(ras)
-  values, the result would be different.
-
-  conformed -----> surfaceRAS
-  |                |        [ 1 Csrc]
-  V                V        [ 0  1  ]
-  src    ----->    RAS
-  |                |
-  |                |  Xfm
-  V                V
-  talvol   ----->  talRAS
-  |                |        [ 1 -Ctal]
-  |                |        [ 0  1   ]
-  V                V
-  conformed -----> surfaceRAS
-
-  Thus
-
-  surfRASToTalSurfRAS = [ 1 -Ctal ]*[ R  T ]*[ 1 Csrc ]=
-  [ R  T + R*Csrc - Ctal ]
-  [ 0   1   ] [ 0  1 ] [ 0   1  ]  [ 0         1          ]
-
-  We need to know the Csrc and Ctal values
-  ------------------------------------------------------*/
-MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
-{
-  int vno;
-  VERTEX *v;
-  double x, y, z, xt, yt, zt;
-  float xlo, ylo, zlo, xhi, yhi, zhi;
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  if (!mris_src->lta) {
-    return (mris_dst);
-  }
-
-#if 0
-  if (!mris_src->linear_transform)
-  {
-    return(mris_dst) ;
-  }
-
-  ErrorReturn(mris_dst,
-              (ERROR_BADPARM, "MRIStalairachTransform: no xform loaded")) ;
-#endif
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    v = &mris_dst->vertices[vno];
-
-    x = v->x;
-    y = v->y;
-    z = v->z;  // we cloned the src
-    TransformWithMatrix(mris_src->SRASToTalSRAS_, x, y, z, &xt, &yt, &zt);
-    // transform_point(mris_src->linear_transform, -x, z, y, &xt, &yt, &zt) ;
-    // v->x = -xt ; v->y = zt ; v->z = yt ;
-    v->x = xt;
-    v->y = yt;
-    v->z = zt;
-
-    if (v->x > xhi) {
-      xhi = v->x;
-    }
-    if (v->x < xlo) {
-      xlo = v->x;
-    }
-    if (v->y > yhi) {
-      yhi = v->y;
-    }
-    if (v->y < ylo) {
-      ylo = v->y;
-    }
-    if (v->z > zhi) {
-      zhi = v->z;
-    }
-    if (v->z < zlo) {
-      zlo = v->z;
-    }
-  }
-
-  mris_dst->xlo = xlo;
-  mris_dst->ylo = ylo;
-  mris_dst->zlo = zlo;
-  mris_dst->xctr = (xhi + xlo) / 2;
-  mris_dst->yctr = (yhi + ylo) / 2;
-  mris_dst->zctr = (zhi + zlo) / 2;
-
-  return (mris_dst);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
   int old_status, steps;
@@ -14661,7 +14463,7 @@ static int mrisPlaceVertexInOrigFace(MRIS * const mris_vno, int const vno, MRIS 
   ADD(e1, e2, P);
   ADD(P, U0, P);
 
-  MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]); CHANGES_ORIG
+  MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]);
 
   return (NO_ERROR);
 }
@@ -14763,24 +14565,6 @@ int MRISinverseSphericalMap(MRIS *mris, MRIS *mris_ico)
   MHTfree(&mht);
   free(vcount);
 
-  return (NO_ERROR);
-}
-
-
-int MRISripZeroThicknessRegions(MRI_SURFACE *mris)
-{
-  VERTEX *v;
-  int vno;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (FZERO(v->whitex - v->pialx) && FZERO(v->whitey - v->pialy) && FZERO(v->whitez - v->pialz)) {
-      v->ripflag = 1;
-    }
-  }
   return (NO_ERROR);
 }
 

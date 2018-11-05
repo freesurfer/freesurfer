@@ -135,7 +135,7 @@ typedef struct edge_type_
 #define CONST_EXCEPT_MRISURF_TOPOLOGY const
 #endif
 
-#if defined(COMPILING_MRISURF_METRIC_PROPERTIES)
+#if defined(COMPILING_MRISURF_METRIC_PROPERTIES) || defined(COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND)
 #define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES 
 #else
 #define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES const
@@ -248,6 +248,12 @@ typedef struct VERTEX_TOPOLOGY {
 
 #endif
 
+
+typedef struct MRIS_XYZ {
+  float x,y,z;
+} MRIS_XYZ;
+
+
 typedef struct vertex_type_
 {
 // The LIST_OF_VERTEX_ELTS macro used here enables the the mris_hash
@@ -264,14 +270,17 @@ typedef struct vertex_type_
 //
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
-  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP             /* distance to neighboring vertices */          \
-  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP             /* original distance to neighboring vertices */ \
+  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP         /* distance to neighboring vertices */          \
+  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP         /* original distance to neighboring vertices */ \
+  \
   ELTT(const float,origx)                                       SEP             /* original coordinates */                      \
   ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() to set */           \
   ELTT(const float,origz)                                       SEP                                                             \
-  ELTT(float,x) SEP    \
-  ELTT(float,y) SEP    \
-  ELTT(float,z) SEP           /* curr position */    \
+  \
+  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* current coordinates */                       \
+  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
+  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
+  \
   ELTT(float,nx) SEP    \
   ELTT(float,ny) SEP    \
   ELTT(float,nz) SEP        /* curr normal */    \
@@ -1174,7 +1183,7 @@ double       MRIScomputeCorrelationError(MRI_SURFACE *mris,
     MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
-MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double pct_over) ;
+MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double nVFMultiplier) ;
 MRI_SURFACE  *MRISfastRead(const char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris,
@@ -1309,8 +1318,7 @@ int          MRISscaleDistances(MRI_SURFACE *mris, float scale) ;
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
     MRI_SURFACE *mris_dst,
     float a, float b, float c);
-MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
-MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+    
 int MRISorigVertexToVoxel(MRI_SURFACE *,
                           VERTEX *v,
                           MRI *mri,
@@ -1601,11 +1609,21 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define PIAL_NORMALS        13
 #define WHITE_NORMALS       14
 
+// Two ways of saving and restoring the VERTEX:xyz values
+//
+// The push/pop is preferable to using VERTEX members because it uses all the entries in a cache line
+//
+typedef struct MRISsavedXYZ MRISsavedXYZ;
+MRISsavedXYZ* MRISsaveXYZ(MRIS *mris);
+void          MRISloadXYZ(MRIS *mris, MRISsavedXYZ const *  pMRISsavedXYZ);  // does set
+void          MRISfreeXYZ(MRIS *mris, MRISsavedXYZ      ** ppMRISsavedXYZ);  // does not set
+void          MRISpopXYZ (MRIS *mris, MRISsavedXYZ      ** ppMRISsavedXYZ);  // set then free
 
-int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
-int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
-int MRISrestoreNormals(MRI_SURFACE *mris, int which) ;
-int MRISsaveNormals(MRI_SURFACE *mris, int which) ;
+int MRISsaveVertexPositions   (MRIS *mris, int which) ;
+int MRISrestoreVertexPositions(MRIS *mris, int which) ;
+
+int MRISrestoreNormals(MRIS *mris, int which) ;
+int MRISsaveNormals   (MRIS *mris, int which) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -1658,7 +1676,6 @@ int MRISsaveNormals(MRI_SURFACE *mris, int which) ;
 #define REVERSE_Y     1
 #define REVERSE_Z     2
 
-int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash,
@@ -2702,6 +2719,11 @@ int CompareFaceVertices(const void *vf1, const void *vf2);
 MRIS *MRISsortVertices(MRIS *mris0);
 
 
+// Create a surface
+//
+MRIS *MRISclone(MRIS *mris_src) ;
+
+
 // mrisurf_topology needed by more
 //
 //  Vertices, like Faces, come into existence when the surface is created with a vertex and face count.
@@ -2790,5 +2812,15 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 
 // Inputs to the metric properties
 //
-void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz);
+void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
+void MRISsetXYZ        (MRIS *mris, int vno, float x, float y, float z);
+void MRISsetOriginalXYZfromXYZ(MRIS *mris);
 
+
+// Deforming the MRIS
+//
+int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
+int  MRISscale     (MRIS *mris, double scale);
+
+MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;

@@ -1766,6 +1766,275 @@ int mrisRemoveLink(MRIS *mris, int vno1, int vno2)
   return (NO_ERROR);
 }
 
+
+#define MAX_VERTEX_NEIGHBORS 50
+#define MAX_FACES 50
+
+static void mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no);
+
+int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno2)
+{
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "dividing edge %d --> %d\n", vno1, vno2);
+  }
+
+  if (vno1 == Gdiag_no || vno2 == Gdiag_no || mris->nvertices == Gdiag_no) {
+    printf("dividing edge %d --> %d, adding vertex number %d\n", vno1, vno2, mris->nvertices);
+    DiagBreak();
+  }
+  VERTEX_TOPOLOGY const * const v1t = &mris->vertices_topology[vno1];
+  VERTEX          const * const v1  = &mris->vertices         [vno1];
+  VERTEX_TOPOLOGY const * const v2t = &mris->vertices_topology[vno2];
+  VERTEX          const * const v2  = &mris->vertices         [vno2];
+  
+  cheapAssert(!(v1->ripflag || v2->ripflag || mris->nvertices >= mris->max_vertices || mris->nfaces >= (mris->max_faces - 1)));
+
+  /* check to make sure these vertices or the faces they are part of
+     have enough room to expand.
+  */
+  cheapAssert(
+       !(   v1t->vnum >= MAX_VERTEX_NEIGHBORS || v2t->vnum >= MAX_VERTEX_NEIGHBORS 
+         || v1t->num  >= MAX_FACES            || v2t->num  >= MAX_FACES
+       ));
+
+  /* add 1 new vertex, 2 new faces, and 2 new edges */
+  int const vnew_no = mris->nvertices;
+  MRISgrowNVertices(mris, mris->nvertices+1);
+
+  VERTEX_TOPOLOGY * const vnewt = &mris->vertices_topology[vnew_no];
+  
+  vnewt->vnum = 2; /* at least connected to two bisected vertices */
+
+  /* count the # of faces that both vertices are part of */
+  int n, m, n1, n2;
+
+  int flist[100];
+  for (n = 0; n < v1t->num; n++) {
+    int const fno = v1t->f[n];
+    FACE const * const face = &mris->faces[fno];
+    for (m = 0; m < VERTICES_PER_FACE; m++)
+      if (face->v[m] == vno2) {
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+          fprintf(stdout, " face %d shared.\n", fno);
+        }
+        flist[vnewt->num++] = fno;
+        if (vnewt->num == 100) {
+          ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
+        }
+        vnewt->vnum++;
+        vnewt->vtotal = vnewt->vnum;
+      }
+  }
+
+  /* will be part of two new faces also */
+  // total array size is going to be vnew->num*2!
+  if (vnewt->num >= 50) {
+    ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
+  }
+  for (n = 0; n < vnewt->num; n++) {
+    flist[vnewt->num + n] = mris->nfaces + n;
+  }
+  vnewt->num *= 2;
+  vnewt->f = (int *)calloc(vnewt->num, sizeof(int));
+  if (!vnewt->f) {
+    ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
+  }
+  vnewt->n = (uchar *)calloc(vnewt->num, sizeof(uchar));
+  if (!vnewt->n) {
+    ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
+  }
+  vnewt->v = (int *)calloc(vnewt->vnum, sizeof(int));
+  if (!vnewt->v) ErrorExit(ERROR_NOMEMORY, "could not allocate %dth vertex list.\n", vnew_no);
+
+  vnewt->num = vnewt->vnum = 0;
+
+  /* divide every face that both vertices are part of in two */
+  for (n = 0; n < v1t->num; n++) {
+    int const fno = v1t->f[n];
+    FACE const * const face = &mris->faces[fno];
+    for (m = 0; m < VERTICES_PER_FACE; m++)
+      if (face->v[m] == vno2) {
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+          fprintf(stdout, "dividing face %d along edge %d-->%d.\n", fno, vno1, vno2);
+        if (face->v[m] == Gdiag_no || vno2 == Gdiag_no) {
+          DiagBreak();
+        }
+        mrisDivideFace(mris, fno, vno1, vno2, vnew_no);
+      }
+  }
+
+  /* build vnew->f and vnew->n lists by going through all faces v1 and
+     v2 are part of */
+  int fno;
+  for (fno = 0; fno < vnewt->num; fno++) {
+    vnewt->f[fno] = flist[fno];
+    FACE const * const face = &mris->faces[flist[fno]];
+    for (n = 0; n < VERTICES_PER_FACE; n++)
+      if (face->v[n] == vnew_no) {
+        vnewt->n[fno] = (uchar)n;
+      }
+  }
+
+  /* remove vno1 from vno2 list and visa-versa */
+  for (n = 0; n < v1t->vnum; n++)
+    if (v1t->v[n] == vno2) {
+      v1t->v[n] = vnew_no;
+      break;
+    }
+  for (n = 0; n < v2t->vnum; n++)
+    if (v2t->v[n] == vno1) {
+      v2t->v[n] = vnew_no;
+      break;
+    }
+  /* build vnew->v list by going through faces it is part of and
+     rejecting duplicates
+  */
+  for (fno = 0; fno < vnewt->num; fno++) {
+    typedef void vno1;
+    typedef void vno2;
+    
+    FACE const * const face = &mris->faces[vnewt->f[fno]];
+    n1 = vnewt->n[fno] == 0 ? VERTICES_PER_FACE - 1 : vnewt->n[fno] - 1;
+    n2 = vnewt->n[fno] == VERTICES_PER_FACE - 1 ? 0 : vnewt->n[fno] + 1;
+    int vnoA = face->v[n1];
+    int vnoB = face->v[n2];
+
+    /* go through this faces vertices and see if they should be added to v[] */
+    for (n = 0; n < vnewt->vnum; n++) {
+      if (vnewt->v[n] == vnoA) {
+        vnoA = -1;
+      }
+      if (vnewt->v[n] == vnoB) {
+        vnoB = -1;
+      }
+    }
+    if (vnoA >= 0) {
+      vnewt->v[vnewt->vnum++] = vnoA;
+    }
+    if (vnoB >= 0) {
+      vnewt->v[vnewt->vnum++] = vnoB;
+    }
+    vnewt->vtotal = vnewt->vnum;
+  }
+  if (0 && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "%d edges and %d faces.\n", vnewt->vnum, vnewt->num);
+  }
+
+  if (!vnewt->vnum || !v1t->vnum || !v2t->vnum) {
+    fprintf(stderr, "empty vertex (%d <-- %d --> %d!\n", vno1, vnew_no, vno2);
+    DiagBreak();
+  }
+  if (vnewt->vnum != 4 || vnewt->num != 4) {
+    DiagBreak();
+  }
+
+  mrisInitializeNeighborhood(mris, vnew_no);
+  
+  return vnew_no;
+}
+
+
+static void mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no)
+{
+  int fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000];
+
+  if (vno1 == Gdiag_no || vno2 == Gdiag_no || vnew_no == Gdiag_no) {
+    DiagBreak();
+  }
+
+  /* divide this face in two, reusing one of the face indices, and allocating
+     one new one
+  */
+  cheapAssert(mris->nfaces < mris->max_faces);
+
+  fnew_no = mris->nfaces;
+  MRISgrowNFaces(mris, fnew_no+1);
+
+  FACE * const f1 = &mris->faces[fno];
+  FACE * const f2 = &mris->faces[fnew_no];
+  VERTEX_TOPOLOGY const * const v2   = &mris->vertices_topology[vno2];
+  VERTEX_TOPOLOGY       * const vnew = &mris->vertices_topology[vnew_no];
+  memmove(f2->v, f1->v, VERTICES_PER_FACE * sizeof(int));
+
+  /* set v3 to be other vertex in face being divided */
+
+  /* 1st construct f1 by replacing vno2 with vnew_no */
+  for (vno3 = -1, n = 0; n < VERTICES_PER_FACE; n++) {
+    if (f1->v[n] == vno2) /* replace it with vnew */
+    {
+      f1->v[n] = vnew_no;
+      vnew->f[vnew->num] = fno;
+      vnew->n[vnew->num++] = (uchar)n;
+    }
+    else if (f1->v[n] != vno1) {
+      vno3 = f1->v[n];
+    }
+  }
+  
+  VERTEX_TOPOLOGY * const v3 = &mris->vertices_topology[vno3];
+
+  if (vno1 == Gdiag_no || vno2 == Gdiag_no || vno3 == Gdiag_no) {
+    DiagBreak();
+  }
+
+  /* now construct f2 */
+
+  /*  replace vno1 with vnew_no in f2 */
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    if (f2->v[n] == vno1) /* replace it with vnew */
+    {
+      f2->v[n] = vnew_no;
+      vnew->f[vnew->num] = fnew_no;
+      vnew->n[vnew->num++] = (uchar)n;
+    }
+  }
+
+  /* now replace f1 in vno2 with f2 */
+  for (n = 0; n < v2->num; n++)
+    if (v2->f[n] == fno) {
+      v2->f[n] = fnew_no;
+    }
+
+  /* add new face and edge connected to new vertex to v3 */
+  memmove(flist, v3->f, v3->num  * sizeof(v3->f[0]));
+  memmove(vlist, v3->v, v3->vnum * sizeof(v3->v[0]));
+  memmove(nlist, v3->n, v3->num  * sizeof(v3->n[0]));
+  free(v3->f);
+  free(v3->v);
+  free(v3->n);
+  v3->v = (int *)calloc(v3->vnum + 1, sizeof(int));
+  if (!v3->v) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d vertices", v3->vnum);
+  v3->f = (int *)calloc(v3->num + 1, sizeof(int));
+  if (!v3->f) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d faces", v3->num);
+  v3->n = (uchar *)calloc(v3->num + 1, sizeof(uchar));
+  if (!v3->n) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d nbrs", v3->n);
+  memmove(v3->f, flist, v3->num * sizeof(v3->f[0]));
+  memmove(v3->n, nlist, v3->num * sizeof(v3->n[0]));
+  memmove(v3->v, vlist, v3->vnum * sizeof(v3->v[0]));
+  v3->v[v3->vnum++] = vnew_no;
+  v3->vtotal = v3->vnum;
+  v3->f[v3->num] = fnew_no;
+
+  /*  find position of v3 in new face f2 */
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    if (f2->v[n] == vno3) {
+      v3->n[v3->num] = n;
+      break;
+    }
+  }
+  if (n >= VERTICES_PER_FACE) fprintf(stderr, "could not find v3 (%d) in new face %d!\n", vno3, fnew_no);
+  v3->num++;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+    fprintf(stdout, "face %d: (%d, %d, %d)\n", fno, f1->v[0], f1->v[1], f1->v[2]);
+    fprintf(stdout, "face %d: (%d, %d, %d)\n", fnew_no, f2->v[0], f2->v[1], f2->v[2]);
+  }
+
+  // MRISfindNeighborsAtVertex needs to be called on all the vertices within some extended neighborhood of the added vertex
+  //
+  mrisInitializeNeighborhood(mris, vno3);
+}
+
 static void mrisCompleteTopology_old(MRI_SURFACE *mris);
 static void mrisCompleteTopology_new(MRI_SURFACE *mris);
 
@@ -2670,427 +2939,3 @@ short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometric
 
   return 1;
 }
-
-
-#define MAX_VERTEX_NEIGHBORS 50
-#define MAX_FACES 50
-int mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no);
-
-int mrisDivideEdge(MRIS *mris, int vno1, int vno2)
-{
-  int n, m, n1, n2;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "dividing edge %d --> %d\n", vno1, vno2);
-  }
-
-  if (vno1 == Gdiag_no || vno2 == Gdiag_no || mris->nvertices == Gdiag_no) {
-    printf("dividing edge %d --> %d, adding vertex number %d\n", vno1, vno2, mris->nvertices);
-    DiagBreak();
-  }
-  VERTEX_TOPOLOGY const * const v1t = &mris->vertices_topology[vno1];
-  VERTEX          const * const v1  = &mris->vertices         [vno1];
-  VERTEX_TOPOLOGY const * const v2t = &mris->vertices_topology[vno2];
-  VERTEX          const * const v2  = &mris->vertices         [vno2];
-  
-  if (v1->ripflag || v2->ripflag || mris->nvertices >= mris->max_vertices || mris->nfaces >= (mris->max_faces - 1)) {
-    return (ERROR_NO_MEMORY);
-  }
-
-  /* check to make sure these vertices or the faces they are part of
-     have enough room to expand.
-  */
-  if (v1t->vnum >= MAX_VERTEX_NEIGHBORS || v2t->vnum >= MAX_VERTEX_NEIGHBORS || v1t->num >= MAX_FACES ||
-      v2t->num >= MAX_FACES) {
-    return (ERROR_NO_MEMORY);
-  }
-
-  /* add 1 new vertex, 2 new faces, and 2 new edges */
-  int const vnew_no = mris->nvertices;
-  VERTEX_TOPOLOGY * const vnewt = &mris->vertices_topology[vnew_no];
-  VERTEX          * const vnew  = &mris->vertices         [vnew_no];
-  
-  vnew->x = (v1->x + v2->x) / 2;
-  vnew->y = (v1->y + v2->y) / 2;
-  vnew->z = (v1->z + v2->z) / 2;
-  vnew->tx = (v1->tx + v2->tx) / 2;
-  vnew->ty = (v1->ty + v2->ty) / 2;
-  vnew->tz = (v1->tz + v2->tz) / 2;
-
-  vnew->infx = (v1->infx + v2->infx) / 2;
-  vnew->infy = (v1->infy + v2->infy) / 2;
-  vnew->infz = (v1->infz + v2->infz) / 2;
-
-  vnew->pialx = (v1->pialx + v2->pialx) / 2;
-  vnew->pialy = (v1->pialy + v2->pialy) / 2;
-  vnew->pialz = (v1->pialz + v2->pialz) / 2;
-
-  vnew->cx = (v1->cx + v2->cx) / 2;
-  vnew->cy = (v1->cy + v2->cy) / 2;
-  vnew->cz = (v1->cz + v2->cz) / 2;
-  vnew->x = (v1->x + v2->x) / 2;
-  vnew->y = (v1->y + v2->y) / 2;
-  vnew->z = (v1->z + v2->z) / 2;
-  vnew->odx = (v1->odx + v2->odx) / 2;
-  vnew->ody = (v1->ody + v2->ody) / 2;
-  vnew->odz = (v1->odz + v2->odz) / 2;
-  vnew->val = (v1->val + v2->val) / 2;
-  
-  MRISsetOriginalXYZ(mris, vnew_no, 
-    (v1->origx + v2->origx) / 2,
-    (v1->origy + v2->origy) / 2,
-    (v1->origz + v2->origz) / 2); CHANGES_ORIG
-    
-  vnewt->vnum = 2; /* at least connected to two bisected vertices */
-
-  /* count the # of faces that both vertices are part of */
-  int flist[100];
-  for (n = 0; n < v1t->num; n++) {
-    int const fno = v1t->f[n];
-    FACE const * const face = &mris->faces[fno];
-    for (m = 0; m < VERTICES_PER_FACE; m++)
-      if (face->v[m] == vno2) {
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-          fprintf(stdout, " face %d shared.\n", fno);
-        }
-        flist[vnewt->num++] = fno;
-        if (vnewt->num == 100) {
-          ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
-        }
-        vnewt->vnum++;
-        vnewt->vtotal = vnewt->vnum;
-      }
-  }
-
-  MRISgrowNVertices(mris, mris->nvertices+1);
-
-  /* will be part of two new faces also */
-  // total array size is going to be vnew->num*2!
-  if (vnewt->num >= 50) {
-    ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
-  }
-  for (n = 0; n < vnewt->num; n++) {
-    flist[vnewt->num + n] = mris->nfaces + n;
-  }
-  vnewt->num *= 2;
-  vnewt->f = (int *)calloc(vnewt->num, sizeof(int));
-  if (!vnewt->f) {
-    ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
-  }
-  vnewt->n = (uchar *)calloc(vnewt->num, sizeof(uchar));
-  if (!vnewt->n) {
-    ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
-  }
-  vnewt->v = (int *)calloc(vnewt->vnum, sizeof(int));
-  if (!vnewt->v) ErrorExit(ERROR_NOMEMORY, "could not allocate %dth vertex list.\n", vnew_no);
-
-  vnewt->num = vnewt->vnum = 0;
-
-  /* divide every face that both vertices are part of in two */
-  for (n = 0; n < v1t->num; n++) {
-    int const fno = v1t->f[n];
-    FACE const * const face = &mris->faces[fno];
-    for (m = 0; m < VERTICES_PER_FACE; m++)
-      if (face->v[m] == vno2) {
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-          fprintf(stdout, "dividing face %d along edge %d-->%d.\n", fno, vno1, vno2);
-        if (face->v[m] == Gdiag_no || vno2 == Gdiag_no) {
-          DiagBreak();
-        }
-        mrisDivideFace(mris, fno, vno1, vno2, vnew_no);
-      }
-  }
-
-  /* build vnew->f and vnew->n lists by going through all faces v1 and
-     v2 are part of */
-  int fno;
-  for (fno = 0; fno < vnewt->num; fno++) {
-    vnewt->f[fno] = flist[fno];
-    FACE const * const face = &mris->faces[flist[fno]];
-    for (n = 0; n < VERTICES_PER_FACE; n++)
-      if (face->v[n] == vnew_no) {
-        vnewt->n[fno] = (uchar)n;
-      }
-  }
-
-  /* remove vno1 from vno2 list and visa-versa */
-  for (n = 0; n < v1t->vnum; n++)
-    if (v1t->v[n] == vno2) {
-      v1t->v[n] = vnew_no;
-      break;
-    }
-  for (n = 0; n < v2t->vnum; n++)
-    if (v2t->v[n] == vno1) {
-      v2t->v[n] = vnew_no;
-      break;
-    }
-  /* build vnew->v list by going through faces it is part of and
-     rejecting duplicates
-  */
-  for (fno = 0; fno < vnewt->num; fno++) {
-    FACE const * const face = &mris->faces[vnewt->f[fno]];
-    n1 = vnewt->n[fno] == 0 ? VERTICES_PER_FACE - 1 : vnewt->n[fno] - 1;
-    n2 = vnewt->n[fno] == VERTICES_PER_FACE - 1 ? 0 : vnewt->n[fno] + 1;
-    vno1 = face->v[n1];
-    vno2 = face->v[n2];
-
-    /* go through this faces vertices and see if they should be added to v[] */
-    for (n = 0; n < vnewt->vnum; n++) {
-      if (vnewt->v[n] == vno1) {
-        vno1 = -1;
-      }
-      if (vnewt->v[n] == vno2) {
-        vno2 = -1;
-      }
-    }
-    if (vno1 >= 0) {
-      vnewt->v[vnewt->vnum++] = vno1;
-    }
-    if (vno2 >= 0) {
-      vnewt->v[vnewt->vnum++] = vno2;
-    }
-    vnewt->vtotal = vnewt->vnum;
-  }
-  if (0 && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "%d edges and %d faces.\n", vnewt->vnum, vnewt->num);
-  }
-
-  if (!vnewt->vnum || !v1t->vnum || !v2t->vnum) {
-    fprintf(stderr, "empty vertex (%d <-- %d --> %d!\n", vno1, vnew_no, vno2);
-    DiagBreak();
-  }
-  if (vnewt->vnum != 4 || vnewt->num != 4) {
-    DiagBreak();
-  }
-  mrisInitializeNeighborhood(mris, vnew_no);
-  return (NO_ERROR);
-}
-
-
-/*
-  nsubs = 1 --> divide edge in half
-        = 2 --> divide edge in half twice, add 3 vertices
-        = 3 --> divide edge in half three times, add 7 vertices
-*/
-#define MAX_SURFACE_FACES 200000
-int MRISdivideEdges(MRIS *mris, int nsubdivisions)
-{
-  int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
-  FACE *f;
-
-  for (nadded = sub = 0; sub < nsubdivisions; sub++) {
-    nfaces = mris->nfaces;
-    nvertices = mris->nvertices;  // before adding any
-    for (fno = 0; fno < nfaces; fno++) {
-      faces[fno] = fno;
-    }
-    for (fno = 0; fno < nfaces; fno++) {
-      int tmp;
-
-      index = (int)randomNumber(0.0, (double)(nfaces - 0.0001));
-      tmp = faces[fno];
-      if (faces[fno] == Gdiag_no || faces[index] == Gdiag_no) {
-        DiagBreak();
-      }
-      faces[fno] = faces[index];
-      faces[index] = tmp;
-    }
-
-    for (index = 0; index < nfaces; index++) {
-      fno = faces[index];
-      f = &mris->faces[fno];
-      if (fno == Gdiag_no) {
-        DiagBreak();
-      }
-
-      if (f->v[0] < nvertices && f->v[1] < nvertices)
-        if (mrisDivideEdge(mris, f->v[0], f->v[1]) == NO_ERROR) {
-          nadded++;
-        }
-      if (f->v[0] < nvertices && f->v[2] < nvertices)
-        if (mrisDivideEdge(mris, f->v[0], f->v[2]) == NO_ERROR) {
-          nadded++;
-        }
-      if (f->v[1] < nvertices && f->v[2] < nvertices)
-        if (mrisDivideEdge(mris, f->v[1], f->v[2]) == NO_ERROR) {
-          nadded++;
-        }
-    }
-  }
-
-  if (Gdiag & DIAG_SHOW && nadded > 0) {
-    fprintf(stdout,
-            "MRISdivideEdges(%d): %d vertices added: # of vertices=%d, # of faces=%d.\n",
-            nsubdivisions,
-            nadded,
-            mris->nvertices,
-            mris->nfaces);
-#if 0
-    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
-            nvertices, nedges, nfaces, eno, 2-eno) ;
-#endif
-  }
-  return (nadded);
-}
-
-
-int MRISdivideLongEdges(MRIS *mris, double thresh)
-{
-  double dist;
-  int vno, nadded, n /*,nvertices, nfaces, nedges, eno*/;
-  float x, y, z;
-
-  /* make it squared so we don't need sqrts later */
-  for (nadded = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    x = v->x;
-    y = v->y;
-    z = v->z;
-
-    /*
-      only add vertices if average neighbor vector is in
-      normal direction, that is, if the region is concave or sulcal.
-    */
-    for (n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
-      if (dist > thresh) {
-        if (mrisDivideEdge(mris, vno, vt->v[n]) == NO_ERROR) {
-          nadded++;
-        }
-      }
-    }
-  }
-
-  if (Gdiag & DIAG_SHOW && nadded > 0) {
-    fprintf(stdout,
-            "%2.2f mm: %d vertices added: # of vertices=%d, # of faces=%d.\n",
-            thresh,
-            nadded,
-            mris->nvertices,
-            mris->nfaces);
-#if 0
-    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
-            nvertices, nedges, nfaces, eno, 2-eno) ;
-#endif
-  }
-  return (nadded);
-}
-
-
-
-int mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no)
-{
-  int fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000];
-
-  if (vno1 == Gdiag_no || vno2 == Gdiag_no || vnew_no == Gdiag_no) {
-    DiagBreak();
-  }
-
-  /* divide this face in two, reusing one of the face indices, and allocating
-     one new one
-  */
-  if (mris->nfaces >= mris->max_faces) {
-    return (ERROR_NO_MEMORY);
-  }
-
-  fnew_no = mris->nfaces;
-  MRISgrowNFaces(mris, fnew_no+1);
-
-  FACE * const f1 = &mris->faces[fno];
-  FACE * const f2 = &mris->faces[fnew_no];
-  VERTEX_TOPOLOGY const * const v2   = &mris->vertices_topology[vno2];
-  VERTEX_TOPOLOGY       * const vnew = &mris->vertices_topology[vnew_no];
-  memmove(f2->v, f1->v, VERTICES_PER_FACE * sizeof(int));
-
-  /* set v3 to be other vertex in face being divided */
-
-  /* 1st construct f1 by replacing vno2 with vnew_no */
-  for (vno3 = -1, n = 0; n < VERTICES_PER_FACE; n++) {
-    if (f1->v[n] == vno2) /* replace it with vnew */
-    {
-      f1->v[n] = vnew_no;
-      vnew->f[vnew->num] = fno;
-      vnew->n[vnew->num++] = (uchar)n;
-    }
-    else if (f1->v[n] != vno1) {
-      vno3 = f1->v[n];
-    }
-  }
-  
-  VERTEX_TOPOLOGY * const v3 = &mris->vertices_topology[vno3];
-
-  if (vno1 == Gdiag_no || vno2 == Gdiag_no || vno3 == Gdiag_no) {
-    DiagBreak();
-  }
-
-  /* now construct f2 */
-
-  /*  replace vno1 with vnew_no in f2 */
-  for (n = 0; n < VERTICES_PER_FACE; n++) {
-    if (f2->v[n] == vno1) /* replace it with vnew */
-    {
-      f2->v[n] = vnew_no;
-      vnew->f[vnew->num] = fnew_no;
-      vnew->n[vnew->num++] = (uchar)n;
-    }
-  }
-
-  /* now replace f1 in vno2 with f2 */
-  for (n = 0; n < v2->num; n++)
-    if (v2->f[n] == fno) {
-      v2->f[n] = fnew_no;
-    }
-
-  /* add new face and edge connected to new vertex to v3 */
-  memmove(flist, v3->f, v3->num  * sizeof(v3->f[0]));
-  memmove(vlist, v3->v, v3->vnum * sizeof(v3->v[0]));
-  memmove(nlist, v3->n, v3->num  * sizeof(v3->n[0]));
-  free(v3->f);
-  free(v3->v);
-  free(v3->n);
-  v3->v = (int *)calloc(v3->vnum + 1, sizeof(int));
-  if (!v3->v) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d vertices", v3->vnum);
-  v3->f = (int *)calloc(v3->num + 1, sizeof(int));
-  if (!v3->f) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d faces", v3->num);
-  v3->n = (uchar *)calloc(v3->num + 1, sizeof(uchar));
-  if (!v3->n) ErrorExit(ERROR_NO_MEMORY, "mrisDivideFace: could not allocate %d nbrs", v3->n);
-  memmove(v3->f, flist, v3->num * sizeof(v3->f[0]));
-  memmove(v3->n, nlist, v3->num * sizeof(v3->n[0]));
-  memmove(v3->v, vlist, v3->vnum * sizeof(v3->v[0]));
-  v3->v[v3->vnum++] = vnew_no;
-  v3->vtotal = v3->vnum;
-  v3->f[v3->num] = fnew_no;
-
-  /*  find position of v3 in new face f2 */
-  for (n = 0; n < VERTICES_PER_FACE; n++) {
-    if (f2->v[n] == vno3) {
-      v3->n[v3->num] = n;
-      break;
-    }
-  }
-  if (n >= VERTICES_PER_FACE) fprintf(stderr, "could not find v3 (%d) in new face %d!\n", vno3, fnew_no);
-  v3->num++;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "face %d: (%d, %d, %d)\n", fno, f1->v[0], f1->v[1], f1->v[2]);
-    fprintf(stdout, "face %d: (%d, %d, %d)\n", fnew_no, f2->v[0], f2->v[1], f2->v[2]);
-  }
-
-  // MRISfindNeighborsAtVertex needs to be called on all the vertices within some extended neighborhood of the added vertex
-  //
-  mrisInitializeNeighborhood(mris, vno3);
-
-  return (NO_ERROR);
-}
-
-

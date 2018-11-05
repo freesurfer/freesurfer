@@ -1719,11 +1719,19 @@ IC_FACE ic4_faces[5120] = {
     {{2562, 2561, 558}},  {{624, 2562, 2478}},  {{2562, 558, 2202}},  {{2478, 2562, 2202}}, {{2478, 2202, 12}}};
 
 
-MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) {
-  int fno, vno;
+static MRIS *ICOtoScaledMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces, float scaleFactor);
 
+
+MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) {
+  return ICOtoScaledMRIS(ico, max_vertices, max_faces, 1.0f);
+}
+
+
+static MRIS *ICOtoScaledMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces, float scaleFactor) {
+
+  int fno;
   for (fno = 0; fno < ico->nfaces; fno++) {
-    vno = ico->faces[fno].vno[1];
+    int vno = ico->faces[fno].vno[1];
     ico->faces[fno].vno[1] = ico->faces[fno].vno[2];
     ico->faces[fno].vno[2] = vno;
   }
@@ -1733,13 +1741,12 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
         max_vertices,   max_faces,
         ico->nvertices, ico->nfaces);
 
-  /* position vertices */
+  int vno;
   for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-
-    v->x = ico->vertices[vno].x;
-    v->y = ico->vertices[vno].y;
-    v->z = ico->vertices[vno].z;
+    MRISsetXYZ(mris,vno,
+      scaleFactor * ico->vertices[vno].x,
+      scaleFactor * ico->vertices[vno].y,
+      scaleFactor * ico->vertices[vno].z);
   }
 
   int n1, n2, n, vn;
@@ -1837,13 +1844,13 @@ MRIS *ICOtoMRIS(ICOSAHEDRON const * const ico, int max_vertices, int max_faces) 
 }
 
 
-MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over)
+MRI_SURFACE *ICOreadOverAlloc(const char *fname, double nVFMultiplier, float scaleFactor)
 {
   ICOSAHEDRON * const ico = read_icosahedron(fname);
   if (ico == NULL) ErrorReturn(NULL, (ERROR_NOFILE, "ICOreadOverAlloc(%s): could not open file", fname));
 
   MRIS* mris = 
-    ICOtoMRIS(ico, pct_over * ico->nvertices, pct_over * ico->nfaces);
+    ICOtoScaledMRIS(ico, nVFMultiplier * ico->nvertices, nVFMultiplier * ico->nfaces, scaleFactor);
   
   free(ico->vertices);
   free(ico->faces);
@@ -1855,7 +1862,7 @@ MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over)
 
 MRI_SURFACE *ICOread(const char *fname)
 {
-  return ICOreadOverAlloc(fname, 1.0);
+  return ICOreadOverAlloc(fname, 1.0, 1.0f);
 }
 
 
@@ -1962,24 +1969,16 @@ int ICOreadVertexPositions(MRI_SURFACE * const mris, const char * const fname, i
   /* position vertices */
   int vno;
   for (vno = 0; vno < ico->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-
     switch (which) {
-      default:
       case CURRENT_VERTICES:
-        v->x = ico->vertices[vno].x;
-        v->y = ico->vertices[vno].y;
-        v->z = ico->vertices[vno].z;
+        MRISsetXYZ(mris,vno,
+          ico->vertices[vno].x,
+          ico->vertices[vno].y,
+          ico->vertices[vno].z);
         break;
-      case CANONICAL_VERTICES:
-        v->cx = ico->vertices[vno].x;
-        v->cy = ico->vertices[vno].y;
-        v->cz = ico->vertices[vno].z;
-        break;
-      case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, ico->vertices[vno].x, ico->vertices[vno].y, ico->vertices[vno].z);
-        break;
-    }
+      default:
+        cheapAssert(!"ICOreadVertexPositions bad which");
+     }
   }
   return (NO_ERROR);
 }
@@ -1996,30 +1995,22 @@ int ICOreadVertexPositions(MRI_SURFACE * const mris, const char * const fname, i
   -------------------------------------------------------------------*/
 MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor)
 {
-  char *FREESURFER_HOME, trifile[2048];
-  MRI_SURFACE *surf;
-  VERTEX *v;
-  int vtx;
-
-  FREESURFER_HOME = getenv("FREESURFER_HOME");
+  char *FREESURFER_HOME = getenv("FREESURFER_HOME");
   if (FREESURFER_HOME == NULL) ErrorExit(ERROR_BADPARM, "FREESURFER_HOME must be defined");
+
+  char trifile[2048];
   sprintf(trifile, "%s/lib/bem/ic%d.tri", FREESURFER_HOME, IcoOrder);
   printf("   Reading icosahedron %s\n", trifile);
-  surf = ICOread(trifile);
+  
+  MRI_SURFACE *surf = ICOreadOverAlloc(trifile, 1, (RescaleFactor>0) ? RescaleFactor : 1.0f);
   if (surf == NULL) {
-    fprintf(stderr, "ERROR: ReadIcoByOrder: reading icosahedron file\n");
+    fprintf(stderr, "ERROR: ReadIcoByOrder: failed reading icosahedron file\n");
     return (NULL);
   }
 
-  /* rescale xyz to something other than the unit sphere */
-  if (RescaleFactor > 0 && RescaleFactor != 1) {
-    for (vtx = 0; vtx < surf->nvertices; vtx++) {
-      v = &surf->vertices[vtx];
-      v->x *= RescaleFactor;
-      v->y *= RescaleFactor;
-      v->z *= RescaleFactor;
-    }
-  }
+  // Note - the old code did not recompute the metric properties again after rescaling
+  // so either it was using the wrong values or it did not care about them
+  
   return (surf);
 }
 /*-----------------------------------------------------------------

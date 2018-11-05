@@ -454,22 +454,22 @@ static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
 {
   static int direction = 1;
-  double mag;
-  int vno, i;
-
+  int i;
   for (i = 0; i < mris->nvertices; i++) {
-    if (direction < 0)
-      vno = mris->nvertices - i - 1;
-    else
-      vno = i;
+    int const vno =
+      (direction < 0) ? (mris->nvertices - i - 1) : (i);
+      
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
+    
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
+    
     v->odx = delta_t * v->dx + momentum * v->odx;
     v->ody = delta_t * v->dy + momentum * v->ody;
     v->odz = delta_t * v->dz + momentum * v->odz;
-    mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
+    
+    double mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
     if (mag > max_mag) /* don't let step get too big */
     {
       mag = max_mag / mag;
@@ -480,16 +480,16 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
     /* erase the faces this vertex is part of */
 
-    if (mht) MHTremoveAllFaces(mht, mris, vt);
-
-    if (mht) mrisLimitGradientDistance(mris, mht, vno);
-
-    v->x += v->odx;
-    v->y += v->ody;
-    v->z += v->odz;
-
-    if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) DiagBreak();
-
+    if (mht) {
+      MHTremoveAllFaces(mht, mris, vt);
+      mrisLimitGradientDistance(mris, mht, vno);
+    }
+    
+    MRISsetXYZ(mris, vno, 
+      v->x + v->odx,
+      v->y + v->ody,
+      v->z + v->odz);
+    
     if (mht) MHTaddAllFaces(mht, mris, vt);
   }
 
@@ -968,13 +968,15 @@ MRIS *MRISmatchSurfaceToLabel(
 // smooth a surface 'niter' times with a step (should be around 0.5)
 void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
 {
-  int iter, k, m, n;
-  float x, y, z;
 
   if (step > 1) step = 1.0f;
 
+  int iter;
   for (iter = 0; iter < niter; iter++) {
+
     MRIScomputeMetricProperties(mris);
+
+    int k;
     for (k = 0; k < mris->nvertices; k++) {
       VERTEX * v = &mris->vertices[k];
       v->tx = v->x;
@@ -985,28 +987,32 @@ void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
     for (k = 0; k < mris->nvertices; k++) {
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
       VERTEX                * const v  = &mris->vertices         [k];
-      n = 0;
-      x = y = z = 0;
+      
+      float x = 0, y = 0, z = 0;
+      
+      int m;
       for (m = 0; m < vt->vnum; m++) {
         x += mris->vertices[vt->v[m]].tx;
         y += mris->vertices[vt->v[m]].ty;
         z += mris->vertices[vt->v[m]].tz;
-        n++;
       }
-      x /= n;
-      y /= n;
-      z /= n;
+      x /= vt->vnum;
+      y /= vt->vnum;
+      z /= vt->vnum;
 
       v->dx = step * (x - v->x);
       v->dy = step * (y - v->y);
       v->dz = step * (z - v->z);
     }
+    
     mrisAverageSignedGradients(mris, avrg);
+    
     for (k = 0; k < mris->nvertices; k++) {
-      VERTEX * v = &mris->vertices[k];
-      v->x += v->dx;
-      v->y += v->dy;
-      v->z += v->dz;
+      VERTEX * const v = &mris->vertices[k];
+      MRISsetXYZ(mris, k,
+        v->x + v->dx,
+        v->y + v->dy,
+        v->z + v->dz);
     }
   }
 }
@@ -2217,9 +2223,10 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
       CTABfindAnnotation(pial->ct, annot, &annotid);
     }
     if (annotid == -1 || white->vertices[vtxno].ripflag || pial->vertices[vtxno].ripflag) {
-      pial->vertices[vtxno].x = white->vertices[vtxno].x;
-      pial->vertices[vtxno].y = white->vertices[vtxno].y;
-      pial->vertices[vtxno].z = white->vertices[vtxno].z;
+      MRISsetXYZ(pial,vtxno,
+        white->vertices[vtxno].x,
+        white->vertices[vtxno].y,
+        white->vertices[vtxno].z);
     }
     
     ROMP_PFLB_end
@@ -2242,7 +2249,6 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
 int MRISshiftCRAS(MRIS *mris, int shift)
 {
   double dx, dy, dz;
-  int vno;
 
   if (shift == +1) {
     mris->useRealRAS = 1;
@@ -2262,11 +2268,11 @@ int MRISshiftCRAS(MRIS *mris, int shift)
     mris->yctr = 0;
     mris->zctr = 0;
   }
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices[vno].x += dx;
-    mris->vertices[vno].y += dy;
-    mris->vertices[vno].z += dz;
-  }
+  
+  MRIStranslate(mris, dx, dy, dz);
+    // The old code did not call mrisComputeSurfaceDimensions
+    // leaving various values wrong
+  
   return (0);
 }
 
@@ -2433,7 +2439,7 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation)
 {
   int n, nmin, vtxnominmin, vtxno, pointno;
-  VERTEX v;
+  struct { float x,y,z; } v;
   static MATRIX *crs = NULL, *ras = NULL;
   float dminsurf;
   float dminmin = 0.0;
@@ -2476,7 +2482,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
       // If it gets here, then remove the vertex
       if (l2s->debug)
         printf(
-            "Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n", nmin, vtxno, col, row, slice, v.x, v.y, v.z);
+            "Removing surf=%d vtxno=%d %g %g %g \n", nmin, vtxno, col, row, slice);
       lv->deleted = 1;
       MRIsetVoxVal(l2s->masks[nmin], lv->vno, 0, 0, 0, 0);
       return (1);
@@ -2504,7 +2510,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
   vtxnominmin = -1;  // number of closest vertex
   nmin = -1;         // index of the surface with the closest vertex
   for (n = 0; n < l2s->nsurfs; n++) {
-    vtxno = MHTfindClosestVertexNo(l2s->hashes[n], l2s->surfs[n], &v, &dminsurf);
+    vtxno = MHTfindClosestVertexNoXYZ(l2s->hashes[n], l2s->surfs[n], v.x,v.y,v.z, &dminsurf);
     if (vtxno >= 0) {
       if (l2s->debug > 1)
         printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",

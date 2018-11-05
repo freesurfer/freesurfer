@@ -306,18 +306,6 @@ static bool hasActiveRealmTrees() {
     return mrisurf_activeRealmTreesSize > 0;
 }
 
-#define CHANGES_ORIG                                                                        \
-    if (hasActiveRealmTrees()) {                                                            \
-        static int latest;                                                                  \
-        if (mrisurf_orig_clock != latest) {                                                 \
-            latest = mrisurf_orig_clock;                                                    \
-            fprintf(stderr,"%s:%d changes orig <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n",     \
-                __FILE__,__LINE__);                                                         \
-        }                                                                                   \
-    }                                                                                       \
-    // end of macro
-
-
 // mrisurf_base
 //
 extern double NEG_AREA_K;
