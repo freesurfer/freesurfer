@@ -2764,6 +2764,7 @@ MRI *TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst,
       // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
       //      ((LTA *)transform->xform)->xforms[0].m_L);
       lta = (LTA *)transform->xform;
+      LTAfillInverse(lta);
       mri_dst = LTAinverseTransformInterp(mri_src, mri_dst, lta, interp_type);
       break;
   }

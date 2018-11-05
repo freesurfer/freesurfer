@@ -44,26 +44,24 @@ static char vcid[] = "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
-static void usage_exit(void) ;
 static void print_usage(void) ;
-static void print_help(void) ;
 static void print_version(void) ;
 
 const char *Progname ;
 static MRI_SURFACE  *mris ;
-static int invert = 0 ;
+static int inverse_flag = 0 ;
 
-MRI          *mri = 0;
+MRI          *mri_src = 0;
 MRI          *mri_dst = 0;
 
 int
 main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname, *xform_fname ;
   int          ac, nargs ;
-  LTA          *lta=0 ;
-  int          transform_type;
-  TRANSFORM    *transform ;
 
+  if (argc == 1)
+    print_usage();
+  
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
@@ -82,8 +80,8 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
-    usage_exit() ;
+  if (argc != 4)
+    ErrorExit(ERROR_BADPARM, "ERROR: incorrect number of arguments");
 
   in_fname = argv[1] ;
   xform_fname = argv[2] ;
@@ -91,91 +89,68 @@ main(int argc, char *argv[]) {
 
   mris = MRISread(in_fname) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
+    ErrorExit(ERROR_NOFILE, "ERROR: could not read surface file %s",
+              in_fname) ;
 
-  // read transform
-  transform_type =  TransformFileNameType(xform_fname);
-  transform = TransformRead(xform_fname) ;
+  TRANSFORM *transform = TransformRead(xform_fname) ;
   if (!transform)
-    ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-              Progname, xform_fname) ;
-  if (transform->type == MNI_TRANSFORM_TYPE ||
-      transform->type == TRANSFORM_ARRAY_TYPE ||
-      transform->type  == REGISTER_DAT) {
-    lta = (LTA *)(transform->xform) ;
-
-    if (mri == 0 && lta->xforms[0].src.valid == 0) {
-      fprintf(stderr, "The transform does not have the valid src volume info.\n");
-      fprintf(stderr, "Either you give src volume info by option --src or\n");
-      fprintf(stderr, "make the transform to have the valid src info.\n");
-      ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-    }
-    if (mri_dst == 0 && lta->xforms[0].dst.valid == 0) {
-      fprintf(stderr, "The transform does not have the valid dst volume info.\n");
-      fprintf(stderr, "Either you give src volume info by option --dst or\n");
-      fprintf(stderr, "make the transform to have the valid dst info.\n");
-      fprintf(stderr, "If the dst was average_305, then you can set\n");
-      fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
-      fprintf(stderr, "without giving the dst volume for RAS-to-RAS transform.\n");
-      ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-    }
-    //
-    // depend on the type of transform you have to handle differently
-    //
-    //       orig              ------>      RAS   c_(ras) != 0
-    //        |                              |
-    //        |                              | identity
-    //        V                              V
-    //    conformed vol        ------>      RAS
-    //        |                              |
-    //        | identity                     |
-    //        V                              V
-    //    conformed vol        ------>   surfaceRAS
-    //
-    // given a volume transform you have to create a surfaceRAS transform
-    //
-    // Note that vertices are given by surfaceRAS coordinates
-    //
-    // RAS-to-RAS transform
-    //
-    //    surfaceRAS--->RAS --(ras-to-ras)-->RAS -->surfaceRAS
-    //
-    // VOX-to-Vox transform
-    //
-    //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
-    //
-    //
-    if (invert) {
-      VOL_GEOM vgtmp;
-      LT *lt;
-      MATRIX *m_tmp = lta->xforms[0].m_L ;
-      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
-      MatrixFree(&m_tmp) ;
-      lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0) {
-        fprintf(stderr, "WARNING:***************************************************************\n");
-        fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
-        fprintf(stderr, "WARNING:***************************************************************\n");
+    ErrorExit(ERROR_NOFILE, "ERROR: could not read transform file %s",
+              xform_fname) ;
+  
+  if (transform->type != MORPH_3D_TYPE) {
+    LTA *tmp = (LTA *)transform->xform;
+    LTA *lta = LTAreduce(tmp); // Apply full array, allocation.
+    LTAfree(&tmp);
+    if (lta->xforms[0].src.valid == 0) {
+      if (mri_src == 0) {
+        fprintf(stderr, "The transform does not have the valid src volume info.\n");
+        fprintf(stderr, "Either you specify it with --trx-src or\n");
+        fprintf(stderr, "make the transform to have the valid src info.\n");
+        ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
       }
-      copyVolGeom(&lt->dst, &vgtmp);
-      copyVolGeom(&lt->src, &lt->dst);
-      copyVolGeom(&vgtmp, &lt->src);
+      getVolGeom(mri_src, &lta->xforms[0].src);
     }
-  } else {
-    TransformInvert(transform, mri_dst) ;
-    if (invert) {}
-    //    ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat type");
+    if (lta->xforms[0].dst.valid == 0) {
+      if (mri_dst == 0) {
+        fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+        fprintf(stderr, "Either you specify it with --trx-dst or\n");
+        fprintf(stderr, "make the transform to have the valid dst info.\n");
+        fprintf(stderr, "If the dst was average_305, then you can set\n");
+        fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+        fprintf(stderr, "without giving the dst volume for RAS-to-RAS transform.\n");
+        ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+      }
+      getVolGeom(mri_dst, &lta->xforms[0].dst);
+    }
+    LTAchangeType(lta, LINEAR_VOX_TO_VOX); // Support more types.
+    transform->type = LINEAR_VOX_TO_VOX;
+    transform->xform = (void *)lta;
   }
-  //
-  MRIStransform(mris, mri, transform, mri_dst) ;
+  
+  // To map source to target image, GCAMs contain a coordinate transform
+  // from target to source: need to invert GCAMs as we want to transform
+  // coordinates from source to target here.
+  int do_invert = transform->type == MORPH_3D_TYPE;
+  if (inverse_flag) do_invert = !do_invert;
+  if (do_invert) TransformInvertReplace(transform, mri_dst);
+  
+  if (!transform->xform) {
+    fprintf(stderr, "ERROR: could not invert transform. Try explicitly");
+    fprintf(stderr, " specifying the target geometry of the transform");
+    fprintf(stderr, " if the target volume was moved.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  // MRIStransform() interprets source/target MRIs differently for LTAs and
+  // GCAMs. If NULL is passed, it will just figure it out from the transform.
+  MRIStransform(mris, NULL, transform, NULL) ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing surface to %s\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
 
-  if (mri)
-    MRIfree(&mri);
+  if (mri_src)
+    MRIfree(&mri_src);
   if (mri_dst)
     MRIfree(&mri_dst);
 
@@ -193,69 +168,38 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
-    print_help() ;
-  else if (!stricmp(option, "-src")) {
-    fprintf(stderr, "Reading src volume...\n");
-    mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri) {
+  if (!stricmp(option, "-help") || !stricmp(option, "h")
+      || !stricmp(option, "u") || !stricmp(option, "?"))
+    print_usage() ;
+  else if (!stricmp(option, "-trx-src") || !stricmp(option, "s")) {
+    fprintf(stderr, "Reading src volume of transform...\n");
+    mri_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri_src) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  } else if (!stricmp(option, "-dst")) {
-    fprintf(stderr, "Reading dst volume...\n");
+  } else if (!stricmp(option, "-trx-dst") || !stricmp(option, "d")) {
+    fprintf(stderr, "Reading dst volume of transform...\n");
     mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
     if (!mri_dst) {
-      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+      ErrorExit(ERROR_BADPARM, "ERROR: could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  } else if (!stricmp(option, "-version"))
+  } else if (!stricmp(option, "-version") || !stricmp(option, "v"))
     print_version() ;
-  else if (!stricmp(option, "-invert"))
-    invert = 1 ;
-  else switch (toupper(*option)) {
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  else if (!stricmp(option, "-is-inverse") || !stricmp(option, "i"))
+    inverse_flag = 1 ;
+  else
+    ErrorExit(ERROR_BADPARM, "ERROR: unknown option %s", argv[1]);
 
   return(nargs) ;
 }
 
-static void
-usage_exit(void) {
-  print_usage() ;
-  exit(1) ;
-}
-
+#include "mris_transform.help.xml.h"
 static void
 print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <input surf> <transform file> <output surf>\n",
-          Progname) ;
-  fprintf(stderr, "  options: --src <volumename>  src volume\n");
-  fprintf(stderr, "                 use this option if the transform is created by MNI mritotal\n");
-  fprintf(stderr, "         : --dst <volumename>  dst volume\n");
-  fprintf(stderr, "                 use this option if the transform target is <not> average_305\n");
-  fprintf(stderr, "         : --invert    apply inverted transform\n");
-  fprintf(stderr, "         : --help     print help\n");
-  fprintf(stderr, "         : --version  print version\n");
-  fprintf(stderr, "         : -?, -U     print usage.\n");
-}
-
-static void
-print_help(void) {
-  print_usage() ;
-  fprintf(stderr,
-          "\nThis program will transform an MRI surface into Talairach space.\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-  exit(1) ;
+  outputHelpXml(mris_transform_help_xml, mris_transform_help_xml_len);
+  exit(EXIT_SUCCESS);
 }
 
 static void
