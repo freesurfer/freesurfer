@@ -278,12 +278,6 @@ int mrisComputeSurfaceDimensions(MRIS *mris)
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *vertex = &mris->vertices[vno];
-#if 0
-    if (vertex->ripflag)
-    {
-      continue ;
-    }
-#endif
     float const x = vertex->x;
     float const y = vertex->y;
     float const z = vertex->z;
@@ -306,12 +300,6 @@ int mrisComputeSurfaceDimensions(MRIS *mris)
   mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
   
   return (NO_ERROR);
-}
-
-
-int MRISscaleVertexCoordinates(MRIS *mris, double scale)
-{
-  return MRISscale(mris, scale);
 }
 
 
@@ -346,6 +334,22 @@ int MRISscale(MRIS *mris, double scale)
   
   return (NO_ERROR);
 }
+
+
+int mrisFlipPatch(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x = -v->x;
+  }
+
+  float xlo = mris->xlo; mris->xlo = -mris->xhi; mris->xhi = -xlo;
+  mris->xctr = -mris->xctr;
+  
+  return (NO_ERROR);
+}
+
 
 
 int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
@@ -387,143 +391,30 @@ int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
   int k;
   for (k = 0; k < mris->nvertices; k++) {
     VERTEX *v = &mris->vertices[k];
-    if (v->ripflag) {
-      continue;
-    }
     v->x = (v->x - x0) * sx + x0;
     v->y = (v->y - y0) * sy + y0;
     v->z = (v->z - z0) * sz + z0;
   }
 
-  mrisComputeSurfaceDimensions(mris);
+  // emulate mrisComputeSurfaceDimensions(mris)
+  //
+  float xlo = (mris->xlo - x0) * sx + x0;
+  float xhi = (mris->xhi - x0) * sx + x0;
+  float ylo = (mris->ylo - y0) * sy + y0;
+  float yhi = (mris->yhi - y0) * sy + y0;
+  float zlo = (mris->zlo - z0) * sz + z0;
+  float zhi = (mris->zhi - z0) * sz + z0;
+
+  if (xlo < xhi) { mris->xlo = xlo; mris->xhi = xhi; } else { mris->xlo = xhi; mris->xhi = xlo; }
+  if (ylo < yhi) { mris->ylo = ylo; mris->yhi = yhi; } else { mris->ylo = yhi; mris->yhi = ylo; }
+  if (zlo < zhi) { mris->zlo = zlo; mris->zhi = zhi; } else { mris->zlo = zhi; mris->zhi = zlo; }
+  
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
   
   return (NO_ERROR);
 }
-
-
-MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
-{
-  int vno;
-  VERTEX *vdst;
-  float x, y, z, x0, y0, z0, xlo, xhi, zlo, zhi, ylo, yhi;
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  x = y = z = 0; /* silly compiler warning */
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    vdst = &mris_dst->vertices[vno];
-    if (vdst->ripflag) {
-      continue;
-    }
-    x = vdst->x;
-    y = vdst->y;
-    z = vdst->z;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-  x0 = (xlo + xhi) / 2.0f;
-  y0 = (ylo + yhi) / 2.0f;
-  z0 = (zlo + zhi) / 2.0f;
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    vdst = &mris_dst->vertices[vno];
-    if (vdst->ripflag) {
-      continue;
-    }
-    vdst->x -= x0;
-    vdst->y -= y0;
-    vdst->z -= z0;
-    if (x > xhi) {
-      xhi = x;
-    }
-    if (x < xlo) {
-      xlo = x;
-    }
-    if (y > yhi) {
-      yhi = y;
-    }
-    if (y < ylo) {
-      ylo = y;
-    }
-    if (z > zhi) {
-      zhi = z;
-    }
-    if (z < zlo) {
-      zlo = z;
-    }
-  }
-
-  mris_dst->xctr = mris_dst->yctr = mris_dst->zctr = 0;
-  mris_dst->xlo = xlo;
-  mris_dst->ylo = ylo;
-  mris_dst->zlo = zlo;
-  mris_dst->xhi = xhi;
-  mris_dst->yhi = yhi;
-  mris_dst->zhi = zhi;
-
-  return (mris_dst);
-}
-
-
-void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
-{
-  MRIScenter(mris, mris);
-
-  float xlo, xhi, zlo, zhi, ylo, yhi;
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX *v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-    v->x += x0;
-    v->y += y0;
-    v->z += z0;
-    float x = v->x;
-    float y = v->y;
-    float z = v->z;
-    if (x > xhi) xhi = x;
-    if (x < xlo) xlo = x;
-    if (y > yhi) yhi = y;
-    if (y < ylo) ylo = y;
-    if (z > zhi) zhi = z;
-    if (z < zlo) zlo = z;
-  }
-  mris->xlo = xlo;
-  mris->ylo = ylo;
-  mris->zlo = zlo;
-  mris->xhi = xhi;
-  mris->yhi = yhi;
-  mris->zhi = zhi;
-  mris->xctr = x0;
-  mris->yctr = y0;
-  mris->zctr = z0;
-}
-
-
 
 
 /*-----------------------------------------------------
@@ -560,76 +451,631 @@ void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
   ------------------------------------------------------*/
 MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
 {
-  int vno;
-  VERTEX *v;
-  double x, y, z, xt, yt, zt;
-  float xlo, ylo, zlo, xhi, yhi, zhi;
-
   if (!mris_dst) {
     mris_dst = MRISclone(mris_src);
   }
 
   if (!mris_src->lta) {
-    return (mris_dst);
+    return mris_dst;
   }
 
-#if 0
-  if (!mris_src->linear_transform)
-  {
-    return(mris_dst) ;
-  }
-
-  ErrorReturn(mris_dst,
-              (ERROR_BADPARM, "MRIStalairachTransform: no xform loaded")) ;
-#endif
-
+  float xlo, ylo, zlo, xhi, yhi, zhi;
   xhi = yhi = zhi = -10000;
   xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    v = &mris_dst->vertices[vno];
 
-    x = v->x;
-    y = v->y;
-    z = v->z;  // we cloned the src
-    TransformWithMatrix(mris_src->SRASToTalSRAS_, x, y, z, &xt, &yt, &zt);
-    // transform_point(mris_src->linear_transform, -x, z, y, &xt, &yt, &zt) ;
-    // v->x = -xt ; v->y = zt ; v->z = yt ;
+  int vno;
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    VERTEX * v = &mris_dst->vertices[vno];
+
+    double xt,yt,zt;
+    TransformWithMatrix(mris_src->SRASToTalSRAS_, v->x, v->y, v->z, &xt, &yt, &zt);
     v->x = xt;
     v->y = yt;
     v->z = zt;
 
-    if (v->x > xhi) {
-      xhi = v->x;
-    }
-    if (v->x < xlo) {
-      xlo = v->x;
-    }
-    if (v->y > yhi) {
-      yhi = v->y;
-    }
-    if (v->y < ylo) {
-      ylo = v->y;
-    }
-    if (v->z > zhi) {
-      zhi = v->z;
-    }
-    if (v->z < zlo) {
-      zlo = v->z;
-    }
+    if (v->x > xhi) xhi = v->x;
+    if (v->x < xlo) xlo = v->x;
+    if (v->y > yhi) yhi = v->y;
+    if (v->y < ylo) ylo = v->y;
+    if (v->z > zhi) zhi = v->z;
+    if (v->z < zlo) zlo = v->z;
   }
 
   mris_dst->xlo = xlo;
   mris_dst->ylo = ylo;
   mris_dst->zlo = zlo;
-  mris_dst->xctr = (xhi + xlo) / 2;
-  mris_dst->yctr = (yhi + ylo) / 2;
-  mris_dst->zctr = (zhi + zlo) / 2;
 
-  return (mris_dst);
+  mris_dst->xhi = xhi;
+  mris_dst->yhi = yhi;
+  mris_dst->zhi = zhi;
+
+  mris_dst->xctr = 0.5f * (float)((double)xlo + (double)xhi);
+  mris_dst->yctr = 0.5f * (float)((double)ylo + (double)yhi);
+  mris_dst->zctr = 0.5f * (float)((double)zlo + (double)zhi);
+
+  return mris_dst;
 }
 
 
-int mrisFlipPatch(MRIS *mris)
+int MRISscaleDistances(MRIS *mris, float scale)
+{
+  // This operation seems wrong, since this is a derived metric
+  // but there are two users...
+  //
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX * const v = &mris->vertices[vno];
+    int vsize = mrisVertexVSize(mris, vno);
+    int n;
+    for (n = 0; n < vsize; n++) {
+      v->dist[n] *= scale;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0)
+{
+  mrisComputeSurfaceDimensions(mris);
+  MRIStranslate(mris, x0 - mris->xctr, y0 - mris->yctr, z0 - mris->zctr);
+  mris->xctr = x0;  // adjust for tiny numeric errors in MRIStranslate
+  mris->yctr = y0;
+  mris->zctr = z0;
+}
+
+
+MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
+{
+  cheapAssert(mris_src == mris_dst);
+  MRISmoveOrigin(mris_dst, 0.0, 0.0, 0.0);
+  return mris_dst;
+}
+
+
+/* Center the surface mris at location (cx,cy,cz) with a radius r
+   such the energy sum((x-cx)^2+(y-cy)^2+(z-cz)^2-r^2)^2 is minimized 
+*/
+
+#define DEBUG_CENTER_SURFACE 0
+
+/* this set of functions centers the surface mris,
+   assuming that its vertices
+   (using ORIGINAL_VERTICES) are sampled onto a
+   sphere of radius R to be determined */
+
+static double estimateNRG(MRIS *mris, double cx, double cy, double cz, double R2);
+static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz);
+static void computeGradient(MRIS *mris, double cx, double cy, double cz, double R2, double *gx, double *gy, double *gz);
+
+/* compute the NRG associated with the center
+   (cx,cy,cz) and the squared radius R2
+   NRG = sum((x-cx)^2+(y-cy)^2+(z-cz)^2-R2)^2 */
+static double estimateNRG(MRIS *mris, double cx, double cy, double cz, double R2)
+{
+  int n;
+  double NRG;
+  for (NRG = 0, n = 0; n < mris->nvertices; n++) {
+    NRG += SQR(SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz) - R2);
+  }
+  return NRG;
+}
+
+/* estimate the squared radius that
+   minimizes the energy defined above for a given
+   center (cx,cy,cz) */
+static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
+{
+  int n;
+  double R2;
+
+  for (R2 = 0.0, n = 0; n < mris->nvertices; n++) {
+    R2 += SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz);
+    if (!isfinite(R2)) {
+      DiagBreak();
+    }
+  }
+  return (R2 / (double)mris->nvertices);
+}
+
+/* compute the gradient of the energy
+   defined above at location (cx,cy,cz,R2) */
+static void computeGradient(MRIS *mris, double cx, double cy, double cz, double R2, double *gx, double *gy, double *gz)
+{
+  int n;
+  double tx, ty, tz;
+  tx = 0.0;
+  ty = 0.0;
+  tz = 0.0;
+  for (tx = 0, ty = 0, tz = 0, n = 0; n < mris->nvertices; n++) {
+    tx += (SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz) - R2) *
+          (mris->vertices[n].x - cx);
+    ty += (SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz) - R2) *
+          (mris->vertices[n].y - cy);
+    tz += (SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz) - R2) *
+          (mris->vertices[n].z - cz);
+  }
+  (*gx) = tx / (double)mris->nvertices;
+  (*gy) = ty / (double)mris->nvertices;
+  (*gz) = tz / (double)mris->nvertices;
+}
+
+
+void MRIScenterSphere(MRI_SURFACE *mris)
+{
+  VERTEX *vertex;
+  int n, niters;
+  /* sphere parameters */
+  double x, y, z, R2, xhi, xlo, yhi, ylo, zhi, zlo, cx, cy, cz, radius, scale;
+  /* NRG parameters */
+  double NRG, last_NRG;
+  /* gradient parameters */
+  double dx, dy, dz, d, epsilon;
+
+  fprintf(WHICH_OUTPUT, "Finding true center and radius of Spherical Surface...");
+
+  /* compute an initial estimate of the the center (x,y,z) */
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+  for (n = 0; n < mris->nvertices; n++) {
+    vertex = &mris->vertices[n];
+    x = (double)vertex->x;
+    y = (double)vertex->y;
+    z = (double)vertex->z;
+
+    if (x > xhi) {
+      xhi = x;
+    }
+    if (x < xlo) {
+      xlo = x;
+    }
+    if (y > yhi) {
+      yhi = y;
+    }
+    if (y < ylo) {
+      ylo = y;
+    }
+    if (z > zhi) {
+      zhi = z;
+    }
+    if (z < zlo) {
+      zlo = z;
+    }
+  }
+  x = (xlo + xhi) / 2.0f;
+  y = (ylo + yhi) / 2.0f;
+  z = (zlo + zhi) / 2.0f;
+
+  /* estimate the corresponding squared radius */
+  R2 = estimateSquaredRadius(mris, x, y, z);
+
+  /* compute the initial NRG */
+  NRG = estimateNRG(mris, x, y, z, R2);
+
+  /* verify if the center (0,0,0) with radius 100.0 is a better candidate */
+  if (estimateNRG(mris, 0.0, 0.0, 0.0, 10000.0) < NRG) {
+    x = 0.0;
+    y = 0.0;
+    z = 0.0;
+    R2 = 10000.0;
+    NRG = estimateNRG(mris, x, y, z, R2);
+  }
+
+  if (estimateNRG(mris, 0, 0, 0, estimateSquaredRadius(mris, 0, 0, 0)) < NRG) {
+    x = y = z = 0.0;
+    R2 = estimateSquaredRadius(mris, x, y, z);
+    NRG = estimateNRG(mris, x, y, z, R2);
+  }
+
+#if DEBUG_CENTER_SURFACE
+  fprintf(
+      WHICH_OUTPUT, "\nInitial Configuration: NRG=%lf, R=%f and ( %f , %f , %f )", 100000.0 * NRG, sqrt(R2), x, y, z);
+#endif
+
+  /* iteratively minize the NRG */
+  last_NRG = NRG + 1.0;
+  niters = 0;
+  while (NRG < last_NRG) {
+    niters++;
+    if (niters > 100) {
+      break;
+    }
+    last_NRG = NRG;
+
+    /* compute the gradient */
+    computeGradient(mris, x, y, z, R2, &dx, &dy, &dz);
+
+    /* bound gradient by displacement of 1.0 mm */
+    d = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
+    if (d > 1.0) {
+      dx /= d;
+      dy /= d;
+      dz /= d;
+    }
+
+    /*   fprintf(WHICH_OUTPUT,"\n gradient:(%f,%f,%f)",dx,dy,dz); */
+
+    epsilon = 2.0;
+    while (NRG >= last_NRG) {
+      epsilon /= 2.0;
+      NRG = estimateNRG(mris,
+                        x + epsilon * dx,
+                        y + epsilon * dy,
+                        z + epsilon * dz,
+                        estimateSquaredRadius(mris, x + epsilon * dx, y + epsilon * dy, z + epsilon * dz));
+      d = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
+      if (epsilon * d < 0.00000000001)  // FZERO(epsilon*(SQR(dx)+SQR(dy)+SQR(dz))))
+      {
+        break;
+      }
+    }
+
+    if (NRG < last_NRG) {
+      x = x + epsilon * dx;
+      y = y + epsilon * dy;
+      z = z + epsilon * dz;
+
+      R2 = estimateSquaredRadius(mris, x, y, z);
+
+#if DEBUG_CENTER_SURFACE
+      fprintf(WHICH_OUTPUT,
+              "\nNew Minimum found: NRG=%lf, R=%f and ( %f , %f , %f )",
+              100000.0 * NRG,
+              sqrt(R2),
+              10000. * x,
+              10000. * y,
+              10000. * z);
+#endif
+    }
+    else {
+      NRG = estimateNRG(mris, x, y, z, R2);
+    }
+  }
+
+  /* now centering the surface at position (0,0,0) with radius 100.0 */
+  cx = 0.0;
+  cy = 0.0;
+  cz = 0.0;
+  radius = 100.0;
+  scale = sqrt(SQR(radius) / R2);
+  for (n = 0; n < mris->nvertices; n++) {
+    vertex = &mris->vertices[n];
+    vertex->x = cx + scale * (vertex->x - x);
+    vertex->y = cy + scale * (vertex->y - y);
+    vertex->z = cz + scale * (vertex->z - z);
+  }
+
+  // scaling onto sphere with the exact right radius DEFAULT_RADIUS
+  for (n = 0; n < mris->nvertices; n++) {
+    vertex = &mris->vertices[n];
+    R2 = SQR(vertex->x) + SQR(vertex->y) + SQR(vertex->z);
+    scale = DEFAULT_RADIUS / sqrt(R2);
+    vertex->x *= scale;
+    vertex->y *= scale;
+    vertex->z *= scale;
+    R2 = SQR(vertex->x) + SQR(vertex->y) + SQR(vertex->z);
+    scale = DEFAULT_RADIUS / sqrt(R2);
+    vertex->x *= scale;
+    vertex->y *= scale;
+    vertex->z *= scale;
+  }
+
+#if DEBUG_CENTER_SURFACE
+  fprintf(WHICH_OUTPUT,
+          "\nFinal Minimum found: NRG=%lf, R=%f and ( %f , %f , %f )\n",
+          100000.0 * estimateNRG(mris, cx, cy, cz, 10000.0),
+          sqrt(estimateSquaredRadius(mris, cx, cy, cz)),
+          10000. * cx,
+          10000. * cy,
+          10000. * cz);
+#endif
+
+  fprintf(WHICH_OUTPUT, "done\nSurface centered at (0,0,0) with radius 100.0 in %d iterations\n", niters);
+}
+
+
+
+void MRISrecenter(MRIS *mris, int which_move, int which_target) 
+{
+  // MRISrecenter(mris, CURRENT_VERTICES, CANONICAL_VERTICES) ;
+  //
+  double  xt, yt, zt, tx, ty, tz, xm, ym, zm, radius, r ;
+  int     n, vno ;
+  VERTEX  *v;
+
+  MRIScomputeMetricProperties(mris) ;
+  radius = sqrt(mris->total_area / (4.0*M_PI)) ; // preserve total surface area
+
+  MRISsaveVertexPositions(mris, which_move) ;
+  MRISrestoreVertexPositions(mris, which_target) ;
+  MRIScenterSphere(mris) ;
+  printf("rescaling canonical coordinates to use r=%2.1f\n", radius) ;
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexCoord2XYZ_double(v, which_target, &xt, &yt, &zt) ;
+    r = sqrt(xt*xt + yt*yt + zt*zt) ;
+    v->x = radius*(v->x/r) ; v->y = radius*(v->y/r) ; v->z = radius*(v->z/r) ;
+  }
+  tx = ty = tz = 0 ;
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexCoord2XYZ_double(v, which_move, &xm, &ym, &zm) ;
+    MRISvertexCoord2XYZ_double(v, which_target, &xt, &yt, &zt) ;
+    n++ ;
+    tx += xt-xm ; ty += yt-ym ; tz += zt-zm ;
+  }
+
+  tx /= n ;  ty /= n ; tz /= n ;
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    switch (which_target)
+    {
+    case CANONICAL_VERTICES:
+      v->cx += tx ; v->cy += ty ; v->cz += tz ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRISrecenter: movable vertices %d not supported", which_move);
+      break ;
+    }
+  }
+  MRISrestoreVertexPositions(mris, which_move) ;
+  MRIScomputeMetricProperties(mris) ;
+}
+
+
+static int mrisOrientEllipsoid(MRI_SURFACE *mris)
+{
+  int fno;
+
+  ROMP_PF_begin		// mris_fix_topology uses this
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(shown_reproducible)
+#endif
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    ROMP_PFLB_begin
+    
+    FACE* const face = &mris->faces[fno];
+    
+    if (face->ripflag) {
+      ROMP_PFLB_continue;
+    }
+
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+
+    /* now give the area an orientation: if the unit normal is pointing
+       inwards on the ellipsoid then the area should be negative.
+    */
+    VERTEX const * const v0 = &mris->vertices[face->v[0]];
+    VERTEX const * const v1 = &mris->vertices[face->v[1]];
+    VERTEX const * const v2 = &mris->vertices[face->v[2]];
+
+    float   const xc = (v0->x + v1->x + v2->x) /* / 3 */;   // These divides by three are a waste of time
+    float   const yc = (v0->y + v1->y + v2->y) /* / 3 */;   // since we only use the magnitude of the dot product
+    float   const zc = (v0->z + v1->z + v2->z) /* / 3 */;
+
+    float   const dot = xc * fNorm->nx + yc * fNorm->ny + zc * fNorm->nz;
+    
+    if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
+    {
+      face->area *= -1.0f;
+
+      setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
+
+      int ano;
+      for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
+        face->angle[ano] *= -1.0f;
+      }
+    }
+    
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+
+/* now recompute the total surface area, ignoring negative areas */
+#if 0
+  if ((mris->status != MRIS_PARAMETERIZED_SPHERE) || (!mris->total_area))
+#endif
+  {
+    mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f;
+
+    double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
+
+#ifdef BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+
+    #define ROMP_VARIABLE       fno
+    #define ROMP_LO             0
+    #define ROMP_HI             mris->nfaces
+    
+    #define ROMP_SUMREDUCTION0  total_area
+    #define ROMP_SUMREDUCTION1  neg_area
+    #define ROMP_SUMREDUCTION2  neg_orig_area
+    
+    #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
+    
+#ifdef ROMP_SUPPORT_ENABLED
+    const int romp_for_line = __LINE__;
+#endif
+    #include "romp_for_begin.h"
+    ROMP_for_begin
+    
+      #define total_area      ROMP_PARTIALSUM(0)
+      #define neg_area        ROMP_PARTIALSUM(1)
+      #define neg_orig_area   ROMP_PARTIALSUM(2)
+
+#else
+
+    ROMP_PF_begin		// mris_fix_topology
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
+#endif
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+
+#endif
+      
+      FACE const * const face = &mris->faces[fno];
+      if (face->ripflag) {
+        ROMP_PF_continue;
+      }
+      if (face->area >= 0.0f) {
+        total_area += face->area;
+      }
+      else {
+        FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+        neg_area      += -face->area;
+        neg_orig_area +=  fNorm->orig_area;
+      }
+      
+#ifdef BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+
+      #undef total_area
+      #undef neg_area
+      #undef neg_orig_area
+
+    #include "romp_for_end.h"
+
+#else
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+#endif
+
+    mris->total_area    = total_area;
+    mris->neg_orig_area = neg_orig_area;
+    mris->neg_area      = neg_area;
+  }
+
+  return (NO_ERROR);
+}
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
+{
+  if (mris->status != MRIS_UNORIENTED_SPHERE) {
+    mrisOrientEllipsoid(mris); /* orient the normals and angles */
+  }
+  return (NO_ERROR);
+}
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int mrisOrientPlane(MRI_SURFACE *mris)
+{
+  int fno, ano, vno;
+  FACE *face;
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+
+    /* now give the area an orientation: if the unit normal is pointing
+       downwards in the plane then the area should be negative.
+    */
+    FaceNormCacheEntry const * const fNorm =  getFaceNorm(mris, fno);
+    if (fNorm->nz < 0.0f) {
+      /* not in same direction, area < 0 and reverse n */
+      face->area *= -1.0f;
+      setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
+      for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
+        face->angle[ano] *= -1.0f;
+      }
+    }
+  }
+
+  /* now recompute the total surface area, ignoring negative areas */
+  mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+    if (face->area >= 0.0f) {
+      mris->total_area += face->area;
+    }
+    else {
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+      mris->neg_area += -face->area;
+      mris->neg_orig_area += fNorm->orig_area;
+    }
+  }
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      continue;
+    }
+
+    if (v->nz < 0) {
+      v->nz *= -1;
+      v->neg = 1;
+    }
+    else {
+      v->neg = 0;
+    }
+    v->area = 0;
+    for (fno = 0; fno < vt->num; fno++) {
+      face = &mris->faces[vt->f[fno]];
+      v->area += face->area;
+    }
+    if (fix_vertex_area) {
+      v->area /= 3.0;
+    }
+    else {
+      v->area /= 2.0;
+    }
+  }
+
+  return (NO_ERROR);
+}
+
+
+int mrisOrientSurface(MRI_SURFACE *mris)
+{
+  switch (mris->status) {
+    case MRIS_RIGID_BODY:
+    case MRIS_PARAMETERIZED_SPHERE:
+    case MRIS_SPHERE:
+    case MRIS_ELLIPSOID:
+    case MRIS_SPHERICAL_PATCH:
+      MRISupdateEllipsoidSurface(mris);
+      break;
+    case MRIS_PLANE:
+      mrisOrientPlane(mris);
+      break;
+    default:
+      /*    MRISupdateSurface(mris) ;*/
+      break;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclearOrigArea(MRI_SURFACE *mris)
 {
   int vno;
   VERTEX *v;
@@ -639,11 +1085,199 @@ int mrisFlipPatch(MRIS *mris)
     if (v->ripflag) {
       continue;
     }
-    v->x = -v->x;
+    v->origarea = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclearDistances(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->d = 0.0;
   }
 
   return (NO_ERROR);
 }
+
+
+int MRISclearOrigDistances(MRI_SURFACE *mris)
+{
+  int vno, n;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      continue;
+    }
+    for (n = 0; n < vt->vtotal; n++) {
+      v->dist_orig[n] = 0;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISclear(MRI_SURFACE *mris, int which)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    switch (which) {
+      case VERTEX_AREA:
+        v->origarea = 0;
+        break;
+      case VERTEX_CURV:
+        v->curv = 0;
+        break;
+      case VERTEX_LOGODDS:
+      case VERTEX_VAL:
+        v->val = 0;
+        break;
+    }
+    v->val2 = 0;
+  }
+  return (NO_ERROR);
+}
+
+
+
+int MRIScomputeMetricProperties(MRI_SURFACE *mris)
+{
+    mrisCheckVertexFaceTopology(mris);
+  MRIScomputeNormals(mris);                                                 // in this source file
+    mrisCheckVertexFaceTopology(mris);
+  mrisComputeVertexDistances(mris);                                         // in this source file
+    mrisCheckVertexFaceTopology(mris);
+  mrisComputeSurfaceDimensions(mris);                                       // in this source file
+    mrisCheckVertexFaceTopology(mris);
+  MRIScomputeTriangleProperties(mris);                                      // compute areas and normals
+    mrisCheckVertexFaceTopology(mris);
+  
+  mris->avg_vertex_area = mris->total_area / mris->nvertices;
+  MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);
+  mrisOrientSurface(mris);
+  // See also MRISrescaleMetricProperties()
+  
+  if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_RIGID_BODY || mris->status == MRIS_SPHERE) {
+    double old_area;
+    old_area = mris->total_area;
+    mris->total_area = M_PI * mris->radius * mris->radius * 4.0;
+  }
+  return (NO_ERROR);
+}
+
+
+#ifdef FS_CUDA
+/* this is a fork of mrisComputeMetricProperties,
+   but ultimately shouldn't be
+*/
+int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
+{
+#ifdef FS_CUDA_TIMINGS
+  struct timeval tv1, tv2, result;
+#endif  // FS_CUDA_TIMINGS
+
+  if (mris->status == MRIS_SPHERE || mris->status == MRIS_PARAMETERIZED_SPHERE) {
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv1, NULL);
+#endif  // FS_CUDA_TIMINGS
+    MRIScomputeNormals(mris);
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv2, NULL);
+    timeval_subtract(&result, &tv2, &tv1);
+    printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n", result.tv_sec * 1000 + result.tv_usec / 1000);
+    fflush(stdout);
+#endif  // FS_CUDA_TIMINGS
+
+    /* UPLOAD the vertices here */
+    MRISCuploadVertices(mrics, mris);
+
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv1, NULL);
+#endif  // FS_CUDA_TIMINGS
+    // mrisComputeVertexDistances(mris);
+    MRISCcomputeVertexDistances(mrics, mris);
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv2, NULL);
+    timeval_subtract(&result, &tv2, &tv1);
+    printf(
+        "CUDA MRIScomputeMetricProperties->mrisComputeVertexDistances: "
+        "%ld ms\n",
+        result.tv_sec * 1000 + result.tv_usec / 1000);
+    fflush(stdout);
+#endif  // FS_CUDA_TIMINGS
+
+    /* DOWNLOAD distances */
+    MRISCdownloadDistances(mrics, mris);
+  }
+  else {
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv1, NULL);
+#endif  // FS_CUDA_TIMINGS
+    int rval = MRIScomputeMetricProperties(mris);
+#ifdef FS_CUDA_TIMINGS
+    gettimeofday(&tv2, NULL);
+    timeval_subtract(&result, &tv2, &tv1);
+    printf(
+        "CPU MRIScomputeMetricProperties->mrisComputeVertexDistances: "
+        "%ld ms\n",
+        result.tv_sec * 1000 + result.tv_usec / 1000);
+    fflush(stdout);
+#endif  // FS_CUDA_TIMINGS
+    return rval;
+  }
+
+#ifdef FS_CUDA_TIMINGS
+  gettimeofday(&tv1, NULL);
+#endif  // FS_CUDA_TIMINGS
+  mrisComputeSurfaceDimensions(mris);
+#ifdef FS_CUDA_TIMINGS
+  gettimeofday(&tv2, NULL);
+  timeval_subtract(&result, &tv2, &tv1);
+  printf(
+      "MRIScomputeMetricProperties->mrisComputeSurfaceDimensions: "
+      "%ld ms\n",
+      result.tv_sec * 1000 + result.tv_usec / 1000);
+  fflush(stdout);
+
+  gettimeofday(&tv1, NULL);
+#endif                                 // FS_CUDA_TIMINGS
+  MRIScomputeTriangleProperties(mris); /* compute areas and normals */
+#ifdef FS_CUDA_TIMINGS
+  gettimeofday(&tv2, NULL);
+  timeval_subtract(&result, &tv2, &tv1);
+  printf(
+      "MRIScomputeMetricProperties->MRIScomputeTriangleProperties: "
+      "%ld ms\n",
+      result.tv_sec * 1000 + result.tv_usec / 1000);
+  fflush(stdout);
+#endif  // FS_CUDA_TIMINGS
+
+  mris->avg_vertex_area = mris->total_area / mris->nvertices;
+  // this would obviously require the distances
+
+  MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);
+  mrisOrientSurface(mris);
+  // See also MRISrescaleMetricProperties()
+  if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_RIGID_BODY || mris->status == MRIS_SPHERE) {
+    double old_area;
+    old_area = mris->total_area;
+    mris->total_area = M_PI * mris->radius * mris->radius * 4.0;
+  }
+  return (NO_ERROR);
+}
+#endif /* FS_CUDA */
+
 
 
 /*-----------------------------------------------------
@@ -945,163 +1579,19 @@ int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISscaleDistances(MRIS *mris, float scale)
-{
-  int vno, n;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX                * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    for (n = 0; n < vt->vtotal; n++) {
-      v->dist[n] *= scale;
-    }
-  }
-  return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-MRIS *MRISscaleBrain(MRIS *mris_src, MRIS *mris_dst, float scale)
-{
-  VERTEX *v;
-  int k;
-  float xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0;
-
-  /*  mris_dst = MRIScenter(mris_src, mris_dst) ;*/
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-
-  /* find the center */
-  for (k = 0; k < mris_dst->nvertices; k++) {
-    v = &mris_dst->vertices[k];
-    if (v->ripflag) {
-//      continue;
-    }
-    if (v->x > xhi) {
-      xhi = v->x;
-    }
-    if (v->x < xlo) {
-      xlo = v->x;
-    }
-    if (v->y > yhi) {
-      yhi = v->y;
-    }
-    if (v->y < ylo) {
-      ylo = v->y;
-    }
-    if (v->z > zhi) {
-      zhi = v->z;
-    }
-    if (v->z < zlo) {
-      zlo = v->z;
-    }
-  }
-
-  /* scale around the center */
-  x0 = (xlo + xhi) / 2.0f;
-  y0 = (ylo + yhi) / 2.0f;
-  z0 = (zlo + zhi) / 2.0f;
-  for (k = 0; k < mris_dst->nvertices; k++) {
-    v = &mris_dst->vertices[k];
-    v->x = (v->x - x0) * scale + x0;
-    v->y = (v->y - y0) * scale + y0;
-    v->z = (v->z - z0) * scale + z0;
-    if (v->x > xhi) {
-      xhi = v->x;
-    }
-    if (v->x < xlo) {
-      xlo = v->x;
-    }
-    if (v->y > yhi) {
-      yhi = v->y;
-    }
-    if (v->y < ylo) {
-      ylo = v->y;
-    }
-    if (v->z > zhi) {
-      zhi = v->z;
-    }
-    if (v->z < zlo) {
-      zlo = v->z;
-    }
-  }
-
-  /* recompute the dimensions */
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (k = 0; k < mris_dst->nvertices; k++) {
-    v = &mris_dst->vertices[k];
-    if (v->x > xhi) {
-      xhi = v->x;
-    }
-    if (v->x < xlo) {
-      xlo = v->x;
-    }
-    if (v->y > yhi) {
-      yhi = v->y;
-    }
-    if (v->y < ylo) {
-      ylo = v->y;
-    }
-    if (v->z > zhi) {
-      zhi = v->z;
-    }
-    if (v->z < zlo) {
-      zlo = v->z;
-    }
-  }
-  mris_dst->xlo = xlo;
-  mris_dst->ylo = ylo;
-  mris_dst->zlo = zlo;
-  mris_dst->xctr = (xhi + xlo) / 2;
-  mris_dst->yctr = (yhi + ylo) / 2;
-  mris_dst->zctr = (zhi + zlo) / 2;
-
-  return (mris_dst);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISscaleBrainArea(MRIS *mris)
 {
-  float scale;
-
-  scale = sqrt(mris->orig_area / (mris->total_area + mris->neg_area));
+  float const scale = sqrt(mris->orig_area / (mris->total_area + mris->neg_area));
+  
   MRISscaleBrain(mris, mris, scale);
+  
   MRIScomputeMetricProperties(mris);
+  
   return (NO_ERROR);
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-MRIS *MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float gamma)
+MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float gamma)
 {
   if (!mris_dst) {
     mris_dst = MRISclone(mris_src);
@@ -14550,7 +15040,7 @@ int MRIScrsLUTFree(int **crslut)
   again.
   4. It is expected that this will be run for each vertex
   on a surface, so care has been taken to keep the
-  coputations light (eg, not allocating XNbrnVtxNo
+  computations light (eg, not allocating XNbrnVtxNo
   and XNbrnDotProd, using a dot product threshold
   instead of a distance threshold, not resetting val2bak).
   5. The extended neighborhood of a vertex includes itself.
@@ -14761,6 +15251,215 @@ MRI *MRIcomputeLaminarVolumeFractions(MRIS *mris, double resolution, MRI *mri_sr
   MRIScomputeMetricProperties(mris);
   return (mri_fractions);
 }
+
+
+int MRISscaleVertexCoordinates(MRIS *mris, double scale)
+{
+  return MRISscale(mris, scale);
+}
+
+
+
+MRIS *MRISscaleBrain(MRIS *mris_src, MRIS *mris_dst, float scale)
+{
+  cheapAssert(mris_src == mris_dst);
+  
+  MRISanisotropicScale(mris_src, scale,scale,scale);
+
+  return mris_dst;
+}
+
+
+void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
+  int     vno ;
+  VERTEX  *v ;
+  float   nx, ny, nz, thickness ;
+
+  MRISaverageCurvatures(mris, 3) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris);
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nx = v->nx ;
+    ny = v->ny ;
+    nz = v->nz ;
+    thickness = 0.5 * v->curv ;
+    MRISsetXYZ(mris,vno,
+      v->origx + thickness * nx,
+      v->origy + thickness * ny,
+      v->origz + thickness * nz);
+  }
+}
+
+
+MRIS* MRISclone(MRIS* mris_src)
+{
+  // Cloning could be a copy the input data and recompute the derived,
+  // but it is quicker to copy the derived data also which means the derived data must be written, 
+  // which means placing this where the writing functions are visible,
+  // which means not in mrisurf_base.c
+  //
+  mrisCheckVertexFaceTopology(mris_src);
+
+  MRI_SURFACE *mris_dst;
+  int vno, fno, n;
+  FACE *fsrc, *fdst;
+
+  mris_dst = MRISalloc(mris_src->nvertices, mris_src->nfaces);
+
+  mris_dst->type = mris_src->type;
+  
+  mris_dst->nsize                   = mris_src->nsize;
+  mris_dst->max_nsize               = mris_src->max_nsize;
+  mris_dst->vtotalsMightBeTooBig    = mris_src->vtotalsMightBeTooBig;
+  mris_dst->nsizeMaxClock           = mris_src->nsizeMaxClock;
+  
+  mris_dst->hemisphere = mris_src->hemisphere;
+  mris_dst->xctr = mris_src->xctr;
+  mris_dst->yctr = mris_src->yctr;
+  mris_dst->zctr = mris_src->zctr;
+  mris_dst->xlo = mris_src->xlo;
+  mris_dst->ylo = mris_src->ylo;
+  mris_dst->zlo = mris_src->zlo;
+  mris_dst->xhi = mris_src->xhi;
+  mris_dst->yhi = mris_src->yhi;
+  mris_dst->zhi = mris_src->zhi;
+  mris_dst->min_curv = mris_src->min_curv;
+  mris_dst->max_curv = mris_src->max_curv;
+  mris_dst->total_area = mris_src->total_area;
+  mris_dst->orig_area = mris_src->orig_area;
+
+  mris_dst->radius = mris_src->radius;  // to be checked
+
+  mris_dst->avg_vertex_area = mris_src->avg_vertex_area;
+  mrisSetAvgInterVertexDist(mris_dst, mris_src->avg_vertex_dist);
+  mris_dst->std_vertex_dist = mris_src->std_vertex_dist;
+
+  // just copy the pointer ///////////////////////////////////
+  mris_dst->lta = mris_src->lta;
+  mris_dst->SRASToTalSRAS_ = mris_src->SRASToTalSRAS_;
+  mris_dst->TalSRASToSRAS_ = mris_src->TalSRASToSRAS_;
+  mris_dst->free_transform = 0;  // mark not to try to free them
+  //                             // BUG - THE mris_src may still free them!  reference counting needed.
+  /////////////////////////////////////////////////////////////
+  
+  if (mris_src->v_frontal_pole)
+    mris_dst->v_frontal_pole = &mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices];
+  if (mris_src->v_occipital_pole)
+    mris_dst->v_occipital_pole = &mris_dst->vertices[mris_src->v_occipital_pole - mris_src->vertices];
+  if (mris_src->v_temporal_pole)
+    mris_dst->v_temporal_pole = &mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices];
+    
+  for (vno = 0; vno < mris_src->nvertices; vno++) {
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+    VERTEX_TOPOLOGY const * const vsrct = &mris_src->vertices_topology[vno];
+    VERTEX          const * const vsrc  = &mris_src->vertices         [vno];
+    VERTEX_TOPOLOGY       * const vdstt = &mris_dst->vertices_topology[vno];
+    VERTEX                * const vdst  = &mris_dst->vertices         [vno];
+    
+    vdst->ripflag = vsrc->ripflag;
+        //
+        // Even in ripped vertices, the topology below must be maintained
+        
+    vdst->x = vsrc->x;
+    vdst->y = vsrc->y;
+    vdst->z = vsrc->z;
+    vdst->nx = vsrc->nx;
+    vdst->ny = vsrc->ny;
+    vdst->nz = vsrc->nz;
+    vdst->cx = vsrc->cx;
+    vdst->cy = vsrc->cy;
+    vdst->cz = vsrc->cz;
+    vdst->curv = vsrc->curv;
+    vdstt->num = vsrct->num;
+
+#if 0
+    vdst->ox = vsrc->ox ;
+    vdst->oy = vsrc->oy ;
+    vdst->oz = vsrc->oz ;
+#endif
+
+    if (vdstt->num) {
+      vdstt->f = (int *)calloc(vdstt->num, sizeof(int));
+      vdstt->n = (uchar *)calloc(vdstt->num, sizeof(uchar));
+      if (!vdstt->f) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces", vdstt->num);
+      if (!vdstt->n) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vdstt->num);
+      for (n = 0; n < vdstt->num; n++) {
+        vdstt->n[n] = vsrct->n[n];
+        vdstt->f[n] = vsrct->f[n];
+      }
+    }
+    
+    vdstt->vnum     = vsrct->vnum;
+    vdstt->v2num    = vsrct->v2num;
+    vdstt->v3num    = vsrct->v3num;
+    vdstt->nsizeMax = vsrct->nsizeMax;
+    vdstt->nsizeCur = vsrct->nsizeCur;
+    vdstt->vtotal   = vsrct->vtotal;
+    vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
+    
+    {
+      int vSize = mrisVertexVSize(mris_src, vno);
+
+      if (vSize) {
+        vdstt->v = (int *)calloc(vSize, sizeof(int));
+        if (!vdstt->v) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs", vSize);
+        for (n = 0; n < vSize; n++) {
+          vdstt->v[n] = vsrct->v[n];
+        }
+      }
+
+      vdst->dist      = (float *)calloc(vSize, sizeof(float));
+      vdst->dist_orig = (float *)calloc(vSize, sizeof(float));
+      if (!vdst->dist     ) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
+      if (!vdst->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
+      if (vsrc->dist)
+        for (n = 0; n < vSize; n++) {
+          vdst->dist[n] = vsrc->dist[n];
+        }
+      if (vsrc->dist_orig)
+        for (n = 0; n < vSize; n++) {
+          vdst->dist_orig[n] = vsrc->dist_orig[n];
+        }
+    }
+    
+    vdst->border   = vsrc->border;
+    vdst->area     = vsrc->area;
+    vdst->origarea = vsrc->origarea;
+#if 0
+    vdst->oripflag = vsrc->oripflag ;
+    vdst->origripflag = vsrc->origripflag ;
+    memmove(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
+#endif
+  }
+
+  for (fno = 0; fno < mris_src->nfaces; fno++) {
+    fsrc = &mris_src->faces[fno];
+    fdst = &mris_dst->faces[fno];
+    memmove(fdst, fsrc, sizeof(FACE));
+    
+    // The pointer fields need special handling
+    if (fsrc->norm) fdst->norm = DMatrixCopy(fsrc->norm, NULL);
+    int i;
+    for (i = 0; i < 3; i++) {
+      if (fsrc->gradNorm[i]) fdst->gradNorm[i] = DMatrixCopy(fsrc->gradNorm[i], NULL);
+    }
+  }
+
+  mrisCheckVertexFaceTopology(mris_dst);
+
+  // copy geometry info
+  copyVolGeom(&mris_src->vg, &mris_dst->vg);
+
+  return (mris_dst);
+}
+
 
 
 int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)

@@ -44,7 +44,6 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms, int nbins) ;
-static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 
 const char *Progname ;
 static void usage_exit(int code) ;
@@ -346,33 +345,5 @@ update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms,
 
   VectorFree(&vec1) ;
   VectorFree(&vec2) ;
-  return(NO_ERROR) ;
-}
-
-static int
-mrisFindMiddleOfGray(MRI_SURFACE *mris) {
-
-  MRISaverageCurvatures(mris, 3) ;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris);  /* compute orig surface normals */
-
-  int vno ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    VERTEX * const v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    float nx = v->nx ;
-    float ny = v->ny ;
-    float nz = v->nz ;
-    float thickness = 0.5 * v->curv ;
-    MRISsetOriginalXYZ(mris, vno,
-      v->origx + thickness * nx,
-      v->origy + thickness * ny,
-      v->origz + thickness * nz);
-  }
-  
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-  MRIScomputeMetricProperties(mris);
   return(NO_ERROR) ;
 }

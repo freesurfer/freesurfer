@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
   MATRIX *xyzSrc, *xyzTrg;
   MHT *TrgHash, *SrcHash=NULL, *PaintHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
-  VERTEX v;
+  struct { float x,y,z; } v;
   int n,srcvtxno,trgvtxno,allzero,nrevhits,srcvtxnominmin;
   float dmin, dminmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
@@ -516,7 +516,7 @@ int main(int argc, char **argv) {
         v.y = srclabel->lv[n].y;
         v.z = srclabel->lv[n].z;
         if (usehash)
-          srcvtxno = MHTfindClosestVertexNo(PaintHash,PaintSurf,&v,&dmin);
+          srcvtxno = MHTfindClosestVertexNoXYZ(PaintHash,PaintSurf,v.x,v.y,v.z,&dmin);
         else
           srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin, CURRENT_VERTICES);
 	if(debug) printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
