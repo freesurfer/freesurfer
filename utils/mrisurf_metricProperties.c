@@ -15295,8 +15295,47 @@ void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
   }
 }
 
+// Cloning should be the union of a surface and an empty surface
+// but that is NYI
+//
+MRIS* MRISunion(MRIS const * mris, MRIS const * mris2) {
+    int vno,vno2,vno3;
+    MRIS * const mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
+                                   mris->nfaces+mris2->nfaces);
+    copyVolGeom(&mris->vg,&mris3->vg);
+    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
+    {
+      MRISsetXYZ(mris3,vno3,
+        mris->vertices[vno].x,
+        mris->vertices[vno].y,
+        mris->vertices[vno].z);
+    }
+    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++)
+    {
+      MRISsetXYZ(mris3,vno3,
+        mris2->vertices[vno2].x,
+        mris2->vertices[vno2].y,
+        mris2->vertices[vno2].z);
+    }
+    int fno,fno2,fno3;
+    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++)
+    {
+      mris3->faces[fno3].v[0] = mris->faces[fno].v[0];
+      mris3->faces[fno3].v[1] = mris->faces[fno].v[1];
+      mris3->faces[fno3].v[2] = mris->faces[fno].v[2];
+    }
+    int offset = mris->nvertices;
+    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++)
+    {
+      mris3->faces[fno3].v[0] = mris2->faces[fno2].v[0] + offset;
+      mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
+      mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
+    }
+    mrisCheckVertexFaceTopology(mris3);
+    return mris3;
+}    
 
-MRIS* MRISclone(MRIS* mris_src)
+MRIS* MRISclone(MRIS const * mris_src)
 {
   // Cloning could be a copy the input data and recompute the derived,
   // but it is quicker to copy the derived data also which means the derived data must be written, 

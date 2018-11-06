@@ -2720,7 +2720,8 @@ MRIS *MRISsortVertices(MRIS *mris0);
 
 // Create a surface
 //
-MRIS *MRISclone(MRIS *mris_src) ;
+MRIS *MRISclone(MRIS const * mris_src) ;
+MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 
 
 // mrisurf_topology needed by more

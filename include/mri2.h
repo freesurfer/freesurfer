@@ -145,6 +145,12 @@ MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlis
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB);
 
+/*
+  converts vertices to the index space
+*/
+void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol);
+
+
 #if defined(__cplusplus)
 };
 #endif
