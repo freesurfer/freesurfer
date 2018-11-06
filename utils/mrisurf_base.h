@@ -167,6 +167,9 @@ static float mrisNormalize(float v[3])
 }
 
 
+int mris_sort_compare_float(const void *pc1, const void *pc2);
+
+
 //#define ILL_CONDITIONED   5000.0
 #define ILL_CONDITIONED 500000.0
 
@@ -302,18 +305,6 @@ extern int mrisurf_orig_clock;
 static bool hasActiveRealmTrees() {
     return mrisurf_activeRealmTreesSize > 0;
 }
-
-#define CHANGES_ORIG                                                                        \
-    if (hasActiveRealmTrees()) {                                                            \
-        static int latest;                                                                  \
-        if (mrisurf_orig_clock != latest) {                                                 \
-            latest = mrisurf_orig_clock;                                                    \
-            fprintf(stderr,"%s:%d changes orig <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n",     \
-                __FILE__,__LINE__);                                                         \
-        }                                                                                   \
-    }                                                                                       \
-    // end of macro
-
 
 // mrisurf_base
 //

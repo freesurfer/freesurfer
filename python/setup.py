@@ -10,6 +10,7 @@ from setuptools import setup, find_packages, Distribution
 # the freesurfer python packages
 packages = [
     'freesurfer',
+    'freesurfer.algorithm',
     'freesurfer.gems',
     'freesurfer.samseg'
 ]
@@ -48,7 +49,8 @@ setup(
     author_email='freesurfer@nmr.mgh.harvard.edu',
     url='https://github.com/freesurfer/freesurfer',
     packages=find_packages(include=packages),
-    package_data={'freesurfer.gems': find_shared_libs('gems_python')},
+    package_data={'freesurfer.gems': find_shared_libs('gems_python'),
+                  'freesurfer.algorithm': find_shared_libs('algorithm_python')},
     install_requires=requirements,
     include_package_data=True
 )

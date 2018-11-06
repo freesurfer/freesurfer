@@ -70,7 +70,7 @@ MRI *WMSeg;
 MRIS *lhwhite, *rhwhite;
 MHT *lhwhite_hash, *rhwhite_hash;
 MHT *lhpial_hash, *rhpial_hash;
-VERTEX vtx;
+static struct { float x,y,z; } vtx;
 int  lhwvtx, rhwvtx;
 MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, drhw;
@@ -234,8 +234,8 @@ int main(int argc, char **argv) {
 
         // Get the index of the closest vertex in the
         // lh.white, rh.white
-        lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-        rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+        lhwvtx = MHTfindClosestVertexNoXYZ(lhwhite_hash,lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+        rhwvtx = MHTfindClosestVertexNoXYZ(rhwhite_hash,rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
 
         if ( (lhwvtx < 0) && (rhwvtx < 0) ) {
           printf("ERROR: could not map to any surface.\n");

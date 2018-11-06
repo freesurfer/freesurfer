@@ -92,7 +92,7 @@ static char sdir[STRLEN] = "" ;
 static TOPOLOGY_PARMS parms ;
 static int MGZ = 1; // set to 1 for MGZ
 
-static double pct_over = 1.1;
+static double nVFMultiplier = 1.1;
 
 int
 main(int argc, char *argv[])
@@ -214,7 +214,7 @@ main(int argc, char *argv[])
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
   printf("reading input surface %s...\n", fname) ;
-  mris = MRISreadOverAlloc(fname,pct_over) ;
+  mris = MRISreadOverAlloc(fname,nVFMultiplier) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read input surface %s",
               Progname, fname) ;

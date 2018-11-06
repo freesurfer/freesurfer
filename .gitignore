@@ -27,6 +27,9 @@ moc_*.*
 __pycache__
 *.pyc
 
+# in-source cpython library builds
+*cpython*.so
+
 # fs license
 distribution/.license
 distribution/license.txt

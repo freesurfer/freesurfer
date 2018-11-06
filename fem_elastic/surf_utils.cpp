@@ -20,28 +20,19 @@ void
 convert_surf_to_vox(MRI_SURFACE* mris,
                     MRI* vol)
 {
-  double cx, cy, cz;
-  double vx, vy, vz;
+  int const nvertices = mris->nvertices;
 
-  VERTEX* pvtx = &( mris->vertices[0] );
-  unsigned int nvertices = (unsigned int)mris->nvertices;
-
-  for ( unsigned int ui=0;
-        ui < nvertices;
-        ++ui, ++pvtx )
+  for (int vno=0; vno < nvertices; ++vno )
   {
-    cx = pvtx->x;
-    cy = pvtx->y;
-    cz = pvtx->z;
+    VERTEX const * v = &mris->vertices[vno];
 
-    MRIsurfaceRASToVoxel( vol,
-                          cx, cy, cz,
+    double vx, vy, vz;
+    MRIvoxelToSurfaceRAS( vol,
+                          v->x, v->y, v->z,
                           &vx, &vy, &vz);
 
-    pvtx->x = vx;
-    pvtx->y = vy;
-    pvtx->z = vz;
-  } // next ui, pvtx
+    MRISsetXYZ(mris, vno, vx,vy,vz);
+  }
 }
 
 
@@ -60,28 +51,19 @@ void
 convert_vox_to_surf(MRI_SURFACE* mris,
                     MRI* vol)
 {
-  double cx, cy, cz;
-  double vx, vy, vz;
+  int const nvertices = mris->nvertices;
 
-  VERTEX* pvtx = &( mris->vertices[0] );
-  unsigned int nvertices = (unsigned int)mris->nvertices;
-
-  for (unsigned int ui=0;
-       ui < nvertices;
-       ++ui, ++pvtx )
+  for (int vno=0; vno < nvertices; ++vno )
   {
-    cx = pvtx->x;
-    cy = pvtx->y;
-    cz = pvtx->z;
+    VERTEX const * v = &mris->vertices[vno];
 
+    double vx, vy, vz;
     MRIvoxelToSurfaceRAS( vol,
-                          cx, cy, cz,
+                          v->x, v->y, v->z,
                           &vx, &vy, &vz );
 
-    pvtx->x = vx;
-    pvtx->y = vy;
-    pvtx->z = vz;
-  } // next ui, pvtx
+    MRISsetXYZ(mris, vno, vx,vy,vz);
+  }
 }
 
 void

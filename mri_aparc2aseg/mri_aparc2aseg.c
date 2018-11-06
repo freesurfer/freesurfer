@@ -99,7 +99,7 @@ static MRIS *lhwhite, *rhwhite;
 static MRIS *lhpial, *rhpial;
 static MHT *lhwhite_hash, *rhwhite_hash;
 static MHT *lhpial_hash, *rhpial_hash;
-static VERTEX vtx;
+static struct { float x,y,z; } vtx;
 static int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 static MATRIX *Vox2RAS, *CRS, *RAS;
 static float dlhw, dlhp, drhw, drhp;
@@ -650,15 +650,15 @@ int main(int argc, char **argv)
         // lh.white, lh.pial, rh.white, rh.pial
         if(UseHash) {
 	  if(DoLH){
-	    lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-	    lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
+	    lhwvtx = MHTfindClosestVertexNoXYZ(lhwhite_hash,lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+	    lhpvtx = MHTfindClosestVertexNoXYZ(lhpial_hash, lhpial, vtx.x,vtx.y,vtx.z,&dlhp);
 	  } else {
 	    lhwvtx = -1;
 	    lhpvtx = -1;
 	  }
 	  if(DoRH){
-	    rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
-	    rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+	    rhwvtx = MHTfindClosestVertexNoXYZ(rhwhite_hash,rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	    rhpvtx = MHTfindClosestVertexNoXYZ(rhpial_hash, rhpial, vtx.x,vtx.y,vtx.z,&drhp);
 	  } else {
 	    rhwvtx = -1;
 	    rhpvtx = -1;
@@ -1547,7 +1547,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 {
   static MATRIX *CRS = NULL;
   static MATRIX *RAS = NULL;
-  static VERTEX vtx;
+  static struct { float x,y,z; } vtx;
   static float dlhw, dlhp, drhw, drhp,dmin;
   int annot, hemi, annotid;
 
@@ -1567,10 +1567,10 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   vtx.y = RAS->rptr[2][1];
   vtx.z = RAS->rptr[3][1];
 
-  *lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-  *lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
-  *rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
-  *rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+  *lhwvtx = MHTfindClosestVertexNoXYZ(lhwhite_hash,lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+  *lhpvtx = MHTfindClosestVertexNoXYZ(lhpial_hash, lhpial, vtx.x,vtx.y,vtx.z,&dlhp);
+  *rhwvtx = MHTfindClosestVertexNoXYZ(rhwhite_hash,rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+  *rhpvtx = MHTfindClosestVertexNoXYZ(rhpial_hash, rhpial, vtx.x,vtx.y,vtx.z,&drhp);
 
   printf("lh white: %d %g\n",*lhwvtx,dlhw);
   printf("lh pial:  %d %g\n",*lhpvtx,dlhp);
@@ -1586,9 +1586,9 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
            c,r,s,vtx.x,vtx.y,vtx.z);
     printf("Using Bruce Force\n");
     *lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw, CURRENT_VERTICES);
-    *lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp, CURRENT_VERTICES);
+    *lhpvtx = MRISfindClosestVertex(lhpial, vtx.x,vtx.y,vtx.z,&dlhp, CURRENT_VERTICES);
     *rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw, CURRENT_VERTICES);
-    *rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp, CURRENT_VERTICES);
+    *rhpvtx = MRISfindClosestVertex(rhpial, vtx.x,vtx.y,vtx.z,&drhp, CURRENT_VERTICES);
     printf("lh white: %d %g\n",*lhwvtx,dlhw);
     printf("lh pial:  %d %g\n",*lhpvtx,dlhp);
     printf("rh white: %d %g\n",*rhwvtx,drhw);

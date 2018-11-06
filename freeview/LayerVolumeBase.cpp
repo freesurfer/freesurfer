@@ -492,7 +492,6 @@ bool LayerVolumeBase::BorderFillByRAS(double *ras, int nPlane, bool b3D)
   QVector<int> list = BorderFillByRAS(n, nPlane);
   if (!list.isEmpty())
   {
-
     SetModified();
     emit ActorUpdated();
     emit BaseVoxelEdited(list, true);
@@ -506,40 +505,41 @@ QVector<int> LayerVolumeBase::BorderFillByRAS(int *n, int nPlane)
 {
   QVector<int> voxel_list;
   int* nDim = m_imageData->GetDimensions();
-  int nx = 0, ny = 0, x = 0, y = 0;
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int nx = 0, ny = 0;
   vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
   reslice->SetOutputDimensionality(2);
+  double slicePos[3];
+  for (int i = 0; i < 3; i++)
+  {
+    slicePos[i] = n[i]*voxel_size[i]+origin[i];
+  }
   switch ( nPlane )
   {
   case 0:
     nx = nDim[1];
     ny = nDim[2];
-    x = n[1];
-    y = n[2];
     reslice->SetResliceAxesDirectionCosines( 0, 1, 0,
                                                  0, 0, 1,
                                                  1, 0, 0 );
-    reslice->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
+    reslice->SetResliceAxesOrigin( slicePos[0], 0, 0  );
     break;
   case 1:
     nx = nDim[0];
     ny = nDim[2];
-    x = n[0];
-    y = n[2];
     reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
                                                  0, 0, 1,
                                                  0, 1, 0 );
-    reslice->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+    reslice->SetResliceAxesOrigin( 0, slicePos[1], 0 );
     break;
   case 2:
     nx = nDim[0];
     ny = nDim[1];
-    x = n[0];
-    y = n[1];
     reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
                                                  0, 1, 0,
                                                  0, 0, 1 );
-    reslice->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2] );
+    reslice->SetResliceAxesOrigin( 0, 0, slicePos[2] );
     break;
   }
 

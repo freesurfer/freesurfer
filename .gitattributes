@@ -1,17 +1,4 @@
-# see man gitattributes
-
 # Map file extensions to git filters
-
-# See .git-keywords directory for kw filter, and .gitconfig
-#*.h filter=kw
-#*.hpp filter=kw
-#*.c filter=kw
-#*.cpp filter=kw
-#*.py filter=kw
-#*.am filter=kw
-#*.m filter=kw
-
-# See .git-rcs-keywords/.git_filters directory for filters, and .gitconfig
 *.h filter=rcs-keywords
 *.hpp filter=rcs-keywords
 *.c filter=rcs-keywords
@@ -19,3 +6,8 @@
 *.py filter=rcs-keywords
 *.am filter=rcs-keywords
 *.m filter=rcs-keywords
+
+# Set language recognition for fspython files
+samseg/run_samseg linguist-language=Python
+samseg/sbtiv linguist-language=Python
+infant/mri_label_fusion linguist-language=Python

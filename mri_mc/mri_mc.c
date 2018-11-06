@@ -382,7 +382,7 @@ void reallocateFaces(tesselation_parms *parms) {
 
 int saveTesselation2(tesselation_parms *parms) {
   int vno,m,n,fno;
-  int pct_over=1;
+  int nVFMultiplier=1;
   quad_face_type *face2;
   quad_vertex_type *vertex2;
   MRIS* mris;
@@ -400,7 +400,7 @@ int saveTesselation2(tesselation_parms *parms) {
   xx1=parms->mri->xend;
   zz1=parms->mri->zend;
 
-  mris=MRISoverAlloc(pct_over*parms->vertex_index,pct_over*parms->face_index
+  mris=MRISoverAlloc(nVFMultiplier*parms->vertex_index,nVFMultiplier*parms->face_index
                      ,parms->vertex_index,parms->face_index);
 
   MRIScopyVolGeomFromMRI(mris, parms->mri) ;
@@ -411,7 +411,7 @@ int saveTesselation2(tesselation_parms *parms) {
   /*first init vertices*/
   for (vno=0;vno<mris->nvertices;vno++) {
     VERTEX_TOPOLOGY* const vertext = &mris->vertices_topology[vno] ;
-    VERTEX         * const vertex  = &mris->vertices         [vno] ;
+
     vertex2= &parms->vertex[vno];
     i=vertex2->i;
     j=vertex2->j;
@@ -427,9 +427,10 @@ int saveTesselation2(tesselation_parms *parms) {
     y=yw;
     z=zw;
 
-    vertex->x=x;
-    vertex->y=y;
-    vertex->z=z;
+    MRISsetXYZ(mris, vno,
+      x,
+      y,
+      z);
     vertext->num=0;
   }
   /*then init faces*/

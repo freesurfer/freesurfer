@@ -47,7 +47,6 @@
 #include "mrinorm.h"
 #include "fsinit.h"
 
-int MRISrecenter(MRI_SURFACE *mris, int which_move, int which_target)  ;
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
 static char vcid[] = "$Id: mri_transform.c,v 1.18 2013/04/21 17:10:41 fischl Exp $";
 
@@ -767,62 +766,6 @@ MRIScreateVolumeWarpFromSurface(MRI *mri_in, MRI *mri_out, MRI_SURFACE *mris, in
   MRIfree(&mri_warp_x_smooth) ; MRIfree(&mri_warp_y_smooth) ; MRIfree(&mri_warp_z_smooth) ;
 
   return(mri_warp) ;
-}
-
-int
-MRISrecenter(MRI_SURFACE *mris, int which_move, int which_target) 
-{
-  double  xt, yt, zt, tx, ty, tz, xm, ym, zm, radius, r ;
-  int     n, vno ;
-  VERTEX  *v;
-
-  MRIScomputeMetricProperties(mris) ;
-  radius = sqrt(mris->total_area / (4.0*M_PI)) ; // preserve total surface area
-
-  MRISsaveVertexPositions(mris, which_move) ;
-  MRISrestoreVertexPositions(mris, which_target) ;
-  MRIScenterSphere(mris) ;
-  printf("rescaling canonical coordinates to use r=%2.1f\n", radius) ;
-  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    MRISvertexCoord2XYZ_double(v, which_target, &xt, &yt, &zt) ;
-    r = sqrt(xt*xt + yt*yt + zt*zt) ;
-    v->x = radius*(v->x/r) ; v->y = radius*(v->y/r) ; v->z = radius*(v->z/r) ;
-  }
-  tx = ty = tz = 0 ;
-  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    MRISvertexCoord2XYZ_double(v, which_move, &xm, &ym, &zm) ;
-    MRISvertexCoord2XYZ_double(v, which_target, &xt, &yt, &zt) ;
-    n++ ;
-    tx += xt-xm ; ty += yt-ym ; tz += zt-zm ;
-  }
-
-  tx /= n ;  ty /= n ; tz /= n ;
-  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    switch (which_target)
-    {
-    case CANONICAL_VERTICES:
-      v->cx += tx ; v->cy += ty ; v->cz += tz ;
-      break ;
-    default:
-      ErrorExit(ERROR_UNSUPPORTED, "MRISrecenter: movable vertices %d not supported", which_move);
-      break ;
-    }
-  }
-  MRISrestoreVertexPositions(mris, which_move) ;
-  MRIScomputeMetricProperties(mris) ;
-  return(NO_ERROR) ;
 }
 
 #define MAX_SAMPLE_DIST 13.0

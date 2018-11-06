@@ -1729,6 +1729,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayMethod( sa );
   }
+  else if ( cmd == "setsurfaceoverlaycustom" )
+  {
+    CommandSetSurfaceOverlayCustom( sa );
+  }
   else if (cmd == "setsurfaceoverlaycolormap")
   {
     CommandSetSurfaceOverlayColormap( sa );
@@ -2978,7 +2982,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QStringList valid_overlay_options;
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
+                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2994,6 +2998,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_method = "linearopaque";
     QStringList overlay_color;
     QStringList overlay_thresholds;
+    QStringList overlay_custom;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
     {
@@ -3018,6 +3023,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_frame = subArgu;
         else if (subOption == "overlay_smooth")
           overlay_smooth_steps = subArgu;
+        else if (subOption == "overlay_custom")
+          overlay_custom = subArgu.split(",", QString::SkipEmptyParts);
       }
     }
     if (overlay_reg.isEmpty())
@@ -3100,6 +3107,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
+
+          if (!overlay_custom.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlaycustom") << overlay_custom);
 
           if (!overlay_opacity.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlayopacity") << overlay_opacity);
@@ -3390,8 +3400,8 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       }
       else
       {
-	if (!ok)
-	  cerr << "Invalid input for overlay smoothing.\n";
+        if (!ok)
+          cerr << "Invalid input for overlay smoothing.\n";
       }
     }
   }
@@ -3468,6 +3478,70 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
         cerr << "Invalid input for overlay threshold.\n";
       }
 
+      surf->UpdateOverlay(true);
+      overlay->EmitDataUpdated();
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOverlayCustom( const QStringList& cmd_in )
+{
+  QStringList cmd = cmd_in;
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      if (cmd.size() < 2)
+      {
+        cerr << "Insufficient overlay_custom argments\n";
+        return;
+      }
+
+      QGradientStops stops;
+      QColor c;
+      bool bOK;
+      for (int i = 1; i < cmd.size(); i++)
+      {
+        double dval = cmd[i].toDouble(&bOK);
+        if (!bOK)
+          break;
+
+        c = QColor(cmd[i+1]);
+        if (c.isValid())
+        {
+          i++;
+        }
+        else
+        {
+          int r,g,b;
+          r = cmd[i+1].toInt(&bOK);
+          if (!bOK)
+            break;
+          g = cmd[i+2].toInt(&bOK);
+          if (!bOK)
+            break;
+          b = cmd[i+3].toInt(&bOK);
+          if (!bOK)
+            break;
+          c = QColor(r,g,b);
+          if (!c.isValid())
+            break;
+          else
+            i+=3;
+        }
+        stops << QGradientStop(dval, c);
+      }
+
+      if (!bOK || !c.isValid())
+      {
+        cerr << "Invalid input for customized overlay color.\n";
+        return;
+      }
+
+      overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Custom);
+      overlay->GetProperty()->SetCustomColorScale(stops);
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
     }
