@@ -1,5 +1,5 @@
-#ifndef GEMS_PYKVLNUMPY_H
-#define GEMS_PYKVLNUMPY_H
+#ifndef NUMPY_H
+#define NUMPY_H
 
 #include <algorithm>
 #include <pybind11/pybind11.h>
@@ -13,6 +13,7 @@ py::array_t<T> createNumpyArray(std::vector<size_t> shape, std::vector<size_t> s
     auto result = py::array_t<T>(shape, strides, data, free_when_done);
     return result;
 }
+
 
 template<class T>
 py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, const T* const data){
@@ -28,6 +29,7 @@ py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, const T* const 
     return createNumpyArray(shape, strides, data);
 }
 
+
 template<class T>
 py::array_t<T> createNumpyArrayFStyle(std::vector<size_t> shape, const T* const data){
     size_t size = sizeof(T);
@@ -41,4 +43,5 @@ py::array_t<T> createNumpyArrayFStyle(std::vector<size_t> shape, const T* const 
     return createNumpyArray(shape, strides, data);
 }
 
-#endif //GEMS_PYKVLNUMPY_H
+
+#endif

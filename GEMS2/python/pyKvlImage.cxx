@@ -36,10 +36,8 @@ ImagePointer KvlImage::numpy_to_image(const py::array_t<float> &buffer) {
     // Determine the size of the image to be created
     typedef typename ImageType::SizeType  SizeType;
     SizeType  imageSize;
-    for ( int i = 0; i < 3; i++ )
-    {
+    for ( int i = 0; i < 3; i++ ) {
         imageSize[ i ] = buffer.shape( i );
-        //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
     }
 
     // Construct an ITK image
@@ -48,11 +46,9 @@ ImagePointer KvlImage::numpy_to_image(const py::array_t<float> &buffer) {
     image->Allocate();
 
     // Loop over all voxels and copy contents
-    itk::ImageRegionIterator< ImageType >  it( image,
-                                               image->GetBufferedRegion() );
+    itk::ImageRegionIterator< ImageType >  it( image, image->GetBufferedRegion() );
     const float *bufferPointer = buffer.data(0);
-    for ( ;!it.IsAtEnd(); ++it, ++bufferPointer )
-    {
+    for ( ;!it.IsAtEnd(); ++it, ++bufferPointer ) {
         it.Value() = *bufferPointer;
     }
     return image;
@@ -99,8 +95,7 @@ KvlImage::KvlImage(const std::string &imageFileName, const std::string &bounding
     m_image = caster->GetOutput();
     m_transform = reader->GetTransform()->Clone();
 
-    for ( int index = 0; index < 3; index++ )
-    {
+    for ( int index = 0; index < 3; index++ ) {
         m_non_cropped_image_size[index] = reader->GetOriginalImageOriginalRegion().GetSize( index );
         m_cropping_offset[index] = reader->GetOriginalImageRegion().GetIndex( index )
                                    - reader->GetCroppedImageRegion().GetIndex( index );
