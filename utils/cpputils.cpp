@@ -49,19 +49,11 @@ using namespace std;
  */
 extern "C" MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance)
 {
-  int res;
-
-  // Save the MRIS surface verts
-  Point_f *surfverts = new Point_f[mris->nvertices];
-  for (int vc = 0; vc < mris->nvertices; vc++) {
-    VERTEX *v = &mris->vertices[vc];
-    surfverts[vc].v[0] = v->x;
-    surfverts[vc].v[1] = v->y;
-    surfverts[vc].v[2] = v->z;
-  }
-
   // this volume is used to track visited voxels
-  MRI *mri_visited = MRIcloneDifferentType(mri_dist, MRI_INT);
+  MRI* mri_visited = MRIcloneDifferentType(mri_dist, MRI_INT);
+
+  // Save before converting, restored later
+  MRISsavedXYZ* savedXYZ = MRISsaveXYZ(mris);
 
   // Convert surface vertices to vox space
   Math::ConvertSurfaceRASToVoxel(mris, mri_dist);
@@ -83,7 +75,7 @@ extern "C" MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dis
     for (int j = 0; j < mri_dist->height; j++) {
       for (int k = 0; k < mri_dist->depth; k++) {
         if (MRIIvox(mri_visited, i, j, k)) continue;
-        res = OBBTree->PointInclusionTest(i, j, k);
+        int res = OBBTree->PointInclusionTest(i, j, k);
         Pointd *pt = new Pointd;
         pt->v[0] = i;
         pt->v[1] = j;
@@ -160,20 +152,15 @@ extern "C" MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dis
       }
     }
   }
-  // Restore the saved MRIS surface verts
-  for (int vc = 0; vc < mris->nvertices; vc++) {
-    VERTEX *v = &mris->vertices[vc];
-    v->x = surfverts[vc].v[0];
-    v->y = surfverts[vc].v[1];
-    v->z = surfverts[vc].v[2];
-  }
+  
+  MRISpopXYZ(mris,&savedXYZ);
 
-  delete[] surfverts;  // no longer need
   delete OBBTree;
   delete distfield;
   MRIfree(&mri_visited);
   return (mri_dist);
 }
+
 
 /* This uses the more accurate signed distance transform from a surface ( uses OBB Trees in turn ). It takes more time (
  * around 4 to 5 minutes ) but it's very accurate. returned MRI structure (mri_out) is an MRI_INT MRI volume with voxels

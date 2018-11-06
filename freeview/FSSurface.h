@@ -62,6 +62,7 @@ public:
                  const QString& vector_filename = QString(),
                  const QString& patch_filename = QString(),
                  const QString& target_filename = QString(),
+                 const QString& sphere_filename = QString(),
                  const QStringList& sup_files = QStringList());
 
   bool CreateFromMRIS(MRIS* mris);

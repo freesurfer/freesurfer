@@ -70,7 +70,7 @@ void MRIPfree(MRIP **mrip);
 MRIP *MRIPclone(MRIP *src);
 
 Surface *MRIStoSurface(MRIS *mris);
-MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris);
+MRIS * SurfaceToMRIS(Surface *surface);
 
 
 #endif

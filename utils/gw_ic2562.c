@@ -1947,22 +1947,20 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
   // Positions for ico 1
   //----------------------------------
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    VERTEX* const v = &mris->vertices[vno];
-
-    v->x = r1 * gw_ic2562_vertices[vno].x + x1;
-    v->y = r1 * gw_ic2562_vertices[vno].y + y1;
-    v->z = r1 * gw_ic2562_vertices[vno].z + z1;
+    MRISsetXYZ(mris,vno,
+      r1 * gw_ic2562_vertices[vno].x + x1,
+      r1 * gw_ic2562_vertices[vno].y + y1,
+      r1 * gw_ic2562_vertices[vno].z + z1);
   }
 
   //----------------------------------
   // Positions for ico 2
   //----------------------------------
   for (vno = 0; vno < ICO_NVERTICES; vno++) {
-    VERTEX* const v = &mris->vertices[vno + ICO_NVERTICES];
-
-    v->x = r2 * gw_ic2562_vertices[vno].x + x2;
-    v->y = r2 * gw_ic2562_vertices[vno].y + y2;
-    v->z = r2 * gw_ic2562_vertices[vno].z + z2;
+    MRISsetXYZ(mris, vno + ICO_NVERTICES,
+      r2 * gw_ic2562_vertices[vno].x + x2,
+      r2 * gw_ic2562_vertices[vno].y + y2,
+      r2 * gw_ic2562_vertices[vno].z + z2);
   }
 
   //-------------------------------------

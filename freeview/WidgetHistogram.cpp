@@ -549,7 +549,7 @@ void WidgetHistogram::mouseDoubleClickEvent(QMouseEvent * event)
     if (c.isValid())
     {
       m_markers[n].color = c;
-      this->repaint();
+      this->update();
       emit MarkerChanged();
     }
   }
@@ -640,4 +640,10 @@ void WidgetHistogram::FlipMarkers()
   m_markers = markers;
   this->repaint();
   emit MarkerChanged();
+}
+
+void WidgetHistogram::SetMarkerEditable(bool bFlag)
+{
+  m_bMarkerEditable = bFlag;
+  setToolTip(bFlag?"Double-click to edit\r\nShift+Click to delete":"");
 }

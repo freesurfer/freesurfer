@@ -284,11 +284,13 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
       for (nnum = 0; nnum < vmt_high->vnum; nnum++)  // first order neighborhood
         if (vmt_high->v[nnum] < number)              // neighbor A(j,m)
         {
-          int k = vmt_high->v[nnum];
-          VERTEX* v = &mris_out->vertices[k];
-          vm_out->origx -= 0.5 * v->origx;
-          vm_out->origy -= 0.5 * v->origy;
-          vm_out->origz -= 0.5 * v->origz;
+          int    const   k = vmt_high->v[nnum];
+          VERTEX const * v = &mris_out->vertices[k];
+          
+          MRISsetOriginalXYZ(mris_out, m, 
+            vm_out->origx - 0.5 * v->origx,
+            vm_out->origy - 0.5 * v->origy,
+            vm_out->origz - 0.5 * v->origz);
         }
 
       int flag = 0, b1 = 0, b2 = 0;
@@ -302,9 +304,10 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
             b2 = k;
           flag++;
           VERTEX* v = &mris_out->vertices[k];
-          vm_out->origx -= 0.125 * v->origx;
-          vm_out->origy -= 0.125 * v->origy;
-          vm_out->origz -= 0.125 * v->origz;
+          MRISsetOriginalXYZ(mris_out, m, 
+            vm_out->origx - 0.125 * v->origx,
+            vm_out->origy - 0.125 * v->origy,
+            vm_out->origz - 0.125 * v->origz);
         }
         
       for (; nnum < vmt_high->v3num; nnum++)
@@ -319,9 +322,10 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
             if (mris_high->vertices_topology[b2].v[cno] == k) flag = 1;
           if (flag) {
             VERTEX* v = &mris_out->vertices[k];
-            vm_out->origx += 0.0625 * v->origx;
-            vm_out->origy += 0.0625 * v->origy;
-            vm_out->origz += 0.0625 * v->origz;
+            MRISsetOriginalXYZ(mris_out, m, 
+              vm_out->origx + 0.0625 * v->origx,
+              vm_out->origy + 0.0625 * v->origy,
+              vm_out->origz + 0.0625 * v->origz);
           }
         }
     }
@@ -338,9 +342,10 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
           int k = vmt_high->v[nnum];
           VERTEX* v = &mris_out->vertices[k];
           double s_jkm = vm_out->val / 2 / v->val;
-          v->origx += s_jkm * vm_out->origx;
-          v->origy += s_jkm * vm_out->origy;
-          v->origz += s_jkm * vm_out->origz;
+          MRISsetOriginalXYZ(mris_out, k,
+            v->origx + s_jkm * vm_out->origx,
+            v->origy + s_jkm * vm_out->origy,
+            v->origz + s_jkm * vm_out->origz);
         }
     }
 
@@ -589,9 +594,10 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
           int k = vmt_high->v[nnum];
           VERTEX * const v = &mris_out->vertices[k];
           double s_jkm = vm_out->val / 2 / v->val;
-          v->origx -= s_jkm * vm_out->origx;
-          v->origy -= s_jkm * vm_out->origy;
-          v->origz -= s_jkm * vm_out->origz;
+          MRISsetOriginalXYZ(mris_out, k, 
+            v->origx - s_jkm * vm_out->origx,
+            v->origy - s_jkm * vm_out->origy,
+            v->origz - s_jkm * vm_out->origz);
         }
     }
 
@@ -605,9 +611,10 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
         {
           int k = vmt_high->v[nnum];
           VERTEX const * v = &mris_out->vertices[k];
-          vm_out->origx += 0.5 * v->origx;
-          vm_out->origy += 0.5 * v->origy;
-          vm_out->origz += 0.5 * v->origz;
+          MRISsetOriginalXYZ(mris_out, m, 
+            vm_out->origx + 0.5 * v->origx,
+            vm_out->origy + 0.5 * v->origy,
+            vm_out->origz + 0.5 * v->origz);
         }
       int flag = 0;
       int b1 = 0, b2 = 0;
@@ -621,9 +628,10 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
             b2 = k;
           flag++;
           VERTEX const * v = &mris_out->vertices[k];
-          vm_out->origx += 0.125 * v->origx;
-          vm_out->origy += 0.125 * v->origy;
-          vm_out->origz += 0.125 * v->origz;
+          MRISsetOriginalXYZ(mris_out, m,
+            vm_out->origx + 0.125 * v->origx,
+            vm_out->origy + 0.125 * v->origy,
+            vm_out->origz + 0.125 * v->origz);
         }
       for (; nnum < vmt_high->v3num; nnum++)  // third order neighborhood
         if (vmt_high->v[nnum] < number)       // neighbor C(j,m)
@@ -637,9 +645,10 @@ MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
             if (mris_high->vertices_topology[b2].v[cno] == k) flag = 1;
           if (flag) {
             VERTEX const * v = &mris_out->vertices[k];
-            vm_out->origx -= 0.0625 * v->origx;
-            vm_out->origy -= 0.0625 * v->origy;
-            vm_out->origz -= 0.0625 * v->origz;
+            MRISsetOriginalXYZ(mris_out, m,
+              vm_out->origx - 0.0625 * v->origx,
+              vm_out->origy - 0.0625 * v->origy,
+              vm_out->origz - 0.0625 * v->origz);
           }
         }
     }

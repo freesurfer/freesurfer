@@ -247,11 +247,12 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 # for stripping unused code
 if(APPLE)
   set(STRIP_FLAGS "-dead_strip")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 
 # link map (only for linux)
 if(NOT APPLE)

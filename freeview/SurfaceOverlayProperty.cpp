@@ -116,7 +116,7 @@ void SurfaceOverlayProperty::Reset()
     m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
     m_dOffset = 0;
     m_customScale.clear();
-    m_customScale << QGradientStop(m_dMinPoint, Qt::red) << QGradientStop(m_dMaxPoint, Qt::yellow);
+    m_customScale << QGradientStop(m_dMinPoint, Qt::red);
     m_dMinStop = m_dMinPoint;
     m_dMaxStop = m_dMaxPoint;
   }
