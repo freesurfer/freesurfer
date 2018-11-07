@@ -64,8 +64,10 @@ extern "C" bool MRIScorrectDefect(MRIS *mris,
 #if __PRINT_MODE
   fprintf(WHICH_OUTPUT,"   extracting MRIP\n");
 #endif
+
   MRIP *mrip = MRIPextractFromMRIS(mris,defect_number);
   parms.mrip=mrip;
+
   if (mrip==NULL) {
     TOPOFIXfreeDP(&parms);
     return false;
@@ -716,12 +718,12 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
     return NULL;
   }
 
-  //number of loops to be cut
+  // number of loops to be cut
   int ncorrections = (1-euler)/2;
 
   /* allocate the patch with extra space */
   int max_vertices,max_faces;
-// _OverAlloc(2*loop.npoints+2*pdisk->disk.nvertices,2*(2*loop.npoints+pdisk->disk.nfaces+pdisk->ring.npoints));
+  // _OverAlloc(2*loop.npoints+2*pdisk->disk.nvertices,2*(2*loop.npoints+pdisk->disk.nfaces+pdisk->ring.npoints));
   max_vertices = nvertices + ncorrections*(2*nvertices + MAX_EXTRA_VERTICES);
   max_faces = nfaces + ncorrections*(4*nvertices+ MAX_EXTRA_FACES);
 
@@ -734,7 +736,7 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
   /* copy the necessary information */
   MRISreallocVerticesAndFaces(mris_dst, nvertices, nfaces);
 
-  //the corresponding tables
+  // the corresponding tables
   int *vt_to,*vt_from;
   vt_to = new int[max_vertices];
   for (int n = 0 ; n < max_vertices ; n++)
@@ -748,13 +750,11 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
       VERTEX *vsrc = &mris->vertices[n];
       VERTEX *v = &mris_dst->vertices[nvertices];
       vt_from[n]=nvertices;
-      vt_to[nvertices++]=n;
-      //copy the strict necessary
-      MRISsetXYZ(mris_dst, nvertices,
-        vsrc->x,
-        vsrc->y,
-        vsrc->z);
-    };
+      vt_to[nvertices]=n;
+      // copy the strict necessary
+      MRISsetXYZ(mris_dst, nvertices, vsrc->x, vsrc->y, vsrc->z);
+      nvertices++;
+    }
   }
   mrip->vtrans_to = vt_to;
   mrip->vtrans_from = vt_from;
