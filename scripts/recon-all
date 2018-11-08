@@ -5724,7 +5724,7 @@ while( $#argv != 0 )
       # MOD: turn on T2/FLAIR pial editing when FLAIR specified
       # This can backfire, eg, if not all the preceeding steps
       # are included
-      set DoT2pial         = 1; 
+      set DoFLAIRpial = 1; 
       breaksw
 
     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
