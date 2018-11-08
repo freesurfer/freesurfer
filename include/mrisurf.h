@@ -2825,7 +2825,7 @@ int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
-void mrisDisturbVertices(MRIS *mris, double amount)
+void mrisDisturbVertices(MRIS *mris, double amount);
 
 MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
 void  MRIScenterSphere(MRIS *mris);

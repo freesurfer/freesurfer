@@ -344,8 +344,8 @@ main(int argc, char *argv[])
       VERTEX *v = &mris_mov->vertices[vno] ;
       float 
         x = (v->cx + coords[0][vno])/2,
-        y = (v->cy + coords[1][vno])/2 ;
-        z = (v->cz + coords[2][vno])/2 ;
+        y = (v->cy + coords[1][vno])/2,
+        z = (v->cz + coords[2][vno])/2;
         
       float norm = sqrt(x*x + y*y + z*z) ;
       

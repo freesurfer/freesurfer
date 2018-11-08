@@ -650,10 +650,9 @@ static int
 initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside)
 {
   MRI    *mri_dilated ;
-  int    x, y, z, vno ;
+  int    x, y, z ;
   double x0, y0, z0, radius, dist, num, max_r ;
   double xs, ys, zs ;
-  VERTEX *v ;
 
   if (outside)
   {

@@ -8560,8 +8560,7 @@ static int MRIScomputeNormals_old(MRIS *mris)
             DIAG_VERBOSE_ON)
           fprintf(stderr, "vertex %d: degenerate normal\n", k);
 
-        fprintf(stderr, "%s:%d BEVIN IS LOOKING FOR AN EXAMPLE THAT DOES THIS\n", 
-          __FILE__, __LINE__);
+        // THIS HAS BEEN SEEN TO HAPPEN
 
         v->x += (float)randomNumber(-RAN, RAN);         // BUG: Parallel non-deterministic, the order that these are called will vary
         v->y += (float)randomNumber(-RAN, RAN);
@@ -8764,10 +8763,7 @@ static int MRIScomputeNormals_new(MRIS *mris)
         break;
     }
     
-    // See if we can find an example that has the problem
-    //
-    fprintf(stderr, "%s:%d trial:%d nextPendingSize:%d BEVIN IS LOOKING FOR AN EXAMPLE THAT DOES THIS\n", 
-        __FILE__, __LINE__, trial, nextPendingSize);
+    // THIS HAS BEEN OBSERVED
     
     // Sort the nextPending list because the above appends are not in order
     //
