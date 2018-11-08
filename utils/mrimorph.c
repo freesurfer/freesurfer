@@ -5344,8 +5344,6 @@ static int m3dcheck(MORPH_3D *m3d)
   return (NO_ERROR);
 }
 
-static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *py0, float *pz0);
-int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0);
 static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *py0, float *pz0)
 {
   int x, y, z, width, depth, height, nvox;
@@ -5396,44 +5394,6 @@ static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *
   *py0 = y0;
   *pz0 = z0;
   return (max_radius);
-}
-
-int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0)
-{
-  int vno;
-  VERTEX *v;
-  float x, y, z, xlo, xhi, zlo, zhi, ylo, yhi;
-
-  MRIScenter(mris, mris);
-  x = y = z = 0; /* silly compiler warning */
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-    v->x += x0;
-    v->y += y0;
-    v->z += z0;
-    x = v->x;
-    y = v->y;
-    z = v->z;
-    if (x > xhi) xhi = x;
-    if (x < xlo) xlo = x;
-    if (y > yhi) yhi = y;
-    if (y < ylo) ylo = y;
-    if (z > zhi) zhi = z;
-    if (z < zlo) zlo = z;
-  }
-  mris->xlo = xlo;
-  mris->ylo = ylo;
-  mris->zlo = zlo;
-  mris->xhi = xhi;
-  mris->yhi = yhi;
-  mris->zhi = zhi;
-  mris->xctr = x0;
-  mris->yctr = y0;
-  mris->zctr = z0;
-  return (NO_ERROR);
 }
 
 MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)

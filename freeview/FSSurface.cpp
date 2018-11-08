@@ -164,6 +164,7 @@ bool FSSurface::MRISRead( const QString& filename,
                           const QString& vector_filename,
                           const QString& patch_filename,
                           const QString& target_filename,
+                          const QString& sphere_filename,
                           const QStringList& sup_files )
 {
   if ( m_MRIS )
@@ -186,7 +187,8 @@ bool FSSurface::MRISRead( const QString& filename,
   }
   else
   {
-    MRISreadCanonicalCoordinates(m_MRIS, "sphere.reg");
+    if (!sphere_filename.isEmpty())
+      MRISreadCanonicalCoordinates(m_MRIS, qPrintable(sphere_filename));
     return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
   }
 }
@@ -349,7 +351,7 @@ void FSSurface::UpdateHashTable(int nSet, int coord)
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
-  m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/10 );
+  m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/2 );
 }
 
 void FSSurface::LoadTargetSurface( const QString& filename )

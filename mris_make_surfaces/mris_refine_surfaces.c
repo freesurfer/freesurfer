@@ -67,7 +67,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
+
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
                       int out_label, MRI *mri_dst);
 
@@ -1114,31 +1114,6 @@ static void
 print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisFindMiddleOfGray(MRI_SURFACE *mris) {
-  int     vno ;
-  VERTEX  *v ;
-  float   nx, ny, nz, thickness ;
-
-  MRISaverageCurvatures(mris, 3) ;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-    thickness = 0.5 * v->curv ;
-    v->x = v->origx + thickness * nx ;
-    v->y = v->origy + thickness * ny ;
-    v->z = v->origz + thickness * nz ;
-  }
-  return(NO_ERROR) ;
 }
 
 MRI *

@@ -121,7 +121,7 @@
 #include <QtWidgets>
 #endif
 
-#define LAYER_ID_OFFSET 1000000
+#define LAYER_ID_OFFSET 10000
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -1729,6 +1729,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayMethod( sa );
   }
+  else if ( cmd == "setsurfaceoverlaycustom" )
+  {
+    CommandSetSurfaceOverlayCustom( sa );
+  }
   else if (cmd == "setsurfaceoverlaycolormap")
   {
     CommandSetSurfaceOverlayColormap( sa );
@@ -2978,7 +2982,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QStringList valid_overlay_options;
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
+                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2994,6 +2998,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_method = "linearopaque";
     QStringList overlay_color;
     QStringList overlay_thresholds;
+    QStringList overlay_custom;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
     {
@@ -3018,6 +3023,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_frame = subArgu;
         else if (subOption == "overlay_smooth")
           overlay_smooth_steps = subArgu;
+        else if (subOption == "overlay_custom")
+          overlay_custom = subArgu.split(",", QString::SkipEmptyParts);
       }
     }
     if (overlay_reg.isEmpty())
@@ -3100,6 +3107,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
+
+          if (!overlay_custom.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlaycustom") << overlay_custom);
 
           if (!overlay_opacity.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlayopacity") << overlay_opacity);
@@ -3271,6 +3281,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert(0, QStringList("gotosurfacevertex") << subArgu);
         }
+        else if (subOption == "sphere")
+        {
+          sup_options["sphere"] = subArgu;
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -3386,7 +3400,8 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       }
       else
       {
-        cerr << "Invalid input for overlay frame.\n";
+        if (!ok)
+          cerr << "Invalid input for overlay smoothing.\n";
       }
     }
   }
@@ -3463,6 +3478,70 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
         cerr << "Invalid input for overlay threshold.\n";
       }
 
+      surf->UpdateOverlay(true);
+      overlay->EmitDataUpdated();
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOverlayCustom( const QStringList& cmd_in )
+{
+  QStringList cmd = cmd_in;
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      if (cmd.size() < 2)
+      {
+        cerr << "Insufficient overlay_custom argments\n";
+        return;
+      }
+
+      QGradientStops stops;
+      QColor c;
+      bool bOK;
+      for (int i = 1; i < cmd.size(); i++)
+      {
+        double dval = cmd[i].toDouble(&bOK);
+        if (!bOK)
+          break;
+
+        c = QColor(cmd[i+1]);
+        if (c.isValid())
+        {
+          i++;
+        }
+        else
+        {
+          int r,g,b;
+          r = cmd[i+1].toInt(&bOK);
+          if (!bOK)
+            break;
+          g = cmd[i+2].toInt(&bOK);
+          if (!bOK)
+            break;
+          b = cmd[i+3].toInt(&bOK);
+          if (!bOK)
+            break;
+          c = QColor(r,g,b);
+          if (!c.isValid())
+            break;
+          else
+            i+=3;
+        }
+        stops << QGradientStop(dval, c);
+      }
+
+      if (!bOK || !c.isValid())
+      {
+        cerr << "Invalid input for customized overlay color.\n";
+        return;
+      }
+
+      overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Custom);
+      overlay->GetProperty()->SetCustomColorScale(stops);
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
     }
@@ -4898,6 +4977,7 @@ void MainWindow::OnNewVolume()
     layer_new->SetName( dlg.GetVolumeName() );
     col_mri->AddLayer(layer_new);
     ConnectMRILayer(layer_new);
+    emit NewVolumeCreated();
   }
 }
 
@@ -5550,6 +5630,8 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetLoadSupSurfaces(sup_files);
   if (sup_options.contains("ID"))
     layer->SetID(sup_options.value("ID").toInt());
+  if (sup_options.contains("sphere"))
+    layer->SetSphereFileName(sup_options["sphere"].toString());
   layer->GetProperty()->blockSignals(true);
   if (sup_options.contains("ZOrderAnnotation"))
     layer->GetProperty()->SetZOrderAnnotation(sup_options["ZOrderAnnotation"].toInt());
@@ -7245,6 +7327,7 @@ void MainWindow::OnReloadVolume()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      bool bCloseFirst = dlg.GetCloseLayerFirst();
       int active_layer_id = GetActiveLayer("MRI")->GetID();
       for (int i = 0; i < sel_layers.size(); i++)
       {
@@ -7252,7 +7335,7 @@ void MainWindow::OnReloadVolume()
         QVariantMap map = mri->GetProperty()->GetFullSettings();
         if (mri->GetActiveFrame() > 0)
           map["frame"] = mri->GetActiveFrame();
-        m_layerSettings[mri->GetID()] = map;
+        m_layerSettings[mri->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET)] = map;
       }
 
       QList<Layer*> all_layers = GetLayers("MRI");
@@ -7269,7 +7352,7 @@ void MainWindow::OnReloadVolume()
       //        }
       //      }
       QStringList layer_ids;
-      if (dlg.GetCloseLayerFirst())
+      if (bCloseFirst)
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
@@ -7285,19 +7368,26 @@ void MainWindow::OnReloadVolume()
         QString args = filename + ":name=" + name;
         if (!reg_fn.isEmpty())
           args += ":reg=" + reg_fn;
-        args += QString(":id=%1").arg(mri->GetID());
-
-        mri->SetID(mri->GetID()+LAYER_ID_OFFSET);
+        args += QString(":id=%1").arg(mri->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET));
+        if (bCloseFirst)
+        {
+          mri->SetID(mri->GetID()+LAYER_ID_OFFSET);
+        }
         AddScript(QStringList("loadvolume") << args);
-        mri->MarkAboutToDelete();
-        if (dlg.GetCloseLayerFirst())
+        if (bCloseFirst)
+        {
+          mri->MarkAboutToDelete();
           AddScript(QStringList("unloadlayers") << "mri" << QString::number(mri->GetID()));
+        }
       }
 
-      AddScript(QStringList("reorderlayers") << "mri" << layer_order.join(","));
-      for (int i = 0; i < layer_ids.size(); i++)
-        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
-      AddScript(QStringList("setactivelayer") << "mri" << QString::number(active_layer_id) << layer_ids.join(","));
+      if (bCloseFirst)
+      {
+        AddScript(QStringList("reorderlayers") << "mri" << layer_order.join(","));
+        for (int i = 0; i < layer_ids.size(); i++)
+          layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+        AddScript(QStringList("setactivelayer") << "mri" << QString::number(active_layer_id) << layer_ids.join(","));
+      }
     }
   }
   else
@@ -7312,6 +7402,7 @@ void MainWindow::OnReloadROI()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      bool bCloseFirst = dlg.GetCloseLayerFirst();
       int active_layer_id = GetActiveLayer("ROI")->GetID();
       //      for (int i = 0; i < sel_layers.size(); i++)
       //      {
@@ -7325,7 +7416,7 @@ void MainWindow::OnReloadROI()
         layer_order << QString::number(layer->GetID());
 
       QStringList layer_ids;
-      if (dlg.GetCloseLayerFirst())
+      if (bCloseFirst)
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
@@ -7339,19 +7430,23 @@ void MainWindow::OnReloadROI()
         QString filename = roi->GetFileName();
         QString args = filename + ":name=" + name;
         double* rgb = roi->GetProperty()->GetColor();
-        args += QString(":id=%1:color=%2,%3,%4:opacity=%5:threshold=%6:ref=%7").arg(roi->GetID())
+        args += QString(":id=%1:color=%2,%3,%4:opacity=%5:threshold=%6:ref=%7").arg(roi->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET))
             .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(roi->GetProperty()->GetOpacity())
             .arg(roi->GetProperty()->GetThreshold()).arg(roi->GetRefMRI()->GetID());
 
-        roi->SetID(roi->GetID()+LAYER_ID_OFFSET);
+        if (bCloseFirst)
+          roi->SetID(roi->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadroi") << args);
-        if (dlg.GetCloseLayerFirst())
+        if (bCloseFirst)
           AddScript(QStringList("unloadlayers") << "roi" << QString::number(roi->GetID()));
       }
-      AddScript(QStringList("reorderlayers") << "roi" << layer_order.join(","));
-      for (int i = 0; i < layer_ids.size(); i++)
-        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
-      AddScript(QStringList("setactivelayer") << "roi" << QString::number(active_layer_id) << layer_ids.join(","));
+      if (bCloseFirst)
+      {
+        AddScript(QStringList("reorderlayers") << "roi" << layer_order.join(","));
+        for (int i = 0; i < layer_ids.size(); i++)
+          layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+        AddScript(QStringList("setactivelayer") << "roi" << QString::number(active_layer_id) << layer_ids.join(","));
+      }
     }
   }
 }
@@ -7370,6 +7465,7 @@ void MainWindow::OnReloadPointSet()
       //        m_layerSettings[roi->GetID()] = roi->GetProperty()->GetFullSettings();
       //      }
 
+      bool bCloseFirst = dlg.GetCloseLayerFirst();
       int active_layer_id = GetActiveLayer("PointSet")->GetID();
       QList<Layer*> all_layers = GetLayers("PointSet");
       QStringList layer_order;
@@ -7377,7 +7473,7 @@ void MainWindow::OnReloadPointSet()
         layer_order << QString::number(layer->GetID());
 
       QStringList layer_ids;
-      if (dlg.GetCloseLayerFirst())
+      if (bCloseFirst)
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
@@ -7389,11 +7485,12 @@ void MainWindow::OnReloadPointSet()
         LayerPointSet* ps = qobject_cast<LayerPointSet*>(sel_layers[i]);
         QString filename = ps->GetFileName();
         double* rgb = ps->GetProperty()->GetColor();
-        QString args = filename + QString(":id=%1:color=%2,%3,%4:name=%5:radius=%6:visible=%7").arg(ps->GetID())
+        QString args = filename + QString(":id=%1:color=%2,%3,%4:name=%5:radius=%6:visible=%7").arg(ps->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET))
             .arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255)).arg(ps->GetName())
             .arg(ps->GetProperty()->GetRadius()).arg(ps->IsVisible()?1:0);
 
-        ps->SetID(ps->GetID()+LAYER_ID_OFFSET);
+        if (bCloseFirst)
+          ps->SetID(ps->GetID()+LAYER_ID_OFFSET);
         if (ps->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint )
           AddScript(QStringList("loadcontrolpoints") << args);
         else
@@ -7402,14 +7499,17 @@ void MainWindow::OnReloadPointSet()
           args += QString(":splinecolor=%1,%2,%3:splineradius=%4").arg((int)(rgb[0]*255)).arg((int)(rgb[1]*255)).arg((int)(rgb[2]*255))
               .arg(ps->GetProperty()->GetSplineRadius());
           AddScript(QStringList("loadwaypoints") << args);
-          if (dlg.GetCloseLayerFirst())
+          if (bCloseFirst)
             AddScript(QStringList("unloadlayers") << "pointset" << QString::number(ps->GetID()));
         }
       }
-      AddScript(QStringList("reorderlayers") << "pointset" << layer_order.join(","));
-      for (int i = 0; i < layer_ids.size(); i++)
-        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
-      AddScript(QStringList("setactivelayer") << "pointset" << QString::number(active_layer_id) << layer_ids.join(","));
+      if (bCloseFirst)
+      {
+        AddScript(QStringList("reorderlayers") << "pointset" << layer_order.join(","));
+        for (int i = 0; i < layer_ids.size(); i++)
+          layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+        AddScript(QStringList("setactivelayer") << "pointset" << QString::number(active_layer_id) << layer_ids.join(","));
+      }
     }
   }
 }
@@ -7422,11 +7522,12 @@ void MainWindow::OnReloadSurface()
     DialogReloadLayer dlg;
     if (dlg.Execute(sel_layers) == QDialog::Accepted)
     {
+      bool bCloseFirst = dlg.GetCloseLayerFirst();
       int active_layer_id = GetActiveLayer("Surface")->GetID();
       for (int i = sel_layers.size()-1; i >= 0; i--)
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
-        m_layerSettings[surf->GetID()] = surf->GetProperty()->GetFullSettings();
+        m_layerSettings[surf->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET)] = surf->GetProperty()->GetFullSettings();
       }
 
       QList<Layer*> all_layers = GetLayers("Surface");
@@ -7435,7 +7536,7 @@ void MainWindow::OnReloadSurface()
         layer_order << QString::number(layer->GetID());
 
       QStringList layer_ids;
-      if (dlg.GetCloseLayerFirst())
+      if (bCloseFirst)
       {
         for (int i = 0; i < sel_layers.size(); i++)
         {
@@ -7445,14 +7546,16 @@ void MainWindow::OnReloadSurface()
       for (int i = sel_layers.size()-1; i >= 0; i--)
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
-        QString args = QString("%1:name=%2:id=%3").arg(surf->GetFileName()).arg(surf->GetName()).arg(surf->GetID());
+        QString args = QString("%1:name=%2:id=%3").arg(surf->GetFileName()).arg(surf->GetName()).arg(surf->GetID()+(bCloseFirst?0:LAYER_ID_OFFSET));
         if (surf->GetCurrentVertex() >= 0)
           args += QString(":current_vertex=%1").arg(surf->GetCurrentVertex());
         args += QString(":overlay_zorder=%1:label_zorder=%2:annot_zorder=%3")
             .arg(surf->GetProperty()->GetZOrderOverlay())
             .arg(surf->GetProperty()->GetZOrderLabel())
             .arg(surf->GetProperty()->GetZOrderAnnotation());
-        surf->SetID(surf->GetID()+LAYER_ID_OFFSET);
+
+        if (bCloseFirst)
+          surf->SetID(surf->GetID()+LAYER_ID_OFFSET);
         AddScript(QStringList("loadsurface") << args);
 
         for (int j = surf->GetNumberOfOverlays()-1; j >= 0; j--)
@@ -7496,10 +7599,13 @@ void MainWindow::OnReloadSurface()
           AddScript(QStringList("unloadlayers") << "surface" << QString::number(surf->GetID()));
       }
 
-      AddScript(QStringList("reorderlayers") << "surface" << layer_order.join(","));
-      for (int i = 0; i < layer_ids.size(); i++)
-        layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
-      AddScript(QStringList("setactivelayer") << "surface" << QString::number(active_layer_id) << layer_ids.join(","));
+      if (bCloseFirst)
+      {
+        AddScript(QStringList("reorderlayers") << "surface" << layer_order.join(","));
+        for (int i = 0; i < layer_ids.size(); i++)
+          layer_ids[i] = QString::number(layer_ids[i].toInt()-LAYER_ID_OFFSET);
+        AddScript(QStringList("setactivelayer") << "surface" << QString::number(active_layer_id) << layer_ids.join(","));
+      }
     }
   }
 }

@@ -322,50 +322,52 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
     int           const vno,
     MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx) 
 {
-    if (vno == Gdiag_no) {
-        DiagBreak();
+  if (vno == Gdiag_no) {
+      DiagBreak();
+  }
+
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
+  /* erase the faces this vertex is part of */
+
+  // This will be a challenge to parallelize
+  //
+  if (mht) {
+    MHTremoveAllFaces(mht, mris, vt);
+  }
+
+  bool canMove = true;
+  if (mht) {
+    canMove = mrisLimitGradientDistance(mris, mht, vno, ctx);
+  }
+
+  if (canMove) {
+
+    MRISsetXYZ(mris, vno,
+      v->x + v->odx,
+      v->y + v->ody,
+      v->z + v->odz);
+
+    if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
+      DiagBreak();
     }
 
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX                * const v  = &mris->vertices         [vno];
-
-    /* erase the faces this vertex is part of */
-    
-    // This will be a challenge to parallelize
+    // If this is done here, then the undo step needs to cope 
+    // Perhaps this is why mrisAsynchronousTimeStepNew does not do it
     //
-    if (mht) {
-        MHTremoveAllFaces(mht, mris, vt);
+    if (updateDxDyDz) {
+      v->dx = v->odx; /* for mrisTrackTotalDistances */
+      v->dy = v->ody;
+      v->dz = v->odz;
     }
+  }
 
-    bool canMove = true;
-    if (mht) {
-        canMove = mrisLimitGradientDistance(mris, mht, vno, ctx);
-    }
+  if (mht) {
+    MHTaddAllFaces(mht, mris, vt);
+  }
 
-    if (canMove) {    
-        v->x += v->odx;
-        v->y += v->ody;
-        v->z += v->odz;
-
-        if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
-            DiagBreak();
-        }
-
-        // If this is done here, then the undo step needs to cope 
-        // Perhaps this is why mrisAsynchronousTimeStepNew does not do it
-        //
-        if (updateDxDyDz) {
-            v->dx = v->odx; /* for mrisTrackTotalDistances */
-            v->dy = v->ody;
-            v->dz = v->odz;
-        }
-    }
-        
-    if (mht) {
-        MHTaddAllFaces(mht, mris, vt);
-    }
-
-    return canMove;
+  return canMove;
 }
 
 static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_surfaces 1
@@ -874,45 +876,7 @@ double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delt
   ------------------------------------------------------*/
 double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, float n_averages)
 {
-  double delta_t, mag;
-  int vno;
-  VERTEX *v;
-#if 0
-  double  max_delta ;
-  float   dx, dy, dz ;
-#endif
-
-  delta_t = dt * sqrt((double)n_averages + 1.0);
-
-#if 0
-  /* find the largest delta, and scale the gradient by it */
-  max_delta = 0.0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    dx = v->dx ;
-    dy = v->dy ;
-    dz = v->dz ;
-    mag = sqrt(dx*dx+dy*dy+dz*dz) ;
-    if (mag > max_delta)
-    {
-      max_delta = mag ;
-    }
-  }
-  if (FZERO(max_delta))
-  {
-    max_delta = tol ;
-  }
-
-  if (delta_t > MAX_MOMENTUM_MM / max_delta)   /* no bigger than 1mm */
-  {
-    delta_t = MAX_MOMENTUM_MM / max_delta ;
-  }
-#endif
+  double const delta_t = dt * sqrt((double)n_averages + 1.0);
 
   /* take a step in the gradient direction modulated by momentum */
 
@@ -924,10 +888,12 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
     return (delta_t);
-  }
-  else if (mris->status == MRIS_SPHERICAL_PATCH) {
+  };
+  
+  if (mris->status == MRIS_SPHERICAL_PATCH) {
+    int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -937,7 +903,7 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
       v->odx = delta_t * v->dx + momentum * v->odx;
       v->ody = delta_t * v->dy + momentum * v->ody;
       v->odz = delta_t * v->dz + momentum * v->odz;
-      mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
+      double mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
       if (mag > MAX_MOMENTUM_MM) /* don't let step get too big */
       {
         mag = MAX_MOMENTUM_MM / mag;
@@ -945,22 +911,16 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
         v->ody *= mag;
         v->odz *= mag;
       }
-#if DEBUG_HOMEOMORPHISM
-      if (mris->patch == 2) {
-        /* bad trick for debugging */
-        v->x += v->odx;
-        v->y += v->ody;
-        v->z += v->odz;
-      }
-#endif
     }
     if (mris->patch != 2) {
       mrisApplyTopologyPreservingGradient(mris, 0, 1);
     }
   }
   else
+  {
+    int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -970,7 +930,7 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
       v->odx = delta_t * v->dx + momentum * v->odx;
       v->ody = delta_t * v->dy + momentum * v->ody;
       v->odz = delta_t * v->dz + momentum * v->odz;
-      mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
+      double mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
       if (mag > MAX_MOMENTUM_MM) /* don't let step get too big */
       {
         mag = MAX_MOMENTUM_MM / mag;
@@ -979,13 +939,11 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
         v->odz *= mag;
       }
       if (vno == Gdiag_no) {
-        float dist, dot, dx, dy, dz;
-
-        dx = v->x - v->origx;
-        dy = v->y - v->origy;
-        dz = v->z - v->origz;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        dot = dx * v->nx + dy * v->ny + dz * v->nz;
+        float dx = v->x - v->origx;
+        float dy = v->y - v->origy;
+        float dz = v->z - v->origz;
+        float dist = sqrt(dx * dx + dy * dy + dz * dz);
+        float dot = dx * v->nx + dy * v->ny + dz * v->nz;
         fprintf(stdout,
                 "moving v %d by (%2.2f, %2.2f, %2.2f) dot=%2.2f-->"
                 "(%2.1f, %2.1f, %2.1f)\n",
@@ -1000,10 +958,14 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
         fprintf(
             stdout, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n", v->nx, v->ny, v->nz, dist, dot);
       }
-      v->x += v->odx;
-      v->y += v->ody;
-      v->z += v->odz;
+      
+      MRISsetXYZ(mris, vno,
+        v->x + v->odx,
+        v->y + v->ody,
+        v->z + v->odz);
     }
+  }
+  
   if (mris->status != MRIS_SPHERICAL_PATCH) {
     mrisProjectSurface(mris);
   }
@@ -1843,6 +1805,7 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
 
   printf("MRIStessellate: nvertices = %d, nfaces = %d\n", vertex_index, face_index);
   surf = MRISalloc(vertex_index, 2 * face_index);
+  surf->type = MRIS_TRIANGULAR_SURFACE;
 
   if (useRealRAS == 1)
     m = extract_i_to_r(mri);
@@ -1857,7 +1820,7 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
   vv->rptr[4][1] = 1;
   vw = VectorAlloc(4, MATRIX_REAL);
   for (k = 0; k < vertex_index; k++) {
-    vtx = &(surf->vertices[k]);
+    vtx = &surf->vertices[k];
 
     // V4_LOAD(vv, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, 1);
     vv->rptr[1][1] = vertex[k].j - 0.5;
@@ -1879,16 +1842,19 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
     //                        vertex[k].i-0.5,
     //                        vertex[k].imnr-0.5,
     //                        &x, &y, &z);
-    vtx->x = V3_X(vw);
-    vtx->y = V3_Y(vw);
-    vtx->z = V3_Z(vw);
+    
+    MRISsetXYZ(surf, k,
+      V3_X(vw),
+      V3_Y(vw),
+      V3_Z(vw));
   }
 
   k = -1;
   for (fno = 0; fno < surf->nfaces; fno += 2) {
     k++;
 
-    /* quandrangular face */
+    /* quan
+    drangular face */
     for (n = 0; n < 4; n++) vertices[n] = face[k].v[n];
 
     /* if we're going to be arbitrary, we might as well be really arbitrary */
@@ -2091,13 +2057,17 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
     mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
   }
   mrisLogStatus(mris, parms, stdout, 0.0f, -1);
+
   pial_x = (double *)calloc(mris->nvertices, sizeof(double));
   pial_y = (double *)calloc(mris->nvertices, sizeof(double));
   pial_z = (double *)calloc(mris->nvertices, sizeof(double));
+
   hemi = mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh";
+
   if (pial_x == NULL || pial_y == NULL || pial_z == NULL) {
     ErrorExit(ERROR_NOMEMORY, "MRISexpandSurface: could not allocaet %d element vertex array", mris->nvertices);
   }
+
   if (nsurfaces > 1) {
     if (parms->smooth_averages > 0) {
       MRISrestoreVertexPositions(mris, PIAL_VERTICES);
@@ -2117,16 +2087,20 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   if (use_thick) {
     MRISripZeroThicknessRegions(mris);
   }
+  
   if (parms == NULL) {
+
     for (vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
-      v->x += distance * v->nx;
-      v->y += distance * v->ny;
-      v->z += distance * v->nz;
+      MRISsetXYZ(mris, vno,
+        v->x + distance * v->nx,
+        v->y + distance * v->ny,
+        v->z + distance * v->nz);
     }
+    
   }
   else {
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
@@ -2585,12 +2559,14 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     if (vno == Gdiag_no) fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n", vno, dx, dy, dz);
   }
+  
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("max delta = (%2.4f, %2.4f, %2.4f) [%2.3f]\n",
            max_dx,
            max_dy,
            max_dz,
            sqrt(SQR(max_dx) + SQR(max_dy) + SQR(max_dz)));
+  
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag || v->marked == 0) {
@@ -2599,11 +2575,14 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    v->x += v->dx * parms->dt;
-    v->y += v->dy * parms->dt;
-    v->z += v->dz * parms->dt;
+    MRISsetXYZ(mris, vno,
+      v->x + v->dx * parms->dt,
+      v->y + v->dy * parms->dt,
+      v->z + v->dz * parms->dt);
   }
+  
   MRISclearMarks(mris);
+
   return (NO_ERROR);
 }
 

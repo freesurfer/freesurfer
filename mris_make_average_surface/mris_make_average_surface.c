@@ -388,26 +388,25 @@ main(int argc, char *argv[]) {
 
   // get "pial vertices" from orig
   MRISrestoreVertexPositions(mris_ico, ORIG_VERTICES);
-  for (vno = 0 ; vno < mris_ico->nvertices ; vno++) {
-    VERTEX * const v = &mris_ico->vertices[vno] ;
+  
+  for (vno = 0 ; vno < mris_ico->nvertices ; vno++) {   // MRISscale looks suitable but sets other things also
+    VERTEX * const v = &mris_ico->vertices[vno];
+    MRISsetXYZ(mris_ico,vno,
     // n = number of subjects
-    v->x /= (float)n ;
-    v->y /= (float)n ;
-    v->z /= (float)n ;
+      v->x / (float)n,
+      v->y / (float)n,
+      v->z / (float)n);
   }
   if (normalize_area) {
     MRIScomputeMetricProperties(mris_ico) ;
+    
     printf("setting group surface area to be %2.1f cm^2 (scale=%2.2f)\n",
            average_surface_area/100.0,
            sqrt(average_surface_area/mris_ico->total_area)) ;
 
-#if 0
-    MRISscaleBrain(mris_ico, mris_ico,
-                   sqrt(average_surface_area/mris_ico->total_area)) ;
-#else
     mris_ico->group_avg_surface_area = average_surface_area ;
-#endif
-    MRIScomputeMetricProperties(mris_ico) ;
+    
+    MRIScomputeMetricProperties(mris_ico) ; // surely this is unnecessary
   }
 
   sprintf(fname, "%s/average/mni305.cor.mgz", mdir);

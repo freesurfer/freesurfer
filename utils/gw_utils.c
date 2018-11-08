@@ -54,11 +54,10 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
   // Read vertex data into mris
   //-----------------------------------------
   for (vno = 0; vno < vertexcount; vno++) {
-    VERTEX* const v = &mris->vertices[vno];
-
-    v->x = vertices[vno].x;
-    v->y = vertices[vno].y;
-    v->z = vertices[vno].z;
+    MRISsetXYZ(mris,vno,
+      vertices[vno].x,
+      vertices[vno].y,
+      vertices[vno].z);
   }
 
   //-----------------------------------------

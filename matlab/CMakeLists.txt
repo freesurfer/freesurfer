@@ -55,6 +55,7 @@ install(FILES
   lta_read.m
   lta_write.m
   mksubfov.m
+  mosaic_tb.m
   mri_cdf2p.m
   mri_glmfit_pcc.m
   MRIeuler2Mdc.m

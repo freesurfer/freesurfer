@@ -1,5 +1,7 @@
 project(pysurfer)
 
+add_subdirectories(wrappers)
+
 # if INSTALL_PYTHON_DEPENDENCIES is on, all required python packages will get
 # installed to freesurfer/python, otherwise, only the freesurfer package gets installed
 option(INSTALL_PYTHON_DEPENDENCIES "Install freesurfer python dependencies" ON)

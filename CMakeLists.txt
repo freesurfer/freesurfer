@@ -10,6 +10,7 @@ enable_language(C CXX Fortran)
 # a few build options
 option(BUILD_GUIS "Build GUIs" ON)
 option(MINIMAL "Only build core components" OFF)
+option(INFANT_MODULE "Include infant recon-all" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -97,7 +98,7 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a)
+  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -246,11 +247,12 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 # for stripping unused code
 if(APPLE)
   set(STRIP_FLAGS "-dead_strip")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 
 # link map (only for linux)
 if(NOT APPLE)
@@ -724,4 +726,9 @@ if(NOT MINIMAL)
     trc
     tridec
   )
+endif()
+
+# infant freesurfer
+if(INFANT_MODULE)
+  add_subdirectories(infant)
 endif()

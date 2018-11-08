@@ -33,29 +33,11 @@
 #define STEP_SIZE 0.1
 
 
-static int compare_sort_vals(const void *pc1, const void *pc2)
-{
-  register float c1, c2;
-
-  c1 = *(float *)pc1;
-  c2 = *(float *)pc2;
-
-  /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
-  if (c1 > c2) {
-    return (1);
-  }
-  else if (c1 < c2) {
-    return (-1);
-  }
-
-  return (0);
-}
-
-
-
 int mrisClearMomentum(MRI_SURFACE *mris);
-
+int mrisClearGradient(MRI_SURFACE *mris);
 int mrisClearExtraGradient(MRI_SURFACE *mris);
+
+void mrisSetVal(MRIS *mris, float val);
 
 
 void MRISsetCurvaturesToValues    (MRIS *mris, int fno);    //  val = curv
@@ -63,6 +45,7 @@ void MRISsetCurvaturesToOrigValues(MRIS *mris, int fno);    //  etc.
 void MRISsetOrigValuesToCurvatures(MRIS *mris, int fno);
 void MRISsetOrigValuesToValues    (MRIS *mris, int fno);
 void MRISsetValuesToCurvatures    (MRIS *mris, int fno);    
+
 int detectContrast(MRIS *mris);
 
 int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_intensity);

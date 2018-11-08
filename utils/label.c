@@ -3597,12 +3597,8 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     min_dist = 10000.0;
     min_vno = -1;
 
-    VERTEX temp_v;
     float distance;
-    temp_v.x = vx;
-    temp_v.y = vy;
-    temp_v.z = vz;
-    min_vno = MHTfindClosestVertexNo( area->mht, area->mris, &temp_v, &distance );
+    min_vno = MHTfindClosestVertexNoXYZ( area->mht, area->mris, vx,vy,vz, &distance );
 
     lv->vno = min_vno;
     if (min_vno >= 0 && area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
@@ -3682,12 +3678,8 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   min_dist = 10000.0;
   min_vno = -1;
 
-  VERTEX temp_v;
   float distance;
-  temp_v.x = vx;
-  temp_v.y = vy;
-  temp_v.z = vz;
-  min_vno = MHTfindClosestVertexNo( area->mht, area->mris, &temp_v, &distance );
+  min_vno = MHTfindClosestVertexNoXYZ( area->mht, area->mris, vx,vy,vz, &distance );
 
   lv->vno = min_vno;
   if (min_vno >= 0)

@@ -664,6 +664,9 @@ while( $#argv != 0 )
       set RunNoSkip = ($RunNoSkip $argv[1]); shift
       breaksw
       
+    case "-no-dwi":
+      setenv FS_LOAD_DWI 0 # turn off trying to read DWI parameters
+      breaksw
 
     case "-debug":
       set verbose = 1;
@@ -808,6 +811,7 @@ usage_exit:
   echo "   -run-skip runno : skip a given run (good when using -auto-runseq)"
   echo "   -no-rescale-dicom : turn off DICOM rescaling based on tags (0028,1052) (0028,1053)"
   echo "   -rescale-dicom : turn it on (default)"
+  echo "   -no-dwi : turn off trying to read DWI parameters"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"

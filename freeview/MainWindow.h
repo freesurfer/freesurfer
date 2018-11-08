@@ -232,6 +232,7 @@ Q_SIGNALS:
   void SlicePositionChanged(bool bCenterView = false);
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
+  void NewVolumeCreated();
 
 public slots:
   void SetMode( int nMode );
@@ -357,6 +358,7 @@ protected:
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
   void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
   void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
+  void CommandSetSurfaceOverlayCustom     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );

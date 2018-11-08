@@ -6138,23 +6138,18 @@ int GCAMsampleInverseMorphRAS(
   ---------------------------------------------------------------------*/
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
-  int vtxno, err;
-  VERTEX *v;
-  float Mx = 0, My = 0, Mz = 0;
-
-  // printf("Appling Inverse Morph \n");
+  // printf("Applying Inverse Morph \n");
+  int vtxno;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
-    v = &(mris->vertices[vtxno]);
-    err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    VERTEX *v = &mris->vertices[vtxno];
+    float Mx, My, Mz;
+    int err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
     if (err) {
       printf("WARNING: GCAMmorphSurf(): error converting vertex %d\n", vtxno);
       printf("  Avxyz = (%g,%g,%g), Mvxyz = (%g,%g,%g), \n", v->x, v->y, v->z, Mx, My, Mz);
       printf(" ... Continuing\n");
     }
-    // pack it back into the vertex
-    v->x = Mx;
-    v->y = My;
-    v->z = Mz;
+    MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
   return (0);
 }
@@ -19523,13 +19518,13 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
 }
 GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
 {
-  int xs, ys, zs, xd, yd, zd, labels[MAX_CMA_LABELS], l, max_l, max_count;
-  GCA_MORPH_NODE *gcamn_src, *gcamn_dst;
+  int xd, yd, zd;
+  GCA_MORPH_NODE *node_src, *node_dst;
   GCA_MORPH *gcam_dst;
 
   gcam_dst = GCAMalloc(gcam->width / 2, gcam->height / 2, gcam->depth / 2);
-  *(&gcam_dst->image) = *(&gcam->image);
-  *(&gcam_dst->atlas) = *(&gcam->atlas);
+  gcam_dst->image = gcam->image;
+  gcam_dst->atlas = gcam->atlas;
   gcam_dst->spacing = 2 * gcam->spacing;
   gcam_dst->ninputs = gcam->ninputs;
   gcam_dst->gca = gcam->gca;
@@ -19537,85 +19532,48 @@ GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
   gcam_dst->type = gcam->type;
   gcam_dst->m_affine = gcam->m_affine;
   gcam_dst->det = gcam->det;
-
+  // Averaging neighboring nodes not necessary: when applied, e.g. using
+  // GCAMmorphToAtlas(), a weighted mean is computed. Interpolating twice
+  // increases differences between downsampled and original warp.
   for (xd = 0; xd < gcam_dst->width; xd++) {
     for (yd = 0; yd < gcam_dst->height; yd++) {
       for (zd = 0; zd < gcam_dst->depth; zd++) {
-        gcamn_dst = &gcam->nodes[xd][yd][zd];
-        memset(labels, 0, sizeof(labels));
+        node_dst = &gcam_dst->nodes[xd][yd][zd];
+        node_src = &gcam->nodes[xd*2][yd*2][zd*2];
+        
+        node_dst->x = node_src->x;
+        node_dst->y = node_src->y;
+        node_dst->z = node_src->z;
 
-        for (xs = xd * 2; xs <= xd * 2 + 1; xs++)
-          for (ys = yd * 2; ys <= yd * 2 + 1; ys++)
-            for (zs = zd * 2; zs <= zd * 2 + 1; zs++) {
-              gcamn_src = &gcam->nodes[xs][ys][zs];
-              labels[gcamn_src->label]++;
+        node_dst->origx = node_src->origx;
+        node_dst->origy = node_src->origy;
+        node_dst->origz = node_src->origz;
 
-              gcamn_dst->x += gcamn_src->x;
-              gcamn_dst->y += gcamn_src->y;
-              gcamn_dst->z += gcamn_src->z;
+        node_dst->xs2 = node_src->xs2;
+        node_dst->ys2 = node_src->ys2;
+        node_dst->zs2 = node_src->zs2;
 
-              gcamn_dst->origx += gcamn_src->origx;
-              gcamn_dst->origy += gcamn_src->origy;
-              gcamn_dst->origz += gcamn_src->origz;
+        node_dst->xs = node_src->xs;
+        node_dst->ys = node_src->ys;
+        node_dst->zs = node_src->zs;
 
-              gcamn_dst->xs2 += gcamn_src->xs2;
-              gcamn_dst->ys2 += gcamn_src->ys2;
-              gcamn_dst->zs2 += gcamn_src->zs2;
+        node_dst->xn = node_src->xn;
+        node_dst->yn = node_src->yn;
+        node_dst->zn = node_src->zn;
 
-              gcamn_dst->xs += gcamn_src->xs;
-              gcamn_dst->ys += gcamn_src->ys;
-              gcamn_dst->zs += gcamn_src->zs;
+        node_dst->saved_origx = node_src->saved_origx;
+        node_dst->saved_origy = node_src->saved_origy;
+        node_dst->saved_origz = node_src->saved_origz;
 
-              gcamn_dst->xn += gcamn_src->xn;
-              gcamn_dst->yn += gcamn_src->yn;
-              gcamn_dst->zn += gcamn_src->zn;
-
-              gcamn_dst->saved_origx += gcamn_src->saved_origx;
-              gcamn_dst->saved_origy += gcamn_src->saved_origy;
-              gcamn_dst->saved_origz += gcamn_src->saved_origz;
-
-              gcamn_dst->prior += gcamn_src->prior;
-              gcamn_dst->area += gcamn_src->area;
-              gcamn_dst->area1 += gcamn_src->area1;
-              gcamn_dst->area2 += gcamn_src->area2;
-              gcamn_dst->orig_area1 += gcamn_src->orig_area1;
-              gcamn_dst->orig_area2 += gcamn_src->orig_area2;
-              if (gcamn_src->invalid) {
-                gcamn_dst->invalid = 1;
-              }
-              if (gcamn_src->status > 0) {
-                gcamn_dst->status = gcamn_src->status;
-              }
-            }
-
-        gcamn_dst->x /= 8;
-        gcamn_dst->y /= 8;
-        gcamn_dst->z /= 8;
-
-        gcamn_dst->origx /= 8;
-        gcamn_dst->origy /= 8;
-        gcamn_dst->origz /= 8;
-
-        gcamn_dst->xs2 /= 8;
-        gcamn_dst->ys2 /= 8;
-        gcamn_dst->zs2 /= 8;
-
-        gcamn_dst->xs /= 8;
-        gcamn_dst->ys /= 8;
-        gcamn_dst->zs /= 8;
-
-        gcamn_dst->xn /= 8;
-        gcamn_dst->yn /= 8;
-        gcamn_dst->zn /= 8;
-
-        max_count = labels[0];
-        max_l = 0;
-        for (l = 1; l < MAX_CMA_LABELS; l++)
-          if (labels[l] > max_count) {
-            max_count = labels[l];
-            max_l = l;
-          }
-        gcamn_dst->label = max_l;
+        node_dst->prior = node_src->prior;
+        node_dst->area = node_src->area;
+        node_dst->area1 = node_src->area1;
+        node_dst->area2 = node_src->area2;
+        node_dst->orig_area1 = node_src->orig_area1;
+        node_dst->orig_area2 = node_src->orig_area2;
+        node_dst->invalid = node_src->invalid;
+        node_dst->status = node_src->status;
+        node_dst->label = node_src->label;
       }
     }
   }

@@ -32,6 +32,11 @@ install_tarball(fsaverage.tar.gz DESTINATION subjects)
 # samseg atlas
 add_subdirectory(samseg)
 
+# subjects required for infant recon-all
+if(INFANT_MODULE)
+  install_tarball(CNYBCH.tar.gz DESTINATION average)
+endif()
+
 # the following data isn't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
 

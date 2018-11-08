@@ -1509,7 +1509,7 @@ MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, int nsurfs, LTA *
   MHT **hash = NULL;
   int UseHash = 1;
   MATRIX *T, *invR, *M, *surfRAS = NULL, *crs, *R, *crsRibbon;
-  VERTEX v;
+
   float dmin, d, val;
   LTA *V = NULL, *Q2;
 
@@ -1595,9 +1595,9 @@ MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, int nsurfs, LTA *
         }
         // Compute the surface location of this point
         surfRAS = MatrixMultiply(M, crs, surfRAS);
-        v.x = surfRAS->rptr[1][1];
-        v.y = surfRAS->rptr[2][1];
-        v.z = surfRAS->rptr[3][1];
+        float const x = surfRAS->rptr[1][1];
+        float const y = surfRAS->rptr[2][1];
+        float const z = surfRAS->rptr[3][1];
         // Find surface vertex with closest location
         dmin = 1000;
         nmin = -1;
@@ -1608,13 +1608,14 @@ MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, int nsurfs, LTA *
           if (surfs[n]->hemisphere == RIGHT_HEMISPHERE && ribval != 42) continue;
 
           if (UseHash)
-            vtxno = MHTfindClosestVertexNo(hash[n], surfs[n], &v, &d);
+            vtxno = MHTfindClosestVertexNoXYZ(hash[n], surfs[n], x,y,z, &d);
           else
-            vtxno = MRISfindClosestVertex(surfs[n], v.x, v.y, v.z, &d, CURRENT_VERTICES);
+            vtxno = MRISfindClosestVertex(surfs[n], x, y, z, &d, CURRENT_VERTICES);
+            
           if (vtxno < 0) {
-            printf("ERROR: MRIsurf2VolOpt(): No Match: %3d %3d %3d    %6.2f %6.2f %6.2f\n", c, r, s, v.x, v.y, v.z);
-            vtxno = MRISfindClosestVertex(surfs[n], v.x, v.y, v.z, &d, CURRENT_VERTICES);
-            printf("%d    %d %d %d     %g %g %g  %5d\n", n, c, r, s, v.x, v.y, v.z, vtxno);
+            printf("ERROR: MRIsurf2VolOpt(): No Match: %3d %3d %3d    %6.2f %6.2f %6.2f\n", c, r, s, x, y, z);
+            vtxno = MRISfindClosestVertex(surfs[n], x, y, z, &d, CURRENT_VERTICES);
+            printf("%d    %d %d %d     %g %g %g  %5d\n", n, c, r, s, x, y, z, vtxno);
             printf("V -------------------------\n");
             MatrixPrint(stdout, V->inv_xforms[0].m_L);
             fflush(stdout);

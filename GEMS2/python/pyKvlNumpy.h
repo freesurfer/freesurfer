@@ -9,10 +9,7 @@ namespace py = pybind11;
 
 template<class T>
 py::array_t<T> createNumpyArray(std::vector<size_t> shape, std::vector<size_t> strides, T *data){
-    size_t size = sizeof(T);
-    py::capsule free_when_done(data, [](void *d) {
-        delete[] (T *)d;
-    });
+    py::capsule free_when_done(data, [](void *d) { delete[] (T *)d; });
     auto result = py::array_t<T>(shape, strides, data, free_when_done);
     return result;
 }

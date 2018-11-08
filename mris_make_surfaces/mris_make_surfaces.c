@@ -72,8 +72,10 @@ int main(int argc, char *argv[]) ;
 #define BRIGHT_BORDER_LABEL  100
 
 #define MIN_PEAK_PCT 0.1
-static double Ghisto_min_outside_peak_pct = MIN_PEAK_PCT ;
-static double Ghisto_min_inside_peak_pct = MIN_PEAK_PCT ;
+static double Ghisto_left_outside_peak_pct = MIN_PEAK_PCT ;
+static double Ghisto_right_outside_peak_pct = MIN_PEAK_PCT ;
+static double Ghisto_left_inside_peak_pct = MIN_PEAK_PCT ;
+static double Ghisto_right_inside_peak_pct = MIN_PEAK_PCT ;
 static int contrast_type = CONTRAST_T2 ;
 static int unpinch = 0 ;
 static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
@@ -83,6 +85,7 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
 
 static int T2_min_set = 0 ;
 static int T2_max_set = 0 ;
+static int T2_max_inside_set = 0 ;
 static float T2_max_inside = 300 ;
 static float T2_min_inside = 60 ;
 static double T2_min_outside = 90 ;  
@@ -113,8 +116,10 @@ static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 double T2_min_outside,
 					 double T2_max_outside,
                                          double max_outward_dist,
-                                         double min_inside_peak_pct,
-                                         double min_outside_peak_pct,
+                                         double left_inside_peak_pct,
+                                         double right_inside_peak_pct,
+                                         double left_outside_peak_pct,
+                                         double right_outside_peak_pct,
 					 double wm_weight,
                                          MRI *mri_T1) ;
 static int compute_white_target_locations(MRI_SURFACE *mris,
@@ -147,7 +152,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
+
 static MRI  *MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                               int mask_val, int wsize) ;
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
@@ -1577,13 +1582,16 @@ int main(int argc, char *argv[])
 
 	printf("CPTL: nlabels=%d, T2_min_inside=%g, T2_max_inside=%g, T2_min_outside=%g, T2_max_outside=%g, max_out_d=%g\n",
            nlabels,T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside, max_outward_dist);
-	printf("CPTL: min_inside_peak_pct=%g min_outside_peak_pct=%g , wm_weight=%g\n",
-               Ghisto_min_inside_peak_pct, Ghisto_min_outside_peak_pct, wm_weight);
+	printf("CPTL: inside_peak_pct=%g,%g outside_peak_pct=%g,%g , wm_weight=%g\n",
+               Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, wm_weight);
         compute_pial_target_locations(mris, mri_flair, labels, nlabels,
-             contrast_type, mri_aseg, 
-             T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside, 
-             max_outward_dist,Ghisto_min_inside_peak_pct, 
-             Ghisto_min_outside_peak_pct, wm_weight, mri_T1_pial) ;
+				      contrast_type, mri_aseg, 
+				      T2_min_inside, T2_max_inside, 
+				      T2_min_outside, T2_max_outside, 
+				      max_outward_dist,
+				      Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
+				      Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
+				      wm_weight, mri_T1_pial) ;
 	//	parms.l_location /= spring_scale ; 
 	GetMemUsage(memusage);  printf("Post Pial Targ Loc VmPeak %d\n",memusage[1]);fflush(stdout);
 
@@ -1679,7 +1687,9 @@ int main(int argc, char *argv[])
                                         labels, nlabels,
                                         contrast_type, mri_aseg, T2_min_inside, T2_max_inside, 
 					T2_min_outside, T2_max_outside,max_outward_dist,
-					Ghisto_min_inside_peak_pct,Ghisto_min_outside_peak_pct, wm_weight, mri_T1_pial) ;
+					Ghisto_left_inside_peak_pct,Ghisto_right_inside_peak_pct, 
+					Ghisto_left_outside_peak_pct,Ghisto_right_outside_peak_pct, 
+					wm_weight, mri_T1_pial) ;
         }
 
         if(Gdiag & DIAG_WRITE)
@@ -2204,11 +2214,14 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "min_peak_pct"))
   {
-    Ghisto_min_inside_peak_pct = atof(argv[2]) ;
-    Ghisto_min_outside_peak_pct = atof(argv[3]) ;
-    fprintf(stderr,  "using min peak pct %2.2f and %2.2f (default=%2.2f) to find bounds of GM range\n",
-	    Ghisto_min_inside_peak_pct, Ghisto_min_outside_peak_pct, MIN_PEAK_PCT) ;
-    nargs = 2 ;
+    Ghisto_left_inside_peak_pct = atof(argv[2]) ;
+    Ghisto_right_inside_peak_pct = atof(argv[3]) ;
+    Ghisto_left_outside_peak_pct = atof(argv[4]) ;
+    Ghisto_right_outside_peak_pct = atof(argv[5]) ;
+    fprintf(stderr,  "using peak pct %2.2f,%2.2f and %2.2f,%2.2f (default=%2.2f) to find bounds of GM range\n",
+	    Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct,
+	    Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, MIN_PEAK_PCT) ;
+    nargs = 4 ;
   }
   else if (!stricmp(option, "repulse"))
   {
@@ -2255,6 +2268,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "T2_max_inside"))
   {
+    T2_max_inside_set = 1;
     T2_max_inside = atof(argv[2]) ; T2_max_set = 1 ;
     fprintf(stderr,  "using max T2 gray matter (interior and exterior) threshold %2.1f\n", T2_max_inside) ;
     nargs = 1 ;
@@ -2379,14 +2393,17 @@ get_option(int argc, char *argv[])
     parms.l_curv = 0.5 ;
     parms.check_tol = 1 ;
     wm_weight = 3 ;
-    T2_max_inside = 300 ;
+    if (T2_max_inside_set == 0)
+      T2_max_inside = 300 ;
     T2_min_inside = 110 ;
     T2_min_outside = 130 ;  
     T2_max_outside = 300 ;
     max_pial_averages = 4 ;
     max_outward_dist = 3 ;
-    Ghisto_min_inside_peak_pct = 0.01 ;
-    Ghisto_min_outside_peak_pct = 0.5 ;
+    Ghisto_left_inside_peak_pct = 0.1 ;
+    Ghisto_right_inside_peak_pct = 0.01 ;
+    Ghisto_left_outside_peak_pct = 0.5 ;
+    Ghisto_right_outside_peak_pct = 0.5 ;
     l_repulse = .025 ;
 
     fprintf(stderr,
@@ -2401,8 +2418,8 @@ get_option(int argc, char *argv[])
     printf("\tT2_max_outside = %2.1f\n", T2_max_outside) ;
     printf("\tmax_pial_averages = %d\n", max_pial_averages) ;
     printf("\tmax_outward_dist = %2.1f\n", max_outward_dist) ;
-    printf("\tGhisto_min_inside_peak_pct = %2.2f\n", Ghisto_min_inside_peak_pct) ;
-    printf("\tGhisto_min_outside_peak_pct = %2.2f\n", Ghisto_min_outside_peak_pct) ;
+    printf("\tGhisto_inside_peak_pct = %2.2f, %2.2f\n", Ghisto_left_inside_peak_pct,Ghisto_right_inside_peak_pct) ;
+    printf("\tGhisto_outside_peak_pct = %2.2f, %2.2f\n", Ghisto_left_outside_peak_pct,Ghisto_right_outside_peak_pct) ;
     printf("\tparms.l_repulse  = %2.3f\n", l_repulse) ;
     printf("\tparms.l_curv     = %2.1f\n", parms.l_curv) ;
     printf("\tparms.l_nspring  = %2.1f\n", parms.l_nspring) ;
@@ -2424,14 +2441,17 @@ get_option(int argc, char *argv[])
     fprintf(stderr,
             "deforming surfaces based on FLAIR volume %s\n", flair_or_T2_name) ;
     nargs = 1 ;
-    T2_max_inside = 300 ;
+    if (T2_max_inside_set == 0)
+      T2_max_inside = 300 ;
     T2_min_inside = 110 ;   
     T2_min_outside = 130 ;  
     T2_max_outside = 300 ;
     max_pial_averages = 4 ;
     max_outward_dist = 3 ;
-    Ghisto_min_inside_peak_pct = 0.01 ;
-    Ghisto_min_outside_peak_pct = 0.5 ;
+    Ghisto_left_inside_peak_pct = 0.01 ;
+    Ghisto_right_inside_peak_pct = 0.01 ;
+    Ghisto_left_outside_peak_pct = 0.5 ;
+    Ghisto_right_outside_peak_pct = 0.5 ;
     l_repulse = .025 ;
     printf("setting default FLAIR deformation parameters to: \n") ;
     printf("\tT2_max_inside = %2.1f\n", T2_max_inside) ;
@@ -2440,8 +2460,8 @@ get_option(int argc, char *argv[])
     printf("\tT2_max_outside = %2.1f\n", T2_max_outside) ;
     printf("\tmax_pial_averages = %d\n", max_pial_averages) ;
     printf("\tmax_outward_dist = %2.1f\n", max_outward_dist) ;
-    printf("\tGhisto_min_inside_peak_pct = %2.2f\n", Ghisto_min_inside_peak_pct) ;
-    printf("\tGhisto_min_outside_peak_pct = %2.2f\n", Ghisto_min_outside_peak_pct) ;
+    printf("\tGhisto_min_inside_peak_pct = %2.2f, %2.2f\n", Ghisto_left_inside_peak_pct,Ghisto_right_inside_peak_pct) ;
+    printf("\tGhisto_min_outside_peak_pct = %2.2f, %2.2f\n", Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct) ;
     printf("\tparms.l_repulse  = %2.3f\n", l_repulse) ;
     printf("\tparms.l_curv     = %2.1f\n", parms.l_curv) ;
     printf("\tparms.l_nspring  = %2.1f\n", parms.l_nspring) ;
@@ -3123,35 +3143,6 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisFindMiddleOfGray(MRI_SURFACE *mris)
-{
-  int     vno ;
-  VERTEX  *v ;
-  float   nx, ny, nz, thickness ;
-
-  MRISaverageCurvatures(mris, 3) ;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris);
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-    thickness = 0.5 * v->curv ;
-    v->x = v->origx + thickness * nx ;
-    v->y = v->origy + thickness * ny ;
-    v->z = v->origz + thickness * nz ;
-  }
-  return(NO_ERROR) ;
 }
 
 MRI *
@@ -4070,8 +4061,10 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               int nlabels,
                               int contrast_type, MRI *mri_aseg, double T2_min_inside, double T2_max_inside, 
 			      double T2_min_outside, double T2_max_outside, double max_outward_dist,
-			      double min_inside_peak_pct,
-			      double min_outside_peak_pct,
+			      double left_inside_peak_pct,
+			      double right_inside_peak_pct,
+			      double left_outside_peak_pct,
+			      double right_outside_peak_pct,
 			      double wm_weight,
                               MRI *mri_T1)
 {
@@ -4092,7 +4085,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	 max_outward_dist, sample_dist,pix_size,nint(7.0/pix_size));
   printf("T2_min_inside = %g, T2_max_inside %g, T2_min_outside = %g, T2_max_outside %g\n",
 	 T2_min_inside,T2_max_inside,T2_min_outside,T2_max_outside);
-  printf("min_inside_peak_pct = %g, min_outside_peak_pct = %g\n",min_inside_peak_pct,min_outside_peak_pct);
+  printf("inside_peak_pct = %g, %g, outside_peak_pct = %g, %g\n",
+	 left_inside_peak_pct, right_inside_peak_pct, left_outside_peak_pct,  right_outside_peak_pct) ;
   printf("wm_weight = %g, nlabels=%d, contrast_type=%d\n",wm_weight,nlabels,contrast_type);
   fflush(stdout);
   TimerStart(&then);
@@ -4165,11 +4159,14 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     HISTOGRAM *h1, *h2, *hs, *hwm, *hwm2, *hwms ;
     MRI_REGION region ;
     int whalf, wsize;
-    double mean, sigma, mean_wm, sigma_wm ;
+    double mean, sigma, mean_wm, sigma_wm, previous_val ;
     HISTOGRAM *hcdf_rev,*hcdf;
     int bin1, bin2;
     double NUDGE_DIST=0.5;
     double CEREBELLUM_OFFSET = 20;
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
 
     if(vno%20000==0){
       printf("   vno = %d, t = %g\n",vno,(float)TimerStop(&then)/(60*1000.0f));
@@ -4234,7 +4231,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 
       /* need to worry about dark intensities in the interior of the ribbon in FLAIR, so find the first dark value (leftwards
 	 from the peak) that is unlikely to be GM, and don't allow it to be in the interior of the ribbon.   */
-      thresh = hs->counts[peak] * min_inside_peak_pct ;
+      thresh = hs->counts[peak] * left_inside_peak_pct ;
       for (bin = peak -1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
 	  break ;
@@ -4251,7 +4248,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       /* Now do the same thing for exterior values, using a different threshold. That is, look for values
 	 outside the current ribbon that are likely to be GM. This threshold is typically larger than the inside
          one since we trust the T1 more than the T2 - only deform if stuff outside really looks like GM */
-      thresh = hs->counts[peak] * min_outside_peak_pct ;
+      thresh = hs->counts[peak] * left_outside_peak_pct ;
       for (bin = peak -1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
 	  break ;
@@ -4277,16 +4274,21 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       double thresh ;
 
       // The inside "max" is defined as the first histo bin past the
-      // peak where the frequency is min_inside_peak_pct * the freq at
-      // the peak (eg, min_inside_peak_pct=0.1)
+      // peak where the frequency is inside_peak_pct * the freq at
+      // the peak (eg, inside_peak_pct=0.1)
       peak = HISTOfindHighestPeakInRegion(hs, 0, hs->nbins-1) ;      
-      thresh = hs->counts[peak] * min_inside_peak_pct ;
+      thresh = hs->counts[peak] * right_inside_peak_pct ;
       for (bin = peak + 1 ; bin < hs->nbins ; bin++)
 	if (hs->counts[bin] < thresh)
 	  break ;
       if (bin < hs->nbins) // always true?
       {
 	max_gray_inside = hs->bins[bin] ;
+	if (max_gray_inside < mean+2*sigma)
+	{
+	  max_gray_inside=mean+2*sigma;
+	  DiagBreak() ;
+	}
 	max_gray_inside = MIN(max_gray_inside, T2_max_inside) ;
 	if (vno == Gdiag_no)
 	  printf("resetting max gray inside to be %2.3f (peak was at %2.1f)\n", max_gray_inside, hs->bins[peak]) ;
@@ -4294,15 +4296,23 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       // The inside "min" is defined as the histo bin where the
       // frequency is min_inside_peak_pct * the freq at the peak * 10.
       // This will likely just be the peak.
-      thresh *= 10 ;  // for T2 there shouldn't be any dark stuff - it is dura
+//      thresh *= 10 ;  // for T2 there shouldn't be any dark stuff - it is dura
+      thresh = hs->counts[peak] * left_inside_peak_pct ;
       for (bin = peak - 1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
 	  break ;
       if (bin < hs->nbins) // always true?
       {
 	min_gray_inside = hs->bins[bin] ;
+	if (min_gray_inside > mean-sigma)
+	{
+	  min_gray_inside = mean-sigma ;
+	  DiagBreak() ;
+	}
 	min_gray_inside = MAX(min_gray_inside, T2_min_inside) ;
+#if 0
 	min_gray_inside = MAX(min_gray_inside, (wm_weight*mean_wm+mean)/(wm_weight+1)); //??
+#endif
 	if (vno == Gdiag_no)
 	  printf("resetting min gray inside to be %2.3f (peak was at %2.1f)\n", min_gray_inside, hs->bins[peak]) ;
       }
@@ -4310,7 +4320,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       // Now find the "min" and "max" for the outside.  This will
       // yield the same thresh as above if min and max pct are the
       // same (which is currently 7/31/18 the case).
-      thresh = hs->counts[peak] * min_outside_peak_pct ;
+      thresh = hs->counts[peak] * right_outside_peak_pct ;
       for (bin = peak + 1 ; bin < hs->nbins ; bin++)
 	if (hs->counts[bin] < thresh)
 	  break ;
@@ -4321,6 +4331,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	if (vno == Gdiag_no)
 	  printf("resetting max gray outside to be %2.3f (peak was at %2.1f)\n", max_gray_outside, hs->bins[peak]) ;
       }
+      thresh = hs->counts[peak] * left_outside_peak_pct ;
       for (bin = peak - 1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
 	  break ;
@@ -4328,7 +4339,9 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       {
 	min_gray_outside = hs->bins[bin] ;
 	min_gray_outside = MIN(min_gray_outside, T2_min_outside) ;
+#if 0
 	min_gray_outside = MAX(min_gray_outside, (wm_weight*mean_wm+mean)/(wm_weight+1));
+#endif // BRF, oct, 2018
 	if (vno == Gdiag_no)
 	  printf("resetting min gray outside to be %2.3f (peak was at %2.1f)\n", min_gray_outside, hs->bins[peak]) ;
       }
@@ -4400,8 +4413,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       // If T2/FLAIR value is above the minimum, then assume that we've
       // projected beyond white surf and into the ribbon. This will apply
       // to the next d iteration
-      if (val >= min_gray_inside) 
+      if (val >= min_gray_inside && !outside_of_white) 
+      {
+	previous_val = val ; // start tracking previous gm val
 	outside_of_white = 1 ;
+      }
 
       if (mri_aseg != NULL)
       {
@@ -4427,6 +4443,40 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	  break ; // from loop over the ribbon 
 	}
       }
+
+#if 1
+      // for T2 images intensity should increase monotonically. If it starts to go
+      // down we are probably at borders of skull stripping or into dura. 
+      // Checking val<mn-2*sigma
+      // just reduces the chances of false positives and makes it more likely we are 
+      // really transitioning from brain to dura
+      if (contrast_type == CONTRAST_T2 && dist_to_white > mri_aseg->xsize && val < previous_val && val < mean-2*sigma)
+      {
+	if (vno == Gdiag_no)
+	  printf("illegal intensity decrease %2.1f->%2.1f found at d=%2.2f, vox=(%2.1f, %2.1f, %2.1f)\n", previous_val, val, d,xv,yv,zv) ;
+        found_bad_intensity = 1 ;
+        break ; // from loop over the ribbon 
+      }
+
+      if (contrast_type == CONTRAST_T2 && dist_to_white > mri_aseg->xsize && val > previous_val && val > mean+2*sigma)
+      {
+	double next_val, dout, xs1, ys1, zs1, xv1, yv1, zv1 ;
+	dout = d+1;
+	xs1 = v->whitex + dout*nx ; ys1 = v->whitey + dout*ny ; zs1 = v->whitez + dout*nz ; 
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs1, ys1, zs1, &xv1, &yv1, &zv1);
+	MRIsampleVolumeType(mri_T2, xv1, yv1, zv1, &next_val, SAMPLE_TRILINEAR) ;
+	if (next_val < min_gray_inside)
+	{
+	  if (vno == Gdiag_no)
+	    printf("v %d: prev %2.1f, current %2.1f>%2.1f, next %2.1f<%2.1f, illegal\n",
+		   vno, previous_val, val, mean+2*sigma, next_val, min_gray_inside);
+	  found_bad_intensity = 1 ;
+	  break ; // from loop over the ribbon 
+	}
+      }
+
+#endif
+      previous_val = val ;
 
       // Check whether the intensity is outside the expected range
       if (val < min_gray_inside || val > max_gray_inside)
