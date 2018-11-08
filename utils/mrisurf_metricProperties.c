@@ -497,6 +497,21 @@ MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst
 }
 
 
+void mrisDisturbVertices(MRIS* mris, double amount)
+{
+  int vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v = &mris->vertices[vno] ;
+    v->x += randomNumber(-amount, amount) ;
+    v->y += randomNumber(-amount, amount) ;
+  }
+
+  MRIScomputeMetricProperties(mris) ;
+}
+
+
 int MRISscaleDistances(MRIS *mris, float scale)
 {
   // This operation seems wrong, since this is a derived metric

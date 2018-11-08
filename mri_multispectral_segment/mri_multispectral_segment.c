@@ -2156,9 +2156,7 @@ static void write_surface(char *fname) {
   for (k=0;k<nvertices;k++)
   {
     MRISsurfaceRASFromVoxelCached(mris, mri_PD, vertex[k].x, vertex[k].y, vertex[k].z, &x, &y, &z) ;
-    mris->vertices[k].x = x ;
-    mris->vertices[k].y = y ;
-    mris->vertices[k].z = z ;
+    MRISsetXYZ(mris,k,x,y,z);
   }
   for (k=0;k<nfaces;k++)
     for (n = 0 ; n < 3 ; n++)
