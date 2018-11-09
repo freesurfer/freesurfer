@@ -2516,38 +2516,20 @@ int TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *
   return errCode;
 }
 
-int TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz)
+int TransformSampleInverseFloat(const TRANSFORM *transform, float xv, float yv,
+                                float zv, float *px, float *py, float *pz)
 {
   static VECTOR *v_input, *v_canon = NULL;
   static MATRIX *m_L_inv;
-  float xt, yt, zt;
   int xn, yn, zn;
   LTA *lta;
-  GCA_MORPH *gcam;
-  GCA_MORPH_NODE *gcamn;
   int errCode = NO_ERROR;
 
   if (transform->type == MORPH_3D_TYPE) {
-    gcam = (GCA_MORPH *)transform->xform;
-    if (GCAMsampleMorph(gcam, xv, yv, zv, px, py, pz) == NO_ERROR) return (NO_ERROR);
-
-    xn = nint(xv / gcam->spacing);
-    yn = nint(yv / gcam->spacing);
-    zn = nint(zv / gcam->spacing);
-
-    if (xn >= gcam->width) xn = gcam->width - 1;
-    if (yn >= gcam->height) yn = gcam->height - 1;
-    if (zn >= gcam->depth) zn = gcam->depth - 1;
-    if (xn < 0) xn = 0;
-    if (yn < 0) yn = 0;
-    if (zn < 0) zn = 0;
-
-    gcamn = &gcam->nodes[xn][yn][zn];
-    xt = gcamn->x;
-    yt = gcamn->y;
-    zt = gcamn->z;
-    // if marked invalid, then return error
-    if (gcamn->invalid) errCode = ERROR_BADPARM;
+    // Return error if out of bounds instead of closest valid coordinates: when
+    // interpolating, this will prevent things like repeating voxels at the tip
+    // of the nose until reaching the edge of the image.
+    return GCAMsampleMorph((GCAM *)transform->xform, xv, yv, zv, px, py, pz);
   }
   else {
     lta = (LTA *)transform->xform;
@@ -2578,16 +2560,13 @@ int TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float 
 #else
     MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input);
 #endif
-    xt = V3_X(v_input);
-    yt = V3_Y(v_input);
-    zt = V3_Z(v_input);
+    *px = V3_X(v_input);
+    *py = V3_Y(v_input);
+    *pz = V3_Z(v_input);
     // here I cannot get access to width, height, depth values
     // thus I cannot judge the point is good or bad
     // errCode remains to be valid
   }
-  *px = xt;
-  *py = yt;
-  *pz = zt;
 
   return errCode;
 }

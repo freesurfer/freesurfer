@@ -10741,9 +10741,9 @@ int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform)
   }
   return (NO_ERROR);
 }
-int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform)
+int GCAMapplyInverseTransform(GCA_MORPH *gcam, const TRANSFORM *transform)
 {
-  int x, y, z;
+  int x, y, z, out_of_bounds;
   float xf, yf, zf;
   GCA_MORPH_NODE *gcamn;
 
@@ -10754,16 +10754,20 @@ int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform)
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
         }
-        TransformSampleInverseFloat(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z, &xf, &yf, &zf);
+        out_of_bounds = TransformSampleInverseFloat(transform,
+          gcamn->x, gcamn->y, gcamn->z, &xf, &yf, &zf);
+        
+        if (out_of_bounds) {
+          // Marking as invalid is insufficient, as not written to disk. Set
+          // x/y/z and origx/origy/origz to zero (see GCAMread).
+          gcamn->invalid = GCAM_POSITION_INVALID;
+          gcamn->x = gcamn->y = gcamn->z = 0.0;
+          gcamn->origx = gcamn->origy = gcamn->origz = 0.0;
+          continue;
+        }
         gcamn->x = xf;
         gcamn->y = yf;
         gcamn->z = zf;
-
-        TransformSampleInverseFloat(
-            transform, (float)gcamn->origx, (float)gcamn->origy, (float)gcamn->origz, &xf, &yf, &zf);
-        gcamn->origx = xf;
-        gcamn->origy = yf;
-        gcamn->origz = zf;
       }
     }
   }
