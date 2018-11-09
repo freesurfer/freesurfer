@@ -548,6 +548,72 @@ MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
 }
 
 
+MRIS* MRISprojectOntoTranslatedSphere(
+    MRIS *mris_src, MRIS * mris_dst, 
+    double r,
+    double x0, double y0, double z0) {
+    
+  if (FZERO(r))
+    r = DEFAULT_RADIUS ;
+
+  if (!mris_dst)
+    mris_dst = MRISclone(mris_src) ;
+
+  if ((mris_dst->status != MRIS_SPHERE) &&
+      (mris_dst->status != MRIS_PARAMETERIZED_SPHERE))
+    MRIScenter(mris_dst, mris_dst) ;
+
+  mris_dst->radius = r ;
+
+  int vno ;
+  for (vno = 0 ; vno < mris_dst->nvertices ; vno++) {
+    VERTEX* const v = &mris_dst->vertices[vno];
+
+    if (v->ripflag)  /* shouldn't happen */
+      continue ;
+    
+    double x = v->x, x2 = x*x;
+    double y = v->y, y2 = y*y;
+    double z = v->z, z2 = z*z;
+
+    double dist = sqrt(x2+y2+z2) ;
+    
+    double d = FZERO(dist) ? 0.0 : (1 - r / dist);
+
+    v->x = x - d*x;
+    v->y = y - d*y;
+    v->z = z - d*z;
+
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+      DiagBreak() ;
+  }
+
+  MRIStranslate(mris_dst, x0,y0,z0);
+
+  MRISupdateEllipsoidSurface(mris_dst) ;
+
+  mris_dst->status = mris_src->status == MRIS_PARAMETERIZED_SPHERE ?
+                     MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE ;
+
+  return(mris_dst) ;
+}
+
+
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale) {
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX* v = &mris->vertices[vno];
+    v->x = xyzScale*v->x + txyzScale*v->tx;
+    v->y = xyzScale*v->y + txyzScale*v->ty;
+    v->z = xyzScale*v->z + txyzScale*v->tz;
+  }
+
+  // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)
+  //
+  // mrisComputeSurfaceDimensions(mris);
+}
+
+
 /* Center the surface mris at location (cx,cy,cz) with a radius r
    such the energy sum((x-cx)^2+(y-cy)^2+(z-cz)^2-r^2)^2 is minimized 
 */
@@ -15281,7 +15347,7 @@ MRIS *MRISscaleBrain(MRIS *mris_src, MRIS *mris_dst, float scale)
 }
 
 
-void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
+void mrisFindMiddleOfGray(MRIS *mris) {
   int     vno ;
   VERTEX  *v ;
   float   nx, ny, nz, thickness ;
@@ -15305,6 +15371,7 @@ void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
       v->origz + thickness * nz);
   }
 }
+
 
 // Cloning should be the union of a surface and an empty surface
 // but that is NYI

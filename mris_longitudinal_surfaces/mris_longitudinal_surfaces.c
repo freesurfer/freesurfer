@@ -772,20 +772,7 @@ main(int argc, char *argv[])
     if (longitudinal)
     {
       //reset starting point to be in the middle of final white and orig pial
-      int vno;
-      VERTEX *v;
-      //reset the starting position to be slightly inside the orig_pial in the longitudinal case
-      for (vno = 0; vno < mris->nvertices; vno++)
-      {
-        v = &mris->vertices[vno];
-        if (v->ripflag)
-        {
-          continue;
-        }
-        v->x = 0.75*v->x + 0.25*v->tx;
-        v->y = 0.75*v->y + 0.25*v->ty;
-        v->z = 0.75*v->z + 0.25*v->tz;
-      }
+      MRISblendXYZandTXYZ(mris, 0.75, 0.25);
     }
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever orig_pial is used??? Maybe that's why the cross-intersection was caused
   }

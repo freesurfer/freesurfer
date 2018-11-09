@@ -3801,7 +3801,7 @@ vp_copy_to_surface(MRI_SURFACE *mris, int which_src, int which_dst)
     case SURFACE_NORMALS:  v->nx = x ; v->ny = y ; v->nz = z ; break ;
     case WHITE_VERTICES:   v->whitex = x ; v->whitey = y; v->whitez = z ;break ;
     case PIAL_VERTICES:    v->pialx = x ;  v->pialy = y;  v->pialz = z ; break ;
-    case CURRENT_VERTICES: v->x = x ;      v->y = y;      v->z = z ;     break ;
+    case CURRENT_VERTICES: MRISsetXYZ(mris,vno, x, y, z) ;     break ;
     case TARGET_VERTICES:  v->targx = x ;  v->targy = y ; v->targz = z ; break ;
     case ORIG_VERTICES:    cheapAssert(!"vp_copy_to_surface should not use ORIG_VERTICES") ; break ;
     default:
