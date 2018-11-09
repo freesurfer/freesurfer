@@ -5058,9 +5058,9 @@ double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
 }
 
 // Concatenate any combination of LTAs and GCAMs. New nemory is allocated.
-// Reduction is only considered for LTAs. Inverse of any GCAM will be freed.
-// LTAs will be inverted if geometies don't match, or error. The first transform
-// would be applied to images first (to coordinates last).
+// Inverse of GCAMs will be freed. LTAs will be inverted if geometries don't
+// match, or error. The first transform would be applied to images first
+// (to coordinates last).
 TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
 {
   GCAM *gcam;
