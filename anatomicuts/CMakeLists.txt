@@ -37,4 +37,8 @@ if(VTK_FOUND)
   target_link_libraries(streamlineFilter utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS streamlineFilter DESTINATION bin)
   
-endif()
+#dmri_stats_ac
+  add_executable(dmri_stats_ac dmri_stats_ac.cxx ${TRACKIO})
+  target_link_libraries(dmri_stats_ac utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_stats_ac DESTINATION bin)
+ endif()

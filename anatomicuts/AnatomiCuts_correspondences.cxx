@@ -187,7 +187,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 			}
 		}
 		float val =(float)out / ((float)indexCell+out);
-		std::cout << " val " << val << std::endl;
+		//std::cout << " val " << val << std::endl;
 		if( val> 0.20)
 		{
 			meshes.push_back(MeshType::New());
@@ -202,6 +202,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 
 std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<IndexType> direcciones, bool symmetry)
 {
+	//std::cout << " symmetry " << symmetry << std::endl;
 	std::vector<MeasurementVectorType> measurements;
 	for(unsigned int i=0;i<meshes.size();i++)
 	{	
@@ -366,7 +367,7 @@ void GetMeshes(GetPot cl, const char* find1, const char* find2, std::vector<Basi
 
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
 		spline->SetInput(reader->GetOutput());
-		spline->SetNumberOfSubdivisions(10);
+		spline->SetNumberOfSubdivisions(9);
 		spline->Update();
 
 		MeshConverterType::Pointer converter = MeshConverterType::New();
@@ -402,7 +403,7 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 	
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
 		spline->SetInput(polydatas[i]);
-		spline->SetNumberOfSubdivisions(10);
+		spline->SetNumberOfSubdivisions(9);
 		spline->Update();
 
 		MeshConverterType::Pointer converter = MeshConverterType::New();
@@ -441,7 +442,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -m euclid/labels -sym -o output"  << std::endl;   
+			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -labels (-euclid for Eucildean) -sym -o output"  << std::endl;   
 			return -1;
 		}
 		int numClusters = cl.follow(0,"-c");
@@ -539,7 +540,7 @@ int main(int narg, char*  arg[])
 				}
 			}	
 		}
-		else if (cl.search(1,"-labels"))
+		else// if (cl.search(1,"-labels"))
 		{
 			typedef ImageType::IndexType IndexType;
 			std::vector<IndexType> direcciones;
@@ -595,7 +596,7 @@ int main(int narg, char*  arg[])
 
 			}
 		}
-		if(cl.search(1,"-hungarian"))
+		//if(cl.search(1,"-hungarian"))
 		{
 			//std::cout << " distances " << distances << std::endl;
 			vcl_vector<unsigned int> assign = vnl_hungarian_algorithm< double>( distances ); //.GetAssignmentVector();
