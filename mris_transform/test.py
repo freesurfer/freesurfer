@@ -41,5 +41,9 @@ rt.run(('mris_transform'
         ' lh.1.pial 2_to_1.m3z lh.out.pial'))
 rt.surfdiff('lh.out.pial', 'lh.ref.pial')
 
+# just copy surface
+rt.run('mris_transform lh.1.pial identity.nofile lh.out.pial')
+rt.surfdiff('lh.out.pial', 'lh.1.pial')
+
 rt.cleanup()
 
