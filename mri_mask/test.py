@@ -36,6 +36,14 @@ rt.run(('mri_mask'
         ' nu.2.mgz wm.2.mgz edits.mgz'))
 rt.mridiff('edits.mgz', 'edits.ref.mgz')
 
+# transfer edits using identity.nofile
+rt.run(('mri_mask'
+        ' -xform identity.nofile'
+        ' -transfer 255'
+        ' -keep_mask_deletion_edits'
+        ' nu.2.mgz wm.2.mgz edits.mgz'))
+rt.mridiff('edits.mgz', 'edits.ref.mgz')
+
 # transfer edits using LTA
 rt.run(('mri_mask'
         ' -xform 2_to_1.lta'
