@@ -2,7 +2,7 @@ project(resurf)
 
 if(ITK_FOUND AND VTK_FOUND)
 
-  include(${ITK_USE_FILE})  
+#  include(${ITK_USE_FILE})  
 
   include_directories(
     ${FS_INCLUDE_DIRS}
@@ -12,8 +12,13 @@ if(ITK_FOUND AND VTK_FOUND)
     Code
   )
 
-  add_executable(mris_surf2resurf mris_surf2resurf.cxx)
-  target_link_libraries(mris_surf2resurf utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS mris_surf2resurf DESTINATION bin)
+  add_executable(mris_multimodal mris_multimodal.cxx)
+  target_link_libraries(mris_multimodal utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_multimodal DESTINATION bin)
+  
+
+  add_executable(mris_surf2vtk mris_surf2vtk.cxx)
+  target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_surf2vtk DESTINATION bin)
   
 endif()
