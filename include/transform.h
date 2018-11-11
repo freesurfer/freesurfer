@@ -195,8 +195,8 @@ int       TransformSample(TRANSFORM *transform,
                           float *px, float *py, float *pz) ;
 int       TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv,
                                  float *px, float *py, float *pz) ;
-int       TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float zv,
-				      float *px, float *py, float *pz) ;
+int       TransformSampleInverseFloat(const TRANSFORM *transform, float xv,
+            float yv, float zv, float *px, float *py, float *pz) ;
 int       TransformSampleInverseVoxel(TRANSFORM *transform,
                                       int width, int height, int depth,
                                       int xv, int yv, int zv,
