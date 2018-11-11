@@ -4406,9 +4406,9 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISread(const char *fname)
+MRIS * MRISread(const char *fname)
 {
-  MRIS *mris = MRISreadOverAlloc(fname, 0.0);
+  MRIS *mris = MRISreadOverAlloc(fname, 1.0);
   if (mris == NULL) return (NULL);
   MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1);       // reset current size to 1-nbrs
