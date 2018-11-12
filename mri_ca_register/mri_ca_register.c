@@ -765,16 +765,9 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE,
                   "%s: could not read longitudinal registration file %s",
                   Progname, long_reg_fname) ;
-
-      //      if (inverted_xform)
-      // {
-      //   TransformInvert(transform_long, mri_inputs) ;
-      //   TransformSwapInverse(transform_long) ;
-      // }
       TransformInvert(transform_long, mri_inputs);
       GCAMapplyInverseTransform(gcam, transform_long) ;
       TransformFree(&transform_long) ;
-      //      GCAMwrite(gcam, "combined_gcam.m3z");
     }
     {
       char fname[STRLEN] ;

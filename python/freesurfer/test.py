@@ -40,16 +40,9 @@ class RegressionTest:
     self.testdatadir = op.join(self.testdir, 'testdata')
     self.scriptdir = op.dirname(op.realpath(sys.argv[0]))
     self.testdatatar = op.join(self.scriptdir, 'testdata.tar.gz')
-    # set up FREESURFER_HOME and default SUBJECTS_DIR
     self.fs_home = self.findPath(self.scriptdir, 'distribution')
-    os.environ['FREESURFER_HOME'] = self.fs_home
-    os.environ['SUBJECTS_DIR'] = self.testdatadir
-    # set up martinos license if needed
-    have_license = os.environ.get('FS_LICENSE') or op.exists(op.join(self.fs_home, '.license')) or \
-                   op.exists(op.join(self.fs_home, 'license.txt'))
-    if not have_license and op.exists('/space/freesurfer/.license'):
-      os.environ["FS_LICENSE"] = '/space/freesurfer/.license'
-    # if regenerating...
+    self.setEnvironment()
+    # if regenerating testdata...
     self.regenerate = args.regenerate
     if self.regenerate:
       print('regenerating %s testdata' % op.basename(self.scriptdir))
@@ -61,6 +54,19 @@ class RegressionTest:
       # extract the original testdata to get replaced later
       self.runcmd('tar -xzvf ' + self.testdatatar)
       os.chdir(self.testdir)
+
+
+  # set default testing environment
+  def setEnvironment(self):
+    os.environ['FREESURFER_HOME'] = self.fs_home
+    os.environ['SUBJECTS_DIR'] = self.testdatadir
+    os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
+    # set up martinos license if needed
+    have_license = os.environ.get('FS_LICENSE') or \
+                   op.exists(op.join(self.fs_home, '.license')) or \
+                   op.exists(op.join(self.fs_home, 'license.txt'))
+    if not have_license and op.exists('/space/freesurfer/.license'):
+      os.environ["FS_LICENSE"] = '/space/freesurfer/.license'
 
 
   # recursively search upwards for a given target

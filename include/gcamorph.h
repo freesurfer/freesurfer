@@ -376,7 +376,7 @@ int GCAMresetLikelihoodStatus(GCA_MORPH *gcam) ;
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
 int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
-int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
+int GCAMapplyInverseTransform(GCA_MORPH *gcam, const TRANSFORM *transform) ;
 int GCAMinitVolGeom(GCAM *gcam, MRI *mri_src, MRI *mri_atlas) ;
 MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, 
                              MRI *mri, 
