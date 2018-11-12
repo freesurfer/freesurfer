@@ -201,6 +201,7 @@ int znzTAGreadStart(znzFile fp, long long *plen)
 {
   int tag;
 
+  if (znzeof(fp)) return (0);
   tag = znzreadInt(fp);
   if (znzeof(fp)) return (0);
 
