@@ -1925,6 +1925,8 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
   if (FZERO(niter))
     return(NO_ERROR) ;
 
+  int const nvertices = mris->nvertices;
+  
   float* tx = (float*)memalign(64, nvertices*sizeof(float)), 
        * ty = (float*)memalign(64, nvertices*sizeof(float)),
        * tz = (float*)memalign(64, nvertices*sizeof(float));
@@ -1936,7 +1938,7 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
   for (i=0; i<niter; i++) {
 
     int  vno;
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < nvertices ; vno++) {
       VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
       VERTEX                * const vertex  = &mris->vertices         [vno];
 
@@ -1959,12 +1961,12 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
         z += pz[vno2] ;
       }
       
-      tx[vno] = x / float(num) ;
-      ty[vno] = y / float(num) ;
-      tz[vno] = z / float(num) ;
+      tx[vno] = x / (float)(num) ;
+      ty[vno] = y / (float)(num) ;
+      tz[vno] = z / (float)(num) ;
     }
 
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < nvertices ; vno++) {
       VERTEX * const vertex = &mris->vertices[vno] ;
       if (vertex->marked == 1) {
         px[vno] = tx[vno] ;
@@ -1975,7 +1977,7 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
 
     int j;
     for (j=0; j<2; j++) {
-      for (vno = 0 ; vno < mris->nvertices ; vno++) {
+      for (vno = 0 ; vno < nvertices ; vno++) {
         VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
         VERTEX                * const vertex  = &mris->vertices         [vno];
         
@@ -1985,6 +1987,7 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
           float y = py[vno] ;
           float z = pz[vno] ;
           
+          int n;
           for (n = 0 ; n < vertext->vtotal ; n++) {
             int const vno2 = vertext->v[n];
             VERTEX const * const vn = &mris->vertices[vno2] ;
@@ -1996,13 +1999,13 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
             z += pz[vno2] ;
           }
           
-          tx[vno] = x / float(num) ;
-          ty[vno] = y / float(num) ;
-          tz[vno] = z / float(num) ;
+          tx[vno] = x / (float)(num) ;
+          ty[vno] = y / (float)(num) ;
+          tz[vno] = z / (float)(num) ;
         }
       }
       
-      for (vno = 0 ; vno < mris->nvertices ; vno++) {
+      for (vno = 0 ; vno < nvertices ; vno++) {
         VERTEX * const vertex = &mris->vertices[vno] ;
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
           px[vno] = tx[vno] ;
