@@ -118,16 +118,19 @@ int main(int argc, char *argv[])
 			if(filterUShape || maskFibers)
 			{
 				ImageType::IndexType  index ;
-				mask->TransformPhysicalPointToIndex(firstPt,index);
-				float value= mask->GetPixel(index);
-				//std::cout <<  value << std::endl;
-				if (val1 ==0 && value!=0)
-					val1 =value;
-	
-				if( value!=0)
-					val2 = value;
-				else
-					masked=true;
+				float value=0;
+				if( mask->TransformPhysicalPointToIndex(firstPt,index))
+				{
+					value= mask->GetPixel(index);
+					//std::cout <<  value << std::endl;
+					if (val1 ==0 && value!=0)
+						val1 =value;
+
+					if( value!=0)
+						val2 = value;
+					else
+						masked=true;
+				}		
 			}
 		}
 		

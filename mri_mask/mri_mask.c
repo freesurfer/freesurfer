@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
   printf("DoAbs = %d\n",DoAbs);
 
   /* Read transform and apply it to mri_mask */
-  if (xform_fname != NULL)
+  if (xform_fname != NULL && strcmp(xform_fname, "identity.nofile"))
   {
     printf("Applying transform to the mask volume\n");
     TRANSFORM *transform = TransformRead(xform_fname);

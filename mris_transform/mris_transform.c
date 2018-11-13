@@ -44,11 +44,11 @@ static char vcid[] = "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
-static void print_usage(void) ;
-static void print_version(void) ;
+static void print_usage_exit(void) ;
+static void print_version_exit(void) ;
+static void write_surface_tidy_up(MRI_SURFACE *mris, const char *fname) ;
 
 const char *Progname ;
-static MRI_SURFACE  *mris ;
 static int inverse_flag = 0 ;
 
 MRI          *mri_src = 0;
@@ -60,7 +60,7 @@ main(int argc, char *argv[]) {
   int          ac, nargs ;
 
   if (argc == 1)
-    print_usage();
+    print_usage_exit();
   
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
@@ -87,10 +87,16 @@ main(int argc, char *argv[]) {
   xform_fname = argv[2] ;
   out_fname = argv[3] ;
 
-  mris = MRISread(in_fname) ;
+  MRI_SURFACE *mris = MRISread(in_fname) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "ERROR: could not read surface file %s",
-              in_fname) ;
+    ErrorExit(ERROR_NOFILE, "ERROR: could not read surface file %s", in_fname);
+  
+  if (!strcmp(xform_fname, "identity.nofile")) {
+    fprintf(stdout, "Transform is identity.nofile. Copying surface to %s.\n",
+      out_fname);
+    write_surface_tidy_up(mris, out_fname);
+    return (EXIT_SUCCESS);
+  }
 
   TRANSFORM *transform = TransformRead(xform_fname) ;
   if (!transform)
@@ -144,17 +150,8 @@ main(int argc, char *argv[]) {
   // MRIStransform() interprets source/target MRIs differently for LTAs and
   // GCAMs. If NULL is passed, it will just figure it out from the transform.
   MRIStransform(mris, NULL, transform, NULL) ;
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing surface to %s\n", out_fname) ;
-  MRISwrite(mris, out_fname) ;
-
-  if (mri_src)
-    MRIfree(&mri_src);
-  if (mri_dst)
-    MRIfree(&mri_dst);
-
-  return(0) ;  /* for ansi */
+  write_surface_tidy_up(mris, out_fname);
+  return (EXIT_SUCCESS);
 }
 
 /*----------------------------------------------------------------------
@@ -170,7 +167,7 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help") || !stricmp(option, "h")
       || !stricmp(option, "u") || !stricmp(option, "?"))
-    print_usage() ;
+    print_usage_exit() ;
   else if (!stricmp(option, "-trx-src") || !stricmp(option, "s")) {
     fprintf(stderr, "Reading src volume of transform...\n");
     mri_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
@@ -186,7 +183,7 @@ get_option(int argc, char *argv[]) {
     }
     nargs = 1;
   } else if (!stricmp(option, "-version") || !stricmp(option, "v"))
-    print_version() ;
+    print_version_exit() ;
   else if (!stricmp(option, "-is-inverse") || !stricmp(option, "i"))
     inverse_flag = 1 ;
   else
@@ -197,14 +194,24 @@ get_option(int argc, char *argv[]) {
 
 #include "mris_transform.help.xml.h"
 static void
-print_usage(void) {
+print_usage_exit(void) {
   outputHelpXml(mris_transform_help_xml, mris_transform_help_xml_len);
   exit(EXIT_SUCCESS);
 }
 
 static void
-print_version(void) {
+print_version_exit(void) {
   fprintf(stderr, "%s\n", vcid) ;
-  exit(1) ;
+  exit(EXIT_SUCCESS) ;
+}
+
+static void
+write_surface_tidy_up(MRI_SURFACE *mris, const char *fname) {
+  MRISwrite(mris, fname);
+  MRISfree(&mris);
+  if (mri_src)
+    MRIfree(&mri_src);
+  if (mri_dst)
+    MRIfree(&mri_dst);
 }
 

@@ -32,7 +32,7 @@
       <argument>&lt;input&gt;</argument>
       <explanation>Input surface, e.g. lh.pial</explanation>
       <argument>&lt;transform&gt;</argument>
-      <explanation>Image-to-image transform, e.g. LTA or M3Z</explanation>
+      <explanation>Image-to-image transform, e.g. LTA or M3Z (can be identity.nofile)</explanation>
       <argument>&lt;output&gt;</argument>
       <explanation>Output surface, e.g. lh.out.pial</explanation>
     </positional>
