@@ -2310,13 +2310,12 @@ MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
   int width, height, depth, nframes, x, y, z, f, mask_val;
   float val;
-
-  if (mri_src->width != mri_mask->width || mri_src->height != mri_mask->height || mri_src->depth != mri_mask->depth ||
-      mri_src->xsize != mri_mask->xsize || mri_src->ysize != mri_mask->ysize || mri_src->zsize != mri_mask->zsize ||
-      mri_src->c_r != mri_mask->c_r || mri_src->c_a != mri_mask->c_a || mri_src->c_s != mri_mask->c_s) {
-    // This may be too clever in some cases, eg, with surfaces the geometry
-    // is meaningless. Consider checking ras_good_flag, but I don't know
-    // if that will always be correct
+  VOL_GEOM vg_src, vg_mask;
+  
+  getVolGeom(mri_src, &vg_src);
+  getVolGeom(mri_mask, &vg_mask);
+  const double threshold = 1e-4; // Don't be too restrictive.
+  if (vg_isNotEqualThresh(&vg_src, &vg_mask, threshold)) {
     printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
     return (MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst, mask, out_val));
   }
