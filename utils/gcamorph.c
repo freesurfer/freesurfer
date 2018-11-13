@@ -19393,16 +19393,15 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   LTAfillInverse(lta2);
   LTAfillInverse(lta1);
   
-  if (gcam == out) {
+  int width = lta2->xforms[0].dst.width / gcam->spacing;
+  int height = lta2->xforms[0].dst.height / gcam->spacing;
+  int depth = lta2->xforms[0].dst.depth / gcam->spacing;
+  if (gcam == out)
     ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output cannot be input");
-  }
-  if (out && (out->width != gcam->width || out->height != gcam->height ||
-              out->depth != gcam->depth)) {
+  if (out && (out->width!=width || out->height!=height ||out->depth!=depth))
     ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output size does not match");
-  }
-  if (!out) {
-    out = GCAMalloc(gcam->width, gcam->height, gcam->depth);
-  }
+  if (!out)
+    out = GCAMalloc(width, height, depth);
   
   if (gcam->type == GCAM_RAS) {
     printf("GCAMconcat3(): converting from GCAM_RAS to GCAM_VOX\n");
@@ -19419,9 +19418,9 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   w = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(orig, 4) = 1.0;
   VECTOR_ELT(w, 4) = 1.0;
-  for (c = 0; c < gcam->width; c++) {
-    for (r = 0; r < gcam->height; r++) {
-      for (s = 0; s < gcam->depth; s++) {
+  for (c = 0; c < width; c++) {
+    for (r = 0; r < height; r++) {
+      for (s = 0; s < depth; s++) {
         if (c == Gx && r == Gy && s == Gz) {
           DiagBreak();
         }
