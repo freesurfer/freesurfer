@@ -30,8 +30,10 @@ int mrisurf_orig_clock;
 //==================================================================================================================
 // Simple properties
 //
+
 //  orig[xyz] are set during the creation of a surface
 //  and during deformations that create an improved 'original' surface.
+//  but often they are not set at all!
 //
 void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz) 
 {
@@ -63,14 +65,100 @@ void MRISsetOriginalXYZfromXYZ(MRIS *mris) {
 
 // xyz are set in over 100 places
 //
-void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z) 
+static void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z) 
 {
+  // This one just writes the xyz
+  //
   cheapAssertValidVno(mris,vno);
   VERTEX * v = &mris->vertices[vno];
     
   const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
   const float * pcy = &v->y;  float * py = (float*)pcy; *py = y;
   const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
+}
+
+void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z) {
+  // This one will, in the future, invalidate the dependent properties
+  MRISsetXYZwkr(mris, vno, x, y, z);
+}
+
+
+void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz) {
+  int const nvertices = mris->nvertices;
+
+  float* px = (float*)memalign(64, nvertices*sizeof(float));    // cache aligned to improve the performance
+  float* py = (float*)memalign(64, nvertices*sizeof(float));    //      of loops that use the vectors
+  float* pz = (float*)memalign(64, nvertices*sizeof(float));
+  
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX * v = &mris->vertices[vno];
+    px[vno] = v->x; py[vno] = v->y; pz[vno] = v->z;
+  }
+  
+  *ppx = px;
+  *ppy = py;
+  *ppz = pz;
+}
+
+#define SURFACE_DIMENSION_CALC_INIT \
+  float xlo = 10000, ylo = xlo, zlo = ylo, xhi = -xlo, yhi = -ylo, zhi = -zlo;
+
+#define SURFACE_DIMENSION_CALC_ITER \
+    if (x > xhi) xhi = x; \
+    if (x < xlo) xlo = x; \
+    if (y > yhi) yhi = y; \
+    if (y < ylo) ylo = y; \
+    if (z > zhi) zhi = z; \
+    if (z < zlo) zlo = z; \
+    // end of macro
+
+#define SURFACE_DIMENSION_CALC_FINI \
+  mris->xlo = xlo; \
+  mris->xhi = xhi; \
+  mris->ylo = ylo; \
+  mris->yhi = yhi; \
+  mris->zlo = zlo; \
+  mris->zhi = zhi; \
+  \
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi); \
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi); \
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi); \
+  // end of macro
+
+void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const    pz) {
+  int const nvertices = mris->nvertices;
+
+  SURFACE_DIMENSION_CALC_INIT
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    float x = px[vno], y = py[vno], z = pz[vno];
+    MRISsetXYZwkr(mris, vno, x,y,z);
+    SURFACE_DIMENSION_CALC_INIT
+  }
+  
+  SURFACE_DIMENSION_CALC_FINI
+}
+
+
+int mrisComputeSurfaceDimensions(MRIS *mris)
+{
+  SURFACE_DIMENSION_CALC_INIT
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *vertex = &mris->vertices[vno];
+    
+    float const x = vertex->x;
+    float const y = vertex->y;
+    float const z = vertex->z;
+    
+    SURFACE_DIMENSION_CALC_ITER
+  }
+  
+  SURFACE_DIMENSION_CALC_FINI
+  
+  return (NO_ERROR);
 }
 
 
@@ -264,41 +352,6 @@ int MRISreverse(MRIS *mris, int which, int reverse_face_order)
     MRISreverseFaceOrder(mris);
   }
 
-  return (NO_ERROR);
-}
-
-
-int mrisComputeSurfaceDimensions(MRIS *mris)
-{
-  float xlo, ylo, zlo, xhi, yhi, zhi;
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX *vertex = &mris->vertices[vno];
-    float const x = vertex->x;
-    float const y = vertex->y;
-    float const z = vertex->z;
-    if (x > xhi) xhi = x;
-    if (x < xlo) xlo = x;
-    if (y > yhi) yhi = y;
-    if (y < ylo) ylo = y;
-    if (z > zhi) zhi = z;
-    if (z < zlo) zlo = z;
-  }
-  mris->xlo = xlo;
-  mris->xhi = xhi;
-  mris->ylo = ylo;
-  mris->yhi = yhi;
-  mris->zlo = zlo;
-  mris->zhi = zhi;
-  
-  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
-  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
-  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
-  
   return (NO_ERROR);
 }
 

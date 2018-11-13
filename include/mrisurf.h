@@ -2812,8 +2812,21 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 
 // Inputs to the metric properties
 //
-void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
-void MRISsetXYZ        (MRIS *mris, int vno, float x, float y, float z);
+void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z);
+
+void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz);
+void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const   ppz);
+    //
+    // By importing and exporting into three arrays, it is possible to use h/w vector instructions more effectively.
+    // 
+    // the three vectors are malloced and filled in with the xyz values
+    //       the vectors are cache-block aligned so loops processing them can be very efficient
+    //
+    // the xyz values are set from the vectors, the vectors are NOT freed by this call
+    // the mris [xyz] lo,hi,ctr are set during import
+
+
+void MRISsetOriginalXYZ       (MRIS *mris, int vno, float x, float y, float z);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
 
 void mrisFindMiddleOfGray(MRIS *mris);

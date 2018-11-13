@@ -1921,91 +1921,107 @@ FindSpikes(MRI_SURFACE *mris, int iter) {
 
 static int
 SmoothSpikes(MRI_SURFACE *mris, int niter) {
-  float    x, y, z, num ;
-  int      vno, n, i=0, j=0;
 
   if (FZERO(niter))
     return(NO_ERROR) ;
 
+  float* tx = (float*)memalign(64, nvertices*sizeof(float)), 
+       * ty = (float*)memalign(64, nvertices*sizeof(float)),
+       * tz = (float*)memalign(64, nvertices*sizeof(float));
+
+  float* px, *py, *pz;
+  MRISexportXYZ(mris, &px,&py,&pz);
+
+  int i;
   for (i=0; i<niter; i++) {
+
+    int  vno;
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
       VERTEX                * const vertex  = &mris->vertices         [vno];
-      if (vertex->marked ==1) {
-        num=0;
-        x = vertex->x ;
-        y = vertex->y ;
-        z = vertex->z ;
-        for (n = 0 ; n < vertext->vtotal ; n++) {
-          VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
-          if (vn->ripflag)
-            continue ;
-          num++ ;
-          x += vn->x ;
-          y += vn->y ;
-          z += vn->z ;
-        }
-        num++ ;   /* account for central vertex */
-        vertex->tdx = x / num ;
-        vertex->tdy = y / num ;
-        vertex->tdz = z / num ;
+
+      if (vertex->marked != 1) continue;
+       
+      float x = px[vno];
+      float y = py[vno];
+      float z = pz[vno];
+      
+      int num = 1;  /* account for central vertex */
+      int n;
+      for (n = 0 ; n < vertext->vtotal ; n++) {
+        int const vno2 = vertext->v[n];
+        VERTEX const * const vn = &mris->vertices[vno2] ;
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        x += px[vno2] ;
+        y += py[vno2] ;
+        z += pz[vno2] ;
       }
+      
+      tx[vno] = x / float(num) ;
+      ty[vno] = y / float(num) ;
+      tz[vno] = z / float(num) ;
     }
 
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       VERTEX * const vertex = &mris->vertices[vno] ;
       if (vertex->marked == 1) {
-        vertex->x = vertex->tdx ;
-        vertex->y = vertex->tdy ;
-        vertex->z = vertex->tdz ;
+        px[vno] = tx[vno] ;
+        py[vno] = ty[vno] ;
+        pz[vno] = tz[vno] ;
       }
     }
-#if 1
+
+    int j;
     for (j=0; j<2; j++) {
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
         VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
         VERTEX                * const vertex  = &mris->vertices         [vno];
+        
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
-          num=0;
-          x = vertex->x ;
-          y = vertex->y ;
-          z = vertex->z ;
+          int num = 1;  /* account for central vertex */
+          float x = px[vno] ;
+          float y = py[vno] ;
+          float z = pz[vno] ;
+          
           for (n = 0 ; n < vertext->vtotal ; n++) {
-            VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
+            int const vno2 = vertext->v[n];
+            VERTEX const * const vn = &mris->vertices[vno2] ;
             if (vn->ripflag)
               continue ;
             num++ ;
-            x += vn->x ;
-            y += vn->y ;
-            z += vn->z ;
+            x += px[vno2] ;
+            y += py[vno2] ;
+            z += pz[vno2] ;
           }
-          num++ ;   /* account for central vertex */
-          vertex->tdx = x / num ;
-          vertex->tdy = y / num ;
-          vertex->tdz = z / num ;
+          
+          tx[vno] = x / float(num) ;
+          ty[vno] = y / float(num) ;
+          tz[vno] = z / float(num) ;
         }
       }
+      
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
         VERTEX * const vertex = &mris->vertices[vno] ;
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
-          vertex->x = vertex->tdx ;
-          vertex->y = vertex->tdy ;
-          vertex->z = vertex->tdz ;
+          px[vno] = tx[vno] ;
+          py[vno] = ty[vno] ;
+          pz[vno] = tz[vno] ;
         }
       }
     }
-#endif
   }
+
+  MRISimportXYZ(mris,  px, py, pz);
+
+  freeAndNULL(px);
+  freeAndNULL(py);
+  freeAndNULL(pz);
+
+  freeAndNULL(tx);
+  freeAndNULL(ty);
+  freeAndNULL(tz);
+
   return(NO_ERROR);
 }
-
-
-
-
-
-
-
-
-
-
-
