@@ -512,17 +512,9 @@ static void write_binary_surface(char *fname, MRI *mri, char *cmdline)
     fprintf(stdout, "writing %s\n", fname);
   }
 
-#if 0
-  fwrite3(-2,fp);	// Doug added this
-  fputs("\n",fp);	// mrisReadTriangleFile is expecting this
-  			// and it also expecting 4 byte ints instead of the fwrite3() of the vertex and face numbers below
-			// and it is having problems reading the tags
-#else
-  fprintf(stdout, "%s:%d write_binary_surface is writing the old -3 magic number\n", __FILE__, __LINE__);
-  fwrite3(-3,fp);	// old code
-#endif
-				// fprintf(stdout,"ftell:%ld before writing vertex_index:%d\n",ftell(fp),vertex_index);	
-  fwrite3(vertex_index,fp);     // fprintf(stdout,"ftell:%ld before writing face_index:%d\n",ftell(fp),face_index);
+  fwrite3(-3,fp); //fwrite3(-2,fp); -2 for MRIS_TRIANGULAR_SURFACE, but breaks
+  fwrite3(vertex_index,fp);
+
   fwrite3(face_index,fp);
 
   // matrix is the same all the time so cache it
