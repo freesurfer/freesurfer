@@ -19,13 +19,6 @@ extern "C"
 #endif
 
 
-// TODO:
-// [ ] Downsampling or spacing?
-// [ ] ITK/FSL?
-// [ ] Output type?
-// [ ] Mention mri_info and check if shows size/output type.
-
-
 struct Parameters
 {
   std::string progName;
@@ -87,8 +80,12 @@ int main(int argc, char *argv[])
   
   if (par.downsample && out->type==MORPH_3D_TYPE) {
     GCAM *gcam = (GCAM *)out->xform;
-    out->xform = (void *)GCAMdownsample2(gcam);
-    GCAMfree(&gcam);
+    if (gcam->spacing == 1) {
+      out->xform = (void *)GCAMdownsample2(gcam);
+      GCAMfree(&gcam);
+    }
+    else
+      printf("INFO: spacing is %d, no downsampling needed\n", gcam->spacing);
   }
   
   TransformWrite(out, par.outFile.c_str());
