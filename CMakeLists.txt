@@ -176,24 +176,7 @@ if(BUILD_GUIS)
   endif()
 
   # -------- qt --------
-  set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
-  if(NOT Qt5_DIR AND EXISTS ${PACKAGES_QT})
-    set(Qt5_DIR ${PACKAGES_QT})
-  endif()
-  # set components to search for
-  set(QT_COMPONENTS Core Widgets)
-  if(NOT APPLE)
-    set(QT_COMPONENTS ${QT_COMPONENTS} X11Extras)
-  endif()
-  # actually find qt
-  find_package(Qt5 COMPONENTS ${QT_COMPONENTS})
-  if(Qt5_FOUND)
-    get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
-    if(NOT APPLE)
-      file(GLOB QT_LIBRARIES_TO_INSTALL "${QT_INSTALL_DIR}/lib/lib*.so*")
-      install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib)
-    endif()
-  endif()
+  find_package(QT)
 
   # -------- vtk --------
   find_package(VTK)
@@ -276,7 +259,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 # set executable rpath
 if(NOT APPLE)
-  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib:${CMAKE_INSTALL_RPATH}")
 endif()
 
 # --------------------------------------------------
