@@ -26,7 +26,7 @@ if(Qt5_FOUND)
     # install the platform plugins as well
     install(DIRECTORY ${QT_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
     # make sure executables know where to find our plugin directory
-    file(WRITE ${CMAKE_INSTALL_PREFIX}/bin/qt.conf "[Paths]\nPlugins=../lib/qt/plugins\n")
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/qt.conf DESTINATION bin)
   endif()
 
 endif()
