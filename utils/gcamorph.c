@@ -4793,32 +4793,20 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
     end_frame = mri_src->nframes - 1;
   }
 
-#if 0
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-#else
-  // should be 256^3
-  width = gcam->width * gcam->spacing;
-  height = gcam->height * gcam->spacing;
-  depth = gcam->depth * gcam->spacing;
-#endif
+  width = gcam->atlas.width;
+  height = gcam->atlas.height;
+  depth = gcam->atlas.depth;
 
-  // GCAM is a non-linear voxel-to-voxel transform
-  // it also assumes that the uniform voxel size
-  if (mri_morphed) {
-    if ((mri_src->xsize != mri_src->ysize) || (mri_src->xsize != mri_src->zsize) ||
-        (mri_src->ysize != mri_src->zsize)) {
-      ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
-    }
+  if (mri_morphed && (mri_morphed->width!=width
+                      || mri_morphed->height!=height
+                      || mri_morphed->depth!=depth)) {
+      ErrorExit(ERROR_BADPARM, "invalid input MRI size for GCAMmorphToAtlas()");
   }
   if (!mri_morphed) {
-    // alloc with FOV same as gcam
-    mri_morphed = MRIallocSequence
-        //(width, height, depth, MRI_FLOAT, frame < 0 ? mri_src->nframes : 1) ;
-        (width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1);
-    MRIcopyHeader(mri_src, mri_morphed);
+    mri_morphed = MRIallocSequence(width, height, depth, mri_src->type,
+      frame < 0 ? mri_src->nframes : 1);
   }
+  useVolGeomToMRI(&gcam->atlas, mri_morphed);
 
   if (getenv("MGH_TAL")) {
     xoff = -7.42;
@@ -4899,10 +4887,6 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
     // we change direction cosines
     MRIreInitCache(mri_morphed);
   }
-  else {
-    useVolGeomToMRI(&gcam->atlas, mri_morphed);
-  }
-
   return (mri_morphed);
 }
 MRI *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
