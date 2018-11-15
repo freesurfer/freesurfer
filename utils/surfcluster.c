@@ -894,3 +894,27 @@ int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, int shape, int v
 
   return (nhits);
 }
+
+/*!
+  \fn int sclustSaveAsPointSet(char *fname, SCS *scslist, int NClusters, MRIS *surf)
+  \brief Outputs a file that can be loaded into freeview with -c
+ */
+int sclustSaveAsPointSet(char *fname, SCS *scslist, int NClusters, MRIS *surf)
+{
+  int n,vtxno;
+  VERTEX *v;
+  FILE *fp;
+
+  fp = fopen(fname,"w");
+  for (n=0; n < NClusters; n++) {
+    vtxno = scslist[n].vtxmaxval;
+    v = &(surf->vertices[vtxno]);
+    fprintf(fp,"%g %g %g\n",v->x,v->y,v->z);
+  }
+  fprintf(fp,"info\n");
+  fprintf(fp,"numpoints %d\n",NClusters);
+  fprintf(fp,"useRealRAS 0\n");
+  fclose(fp);
+
+  return(0);
+}

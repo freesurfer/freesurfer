@@ -24,11 +24,12 @@ if(Qt5_FOUND)
       install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib/qt/lib)
       # add Qt library directory to rpath
       set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/qt/lib:${CMAKE_INSTALL_RPATH}")
-      # install the platform plugins as well
-      install(DIRECTORY ${QT_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
-      # make sure executables know where to find our plugin directory
-      install(FILES ${CMAKE_SOURCE_DIR}/cmake/qt.conf DESTINATION bin)
+      # install the platform plugins as well, and make sure executables know
+      # where to find the plugins directory
+      if(EXISTS ${QT_INSTALL_DIR}/plugins/platforms)
+        install(DIRECTORY ${QT_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
+        install(FILES ${CMAKE_SOURCE_DIR}/cmake/qt.conf DESTINATION bin)
+      endif()
     endif()
   endif()
-
 endif()
