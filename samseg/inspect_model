@@ -1,0 +1,440 @@
+#!/usr/bin/env python
+
+# GEMS model history inspector
+
+import sys
+import h5py
+import numpy as np
+import argparse
+
+import pyqtgraph as pg
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QDesktopWidget
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QSlider, QComboBox, QSplitter, QGridLayout, QHBoxLayout, QVBoxLayout, QApplication
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+
+
+# Main window
+class Window(QWidget):
+
+    def __init__(self, historyfile):
+        super().__init__()
+        self.loadHistory(historyfile)
+        self.initUI()
+        self.updateMultiResolutionLevel()
+        self.show()
+
+
+    def loadHistory(self, filename):
+        # Scipy can't load v7.3 mat files, so we're stuck having to load
+        # things via h5, which is super tedious. It would be a good idea
+        # to create some standard history file IO to handle this stuff.
+        self.hf = h5py.File(filename)
+
+        # retrieve gaussians
+        ref = self.hf['history/input/modelSpecifications/sharedGMMParameters/numberOfComponents']
+        self.numGaussiansPerClass = [np.array(self.hf[r])[0, 0].astype(int) for r in np.array(ref).squeeze()]
+        self.numClasses = len(self.numGaussiansPerClass)
+        self.numGaussians = np.sum(self.numGaussiansPerClass)
+
+        # class names
+        ref = self.hf['history/input/modelSpecifications/sharedGMMParameters/mergedName']
+        refs = [self.hf[r].value.squeeze() for r in np.array(ref).squeeze()]
+        self.mergedNames = [''.join(map(chr, a[:-1])) for a in refs]
+
+        # number of resolution levels
+        self.numResolutionLevels = len(self.hf['history/historyWithinEachMultiResolutionLevel/downSampledImageBuffers'])
+
+
+    def initUI(self):
+        # set the color wheel
+        self.colorWheel = [
+            (0.4, 0.65, 1.0),
+            (1.0, 0.725, 0.0),
+            (0.3, 0.65, 0.0),
+            (0.7, 0.05, 0.0),
+            (0.7, 0.15, 1.0),
+            (0.6, 0.375, 0.5),
+            (0.4, 0.975, 1.0)
+        ]
+
+        # setup the control box
+        controlBox = QGridLayout()
+        controlBox.setAlignment(Qt.AlignTop)
+
+        # opacity slider
+        self.opacitySlider = QSlider(Qt.Horizontal)
+        self.opacitySlider.setValue(49)
+        self.opacitySlider.valueChanged.connect(self.updateOpacity)
+        controlBox.addWidget(QLabel('Opacity'), 1, 0)
+        controlBox.addWidget(self.opacitySlider, 1, 1)
+
+        # merged class names dropdown
+        self.classDropdown = QComboBox()
+        self.classDropdown.addItems(self.mergedNames)
+        self.classDropdown.currentIndexChanged.connect(self.updateClass)
+        controlBox.addWidget(QLabel('Merged Class'), 2, 0)
+        controlBox.addWidget(self.classDropdown, 2, 1)
+
+        # component dropdown
+        self.componentDropdown = QComboBox()
+        self.componentDropdown.currentIndexChanged.connect(self.updateComponent)
+        controlBox.addWidget(QLabel('Component'), 3, 0)
+        controlBox.addWidget(self.componentDropdown, 3, 1)
+
+        # prior vs posterior dropdown
+        self.posteriorDropdown = QComboBox()
+        self.posteriorDropdown.addItem('Posterior')
+        self.posteriorDropdown.addItem('Prior')
+        self.posteriorDropdown.currentIndexChanged.connect(self.updatePosterior)
+        controlBox.addWidget(QLabel('Posterior'), 4, 0)
+        controlBox.addWidget(self.posteriorDropdown, 4, 1)
+
+        # multiresolution dropdown
+        self.multiresDropdown = QComboBox()
+        self.multiresDropdown.addItems(['Level %d' % (i + 1) for i in range(self.numResolutionLevels)])
+        self.multiresDropdown.setCurrentIndex(self.numResolutionLevels - 1)
+        self.multiresDropdown.currentIndexChanged.connect(self.updateMultiResolutionLevel)
+        controlBox.addWidget(QLabel('Resolution Level'), 5, 0)
+        controlBox.addWidget(self.multiresDropdown, 5, 1)
+
+        # setup the gaussians
+        numRows = np.ceil(np.sqrt(self.numClasses))
+        numCols = np.ceil(self.numClasses / numRows)
+        self.figure = plt.figure()
+        self.figure.patch.set_facecolor('None')
+        self.canvas = FigureCanvas(self.figure)
+        self.axes = [self.figure.add_subplot(numRows, numCols, i+1) for i in range(self.numClasses)]
+        plt.tight_layout(pad=0)
+
+        # left pane
+        self.volumeViewer = VolumeViewer()
+        self.volumeViewer.cursorMoved.connect(self.updateIntensityMarker)
+        leftPane = QWidget()
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.volumeViewer)
+        vbox.addLayout(controlBox)
+        leftPane.setLayout(vbox)
+
+        # splitter
+        splitter = QSplitter()
+        splitter.addWidget(leftPane)
+        splitter.addWidget(self.canvas)
+
+        # layout
+        hbox = QHBoxLayout()
+        hbox.addWidget(splitter)
+        self.setLayout(hbox)
+        screen = QDesktopWidget().availableGeometry()
+        w = screen.width() * 0.7
+        h = screen.height() * 0.8
+        self.setGeometry((screen.width() - w) / 2, (screen.height() - h) / 2, w, h)
+        self.setWindowTitle('GEMS Model Inspector')
+
+
+    def updateMultiResolutionLevel(self):
+        # update image buffer
+        level = self.multiresDropdown.currentIndex()
+        ref = self.hf['history/historyWithinEachMultiResolutionLevel/downSampledImageBuffers'][level, 0]
+        self.downSampledImage = transformVolume(np.array(self.hf[ref]))
+        self.volumeViewer.layers = [createLayer(self.downSampledImage)]
+        self.volumeViewer.centerCursor()
+
+        # image mask
+        ref = self.hf['history/historyWithinEachMultiResolutionLevel/downSampledMask'][level, 0]
+        self.downSampledMask = np.array(self.hf[ref]).astype(bool)
+
+        # update posteriors
+        ref = self.hf['history/historyWithinEachMultiResolutionLevel/posteriorsAtEnd'][level, 0]
+        self.posteriors = np.array(self.hf[ref])
+
+        # update priors
+        ref = self.hf['history/historyWithinEachMultiResolutionLevel/priorsAtEnd'][level, 0]
+        self.priors = np.array(self.hf[ref])
+
+        iterHistory = self.hf['history/historyWithinEachMultiResolutionLevel/historyWithinEachIteration'][level, 0]
+
+        # update means
+        ref = self.hf[iterHistory]['means'][-1, 0]
+        self.means = np.array(self.hf[ref]).squeeze()
+
+        # update variances
+        ref = self.hf[iterHistory]['variances'][-1, 0]
+        self.variances = np.array(self.hf[ref]).squeeze()
+
+        # update mixtureWeights
+        ref = self.hf[iterHistory]['mixtureWeights'][-1, 0]
+        self.mixtureWeights = np.array(self.hf[ref]).squeeze()
+
+        # update gaussians
+        ylim = 0
+        binCenters = np.linspace(np.min(self.downSampledImage), np.max(self.downSampledImage), 500)
+        for classNumber in range(self.numClasses):
+            ax = self.axes[classNumber]
+            ax.clear()
+            model = np.zeros(len(binCenters))
+            numComponents = self.numGaussiansPerClass[classNumber]
+            for componentNumber in range(numComponents):
+                gaussianNumber = int(np.sum(self.numGaussiansPerClass[: classNumber])) + componentNumber
+                mean = self.means[gaussianNumber]
+                variance = self.variances[gaussianNumber]
+                gauss = 1 / np.sqrt(2 * np.pi * variance) * np.exp( -(binCenters - mean) ** 2 / 2 / variance)
+                product = gauss * self.mixtureWeights[gaussianNumber]
+                # plot the gaussian
+                ax.plot(binCenters, product, linewidth=1)
+                model += product
+            # plot the sum
+            ax.plot(binCenters, model, color='black', linewidth=1, linestyle='--')
+            # add the vertical intensity marker
+            ax.axvline(x=0, color='grey', alpha=0.5, linewidth=0.7)
+            # display the merged class name
+            ax.text(0.05, 0.95, self.mergedNames[classNumber], horizontalalignment='left',
+                verticalalignment='top', transform=ax.transAxes)
+
+        # set constant y limit
+        bottom = np.min([ax.get_ylim()[0] for ax in self.axes])
+        top = np.max([ax.get_ylim()[1] for ax in self.axes])
+        for ax in self.axes:
+            ax.set_ylim(bottom, top)
+
+        # update the intensity markers - this will draw updates to the canvas
+        self.updateIntensityMarker()
+
+        # next update posteriors and classes
+        self.updatePosterior()
+        self.updateClass()
+
+
+    def updatePosterior(self):
+        if self.posteriorDropdown.currentIndex() == 0:
+            # show posteriors
+            self.probabilities = self.posteriors
+        else:
+            # show priors
+            self.probabilities = np.zeros(self.posteriors.shape)
+            for classNumber in range(self.numClasses):
+                numComponents = self.numGaussiansPerClass[classNumber]
+                for componentNumber in range(numComponents):
+                    gaussianNumber = int(np.sum(self.numGaussiansPerClass[: classNumber])) + componentNumber
+                    self.probabilities[gaussianNumber, :] = self.priors[classNumber, :] * self.mixtureWeights[gaussianNumber]
+
+
+    def updateClass(self):
+        # update the component selector
+        classNumber = self.classDropdown.currentIndex()
+        numComponents = self.numGaussiansPerClass[classNumber]
+        self.componentDropdown.clear()
+        self.componentDropdown.addItems(['Component %d' % (i + 1) for i in range(numComponents)])
+        self.componentDropdown.addItem('Composite')
+        self.componentDropdown.setCurrentIndex(numComponents)
+        self.updateComponent()
+        # change background of selected class
+        for ax in self.axes:
+            ax.set_facecolor((1, 1, 1))
+        self.axes[classNumber].set_facecolor((0.95, 1, 1))
+        self.canvas.draw()
+
+
+    def updateComponent(self):
+        # draw the component probabilities to the viewer
+        classNumber = self.classDropdown.currentIndex()
+        componentIndex = self.componentDropdown.currentIndex()
+        if componentIndex == self.numGaussiansPerClass[classNumber]:
+            # display all components
+            componentsToDraw = range(componentIndex)
+        else:
+            # display one component
+            componentsToDraw = [componentIndex]
+        self.volumeViewer.layers = [self.volumeViewer.layers[0]]
+        for componentNumber in componentsToDraw:
+            gaussianNumber = int(np.sum(self.numGaussiansPerClass[: classNumber])) + componentNumber
+            vol = np.zeros(self.downSampledMask.shape)
+            vol[self.downSampledMask] = self.probabilities[gaussianNumber, :]
+            # add volume to viewer
+            layer = createLayer(transformVolume(vol), cmap=colorMap(self.colorWheel[componentNumber]))
+            self.volumeViewer.layers.append(layer)
+        # this will update the view
+        self.updateOpacity()
+
+
+    def updateOpacity(self):
+        pos = self.opacitySlider.value()
+        imageOpacity = np.minimum((99 - pos) / 50, 1)
+        componentOpacity = np.minimum(pos / 49, 1)
+        self.volumeViewer.layers[0]['opacity'] = imageOpacity
+        for layer in self.volumeViewer.layers[1:]:
+            layer['opacity'] = componentOpacity
+        self.volumeViewer.draw()
+
+
+    def updateIntensityMarker(self):
+        coord = [int(np.floor(i)) for i in self.volumeViewer.cursorPos]
+        val = self.downSampledImage[coord[0], coord[1], coord[2]]
+        for ax in self.axes:
+            # assume that the line for each axis is the vertical marker
+            if ax.lines:
+                ax.lines[-1].set_xdata(val)
+        self.canvas.draw()
+
+
+class ViewBox(pg.ViewBox):
+
+    def __init__(self, parentViewer, x, y, z, **kwargs):
+        kwargs.setdefault('lockAspect', True)
+        kwargs.setdefault('border', 'w')
+        super().__init__(**kwargs)
+        self.parentViewer = parentViewer
+        self.xAxis = x
+        self.yAxis = y
+        self.zAxis = z
+        self.sensitivity = 0.0002
+
+
+    def mouseClickEvent(self, ev):
+        if ev.button() == Qt.LeftButton:
+            ev.accept()
+            cursorPos = self.parentViewer.cursorPos.copy()
+            clickPos = self.mapToView(ev.pos())
+            cursorPos[self.xAxis] = clickPos.x()
+            cursorPos[self.yAxis] = clickPos.y()
+            self.parentViewer.moveCursor(cursorPos)
+
+
+    def mouseDragEvent(self, ev, axis=None):
+        if ev.button() == Qt.LeftButton:
+            ev.accept()
+            cursorPos = self.parentViewer.cursorPos.copy()
+            clickPos = self.mapToView(ev.pos())
+            cursorPos[self.xAxis] = clickPos.x()
+            cursorPos[self.yAxis] = clickPos.y()
+            self.parentViewer.moveCursor(cursorPos)
+
+
+class VolumeViewer(pg.GraphicsLayoutWidget):
+    cursorMoved = pyqtSignal()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.layers = []
+        self.axial = ViewBox(self, 0, 1, 2)
+        self.coronal = ViewBox(self, 0, 2, 1)
+        self.sagittal = ViewBox(self, 1, 2, 0)
+        self.addItem(self.axial, 1, 0)
+        self.addItem(self.coronal, 0, 0)
+        self.addItem(self.sagittal, 0, 1)
+        pen = pg.mkPen('g')
+        self.axialCursor_x = pg.InfiniteLine(angle=0, pen=pen)
+        self.axialCursor_y = pg.InfiniteLine(angle=90, pen=pen)
+        self.coronalCursor_x = pg.InfiniteLine(angle=0, pen=pen)
+        self.coronalCursor_z = pg.InfiniteLine(angle=90, pen=pen)
+        self.sagittalCursor_y = pg.InfiniteLine(angle=0, pen=pen)
+        self.sagittalCursor_z = pg.InfiniteLine(angle=90, pen=pen)
+        self.cursorPos = np.array(self.shape) / 2
+        self.draw()
+
+
+    @property
+    def shape(self):
+        if self.layers:
+            return self.layers[0]['data'].shape
+        return (0, 0, 0)
+
+
+    def updateCursor(self, oldShape, newShape):
+        self.setClippedCursor([newShape[dim] * value / oldShape[dim] for dim, value in enumerate(self.cursorPos)])
+
+
+    def moveCursor(self, pos):
+        self.setClippedCursor(pos)
+        self.draw()
+        self.cursorMoved.emit()
+
+
+    def setClippedCursor(self, pos):
+        minPos = np.zeros(3, dtype=int)
+        maxPos = np.array(self.shape) - 1
+        self.cursorPos = np.maximum(np.minimum(pos, maxPos), minPos)
+
+
+    def centerCursor(self):
+        self.moveCursor(np.array(self.shape) / 2)
+
+
+    def draw(self):
+        self.axial.clear()
+        self.coronal.clear()
+        self.sagittal.clear()
+
+        for layer in self.layers:
+            if not layer['visible']:
+                continue
+            axialSlice = layer['data'][:, :, int(self.cursorPos[2])]
+            coronalSlice = layer['data'][:, int(self.cursorPos[1]), :]
+            sagittalSlice = layer['data'][int(self.cursorPos[0]), :, :]
+            if 'opacity' in layer:
+                opacity = layer['opacity']
+            else:
+                opacity = 1.0
+            axialImage = pg.ImageItem(axialSlice, opacity=opacity)
+            coronalImage = pg.ImageItem(coronalSlice, opacity=opacity)
+            sagittalImage = pg.ImageItem(sagittalSlice, opacity=opacity)
+            if layer['cmap'] is not None:
+                start, stop = layer['cmap'].pos[0], layer['cmap'].pos[-1]
+                lut = layer['cmap'].getLookupTable(start=start, stop=stop)
+                axialImage.setLookupTable(lut)
+                coronalImage.setLookupTable(lut)
+                sagittalImage.setLookupTable(lut)
+            self.axial.addItem(axialImage)
+            self.coronal.addItem(coronalImage)
+            self.sagittal.addItem(sagittalImage)
+
+        axialPos = pg.Point(self.cursorPos[[0, 1]])
+        coronalPos = pg.Point(self.cursorPos[[0, 2]])
+        sagittalPos = pg.Point(self.cursorPos[[1, 2]])
+        self.axialCursor_x.setPos(axialPos)
+        self.axialCursor_y.setPos(axialPos)
+        self.coronalCursor_x.setPos(coronalPos)
+        self.coronalCursor_z.setPos(coronalPos)
+        self.sagittalCursor_y.setPos(sagittalPos)
+        self.sagittalCursor_z.setPos(sagittalPos)
+        self.axial.addItem(self.axialCursor_x)
+        self.axial.addItem(self.axialCursor_y)
+        self.coronal.addItem(self.coronalCursor_x)
+        self.coronal.addItem(self.coronalCursor_z)
+        self.sagittal.addItem(self.sagittalCursor_y)
+        self.sagittal.addItem(self.sagittalCursor_z)
+
+
+def createLayer(vol, opacity=1.0, cmap=None):
+    return {
+        'data': vol,
+        'opacity': opacity,
+        'cmap': cmap,
+        'visible': True
+    }
+
+
+def colorMap(topColor, bottomColor=None, start=0, stop=65535, bottomAlpha=0.0, topAlpha=1.0):
+    if bottomColor is None:
+        bottomColor = topColor
+    positions = [start, stop]
+    zeroColor = list(bottomColor) + [bottomAlpha]  # fully transparent
+    topColor = list(topColor) + [topAlpha]  # fully opaque
+    colors = [zeroColor, topColor]
+    return pg.ColorMap(positions, colors)
+
+
+def transformVolume(vol):
+    return np.rot90(np.swapaxes(vol, 0, 1), k=-1, axes=(0, 2))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='GEMS model history inspector')
+    parser.add_argument('history', help='samseg history file to load')
+    args = parser.parse_args()
+
+    app = QApplication(sys.argv)
+    win = Window(args.history)
+    sys.exit(app.exec_())

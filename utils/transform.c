@@ -2521,7 +2521,6 @@ int TransformSampleInverseFloat(const TRANSFORM *transform, float xv, float yv,
 {
   static VECTOR *v_input, *v_canon = NULL;
   static MATRIX *m_L_inv;
-  int xn, yn, zn;
   LTA *lta;
   int errCode = NO_ERROR;
 
