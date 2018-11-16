@@ -305,7 +305,7 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
       this->CenterAtCursor();
   }
 
-  RenderView::OnSlicePositionChanged();
+  RenderView::OnSlicePositionChanged(bCenter);
 }
 
 void RenderView2D::CenterAtCursor()

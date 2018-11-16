@@ -26,6 +26,10 @@ rt.run('mri_concatenate_gcam -t im1.mgz im2_to_im3.m3z gcam.m3z && ' +
         mri_convert + ' -at gcam.m3z im2.mgz dest.mgz')
 rt.mridiff('dest.mgz', 'dest.ref.mgz')
 
+# change the GCAM target image space to a larger space
+rt.run('mri_concatenate_gcam --change-target im2.mgz im2_to_im1.m3z gcam.m3z')
+rt.mridiff('gcam.m3z', 'larger.ref.m3z')
+
 # concatenate LTA with GCAM
 rt.run('mri_concatenate_gcam im1_to_im2.lta im2_to_im3.m3z gcam.m3z && ' +
         mri_convert + ' -at gcam.m3z im1.mgz lta_gcam.mgz')

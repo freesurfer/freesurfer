@@ -7043,14 +7043,17 @@ void MainWindow::OnToggleAllSurfaces()
   bool bVisible = false;
   foreach (Layer* layer, layers)
   {
-    if (layer->IsVisible())
+    if (layer->IsVisible() && !layer->IsLocked())
     {
       bVisible = true;
       break;
     }
   }
   foreach (Layer* layer, layers)
-    layer->SetVisible(!bVisible);
+  {
+    if (!layer->IsLocked())
+      layer->SetVisible(!bVisible);
+  }
 }
 
 void MainWindow::OnAbout()

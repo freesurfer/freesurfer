@@ -27,8 +27,7 @@
   <name>mri_concatenate_gcam -- concatenate transforms</name>
   <synopsis>mri_concatenate_gcam [options] &lt;input 1&gt; ... &lt;output&gt;</synopsis>
   <description>This program concatenates a combination of input LTAs (linear transform array) and GCAMs (Gaussian classifier atlas, M3Z). The passed transforms are applied in the order specified on the command line, i.e. the first transform would be applied to images first - but to coordinates last, as transforms applied to coordinates are the inverse of those applied to images.
-      Note that binaries such as mri_convert or mri_vol2vol ignore source and target geometries of M3Zs. To morph an image from or to a different space, the M3Z geometry needs to be changed first.
-  </description>
+      Note that binaries such as mri_convert or mri_vol2vol ignore source and target geometries of M3Zs. To morph an image from or to a different space, the M3Z geometry needs to be changed first.</description>
   <arguments>
     <positional>
       <argument>input</argument>
@@ -49,7 +48,7 @@
       <argument>-i, --invert</argument>
       <explanation>Invert the output transform</explanation>
       <argument>-d, --downsample</argument>
-      <explanation>Downsample output M3Z by factor of 2</explanation>
+      <explanation>Downsample output M3Z to spacing of 2; by default, the output spacing is that of the rightmost input M3Z</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
