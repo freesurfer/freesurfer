@@ -4471,7 +4471,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
           vt->v3num = vt->vtotal;
           break;
       }
-      vt->nsizeCur = vt->nsizeMax;
+      vt->nsizeCur = vt->nsizeMax = nsize;
       vt->vtotal = neighbors;
       for (n = 0; n < neighbors; n++)
         for (i = 0; i < neighbors; i++)
@@ -8952,11 +8952,12 @@ static int MRIScomputeNormals_new(MRIS *mris)
     pendingSize = nextPendingSize;
 
   } // trials
-  
+#if 0  
   if (pendingSize > 0) {
     fprintf(stderr, "%s:%d MRIScomputeNormals_new could not do all vertices after %d attempts, %d remain\n",
       __FILE__, __LINE__, trial, pendingSize);
   }
+#endif
 
   freeAndNULL(nextPending);
   freeAndNULL(pending);

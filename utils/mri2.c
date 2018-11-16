@@ -3067,8 +3067,9 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param
 void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol)
 {
   int const nvertices = mris->nvertices;
-  
-  for (int vno = 0; vno < nvertices; vno++) {
+
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
 
     VERTEX* const v = &mris->vertices[vno];
 

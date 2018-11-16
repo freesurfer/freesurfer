@@ -454,7 +454,10 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
 
     if (u == 0 && v == 56) DiagBreak();
     if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    {
+      printf("v %d --> [%d, %d] (%2.1f, %2.1f)\n", vno, u, v, theta, phi);
       DiagBreak();
+    }
 
     filled[u][v] = vno;
     distances[u][v] += 1; /* keep track of total # of nodes */
@@ -701,9 +704,11 @@ MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, float scale, int fr
       v += V_DIM(mrisp);
     if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
 
-    if (u == 0 && v == 56) DiagBreak();
     if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    {
+      printf("v %d --> [%d, %d] (%2.1f, %2.1f)\n", vno, u, v, theta, phi);
       DiagBreak();
+    }
 
     filled[u][v] = vno;
     distances[u][v] += 1; /* keep track of total # of nodes */
@@ -953,7 +958,11 @@ MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int
       DEBUG_V = v;
       DiagBreak();
     }
-    if ((u == DEBUG_U) && (v == DEBUG_V)) DiagBreak();
+    if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    {
+      printf("v %d --> [%d, %d] (%2.1f, %2.1f)\n", vno, u, v, theta, phi);
+      DiagBreak();
+    }
 
     filled[u][v] = vno;
     distances[u][v] += 1; /* keep track of total # of nodes */
