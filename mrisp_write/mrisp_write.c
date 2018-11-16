@@ -39,6 +39,7 @@
 #include "label.h"
 #include "mri_identify.h"
 #include "fsinit.h"
+#include "mri2.h"
 
 static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $";
 
@@ -129,6 +130,14 @@ main(int argc, char *argv[])
       mri_overlay = MRIread(in_overlay) ;
     if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface-encoded volume file from %s", Progname, in_overlay) ;
+    {
+      MRI *mri_tmp ;
+      int reshapefactor = mri_overlay->height * mri_overlay->depth;
+      
+      mri_tmp =mri_reshape(mri_overlay, reshapefactor * mri_overlay->width, 1, 1, mri_overlay->nframes);
+      MRIfree(&mri_overlay) ;
+      mri_overlay = mri_tmp ;
+    }
 
     if (compute_corr) // store a frame of correlations for each vertex in the label in the mrisp
     {
@@ -294,8 +303,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "DEBUG_VOXEL"))
   {
-    Gx = atoi(argv[2]) ;
-    Gy = atoi(argv[3]) ;
+    extern int DEBUG_U, DEBUG_V ;
+    DEBUG_U = Gx = atoi(argv[2]) ;
+    DEBUG_V = Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
@@ -477,6 +487,7 @@ mrispComputeCorrelations(MRI_SP *mrisp)
   norms = (double **)calloc(width, sizeof(double *));
   if (!norms)
     ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+//(48,51) and (48,115)
   for (x = 0 ; x < width ; x++)
   {
     norms[x] = (double *)calloc(height, sizeof(double));
@@ -484,6 +495,10 @@ mrispComputeCorrelations(MRI_SP *mrisp)
       ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
     for (y = 0 ; y < height ; y++)
     {
+      if (x == 48 && (y == 51 || y == 115))
+	  DiagBreak() ;
+      if (y == 48 && (x == 51 || x == 115))
+	  DiagBreak() ;
       mean = 0.0 ;
       for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
       {
@@ -509,6 +524,10 @@ mrispComputeCorrelations(MRI_SP *mrisp)
 
     for (y = 0 ; y < height ; y++)
     {
+      if (x == 48 && (y == 51 || y == 115))
+	  DiagBreak() ;
+      if (y == 48 && (x == 51 || x == 115))
+	  DiagBreak() ;
       norm1 = norms[x][y];
       if (FZERO(norm1))
 	continue ;
