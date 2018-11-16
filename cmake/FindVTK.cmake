@@ -90,10 +90,14 @@ if(VTK_FOUND)
       COMMAND ${VTK_WRAP_TCL_INIT_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} ${OUTFILE})
   endfunction()
 
-  # make sure the vtk shared libs get installed on linux
   if(NOT APPLE)
+    # install the shared libraries to the freesurfer lib directory
     file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
-    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib)
+    if(VTK_LIBRARIES_TO_INSTALL)
+      install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib/vtk)
+      # add vtk library directory to rpath
+      set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
+    endif()
   endif()
 
 endif()
