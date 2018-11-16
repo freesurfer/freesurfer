@@ -113,13 +113,8 @@ int MRISsetAllMarks(MRIS *mris, int mark)
 int MRISsetMarks(MRIS *mris, int mark)
 {
   int vno;
-  VERTEX *v;
-
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
+    VERTEX* v = &mris->vertices[vno];
     v->marked = mark;
   }
   return (NO_ERROR);
