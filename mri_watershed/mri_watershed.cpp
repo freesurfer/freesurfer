@@ -4927,26 +4927,18 @@ void brain_params(MRI_variables *MRI_var)
 void
 init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var)
 {
-  MRIS *mris;
-  int k,nvertices;
+  MRIS * const mris = MRI_var->mris;
+
   double x,y,z;
-  double Rx,Ry,Rz;
-
-  mris=MRI_var->mris;
-  nvertices=mris->nvertices;
-
   myVoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
                  ,&x,&y,&z);
-  Rx=rx;
-  Ry=rz;
-  Rz=ry;
 
-  for (k=0; k<nvertices; k++)
-  {
-    mris->vertices[k].x = Rx*mris->vertices[k].x + x;
-    mris->vertices[k].y = Ry*mris->vertices[k].y + y;
-    mris->vertices[k].z = Rz*mris->vertices[k].z + z;
-  }
+  double Rx=rx;
+  double Ry=rz;    // note the swapping of y and z!
+  double Rz=ry;
+
+  MRISscaleThenTranslate (mris, Rx, Ry, Rz, x, y, z);
+  
   MRIScomputeNormals(mris);
 }
 
@@ -6283,27 +6275,17 @@ unsigned long MRISpeelBrain( float h,
   double tx,ty,tz;
   unsigned long brainsize;
 
-  int width, height,depth;
-  MRI *mri_buff;
+  int const width  = mri_dst->width;
+  int const height = mri_dst->height;
+  int const depth  = mri_dst->depth;
+  MRI *mri_buff = MRIalloc(width, height, depth, MRI_UCHAR) ;
 
-  width=mri_dst->width;
-  height=mri_dst->height;
-  depth=mri_dst->depth;
+  // save xyz
+  float *savedx, *savedy, *savedz;
+  MRISexportXYZ(mris, &savedx,&savedy,&savedz);
 
-  mri_buff= MRIalloc(width, height, depth, MRI_UCHAR) ;
-
-  for (k=0; k<mris->nvertices; k++)
-  {
-    // cache the values
-    mris->vertices[k].tx=mris->vertices[k].x;
-    mris->vertices[k].ty=mris->vertices[k].y;
-    mris->vertices[k].tz=mris->vertices[k].z;
-
-    // expand by h using normal
-    mris->vertices[k].x +=h*mris->vertices[k].nx;
-    mris->vertices[k].y +=h*mris->vertices[k].ny;
-    mris->vertices[k].z +=h*mris->vertices[k].nz;
-  }
+  // expand by h using normal
+  MRISblendXYZandNXYZ(mris, float(h));
 
   for (k=0; k<mris->nfaces; k++)
   {
@@ -6436,13 +6418,13 @@ unsigned long MRISpeelBrain( float h,
           }
         }
   }
+
   // restore the surface
-  for (k=0; k<mris->nvertices; k++)
-  {
-    mris->vertices[k].x=mris->vertices[k].tx;
-    mris->vertices[k].y=mris->vertices[k].ty;
-    mris->vertices[k].z=mris->vertices[k].tz;
-  }
+  MRISimportXYZ(mris, savedx,savedy,savedz);
+  freeAndNULL(savedx);
+  freeAndNULL(savedy);
+  freeAndNULL(savedz);
+
   // calculate the normals
   MRIScomputeNormals(mris);
 
@@ -6521,14 +6503,11 @@ void shrinkstep(MRI_variables *MRI_var)
   read_geometry(1,MRI_var,NULL);
   // set it
   mris=MRI_var->mris;
+
   // put the icosahedron at the center of gravity
   // icosahedron has radius of 1 and thus multiply by (rx, ry, rz)
-  for (k=0; k<mris->nvertices; k++)
-  {
-    mris->vertices[k].x = rx*mris->vertices[k].x + MRI_var->xsCOG;
-    mris->vertices[k].y = ry*mris->vertices[k].y + MRI_var->ysCOG;
-    mris->vertices[k].z = rz*mris->vertices[k].z + MRI_var->zsCOG;
-  }
+  MRISscaleThenTranslate(mris, rx, ry, rz, MRI_var->xsCOG, MRI_var->ysCOG, MRI_var->zsCOG);
+
   // get the voxel values
   myWorldToVoxel(MRI_var->mri_src,MRI_var->xsCOG,MRI_var->ysCOG
                  ,MRI_var->zsCOG,&tx,&ty,&tz);
@@ -6745,9 +6724,10 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
       d10+=dbuff/4;
 
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;
@@ -6895,9 +6875,10 @@ void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
       y/=n;
       z/=n;
       // modify the vertex with itself and neighboring average
-      v->x=(v->x + x)/2;
-      v->y=(v->y + y)/2;
-      v->z=(v->z + z)/2;
+      MRISsetXYZ(mris, k,
+        (v->x + x)/2,
+        (v->y + y)/2,
+        (v->z + z)/2);
     }
 
 #if WRITE_SURFACES
@@ -6912,15 +6893,10 @@ void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
 // we go into h in the surface normal direction
 void MRISshrink_surface(MRIS *mris,int h)
 {
-  int k;
-
   MRISsaveVertexPositions(mris,TMP_VERTICES);
-  for (k=0; k<mris->nvertices; k++)
-  {
-    mris->vertices[k].x-=h*mris->vertices[k].nx;
-    mris->vertices[k].y-=h*mris->vertices[k].ny;
-    mris->vertices[k].z-=h*mris->vertices[k].nz;
-  }
+  
+  MRISblendXYZandNXYZ(mris, -float(h));
+
   MRIScomputeNormals(mris);
 }
 
@@ -7280,9 +7256,11 @@ void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
       d10+=dbuff/4;
 
       // move the position
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(
+        mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;
@@ -7959,9 +7937,10 @@ void SphereChangeCoordinates(MRIS *mris, const Sphere* input)
   int p;
   for (p=0; p<mris->nvertices; p++)
   {
-    mris->vertices[p].x=input->vertices[p].x;
-    mris->vertices[p].y=input->vertices[p].y;
-    mris->vertices[p].z=input->vertices[p].z;
+    MRISsetXYZ(mris,p,
+      input->vertices[p].x,
+      input->vertices[p].y,
+      input->vertices[p].z);
   }
   mris->radius=input->radius;
   mris->status=input->status;
@@ -7972,9 +7951,10 @@ void MRISChangeCoordinates(MRIS *mris, const MRIS* input)
   int p;
   for (p=0; p<mris->nvertices; p++)
   {
-    mris->vertices[p].x=input->vertices[p].x;
-    mris->vertices[p].y=input->vertices[p].y;
-    mris->vertices[p].z=input->vertices[p].z;
+    MRISsetXYZ(mris,p,
+      input->vertices[p].x,
+      input->vertices[p].y,
+      input->vertices[p].z);
   }
   mris->radius=input->radius;
   mris->status=input->status;
@@ -8824,9 +8804,10 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
       d10+=dbuff/4;
 
       // move the vertex position
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;
@@ -10241,9 +10222,10 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
 
       d10+=dbuff/4;
 
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;
@@ -10553,9 +10535,10 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 
       d=sqrt(dx*dx+dy*dy+dz*dz);
 
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
     niter--;
   }
@@ -11190,9 +11173,10 @@ void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
 
       ////////////////////////////////////////////////////////////
       // now move vertex by (dx, dy, dz)
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;

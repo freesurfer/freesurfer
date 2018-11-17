@@ -274,9 +274,9 @@ typedef struct vertex_type_
   ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP         /* distance to neighboring vertices */          \
   ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP         /* original distance to neighboring vertices */ \
   \
-  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* Current coordinates. */                      \
-  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* Use MRISsetXYZ() to set */                   \
-  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
+  ELTT(CONST_EXCEPT_MRISURF_METRIC_PROPERTIES float,x)          SEP             /* Current coordinates. */                      \
+  ELTT(CONST_EXCEPT_MRISURF_METRIC_PROPERTIES float,y)          SEP             /* Use MRISsetXYZ() to set */                   \
+  ELTT(CONST_EXCEPT_MRISURF_METRIC_PROPERTIES float,z)          SEP                                                             \
   \
   ELTT(const float,origx)                                       SEP             /* Older, perhaps original, coordinates. */         \
   ELTT(const float,origy)                                       SEP             /* Use MRISsetOriginalXYZfromXYZ or */              \
@@ -2843,7 +2843,7 @@ void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
 void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
-void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x*xyzScale + nx*nxyzScale  etc.
+void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x          + nx*nxyzScale  etc.
 
 void mrisDisturbVertices(MRIS *mris, double amount);
 
