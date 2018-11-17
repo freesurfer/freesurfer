@@ -69,7 +69,6 @@ static void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z)
 {
   // This one just writes the xyz
   //
-  cheapAssertValidVno(mris,vno);
   VERTEX * v = &mris->vertices[vno];
     
   const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
@@ -79,9 +78,19 @@ static void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z)
 
 void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z) {
   // This one will, in the future, invalidate the dependent properties
+  cheapAssertValidVno(mris,vno);
   MRISsetXYZwkr(mris, vno, x, y, z);
 }
 
+void MRIScopyXYZ(MRIS *mris, MRIS* mris_from) {
+  int const nvertices = mris->nvertices;
+  cheapAssert(nvertices == mris_from->nvertices);
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX * v = &mris_from->vertices[vno];
+    MRISsetXYZwkr(mris, vno, v->x, v->y, v->z);
+  }
+}
 
 void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz) {
   int const nvertices = mris->nvertices;
@@ -126,15 +135,19 @@ void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * pp
   mris->zctr = 0.5f * (float)((double)zlo + (double)zhi); \
   // end of macro
 
-void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const    pz) {
+
+void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const    pz) 
+{
   int const nvertices = mris->nvertices;
 
   SURFACE_DIMENSION_CALC_INIT
   int vno;
   for (vno = 0; vno < nvertices; vno++) {
     float x = px[vno], y = py[vno], z = pz[vno];
+
     MRISsetXYZwkr(mris, vno, x,y,z);
-    SURFACE_DIMENSION_CALC_INIT
+
+    SURFACE_DIMENSION_CALC_ITER
   }
   
   SURFACE_DIMENSION_CALC_FINI
@@ -143,12 +156,12 @@ void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    p
 
 int mrisComputeSurfaceDimensions(MRIS *mris)
 {
+  int const nvertices = mris->nvertices;
+
   SURFACE_DIMENSION_CALC_INIT
-  
   int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < nvertices; vno++) {
     VERTEX *vertex = &mris->vertices[vno];
-    
     float const x = vertex->x;
     float const y = vertex->y;
     float const z = vertex->z;
@@ -404,7 +417,6 @@ int mrisFlipPatch(MRIS *mris)
 }
 
 
-
 int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
 {
   int vno;
@@ -429,6 +441,69 @@ int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
   mris->zctr += dz;
 
   return (NO_ERROR);
+}
+
+
+void MRISscaleThenTranslate (MRIS *mris, double sx, double sy, double sz, double dx, double dy, double dz) {
+  //
+  // This uses double because mri_brain_volume was using double,
+  // and because the combined scaling and adding could be much less accurate in float.
+  //
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x = v->x*sx + dx;
+    v->y = v->y*sy + dy;
+    v->z = v->z*sz + dz;
+  }
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  double xlo = mris->xlo;
+  double xhi = mris->xhi;
+  double ylo = mris->ylo;
+  double yhi = mris->yhi;
+  double zlo = mris->zlo;
+  double zhi = mris->zhi;
+  double xctr = mris->xctr;
+  double yctr = mris->yctr;
+  double zctr = mris->zctr;
+  
+  xlo *= sx;
+  xhi *= sx;
+  ylo *= sy;
+  yhi *= sy;
+  zlo *= sz;
+  zhi *= sz;
+  
+  if (sx < 0) { double t = xlo; xlo = xhi; xlo = t; }
+  if (sy < 0) { double t = ylo; ylo = yhi; ylo = t; }
+  if (sz < 0) { double t = zlo; zlo = zhi; zlo = t; }
+  
+  xctr *= sx;
+  yctr *= sy;
+  zctr *= sz;
+  
+  xlo += dx;
+  xhi += dx;
+  ylo += dy;
+  yhi += dy;
+  zlo += dz;
+  zhi += dz;
+  
+  xctr += dx;
+  yctr += dy;
+  zctr += dz;
+
+  mris->xlo = (float)xlo;
+  mris->xhi = (float)xhi;
+  mris->ylo = (float)ylo;
+  mris->yhi = (float)yhi;
+  mris->zlo = (float)zlo;
+  mris->zhi = (float)zhi;
+  mris->xctr = (float)xctr;
+  mris->yctr = (float)yctr;
+  mris->zctr = (float)zctr;
 }
 
 
@@ -652,13 +727,30 @@ MRIS* MRISprojectOntoTranslatedSphere(
 }
 
 
-void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale) {
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale) 
+{
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX* v = &mris->vertices[vno];
     v->x = xyzScale*v->x + txyzScale*v->tx;
     v->y = xyzScale*v->y + txyzScale*v->ty;
     v->z = xyzScale*v->z + txyzScale*v->tz;
+  }
+
+  // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)
+  //
+  // mrisComputeSurfaceDimensions(mris);
+}
+
+
+void MRISblendXYZandNXYZ(MRIS* mris, float nxyzScale) 
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX* v = &mris->vertices[vno];
+    v->x = v->x + nxyzScale*v->nx;
+    v->y = v->y + nxyzScale*v->ny;
+    v->z = v->z + nxyzScale*v->nz;
   }
 
   // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)

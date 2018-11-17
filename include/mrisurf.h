@@ -270,16 +270,17 @@ typedef struct vertex_type_
 //
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
+  \
   ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP         /* distance to neighboring vertices */          \
   ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP         /* original distance to neighboring vertices */ \
   \
-  ELTT(const float,origx)                                       SEP             /* original coordinates */                      \
-  ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() to set */           \
-  ELTT(const float,origz)                                       SEP                                                             \
-  \
-  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* current coordinates */                       \
-  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
+  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* Current coordinates. */                      \
+  ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* Use MRISsetXYZ() to set */                   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
+  \
+  ELTT(const float,origx)                                       SEP             /* Older, perhaps original, coordinates. */         \
+  ELTT(const float,origy)                                       SEP             /* Use MRISsetOriginalXYZfromXYZ or */              \
+  ELTT(const float,origz)                                       SEP             /* MRISsetOriginalXYZ() to set */                   \
   \
   ELTT(float,nx) SEP    \
   ELTT(float,ny) SEP    \
@@ -287,7 +288,6 @@ typedef struct vertex_type_
   ELTT(float,pnx) SEP    \
   ELTT(float,pny) SEP    \
   ELTT(float,pnz) SEP     /* pial normal */    \
-  /* the above is the first cache line */ \
   ELTT(float,wnx) SEP    \
   ELTT(float,wny) SEP    \
   ELTT(float,wnz) SEP     /* white normal */    \
@@ -487,7 +487,7 @@ typedef struct vertex_type_
 
 #if defined(__cplusplus)
     // C++ requires const members be initialized
-    vertex_type_() : dist(nullptr), dist_orig(nullptr), origx(0), origy(0), origz(0), x(0), y(0), z(0) {}
+    vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
 #endif
 
 }
@@ -2814,6 +2814,8 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 //
 void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z);
 
+void MRIScopyXYZ(MRIS *mris, MRIS* mris_from);
+
 void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz);
 void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const   ppz);
     //
@@ -2834,11 +2836,14 @@ void mrisFindMiddleOfGray(MRIS *mris);
 
 // Deforming the MRIS
 //
+void MRISscaleThenTranslate (MRIS *mris, double sx, double sy, double sz, double dx, double dy, double dz);   // new = old * s + d
+
 int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
 void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
+void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x*xyzScale + nx*nxyzScale  etc.
 
 void mrisDisturbVertices(MRIS *mris, double amount);
 
