@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) ;
 #define TARGET_VAL           (BORDER_VAL-OUTSIDE_BORDER_STEP/2)
 
 static int compute_rigid_gradient(MRI_SURFACE *mris, MRI *mri_dist, double *pdx, double *pdy, double *pdz) ;
-static int apply_rigid_gradient(MRI_SURFACE *mris, double dx, double dy, double dz) ;
+static void apply_rigid_gradient(MRI_SURFACE *mris, double dx, double dy, double dz) ;
 static int MRISfindOptimalRigidPosition(MRI_SURFACE *mris, MRI *mri_dist, INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISprojectOntoTranslatedSphere(MRI_SURFACE *mris_src,
     MRI_SURFACE *mris_dst, double r,
@@ -445,17 +445,19 @@ print_version(void) {
 
 static int
 initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside, INTEGRATION_PARMS *parms) {
-  MRI    *mri_dilated ;
-  int    x, y, z, vno ;
-  double x0, y0, z0, radius = 0, dist, num ;
-  double xs, ys, zs ;
-  VERTEX *v ;
-
+  double radius = 0;
+  
   if (outside) {
+
+    MRI    *mri_dilated ;
     mri_dilated = MRIdilate(mri_masked, NULL) ;
 
     MRIsubtract(mri_dilated, mri_masked, mri_dilated) ;
     MRIwrite(mri_dilated, "outside.mgz") ;
+
+    int    x, y, z;
+    double x0, y0, z0, dist, num ;
+    double xs, ys, zs ;
 
     num = x0 = y0 = z0 = 0 ;
     for (x = 0 ; x < mri_dilated->width ; x++) {
@@ -493,19 +495,17 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside, INT
     radius /= num ;
     printf("average radius = %2.3f\n", radius) ;
 
-
     MRIfree(&mri_dilated) ;
+    
     MRISprojectOntoSphere(mris, mris, radius*1.25) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      v->x += x0 ;
-      v->y += y0 ;
-      v->z += z0 ;
-    }
+    MRIStranslate(mris, x0,y0,z0);
     MRIScomputeMetricProperties(mris) ;
   }
+
   parms->target_radius = radius ;
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+
+  MRISsetOriginalXYZfromXYZ(mris);
+
   return(NO_ERROR) ;
 }
 
@@ -714,86 +714,7 @@ compute_surface_sse(MRI_SURFACE *mris, MRI *mri, float sample_dist) {
 
   return(sse) ;
 }
-MRI_SURFACE  *
-MRISprojectOntoTranslatedSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r,
-                                double x0, double y0, double z0) {
-  VERTEX  *v;
-  int     vno ;
-  double  x, y, z, d, dx, dy, dz, dist, total_dist, x2, y2, z2 ;
 
-
-  if (FZERO(r))
-    r = DEFAULT_RADIUS ;
-
-  if (!mris_dst)
-    mris_dst = MRISclone(mris_src) ;
-
-  if ((mris_dst->status != MRIS_SPHERE) &&
-      (mris_dst->status != MRIS_PARAMETERIZED_SPHERE))
-    MRIScenter(mris_dst, mris_dst) ;
-
-  mris_dst->radius = r ;
-
-  for (total_dist = vno = 0 ; vno < mris_dst->nvertices ; vno++) {
-    v = &mris_dst->vertices[vno];
-    if (v->ripflag)  /* shouldn't happen */
-      continue ;
-    if (vno == 118009) {
-      DiagBreak() ;
-    }
-    x = ((double)v->x);
-    y = ((double)v->y);
-    z = ((double)v->z);
-
-    x2 = x*x ;
-    y2 = y*y ;
-    z2 = z*z ;
-    dist = sqrt(x2+y2+z2) ;
-    if (FZERO(dist))
-      d = 0 ;
-    else
-      d = 1 - r / dist ;
-    dx = d*x ;
-    dy = d*y;
-    dz = d*z;
-    v->x = x-dx ;
-    v->y = y-dy;
-    v->z = z-dz;
-
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
-      DiagBreak() ;
-
-    /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
-    {
-      dist = sqrt((double)(dx*dx+dy*dy+dz*dz));
-      total_dist += dist;
-    }
-#if 1
-    x = (double)v->x;
-    y = (double)v->y;
-    z = (double)v->z;
-    x2 = x*x ;
-    y2 = y*y ;
-    z2 = z*z ;
-    dist = sqrt(x2+y2+z2) ;
-#endif
-
-  }
-  for (total_dist = vno = 0 ; vno < mris_dst->nvertices ; vno++) {
-    v = &mris_dst->vertices[vno];
-    if (v->ripflag)  /* shouldn't happen */
-      continue ;
-    v->x += x0 ;
-    v->y += y0 ;
-    v->z += z0 ;
-  }
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-    fprintf(stdout,  "sphere_project: total dist = %f\n",total_dist);
-  MRISupdateEllipsoidSurface(mris_dst) ;
-  mris_dst->status = mris_src->status == MRIS_PARAMETERIZED_SPHERE ?
-                     MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE ;
-  return(mris_dst) ;
-}
 #ifdef TARGET_VAL
 #undef TARGET_VAL
 #endif
@@ -987,22 +908,8 @@ compute_rigid_gradient(MRI_SURFACE *mris, MRI *mri, double *pdx, double *pdy, do
   *pdz = dz ;
   return(NO_ERROR) ;
 }
-static int
-apply_rigid_gradient(MRI_SURFACE *mris, double dx, double dy, double dz) {
-  int    vno ;
-  VERTEX *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    v->x += dx ;
-    v->y += dy ;
-    v->z += dz ;
-  }
-
-  return(NO_ERROR) ;
+static void apply_rigid_gradient(MRIS* mris, double dx, double dy, double dz) {
+  MRIStranslate(mris, dx,dy,dz);
 }
 

@@ -1917,6 +1917,7 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
   }
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -1924,7 +1925,7 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
       continue ;
     V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
     v2 = MatrixMultiply(m, v1, v2) ;
-    v->x = V3_X(v2) ; v->y = V3_Y(v2) ; v->z = V3_Z(v2) ;
+    MRISsetXYZ(mris,vno, V3_X(v2),V3_Y(v2),V3_Z(v2)) ;
   }
 
   sprintf(fname, "%s%03d.dat", fname_only,n) ;
@@ -1948,7 +1949,7 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
         continue ;
       V3_X(v1) = v->pialx ; V3_Y(v1) = v->pialy ; V3_Z(v1) = v->pialz ;
       v2 = MatrixMultiply(m, v1, v2) ;
-      v->x = V3_X(v2) ; v->y = V3_Y(v2) ; v->z = V3_Z(v2) ;
+      MRISsetXYZ(mris,vno, V3_X(v2),V3_Y(v2),V3_Z(v2)) ;
     }
     
     sprintf(fname, "%s_pial%03d", fname_only,n) ;
@@ -1963,10 +1964,12 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
   printf("writing overlay to %s\n", fname) ;
   MRISwriteCurvature(mris, fname) ;
 #endif
+
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreRipFlags(mris);
   return(NO_ERROR) ;
 }
+
 
 #define NPARMS_RIGID (6)
 static MRI_SURFACE *Gmris ;

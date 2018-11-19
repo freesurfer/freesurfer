@@ -1952,14 +1952,10 @@ int MRISbbrSurfs(char *subject)
     for(n = 0; n < lhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhwm,  n, -WMProjAbs);
       if(DoWMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -WMProjFrac);
-      lhwm->vertices[n].x = fx;
-      lhwm->vertices[n].y = fy;
-      lhwm->vertices[n].z = fz;
+      MRISsetXYZ(lhwm,n,fx,fy,fz);
       if(DoGMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhctx,  n, +GMProjAbs);
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhctx,  n, +GMProjFrac);
-      lhctx->vertices[n].x = fx;
-      lhctx->vertices[n].y = fy;
-      lhctx->vertices[n].z = fz;
+      MRISsetXYZ(lhctx,n,fx,fy,fz);
     }
     if (UseLabel)
     {
@@ -2045,14 +2041,10 @@ int MRISbbrSurfs(char *subject)
     for(n = 0; n < rhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, rhwm,  n, -WMProjAbs);
       if(DoWMProjFrac) ProjNormFracThick(&fx, &fy, &fz, rhwm,  n, -WMProjFrac);
-      rhwm->vertices[n].x = fx;
-      rhwm->vertices[n].y = fy;
-      rhwm->vertices[n].z = fz;
+      MRISsetXYZ(rhwm,n,fx,fy,fz);
       if(DoGMProjAbs)  ProjNormDist(&fx, &fy, &fz, rhctx,  n, +GMProjAbs);
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, rhctx,  n, +GMProjFrac);
-      rhctx->vertices[n].x = fx;
-      rhctx->vertices[n].y = fy;
-      rhctx->vertices[n].z = fz;
+      MRISsetXYZ(rhctx,n,fx,fy,fz);
     }
     if(UseMask && rhsegmask==NULL){
       sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);

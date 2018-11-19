@@ -3063,6 +3063,27 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param
   return (0);
 }
 
+
+void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol)
+{
+  int const nvertices = mris->nvertices;
+
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+
+    VERTEX* const v = &mris->vertices[vno];
+
+    double vx, vy, vz;
+    MRIsurfaceRASToVoxel( vol,
+                          v->x, v->y, v->z,
+                          &vx, &vy, &vz);
+
+    MRISsetXYZ(mris, vno, vx,vy,vz);
+  }
+}
+
+
+
 /*---------------------------------------------------------------*/
 
 MRI *MRIvol2surfVSM(const MRI *SrcVol,

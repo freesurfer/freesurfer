@@ -650,10 +650,9 @@ static int
 initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside)
 {
   MRI    *mri_dilated ;
-  int    x, y, z, vno ;
+  int    x, y, z ;
   double x0, y0, z0, radius, dist, num, max_r ;
   double xs, ys, zs ;
-  VERTEX *v ;
 
   if (outside)
   {
@@ -709,17 +708,12 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside)
     printf("average radius = %2.3f, max = %2.3f\n", radius, max_r) ;
 
     MRIfree(&mri_dilated) ;
-    //  MRISprojectOntoSphere(mris, mris, radius*1.1) ;
+
     MRISprojectOntoSphere(mris, mris, max_r*1.1) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      v->x += x0 ;
-      v->y += y0 ;
-      v->z += z0 ;
-    }
+    MRIStranslate(mris,x0,y0,z0);
     MRIScomputeMetricProperties(mris) ;
   }
+
   return(NO_ERROR) ;
 }
 

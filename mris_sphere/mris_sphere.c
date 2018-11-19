@@ -76,7 +76,6 @@ static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
 static int   talairach = 0 ;
 static float scale = 1.0 ;
-static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int quick = 0 ;
 static int load = 0 ;
 static float inflate_area  = 0.0f ;
@@ -843,27 +842,6 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisDisturbVertices(MRI_SURFACE *mris, double amount)
-{
-  int    vno ;
-  VERTEX *v ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    v->x += randomNumber(-amount, amount) ;
-    v->y += randomNumber(-amount, amount) ;
-  }
-
-  MRIScomputeMetricProperties(mris) ;
-  return(NO_ERROR) ;
 }
 
 int

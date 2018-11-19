@@ -356,9 +356,7 @@ bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
 }
 
 void MRISgrowNVertices(MRIS * mris, int nvertices) {
-  if (nvertices > mris->max_vertices) {
-    ErrorExit(ERROR_NOMEMORY, "MRISgrowNVertices: max vertices reached");
-  }
+  cheapAssert(nvertices <= mris->max_vertices);
   MRISchangedNFacesNVertices(mris, false);
   *(int*)(&mris->nvertices) = nvertices;  // get around const
 }
@@ -383,15 +381,15 @@ bool MRISreallocFaces(MRIS * mris, int max_faces, int nfaces) {
   
   mris->faces  =
     (FACE *)realloc(mris->faces, max_faces*sizeof(FACE));
-  if (!mris->faces) return false;
+  cheapAssert(mris->faces);
 
   mris->faceNormCacheEntries =
     (FaceNormCacheEntry*)realloc(mris->faceNormCacheEntries, max_faces*sizeof(FaceNormCacheEntry));
-  if (!mris->faceNormCacheEntries) return false;
+  cheapAssert(mris->faceNormCacheEntries);
  
   mris->faceNormDeferredEntries =
     (FaceNormDeferredEntry*)realloc(mris->faceNormDeferredEntries, max_faces*sizeof(FaceNormDeferredEntry));
-  if (!mris->faceNormDeferredEntries) return false;
+  cheapAssert(mris->faceNormDeferredEntries);
   
   
   int change = max_faces - mris->nfaces;
@@ -412,9 +410,7 @@ bool MRISallocateFaces(MRIS * mris, int nfaces) {
 }
 
 void MRISgrowNFaces(MRIS * mris, int nfaces) {
-  if (nfaces > mris->max_faces) {
-    ErrorExit(ERROR_NOMEMORY, "mrisAddFace: max faces reached");
-  }
+  cheapAssert(nfaces <= mris->max_faces);
   MRISchangedNFacesNVertices(mris, false);
   *(int*)(&mris->nfaces) = nfaces;  // get around const
 }
@@ -435,18 +431,14 @@ void MRISremovedFaces(MRIS * mris, int nfaces) {
 void MRISoverAllocVerticesAndFaces(MRIS* mris, int max_vertices, int max_faces, int nvertices, int nfaces)
 {
   MRISchangedNFacesNVertices(mris, false);
-  if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
-  if (nfaces    < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
+  cheapAssert(nvertices >= 0);
+  cheapAssert(nfaces    >= 0);
 
   if (max_vertices <= nvertices) max_vertices = nvertices;
   if (max_faces    <= nfaces   ) max_faces    = nfaces;
 
-  if (!MRISreallocVertices(mris, max_vertices, nvertices)) ErrorExit(ERROR_NO_MEMORY, 
-    "MRISalloc(%d, %d): could not allocate vertices", max_vertices, sizeof(VERTEX));
-
-  if (!MRISreallocFaces(mris, max_faces, nfaces)) ErrorExit(ERROR_NO_MEMORY, 
-    "MRISalloc(%d, %d): could not allocate faces", nfaces,
-    sizeof(FACE)+sizeof(FaceNormCacheEntry));
+  MRISreallocVertices(mris, max_vertices, nvertices);
+  MRISreallocFaces(mris, max_faces, nfaces);
 }
 
 

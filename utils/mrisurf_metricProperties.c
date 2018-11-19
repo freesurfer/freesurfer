@@ -497,6 +497,21 @@ MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst
 }
 
 
+void mrisDisturbVertices(MRIS* mris, double amount)
+{
+  int vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v = &mris->vertices[vno] ;
+    v->x += randomNumber(-amount, amount) ;
+    v->y += randomNumber(-amount, amount) ;
+  }
+
+  MRIScomputeMetricProperties(mris) ;
+}
+
+
 int MRISscaleDistances(MRIS *mris, float scale)
 {
   // This operation seems wrong, since this is a derived metric
@@ -530,6 +545,72 @@ MRIS* MRIScenter(MRIS* mris_src, MRIS* mris_dst)
   cheapAssert(mris_src == mris_dst);
   MRISmoveOrigin(mris_dst, 0.0, 0.0, 0.0);
   return mris_dst;
+}
+
+
+MRIS* MRISprojectOntoTranslatedSphere(
+    MRIS *mris_src, MRIS * mris_dst, 
+    double r,
+    double x0, double y0, double z0) {
+    
+  if (FZERO(r))
+    r = DEFAULT_RADIUS ;
+
+  if (!mris_dst)
+    mris_dst = MRISclone(mris_src) ;
+
+  if ((mris_dst->status != MRIS_SPHERE) &&
+      (mris_dst->status != MRIS_PARAMETERIZED_SPHERE))
+    MRIScenter(mris_dst, mris_dst) ;
+
+  mris_dst->radius = r ;
+
+  int vno ;
+  for (vno = 0 ; vno < mris_dst->nvertices ; vno++) {
+    VERTEX* const v = &mris_dst->vertices[vno];
+
+    if (v->ripflag)  /* shouldn't happen */
+      continue ;
+    
+    double x = v->x, x2 = x*x;
+    double y = v->y, y2 = y*y;
+    double z = v->z, z2 = z*z;
+
+    double dist = sqrt(x2+y2+z2) ;
+    
+    double d = FZERO(dist) ? 0.0 : (1 - r / dist);
+
+    v->x = x - d*x;
+    v->y = y - d*y;
+    v->z = z - d*z;
+
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+      DiagBreak() ;
+  }
+
+  MRIStranslate(mris_dst, x0,y0,z0);
+
+  MRISupdateEllipsoidSurface(mris_dst) ;
+
+  mris_dst->status = mris_src->status == MRIS_PARAMETERIZED_SPHERE ?
+                     MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE ;
+
+  return(mris_dst) ;
+}
+
+
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale) {
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX* v = &mris->vertices[vno];
+    v->x = xyzScale*v->x + txyzScale*v->tx;
+    v->y = xyzScale*v->y + txyzScale*v->ty;
+    v->z = xyzScale*v->z + txyzScale*v->tz;
+  }
+
+  // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)
+  //
+  // mrisComputeSurfaceDimensions(mris);
 }
 
 
@@ -8545,8 +8626,7 @@ static int MRIScomputeNormals_old(MRIS *mris)
             DIAG_VERBOSE_ON)
           fprintf(stderr, "vertex %d: degenerate normal\n", k);
 
-        fprintf(stderr, "%s:%d BEVIN IS LOOKING FOR AN EXAMPLE THAT DOES THIS\n", 
-          __FILE__, __LINE__);
+        // THIS HAS BEEN SEEN TO HAPPEN
 
         v->x += (float)randomNumber(-RAN, RAN);         // BUG: Parallel non-deterministic, the order that these are called will vary
         v->y += (float)randomNumber(-RAN, RAN);
@@ -8749,12 +8829,7 @@ static int MRIScomputeNormals_new(MRIS *mris)
         break;
     }
     
-    // See if we can find an example that has the problem
-    //
-#if 0
-    fprintf(stderr, "%s:%d trial:%d nextPendingSize:%d BEVIN IS LOOKING FOR AN EXAMPLE THAT DOES THIS\n", 
-        __FILE__, __LINE__, trial, nextPendingSize);
-#endif
+    // THIS HAS BEEN OBSERVED
     
     // Sort the nextPending list because the above appends are not in order
     //
@@ -15273,7 +15348,7 @@ MRIS *MRISscaleBrain(MRIS *mris_src, MRIS *mris_dst, float scale)
 }
 
 
-void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
+void mrisFindMiddleOfGray(MRIS *mris) {
   int     vno ;
   VERTEX  *v ;
   float   nx, ny, nz, thickness ;
@@ -15299,7 +15374,47 @@ void mrisFindMiddleOfGray(MRI_SURFACE *mris) {
 }
 
 
-MRIS* MRISclone(MRIS* mris_src)
+// Cloning should be the union of a surface and an empty surface
+// but that is NYI
+//
+MRIS* MRISunion(MRIS const * mris, MRIS const * mris2) {
+    int vno,vno2,vno3;
+    MRIS * const mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
+                                   mris->nfaces+mris2->nfaces);
+    copyVolGeom(&mris->vg,&mris3->vg);
+    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
+    {
+      MRISsetXYZ(mris3,vno3,
+        mris->vertices[vno].x,
+        mris->vertices[vno].y,
+        mris->vertices[vno].z);
+    }
+    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++)
+    {
+      MRISsetXYZ(mris3,vno3,
+        mris2->vertices[vno2].x,
+        mris2->vertices[vno2].y,
+        mris2->vertices[vno2].z);
+    }
+    int fno,fno2,fno3;
+    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++)
+    {
+      mris3->faces[fno3].v[0] = mris->faces[fno].v[0];
+      mris3->faces[fno3].v[1] = mris->faces[fno].v[1];
+      mris3->faces[fno3].v[2] = mris->faces[fno].v[2];
+    }
+    int offset = mris->nvertices;
+    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++)
+    {
+      mris3->faces[fno3].v[0] = mris2->faces[fno2].v[0] + offset;
+      mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
+      mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
+    }
+    mrisCheckVertexFaceTopology(mris3);
+    return mris3;
+}    
+
+MRIS* MRISclone(MRIS const * mris_src)
 {
   // Cloning could be a copy the input data and recompute the derived,
   // but it is quicker to copy the derived data also which means the derived data must be written, 

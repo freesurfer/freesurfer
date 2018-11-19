@@ -610,37 +610,7 @@ main(int argc, char *argv[])
   }
   else if (combinesurfs_flag)
   {
-    int vno,vno2,vno3;
-    MRI_SURFACE *mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
-                                   mris->nfaces+mris2->nfaces);
-    copyVolGeom(&mris->vg,&mris3->vg);
-    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
-    {
-      mris3->vertices[vno3].x = mris->vertices[vno].x;
-      mris3->vertices[vno3].y = mris->vertices[vno].y;
-      mris3->vertices[vno3].z = mris->vertices[vno].z;
-    }
-    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++)
-    {
-      mris3->vertices[vno3].x = mris2->vertices[vno2].x;
-      mris3->vertices[vno3].y = mris2->vertices[vno2].y;
-      mris3->vertices[vno3].z = mris2->vertices[vno2].z;
-    }
-    int fno,fno2,fno3;
-    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++)
-    {
-      mris3->faces[fno3].v[0] = mris->faces[fno].v[0];
-      mris3->faces[fno3].v[1] = mris->faces[fno].v[1];
-      mris3->faces[fno3].v[2] = mris->faces[fno].v[2];
-    }
-    int offset = mris->nvertices;
-    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++)
-    {
-      mris3->faces[fno3].v[0] = mris2->faces[fno2].v[0] + offset;
-      mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
-      mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
-    }
-    mrisCheckVertexFaceTopology(mris3);
+    MRIS* mris3 = MRISunion(mris,mris2);
     
     MRISwrite(mris3, out_fname);
     MRISfree(&mris2);

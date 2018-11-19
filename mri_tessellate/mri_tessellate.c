@@ -514,6 +514,7 @@ static void write_binary_surface(char *fname, MRI *mri, char *cmdline)
 
   fwrite3(-3,fp); //fwrite3(-2,fp); -2 for MRIS_TRIANGULAR_SURFACE, but breaks
   fwrite3(vertex_index,fp);
+
   fwrite3(face_index,fp);
 
   // matrix is the same all the time so cache it
