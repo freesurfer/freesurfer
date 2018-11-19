@@ -233,7 +233,7 @@ def options_parse():
     # extensive error checks
     if options.qdec is None:
         parser.print_help()
-        print('\nERROR: Specify --qedc (and other required arguments)\n')
+        print('\nERROR: Specify --qdec (and other required arguments)\n')
         sys.exit(1)
 
         
