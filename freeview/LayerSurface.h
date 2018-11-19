@@ -211,6 +211,8 @@ public:
 
   void DeleteLabel(SurfaceLabel* label);
   void MoveLabelToTop(SurfaceLabel* label);
+  void MoveLabelUp(SurfaceLabel* label);
+  void MoveLabelDown(SurfaceLabel* label);
 
   void SetRefVolume(LayerMRI* ref);
 

@@ -86,7 +86,7 @@ protected slots:
   void OnToggleAnnotation(bool bShow);
   void OnColorPickerLabelColor(const QColor& color);
   void OnCheckBoxLabelOutline(bool outline);
-  void UpdateLabelWidgets();
+  void UpdateLabelWidgets(bool block_signals = true);
   void UpdateSplineWidgets();
   void OnLockLayer(bool b);
   void OnButtonLoadSpline();
@@ -111,6 +111,8 @@ protected slots:
   void OnCustomFillTriggered(const QVariantMap& options);
   void OnButtonClearMarks();
   void OnLineEditLabelOpacity(const QString& text);
+  void OnButtonLabelUp();
+  void OnButtonLabelDown();
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();
