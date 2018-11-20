@@ -3654,7 +3654,7 @@ if($DoCurvHK) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
     set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -3692,7 +3692,7 @@ if($DoCurvHK) then
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
     set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
