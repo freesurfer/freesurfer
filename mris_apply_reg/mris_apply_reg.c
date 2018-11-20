@@ -327,6 +327,24 @@ static int parse_commandline(int argc, char **argv) {
       nsurfs++;
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--lta")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      printf("Reading in %s\n",pargv[0]);
+      MRIS *ltasurf = MRISread(pargv[0]);
+      if(ltasurf==NULL) exit(1);
+      printf("Reading in %s\n",pargv[1]);
+      LTA *lta = LTAread(pargv[1]);
+      if(lta==NULL) exit(1);
+      int err = MRISltaMultiply(ltasurf, lta);
+      if(err) exit(1);
+      printf("Writing surf to %s\n",pargv[2]);
+      err = MRISwrite(ltasurf,pargv[2]);
+      if(err) exit(1);
+      nargsused = 3;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    } 
+
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -363,6 +381,9 @@ static void print_usage(void) {
   printf("   --no-rev : do not do reverse mapping\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
+  printf("\n");
+  printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
+  printf("    other options do not apply to --lta\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -503,5 +524,3 @@ LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
 
   return(label);
 }
-
-

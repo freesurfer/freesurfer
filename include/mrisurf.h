@@ -1832,6 +1832,7 @@ int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris,const  char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri,
                    TRANSFORM *transform, MRI *mri_dst) ;
 int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
+int MRISltaMultiply(MRIS *surf, const LTA *lta);
 
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,

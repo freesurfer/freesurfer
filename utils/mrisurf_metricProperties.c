@@ -1728,11 +1728,75 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   
   return (mris_dst);
 }
+/*!
+  \fn int MRISltaMultiply(MRIS *surf, LTA *lta)
+  \brief Applies an LTA matrix to the coords of the given surface.
+  Automatically determines which direction the LTA goes by looking
+  at the volume geometries of the LTA and the surface. The vol
+  geometry of the surface is changed to that of the LTA destination
+  (keeping in mind that the LTA might have been reversed). The 
+  LTA itself is not changed. 
+  See also:   MRISmatrixMultiply() and MRIStransform().
+ */
+int MRISltaMultiply(MRIS *surf, const LTA *lta)
+{
+  LTA *ltacopy;
+
+  // Make a copy of the LTA so source is not contaminated
+  ltacopy = LTAcopy(lta,NULL);
+
+  if(vg_isEqual(&ltacopy->xforms[0].src, &ltacopy->xforms[0].dst)){
+    printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same.\n");
+    printf("  Make sure you have the direction correct!\n\n");
+  }
+
+  // Determine which direction the LTA goes by looking at which side
+  // matches the surface volume geometry. Invert if necessary
+  if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
+    if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
+      // If this fails a lot, try setting to vg_isEqual_Threshold = 10e-4 or higher
+      printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
+      LTAfree(&ltacopy);
+      return(1);
+    }
+    printf("MRISltaMultiply(): inverting LTA\n");
+    LTAinvert(ltacopy,ltacopy);
+  }
+
+  // Must be in regdat space to apply it to the surface
+  if(ltacopy->type != REGISTER_DAT){
+    LTAchangeType(ltacopy, REGISTER_DAT);
+    // When changing to regdat, the inverse reg is returned, so we
+    // have to undo that inverse here. Note can't use LTAinvert()
+    // because it will also reverse the src and dst vol geometries.
+    MatrixInverse(ltacopy->xforms[0].m_L,ltacopy->xforms[0].m_L);
+  }
+
+  // Print out the matrix that will be applied
+  printf("MRISltaMultiply(): applying matrix\n");
+  MatrixPrint(stdout,ltacopy->xforms[0].m_L);
+  printf("-----------------------------------\n");
+
+  // Finally, multiply the surf coords by the matrix
+  MRISmatrixMultiply(surf,ltacopy->xforms[0].m_L);
+
+  // Reverse the faces if the reg has neg determinant
+  if(MatrixDeterminant(ltacopy->xforms[0].m_L) < 0){
+    printf("Determinant of linear transform is negative, so reversing face order\n");
+    MRISreverseFaceOrder(surf);
+  }
+
+  // Copy the volume geometry of the destination volume
+  copyVolGeom(&(ltacopy->xforms[0].dst), &(surf->vg));
+
+  LTAfree(&ltacopy);
+  return(0);
+}
 
 
 /*------------------------------------------------------------------------
   MRISmatrixMultiply() - simply multiplies matrix M by the vertex xyz.
-  See also MRIStransform().
+  See also MRIStransform() and MRISltaMultiply().
   ------------------------------------------------------------------------*/
 int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
 {
