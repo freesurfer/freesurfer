@@ -56,6 +56,7 @@ public slots:
   void OnComboSecondVolume(int nSel);
   void UpdateScaleInfo();
   void UpdateUI();
+  void OnCheckShowFrameNumber(bool);
 
 signals:
   void FrameChanged(int frame);
