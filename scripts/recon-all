@@ -8128,6 +8128,7 @@ usage_exit:
   echo ""
   echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
   echo "             mris_inflate and mris_sphere"
+  echo "  -threads num  : set number of threads to use"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -8613,6 +8614,11 @@ Cerebral Cortex 2007.
 
 Use the GPU versions of the binaries mri_em_register, mri_ca_register,
 mris_inflate, and mris_sphere.
+
+-threads num
+-openmp num
+
+Set the number of threads available to openMP-enabled tools.
 
 
 EXPERT OPTIONS FILE
