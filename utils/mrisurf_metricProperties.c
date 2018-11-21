@@ -4482,7 +4482,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
           vt->v3num = vt->vtotal;
           break;
       }
-      vt->nsizeCur = vt->nsizeMax = nsize;
+      vt->nsizeCur = vt->nsizeMax;
       vt->vtotal = neighbors;
       for (n = 0; n < neighbors; n++)
         for (i = 0; i < neighbors; i++)
