@@ -346,6 +346,12 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_surf_fname) ;
 
+  {
+    int vno;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      if (mris->vertices_topology[vno].vnum == 0)
+	mris->vertices[vno].ripflag = 1 ;
+  }
   if (sphere_flag)
   {
     MRIScenter(mris, mris) ;
@@ -377,6 +383,7 @@ main(int argc, char *argv[])
   } 
   else
   {
+    MRISsetNeighborhoodSizeAndDist(mris, mris->vertices_topology[0].nsizeMax);
     MRISresetNeighborhoodSize(mris, mris->vertices_topology[0].nsizeMax) ; // set back to max
     if (label_fname) // read in a label instead of a patch
     {
