@@ -605,9 +605,13 @@ def samsegment(
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
             if perVoxelDecrease < perVoxelDecreaseThreshold:
+                # Display the cost history
                 if len(historyOfCost) > 2:
                     visualizer.plot(historyOfCost[1:], title='History of Cost')
                 visualizer.show_movie(window_id='samsegment')
+                # Log the final per-voxel cost
+                with open(os.path.join(savePath, 'cost.txt'), "a") as file:
+                    file.write("atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, iterationNumber + 1, currentCost / activeVoxelCount))
                 break
         # Get the final node positions
         finalNodePositions = mesh.points
