@@ -184,6 +184,9 @@ def registerAtlas(
         imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix
         worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv(templateImageToWorldTransformMatrix)
 
+        # Log the final cost
+        with open(os.path.join(savePath, 'cost.txt'), "a") as file:
+            file.write("templateRegistration %d %f\n" % (len(costs), costs[-1]))
 
     # ------ Save Registration Results ------
 

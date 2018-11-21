@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>616</width>
-    <height>382</height>
+    <width>694</width>
+    <height>405</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,6 +56,9 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>5</number>
+     </property>
      <item>
       <widget class="QFrame" name="frameSecondVolume">
        <property name="minimumSize">
@@ -116,6 +119,32 @@
       </spacer>
      </item>
      <item>
+      <widget class="QCheckBox" name="checkBoxShowFrameNumber">
+       <property name="text">
+        <string>Show Frame number on time axis</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>15</width>
+         <height>5</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
       <widget class="QLabel" name="label">
        <property name="text">
         <string>Scale</string>
@@ -123,7 +152,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEditScale"/>
+      <widget class="QLineEdit" name="lineEditScale">
+       <property name="maximumSize">
+        <size>
+         <width>140</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QCheckBox" name="checkBoxAutoScale">
@@ -169,8 +205,8 @@
    <slot>OnCheckAutoScale(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>291</x>
-     <y>289</y>
+     <x>628</x>
+     <y>393</y>
     </hint>
     <hint type="destinationlabel">
      <x>283</x>
@@ -185,12 +221,12 @@
    <slot>OnCheckMaxScale(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>358</x>
-     <y>287</y>
+     <x>683</x>
+     <y>393</y>
     </hint>
     <hint type="destinationlabel">
      <x>353</x>
-     <y>493</y>
+     <y>404</y>
     </hint>
    </hints>
   </connection>
@@ -201,12 +237,28 @@
    <slot>OnLineEditScaleReturnPressed()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>273</x>
-     <y>288</y>
+     <x>568</x>
+     <y>394</y>
     </hint>
     <hint type="destinationlabel">
      <x>270</x>
      <y>388</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxShowFrameNumber</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>WindowTimeCourse</receiver>
+   <slot>OnCheckShowFrameNumber(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>384</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>389</x>
+     <y>532</y>
     </hint>
    </hints>
   </connection>
@@ -215,5 +267,6 @@
   <slot>OnLineEditScaleReturnPressed()</slot>
   <slot>OnCheckAutoScale(bool)</slot>
   <slot>OnCheckMaxScale(bool)</slot>
+  <slot>OnCheckShowFrameNumber(bool)</slot>
  </slots>
 </ui>

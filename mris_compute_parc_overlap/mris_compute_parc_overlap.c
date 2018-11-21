@@ -401,9 +401,10 @@ int main(int argc, char *argv[])
           if (use_label1_xyz)
           {
             // replace surface x,y,z coordinates with those found in label file
-            v1->x = label1->lv[n].x;
-            v1->y = label1->lv[n].y;
-            v1->z = label1->lv[n].z;
+            MRISsetXYZ(surface1,vno,
+              label1->lv[n].x,
+              label1->lv[n].y,
+              label1->lv[n].z);
           }
           if (check_label1_xyz)
           {
@@ -438,9 +439,10 @@ int main(int argc, char *argv[])
           if (use_label2_xyz)
           {
             // replace surface x,y,z coordinates with those found in label file
-            v2->x = label2->lv[n].x;
-            v2->y = label2->lv[n].y;
-            v2->z = label2->lv[n].z;
+            MRISsetXYZ(surface2,vno,
+              label2->lv[n].x,
+              label2->lv[n].y,
+              label2->lv[n].z);
           }
           if (check_label2_xyz)
           {

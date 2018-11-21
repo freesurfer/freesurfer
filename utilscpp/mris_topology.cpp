@@ -748,7 +748,6 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
     vt_from[n]=-1;
     if (mris->vertices[n].marked2 == defect_number) {
       VERTEX *vsrc = &mris->vertices[n];
-      VERTEX *v = &mris_dst->vertices[nvertices];
       vt_from[n]=nvertices;
       vt_to[nvertices]=n;
       // copy the strict necessary
@@ -996,9 +995,6 @@ static MRIS* SurfaceToMRISwkr_new(Surface *surface)
   for (int n = 0 ; n < surface->nvertices ; n++) {
     Vertex const * const vsrc = &surface->vertices[n];
     
-    VERTEX_TOPOLOGY * const vdstt = &mris->vertices_topology[n];
-    VERTEX          * const vdst  = &mris->vertices         [n];
-    
     MRISsetXYZ(mris,n,
       vsrc->x,
       vsrc->y,
@@ -1118,8 +1114,6 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
     
     if (n >= nvertices) vto[n] = currNumVertices++;
     int const vno_dst = vto[n];
-    
-    VERTEX * const vdst = &mris_dst->vertices[vno_dst];
     
     MRISsetXYZ(mris_dst, vno_dst,
       vsrc->x,

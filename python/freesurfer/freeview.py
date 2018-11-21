@@ -11,65 +11,66 @@ def fv(*args, **kwargs):
 
     Optional Args:
         affine: affine transform for saving numpy arrays (default: identity matrix).
+        mrisp: parameterization to load on top of the first surface file provided.
+        overlay: overlay to load on top of the first surface file provided.
         background: run freeview as a background process (default: True).
 
     """
     affine = kwargs.pop('affine', np.eye(4))
+    mrisp = kwargs.pop('mrisp', None)
+    overlay = kwargs.pop('overlay', None)
     background = kwargs.pop('background', True)
+
+    tmpdir = tempfile.mkdtemp()
 
     surfaces = []
     volumes = []
-    saved_volumes = 0
-    tmpdir = ''
-
     for arg in args:
-
         if isinstance(arg, str):
-            # -- string --
             if not os.path.exists(arg):
                 error("file '%s' does not exist" % arg)
                 continue
             filename = os.path.basename(arg)
-            # volume
             if filename.endswith(('.mgh', '.mgz', '.nii', '.nii.gz')):
                 volumes.append(arg)
-            # surface
             elif filename.startswith(('lh.', 'rh.')):
                 surfaces.append(arg)
-            # unknown
             else:
                 error("could not determine file type of '%s'" % arg)
-
-        elif isinstance(arg, nib.spatialimages.SpatialImage):
-            # -- nibabel image -
-            tmpdir = makeTmpDir(tmpdir)
-            saved_volumes += 1
-            arg.set_filename(os.path.join(tmpdir, 'vol%d' % saved_volumes))
-            nib.save(arg, arg.get_filename())
-            volumes.append(arg.get_filename())
-
-        elif isinstance(arg, np.ndarray):
-            # -- numpy array --
-            tmpdir = makeTmpDir(tmpdir)
-            saved_volumes += 1
-            fname = os.path.join(tmpdir, 'vol%d.nii' % saved_volumes)
-            nib.save(nib.Nifti1Image(arg, affine), fname)
-            volumes.append(fname)
-
         else:
-            # -- invalid --
-            error('invalid fv argument type %s' % type(arg))
+            volumes.append(_mkvolume(arg, os.path.join(tmpdir, 'vol%d' % (len(volumes)+1)), affine=affine))
 
-    # freeview command
+    if mrisp is not None:
+        if not surfaces:
+            error('can not load mrisp if no surface is provided')
+        surfaces[0] += ':mrisp=%s' % _mkvolume(mrisp, os.path.join(tmpdir, 'mrisp'))
+
+    if overlay is not None:
+        if not surfaces:
+            error('can not load overlay if no surface is provided')
+        surfaces[0] += ':overlay=%s' % _mkvolume(overlay, os.path.join(tmpdir, 'overlay'))
+
     cmd = 'freeview'
-    if volumes:  cmd += ' -v ' + ' '.join(volumes)
-    if surfaces: cmd += ' -f ' + ' '.join(surfaces)
-    # make sure tmp data gets cleaned up after freeview closes
-    if tmpdir: cmd += ' && rm -rf %s' % tmpdir
+
+    if volumes:
+        cmd += ' -v ' + ' '.join(volumes)
+    if surfaces:
+        cmd += ' -f ' + ' '.join(surfaces)
+
+    cmd += ' ; rm -rf %s' % tmpdir
     run(cmd, background=background)
 
 
-def makeTmpDir(tmpdir):
-    if not tmpdir:
-        tmpdir = tempfile.mkdtemp()
-    return tmpdir
+def _mkvolume(arg, filename, affine=np.eye(4)):
+    if isinstance(arg, str):
+        return arg
+    elif isinstance(arg, nib.spatialimages.SpatialImage):
+        arg.set_filename(filename)
+        nib.save(arg, arg.get_filename())
+        return arg.get_filename()
+    elif isinstance(arg, np.ndarray):
+        path = '%s.nii' % filename
+        nib.save(nib.Nifti1Image(arg, affine), path)
+        return path
+    else:
+        error('invalid fv argument type %s' % type(arg))

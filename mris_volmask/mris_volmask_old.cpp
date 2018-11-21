@@ -52,6 +52,7 @@ extern "C"
 #include "fsenv.h"
 #include "mrisurf.h"
 #include "mri.h"
+#include "mri2.h"
 #include "error.h"
 #include "cma.h"
 #include "diag.h"
@@ -101,12 +102,6 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfLeftPial,
                MRIS*& surfRightWhite,
                MRIS*& surfRightPial) throw(IoError) ;
-
-/*
-  converts vertices to the index space
-*/
-void ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
-                                     MRI* vol);
 
 void ComputeSurfaceDistanceFunction
 (MRIS* mris, //input surface
@@ -230,7 +225,7 @@ main(int ac, char* av[])
   //---------------------
   // proces white surface - convert to voxel-space
 #ifndef NO_VTK
-  ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
+  MRIConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
 #endif
   // allocate distance
   MRI* dLeftWhite = MRIalloc( mriTemplate->width,
@@ -261,7 +256,7 @@ main(int ac, char* av[])
   //-----------------------
   // process pial surface
 #ifndef NO_VTK
-  ConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
+  MRIConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
 #endif
   MRI* dLeftPial = MRIalloc( mriTemplate->width,
                              mriTemplate->height,
@@ -300,7 +295,7 @@ main(int ac, char* av[])
   //-------------------
   // process white
 #ifndef NO_VTK
-  ConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
+  MRIConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
 #endif
   MRI* dRightWhite = MRIalloc( mriTemplate->width,
                                mriTemplate->height,
@@ -327,7 +322,7 @@ main(int ac, char* av[])
   //--------------------
   // process pial
 #ifndef NO_VTK
-  ConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
+  MRIConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
 #endif
   MRI* dRightPial = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
@@ -875,33 +870,6 @@ MRI* CombineMasks(MRI* maskOne,
   return mri;
 }
 
-void
-ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
-                                MRI* vol)
-{
-  double cx, cy, cz;
-  double vx, vy, vz;
-
-  VERTEX* pvtx = &( mris->vertices[0] );
-  unsigned int nvertices = (unsigned int)mris->nvertices;
-
-  for ( unsigned int ui=0;
-        ui < nvertices;
-        ++ui, ++pvtx )
-  {
-    cx = pvtx->x;
-    cy = pvtx->y;
-    cz = pvtx->z;
-
-    MRIsurfaceRASToVoxel( vol,
-                          cx, cy, cz,
-                          &vx, &vy, &vz);
-
-    pvtx->x = vx;
-    pvtx->y = vy;
-    pvtx->z = vz;
-  } // next ui, pvtx
-}
 
 MRI* FilterLabel(MRI* initialMask,
                  const unsigned char lbl)

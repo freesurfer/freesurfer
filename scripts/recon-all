@@ -3682,7 +3682,7 @@ if($DoCurvHK) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature -w)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts $hemi.white.preaparc)
@@ -3722,7 +3722,7 @@ if($DoCurvHK) then
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature )
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd -thresh .999 -n -a 5 -w -distances 10 10)
@@ -8128,6 +8128,7 @@ usage_exit:
   echo ""
   echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
   echo "             mris_inflate and mris_sphere"
+  echo "  -threads num  : set number of threads to use"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -8613,6 +8614,11 @@ Cerebral Cortex 2007.
 
 Use the GPU versions of the binaries mri_em_register, mri_ca_register,
 mris_inflate, and mris_sphere.
+
+-threads num
+-openmp num
+
+Set the number of threads available to openMP-enabled tools.
 
 
 EXPERT OPTIONS FILE

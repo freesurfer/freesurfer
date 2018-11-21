@@ -984,7 +984,7 @@ double v_to_f_distance(VERTEX *P0,
   VERTEX *V1, *V2, *V3;
   FACE *face;
 
-  VERTEX E0, E1, D;
+  struct { float x,y,z; } E0, E1, D;
 
   face = &mri_surf->faces[face_number];
   V1 = &mri_surf->vertices[face->v[0]];
@@ -1316,28 +1316,23 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
 
 void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
 {
-  double error_old, error_new;
-  int iter = 0;
-  double TR[3][3];
-  double shift[3];
-  double3d *mesh2avtx, *closevtx2a;
-  int index, k;
-  MHT *SrcHash;
-
-  SrcHash = MHTcreateVertexTable_Resolution(Surf1, CURRENT_VERTICES,16);
+  MHT* SrcHash = MHTcreateVertexTable_Resolution(Surf1, CURRENT_VERTICES,16);
 
   /* This initialization is necessary */
+  double TR[3][3];
   TR[0][0] = TR[1][1] = TR[2][2] = 1;
   TR[0][1] = TR[0][2] = TR[1][0] = TR[1][2] = TR[2][0] = TR[2][1] = 0;
 
+  double shift[3];
   shift[0] = 0;
   shift[1] = 0;
-  shift[2]= 0;
+  shift[2] = 0;
 
-  mesh2avtx = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
-  closevtx2a = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
+  double3d* mesh2avtx  = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
+  double3d* closevtx2a = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
 
   /* Initialize */
+  int index;
   for (index = 0; index < Surf2->nvertices; index++)
   {
     mesh2avtx[index].x = Surf2->vertices[index].x;
@@ -1345,11 +1340,14 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
     mesh2avtx[index].z = Surf2->vertices[index].z;
   }
 
-  error_old = 1000.0;
-  error_new = 900.0;
+  double error_old = 1000.0;
+  double error_new = 900.0;
+
+  int iter = 0;
   while ((error_old - error_new) > 0.0001 && iter < 50)
   {
     error_old = error_new;
+    
     /* For each vertex in Surf2, find its closest vertex in Surf1,
      * and record the coordinates in closevtx2a
      */
@@ -1358,11 +1356,13 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
     // Find the rigid transformation
     error_new = transformS(mesh2avtx, closevtx2a, Surf2->nvertices, TR, shift);
 
+    int k;
     for (k = 0; k < Surf2->nvertices; k++)
     {
-      Surf2->vertices[k].x = mesh2avtx[k].x;
-      Surf2->vertices[k].y  = mesh2avtx[k].y;
-      Surf2->vertices[k].z  = mesh2avtx[k].z;
+      MRISsetXYZ(Surf2,k,
+        mesh2avtx[k].x,
+        mesh2avtx[k].y,
+        mesh2avtx[k].z);
     }
 
     iter ++;

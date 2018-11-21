@@ -38,7 +38,7 @@ public:
   void paintEvent(QPaintEvent * e);
 
   void SetTimeCourseData(const QList<double>& data, double min_val, double max_val,
-                         double t_interval = -1);
+                         double t_interval = 1000);
   void SetSecondData(const QList<double>& data);
 
   void mousePressEvent(QMouseEvent *e);
@@ -52,6 +52,20 @@ public:
   }
 
   void SetPlotRange(double* range_in);
+
+  void SetXUnitInfo(double interval, double offset, const QString& unit_str = "")
+  {
+    m_dXInterval = interval;
+    m_dXOffset = offset;
+    m_strXUnit = unit_str;
+    update();
+  }
+
+  void SetShowFrameNumber(bool b)
+  {
+    m_bShowFrameNumber = b;
+    update();
+  }
 
 public slots:
   void SetCurrentFrame(int frame);
@@ -73,6 +87,11 @@ private:
   bool            m_bAutoScale;
   int             m_nCurrentFrame;
   QRectF          m_rectPlot;
+
+  QString         m_strXUnit;
+  double          m_dXOffset;
+  double          m_dXInterval;
+  bool            m_bShowFrameNumber;
 };
 
 #endif // WIDGETTIMECOURSEPLOT_H

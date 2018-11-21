@@ -82,6 +82,7 @@
 #include "vtkMaskPoints.h"
 #include <QVariantMap>
 #include "LayerROI.h"
+#include <QFileInfo>
 
 extern "C"
 {
@@ -263,6 +264,50 @@ void LayerMRI::ResetRef()
   m_volumeSource->ResetRef();
 }
 
+void swap_nifti_header(struct nifti_1_header *hdr)
+{
+  int i;
+
+  hdr->sizeof_hdr = swapInt(hdr->sizeof_hdr);
+
+  for (i = 0; i < 8; i++) hdr->dim[i] = swapShort(hdr->dim[i]);
+
+  hdr->intent_p1 = swapFloat(hdr->intent_p1);
+  hdr->intent_p2 = swapFloat(hdr->intent_p2);
+  hdr->intent_p3 = swapFloat(hdr->intent_p3);
+  hdr->intent_code = swapShort(hdr->intent_code);
+  hdr->datatype = swapShort(hdr->datatype);
+  hdr->bitpix = swapShort(hdr->bitpix);
+  hdr->slice_start = swapShort(hdr->slice_start);
+
+  for (i = 0; i < 8; i++) hdr->pixdim[i] = swapFloat(hdr->pixdim[i]);
+
+  hdr->vox_offset = swapFloat(hdr->vox_offset);
+  hdr->scl_slope = swapFloat(hdr->scl_slope);
+  hdr->scl_inter = swapFloat(hdr->scl_inter);
+  hdr->slice_end = swapShort(hdr->slice_end);
+  hdr->cal_max = swapFloat(hdr->cal_max);
+  hdr->cal_min = swapFloat(hdr->cal_min);
+  hdr->slice_duration = swapFloat(hdr->slice_duration);
+  hdr->toffset = swapFloat(hdr->toffset);
+  hdr->qform_code = swapShort(hdr->qform_code);
+  hdr->sform_code = swapShort(hdr->sform_code);
+  hdr->quatern_b = swapFloat(hdr->quatern_b);
+  hdr->quatern_c = swapFloat(hdr->quatern_c);
+  hdr->quatern_d = swapFloat(hdr->quatern_d);
+  hdr->qoffset_x = swapFloat(hdr->qoffset_x);
+  hdr->qoffset_y = swapFloat(hdr->qoffset_y);
+  hdr->qoffset_z = swapFloat(hdr->qoffset_z);
+
+  for (i = 0; i < 4; i++) hdr->srow_x[i] = swapFloat(hdr->srow_x[i]);
+
+  for (i = 0; i < 4; i++) hdr->srow_y[i] = swapFloat(hdr->srow_y[i]);
+
+  for (i = 0; i < 4; i++) hdr->srow_z[i] = swapFloat(hdr->srow_z[i]);
+
+  return;
+}
+
 bool LayerMRI::LoadVolumeFromFile()
 {
   if ( m_volumeSource )
@@ -296,8 +341,25 @@ bool LayerMRI::LoadVolumeFromFile()
   
   if (m_nGotoLabelOrientation >= 0)
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
-  
+
+  UpdateNiftiHeader();
+
   return true;
+}
+
+void LayerMRI::UpdateNiftiHeader()
+{
+  QFileInfo fi(m_sFilename);
+  if (fi.suffix() == "nii" || fi.completeSuffix().contains("nii.gz"))
+  {
+    znzFile fp = znzopen(qPrintable(m_sFilename), "r", fi.suffix() == "gz");
+    if (fp)
+    {
+      znzread(&m_niftiHeader, sizeof(nifti_1_header), 1, fp);
+      if (m_niftiHeader.sizeof_hdr != 348)
+        swap_nifti_header(&m_niftiHeader);
+    }
+  }
 }
 
 bool LayerMRI::LoadVolumeTransform()
@@ -3794,3 +3856,33 @@ QVector<double> LayerMRI::GetVoxelList(int nVal)
   return vlist;
 }
 
+QVariantMap LayerMRI::GetTimeSeriesInfo()
+{
+  QVariantMap info;
+  if (m_niftiHeader.sizeof_hdr == 348)
+  {
+    int t = XYZT_TO_TIME(m_niftiHeader.xyzt_units);
+    if (t == NIFTI_UNITS_SEC)
+      info["unit"] = "s";
+    else if (t == NIFTI_UNITS_MSEC)
+      info["unit"] = "ms";
+    else if (t == NIFTI_UNITS_USEC)
+      info["unit"] = "µs";
+    else if (t == NIFTI_UNITS_HZ)
+      info["unit"] = "Hz";
+    else if (t == NIFTI_UNITS_PPM)
+      info["unit"] = "ppm";
+    else if (t == NIFTI_UNITS_RADS)
+      info["unit"] = "rad/s";
+
+    info["offset"] = m_niftiHeader.toffset;
+    info["tr"] = m_niftiHeader.pixdim[4];
+  }
+  else
+  {
+    info["unit"] = "msec";
+    info["offset"] = 0;
+    info["tr"] = m_volumeSource->GetMRI()->tr;
+  }
+  return info;
+}

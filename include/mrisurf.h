@@ -1832,6 +1832,7 @@ int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris,const  char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri,
                    TRANSFORM *transform, MRI *mri_dst) ;
 int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
+int MRISltaMultiply(MRIS *surf, const LTA *lta);
 
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
@@ -2720,7 +2721,8 @@ MRIS *MRISsortVertices(MRIS *mris0);
 
 // Create a surface
 //
-MRIS *MRISclone(MRIS *mris_src) ;
+MRIS *MRISclone(MRIS const * mris_src) ;
+MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 
 
 // mrisurf_topology needed by more
@@ -2824,6 +2826,14 @@ int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
+
+void mrisDisturbVertices(MRIS *mris, double amount);
+
 MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
 void  MRIScenterSphere(MRIS *mris);
 void  MRISrecenter(MRIS *mris, int which_move, int which_target) ;
+
+MRIS* MRISprojectOntoTranslatedSphere(MRIS* mris_src, MRIS* mris_dst, 
+    double r,
+    double x0, double y0, double z0);

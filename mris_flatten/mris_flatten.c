@@ -67,7 +67,6 @@ static char *label_fname = NULL ;
 static int nbrs = 2 ;
 static int do_inflate = 0 ;
 static double disturb = 0 ;
-static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
@@ -1018,24 +1017,6 @@ print_version(void)
   exit(1) ;
 }
 
-static int
-mrisDisturbVertices(MRI_SURFACE *mris, double amount)
-{
-  int    vno ;
-  VERTEX *v ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    v->x += randomNumber(-amount, amount) ;
-    v->y += randomNumber(-amount, amount) ;
-  }
-
-  MRIScomputeMetricProperties(mris) ;
-  return(NO_ERROR) ;
-}
 int
 MRISscaleUp(MRI_SURFACE *mris)
 {

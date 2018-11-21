@@ -1861,6 +1861,44 @@ void LayerSurface::MoveLabelToTop(SurfaceLabel *label)
   }
 }
 
+void LayerSurface::MoveLabelUp(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i] && i > 0)
+    {
+      m_labels.removeAt(i);
+      m_labels.insert(i-1, label);
+      SetActiveLabel(activeLabel);
+
+      UpdateOverlay(false);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
+void LayerSurface::MoveLabelDown(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i] && i < m_labels.size()-1)
+    {
+      m_labels.removeAt(i);
+      m_labels.insert(i+1, label);
+      SetActiveLabel(activeLabel);
+
+      UpdateOverlay(false);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
 void LayerSurface::DeleteLabel(SurfaceLabel *label)
 {
   SurfaceLabel* activeLabel = GetActiveLabel();
