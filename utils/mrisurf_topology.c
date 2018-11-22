@@ -913,8 +913,8 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
       // TODO cope with added edges
       
       if (vCandidate->ripflag) { 
-        nsize = ringLinks-1;    // cause this ring to get rewritten and no more to be used
-        continue;               // ones in this ring are still okay
+        nsize = ringLinks-1;    // cause this ring to get rewritten and no further rings to be used
+        continue;               // other vCandidates in this ring are still okay
       }
       
       temp->status[vnoCandidate] = Status_inSet;
@@ -967,12 +967,16 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
 
   // Update the cache
   //
-  int const newPossibleNsizeMax = MIN(3, ringLinks);
-  if (nsize < newPossibleNsizeMax) {
-
-    int oldSize = vnums[nsize];
+  int const newPossibleNsizeMax = MIN(3, ringLinks-1);
+  if (nsize-1 < newPossibleNsizeMax) {
+    cheapAssert(nsize > 0);
+    
+    int oldSize = vnums[nsize-1];
     int newSize = vnums[newPossibleNsizeMax];    
     resizeVertexVandD(vt,v, newSize, oldSize);
+    
+    int i;
+    for (i = oldSize; i < newSize; i++) vt->v[i] = vlist[i];
     
     int cachedRing;
     for (cachedRing = nsize; cachedRing <= newPossibleNsizeMax; cachedRing++) {
