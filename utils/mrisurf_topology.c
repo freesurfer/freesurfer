@@ -852,6 +852,7 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
     use_old = getenv("MRISfindNeighborsAtVertex_old");
     if (!(use_new || use_old)) use_new = true;
   }
+  bool const use_both = use_new && use_old;
 
   int const breakLine = __LINE__ + 2;
   if (laterTime == interestingLaterTime)
@@ -888,9 +889,11 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
     }
   }
   if (use_both) {
+    bool good = true;
     fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
     if (result_old != result_new) {
       fprintf(stdout, " result_old:%d != result_new:%d\n",result_old,result_new);
+      good = false;
     }
     int i;
     for (i = 0; i < result_old && i < result_new;  i++) {
@@ -899,6 +902,7 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
         fprintf(stdout, " vlist[%d] old:%d != new:%d  or  hops[%d] old:%d != new:%d\n",
           i, vlist[i],vlistTmp[i],
           i, hops[i], hopsTmp[i]);
+        good = false;
       }
     }
     
