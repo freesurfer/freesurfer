@@ -4361,6 +4361,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
 
+      cheapAssert(mris->vertices[vno].marked == 0);
+
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       
       if (mris->vertices[vno].ripflag) continue;
@@ -4387,6 +4389,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     ROMP_PF_end
 
     mris->nsize = nsize;
+    
+    MRIS_check_vertexNeighbours(mris);
     return;
   }
   
@@ -4401,6 +4405,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
       VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
       VERTEX          * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no) DiagBreak();
+
+      cheapAssert(v->marked == 0);
 
       vnum = vt->vtotal;
       if (v->ripflag || !vnum) continue;
@@ -4452,8 +4458,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
         vt->v[n] = vtmp[n];
         mris->vertices[vtmp[n]].marked = 0;
       }
-      if (v->dist) free(v->dist);
 
+      if (v->dist)      free(v->dist);
       if (v->dist_orig) free(v->dist_orig);
 
       v->dist = (float *)calloc(neighbors, sizeof(float));
@@ -4496,6 +4502,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
       }
     }
   }
+  MRIS_check_vertexNeighbours(mris);
 
 #ifndef __APPLE__
   // The parallel loop fails under mcheck with an arcane 

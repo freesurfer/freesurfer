@@ -565,6 +565,23 @@ int MRISedges(MRIS *surf)
 //      mris->nsizeMaxClock changes to help detect this bug, but it wraps so is not a guarantee.
 //      Here it is checked to assert vtotal is valid.
 //
+void MRIS_setNsizeCur(MRIS *mris, int vno, int nsize) {
+  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
+
+  cheapAssert(nsize <= vt->nsizeMax);
+  
+  switch (nsize) {
+  case 0: vt->vtotal = 0;         break;    // seen to happen
+  case 1: vt->vtotal = vt->vnum;  break;
+  case 2: vt->vtotal = vt->v2num; break;
+  case 3: vt->vtotal = vt->v3num; break;
+  default: cheapAssert(false);
+  }
+
+  uchar const * pc = &vt->nsizeCur;
+  uchar       * p  = (uchar*)pc;
+  *p = nsize;
+}
 
 int mrisStoreVtotalInV3num(MRIS *mris)
 {
@@ -779,28 +796,67 @@ void MRISgetNeighborsBeginEnd(
   *neighborsIndexEnd   = e;
 }
 
+
+void MRIS_VertexNeighbourInfo_check(
+    MRIS_VertexNeighbourInfo* lhs,  
+    MRIS_VertexNeighbourInfo* rhs) {
     
+  cheapAssert(lhs->hops == rhs->hops);
+  
+  int i;
+  for (i = 0; i <= lhs->hops; i++)
+    cheapAssert(lhs->vnum[i] == rhs->vnum[i]); 
+    
+  // Even test the algorithms put them in the same order!
+  //
+  for (i = 0; i < lhs->vnum[lhs->hops]; i++) 
+    cheapAssert(lhs->v[i] == rhs->v[i]);
+}
+
+    
+void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno) {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  info->hops = vt->nsizeMax;
+  switch (info->hops) {
+  default: cheapAssert(false);
+  case 3: info->vnum[3] = vt->v3num;
+  case 2: info->vnum[2] = vt->v2num;
+  case 1: info->vnum[1] = vt->vnum;
+  case 0: info->vnum[0] = 1;
+  }
+  int i;
+  for (i = 0; i < info->vnum[info->hops]; i++) info->v[i] = vt->v[i];
+}
+
+
+void MRIS_VertexNeighbourInfo_load_by_algorithm(MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno) {
+  // This algorithm is deliberately simple since it needs to be definitive and is not performance critical
+}
+
+
 // Fills the vlist parameter with the indices of the vertices up to and include nlinks hops along edges.
-// Each vertex->marked field will be set to the number of edges between it and the vno vertex.
 //
     // assumes mris->vertices[*].mark are all zero
-    // sets to -1 for [vno] and the number of hops for all entries returned in the vlist
+    // leaves them zero
 
 static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
 static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
 
 int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops)
 {
-  static bool laterTime, use_new, use_old;
-  if (!laterTime) {
-    laterTime = true;
+  static int  laterTime, interestingLaterTime;
+  static bool use_new, use_old;
+  
+  if (!laterTime++) {
     use_new = getenv("MRISfindNeighborsAtVertex_new");
     use_old = getenv("MRISfindNeighborsAtVertex_old");
     if (!(use_new || use_old)) use_new = true;
   }
 
-  bool const use_both = use_old && use_new;
-  
+  int const breakLine = __LINE__ + 2;
+  if (laterTime == interestingLaterTime)
+    fprintf(stdout, "%s:%d laterTime:%d\n", __FILE__, __LINE__, laterTime);  
+
   int result_old = use_old
     ? MRISfindNeighborsAtVertex_old(mris, vno, nlinks, listCapacity, vlist, hops)
     : 0;
@@ -821,6 +877,16 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
         use_both ? hopsTmp       : hops)
     : 0;
 
+  if (true && nlinks < 4) {
+    int i;
+    for (i = 0; i < result_new; i++) {
+      if (mris->vertices_topology[vno].v[i] < 0 
+      ||  mris->vertices_topology[vno].v[i] >= mris->nvertices) {
+        fprintf(stdout, "%s:%d Bad mris->vertices_topology[%d].v[%d]\n", __FILE__, __LINE__, vno, i);
+        cheapAssert(false);
+      }
+    }
+  }
   if (use_both) {
     fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
     if (result_old != result_new) {
@@ -835,13 +901,53 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
           i, hops[i], hopsTmp[i]);
       }
     }
+    
+    if (!good) {
+      fprintf(stdout, "%s:%d laterTime:%d interestingLaterTime:%d\n", __FILE__, breakLine, laterTime, interestingLaterTime);
+      cheapAssert(false);
+    }
   }
-  
+
   if (use_both) { freeAndNULL(vlistTmp); freeAndNULL(hopsTmp); }
   
   return use_old ? result_old : result_new;
 }
 
+void MRIS_check_vertexNeighbours(MRIS* mris) {
+
+  static bool laterTime, doTesting;
+  if (!laterTime) {
+    laterTime = true;
+    doTesting = !!getenv("MRIS_check_vertexNeighbours");
+  }
+  if (!doTesting) return;  
+
+  MRIS_VertexNeighbourInfo info0,info1;
+  int vlist[MAX_NEIGHBORS], hops[MAX_NEIGHBORS];
+  
+  fprintf(stdout, "%s:%d MRIS_check_vertexNeighbours\n", __FILE__, __LINE__);
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
+    VERTEX          * const v  = &mris->vertices         [vno];
+    if (v->ripflag) continue;
+    
+    MRIS_VertexNeighbourInfo_load_from_VERTEX(&info0, mris, vno);
+    
+    int old_nsizeMax = vt->nsizeMax;
+    int old_nsizeCur = vt->nsizeCur;    cheapAssert(old_nsizeCur > 0);
+    
+    vt->nsizeMax = vt->nsizeCur = 1;
+    MRISfindNeighborsAtVertex(mris, vno, old_nsizeMax, MAX_NEIGHBORS, vlist, hops);
+    
+    MRIS_VertexNeighbourInfo_load_from_VERTEX(&info1, mris, vno);
+    
+    
+    MRIS_VertexNeighbourInfo_check(&info0, &info1);
+  }
+}
 
 static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops)
 {
@@ -993,8 +1099,8 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
     int cachedRing;
     for (cachedRing = nsize; cachedRing <= newPossibleNsizeMax; cachedRing++) {
       switch (cachedRing) {
-      case 2: vnums[2] = vt->v2num = vnums[cachedRing]; break;
-      case 3: vnums[3] = vt->v3num = vnums[cachedRing]; break;
+      case 2: vt->v2num = vnums[cachedRing]; break;
+      case 3: vt->v3num = vnums[cachedRing]; break;
       default: cheapAssert(false);
       }
       vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
