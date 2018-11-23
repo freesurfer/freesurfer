@@ -940,16 +940,23 @@ void MRIS_check_vertexNeighbours(MRIS* mris) {
     
     MRIS_VertexNeighbourInfo_load_from_VERTEX(&info0, mris, vno);
     
+    int old_vtotal   = vt->vtotal;
     int old_nsizeMax = vt->nsizeMax;
     int old_nsizeCur = vt->nsizeCur;    cheapAssert(old_nsizeCur > 0);
     
-    vt->nsizeMax = vt->nsizeCur = 1;
+    vt->vtotal   = vt->vnum;
+    vt->nsizeCur = 1;
+    vt->nsizeMax = 1;
+    
     MRISfindNeighborsAtVertex(mris, vno, old_nsizeMax, MAX_NEIGHBORS, vlist, hops);
     
     MRIS_VertexNeighbourInfo_load_from_VERTEX(&info1, mris, vno);
     
-    
     MRIS_VertexNeighbourInfo_check(&info0, &info1);
+    
+    vt->nsizeMax = old_nsizeMax;
+    vt->nsizeCur = old_nsizeCur;
+    vt->vtotal   = old_vtotal;
   }
 }
 
