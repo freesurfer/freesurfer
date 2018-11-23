@@ -799,33 +799,45 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
     if (!(use_new || use_old)) use_new = true;
   }
 
+  bool const use_both = use_old && use_new;
+  
   int result_old = use_old
     ? MRISfindNeighborsAtVertex_old(mris, vno, nlinks, listCapacity, vlist, hops)
     : 0;
-    
+
+  int * vlistTmp = NULL, *hopsTmp = NULL;
+  if (use_old && use_new) {
+    vlistTmp = (int*)malloc(MAX_NEIGHBORS*sizeof(int));
+    hopsTmp  = (int*)malloc(MAX_NEIGHBORS*sizeof(int));
+  }
+   
   int result_new = use_new
     //
     // when testing, concatenates the two lists
     //
-    ? MRISfindNeighborsAtVertex_new(mris, vno, nlinks, listCapacity - result_old, vlist + result_old, hops + result_old)
+    ? MRISfindNeighborsAtVertex_new(mris, vno, nlinks, 
+        use_both ? MAX_NEIGHBORS : listCapacity, 
+        use_both ? vlistTmp      : vlist, 
+        use_both ? hopsTmp       : hops)
     : 0;
 
-  if (use_old && use_new) {
+  if (use_both) {
     fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
     if (result_old != result_new) {
       fprintf(stdout, " result_old:%d != result_new:%d\n",result_old,result_new);
-    } else {
-      int i;
-      for (i = 0; i < result_old;  i++) {
-        if (vlist[i] != vlist[result_old+i]
-        ||  hops [i] != hops [result_old+i]) {
-          fprintf(stdout, " vlist[%d] old:%d != new:%d  or  hops[%d] old:%d != new:%d\n",
-            i, vlist[i],vlist[result_old+i],
-            i, hops[i], hops[result_old+i]);
-        }
+    }
+    int i;
+    for (i = 0; i < result_old && i < result_new;  i++) {
+      if (vlist[i] != vlistTmp[i]
+      ||  hops [i] != hopsTmp[i]) {
+        fprintf(stdout, " vlist[%d] old:%d != new:%d  or  hops[%d] old:%d != new:%d\n",
+          i, vlist[i],vlistTmp[i],
+          i, hops[i], hopsTmp[i]);
       }
     }
   }
+  
+  if (use_both) { freeAndNULL(vlistTmp); freeAndNULL(hopsTmp); }
   
   return use_old ? result_old : result_new;
 }
