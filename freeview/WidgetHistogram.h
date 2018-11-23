@@ -81,10 +81,7 @@ public:
     m_bSymmetricMarkers = bFlag;
   }
 
-  void SetMarkerEditable(bool bFlag)
-  {
-    m_bMarkerEditable = bFlag;
-  }
+  void SetMarkerEditable(bool bFlag);
 
   void SetColorTableData( unsigned char* colortable, bool bRefresh = true );
 

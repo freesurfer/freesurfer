@@ -78,6 +78,7 @@
       <argument>-&lt;no&gt;bigventricles</argument>
       <argument>-uncompress</argument>
       <argument>-secondpassrenorm</argument>
+      <argument>-threads nompthreads</argument>
     </optional-flagged>
   </arguments>
   <outputs>

@@ -131,6 +131,7 @@
       <explanation>use top pct percent wm points as control points</explanation>
       <argument>-m momentum</argument>
       <explanation>set momentum</explanation>
+      <argument>-threads nompthreads</argument>
     </optional-flagged>
   </arguments>
   <outputs>

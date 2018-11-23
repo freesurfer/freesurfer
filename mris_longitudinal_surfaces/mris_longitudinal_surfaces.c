@@ -62,7 +62,6 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 static MRI  *MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                               int mask_val, int wsize) ;
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
@@ -773,20 +772,7 @@ main(int argc, char *argv[])
     if (longitudinal)
     {
       //reset starting point to be in the middle of final white and orig pial
-      int vno;
-      VERTEX *v;
-      //reset the starting position to be slightly inside the orig_pial in the longitudinal case
-      for (vno = 0; vno < mris->nvertices; vno++)
-      {
-        v = &mris->vertices[vno];
-        if (v->ripflag)
-        {
-          continue;
-        }
-        v->x = 0.75*v->x + 0.25*v->tx;
-        v->y = 0.75*v->y + 0.25*v->ty;
-        v->z = 0.75*v->z + 0.25*v->tz;
-      }
+      MRISblendXYZandTXYZ(mris, 0.75, 0.25);
     }
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever orig_pial is used??? Maybe that's why the cross-intersection was caused
   }
@@ -1502,35 +1488,6 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisFindMiddleOfGray(MRI_SURFACE *mris)
-{
-  int     vno ;
-  VERTEX  *v ;
-  float   nx, ny, nz, thickness ;
-
-  MRISaverageCurvatures(mris, 3) ;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris);
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-    thickness = 0.5 * v->curv ;
-    v->x = v->origx + thickness * nx ;
-    v->y = v->origy + thickness * ny ;
-    v->z = v->origz + thickness * nz ;
-  }
-  return(NO_ERROR) ;
 }
 
 MRI *

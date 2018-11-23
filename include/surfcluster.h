@@ -91,5 +91,6 @@ int sclustAnnot(MRIS *surf, int NClusters);
 int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
 		     int shape, int vtxno, int *vtxlist);
 const char *sculstSrcVersion(void);
+int sclustSaveAsPointSet(char *fname, SCS *scslist, int NClusters, MRIS *surf);
 
 #endif

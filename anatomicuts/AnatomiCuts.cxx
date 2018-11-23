@@ -195,7 +195,7 @@ int main(int narg, char* arg[])
 				std::cout << "reading trk : " << fiberFile <<" " << std::string(fiberFile).find(".trk")<< std::endl;
 				itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 				trkReader->SetTrkFileName(fiberFile);
-				trkReader->SetReferenceImage(segmentation);
+				//trkReader->SetReferenceImage(segmentation);
 				trkReader->TrkToVTK();
 			
 				vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
@@ -468,7 +468,7 @@ int main(int narg, char* arg[])
 	{
 		itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 		trkReader->SetTrkFileName(fiberFile);
-		trkReader->SetReferenceImage(segmentation);
+		//trkReader->SetReferenceImage(segmentation);
 		trkReader->TrkToVTK();
 		converter->SetVTKPolyData ( trkReader->GetOutputPolyData() );
 	}
@@ -590,7 +590,7 @@ int main(int narg, char* arg[])
 	
 			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 			trkReader->SetInput(vtkConverter->GetOutputPolyData());
-			trkReader->SetReferenceImage(segmentation);
+			//trkReader->SetReferenceImage(segmentation);
 			trkReader->SetReferenceTrack(fiberFile);
 			trkReader->SetColor(color);
 			sprintf(meshName2, "%s/%s.trk",outputFolder, it->first.c_str());

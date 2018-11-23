@@ -660,9 +660,7 @@ int main(int argc, char **argv)
           }
           //printf("%5d (%g,%g,%g) (%g,%g,%g) \n",n,SurfSrc->vertices[n].x,
           //SurfSrc->vertices[n].y,SurfSrc->vertices[n].z,x,y,z);
-          SurfSrc->vertices[n].x = x;
-          SurfSrc->vertices[n].y = y;
-          SurfSrc->vertices[n].z = z;
+          MRISsetXYZ(SurfSrc,n, x,y,z);
         }
       }
       if(UseSurfSrc == SURF_SRC_TAL_XYZ) {

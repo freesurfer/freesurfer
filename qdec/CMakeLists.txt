@@ -1,8 +1,7 @@
 project(qdec)
 
-project(tksurfer)
-
-if(BUILD_GUIS
+if(BUILD_QDEC
+  AND BUILD_GUIS
   AND OPENGL_FOUND
   AND TCLTKTIXBLT_FOUND
   AND VTK_FOUND

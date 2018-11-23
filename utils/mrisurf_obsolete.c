@@ -6498,3 +6498,68 @@ mrisDebugVertex(MRI_SURFACE *mris, int vno)
 }
 #endif
 
+#if 0
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+mrisAddVertices(MRIS *mris, double thresh)
+{
+  double   dist ;
+  int      vno, nadded, n,nvertices, nfaces, nedges, eno ;
+  VERTEX   *v, *vn ;
+  float    x, y, z ;
+
+  /* make it squared so we don't need sqrts later */
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stdout, "dividing edges more than %2.2f mm long.\n", thresh) ;
+  }
+  for (nadded = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      continue ;
+    }
+    if (vno == Gdiag_no)
+    {
+      DiagBreak() ;
+    }
+    x = v->origx ;
+    y = v->origy ;
+    z = v->origz ;
+
+    /*
+      only add vertices if average neighbor vector is in
+      normal direction, that is, if the region is concave or sulcal.
+    */
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      dist = sqrt(SQR(vn->origx-x) + SQR(vn->origy - y) + SQR(vn->origz - z));
+      if (dist > thresh)
+      {
+        if (mrisDivideEdge(mris, vno, v->v[n]) == NO_ERROR)
+        {
+          nadded++ ;
+        }
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stdout, "%d vertices added: # of vertices=%d, # of faces=%d.\n",
+            nadded, mris->nvertices, mris->nfaces) ;
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+  }
+  return(nadded) ;
+}
+#endif

@@ -30,7 +30,8 @@
 #include "MyUtils.h"
 
 WidgetTimeCoursePlot::WidgetTimeCoursePlot(QWidget *parent) :
-  QWidget(parent), m_bAutoScale(true), m_nCurrentFrame(0), m_dMinPlot(0), m_dMaxPlot(1)
+  QWidget(parent), m_bAutoScale(true), m_nCurrentFrame(0), m_dMinPlot(0), m_dMaxPlot(1),
+  m_dXInterval(1), m_dXOffset(0), m_bShowFrameNumber(false)
 {
   setFocusPolicy(Qt::StrongFocus);
 }
@@ -45,8 +46,7 @@ void WidgetTimeCoursePlot::SetTimeCourseData(const QList<double> &data,
 {
   m_data = data;
   m_dTR = t_interval;
-  if (m_dTR <= 0)
-    m_dTR = 1000;
+
   if (m_dMin != min_val || m_dMax != max_val )
   {
     m_dMinPlot = min_val;
@@ -180,30 +180,52 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 
   // draw X metrics
   nMetricInterval = 50;
-  double dTR = 1; // m_dTR;
-  dMetricStep =  (m_data.size()-1)*dTR / (rc_plot.width() / nMetricInterval);
+  double dTR = (m_bShowFrameNumber?1:m_dXInterval);
+  dMetricStep =  (m_data.size()-1) / (rc_plot.width() / nMetricInterval);
   dMetricStep = MyUtils::RoundToGrid( dMetricStep );
   dMetricPos = 0;
+  double dScale = 1;
+  int nPrecise = 0;
+  if (!m_bShowFrameNumber)
+  {
+    double np = log(m_dXInterval+m_dXOffset);
+    if (np < 2)
+      nPrecise = 2;
+    else if (np > 3)
+    {
+      dScale = 0.001;
+      m_strXUnit = QString("10^3 ") + m_strXUnit;
+    }
+    else if (np < -3)
+    {
+      dScale = 1000;
+      m_strXUnit = QString("10^-3 ") + m_strXUnit;
+      nPrecise = 2;
+    }
+  }
   double x = rc_plot.left();
   while (x < rc_plot.right())
   {
-    QString strg = QString::number(dMetricPos);
+    QString strg;
+    if (m_bShowFrameNumber)
+      strg = QString::number(dMetricPos);
+    else
+      strg = QString::number((m_dXOffset+m_dXInterval*dMetricPos)*dScale, 'f', nPrecise);
     p.drawText(QRectF(x-100, rc_plot.bottom()+5, 200, 20),
                Qt::AlignTop | Qt::AlignHCenter, strg);
 
     dMetricPos += dMetricStep;
-    x = rc_plot.left() + dMetricPos/((m_data.size()-1)*dTR)*rc_plot.width();
+    x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_data.size()-1);
   }
 
   QRectF rc = rect().adjusted(0, 0, 0, -3);
-  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Frame ");
+  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, (m_bShowFrameNumber || m_strXUnit.isEmpty())?"Frame":m_strXUnit);
 
   // draw current stats
-  QString strg = QString("Signal intensity: %1 %2  Frame: %3")
+  QString strg = QString("Frame: #%3 ( %4 %5 )    Signal intensity: %1 %2")
       .arg(m_data[m_nCurrentFrame])
       .arg(!m_secondData.isEmpty() ? QString("/ %1").arg(m_secondData[m_nCurrentFrame]) : "")
-      //   .arg(m_nCurrentFrame*m_dTR/1000)
-      .arg(m_nCurrentFrame);
+      .arg(m_nCurrentFrame).arg(m_dXOffset+m_nCurrentFrame*m_dXInterval).arg(m_strXUnit);
   rc = rect().adjusted(0, 5, 0, 0);
   p.drawText(rc, Qt::AlignHCenter | Qt::AlignTop, strg);
   m_rectPlot = rc_plot;

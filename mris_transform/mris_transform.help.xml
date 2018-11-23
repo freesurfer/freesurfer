@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mris_transform -- transform surfaces</name>
+  <synopsis>mris_transform [options] &lt;input&gt; &lt;transform&gt; &lt;output&gt;</synopsis>
+  <description>This program warps surfaces from one space to another. Note that the word "transform" here refers to image-to-image transforms; transforms applied to surfaces/coordinates are the inverse of those applied to images.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;input&gt;</argument>
+      <explanation>Input surface, e.g. lh.pial</explanation>
+      <argument>&lt;transform&gt;</argument>
+      <explanation>Image-to-image transform, e.g. LTA or M3Z (can be identity.nofile)</explanation>
+      <argument>&lt;output&gt;</argument>
+      <explanation>Output surface, e.g. lh.out.pial</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-s, --trx-src &lt;transform source image&gt;</argument>
+      <explanation>Specify the source geometry if the transform was created by MNI/mritotal or FSL/flirt</explanation>
+      <argument>-d, --trx-dst &lt;transform destination image&gt;</argument>
+      <explanation>Specify the destination geometry if the transform does not include this information or the path in the M3Z is invalid</explanation>
+      <argument>-i, --is-inverse</argument>
+      <explanation>Use this option when using a tranform from destination to source space</explanation>
+      </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>&lt;output&gt;</output>
+    <explanation>Transformed output surface</explanation>
+  </outputs>
+  <example>mris_transform lh.1.pial 1_to_2.lta lh.out.pial</example>
+  <example>mris_transform \
+    --trx-src nu.2.mgz \
+    --trx-dst nu.1.mgz \
+    --is-inverse \
+    lh.1.pial 2_to_1.fslmat lh.out.pial</example>
+  <example>mris_transform \
+    --trx-dst nu.1.mgz \
+    lh.1.pial 1_to_2.m3z lh.out.pial</example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mri_transform, mri_convert, mri_info</see-also>
+</help>
+

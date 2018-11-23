@@ -1894,8 +1894,13 @@ int LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
   for (i = 0; i < lta->num_xforms; i++) {
     if (mri_src == NULL) {
       MATRIX *m_source_r2v, *m_dst_v2r, *m_tmp;
-      m_source_r2v = VGgetRasToVoxelXform(&lta->xforms[i].src, NULL, 0);
-      m_dst_v2r = VGgetVoxelToRasXform(&lta->xforms[i].dst, NULL, 0);
+      // Before 10/2018, VGget*To*Xform() returned the inverse of the
+      // transform one would expect from the function name. This is now
+      // fixed. It seems the problem was unnoticed here, however. To keep the
+      // output of LTAvoxelToRasXform() unchanged, we swapped the following
+      // two function invocations:
+      m_source_r2v = VGgetVoxelToRasXform(&lta->xforms[i].src, NULL, 0);
+      m_dst_v2r = VGgetRasToVoxelXform(&lta->xforms[i].dst, NULL, 0);
       m_tmp = MatrixMultiply(lta->xforms[i].m_L, m_source_r2v, NULL);
       m_L = MatrixMultiply(m_dst_v2r, m_tmp, NULL);
       MatrixFree(&m_tmp);
@@ -2511,38 +2516,19 @@ int TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *
   return errCode;
 }
 
-int TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz)
+int TransformSampleInverseFloat(const TRANSFORM *transform, float xv, float yv,
+                                float zv, float *px, float *py, float *pz)
 {
   static VECTOR *v_input, *v_canon = NULL;
   static MATRIX *m_L_inv;
-  float xt, yt, zt;
-  int xn, yn, zn;
   LTA *lta;
-  GCA_MORPH *gcam;
-  GCA_MORPH_NODE *gcamn;
   int errCode = NO_ERROR;
 
   if (transform->type == MORPH_3D_TYPE) {
-    gcam = (GCA_MORPH *)transform->xform;
-    if (GCAMsampleMorph(gcam, xv, yv, zv, px, py, pz) == NO_ERROR) return (NO_ERROR);
-
-    xn = nint(xv / gcam->spacing);
-    yn = nint(yv / gcam->spacing);
-    zn = nint(zv / gcam->spacing);
-
-    if (xn >= gcam->width) xn = gcam->width - 1;
-    if (yn >= gcam->height) yn = gcam->height - 1;
-    if (zn >= gcam->depth) zn = gcam->depth - 1;
-    if (xn < 0) xn = 0;
-    if (yn < 0) yn = 0;
-    if (zn < 0) zn = 0;
-
-    gcamn = &gcam->nodes[xn][yn][zn];
-    xt = gcamn->x;
-    yt = gcamn->y;
-    zt = gcamn->z;
-    // if marked invalid, then return error
-    if (gcamn->invalid) errCode = ERROR_BADPARM;
+    // Return error if out of bounds instead of closest valid coordinates: when
+    // interpolating, this will prevent things like repeating voxels at the tip
+    // of the nose until reaching the edge of the image.
+    return GCAMsampleMorph((GCAM *)transform->xform, xv, yv, zv, px, py, pz);
   }
   else {
     lta = (LTA *)transform->xform;
@@ -2573,16 +2559,13 @@ int TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float 
 #else
     MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input);
 #endif
-    xt = V3_X(v_input);
-    yt = V3_Y(v_input);
-    zt = V3_Z(v_input);
+    *px = V3_X(v_input);
+    *py = V3_Y(v_input);
+    *pz = V3_Z(v_input);
     // here I cannot get access to width, height, depth values
     // thus I cannot judge the point is good or bad
     // errCode remains to be valid
   }
-  *px = xt;
-  *py = yt;
-  *pz = zt;
 
   return errCode;
 }
@@ -2759,6 +2742,7 @@ MRI *TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst,
       // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
       //      ((LTA *)transform->xform)->xforms[0].m_L);
       lta = (LTA *)transform->xform;
+      LTAfillInverse(lta);
       mri_dst = LTAinverseTransformInterp(mri_src, mri_dst, lta, interp_type);
       break;
   }
@@ -4409,7 +4393,7 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
+MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *PxyzOffset, *Pcrs;
 
@@ -4470,11 +4454,11 @@ MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
   return (m);
 }
 
-MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
+MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
 {
   MATRIX *m_inv;
 
-  m_inv = VGgetRasToVoxelXform(vg, NULL, base);
+  m_inv = VGgetVoxelToRasXform(vg, NULL, base);
   m = MatrixInverse(m_inv, m);
   MatrixFree(&m_inv);
   return (m);
@@ -5073,9 +5057,9 @@ double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
 }
 
 // Concatenate any combination of LTAs and GCAMs. New nemory is allocated.
-// Reduction is only considered for LTAs. Inverse of any GCAM will be freed.
-// LTAs will be inverted if geometies don't match, or error. The first transform
-// would be applied to images first (to coordinates last).
+// Inverse of GCAMs will be freed. LTAs will be inverted if geometries don't
+// match, or error. The first transform would be applied to images first
+// (to coordinates last).
 TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
 {
   GCAM *gcam;
@@ -5123,7 +5107,7 @@ TRANSFORM *TransformConcat(TRANSFORM** trxArray, unsigned numTrx)
 
 // Inverts transform in-place, i.e. the original transform is replaced. MRI not
 // needed for LTAs.
-void TransformInvertReplace(TRANSFORM *transform, MRI *mri)
+void TransformInvertReplace(TRANSFORM *transform, const MRI *mri)
 {
   LTA *lta;
   GCAM *gcam;

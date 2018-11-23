@@ -36,6 +36,8 @@
       <explanation> Output file</explanation>
       <argument>--streg srcreg1 trgreg1</argument>
       <explanation> source-target registration pair</explanation>
+      <argument>--lta source-surf ltafile outputsurf</argument>
+      <explanation> apply an LTA registration to a surface</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--streg srcreg2 trgreg2</argument>
@@ -65,6 +67,11 @@ Note that lh.fsaverage_sym.sphere.reg is used.  This is intentional; the left he
      --trg rh.lh.source.label
   </example>
 
+  <example>
+    Map a surface from the anatomical space to fMRI space.
+    First, you have to get an LTA registration file (eg, with bbregister)
+    mris_apply_reg --lta lh.white fmri.reg.lta ./lh.white.fmri
+  </example>
 
   <bugs>None</bugs>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

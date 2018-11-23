@@ -383,32 +383,39 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
   MRI_EDGE *e;
   DMATRIX *g0, *gnum;
   double J0,J1;
-  int surfvtxno, wrtdimno, c;
-  VERTEX *v;
+  int wrtdimno, c;
 
   MRISfaceNormalGrad(surf, 0);
   MRISedgeGradDot(surf);
+  
   g0 = DMatrixAlloc(1,3,MATRIX_REAL);
   J0 = MRISedgeAngleCostEdgeVertex(surf, edgeno, wrtvtxno, &g0);
   e = &(surf->edges[edgeno]);
-  surfvtxno = e->vtxno[wrtvtxno];
-  v = &(surf->vertices[surfvtxno]);
+  
+  int      const surfvtxno = e->vtxno[wrtvtxno];
+  VERTEX * const v         = &surf->vertices[surfvtxno];
+  
   //MRISedgePrint(surf, edgeno, stdout);
   //printf("%3d %g %g %g  %g\n",surfvtxno,v->x,v->y,v->z,J0);
 
   gnum = DMatrixAlloc(1,3,MATRIX_REAL);  
   for(wrtdimno=0; wrtdimno < 3; wrtdimno++){
-    if(wrtdimno == 0) v->x += delta;
-    if(wrtdimno == 1) v->y += delta;
-    if(wrtdimno == 2) v->z += delta;
+
+    float const old_x = v->x, old_y = v->y, old_z = v->z;
+    float x = old_x, y = old_y, z = old_z;
+      
+    if(wrtdimno == 0) x += delta;
+    if(wrtdimno == 1) y += delta;
+    if(wrtdimno == 2) z += delta;
+    MRISsetXYZ(surf, surfvtxno, x,y,z);
+    
     MRISfaceNormalGrad(surf, 0);
     MRISedgeGradDot(surf);
     J1 = MRISedgeAngleCostEdgeVertex(surf, edgeno, wrtvtxno, NULL);
     //printf("  %g %g %g    %g\n",v->x,v->y,v->z,J1);
     gnum->rptr[1][wrtdimno+1] = (J1-J0)/delta;
-    if(wrtdimno == 0) v->x -= delta;
-    if(wrtdimno == 1) v->y -= delta;
-    if(wrtdimno == 2) v->z -= delta;
+
+    MRISsetXYZ(surf, surfvtxno, old_x,old_y,old_z);
   }
   if(0){
   printf("g0    = [");
@@ -425,6 +432,8 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
   DMatrixFree(&g0);
   DMatrixFree(&gnum);
 
+  // BUG forgets to recompute the metric properties
+  
   return(0);
 }
 
@@ -1000,39 +1009,50 @@ BBRFACE *BBRCostFace(int faceno, int wrtvtxno, BBRPARAMS *bbrpar, BBRFACE *bbrf)
   cost and compares it against the theortical for the given face and
   vertex. Returns the maximum relative difference.
 */
-double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose)
+double TestBBRCostFace(BBRPARAMS * const bbrpar, int const faceno, int const wrtvtxno, double const delta, int const verbose)
 {
-  int wrtdimno,svtxno,n;
-  FACE *f;
-  VERTEX *v;
-  BBRFACE *bbrf1,*bbrf2=NULL,*bbrfgrad=NULL;
-  double diff,maxgrad,maxdiff,maxrdiff=0;
-
   // Compute baseline cost and gradient
   MRISfaceNormalGrad(bbrpar->surf, 0);
-  bbrf1 = BBRCostFace(faceno, -1, bbrpar,NULL);
+
+  BBRFACE *bbrf1;
+  bbrf1 = BBRCostFace(faceno, -1,       bbrpar, NULL);
   bbrf1 = BBRCostFace(faceno, wrtvtxno, bbrpar, bbrf1);
-  if(verbose) {
+
+  if (verbose) {
     printf("wrtvtxno = %d, delta = %lf \n",wrtvtxno,delta);
     printf("BBRF1 ----------\n");
     BBRFacePrint(stdout,bbrf1,bbrpar);
   }
 
-  maxgrad = 0;
-  maxdiff = 0;
-  f = &(bbrpar->surf->faces[faceno]);
-  svtxno = f->v[wrtvtxno];
-  v = &(bbrpar->surf->vertices[svtxno]);
+  FACE*   const f      = &bbrpar->surf->faces[faceno];
+  int     const svtxno = f->v[wrtvtxno];
+  MRIS*   const mris   = bbrpar->surf;
+  VERTEX* const v      = &mris->vertices[svtxno];
+  
+  double maxgrad = 0, maxdiff = 0;
+  
   // Go through each dimension in the WRT vertex
-  for(wrtdimno=0; wrtdimno<3; wrtdimno++){
-    // Doing the delta here is convenient but sometimes in accurate
-    // because xyz are floats so limited on how small delta can be.
-    if(wrtdimno==0) v->x += delta;
-    if(wrtdimno==1) v->y += delta;
-    if(wrtdimno==2) v->z += delta;
+  //
+  BBRFACE* bbrfgrad = NULL;     // these are reused around the loop
+  BBRFACE* bbrf2    = NULL; 
 
+  int wrtdimno;
+  for (wrtdimno = 0; wrtdimno < 3; wrtdimno++) {
+
+    // Doing the delta here is convenient but sometimes inaccurate
+    // because xyz are floats so limited on how small delta can be.
+    //
+    float const old_x = v->x, old_y = v->y, old_z = v->z;
+    
+    float x = old_x, y = old_y, z = old_z;
+    if (wrtdimno==0) x += delta;
+    if (wrtdimno==1) y += delta;
+    if (wrtdimno==2) z += delta;
+    MRISsetXYZ(mris,svtxno,x,y,z);
+    
     // Compute face normal (but not grad of norm). 
     // Runs for all faces, inefficient, but only a test
+    //
     MRISfaceNormalGrad(bbrpar->surf, 1); 
 
     // Compute BBRFace cost, etc, not grads
@@ -1044,14 +1064,18 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
     // This will work for all the parameters, but just tesing cost
     // gradient -- if that is correct, then everything upstream must
     // be correct. But upstream grads could be computed in the same way.
-    diff = bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]-bbrfgrad->cost;
+    double const diff = bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]-bbrfgrad->cost;
 
     // Keep track of the max gradient and the max diff bet theoretical and numerical
-    if(maxgrad < fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]))
-      maxgrad = fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]);
-    if(maxdiff < fabs(diff)) maxdiff = fabs(diff) ;
+    if (maxgrad < fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]))
+        maxgrad = fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]);
+        
+    if (maxdiff < fabs(diff)) 
+        maxdiff = fabs(diff) ;
 
-    if(verbose) {
+    if (verbose) {
+      int n;
+    
       printf("wrtdim %d =================================================\n",wrtdimno);
       printf("%5d %5d %d %d %12.10lf %12.10lf %12.10lf\n",faceno,svtxno,wrtvtxno,wrtdimno,
 	     bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1],bbrfgrad->cost,diff);
@@ -1069,13 +1093,15 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
       printf("BBRF Numerical Grad ----------\n");
       BBRFacePrint(stdout,bbrfgrad,bbrpar);
     }
+
     // restore
-    if(wrtdimno==0) v->x -= delta;
-    if(wrtdimno==1) v->y -= delta;
-    if(wrtdimno==2) v->z -= delta;
+    // the old code subtracted delta, but floating point arithmetic does not require that (f+d)-f == f
+    //
+    MRISsetXYZ(mris,svtxno,old_x,old_y,old_z);
   }
+    
   // Compute the maximum diff relative to the maximum gradient
-  maxrdiff = maxdiff/(maxgrad+10e-10);
+  double const maxrdiff = maxdiff/(maxgrad+10e-10);
 
   if(verbose){
     printf("maxgrad = %lf maxdiff = %lf  maxrdiff = %lf\n",maxgrad,maxdiff,maxrdiff);
@@ -1088,7 +1114,7 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
   BBRFaceFree(&bbrfgrad);
 
   // Recompute baseline cost and gradient
-  MRIScomputeMetricProperties(bbrpar->surf); // not needed?
+  MRIScomputeMetricProperties(bbrpar->surf);
   MRISfaceNormalGrad(bbrpar->surf, 0);
 
   return(maxrdiff);

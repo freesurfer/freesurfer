@@ -27,9 +27,9 @@
 
 #include "mrisurf_topology.h"
 
-int mrisCheckSurface(MRI_SURFACE *mris);
+int mrisCheckSurface(MRIS *mris);
 
-int MRISfreeDists(MRI_SURFACE *mris) ;
+int MRISfreeDists(MRIS *mris) ;
 
 typedef struct PerThreadMRIDistance {
   MRI const * mri_distance;
@@ -47,9 +47,9 @@ void updateDistanceEltFromSignArgAndSquareNoLockNeeded(
     float distanceSquared,
     float sqrtfDistanceSquared);
 
-int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int *flist);
+int mrisFindAllOverlappingFaces(MRIS *mris, MHT *mht, int fno, int *flist);
     
-int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
+int mrisCalculateFaceCentroid(MRIS *mris, int fno, float *px, float *py, float *pz);
 
 #define NOT_PROCESSED_YET 1000
 #define NPY               NOT_PROCESSED_YET
@@ -68,7 +68,7 @@ int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, 
 #define zSURF(mri, z) (mri->zstart + (float)z / mri->zsize)
 
 
-int mrisComputeTangentPlanes(MRI_SURFACE *mris);
+int mrisComputeTangentPlanes(MRIS *mris);
 
 extern double l_mri;
 extern double l_unmri;
@@ -80,9 +80,9 @@ extern double l_surf;
 extern double l_wm;
 
 #if SPHERE_INTERSECTION
-int containsAnotherVertexOnSphere(MRI_SURFACE *mris, int vno0, int vno1, int vno2, int mode);
+int containsAnotherVertexOnSphere(MRIS *mris, int vno0, int vno1, int vno2, int mode);
 #else
-int containsAnotherVertex(MRI_SURFACE *mris, int vno0, int vno1, int vno2, double e0[3], double e1[3], double origin[3]);
+int containsAnotherVertex(MRIS *mris, int vno0, int vno1, int vno2, double e0[3], double e1[3], double origin[3]);
 #endif
 
 void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], int verbose);
@@ -94,7 +94,7 @@ void  setFaceNorm    (MRIS const * const mris, int fno, float nx, float ny, floa
 void  setFaceOrigArea(MRIS const * const mris, int fno, float orig_area);
 float getFaceOrigArea(MRIS const * const mris, int fno);
 
-int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v);
+int mrisChooseFace(MRIS *mris, MHT *mht, VERTEX *v);
 
 void computeDefectFaceNormal(MRIS const * const mris, int const fno);
 
@@ -102,11 +102,11 @@ void mrisurf_deferSetFaceNorms  (MRIS* mris);
 void mrisurf_recomputeFaceNorms (MRIS* mris);
 void mrisurf_undeferSetFaceNorms(MRIS* mris);
 
-int mrisMarkIntersections(MRI_SURFACE *mris);
+int mrisMarkIntersections(MRIS *mris);
 
-int mrisClearDistances(MRI_SURFACE *mris);
+int mrisClearDistances(MRIS *mris);
 
-int MRIScomputeAllDistances(MRI_SURFACE *mris);
+int MRIScomputeAllDistances(MRIS *mris);
 
 #define OUTSIDE_VERTEX 0
 #define INSIDE_VERTEX 1               /* not yet used */
@@ -116,51 +116,53 @@ int MRIScomputeAllDistances(MRI_SURFACE *mris);
 #define BORDER_VERTEX TRIANGLE_VERTEX /* part of a triangle! */
 #define USED_VERTEX 5                 /* used in the final tessellation */
 
-void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp);
+void mrisDumpFace(MRIS *mris, int fno, FILE *fp);
 
-int     mrisComputeSurfaceDimensions        (MRI_SURFACE *mris);
-int     mrisComputeVertexDistances          (MRI_SURFACE *mris);
-int     mrisComputeOriginalVertexDistances  (MRI_SURFACE *mris);
-void    MRIScomputeAvgInterVertexDist       (MRIS *Surf, double *StdDev);
-void    mrisSetAvgInterVertexDist           (MRIS *Surf, double to);
-int    mrisTrackTotalDistance               (MRI_SURFACE *mris);
-int    mrisTrackTotalDistanceNew            (MRI_SURFACE *mris);
+float mrisComputeArea(MRIS *mris, int fac, int n);
 
-int mrisComputeBoundaryNormals(MRI_SURFACE *mris);
+int    mrisComputeSurfaceDimensions      (MRIS *mris);
+int    mrisComputeVertexDistances        (MRIS *mris);
+int    mrisComputeOriginalVertexDistances(MRIS *mris);
+void   MRIScomputeAvgInterVertexDist     (MRIS *Surf, double *StdDev);
+void   mrisSetAvgInterVertexDist         (MRIS *Surf, double to);
+int    mrisTrackTotalDistance            (MRIS *mris);
+int    mrisTrackTotalDistanceNew         (MRIS *mris);
 
-int mrisComputeCurvatureMinMax(MRI_SURFACE *mris);
+int mrisComputeBoundaryNormals(MRIS *mris);
 
-int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot);
+int mrisComputeCurvatureMinMax(MRIS *mris);
 
-int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris,
+int mrisComputeNormalDotDistribution(MRIS *mris, HISTOGRAM *h_dot);
+
+int mrisComputePrincipalCurvatureDistributions(MRIS *mris,
                                                       HISTOGRAM *h_k1,
                                                       HISTOGRAM *h_k2,
                                                       MRI *mri_k1_k2);
 
 float mrisDefectFaceMRILogLikelihood(
-    MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
+    MRIS *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
 
 float mrisDefectVertexMRILogLikelihood(
-    MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
+    MRIS *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
 
 #if MATRIX_ALLOCATION
 extern MATRIX *VoxelFromSRASmatrix;
 int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv);
 #endif
 
-float  mrisSampleAshburnerTriangleEnergy    (MRI_SURFACE * const mris, int const vno, INTEGRATION_PARMS * const parms, float cx, float cy, float cz);
-double mrisComputeThicknessSmoothnessEnergy (MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms);
-float  mrisSampleMinimizationEnergy         (MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz);
-float  mrisSampleParallelEnergyAtVertex     (MRI_SURFACE *mris, int const vno, INTEGRATION_PARMS *parms);
-float  mrisSampleParallelEnergy             (MRI_SURFACE *mris, int const vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz);
-float  mrisSampleNormalEnergy               (MRI_SURFACE *mris, VERTEX *v,     INTEGRATION_PARMS *parms, float cx, float cy, float cz);
-float  mrisSampleSpringEnergy               (MRI_SURFACE *mris, int const vno, float cx, float cy, float cz, INTEGRATION_PARMS *parms);
+float  mrisSampleAshburnerTriangleEnergy    (MRIS * const mris, int const vno, INTEGRATION_PARMS * const parms, float cx, float cy, float cz);
+double mrisComputeThicknessSmoothnessEnergy (MRIS *mris, double l_tsmooth, INTEGRATION_PARMS *parms);
+float  mrisSampleMinimizationEnergy         (MRIS *mris, VERTEX *v,        INTEGRATION_PARMS *parms, float cx, float cy, float cz);
+float  mrisSampleParallelEnergyAtVertex     (MRIS *mris, int const vno, INTEGRATION_PARMS *parms);
+float  mrisSampleParallelEnergy             (MRIS *mris, int const vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz);
+float  mrisSampleNormalEnergy               (MRIS *mris, VERTEX *v,     INTEGRATION_PARMS *parms, float cx, float cy, float cz);
+float  mrisSampleSpringEnergy               (MRIS *mris, int const vno, float cx, float cy, float cz, INTEGRATION_PARMS *parms);
 
 int mrisComputeOrigNormal (MRIS *mris, int vno, float norm[]);
 int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]);
 int mrisComputePialNormal (MRIS *mris, int vno, float norm[]);
 
-int mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *pnfound);
+int mrisFindUnambiguousFace(MRIS *mris, MHT *mht, VERTEX *v, int *pnfound);
 
 
 typedef struct ComputeDefectContext {

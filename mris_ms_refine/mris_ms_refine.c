@@ -235,7 +235,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
+
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 static char brain_name[STRLEN] = "brain" ;
@@ -1103,28 +1103,6 @@ static void
 print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisFindMiddleOfGray(MRI_SURFACE *mris) {
-  int     vno ;
-  VERTEX  *v ;
-  float   nx, ny, nz, thickness ;
-
-  MRISaverageCurvatures(mris, 3) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-    thickness = 0.5 * v->curv ;
-    v->x = v->origx + thickness * nx ;
-    v->y = v->origy + thickness * ny ;
-    v->z = v->origz + thickness * nz ;
-  }
-  return(NO_ERROR) ;
 }
 
 #define MAX_DEFORM_DIST  3

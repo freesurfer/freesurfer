@@ -178,6 +178,8 @@ int main(int argc, char *argv[])
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
     "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
     "':overlay_zorder=number' Set z-order for rendering overlay.\n\n"
+    "':mrisp=filename' load parameterization data from file as overlay.\n\n"
+    "':sphere=filename' load given sphere file.\n\n"
     "':patch=patch_filename' Load given patch file.\n\n"
     "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
     "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"

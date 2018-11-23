@@ -721,17 +721,13 @@ int MakeSkullSurface(char *subject, double *params, char *innername, char *outer
  */
 int MRISprojectDist(MRIS *surf, const MRI *mridist)
 {
-  VERTEX *vtx;
   int vno,nthstep;
-  double dist;
 
   for(vno = 0; vno < surf->nvertices; vno++){
-    vtx = &(surf->vertices[vno]);
+    VERTEX *vtx = &surf->vertices[vno];
     for(nthstep = 0; nthstep < mridist->nframes; nthstep++){
-      dist = MRIgetVoxVal(mridist,vno,0,0,nthstep);
-      vtx->x += dist*vtx->nx;
-      vtx->y += dist*vtx->ny;
-      vtx->z += dist*vtx->nz;
+      double dist = MRIgetVoxVal(mridist,vno,0,0,nthstep);
+      MRISsetXYZ(surf,vno, vtx->x + dist*vtx->nx, vtx->y + dist*vtx->ny, vtx->z + dist*vtx->nz);
     }
   }
   return(0);

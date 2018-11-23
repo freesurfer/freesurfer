@@ -4793,32 +4793,20 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
     end_frame = mri_src->nframes - 1;
   }
 
-#if 0
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-#else
-  // should be 256^3
-  width = gcam->width * gcam->spacing;
-  height = gcam->height * gcam->spacing;
-  depth = gcam->depth * gcam->spacing;
-#endif
+  width = gcam->atlas.width;
+  height = gcam->atlas.height;
+  depth = gcam->atlas.depth;
 
-  // GCAM is a non-linear voxel-to-voxel transform
-  // it also assumes that the uniform voxel size
-  if (mri_morphed) {
-    if ((mri_src->xsize != mri_src->ysize) || (mri_src->xsize != mri_src->zsize) ||
-        (mri_src->ysize != mri_src->zsize)) {
-      ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
-    }
+  if (mri_morphed && (mri_morphed->width!=width
+                      || mri_morphed->height!=height
+                      || mri_morphed->depth!=depth)) {
+      ErrorExit(ERROR_BADPARM, "invalid input MRI size for GCAMmorphToAtlas()");
   }
   if (!mri_morphed) {
-    // alloc with FOV same as gcam
-    mri_morphed = MRIallocSequence
-        //(width, height, depth, MRI_FLOAT, frame < 0 ? mri_src->nframes : 1) ;
-        (width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1);
-    MRIcopyHeader(mri_src, mri_morphed);
+    mri_morphed = MRIallocSequence(width, height, depth, mri_src->type,
+      frame < 0 ? mri_src->nframes : 1);
   }
+  useVolGeomToMRI(&gcam->atlas, mri_morphed);
 
   if (getenv("MGH_TAL")) {
     xoff = -7.42;
@@ -4899,10 +4887,6 @@ MRI *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame
     // we change direction cosines
     MRIreInitCache(mri_morphed);
   }
-  else {
-    useVolGeomToMRI(&gcam->atlas, mri_morphed);
-  }
-
   return (mri_morphed);
 }
 MRI *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
@@ -6138,23 +6122,18 @@ int GCAMsampleInverseMorphRAS(
   ---------------------------------------------------------------------*/
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
-  int vtxno, err;
-  VERTEX *v;
-  float Mx = 0, My = 0, Mz = 0;
-
-  // printf("Appling Inverse Morph \n");
+  // printf("Applying Inverse Morph \n");
+  int vtxno;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
-    v = &(mris->vertices[vtxno]);
-    err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    VERTEX *v = &mris->vertices[vtxno];
+    float Mx, My, Mz;
+    int err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
     if (err) {
       printf("WARNING: GCAMmorphSurf(): error converting vertex %d\n", vtxno);
       printf("  Avxyz = (%g,%g,%g), Mvxyz = (%g,%g,%g), \n", v->x, v->y, v->z, Mx, My, Mz);
       printf(" ... Continuing\n");
     }
-    // pack it back into the vertex
-    v->x = Mx;
-    v->y = My;
-    v->z = Mz;
+    MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
   return (0);
 }
@@ -10746,9 +10725,9 @@ int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform)
   }
   return (NO_ERROR);
 }
-int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform)
+int GCAMapplyInverseTransform(GCA_MORPH *gcam, const TRANSFORM *transform)
 {
-  int x, y, z;
+  int x, y, z, out_of_bounds;
   float xf, yf, zf;
   GCA_MORPH_NODE *gcamn;
 
@@ -10759,16 +10738,20 @@ int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform)
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
         }
-        TransformSampleInverseFloat(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z, &xf, &yf, &zf);
+        out_of_bounds = TransformSampleInverseFloat(transform,
+          gcamn->x, gcamn->y, gcamn->z, &xf, &yf, &zf);
+        
+        if (out_of_bounds) {
+          // Marking as invalid is insufficient, as not written to disk. Set
+          // x/y/z and origx/origy/origz to zero (see GCAMread).
+          gcamn->invalid = GCAM_POSITION_INVALID;
+          gcamn->x = gcamn->y = gcamn->z = 0.0;
+          gcamn->origx = gcamn->origy = gcamn->origz = 0.0;
+          continue;
+        }
         gcamn->x = xf;
         gcamn->y = yf;
         gcamn->z = zf;
-
-        TransformSampleInverseFloat(
-            transform, (float)gcamn->origx, (float)gcamn->origy, (float)gcamn->origz, &xf, &yf, &zf);
-        gcamn->origx = xf;
-        gcamn->origy = yf;
-        gcamn->origz = zf;
       }
     }
   }
@@ -13795,7 +13778,12 @@ int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
   }
 
   if (mri == NULL) {
-    m = VGgetRasToVoxelXform(&gcam->image, NULL, 0);
+    // Before 10/2018, VGget*To*Xform() returned the inverse of the
+    // transform one would expect from the function name. This is now
+    // fixed. It seems the problem was unnoticed here, however. To keep the
+    // output of GCAMrasToVox() unchanged, we swapped the following
+    // function invocation:
+    m = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
   }
   else {
     m = MRIgetRasToVoxelXform(mri);
@@ -19389,16 +19377,15 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   LTAfillInverse(lta2);
   LTAfillInverse(lta1);
   
-  if (gcam == out) {
+  int width = lta2->xforms[0].dst.width / gcam->spacing;
+  int height = lta2->xforms[0].dst.height / gcam->spacing;
+  int depth = lta2->xforms[0].dst.depth / gcam->spacing;
+  if (gcam == out)
     ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output cannot be input");
-  }
-  if (out && (out->width != gcam->width || out->height != gcam->height ||
-              out->depth != gcam->depth)) {
+  if (out && (out->width!=width || out->height!=height ||out->depth!=depth))
     ErrorExit(ERROR_BADPARM, "ERROR: GCAMconcat3(): output size does not match");
-  }
-  if (!out) {
-    out = GCAMalloc(gcam->width, gcam->height, gcam->depth);
-  }
+  if (!out)
+    out = GCAMalloc(width, height, depth);
   
   if (gcam->type == GCAM_RAS) {
     printf("GCAMconcat3(): converting from GCAM_RAS to GCAM_VOX\n");
@@ -19415,9 +19402,9 @@ GCA_MORPH *GCAMconcat3(LTA *lta1, GCAM *gcam, LTA *lta2, GCAM *out)
   w = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(orig, 4) = 1.0;
   VECTOR_ELT(w, 4) = 1.0;
-  for (c = 0; c < gcam->width; c++) {
-    for (r = 0; r < gcam->height; r++) {
-      for (s = 0; s < gcam->depth; s++) {
+  for (c = 0; c < width; c++) {
+    for (r = 0; r < height; r++) {
+      for (s = 0; s < depth; s++) {
         if (c == Gx && r == Gy && s == Gz) {
           DiagBreak();
         }
@@ -19518,13 +19505,13 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
 }
 GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
 {
-  int xs, ys, zs, xd, yd, zd, labels[MAX_CMA_LABELS], l, max_l, max_count;
-  GCA_MORPH_NODE *gcamn_src, *gcamn_dst;
+  int xd, yd, zd;
+  GCA_MORPH_NODE *node_src, *node_dst;
   GCA_MORPH *gcam_dst;
 
   gcam_dst = GCAMalloc(gcam->width / 2, gcam->height / 2, gcam->depth / 2);
-  *(&gcam_dst->image) = *(&gcam->image);
-  *(&gcam_dst->atlas) = *(&gcam->atlas);
+  gcam_dst->image = gcam->image;
+  gcam_dst->atlas = gcam->atlas;
   gcam_dst->spacing = 2 * gcam->spacing;
   gcam_dst->ninputs = gcam->ninputs;
   gcam_dst->gca = gcam->gca;
@@ -19532,85 +19519,48 @@ GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
   gcam_dst->type = gcam->type;
   gcam_dst->m_affine = gcam->m_affine;
   gcam_dst->det = gcam->det;
-
+  // Averaging neighboring nodes not necessary: when applied, e.g. using
+  // GCAMmorphToAtlas(), a weighted mean is computed. Interpolating twice
+  // increases differences between downsampled and original warp.
   for (xd = 0; xd < gcam_dst->width; xd++) {
     for (yd = 0; yd < gcam_dst->height; yd++) {
       for (zd = 0; zd < gcam_dst->depth; zd++) {
-        gcamn_dst = &gcam->nodes[xd][yd][zd];
-        memset(labels, 0, sizeof(labels));
+        node_dst = &gcam_dst->nodes[xd][yd][zd];
+        node_src = &gcam->nodes[xd*2][yd*2][zd*2];
+        
+        node_dst->x = node_src->x;
+        node_dst->y = node_src->y;
+        node_dst->z = node_src->z;
 
-        for (xs = xd * 2; xs <= xd * 2 + 1; xs++)
-          for (ys = yd * 2; ys <= yd * 2 + 1; ys++)
-            for (zs = zd * 2; zs <= zd * 2 + 1; zs++) {
-              gcamn_src = &gcam->nodes[xs][ys][zs];
-              labels[gcamn_src->label]++;
+        node_dst->origx = node_src->origx;
+        node_dst->origy = node_src->origy;
+        node_dst->origz = node_src->origz;
 
-              gcamn_dst->x += gcamn_src->x;
-              gcamn_dst->y += gcamn_src->y;
-              gcamn_dst->z += gcamn_src->z;
+        node_dst->xs2 = node_src->xs2;
+        node_dst->ys2 = node_src->ys2;
+        node_dst->zs2 = node_src->zs2;
 
-              gcamn_dst->origx += gcamn_src->origx;
-              gcamn_dst->origy += gcamn_src->origy;
-              gcamn_dst->origz += gcamn_src->origz;
+        node_dst->xs = node_src->xs;
+        node_dst->ys = node_src->ys;
+        node_dst->zs = node_src->zs;
 
-              gcamn_dst->xs2 += gcamn_src->xs2;
-              gcamn_dst->ys2 += gcamn_src->ys2;
-              gcamn_dst->zs2 += gcamn_src->zs2;
+        node_dst->xn = node_src->xn;
+        node_dst->yn = node_src->yn;
+        node_dst->zn = node_src->zn;
 
-              gcamn_dst->xs += gcamn_src->xs;
-              gcamn_dst->ys += gcamn_src->ys;
-              gcamn_dst->zs += gcamn_src->zs;
+        node_dst->saved_origx = node_src->saved_origx;
+        node_dst->saved_origy = node_src->saved_origy;
+        node_dst->saved_origz = node_src->saved_origz;
 
-              gcamn_dst->xn += gcamn_src->xn;
-              gcamn_dst->yn += gcamn_src->yn;
-              gcamn_dst->zn += gcamn_src->zn;
-
-              gcamn_dst->saved_origx += gcamn_src->saved_origx;
-              gcamn_dst->saved_origy += gcamn_src->saved_origy;
-              gcamn_dst->saved_origz += gcamn_src->saved_origz;
-
-              gcamn_dst->prior += gcamn_src->prior;
-              gcamn_dst->area += gcamn_src->area;
-              gcamn_dst->area1 += gcamn_src->area1;
-              gcamn_dst->area2 += gcamn_src->area2;
-              gcamn_dst->orig_area1 += gcamn_src->orig_area1;
-              gcamn_dst->orig_area2 += gcamn_src->orig_area2;
-              if (gcamn_src->invalid) {
-                gcamn_dst->invalid = 1;
-              }
-              if (gcamn_src->status > 0) {
-                gcamn_dst->status = gcamn_src->status;
-              }
-            }
-
-        gcamn_dst->x /= 8;
-        gcamn_dst->y /= 8;
-        gcamn_dst->z /= 8;
-
-        gcamn_dst->origx /= 8;
-        gcamn_dst->origy /= 8;
-        gcamn_dst->origz /= 8;
-
-        gcamn_dst->xs2 /= 8;
-        gcamn_dst->ys2 /= 8;
-        gcamn_dst->zs2 /= 8;
-
-        gcamn_dst->xs /= 8;
-        gcamn_dst->ys /= 8;
-        gcamn_dst->zs /= 8;
-
-        gcamn_dst->xn /= 8;
-        gcamn_dst->yn /= 8;
-        gcamn_dst->zn /= 8;
-
-        max_count = labels[0];
-        max_l = 0;
-        for (l = 1; l < MAX_CMA_LABELS; l++)
-          if (labels[l] > max_count) {
-            max_count = labels[l];
-            max_l = l;
-          }
-        gcamn_dst->label = max_l;
+        node_dst->prior = node_src->prior;
+        node_dst->area = node_src->area;
+        node_dst->area1 = node_src->area1;
+        node_dst->area2 = node_src->area2;
+        node_dst->orig_area1 = node_src->orig_area1;
+        node_dst->orig_area2 = node_src->orig_area2;
+        node_dst->invalid = node_src->invalid;
+        node_dst->status = node_src->status;
+        node_dst->label = node_src->label;
       }
     }
   }

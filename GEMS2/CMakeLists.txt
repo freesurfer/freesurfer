@@ -30,7 +30,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
 
 # Check if GEMS is being added as a subdirectory (and not built independently)
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(FS_SOURCE_DIR ${CMAKE_SOURCE_DIR})
+  # Make sure python builds are on during full freesurfer build
   set(GEMS_BUILD_PYTHON ON)
+else()
+  set(FS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/..)
+  # Make sure pybind is accessible during GEMS-only build
+  if(GEMS_BUILD_PYTHON)
+    set(PYBIND11_PYTHON_VERSION 3.5)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/../packages/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
+  endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -47,7 +56,7 @@ endif()
 
 if(GEMS_BUILD_CUDA)
   find_package(CUDA REQUIRED)
-  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS} -std=c++11")
   include_directories(${CUDA_INCLUDE_DIRS})
   set(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
   include_directories(cuda)
@@ -87,6 +96,7 @@ set(SOURCES
   kvlCroppedImageReader.cxx
   kvlHistogrammer.cxx
   kvlMutualInformationCostAndGradientCalculator.cxx
+  kvlAtlasMeshJacobianDeterminantDrawer.cxx
 )
 
 # gems libary

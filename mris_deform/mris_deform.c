@@ -3775,19 +3775,16 @@ is_outlier(MRI_SURFACE *mris, int vno, int which)
 static int
 vp_copy_to_surface(MRI_SURFACE *mris, int which_src, int which_dst)
 {
-  int          vno ;
-  VERTEX       *v ;
-  double       x, y, z; 
-  VERTEX_PARMS *vp ;
+  int vno ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
-    vp = (VERTEX_PARMS *)(v->vp) ;
+    double x = 0, y = 0, z = 0; 
+    VERTEX* v = &mris->vertices[vno] ;
+    VERTEX_PARMS *vp = (VERTEX_PARMS *)(v->vp) ;
     switch (which_src)
     {
-    default:
-    case SURFACE_NORMALS:x = vp->nx ;  y = vp->ny ; z = vp->nz ; break ;
+    case SURFACE_NORMALS:x = vp->nx ;  y = vp->ny ;  z = vp->nz ; break ;
     case WHITE_VERTICES: x = vp->wx ;  y = vp->wy ;  z = vp->wz ; break ;
     case PIAL_VERTICES:  x = vp->px ;  y = vp->py ;  z = vp->pz ; break ;
     case WHITE_TARGETS:  x = vp->wtx ; y = vp->wty ; z = vp->wtz ; break ;
@@ -3795,6 +3792,8 @@ vp_copy_to_surface(MRI_SURFACE *mris, int which_src, int which_dst)
     case PIAL_TARGETS:   x = vp->ptx ; y = vp->pty ; z = vp->ptz ; break ;
     case LAYERIV_TARGETS:x = vp->l4tx ; y = vp->l4ty ; z = vp->l4tz ; break ;
       break ;
+    default:
+      cheapAssert(!"vp_copy_to_surface bad which_src");
     }
 
     switch (which_dst)
@@ -3802,12 +3801,12 @@ vp_copy_to_surface(MRI_SURFACE *mris, int which_src, int which_dst)
     case SURFACE_NORMALS:  v->nx = x ; v->ny = y ; v->nz = z ; break ;
     case WHITE_VERTICES:   v->whitex = x ; v->whitey = y; v->whitez = z ;break ;
     case PIAL_VERTICES:    v->pialx = x ;  v->pialy = y;  v->pialz = z ; break ;
-    case ORIG_VERTICES:    v->origx = x ;  v->origy = y;  v->origz = z ; break ;
-    case CURRENT_VERTICES: v->x = x ;      v->y = y;      v->z = z ;     break ;
+    case CURRENT_VERTICES: MRISsetXYZ(mris,vno, x, y, z) ;     break ;
     case TARGET_VERTICES:  v->targx = x ;  v->targy = y ; v->targz = z ; break ;
+    case ORIG_VERTICES:    cheapAssert(!"vp_copy_to_surface should not use ORIG_VERTICES") ; break ;
     default:
-      break ;
-    }
+      cheapAssert(!"vp_copy_to_surface bad which_dst") ;
+   }
     v->marked = vp->found ;
   }
   return(NO_ERROR) ;
@@ -3818,7 +3817,7 @@ vp_copy_from_surface(MRI_SURFACE *mris, int which_src, int which_dst)
 {
   int          vno ;
   VERTEX       *v ;
-  double       x, y, z; 
+  double       x = 0, y = 0, z = 0; 
   VERTEX_PARMS *vp ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -3829,14 +3828,14 @@ vp_copy_from_surface(MRI_SURFACE *mris, int which_src, int which_dst)
       DiagBreak() ;
     switch (which_src)
     {
-    default:
     case SURFACE_NORMALS:  x = v->nx ;      y = v->ny ;     z = v->nz ;     break ;
     case WHITE_VERTICES:   x = v->whitex  ; y = v->whitey ; z = v->whitez ; break ;
     case PIAL_VERTICES:    x = v->pialx  ;  y = v->pialy ;  z = v->pialz  ; break ;
-    case ORIG_VERTICES:    x = v->origx  ;  y = v->origy ;  z = v->origz  ; break ;
     case CURRENT_VERTICES: x = v->x  ;      y = v->y ;      z = v->z  ;     break ;
     case TARGET_VERTICES:  x = v->targx ;   y = v->targy ;  z = v->targz ;  break ;
-      break ;
+    case ORIG_VERTICES:    cheapAssert(!"vp_copy_from_surface should not use ORIG_VERTICES") ; break ;
+    default:
+      cheapAssert(!"vp_copy_from_surface bad which_src");
     }
 
     switch (which_dst)
@@ -3858,6 +3857,7 @@ vp_copy_from_surface(MRI_SURFACE *mris, int which_src, int which_dst)
       vp->l4_dist = sqrt(SQR(x-vp->wx)+SQR(y-vp->wy)+SQR(z-vp->wz)) ;
       break ;
     default:
+      cheapAssert(!"vp_copy_from_surface bad which_dst");
       break ;
     }
   }

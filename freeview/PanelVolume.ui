@@ -1000,6 +1000,9 @@ of each frame</string>
         <height>150</height>
        </size>
       </property>
+      <property name="dragDropMode">
+       <enum>QAbstractItemView::NoDragDrop</enum>
+      </property>
       <property name="alternatingRowColors">
        <bool>false</bool>
       </property>

@@ -25,4 +25,9 @@ rt.mridiff('analyze.mgz', 'freesurfer.mgz', flags='--notallow-acq')
 rt.run('mri_make_uchar nu.mgz talairach.xfm nuuc.mgz')
 rt.mridiff('nuuc.mgz', 'nuuc.ref.mgz')
 
+# apply downsampled morph with atlas geometry that has odd number of slices
+# (i.e. gcam->depth * gcam->spacing = gcam->atlas.depth - 1)
+rt.run('mri_convert -at odd.m3z orig.mgz morphed.mgz')
+rt.mridiff('morphed.mgz', 'odd.ref.mgz')
+
 rt.cleanup()

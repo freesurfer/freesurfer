@@ -34,6 +34,7 @@
 extern "C"
 {
 #include "colortab.h"
+#include "nifti1.h"
 }
 
 class vtkImageReslice;
@@ -331,6 +332,8 @@ public:
   }
 
   QVector<double> GetVoxelList(int nVal);
+
+  QVariantMap GetTimeSeriesInfo();
   
 public slots:
   void SetActiveFrame( int nFrame );
@@ -401,6 +404,7 @@ protected:
   void ConnectProperty();
   void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
   void GetColorWheelColor(double* v, int plane, unsigned char* c_out);
+  void UpdateNiftiHeader();
 
   std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
   void BuildTensorGlyph( vtkImageData* imagedata,
@@ -474,6 +478,8 @@ private:
 
   QMap<QObject*, double>  m_mapMaskThresholds;
   double      m_dMaskThreshold;
+
+  nifti_1_header    m_niftiHeader;
 };
 
 

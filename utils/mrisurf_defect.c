@@ -1,4 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
+
 /*
  * @file utilities operating on Original
  *
@@ -18,6 +20,162 @@
  *
  */
 #include "mrisurf_defect.h"
+
+
+//==================================================================
+// Utilities for editing a surface
+// Some of these need to be refactored to move portions of them into mrisurf_topology.c
+//
+void mrisDivideEdge(MRIS * const mris, int const vno1, int const vno2)
+{
+  int const vnew_no = mrisDivideEdgeTopologically(mris, vno1, vno2);
+
+  VERTEX const * const v1   = &mris->vertices[vno1];
+  VERTEX const * const v2   = &mris->vertices[vno2];
+  VERTEX       * const vnew = &mris->vertices[vnew_no];
+
+  vnew->x = (v1->x + v2->x) / 2;
+  vnew->y = (v1->y + v2->y) / 2;
+  vnew->z = (v1->z + v2->z) / 2;
+  vnew->tx = (v1->tx + v2->tx) / 2;
+  vnew->ty = (v1->ty + v2->ty) / 2;
+  vnew->tz = (v1->tz + v2->tz) / 2;
+
+  vnew->infx = (v1->infx + v2->infx) / 2;
+  vnew->infy = (v1->infy + v2->infy) / 2;
+  vnew->infz = (v1->infz + v2->infz) / 2;
+
+  vnew->pialx = (v1->pialx + v2->pialx) / 2;
+  vnew->pialy = (v1->pialy + v2->pialy) / 2;
+  vnew->pialz = (v1->pialz + v2->pialz) / 2;
+
+  vnew->cx = (v1->cx + v2->cx) / 2;
+  vnew->cy = (v1->cy + v2->cy) / 2;
+  vnew->cz = (v1->cz + v2->cz) / 2;
+  vnew->x = (v1->x + v2->x) / 2;
+  vnew->y = (v1->y + v2->y) / 2;
+  vnew->z = (v1->z + v2->z) / 2;
+  vnew->odx = (v1->odx + v2->odx) / 2;
+  vnew->ody = (v1->ody + v2->ody) / 2;
+  vnew->odz = (v1->odz + v2->odz) / 2;
+  vnew->val = (v1->val + v2->val) / 2;
+  
+  MRISsetOriginalXYZ(mris, vnew_no, 
+    (v1->origx + v2->origx) / 2,
+    (v1->origy + v2->origy) / 2,
+    (v1->origz + v2->origz) / 2);
+}
+
+
+/*
+  nsubs = 1 --> divide edge in half
+        = 2 --> divide edge in half twice, add 3 vertices
+        = 3 --> divide edge in half three times, add 7 vertices
+*/
+#define MAX_SURFACE_FACES 200000
+int MRISdivideEdges(MRIS *mris, int nsubdivisions)
+{
+  int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
+  FACE *f;
+
+  for (nadded = sub = 0; sub < nsubdivisions; sub++) {
+    nfaces = mris->nfaces;
+    nvertices = mris->nvertices;  // before adding any
+    for (fno = 0; fno < nfaces; fno++) {
+      faces[fno] = fno;
+    }
+    for (fno = 0; fno < nfaces; fno++) {
+      int tmp;
+
+      index = (int)randomNumber(0.0, (double)(nfaces - 0.0001));
+      tmp = faces[fno];
+      if (faces[fno] == Gdiag_no || faces[index] == Gdiag_no) {
+        DiagBreak();
+      }
+      faces[fno] = faces[index];
+      faces[index] = tmp;
+    }
+
+    for (index = 0; index < nfaces; index++) {
+      fno = faces[index];
+      f = &mris->faces[fno];
+      if (fno == Gdiag_no) {
+        DiagBreak();
+      }
+
+      if (f->v[0] < nvertices && f->v[1] < nvertices) { mrisDivideEdge(mris, f->v[0], f->v[1]); nadded++; }
+      if (f->v[0] < nvertices && f->v[2] < nvertices) { mrisDivideEdge(mris, f->v[0], f->v[2]); nadded++; }
+      if (f->v[1] < nvertices && f->v[2] < nvertices) { mrisDivideEdge(mris, f->v[1], f->v[2]); nadded++; }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && nadded > 0) {
+    fprintf(stdout,
+            "MRISdivideEdges(%d): %d vertices added: # of vertices=%d, # of faces=%d.\n",
+            nsubdivisions,
+            nadded,
+            mris->nvertices,
+            mris->nfaces);
+#if 0
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+#endif
+  }
+  return (nadded);
+}
+
+
+int MRISdivideLongEdges(MRIS *mris, double thresh)
+{
+  int nadded = 0;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+    float const x = v->x;
+    float const y = v->y;
+    float const z = v->z;
+
+    /*
+      only add vertices if average neighbor vector is in normal direction, 
+      that is, if the region is concave or sulcal.
+    */
+    int n;
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
+      double dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
+      if (dist > thresh) {
+        mrisDivideEdge(mris, vno, vt->v[n]);
+        nadded++;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && nadded > 0) {
+    fprintf(stdout,
+            "%2.2f mm: %d vertices added: # of vertices=%d, # of faces=%d.\n",
+            thresh,
+            nadded,
+            mris->nvertices,
+            mris->nfaces);
+#if 0
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+#endif
+  }
+  
+  return (nadded);
+}
+
 
 //==================================================================
 // Saving and restoring portions of the surface
@@ -191,11 +349,7 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   v->ny = vs->ny;
   v->nz = vs->nz;
 
-  v->origx = vs->origx; 
-  v->origy = vs->origy;
-  v->origz = vs->origz;
-
-  noteVnoMovedInActiveRealmTrees(mris, vno);
+  MRISsetOriginalXYZ(mris, vno, vs->origx, vs->origy, vs->origz);
 
   // Restore the topology
   //
@@ -6276,8 +6430,9 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
-          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+          VERTEX                * const v  = &mris->vertices         [vno];
 
           for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
             VERTEX const * const vn = &mris->vertices[vt->v[n]];
@@ -6297,11 +6452,10 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < ninside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
 
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       break;
@@ -6365,12 +6519,10 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->tz = v->origz + alpha * (szt + f * szn);
         }
         for (i = 0; i < ninside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
 
-          v->origx = v->tx;
-          v->origy = v->ty;
-          v->origz = v->tz;
-          noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       break;
@@ -6448,14 +6600,12 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nstrictlyinside; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
+          int const vno = dp->tp.vertices[i];
+          VERTEX * const v = &mris->vertices[vno];
           if (v->old_undefval == 0) {
             continue;
           }
-
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       /* finally we apply a light smoothing of the whole surface */
@@ -6576,11 +6726,9 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nvertices; i++) {
-          VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]];
-
-          v->origx = v->tx; CHANGES_ORIG
-          v->origy = v->ty;
-          v->origz = v->tz;
+          int const vno = dp->tp.vertices[vertices[i]];
+          VERTEX * const v = &mris->vertices[vno];
+          MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
         }
       }
       free(vertices);
@@ -6695,10 +6843,9 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX * const v = &mris->vertices[vertices[i]];
-      v->origx = v->tx; CHANGES_ORIG
-      v->origy = v->ty;
-      v->origz = v->tz;
+      int const vno = vertices[i];
+      VERTEX * const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
     }
 
     /* recompute normals */
@@ -6800,11 +6947,9 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx;
-      v->origy = v->ty;
-      v->origz = v->tz;
-      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      int const vno = dp->tp.vertices[i];
+      VERTEX* const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
     }
 
     /* recompute normals */
@@ -6899,11 +7044,9 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx;
-      v->origy = v->ty;
-      v->origz = v->tz;
-      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      int const vno = dp->tp.vertices[i];
+      VERTEX * const v = &mris->vertices[vno];
+      MRISsetOriginalXYZ(mris, vno, v->tx, v->ty, v->tz);
     }
 
     /* recompute normals */
@@ -8632,9 +8775,8 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->z = v->z;
     
     /* smoothed vertices */
-    vdst->origx = v->origx; CHANGES_ORIG
-    vdst->origy = v->origy;
-    vdst->origz = v->origz;
+    MRISsetOriginalXYZ(mris_corrected, newNVertices, v->origx, v->origy, v->origz);
+    
     vdst->tx = v->tx;
     vdst->ty = v->ty;
     vdst->tz = v->tz;
@@ -8683,8 +8825,11 @@ MRI_SURFACE *MRIScorrectTopology(
           DiagBreak();
         }
         
-        VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
-        VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
+        int const vno_dst = newNVertices++;
+        MRISgrowNVertices(mris_corrected, newNVertices);
+
+        VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
+        VERTEX          * const vdst  = &mris_corrected->vertices         [vno_dst];
         if (mris_corrected->nvertices == Gdiag_no) {
           DiagBreak();
         }
@@ -8692,9 +8837,9 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
-        vdst->origx = v->origx; CHANGES_ORIG
-        vdst->origy = v->origy;
-        vdst->origz = v->origz;
+        
+        MRISsetOriginalXYZ(mris_corrected, vno_dst, v->origx, v->origy, v->origz);
+        
         vdst->tx = v->tx;
         vdst->ty = v->ty;
         vdst->tz = v->tz;
@@ -8724,9 +8869,8 @@ MRI_SURFACE *MRIScorrectTopology(
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
-        vertex_trans[vno] = newNVertices++;
+        vertex_trans[vno] = vno_dst;
       }
-      MRISgrowNVertices(mris_corrected, newNVertices);
     }
   }
 
@@ -11991,9 +12135,9 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     v_dst->cx = v_src->cx;
     v_dst->cy = v_src->cy;
     v_dst->cz = v_src->cz;
-    v_dst->origx = v_src->origx; CHANGES_ORIG
-    v_dst->origy = v_src->origy;
-    v_dst->origz = v_src->origz;
+    
+    MRISsetOriginalXYZ(mris_dst, vno_dst, v_src->origx, v_src->origy, v_src->origz);
+    
     v_dst->ripflag = v_src->ripflag; /* none of them should be ripped */
 
     if (n < nchull) /* vertex in the convex hull */
@@ -17154,5 +17298,4 @@ static void mrisComputeSurfaceStatistics(
   /* free arrays */
   TPfree(&tp);
 }
-
 

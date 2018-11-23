@@ -2853,34 +2853,31 @@ if($DoCALabel) then
     cd $subjdir/mri > /dev/null
     $PWD |& tee -a $LF
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
-    # first create lta's of basesubjs to longsubj
     set asegprecount = 0
+    set aseg = ()
+    set alt = ()
+    set nocc = ()
+    set norm = ()
+    set trx = () # Cross to base.
     foreach s (${BaseSubjsList})
-      # copy the transform (tpi cross to base) to local transform dir
-      # where mri_fuse_segmentations is looking for it:
-      set cmd = (cp -vf \
-            ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta \
-            ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
+      set aseg = ($aseg ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz)
+      set alt = ($alt ${SUBJECTS_DIR}/${s}/mri/aseg.mgz)
+      set nocc = ($nocc ${SUBJECTS_DIR}/${s}/mri/aseg.auto_noCCseg.mgz)
+      set norm = ($norm ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
+      set trx = ($trx ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta)
       # check if all cross dirs have aseg.presurf 
-      if ( -e ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz ) then
+      if ( -e $aseg[$#aseg] ) then
         @ asegprecount++
       endif
     end
     # if we are missing aseg.presurf, assume that cross is 5.3 or older
     # and use aseg.mgz for fusion
-    set crossaseg = aseg.presurf.mgz
     if ( $#BaseSubjsList > $asegprecount ) then
-      set crossaseg = aseg.mgz
+      set aseg = ($alt)
     endif
     # now create the fused aseg
-    set cmd = (mri_fuse_segmentations)
-    set cmd = ($cmd -a $crossaseg -c aseg.auto_noCCseg.mgz -n norm.mgz)
-    set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
+    set cmd = (mri_fuse_segmentations -a $aseg -c $nocc -n $norm -t $trx)
+    set cmd = ($cmd norm.mgz aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -3685,7 +3682,7 @@ if($DoCurvHK) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature -w)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts $hemi.white.preaparc)
@@ -3725,7 +3722,7 @@ if($DoCurvHK) then
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature )
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd -thresh .999 -n -a 5 -w -distances 10 10)
@@ -5727,7 +5724,7 @@ while( $#argv != 0 )
       # MOD: turn on T2/FLAIR pial editing when FLAIR specified
       # This can backfire, eg, if not all the preceeding steps
       # are included
-      set DoT2pial         = 1; 
+      set DoFLAIRpial = 1; 
       breaksw
 
     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
@@ -8131,6 +8128,7 @@ usage_exit:
   echo ""
   echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
   echo "             mris_inflate and mris_sphere"
+  echo "  -threads num  : set number of threads to use"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -8616,6 +8614,11 @@ Cerebral Cortex 2007.
 
 Use the GPU versions of the binaries mri_em_register, mri_ca_register,
 mris_inflate, and mris_sphere.
+
+-threads num
+-openmp num
+
+Set the number of threads available to openMP-enabled tools.
 
 
 EXPERT OPTIONS FILE

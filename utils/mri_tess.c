@@ -116,7 +116,7 @@ static void initTesselationParms(tesselation_parms *parms);
 static int freeTesselationParms(tesselation_parms **parms);
 static void allocateTesselation(tesselation_parms *parms);
 static void freeTesselation(tesselation_parms *parms);
-static int mrisFindNeighbors2(MRI_SURFACE *mris);
+
 static int saveTesselation(tesselation_parms *parms);
 static void add_face(int imnr, int i, int j, int f, int prev_flag, tesselation_parms *parms);
 static int add_vertex(int imnr, int i, int j, tesselation_parms *parms);
@@ -390,106 +390,10 @@ static void freeTesselation(tesselation_parms *parms)
   //  free(parms->vertex_index_table);
 }
 
-/* This may be the same as that in mrisurf.c. Whoever wrote it should
-   NOT have done this. Very bad programming. */
-static int mrisFindNeighbors2(MRI_SURFACE *mris)
-{
-  int n0, n1, i, k, m, n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS];
-  FACE *f;
-
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stdout, "finding surface neighbors...");
-
-  for (k = 0; k < mris->nvertices; k++) {
-    if (k == Gdiag_no) DiagBreak();
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[k];
-    VERTEX          * const v  = &mris->vertices         [k];
-    vt->vnum = 0;
-    for (m = 0; m < vt->num; m++) {
-      n = vt->n[m];               /* # of this vertex in the mth face that it is in */
-      f = &mris->faces[vt->f[m]]; /* ptr to the mth face */
-      /* index of vertex we are connected to */
-      n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
-      n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
-      for (i = 0; i < vt->vnum && vtmp[i] != f->v[n0]; i++)
-        ;
-      if (i == vt->vnum) vtmp[(int)vt->vnum++] = f->v[n0];
-      for (i = 0; i < vt->vnum && vtmp[i] != f->v[n1]; i++)
-        ;
-      if (i == vt->vnum) vtmp[(int)vt->vnum++] = f->v[n1];
-    }
-    if (mris->vertices_topology[k].v) free(mris->vertices_topology[k].v);
-    mris->vertices_topology[k].v = (int *)calloc(mris->vertices_topology[k].vnum, sizeof(int));
-    if (!mris->vertices_topology[k].v) ErrorExit(ERROR_NOMEMORY, "mrisFindNeighbors2: could not allocate nbr array");
-
-    vt->vtotal = vt->vnum;
-    vt->nsizeMax = vt->nsizeCur = 1;
-    for (i = 0; i < vt->vnum; i++) {
-      vt->v[i] = vtmp[i];
-    }
-
-    if (v->dist) free(v->dist);
-    if (v->dist_orig) free(v->dist_orig);
-
-    v->dist = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors2: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                k);
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors2: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                k);
-    /*
-        if (v->num != v->vnum)
-          printf("%d: num=%d vnum=%d\n",k,v->num,v->vnum);
-    */
-  }
-  for (k = 0; k < mris->nfaces; k++) {
-    f = &mris->faces[k];
-    for (m = 0; m < VERTICES_PER_FACE; m++) {
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[f->v[m]];
-      for (i = 0; i < vt->num && k != vt->f[i]; i++)
-        ;
-      if (i == vt->num) /* face has vertex, but vertex doesn't have face */
-        ErrorExit(ERROR_BADPARM,
-                  "%s: face[%d].v[%d] = %d, but face %d not in vertex %d "
-                  "face list\n",
-                  mris->fname,
-                  k,
-                  m,
-                  f->v[m],
-                  k,
-                  f->v[m]);
-    }
-  }
-
-  for (vno = ntotal = vtotal = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) continue;
-    vtotal += vt->vtotal;
-    ntotal++;
-  }
-
-  mrisCheckVertexFaceTopology(mris);
-
-  mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  return (NO_ERROR);
-}
-
 static int saveTesselation(tesselation_parms *parms)
 {
   int vno, m, n, fno;
-  int pct_over = 1;
   quad_face_type *face2;
-  quad_vertex_type *vertex2;
-  MRIS *mris;
   FACE *face;
   float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo;
   float st, ps, xx1, yy0, zz1;
@@ -504,15 +408,17 @@ static int saveTesselation(tesselation_parms *parms)
   xx1 = parms->mri->xend;
   zz1 = parms->mri->zend;
 
-  mris = MRISoverAlloc(
-      pct_over * parms->vertex_index, pct_over * 2 * parms->face_index, parms->vertex_index, 2 * parms->face_index);
-
+  MRIS *mris = MRISoverAlloc(
+                    parms->vertex_index, 2 * parms->face_index, 
+                    parms->vertex_index, 2 * parms->face_index);
   mris->type = MRIS_BINARY_QUADRANGLE_FILE;
+
   /*first init vertices*/
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY * const vertex_topology = &mris->vertices_topology[vno];
-    VERTEX          * const vertex          = &mris->vertices         [vno];
-    vertex2 = &parms->vertex[vno];
+
+    quad_vertex_type const * const vertex2 = &parms->vertex[vno];
+    
     i = vertex2->i;
     j = vertex2->j;
     imnr = vertex2->imnr;
@@ -532,11 +438,10 @@ static int saveTesselation(tesselation_parms *parms)
     y = yw;
     z = zw;
 
-    vertex->x = x;
-    vertex->y = y;
-    vertex->z = z;
+    MRISsetXYZ(mris,vno, x, y, z);
     vertex_topology->num = 0;
   }
+  
   /*then init faces by dividing each quadrant into two triangles*/
   for (m = 0; m < parms->face_index; m++) {
     int which;
@@ -631,7 +536,7 @@ static int saveTesselation(tesselation_parms *parms)
   mris->yctr = (yhi + ylo) / 2;
   mris->zctr = (zhi + zlo) / 2;
 
-  mrisFindNeighbors2(mris);
+  mrisCompleteTopology(mris);
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
@@ -660,9 +565,10 @@ MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab)
 
   for (n = 0, count = 0; n < number_of_labels; n++)
     for (vno = 0; vno < mris_tab[n]->nvertices; vno++, count++) {
-      mris->vertices[count].x = mris_tab[n]->vertices[vno].x;
-      mris->vertices[count].y = mris_tab[n]->vertices[vno].y;
-      mris->vertices[count].z = mris_tab[n]->vertices[vno].z;
+      MRISsetXYZ(mris,count, 
+        mris_tab[n]->vertices[vno].x,
+        mris_tab[n]->vertices[vno].y,
+        mris_tab[n]->vertices[vno].z);
       mris->vertices[count].curv = mris_tab[n]->vertices[vno].curv;
       mris->vertices[count].val = (float)(n - number_of_labels / 2.) / number_of_labels;
     }

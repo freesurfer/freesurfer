@@ -98,6 +98,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_sPrimaryType = "Surface";
 
   m_sMappingSurfaceName = "white";
+  m_sSphereFilename = "sphere.reg";
 
   // create property before actors!
   mProperty = new LayerPropertySurface( this );
@@ -210,7 +211,8 @@ bool LayerSurface::LoadSurfaceFromFile()
                                    m_sVectorFilename,
                                    m_sPatchFilename,
                                    m_sTargetFilename,
-                                   m_listSupFiles )
+                                   m_sSphereFilename,
+                                   m_listSupFiles)
        )
   {
     return false;
@@ -1859,6 +1861,44 @@ void LayerSurface::MoveLabelToTop(SurfaceLabel *label)
   }
 }
 
+void LayerSurface::MoveLabelUp(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i] && i > 0)
+    {
+      m_labels.removeAt(i);
+      m_labels.insert(i-1, label);
+      SetActiveLabel(activeLabel);
+
+      UpdateOverlay(false);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
+void LayerSurface::MoveLabelDown(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i] && i < m_labels.size()-1)
+    {
+      m_labels.removeAt(i);
+      m_labels.insert(i+1, label);
+      SetActiveLabel(activeLabel);
+
+      UpdateOverlay(false);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
 void LayerSurface::DeleteLabel(SurfaceLabel *label)
 {
   SurfaceLabel* activeLabel = GetActiveLabel();
@@ -2826,7 +2866,7 @@ void LayerSurface::FillPath(int nvo, const QVariantMap &options)
   SurfaceLabel* label = GetActiveLabel();
   if (label)
   {
-//    label->SaveForUndo();
+    //    label->SaveForUndo();
     label->EditVertices(verts, !options["RemoveFromLabel"].toBool());
     emit Modified();
   }
@@ -2842,4 +2882,45 @@ int LayerSurface::GetLastMark()
       vno = verts.last();
   }
   return vno;
+}
+
+bool LayerSurface::LoadParameterization(const QString &filename)
+{
+  MRIS* mris = m_surfaceSource->GetMRIS();
+  MRI* mri = ::MRISreadParameterizationToSurface(mris, filename.toLatin1().data() );
+  if ( mri )
+  {
+    int nPerFrame = mri->width*mri->height*mri->depth;
+    int nframes = nPerFrame*mri->nframes / mris->nvertices;
+    float* data = new float[nPerFrame*mri->nframes];
+    for (int nx = 0; nx < mri->width; nx++)
+    {
+      for (int ny = 0; ny < mri->height; ny++)
+      {
+        for (int nz = 0; nz < mri->depth; nz++)
+        {
+          for (int nk = 0; nk < mri->nframes; nk++)
+          {
+            data[nk*nPerFrame + nz*mri->height*mri->width + ny*mri->width + nx]
+                = ::MRIgetVoxVal(mri, nx, ny, nz, nk);
+          }
+        }
+      }
+    }
+    // create overlay
+    SurfaceOverlay* overlay = new SurfaceOverlay( this );
+    overlay->InitializeData(data, mris->nvertices, nframes);
+    overlay->SetName( QFileInfo(filename).fileName() );
+    overlay->SetFileName( filename );
+
+    m_overlays.push_back( overlay );
+    SetActiveOverlay( m_overlays.size() - 1 );
+
+    emit Modified();
+    emit SurfaceOverlayAdded( overlay );
+    connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
+    return true;
+  }
+  else
+    return false;
 }

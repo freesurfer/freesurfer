@@ -8,8 +8,11 @@ cmake_minimum_required(VERSION 3.9)
 enable_language(C CXX Fortran)
 
 # a few build options
-option(BUILD_GUIS "Build GUIs" ON)
 option(MINIMAL "Only build core components" OFF)
+option(BUILD_QDEC "Build QDEC" OFF)
+option(BUILD_GUIS "Build GUIs" ON)
+option(USE_OPENCL "Build OpenCL algorithms" OFF)
+option(INFANT_MODULE "Include infant recon-all" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -97,7 +100,7 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a)
+  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -128,6 +131,7 @@ if(NOT ITK_DIR)
   set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
 endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
+# todo: since ITK is now required, we can get rid of this macro
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost --------
@@ -158,10 +162,15 @@ if(NOT APPLE)
 endif()
 
 # -------- openCL --------
-find_package(OpenCL)
+if(USE_OPENCL)
+  find_package(OpenCL)
+endif()
 
 # -------- X11 ---------
 find_package(X11 REQUIRED)
+
+# -------- vtk --------
+find_package(VTK)
 
 # search for GUI libraries
 if(BUILD_GUIS)
@@ -170,38 +179,22 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    find_package(GLUT REQUIRED)  # since we have OpenGL, make sure we have glut too
+    # since we have OpenGL, make sure we have glut too
+    find_package(GLUT REQUIRED)
     add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
   # -------- qt --------
-  set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
-  if(NOT Qt5_DIR AND EXISTS ${PACKAGES_QT})
-    set(Qt5_DIR ${PACKAGES_QT})
-  endif()
-  # set components to search for
-  set(QT_COMPONENTS Core Widgets)
-  if(NOT APPLE)
-    set(QT_COMPONENTS ${QT_COMPONENTS} X11Extras)
-  endif()
-  # actually find qt
-  find_package(Qt5 COMPONENTS ${QT_COMPONENTS})
-  if(Qt5_FOUND)
-    get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
-    if(NOT APPLE)
-      file(GLOB QT_LIBRARIES_TO_INSTALL "${QT_INSTALL_DIR}/lib/lib*.so*")
-      install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib)
-    endif()
-  endif()
-
-  # -------- vtk --------
-  find_package(VTK)
+  find_package(QT)
 
   # -------- tcltktixblt --------
   find_package(TCLTKTIXBLT)
 
   # -------- kwwidgets --------
-  find_package(KWWidgets)
+  # once qdec is deprecated, KWWidgets can be removed
+  if(BUILD_QDEC)
+    find_package(KWWidgets)
+  endif()
 
   # -------- wxwidgets --------
   # only used by mris_decimate_gui
@@ -246,11 +239,12 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 # for stripping unused code
 if(APPLE)
   set(STRIP_FLAGS "-dead_strip")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 
 # link map (only for linux)
 if(NOT APPLE)
@@ -274,7 +268,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 # set executable rpath
 if(NOT APPLE)
-  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib:${CMAKE_INSTALL_RPATH}")
 endif()
 
 # --------------------------------------------------
@@ -383,7 +377,6 @@ add_subdirectories(
   mri_compute_overlap
   mri_compute_seg_overlap
   mri_concat
-  mri_concatenate_gcam
   mri_concatenate_lta
   mri_convert
   mri_coreg
@@ -508,6 +501,7 @@ if(NOT MINIMAL)
     mri_compute_change_map
     mri_compute_structure_transforms
     mri_compute_volume_fractions
+    mri_concatenate_gcam
     mri_convert_mdh
     mri_copy_values
     mri_cor2label
@@ -724,4 +718,9 @@ if(NOT MINIMAL)
     trc
     tridec
   )
+endif()
+
+# infant freesurfer
+if(INFANT_MODULE)
+  add_subdirectories(infant)
 endif()

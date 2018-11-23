@@ -88,11 +88,14 @@ struct VertexLoadContext {
 static void vertexLoad(GtsPoint * p, gpointer * data)
 {
   VertexLoadContext* vertexLoadContext = (VertexLoadContext*)data;
-  MRI_SURFACE *mris = vertexLoadContext->mris;
 
-  mris->vertices[vertexLoadContext->nextVertex].x = p->x;
-  mris->vertices[vertexLoadContext->nextVertex].y = p->y;
-  mris->vertices[vertexLoadContext->nextVertex].z = p->z;
+  MRIS* mris = vertexLoadContext->mris;
+
+  MRISsetXYZ(mris, vertexLoadContext->nextVertex,
+    p->x,
+    p->y,
+    p->z);
+  
   unsigned int vertexID = vertexLoadContext->nextVertex;
   GTS_OBJECT(p)->reserved = GUINT_TO_POINTER(vertexID);
   vertexLoadContext->nextVertex++;

@@ -329,10 +329,6 @@ main(int argc, char *argv[])
   for (h = LEFT_HEMISPHERE ; h <= RIGHT_HEMISPHERE ; h++)   // register left to right and right to left
   {
     int    vno ;
-    VERTEX *v ;
-    float  radius, norm ;
-
-    radius = MRISaverageRadius(mris_mov);
     if (h == LEFT_HEMISPHERE)
     {
       mris_mov = mris_lh ; coords = lh_coords ;
@@ -341,17 +337,24 @@ main(int argc, char *argv[])
     {
       mris_mov = mris_rh ; coords = rh_coords ;
     }
+
+    float const radius = MRISaverageRadius(mris_mov);
     for (vno = 0 ; vno < mris_mov->nvertices ; vno++)
     {
-      v = &mris_mov->vertices[vno] ;
-      v->x = (v->cx + coords[0][vno])/2 ;
-      v->y = (v->cy + coords[1][vno])/2 ;
-      v->z = (v->cz + coords[2][vno])/2 ;
-      norm = sqrt(v->x*v->x + v->y*v->y + v->z*v->z) ;
-      v->x = (v->x/norm)*radius ;
-      v->y = (v->y/norm)*radius ;
-      v->z = (v->z/norm)*radius ;
+      VERTEX *v = &mris_mov->vertices[vno] ;
+      float 
+        x = (v->cx + coords[0][vno])/2,
+        y = (v->cy + coords[1][vno])/2,
+        z = (v->cz + coords[2][vno])/2;
+        
+      float norm = sqrt(x*x + y*y + z*z) ;
+      
+      MRISsetXYZ(mris_mov, vno,
+        (x/norm)*radius,
+        (y/norm)*radius,
+        (z/norm)*radius);
     }
+    
     printf("writing left/right registered hemi to %s\n", argv[3+h]) ;
     MRISwrite(mris_mov, argv[3+h]) ;
   }

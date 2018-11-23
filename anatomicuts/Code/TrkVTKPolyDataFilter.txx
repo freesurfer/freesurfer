@@ -87,15 +87,16 @@ void TrkVTKPolyDataFilter<TImage>::TrkToVTK()
 				iraw++;
 			}
 			index4[3]=1;
-			//if (!this->m_refImage.IsNull())
-			if(trkheadin.vox_to_ras[3][3]==0) //not recorded
+			if (!this->m_refImage.IsNull())
+			//if(trkheadin.vox_to_ras[3][3]==0) //not recorded
 			{
+				//std::cout << " reference iamge"  << std::endl;
 				this->m_refImage->TransformContinuousIndexToPhysicalPoint(index,pt);	
 			}
 			else
 			{
-				pt.Fill(0.0);
-				this->m_refImage->TransformContinuousIndexToPhysicalPoint(index,pt);	
+				//pt.Fill(0.0);
+				//this->m_refImage->TransformContinuousIndexToPhysicalPoint(index,pt);	
 //				std::cout << "pt1 "<< pt << std::endl;
 				pt.Fill(0.0);
 				for (int k1 = 0; k1 < 3; k1++) 
@@ -141,7 +142,7 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 	{
 		trkheadout.Initialize();
 
-		std::cout << "hola " << std::endl;
+		//std::cout << "hola " << std::endl;
 		for (int i=0; i<3 ; i++)
 		{
 			trkheadout.origin[i] =m_refImage->GetOrigin()[i]; 
@@ -162,11 +163,11 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 		//std::cout << m_refImage->GetOrigin()[0]<< std::endl;
 		trkheadout.vox_to_ras[3][3]=1;
 		//std::cout << std::endl;
-		trkheadout.image_orientation_patient[0] =  - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
-		trkheadout.image_orientation_patient[1] =  - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+		trkheadout.image_orientation_patient[0] =   trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+		trkheadout.image_orientation_patient[1] =   trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
 		trkheadout.image_orientation_patient[2] =  trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
-		trkheadout.image_orientation_patient[3] =  - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
-		trkheadout.image_orientation_patient[4] =  - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+		trkheadout.image_orientation_patient[3] =   trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+		trkheadout.image_orientation_patient[4] =   trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
 		trkheadout.image_orientation_patient[5] =  trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
 	}
 	else
@@ -225,8 +226,8 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 			}
 			point4[3]=1;
 			
-			//if(! this->m_refImage.IsNull())
-			if(this->m_refHeader==0) //not recorded
+			if(! this->m_refImage.IsNull())
+			//if(this->m_refHeader==0) //not recorded
 			{
 				this->m_refImage->TransformPhysicalPointToContinuousIndex(pt2,index);	
 				for (unsigned int i=0; i<3; i++)

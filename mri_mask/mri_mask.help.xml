@@ -23,9 +23,9 @@
 ]>
 
 <help>
-	<name>mri_mask - applies a mask volume ( typically skull stripped )</name>
+	<name>mri_mask - applies a mask volume (typically skull stripped)</name>
 	<synopsis>mri_mask [options] &lt;in vol&gt; &lt;mask vol&gt; &lt;out vol&gt;</synopsis>
-	<description>This program applies a mask volume ( typically skull stripped ).</description>
+	<description>This program applies a mask volume (typically skull stripped).</description>
   <arguments>
     <positional>
       <argument>in vol</argument>
@@ -35,9 +35,7 @@
     </positional>
     <optional-flagged>
       <argument>-xform %s</argument>
-      <explanation>apply LTA transform to align mask to input volume</explanation>
-      <argument>-invert</argument>
-      <explanation>reversely apply -xform</explanation>
+      <explanation>apply M3Z/LTA to transform mask to space of input volume (can be identity.nofile, will be inverted if needed)</explanation>
       <argument>-lta_src %s</argument>
       <explanation>source volume for -xform (if not available from the xform file)</explanation>
       <argument>-lta_dst %s</argument>

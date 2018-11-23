@@ -19,13 +19,6 @@ extern "C"
 #endif
 
 
-// TODO:
-// [ ] Downsampling or spacing?
-// [ ] ITK/FSL?
-// [ ] Output type?
-// [ ] Mention mri_info and check if shows size/output type.
-
-
 struct Parameters
 {
   std::string progName;
@@ -35,6 +28,7 @@ struct Parameters
   std::vector<std::string> fileList;
   bool reduce = false;
   bool invert = false;
+  bool downsample = false;
 };
 
 
@@ -82,6 +76,16 @@ int main(int argc, char *argv[])
     LTA *tmp = (LTA *)out->xform;
     out->xform = (void *)LTAreduce(tmp);
     LTAfree(&tmp);
+  }
+  
+  if (par.downsample && out->type==MORPH_3D_TYPE) {
+    GCAM *gcam = (GCAM *)out->xform;
+    if (gcam->spacing == 1) {
+      out->xform = (void *)GCAMdownsample2(gcam);
+      GCAMfree(&gcam);
+    }
+    else
+      printf("INFO: spacing is %d, no downsampling needed\n", gcam->spacing);
   }
   
   TransformWrite(out, par.outFile.c_str());
@@ -139,20 +143,26 @@ static void parseCommand(int argc, char *argv[], Parameters &par)
       continue;
     }
     
-    if (!strcmp(*argv, "--srcgeom") || !strcmp(*argv, "-s")) {
+    if (!strcmp(*argv, "--downsample") || !strcmp(*argv, "-d")) {
+      forward(argc, argv);
+      par.downsample = true;
+      continue;
+    }
+    
+    if (!strcmp(*argv, "--change-source") || !strcmp(*argv, "-s")) {
       forward(argc, argv);
       if (argc==0 || ISOPTION(*argv[0])) {
-        ErrorExit(ERROR_BADPARM, "ERROR: no volume for source image geometry.");
+        ErrorExit(ERROR_BADPARM, "ERROR: no volume for source image geometry");
       }
       par.srcImage = std::string(*argv);
       forward(argc, argv);
       continue;
     }
     
-    if (!strcmp(*argv, "--dstgeom") || !strcmp(*argv, "-d")) {
+    if (!strcmp(*argv, "--change-target") || !strcmp(*argv, "-t")) {
       forward(argc, argv);
       if (argc==0 || ISOPTION(*argv[0])) {
-        ErrorExit(ERROR_BADPARM, "ERROR: no volume for destination geometry.");
+        ErrorExit(ERROR_BADPARM, "ERROR: no volume for target image geometry");
       }
       par.dstImage = std::string(*argv);
       forward(argc, argv);

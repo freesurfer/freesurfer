@@ -95,6 +95,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->labelLabelColor
                  << ui->checkBoxLabelOutline
                  << ui->treeWidgetLabels
+                 << ui->widgetLabelOrderButtons
                  << ui->labelLabelThreshold
                  << ui->comboBoxLabelColorCode
                  << ui->lineEditLabelThreshold
@@ -168,6 +169,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->actionPathFill, SIGNAL(triggered(bool)), SLOT(OnButtonCustomFillPath()));
 
   connect(ui->actionClearMarks, SIGNAL(triggered(bool)), SLOT(OnButtonClearMarks()));
+
+  connect(ui->toolButtonLabelUp, SIGNAL(clicked(bool)), SLOT(OnButtonLabelUp()));
+  connect(ui->toolButtonLabelDown, SIGNAL(clicked(bool)), SLOT(OnButtonLabelDown()));
 
   m_dlgCustomFill = new DialogCustomFill(this);
   m_dlgCustomFill->hide();
@@ -523,23 +527,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
   ShowWidgets( m_widgetsSpline,   layer && layer->GetActiveSpline());
   ShowWidgets( m_widgetsAnnotation, layer && layer->GetActiveAnnotation());
-  if (layer && layer->GetActiveLabel())
-  {
-    SurfaceLabel* label = layer->GetActiveLabel();
-    double* rgb = label->GetColor();
-    ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-    ui->checkBoxLabelOutline->setChecked(label->GetShowOutline());
-
-    ChangeLineEditNumber(ui->lineEditLabelThreshold, label->GetThreshold());
-    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMin, label->GetHeatscaleMin());
-    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMax, label->GetHeatscaleMax());
-    ChangeLineEditNumber(ui->lineEditLabelOpacity, label->GetOpacity());
-    ui->comboBoxLabelColorCode->setCurrentIndex(label->GetColorCode());
-    ui->labelHeatscaleRange->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
-    ui->lineEditLabelHeatscaleMin->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
-    ui->lineEditLabelHeatscaleMax->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
-    ui->colorpickerLabelColor->setVisible(label->GetColorCode() == SurfaceLabel::SolidColor);
-  }
+  UpdateLabelWidgets(false);
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
   bool isInflated = (layer && layer->GetFileName().contains("inflated"));
@@ -560,12 +548,13 @@ void PanelSurface::DoUpdateWidgets()
   BlockAllSignals( false );
 }
 
-void PanelSurface::UpdateLabelWidgets()
+void PanelSurface::UpdateLabelWidgets(bool block_signals)
 {
   LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
   if (layer && layer->GetActiveLabel())
   {
-    BlockAllSignals(true);
+    if (block_signals)
+      BlockAllSignals(true);
 
     SurfaceLabel* label = layer->GetActiveLabel();
     double* rgb = label->GetColor();
@@ -581,7 +570,11 @@ void PanelSurface::UpdateLabelWidgets()
     ui->lineEditLabelHeatscaleMax->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
     ui->colorpickerLabelColor->setVisible(label->GetColorCode() == SurfaceLabel::SolidColor);
 
-    BlockAllSignals(false);
+    ui->toolButtonLabelUp->setEnabled(label != layer->GetLabel(0));
+    ui->toolButtonLabelDown->setEnabled(label != layer->GetLabel(layer->GetNumberOfLabels()-1));
+
+    if (block_signals)
+      BlockAllSignals(false);
   }
 }
 
@@ -1340,5 +1333,39 @@ void PanelSurface::OnLineEditLabelOpacity(const QString &text)
       label->blockSignals(false);
     }
     surf->UpdateColorMap();
+  }
+}
+
+void PanelSurface::OnButtonLabelUp()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  QTreeWidgetItem* curItem = ui->treeWidgetLabels->currentItem();
+  if (curItem && surf)
+  {
+    int n = ui->treeWidgetLabels->indexOfTopLevelItem(curItem);
+    if (n > 0)
+    {
+      ui->treeWidgetLabels->takeTopLevelItem(n);
+      ui->treeWidgetLabels->insertTopLevelItem(n-1, curItem);
+      surf->MoveLabelUp(surf->GetLabel(n));
+      ui->treeWidgetLabels->setCurrentItem(curItem);
+    }
+  }
+}
+
+void PanelSurface::OnButtonLabelDown()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  QTreeWidgetItem* curItem = ui->treeWidgetLabels->currentItem();
+  if (curItem)
+  {
+    int n = ui->treeWidgetLabels->indexOfTopLevelItem(curItem);
+    if (n < ui->treeWidgetLabels->topLevelItemCount()-1)
+    {
+      ui->treeWidgetLabels->takeTopLevelItem(n);
+      ui->treeWidgetLabels->insertTopLevelItem(n+1, curItem);
+      surf->MoveLabelDown(surf->GetLabel(n));
+      ui->treeWidgetLabels->setCurrentItem(curItem);
+    }
   }
 }

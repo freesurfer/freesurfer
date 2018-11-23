@@ -65,9 +65,9 @@ mycluster = ''
 queueflag ='-q'
 
 # examples for our servers:
-#launchpad ='pbsubmit -c "%(command)s" -m %(username)s -e -n %(nodes)s'
-launchpad ='pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:ppn=%(nodes)s,vmem=%(mem)sgb'
-seychelles='pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:opteron'
+launchpad = 'pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:ppn=%(nodes)s,vmem=%(mem)sgb'
+nike = 'pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:ppn=%(nodes)s,vmem=%(mem)sgb'
+seychelles = 'pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:opteron'
 
 def submit(fname,nodes,mem,queue):
     """
@@ -80,6 +80,8 @@ def submit(fname,nodes,mem,queue):
     # assemble the command (maybe modify to your needs):
     if hostname.split('.')[0] == "launchpad":
         pbcmd = launchpad % {'command':fname,'username':user,'nodes':nodes,'mem':mem}
+    elif hostname.split('.')[0] == "nike":
+        pbcmd = nike % {'command':fname,'username':user,'nodes':nodes,'mem':mem}
     elif hostname.split('.')[0] == "seychelles":
         pbcmd = seychelles % {'command':fname,'username':user}
     else:
@@ -323,7 +325,12 @@ def options_parse():
     h_pause     = 'pause in sec between submissions (default: 13)'
     h_max       = 'max num of jobs of this user (default: 100)'
     h_queue     = 'special queue to submit'
-    h_mem       = 'mem to request (default: 7 Gig), only used in -base submission'
+    h_cmem       = 'RAM in GB to request for cross (default: 7)'
+    h_bmem       = 'RAM in GB to request for base (default: 7)'
+    h_lmem       = 'RAM in GB to request for long (default: 7)'
+    h_cnodes    = 'nodes to request for cross (default: 1)'
+    h_bnodes    = 'nodes to request for base (default: 1)'
+    h_lnodes    = 'nodes to request for long (default: 1)'
 
     # Add options 
 
@@ -356,13 +363,16 @@ def options_parse():
     parser.add_option('--update-recon-all', dest='update_recon_all', action='store_true', help=h_update_recon_all, default=False)
     parser.add_option('--use-recon-all', dest='use_recon_all', help=h_use_recon_all)
 
-    parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
-    parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
-    parser.add_option('--queue' , dest='queue' , help=h_queue)
-    parser.add_option('--mem'   , dest='mem'   , help=h_mem, default=7, type="int")
+    parser.add_option('--pause' ,         dest='pause' , help=h_pause, default=13, type="float")
+    parser.add_option('--max'   ,         dest='max'   , help=h_max, default=100, type="int")
+    parser.add_option('--queue' ,         dest='queue' , help=h_queue)
+    parser.add_option('--cmem'  ,         dest='cmem'   , help=h_cmem, default=7, type="int")
+    parser.add_option('--bmem'  ,'--mem', dest='bmem'   , help=h_bmem, default=7, type="int")
+    parser.add_option('--lmem'  ,         dest='lmem'   , help=h_lmem, default=7, type="int")
+    parser.add_option('--cnodes',         dest='cnodes' , help=h_cnodes, default=1, type="int")
+    parser.add_option('--bnodes',         dest='bnodes' , help=h_bnodes, default=1, type="int")
+    parser.add_option('--lnodes',         dest='lnodes' , help=h_lnodes, default=1, type="int")
         
-    
-                      
     (options, args) = parser.parse_args()
 
     # WITHOUT FREESURFER DO NOTHING
@@ -596,7 +606,7 @@ def run_cross(qdectable,options):
                 os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
             if not options.simulate:
                 wait_jobs(options.max)
-                submit(cmdf,1,7,options.queue)
+                submit(cmdf,options.cnodes,options.cmem,options.queue)
                 submitted = submitted + 1
                 print("Submitted: "+str(submitted)+"\n")
                 time.sleep(options.pause)
@@ -744,21 +754,9 @@ def run_base(qdectable,options):
             #echo "WARNING $base has missing cross sectionals. Skipping ..."
             continue
 
-        #determine mem usage
-        nodes = 1
-#        mem = int(math.ceil(len(tpids) * 2.5))
-        mem = options.mem
-#        if len(tpids) > 3:
-#            mem = 12
-#        if len(tpids) > 5:
-#            mem = 20
-#        if len(tpids) > 8:
-#            mem = 28
         baseflag = " -base "
         if options.affine:
             baseflag = " -base-affine "
-            # also maybe adjust nodes number
-            #if mem < 28: mem = mem+7
             
         cmd = recall+" -sd "+options.bdir+baseflag+subjectid+tps+" "+options.bflags
         if not options.simulate or options.simfiles:
@@ -769,7 +767,7 @@ def run_base(qdectable,options):
             os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
         if not options.simulate:
             wait_jobs(options.max)
-            submit(cmdf,nodes,mem,options.queue)
+            submit(cmdf,options.bnodes,options.bmem,options.queue)
             submitted = submitted + 1
             print("Submitted: "+str(submitted)+"\n")
             time.sleep(options.pause)
@@ -968,7 +966,7 @@ def run_long(qdectable,options):
                 os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
             if not options.simulate:
                 wait_jobs(options.max)
-                submit(cmdf,1,7,options.queue)
+                submit(cmdf,options.lnodes,options.lmem,options.queue)
                 submitted = submitted + 1
                 print("Submitted: "+str(submitted)+"\n")
                 time.sleep(options.pause)

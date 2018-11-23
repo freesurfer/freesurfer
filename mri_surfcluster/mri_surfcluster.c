@@ -116,6 +116,7 @@ char *ocpvalid = NULL;
 char *ocpvalfmt = "paint";
 int   ocpvalfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *sumfile  = NULL;
+char *pointsetfile  = NULL;
 
 char *outlabelbase = NULL;
 char outlabelfile[1000];
@@ -510,6 +511,9 @@ int main(int argc, char **argv) {
     printf("-------------------------------------\n");
   }
 
+  if(pointsetfile)
+    sclustSaveAsPointSet(pointsetfile, scs, NClusters, srcsurf);
+
   /* ------ Print summary to a file ---------- */
   if (sumfile != NULL) {
     fp = fopen(sumfile,"w");
@@ -896,6 +900,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--pointset")) {
+      if (nargc < 1) argnerr(option,1);
+      pointsetfile = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       outid = pargv[0];
@@ -1028,6 +1036,7 @@ static void print_usage(void) {
   printf("   --mask-inv : constrain to be OUTSIDE mask or clabel\n");
   printf("   --centroid : report centroid instead of location of maximum stat\n");
   printf("   --sum sumfile     : text summary file\n");
+  printf("   --pointset pointsetfile : file that can be read into freeview with -c\n");
   printf("   --o outid        : input with non-clusters set to 0\n");
   printf("   --ocn ocnid      : value is cluster number \n");
   printf("   --olab labelbase : output clusters as labels \n");
@@ -1580,3 +1589,5 @@ LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign) {
   printf("Found %d vertices in mask\n",nhits);
   return(label);
 }
+
+

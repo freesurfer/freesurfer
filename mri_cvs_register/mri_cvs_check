@@ -8,13 +8,16 @@
 # Original Author: Lilla Zollei
 # Created: 07-14-2010
 
-set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_check,v 1.2 2013/10/29 14:50:17 lzollei Exp $';
-set PrintHelp = 0;
+set inputargs   = ($argv);
+set VERSION     = '$Id: mri_cvs_check,v 1.2 2013/10/29 14:50:17 lzollei Exp $';
+set PrintHelp   = 0;
 
-set movingid = ();
-set templateid = ();
+set movingid    = ();
+set templateid  = ();
 set cvstemplate = 0;
+
+set isfull   = 1; # by default we assume full brain will be processed
+set hemiproc = 0; # the hemi to be processed
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -48,30 +51,51 @@ endif
 
 foreach s ($allids)
   set surfdir = $SUBJECTS_DIR/$s/surf
-  foreach hemi (lh rh)
+  if ($isfull) then 
+    foreach hemi (lh rh)
+      foreach f (inflated  pial  sphere  white  smoothwm sulc) 
+        set file = $surfdir/$hemi.$f 
+        if (! -e $file) then
+          set missing = ($missing $file)
+        endif
+      end
+    end
+  else
+    set hemi = $hemiproc
     foreach f (inflated  pial  sphere  white  smoothwm sulc) 
       set file = $surfdir/$hemi.$f 
       if (! -e $file) then
         set missing = ($missing $file)
       endif
     end
-  end
+  endif
 end
 
 foreach s ($allids)
   set surfdir = $SUBJECTS_DIR/$s/surf
-  foreach hemi (lh rh)
+  if ($isfull) then
+    foreach hemi (lh rh)
+      foreach f (inflated.H inflated.K)
+        set file = $surfdir/$hemi.$f
+        if ((! -e $file) && (! -e ${file:r}))  then # otherwise it can be computed 
+          set missing = ($missing $file)
+        endif
+      end
+    end
+  else
+    set hemi = $hemiproc
     foreach f (inflated.H inflated.K)
       set file = $surfdir/$hemi.$f
       if ((! -e $file) && (! -e ${file:r}))  then # otherwise it can be computed 
         set missing = ($missing $file)
       endif
     end
-  end
+  endif
 end
 
 foreach s ($allids)
   set labeldir = $SUBJECTS_DIR/$s/label
+  if ($isfull) then
   foreach hemi (lh rh)
     foreach f (aparc.annot) 
       set file = $labeldir/$hemi.$f
@@ -80,6 +104,15 @@ foreach s ($allids)
       endif
     end
   end
+  else
+    set hemi = $hemiproc
+    foreach f (aparc.annot) 
+      set file = $labeldir/$hemi.$f
+      if (! -e $file) then
+        set missing = ($missing $file)
+      endif
+    end
+  endif
 end
 
 foreach s ($allids)
@@ -129,6 +162,12 @@ while( $#argv != 0 )
       set movingid = $argv[1]; shift;
       breaksw
 
+    case "--hemi":
+      if ( $#argv < 1) goto arg1err;
+      set isfull = 0;
+      set hemiproc = $argv[1]; shift;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -172,6 +211,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo ""
+  echo "   --hemi ?h    : indicate which hemi will be used"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
   echo ""
@@ -199,3 +239,9 @@ be moved in registration with that of the template.
 Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
 be used and the template / target for the registration. If missing, CVS 
 template is assumed as a target and no checks are done.
+
+Optional Arguments:
+
+--hemi [lh/rh]
+
+The hemisphere that is going to be processed. When, for example, an exvivo scan is processed, we often only have one of the hemis.

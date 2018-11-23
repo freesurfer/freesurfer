@@ -232,6 +232,7 @@ Q_SIGNALS:
   void SlicePositionChanged(bool bCenterView = false);
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
+  void NewVolumeCreated();
 
 public slots:
   void SetMode( int nMode );
@@ -277,6 +278,8 @@ public slots:
 
   void CenterAtWorldPosition(double* pos, bool mainview_only = false);
 
+  void OnLoadSurfaceParameterization();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -309,6 +312,7 @@ protected:
   void LoadControlPointsFile    ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadTrackFile            ( const QString& fn );
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
+  void LoadSurfaceParameterization(const QString& filename);
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 
@@ -354,6 +358,7 @@ protected:
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
   void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
   void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
+  void CommandSetSurfaceOverlayCustom     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );

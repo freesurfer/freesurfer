@@ -3,6 +3,8 @@
 
 #include <QTreeWidget>
 
+class QTreeWidgetItem;
+
 class LabelTreeWidget : public QTreeWidget
 {
   Q_OBJECT
@@ -11,6 +13,9 @@ public:
 
   void contextMenuEvent(QContextMenuEvent *e);
 
+  virtual void dropEvent(QDropEvent * event);
+  virtual void dragEnterEvent(QDragEnterEvent *event);
+
 signals:
   void MenuGoToCentroid();
   void MenuResample();
@@ -18,6 +23,8 @@ signals:
 public slots:
   void OnMenuTriggered();
 
+private:
+  QTreeWidgetItem* draggedItem;
 };
 
 #endif // LABELTREEWIDGET_H

@@ -68,6 +68,10 @@ LabelsEntropyAndIntersectionMembershipFunction< TVector >
 
 //		std::cout << "labels"<< this->m_labels <<  std::endl;	
 //		std::cout << " labels1,siuze" << labels1[0].size()<<  "      " << labels2[0].size()<<std::endl;	
+		if(labels1.size()==0 || labels2.size()==0)
+		{
+			return 0;
+		}
 		for( int i=0;i<labels1.size(); i++)
 		{
 			for(typename LabelsMapType::const_iterator it = labels1[i].cbegin();it != labels1[i].cend(); it++)

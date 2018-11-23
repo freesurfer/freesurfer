@@ -1,4 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
+#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
+
 /*
  * @file utilities operating on Original
  *
@@ -18,6 +20,7 @@
  *
  */
 #include "mrisurf_io.h"
+#include "mrisp.h"
 
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
@@ -28,7 +31,7 @@
 
 static int mrisReadGeoFilePositions     (MRI_SURFACE *mris, const char *fname);
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname);
-static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over);
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier);
 static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname);
 
 
@@ -3926,7 +3929,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
+MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 {
   MRI_SURFACE *mris = NULL;
   int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
@@ -3953,7 +3956,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   }
   else if (type == MRIS_ICO_FILE) /* .TRI, .ICO */
   {
-    mris = ICOreadOverAlloc(fname, pct_over);
+    mris = ICOreadOverAlloc(fname, nVFMultiplier, 1.0);
     if (!mris) {
       return (NULL);
     }
@@ -4020,7 +4023,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     }
     else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
       fclose(fp);
-      mris = mrisReadTriangleFile(fname, pct_over);
+      mris = mrisReadTriangleFile(fname, nVFMultiplier);
       if (!mris) {
         ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
       }
@@ -4058,7 +4061,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout, "reading %d vertices and %d faces.\n", nvertices, 2 * nquads);
 
-    mris = MRISoverAlloc(pct_over * nvertices, pct_over * 2 * nquads, nvertices, 2 * nquads);
+    mris = MRISoverAlloc(nVFMultiplier * nvertices, nVFMultiplier * 2 * nquads, nvertices, 2 * nquads);
     mris->type = MRIS_BINARY_QUADRANGLE_FILE;
 
     imnr0 = 1000;
@@ -4314,7 +4317,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   mris->xctr = (xhi + xlo) / 2;
   mris->yctr = (yhi + ylo) / 2;
   mris->zctr = (zhi + zlo) / 2;
-  mrisFindNeighbors(mris);
+  mrisCompleteTopology(mris);
   
   mrisCheckVertexFaceTopology(mris);
   
@@ -4403,9 +4406,9 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISread(const char *fname)
+MRIS * MRISread(const char *fname)
 {
-  MRIS *mris = MRISreadOverAlloc(fname, 0.0);
+  MRIS *mris = MRISreadOverAlloc(fname, 1.0);
   if (mris == NULL) return (NULL);
   MRISsetNeighborhoodSizeAndDist(mris, 3);  // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1);       // reset current size to 1-nbrs
@@ -5446,7 +5449,7 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
 
   Description
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier)
 {
   FACE *f;
   int nvertices, nfaces, magic, vno, fno, n;
@@ -5467,7 +5470,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
-  MRIS * mris = MRISoverAlloc(pct_over * nvertices, pct_over * nfaces, nvertices, nfaces);
+  MRIS * mris = MRISoverAlloc(nVFMultiplier * nvertices, nVFMultiplier * nfaces, nvertices, nfaces);
   mris->type = MRIS_TRIANGULAR_SURFACE;
 
   for (vno = 0; vno < nvertices; vno++) {
@@ -5905,3 +5908,34 @@ int MRISwriteArea(MRI_SURFACE *mris, const char *sname)
   return (NO_ERROR);
 }
 
+
+MRI *
+MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
+{
+  MRI_SP *mrisp ;
+  MRI    *mri ;
+  int    frame, nframes, vno ;
+
+//  MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
+  MRISsaveVertexPositions(mris, TMP_VERTICES);
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  mrisp = MRISPread(fname) ;
+  if (mrisp == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadParameterizationToSurface: could not open file %s",fname));
+
+  nframes = mrisp->Ip->num_frame;
+  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
+
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    MRISfromParameterizationBarycentric(mrisp, mris, frame) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      MRIsetVoxVal(mri, vno, 0, 0, frame, mris->vertices[vno].curv) ;
+  }
+
+  MRISPfree(&mrisp) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  return(mri) ;
+}

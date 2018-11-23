@@ -36,6 +36,7 @@
 #include "kvlGetOptimizer.h"
 #include "kvlStepOptimizer.h"
 #include "kvlCreateMeshCollection.h"
+#include "kvlDrawJacobianDeterminant.h"
 
 
 namespace kvl
@@ -86,6 +87,7 @@ MatlabRunnerArray
   m_Array.push_back( GetOptimizer::New().GetPointer() );
   m_Array.push_back( StepOptimizer::New().GetPointer() );
   m_Array.push_back( CreateMeshCollection::New().GetPointer() );
+  m_Array.push_back( DrawJacobianDeterminant::New().GetPointer() );
 }
 
 

@@ -665,19 +665,17 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
 
     /* Copy in the vertices. */
-    float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo;
+    float xhi, xlo, yhi, ylo, zhi, zlo;
     xhi = yhi = zhi = -1000000;
     xlo = ylo = zlo = 1000000;
     int vertex_index;
     for (vertex_index = 0; vertex_index < num_vertices; vertex_index++) {
       mris->vertices_topology[vertex_index].num = 0;
-      mris->vertices[vertex_index].x = (float)gifti_get_DA_value_2D(coords, vertex_index, 0);
-      mris->vertices[vertex_index].y = (float)gifti_get_DA_value_2D(coords, vertex_index, 1);
-      mris->vertices[vertex_index].z = (float)gifti_get_DA_value_2D(coords, vertex_index, 2);
+      float x = (float)gifti_get_DA_value_2D(coords, vertex_index, 0);
+      float y = (float)gifti_get_DA_value_2D(coords, vertex_index, 1);
+      float z = (float)gifti_get_DA_value_2D(coords, vertex_index, 2);
+      MRISsetXYZ(mris,vertex_index,x,y,z);
       mris->vertices[vertex_index].origarea = -1;
-      x = mris->vertices[vertex_index].x;
-      y = mris->vertices[vertex_index].y;
-      z = mris->vertices[vertex_index].z;
       if (x > xhi) {
         xhi = x;
       }
@@ -762,7 +760,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
 
     /* other data structure essentials, namely:
-     *  mrisFindNeighbors(mris);
      *  mrisComputeVertexDistances(mris);
      *  mrisReadTransform(mris, fname) ;
      *  mris->radius = MRISaverageRadius(mris) ;
