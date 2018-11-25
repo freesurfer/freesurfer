@@ -890,7 +890,11 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
   }
   if (use_both) {
     bool good = true;
-    fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
+    static bool laterTime;
+    if (!laterTime) {
+      laterTime = true;
+      fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
+    }
     if (result_old != result_new) {
       fprintf(stdout, " result_old:%d != result_new:%d\n",result_old,result_new);
       good = false;
@@ -1150,7 +1154,9 @@ static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t
     vlist[n] = vt->v[n];
     mris->vertices[vt->v[n]].marked = n < vt->vnum ? 1 : (n < vt->v2num ? 2 : 3);
   }
-  if (nlinks < mris->nsize) {
+
+  if (nlinks <= mris->nsize) {
+    cheapAssert(nlinks <= vt->nsizeCur);
     switch (nlinks) {
       case 1:
         vtotal = vt->vnum;
@@ -1169,11 +1175,10 @@ static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t
   }
   else  // bigger than biggest neighborhood held at each vertex
   {
-    v->marked = mris->nsize;
-    link_dist = mris->nsize;
-    vtotal = vt->vtotal;
+    link_dist = vt->nsizeCur;
+    vtotal    = vt->vtotal;
     // at each iteration mark one more ring with the ring distance
-    do {
+    while (link_dist < nlinks) {
       link_dist++;
       ring_total = 0;
       for (n = 0; n < vtotal; n++) {
@@ -1190,7 +1195,7 @@ static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t
         }
       }
       vtotal += ring_total;
-    } while (link_dist < nlinks);  // expand by one
+    }
   }
   
   for (n = 0; n < vtotal; n++) {
