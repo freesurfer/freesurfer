@@ -4365,6 +4365,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
 
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       
+      // seen to fail!  cheapAssert(mris->vertices[vno].marked == 0);
+      
       if (mris->vertices[vno].ripflag) continue;
       if (vno == Gdiag_no) DiagBreak();
 
@@ -4393,6 +4395,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     MRIS_check_vertexNeighbours(mris);
     return;
   }
+  
+  MRISclearMarks(mris);     // added because of the seen-to-fail above
   
   // setting neighborhood size to a value larger than it has been in the past
   mris->max_nsize = nsize;
