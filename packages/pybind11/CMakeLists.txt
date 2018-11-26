@@ -81,7 +81,6 @@ foreach(ver ${pybind11_version_defines})
   endif()
 endforeach()
 set(${PROJECT_NAME}_VERSION ${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}.${PYBIND11_VERSION_PATCH})
-message(STATUS "pybind11 v${${PROJECT_NAME}_VERSION}")
 
 option (USE_PYTHON_INCLUDE_DIR "Install pybind11 headers in Python include directory instead of default installation prefix" OFF)
 if (USE_PYTHON_INCLUDE_DIR)
