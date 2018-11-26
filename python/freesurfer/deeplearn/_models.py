@@ -7,10 +7,9 @@ from keras.models import Model, Sequential
 from keras.layers import *
 from keras.losses import mse
 from keras.utils.training_utils import multi_gpu_model
-from _utility import dice_coef_loss2
+from ._utility import dice_coef_loss2, grad_loss
 
 K.set_image_data_format('channels_last')
-from _utility import dice_coef_loss2, grad_loss
 
 
 def sampling(args):
