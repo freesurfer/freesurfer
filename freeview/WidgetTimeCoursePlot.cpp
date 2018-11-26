@@ -186,9 +186,10 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   dMetricPos = 0;
   double dScale = 1;
   int nPrecise = 0;
+  double x = rc_plot.left();
   if (!m_bShowFrameNumber)
   {
-    double np = log(m_dXInterval+m_dXOffset);
+    double np = log(qAbs(m_dXInterval+m_dXOffset));
     if (np < 2)
       nPrecise = 2;
     else if (np > 3)
@@ -202,9 +203,17 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       m_strXUnit = QString("10^-3 ") + m_strXUnit;
       nPrecise = 2;
     }
+
+    dMetricStep = (m_data.size()-1) * qAbs(m_dXInterval*dScale) / rc_plot.width() * nMetricInterval;
+    dMetricStep = MyUtils::RoundToGrid(dMetricStep)/qAbs(m_dXInterval*dScale);
+    double dval = m_dXOffset/qAbs(m_dXInterval*dMetricStep) + 1;
+    dval = dval - ((int)dval);
+    dMetricPos = dval*dMetricStep - dMetricStep;
+    while (dMetricPos < -dMetricStep/10)
+      dMetricPos += dMetricStep;
+    x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_data.size()-1);
   }
-  double x = rc_plot.left();
-  while (x < rc_plot.right())
+  while (x <= rc_plot.right()+dMetricStep/10)
   {
     QString strg;
     if (m_bShowFrameNumber)
@@ -218,14 +227,17 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
     x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_data.size()-1);
   }
 
-  QRectF rc = rect().adjusted(0, 0, 0, -3);
-  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, (m_bShowFrameNumber || m_strXUnit.isEmpty())?"Frame":m_strXUnit);
+  QRectF rc = rect();
+  // draw current x value
+  QString x_strg = QString("Frame #%1").arg(m_nCurrentFrame);
+  if (!m_strXUnit.isEmpty())
+    x_strg += QString(" / %1 %2").arg(m_dXOffset+m_nCurrentFrame*m_dXInterval).arg(m_strXUnit);
+  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, x_strg);
 
-  // draw current stats
-  QString strg = QString("Frame: #%3 ( %4 %5 )    Signal intensity: %1 %2")
+  // draw current y value
+  QString strg = QString("Signal intensity: %1 %2")
       .arg(m_data[m_nCurrentFrame])
-      .arg(!m_secondData.isEmpty() ? QString("/ %1").arg(m_secondData[m_nCurrentFrame]) : "")
-      .arg(m_nCurrentFrame).arg(m_dXOffset+m_nCurrentFrame*m_dXInterval).arg(m_strXUnit);
+      .arg(!m_secondData.isEmpty() ? QString("/ %1").arg(m_secondData[m_nCurrentFrame]) : "");
   rc = rect().adjusted(0, 5, 0, 0);
   p.drawText(rc, Qt::AlignHCenter | Qt::AlignTop, strg);
   m_rectPlot = rc_plot;
