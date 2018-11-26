@@ -2936,7 +2936,6 @@ int MRISstoreMetricProperties(MRIS *mris)
 #endif
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
@@ -2980,7 +2979,6 @@ int MRISrestoreMetricProperties(MRIS *mris)
 
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
