@@ -2943,10 +2943,13 @@ int MRISstoreMetricProperties(MRIS *mris)
     }
     v->origarea = v->area;
 #if 1
-    if (v->dist && v->dist_orig)
-      for (n = 0; n < vt->vtotal; n++) {
+    if (v->dist && v->dist_orig) {
+      // Used to only go to vtotal, but that is v[nsizeCur]num, and the code can go to to v[nsizeMax]num
+      int const vsize = mrisVertexVSize(mris,vno);
+      for (n = 0; n < vsize; n++) {
         v->dist_orig[n] = v->dist[n];
       }
+    }
 #endif
   }
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -2983,7 +2986,8 @@ int MRISrestoreMetricProperties(MRIS *mris)
       continue;
     }
     v->area = v->origarea;
-    for (n = 0; n < vt->vtotal; n++) {
+    int const vsize = mrisVertexVSize(mris,vno);
+    for (n = 0; n < vsize; n++) {
       v->dist[n] = v->dist_orig[n];
     }
   }
