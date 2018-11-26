@@ -4555,19 +4555,28 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     ROMP_PFLB_begin
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX                * const v  = &mris->vertices         [vno];
-    if (vt->vtotal > 0) {
+    int vsize = mrisVertexVSize(mris, vno);
+    if (vsize > vt->vtotal) {
+        static int count;
+        if (count++ < 10) {
+            fprintf(stdout, "%s:%d vsize:%d > vt->vtotal:%d so wrong amount was copied. vt->nsizeCur:%d vt->nsizeMax:%d\n", __FILE__, __LINE__,
+                vsize, vt->vtotal, vt->nsizeCur, vt->nsizeMax);
+        }
+    }
+    
+    if (vsize > 0) {
       if (v->dist) free(v->dist);
 
       if (v->dist_orig) free(v->dist_orig);
 
-      v->dist = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist = (float *)calloc(vsize, sizeof(float));
       if (!v->dist)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "
                   "dists at v=%d",
                   vt->vtotal,
                   vno);
-      v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist_orig = (float *)calloc(vsize, sizeof(float));
       if (!v->dist_orig)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "
