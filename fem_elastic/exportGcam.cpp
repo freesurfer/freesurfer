@@ -106,7 +106,7 @@ main(int ac, char* av[])
   }
 
   // load morph
-  boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
+  std::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
   try
   {
     pmorph->load( params.strMorph.c_str(), params.zlibBuffer );

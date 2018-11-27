@@ -79,7 +79,7 @@ main(int argc,
   }
 
 
-  boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
+  std::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
 
   if ( !params.strTemplate.empty() )
   {
@@ -109,7 +109,7 @@ main(int argc,
   {
     if ( it->type == "affine" )
     {
-      boost::shared_ptr<gmp::AffineTransform3d>
+      std::shared_ptr<gmp::AffineTransform3d>
       paffine( new gmp::AffineTransform3d);
       float* pf = read_transform( it->file.c_str() );
       if ( !pf )
@@ -123,7 +123,7 @@ main(int argc,
     }
     else if ( it->type == "volume" )
     {
-      boost::shared_ptr<gmp::DeltaTransform3d>
+      std::shared_ptr<gmp::DeltaTransform3d>
       pvol( new gmp::DeltaTransform3d);
       MRI* field = MRIread
                    ( const_cast<char*>( it->file.c_str() ) );
@@ -138,7 +138,7 @@ main(int argc,
     }
     else if ( it->type == "gcam" )
     {
-      boost::shared_ptr<gmp::DeltaTransform3d>
+      std::shared_ptr<gmp::DeltaTransform3d>
       pvol( new gmp::DeltaTransform3d);
       GCA_MORPH* gcam = GCAMread( const_cast<char*>( it->file.c_str() ) );
       if ( !gcam )
@@ -191,7 +191,7 @@ main(int argc,
     }
     else if ( it->type == "morph" )
     {
-      boost::shared_ptr<gmp::VolumeMorph> tmpMorph(new gmp::VolumeMorph);
+      std::shared_ptr<gmp::VolumeMorph> tmpMorph(new gmp::VolumeMorph);
       try
       {
         tmpMorph->load( it->file.c_str() );
@@ -211,8 +211,8 @@ main(int argc,
     }
     else if ( it->type == "mesh" )
     {
-      boost::shared_ptr<gmp::FemTransform3d> pfem(new gmp::FemTransform3d);
-      boost::shared_ptr<CMesh3d> pmesh(new CMesh3d);
+      std::shared_ptr<gmp::FemTransform3d> pfem(new gmp::FemTransform3d);
+      std::shared_ptr<CMesh3d> pmesh(new CMesh3d);
       pmesh->load( it->file.c_str() );
       pfem->m_sharedMesh = pmesh;
       pmorph->m_transforms.push_back(pfem);

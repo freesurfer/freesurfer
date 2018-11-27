@@ -5,9 +5,6 @@
 #include <iostream>
 #include <vector>
 
-// BOOST includes
-#include <boost/shared_ptr.hpp>
-
 // PETSC include
 #include "petscksp.h"
 
@@ -567,7 +564,7 @@ main(int argc,
       {
         std::cout << " compressing morph\n";
         FemTransform3SPointer pTmpTransform(new gmp::FemTransform3d);
-        pTmpTransform->set_mesh( boost::shared_ptr<TMesh3d>(pmesh) );
+        pTmpTransform->set_mesh( std::shared_ptr<TMesh3d>(pmesh) );
         Transform3SPointer pBufTransform(pTmpTransform->convert_to_delta());
 
         // set a name for the mesh - useful for tracking
@@ -604,7 +601,7 @@ main(int argc,
         os << "step_" << step;
         pBufTransform->m_strName = os.str();
 
-        pBufTransform->set_mesh( boost::shared_ptr<TMesh3d>(pmesh) );
+        pBufTransform->set_mesh( std::shared_ptr<TMesh3d>(pmesh) );
 
         update_bc_container(container,
                             pBufTransform);
@@ -619,7 +616,7 @@ main(int argc,
       // if dbg option, save the mesh as a volumetric transform
       if ( !params.strDebug.empty() )
       {
-        boost::shared_ptr<gmp::AffineTransform3d > paffine( new gmp::AffineTransform3d(inv_t) );
+        std::shared_ptr<gmp::AffineTransform3d > paffine( new gmp::AffineTransform3d(inv_t) );
 
         gmp::VolumeMorph morph;
         morph.set_volGeom_fixed( mri_fixed );
@@ -638,7 +635,7 @@ main(int argc,
     } // next step
 
     {
-      boost::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
+      std::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
 
       std::cout << " axe\n";
       gmp::VolumeMorph morph;
@@ -678,7 +675,7 @@ main(int argc,
       morph.set_volGeom_moving( mri_moving );
       
       morph.m_transforms.push_back(ptransform);
-      boost::shared_ptr<gmp::AffineTransform3d>
+      std::shared_ptr<gmp::AffineTransform3d>
 	paffine( new gmp::AffineTransform3d(inv_t));
       morph.m_transforms.push_back( paffine );	      
       morph.save(os.str().c_str());
@@ -695,7 +692,7 @@ main(int argc,
       if( !params.strGcam.empty() ) {
 	// write the m3z version of the morph
 	try {
-	  boost::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
+	  std::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
 	  gmp::VolumeMorph morph;
 	  morph.set_volGeom_fixed( mri_fixed );
 	  morph.set_volGeom_moving(mri_moving);
@@ -726,7 +723,7 @@ main(int argc,
     if( !params.strOutputAffine.empty() ) {
       // write the affine morpehd version of the input 
       try {
-	boost::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
+	std::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
 	
 	gmp::VolumeMorph morph;
 	morph.m_template = mri_fixed;
@@ -1121,8 +1118,8 @@ static MRI* compute_morph( Transform3SPointer ptransform,
 
   try
   {
-    boost::shared_ptr<gmp::Transform<3> > bpTransform(ptransform);
-    boost::shared_ptr<gmp::AffineTransform3d>
+    std::shared_ptr<gmp::Transform<3> > bpTransform(ptransform);
+    std::shared_ptr<gmp::AffineTransform3d>
     paffine( new gmp::AffineTransform3d(plin));
 
     gmp::VolumeMorph volMorph;
@@ -1859,7 +1856,7 @@ static void surf_forward_morph(const CMesh3d* pmesh, std::string strName,
 
   // create the transforms
   gmp::FemTransform3d femTransform;
-  femTransform.set_mesh( boost::shared_ptr<TMesh3d>(&meshInverse) );
+  femTransform.set_mesh( std::shared_ptr<TMesh3d>(&meshInverse) );
 
   femTransform.m_signalTopology = true;
 

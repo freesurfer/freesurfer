@@ -71,7 +71,7 @@ public:
   std::string strInput;
   std::string strOutput;
 
-  boost::shared_ptr<gmp::VolumeMorph> pmorph;
+  std::shared_ptr<gmp::VolumeMorph> pmorph;
 
   virtual void Execute() =0;
   virtual ~AbstractFilter()
@@ -191,7 +191,7 @@ main(int argc,
   
 
   // load transform
-  boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
+  std::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
   pmorph->m_template = mriTemplate;
 
   try
@@ -207,18 +207,18 @@ main(int argc,
   std::cout << " loaded transform\n";
   initOctree(*pmorph);
 
-  typedef std::vector<boost::shared_ptr<AbstractFilter> > FilterContainerType;
+  typedef std::vector<std::shared_ptr<AbstractFilter> > FilterContainerType;
   FilterContainerType filterContainer;
 
   for ( std::vector<DataItem>::const_iterator cit = params.items.begin();
         cit != params.items.end(); ++cit )
   {
-    boost::shared_ptr<AbstractFilter> p;
+    std::shared_ptr<AbstractFilter> p;
     switch (cit->m_type)
     {
     case DataItem::surf :
       {
-        boost::shared_ptr<SurfaceFilter> pTmp(new SurfaceFilter);
+        std::shared_ptr<SurfaceFilter> pTmp(new SurfaceFilter);
         pTmp->strAttached = cit->strAttached;
         pTmp->mriTemplate = mriTemplate;
         p = pTmp;
@@ -226,26 +226,26 @@ main(int argc,
       }
     case DataItem::volume :
       {
-        p = boost::shared_ptr<AbstractFilter>(new VolumeFilter);
+        p = std::shared_ptr<AbstractFilter>(new VolumeFilter);
       }
       break;
     case DataItem::sprobe :
       {
-        boost::shared_ptr<SurfaceProbeFilter> pTmp(new SurfaceProbeFilter);
+        std::shared_ptr<SurfaceProbeFilter> pTmp(new SurfaceProbeFilter);
         pTmp->strDestinationSurf = cit->strAttached;
         p = pTmp;
       }
       break;
     case DataItem::snormals :
       {
-        boost::shared_ptr<SurfaceNormalsProbeFilter> pTmp(new SurfaceNormalsProbeFilter);
+        std::shared_ptr<SurfaceNormalsProbeFilter> pTmp(new SurfaceNormalsProbeFilter);
         pTmp->strDestinationSurf = cit->strAttached;
         p = pTmp;
       }
       break;
     case DataItem::pointList:
       {
-        boost::shared_ptr<PointListProbeFilter> pTmp(new PointListProbeFilter);
+        std::shared_ptr<PointListProbeFilter> pTmp(new PointListProbeFilter);
         pTmp->strMode = cit->strAttached;
         p = pTmp;
       }

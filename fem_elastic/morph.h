@@ -59,8 +59,8 @@ namespace gmp
 
 template<int n> class Transform;
 
-boost::shared_ptr<Transform<3> > loadTransform(std::istream& is, unsigned int zlibBufferMultiplier=5);
-void saveTransform(std::ostream& os, boost::shared_ptr<Transform<3> > ptransform);
+std::shared_ptr<Transform<3> > loadTransform(std::istream& is, unsigned int zlibBufferMultiplier=5);
+void saveTransform(std::ostream& os, std::shared_ptr<Transform<3> > ptransform);
 
 template <int n>
 class Transform
@@ -74,11 +74,11 @@ public:
   virtual ~Transform()
   {}
 
-  void setInitial(boost::shared_ptr<Transform> transform)
+  void setInitial(std::shared_ptr<Transform> transform)
   {
     m_pInitial = transform;
   }
-  boost::shared_ptr<Transform> initial() const
+  std::shared_ptr<Transform> initial() const
   {
     return m_pInitial;
   }
@@ -131,7 +131,7 @@ protected:
     if (m_pInitial) return m_pInitial->img(pt);
     return pt;
   }
-  boost::shared_ptr<Transform<n> >  m_pInitial;
+  std::shared_ptr<Transform<n> >  m_pInitial;
 
   virtual void doInput(std::istream& is)=0;
   virtual void doOutput(std::ostream& os) const=0;
@@ -291,18 +291,18 @@ public:
   typedef gmp::Transform<3> Superclass;
   typedef Superclass::tCoords tCoords;
   typedef gmp::Transform<3> TransformType;
-  typedef boost::shared_ptr<TransformType> TransformPointer;
+  typedef std::shared_ptr<TransformType> TransformPointer;
 
   virtual ~FemTransform3d()
   {}
   FemTransform3d();
 
-  void set_mesh(const boost::shared_ptr<TMesh3d> cpmesh)
+  void set_mesh(const std::shared_ptr<TMesh3d> cpmesh)
   {
     m_sharedMesh = cpmesh;
   }
 
-  boost::shared_ptr<TMesh3d> m_sharedMesh;
+  std::shared_ptr<TMesh3d> m_sharedMesh;
 
   void invert();
 
@@ -335,7 +335,7 @@ public:
   ~VolumeMorph();
 
   typedef gmp::Transform<3> TransformType;
-  typedef boost::shared_ptr<TransformType> TransformPointer;
+  typedef std::shared_ptr<TransformType> TransformPointer;
   typedef std::list<TransformPointer> TransformContainerType;
   typedef TransformType::tCoords tCoords;
 
@@ -447,9 +447,9 @@ private:
 
 }
 
-typedef boost::shared_ptr<gmp::Transform<3> > Transform3SPointer;
-typedef boost::shared_ptr<gmp::FemTransform3d> FemTransform3SPointer;
-typedef boost::shared_ptr<gmp::DeltaTransform3d> DeltaTransform3SPointer;
-typedef boost::shared_ptr<gmp::VolumeMorph> VolumeMorphSPointer;
+typedef std::shared_ptr<gmp::Transform<3> > Transform3SPointer;
+typedef std::shared_ptr<gmp::FemTransform3d> FemTransform3SPointer;
+typedef std::shared_ptr<gmp::DeltaTransform3d> DeltaTransform3SPointer;
+typedef std::shared_ptr<gmp::VolumeMorph> VolumeMorphSPointer;
 
 #endif

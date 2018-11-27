@@ -17,7 +17,7 @@ class TopologySolver
 {
 public:
   typedef std::vector<unsigned int> IndexVectorType;
-  typedef boost::shared_ptr<IndexVectorType> IndexVectorPointer;
+  typedef std::shared_ptr<IndexVectorType> IndexVectorPointer;
   typedef std::list<IndexVectorPointer> ClusterContainerType;
 
   TopologySolver(TMesh3d& mesh, unsigned int radius=2,
