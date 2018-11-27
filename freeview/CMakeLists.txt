@@ -1,6 +1,6 @@
 project(freeview)
 
-if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
+if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -186,6 +186,19 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     freeview.qrc
   )
 
+  if(USE_QT4)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/json)
+    set(SOURCES ${SOURCES} 
+      json/qjsonarray.cpp
+      json/qjson.cpp
+      json/qjsondocument.cpp
+      json/qjsonobject.cpp
+      json/qjsonparser.cpp
+      json/qjsonvalue.cpp
+      json/qjsonwriter.cpp
+    )
+  endif()
+
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare")
 
   if(APPLE)
@@ -195,10 +208,18 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     set(FREEVIEW_EXEC_NAME freeview)
   endif()
 
+  if(USE_QT4)
+    set(QT_LIBRARIES Qt4::QtCore Qt4::QtGui)
+  else()
+    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+    if(NOT APPLE)
+      set(QT_LIBRARIES ${QT_LIBRARIES} Qt5::X11Extras)
+    endif()
+  endif()
+
   add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
   target_link_libraries(${FREEVIEW_EXEC_NAME} 
-    Qt5::Core
-    Qt5::Widgets
+    ${QT_LIBRARIES}
     ${OPENGL_LIBRARIES}
     utils
     fsgdf
@@ -215,7 +236,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
   )
 
   if(NOT APPLE)
-    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES} Qt5::X11Extras)
+    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
   if(APPLE)
