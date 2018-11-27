@@ -1728,6 +1728,7 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   
   return (mris_dst);
 }
+
 /*!
   \fn int MRISltaMultiply(MRIS *surf, LTA *lta)
   \brief Applies an LTA matrix to the coords of the given surface.
@@ -1741,6 +1742,8 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
 int MRISltaMultiply(MRIS *surf, const LTA *lta)
 {
   LTA *ltacopy;
+  extern double vg_isEqual_Threshold;
+  vg_isEqual_Threshold = 10e-4;
 
   // Make a copy of the LTA so source is not contaminated
   ltacopy = LTAcopy(lta,NULL);
@@ -1752,15 +1755,30 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
 
   // Determine which direction the LTA goes by looking at which side
   // matches the surface volume geometry. Invert if necessary
-  if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
-    if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
-      // If this fails a lot, try setting to vg_isEqual_Threshold = 10e-4 or higher
-      printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
-      LTAfree(&ltacopy);
-      return(1);
+  if(surf->vg.valid){
+    if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
+      if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
+	// If this fails a lot, try setting vg_isEqual_Threshold higher
+	printf("vg surf ------------------------\n");
+	fflush(stdout);	fflush(stderr);
+	vg_print(&surf->vg);
+	fflush(stdout);	fflush(stderr);
+	printf("LTA ------------------------\n");
+	LTAprint(stdout,lta);
+	printf("------------------------\n");
+	printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
+	printf("   src diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].src, &surf->vg,vg_isEqual_Threshold));
+	printf("   dst diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].dst, &surf->vg,vg_isEqual_Threshold));
+	printf("   vg_isEqual_Threshold = %10.6e\n",vg_isEqual_Threshold);
+	LTAfree(&ltacopy);
+	return(1);
+      }
+      printf("MRISltaMultiply(): inverting LTA\n");
+      LTAinvert(ltacopy,ltacopy);
     }
-    printf("MRISltaMultiply(): inverting LTA\n");
-    LTAinvert(ltacopy,ltacopy);
+  }
+  else {
+    printf("WARNING: source surface vg is not valid, assuming direction of transform is right\n");
   }
 
   // Must be in regdat space to apply it to the surface
