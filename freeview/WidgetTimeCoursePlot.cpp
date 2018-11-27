@@ -163,8 +163,9 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
     if (y <= rc_plot.bottom())
     {
       QString strg = QString::number(dMetricPos);
-      p.drawText(QRectF(rect().left(), y-10, rc_plot.left()-5-rect().left(), 20),
+      p.drawText(QRectF(rect().left(), y-10, rc_plot.left()-rect().left()-6, 20),
                  Qt::AlignVCenter | Qt::AlignRight, strg);
+      p.drawLine(QPointF(rc_plot.left(), y), QPointF(rc_plot.left()-2, y));
     }
     dMetricPos += dMetricStep;
     y = rc_plot.bottom()-(dMetricPos-dMin)/(dMax-dMin)*rc_plot.height();
@@ -192,16 +193,19 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
     {
       np = ((int)np);
       dScale = pow(10, -np);
-      strXUnit = QString("10^%1 ").arg(np) + m_strXUnit;
+      strXUnit = QString("10^%1 %2").arg(np).arg(m_strXUnit);
       nPrecise = 2;
     }
     else if (np < 2)
       nPrecise = 2;
 
-    dMetricStep = (m_data.size()-1) * qAbs(m_dXInterval*dScale) / rc_plot.width() * nMetricInterval;
-    dMetricStep = MyUtils::RoundToGrid(dMetricStep)/qAbs(m_dXInterval*dScale);
+    dMetricStep = (m_data.size()-1) * qAbs(m_dXInterval) / rc_plot.width() * nMetricInterval;
+    dMetricStep = MyUtils::RoundToGrid(dMetricStep)/qAbs(m_dXInterval);
     double dval = m_dXOffset/qAbs(m_dXInterval*dMetricStep) + 1;
-    dval = dval - ((int)dval);
+    if (m_dXInterval > 0)
+      dval = ((int)dval) + 1 - dval;
+    else
+      dval = dval - ((int)dval);
     dMetricPos = dval*dMetricStep - dMetricStep;
     while (dMetricPos < -dMetricStep/10)
       dMetricPos += dMetricStep;
@@ -216,6 +220,8 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       strg = QString::number((m_dXOffset+m_dXInterval*dMetricPos)*dScale, 'f', nPrecise);
     p.drawText(QRectF(x-100, rc_plot.bottom()+5, 200, 20),
                Qt::AlignTop | Qt::AlignHCenter, strg);
+    if (x-1 >= rc_plot.left() && x-1 <= rc_plot.right())
+      p.drawLine(QPointF(x-1, rc_plot.bottom()), QPointF(x-1, rc_plot.bottom()+2));
 
     dMetricPos += dMetricStep;
     x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_data.size()-1);
@@ -225,7 +231,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   // draw current x value
   QString x_strg = QString("Frame #%1").arg(m_nCurrentFrame);
   if (!strXUnit.isEmpty())
-    x_strg += QString(" / %1 %2").arg((m_dXOffset+m_nCurrentFrame*m_dXInterval)*dScale).arg(strXUnit);
+    x_strg += QString(" / %1 (%2)").arg((m_dXOffset+m_nCurrentFrame*m_dXInterval)*dScale).arg(strXUnit);
   p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, x_strg);
 
   // draw current y value
