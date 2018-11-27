@@ -53,6 +53,12 @@ endif()
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
 
+# create build stamp during install
+if(NOT FS_BUILD_STAMP)
+  set(FS_BUILD_STAMP "freesurfer")
+endif()
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
+
 # --------------------------------------------------
 #   library dependencies and third-party packages
 # --------------------------------------------------

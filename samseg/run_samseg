@@ -48,6 +48,11 @@ os.makedirs(args.outputDirectory, exist_ok=True)
 if args.threads is not None:
     setGlobalDefaultNumberOfThreads(args.threads)
 
+# Remove previous cost log
+costfile = os.path.join(args.outputDirectory, "cost.txt")
+if os.path.exists(costfile):
+    os.remove(costfile)
+
 # Get the atlas directory
 atlasDir = os.environ.get('SAMSEG_DATA_DIR')
 if not atlasDir:

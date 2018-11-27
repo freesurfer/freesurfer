@@ -159,11 +159,11 @@ void WindowTimeCourse::UpdateData(bool bForce)
         }
       }
       FSVolume* vol = layer->GetSourceVolume();
-      double val_min = vol->GetMinValue(), val_max = vol->GetMaxValue();
+      double val_min = vol->GetMinValue(), val_max = vol->GetFullMaxValue();
       if (layer2)
       {
         val_min = qMin(val_min, layer2->GetSourceVolume()->GetMinValue());
-        val_max = qMax(val_max, layer2->GetSourceVolume()->GetMaxValue());
+        val_max = qMax(val_max, layer2->GetSourceVolume()->GetFullMaxValue());
       }
       ui->widgetPlot->SetTimeCourseData(data, val_min, val_max, layer->GetTR());
       ui->widgetPlot->SetSecondData(data2);

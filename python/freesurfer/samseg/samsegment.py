@@ -605,9 +605,13 @@ def samsegment(
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
             if perVoxelDecrease < perVoxelDecreaseThreshold:
+                # Display the cost history
                 if len(historyOfCost) > 2:
                     visualizer.plot(historyOfCost[1:], title='History of Cost')
                 visualizer.show_movie(window_id='samsegment')
+                # Log the final per-voxel cost
+                with open(os.path.join(savePath, 'cost.txt'), "a") as file:
+                    file.write("atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, iterationNumber + 1, currentCost / activeVoxelCount))
                 break
         # Get the final node positions
         finalNodePositions = mesh.points
@@ -724,18 +728,27 @@ def samsegment(
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
         
-        #  First bias field
+        #  First bias field - we're computing it also outside of the mask, but clip the
+        #  intensities there to the range observed inside the mask (with some margin) to 
+        #  avoid crazy extrapolation values
+        logBiasField = biasFields[:, :, :, contrastNumber];
+        clippingMargin = np.log(2)
+        clippingMin = logBiasField[ mask > 0 ].min() - clippingMargin
+        clippingMax = logBiasField[ mask > 0 ].max() + clippingMargin
+        logBiasField[ logBiasField < clippingMin ] = clippingMin;
+        logBiasField[ logBiasField > clippingMax ] = clippingMax;
         biasField = np.zeros(nonCroppedImageSize, dtype=np.float32)
         biasField[
             croppingOffset[0]:croppingOffset[0] + imageSize[0],
             croppingOffset[1]:croppingOffset[1] + imageSize[1],
             croppingOffset[2]:croppingOffset[2] + imageSize[2],
-        ] = np.exp(biasFields[:, :, :, contrastNumber]) * mask
+            ] = np.exp( logBiasField )
         outputFileName = os.path.join(savePath, scanName + '_biasField.nii')
         gems.KvlImage(biasField).write(
             outputFileName,
             gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
         )
+        
         
         # Then bias field corrected data
         biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)
