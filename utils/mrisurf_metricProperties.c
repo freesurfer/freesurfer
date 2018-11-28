@@ -1738,7 +1738,7 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   (keeping in mind that the LTA might have been reversed). The 
   LTA itself is not changed. 
   See also:   MRISmatrixMultiply() and MRIStransform().
- */
+*/
 int MRISltaMultiply(MRIS *surf, const LTA *lta)
 {
   LTA *ltacopy;
@@ -1748,9 +1748,26 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
   // Make a copy of the LTA so source is not contaminated
   ltacopy = LTAcopy(lta,NULL);
 
+  // Check whether the source and destination geometries are the same
+  // since this will make it impossible to determine the direction
+  // from the LTA. 
   if(vg_isEqual(&ltacopy->xforms[0].src, &ltacopy->xforms[0].dst)){
-    printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same.\n");
-    printf("  Make sure you have the direction correct!\n\n");
+    // If they are the same, check whether the registration is the identity
+    // in which case the direction is not important.
+    int c,r,IsIdentity=1;
+    double val;
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+        val = ltacopy->xforms[0].m_L->rptr[r][c];
+        if(r==c && fabs(val-1.0) > 10e-4) IsIdentity = 0;
+        if(r!=c && fabs(val)     > 10e-4) IsIdentity = 0;
+      }
+    }
+    if(! IsIdentity){
+      // Only print out a warning if if they are the same and the reg is not identity.
+      printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same and reg is not identity.\n");
+      printf("  Make sure you have the direction correct!\n\n");
+    }
   }
 
   // Determine which direction the LTA goes by looking at which side
