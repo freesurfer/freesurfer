@@ -247,13 +247,15 @@ if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC
     install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
     install(CODE "
       message(STATUS \"Deploying Freeview.app\")
-      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app\" RESULT_VARIABLE retcode)
+      # Add verbosity for debugging
+      # execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=3 -always-overwrite\" RESULT_VARIABLE retcode)
+      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=2 -always-overwrite\" RESULT_VARIABLE retcode)
       if(NOT \${retcode} STREQUAL 0)
         message(FATAL_ERROR \"Could not run macdeployqt\")
       endif()
-      execute_process(COMMAND bash -c \"install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_INSTALL_PREFIX}/Freeview.app/Contents/MacOS/Freeview\" RESULT_VARIABLE retcode)
+      execute_process(COMMAND bash -c \"${CMAKE_CURRENT_SOURCE_DIR}/macdeployqt_patch.py ${CMAKE_INSTALL_PREFIX}/Freeview.app/Contents\" RESULT_VARIABLE retcode)
       if(NOT \${retcode} STREQUAL 0)
-        message(FATAL_ERROR \"Could not run install_name_tool to add rpath to Qt frameworks in application bundle\")
+        message(FATAL_ERROR \"Could not run install_name_tool commands to add rpath to Qt frameworks in application bundle\")
       endif()"
     )
   else()
