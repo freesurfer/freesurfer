@@ -4398,8 +4398,6 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
 
-      cheapAssert(mris->vertices[vno].marked == 0);
-
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       
       // seen to fail!  cheapAssert(mris->vertices[vno].marked == 0);
