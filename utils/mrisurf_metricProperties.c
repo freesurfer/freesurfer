@@ -1728,6 +1728,7 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   
   return (mris_dst);
 }
+
 /*!
   \fn int MRISltaMultiply(MRIS *surf, LTA *lta)
   \brief Applies an LTA matrix to the coords of the given surface.
@@ -1737,30 +1738,64 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   (keeping in mind that the LTA might have been reversed). The 
   LTA itself is not changed. 
   See also:   MRISmatrixMultiply() and MRIStransform().
- */
+*/
 int MRISltaMultiply(MRIS *surf, const LTA *lta)
 {
   LTA *ltacopy;
+  extern double vg_isEqual_Threshold;
+  vg_isEqual_Threshold = 10e-4;
 
   // Make a copy of the LTA so source is not contaminated
   ltacopy = LTAcopy(lta,NULL);
 
+  // Check whether the source and destination geometries are the same
+  // since this will make it impossible to determine the direction
+  // from the LTA. 
   if(vg_isEqual(&ltacopy->xforms[0].src, &ltacopy->xforms[0].dst)){
-    printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same.\n");
-    printf("  Make sure you have the direction correct!\n\n");
+    // If they are the same, check whether the registration is the identity
+    // in which case the direction is not important.
+    int c,r,IsIdentity=1;
+    double val;
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+        val = ltacopy->xforms[0].m_L->rptr[r][c];
+        if(r==c && fabs(val-1.0) > 10e-4) IsIdentity = 0;
+        if(r!=c && fabs(val)     > 10e-4) IsIdentity = 0;
+      }
+    }
+    if(! IsIdentity){
+      // Only print out a warning if if they are the same and the reg is not identity.
+      printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same and reg is not identity.\n");
+      printf("  Make sure you have the direction correct!\n\n");
+    }
   }
 
   // Determine which direction the LTA goes by looking at which side
   // matches the surface volume geometry. Invert if necessary
-  if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
-    if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
-      // If this fails a lot, try setting to vg_isEqual_Threshold = 10e-4 or higher
-      printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
-      LTAfree(&ltacopy);
-      return(1);
+  if(surf->vg.valid){
+    if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
+      if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
+	// If this fails a lot, try setting vg_isEqual_Threshold higher
+	printf("vg surf ------------------------\n");
+	fflush(stdout);	fflush(stderr);
+	vg_print(&surf->vg);
+	fflush(stdout);	fflush(stderr);
+	printf("LTA ------------------------\n");
+	LTAprint(stdout,lta);
+	printf("------------------------\n");
+	printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
+	printf("   src diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].src, &surf->vg,vg_isEqual_Threshold));
+	printf("   dst diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].dst, &surf->vg,vg_isEqual_Threshold));
+	printf("   vg_isEqual_Threshold = %10.6e\n",vg_isEqual_Threshold);
+	LTAfree(&ltacopy);
+	return(1);
+      }
+      printf("MRISltaMultiply(): inverting LTA\n");
+      LTAinvert(ltacopy,ltacopy);
     }
-    printf("MRISltaMultiply(): inverting LTA\n");
-    LTAinvert(ltacopy,ltacopy);
+  }
+  else {
+    printf("WARNING: source surface vg is not valid, assuming direction of transform is right\n");
   }
 
   // Must be in regdat space to apply it to the surface
@@ -2936,17 +2971,19 @@ int MRISstoreMetricProperties(MRIS *mris)
 #endif
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->origarea = v->area;
 #if 1
-    if (v->dist && v->dist_orig)
-      for (n = 0; n < vt->vtotal; n++) {
+    if (v->dist && v->dist_orig) {
+      // Used to only go to vtotal, but that is v[nsizeCur]num, and the code can go to to v[nsizeMax]num
+      int const vsize = mrisVertexVSize(mris,vno);
+      for (n = 0; n < vsize; n++) {
         v->dist_orig[n] = v->dist[n];
       }
+    }
 #endif
   }
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -2977,13 +3014,13 @@ int MRISrestoreMetricProperties(MRIS *mris)
 
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->area = v->origarea;
-    for (n = 0; n < vt->vtotal; n++) {
+    int const vsize = mrisVertexVSize(mris,vno);
+    for (n = 0; n < vsize; n++) {
       v->dist[n] = v->dist_orig[n];
     }
   }
@@ -4560,19 +4597,28 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     ROMP_PFLB_begin
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX                * const v  = &mris->vertices         [vno];
-    if (vt->vtotal > 0) {
+    int vsize = mrisVertexVSize(mris, vno);
+    if (vsize > vt->vtotal) {
+        static int count;
+        if (count++ < 10) {
+            fprintf(stdout, "%s:%d vsize:%d > vt->vtotal:%d so wrong amount was copied. vt->nsizeCur:%d vt->nsizeMax:%d\n", __FILE__, __LINE__,
+                vsize, vt->vtotal, vt->nsizeCur, vt->nsizeMax);
+        }
+    }
+    
+    if (vsize > 0) {
       if (v->dist) free(v->dist);
 
       if (v->dist_orig) free(v->dist_orig);
 
-      v->dist = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist = (float *)calloc(vsize, sizeof(float));
       if (!v->dist)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "
                   "dists at v=%d",
                   vt->vtotal,
                   vno);
-      v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist_orig = (float *)calloc(vsize, sizeof(float));
       if (!v->dist_orig)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "

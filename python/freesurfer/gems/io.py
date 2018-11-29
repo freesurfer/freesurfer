@@ -2,10 +2,12 @@ from _operator import itemgetter
 from collections import namedtuple
 
 
+GMMparameter = namedtuple('GMMparameter', 'mergedName numberOfComponents searchStrings')
+
+
 def kvlReadSharedGMMParameters(fileName):
     # Read text file where each line is formatted as:
     #   mergedName numberOfComponents searchString(s)
-    GMMparameter = namedtuple('GMMparameter', 'mergedName numberOfComponents searchStrings')
     sharedGMMParameters = []
     with open(fileName) as fid:
         for textLine in fid.readlines():

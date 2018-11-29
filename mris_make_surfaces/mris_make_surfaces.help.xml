@@ -110,6 +110,8 @@
       <explanation>save target surface (for debugging)</explanation>
       <argument>-save-res (-no-save-res)</argument>
       <explanation>save residual (for debugging)</explanation>
+      <argument>-v vertexno </argument>
+      <explanation>set Gdiag_no to vertexno</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

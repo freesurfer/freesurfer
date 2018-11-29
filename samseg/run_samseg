@@ -26,6 +26,7 @@ parser.add_argument('--no-brainmask', action='store_true', default=False, help='
 parser.add_argument('--diag-covs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
 parser.add_argument('--stiffness', type=float, default=0.1, help='stiffness of the mesh (default is 0.1)')
 # optional debugging options
+parser.add_argument('--history', action='store_true', default=False, help='save history')
 parser.add_argument('--showfigs', action='store_true', default=False, help='show figures during run')
 parser.add_argument('--movie', action='store_true', default=False, help='show as arrow key controlled time sequence')
 parser.add_argument('-v', '--verbose', action='store_true', default=False, help='verbose debug output')
@@ -152,7 +153,7 @@ optimizationOptions = Specification({
 # ------ Run Samsegment ------
 
 labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications,
-                                    optimizationOptions, args.outputDirectory, visualizer)
+                                    optimizationOptions, args.outputDirectory, visualizer, saveHistory=args.history)
 
 
 # ------ Volumetric Stats ------

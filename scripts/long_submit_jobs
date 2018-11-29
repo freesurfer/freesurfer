@@ -1047,7 +1047,7 @@ def check_long(qdectable,options):
             # wait for requirement in longidr dirs
             status = wait_file(options.ldir,tpdir,requirement,60)
             if status == 2: # not there and not running:
-                print("\nERROR [check]: "+tpdir+" not done in "+options.cdir)
+                print("\nERROR [check]: "+tpdir+" not done in "+options.ldir)
                 print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.skip > 0:
