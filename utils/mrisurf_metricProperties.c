@@ -2971,17 +2971,19 @@ int MRISstoreMetricProperties(MRIS *mris)
 #endif
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->origarea = v->area;
 #if 1
-    if (v->dist && v->dist_orig)
-      for (n = 0; n < vt->vtotal; n++) {
+    if (v->dist && v->dist_orig) {
+      // Used to only go to vtotal, but that is v[nsizeCur]num, and the code can go to to v[nsizeMax]num
+      int const vsize = mrisVertexVSize(mris,vno);
+      for (n = 0; n < vsize; n++) {
         v->dist_orig[n] = v->dist[n];
       }
+    }
 #endif
   }
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -3012,13 +3014,13 @@ int MRISrestoreMetricProperties(MRIS *mris)
 
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->area = v->origarea;
-    for (n = 0; n < vt->vtotal; n++) {
+    int const vsize = mrisVertexVSize(mris,vno);
+    for (n = 0; n < vsize; n++) {
       v->dist[n] = v->dist_orig[n];
     }
   }
@@ -4398,6 +4400,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
 
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       
+      // seen to fail!  cheapAssert(mris->vertices[vno].marked == 0);
+      
       if (mris->vertices[vno].ripflag) continue;
       if (vno == Gdiag_no) DiagBreak();
 
@@ -4424,6 +4428,8 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     mris->nsize = nsize;
     return;
   }
+  
+  MRISclearMarks(mris);     // added because of the seen-to-fail above
   
   // setting neighborhood size to a value larger than it has been in the past
   mris->max_nsize = nsize;
@@ -4584,19 +4590,28 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
     ROMP_PFLB_begin
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX                * const v  = &mris->vertices         [vno];
-    if (vt->vtotal > 0) {
+    int vsize = mrisVertexVSize(mris, vno);
+    if (vsize > vt->vtotal) {
+        static int count;
+        if (count++ < 10) {
+            fprintf(stdout, "%s:%d vsize:%d > vt->vtotal:%d so wrong amount was copied. vt->nsizeCur:%d vt->nsizeMax:%d\n", __FILE__, __LINE__,
+                vsize, vt->vtotal, vt->nsizeCur, vt->nsizeMax);
+        }
+    }
+    
+    if (vsize > 0) {
       if (v->dist) free(v->dist);
 
       if (v->dist_orig) free(v->dist_orig);
 
-      v->dist = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist = (float *)calloc(vsize, sizeof(float));
       if (!v->dist)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "
                   "dists at v=%d",
                   vt->vtotal,
                   vno);
-      v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
+      v->dist_orig = (float *)calloc(vsize, sizeof(float));
       if (!v->dist_orig)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISsetNeighborhoodSize: could not allocate list of %d "
