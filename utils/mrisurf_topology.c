@@ -29,7 +29,8 @@
 //=============================================================================
 // Support for consistency checking
 //
-typedef enum Reported { 
+typedef enum Reported {
+  Reported_misc= 1<<0, 
   Reported_nc  = 1<<1, 
   Reported_no  = 1<<2,  
   Reported_ns  = 1<<3, 
@@ -42,7 +43,10 @@ typedef enum Reported {
   Reported_fv  = 1<<10,  
   Reported_fn  = 1<<11, 
   Reported_nf  = 1<<12,
-  Reported_nv  = 1<<13 } Reported;
+  Reported_nv  = 1<<13,
+  Reported_dd  = 1<<14,
+  Reported_da  = 1<<15,
+  Reported_mm  = 1<<16 } Reported;
 
 typedef struct ReportEntry { struct ReportEntry* next; const char* file; int reported; int count; int elideUntil; } ReportEntry;
 
@@ -92,6 +96,9 @@ static bool shouldReport(const char* file, int line, int reported) {
     return true;
 }
 
+bool MRISshouldReport(const char* file, int line) {
+  return shouldReport(file, line, Reported_misc);
+}
 
 //=============================================================================
 // Vertexs and edges
@@ -101,6 +108,13 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
   if (!always && !lookForReportable(file, line)) return true;
 
   Reported reported = 0;
+  
+  if ((mris->nsize > mris->max_nsize) &&
+      (reported & Reported_mm)) { reported |= Reported_mm; 
+    if (shouldReport(file,line,reported)) {
+      fprintf(stdout, "mris->nsize:%d > mris->max_nsize:%d\n", mris->nsize, mris->max_nsize);
+    }
+  }
   
   int vno1;
   for (vno1 = 0; vno1 < mris->nvertices; vno1++) {
@@ -128,13 +142,7 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
       DiagBreak();
     }
 
-    int vtotalExpected = 0;
-    switch (v->nsizeCur) {
-    case 1: vtotalExpected = v->vnum;  break;
-    case 2: vtotalExpected = v->v2num; break;
-    case 3: vtotalExpected = v->v3num; break;
-    default: break;
-    }
+    int const vtotalExpected = !v->nsizeCur ? 0 : VERTEXvnum(v,v->nsizeCur);
     
     if (v->nsizeCur > 0 
      && (mris->vtotalsMightBeTooBig ? (v->vtotal < vtotalExpected) : (v->vtotal != vtotalExpected))
@@ -641,7 +649,7 @@ static void resizeVertexVandD(VERTEX_TOPOLOGY* const vt, VERTEX* const v, int ne
 }
 
 
-void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int const vnum)
+void mrisVertexReplacingNeighbors(MRIS * const mris, int const vno, int const vnum)
 {
   VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
   VERTEX          * const v  = &mris->vertices         [vno];
@@ -657,7 +665,7 @@ void mrisVertexReplacingNeighbors(MRIS const * const mris, int const vno, int co
 }
 
 
-void mrisForgetNeighborhoods(MRIS const * const mris) {
+void mrisForgetNeighborhoods(MRIS * const mris) {
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     mrisVertexReplacingNeighbors(mris, vno, mris->vertices_topology[vno].vnum);
@@ -813,7 +821,7 @@ void MRIS_VertexNeighbourInfo_check(
     cheapAssert(lhs->v[i] == rhs->v[i]);
 }
 
-    
+
 void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno) {
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
   info->hops = vt->nsizeMax;
@@ -828,6 +836,17 @@ void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, 
   for (i = 0; i < info->vnum[info->hops]; i++) info->v[i] = vt->v[i];
 }
 
+void MRIS_VertexNeighbourInfo_load_from_vlist (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno, size_t listSize, int* vlist, int* hops) {
+  info->vnum[0] = 1;
+  int i;
+  for (i = 0; i < listSize; i++) {
+    info->v[i] = vlist[i];
+    info->hops = hops[i];
+    cheapAssert(info->hops >= 0);
+    cheapAssert(info->hops <= 3);
+    info->vnum[info->hops] = i+1;
+  }
+}
 
 void MRIS_VertexNeighbourInfo_load_by_algorithm(MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno) {
   // This algorithm is deliberately simple since it needs to be definitive and is not performance critical
@@ -839,7 +858,7 @@ void MRIS_VertexNeighbourInfo_load_by_algorithm(MRIS_VertexNeighbourInfo* info, 
     // assumes mris->vertices[*].mark are all zero
     // leaves them zero
 
-static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
+static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops, bool noCache);
 static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
 
 int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops)
@@ -875,7 +894,8 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
     ? MRISfindNeighborsAtVertex_new(mris, vno, nlinks, 
         use_both ? MAX_NEIGHBORS : listCapacity, 
         use_both ? vlistTmp      : vlist, 
-        use_both ? hopsTmp       : hops)
+        use_both ? hopsTmp       : hops,
+        false)
     : 0;
 
   if (true && nlinks < 4) {
@@ -890,9 +910,9 @@ int MRISfindNeighborsAtVertex(MRIS *mris, int vno, int nlinks, size_t listCapaci
   }
   if (use_both) {
     bool good = true;
-    static bool laterTime;
-    if (!laterTime) {
-      laterTime = true;
+    static bool shownTesting;
+    if (!shownTesting) {
+      shownTesting = true;
       fprintf(stdout, "%s:%dTesting MRISfindNeighborsAtVertex\n", __FILE__, __LINE__);
     }
     if (result_old != result_new) {
@@ -927,13 +947,12 @@ void MRIS_check_vertexNeighbours(MRIS* mris) {
   if (!laterTime) {
     laterTime = true;
     doTesting = !!getenv("MRIS_check_vertexNeighbours");
+    if (doTesting) fprintf(stdout, "%s:%d MRIS_check_vertexNeighbours\n", __FILE__, __LINE__);
   }
   if (!doTesting) return;  
 
   MRIS_VertexNeighbourInfo info0,info1;
   int vlist[MAX_NEIGHBORS], hops[MAX_NEIGHBORS];
-  
-  fprintf(stdout, "%s:%d MRIS_check_vertexNeighbours\n", __FILE__, __LINE__);
   
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -944,27 +963,15 @@ void MRIS_check_vertexNeighbours(MRIS* mris) {
     
     MRIS_VertexNeighbourInfo_load_from_VERTEX(&info0, mris, vno);
     
-    int old_vtotal   = vt->vtotal;
-    int old_nsizeMax = vt->nsizeMax;
-    int old_nsizeCur = vt->nsizeCur;    cheapAssert(old_nsizeCur > 0);
+    int size = MRISfindNeighborsAtVertex_new(mris, vno, vt->nsizeMax, MAX_NEIGHBORS, vlist, hops, true);
     
-    vt->vtotal   = vt->vnum;
-    vt->nsizeCur = 1;
-    vt->nsizeMax = 1;
-    
-    MRISfindNeighborsAtVertex(mris, vno, old_nsizeMax, MAX_NEIGHBORS, vlist, hops);
-    
-    MRIS_VertexNeighbourInfo_load_from_VERTEX(&info1, mris, vno);
+    MRIS_VertexNeighbourInfo_load_from_vlist(&info1, mris, vno, size, vlist, hops);
     
     MRIS_VertexNeighbourInfo_check(&info0, &info1);
-    
-    vt->nsizeMax = old_nsizeMax;
-    vt->nsizeCur = old_nsizeCur;
-    vt->vtotal   = old_vtotal;
   }
 }
 
-static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops)
+static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops, bool noCache)
 {
 /*
   Fills in v, vnum, v2num, v3num, etc. in the vertex.
@@ -1012,9 +1019,11 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   int nsize = 0;
   {
                            vnums[nsize++] = 0; 
-    if (vt->nsizeMax >= 1) vnums[nsize++] = vt->vnum; 
-    if (vt->nsizeMax >= 2) vnums[nsize++] = vt->v2num; 
-    if (vt->nsizeMax >= 3) vnums[nsize++] = vt->v3num;
+    if (vt->nsizeMax >= 1) vnums[nsize++] = vt->vnum;
+    if (!noCache) {
+      if (vt->nsizeMax >= 2) vnums[nsize++] = vt->v2num; 
+      if (vt->nsizeMax >= 3) vnums[nsize++] = vt->v3num;
+    }
   }
   
   // The center is assumed to be in the set, so it is not added again
@@ -1100,32 +1109,34 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
 
   // Update the cache
   //
-  int const newPossibleNsizeMax = MIN(3, ringLinks-1);
-  if (nsize-1 < newPossibleNsizeMax) {
-    cheapAssert(nsize > 0);
-    
-    int oldSize = vnums[nsize-1];
-    int newSize = vnums[newPossibleNsizeMax];    
-    resizeVertexVandD(vt,v, newSize, oldSize);
-    
-    int i;
-    for (i = oldSize; i < newSize; i++) vt->v[i] = vlist[i];
-    
-    int cachedRing;
-    for (cachedRing = nsize; cachedRing <= newPossibleNsizeMax; cachedRing++) {
-      switch (cachedRing) {
-      case 2: vt->v2num = vnums[cachedRing]; break;
-      case 3: vt->v3num = vnums[cachedRing]; break;
-      default: cheapAssert(false);
-      }
-      vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
-    }
+  if (!noCache) {
+    int const newPossibleNsizeMax = MIN(3, ringLinks-1);
+    if (nsize-1 < newPossibleNsizeMax) {
+      cheapAssert(nsize > 0);
 
-    cheapAssert(vt->nsizeCur >= 0);
-    cheapAssert(vt->nsizeCur <= vt->nsizeMax);
-    vt->vtotal = vnums[vt->nsizeCur];
+      int oldSize = vnums[nsize-1];
+      int newSize = vnums[newPossibleNsizeMax];    
+      resizeVertexVandD(vt,v, newSize, oldSize);
+
+      int i;
+      for (i = oldSize; i < newSize; i++) vt->v[i] = vlist[i];
+
+      int cachedRing;
+      for (cachedRing = nsize; cachedRing <= newPossibleNsizeMax; cachedRing++) {
+        switch (cachedRing) {
+        case 2: vt->v2num = vnums[cachedRing]; break;
+        case 3: vt->v3num = vnums[cachedRing]; break;
+        default: cheapAssert(false);
+        }
+        vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
+      }
+
+      cheapAssert(vt->nsizeCur >= 0);
+      cheapAssert(vt->nsizeCur <= vt->nsizeMax);
+      vt->vtotal = vnums[vt->nsizeCur];
+    }
   }
-  
+    
   // Clear the temp for reuse later
   //
   temp->status[vno] = Status_notInSet;
@@ -1149,6 +1160,16 @@ static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t
   int m, n, vtotal = 0, link_dist, ring_total;
   if (v->ripflag) return (0);
 
+  if (1) {
+    static bool laterTime = false;
+    if (!laterTime) { laterTime = true;
+      fprintf(stdout, "%s:%d checking marks initially clear\n", __FILE__, __LINE__); 
+    }
+    for (n = 0; n < mris->nvertices; n++) {
+      cheapAssert(mris->vertices[n].marked == 0);
+    }
+  }
+  
   v->marked = -1;
   for (n = 0; n < vt->vtotal; n++) {
     vlist[n] = vt->v[n];
@@ -2883,14 +2904,12 @@ int computeOrientation(MRIS *mris, int f, int v0, int v1)
 */
 void MRISreverseFaceOrder(MRIS *mris)
 {
-  int fno, vno0, vno1, vno2;
-  FACE *f;
-
+  int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
-    f = &mris->faces[fno];
-    vno0 = f->v[0];
-    vno1 = f->v[1];
-    vno2 = f->v[2];
+    FACE *f = &mris->faces[fno];
+    int vno0 = f->v[0];
+    int vno1 = f->v[1];
+    int vno2 = f->v[2];
     f->v[0] = vno2;
     f->v[1] = vno1;
     f->v[2] = vno0;
@@ -2898,21 +2917,24 @@ void MRISreverseFaceOrder(MRIS *mris)
     mrisSetVertexFaceIndex(mris, vno1, fno);
     mrisSetVertexFaceIndex(mris, vno2, fno);
   }
+  mrisCheckVertexFaceTopology(mris);
 }
 
 
 int MRISevertSurface(MRIS *mris)
 {
-  int v0, fno;
-  FACE *face;
-
+  int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
-    face = &mris->faces[fno];
+    FACE *face = &mris->faces[fno];
     if (face->ripflag) continue;
-    v0 = face->v[0];
-    face->v[0] = face->v[1];
-    face->v[1] = v0;
+    int vno0 = face->v[0];
+    int vno1 = face->v[1];
+    face->v[0] = vno1;
+    face->v[1] = vno0;
+    // mrisSetVertexFaceIndex(mris, vno0, fno);
+    // mrisSetVertexFaceIndex(mris, vno1, fno);
   }
+  mrisCheckVertexFaceTopology(mris);
 
   return (NO_ERROR);
 }
@@ -2970,6 +2992,9 @@ int MRIS_facesAtVertices_reorder(MRIS *apmris)
   }
   MRISdilateMarked(apmris, 1);  // neighbors of vertices we couldn't process are also suspect and should be skipped
   xDbg_PopStack();
+  
+  mrisCheckVertexFaceTopology(apmris);
+
   return ret;
 }
 

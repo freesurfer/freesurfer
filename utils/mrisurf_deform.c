@@ -11655,7 +11655,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
 
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
+    int const vno_dst = vertex_trans[vno];
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
 
     /* count # of good triangles attached to this vertex */
     for (vdstt->num = n = 0; n < vt->num; n++)
