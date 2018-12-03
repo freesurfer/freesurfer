@@ -146,6 +146,7 @@ protected slots:
   void SyncZoomTo(RenderView2D* view);
   void OnDuplicateRegion();
   void OnInteractorError(const QString& msg);
+  void OnCopyVoxelValue();
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);

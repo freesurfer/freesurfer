@@ -408,6 +408,7 @@ add_subdirectories(
   mri_normalize
   mri_normalize_tp2
   mri_probedicom
+  mri_refine_seg
   mri_relabel_hypointensities
   mri_relabel_nonwm_hypos
   mri_remove_neck

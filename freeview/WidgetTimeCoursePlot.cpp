@@ -196,8 +196,8 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       strXUnit = QString("10^%1 %2").arg(np).arg(m_strXUnit);
       nPrecise = 2;
     }
-    else if (np < 2)
-      nPrecise = 2;
+//    else if (np < 2)
+//      nPrecise = 2;
 
     dMetricStep = (m_data.size()-1) * qAbs(m_dXInterval) / rc_plot.width() * nMetricInterval;
     dMetricStep = MyUtils::RoundToGrid(dMetricStep)/qAbs(m_dXInterval);

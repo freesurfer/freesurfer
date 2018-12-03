@@ -1,0 +1,25 @@
+<help>
+
+  <name>mri_refine_seg</name>
+  <synopsis>mri_refine_seg [options] -i &lt;input seg&gt; -o &lt;output seg&gt;</synopsis>
+  <description>Refines a messy segmentation by recoding stray voxels.</description>
+
+  <arguments>
+
+    <required-flagged>
+      <argument>-i, --in FILE</argument>
+      <explanation>Input segmentation.</explanation>
+      <argument>-o, --out FILE</argument>
+      <explanation>Refined segmentation output name.</explanation>
+    </required-flagged>
+
+    <optional-flagged>
+      <argument>--debug</argument>
+      <explanation>Save the original segmentation, a mask of the refined voxels, and a pointset of the refined clusters to the output directory.</explanation>
+    </optional-flagged>
+
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+</help>

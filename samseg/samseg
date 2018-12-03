@@ -141,6 +141,14 @@ date | tee -a $LF
 # Should probably convert segmentation to INT (now saves as float)
 
 # ========================================================
+
+# refine the segmentation:
+set cmd = (mri_refine_seg --debug -i $outdir/crispSegmentation.nii -o $outdir/crispSegmentation.nii)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# ========================================================
 # Compute dice:
 if($computedice && ! $regonly) then
   set logfile = $outdir/dice.log
