@@ -2854,3 +2854,36 @@ int GTMsegid2nthseg(GTM *gtm, int segid)
   if (!ok) return (-1);
   return (nthseg);
 }
+
+/*!
+  \fn int GTMwriteText(GTM *gtm, char *OutDir, int DeMean)
+  \brief Save GTM values out to text files named after the seg. If
+  DeMean==1 then the frames are demeaned. Does not create the 
+  output dir. Returns 0 if no error.
+ */
+int GTMwriteText(GTM *gtm, char *OutDir, int DeMean)
+{
+  int nthseg, f, segid;
+  FILE *fp;
+  char fname[1000];
+  double mean;
+
+  for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
+    segid = gtm->segidlist[nthseg];
+    mean = 0;
+    if(DeMean){
+      for(f=0; f < gtm->beta->cols; f++) mean += gtm->beta->rptr[nthseg+1][f+1];
+      mean /= gtm->beta->cols;
+    }
+    sprintf(fname,"%s/%s.dat",OutDir,gtm->ctGTMSeg->entries[segid]->name);
+    fp = fopen(fname,"w");
+    if(fp==NULL){
+      printf("ERROR: GTMwriteText(): could not open %s\n",fname);
+      return(1);
+    }
+    for(f=0; f < gtm->beta->cols; f++) 
+      fprintf(fp,"%12.6f\n",gtm->beta->rptr[nthseg+1][f+1]-mean);
+    fclose(fp);
+  }
+  return(0);
+}

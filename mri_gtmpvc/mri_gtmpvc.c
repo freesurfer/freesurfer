@@ -160,6 +160,7 @@ int regidentity = 0;
 int regtype;
 int SaveEres=0, SaveYhat=0,SaveYhat0=0, SaveInput=0,SaveYhatFullFoV=0;
 int SaveRBVSeg=0;
+int SaveGTMText=0;
 
 GTM *gtm;
 GTMOPT *gtmopt;
@@ -889,6 +890,9 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   MRIfree(&mritmp);
 
+  if(SaveGTMText)
+    GTMwriteText(gtm, OutDir, 1);
+
   printf("Writing var of GTM estimates to %s\n",OutBetaVarFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
   for(c=0; c < gtm->nsegs; c++){
@@ -1480,6 +1484,7 @@ static int parse_commandline(int argc, char **argv) {
       SaveYhat=1;
       nargsused = 2;
     }
+    else if(!strcasecmp(option, "--save-text")) SaveGTMText=1;
     else if(!strcasecmp(option, "--save-yhat0")) SaveYhat0=1;
     else if(!strcasecmp(option, "--save-yhat-full-fov")) SaveYhatFullFoV=1;
     else if(!strcasecmp(option, "--save-rbv-seg")) SaveRBVSeg = 1;
@@ -1635,6 +1640,7 @@ static void print_usage(void) {
   printf("       but returns it to its specified value for analysis\n");
   printf("   --synth-only : exit after doing synthesis (implies --synth-save)\n");
   printf("   --synth-save : with --synth saves synthesized volume to outdir/synth.nii.gz\n");
+  printf("   --save-text : save demeaned GTM values out to text files named after the seg.\n");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
@@ -2412,3 +2418,6 @@ MRI *GTMnoPVC(GTM *gtm)
   free(nperseg);
   return(nopvc);
 }
+
+
+
