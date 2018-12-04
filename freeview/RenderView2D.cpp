@@ -648,15 +648,27 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     if (!menu.actions().isEmpty() && layers.size() == 1)
       menu.addSeparator();
 
-    QMenu* menu2 = menu.addMenu("Copy Voxel Value");
-    foreach (Layer* layer, layers)
+    if (layers.size() == 1)
     {
-      LayerMRI* mri = (LayerMRI*)layer;
-      double val = mri->GetVoxelValue(layer->GetSlicePosition());
-      QAction* act = new QAction(layer->GetName() + "  (" + QString::number(val) + ")", this);
+      LayerMRI* mri = (LayerMRI*)layers.first();
+      double val = mri->GetVoxelValue(mri->GetSlicePosition());
+      QAction* act = new QAction(QString("Copy Voxel Value  (%1)").arg(val), this);
       act->setProperty("voxel_value", val);
       connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
-      menu2->addAction(act);
+      menu.addAction(act);
+    }
+    else
+    {
+      QMenu* menu2 = menu.addMenu("Copy Voxel Value");
+      foreach (Layer* layer, layers)
+      {
+        LayerMRI* mri = (LayerMRI*)layer;
+        double val = mri->GetVoxelValue(layer->GetSlicePosition());
+        QAction* act = new QAction(layer->GetName() + "  (" + QString::number(val) + ")", this);
+        act->setProperty("voxel_value", val);
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
+        menu2->addAction(act);
+      }
     }
   }
 
@@ -728,5 +740,6 @@ bool RenderView2D::PickLineProfile(int x, int y)
 
 void RenderView2D::OnCopyVoxelValue()
 {
-  QApplication::clipboard()->setText(sender()->property("voxel_value").toString());
+  if (sender())
+    QApplication::clipboard()->setText(sender()->property("voxel_value").toString());
 }
