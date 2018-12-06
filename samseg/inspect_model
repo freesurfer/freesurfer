@@ -3,9 +3,9 @@
 # GEMS model history inspector
 
 import sys
-import h5py
 import numpy as np
 import argparse
+import pickle
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -21,31 +21,20 @@ class Window(QWidget):
 
     def __init__(self, historyfile):
         super().__init__()
-        self.loadHistory(historyfile)
+
+        # load history
+        with open(historyfile, 'rb') as file:
+            self.history = pickle.load(file)
+        sharedGMMParameters = self.history['input']['modelSpecifications'].sharedGMMParameters
+        self.mergedNames = [param.mergedName for param in sharedGMMParameters]
+        self.numGaussiansPerClass = [param.numberOfComponents for param in sharedGMMParameters]
+        self.numClasses = len(self.numGaussiansPerClass)
+        self.numGaussians = np.sum(self.numGaussiansPerClass)
+        self.numResolutionLevels = len(self.history['historyWithinEachMultiResolutionLevel'])
+
         self.initUI()
         self.updateMultiResolutionLevel()
         self.show()
-
-
-    def loadHistory(self, filename):
-        # Scipy can't load v7.3 mat files, so we're stuck having to load
-        # things via h5, which is super tedious. It would be a good idea
-        # to create some standard history file IO to handle this stuff.
-        self.hf = h5py.File(filename)
-
-        # retrieve gaussians
-        ref = self.hf['history/input/modelSpecifications/sharedGMMParameters/numberOfComponents']
-        self.numGaussiansPerClass = [np.array(self.hf[r])[0, 0].astype(int) for r in np.array(ref).squeeze()]
-        self.numClasses = len(self.numGaussiansPerClass)
-        self.numGaussians = np.sum(self.numGaussiansPerClass)
-
-        # class names
-        ref = self.hf['history/input/modelSpecifications/sharedGMMParameters/mergedName']
-        refs = [self.hf[r].value.squeeze() for r in np.array(ref).squeeze()]
-        self.mergedNames = [''.join(map(chr, a[:-1])) for a in refs]
-
-        # number of resolution levels
-        self.numResolutionLevels = len(self.hf['history/historyWithinEachMultiResolutionLevel/downSampledImageBuffers'])
 
 
     def initUI(self):
@@ -137,36 +126,25 @@ class Window(QWidget):
     def updateMultiResolutionLevel(self):
         # update image buffer
         level = self.multiresDropdown.currentIndex()
-        ref = self.hf['history/historyWithinEachMultiResolutionLevel/downSampledImageBuffers'][level, 0]
-        self.downSampledImage = transformVolume(np.array(self.hf[ref]))
+        historyWithinEachMultiResolutionLevel = self.history['historyWithinEachMultiResolutionLevel'][level]
+        image = historyWithinEachMultiResolutionLevel['downSampledImageBuffers'][:, :, :, 0]
+        self.downSampledImage = transformVolume(image)
         self.volumeViewer.layers = [createLayer(self.downSampledImage)]
         self.volumeViewer.centerCursor()
 
         # image mask
-        ref = self.hf['history/historyWithinEachMultiResolutionLevel/downSampledMask'][level, 0]
-        self.downSampledMask = np.array(self.hf[ref]).astype(bool)
+        self.downSampledMask = historyWithinEachMultiResolutionLevel['downSampledMask']
 
         # update posteriors
-        ref = self.hf['history/historyWithinEachMultiResolutionLevel/posteriorsAtEnd'][level, 0]
-        self.posteriors = np.array(self.hf[ref])
+        self.posteriors = historyWithinEachMultiResolutionLevel['posteriorsAtEnd']
 
         # update priors
-        ref = self.hf['history/historyWithinEachMultiResolutionLevel/priorsAtEnd'][level, 0]
-        self.priors = np.array(self.hf[ref])
+        self.priors = historyWithinEachMultiResolutionLevel['priorsAtEnd']
 
-        iterHistory = self.hf['history/historyWithinEachMultiResolutionLevel/historyWithinEachIteration'][level, 0]
-
-        # update means
-        ref = self.hf[iterHistory]['means'][-1, 0]
-        self.means = np.array(self.hf[ref]).squeeze()
-
-        # update variances
-        ref = self.hf[iterHistory]['variances'][-1, 0]
-        self.variances = np.array(self.hf[ref]).squeeze()
-
-        # update mixtureWeights
-        ref = self.hf[iterHistory]['mixtureWeights'][-1, 0]
-        self.mixtureWeights = np.array(self.hf[ref]).squeeze()
+        iteration = historyWithinEachMultiResolutionLevel['historyWithinEachIteration'][-1]
+        self.means = iteration['means']
+        self.variances = iteration['variances']
+        self.mixtureWeights = iteration['mixtureWeights']
 
         # update gaussians
         ylim = 0
@@ -181,7 +159,7 @@ class Window(QWidget):
                 mean = self.means[gaussianNumber]
                 variance = self.variances[gaussianNumber]
                 gauss = 1 / np.sqrt(2 * np.pi * variance) * np.exp( -(binCenters - mean) ** 2 / 2 / variance)
-                product = gauss * self.mixtureWeights[gaussianNumber]
+                product = np.squeeze(gauss * self.mixtureWeights[gaussianNumber])
                 # plot the gaussian
                 ax.plot(binCenters, product, linewidth=1)
                 model += product
@@ -218,7 +196,8 @@ class Window(QWidget):
                 numComponents = self.numGaussiansPerClass[classNumber]
                 for componentNumber in range(numComponents):
                     gaussianNumber = int(np.sum(self.numGaussiansPerClass[: classNumber])) + componentNumber
-                    self.probabilities[gaussianNumber, :] = self.priors[classNumber, :] * self.mixtureWeights[gaussianNumber]
+                    self.probabilities[:, gaussianNumber] = self.priors[:, classNumber] * self.mixtureWeights[gaussianNumber]
+        self.updateComponent()
 
 
     def updateClass(self):
@@ -251,7 +230,7 @@ class Window(QWidget):
         for componentNumber in componentsToDraw:
             gaussianNumber = int(np.sum(self.numGaussiansPerClass[: classNumber])) + componentNumber
             vol = np.zeros(self.downSampledMask.shape)
-            vol[self.downSampledMask] = self.probabilities[gaussianNumber, :]
+            vol[self.downSampledMask] = self.probabilities[:, gaussianNumber]
             # add volume to viewer
             layer = createLayer(transformVolume(vol), cmap=colorMap(self.colorWheel[componentNumber]))
             self.volumeViewer.layers.append(layer)

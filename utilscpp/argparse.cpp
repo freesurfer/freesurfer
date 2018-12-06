@@ -307,7 +307,7 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
   if (active.valid) active.validate();
 
   // check for the help flag
-  if ((exists("help")) && (helptextsize > 0)) {
+  if ((helptextsize > 0) && (exists("help"))) {
     outputHelpXml(helptext, helptextsize);
     exit(0);
   }

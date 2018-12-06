@@ -2,24 +2,23 @@
 
 # recon-all.v6.hires - modification of the v6.0 recon-all to better
 # handle hires and T2 surface placement and accomodate HCP. These
-# changes include: (1) adding ability to specify a mask for
-# mri_em_register, (2) surface decimation with -hires to reduce the
-# number of faces/vertices to that of a 1mm scan (tessellation is done
-# at hires, then the surface is downsampled rather than tessllating at
-# 1mm), (3) uses cubic interpolation when sampling the T2 to the
-# orig.mgz space, (4) 255 and manual deletions are transferred from
-# the brainmask when masking the T2 (5) xopts for mris_make_surfaces
-# during T2 placement is now keyed by the string
-# mris_make_surfaces.t2flair.pial so that customized options for T2
-# placement can be used. (6) Now uses a dev version of
-# mris_make_surfaces copied to a binary called
-# mris_make_surfaces.t2flair.pial.  In the previous version of this
-# script, only global intensity normalization was used.  In this
-# version, the normalization has been reverted back to the standard
-# bias correction.
+# changes include: 
+# 1. adding ability to specify a mask for mri_em_register
+# 2. Running the standard 1mm recon-all stream up until the final white
+#    and pial surfaces are created. At that point, the script conf2hires
+#    is run. This script places the 1mm surfaces on the hires input
+#    (including T2 pial placement) and maps the surface coordinates
+#    back into the conformed space to generate the final white and pial
+#    surfaces. At that point, the standard recon-all stream is run
+#    until completion. To run with this facility, add the -conf2hires flag.
+#    Do not use -hires or -cubic or -cm.
+# Notes:
+# - No binaries outside of the FreeSurfer version 6 distribution are needed.
+# - This is currently not compatible with the longitudinal analysis.
+# - Will not run with FLAIR instead of T2
 
 #
-# recon-all
+# recon-all.v6.hires
 #
 # script to run all of the reconstruction routines
 #
@@ -142,6 +141,7 @@ set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
+set DoConf2Hires = 0;
 set Norm3dIters = ();   # passed as -n to *both* mri_normalize runs
 set NormMaxGrad = 1;    # passed as -g to *both* mri_normalize runs
 set Norm1_b = ();       # passed as -b to the *first* mri_normalize only
@@ -217,14 +217,6 @@ set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
 set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
 set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
-
-# MOD: Desired average face area of orig.nofix after decimation. This is
-# set to 0.5 by default because this is the value for the orig.nofix
-# 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
-# or for high res data. Decimation will have no effect if the average
-# face area is already => DecimationFaceArea.
-set DecimationFaceArea = 0.5;
-set DoDecimation = 0;
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
 # various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
@@ -1330,7 +1322,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     endif
   end
   touch $touchdir/base.touch
-endif
+endif # Base creation
 
 
 #-----------             -------------#
@@ -1348,7 +1340,7 @@ if($DoMotionCor) then
   echo "#@# MotionCor `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
   if ($longitudinal) then
-    # longitudinal processing to create orig.mgz:
+    # longitudinal processing to create needed input files.
 
     # in order to create orig.mgz in LONG we need at least 001.mgz in CROSS:
     if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
@@ -1362,25 +1354,65 @@ if($DoMotionCor) then
       goto error_exit;
     endif
 
+    # Make a symlink of T2raw to the cross file, needed by conf2hires
+    set T2rawCross  = ${SUBJECTS_DIR}/${tpNid}/mri/orig/T2raw.mgz
+    if(-e $T2rawCross) then
+      set cmd = (mkdir -p $subjdir/mri/orig)
+      echo $cmd | tee -a $LF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      pushd $subjdir/mri/orig > /dev/null
+      set cmd = (ln -sf $T2rawCross)
+      echo $cmd | tee -a $LF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      popd  > /dev/null
+      set T2rawCrossReg  = ${SUBJECTS_DIR}/${tpNid}/mri/transforms/T2raw.lta
+      if(-e $T2rawCrossReg) then
+        # This reg will be used by conf2hires
+        set T2rawTPReg  = $subjdir/mri/transforms/T2raw.lta
+        set cmd = (mri_concatenate_lta $T2rawCrossReg $tpNtobase_regfile $T2rawTPReg)
+        echo $cmd | tee -a $LF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    endif
+
+    # Create rawavg image (not used by the long stream but used by conf2hires)
+    # Need to compute the reg that takes rawavg into template space
+    # and then change the header, not the pix, to make it in reg with base
+    set raw2confreg = $subjdir/mri/transforms/rawavgcross2conf.lta
+    set cmd = (tkregister2_cmdl --noedit --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
+      --targ ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz --regheader --reg /tmp/deleteme.$$.dat \
+      --ltaout $raw2confreg)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    rm -f /tmp/deleteme.$$.dat 
+    set raw2basereg = $subjdir/mri/transforms/rawavgcross2base.lta
+    set cmd = (mri_concatenate_lta $raw2confreg $tpNtobase_regfile $raw2basereg)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set rawvol  = $subjdir/mri/rawavg.mgz
+    set cmd = (mri_vol2vol --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
+     --targ $SUBJECTS_DIR/$longbaseid/mri/orig.mgz --reg $raw2basereg --no-resample --o $rawvol)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
     # use orig/00?.mgz from cross:
     set CrossList = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz`;
     set origvol = $subjdir/mri/orig.mgz
-    set rawvol  = $subjdir/mri/rawavg.mgz
 
     if($#CrossList == 1) then
       # if only single input, directly resample to base space
+      # This only really works if 001.mgz is already conformed 
+      # since the output will be conformed
       set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar)
       set cmd = ($cmd -rt cubic)
       set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
       set cmd = ($cmd ${origvol})
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      # also create rawavg (usually float) image
-      set cmd = (mri_convert -at $tpNtobase_regfile )
-      set cmd = ($cmd -rt cubic)
-      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
-      set cmd = ($cmd ${rawvol})
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -1531,7 +1563,7 @@ if($DoMotionCor) then
     goto motioncor_post_process
   endif
 
-  # default processing:
+  # default motion correction processing for cross subject:
   set cmd = ();
 
   # Get list of input run directories #
@@ -2807,31 +2839,34 @@ if($DoCALabel) then
     cd $subjdir/mri > /dev/null
     $PWD |& tee -a $LF
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
+    # first create lta's of basesubjs to longsubj
     set asegprecount = 0
-    set aseg = ()
-    set alt = ()
-    set nocc = ()
-    set norm = ()
-    set trx = () # Cross to base.
     foreach s (${BaseSubjsList})
-      set aseg = ($aseg ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz)
-      set alt = ($alt ${SUBJECTS_DIR}/${s}/mri/aseg.mgz)
-      set nocc = ($nocc ${SUBJECTS_DIR}/${s}/mri/aseg.auto_noCCseg.mgz)
-      set norm = ($norm ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
-      set trx = ($trx ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta)
-      # check if all cross dirs have aseg.presurf
-      if ( -e $aseg[$#aseg] ) then
+      # copy the transform (tpi cross to base) to local transform dir
+      # where mri_fuse_segmentations is looking for it:
+      set cmd = (cp -vf \
+            ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta \
+            ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+      # check if all cross dirs have aseg.presurf 
+      if ( -e ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz ) then
         @ asegprecount++
       endif
     end
     # if we are missing aseg.presurf, assume that cross is 5.3 or older
     # and use aseg.mgz for fusion
+    set crossaseg = aseg.presurf.mgz
     if ( $#BaseSubjsList > $asegprecount ) then
-      set aseg = ($alt)
+      set crossaseg = aseg.mgz
     endif
     # now create the fused aseg
-    set cmd = (mri_fuse_segmentations -a $aseg -c $nocc -n $norm -t $trx)
-    set cmd = ($cmd norm.mgz aseg.fused.mgz)
+    set cmd = (mri_fuse_segmentations)
+    set cmd = ($cmd -a $crossaseg -c aseg.auto_noCCseg.mgz -n norm.mgz)
+    set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -3190,12 +3225,9 @@ if($DoTessellate && ( ! $longitudinal )) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
-    set outfile = ../surf/$hemi.orig.nofix
-    if($DoDecimation) set outfile = ../surf/$hemi.orig.nofix.predec
-
     set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
     set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
-                $hemivalue $outfile)
+                $hemivalue ../surf/$hemi.orig.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3205,23 +3237,11 @@ if($DoTessellate && ( ! $longitudinal )) then
 
     # remove possible extra components, per f.segonne
     set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
-    set cmd = (mris_extract_main_component $xopts $outfile \
-               $outfile)
+    set cmd = (mris_extract_main_component $xopts ../surf/$hemi.orig.nofix \
+               ../surf/$hemi.orig.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-
-    # MOD. Now reducing the number of faces to match that of a 1mm scan
-    if($DoDecimation) then
-      # Reduce the number of faces such that the average face area is 0.5 (that of conformed)
-      set a = (`mri_info --res ../mri/orig.mgz`)
-      set declevel = `echo "$a[1]*$a[2]" | bc -l`; # technically only works for isotropic
-      echo "Decimation Level $declevel" | tee -a $LF
-      set cmd = (mris_decimate -d $declevel ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
 
     echo $cmd > $touchdir/$hemi.tessellate.touch
   end # Loop over hemilist
@@ -3654,7 +3674,7 @@ if($DoCurvHK) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
-    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
     set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -3692,7 +3712,7 @@ if($DoCurvHK) then
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
     set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4121,12 +4141,32 @@ if($DoCortParc) then
   endif
 endif
 
+if($DoConf2Hires) then
+  # This places the surfaces on the highres T1 (and T2)
+  set cmd = (conf2hires --threads $OMP_NUM_THREADS)
+  if($DoT2pial == 0) set cmd = ($cmd --no-T2)
+  if($DoT2pial == 1) set cmd = ($cmd --T2)
+  if($longitudinal) then
+    set cmd = ($cmd --longitudinal $tpNid $longbaseid)
+  else
+    set cmd = ($cmd --s $subjid)
+  endif
+  if($UseCubic == 1) set cmd = ($cmd --cubic)
+  if($UseCubic == 0) set cmd = ($cmd --trilin)
+  echo $cmd | tee -a $LF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/conf2hires
+endif
+
 
 #----------------                    -------------------#
 #---------------- Make Pial Surfaces -------------------#
+# Also makes the white surface and the curv, area, 
+# curv.pial, area.pial, and thickness
 ##---------------       -pial        -------------------#
 #----------------                    -------------------#
-if($DoPialSurfs) then
+if($DoPialSurfs && ! $DoConf2Hires) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
@@ -4202,7 +4242,7 @@ endif
 ##---------------     -T2pial  and  -FLAIRpial        ----------------#
 #----------------                                     ----------------#
 # note: the registration portion requires existence of both surfaces
-if($DoT2pial || $DoFLAIRpial) then
+if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" \
@@ -4294,9 +4334,7 @@ if($DoT2pial || $DoFLAIRpial) then
     set mapcmd = (mri_convert \
         -odt float \
         -at $mdir/transforms/${t2flair}raw.lta)
-    #if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
-    echo "INFO: forcing cubic interpolation on T2/FLAIR" |& tee -a $LF
-    set mapcmd = ($mapcmd -rt cubic -ns 1) # MOD: always use cubic for this
+    if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
     set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
     set mapcmd = ($mapcmd $t2flairraw )
     set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
@@ -4318,10 +4356,10 @@ if($DoT2pial || $DoFLAIRpial) then
     if($RunIt) $fs_time $normcmd |& tee -a $LF
     if($status) goto error_exit;
     
-    # Mask the T2/FLAIR 
+    # then mask the T2/FLAIR 
     # note: post-normalized file remains for debug, with .norm in name
-    # this creates ${t2flair}.mgz. MOD: added -transfer 255 -keep_mask_deletion_edits 
-    set maskcmd = (mri_mask  -transfer 255 -keep_mask_deletion_edits \
+    # this creates ${t2flair}.mgz
+    set maskcmd = (mri_mask \
         $mdir/${t2flair}.norm.mgz \
         $mdir/brainmask.mgz \
         $mdir/${t2flair}.mgz)
@@ -4334,9 +4372,7 @@ if($DoT2pial || $DoFLAIRpial) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     $PWD |& tee -a $LF
-    # MOD: this allows the user to set xopts for this particular call to make_surfaces
-    # The user should put mris_make_surfaces.t2flair.pial instead of mris_make_surfaces
-    set xopts = `fsr-getxopts mris_make_surfaces.t2flair.pial $XOptsFile`;
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
     set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
     set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
     set touch1=($tdir/${hemi}.pial_refine.touch)
@@ -4349,10 +4385,9 @@ if($DoT2pial || $DoFLAIRpial) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    # MOD: now using a binary named mris_make_surfaces.t2flair.pial. This is a renamed 
-    # version from the dev env that BRF modified to make it make fit the pial
-    # surface a little better than that in v6.
-    set cmd = (mris_make_surfaces.t2flair.pial -orig_white white -orig_pial wo${t2flair}.pial)
+    set cmd = (mris_make_surfaces \
+        -orig_white white \
+        -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
     else
@@ -4364,12 +4399,8 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
     if($DoT2pial) then
-      set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 3) #MOD: changed below to 3 from 5
+      set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 5)
       if($#T2max) set cmd = ($cmd -T2_max $T2max);
-      #MOD: these are args that BF that require a dev version of make_surfaces
-      set cmd = ($cmd -T2_max_inside 225 -wm_weight 0 \
-       -T2_min_outside 110 -min_peak_pct .01 .1 .5 .5 \
-       -location 1.0)
     endif
     if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
         -nsigma_above 3 -nsigma_below 3)
@@ -4390,7 +4421,7 @@ if($DoT2pial || $DoFLAIRpial) then
     if($status) goto error_exit;
   endif
 
-  # redo ?h.volume files
+  # redo ?h.volume files (not sure why, since it is done below)
   if(-e $subjdir/surf/rh.volume || -e $subjdir/surf/lh.volume) then
     foreach hemi ($hemilist)
       echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
@@ -6227,14 +6258,6 @@ while( $#argv != 0 )
       set DoRemoveNeck = 0;
       breaksw
 
-    # MOD: Decimation is done as part of DoTessellate, forced with -hires
-    case "-decimate":
-      set DoDecimation = 1;
-      breaksw
-    case "-no-decimate":
-      set DoDecimation = 0;
-      breaksw
-
     case "-skull-lta":
       set DoSkullLTA  = 1;
       breaksw
@@ -7011,6 +7034,20 @@ while( $#argv != 0 )
       set DoBaLabels       = 1;
       breaksw
 
+    case "-autorecon-pre-base":
+      set DoCreateBaseInput = 1;
+      set DoMotionCor      = 1;
+      set DoTalairach      = 1;
+      set DoTalCheck       = 1;
+      set DoNormalization  = 1;
+      set DoSkullStrip     = 1;
+      set DoNuIntensityCor = 1;
+      set DoGCAReg         = 1;
+      set DoRemoveNeck     = 0;
+      set DoSkullLTA       = 0;
+      set DoCANormalize    = 1;
+      breaksw
+
 #-------------------------------------------------#
 # below are utility flags and special modifiers
 #-------------------------------------------------#
@@ -7315,11 +7352,23 @@ while( $#argv != 0 )
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;
-      set DoDecimation = 1; # MOD: force decimation with hires
       echo "INFO: hi-res volumes are conformed to the min voxel size"
       # per testing by Natalia Zaretskaya, Mar 2015, the flags which
       # normally disable the aseg steps are no longer necessary (which
       # means aseg.mgz can be created with hi-res data).
+      breaksw
+
+    case "-conf2hires":
+      set DoConf2Hires = 1;
+      set HiRes = 0;
+      set ConformMin = 0;
+      set UseCubic = 0; # The conformed should be generated with trilin interp
+      set DoPialSurfs = 0; # will be done in conf2hires
+      which conf2hires >& /dev/null
+      if($status) then
+        echo "ERROR: cannot find conf2hires"
+        exit 1;
+      endif
       breaksw
 
     case "-use-aseg":
@@ -7634,15 +7683,6 @@ check_params:
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
   endif
-  if($DoT2pial || $DoFLAIRpial) then
-    which mris_make_surfaces.t2flair.pial >& /dev/null
-    if($status) then
-      echo "\nERROR: cannot find mris_make_surfaces.t2flair.pial needed for T2 or FLAIR pial placement"
-      echo "Download it from ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0-patch/mris_make_surfaces.t2flair.pial"
-      echo "and copy it to $FREESURFER_HOME/bin or put into your path\n"
-      goto error_exit;
-    endif
-  endif
 
   if($DoHippoSF_T1T2 || $DoHippoSF_T2) then
     if(! -e "$T2volHippoSF") then
@@ -7715,6 +7755,32 @@ check_params:
     if($TH3Flag)   set TH3Opt = "-th3"
     if(! $TH3Flag) set TH3Opt = "-no-th3"
 
+    if($DoConf2Hires) then
+      if($HiRes) then
+        echo "ERROR: cannot use -hires with -conf2hires"
+        exit 1;
+      endif
+      if($ConformMin) then
+        echo "ERROR: cannot use -cm with -conf2hires"
+        exit 1;
+      endif
+      if($DoCreateBaseSubj) then
+        echo "ERROR: do not use -conf2hires with -base (it is unneeded)"
+        exit 1;
+      endif
+      if($DoFLAIRpial) then
+        echo "ERROR: do not use -conf2hires with -FLAIRpial"
+        exit 1;
+      endif
+    endif
+
+    set fname = $subjdir/scripts/DoConf2Hires
+    if(-e $fname && ! $DoConf2Hires && ($DoPialSurfs || $DoT2pial)) then
+      echo "ERROR: previous calls to recon-all included -conf2hires but this one does not."
+      echo "If you want to run without conf2hires, delete file $fname"
+      exit 1;
+    endif
+
     #------------ Longitudinal ---------------#
     if($longitudinal) then
 
@@ -7722,7 +7788,7 @@ check_params:
       set haslong = `echo $tpNid | grep "\.long\."`
       if ( "$haslong" != "" ) then
         echo ""
-        echo "ERROR: Detected \'.long.\' in a subject id!
+        echo "ERROR: Detected \'.long.\' in a subject id"
         echo ""
         echo "       If you are trying to run or re-run a longitudinal time point"
         echo "       please specify the following parameters:"
@@ -7988,6 +8054,10 @@ check_params:
     endif
   endif
 
+  if($DoConf2Hires) then
+    touch $subjdir/scripts/DoConf2Hires
+  endif
+
   if($#NotifyFile != 0) then
     rm -f $NotifyFile;
     set tmpdir = `dirname $NotifyFile`;
@@ -8027,7 +8097,7 @@ check_params:
      ! $DoMakefile && ! $DoParallel && ! $DoRelabelHypos && ! $DoCurvHK && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
-     ! $DoLabelExvivoEC && ! $DoPialSurfs && \
+     ! $DoLabelExvivoEC && ! $DoPialSurfs && ! $DoConf2Hires && \
      ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\

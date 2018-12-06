@@ -219,6 +219,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   }
 
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
+  m_fMaxValueFull = m_fMaxValue;
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {

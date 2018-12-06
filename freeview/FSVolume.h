@@ -85,9 +85,15 @@ public:
   {
     return m_fMinValue;
   }
+
   double GetMaxValue ()
   {
     return m_fMaxValue;
+  }
+
+  double GetFullMaxValue()
+  {
+    return m_fMaxValueFull;
   }
 
   void GetFrameValueRange(int nFrame, double* range);
@@ -270,6 +276,7 @@ protected:
 
   float     m_fMinValue;
   float     m_fMaxValue;
+  float     m_fMaxValueFull;
 
   bool      m_bResampleToRAS;
   bool      m_bIgnoreHeader;

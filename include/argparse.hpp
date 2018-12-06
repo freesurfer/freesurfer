@@ -252,7 +252,7 @@ private:
   ArgumentVector positionals;
   AnyVector variables;
   const unsigned char *helptext;
-  unsigned int helptextsize;
+  unsigned int helptextsize = 0;
 };
 
 #endif
