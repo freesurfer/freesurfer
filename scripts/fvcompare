@@ -38,6 +38,7 @@ set Zoom = ();
 set annot = ();
 set pointset = ();
 set altargs = ()
+set DoWoT2Pial = 0;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -164,6 +165,19 @@ foreach hemi ($hemilist)
     end
   end
 end
+
+if($DoWoT2Pial) then
+  set surf = woT2.pial
+  foreach subject ($subject1 $subject2)
+    if($subject == $subject1) set name = $name1
+    if($subject == $subject2) set name = $name2
+    foreach hemi ($hemilist)
+      set cue = "$name-$hemi.$surf"
+      set surfarg = "$subject/surf/$hemi.$surf":"edgecolor=magenta":"name=$cue"
+      set cmd = ($cmd --surface $surfarg)
+    end
+  end
+endif
 
 if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
 if($CenterCursor) set cmd = ($cmd -cc)
@@ -312,6 +326,16 @@ while( $#argv != 0 )
     case "--no-seg":
       set NoSeg = 1;
       breaksw
+
+    case "--woT2":
+    case "--wot2":
+      set DoWoT2Pial = 1;
+      breaksw
+    case "--no-woT2":
+    case "--no-wot2":
+      set DoWoT2Pial = 0;
+      breaksw
+
 
     case "--no-surf":
       set NoSurf = 1;
@@ -512,6 +536,7 @@ usage_exit:
   echo "  --orig : only show orig.nofix and orig surfaces"
   echo "  --surf surfname : only show surfname"
   echo "  --p pointset : load point set file"
+  echo "  --wot2 : include the ?h.woT2.pial surfs"
   echo ""
   echo "Note: unrecognized arguments are appended to freeview command line"
   echo ""
