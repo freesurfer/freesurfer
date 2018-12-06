@@ -353,6 +353,11 @@ while( $#argv != 0 )
       setenv SAMSEG_DATA_DIR $argv[1]; shift;
       breaksw
 
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
     case "--regonly":
     case "--reg-only":
       set regonly = 1;
@@ -589,6 +594,7 @@ usage_exit:
   echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
   echo "  --no-hires  : do not use -hires when running recon-all"
   echo "  --no-decimate  : do not use -decimate when running recon-all"
+  echo "  --sd SUBJECTS_DIR"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
