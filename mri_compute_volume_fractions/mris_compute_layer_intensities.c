@@ -117,6 +117,8 @@ main(int argc, char *argv[])
   mri_volume_fractions = MRIread(argv[2]) ;
   if (mri_volume_fractions == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load volume fractions from %s", Progname, argv[2]) ;
+  if (mri_volume_fractions->nframes < nlayers+1)
+    ErrorExit(ERROR_BADFILE, "%s: volume fraction input has fewer frames (%d) than needed (%d)\n", mri_volume_fractions->nframes, nlayers+1);
   if (FS_names && subject_name == NULL)
     ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -s <subject>", Progname) ;
   for (i = 0 ; i <= nlayers ; i++)
