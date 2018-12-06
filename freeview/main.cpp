@@ -234,6 +234,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. NOTE: AUTO_TRIM option is only available on Linux.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "view", "view", "<VIEW>", "Set the 3D view as given. Accepted views are 'left', 'right', 'lateral', 'medial', 'anterior', 'posterior', 'inferior' and 'superior'. 'lateral' and 'medial' will only work when there is visible surface.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewsize", "viewsize", "<width> <height>", "Set the size of the main viewport. The size of the whole window will be changed accordingly.", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "zoom", "zoom", "<FACTOR>", "Set zoom factor of the main viewport.", 1, 1 ),
