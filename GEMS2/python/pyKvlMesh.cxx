@@ -206,6 +206,15 @@ double KvlMeshCollection::GetK() const {
     return meshCollection->GetK();
 }
 
+py::array_t<double> KvlMeshCollection::GetReferencePosition() const {
+  //KvlMesh mesh = KvlMeshCollection::GetMesh(-1);
+  return PointSetToNumpy(meshCollection->GetReferencePosition());
+}
+void KvlMeshCollection::SetReferencePosition(const py::array_t<double> &source){
+  PointSetPointer points = const_cast<PointSetPointer>(meshCollection->GetReferencePosition());
+  CopyNumpyToPointSet(points, source);
+  meshCollection->SetReferencePosition(points);
+}
 
 KvlMesh *KvlMeshCollection::GetMesh(int meshNumber) {
     if (meshNumber < -1) {
