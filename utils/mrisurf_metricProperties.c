@@ -71,7 +71,8 @@ void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * 
   const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
   const float * pcy = &v->y;  float * py = (float*)pcy; *py = y;
   const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
-  
+ 
+#if 0 
   if (mris->dist_alloced_flags & 1) {
     if (!*laterTime) {
       *laterTime = true;
@@ -79,6 +80,7 @@ void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * 
     }
     // THIS WOULD CAUSE A DATA RACE ON VERTEX::dist etc.  MRISfreeDistsButNotOrig(mris);
   }
+#endif
 }
 
 
