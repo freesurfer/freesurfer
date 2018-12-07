@@ -1473,7 +1473,7 @@ MRISripVerticesWithMark(MRI_SURFACE *mris, int mark)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1496,7 +1496,7 @@ MRISripVerticesWithoutMark(MRI_SURFACE *mris, int mark)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1542,7 +1542,7 @@ MRISripVerticesWithAnnotation(MRI_SURFACE *mris, int annotation)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1571,7 +1571,7 @@ MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation)
       v->ripflag = 0 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 

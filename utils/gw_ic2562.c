@@ -2044,27 +2044,12 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
   //----------------------------------------
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
-    VERTEX*          const v  = &mris->vertices         [vno];
     vt->vtotal = vt->vnum;
     vt->f = (int *)calloc(vt->num, sizeof(int));
     if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d faces", vt->num);
     vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
     if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d nbrs", vt->n);
     vt->num = 0; /* for use as counter in next section */
-    v->dist = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist)
-      ErrorExit(ERROR_NOMEMORY,
-                "ic2562: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
-    v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "ic2562: could not allocate list of %d "
-                "dists at v=%d",
-                vt->vnum,
-                vno);
   }
 
   //----------------------------------------------

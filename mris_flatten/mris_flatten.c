@@ -396,7 +396,7 @@ main(int argc, char *argv[])
       MRISclearMarks(mris) ;
       LabelMark(area, mris) ;
       MRISripUnmarked(mris) ;
-      MRISripFaces(mris);
+      MRISsetRipInFacesWithRippedVertices(mris);
       mris->patch = 1 ;
       mris->status = MRIS_CUT ;
       LabelFree(&area) ;

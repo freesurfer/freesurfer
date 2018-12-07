@@ -176,7 +176,7 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 static int mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-static int mrisClearDistances(MRI_SURFACE *mris);
+static int MRISclearD(MRI_SURFACE *mris);
 static int mrisClearExtraGradient(MRI_SURFACE *mris);
 static int mrisClearMomentum(MRI_SURFACE *mris);
 static int mrisValidFaces(MRI_SURFACE *mris);
