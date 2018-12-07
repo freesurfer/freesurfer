@@ -57,8 +57,8 @@ popd > /dev/null
 if($#surfname) mkdir -p $surfdir
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.seg2filled.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.seg2filled.$$
+  # This can generate a lot of output and may fill up /scratch
+  set tmpdir = $outdir/tmpdir.seg2filled.$$
 endif
 mkdir -p $tmpdir
 
@@ -125,6 +125,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $subcortmass0
 
   # Extract the main component (--match 1)
   set c1 = $tmpdir/subcortmass.$hemi.c1.unfilled.mgh
@@ -140,6 +141,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $ocn
   # For speed, create a mask before extracting connected
   # components. Otherwise, there will be a huge concomp outside the
   # brain which will take a long time to extract. To create the mask,
@@ -157,6 +159,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1inv
   # If there is only one cluster, then there are no cavities
   set NClusters = `grep NClusters $invsum | awk '{print $3}'`
   echo "NClusters $NClusters" |& tee -a $LF
@@ -180,6 +183,7 @@ foreach hemi ($hemilist)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit;
+    if($cleanup) rm $c1 $invocn $invocn2 $invocn3 
     set c1 = $c1filled
   endif
 
@@ -189,6 +193,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1
   # Have to binarize it again because pretess changes intensities
   set cmd = (mri_binarize --i $c1pretess --min 0.5 --o $c1pretess --binval $hemivalue)
   echo $cmd |& tee -a $LF
@@ -196,7 +201,7 @@ foreach hemi ($hemilist)
   if($status) goto error_exit;
 
   set c1list = ($c1list $c1pretess)
-end
+end # hemi
 
 if($#hemilist == 2) then
   # Create the filled.mgz
@@ -206,6 +211,7 @@ if($#hemilist == 2) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1list
   # Remove any voxels present in both lh and rh. This can happen
   # because pretess might add a voxel. Which begs the question
   # as to whether it should be removed. Below keeps only voxels

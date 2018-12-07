@@ -175,6 +175,8 @@ endif
 # Prep for recon
 if($#subject != 0) then
   set cmd = (samseg2recon --i $input --s $subject)
+  set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg)
+  if($cleanup) set cmd = ($cmd --cleanup)
   if($DoFill) set cmd = ($cmd --fill)
   if($DoNormalization2) set cmd = ($cmd --normalization2)
   echo $cmd | tee -a $LF

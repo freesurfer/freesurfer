@@ -296,6 +296,8 @@ if($DoCC) then
         set src = aseg.auto.mgz
       endif
       set cmd = (mergeseg --src $src --merge $tmpdir/ccbin.mgh  --o aseg.auto.mgz --segid $segid)
+      set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg)
+      if($cleanup) set cmd = ($cmd --cleanup)
       echo $cmd | tee -a $LF
       fs_time $cmd | tee -a $LF
       if($status) goto error_exit;
@@ -329,6 +331,8 @@ if($DoFill) then
   # Should be able to not run pretess in recon-all (except can't turn it off)
   pushd $mdir
   set cmd = (seg2filled --seg aseg.auto.mgz --norm norm.mgz --o filled.mgz)
+  set cmd = ($cmd --tmpdir $SUBJECTS_DIR/$subject/tmp/tmp.mergeseg) # might fill /scratch
+  if($cleanup) set cmd = ($cmd --cleanup)
   date | tee -a $LF
   echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
