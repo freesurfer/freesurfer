@@ -254,6 +254,7 @@ main(int argc, char *argv[])
     MRISaverageVertexPositions(mris, smooth_avgs) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    mrisCheckVertexFaceTopology(mris);
   }
 
   if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
