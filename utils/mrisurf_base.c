@@ -267,6 +267,7 @@ static void MRIS_EDGEdtr(MRI_EDGE* e) {
 static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldCapacity, int newCapacity) 
 {
   if (oldCapacity >= newCapacity) return;
+  
   char const flag = (char)(1)<<doOrig;
   mris->dist_alloced_flags |= flag;
 
