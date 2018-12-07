@@ -30,6 +30,26 @@ int edgeExists(MRIS *mris, int vno1, int vno2);
 int mrisRemoveLink(MRIS *mris, int vno1, int vno2);
 
 
+// Each VERTEX has a list of neighbours at varying distances
+// Sadly there are several algorithms that maintain this list
+// This supports comparing those algorithms
+//
+#define MRIS_VertexNeighbourInfo_MAX_HOPS 5
+
+typedef struct MRIS_VertexNeighbourInfo {
+  size_t hops;
+  int    vnum[MRIS_VertexNeighbourInfo_MAX_HOPS + 1];
+  int    v   [MAX_NEIGHBORS];
+} MRIS_VertexNeighbourInfo;
+
+void MRIS_VertexNeighbourInfo_check            (MRIS_VertexNeighbourInfo* lhs,  MRIS_VertexNeighbourInfo* rhs);
+void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno);
+
+void MRIS_check_vertexNeighbours(MRIS* mris);
+
+void MRIS_setNsizeCur(MRIS *mris, int vno, int nsize);
+
+
 // Vertices and Faces interact via edges
 //
 int mrisCountValidLinks(MRIS *mris, int vno1, int vno2);

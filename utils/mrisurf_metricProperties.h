@@ -29,6 +29,8 @@
 
 int mrisCheckSurface(MRIS *mris);
 
+void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity);
+void MRISmakeDist(MRIS *mris, int vno);
 int MRISfreeDists(MRIS *mris) ;
 
 typedef struct PerThreadMRIDistance {
