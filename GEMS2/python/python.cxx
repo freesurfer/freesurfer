@@ -88,6 +88,7 @@ PYBIND11_MODULE(gems_python, m) {
             .def_property("k", &KvlMeshCollection::GetK, &KvlMeshCollection::SetK)
             .def_property_readonly("reference_mesh", &KvlMeshCollection::GetReferenceMesh)
             .def("get_mesh", &KvlMeshCollection::GetMesh)
+            .def_property("reference_position", &KvlMeshCollection::GetReferencePosition, &KvlMeshCollection::SetReferencePosition)
             .def("construct", &KvlMeshCollection::Construct)
             .def("read", &KvlMeshCollection::Read)
             .def("transform", &KvlMeshCollection::Transform)

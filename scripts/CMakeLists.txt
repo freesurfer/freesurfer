@@ -184,6 +184,8 @@ install(PROGRAMS
   progressbar.tcl
   fsr-checkxopts
   fsr-getxopts
+  fsr-coreg  
+  fsr-import
   polyorder
   rbbr
   rcbf-prep

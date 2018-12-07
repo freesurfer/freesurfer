@@ -87,3 +87,17 @@ class Timer:
 
     def mark(self, message):
         print('%s: %s' % (message, str(self.elapsed)))
+
+# Return the peak memory in kb for calling process
+def GetVmPeak():
+  fp = open('/proc/self/status','r');
+  for line in fp:
+    ind = line.rfind('VmPeak:');
+    if(ind != -1):
+      tmp = line.split();
+      return tmp[1];
+   #endif
+  #endfor
+#endfunc
+
+

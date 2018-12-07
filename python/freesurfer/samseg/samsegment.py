@@ -6,7 +6,9 @@ import logging
 import pickle
 from functools import reduce
 from operator import mul
+import sys;
 
+import freesurfer as fs
 import freesurfer.gems as gems
 
 from .utilities import Specification, requireNumpyArray, ensureDims
@@ -31,9 +33,9 @@ def samsegment(
 
     # Print input options
     print()
-    print('----------------------------------------------')
+    print('##----------------------------------------------')
     print('           Samsegment Input Options')
-    print('----------------------------------------------')
+    print('##----------------------------------------------')
     print('output directory:', savePath)
     print('input images:')
     for imageFileName in imageFileNames:
@@ -75,6 +77,7 @@ def samsegment(
             print('        ----')
     print('----------------------------------------------')
     print()
+    sys.stdout.flush();
 
     # Save input variables in a history dictionary
     if saveHistory:
@@ -266,6 +269,8 @@ def samsegment(
     if saveHistory:
         history['historyWithinEachMultiResolutionLevel'] = []
 
+    print('samsegment Starting Resolution Loop VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
+
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
@@ -379,6 +384,7 @@ def samsegment(
         # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
+            print('samsegment  Resolution ',multiResolutionLevel,'Iter',iterationNumber,'VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -677,6 +683,8 @@ def samsegment(
             levelHistory['posteriorsAtEnd'] = posteriors
             history['historyWithinEachMultiResolutionLevel'].append(levelHistory)
 
+    # End resolution level loop
+
     # Save the history
     if saveHistory:
         with open(os.path.join(savePath, 'history.p'), 'wb') as file:
@@ -684,6 +692,8 @@ def samsegment(
 
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
+
+    print('samsegment  starting sementation VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
 
     # Get bias field corrected images
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
@@ -781,6 +791,14 @@ def samsegment(
         os.path.join(savePath, 'crispSegmentation.nii'),
         gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
     )
+
+    # Update reference positions of mesh collection
+    print('Setting ref position');
+    mesh_collection.reference_position = mesh.points;
+    print('Done setting ref position');
+    print('Writing mesh collection');
+    mesh_collection.write(os.path.join(savePath, 'mesh.txt'));
+    print('Done Writing mesh collection');
 
     # Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
     for contrastNumber, imageFileName in enumerate(imageFileNames):
