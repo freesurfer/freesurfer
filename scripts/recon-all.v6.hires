@@ -1339,221 +1339,20 @@ if($DoMotionCor) then
     |& tee -a $LF |& tee -a $CF
   echo "#@# MotionCor `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
-  if ($longitudinal) then
-    # longitudinal processing to create needed input files.
+  set origvol = $subjdir/mri/orig.mgz
 
-    # in order to create orig.mgz in LONG we need at least 001.mgz in CROSS:
-    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
-      echo "ERROR: no CROSS run data found in ${SUBJECTS_DIR}/${tpNid}/mri/orig/. Make sure to" \
-        |& tee -a $LF
-      echo "have a volume called 001.mgz there." |& tee -a $LF
-      echo "If you have a second run of data call it 002.mgz, etc." \
-        |& tee -a $LF
-      echo "See also: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Conversion" \
-        |& tee -a $LF
-      goto error_exit;
-    endif
-
-    # Make a symlink of T2raw to the cross file, needed by conf2hires
-    set T2rawCross  = ${SUBJECTS_DIR}/${tpNid}/mri/orig/T2raw.mgz
-    if(-e $T2rawCross) then
-      set cmd = (mkdir -p $subjdir/mri/orig)
-      echo $cmd | tee -a $LF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      pushd $subjdir/mri/orig > /dev/null
-      set cmd = (ln -sf $T2rawCross)
-      echo $cmd | tee -a $LF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      popd  > /dev/null
-      set T2rawCrossReg  = ${SUBJECTS_DIR}/${tpNid}/mri/transforms/T2raw.lta
-      if(-e $T2rawCrossReg) then
-        # This reg will be used by conf2hires
-        set T2rawTPReg  = $subjdir/mri/transforms/T2raw.lta
-        set cmd = (mri_concatenate_lta $T2rawCrossReg $tpNtobase_regfile $T2rawTPReg)
-        echo $cmd | tee -a $LF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    endif
-
-    # Create rawavg image (not used by the long stream but used by conf2hires)
-    # Need to compute the reg that takes rawavg into template space
-    # and then change the header, not the pix, to make it in reg with base
-    set raw2confreg = $subjdir/mri/transforms/rawavgcross2conf.lta
-    set cmd = (tkregister2_cmdl --noedit --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
-      --targ ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz --regheader --reg /tmp/deleteme.$$.dat \
-      --ltaout $raw2confreg)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    rm -f /tmp/deleteme.$$.dat 
-    set raw2basereg = $subjdir/mri/transforms/rawavgcross2base.lta
-    set cmd = (mri_concatenate_lta $raw2confreg $tpNtobase_regfile $raw2basereg)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set rawvol  = $subjdir/mri/rawavg.mgz
-    set cmd = (mri_vol2vol --mov ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz \
-     --targ $SUBJECTS_DIR/$longbaseid/mri/orig.mgz --reg $raw2basereg --no-resample --o $rawvol)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-
-    # use orig/00?.mgz from cross:
-    set CrossList = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz`;
-    set origvol = $subjdir/mri/orig.mgz
-
-    if($#CrossList == 1) then
-      # if only single input, directly resample to base space
-      # This only really works if 001.mgz is already conformed 
-      # since the output will be conformed
-      set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar)
-      set cmd = ($cmd -rt cubic)
-      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
-      set cmd = ($cmd ${origvol})
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      goto motioncor_post_process
-    endif
-
-    # if ltas and iscales exist in cross, copy them over
-    set CrossLtas = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].lta`;
-    set CrossIscales = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9]-iscale.txt`;
-    if ( $#CrossLtas > 0 ) then
-      # check if one lta for each mgz:
-      # here we could better check if really each 00?.mgz has its own 00?.lta in future
-      if ( $#CrossList != $#CrossLtas ) then
-        echo "ERROR: Orig 00?.mgz runs and number of 00?.lta files must agree in" \
-         |& tee -a $LF
-        echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/" \
-         |& tee -a $LF
-        goto error_exit;
-      endif
-      #copy ltas:
-      cd $subjdir/mri/
-      set cmd = (cp -vf ${CrossLtas})
-      set cmd = ($cmd orig/)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      #copy iscales if available:
-      if ($#CrossIscales > 0) then
-        # here we could better check if really each 00?.mgz has its own iscale file in future
-        if ( $#CrossList != $#CrossIscales ) then
-          echo "ERROR: Orig 00?.mgz runs and number of 00?-iscale.txt files must agree in" \
-            |& tee -a $LF
-          echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/" \
-            |& tee -a $LF
-          goto error_exit;
-        endif
-        cd $subjdir/mri/
-        set cmd = (cp -vf ${CrossIscales})
-        set cmd = ($cmd orig/)
-        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    else
-      # else the ltas don't exist (maybe because 5.0 or fsl was used,
-      # they are created by 5.1+ in cross sectional stream)
-      # if more than one input, re-receate the ltas:
-      if($#CrossList > 1) then
-        # set output names for ltas and iscales in long dir
-        set LongLtas = ""
-        set LongIscales = ""
-        foreach nthid ($CrossList)
-          set nthname=`basename $nthid .mgz`
-          set nthdir=$subjdir/mri/orig
-          set nthlta=${nthdir}/${nthname}.lta
-          set LongLtas=($LongLtas $nthlta)
-          set LongIscales=($LongIscales $nthdir/${nthname}-iscale.txt)
-        end
-        # perform motion correction again to obtain the ltas (but in long dir, don't touch cross):
-        set rawavg  = $subjdir/mri/rawavg.mgz
-        # the output rawavg in long will be ignored and not used for anything
-        # except maybe debugging, we only need the ltas and iscales!
-        set cmd = (mri_robust_template)
-        set cmd = ($cmd --mov ${CrossList})
-        set cmd = ($cmd --average 1)
-        set cmd = ($cmd --template ${rawavg})
-        set cmd = ($cmd --satit)
-        set cmd = ($cmd --inittp 1)
-        set cmd = ($cmd --fixtp)
-        set cmd = ($cmd --noit)
-        set cmd = ($cmd --iscale)
-        set cmd = ($cmd --iscaleout $LongIscales)
-        set cmd = ($cmd --subsample 200)
-        set cmd = ($cmd --lta $LongLtas)
-        echo "#-----------------------------------------------"
-        $PWD |& tee -a $LF
-        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-        if($RunIt) then
-          $fs_time $cmd |& tee -a $LF
-          if($status) goto error_exit;
-        endif
-        # better get rid of rawavg to avoid confusion
-        # as it is not in the base/long space, but in 001.mgz space
-        set cmd = (rm -f $rawavg )
-        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-        if($RunIt) then
-          $fs_time $cmd |& tee -a $LF
-          if($status) goto error_exit;
-        endif
-
-      else
-        # we should never get here, this case hase been dealt with above
-        echo Only single run - should not get here
-        goto error_exit;
-      endif
-    endif
-
-    # now we have the ltas in long (current tp : subjdir)
-    set LongLtas = `ls $subjdir/mri/orig/[0-9][0-9][0-9].lta`;
-    set LongIscales = `ls $subjdir/mri/orig/[0-9][0-9][0-9]-iscale.txt`;
-
-    # concat ltas (e.g. 002 -> 001 -> base/orig.mgz)
-    set ConcatLtas = ""
-    foreach nthlta ($LongLtas)
-      set nthname=`basename $nthlta .lta`
-      set nthdir=$subjdir/mri/orig
-      set concatlta=${nthdir}/${nthname}-long.lta
-      set ConcatLtas=($ConcatLtas $nthdir/${nthname}-long.lta)
-      set cmd = (mri_concatenate_lta $nthlta $tpNtobase_regfile $concatlta)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    end
-
-    # use mri_robust_template just to create the average in base orig space:
-    set cmd = (mri_robust_template)
-    set cmd = ($cmd --mov ${CrossList})
-    set cmd = ($cmd --average 1)
-    set cmd = ($cmd --ixforms ${ConcatLtas})
-    if ($#LongIscales > 0) then
-      set cmd = ($cmd --iscalein ${LongIscales})
-    endif
-    set cmd = ($cmd --noit)
-    set cmd = ($cmd --template ${rawvol})
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($longitudinal) then
+    set cmd = (longmc -long $tpNid $longbaseid)
+    if($DoConf2Hires) set cmd = ($cmd -conf2hires)
+    set xopts = `fsr-getxopts longmc $XOptsFile`;
+    set cmd = ($cmd $xopts)
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
+      echo $cmd > $touchdir/longmc.touch
     endif
-
-    # make sure orig is uchar:
-    set cmd = (mri_convert -odt uchar ${rawvol} ${origvol})
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
     goto motioncor_post_process
-
-  endif #longitudinal
+  endif 
 
   # base processing (we do not need to do anything,
   #   as orig should be there, rawavg is not there, due to difficulties of
@@ -4144,8 +3943,9 @@ endif
 if($DoConf2Hires) then
   # This places the surfaces on the highres T1 (and T2)
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
-  if($DoT2pial == 0) set cmd = ($cmd --no-T2)
-  if($DoT2pial == 1) set cmd = ($cmd --T2)
+  if($DoT2pial == 0)    set cmd = ($cmd --no-T2)
+  if($DoT2pial == 1)    set cmd = ($cmd --T2)
+  if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
   if($longitudinal) then
     set cmd = ($cmd --longitudinal $tpNid $longbaseid)
   else
@@ -7756,6 +7556,7 @@ check_params:
     if(! $TH3Flag) set TH3Opt = "-no-th3"
 
     if($DoConf2Hires) then
+      set DoPialSurfs = 0;
       if($HiRes) then
         echo "ERROR: cannot use -hires with -conf2hires"
         exit 1;
@@ -7766,10 +7567,6 @@ check_params:
       endif
       if($DoCreateBaseSubj) then
         echo "ERROR: do not use -conf2hires with -base (it is unneeded)"
-        exit 1;
-      endif
-      if($DoFLAIRpial) then
-        echo "ERROR: do not use -conf2hires with -FLAIRpial"
         exit 1;
       endif
     endif
