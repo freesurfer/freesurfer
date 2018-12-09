@@ -1381,7 +1381,7 @@ int mrisComputeOriginalVertexDistances(MRIS *mris)
     }
   }
 
-  if (allOrigXZero) {
+  if (false && allOrigXZero) {
     static bool laterTime;
     if (!laterTime) { laterTime = true;
       fprintf(stdout, "%s:%d origx have not been set - probably a logic error\n",__FILE__,__LINE__);
