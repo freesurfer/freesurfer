@@ -8354,3 +8354,9 @@ void MainWindow::LoadSurfaceParameterization(const QString &filename)
     QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
   }
 }
+
+void MainWindow::OnStereoRender(bool bOn)
+{
+  ui->view3D->SetStereoTypeToAnaglyph();
+  ui->view3D->SetStereoRender(bOn);
+}

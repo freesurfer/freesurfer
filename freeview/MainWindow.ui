@@ -362,6 +362,7 @@
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
     <addaction name="separator"/>
+    <addaction name="actionStereoRender"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -1681,6 +1682,14 @@
   <action name="actionLoadParameterization">
    <property name="text">
     <string>Load Parameterization...</string>
+   </property>
+  </action>
+  <action name="actionStereoRender">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Stereo Render (3D View)</string>
    </property>
   </action>
  </widget>
@@ -3506,6 +3515,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionStereoRender</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnStereoRender(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3609,5 +3634,6 @@
   <slot>OnReloadROI()</slot>
   <slot>OnReloadPointSet()</slot>
   <slot>OnLoadSurfaceParameterization()</slot>
+  <slot>OnStereoRender(bool)</slot>
  </slots>
 </ui>
