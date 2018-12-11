@@ -43,6 +43,7 @@
 #include "LayerMRI.h"
 #include "DialogCustomFill.h"
 #include <QFileDialog>
+#include "DialogSurfaceLabelOperations.h"
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -153,6 +154,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
   connect(ui->treeWidgetLabels, SIGNAL(MenuGoToCentroid()), mainwnd, SLOT(OnGoToSurfaceLabel()));
   connect(ui->treeWidgetLabels, SIGNAL(MenuResample()), this, SLOT(OnLabelResample()));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuMoreOps()), this, SLOT(OnLabelMoreOps()));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuSaveAs()), this, SLOT(OnSaveLabelAs()));
 
   connect(ui->actionCut, SIGNAL(toggled(bool)), SLOT(OnButtonEditCut(bool)));
   connect(ui->actionPath, SIGNAL(toggled(bool)), SLOT(OnButtonEditPath(bool)));
@@ -176,6 +179,10 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_dlgCustomFill = new DialogCustomFill(this);
   m_dlgCustomFill->hide();
   connect(m_dlgCustomFill, SIGNAL(CustomFillTriggered(QVariantMap)), SLOT(OnCustomFillTriggered(QVariantMap)));
+
+  m_dlgLabelOps = new DialogSurfaceLabelOperations(this);
+  m_dlgLabelOps->hide();
+  connect(m_dlgLabelOps, SIGNAL(OperationTriggered(QVariantMap)), SLOT(OnLabelOperation(QVariantMap)));
 
   ag = new QActionGroup(this);
   ag->addAction(ui->actionCutLine);
@@ -564,6 +571,7 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     ChangeLineEditNumber(ui->lineEditLabelThreshold, label->GetThreshold());
     ChangeLineEditNumber(ui->lineEditLabelHeatscaleMin, label->GetHeatscaleMin());
     ChangeLineEditNumber(ui->lineEditLabelHeatscaleMax, label->GetHeatscaleMax());
+    ChangeLineEditNumber(ui->lineEditLabelOpacity, label->GetOpacity());
     ui->comboBoxLabelColorCode->setCurrentIndex(label->GetColorCode());
     ui->labelHeatscaleRange->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
     ui->lineEditLabelHeatscaleMin->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
@@ -819,6 +827,35 @@ void PanelSurface::OnButtonSaveLabel()
       {
         label->SaveToFile(fn);
         last_dir = QFileInfo(fn).absolutePath();
+      }
+    }
+  }
+}
+
+void PanelSurface::OnSaveLabelAs()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (surf)
+  {
+    SurfaceLabel* label = surf->GetActiveLabel();
+    if (label)
+    {
+      QString fn = label->GetFileName();
+      if (fn.isEmpty())
+      {
+        OnButtonSaveLabel();
+      }
+      else
+      {
+        QString def_fn = label->GetName() + ".label";
+        def_fn = QFileInfo(fn).absolutePath() + "/" + def_fn;
+        fn = QFileDialog::getSaveFileName( this, "Select label file",
+                                           def_fn,
+                                           "Label files (*)");
+        if (!fn.isEmpty())
+        {
+          label->SaveToFile(fn);
+        }
       }
     }
   }
@@ -1239,6 +1276,31 @@ void PanelSurface::OnLabelResample()
   }
   if ( surf && surf->GetActiveLabel())
     surf->GetActiveLabel()->Resample(mri);
+}
+
+void PanelSurface::OnLabelMoreOps()
+{
+  m_dlgLabelOps->show();
+  m_dlgLabelOps->raise();
+}
+
+void PanelSurface::OnLabelOperation(const QVariantMap &op)
+{
+  QString op_str = op["operation"].toString();
+  int nTimes = op["times"].toInt();
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActiveLabel())
+  {
+    SurfaceLabel* label = surf->GetActiveLabel();
+    if (op_str == "dilate")
+      label->Dilate(nTimes);
+    else if (op_str == "erode")
+      label->Erode(nTimes);
+    else if (op_str == "open")
+      label->Open(nTimes);
+    else if (op_str == "close")
+      label->Close(nTimes);
+  }
 }
 
 void PanelSurface::OnSpinBoxZOrder(int nOrder)

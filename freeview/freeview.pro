@@ -171,7 +171,8 @@ SOURCES += \
     DialogSelectSplines.cpp \
     SurfacePath.cpp \
     Interactor3DPathEdit.cpp \
-    DialogCustomFill.cpp
+    DialogCustomFill.cpp \
+    DialogSurfaceLabelOperations.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -330,7 +331,8 @@ HEADERS  += \
     DialogSelectSplines.h \
     SurfacePath.h \
     Interactor3DPathEdit.h \
-    DialogCustomFill.h
+    DialogCustomFill.h \
+    DialogSurfaceLabelOperations.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -382,7 +384,8 @@ FORMS    += MainWindow.ui \
     DialogLoadTransform.ui \
     DialogAddPointSetStat.ui \
     DialogSelectSplines.ui \
-    DialogCustomFill.ui
+    DialogCustomFill.ui \
+    DialogSurfaceLabelOperations.ui
 
 RESOURCES += \
     freeview.qrc
@@ -538,3 +541,6 @@ DESTDIR = ./
 OTHER_FILES += \
     resource/QuickRef.html \
     Makefile.am
+
+DISTFILES += \
+    CMakeLists.txt

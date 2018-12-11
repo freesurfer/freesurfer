@@ -9,7 +9,6 @@ LabelTreeWidget::LabelTreeWidget(QWidget *parent) :
 
 }
 
-
 void LabelTreeWidget::contextMenuEvent(QContextMenuEvent *e)
 {
   QTreeWidgetItem* item = currentItem();
@@ -17,27 +16,19 @@ void LabelTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     QMenu* menu = new QMenu(this);
     QAction* act = new QAction("Go To Centroid", this);
-    act->setData("go_to_centroid");
-    connect(act, SIGNAL(triggered()), this, SLOT(OnMenuTriggered()));
+    connect(act, SIGNAL(triggered()), this, SIGNAL(MenuGoToCentroid()));
     menu->addAction(act);
     act = new QAction("Resample", this);
-    act->setData("resample");
-    connect(act, SIGNAL(triggered()), this, SLOT(OnMenuTriggered()));
+    connect(act, SIGNAL(triggered()), this, SIGNAL(MenuResample()));
+    menu->addAction(act);
+    act = new QAction("Dilate/Erode/Open/Close...", this);
+    connect(act, SIGNAL(triggered()), this, SIGNAL(MenuMoreOps()));
+    menu->addAction(act);
+    menu->addSeparator();
+    act = new QAction("Save As...", this);
+    connect(act, SIGNAL(triggered()), this, SIGNAL(MenuSaveAs()));
     menu->addAction(act);
     menu->exec(e->globalPos());
-  }
-}
-
-void LabelTreeWidget::OnMenuTriggered()
-{
-  QAction* act = qobject_cast<QAction*>(sender());
-  if (act)
-  {
-    QString act_str = act->data().toString();
-    if (act_str == "go_to_centroid")
-      emit MenuGoToCentroid();
-    else if (act_str == "resample")
-      emit MenuResample();
   }
 }
 

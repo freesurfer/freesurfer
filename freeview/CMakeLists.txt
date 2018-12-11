@@ -183,6 +183,7 @@ if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC
     BinaryTreeNode.cpp
     BinaryTreeView.cpp
     DialogSelectSplines.cpp
+    DialogSurfaceLabelOperations.cpp
     freeview.qrc
   )
 
