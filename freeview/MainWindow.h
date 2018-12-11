@@ -280,6 +280,8 @@ public slots:
 
   void OnLoadSurfaceParameterization();
 
+  void OnStereoRender(bool bOn);
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
