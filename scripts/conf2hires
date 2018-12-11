@@ -254,7 +254,7 @@ foreach hemi ($hemilist)
   if(! $#MMode) then
     ln -sf $hemi.pial.rawavg.conf  $hemi.pial |& tee -a $LF
   else
-    ln -sf $hemi.wo${MMode}.pial.rwavg.conf $hemi.wo${MMode}.pial |& tee -a $LF
+    ln -sf $hemi.wo${MMode}.pial.rawavg.conf $hemi.wo${MMode}.pial |& tee -a $LF
   endif
   popd
 end #hemi
