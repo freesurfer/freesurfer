@@ -2059,7 +2059,7 @@ MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
   MRISstoreMetricProperties(mris) ;
 
   MRIScomputeNormals(mris) ;
-  mrisClearDistances(mris) ;
+  MRISclearD(mris) ;
 
   MRISclearCurvature(mris) ;  /* curvature will be used to calculate sulc */
 

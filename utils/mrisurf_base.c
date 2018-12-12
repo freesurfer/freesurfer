@@ -266,6 +266,8 @@ static void MRIS_EDGEdtr(MRI_EDGE* e) {
 //
 static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldCapacity, int newCapacity) 
 {
+  if (oldCapacity >= newCapacity) return;
+  
   char const flag = (char)(1)<<doOrig;
   mris->dist_alloced_flags |= flag;
 
@@ -356,18 +358,6 @@ void MRISfreeDistOrigs(MRIS* mris)
   // Maybe should not be here...
 {
   freeDistsOrDistOrigs(true,mris);
-}
-
-
-void MRISfreeDists(MRI_SURFACE *mris)
-  // Maybe should not be here...
-{
-  MRISfreeDistsButNotOrig(mris);
-  MRISfreeDistOrigs(mris);
-  int vno;					// weird because this affects neighbours as well
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    mris->vertices_topology[vno].vtotal = 0;
-  }
 }
 
 
@@ -1290,6 +1280,16 @@ int MRISallocExtraGradients(MRIS *mris)
   return (NO_ERROR);
 }
 
+
+void MRIScheckForNans(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX const * const v = &mris->vertices[vno];
+    checkNotNanf(v->odx); checkNotNanf(v->ody); checkNotNanf(v->odz);
+    checkNotNanf(v-> dx); checkNotNanf(v-> dy); checkNotNanf(v-> dz);
+  }  
+}
 
 int slprints(char *apch_txt)
 {

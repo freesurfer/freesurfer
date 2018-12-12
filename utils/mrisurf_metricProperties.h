@@ -29,9 +29,7 @@
 
 int mrisCheckSurface(MRIS *mris);
 
-void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity);
 void MRISmakeDist(MRIS *mris, int vno);
-int MRISfreeDists(MRIS *mris) ;
 
 typedef struct PerThreadMRIDistance {
   MRI const * mri_distance;
@@ -106,10 +104,6 @@ void mrisurf_undeferSetFaceNorms(MRIS* mris);
 
 int mrisMarkIntersections(MRIS *mris);
 
-int mrisClearDistances(MRIS *mris);
-
-int MRIScomputeAllDistances(MRIS *mris);
-
 #define OUTSIDE_VERTEX 0
 #define INSIDE_VERTEX 1               /* not yet used */
 #define EDGE_VERTEX 2                 /* part of an edge */
@@ -120,15 +114,21 @@ int MRIScomputeAllDistances(MRIS *mris);
 
 void mrisDumpFace(MRIS *mris, int fno, FILE *fp);
 
-float mrisComputeArea(MRIS *mris, int fac, int n);
 
 int    mrisComputeSurfaceDimensions      (MRIS *mris);
+
+int    MRIScomputeAllDistances           (MRIS *mris);
 int    mrisComputeVertexDistances        (MRIS *mris);
 int    mrisComputeOriginalVertexDistances(MRIS *mris);
 void   MRIScomputeAvgInterVertexDist     (MRIS *Surf, double *StdDev);
 void   mrisSetAvgInterVertexDist         (MRIS *Surf, double to);
 int    mrisTrackTotalDistance            (MRIS *mris);
 int    mrisTrackTotalDistanceNew         (MRIS *mris);
+
+float  mrisComputeArea                   (MRIS *mris, int fac, int n);
+float  MRIScomputeOrigArea               (MRIS* mris);
+void   MRISsetOrigArea                   (MRIS* mris);
+
 
 int mrisComputeBoundaryNormals(MRIS *mris);
 

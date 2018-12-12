@@ -272,8 +272,9 @@ typedef struct vertex_type_
 //
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
-  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist)      SEP         /* distance to neighboring vertices */          \
-  ELTX(float* /*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/,dist_orig) SEP         /* original distance to neighboring vertices */ \
+  /* managed by MRISfreeDists[_orig] and MRISmakeDists[_orig] */ \
+  ELTX(float* const,dist)      SEP                                              /* distance to neighboring vertices */          \
+  ELTX(float* const,dist_orig) SEP                                              /* original distance to neighboring vertices */ \
   ELTX(int,dist_orig_capacity) SEP \
   \
   ELTT(const float,origx)                                       SEP             /* original coordinates */                      \
@@ -1476,7 +1477,7 @@ int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
-int          MRISclearDistances(MRI_SURFACE *mris) ;
+void         MRISclearD(MRIS *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISuseK1Curvature(MRI_SURFACE *mris);
@@ -1838,10 +1839,7 @@ int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
 int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
 int  MRISwriteTriangularSurface(MRI_SURFACE *mris,const char *fname) ;
-int  MRISripFaces(MRI_SURFACE *mris) ;
-int  MRISremoveRippedFaces(MRI_SURFACE *mris) ;
-int  MRISremoveRippedVertices(MRI_SURFACE *mris);
-int  MRISremoveRipped(MRI_SURFACE *mris) ;
+
 int  MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleD(MRI_SURFACE *mris, int niter) ;
@@ -2753,8 +2751,8 @@ MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) true // && mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   true // && mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
                                             // includes a mrisCheckVertexVertexTopology check
@@ -2774,8 +2772,9 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 void mrisVertexReplacingNeighbors(MRIS * mris, int vno, int vnum);
 void mrisForgetNeighborhoods     (MRIS * mris);
 
-void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;
 int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
+void MRISsetNeighborhoodSize        (MRIS *mris, int nsize) ;   // Doesn't compute distances if not already present
+void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;   // Always computes distances
 
 #define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
@@ -2818,6 +2817,20 @@ void mrisCompleteTopology(MRIS *mris);
     //
     // However lots of existing code just adds a misc set of edges and faces by mechanisms
     // then they call this function to add any missing edges and to calculate the mris->avg_nbrs
+
+
+// Vertices and Faces can have their ripflag set
+//
+void MRISsetRipInFacesWithRippedVertices(MRIS* mris);
+
+
+// Removing 
+//
+void MRISrenumberRemovingRippedFacesAndVertices(MRIS *mris);
+
+void MRISremoveRipped(MRIS *mris);
+    // cleans up the neighbours etc. but does not renumber
+
 
 // Marked
 //
@@ -2882,3 +2895,4 @@ MRIS* MRISprojectOntoTranslatedSphere(MRIS* mris_src, MRIS* mris_dst,
 void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
 
+void MRIScheckForNans(MRIS *mris);

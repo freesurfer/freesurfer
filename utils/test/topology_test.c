@@ -195,6 +195,15 @@ int test2Wkr(int verticesLog2)
     }
   }
   
+  // Randomly rip a few vertices
+  //
+  for (vno2 = 0; vno2 < nvertices; vno2++) {
+    if (vno2%31 == 0) src->vertices[vno2].ripflag = 1;
+  }
+  MRISremoveRipped(src);
+  
+  mrisCheckVertexFaceTopologyWkr(__FILE__,__LINE__,src,true);
+  
   // Done
   //  
 Done:

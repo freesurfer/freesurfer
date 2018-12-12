@@ -345,7 +345,7 @@ MRISmapCuts(MRI_SURFACE *mris_in, MRI_SURFACE *mris_out)
     }
   }
 
-  MRISripFaces(mris_out) ;
+  MRISsetRipInFacesWithRippedVertices(mris_out) ;
   MRISrestoreRipFlags(mris_in) ;
 
   MHTfree(&mht_in) ; MHTfree(&mht_out) ;
