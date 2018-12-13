@@ -1283,12 +1283,14 @@ int MRISallocExtraGradients(MRIS *mris)
 
 void MRIScheckForNans(MRIS *mris)
 {
+#if 0
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX const * const v = &mris->vertices[vno];
     checkNotNanf(v->odx); checkNotNanf(v->ody); checkNotNanf(v->odz);
     checkNotNanf(v-> dx); checkNotNanf(v-> dy); checkNotNanf(v-> dz);
-  }  
+  }
+#endif
 }
 
 int slprints(char *apch_txt)
