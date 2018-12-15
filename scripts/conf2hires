@@ -1,0 +1,659 @@
+#!/bin/tcsh -f
+# conf2hires - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set subject = ();
+set hemilist = (lh rh); # must have both
+set interp = trilin
+set threads = 1
+setenv OMP_NUM_THREADS $threads
+setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS
+set longitudinal = 0
+set tpNid = ()
+set longbaseid = ()
+set CopyBiasFromConf = 0;
+set MMode = ()
+set DoT2 = 1
+set DoFLAIR = 0
+set MMnormSigma = 8; 
+set MMBBRcon = t2;
+
+if($?CONF2HIRES_USEDEV == 0) then
+  setenv CONF2HIRES_USEDEV 0
+endif
+set usedev = $CONF2HIRES_USEDEV;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/conf2hires.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for conf2hires" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+echo "usedev = usedev" | tee -a $LF
+echo "CONF2HIRES_USEDEV $CONF2HIRES_USEDEV" | tee -a $LF
+echo "MMnormSigma $MMnormSigma" | tee -a $LF
+echo "CopyBiasFromConf $CopyBiasFromConf" | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+# This is the conformed surface to use as a basis
+set srcsurf = white.preaparc
+if($longitudinal) set srcsurf = orig_white
+
+set sdir = $SUBJECTS_DIR/$subject/surf
+set mdir = $SUBJECTS_DIR/$subject/mri
+cd $mdir
+
+# This creates a highres template where all the dims are the same
+# (needed for v6 mris_make_surface with T2).  This output will be
+# rescaled to uchar so have to do it again below to stop
+# rescaling. The rawavg is "hi-res". All the output files labeled
+# "rawavg" will be in the rawavg.cmdc space.
+set cmd = (mri_convert rawavg.mgz rawavg.cmdc0.mgz --conform-dc --conform_min)
+echo "\n#===============================" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+# This one will not be rescaled. Cubic will make a difference here for non-isotropic.
+set cmd = (mri_vol2vol --mov rawavg.mgz --targ rawavg.cmdc0.mgz --regheader \
+  --o rawavg.cmdc.mgz --interp cubic)
+echo "\n#===============================" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+# Create a registration to go from conformed space to rawavg. 
+set regC2R = transforms/conf2rawavg.dat
+set regC2Rlta = transforms/conf2rawavg.lta
+set cmd = (tkregister --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
+  --reg $regC2R  --ltaout $regC2Rlta)
+echo "\n#===============================" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+# Create a registration to go from rawavg to conformed space (inv of above)
+set regR2C = transforms/rawavg2conf.dat
+set regR2Clta = transforms/rawavg2conf.lta
+set cmd = (tkregister --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
+  --reg $regR2C --ltaout $regR2Clta)
+echo "\n#===============================" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+# Map the various lowres volumes that mris_make_surfaces needs into the hires coords
+# nearest needed for aseg, but not sure whether it matters for others
+foreach v (wm.mgz filled.mgz aseg.presurf.mgz brain.mgz)
+  set cmd = (mri_vol2vol --mov $v --targ rawavg.cmdc.mgz --interp nearest --o rawavg.$v --regheader)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+end
+
+# Map the source surf coords into the rawavg space, need to use regR2C here
+foreach hemi ($hemilist)
+  date | tee -a $LF
+  set surflist = ($srcsurf)
+  if($longitudinal) set surflist = ($surflist orig_pial)
+  foreach surf ($surflist) 
+    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+     --reg $regR2C rawavg.cmdc.mgz --tval-xyz rawavg.cmdc.mgz --tval $surf.rawavg)
+    echo "\n#===============================" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  end
+end
+
+if($CopyBiasFromConf) then
+  echo "Copying bias field from conformed" | tee -a $LF
+  # Map the rawavg into conformed space but without changing 
+  # intensities. MUST use same interp as when orig.mgz was created from
+  # rawavg.mgz. Don't need to worry about --conform-dc or --conform-min as
+  # that will be built into orig.mgz. Use rawavg here, not rawavg.cmdc
+  set cmd = (mri_vol2vol --mov rawavg.mgz --targ orig.mgz --interp $interp \
+    --o rawavg.conf.mgz --regheader)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Compute the bias field in conformed space
+  set cmd = (fscalc brain.finalsurfs.mgz div rawavg.conf.mgz -o biasfield.conf.mgz)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Map bias field into hires (rawavg.cmdc) space. Probably ok to use trilin here.
+  set cmd = (mri_vol2vol --mov biasfield.conf.mgz --targ rawavg.cmdc.mgz --regheader \
+    --o rawavg.biasfield.mgz --interp trilin)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Compute intensity normalized T1 in hires space. This will also do skull stripping
+  set cmd = (fscalc rawavg.cmdc.mgz mul rawavg.biasfield.mgz -o rawavg.brain.finalsurfs.mgz)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "Computing bias field from rawavg" | tee -a $LF
+  # Intensity normalize the rawavg itself rather than copying over the
+  # bias field sigma=8 should be the default for v6.  Mmust have
+  # created ?h.white.preaparc.rawavg by now
+  set cmd = (mri_normalize -sigma 8 -erode 1 -min_dist 1 \
+     -surface ../surf/lh.$srcsurf.rawavg identity.nofile \
+     -surface ../surf/rh.$srcsurf.rawavg identity.nofile \
+     rawavg.cmdc.mgz rawavg.norm.mgz)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Mask the normalized
+  set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.mgz rawavg.brain.finalsurfs.mgz)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Mmap rawavg.brain.finalsurfs.mgz back to conf space for convenience
+  set cmd = (mri_vol2vol --mov rawavg.brain.finalsurfs.mgz --targ orig.mgz \
+    --regheader --o rawavg.brain.finalsurfs.conf.mgz --interp nearest)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+endif
+ 
+# Place the white and pial surfaces on the highres. This will overwrite thickness.
+foreach hemi ($hemilist)
+  date | tee -a $LF
+  if(! -e $sdir/$hemi.bak.thickness && -e $sdir/$hemi.thickness) then
+    set cmd = (cp $sdir/$hemi.thickness $sdir/$hemi.bak.thickness)
+    echo "\n#===============================" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  if($usedev == 1) set cmd = (mris_make_surfaces.dev -save-res -save-target)
+  if($usedev == 0) set cmd = (mris_make_surfaces)
+  if($#MMode == 0) set pialname = pial.rawavg
+  if($#MMode == 1) set pialname = wo{$MMode}.pial.rawavg
+  set cmd = ($cmd -aseg rawavg.aseg.presurf \
+    -filled rawavg.filled  -wm rawavg.wm -T1 rawavg.brain.finalsurfs \
+    -orig $srcsurf.rawavg -orig_white $srcsurf.rawavg)
+  if($longitudinal) set cmd = ($cmd -orig_pial orig_pial.rawavg -long -max 3.5)
+  set cmd = ($cmd -white white.rawavg -pial $pialname) # outputs
+  set cmd = ($cmd  $subject $hemi)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Map the surf coords back into the conformed space, need to use regC2R here
+  # Could do it after T2, but if T2 fails, it never gets done
+  set surflist = (white.rawavg)
+  if($#MMode) set surflist = ($surflist wo{$MMode}.pial.rawavg)
+  foreach surf ($surflist)
+    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+    echo "\n#===============================" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+  end
+  # Create symbolic links
+  pushd $sdir
+  ln -sf $hemi.white.rawavg.conf $hemi.white |& tee -a $LF
+  if(! $#MMode) then
+    ln -sf $hemi.pial.rawavg.conf  $hemi.pial |& tee -a $LF
+  else
+    ln -sf $hemi.wo${MMode}.pial.rawavg.conf $hemi.wo${MMode}.pial |& tee -a $LF
+  endif
+  popd
+end #hemi
+
+date | tee -a $LF
+
+# Place the pial using the T2. No special processing for long, but 
+# all the files need to be there.
+if($#MMode) then
+  set MM = orig/${MMode}raw.mgz
+
+  # Long: create a symlink to long mm input if needed. Normal stream
+  # does not copy or link the multimodal input. Should probably
+  # overwrite what is there to force update.
+  if(! -e $MM && $longitudinal) then
+    set MMcross = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${MMode}raw.mgz
+    cd orig
+    set cmd = (ln -sf $MMcross ${MMode}raw.mgz)
+    echo $cmd | tee -a $LF
+    ln -sf $MMcross ${MMode}raw.mgz |& tee -a $LF
+    cd ..
+  endif
+
+  # Registration to go from the ${MMode}raw to conformed space. 
+  # Use --proj-abs in case ?h.thickness does not exist
+  set MMreg = transforms/${MMode}raw.lta
+  set MMregAuto = transforms/${MMode}raw.auto.lta
+  set OKtoCopy = 1;
+  if(-e $MMreg && -e $MMregAuto) then
+    # If they are different, then don't overwrite manual
+    set tmp = `diff $MMreg $MMregAuto | wc -l`
+    if($#tmp != 0) set OKtoCopy = 0;
+  endif
+  set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
+    --$MMBBRcon --surf $srcsurf --proj-abs 1.5 --threads $threads)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  if($OKtoCopy) then
+    set cmd = (cp $MMregAuto $MMreg)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  # Registration to go from the ${MMode}raw to rawavg
+  set MMregRA = transforms/${MMode}raw.rawavg.lta
+  set cmd = (mri_concatenate_lta $MMreg $regC2Rlta $MMregRA)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Resample ${MMode}raw to rawavg space. Cubic probably important here.
+  set MMRA = rawavg.${MMode}.prenorm.mgz
+  set cmd = (mri_vol2vol --mov $MM --targ rawavg.cmdc.mgz --reg $MMregRA --o $MMRA --interp cubic)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Normalize the ${MMode}. Sigma important here.
+  set cmd = (mri_normalize -sigma $MMnormSigma -nonmax_suppress 0 -min_dist 1 \
+    -surface $sdir/lh.white.rawavg identity.nofile \
+    -surface $sdir/rh.white.rawavg identity.nofile \
+    -aseg aseg.presurf.mgz  rawavg.${MMode}.prenorm.mgz rawavg.${MMode}.norm.mgz)
+  date | tee -a $LF
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Mask the ${MMode}
+  set cmd = (mri_mask -keep_mask_deletion_edits rawavg.${MMode}.norm.mgz \
+    rawavg.brain.finalsurfs.mgz rawavg.${MMode}.mgz)
+  echo "\n#===============================" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  # Map the ${MMode} back to conformed space for convenience
+  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg transforms/rawavg2conf.dat  --o conf.${MMode}.mgz)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  ln -sf conf.${MMode}.mgz ${MMode}.mgz
+
+  # Now place the pial using the ${MMode}
+  # Unlike above, there are no long args for T2 or FLAIR
+  set devargs = (-T2_max_inside 225 -wm_weight 0 -T2_min_outside \
+    110 -min_peak_pct .01 .1 .5 .5 -location 1.0)
+  foreach hemi ($hemilist)
+    if($usedev == 1) set cmd = (mris_make_surfaces.dev $devargs)
+    if($usedev == 0) set cmd = (mris_make_surfaces)
+    set cmd = ($cmd  -cortex 0 -noaparc\
+      -pial pial.rawavg -white NOWRITE -nowhite \
+      -orig $srcsurf.rawavg -orig_white white.rawavg -orig_pial wo${MMode}.pial.rawavg \
+      -aseg rawavg.aseg.presurf -wm rawavg.wm -filled rawavg.filled -mgz \
+      -T1 rawavg.brain.finalsurfs)
+    if($DoT2)    set cmd = ($cmd -T2 rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
+    if($DoFLAIR) set cmd = ($cmd -T2 rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
+    set cmd = ($cmd $subject $hemi)
+    date | tee -a $LF
+    echo "\n#===============================" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Map the surf coords back into the conformed space, need to use regC2R here
+    set surf = pial.rawavg
+    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+    echo "\n#===============================" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    pushd $sdir
+    ln -sf $hemi.pial.rawavg.conf  $hemi.pial
+    popd
+  end #hemi
+
+endif # Do MMode
+
+date | tee -a $LF
+
+# Generate the volume files (not sure this is really needed here)
+foreach hemi ($hemilist)
+  echo "\n#===============================" | tee -a $LF
+  set cmd = (vertexvol --s $subject --$hemi --th3)
+  echo $cmd |& tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) exit 1;
+end
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Conf2hires-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Conf2hires-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Conf2hires-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "conf2hires Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--bbr-con":
+      if($#argv < 1) goto arg1err;
+      set MMBBRcon = $argv[1]; shift;
+      breaksw
+    case "--bbr-T2":
+      set MMBBRcon = t2
+      breaksw
+    case "--bbr-T1":
+      set MMBBRcon = t1
+      breaksw
+
+    case "--T2":
+    case "--t2":
+      set DoT2 = 1;
+      set MMode = T2
+      breaksw
+    case "--no-t2":
+    case "--no-T2":
+      set DoT2 = 0;
+      set MMode = ()
+      breaksw
+
+    case "--FLAIR":
+    case "--flair":
+      set DoFLAIR = 1;
+      set MMode = FLAIR
+      breaksw
+    case "--no-flair":
+    case "--no-FLAIR":
+      set DoFLAIR = 0;
+      set MMode = ()
+      breaksw
+
+    case "--cubic":
+      set interp = "cubic"
+      breaksw
+
+    case "--trilin":
+      set interp = "trilin"
+      breaksw
+
+    case "--mm-norm-sigma"
+    case "--t2norm-sigma"
+      if ( $#argv < 1) goto arg1err;
+      set MMnormSigma = $argv[1];shift
+      breaksw;
+
+    case "--openmp":
+    case "--threads"
+    case "--nthreads"
+      if ( $#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      setenv OMP_NUM_THREADS $threads
+      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
+      set OMP_NUM_SET = 1
+      breaksw;
+
+    case "--longitudinal":
+    case "--long":
+      if ( $#argv < 2) goto arg1err;
+      set longitudinal = 1
+      # get the subject name to use for timepoint
+      set tpNid = $argv[1]; shift;
+      set tpNid = `basename $tpNid`; # remove trailing /
+      # get the subject to use for the base subject
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # and create subjid to reflect its longitudinal relation to longbaseid
+      set subject = ${tpNid}.long.${longbaseid}
+      breaksw
+    case "--no-longitudinal":
+    case "--no-long":
+      set longitudinal = 0
+      breaksw
+
+    case "--dev":
+      set usedev = 1;
+      breaksw
+    case "--no-dev":
+      set usedev = 0;
+      breaksw
+
+    case "--copy-bias-from-conf":
+      set CopyBiasFromConf = 1
+      breaksw
+    case "--no-copy-bias-from-conf":
+      set CopyBiasFromConf = 0
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+if($#MMode) then
+  set modevol = $SUBJECTS_DIR/$subject/mri/orig/${MMode}raw.mgz
+  if(! -e $modevol && ! $longitudinal) then
+    echo "ERROR: cannot find $modevol. If you do not want to use a ${MMode}"
+    echo "to place the pial, then run with --no-${MMode}"
+    exit 1;
+  endif
+  if(! -e $modevol && $longitudinal) then
+    set modevoltp = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${MMode}raw.mgz
+    if(! -e $modevoltp) then
+      echo "ERROR: cannot find $modevol or $modevoltp. If you do not want to use a ${MMode}"
+      echo "to place the pial, then run with --no-${MMode}"
+      exit 1;
+    endif
+  endif
+endif
+
+if($usedev) then
+  which mris_make_surfaces.dev >& /dev/null
+  if($status) then
+    echo "ERROR: cannot find mris_make_surfaces.dev"
+    exit 1;
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "conf2hires"
+  echo "  --s subject"
+  echo "  --t2, --no-t2 (default $DoT2)"
+  echo "  --mm-norm-sigma sigma : smoothing level for T2 mri_normalize ($MMnormSigma)"
+  echo "  --flair, --no-flair (default $DoFLAIR)"
+  echo "  --threads nthreads "
+  echo "  --copy-bias-from-conf : copy bias field from conformed instead of computing directly"
+  echo "  --cubic, --trilin (default $interp), only applies with --copy-bias-from-conf"
+  echo "  --dev, --no-dev (default $usedev) : use mris_make_surfaces.dev"
+  echo "      default value can be set with setenv CONF2HIRES_USEDEV"
+  echo "  --bbr-con contype : set BBR contrast type (default $MMBBRcon)"
+  echo "  --bbr-t1 : set BBR contrast type to t1"
+  echo "  --bbr-t2 : set BBR contrast type to t2"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a script that places the surfaces on highres T1 (and maybe T2)
+volumes based on an initial placement on a conformed volume. The idea
+is that recon-all will be run up to and including the creation of
+white.preaparc. This script is then run to generate the final white
+and pial surfaces. After that, the final stages of recon-all can be
+run (making sure to skip the creation of the final white and pial
+surfaces). The recon-all.v6.hires script will do this automatically.
+
+
+
+
+

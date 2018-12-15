@@ -3,9 +3,12 @@ import scipy.io
 import math
 import numpy as np
 import logging
+import pickle
 from functools import reduce
 from operator import mul
+import sys;
 
+import freesurfer as fs
 import freesurfer.gems as gems
 
 from .utilities import Specification, requireNumpyArray, ensureDims
@@ -25,13 +28,14 @@ def samsegment(
     optimizationOptions,
     savePath,
     visualizer=None,
+    saveHistory=False,
 ):
 
     # Print input options
     print()
-    print('----------------------------------------------')
+    print('##----------------------------------------------')
     print('           Samsegment Input Options')
-    print('----------------------------------------------')
+    print('##----------------------------------------------')
     print('output directory:', savePath)
     print('input images:')
     for imageFileName in imageFileNames:
@@ -73,6 +77,17 @@ def samsegment(
             print('        ----')
     print('----------------------------------------------')
     print()
+    sys.stdout.flush();
+
+    # Save input variables in a history dictionary
+    if saveHistory:
+        history = {'input': {
+            'imageFileNames': imageFileNames,
+            'transformedTemplateFileName': transformedTemplateFileName,
+            'modelSpecifications': modelSpecifications,
+            'optimizationOptions': optimizationOptions,
+            'savePath': savePath
+        }}
 
     # Setup a null visualizer if necessary
     if visualizer is None: visualizer = initVisualizer(False, False)
@@ -198,6 +213,10 @@ def samsegment(
         imageBuffers[np.logical_not(mask), contrastNumber] = 0
     log_buffers = None
 
+    if saveHistory:
+        history['imageBuffers'] = imageBuffers
+        history['mask'] = mask
+
     # Merge classes into "super-structures" that define a single Gaussian mixture model shared between the classes belonging
     # to the same super-structure
     FreeSurferLabels = modelSpecifications.FreeSurferLabels
@@ -246,6 +265,11 @@ def samsegment(
         numberOfBasisFunctions.append(M)
     basisProduct = reduce(mul, numberOfBasisFunctions, 1)
     biasFieldCoefficients = np.zeros((basisProduct, numberOfContrasts))
+
+    if saveHistory:
+        history['historyWithinEachMultiResolutionLevel'] = []
+
+    print('samsegment Starting Resolution Loop VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -353,9 +377,14 @@ def samsegment(
         for contrastNumber in range(numberOfContrasts):
             tmp = downSampledImageBuffers[:, :, :, contrastNumber]
             data[:, contrastNumber] = tmp[downSampledMaskIndices]
+
+        if saveHistory:
+            levelHistory = {'historyWithinEachIteration': []}
+
         # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
+            print('samsegment  Resolution ',multiResolutionLevel,'Iter',iterationNumber,'VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -604,6 +633,21 @@ def samsegment(
             activeVoxelCount = len(downSampledMaskIndices[0])
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
+
+            # Save history of the estimation
+            if saveHistory:
+                iterationHistory = {
+                    'historyOfEMCost': historyOfEMCost,
+                    'mixtureWeights': mixtureWeights,
+                    'means': means,
+                    'variances': variances,
+                    'biasFieldCoefficients': biasFieldCoefficients,
+                    'historyOfDeformationCost': historyOfDeformationCost,
+                    'historyOfMaximalDeformation': historyOfMaximalDeformation,
+                    'maximalDeformationApplied': maximalDeformationApplied
+                }
+                levelHistory['historyWithinEachIteration'].append(iterationHistory)
+
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 # Display the cost history
                 if len(historyOfCost) > 2:
@@ -613,6 +657,7 @@ def samsegment(
                 with open(os.path.join(savePath, 'cost.txt'), "a") as file:
                     file.write("atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, iterationNumber + 1, currentCost / activeVoxelCount))
                 break
+
         # Get the final node positions
         finalNodePositions = mesh.points
         # Transform back in template space (i.e., undoing the affine registration
@@ -620,11 +665,35 @@ def samsegment(
 
         tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
+        
         # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
+        # Save history of the estimation
+        if saveHistory:
+            levelHistory['downSamplingFactors'] = downSamplingFactors
+            levelHistory['downSampledImageBuffers'] = downSampledImageBuffers
+            levelHistory['downSampledMask'] = downSampledMask
+            levelHistory['initialNodePositions'] = initialNodePositions
+            levelHistory['finalNodePositions'] = finalNodePositions
+            levelHistory['initialNodePositionsInTemplateSpace'] = initialNodePositionsInTemplateSpace
+            levelHistory['finalNodePositionsInTemplateSpace'] = finalNodePositionsInTemplateSpace
+            levelHistory['historyOfCost'] = historyOfCost
+            levelHistory['priorsAtEnd'] = priors
+            levelHistory['posteriorsAtEnd'] = posteriors
+            history['historyWithinEachMultiResolutionLevel'].append(levelHistory)
+
+    # End resolution level loop
+
+    # Save the history
+    if saveHistory:
+        with open(os.path.join(savePath, 'history.p'), 'wb') as file:
+            pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
+
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
+
+    print('samsegment  starting sementation VmPeak ',fs.GetVmPeak()); sys.stdout.flush();
 
     # Get bias field corrected images
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
@@ -667,13 +736,13 @@ def samsegment(
     # Get the priors as dictated by the current mesh position
     data = biasCorrectedImageBuffers
     priors = mesh.rasterize_3(imageSize, -1)
-    
+
     # NOTE: NOT GOING TO RESHAPE, WILL USE MASK INDEXING
     # Ignore everything that's has zero intensity
     priors = priors[mask == 1, :]
     data = data[mask == 1, :]
     likelihood_count = data.shape[0]
-    
+
     # Calculate the posteriors
     posteriors = np.zeros_like(priors, dtype=np.float64)
     for structureNumber in range(numberOfStructures):
@@ -701,11 +770,11 @@ def samsegment(
         posteriors[:, structureNumber] = np.squeeze(mixedLikelihoods) * prior
     normalizer = np.sum(posteriors, 1) + eps
     posteriors = posteriors / ensureDims(normalizer, 2)
-    
+
     # Compute volumes in mm^3
     volumeOfOneVoxel = np.abs(np.linalg.det(imageToWorldTransformMatrix[0:3, 0:3]))
     volumesInCubicMm = (np.sum(posteriors, axis=0)) * volumeOfOneVoxel
-    
+
     # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
     structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
     freeSurferSegmentation = np.zeros(imageSize, dtype=np.uint16)
@@ -722,19 +791,35 @@ def samsegment(
         os.path.join(savePath, 'crispSegmentation.nii'),
         gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
     )
-    
+
+    # Update reference positions of mesh collection
+    print('Setting ref position');
+    mesh_collection.reference_position = mesh.points;
+    print('Done setting ref position');
+    print('Writing mesh collection');
+    mesh_collection.write(os.path.join(savePath, 'mesh.txt'));
+    print('Done Writing mesh collection');
+
     # Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
     for contrastNumber, imageFileName in enumerate(imageFileNames):
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
         
-        #  First bias field
+        #  First bias field - we're computing it also outside of the mask, but clip the
+        #  intensities there to the range observed inside the mask (with some margin) to 
+        #  avoid crazy extrapolation values
+        logBiasField = biasFields[:, :, :, contrastNumber];
+        clippingMargin = np.log(2)
+        clippingMin = logBiasField[ mask > 0 ].min() - clippingMargin
+        clippingMax = logBiasField[ mask > 0 ].max() + clippingMargin
+        logBiasField[ logBiasField < clippingMin ] = clippingMin;
+        logBiasField[ logBiasField > clippingMax ] = clippingMax;
         biasField = np.zeros(nonCroppedImageSize, dtype=np.float32)
         biasField[
             croppingOffset[0]:croppingOffset[0] + imageSize[0],
             croppingOffset[1]:croppingOffset[1] + imageSize[1],
             croppingOffset[2]:croppingOffset[2] + imageSize[2],
-        ] = np.exp(biasFields[:, :, :, contrastNumber]) * mask
+            ] = np.exp( logBiasField )
         outputFileName = os.path.join(savePath, scanName + '_biasField.nii')
         gems.KvlImage(biasField).write(
             outputFileName,

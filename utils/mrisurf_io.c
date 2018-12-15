@@ -1,5 +1,4 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
-#define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 
 /*
  * @file utilities operating on Original
@@ -910,7 +909,7 @@ int MRISreadFlattenedCoordinates(MRI_SURFACE *mris, const char *sname)
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag) {
-      v->z = -10000;
+      MRISsetXYZ(mris,vno, v->x, v->y, -10000);
       v->ripflag = 0;
     }
   }
@@ -996,32 +995,18 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
   ------------------------------------------------------*/
 int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
+  char fname[STRLEN];
+  MRISbuildFileName(mris, pname, fname);
+
+  int const type = MRISfileNameType(fname); /* using extension to get type */
+
   int ix, iy, iz, k, i, j, npts;
   double rx, ry, rz;
   FILE *fp = NULL;
-  char fname[STRLEN];
-  int type;
   char line[256];
   char *cp;
 
-#if 0
-  char        path[STRLEN], *cp ;
-  cp = strchr(pname, '/') ;
-  if (cp)
-  {
-    strcpy(fname, pname) ;  /* path already specified */
-  }
-  else                        /* no path - use same as was used in MRISread */
-  {
-    FileNamePath(mris->fname, path) ;
-    sprintf(fname, "%s/%s", path, pname) ;
-  }
-#else
-  MRISbuildFileName(mris, pname, fname);
-#endif
-
   // check whether the patch file is ascii or binary
-  type = MRISfileNameType(fname); /* using extension to get type */
   if (type == MRIS_GIFTI_FILE)    /* .gii */
   {
     mris = MRISread(fname);
@@ -1034,7 +1019,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
     sscanf(cp, "%d %*s", &npts);  // get points
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout,
-              "reading patch %s with %d vertices (%2.1f%% of total)\n",
+              "reading .ASC patch %s with %d vertices (%2.1f%% of total)\n",
               pname,
               npts,
               100.0f * (float)npts / (float)mris->nvertices);
@@ -1084,28 +1069,10 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
                      j));
 
       // convert it to mm, i.e. change the vertex position
-      mris->vertices[k].x = rx;
-      mris->vertices[k].y = ry;
-      mris->vertices[k].z = rz;
-      // change the hi, lo values
-      if (mris->vertices[k].x > mris->xhi) {
-        mris->xhi = mris->vertices[k].x;
-      }
-      if (mris->vertices[k].x < mris->xlo) {
-        mris->xlo = mris->vertices[k].x;
-      }
-      if (mris->vertices[k].y > mris->yhi) {
-        mris->yhi = mris->vertices[k].y;
-      }
-      if (mris->vertices[k].y < mris->ylo) {
-        mris->ylo = mris->vertices[k].y;
-      }
-      if (mris->vertices[k].z > mris->zhi) {
-        mris->zhi = mris->vertices[k].z;
-      }
-      if (mris->vertices[k].z < mris->zlo) {
-        mris->zlo = mris->vertices[k].z;
-      }
+      MRISsetXYZ(mris,k,
+        rx,
+        ry,
+        rz);
       if (k == Gdiag_no && Gdiag & DIAG_SHOW)
         fprintf(stdout,
                 "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
@@ -1127,7 +1094,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
     if (npts >= 0) {
       if (Gdiag & DIAG_SHOW)
         fprintf(stdout,
-                "reading patch %s with %d vertices (%2.1f%% of total)\n",
+                "reading binary patch %s with %d vertices (%2.1f%% of total)\n",
                 pname,
                 npts,
                 100.0f * (float)npts / (float)mris->nvertices);
@@ -1163,28 +1130,10 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
         fread2(&iy, fp);
         fread2(&iz, fp);
         // convert it to mm, i.e. change the vertex position
-        mris->vertices[k].x = ix / 100.0;
-        mris->vertices[k].y = iy / 100.0;
-        mris->vertices[k].z = iz / 100.0;
-        // change the hi, lo values
-        if (mris->vertices[k].x > mris->xhi) {
-          mris->xhi = mris->vertices[k].x;
-        }
-        if (mris->vertices[k].x < mris->xlo) {
-          mris->xlo = mris->vertices[k].x;
-        }
-        if (mris->vertices[k].y > mris->yhi) {
-          mris->yhi = mris->vertices[k].y;
-        }
-        if (mris->vertices[k].y < mris->ylo) {
-          mris->ylo = mris->vertices[k].y;
-        }
-        if (mris->vertices[k].z > mris->zhi) {
-          mris->zhi = mris->vertices[k].z;
-        }
-        if (mris->vertices[k].z < mris->zlo) {
-          mris->zlo = mris->vertices[k].z;
-        }
+        MRISsetXYZ(mris,k,
+          ix / 100.0,
+          iy / 100.0,
+          iz / 100.0);
         if (k == Gdiag_no && Gdiag & DIAG_SHOW)
           fprintf(stdout,
                   "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
@@ -1200,7 +1149,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
       npts = freadInt(fp);
       if (Gdiag & DIAG_SHOW)
         fprintf(stdout,
-                "reading patch %s with %d vertices (%2.1f%% of total)\n",
+                "reading new surface format patch %s with %d vertices (%2.1f%% of total)\n",
                 pname,
                 npts,
                 100.0f * (float)npts / (float)mris->nvertices);
@@ -1233,28 +1182,10 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
         mris->vertices[k].ripflag = FALSE;
         // read 3 positions
         // convert it to mm, i.e. change the vertex position
-        mris->vertices[k].x = freadFloat(fp);
-        mris->vertices[k].y = freadFloat(fp);
-        mris->vertices[k].z = freadFloat(fp);
-        // change the hi, lo values
-        if (mris->vertices[k].x > mris->xhi) {
-          mris->xhi = mris->vertices[k].x;
-        }
-        if (mris->vertices[k].x < mris->xlo) {
-          mris->xlo = mris->vertices[k].x;
-        }
-        if (mris->vertices[k].y > mris->yhi) {
-          mris->yhi = mris->vertices[k].y;
-        }
-        if (mris->vertices[k].y < mris->ylo) {
-          mris->ylo = mris->vertices[k].y;
-        }
-        if (mris->vertices[k].z > mris->zhi) {
-          mris->zhi = mris->vertices[k].z;
-        }
-        if (mris->vertices[k].z < mris->zlo) {
-          mris->zlo = mris->vertices[k].z;
-        }
+        float x = freadFloat(fp);
+        float y = freadFloat(fp);
+        float z = freadFloat(fp);
+        MRISsetXYZ(mris,k,x,y,z);
         if (k == Gdiag_no && Gdiag & DIAG_SHOW)
           fprintf(stdout,
                   "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",
@@ -1274,7 +1205,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
     }
 
   // remove ripflag set vertices
-  MRISripFaces(mris);
+  MRISremoveRipped(mris);
+  mrisComputeSurfaceDimensions(mris);
   // set the patch flag
   mris->patch = 1;
   mris->status = MRIS_CUT;
@@ -2470,20 +2402,21 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
 
     for (vno = 0; vno < nvertices; vno++) {
       VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
-      VERTEX                * const vertex  = &mris->vertices         [vno];
       if (version == -1) {
         fread2(&ix, fp);
         fread2(&iy, fp);
         fread2(&iz, fp);
-        vertex->x = ix / 100.0;
-        vertex->y = iy / 100.0;
-        vertex->z = iz / 100.0;
+        MRISsetXYZ(mris,vno,
+          ix / 100.0,
+          iy / 100.0,
+          iz / 100.0);
       }
       else /* version == -2 */
       {
-        vertex->x = freadFloat(fp);
-        vertex->y = freadFloat(fp);
-        vertex->z = freadFloat(fp);
+        float x = freadFloat(fp);
+        float y = freadFloat(fp);
+        float z = freadFloat(fp);
+        MRISsetXYZ(mris,vno, x,y,z);
       }
       if (version == 0) /* old surface format */
       {
@@ -2531,7 +2464,9 @@ int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
   MRIScomputeTriangleProperties(mris);
   MRISstoreMetricProperties(mris);
   mris->status = old_status;
+  
   MRISrestoreVertexPositions(mris, TMP_VERTICES);
+  
   MRIScomputeMetricProperties(mris);
   MRIScomputeTriangleProperties(mris);
   mrisOrientSurface(mris);
@@ -2941,13 +2876,11 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   /* read vertices... */
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX v;
-    fscanf(fp, "%f %f %f", &v.x, &v.y, &v.z);
+    float x,y,z;
+    fscanf(fp, "%f %f %f", &x, &y, &z);
     if (newMris)  // if passed an mris struct, dont overwrite x,y,z
     {
-      mris->vertices[vno].x = v.x;
-      mris->vertices[vno].y = v.y;
-      mris->vertices[vno].z = v.z;
+      MRISsetXYZ(mris,vno,x,y,z);
     }
   }
 
@@ -3379,7 +3312,6 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
   MRI_SURFACE *mris;
   char line[STRLEN], *cp;
   int vno, fno, n, nvertices, nfaces, patch, rip;
-  VERTEX *v;
   FACE *face;
   FILE *fp;
 
@@ -3396,8 +3328,10 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
   mris->type = MRIS_TRIANGULAR_SURFACE;
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    fscanf(fp, "%f  %f  %f  %d\n", &v->x, &v->y, &v->z, &rip);
+    VERTEX * v = &mris->vertices[vno];
+    float x,y,z;
+    fscanf(fp, "%f  %f  %f  %d\n", &x, &y, &z, &rip);
+    MRISsetXYZ(mris, vno,x,y,z);
     v->ripflag = rip;
     if (v->ripflag) {
       patch = 1;
@@ -3472,8 +3406,9 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   mris = MRISalloc(nvertices, nfaces);
   mris->type = MRIS_GEO_TRIANGLE_FILE;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-    fscanf(fp, "%e %e %e", &v->x, &v->y, &v->z);
+    float x,y,z;
+    fscanf(fp, "%e %e %e", &x, &y, &z);
+    MRISsetXYZ(mris,vno,x,y,z);
     if (ISODD(vno)) {
       fscanf(fp, "\n");
     }
@@ -3518,7 +3453,6 @@ static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname)
 {
   char line[202], *cp;
   int vno, nvertices, nfaces, patch, vertices_per_face, nedges;
-  VERTEX *v;
   FILE *fp;
 
   fp = fopen(fname, "r");
@@ -3544,8 +3478,9 @@ static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname)
 
   cp = fgetl(line, 200, fp); /* nfaces again */
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    fscanf(fp, "%e %e %e", &v->x, &v->y, &v->z);
+    float x,y,z;
+    fscanf(fp, "%e %e %e", &x, &y, &z);
+    MRISsetXYZ(mris,vno, x,y,z);
     if (ISODD(vno)) {
       fscanf(fp, "\n");
     }
@@ -3806,8 +3741,10 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 	  Key* keyPtr = vertices[undupVertexNo];
           int vertexNo = keyPtr->vertexNo;
   	  if (vertexNo == nextVertexNo) { 
-  	    VERTEX* v = &mris->vertices[vertexNo];
-  	    v->x = keyPtr->x; v->y = keyPtr->y; v->z = keyPtr->z;
+  	    MRISsetXYZ(mris,vertexNo,
+  	      keyPtr->x, 
+              keyPtr->y, 
+              keyPtr->z);
   	    nextVertexNo++;
 	  }
        	  face->v[faceVertexNo] = vertexNo;
@@ -3887,26 +3824,11 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
     /* now allocate face arrays in vertices */
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-      VERTEX          * const v  = &mris->vertices         [vno];
       vt->f = (int *)calloc(vt->num, sizeof(int));
       if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", vt->num);
       vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
       if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", vt->n);
       vt->num = 0; /* for use as counter in next section */
-      v->dist = (float *)calloc(vt->vnum, sizeof(float));
-      if (!v->dist)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISreadSTLfile: could not allocate list of %d "
-                  "dists at v=%d",
-                  vt->vnum,
-                  vno);
-      v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISreadSTLfile: could not allocate list of %d "
-                  "dists at v=%d",
-                  vt->vnum,
-                  vno);
       vt->vtotal = vt->vnum;
     }
 
@@ -4075,15 +3997,17 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
         fread2(&ix, fp);
         fread2(&iy, fp);
         fread2(&iz, fp);
-        vertex->x = ix / 100.0;
-        vertex->y = iy / 100.0;
-        vertex->z = iz / 100.0;
+        MRISsetXYZ(mris,vno,
+          ix / 100.0,
+          iy / 100.0,
+          iz / 100.0);
       }
       else /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
       {
-        vertex->x = freadFloat(fp);
-        vertex->y = freadFloat(fp);
-        vertex->z = freadFloat(fp);
+        float x = freadFloat(fp);
+        float y = freadFloat(fp);
+        float z = freadFloat(fp);
+        MRISsetXYZ(mris,vno, x,y,z);
       }
 #if 0
       vertex->label = NO_LABEL ;
@@ -4323,7 +4247,9 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
   
   MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris);
+
   mrisReadTransform(mris, fname);
+
   if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
 #if 0
     MRISsetNeighborhoodSizeAndDist(mris, 2) ;
@@ -4627,6 +4553,7 @@ int mrisReadTransform(MRIS *mris, const char *mris_fname)
     if (mris->lta->type != LINEAR_RAS_TO_RAS)
       ErrorExit(ERROR_BADPARM, "the transform is not RAS-TO-RAS.  not supported.");
   }
+  
   //////////////////////////////////////////////////////////////////////
   // thus if transform->src is not set, set it to the orig
   lt = &mris->lta->xforms[0];
@@ -4745,6 +4672,8 @@ int mrisReadTransform(MRIS *mris, const char *mris_fname)
   }
 #endif
 
+  mrisCheckVertexFaceTopology(mris);
+  
   return (NO_ERROR);
 }
 
@@ -5384,7 +5313,6 @@ static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
   ------------------------------------------------------*/
 static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
 {
-  VERTEX *v;
   int nvertices, nfaces, magic, vno;
   char line[STRLEN];
   FILE *fp;
@@ -5418,11 +5346,12 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
+  MRISfreeDistsButNotOrig(mris);
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->x = freadFloat(fp);
-    v->y = freadFloat(fp);
-    v->z = freadFloat(fp);
+    float x = freadFloat(fp);
+    float y = freadFloat(fp);
+    float z = freadFloat(fp);
+    MRISsetXYZ(mris, vno, x,y,z);
   }
 
 #if 0
@@ -5480,9 +5409,12 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    v->x = freadFloat(fp);
-    v->y = freadFloat(fp);
-    v->z = freadFloat(fp);
+
+    float x = freadFloat(fp);
+    float y = freadFloat(fp);
+    float z = freadFloat(fp);
+    
+    MRISsetXYZ(mris,vno, x, y, z);
 
     vt->num = 0; /* will figure it out */
     if (fabs(v->x) > 10000 || !isfinite(v->x))

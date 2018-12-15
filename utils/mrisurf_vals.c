@@ -1557,7 +1557,7 @@ int MRISdilateRipped(MRIS *mris, int ndil)
       v->ripflag = (int)v->tx;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -1586,7 +1586,7 @@ int MRISerodeRipped(MRIS *mris, int ndil)
       v->ripflag = (int)v->tx;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -3400,6 +3400,14 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
 }
 
 
+void MRISclearD(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].d = 0.0f;
+  }
+}
+
 
 int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_distance)
 {
@@ -3439,27 +3447,21 @@ int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_dist
 /*1.066f*/ /*1.12578*/ /* 1.13105f*/                       /*1.1501f  (1.1364f)*/
 #define QUADRANGLE_DISTANCE_CORRECTION ((1 + sqrt(2)) / 2) /* 1.2071  */
 
-static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace);
 static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace);
 
 int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
-  static bool later_time, use_old;
+
   static int  traceCount;
-  if (!later_time) {
-    later_time = false;
-    use_old = getenv("USE_OLD_MRISsampleDistances");
-  }
   
-  const char* traceFnm = (++traceCount > 0) ? NULL : 
-    use_old ? "./MRISsampleDistances_old.txt"
-            : "./MRISsampleDistances_new.txt";
+  const char* traceFnm = 
+    (++traceCount > 0) 
+    ? NULL
+    : "./MRISsampleDistances_new.txt";
             
   FILE* trace = traceFnm ? fopen(traceFnm, "w") : NULL;
   if (trace) fprintf(trace, "MRISsampleDistances %d max_nbhd:%d\n", traceCount, max_nbhd);
   
-  int result;
-  if (use_old) result = MRISsampleDistances_old(mris, nbrs, max_nbhd, trace);
-  else         result = MRISsampleDistances_new(mris, nbrs, max_nbhd, trace);
+  int result = MRISsampleDistances_new(mris, nbrs, max_nbhd, trace);
   
   if (trace) {
     mrisDumpShape(trace, mris);
@@ -3469,578 +3471,6 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
   }
   
   return result;
-}
-
-static int MRISsampleDistances_old(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace)
-{
-  if (trace) fprintf(trace, "MRISsampleDistances initial mris.nsize:%d\n", mris->nsize);
-  
-  int i, n, vno, vnum, old_vnum, total_nbrs, max_possible, max_v, vtotal;
-  int *vnbrs, *vall, *vnb, found, n2, vnbrs_num, vall_num, nbhd_size, done, checks = 0;
-  float xd, yd, zd, min_dist, dist, dist_scale, *old_dist;
-  float min_angle, angle;
-  VECTOR *v1, *v2;
-  float c[100], *orig_old_dist;
-  int nc[100], *old_v;
-  int diag_vno1, diag_vno2;
-  char *cp;
-
-  orig_old_dist = old_dist = (float *)calloc(MAX_V, sizeof(float));
-  old_v = (int *)calloc(MAX_V, sizeof(int));
-  if (old_dist == NULL || old_v == NULL)
-    ErrorExit(ERROR_NOMEMORY, "MRISsampleDistances: could not allocated old_dist buffer");
-
-  if ((cp = getenv("VDIAG1")) != NULL) {
-    diag_vno1 = atoi(cp);
-  }
-  else {
-    diag_vno1 = -1;
-  }
-  if ((cp = getenv("VDIAG2")) != NULL) {
-    diag_vno2 = atoi(cp);
-  }
-  else {
-    diag_vno2 = -1;
-  }
-  if (diag_vno1 >= 0) {
-    printf("\nlooking for vertex pair %d, %d\n", diag_vno1, diag_vno2);
-  }
-
-  memset(c, 0, 100 * sizeof(float));
-  memset(nc, 0, 100 * sizeof(int));
-  v1 = VectorAlloc(3, MATRIX_REAL);
-  v2 = VectorAlloc(3, MATRIX_REAL);
-
-  /* adjust for Manhattan distance */
-  if (IS_QUADRANGULAR(mris)) {
-    dist_scale = (1.0 + sqrt(2.0)) / 2.0f;
-  }
-  else {
-    dist_scale = TRIANGLE_DISTANCE_CORRECTION;
-  }
-
-  vnbrs = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int));
-  vall = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int));
-  vnb = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int));
-  vtotal = total_nbrs = 0;
-  for (vtotal = max_possible = 0, n = 1; n <= max_nbhd; n++) {
-    max_possible += nbrs[n];
-    if (n > mris->nsize) {
-      vtotal += nbrs[n];
-    }
-  }
-  if (Gdiag & DIAG_HEARTBEAT)
-    fprintf(stdout,
-            "\nsampling %d dists/vertex (%2.1f at each dist) = %2.1fMB\n",
-            vtotal,
-            (float)vtotal / ((float)max_nbhd - (float)mris->nsize),
-            (float)vtotal * MRISvalidVertices(mris) * sizeof(float) * 3.0f / (1024.0f * 1024.0f));
-
-#define BUG_FIX
-#ifdef BUG_FIX
-  bool adjusted_mris_nsize = false;
-#endif
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    
-    if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices / 10))))
-      fprintf(stdout, "%%%1.0f done\n", 100.0f * (float)vno / (float)mris->nvertices);
-    
-    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
-    VERTEX          * const v  = &mris->vertices         [vno];
-    
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    if (v->ripflag) {
-      continue;
-    }
-
-    /* small neighborhood is always fixed, don't overwrite them */
-    vtotal = vt->vtotal;
-    if (vt->nsizeMax == 3) {
-      vt->vtotal = vt->v3num;
-    }
-    else if (vt->nsizeMax == 2) {
-      vt->vtotal = vt->v2num;
-    }
-    else {
-      vt->vtotal = vt->vnum;
-    }
-#ifdef BUG_FIX
-    vt->nsizeCur = vt->nsizeMax;
-
-    if (!adjusted_mris_nsize) {
-      adjusted_mris_nsize = true;
-      mris->nsize = vt->nsizeCur;
-    } else {
-      if (mris->nsize != vt->nsizeCur) {
-        ErrorExit(ERROR_OUT_OF_BOUNDS,
-          "MRISsampleDistances: different vertexs had different nsizeMax");
-      }
-    }
-#endif
-#undef BUG_FIX
-
-    max_v = vt->vtotal + max_possible;
-    if (trace && vno == 0) fprintf(trace, "vCapacity:%d\n", max_v);
-    
-    if (vtotal < max_v) /* won't fit in current allocation,
-                         reallocate stuff */
-    {
-      /* save and restore neighbor list */
-      memmove(old_v, vt->v, vt->vtotal * sizeof(vt->v[0]));
-      free(vt->v);
-      vt->v = (int *)calloc(max_v, sizeof(int));
-      if (!vt->v)
-        ErrorExit(ERROR_NO_MEMORY,
-                  "MRISsampleDistances: could not allocate list of %d "
-                  "nbrs at v=%d",
-                  max_v,
-                  vno);
-      memmove(vt->v, old_v, vt->vtotal * sizeof(vt->v[0]));
-
-      /* save and restore distance vector */
-      if (vt->vtotal >= MAX_V || old_dist != orig_old_dist)
-        printf("!!!!!!!!!!!!! v %d has too many (%d) vertices to save distances for !!!!!!!!!!!!!!!!!\n", vno, vtotal);
-      memmove(old_dist, v->dist, vt->vtotal * sizeof(v->dist[0]));
-      free(v->dist);
-      v->dist = (float *)calloc(max_v, sizeof(float));
-      if (!v->dist)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsampleDistances: could not allocate list of %d "
-                  "dists at v=%d",
-                  max_v,
-                  vno);
-      memmove(v->dist, old_dist, vt->vtotal * sizeof(v->dist[0]));
-
-      /* save and restore original distance vector */
-      {
-        int k;
-        for (k = 0; k < vt->vtotal; k++) {
-          old_dist[k] = 0;
-          v->dist_orig[k] *= 1;
-          old_dist[k] = v->dist_orig[k];
-        }
-        if (vno == Gdiag_no) DiagBreak();
-      }
-      memmove(old_dist, v->dist_orig, vt->vtotal * sizeof(v->dist_orig[0]));
-      free(v->dist_orig);
-      v->dist_orig = (float *)calloc(max_v, sizeof(float));
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsampleDistances: could not allocate list of %d "
-                  "dists at v=%d",
-                  max_v,
-                  vno);
-      memmove(v->dist_orig, old_dist, vt->vtotal * sizeof(v->dist_orig[0]));
-    }
-
-    if ((vno > 139000 || !(vno % 100)) && 0) {
-      if (checks++ == 0) {
-        printf("checking surface at vno %d\n", vno);
-      }
-    }
-    /*
-     find all the neighbors at each extent (i.e. 1-neighbors, then
-     2-neighbors, etc..., marking their corrected edge-length distances
-     as you go.
-    */
-    vall[0] = vno;
-    vall_num = 1;
-    old_vnum = 0;
-    v->marked = 1; /* a hack - it is a zero neighbor */
-    for (nbhd_size = 1; vall_num < MAX_NBHD_VERTICES && nbhd_size <= max_nbhd; nbhd_size++) {
-
-      /* expand neighborhood outward by a ring of vertices */
-      vnbrs_num = 0; /* will count neighbors in this ring */
-      vnum = vall_num;
-      for (found = 0, n = old_vnum; vall_num < MAX_NBHD_VERTICES && n < vall_num; n++) {
-        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vall[n]];
-        VERTEX          const * const vn  = &mris->vertices         [vall[n]];
-        if (vn->ripflag) {
-          continue;
-        }
-
-        /* search through vn's neighbors to find an unmarked vertex */
-        for (n2 = 0; n2 < vnt->vnum; n2++) {
-          VERTEX * const vn2 = &mris->vertices[vnt->v[n2]];
-          if (vn2->ripflag || vn2->marked) {
-            continue;
-          }
-
-          /* found one, mark it and put it in the vall list */
-          found++;
-          vn2->marked = nbhd_size;
-          vnb[vnum] = vall[n];
-          vall[vnum++] = vnt->v[n2];
-          if (nbrs[nbhd_size] > 0) /* want to store this distance */
-          {
-            vnbrs[vnbrs_num++] = vnt->v[n2];
-          }
-        }
-      } /* done with all neighbors at previous distance */
-
-      /* found all neighbors at this extent - calculate distances */
-      old_vnum = vall_num; /* old_vnum is index of 1st
-                          nbr at this distance*/
-      vall_num += found;   /* vall_num is total # of nbrs */
-      for (n = old_vnum; n < vall_num; n++) {
-        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vall[n]];
-        VERTEX                * const vn  = &mris->vertices         [vall[n]];
-        if (vn->ripflag) {
-          continue;
-        }
-        for (min_dist = UNFOUND_DIST, n2 = 0; n2 < vnt->vnum; n2++) {
-          VERTEX const * const vn2 = &mris->vertices[vnt->v[n2]];
-          if (vn2->ripflag) {
-            continue;
-          }
-          if (!vn2->marked || vn2->marked == nbhd_size) {
-            continue;
-          }
-          xd = vn2->x - vn->x;
-          yd = vn2->y - vn->y;
-          zd = vn2->z - vn->z;
-          dist = sqrt(xd * xd + yd * yd + zd * zd);
-#if !MULTI_DIST_SCALING
-          if (nbhd_size > 1) {
-            dist /= dist_scale;
-          }
-          if (vn2->d + dist < min_dist) {
-            min_dist = vn2->d + dist;
-          }
-#else
-          dist = (dist + vn2->d * distance_scale[vn2->marked]) / distance_scale[vn2->marked + 1];
-          if (dist < min_dist) {
-            min_dist = dist;
-          }
-#endif
-        }
-        vn->d = min_dist;
-        if (nbhd_size <= 2) {
-          xd = vn->x - v->x;
-          yd = vn->y - v->y;
-          zd = vn->z - v->z;
-          dist = sqrt(xd * xd + yd * yd + zd * zd);
-          vn->d = dist;
-        }
-        if (vn->d >= UNFOUND_DIST / 2) {
-          printf(
-              "***** WARNING - surface distance not found at "
-              "vno %d, vall[%d] = %d (vnb[%d] = %d ******",
-              vno,
-              n,
-              vall[n],
-              n,
-              vnb[n]);
-          DiagBreak();
-          exit(1);
-        }
-        if ((vall[n] == diag_vno1 && vno == diag_vno2) || (vall[n] == diag_vno2 && vno == diag_vno1))
-          printf("vn %d is %2.3f mm from v %d at ring %d\n", vall[n], vn->d, vno, nbhd_size);
-      }
-
-      /*
-       now check each to see if a neighbor at the same 'distance'
-       is actually closer than neighbors which are 'nearer' (i.e. maybe
-       the path through a 3-neighbor is shorter than that through any
-       of the 2-neighbors.
-      */
-      for (n = old_vnum; n < vall_num; n++) {
-        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vall[n]];
-        VERTEX                * const vn  = &mris->vertices         [vall[n]];
-        if (vn->ripflag) {
-          continue;
-        }
-        min_dist = vn->d;
-        for (n2 = 0; n2 < vnt->vnum; n2++) {
-          VERTEX const * const vn2 = &mris->vertices[vnt->v[n2]];
-          if (!vn2->marked || vn2->marked != nbhd_size || vn2->ripflag) {
-            continue;
-          }
-          xd = vn2->x - vn->x;
-          yd = vn2->y - vn->y;
-          zd = vn2->z - vn->z;
-          dist = sqrt(xd * xd + yd * yd + zd * zd);
-#if !MULTI_DIST_SCALING
-          if (nbhd_size > 1) {
-            dist /= dist_scale;
-          }
-          if (vn2->d + dist < min_dist) {
-            min_dist = vn2->d + dist;
-          }
-#else
-          dist = (dist + vn2->d * distance_scale[vn2->marked]) / distance_scale[vn2->marked + 1];
-          if (dist < min_dist) {
-            min_dist = dist;
-          }
-#endif
-        }
-        vn->d = min_dist;
-        if ((min_dist > 5 * nbhd_size) || min_dist > 60) {
-          DiagBreak();
-        }
-        {
-          xd = vn->x - v->x;
-          yd = vn->y - v->y;
-          zd = vn->z - v->z;
-          dist = sqrt(xd * xd + yd * yd + zd * zd);
-          c[nbhd_size] += vn->d / dist;
-          nc[nbhd_size]++;
-        }
-      }
-
-      /* if this set of neighbors are to be stored, sample from them */
-      if (nbrs[nbhd_size] <= 0) {
-        continue;
-      }
-
-      /* make sure the points are not too close together */
-      min_angle = 0.9 * 2.0 * M_PI / (float)nbrs[nbhd_size];
-
-      /*
-       at this point, the vall list contains all the
-       neighbors currently found
-       at ALL distances, while the vnbrs list contains ONLY the
-       nbhd_size-neighbors.
-      */
-      if (trace && vno == 0) fprintf(trace, "nbhd_size:%d found:%d\n", nbhd_size, found);
-
-      if (found <= nbrs[nbhd_size]) /* just copy them all in */
-      {
-        for (n = 0; n < found; n++, vt->vtotal++) {
-          vt->v[vt->vtotal] = vnbrs[n];
-          v->dist_orig[vt->vtotal] = mris->vertices[vnbrs[n]].d;
-          if (v->dist_orig[vt->vtotal] > 60) {
-            DiagBreak();
-          }
-          if (trace && vno == 0) fprintf(trace, "copy dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
-        }
-      }
-      else /* randomly sample from them */
-      {
-        int vstart = vt->vtotal;
-        for (n = 0; n < nbrs[nbhd_size]; n++, vt->vtotal++) {
-          int j, niter = 0;
-          do {
-            do {
-              i = nint(randomNumber(0.0, (double)found - 1));
-            } while (vnbrs[i] < 0);
-            /*
-             now check to make sure that the angle between this
-             point and the others already selected is not too
-             small to make sure the points are not bunched.
-            */
-            VERTEX const * const vn = &mris->vertices[vnbrs[i]];
-            VECTOR_LOAD(v1, vn->x - v->x, vn->y - v->y, vn->z - v->z);
-            done = 1;
-            for (j = vstart; done && j < vt->vtotal; j++) {
-              VERTEX const * const vn2 = &mris->vertices[vt->v[j]];
-              VECTOR_LOAD(v2, vn2->x - v->x, vn2->y - v->y, vn2->z - v->z);
-              angle = Vector3Angle(v1, v2);
-              if (angle < min_angle) {
-                done = 0;
-              }
-            }
-            if (++niter > found) /* couldn't find enough at this difference */
-            {
-              min_angle *= 0.75f; /* be more liberal */
-              niter = 0;
-            }
-          } while (!done && !FZERO(min_angle));
-          VERTEX const * const vn = &mris->vertices[vnbrs[i]];
-          vt->v[vt->vtotal] = vnbrs[i];
-          v->dist_orig[vt->vtotal] = vn->d;
-          if (v->dist_orig[vt->vtotal] > 60) {
-            DiagBreak();
-          }
-          if (FZERO(vn->d)) {
-            DiagBreak();
-          }
-          vnbrs[i] = -1;
-          if (trace && vno == 0) fprintf(trace, "rand dist_orig[%d]:%f\n", vt->vtotal, v->dist_orig[vt->vtotal]);
-        }
-      }
-    }
-
-    if ((vno > 9.0 * mris->nvertices / 10.0) && 0) {
-      if (checks++ == 0) {
-        printf("checking surface at vno %d\n", vno);
-      }
-    }
-
-    if ((Gdiag_no == vno) && DIAG_VERBOSE_ON) {
-      FILE *fp;
-      char fname[STRLEN];
-
-      sprintf(fname, "v%d", vno);
-      fp = fopen(fname, "w");
-      fprintf(fp, "%d\n", vall_num);
-      for (n = 0; n < vall_num; n++) {
-        fprintf(fp, "%d\n", vall[n]);
-      }
-      fclose(fp);
-
-      sprintf(fname, "vn%d", vno);
-      fp = fopen(fname, "w");
-      fprintf(fp, "%d\n", vt->vtotal);
-      for (n = 0; n < vt->vtotal; n++) {
-        fprintf(fp, "%d\n", vt->v[n]);
-      }
-      fclose(fp);
-      for (n = 0; n < mris->nvertices; n++) {
-        VERTEX * const vn = &mris->vertices[n];
-#if 0
-        if (vn->ripflag)
-        {
-          continue ;
-        }
-#endif
-        vn->curv = vn->d;
-      }
-      sprintf(fname, "%s.dist", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
-      MRISwriteCurvature(mris, fname);
-    }
-
-    /*
-     done building arrays - allocate distance vectors and
-     sample from the found neighbors list.
-    */
-    /* now unmark them all */
-    for (n = 0; n < vall_num; n++) {
-      mris->vertices[vall[n]].marked = 0;
-      mris->vertices[vall[n]].d = 0.0;
-    }
-
-    total_nbrs += vt->vtotal;
-  }
-
-  /* now fill in immediate neighborhood(Euclidean) distances */
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
-    VERTEX          const * const v  = &mris->vertices         [vno];
-
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    if (v->ripflag) {
-      continue;
-    }
-    
-    if (vt->nsizeMax == 3) {
-      vtotal = vt->v3num;
-    }
-    else if (vt->nsizeMax == 2) {
-      vtotal = vt->v2num;
-    }
-    else {
-      vtotal = vt->vnum;
-    }
-    for (n = 0; n < vtotal; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      if (vn->ripflag) {
-        continue;
-      }
-      xd = v->x - vn->x;
-      yd = v->y - vn->y;
-      zd = v->z - vn->z;
-      v->dist_orig[n] = sqrt(xd * xd + yd * yd + zd * zd);
-      if (trace && vno == 0) fprintf(trace, "eucliod dist_orig[%d]:%f\n", n, v->dist_orig[n]);
-    }
-  }
-
-  // make sure distances are symmetric
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    for (n = 0; n < vt->vtotal; n++) {
-      VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vt->v[n]];
-      VERTEX                * const vn  = &mris->vertices         [vt->v[n]];
-      if (vn->ripflag) {
-        continue;
-      }
-      for (i = 0; i < vnt->vtotal; i++) {
-        if (vnt->v[i] == vno)  // distance in both lists - make it the average
-        {
-          double dist;
-          dist = (vn->dist_orig[i] + v->dist_orig[n]) / 2;
-          vn->dist_orig[i] = dist;
-          v->dist_orig[n] = dist;
-          break;
-        }
-      }
-    }
-  }
-
-  /* check reasonableness of distances */
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    for (n = 0; n < vt->vtotal; n++) {
-      if (DZERO(v->dist_orig[n])) fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
-    }
-  }
-
-  if (Gdiag_no >= 0) {
-    FILE *fp;
-    char fname[STRLEN];
-    int i;
-
-    sprintf(fname, "v%d.log", Gdiag_no);
-    fp = fopen(fname, "w");
-
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];    
-    VERTEX          const * const v  = &mris->vertices         [Gdiag_no];
-    for (i = 0; i < vt->vtotal; i++) {
-      fprintf(fp, "%d: %d, %f\n", i, vt->v[i], v->dist_orig[i]);
-    }
-    fclose(fp);
-  }
-
-  mris->avg_nbrs = (float)total_nbrs / (float)MRISvalidVertices(mris);
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
-  }
-
-#if MULTI_DIST_SCALING
-  if (Gdiag & DIAG_SHOW) {
-    for (n = 0; n <= max_nbhd; n++) {
-      if (nc[n]) {
-        c[n] /= (float)nc[n];
-      }
-      fprintf(stdout, "c[%d] = %2.5f (%d samples)\n", n, c[n], nc[n]);
-    }
-    fprintf(stdout, "c[] = { ");
-    for (n = 0; n <= max_nbhd; n++) {
-      fprintf(stdout, "%2.5f", c[n]);
-      if (n < max_nbhd) {
-        fprintf(stdout, ", ");
-      }
-    }
-  }
-#endif
-  free(vnbrs);
-  free(vall);
-  free(vnb);
-  free(old_dist);
-  free(old_v);
-  VectorFree(&v1);
-  VectorFree(&v2);
-  if (Gdiag & DIAG_HEARTBEAT) {
-    fprintf(stdout, " done.\n");
-  }
-
-  return (NO_ERROR);
 }
 
 static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, FILE* trace)
@@ -4139,16 +3569,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     // Expand each vertex to its nsizeMax.
     // This is assumed later.
     //
-    if (vt->nsizeMax == 3) {
-      vt->vtotal = vt->v3num;
-    }
-    else if (vt->nsizeMax == 2) {
-      vt->vtotal = vt->v2num;
-    }
-    else { cheapAssert(vt->nsizeMax == 1);
-      vt->vtotal = vt->vnum;
-    }
-    vt->nsizeCur = vt->nsizeMax;
+    cheapAssert(vt->nsizeMax > 0);
+    MRIS_setNsizeCur(mris, vno, vt->nsizeMax);
 
     if (!adjusted_mris_nsize) {
       adjusted_mris_nsize = true;
@@ -4167,9 +3589,9 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     if (trace && vno == 0) fprintf(trace, "vCapacity:%d\n", vCapacity);
     
     {
-      vt->v        = (int  *)realloc(vt->v,        vCapacity*sizeof(int  ));
-      v->dist      = (float*)realloc(v->dist,      vCapacity*sizeof(float));
-      v->dist_orig = (float*)realloc(v->dist_orig, vCapacity*sizeof(float));
+      vt->v = (int *)realloc(vt->v, vCapacity*sizeof(int));
+      MRISgrowDist    (mris,vno,vCapacity);
+      MRISgrowDistOrig(mris,vno,vCapacity);
       int i;
       for (i = vt->vtotal; i < vCapacity; i++) vt->v[i] = v->dist[i] = v->dist_orig[i] = 0;
     }
@@ -4578,6 +4000,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
   }
 
   /* check reasonableness of distances */
+  size_t zeroesCount    = 0;
+  size_t nonZeroesCount = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX          const * const v  = &mris->vertices         [vno];
@@ -4586,9 +4010,18 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     }
     int n;
     for (n = 0; n < vt->vtotal; n++) {
-      if (DZERO(v->dist_orig[n])) fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+      if (!DZERO(v->dist_orig[n])) {
+        if (!nonZeroesCount && vno != 0) fprintf(stderr, "first zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+        nonZeroesCount++;
+      } else {
+        zeroesCount++;
+        if      (zeroesCount <  50) fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+        else if (zeroesCount == 50) fprintf(stderr, "further zeroes elided\n");
+      }
     }
   }
+  if (zeroesCount > 0)
+    fprintf(stderr, "Of %ld neighbours, %ld are at distance zero\n", zeroesCount + nonZeroesCount, zeroesCount);
 
   if (Gdiag_no >= 0) {
     char fname[STRLEN];

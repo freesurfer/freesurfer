@@ -26,6 +26,7 @@ install(PROGRAMS
   compute_interrater_variability.csh
   compute_label_volumes.csh
   compute_label_vals.csh
+  conf2hires
   cor_to_minc
   cp-dicom
   cuda_setup
@@ -111,6 +112,7 @@ install(PROGRAMS
   labels_disjoint
   long_create_base_sigma
   long_create_orig
+  longmc
   long_mris_slopes
   long_stats_slopes
   long_stats_combine
@@ -184,6 +186,8 @@ install(PROGRAMS
   progressbar.tcl
   fsr-checkxopts
   fsr-getxopts
+  fsr-coreg  
+  fsr-import
   polyorder
   rbbr
   rcbf-prep

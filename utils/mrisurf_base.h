@@ -347,6 +347,8 @@ void MRIStruncateNFaces             (MRIS* mris, int nfaces);
 void MRISremovedFaces               (MRIS* mris, int nfaces);
 void MRISoverAllocVerticesAndFaces  (MRIS* mris, int max_vertices, int max_faces, int nvertices, int nfaces);
 
+void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity);
+
 void insertActiveRealmTree(MRIS const * const mris, RealmTree* realmTree, GetXYZ_FunctionType getXYZ);
 void removeActiveRealmTree(RealmTree* realmTree);
 
@@ -357,3 +359,6 @@ void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 extern const char *mrisurf_surface_names[3];
 extern const char *curvature_names[3];
 int MRISprintCurvatureNames(FILE *fp);
+
+
+bool MRISshouldReport(const char* file, int line);

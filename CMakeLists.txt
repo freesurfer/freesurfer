@@ -13,6 +13,7 @@ option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
+option(USE_QT4 "Use Qt4 instead of Qt5 for GUIs" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -52,6 +53,12 @@ endif()
 
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
+
+# create build stamp during install
+if(NOT FS_BUILD_STAMP)
+  set(FS_BUILD_STAMP "freesurfer")
+endif()
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
 
 # --------------------------------------------------
 #   library dependencies and third-party packages
@@ -401,6 +408,7 @@ add_subdirectories(
   mri_normalize
   mri_normalize_tp2
   mri_probedicom
+  mri_refine_seg
   mri_relabel_hypointensities
   mri_relabel_nonwm_hypos
   mri_remove_neck
@@ -695,6 +703,7 @@ if(NOT MINIMAL)
     mris_warp
     mris_watershed
     mrisp_write
+    nmovie_qt
     oct_register_mosaic
     oct_train
     optseq2

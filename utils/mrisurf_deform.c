@@ -72,7 +72,7 @@ int MRISremoveTopologicalDefects(MRI_SURFACE *mris, float curv_thresh)
     }
   }
 
-  /*  MRISripFaces(mris) ;*/
+  /*  MRISsetRipInFacesWithRippedVertices(mris) ;*/
   VectorFree(&v_i);
   VectorFree(&v_n);
   VectorFree(&v_e1);
@@ -10980,7 +10980,8 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
       continue;
     }
     
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
+    int const vno_dst = vertex_trans[vno];
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
 
     /* count # of good triangles attached to this vertex */
     for (vdstt->num = n = 0; n < vt->num; n++)
@@ -11003,14 +11004,14 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->vnum++;
       }
-    vdstt->nsizeCur = vdstt->nsizeMax = 1;
-    vdstt->vtotal = vdstt->vnum;
-    vdstt->nsizeCur = vdstt->nsizeMax = 1;
+    vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
         vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
+      
+    MRIS_setNsizeCur(mris_corrected,vno_dst,1);
   }
 
   mrisCheckVertexFaceTopology(mris_corrected);
@@ -11655,7 +11656,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
 
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
+    int const vno_dst = vertex_trans[vno];
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
 
     /* count # of good triangles attached to this vertex */
     for (vdstt->num = n = 0; n < vt->num; n++)
@@ -11677,14 +11679,15 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
         vdstt->vnum++;
       }
-    vdstt->nsizeCur = vdstt->nsizeMax = 1;
-    vdstt->vtotal = vdstt->vnum;
-    vdstt->nsizeMax = vdstt->nsizeCur = 1;
+
+    vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
     for (i = n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
         vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
+      
+    MRIS_setNsizeCur(mris_corrected, vno_dst, 1);
   }
 
   free(vertex_trans);
@@ -12141,7 +12144,7 @@ int MRISripMedialWall(MRI_SURFACE *mris)
       v->ripflag = 1;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -12168,7 +12171,7 @@ int MRISzeroMedialWallCurvature(MRI_SURFACE *mris)
       v->curv = 0;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -12736,6 +12739,8 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 
   mris_dst->radius = r;
 
+  MRISfreeDistsButNotOrig(mris_dst);
+  
   for (total_dist = vno = 0; vno < mris_dst->nvertices; vno++) {
     v = &mris_dst->vertices[vno];
     if (v->ripflag) /* shouldn't happen */
@@ -13603,7 +13608,7 @@ int MRISinverseSphericalMap(MRIS *mris, MRIS *mris_ico)
   int fno, vno, num_ambiguous = 0, nfound, i, max_count;
   short *vcount = (short *)calloc(mris->nfaces, sizeof(short));
 
-  MRISfreeDists(mris);
+  MRISfreeDistsButNotOrig(mris);
 
   /* make sure they are they same size */
   r = MRISaverageRadius(mris_ico);

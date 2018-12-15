@@ -310,6 +310,38 @@ void RenderView3D::ResetViewRight()
   Azimuth(180);
 }
 
+void RenderView3D::ResetViewLateral()
+{
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsVisible())
+    {
+      if (((LayerSurface*)layer)->GetHemisphere() == 0)
+        ResetViewLeft();
+      else
+        ResetViewRight();
+      break;
+    }
+  }
+}
+
+void RenderView3D::ResetViewMedial()
+{
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsVisible())
+    {
+      if (((LayerSurface*)layer)->GetHemisphere() == 0)
+        ResetViewRight();
+      else
+        ResetViewLeft();
+      break;
+    }
+  }
+}
+
 void RenderView3D::RefreshAllActors(bool bForScreenShot)
 {
   MainWindow* mainwnd = MainWindow::GetMainWindow();

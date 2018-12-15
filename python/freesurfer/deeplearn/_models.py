@@ -5,290 +5,220 @@ import keras.backend as K
 from keras.optimizers import Adam
 from keras.models import Model, Sequential
 from keras.layers import *
+from keras.losses import mse
 from keras.utils.training_utils import multi_gpu_model
-from _utility import dice_coef_loss2
+from ._utility import dice_coef_loss2, grad_loss
 
 K.set_image_data_format('channels_last')
-from _utility import dice_coef_loss2, grad_loss
 
 
-def unet_model_3d(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2, 2), n_labels=0,
-                  loss='mean_absolute_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
-                  num_gpus=1):
+def sampling(args):
+    """Reparameterization trick by sampling fr an isotropic unit Gaussian.
+
+    # Arguments:
+        args (tensor): mean and log of variance of Q(z|X)
+
+    # Returns:
+        z (tensor): sampled latent vector
     """
-    Builds the 3D UNet Keras model.
-    :param input_shape: Shape of the input data (x_size, y_size, z_size).
-    :param downsize_filters_factor: Factor to which to reduce the number of filters. Making this value larger will
-    reduce the amount of memory the model will need during training.
-    :param pool_size: Pool size for the max pooling operations.
-    :param n_labels: Number of binary labels that the model is learning.
-    :param initial_learning_rate: Initial learning rate for the model. This will be decayed during training.
-    :param deconvolution: If set to True, will use transpose convolution(deconvolution) instead of upsamping. This
-    increases the amount memory required during training.
-    :return: Untrained 3D UNet Model
-    """
-    # channels last, make feature shape from (32,32,32) - > (32,32,32,1)
 
-    if n_labels > 0:
-        is_seg_network = True
-    else:
-        is_seg_network = False
-
-    # input_shape_list = list(input_shape)
-    # input_shape_list.append(1)
-    # input_shape_append = tuple(input_shape_list)
-    print(input_shape)
-    input_img = Input(shape=input_shape, name='input')
-    convs = []
-    pools = []
-    inputs = []
-    centered_inputs = []
-    endpoints = []
-    print('unet depth is ')
-    print(unet_depth)
-    for i in range(unet_depth):
-        prev = input_img if i == 0 else pools[i - 1]
-        print(int(num_filters * (2 ** i) / downsize_filters_factor))
-        conv = Conv3D(int(num_filters * (2 ** i) / downsize_filters_factor), (3, 3, 3),
-                      activation='relu', padding='same', kernel_initializer="he_normal",
-                      name=('conv3D_D_1_%d' % (i)))(prev)
-        conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
-        conv = Conv3D(int(num_filters * (2 ** i) / downsize_filters_factor), (3, 3, 3),
-                      activation='relu', padding='same', kernel_initializer="he_normal",
-                      name=('conv3D_D_2_%d' % (i)))(conv)
-        conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
-        if i < (unet_depth - 1):
-            pools.append(MaxPooling3D(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
-
-        convs.append(conv)
-
-    for i in range(unet_depth - 1):
-        index = i + unet_depth - 1
-        level = unet_depth - (i + 2)
-        up = concatenate([UpSampling3D(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
-                          convs[level]], axis=-1, name=('concat_%d' % (level)))
-        conv = Conv3D(num_filters * (2 ** level), (3, 3, 3), padding="same", activation="relu",
-                      kernel_initializer="he_normal",
-                      name=('conv3D_U_1_%d' % (level))
-                      )(up)
-        conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
-        conv = Conv3D(num_filters * (2 ** level), (3, 3, 3), padding="same", activation="relu",
-                      kernel_initializer="he_normal",
-                      name=('conv3D_U_2_%d' % (level)))(conv)
-        convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
-
-    # conv = ZeroPadding3D(padding=(1, 1, 1))(convs[-1])
-    #    conv = Conv3D(num_filters * 2, (3, 3, 3), padding="valid", activation="relu",
-    #                  kernel_initializer="he_normal")(conv)
-    #    conv = BatchNormalization()(conv)
-    #    center_input = Cropping3D(cropping=(0, 0, 0))(input_img)
-
-    inputs.append(input_img)
-    #    centered_inputs.append(center_input)
-    print(convs)
-    endpoints.append(convs[-1])
-
-    up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
-    print(loss)
-    print('is_seg_network' + str(is_seg_network))
-    if is_seg_network == False:
-        print(loss)
-        conv = Conv3D(1, (1, 1, 1), activation='relu', name='final_conv_3d')(up)
-        if num_gpus > 1:
-            with tf.device('/cpu:0'):
-                model = Model(inputs=inputs, outputs=conv)
-                parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                if loss == 'grad_loss':
-                    print(loss)
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                else:
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-
-                return model, parallel_model
-        else:
-            model = Model(inputs=inputs, outputs=conv)
-            if loss == 'grad_loss':
-                print(loss)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-            else:
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-            return model, model
-
-    else:
-        print('segmentation network')
-        if n_labels > 1:
-            conv = Conv3D(n_labels, (1, 1, 1), activation='softmax', name='final_conv_3d')(up)
-
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate),
-                                           loss=dice_coef_loss2, )
-
-                    model.compile(optimizer=Adam(lr=initial_learning_rate),
-                                  loss=dice_coef_loss2, )
-
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate),
-                              loss=dice_coef_loss2, )
-                return model, model
-        else:
-            conv = Conv3D(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
-
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate),
-                                           loss=dice_coef_loss2, )
-
-                    model.compile(optimizer=Adam(lr=initial_learning_rate),
-                                  loss=dice_coef_loss2, )
-
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate),
-                              loss=dice_coef_loss2, )
-                return model, model
+    z_mean, z_log_var = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    # by default, random_normal has mean=0 and std=1.0
+    epsilon = K.random_normal(shape=(batch, dim))
+    return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def unet_model_2d(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
-                  loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
-                  num_gpus=1, num_outputs=1):
-    if n_labels > 0:
-        is_seg_network = True
-    else:
-        is_seg_network = False
+def vae_encoder(input_shape, num_filters, num_poolings, latent_dim):
 
     dim = len(input_shape)
-    if dim == 2:
+    num_channels = input_shape[-1]
+
+    if dim == 3:
         ConvL = Conv2D
         MaxPoolingL = MaxPooling2D
         pool_size = (2, 2)
         UpSamplingL = UpSampling2D
         filter_shape = (5, 5)
         out_filter_shape = (1, 1)
-    elif dim == 3:
+        onexone_filter_shape = (1, 1)
+
+    elif dim == 4:
         ConvL = Conv3D
         MaxPoolingL = MaxPooling3D
         pool_size = (2, 2, 2)
         UpSamplingL = UpSampling3D
         filter_shape = (3, 3, 3)
         out_filter_shape = (1, 1, 1)
+        onexone_filter_shape = (1, 1, 1)
 
-    print('out filter shape is ' + str(out_filter_shape))
-    input_shape_list = list(input_shape)
-    input_shape_list.append(1)
-    input_shape_append = tuple(input_shape_list)
-    print(input_shape_append)
-    input_img = Input(shape=input_shape_append, name='input')
+    elif dim == 2:
+        ConvL = Conv1D
+        MaxPoolingL = MaxPooling1D
+        pool_size = (2)
+        UpSamplingL = UpSampling1D
+        filter_shape = (3)
+        out_filter_shape = (1)
+        onexone_filter_shape = (1)
+
+
+
+    input_layer = Input(shape=input_shape, name='input')
+
     convs = []
     pools = []
     inputs = []
-    centered_inputs = []
     endpoints = []
 
-    print('unet depth is ' + unet_depth)
-    for i in range(unet_depth):
-        prev = input_img if i == 0 else pools[i - 1]
-        print(int(num_filters * (2 ** i) / downsize_filters_factor))
-        conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+    print('num poolings are  ')
+    print(num_poolings)
+
+    for i in range(num_poolings):
+        if i == 0:
+            if num_channels > 100:
+                conv1x1 = ConvL(int(num_filters * (2 ** 0)), onexone_filter_shape, padding='same', dilation_rate=1,
+                                name='2a' + str(0))(
+                    input_layer)
+                conv1x1 = BatchNormalization()(conv1x1)
+                conv1x1 = Activation('relu')(conv1x1)
+                prev = conv1x1
+            else:
+                prev = input_layer
+        else:
+            prev = pools[i - 1]
+
+        conv = ConvL(int(num_filters * (2 ** i) / 1), filter_shape,
                      activation='relu', padding='same', kernel_initializer="he_normal",
-                     name=('conv3D_D_1_%d' % (i)))(prev)
-        conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
-        conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+                     name=('conv3D_D_1_%d' % (i) ))(prev)
+        # conv = BatchNormalization(name=('bnorm_D_1_%d' % (i) ))(conv)
+        conv = ConvL(int(num_filters * (2 ** i) / 1), filter_shape,
                      activation='relu', padding='same', kernel_initializer="he_normal",
-                     name=('conv3D_D_2_%d' % (i)))(conv)
-        conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
-        if i < (unet_depth - 1):
-            pools.append(MaxPoolingL(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
+                     name=('conv3D_D_2_%d' % (i) ))(conv)
+        # conv = BatchNormalization(name=('bnorm_D_2_%d' % (i) ))(conv)
+        print(i)
+        # conv = MaxPoolingL(pool_size, name=('pool_D_%d' % (i) ), data_format='channels_last')(conv)
+        conv = MaxPoolingL(pool_size, name=('pool_D_%d' % (i) ), data_format='channels_last')(conv)
+        pools.append(conv)
         convs.append(conv)
 
-    for i in range(unet_depth - 1):
-        index = i + unet_depth - 1
-        level = unet_depth - (i + 2)
-        up = concatenate([UpSamplingL(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
-                          convs[level]], axis=-1, name=('concat_%d' % (level)))
+    # conv = pools[-1](conv)
+    # add the
+    shape = K.int_shape(conv)
+
+    # generate latent vector Q(z|X)
+    conv = Flatten()(conv)
+    # conv = Dense(2*latent_dim, activation='relu', kernel_initializer="he_normal")(conv)
+    z_mean = Dense(latent_dim, name='z_mean')(conv)
+    z_log_var = Dense(latent_dim, name='z_log_var')(conv)
+
+    # use reparameterization trick to push the sampling out as input
+    # note that "output_shape" isn't necessary with the TensorFlow backend
+    z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
+
+    # instantiate encoder model
+    encoder = Model(input_layer, [z_mean, z_log_var, z], name='encoder')
+    pre_sample_shape = shape[1:]
+    return encoder, pre_sample_shape
+
+
+def vae_decoder(latent_dim, pre_sample_shape, num_filters, num_poolings, output_shape):
+    dim = len(output_shape)
+    num_channels = output_shape[-1]
+
+    if dim == 3:
+        ConvL = Conv2D
+        ConvLTranspose = Conv2DTranspose
+        MaxPoolingL = MaxPooling2D
+
+        pool_size = (2, 2)
+        UpSamplingL = UpSampling2D
+        filter_shape = (5, 5)
+        out_filter_shape = (1, 1)
+        onexone_filter_shape = (1, 1)
+
+    elif dim == 4:
+        ConvL = Conv3D
+        ConvLTranspose = Conv3DTranspose
+        MaxPoolingL = MaxPooling3D
+        pool_size = (2, 2, 2)
+        UpSamplingL = UpSampling3D
+        filter_shape = (3, 3, 3)
+        out_filter_shape = (1, 1, 1)
+        onexone_filter_shape = (1, 1, 1)
+
+    elif dim == 2:
+        ConvL = Conv1D
+      # need something for conv1dtranspose...(maybe upsampling)
+        MaxPoolingL = MaxPooling1D
+        pool_size = (2)
+        UpSamplingL = UpSampling1D
+        filter_shape = (3)
+        out_filter_shape = (1)
+        onexone_filter_shape = (1)
+
+
+    latent_inputs = Input(shape=(latent_dim,), name='z_sampling')
+    flat_shape = np.prod(pre_sample_shape)
+
+    conv = Dense(flat_shape, activation='relu')(latent_inputs)
+    conv = Reshape((pre_sample_shape[0], pre_sample_shape[1], pre_sample_shape[2]))(conv)
+
+    for i in range(num_poolings):
+        level = num_poolings - i - 1
         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
-                     kernel_initializer="he_normal", name=('conv3D_U_1_%d' % (level)))(up)
-        conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
+                     kernel_initializer="he_normal",
+                     name=('conv3D_U_1_%d' % (level)))(conv)
+        # conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
-                     kernel_initializer="he_normal", name=('conv3D_U_2_%d' % (level)))(conv)
-        convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
+                     kernel_initializer="he_normal",
+                     name=('conv3D_U_2_%d' %  (level)))(conv)
+        # conv = BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv)
+        conv = ConvLTranspose(filters=num_filters * (2 ** level),
+                            kernel_size=filter_shape,
+                            activation='relu',
+                            strides=2,
+                            padding='same')(conv)
 
-    inputs.append(input_img)
-    # centered_inputs.append(center_input)
-    endpoints.append(convs[-1])
-    up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
-
-    print(convs)
-    print(loss)
-    print('is_seg_network' + str(is_seg_network))
-
-    if is_seg_network == False:
-        print(loss)
-        conv = ConvL(num_outputs, out_filter_shape, activation='linear', name='final_conv_3d')(up)
-
-        if num_gpus > 1:
-            with tf.device('/cpu:0'):
-                model = Model(inputs=inputs, outputs=conv)
-                parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                if loss == 'grad_loss':
-                    print(loss)
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                else:
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-
-                return model, parallel_model
-        else:
-            model = Model(inputs=inputs, outputs=conv)
-            if loss == 'grad_loss':
-                print(loss)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-            else:
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-            return model, model
-    else:
-        print('segmentation network')
-        if n_labels > 1:
-            conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d')(up)
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                return model, model
-        else:
-            conv = ConvL(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                return model, model
+    outputs = ConvLTranspose(filters=1,
+                              kernel_size=filter_shape,
+                              activation='relu',
+                              padding='same',
+                              name='decoder_output')(conv)
+    decoder = Model(latent_inputs, outputs, name='decoder')
+    return decoder
 
 
-def unet_2d_v1(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
+
+def vae(input_shape, num_filters, num_poolings, latent_dim, initial_learning_rate=0.001):
+
+    encoder, pre_sample_shape = vae_encoder(input_shape=input_shape,  num_filters=num_filters,
+                          num_poolings=num_poolings, latent_dim=latent_dim)
+
+    decoder = vae_decoder(latent_dim=latent_dim, pre_sample_shape=pre_sample_shape, num_filters=num_filters,
+                          num_poolings=num_poolings, output_shape=input_shape)
+
+    outputs = decoder(encoder(encoder.inputs)[2])
+    vae = Model(encoder.inputs, outputs, name='vae')
+
+    reconstruction_loss = mse(K.flatten(encoder.inputs), K.flatten(outputs))
+    reconstruction_loss *= np.prod(input_shape)
+    kl_loss = 1 + encoder.get_layer('z_log_var').output - K.square(encoder.get_layer('z_mean').output) - K.exp(encoder.get_layer('z_log_var').output)
+    kl_loss = K.sum(kl_loss, axis=-1)
+    kl_loss *= -0.5
+    vae_loss = K.mean(reconstruction_loss + kl_loss)
+    vae.add_loss(vae_loss)
+    vae.compile(optimizer=Adam(lr=initial_learning_rate), loss=None)
+    vae.summary()
+
+    return vae, encoder, decoder
+
+
+
+
+
+
+def unet(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
                loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, num_gpus=1,
                num_outputs=1):
     if n_labels > 0:
@@ -313,7 +243,7 @@ def unet_2d_v1(input_shape, num_filters, unet_depth, downsize_filters_factor=1, 
         out_filter_shape = (1, 1, 1)
 
     input_img_ax = Input(shape=input_shape, name='input_ax')
-    conv_ax = build_oriented_unet_2d(input_img_ax, input_shape=input_shape, num_filters=num_filters,
+    conv_ax = build_oriented_unet(input_img_ax, input_shape=input_shape, num_filters=num_filters,
                                      unet_depth=unet_depth, layer_prefix='',
                                      downsize_filters_factor=downsize_filters_factor,
                                      pool_size=pool_size, n_labels=n_labels, num_outputs=num_outputs)
@@ -322,7 +252,7 @@ def unet_2d_v1(input_shape, num_filters, unet_depth, downsize_filters_factor=1, 
     return model_ax, parallel_model_ax
 
 
-def build_oriented_unet_2d(input_layer, input_shape, num_filters, unet_depth, layer_prefix='',
+def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer_prefix='',
                            downsize_filters_factor=1,
                            pool_size=(2, 2), n_labels=0, num_outputs=1, num_gpus=1):
     """
@@ -346,12 +276,15 @@ def build_oriented_unet_2d(input_layer, input_shape, num_filters, unet_depth, la
         is_seg_network = False
 
     dim = len(input_shape)
+    num_channels = input_shape[-1]
+
     if dim == 3:
         ConvL = Conv2D
         MaxPoolingL = MaxPooling2D
         pool_size = (2, 2)
         UpSamplingL = UpSampling2D
-        filter_shape = (5, 5)
+        filter_shape = (3, 3)
+        onexone_filter_shape = (1, 1)
         out_filter_shape = (1, 1)
     elif dim == 4:
         ConvL = Conv3D
@@ -359,6 +292,7 @@ def build_oriented_unet_2d(input_layer, input_shape, num_filters, unet_depth, la
         pool_size = (2, 2, 2)
         UpSamplingL = UpSampling3D
         filter_shape = (3, 3, 3)
+        onexone_filter_shape = (1, 1, 1)
         out_filter_shape = (1, 1, 1)
 
     print('out filter shape is ' + str(out_filter_shape))
@@ -372,8 +306,20 @@ def build_oriented_unet_2d(input_layer, input_shape, num_filters, unet_depth, la
     print(unet_depth)
 
     for i in range(unet_depth):
-        prev = input_layer if i == 0 else pools[i - 1]
+        if i == 0:
+            if num_channels > 100:
+                conv1x1 = ConvL(int(num_filters * (2 ** 0)), onexone_filter_shape, padding='same', dilation_rate=1,
+                                name='2a' + str(0))(
+                    input_layer)
+                conv1x1 = BatchNormalization()(conv1x1)
+                conv1x1 = Activation('relu')(conv1x1)
+                prev = conv1x1
+            else:
+                prev = input_layer
+        else:
+            prev = pools[i - 1]
         print(int(num_filters * (2 ** i) / downsize_filters_factor))
+
         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
                      activation='relu', padding='same', kernel_initializer="he_normal",
                      name=('conv3D_D_1_%d' % (i) + layer_prefix))(prev)
@@ -568,158 +514,33 @@ def unet_encoder_dense(feature_shape, output_shape, unet_num_filters, depth, dep
     return model
 
 
-def unet_model_2d_noBN(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
-                       loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
-                       num_gpus=1, num_outputs=1):
-    if n_labels > 0:
-        is_seg_network = True
-    else:
-        is_seg_network = False
 
-    dim = len(input_shape)
+
+def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, initial_learning_rate,
+                 loss='binary_crossentropy', batch_norm=True):
+    dim = len(feature_shape)
+    num_channels = feature_shape[-1]
     if dim == 3:
         ConvL = Conv2D
         MaxPoolingL = MaxPooling2D
-        pool_size = (2, 2)
+        pool_shape = (2, 2)
         UpSamplingL = UpSampling2D
         filter_shape = (5, 5)
         out_filter_shape = (1, 1)
-
     elif dim == 4:
         ConvL = Conv3D
         MaxPoolingL = MaxPooling3D
-        pool_size = (2, 2, 2)
+        pool_shape = (2, 2, 2)
         UpSamplingL = UpSampling3D
         filter_shape = (3, 3, 3)
         out_filter_shape = (1, 1, 1)
-
-    print('out filter shape is ' + str(out_filter_shape))
-    # input_shape_list = list(input_shape)
-    # input_shape_list.append(1)
-    # input_shape_append = tuple(input_shape_list)
-    # print(input_shape_append)
-    input_img = Input(shape=input_shape, name='input')
-    convs = []
-    pools = []
-    inputs = []
-    centered_inputs = []
-    endpoints = []
-
-    print('unet depth is ')
-    print(unet_depth)
-    for i in range(unet_depth):
-
-        prev = input_img if i == 0 else pools[i - 1]
-        print(int(num_filters * (2 ** i) / downsize_filters_factor))
-        conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
-                     activation='relu', padding='same', kernel_initializer="he_normal",
-                     name=('conv3D_D_1_%d' % (i)))(prev)
-        # conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
-        conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
-                     activation='relu', padding='same', kernel_initializer="he_normal",
-                     name=('conv3D_D_2_%d' % (i)))(conv)
-        # conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
-        if i < (unet_depth - 1):
-            pools.append(MaxPoolingL(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
-
-        convs.append(conv)
-
-    for i in range(unet_depth - 1):
-        index = i + unet_depth - 1
-        level = unet_depth - (i + 2)
-        up = concatenate([UpSamplingL(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
-                          convs[level]], axis=-1, name=('concat_%d' % (level)))
-        conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
-                     kernel_initializer="he_normal",
-                     name=('conv3D_U_1_%d' % (level))
-                     )(up)
-        # conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
-        conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
-                     kernel_initializer="he_normal",
-                     name=('conv3D_U_2_%d' % (level)))(conv)
-        # convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
-        convs.append(conv)
-
-    # conv = ZeroPadding3D(padding=(1, 1, 1))(convs[-1])
-    # conv = Conv3D(num_filters * 2, (3, 3, 3), padding="valid", activation="relu", kernel_initializer="he_normal")(conv)
-    # conv = BatchNormalization()(conv)
-    # center_input = Cropping3D(cropping=(0, 0, 0))(input_img)
-
-    inputs.append(input_img)
-    # centered_inputs.append(center_input)
-    print(convs)
-    endpoints.append(convs[-1])
-
-    up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
-    print(loss)
-    print('is_seg_network' + str(is_seg_network))
-    if is_seg_network == False:
-        print(loss)
-        conv = ConvL(num_outputs, out_filter_shape, activation='linear', name='final_conv_3d')(up)
-        if num_gpus > 1:
-            with tf.device('/cpu:0'):
-                model = Model(inputs=inputs, outputs=conv)
-                parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                if loss == 'grad_loss':
-                    print(loss)
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-                else:
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-                return model, parallel_model
-        else:
-            model = Model(inputs=inputs, outputs=conv)
-            if loss == 'grad_loss':
-                print(loss)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
-            elif loss == 'warp_image_loss':
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=warp_image_loss)
-            else:
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
-            return model, model
-    else:
-        print('segmentation network')
-        if n_labels > 1:
-            conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d')(up)
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                return model, model
-        else:
-            conv = Conv3D(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
-            if num_gpus > 1:
-                with tf.device('/cpu:0'):
-                    model = Model(inputs=inputs, outputs=conv)
-                    parallel_model = multi_gpu_model(model, gpus=num_gpus)
-                    parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                    return model, parallel_model
-            else:
-                model = Model(inputs=inputs, outputs=conv)
-                model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
-                return model, model
-
-
-def class_net_v1(feature_shape, dim, unet_num_filters, depth, depth_per_level, n_labels, initial_learning_rate,
-                 loss='binary_crossentropy'):
-    if dim == 2:
-        ConvL = Conv2D
-        MaxPoolingL = MaxPooling2D
-        filter_shape = (3, 3)
-        pool_shape = (2, 2)
-    elif dim == 3:
-        ConvL = Conv3D
-        MaxPoolingL = MaxPooling3D
-        filter_shape = (3, 3, 3)
-        pool_shape = (2, 2, 2)
+    elif dim == 2:
+        ConvL = Conv1D
+        MaxPoolingL = MaxPooling1D
+        pool_shape = (2)
+        UpSamplingL = UpSampling1D
+        filter_shape = (5)
+        out_filter_shape = (1)
 
     min_feature_dim = np.min(feature_shape[0:-1])
     if 2 ** depth > min_feature_dim:
@@ -731,86 +552,55 @@ def class_net_v1(feature_shape, dim, unet_num_filters, depth, depth_per_level, n
     input_shape_append = tuple(input_shape_list)
     print(input_shape_append)
     model = Sequential()
+
+    # if very high number of channels, use a 1x1 filter to reduce the dimensionality
+    if num_channels > 100:
+        model.add(ConvL(int(unet_num_filters * (2 ** 0)), onexone_filter_shape, padding='same', dilation_rate=1,
+                        name='2a' + str(0)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+
     for iter_layer in range(depth):
         if iter_layer == 0:
+
             model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
                             input_shape=input_shape_append, kernel_initializer="he_normal"))
+            if batch_norm == True:
+                model.add(BatchNormalization())
+
             for iter_depth_per_layer in range(depth_per_level - 1):
                 model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
                                 kernel_initializer="he_normal"))
+                if batch_norm == True:
+                    model.add(BatchNormalization())
+
             model.add(MaxPoolingL(pool_size=pool_shape))
-            model.add(Dropout(0.25))
+            # model.add(Dropout(0.25))
         else:
             for iter_depth_per_layer in range(depth_per_level):
                 model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
                                 kernel_initializer="he_normal"))
+                if batch_norm == True:
+                    model.add(BatchNormalization())
+
             model.add(MaxPoolingL(pool_size=pool_shape))
-            model.add(Dropout(0.25))
+            # model.add(Dropout(0.25))
 
     model.add(Flatten())
     model.add(Dense(512, activation='relu', kernel_initializer="he_normal"))
-    model.add(Dropout(0.5))
-    model.add(Dense(n_labels, activation='softmax'))
+    # model.add(Dropout(0.5))
+    if n_labels > 0:
+        model.add(Dense(n_labels, activation='softmax', kernel_initializer="he_normal"))
+        model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
 
-    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
+    elif n_labels == 0:
+        model.add(Dense(1, activation='linear', kernel_initializer="he_normal"))
+        model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+
     return model
 
 
-def class_net(feature_shape, dim, unet_num_filters, n_labels, initial_learning_rate, loss='binary_crossentropy'):
-    if dim == 2:
-        ConvL = Conv2D
-        MaxPoolingL = MaxPooling2D
-        filter_shape = (3, 3)
-        pool_shape = (2, 2)
-    elif dim == 3:
-        ConvL = Conv3D
-        MaxPoolingL = MaxPooling3D
-        filter_shape = (3, 3, 3)
-        pool_shape = (2, 2, 2)
-
-    input_shape_list = list(feature_shape)
-    # input_shape_list.append(1)
-    input_shape_append = tuple(input_shape_list)
-    print(input_shape_append)
-
-    model = Sequential()
-    model.add(ConvL(unet_num_filters, filter_shape, padding='same', activation='relu', input_shape=input_shape_append))
-    model.add(ConvL(unet_num_filters, filter_shape, padding='valid', activation='relu'))
-    model.add(MaxPoolingL(pool_size=pool_shape))
-    model.add(Dropout(0.25))
-
-    model.add(ConvL(2 * unet_num_filters, filter_shape, padding='same', activation='relu'))
-    model.add(ConvL(2 * unet_num_filters, filter_shape, activation='relu'))
-    model.add(MaxPoolingL(pool_size=pool_shape))
-    model.add(Dropout(0.25))
-
-    model.add(ConvL((2 ** 2) * unet_num_filters, filter_shape, padding='same', activation='relu'))
-    model.add(ConvL((2 ** 2) * unet_num_filters, filter_shape, activation='relu'))
-    model.add(MaxPoolingL(pool_size=pool_shape))
-    model.add(Dropout(0.25))
-
-    model.add(ConvL((2 ** 3) * unet_num_filters, filter_shape, padding='same', activation='relu'))
-    model.add(ConvL((2 ** 3) * unet_num_filters, filter_shape, activation='relu'))
-    model.add(MaxPoolingL(pool_size=pool_shape))
-    model.add(Dropout(0.25))
-
-    model.add(ConvL((2 ** 4) * unet_num_filters, filter_shape, padding='same', activation='relu'))
-    model.add(ConvL((2 ** 4) * unet_num_filters, filter_shape, activation='relu'))
-    model.add(MaxPoolingL(pool_size=pool_shape))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-    model.add(Dense(512, activation='relu'))
-    model.add(Dropout(0.5))
-
-    if n_labels == 2:
-        model.add(Dense(1, activation='sigmoid'))
-    else:
-        model.add(Dense(n_labels, activation='softmax'))
-
-    model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
-    return model
-
+#
 
 def atrous_net(input_shape, num_filters, initial_learning_rate=0.00001, loss='mean_absolute_error'):
     input_shape_list = list(input_shape)
@@ -1172,3 +962,476 @@ def get_upconv(depth, nb_filters, pool_size, image_shape, kernel_size=(2, 2, 2),
                                input_shape=input_shape)
     else:
         return UpSampling3D(size=pool_size)
+
+
+#
+# def unet_model_2d_noBN(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
+#                        loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
+#                        num_gpus=1, num_outputs=1):
+#     if n_labels > 0:
+#         is_seg_network = True
+#     else:
+#         is_seg_network = False
+#
+#     dim = len(input_shape)
+#     if dim == 3:
+#         ConvL = Conv2D
+#         MaxPoolingL = MaxPooling2D
+#         pool_size = (2, 2)
+#         UpSamplingL = UpSampling2D
+#         filter_shape = (5, 5)
+#         out_filter_shape = (1, 1)
+#
+#     elif dim == 4:
+#         ConvL = Conv3D
+#         MaxPoolingL = MaxPooling3D
+#         pool_size = (2, 2, 2)
+#         UpSamplingL = UpSampling3D
+#         filter_shape = (3, 3, 3)
+#         out_filter_shape = (1, 1, 1)
+#
+#     print('out filter shape is ' + str(out_filter_shape))
+#     # input_shape_list = list(input_shape)
+#     # input_shape_list.append(1)
+#     # input_shape_append = tuple(input_shape_list)
+#     # print(input_shape_append)
+#     input_img = Input(shape=input_shape, name='input')
+#     convs = []
+#     pools = []
+#     inputs = []
+#     centered_inputs = []
+#     endpoints = []
+#
+#     print('unet depth is ')
+#     print(unet_depth)
+#     for i in range(unet_depth):
+#
+#         prev = input_img if i == 0 else pools[i - 1]
+#         print(int(num_filters * (2 ** i) / downsize_filters_factor))
+#         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+#                      activation='relu', padding='same', kernel_initializer="he_normal",
+#                      name=('conv3D_D_1_%d' % (i)))(prev)
+#         # conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
+#         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+#                      activation='relu', padding='same', kernel_initializer="he_normal",
+#                      name=('conv3D_D_2_%d' % (i)))(conv)
+#         # conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
+#         if i < (unet_depth - 1):
+#             pools.append(MaxPoolingL(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
+#
+#         convs.append(conv)
+#
+#     for i in range(unet_depth - 1):
+#         index = i + unet_depth - 1
+#         level = unet_depth - (i + 2)
+#         up = concatenate([UpSamplingL(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
+#                           convs[level]], axis=-1, name=('concat_%d' % (level)))
+#         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
+#                      kernel_initializer="he_normal",
+#                      name=('conv3D_U_1_%d' % (level))
+#                      )(up)
+#         # conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
+#         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
+#                      kernel_initializer="he_normal",
+#                      name=('conv3D_U_2_%d' % (level)))(conv)
+#         # convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
+#         convs.append(conv)
+#
+#     # conv = ZeroPadding3D(padding=(1, 1, 1))(convs[-1])
+#     # conv = Conv3D(num_filters * 2, (3, 3, 3), padding="valid", activation="relu", kernel_initializer="he_normal")(conv)
+#     # conv = BatchNormalization()(conv)
+#     # center_input = Cropping3D(cropping=(0, 0, 0))(input_img)
+#
+#     inputs.append(input_img)
+#     # centered_inputs.append(center_input)
+#     print(convs)
+#     endpoints.append(convs[-1])
+#
+#     up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
+#     print(loss)
+#     print('is_seg_network' + str(is_seg_network))
+#     if is_seg_network == False:
+#         print(loss)
+#         conv = ConvL(num_outputs, out_filter_shape, activation='linear', name='final_conv_3d')(up)
+#         if num_gpus > 1:
+#             with tf.device('/cpu:0'):
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                 if loss == 'grad_loss':
+#                     print(loss)
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                 else:
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#                 return model, parallel_model
+#         else:
+#             model = Model(inputs=inputs, outputs=conv)
+#             if loss == 'grad_loss':
+#                 print(loss)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#             elif loss == 'warp_image_loss':
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=warp_image_loss)
+#             else:
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#             return model, model
+#     else:
+#         print('segmentation network')
+#         if n_labels > 1:
+#             conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d')(up)
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                 return model, model
+#         else:
+#             conv = Conv3D(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                 return model, model
+
+
+# def class_net(feature_shape, dim, unet_num_filters, n_labels, initial_learning_rate, loss='binary_crossentropy'):
+#     if dim == 2:
+#         ConvL = Conv2D
+#         MaxPoolingL = MaxPooling2D
+#         filter_shape = (3, 3)
+#         pool_shape = (2, 2)
+#     elif dim == 3:
+#         ConvL = Conv3D
+#         MaxPoolingL = MaxPooling3D
+#         filter_shape = (3, 3, 3)
+#         pool_shape = (2, 2, 2)
+#
+#     input_shape_list = list(feature_shape)
+#     # input_shape_list.append(1)
+#     input_shape_append = tuple(input_shape_list)
+#     print(input_shape_append)
+#
+#     model = Sequential()
+#     model.add(ConvL(unet_num_filters, filter_shape, padding='same', activation='relu', input_shape=input_shape_append))
+#     model.add(ConvL(unet_num_filters, filter_shape, padding='valid', activation='relu'))
+#     model.add(MaxPoolingL(pool_size=pool_shape))
+#     model.add(Dropout(0.25))
+#
+#     model.add(ConvL(2 * unet_num_filters, filter_shape, padding='same', activation='relu'))
+#     model.add(ConvL(2 * unet_num_filters, filter_shape, activation='relu'))
+#     model.add(MaxPoolingL(pool_size=pool_shape))
+#     model.add(Dropout(0.25))
+#
+#     model.add(ConvL((2 ** 2) * unet_num_filters, filter_shape, padding='same', activation='relu'))
+#     model.add(ConvL((2 ** 2) * unet_num_filters, filter_shape, activation='relu'))
+#     model.add(MaxPoolingL(pool_size=pool_shape))
+#     model.add(Dropout(0.25))
+#
+#     model.add(ConvL((2 ** 3) * unet_num_filters, filter_shape, padding='same', activation='relu'))
+#     model.add(ConvL((2 ** 3) * unet_num_filters, filter_shape, activation='relu'))
+#     model.add(MaxPoolingL(pool_size=pool_shape))
+#     model.add(Dropout(0.25))
+#
+#     model.add(ConvL((2 ** 4) * unet_num_filters, filter_shape, padding='same', activation='relu'))
+#     model.add(ConvL((2 ** 4) * unet_num_filters, filter_shape, activation='relu'))
+#     model.add(MaxPoolingL(pool_size=pool_shape))
+#     model.add(Dropout(0.25))
+#
+#     model.add(Flatten())
+#     model.add(Dense(512, activation='relu'))
+#     model.add(Dropout(0.5))
+#
+#     if n_labels == 2:
+#         model.add(Dense(1, activation='sigmoid'))
+#     else:
+#         model.add(Dense(n_labels, activation='softmax'))
+#
+#     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
+#     return model
+
+# def unet_model_2d(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2), n_labels=0,
+#                   loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
+#                   num_gpus=1, num_outputs=1):
+#     if n_labels > 0:
+#         is_seg_network = True
+#     else:
+#         is_seg_network = False
+#
+#     dim = len(input_shape)
+#     if dim == 2:
+#         ConvL = Conv2D
+#         MaxPoolingL = MaxPooling2D
+#         pool_size = (2, 2)
+#         UpSamplingL = UpSampling2D
+#         filter_shape = (5, 5)
+#         out_filter_shape = (1, 1)
+#     elif dim == 3:
+#         ConvL = Conv3D
+#         MaxPoolingL = MaxPooling3D
+#         pool_size = (2, 2, 2)
+#         UpSamplingL = UpSampling3D
+#         filter_shape = (3, 3, 3)
+#         out_filter_shape = (1, 1, 1)
+#
+#     print('out filter shape is ' + str(out_filter_shape))
+#     input_shape_list = list(input_shape)
+#     input_shape_list.append(1)
+#     input_shape_append = tuple(input_shape_list)
+#     print(input_shape_append)
+#     input_img = Input(shape=input_shape_append, name='input')
+#     convs = []
+#     pools = []
+#     inputs = []
+#     centered_inputs = []
+#     endpoints = []
+#
+#     print('unet depth is ' + unet_depth)
+#     for i in range(unet_depth):
+#         prev = input_img if i == 0 else pools[i - 1]
+#         print(int(num_filters * (2 ** i) / downsize_filters_factor))
+#         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+#                      activation='relu', padding='same', kernel_initializer="he_normal",
+#                      name=('conv3D_D_1_%d' % (i)))(prev)
+#         conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
+#         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
+#                      activation='relu', padding='same', kernel_initializer="he_normal",
+#                      name=('conv3D_D_2_%d' % (i)))(conv)
+#         conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
+#         if i < (unet_depth - 1):
+#             pools.append(MaxPoolingL(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
+#         convs.append(conv)
+#
+#     for i in range(unet_depth - 1):
+#         index = i + unet_depth - 1
+#         level = unet_depth - (i + 2)
+#         up = concatenate([UpSamplingL(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
+#                           convs[level]], axis=-1, name=('concat_%d' % (level)))
+#         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
+#                      kernel_initializer="he_normal", name=('conv3D_U_1_%d' % (level)))(up)
+#         conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
+#         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
+#                      kernel_initializer="he_normal", name=('conv3D_U_2_%d' % (level)))(conv)
+#         convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
+#
+#     inputs.append(input_img)
+#     # centered_inputs.append(center_input)
+#     endpoints.append(convs[-1])
+#     up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
+#
+#     print(convs)
+#     print(loss)
+#     print('is_seg_network' + str(is_seg_network))
+#
+#     if is_seg_network == False:
+#         print(loss)
+#         conv = ConvL(num_outputs, out_filter_shape, activation='linear', name='final_conv_3d')(up)
+#
+#         if num_gpus > 1:
+#             with tf.device('/cpu:0'):
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                 if loss == 'grad_loss':
+#                     print(loss)
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                 else:
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#
+#                 return model, parallel_model
+#         else:
+#             model = Model(inputs=inputs, outputs=conv)
+#             if loss == 'grad_loss':
+#                 print(loss)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#             else:
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#             return model, model
+#     else:
+#         print('segmentation network')
+#         if n_labels > 1:
+#             conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d')(up)
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                 return model, model
+#         else:
+#             conv = ConvL(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=dice_coef_loss2, )
+#                 return model, model
+
+# def unet_model_3d(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=(2, 2, 2), n_labels=0,
+#                   loss='mean_absolute_error', initial_learning_rate=0.00001, deconvolution=False, use_patches=True,
+#                   num_gpus=1):
+#     """
+#     Builds the 3D UNet Keras model.
+#     :param input_shape: Shape of the input data (x_size, y_size, z_size).
+#     :param downsize_filters_factor: Factor to which to reduce the number of filters. Making this value larger will
+#     reduce the amount of memory the model will need during training.
+#     :param pool_size: Pool size for the max pooling operations.
+#     :param n_labels: Number of binary labels that the model is learning.
+#     :param initial_learning_rate: Initial learning rate for the model. This will be decayed during training.
+#     :param deconvolution: If set to True, will use transpose convolution(deconvolution) instead of upsamping. This
+#     increases the amount memory required during training.
+#     :return: Untrained 3D UNet Model
+#     """
+#     # channels last, make feature shape from (32,32,32) - > (32,32,32,1)
+#
+#     if n_labels > 0:
+#         is_seg_network = True
+#     else:
+#         is_seg_network = False
+#
+#     # input_shape_list = list(input_shape)
+#     # input_shape_list.append(1)
+#     # input_shape_append = tuple(input_shape_list)
+#     print(input_shape)
+#     input_img = Input(shape=input_shape, name='input')
+#     convs = []
+#     pools = []
+#     inputs = []
+#     centered_inputs = []
+#     endpoints = []
+#     print('unet depth is ')
+#     print(unet_depth)
+#     for i in range(unet_depth):
+#         prev = input_img if i == 0 else pools[i - 1]
+#         print(int(num_filters * (2 ** i) / downsize_filters_factor))
+#         conv = Conv3D(int(num_filters * (2 ** i) / downsize_filters_factor), (3, 3, 3),
+#                       activation='relu', padding='same', kernel_initializer="he_normal",
+#                       name=('conv3D_D_1_%d' % (i)))(prev)
+#         conv = BatchNormalization(name=('bnorm_D_1_%d' % (i)))(conv)
+#         conv = Conv3D(int(num_filters * (2 ** i) / downsize_filters_factor), (3, 3, 3),
+#                       activation='relu', padding='same', kernel_initializer="he_normal",
+#                       name=('conv3D_D_2_%d' % (i)))(conv)
+#         conv = BatchNormalization(name=('bnorm_D_2_%d' % (i)))(conv)
+#         if i < (unet_depth - 1):
+#             pools.append(MaxPooling3D(pool_size, name=('pool_D_%d' % (i)), data_format='channels_last')(conv))
+#
+#         convs.append(conv)
+#
+#     for i in range(unet_depth - 1):
+#         index = i + unet_depth - 1
+#         level = unet_depth - (i + 2)
+#         up = concatenate([UpSampling3D(size=pool_size, name=('upsampling_U_%d' % (level + 1)))(convs[index]),
+#                           convs[level]], axis=-1, name=('concat_%d' % (level)))
+#         conv = Conv3D(num_filters * (2 ** level), (3, 3, 3), padding="same", activation="relu",
+#                       kernel_initializer="he_normal",
+#                       name=('conv3D_U_1_%d' % (level))
+#                       )(up)
+#         conv = BatchNormalization(name=('bnorm_U_1_%d' % (level)))(conv)
+#         conv = Conv3D(num_filters * (2 ** level), (3, 3, 3), padding="same", activation="relu",
+#                       kernel_initializer="he_normal",
+#                       name=('conv3D_U_2_%d' % (level)))(conv)
+#         convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level)))(conv))
+#
+#     # conv = ZeroPadding3D(padding=(1, 1, 1))(convs[-1])
+#     #    conv = Conv3D(num_filters * 2, (3, 3, 3), padding="valid", activation="relu",
+#     #                  kernel_initializer="he_normal")(conv)
+#     #    conv = BatchNormalization()(conv)
+#     #    center_input = Cropping3D(cropping=(0, 0, 0))(input_img)
+#
+#     inputs.append(input_img)
+#     #    centered_inputs.append(center_input)
+#     print(convs)
+#     endpoints.append(convs[-1])
+#
+#     up = concatenate(inputs + endpoints, axis=-1, name='final_concat')
+#     print(loss)
+#     print('is_seg_network' + str(is_seg_network))
+#     if is_seg_network == False:
+#         print(loss)
+#         conv = Conv3D(1, (1, 1, 1), activation='relu', name='final_conv_3d')(up)
+#         if num_gpus > 1:
+#             with tf.device('/cpu:0'):
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                 if loss == 'grad_loss':
+#                     print(loss)
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#                 else:
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#
+#                 return model, parallel_model
+#         else:
+#             model = Model(inputs=inputs, outputs=conv)
+#             if loss == 'grad_loss':
+#                 print(loss)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=grad_loss)
+#             else:
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
+#             return model, model
+#
+#     else:
+#         print('segmentation network')
+#         if n_labels > 1:
+#             conv = Conv3D(n_labels, (1, 1, 1), activation='softmax', name='final_conv_3d')(up)
+#
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                                            loss=dice_coef_loss2, )
+#
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                                   loss=dice_coef_loss2, )
+#
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                               loss=dice_coef_loss2, )
+#                 return model, model
+#         else:
+#             conv = Conv3D(1, (1, 1, 1), activation='sigmoid', name='final_conv_3d')(up)
+#
+#             if num_gpus > 1:
+#                 with tf.device('/cpu:0'):
+#                     model = Model(inputs=inputs, outputs=conv)
+#
+#                     parallel_model = multi_gpu_model(model, gpus=num_gpus)
+#                     parallel_model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                                            loss=dice_coef_loss2, )
+#
+#                     model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                                   loss=dice_coef_loss2, )
+#
+#                     return model, parallel_model
+#             else:
+#                 model = Model(inputs=inputs, outputs=conv)
+#                 model.compile(optimizer=Adam(lr=initial_learning_rate),
+#                               loss=dice_coef_loss2, )
+#                 return model, model
+#
+#

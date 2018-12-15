@@ -147,6 +147,8 @@ public slots:
   void ResetViewInferior();
   void ResetViewAnterior();
   void ResetViewPosterior();
+  void ResetViewLateral();
+  void ResetViewMedial();
   void ShowCursor(bool bshow);
   void OnLayerVisibilityChanged();
   void Azimuth(double degrees);
