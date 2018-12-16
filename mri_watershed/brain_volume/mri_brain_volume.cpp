@@ -246,22 +246,22 @@ static void MRISfit(MRI_variables *MRI_var,
                      const TVector &Pos, const TVector &S, const TVector &N,
                      MRI_variables *MRI_var, double forceParam),
                     double forceParam);
-void calcForce1(double &force0, double &force1, double &force,
+static void calcForce1(double &force0, double &force1, double &force,
                 double sd,
                 const TVector &Pos, const TVector &S, const TVector &N,
                 MRI_variables *MRI_var,
                 double forceParam);
-void calcForce2(double &force0, double &force1, double &force,
+static void calcForce2(double &force0, double &force1, double &force,
                 double sd,
                 const TVector &Pos, const TVector &S, const TVector &N,
                 MRI_variables *MRI_var,
                 double forceParam);
-void calcForceGM(double &force0, double &force1, double &force,
+static void calcForceGM(double &force0, double &force1, double &force,
                  double sd,
                  const TVector &Pos, const TVector &S, const TVector &N,
                  MRI_variables *MRI_var,
                  double forceParam);
-void calcForceMine(
+static void calcForceMine(
   double &force0, double &force1, double &force,
   double sd,
   const TVector &Pos, const TVector &S, const TVector &N,
@@ -282,9 +282,7 @@ static void MRISshrink_surface(MRIS *mris,int h);
 static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src);
 static void label_voxels(STRIP_PARMS *parms, MRI_variables *MRI_var,MRI* mri_with_skull);
 /*VALIDATION - SURFACE CORRECTION*/
-void MRISscale(MRI_SURFACE *mris);
-double MRISradius(MRI_SURFACE *mris);
-void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig);
+static void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig);
 /*mri->type correction*/
 
 // declare function pointer
@@ -2474,25 +2472,12 @@ static void brain_params(MRI_variables *MRI_var) {
 
 static void
 init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var) {
-  MRIS *mris;
-  int k,nvertices;
+
   double x,y,z;
-  double Rx,Ry,Rz;
-
-  mris=MRI_var->mris;
-  nvertices=mris->nvertices;
-
   MyvoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
                  ,&x,&y,&z);
-  Rx=rx;
-  Ry=rz;
-  Rz=ry;
 
-  for (k=0;k<nvertices;k++) {
-    mris->vertices[k].x = Rx*mris->vertices[k].x+x;
-    mris->vertices[k].y = Ry*mris->vertices[k].y+y;
-    mris->vertices[k].z = Rz*mris->vertices[k].z+z;
-  }
+  MRISscaleThenTranslate(MRI_var->mris, rx, ry, rz, x, y, z);
 }
 
 static void write_image(MRI_variables *MRI_var, int val) {
@@ -2615,7 +2600,7 @@ static void find_normal(float nx,float ny, float nz,float* n1,float *n2,  float 
 }
 
 
-// baloon by h
+// balloon by h
 static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char val) {
   int i,j,k,imnr;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,u,v;
@@ -2624,27 +2609,17 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
   double tx,ty,tz;
   int brainsize;
 
-  int width, height,depth;
-  MRI *mri_buff;
-
-  width=mri_dst->width;
-  height=mri_dst->height;
-  depth=mri_dst->depth;
-
   // allocate volume (initialized to be all zeros)
-  mri_buff= MRIalloc(width, height, depth, MRI_UCHAR) ;
+  int const width  = mri_dst->width;
+  int const height = mri_dst->height;
+  int const depth  = mri_dst->depth;
 
-  for (k=0;k<mris->nvertices;k++) {
-    // cache the position
-    mris->vertices[k].tx=mris->vertices[k].x;
-    mris->vertices[k].ty=mris->vertices[k].y;
-    mris->vertices[k].tz=mris->vertices[k].z;
+  MRI* const mri_buff = MRIalloc(width, height, depth, MRI_UCHAR) ;
 
-    // move the vertex baloon by normal component x h.
-    mris->vertices[k].x+=h*mris->vertices[k].nx;
-    mris->vertices[k].y+=h*mris->vertices[k].ny;
-    mris->vertices[k].z+=h*mris->vertices[k].nz;
-  }
+  float *savedX, *savedY, *savedZ;
+  MRISexportXYZ(mris, &savedX, &savedY, &savedZ);
+  
+  MRISblendXYZandNXYZ(mris, float(h));
 
   //
   for (k=0;k<mris->nfaces;k++) {
@@ -2760,11 +2735,11 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
         }
   }
 
-  for (k=0;k<mris->nvertices;k++) {
-    mris->vertices[k].x=mris->vertices[k].tx;
-    mris->vertices[k].y=mris->vertices[k].ty;
-    mris->vertices[k].z=mris->vertices[k].tz;
-  }
+  MRISimportXYZ(mris, savedX, savedY, savedZ);
+  freeAndNULL(savedX);
+  freeAndNULL(savedY);
+  freeAndNULL(savedZ);
+
   MRIScomputeNormals(mris);
 
   free(mri_buff);
@@ -2789,56 +2764,64 @@ static void mean(float tab[4][9],float *moy) {
 
 // move vertex with the neighbor average
 static void MRISsmooth_surface(MRI_SURFACE *mris,int niter) {
-  VERTEX *v;
-  int iter,k,m,n;
-  float x,y,z;
 
+  int const nvertices = mris->nvertices;
 
-  for (iter=0;iter<niter;iter++) {
-    MRIScomputeMetricProperties(mris) ;
-    // first cache the values
-    for (k=0;k<mris->nvertices;k++) {
-      v = &mris->vertices[k];
-      v->tx = v->x;
-      v->ty = v->y;
-      v->tz = v->z;
-    }
+  float *p0x, *p0y, *p0z;
+  MRISexportXYZ(mris, &p0x,&p0y,&p0z);
 
-    for (k=0;k<mris->nvertices;k++) {
+  float* p1x = (float*)memalign(64, nvertices*sizeof(float));
+  float* p1y = (float*)memalign(64, nvertices*sizeof(float));
+  float* p1z = (float*)memalign(64, nvertices*sizeof(float));
+   
+  int iter;
+  for (iter=0; iter < niter; iter++) {
+
+    int k;
+    for (k=0; k < nvertices; k++) {
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
-      VERTEX                * const v  = &mris->vertices         [k];
-      n=0;
-      x = y = z = 0;
-      for (m=0;m<vt->vnum;m++) {
-        // use the cached value for update
-        x += mris->vertices[vt->v[m]].tx;
-        y += mris->vertices[vt->v[m]].ty;
-        z += mris->vertices[vt->v[m]].tz;
-        n++;
+      
+      float x = 0, y = 0, z = 0;
+      int m;
+      for (m=0; m < vt->vnum; m++) {
+        x += p0x[vt->v[m]];
+        y += p0y[vt->v[m]];
+        z += p0z[vt->v[m]];
       }
       // average
-      x/=n;
-      y/=n;
-      z/=n;
-      // update the current value
-      v->x=(v->x + x)/2;
-      v->y=(v->y + y)/2;
-      v->z=(v->z + z)/2;
+      x /= vt->vnum;
+      y /= vt->vnum;
+      z /= vt->vnum;
+      
+      // the next value is the average
+      p1x[k] = (p0x[k] + x) * 0.5f;
+      p1y[k] = (p0y[k] + y) * 0.5f;
+      p1z[k] = (p0z[k] + z) * 0.5f;
     }
+
+    // make the old values the new values
+    float* t; 
+    t = p1x; p1x = p0x; p0x = t;
+    t = p1y; p1y = p0y; p0y = t;
+    t = p1z; p1z = p0z; p0z = t;
   }
+
+  MRISimportXYZ(mris, p0x, p0y, p0z);
+
+  MRIScomputeMetricProperties(mris) ;
+  
+  freeAndNULL(p0x); freeAndNULL(p1x);
+  freeAndNULL(p0y); freeAndNULL(p1y);
+  freeAndNULL(p0z); freeAndNULL(p1z);
 }
+
 
 // shrink surface by h
 static void MRISshrink_surface(MRIS *mris,int h) {
-  int k;
-
   MRISsaveVertexPositions(mris,TMP_VERTICES);
-  // shrink positions by normal component
-  for (k=0;k<mris->nvertices;k++) {
-    mris->vertices[k].x-=h*mris->vertices[k].nx;
-    mris->vertices[k].y-=h*mris->vertices[k].ny;
-    mris->vertices[k].z-=h*mris->vertices[k].nz;
-  }
+  
+  MRISblendXYZandNXYZ(mris, -float(h));
+
   MRIScomputeNormals(mris);
 }
 
@@ -3122,9 +3105,10 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src) {
       d10+=dbuff/4;
 
       // move the position
-      v->x += dx;
-      v->y += dy;
-      v->z += dz;
+      MRISsetXYZ(mris,k,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
     }
 
     lm /=mris->nvertices;
@@ -3251,52 +3235,19 @@ static void label_voxels(STRIP_PARMS *parms, MRI_variables *MRI_var,MRI *mri_wit
 
 }
 
-/************************************************************************
- ***********************************************************************
- ************************************************************************/
-void MRISscale(MRI_SURFACE *mris) {
-  int k;
-  double r;
-  r=100./mris->radius;
-  for (k=0;k<mris->nvertices;k++) {
-    mris->vertices[k].x=mris->vertices[k].x*r;
-    mris->vertices[k].y=mris->vertices[k].y*r;
-    mris->vertices[k].z=mris->vertices[k].z*r;
-  }
-  mris->radius=100;
-}
-
-double MRISradius(MRI_SURFACE *mris) {
-  int k;
-  double r;
-  r=0;
-  for (k=0;k<mris->nvertices;k++) {
-    r+=mris->vertices[k].x*mris->vertices[k].x;
-    r+=mris->vertices[k].y*mris->vertices[k].y;
-    r+=mris->vertices[k].z*mris->vertices[k].z;
-  }
-  return(sqrt(r/(double)mris->nvertices));
-}
-
-
 #define CORR_THRESHOLD 5.3f
 
 extern "C" int finite(double v);
 
-void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig) {
-  int p;
-  for (p=0;p<mris->nvertices;p++) {
-    mris->vertices[p].x=mris_orig->vertices[p].x;
-    mris->vertices[p].y=mris_orig->vertices[p].y;
-    mris->vertices[p].z=mris_orig->vertices[p].z;
-  }
+static void MRISchangeCoordinates(MRIS *mris,MRIS *mris_orig) {
+  MRIScopyXYZ(mris, mris_orig);
   mris->radius=mris_orig->radius;
   mris->status=mris_orig->status;
 }
 
 
 // used in MRISshrink1
-void calcForce1(
+static void calcForce1(
   double &force0, double &force1, double &force,
   double sd,
   const TVector &Pos, const TVector &S, const TVector &N,
@@ -3363,7 +3314,7 @@ void calcForce1(
   force = 0.2*force2+forceParam*(force3-0.1);
 }
 
-void calcForceGM(
+static void calcForceGM(
   double &force0, double &force1, double &force,
   double sd,
   const TVector &Pos, const TVector &S, const TVector &N,
@@ -3482,7 +3433,7 @@ void calcForceGM(
 }
 
 
-void calcForceMine(
+static void calcForceMine(
   double &force0, double &force1, double &force,
   double sd,
   const TVector &Pos, const TVector &S, const TVector &N,
@@ -3567,7 +3518,7 @@ void calcForceMine(
 }
 
 // shrink2
-void calcForce2(
+static void calcForce2(
   double &force0, double &force1, double &force,
   double sd,
   const TVector &Pos, const TVector &S, const TVector &N,
@@ -3881,9 +3832,10 @@ static void MRISfit(MRI_variables *MRI_var,
 
       ////////////////////////////////////////////////////////////
       // now move vertex by (dx, dy, dz)
-      v->x += dX.x;
-      v->y += dX.y;
-      v->z += dX.z;
+      MRISsetXYZ(mris,k,
+        v->x + dX.x,
+        v->y + dX.y,
+        v->z + dX.z);
     }
 
     lm /=mris->nvertices;  // neighbor distance mean

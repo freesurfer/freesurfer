@@ -3068,6 +3068,10 @@ void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol)
 {
   int const nvertices = mris->nvertices;
 
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int vno;
   for (vno = 0; vno < nvertices; vno++) {
 

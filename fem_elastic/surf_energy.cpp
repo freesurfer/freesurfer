@@ -66,6 +66,10 @@ apply_lin_transform(MRI_SURFACE* mris, float* transform)
     std::cout << std::endl;
   }
 
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   for (int index = 0; index < mris->nvertices; index++)
   {
     VERTEX * const vertex = &mris->vertices[index];

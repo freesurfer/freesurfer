@@ -2211,7 +2211,9 @@ int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) continue;
 
-      d0 = v->dist_orig[n] / scale;
+      float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+
+      d0 = dist_orig_n / scale;
       dt = v->dist[n];
       delta = dt - d0;
       VECTOR_LOAD(v_y[tid], vn->x - v->x, vn->y - v->y, vn->z - v->z);
@@ -2282,14 +2284,16 @@ int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fp = fopen(fname, "w");
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
       VERTEX          const * const v  = &mris->vertices         [Gdiag_no];
-      for (i = 0; i < vt->vtotal; i++)
+      for (i = 0; i < vt->vtotal; i++) {
+        float const dist_orig_i = !v->dist_orig ? 0.0 : v->dist_orig[i];
         fprintf(fp,
                 "%03d: %05d, %f   %f   %f\n",
                 i,
                 vt->v[i],
-                v->dist_orig[i],
+                dist_orig_i,
                 v->dist[i],
-                v->dist[i] - v->dist_orig[i] / scale);
+                v->dist[i] - dist_orig_i / scale);
+      }
       fclose(fp);
     }
     ROMP_PFLB_end
@@ -8551,8 +8555,6 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     ROMP_PFLB_begin
 
 #endif    
-    int n;
-    double delta, v_sse;
 
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
@@ -8564,7 +8566,10 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (v->neg) ROMP_PF_continue;
 #endif
 
-    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
+    double v_sse = 0.0;
+
+    int n;
+    for (n = 0; n < vt->vtotal; n++) {
       int const vn_vno = vt->v[n];
       VERTEX const * const vn = &mris->vertices[vn_vno];
       if (vn->ripflag) continue;
@@ -8573,32 +8578,21 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (mris->vertices[vn_vno].neg) continue;
 
 #endif
-      if (v->dist_orig[n] >= UNFOUND_DIST) continue;
+      float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+      
+      if (dist_orig_n >= UNFOUND_DIST) continue;
 
-      if (DZERO(v->dist_orig[n]) && first) {
+      if (DZERO(dist_orig_n) && first) {
         first = 0;
-        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, v->dist_orig[n]);
+        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, dist_orig_n);
         fflush(stderr);
         DiagBreak();
         if (++err_cnt > max_errs) {
           ErrorExit(ERROR_BADLOOP, "mrisComputeDistanceError: Too many errors!\n");
         }
       }
-      delta = dist_scale * v->dist[n] - v->dist_orig[n];
 
-#if 0
-#ifdef HAVE_OPENMP
-//#pragma omp critical (max_delta)
-#endif
-      {
-      if (fabs(delta) > fabs(max_del))
-      {
-        max_del = delta ;
-        max_v = vno ;
-        max_n = n ;
-      }
-      }
-#endif
+      double delta = dist_scale * v->dist[n] - dist_orig_n;
       if (parms->vsmoothness)
         v_sse += (1.0 - parms->vsmoothness[vno]) * (delta * delta);
       else

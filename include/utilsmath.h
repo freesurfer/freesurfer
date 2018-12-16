@@ -161,6 +161,10 @@ namespace Math
   */
   void ConvertSurfaceRASToVoxel(MRIS *mris, MRI *mri_template)
   {
+    MRISfreeDistsButNotOrig(mris);
+      // MRISsetXYZ will invalidate all of these,
+      // so make sure they are recomputed before being used again!
+
     for (int i=0; i< mris->nvertices; i++)
     {
       VERTEX const * const vertex = &mris->vertices[i];

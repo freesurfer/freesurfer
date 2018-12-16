@@ -906,6 +906,11 @@ int MRISreadFlattenedCoordinates(MRI_SURFACE *mris, const char *sname)
     return (Gerror);
   }
   MRISsaveVertexPositions(mris, FLATTENED_VERTICES);
+  
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag) {
@@ -1005,6 +1010,10 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   FILE *fp = NULL;
   char line[256];
   char *cp;
+
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
 
   // check whether the patch file is ascii or binary
   if (type == MRIS_GIFTI_FILE)    /* .gii */
@@ -2338,6 +2347,10 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   ------------------------------------------------------*/
 int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
 {
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   char fname[STRLEN];
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   FILE *fp;
@@ -2874,6 +2887,10 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   }
 
   /* read vertices... */
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     float x,y,z;
@@ -3059,8 +3076,6 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   }
 
   fclose(fp);
-  
-  mrisCheckVertexFaceTopology(mris);
   
   return (mris);
 }
@@ -3362,8 +3377,6 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
   }
   fclose(fp);
   
-  mrisCheckVertexFaceTopology(mris);
-  
   return (mris);
 }
 
@@ -3436,8 +3449,6 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   }
 
   fclose(fp);
-  
-  mrisCheckVertexFaceTopology(mris);
   
   return (mris);
 }
@@ -3844,14 +3855,12 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
   }
 #endif
 
-  mrisCheckVertexFaceTopology(mris);
-
   return (mris);
 }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
+MRIS* MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 {
   MRI_SURFACE *mris = NULL;
   int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
@@ -4123,6 +4132,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
       }
     }
     fclose(fp);
+    fp = NULL;
   }
   /* end of quadrangle file processing */
   /* file is closed now for all types ***********************************/
@@ -4190,19 +4200,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
     mris->vertices[vno].curv = 0;
     mris->vertices[vno].origarea = -1;
     mris->vertices[vno].border = 0;
-#if 0
-    mris->vertices[vno].origripflag = 0;
-    mris->vertices[vno].ripflag = 0;
-    mris->vertices[vno].val = 0;
-    mris->vertices[vno].dist = 0;
-    mris->vertices[vno].mx = 0;
-    mris->vertices[vno].my = 0;
-    mris->vertices[vno].mz = 0;
-    mris->vertices[vno].fieldsign = 0;
-    mris->vertices[vno].fsmask = 1;
-    mris->vertices[vno].nc = 0;
-    mris->vertices[vno].marked = 0;
-#endif
+
     for (n = 0; n < mris->vertices_topology[vno].num; n++) {
       for (m = 0; m < VERTICES_PER_FACE; m++) {
         if (mris->faces[mris->vertices_topology[vno].f[n]].v[m] == vno) {
@@ -4250,39 +4248,9 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 
   mrisReadTransform(mris, fname);
 
-  if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE) {
-#if 0
-    MRISsetNeighborhoodSizeAndDist(mris, 2) ;
-    MRIScomputeSecondFundamentalForm(mris) ;
-    MRISuseMeanCurvature(mris) ;
-#endif
-  }
-  else {
-#if 0
-    if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
-    {
-      fprintf(stdout, "computing surface curvature directly...\n") ;
-      MRISsetNeighborhoodSizeAndDist(mris, 2) ;
-      MRIScomputeSecondFundamentalForm(mris) ;
-      MRISuseMeanCurvature(mris) ;
-    }
-
-    if (MRISreadBinaryAreas(mris, fname) != NO_ERROR)
-    {
-      fprintf(stdout, "ignoring area file...\n") ;  /*return(NULL) ;*/
-    }
-#endif
-  }
-
   mris->radius = MRISaverageRadius(mris);
-#if 0
-  if (IS_QUADRANGULAR(mris))
-  {
-    MRISremoveTriangleLinks(mris) ;
-  }
-#endif
+
   MRIScomputeMetricProperties(mris);
-  /*  mrisFindPoles(mris) ;*/
 
   MRISstoreCurrentPositions(mris);
 
@@ -4307,6 +4275,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double nVFMultiplier)
   else {
     mris->group_avg_vtxarea_loaded = 0;
   }
+
   if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
     printf("Average area loaded %d\n", mris->group_avg_vtxarea_loaded);
   }
@@ -5347,6 +5316,9 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
 
   MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   for (vno = 0; vno < nvertices; vno++) {
     float x = freadFloat(fp);
     float y = freadFloat(fp);

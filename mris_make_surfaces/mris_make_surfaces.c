@@ -1075,13 +1075,15 @@ int main(int argc, char *argv[])
     // create this surface here because v->d gets set to 0 after pos surf
     if(mristarget != NULL) MRISfree(&mristarget);
     mristarget = MRISclone(mris);
+
     for(vno=0; vno < mris->nvertices; vno++){
       VERTEX* const v = &(mristarget->vertices[vno]);
       v->d = mris->vertices[vno].d; // clone does not copy this
       v->val = mris->vertices[vno].val; // clone does not copy this
-      v->x += (v->d*v->nx); // d is the distance to the max gradient
-      v->y += (v->d*v->ny);
-      v->z += (v->d*v->nz);
+      MRISsetXYZ(mristarget,vno,
+        v->x + (v->d*v->nx), // d is the distance to the max gradient
+        v->y + (v->d*v->ny),
+        v->z + (v->d*v->nz));
     }
 
     // Everything up to now has been leading up to this. This is where
@@ -1375,23 +1377,10 @@ int main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
 
     if (longitudinal) {
-      //reset starting point to be between final white and orig pial
-      int vno;
-      VERTEX *v;
       //reset the starting position to be
       //slightly inside the orig_pial in the longitudinal case
-      for (vno = 0; vno < mris->nvertices; vno++)
-      {
-        v = &mris->vertices[vno];
-        if (v->ripflag)
-        {
-          continue;
-        }
-        // where tx ty tz is the TMP_VERTICES (final white)
-        v->x = 0.75*v->x + 0.25*v->tx;
-        v->y = 0.75*v->y + 0.25*v->ty;
-        v->z = 0.75*v->z + 0.25*v->tz;
-      }
+      //between final white and orig pial
+      MRISblendXYZandTXYZ(mris, 0.75f, 0.25f);
     }
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever
     // orig_pial is used??? Maybe that's why the cross-intersection
@@ -1918,23 +1907,33 @@ int main(int argc, char *argv[])
       }// end if (j == 0 && i == 0 && orig_pial == NULL)  
 
       if(mristarget != NULL) MRISfree(&mristarget);
+      
       mristarget = MRISclone(mris);
+
+      float *px,*py,*pz;
+      MRISexportXYZ(mristarget, &px, &py, &pz);
+      
       for(vno=0; vno < mris->nvertices; vno++){
         VERTEX * const v = &(mristarget->vertices[vno]);
         if(flair_or_T2_name == NULL) {
-          v->d = mris->vertices[vno].d; // clone does not copy this
+          v->d   = mris->vertices[vno].d;   // clone does not copy this
           v->val = mris->vertices[vno].val; // clone does not copy this
-          v->x += (v->d*v->nx); // d is the distance to the max gradient
-          v->y += (v->d*v->ny);
-          v->z += (v->d*v->nz);
+          px[vno] += (v->d*v->nx);          // d is the distance to the max gradient
+          py[vno] += (v->d*v->ny);
+          pz[vno] += (v->d*v->nz);
         }
 	else{
 	  VERTEX const * const v2 = &(mris->vertices[vno]);
-          v->x = v2->targx; // clone does not copy this
-          v->y = v2->targy; 
-          v->z = v2->targz; 
+          px[vno] = v2->targx; // clone does not copy this
+          py[vno] = v2->targy; 
+          pz[vno] = v2->targz; 
         }
       }
+
+      MRISimportXYZ(mristarget,  px,  py,  pz);
+      freeAndNULL(px);
+      freeAndNULL(py);
+      freeAndNULL(pz);
 
       INTEGRATION_PARMS_copy(&old_parms, &parms) ;
       parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;

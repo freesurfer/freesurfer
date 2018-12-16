@@ -1256,10 +1256,9 @@ mrisExaminemovelength(MRI_SURFACE *mris) {
   int           k, overnum=0, over_num=0;
   //float         dx, dy, dz, x, y, z, A, B, C, f;
   float         mag, th ;
-  VERTEX        *v;
 
   for (k=0;k<mris->nvertices;k++) {
-    v = &mris->vertices[k];
+    VERTEX* v = &mris->vertices[k];
 
     /********** First, restrict vertex movement in each step by threshold *******/
     mag = sqrt ((v->dx)*(v->dx) + (v->dy)*(v->dy)+ (v->dz)*(v->dz));
@@ -1317,9 +1316,10 @@ mrisExaminemovelength(MRI_SURFACE *mris) {
       //   "dx=%2.2f, dy=%2.2f, dz=%2.2f\n",
       //   k,v->dx, v->dy, v->dz, v->odx, v->ody, v->odz ) ;
     }
-    v->x += v->odx ;
-    v->y += v->ody ;
-    v->z += v->odz ;
+    MRISsetXYZ(mris,k,
+      v->x + v->odx,
+      v->y + v->ody,
+      v->z + v->odz);
 #endif
   }
 
@@ -1733,11 +1733,14 @@ mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
 
   /* take a step in the gradient direction modulated by momentum */
   if (mris->status == MRIS_RIGID_BODY) {
+  
     mris->da = delta_t * mris->alpha + momentum * mris->da ;
-    mris->db = delta_t * mris->beta + momentum * mris->db ;
+    mris->db = delta_t * mris->beta  + momentum * mris->db ;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg ;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg) ;
-  } else for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    
+  } else {
+    for (vno = 0 ; vno < mris->nvertices ; vno++) {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
@@ -1772,11 +1775,13 @@ mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
         fprintf(stdout, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n",
                 v->nx, v->ny, v->nz, dist, dot) ;
       }
-      v->x += v->odx ;
-      v->y += v->ody ;
-      v->z += v->odz ;
+      MRISsetXYZ(mris,vno,
+        v->x + v->odx,
+        v->y + v->ody,
+        v->z + v->odz);
     }
-
+  }
+  
   mrisProjectSurface(mris) ;
   return(delta_t) ;
 }
@@ -1865,147 +1870,164 @@ mrisComputeTangentPlanes(MRI_SURFACE *mris) {
 
 static int
 FindSpikes(MRI_SURFACE *mris, int iter) {
-  int      vno, counter=0 ,alarm=0, step=4;
-  float    weight=0;
-  VERTEX   *vertex;
+  int      alarm=0, step=4;
 
   MRISupdateSurface(mris);
   MRISuseMeanCurvature(mris);
-  counter=0;
 
   if ( iter<= 50 && iter%5==0) MRISresetNeighborhoodSize(mris, 2) ;
   else MRISresetNeighborhoodSize(mris, 1) ;
-  //MRISresetNeighborhoodSize(mris, 1) ;
+
   if (iter<=100) step = 4;
   else step =  9;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
-    vertex->marked = 0;
-    //if (iter%100==0)
-    //  printf("vertex: %d, curvature: %2.2f Gaussian Curvature: %2.2f high curvautre %2.2f \n",  vno, vertex->curv, vertex->K, vertex->k1);
-  }
+  MRISclearMarks(mris);
 
+  int counter=0 ;
+
+  int vno;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
+    VERTEX* vertex = &mris->vertices[vno] ;
 
     if ( (fabs(vertex->curv)>=3) || (vertex->K*vertex->K>=4) || fabs(vertex->k1)>=3 || fabs(vertex->K)<0.01 ) {
       if (vertex->marked == 0) {
         counter++;
-        vertex->marked=1;
+        vertex->marked = 1;
         if (iter==0) {
-          vertex->x=vertex->origx;
-          vertex->y=vertex->origy;
-          vertex->z=vertex->origz;
+          MRISsetXYZ(mris, vno, vertex->origx, vertex->origy, vertex->origz);
         }
       }
     }
 
     if ( iter<= smooth_spikes/1.25 && iter%5==0) {
       if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=step) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
-        weight = vertex->k1/100;
-        if (vertex->k1>0&&vertex->K<0) weight = -1*weight;
+        float weight = vertex->k1/100;
+        if (vertex->k1 > 0 && vertex->K < 0) weight = -weight;
         if ( fabs(weight)>0.4) weight = weight/fabs(weight)/2.5;
-        vertex->x -= weight*vertex->nx;
-        vertex->y -= weight*vertex->ny;
-        vertex->z -= weight*vertex->nz;
+        
+        MRISsetXYZ(mris, vno,
+          vertex->x - weight*vertex->nx,
+          vertex->y - weight*vertex->ny,
+          vertex->z - weight*vertex->nz);
+          
         alarm++;
       }
     }
   }
+  
   MRISupdateSurface(mris);
   MRISuseMeanCurvature(mris);
+  
   fprintf(stderr, "Marked %d vertices after %d iterations \n", counter, iter);
   return(alarm);
 }
 
 static int
 SmoothSpikes(MRI_SURFACE *mris, int niter) {
-  float    x, y, z, num ;
-  int      vno, n, i=0, j=0;
 
   if (FZERO(niter))
     return(NO_ERROR) ;
 
+  int const nvertices = mris->nvertices;
+  
+  float* tx = (float*)memalign(64, nvertices*sizeof(float)), 
+       * ty = (float*)memalign(64, nvertices*sizeof(float)),
+       * tz = (float*)memalign(64, nvertices*sizeof(float));
+
+  float* px, *py, *pz;
+  MRISexportXYZ(mris, &px,&py,&pz);
+
+  int i;
   for (i=0; i<niter; i++) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+
+    int  vno;
+    for (vno = 0 ; vno < nvertices ; vno++) {
       VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
       VERTEX                * const vertex  = &mris->vertices         [vno];
-      if (vertex->marked ==1) {
-        num=0;
-        x = vertex->x ;
-        y = vertex->y ;
-        z = vertex->z ;
-        for (n = 0 ; n < vertext->vtotal ; n++) {
-          VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
-          if (vn->ripflag)
-            continue ;
-          num++ ;
-          x += vn->x ;
-          y += vn->y ;
-          z += vn->z ;
-        }
-        num++ ;   /* account for central vertex */
-        vertex->tdx = x / num ;
-        vertex->tdy = y / num ;
-        vertex->tdz = z / num ;
+
+      if (vertex->marked != 1) continue;
+       
+      float x = px[vno];
+      float y = py[vno];
+      float z = pz[vno];
+      
+      int num = 1;  /* account for central vertex */
+      int n;
+      for (n = 0 ; n < vertext->vtotal ; n++) {
+        int const vno2 = vertext->v[n];
+        VERTEX const * const vn = &mris->vertices[vno2] ;
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        x += px[vno2] ;
+        y += py[vno2] ;
+        z += pz[vno2] ;
+      }
+      
+      tx[vno] = x / (float)(num) ;
+      ty[vno] = y / (float)(num) ;
+      tz[vno] = z / (float)(num) ;
+    }
+
+    for (vno = 0 ; vno < nvertices ; vno++) {
+      VERTEX * const vertex = &mris->vertices[vno] ;
+      if (vertex->marked == 1) {
+        px[vno] = tx[vno] ;
+        py[vno] = ty[vno] ;
+        pz[vno] = tz[vno] ;
       }
     }
 
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      VERTEX * const vertex = &mris->vertices[vno] ;
-      if (vertex->marked == 1) {
-        vertex->x = vertex->tdx ;
-        vertex->y = vertex->tdy ;
-        vertex->z = vertex->tdz ;
-      }
-    }
-#if 1
+    int j;
     for (j=0; j<2; j++) {
-      for (vno = 0 ; vno < mris->nvertices ; vno++) {
+      for (vno = 0 ; vno < nvertices ; vno++) {
         VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
         VERTEX                * const vertex  = &mris->vertices         [vno];
+        
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
-          num=0;
-          x = vertex->x ;
-          y = vertex->y ;
-          z = vertex->z ;
+          int num = 1;  /* account for central vertex */
+          float x = px[vno] ;
+          float y = py[vno] ;
+          float z = pz[vno] ;
+          
+          int n;
           for (n = 0 ; n < vertext->vtotal ; n++) {
-            VERTEX const * const vn = &mris->vertices[vertext->v[n]] ;
+            int const vno2 = vertext->v[n];
+            VERTEX const * const vn = &mris->vertices[vno2] ;
             if (vn->ripflag)
               continue ;
             num++ ;
-            x += vn->x ;
-            y += vn->y ;
-            z += vn->z ;
+            x += px[vno2] ;
+            y += py[vno2] ;
+            z += pz[vno2] ;
           }
-          num++ ;   /* account for central vertex */
-          vertex->tdx = x / num ;
-          vertex->tdy = y / num ;
-          vertex->tdz = z / num ;
+          
+          tx[vno] = x / (float)(num) ;
+          ty[vno] = y / (float)(num) ;
+          tz[vno] = z / (float)(num) ;
         }
       }
-      for (vno = 0 ; vno < mris->nvertices ; vno++) {
+      
+      for (vno = 0 ; vno < nvertices ; vno++) {
         VERTEX * const vertex = &mris->vertices[vno] ;
         if ( (fabs(vertex->curv)>=4) || (vertex->K*vertex->K>=4) ||fabs(vertex->k1)>=4 || fabs(vertex->K)<0.01 ) {
-          vertex->x = vertex->tdx ;
-          vertex->y = vertex->tdy ;
-          vertex->z = vertex->tdz ;
+          px[vno] = tx[vno] ;
+          py[vno] = ty[vno] ;
+          pz[vno] = tz[vno] ;
         }
       }
     }
-#endif
   }
+
+  MRISimportXYZ(mris,  px, py, pz);
+
+  freeAndNULL(px);
+  freeAndNULL(py);
+  freeAndNULL(pz);
+
+  freeAndNULL(tx);
+  freeAndNULL(ty);
+  freeAndNULL(tz);
+
   return(NO_ERROR);
 }
-
-
-
-
-
-
-
-
-
-
-

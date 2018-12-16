@@ -133,17 +133,22 @@ int main(int argc, char **argv)
   for(s=0; s < surf->nvertices; s++){
     v = &(surf->vertices[s]);
     for(c=0; c<3; c++){
-      if(c==0) v->x += delta;
-      if(c==1) v->y += delta;
-      if(c==2) v->z += delta;
+      double dx = (c==0) ? delta : 0.0;
+      double dy = (c==1) ? delta : 0.0;
+      double dz = (c==2) ? delta : 0.0;
+      MRISsetXYZ(surf,s,
+        v->x + dx,
+        v->y + dy,
+        v->z + dz);
       MRISfaceNormalGrad(surf, 0);
       MRISedgeGradDot(surf);
       //d1 = MRISbbrCost(bbrpar, NULL);
       d1 = MRISedgeCost(surf, NULL);
       gnum->rptr[1][c+1] = (d1-d)/delta;
-      if(c==0) v->x -= delta;
-      if(c==1) v->y -= delta;
-      if(c==2) v->z -= delta;
+      MRISsetXYZ(surf,s,
+        v->x - dx,
+        v->y - dy,
+        v->z - dz);
     }
     printf("#@# %d ",s);
     for(c=0; c<3; c++) printf("%12.10lf ",100000*(dJ->rptr[s+1][c+1]-gnum->rptr[1][c+1]));
@@ -378,9 +383,10 @@ int MRISmatrix2Vertex(MRIS *surf, int vtxno, DMATRIX *vm)
     printf("ERROR: MRISmatrix2Vertex(): vm wrong dim %d %d\n",vm->rows,vm->cols);
     return(1);
   }
-  surf->vertices[vtxno].x = vm->rptr[1][1];
-  surf->vertices[vtxno].y = vm->rptr[2][1];
-  surf->vertices[vtxno].z = vm->rptr[3][1];
+  MRISsetXYZ(surf,vtxno,
+    vm->rptr[1][1],
+    vm->rptr[2][1],
+    vm->rptr[3][1]);
   return(0);
 }
 
@@ -391,9 +397,10 @@ int MRISscaleVertices(MRIS *surf, double scale)
   VERTEX *v;
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
     v = &(surf->vertices[vtxno]);
-    v->x *= scale;
-    v->y *= scale;
-    v->z *= (scale*(1+fabs(v->z)));
+    MRISsetXYZ(surf,vtxno,
+      v->x * scale,
+      v->y * scale,
+      v->z * (scale*(1+fabs(v->z))));
   }
   return(0);
 }
@@ -421,9 +428,10 @@ int UpdateVertexPosition(MRIS *surf, double stepsize, DMATRIX *grad)
   #endif
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
     VERTEX *v = &(surf->vertices[vtxno]);
-    v->x -= (stepsize*grad->rptr[vtxno+1][1]);
-    v->y -= (stepsize*grad->rptr[vtxno+1][2]);
-    v->z -= (stepsize*grad->rptr[vtxno+1][3]);
+    MRISsetXYZ(surf,vtxno,
+      v->x - (stepsize*grad->rptr[vtxno+1][1]),
+      v->y - (stepsize*grad->rptr[vtxno+1][2]),
+      v->z - (stepsize*grad->rptr[vtxno+1][3]));
   }
   return(0);
 }

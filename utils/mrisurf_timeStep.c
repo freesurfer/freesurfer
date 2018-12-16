@@ -853,19 +853,27 @@ double mrisAsynchronousTimeStep(
     MHT *         const mht, 
     float         const max_mag)
 {
+    MRISfreeDistsButNotOrig(mris);
+
     static int direction = -1;
     mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
         mris, momentum, delta_t, mht, max_mag, &direction, true);
+
     return delta_t;
 }
 
+
 double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
 {
+    MRISfreeDistsButNotOrig(mris);
+
     static int direction = -1;
     mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
         mris, momentum, delta_t, mht, max_mag, &direction, false);
+
     return delta_t;
 }
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -918,6 +926,10 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
   }
   else
   {
+    MRISfreeDistsButNotOrig(mris);
+        // MRISsetXYZ will invalidate all of these,
+        // so make sure they are recomputed before being used again!
+    
     int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX * const v = &mris->vertices[vno];
@@ -2090,6 +2102,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   
   if (parms == NULL) {
 
+    MRISfreeDistsButNotOrig(mris);
+        // MRISsetXYZ will invalidate all of these,
+        // so make sure they are recomputed before being used again!
+
     for (vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
       if (v->ripflag) {
@@ -2332,6 +2348,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           mrisComputeNonlinearTangentialSpringTerm(mris, parms->l_nltspring, parms->min_dist);
           mrisComputeAngleAreaTerms(mris, parms);
           MRISaverageGradients(mris, avgs);
+          
           mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt, mht, MAX_EXP_MM);
 
           if ((parms->write_iterations > 0) && !((n + 1) % parms->write_iterations) && (Gdiag & DIAG_WRITE)) {
@@ -2566,7 +2583,11 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
            max_dy,
            max_dz,
            sqrt(SQR(max_dx) + SQR(max_dy) + SQR(max_dz)));
-  
+
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag || v->marked == 0) {
@@ -2680,7 +2701,9 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
     MRISaverageGradients(mris, n_averages);
     mrisComputeMaxSpringTerm(mris, l_max_spring);
     mrisComputeAngleAreaTerms(mris, &parms);
+    
     delta_t = mrisAsynchronousTimeStep(mris, 0, .2, mht, min_dist);
+
     MRIScomputeMetricProperties(mris);
     MRIScomputeSecondFundamentalForm(mris);
     old_compressed = compressed;
