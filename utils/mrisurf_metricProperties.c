@@ -4835,7 +4835,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
 
   if (alwaysDoDist) {
     mrisComputeVertexDistances(mris);
-    mrisComputeOriginalVertexDistances(mris);
+    if (mris->dist_alloced_flags & 2) mrisComputeOriginalVertexDistances(mris);
   }
 }
 

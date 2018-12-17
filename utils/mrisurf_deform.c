@@ -2124,6 +2124,8 @@ int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
   ------------------------------------------------------*/
 int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
+  mrisComputeOriginalVertexDistancesIfNecessary(mris);
+
   float l_dist, scale, norm;
   int vno, tno;
   int diag_vno1, diag_vno2;
