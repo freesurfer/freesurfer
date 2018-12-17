@@ -34,10 +34,7 @@ int mrisurf_orig_clock;
 //
 static void MRISsetXYZwkr1(MRIS *mris, const char * file, int line, bool* laterTime) {
   if (mris->dist_alloced_flags & 1) {
-    if (!*laterTime) { *laterTime = true;
-      fprintf(stdout, "%s:%d setXYZ with dist not freed.  Add call to MRISfreeDistsButNotOrig(MRIS*)\n", file,line);
-    }
-    cheapAssert(true);  // HACK should be true
+    copeWithLogicProblem2(laterTime, NULL,"dist not freed when setXYZ called.  Add call to MRISfreeDistsButNotOrig(MRIS*)",file,line,"<unknown>");
   }
 }
 
@@ -149,10 +146,7 @@ void MRIScopyXYZ(MRIS *mris, MRIS* mris_from) {
 void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float origx, float origy, float origz, const char * file, int line, bool* laterTime) 
 {
   if (mris->dist_alloced_flags & 2) {
-    if (!*laterTime) { *laterTime = true;
-      fprintf(stdout, "%s:%d setOriginalXYZ with dist_orig not freed.  Add call to MRISfreeDistOrigs(MRIS*)\n", file,line);
-    }
-    cheapAssert(true);  // HACK should be false
+    copeWithLogicProblem2(laterTime, NULL,"dist_orig not freed when setOriginalXYZ called.  Add call to MRISfreeDistOrigs(MRIS*)",file,line,"<unknown>");
   }
 
   cheapAssertValidVno(mris,vno);

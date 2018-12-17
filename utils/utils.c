@@ -1779,7 +1779,7 @@ LogicProblemResponse copeWithLogicProblem2(
 {
   static bool emitReport, getenvDone;
   if (!getenvDone) { getenvDone = true;
-    emitReport = !getenv("FREESURFER_dontReportLogicErrors");
+    emitReport = !!getenv("FREESURFER_reportLogicErrors");
   }
 
   LogicProblemResponse response = LogicProblemResponse_old;
