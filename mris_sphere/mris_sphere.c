@@ -378,7 +378,7 @@ main(int argc, char *argv[])
     MRISwrite(mris, "after") ;
   }
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
+  MRISsetNeighborhoodSize(mris, nbrs) ;
   if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
   {
     printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;

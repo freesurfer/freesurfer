@@ -22,6 +22,7 @@ install(FILES
   dtifa.m
   dtimatrix.m
   erode3d.m
+  exvivo_dwi_fit_fun.m
   fisher_twoclass.m
   fix_exvivo_dwi_drift.m
   fread3.m

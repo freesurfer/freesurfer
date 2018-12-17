@@ -1,7 +1,7 @@
 #ifndef RENDERWIDGET_H
 #define RENDERWIDGET_H
 
-#include <QGLWidget>
+#include <QtOpenGL/QGLWidget>
 #include <QTimer>
 #include <QImage>
 

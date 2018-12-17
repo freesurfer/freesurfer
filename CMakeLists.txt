@@ -703,6 +703,7 @@ if(NOT MINIMAL)
     mris_warp
     mris_watershed
     mrisp_write
+    nmovie_qt
     oct_register_mosaic
     oct_train
     optseq2

@@ -3513,8 +3513,8 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisTearStressedRegions(mris, parms)  ;
       if (parms->explode_flag)
       {
-	MRISremoveRippedFaces(mris) ;
-	MRISremoveRippedVertices(mris) ;
+        MRISsetOrigArea(mris);  // used to happen inside MRISrenumberRemovingRippedFacesAndVertices
+	MRISrenumberRemovingRippedFacesAndVertices(mris);
       }
   
 #if 0

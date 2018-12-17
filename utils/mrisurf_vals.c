@@ -1557,7 +1557,7 @@ int MRISdilateRipped(MRIS *mris, int ndil)
       v->ripflag = (int)v->tx;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -1586,7 +1586,7 @@ int MRISerodeRipped(MRIS *mris, int ndil)
       v->ripflag = (int)v->tx;
     }
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   return (NO_ERROR);
 }
 
@@ -3400,6 +3400,14 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
 }
 
 
+void MRISclearD(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].d = 0.0f;
+  }
+}
+
 
 int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_distance)
 {
@@ -3561,16 +3569,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     // Expand each vertex to its nsizeMax.
     // This is assumed later.
     //
-    if (vt->nsizeMax == 3) {
-      vt->vtotal = vt->v3num;
-    }
-    else if (vt->nsizeMax == 2) {
-      vt->vtotal = vt->v2num;
-    }
-    else { cheapAssert(vt->nsizeMax == 1);
-      vt->vtotal = vt->vnum;
-    }
-    vt->nsizeCur = vt->nsizeMax;
+    cheapAssert(vt->nsizeMax > 0);
+    MRIS_setNsizeCur(mris, vno, vt->nsizeMax);
 
     if (!adjusted_mris_nsize) {
       adjusted_mris_nsize = true;
@@ -3589,9 +3589,9 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     if (trace && vno == 0) fprintf(trace, "vCapacity:%d\n", vCapacity);
     
     {
-      vt->v        = (int  *)realloc(vt->v,        vCapacity*sizeof(int  ));
-      v->dist      = (float*)realloc(v->dist,      vCapacity*sizeof(float));
-      v->dist_orig = (float*)realloc(v->dist_orig, vCapacity*sizeof(float));
+      vt->v = (int *)realloc(vt->v, vCapacity*sizeof(int));
+      MRISgrowDist    (mris,vno,vCapacity);
+      MRISgrowDistOrig(mris,vno,vCapacity);
       int i;
       for (i = vt->vtotal; i < vCapacity; i++) vt->v[i] = v->dist[i] = v->dist_orig[i] = 0;
     }
@@ -4000,6 +4000,8 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
   }
 
   /* check reasonableness of distances */
+  size_t zeroesCount    = 0;
+  size_t nonZeroesCount = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX          const * const v  = &mris->vertices         [vno];
@@ -4008,9 +4010,18 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
     }
     int n;
     for (n = 0; n < vt->vtotal; n++) {
-      if (DZERO(v->dist_orig[n])) fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+      if (!DZERO(v->dist_orig[n])) {
+        if (!nonZeroesCount && vno != 0) fprintf(stderr, "first zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+        nonZeroesCount++;
+      } else {
+        zeroesCount++;
+        if      (zeroesCount <  50) fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n", vno, n, vt->v[n]);
+        else if (zeroesCount == 50) fprintf(stderr, "further zeroes elided\n");
+      }
     }
   }
+  if (zeroesCount > 0)
+    fprintf(stderr, "Of %ld neighbours, %ld are at distance zero\n", zeroesCount + nonZeroesCount, zeroesCount);
 
   if (Gdiag_no >= 0) {
     char fname[STRLEN];

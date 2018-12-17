@@ -82,6 +82,7 @@
 #include <vtkDijkstraImageGeodesicPath.h>
 #include <vtkCleanPolyData.h>
 #include <vtkImageResample.h>
+#include <vtkImageReslice.h>
 #include <vtkWindowedSincPolyDataFilter.h>
 #include <QFileInfo>
 #include <QDebug>
@@ -221,12 +222,15 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
   threshold->ThresholdBetween( i-0.5, i+0.5 );
   threshold->ReplaceOutOn();
   threshold->SetOutValue( 0 );
-  vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+  vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
   if (bUpsample)
   {
-    resampler->SetAxisMagnificationFactor(0, 2.0);
-    resampler->SetAxisMagnificationFactor(1, 2.0);
-    resampler->SetAxisMagnificationFactor(2, 2.0);
+//    resampler->SetAxisMagnificationFactor(0, 2.0);
+//    resampler->SetAxisMagnificationFactor(1, 2.0);
+//    resampler->SetAxisMagnificationFactor(2, 2.0);
+    double vs[3];
+    data_in->GetSpacing(vs);
+    resampler->SetOutputSpacing(vs[0]/2, vs[1]/2, vs[2]/2);
     resampler->SetInputConnection(threshold->GetOutputPort());
   }
   vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
@@ -281,12 +285,15 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     threshold->ThresholdBetween( i-0.5, i+0.5 );
     threshold->ReplaceOutOn();
     threshold->SetOutValue( 0 );
-    vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+    vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
     if (bUpsample)
     {
-      resampler->SetAxisMagnificationFactor(0, 2.0);
-      resampler->SetAxisMagnificationFactor(1, 2.0);
-      resampler->SetAxisMagnificationFactor(2, 2.0);
+//      resampler->SetAxisMagnificationFactor(0, 2.0);
+//      resampler->SetAxisMagnificationFactor(1, 2.0);
+//      resampler->SetAxisMagnificationFactor(2, 2.0);
+      double vs[3];
+      data_in->GetSpacing(vs);
+      resampler->SetOutputSpacing(vs[0]/2, vs[1]/2, vs[2]/2);
       resampler->SetInputConnection(threshold->GetOutputPort());
     }
     vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
@@ -349,10 +356,13 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
   int nSwell = 2;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
 
-  vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
-  resampler->SetAxisMagnificationFactor(0, 2.0);
-  resampler->SetAxisMagnificationFactor(1, 2.0);
-  resampler->SetAxisMagnificationFactor(2, 2.0);
+  vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
+//  resampler->SetAxisMagnificationFactor(0, 2.0);
+//  resampler->SetAxisMagnificationFactor(1, 2.0);
+//  resampler->SetAxisMagnificationFactor(2, 2.0);
+  double vs[3];
+  data_in->GetSpacing(vs);
+  resampler->SetOutputSpacing(vs[0]/2, vs[1]/2, vs[2]/2);
   if ( ext )
   {
     vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
