@@ -8348,22 +8348,19 @@ double mrisComputeError(MRI_SURFACE *mris,
   ------------------------------------------------------*/
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse)
 {
-  float area_rms, angle_rms, curv_rms, sse, dist_rms, corr_rms;
-  int n, negative;
-  float nv;
-  int fyi;
-
   if (!(Gdiag & DIAG_SHOW)) {
     return (NO_ERROR);
   }
 
-  negative = MRIScountNegativeTriangles(mris);
+  int const doSSE = (mris->dist_alloced_flags == 3);
+  int const negative = MRIScountNegativeTriangles(mris);
 
-  fyi = 0;
+  int fyi = 0;
   if (parms->flags & IP_USE_MULTIFRAMES) {
     if (FZERO(parms->l_corr)) {
       /* just for your information */
       /* check if we can load curvature information */
+      int n;
       for (n = 0; n < parms->nfields; n++)
         if (parms->fields[n].field == CURVATURE_CORR_FRAME) {
           parms->frame_no = parms->fields[n].frame * IMAGES_PER_SURFACE;
@@ -8376,14 +8373,16 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
 
   if (parms->l_thick_min || parms->l_thick_parallel || parms->l_thick_normal || parms->l_ashburner_triangle ||
       parms->l_tspring || parms->l_thick_spring) {
+
+    float const sse = !doSSE ? 0.0f : MRIScomputeSSE(mris, parms);
+
     float pct_change;
-    sse = MRIScomputeSSE(mris, parms);
     if (old_sse > 0) {
       pct_change = 100 * (old_sse - sse) / (old_sse);
-    }
-    else {
+    } else {
       pct_change = 0.0;
     }
+    
     fprintf(fp,
             "%3.3d: dt: %2.4f, sse: %2.1f  "
             "neg: %d (%%%2.3f:%%%2.2f), avgs: %d, %2.2f%%\n",
@@ -8397,15 +8396,13 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
             pct_change);
   }
   else {
-    sse = mrisComputeError(mris, parms, &area_rms, &angle_rms, &curv_rms, &dist_rms, &corr_rms);
+    float area_rms = 0, angle_rms = 0, curv_rms = 0, dist_rms = 0, corr_rms = 0;
+    float sse = !doSSE ? 0.0f : mrisComputeError(mris, parms, &area_rms, &angle_rms, &curv_rms, &dist_rms, &corr_rms);
 
     if (fyi) {
       parms->l_corr = 0.0f;
     }
 
-#if 0
-    sse = MRIScomputeSSE(mris, parms) ;
-#endif
 #if 0
     sse /= (float)MRISvalidVertices(mris) ;
     sse = sqrt(sse) ;
@@ -8432,34 +8429,35 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
       if (dist_rms > 20) {
         DiagBreak();
       }
-    }
-    else {
-      if (parms->flags & IP_USE_MULTIFRAMES) {
-        nv = (float)MRISvalidVertices(mris);
+    
+    } else if (parms->flags & IP_USE_MULTIFRAMES) {
 
-        fprintf(fp,
-                "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
-                "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
-                parms->t,
-                dt,
-                sse,
-                area_rms,
-                (float)DEGREES(angle_rms),
-                dist_rms,
-                corr_rms,
-                negative,
-                100.0 * mris->neg_area / (mris->neg_area + mris->total_area),
-                100.0 * mris->neg_orig_area / (mris->orig_area),
-                parms->n_averages);
-        for (n = 0; n < parms->nfields; n++) {
-          if (FZERO(parms->fields[n].l_corr + parms->fields[n].l_pcorr)) {
-            continue;
-          }
-          fprintf(stdout, "  (%d: %2.3f : %2.3f)", n, parms->fields[n].sse, sqrt(parms->fields[n].sse / nv));
+      float nv = (float)MRISvalidVertices(mris);
+
+      fprintf(fp,
+              "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
+              "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
+              parms->t,
+              dt,
+              sse,
+              area_rms,
+              (float)DEGREES(angle_rms),
+              dist_rms,
+              corr_rms,
+              negative,
+              100.0 * mris->neg_area / (mris->neg_area + mris->total_area),
+              100.0 * mris->neg_orig_area / (mris->orig_area),
+              parms->n_averages);
+      int n;
+      for (n = 0; n < parms->nfields; n++) {
+        if (FZERO(parms->fields[n].l_corr + parms->fields[n].l_pcorr)) {
+          continue;
         }
-        fprintf(stdout, "\n");
+        fprintf(stdout, "  (%d: %2.3f : %2.3f)", n, parms->fields[n].sse, sqrt(parms->fields[n].sse / nv));
       }
-      else
+      fprintf(stdout, "\n");
+
+    } else {
         fprintf(fp,
                 "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
                 "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
@@ -8476,6 +8474,7 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
                 parms->n_averages);
     }
   }
+
   fflush(fp);
   return (NO_ERROR);
 }
