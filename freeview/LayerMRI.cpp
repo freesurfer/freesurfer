@@ -888,10 +888,10 @@ void LayerMRI::InitializeActors()
     m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
     
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
-    mResample[i] = vtkSmartPointer<vtkImageResample>::New();
-    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+    mResample[i] = vtkSmartPointer<vtkImageReslice>::New();
+//    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+//    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+//    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
     mResample[i]->SetInterpolationModeToNearestNeighbor();
     
     // Set ourselves up.
@@ -2539,12 +2539,13 @@ void LayerMRI::UpdateLabelOutline()
     double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
     {
-      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetInterpolationModeToNearestNeighbor();
+//      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+//      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+//      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
       double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
       mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
+      mResample[i]->SetOutputSpacing(vsize[0]/IMAGE_RESAMPLE_FACTOR, vsize[1]/IMAGE_RESAMPLE_FACTOR, vsize[2]/IMAGE_RESAMPLE_FACTOR);
+      mResample[i]->SetInterpolationModeToNearestNeighbor();
       mEdgeFilter[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       mColorMap[i]->SetInputConnection( mEdgeFilter[i]->GetOutputPort() );
       pos[i] = m_dSlicePosition[i];
@@ -2607,9 +2608,9 @@ void LayerMRI::UpdateUpSampleMethod()
       mColorMap[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       if ( !GetProperty()->GetShowLabelOutline() )
       {
-        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
-        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
-        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
       }
     }
   }
@@ -3395,7 +3396,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
                 << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
     */
     
-    vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+    vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
     vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
@@ -3412,8 +3413,9 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
     resampler->SetInput(mask);
-    for (int i = 0; i < 3; i++)
-      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+//    for (int i = 0; i < 3; i++)
+//      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+    resampler->SetOutputSpacing(s1);
     resampler->SetInterpolationModeToNearestNeighbor();
     threshold->ThresholdByUpper(m_dMaskThreshold);
     threshold->SetInput(resampler->GetOutput());
