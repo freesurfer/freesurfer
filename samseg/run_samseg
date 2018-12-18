@@ -1,10 +1,10 @@
 #!/usr/bin/env fspython
 
 import os
-import string;
-import sys;
+import sys
 import argparse
 import numpy as np
+import json
 import scipy.io
 import freesurfer as fs
 
@@ -12,7 +12,6 @@ from freesurfer.gems import setGlobalDefaultNumberOfThreads, kvlReadCompressionL
 from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, icv
 
 # ------ Parse Command Line Arguments ------
-maximumNumberOfIterations = 100;
 
 parser = argparse.ArgumentParser()
 
@@ -24,20 +23,22 @@ parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREA
 parser.add_argument('--init-lta', metavar='FILE', help='initial registration')
 parser.add_argument('--reg-only', action='store_true', default=False, help='only perform registration')
 parser.add_argument('-r', '--reg-mat', metavar='FILE', help='skip registration and read transform from file')
+parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--no-brainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
 parser.add_argument('--diag-covs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
 parser.add_argument('--stiffness', type=float, default=0.1, help='stiffness of the mesh (default is 0.1)')
+parser.add_argument('--max-iters', type=int, default=100, help='maximum number of iterations')
+parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='save history')
 parser.add_argument('--showfigs', action='store_true', default=False, help='show figures during run')
+parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--movie', action='store_true', default=False, help='show as arrow key controlled time sequence')
 parser.add_argument('-v', '--verbose', action='store_true', default=False, help='verbose debug output')
-parser.add_argument('--max-iters', type=int, default=100, dest='maximumNumberOfIterations',help='maximum number of iterations')
 
 args = parser.parse_args()
 
-print('run_samseg Init ',fs.GetVmPeak());
-sys.stdout.flush();
+print('run_samseg Init VmPeak', fs.GetVmPeak())
 
 # ------ Initial Setup ------
 
@@ -61,17 +62,18 @@ if os.path.exists(costfile):
 
 # Get the atlas directory
 atlasDir = os.environ.get('SAMSEG_DATA_DIR')
+if args.atlas:
+    atlasDir = args.atlas
 if not atlasDir:
     defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
-    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+    atlasDir = os.path.join(fs.fshome(), 'average/samseg', defaultAtlas)
 
 # Setup the visualization tool
 visualizer = initVisualizer(args.showfigs, args.movie)
 
-
 # ------ Perform Affine Registration ------
-print('run_samseg Performing Affine Reg VmPeak ',fs.GetVmPeak());
-sys.stdout.flush();
+
+print('run_samseg Performing Affine Reg VmPeak ', fs.GetVmPeak())
 
 templateFileName = os.path.join(atlasDir, 'template.nii')
 affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
@@ -94,16 +96,21 @@ worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
 timer.mark('atlas registration complete')
 if args.reg_only:
     print('registration-only requested, so quiting now')
-    exit()
-
+    sys.exit()
 
 # ------ Prepare Samsegment Parameters ------
+
+# Load user options from a JSON file
+if args.options:
+    with open(args.options) as f:
+        userOptions = json.load(f)
+else:
+    userOptions = {}
 
 # Read the contents of 'compressionLookupTable.txt', and show the names of the structures being considered.
 # The results are automatically sorted according to their 'compressed label', i.e., the first result corresponds to
 # the first entry in the vector of probabilities associated with each node in our atlas mesh.
-compressionLookupTableFileName = os.path.join(atlasDir, 'compressionLookupTable.txt')
-FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(compressionLookupTableFileName)
+FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(os.path.join(atlasDir, 'compressionLookupTable.txt'))
 
 # Because we have many labels to segment, and each of these labels has its own Gaussian mixture model
 # whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
@@ -114,8 +121,7 @@ FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(compressionLooku
 # work with a simplied ('reduced') model during the entire parameter estimation phase. At the same time we also build
 # an inverse lookup table (mapping from original class number onto a reduced class number (super-structure)) that we
 # will need to compute the final segmentation.
-sharedGMMParametersFileName = os.path.join(atlasDir, 'sharedGMMParameters.txt')
-sharedGMMParameters = kvlReadSharedGMMParameters(sharedGMMParametersFileName)
+sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(atlasDir, 'sharedGMMParameters.txt'))
 
 # Set model specifications
 modelSpecifications = Specification({
@@ -129,24 +135,11 @@ modelSpecifications = Specification({
     'brainMaskingThreshold': -np.inf if args.no_brainmask else 0.01,
     'K': args.stiffness,  # stiffness of the mesh
     'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
-})
+}).merged(userOptions.get('modelSpecifications'))
 
-# Set optimization options
+# Set optimization specifications
+userOptimizationOptions = userOptions.get('optimizationOptions')
 optimizationOptions = Specification({
-    'multiResolutionSpecification': [
-        Specification({
-            'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
-            'targetDownsampledVoxelSpacing': 2.0,
-            'maximumNumberOfIterations': maximumNumberOfIterations,
-            'estimateBiasField': True,
-        }),
-        Specification({
-            'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
-            'targetDownsampledVoxelSpacing': 1.0,
-            'maximumNumberOfIterations': maximumNumberOfIterations,
-            'estimateBiasField': True,  # switching this off will use the bias field estimated at lower resolution(s)
-        }),
-    ],
     'maximumNumberOfDeformationIterations': 20,
     'absoluteCostPerVoxelDecreaseStopCriterion': 1e-4,
     'verbose': args.verbose,
@@ -154,20 +147,42 @@ optimizationOptions = Specification({
     'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
     'maximalDeformationAppliedStopCriterion': 0.0,
     'BFGSMaximumMemoryLength': 12,
+    'multiResolutionSpecification': None  # resolution specification is set below
+}).merged(userOptimizationOptions)
+
+# Default parameters for each resolution level
+defaultMultiResolution = Specification({
+    'atlasFileName': None,
+    'targetDownsampledVoxelSpacing': 1.0,
+    'maximumNumberOfIterations': args.max_iters,
+    'estimateBiasField': True
 })
 
+# Set the multi resolution level specifications
+if userOptimizationOptions and userOptimizationOptions.get('multiResolutionSpecification'):
+    multiResolutions = userOptimizationOptions.get('multiResolutionSpecification')
+else:
+    multiResolutions = [{
+        'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
+        'targetDownsampledVoxelSpacing': 2.0,
+    }, {
+        'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
+        'targetDownsampledVoxelSpacing': 1.0,
+    }]
+
+optimizationOptions.multiResolutionSpecification = [defaultMultiResolution.merged(resolution) for resolution in multiResolutions]
 
 # ------ Run Samsegment ------
-print('run_samseg Running samsegment VmPeak ',fs.GetVmPeak());
-sys.stdout.flush();
 
-labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications,
-                                    optimizationOptions, args.outputDirectory, visualizer, saveHistory=args.history)
+print('run_samseg Running samsegment VmPeak', fs.GetVmPeak())
 
+labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications, optimizationOptions,
+                                    args.outputDirectory, visualizer, saveHistory=args.history, saveMesh=args.save_mesh)
 
 # ------ Volumetric Stats ------
-print('run_samseg Running volumetric stats VmPeak ',fs.GetVmPeak());
-sys.stdout.flush();
+
+print('run_samseg Running volumetric stats VmPeak', fs.GetVmPeak())
+
 # Write structural volumes
 with open(os.path.join(args.outputDirectory, 'samseg.stats'), 'w') as fid:
     for volume, name in zip(volumes, names):
@@ -178,6 +193,5 @@ sbtiv = icv(zip(*[names, volumes]))
 with open(os.path.join(args.outputDirectory, 'sbtiv.stats'), 'w') as fid:
     fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
-print('#VMPC# run_samseg VmPeak  ',fs.GetVmPeak());
-sys.stdout.flush();
+print('#VMPC# run_samseg VmPeak', fs.GetVmPeak())
 timer.mark('run_samseg complete')
