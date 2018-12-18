@@ -98,6 +98,20 @@ void assertFailed(const char* file, int line, const char* tst);
 #define cheapAssertValidFno(_MRIS, _FNO) cheapAssert((0 <= _FNO) && (_FNO < _MRIS->nfaces))
 #define cheapAssertValidVno(_MRIS, _VNO) cheapAssert((0 <= _VNO) && (_VNO < _MRIS->nvertices))
 
+typedef enum LogicProblemResponse {
+  LogicProblemResponse_old,
+  LogicProblemResponse_fix
+} LogicProblemResponse;
+
+bool spendTimeCheckingForLogicProblem(const char* file, int line);
+LogicProblemResponse copeWithLogicProblem2(
+    bool* wasReported,          // set to whether reported
+    const char* envvarFixer,    // user told to set this env var to fix, as part of the report
+    const char* msg,            // the report
+    const char* file, int line, // multiple reports at the same location are partially elided
+    const char* function);
+#define copeWithLogicProblem(ENV, MSG) copeWithLogicProblem2(NULL, (ENV), (MSG), __FILE__, __LINE__, __MYFUNCTION__)
+
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
 //
