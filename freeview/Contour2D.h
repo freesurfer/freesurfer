@@ -35,7 +35,7 @@ class vtkRenderer;
 class vtkImageData;
 class vtkActor;
 class vtkImageActor;
-class vtkImageResample;
+class vtkImageReslice;
 class vtkImageThreshold;
 class vtkSimpleLabelEdgeFilter;
 class vtkImageMapToColors;
@@ -128,7 +128,7 @@ protected:
 
   vtkSmartPointer<vtkImageActor>      m_actorContour;
   vtkSmartPointer<vtkImageThreshold>  m_filterThreshold;
-  vtkSmartPointer<vtkImageResample>   m_filterResample;
+  vtkSmartPointer<vtkImageReslice>   m_filterResample;
   vtkSmartPointer<vtkSimpleLabelEdgeFilter> m_filterEdge;
   vtkSmartPointer<vtkImageMapToColors>      m_colormap;
   vtkSmartPointer<vtkImageGaussianSmooth>   m_filterSmooth;

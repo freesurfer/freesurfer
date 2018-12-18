@@ -27,7 +27,7 @@
 #include "RenderView2D.h"
 #include "vtkImageData.h"
 #include "vtkImageActor.h"
-#include "vtkImageResample.h"
+#include "vtkImageReslice.h"
 #include "vtkImageThreshold.h"
 #include "vtkSimpleLabelEdgeFilter.h"
 #include "vtkImageMapToColors.h"
@@ -63,10 +63,10 @@ Contour2D::Contour2D( RenderView2D* view ) :
   m_filterMask  = vtkSmartPointer<vtkImageMask>::New();
   m_filterLogic = vtkSmartPointer<vtkImageLogic>::New();
   m_filterLogic->SetOperationToOr();
-  m_filterResample = vtkSmartPointer<vtkImageResample>::New();
-  m_filterResample->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-  m_filterResample->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-  m_filterResample->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+  m_filterResample = vtkSmartPointer<vtkImageReslice>::New();
+//  m_filterResample->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+//  m_filterResample->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+//  m_filterResample->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
   m_filterResample->SetInterpolationModeToNearestNeighbor();
   m_filterEdge = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
   m_colormap = vtkSmartPointer<vtkImageMapToColors>::New();
@@ -135,6 +135,9 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   m_filterLogic->SetInput2( m_imageMaskAdd );
   m_filterMask->SetInputConnection( m_filterLogic->GetOutputPort() );
   m_filterMask->SetMaskInput( m_imageMaskRemove );
+  double vs[3];
+  imagedata->GetSpacing(vs);
+  m_filterResample->SetOutputSpacing(vs[0]/IMAGE_RESAMPLE_FACTOR, vs[1]/IMAGE_RESAMPLE_FACTOR, vs[2]/IMAGE_RESAMPLE_FACTOR);
   m_filterResample->SetInputConnection( m_filterMask->GetOutputPort() );
   m_filterEdge->SetInputConnection( m_filterResample->GetOutputPort() );
   m_colormap->SetInputConnection( m_filterEdge->GetOutputPort() );
