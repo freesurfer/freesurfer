@@ -107,6 +107,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>specify frame number</explanation>
       <argument>--no_scale flag &lt;-ns&gt;</argument>
       <explanation>1 = dont rescale values for COR</explanation>
+      <argument>--no-dwi </argument>
+      <explanation>Do not attempt to read bvec and bval parameters (same as setenv FS_LOAD_DWI 0)</explanation>
       <argument>-nc --nochange</argument>
       <explanation>don't change type of input to that of template</explanation>
       <argument>-tr TR</argument>
