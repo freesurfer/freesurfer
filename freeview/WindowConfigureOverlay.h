@@ -52,6 +52,7 @@ public:
 signals:
   void ActiveFrameChanged();
   void MaskLoadRequested(const QString& filename);
+  void OverlayChanged();
 
 public slots:
   void UpdateGraph(bool bApply = false);
@@ -86,6 +87,7 @@ protected slots:
   void OnSurfaceLabelAdded(SurfaceLabel* label);
   void OnCheckAutoFrameByVertex(bool bChecked);
   void OnCheckUseNonZeroVertices(bool bChecked);
+  void OnComboOverlayChanged(int n);
 
 private:
   Ui::WindowConfigureOverlay *ui;
