@@ -84,9 +84,18 @@ void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
   m_dOffset = p->m_dOffset;
   m_nColorScale = p->m_nColorScale;
   m_nColorMethod = p->m_nColorMethod;
-  m_dMinPoint = p->m_dMinPoint;
-  m_dMidPoint = p->m_dMidPoint;
-  m_dMaxPoint = p->m_dMaxPoint;
+  if (m_bUsePercentile)
+  {
+    m_dMinPoint = m_overlay->PercentileToPosition(p->m_overlay->PositionToPercentile(p->m_dMinPoint));
+    m_dMidPoint = m_overlay->PercentileToPosition(p->m_overlay->PositionToPercentile(p->m_dMidPoint));
+    m_dMaxPoint = m_overlay->PercentileToPosition(p->m_overlay->PositionToPercentile(p->m_dMaxPoint));
+  }
+  else
+  {
+    m_dMinPoint = p->m_dMinPoint;
+    m_dMidPoint = p->m_dMidPoint;
+    m_dMaxPoint = p->m_dMaxPoint;
+  }
   m_customScale = p->m_customScale;
   m_dMinStop = p->m_dMinStop;
   m_dMaxStop = p->m_dMaxStop;
