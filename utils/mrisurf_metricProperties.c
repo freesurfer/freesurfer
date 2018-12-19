@@ -4819,13 +4819,6 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
   
   MRIS_check_vertexNeighbours(mris);
 
-  if (nsize <= mris->dist_nsize) {
-    // BUG did not recalculate mris->avg_nbrs
-    // BUG did not set mris->nsize = nsize;
-    copeWithLogicProblem(NULL,"old code not setting mris->avg_nbrs nor setting mris->nsize");
-    return;
-  }
-  	
   // Recalculate the avg_nbrs
   //
   int ntotal = 0, vtotal = 0;
@@ -4845,6 +4838,12 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
   mris->nsize = nsize;
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
 
+  if (nsize <= mris->dist_nsize) {
+    // FIXED BUG this used to precede the "Recalculate the avg_nbrs"
+    // but that left the avg_nbrs and mris->nsize wrongly set
+    return;
+  }
+  	
   // Adjust the dist and dist_orig
   // unless they are already valid
   //
