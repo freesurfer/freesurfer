@@ -568,8 +568,9 @@ double SurfaceOverlay::PercentileToPosition(double dPercentile)
   return PercentileToPosition(dPercentile, GetProperty()->GetIgnoreZeros());
 }
 
-double SurfaceOverlay::PercentileToPosition(double percentile, bool bIgnoreZeros)
+double SurfaceOverlay::PercentileToPosition(double percentile_in, bool bIgnoreZeros)
 {
+  double percentile = percentile_in/100;
   double range[2];
   if (bIgnoreZeros)
     GetNonZeroRange(range);
@@ -678,5 +679,5 @@ double SurfaceOverlay::PositionToPercentile(double pos, bool bIgnoreZeros)
     dArea -= (dPos-pos)*m_nOutputData[n-1]/m_dBinWidth;
   }
 
-  return dArea/m_dOutputTotalArea;
+  return 100*dArea/m_dOutputTotalArea;
 }
