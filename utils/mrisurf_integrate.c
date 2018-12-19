@@ -3490,7 +3490,16 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisWriteSnapshot(mris, parms, 0);
   }
 
+  switch (copeWithLogicProblem("FREESURFER_fix_inflateBrain","should set origx et al here")) {
+  case LogicProblemResponse_old: 
+    break;
+  case LogicProblemResponse_fix:
+    MRISsetOriginalXYZfromXYZ(mris);
+    mrisComputeOriginalVertexDistances(mris);
+  }
+   
   sse = MRIScomputeSSE(mris, parms);
+  
   if (!parms->start_t) {
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, (float)rms_height, parms->n_averages);
@@ -3511,20 +3520,13 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     parms->l_dist = l_dist * sqrt(n_averages);
     for (n = parms->start_t; n < parms->start_t + niterations; n++) {
       mrisTearStressedRegions(mris, parms)  ;
+      
       if (parms->explode_flag)
       {
         MRISsetOrigArea(mris);  // used to happen inside MRISrenumberRemovingRippedFacesAndVertices
 	MRISrenumberRemovingRippedFacesAndVertices(mris);
       }
   
-#if 0
-      {
-	MRI_SURFACE *mris_tmp ;
-	mris_tmp = MRISremoveRippedSurfaceElements(mris) ;
-	MRISfree(&mris) ;
-	mris = mris_tmp ;
-      }
-#endif
       MRISclearGradient(mris);
       mrisComputeDistanceTerm(mris, parms);
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a, parms->explode_flag);

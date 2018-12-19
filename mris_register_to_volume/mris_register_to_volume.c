@@ -1917,6 +1917,10 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
   }
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
   
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {

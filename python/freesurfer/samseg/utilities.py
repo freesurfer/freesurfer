@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from copy import deepcopy
 
 
 def forceFortranOrder(funcname):
@@ -13,21 +14,43 @@ for funcname in ('array', 'zeros', 'empty', 'zeros_like', 'empty_like'):
     forceFortranOrder(funcname)
 
 
-def dump_dict(value):
-    return getattr(value, 'dump_dict', getattr(value, '__dict__', value))
-
-
 class Specification:
     def __init__(self, params):
+        self.depth = 1
         for key, value in params.items():
             self.__setattr__(key, value)
 
-    @property
-    def dump_dict(self):
-        return {key: dump_dict(value) for key, value in self.__dict__.items()}
+    def __str__(self):
+        spec = '{\n'
+        for key, value in self.__dict__.items():
+            spec += '%s%s: ' % (self.depth * '    ', key)
+            if isinstance(value, Specification):
+                value.depth = self.depth + 1
+                spec += self._indented(value)
+            if isinstance(value, list):
+                spec += ', '.join([self._indented(i) for i in value]) + '\n'
+            else:
+                spec += str(value) + '\n'
+            if key == '':
+                print(type(variable_name))
+        return '%s%s}' % (spec, (self.depth - 1) * '    ')
 
-    def toJSON(self):
-        return json.dumps(self, default=dump_dict, sort_keys=True)
+    def _indented(self, item):
+        if isinstance(item, Specification):
+            item.depth = self.depth + 1
+            return str(item)
+        else:
+            return str(item)
+
+    def merged(self, params):
+        newSpec = deepcopy(self)
+        if not params:
+            return newSpec
+        for key, value in params.items():
+            if not hasattr(newSpec, key):
+                raise ValueError("specification does not contain parameter '%s'" % key)
+            newSpec.__setattr__(key, value)
+        return newSpec
 
 
 def requireNumpyArray(np_array):

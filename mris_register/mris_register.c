@@ -163,7 +163,6 @@ main(int argc, char *argv[])
   argc -= nargs;
 
   TimerStart(&start) ;
-  Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -1209,6 +1208,7 @@ get_option(int argc, char *argv[])
       fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
       break ;
     case 'W':
+      Gdiag |= DIAG_SHOW ;
       Gdiag |= DIAG_WRITE ;
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;

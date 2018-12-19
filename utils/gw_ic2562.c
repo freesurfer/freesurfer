@@ -2036,6 +2036,8 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
         }
         if (vn >= 0) vt->v[vt->vnum++] = vn;
       }
+      
+      vt->nsizeMax = vt->nsizeCur = 1;
     }
   }
 

@@ -272,18 +272,19 @@ typedef struct vertex_type_
 //
 #define LIST_OF_VERTEX_ELTS_1    \
   LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
-  /* managed by MRISfreeDists[_orig] and MRISmakeDists[_orig] */ \
-  ELTX(float* const,dist)      SEP                                              /* distance to neighboring vertices */          \
-  ELTX(float* const,dist_orig) SEP                                              /* original distance to neighboring vertices */ \
-  ELTX(int,dist_orig_capacity) SEP \
   \
-  ELTT(const float,origx)                                       SEP             /* original coordinates */                      \
-  ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() to set */           \
-  ELTT(const float,origz)                                       SEP                                                             \
+  /* managed by MRISfreeDists[_orig] and MRISmakeDists[_orig] */ \
+  ELTX(float* const,dist)      SEP                                              /* distance to neighboring vertices based on  xyz    */ \
+  ELTX(float* const,dist_orig) SEP                                              /* distance to neighboring vertices based on origxyz */ \
+  ELTX(int,dist_orig_capacity) SEP \
   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* current coordinates */                       \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
+  \
+  ELTT(const float,origx)                                       SEP             /* original coordinates */                          \
+  ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() */                      \
+  ELTT(const float,origz)                                       SEP             /* or MRISsetOriginalXYZfromXYZ to set */           \
   \
   ELTT(float,nx) SEP    \
   ELTT(float,ny) SEP    \
@@ -491,7 +492,7 @@ typedef struct vertex_type_
 
 #if defined(__cplusplus)
     // C++ requires const members be initialized
-    vertex_type_() : dist(nullptr), dist_orig(nullptr), origx(0), origy(0), origz(0), x(0), y(0), z(0) {}
+    vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
 #endif
 
 }
@@ -549,8 +550,10 @@ typedef struct MRIS
   ELTT(int,nedges) SEP                          /* # of edges on surface*/    \
   ELTT(int,nstrips) SEP    \
   ELTP(VERTEX_TOPOLOGY,vertices_topology) SEP    \
-  ELTT(const int,tempsAssigned) SEP             /* State of various temp fields that can be borrowed if not already in use   */    \
   ELTP(VERTEX,vertices) SEP    \
+  ELTP(void*,dist_storage) SEP                  /* the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored */ \
+  ELTP(void*,dist_orig_storage) SEP             /* the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored */ \
+  ELTT(const int,tempsAssigned) SEP             /* State of various temp fields that can be borrowed if not already in use   */    \
   ELTP(FACE,faces) SEP    \
   ELTP(MRI_EDGE,edges) SEP    \
   ELTP(FaceNormCacheEntry,faceNormCacheEntries) SEP \
@@ -624,7 +627,8 @@ typedef struct MRIS
   ELTT(uchar,vtotalsMightBeTooBig) SEP /* MRISsampleDistances sets this */ \
   ELTX(short,nsizeMaxClock) SEP     /* changed whenever an edge is added or removed, which invalidates the vertex v#num values */ \
   ELTT(char,max_nsize) SEP          /* max the neighborhood size has been set to (typically 3) */    \
-  ELTT(char,dist_nsize) SEP         /* max MRISsetNeighborhoodSizeAndDist has computed distances out to */ \
+  ELTT(char,dist_nsize) SEP         /* max mrisComputeVertexDistances has computed distances out to */ \
+  ELTT(char,dist_orig_nsize) SEP    /* max mrisComputeOriginalVertexDistances has computed distances out to */ \
   ELTT(char,dist_alloced_flags) SEP /* two flags, set when any dist(1) or dist_orig(2) allocated */ \
   \
   ELTT(float,avg_nbrs) SEP          /* mean # of vertex neighbors */    \
@@ -2451,12 +2455,6 @@ void	cprintd(
 	int		a_right
 );
 
-short	FACES_aroundVertex_reorder(
-	MRIS*			apmris,
-    	int			avertex,
-    	VECTOR*			pv_geometricOrder
-);
-
 short	FACE_vertexIndex_find(
     	FACE*			pFace,
     	int 			avertex 
@@ -2512,16 +2510,6 @@ int	VERTEX_faceMinMaxAngles_determine(
 
 int	MRIS_facesAtVertices_reorder(
     	MRIS*			apmris
-);
-
-int	MRIScomputeGeometricProperties(
-    	MRIS*			apmris
-);
-
-short	FACES_aroundVertex_reorder(
-    	MRIS*			apmris,
-    	int			avertex,
-    	VECTOR*			pv_geometricOrder
 );
 
 float	FACES_angleNormal_find(
@@ -2751,8 +2739,8 @@ MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexFaceTopology(_MRIS)   mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
                                             // includes a mrisCheckVertexVertexTopology check
@@ -2765,6 +2753,7 @@ static bool mrisVerticesAreNeighbors(MRIS const * mris, int vno1, int vno2);
 
 void mrisAddEdge   (MRIS* mris, int vno1, int vno2);
 void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
+
 
 // Neighbourhoods
 //
@@ -2782,6 +2771,72 @@ int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t lis
     // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist
     // returns the number of neighbors
 
+
+// Inputs to the metric properties
+//
+//      It is a good idea to call MRISfreeDistsButNotOrig(MRIS *mris);
+//      before calling these, to invalidate the now-wrong distances
+//
+//      However there are places where the old consequences of xyz are used to compute the new values of xyz
+//      so this tactic isn't always usable - especially when the previous normals are being used to move the xyz
+//
+void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * file, int line, bool* laterTime);
+#define MRISsetXYZ(_MRIS,_VNO, _X,_Y,_Z) { \
+    static bool _laterTime; \
+    MRISsetXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z), __FILE__, __LINE__, &_laterTime); \
+  }
+    //
+    // VERTEX:xyz can be set directly, one at a time, or via one of the following operations
+    // that iterate across many vertices.
+    //
+    // This results in all the derived properties (distances, face areas, normals, angles, ...) being invalid
+    // until recomputed.  However the use of invalid properties is not yet detected.
+
+void MRIScopyXYZ(MRIS *mris, MRIS* mris_from);
+
+void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz);
+void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const   ppz);
+    //
+    // By importing and exporting into three arrays, it is possible to use h/w vector instructions more effectively.
+    // 
+    // the three vectors are malloced and filled in with the xyz values
+    //       the vectors are cache-block aligned so loops processing them can be very efficient
+    //
+    // the xyz values are set from the vectors, the vectors are NOT freed by this call
+    // the mris [xyz] lo,hi,ctr are set during import
+
+
+// Deforming the MRIS
+//
+void mrisFindMiddleOfGray(MRIS *mris);
+
+
+void MRISscaleThenTranslate (MRIS *mris, double sx, double sy, double sz, double dx, double dy, double dz);   // new = old * s + d
+
+
+int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
+void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
+int  MRISscale     (MRIS *mris, double scale);
+
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
+void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x          + nx*nxyzScale  etc.
+
+void mrisDisturbVertices(MRIS *mris, double amount);
+
+MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
+void  MRIScenterSphere(MRIS *mris);
+void  MRISrecenter(MRIS *mris, int which_move, int which_target) ;
+
+MRIS* MRISprojectOntoTranslatedSphere(MRIS* mris_src, MRIS* mris_dst, 
+    double r,
+    double x0, double y0, double z0);
+
+
+// xyz's immediate consequences
+//
+int mrisComputeSurfaceDimensions(MRIS *mris);
+    // xyz lo/hi  and the cxyz
+
 // dist and dist_orig
 //      can be freed at any time
 // dist is created by calls to MRISsetNeighborhoodSizeAndDist
@@ -2792,6 +2847,8 @@ void MRISfreeDistsButNotOrig(MRIS *mris);
 void MRISmakeDistOrig (MRIS *mris, int vno);                        // makes it the same size as the current VERTEX.dist
 void MRISgrowDistOrig (MRIS *mris, int vno, int minimumCapacity);   // same size as current or bigger
 void MRISfreeDistOrigs(MRIS *mris);
+
+int mrisComputeVertexDistances(MRIS *mris);
 
 //  Faces
 //
@@ -2857,42 +2914,18 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 }
 
 
-// Inputs to the metric properties
-//
-void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * file, int line, bool* laterTime);
-#define MRISsetXYZ(_MRIS,_VNO, _X,_Y,_Z) { \
-    static bool _laterTime; \
-    MRISsetXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z), __FILE__, __LINE__, &_laterTime); \
-  }
-    //
-    // VERTEX:xyz can be set directly, one at a time, or via one of the following operations
-    // that iterate across many vertices.
-    //
-    // This results in all the derived properties (distances, face areas, normals, angles, ...) being invalid
-    // until recomputed.  However the use of invalid properties is not yet detected.
-
-void mrisFindMiddleOfGray(MRIS *mris);
-
-int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
-void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
-int  MRISscale     (MRIS *mris, double scale);
-
-void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
-
-void mrisDisturbVertices(MRIS *mris, double amount);
-
-MRIS* MRIScenter(MRIS *mris_src, MRIS *mris_dst) ;
-void  MRIScenterSphere(MRIS *mris);
-void  MRISrecenter(MRIS *mris, int which_move, int which_target) ;
-
-MRIS* MRISprojectOntoTranslatedSphere(MRIS* mris_src, MRIS* mris_dst, 
-    double r,
-    double x0, double y0, double z0);
-
-
 // Vals
 //
-void MRISsetOriginalXYZ(MRIS *mris, int vno, float x, float y, float z);
+void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
+#define MRISsetOriginalXYZ(_MRIS,_VNO,_X,_Y,_Z) \
+    { static bool laterTime; MRISsetOriginalXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z),__FILE__,__LINE__, &laterTime); }
+
+int mrisComputeOriginalVertexDistances(MRIS *mris);
+void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTime, const char* file, int line);
+#define mrisComputeOriginalVertexDistancesIfNecessary(_MRIS) \
+  { static bool laterTime;  \
+    mrisComputeOriginalVertexDistancesIfNecessaryWkr((_MRIS), &laterTime, __FILE__, __LINE__); \
+  }
 
 void MRIScheckForNans(MRIS *mris);

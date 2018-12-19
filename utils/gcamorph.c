@@ -6123,6 +6123,11 @@ int GCAMsampleInverseMorphRAS(
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
   // printf("Applying Inverse Morph \n");
+
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int vtxno;
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++) {
     VERTEX *v = &mris->vertices[vtxno];

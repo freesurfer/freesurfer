@@ -2211,7 +2211,9 @@ int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) continue;
 
-      d0 = v->dist_orig[n] / scale;
+      float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+
+      d0 = dist_orig_n / scale;
       dt = v->dist[n];
       delta = dt - d0;
       VECTOR_LOAD(v_y[tid], vn->x - v->x, vn->y - v->y, vn->z - v->z);
@@ -2282,14 +2284,16 @@ int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fp = fopen(fname, "w");
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
       VERTEX          const * const v  = &mris->vertices         [Gdiag_no];
-      for (i = 0; i < vt->vtotal; i++)
+      for (i = 0; i < vt->vtotal; i++) {
+        float const dist_orig_i = !v->dist_orig ? 0.0 : v->dist_orig[i];
         fprintf(fp,
                 "%03d: %05d, %f   %f   %f\n",
                 i,
                 vt->v[i],
-                v->dist_orig[i],
+                dist_orig_i,
                 v->dist[i],
-                v->dist[i] - v->dist_orig[i] / scale);
+                v->dist[i] - dist_orig_i / scale);
+      }
       fclose(fp);
     }
     ROMP_PFLB_end
@@ -8344,22 +8348,19 @@ double mrisComputeError(MRI_SURFACE *mris,
   ------------------------------------------------------*/
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse)
 {
-  float area_rms, angle_rms, curv_rms, sse, dist_rms, corr_rms;
-  int n, negative;
-  float nv;
-  int fyi;
-
   if (!(Gdiag & DIAG_SHOW)) {
     return (NO_ERROR);
   }
 
-  negative = MRIScountNegativeTriangles(mris);
+  int const doSSE = (mris->dist_alloced_flags == 3);
+  int const negative = MRIScountNegativeTriangles(mris);
 
-  fyi = 0;
+  int fyi = 0;
   if (parms->flags & IP_USE_MULTIFRAMES) {
     if (FZERO(parms->l_corr)) {
       /* just for your information */
       /* check if we can load curvature information */
+      int n;
       for (n = 0; n < parms->nfields; n++)
         if (parms->fields[n].field == CURVATURE_CORR_FRAME) {
           parms->frame_no = parms->fields[n].frame * IMAGES_PER_SURFACE;
@@ -8372,14 +8373,16 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
 
   if (parms->l_thick_min || parms->l_thick_parallel || parms->l_thick_normal || parms->l_ashburner_triangle ||
       parms->l_tspring || parms->l_thick_spring) {
+
+    float const sse = !doSSE ? 0.0f : MRIScomputeSSE(mris, parms);
+
     float pct_change;
-    sse = MRIScomputeSSE(mris, parms);
     if (old_sse > 0) {
       pct_change = 100 * (old_sse - sse) / (old_sse);
-    }
-    else {
+    } else {
       pct_change = 0.0;
     }
+    
     fprintf(fp,
             "%3.3d: dt: %2.4f, sse: %2.1f  "
             "neg: %d (%%%2.3f:%%%2.2f), avgs: %d, %2.2f%%\n",
@@ -8393,15 +8396,13 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
             pct_change);
   }
   else {
-    sse = mrisComputeError(mris, parms, &area_rms, &angle_rms, &curv_rms, &dist_rms, &corr_rms);
+    float area_rms = 0, angle_rms = 0, curv_rms = 0, dist_rms = 0, corr_rms = 0;
+    float sse = !doSSE ? 0.0f : mrisComputeError(mris, parms, &area_rms, &angle_rms, &curv_rms, &dist_rms, &corr_rms);
 
     if (fyi) {
       parms->l_corr = 0.0f;
     }
 
-#if 0
-    sse = MRIScomputeSSE(mris, parms) ;
-#endif
 #if 0
     sse /= (float)MRISvalidVertices(mris) ;
     sse = sqrt(sse) ;
@@ -8428,34 +8429,35 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
       if (dist_rms > 20) {
         DiagBreak();
       }
-    }
-    else {
-      if (parms->flags & IP_USE_MULTIFRAMES) {
-        nv = (float)MRISvalidVertices(mris);
+    
+    } else if (parms->flags & IP_USE_MULTIFRAMES) {
 
-        fprintf(fp,
-                "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
-                "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
-                parms->t,
-                dt,
-                sse,
-                area_rms,
-                (float)DEGREES(angle_rms),
-                dist_rms,
-                corr_rms,
-                negative,
-                100.0 * mris->neg_area / (mris->neg_area + mris->total_area),
-                100.0 * mris->neg_orig_area / (mris->orig_area),
-                parms->n_averages);
-        for (n = 0; n < parms->nfields; n++) {
-          if (FZERO(parms->fields[n].l_corr + parms->fields[n].l_pcorr)) {
-            continue;
-          }
-          fprintf(stdout, "  (%d: %2.3f : %2.3f)", n, parms->fields[n].sse, sqrt(parms->fields[n].sse / nv));
+      float nv = (float)MRISvalidVertices(mris);
+
+      fprintf(fp,
+              "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
+              "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
+              parms->t,
+              dt,
+              sse,
+              area_rms,
+              (float)DEGREES(angle_rms),
+              dist_rms,
+              corr_rms,
+              negative,
+              100.0 * mris->neg_area / (mris->neg_area + mris->total_area),
+              100.0 * mris->neg_orig_area / (mris->orig_area),
+              parms->n_averages);
+      int n;
+      for (n = 0; n < parms->nfields; n++) {
+        if (FZERO(parms->fields[n].l_corr + parms->fields[n].l_pcorr)) {
+          continue;
         }
-        fprintf(stdout, "\n");
+        fprintf(stdout, "  (%d: %2.3f : %2.3f)", n, parms->fields[n].sse, sqrt(parms->fields[n].sse / nv));
       }
-      else
+      fprintf(stdout, "\n");
+
+    } else {
         fprintf(fp,
                 "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
                 "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
@@ -8472,6 +8474,7 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
                 parms->n_averages);
     }
   }
+
   fflush(fp);
   return (NO_ERROR);
 }
@@ -8551,8 +8554,6 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     ROMP_PFLB_begin
 
 #endif    
-    int n;
-    double delta, v_sse;
 
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
@@ -8564,7 +8565,10 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (v->neg) ROMP_PF_continue;
 #endif
 
-    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
+    double v_sse = 0.0;
+
+    int n;
+    for (n = 0; n < vt->vtotal; n++) {
       int const vn_vno = vt->v[n];
       VERTEX const * const vn = &mris->vertices[vn_vno];
       if (vn->ripflag) continue;
@@ -8573,32 +8577,21 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (mris->vertices[vn_vno].neg) continue;
 
 #endif
-      if (v->dist_orig[n] >= UNFOUND_DIST) continue;
+      float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+      
+      if (dist_orig_n >= UNFOUND_DIST) continue;
 
-      if (DZERO(v->dist_orig[n]) && first) {
+      if (DZERO(dist_orig_n) && first) {
         first = 0;
-        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, v->dist_orig[n]);
+        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, dist_orig_n);
         fflush(stderr);
         DiagBreak();
         if (++err_cnt > max_errs) {
           ErrorExit(ERROR_BADLOOP, "mrisComputeDistanceError: Too many errors!\n");
         }
       }
-      delta = dist_scale * v->dist[n] - v->dist_orig[n];
 
-#if 0
-#ifdef HAVE_OPENMP
-//#pragma omp critical (max_delta)
-#endif
-      {
-      if (fabs(delta) > fabs(max_del))
-      {
-        max_del = delta ;
-        max_v = vno ;
-        max_n = n ;
-      }
-      }
-#endif
+      double delta = dist_scale * v->dist[n] - dist_orig_n;
       if (parms->vsmoothness)
         v_sse += (1.0 - parms->vsmoothness[vno]) * (delta * delta);
       else

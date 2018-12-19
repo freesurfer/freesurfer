@@ -1733,3 +1733,79 @@ float fastApproxAtan2f(float y, float x) {
     if (ax != x && ay != y) r = -Pi+r;
     return r; 
 }
+
+
+// Support for reporting logic problems and other phenomona
+//
+typedef struct ReportEntry { 
+    struct ReportEntry* next;           // list for this line
+    const char*         file;           // key
+    int                 check_count; 
+    int                 check_elideUntil; 
+    int                 report_count; 
+    int                 report_elideUntil; 
+    } ReportEntry;
+
+static ReportEntry* reportEntry(const char* file, int line) {
+  static ReportEntry* entries[1000000];
+  cheapAssert(line <          1000000);
+  ReportEntry** ep = &entries[line];
+  while (*ep && strcmp((*ep)->file,file)) ep = &(*ep)->next;
+  ReportEntry* e = *ep;
+  if (!e) {
+    e = (ReportEntry*)calloc(1,sizeof(ReportEntry)); 
+    e->file              = file;
+    e->check_elideUntil  = 1;
+    e->report_elideUntil = 1;
+    *ep = e;
+  }
+  return e;
+}
+
+bool spendTimeCheckingForLogicProblem(const char* file, int line) {
+  ReportEntry* e = reportEntry(file, line);
+  if (!e) return false;
+  e->check_count++;
+  if (e->check_count < e->check_elideUntil) return false;
+  e->check_elideUntil = (e->check_elideUntil < 32) ? e->check_elideUntil + 1 : e->check_elideUntil*2;
+  return true;
+}
+
+LogicProblemResponse copeWithLogicProblem2(
+    bool* wasReported, 
+    const char* envvarFixer,
+    const char* msg, 
+    const char* file, int line, const char* function)
+{
+  static bool emitReport, getenvDone;
+  if (!getenvDone) { getenvDone = true;
+    emitReport = !!getenv("FREESURFER_reportLogicErrors");
+  }
+
+  LogicProblemResponse response = LogicProblemResponse_old;
+  if (envvarFixer && !!getenv(envvarFixer)) response = LogicProblemResponse_fix;
+  
+  if (wasReported) *wasReported= false;
+  
+  if (!emitReport) return response;
+  
+  ReportEntry* e = reportEntry(file, line);
+  if (!e) return response;
+
+  e->report_count++;
+  if (e->report_count < e->report_elideUntil) return response;
+
+  e->report_elideUntil = (e->report_elideUntil < 32) ? e->report_elideUntil + 1 : e->report_elideUntil*2;
+
+  fprintf(stdout,
+    "%s:%d %s - probable logic error: %s%s\n%s%s%s",
+    file,line,function, msg, 
+    (response == LogicProblemResponse_fix) ? ", fixing it" : ", not fixing it",
+    envvarFixer?".  Set ":"",
+    envvarFixer?envvarFixer:"",
+    envvarFixer?" to fix it\n":"");
+
+  if (wasReported) *wasReported = true;
+
+  return response;
+}

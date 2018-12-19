@@ -826,6 +826,12 @@ if( ! $RunIt) then
   echo "may not have accurate arguments!" |& tee -a $LF
 endif
 
+if ( $DoRestart) then
+    if( -e $RestartFile) then
+        echo "Restart file $RestartFile exists <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        goto Restart
+    endif
+endif
 
 #------------         --------------#
 ##-----------  -clean --------------#
@@ -1725,6 +1731,7 @@ if($DoMotionCor) then
   endif
 
 endif # Motion Correction
+
 
 # MOD: this takes the externally supplied mask and resamples it into the
 # orig space so that it can be used with mri_em_register
@@ -2909,6 +2916,31 @@ if($DoCALabel) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 endif
+
+
+Restart:
+
+if ( $DoRestart) then
+    if( ! -e $RestartFile) then
+    else
+        if($DoCALabel) then
+            set DoCCSeg = 1; # Force
+        endif
+        mkdir -p mri
+        cd mri
+    endif
+    echo "Restart: Label " `pwd` "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    if( ! -e $RestartFile) then
+        echo "Create Restart File $RestartFile <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        tar cvf $RestartFile .
+    else
+        echo "Restart using $RestartFile  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        tar xvf $RestartFile .
+    endif
+    printenv 
+    set
+endif
+
 
 #--- Corpus Callosum Segmentation ---#
 # Run mri_cc to create aseg.auto.mgz. Note that DoCCSeg
@@ -5600,12 +5632,20 @@ endif
 parse_args:
 #-------------------------------------------------#
 set cmdline = ($argv);
+set DoRestart = 0
+
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
 
   switch($flag)
 
+    case "-restart": 
+        if ( $#argv < 1) goto arg1err;
+        set RestartFile = $argv[1]; shift;
+        set DoRestart = 1
+        breaksw;
+        
     case "-no-cerebellum":
     case "-nocerebellum":
     case "-NO-CEREBELLUM":
