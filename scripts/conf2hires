@@ -17,7 +17,7 @@ set longitudinal = 0
 set tpNid = ()
 set longbaseid = ()
 set CopyBiasFromConf = 0;
-set MMode = ()
+set MMode = T2
 set DoT2 = 1
 set DoFLAIR = 0
 set MMnormSigma = 8; 
@@ -133,13 +133,26 @@ if($status) goto error_exit;
 
 # Map the various lowres volumes that mris_make_surfaces needs into the hires coords
 # nearest needed for aseg, but not sure whether it matters for others
-foreach v (wm.mgz filled.mgz aseg.presurf.mgz brain.mgz)
+foreach v (wm.mgz filled.mgz aseg.presurf.mgz)
   set cmd = (mri_vol2vol --mov $v --targ rawavg.cmdc.mgz --interp nearest --o rawavg.$v --regheader)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
 end
+
+# Have to do something special here. Map brain.finalsurfs.mgz but call
+# it rawavg.brain.fs.mgz because the name rawavg.brain.finalsurfs.mgz
+# will be reserved for the volume used to place the surfaces which
+# gets created below. This might be a little too complicated. The
+# conformed brain.finalsurfs could have manual edits; it is possible
+# that these edits might not get mapped exactly right due to
+# interpolation effects.
+set cmd = (mri_vol2vol --mov brain.finalsurfs.mgz --targ rawavg.cmdc.mgz \
+  --interp nearest --o rawavg.brain.fs.mgz --regheader)
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
 
 # Map the source surf coords into the rawavg space, need to use regR2C here
 foreach hemi ($hemilist)
@@ -164,6 +177,7 @@ set ControlPointsFile = $SUBJECTS_DIR/$subject/tmp/control.dat
 if(-e $ControlPointsFile) set UseControlPoints = 1;
 
 if($CopyBiasFromConf) then
+  # This branch might not work anymore
   echo "Copying bias field from conformed" | tee -a $LF
   # Map the rawavg into conformed space but without changing 
   # intensities. MUST use same interp as when orig.mgz was created from
@@ -210,12 +224,14 @@ else
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # Mask the normalized
-  set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.mgz rawavg.brain.finalsurfs.mgz)
+  # Mask the normalized. Remember, rawavg.brain.fs.mgz is the brain.finalsurfs.mgz
+  # mapped from the conformed space. This makes the rawavg.brain.finalsurfs.mgz
+  # have the proper masking with the new normalization.
+  set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.fs.mgz rawavg.brain.finalsurfs.mgz)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # Mmap rawavg.brain.finalsurfs.mgz back to conf space for convenience
+  # Map rawavg.brain.finalsurfs.mgz back to conf space for convenience
   set cmd = (mri_vol2vol --mov rawavg.brain.finalsurfs.mgz --targ orig.mgz \
     --regheader --o rawavg.brain.finalsurfs.conf.mgz --interp nearest)
   echo $cmd | tee -a $LF
