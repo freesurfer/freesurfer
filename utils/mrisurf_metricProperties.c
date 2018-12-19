@@ -4688,7 +4688,9 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
     sequentially after it.
   */
 
-  if (nsize <= mris->max_nsize) {
+  bool const neighborsChanged = (nsize > mris->max_nsize);
+  
+  if (!neighborsChanged) {
     ROMP_PF_begin
     int vno;
 
@@ -4709,11 +4711,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
     }
     ROMP_PF_end
 
-    mris->nsize = nsize;
-
   } else {
-
-    alwaysDoDist |= (mris->dist_alloced_flags & 1);
 
     MRISclearMarks(mris);     // added because of the seen-to-fail above
 
@@ -4765,7 +4763,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
         /*
           now reallocate the v->v structure and
           place the 2-connected neighbors
-          suquentially after the 1-connected neighbors.
+          sequentially after the 1-connected neighbors.
         */
         free(vt->v);
         vt->v = (int *)calloc(neighbors, sizeof(int));
@@ -4811,11 +4809,12 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
 
     mris->max_nsize = nsize;
   }
+  mris->nsize = nsize;
   
   MRIS_check_vertexNeighbours(mris);
 
-  if (nsize <= mris->dist_nsize) return;
-  
+  // Recalculate the avg_nbrs
+  //
   int ntotal = 0, vtotal = 0;
   
   int vno;
@@ -4830,12 +4829,30 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
   }
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  mris->nsize = nsize;
+
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
 
-  if (alwaysDoDist) {
+  // Adjust the dist and dist_orig
+  // unless they are already valid
+  //
+  if (alwaysDoDist || neighborsChanged || mris->dist_nsize < nsize) {
     mrisComputeVertexDistances(mris);
-    if (mris->dist_alloced_flags & 2) mrisComputeOriginalVertexDistances(mris);
+    cheapAssert(mris->dist_nsize >= nsize);
+  }
+  
+  if (alwaysDoDist || neighborsChanged || mris->dist_orig_nsize < nsize) {
+    bool shouldCompute = false;
+    switch (copeWithLogicProblem("FREESURFER_fix_MRISsetNeighborhoodSizeAndDist","should not be creating dist_origs")) {
+    case LogicProblemResponse_old:
+      shouldCompute = true;
+      break;
+    case LogicProblemResponse_fix:
+      shouldCompute = (mris->dist_alloced_flags & 2); 
+    }
+    if (shouldCompute) {
+      mrisComputeOriginalVertexDistances(mris);
+      cheapAssert(mris->dist_orig_nsize >= nsize);
+    }
   }
 }
 
