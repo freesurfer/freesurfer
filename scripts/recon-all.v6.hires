@@ -7160,6 +7160,7 @@ while( $#argv != 0 )
 
     case "-conf2hires":
       set DoConf2Hires = 1;
+      set DoSurfVolume = 1;
       set HiRes = 0;
       set ConformMin = 0;
       set UseCubic = 0; # The conformed should be generated with trilin interp

@@ -22,6 +22,7 @@ set DoT2 = 1
 set DoFLAIR = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
+set DoSurfVolume = 0;
 
 if($?CONF2HIRES_USEDEV == 0) then
   setenv CONF2HIRES_USEDEV 0
@@ -380,13 +381,15 @@ endif # Do MMode
 date | tee -a $LF
 
 # Generate the volume files (not sure this is really needed here)
-foreach hemi ($hemilist)
-  echo "\n#===============================" | tee -a $LF
-  set cmd = (vertexvol --s $subject --$hemi --th3)
-  echo $cmd |& tee -a $LF 
-  $cmd |& tee -a $LF 
-  if($status) exit 1;
-end
+if($DoSurfVolume) then
+  foreach hemi ($hemilist)
+    echo "\n#===============================" | tee -a $LF
+    set cmd = (vertexvol --s $subject --$hemi --th3)
+    echo $cmd |& tee -a $LF 
+    $cmd |& tee -a $LF 
+    if($status) exit 1;
+  end
+endif
 
 #========================================================
 
@@ -519,6 +522,13 @@ while( $#argv != 0 )
     case "--no-dev":
       set usedev = 0;
       breaksw
+
+    case "-surfvolume":
+      set DoSurfVolume = 1;
+      breaksw;
+    case "-no-surfvolume":
+      set DoSurfVolume = 0;
+      breaksw;
 
     case "--copy-bias-from-conf":
       set CopyBiasFromConf = 1
