@@ -44,7 +44,7 @@
 #include "region.h"
 #include "sig.h"
 #include "stats.h"
-
+#include "mrimorph.h"
 #include "mri2.h"
 
 //#define MRI2_TIMERS
@@ -5264,4 +5264,149 @@ MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB)
   MatrixFree(&vox2rasB);
 
   return(mriB);
+}
+
+/*!
+  \fn MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M)
+  \brief Converts a volume into a matrix. With transposeFlag=0, the
+  output matrix will be nframes-by-nvoxels. If transposeFlag=1, then
+  the transpose is returned. If mask is non-null, then nvoxels is the
+  number of voxels > 0.5 in the mask. The order, from slowest to
+  fastest, that the voxels are packed into the matrix is slice,
+  column, row. This order is compatible with matlab. This function is
+  compatible with MRImat2vol(). See also GTMvol2mat().
+ */
+MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M)
+{
+  int nvox, c, r ,s, f, nrows, ncols, nthvox;
+
+  if(mask && MRIdimMismatch(vol, mask, 0)) {
+    printf("ERROR: MRIvol2mat(): mask and vol dimension mismatch\n");
+    return (NULL);
+  }
+
+  if(mask) nvox = MRIcountAboveThreshold(mask,0.5);
+  else     nvox = vol->width * vol->height * vol->depth;
+
+  if(transposeFlag==0){
+    nrows = vol->nframes;
+    ncols = nvox;
+  } else {
+    nrows = nvox;
+    ncols = vol->nframes;
+  }
+
+  if(M==NULL) M = MatrixAlloc(nrows,ncols,MATRIX_REAL);
+  if(M->rows != nrows || M->cols != ncols){
+    printf("ERROR: MRIvol2mat(): dimension mismatch expecting (%d,%d), got (%d,%d)\n",
+	   nrows,ncols,M->rows,M->cols);
+    return(NULL);
+  }
+
+  // col, row, slice order is compatible with MRImat2vol and matlab
+  nthvox = 0;
+  for(s=0; s < vol->depth; s++){
+    for(c=0; c < vol->width; c++){
+      for(r=0; r < vol->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	// Not the most efficient to parallelize here, but can't do above
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for 
+        #endif
+	for(f = 0; f < vol->nframes; f++){
+	  int Mc, Mr;
+	  if(transposeFlag==0){
+	    Mr = f+1; 
+	    Mc = nthvox+1;
+	  }
+	  else {
+	    Mr = nthvox+1;
+	    Mc = f+1; 
+	  }
+	  M->rptr[Mr][Mc] = MRIgetVoxVal(vol,c,r,s,f);
+	} // loop over frame
+	nthvox++;
+      }
+    }
+  }
+
+  return(M);
+}
+
+/*!
+  \fn MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol)
+  \brief Converts a matrix into a volume. With transposeFlag=0, the
+  matrix should have size nframes-by-nvoxels (or nvoxel-by-nframes if
+  transposeFlag=1).  If mask is non-null, then nvoxels is the number
+  of voxels > 0.5 in the mask. The order, from slowest to fastest,
+  that the voxels are unpacked from the matrix is slice, column,
+  row. This order is compatible with matlab. This function is
+  compatible with MRIvol2mat(). See also GTMmat2vol(). Either mask or
+  vol must be non-NULL, otherwise, there is no way to know how big the
+  volume should be. vol does not need to be zeroed.
+ */
+MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol)
+{
+  int nvox, c, r ,s, f, nthvox;
+  int nframes;
+
+  if(transposeFlag==0) nframes = M->rows;
+  else                 nframes = M->cols;
+
+  if(mask == NULL && vol == NULL){
+    printf("ERROR: MRImat2vol(): both mask and vol are NULL\n");
+    return(NULL);
+  }
+  if(vol == NULL){
+    vol = MRIallocSequence(mask->width, mask->height, mask->depth, MRI_FLOAT, nframes);
+    MRIcopyHeader(mask, vol);
+    MRIcopyPulseParameters(mask, vol);
+  }
+  if(mask && MRIdimMismatch(vol, mask, 0)) {
+    printf("ERROR: MRImat2vol(): mask and vol dimension mismatch\n");
+    return (NULL);
+  }
+  if(vol->nframes != nframes){
+    printf("ERROR: MRImat2vol(): vol and matrix frame dimension mismatch\n");
+    return (NULL);
+  }
+  if(mask) nvox = MRIcountAboveThreshold(mask,0.5);
+  else     nvox = vol->width * vol->height * vol->depth;
+  if( (transposeFlag==0 && M->cols != nvox) || (transposeFlag==1 && M->rows != nvox)){
+    printf("ERROR: MRImat2vol(): vol and matrix vox dimension mismatch\n");
+    printf("   transposeFlag=%d, rows = %d, cols = %d, nvox = %d\n",transposeFlag,M->rows,M->cols,nvox);
+    return (NULL);
+  }
+
+  // col, row, slice order is compatible with MRIvol2mat and matlab
+  nthvox = 0;
+  for(s=0; s < vol->depth; s++){
+    for(c=0; c < vol->width; c++){
+      for(r=0; r < vol->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  for(f = 0; f < vol->nframes; f++) MRIsetVoxVal(vol,c,r,s,f,0);
+	  continue;
+	}
+	// Not the most efficient to parallelize here, but can't do above
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for 
+        #endif
+	for(f = 0; f < vol->nframes; f++){
+	  int Mr, Mc;
+	  if(transposeFlag==0){
+	    Mr = f+1; 
+	    Mc = nthvox+1;
+	  }
+	  else {
+	    Mr = nthvox+1;
+	    Mc = f+1; 
+	  }
+	  MRIsetVoxVal(vol,c,r,s,f,M->rptr[Mr][Mc]);
+	}// loop over frame
+	nthvox++;
+      }
+    }
+  }
+
+  return(vol);
 }
