@@ -344,6 +344,7 @@ if($#MMode) then
   if($status) goto error_exit;
 
   # Normalize the ${MMode}. Sigma important here.
+  # Could include control point file here, but not done in recon-all
   set cmd = (mri_normalize -sigma $MMnormSigma -nonmax_suppress 0 -min_dist 1 \
     -surface $sdir/lh.white.rawavg identity.nofile \
     -surface $sdir/rh.white.rawavg identity.nofile \
