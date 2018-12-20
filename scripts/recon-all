@@ -2929,12 +2929,12 @@ if ( $DoRestart) then
         mkdir -p mri
         cd mri
     endif
-    echo "Restart: Label " `pwd` "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    echo "Restart: Label " `pwd` "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     if( ! -e $RestartFile) then
-        echo "Create Restart File $RestartFile <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        echo "Create Restart File $RestartFile <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
         tar cvf $RestartFile .
     else
-        echo "Restart using $RestartFile  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        echo "Restart using $RestartFile  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
         tar xvf $RestartFile .
     endif
     printenv 
@@ -3900,6 +3900,15 @@ if($DoSurfReg) then
     else
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
+      # Create a symbolic link to $hemi.fsaverage.sphere.reg
+      if($RunIt) then
+        pushd ../surf
+        set cmd = (ln -sf $hemi.sphere.reg $hemi.fsaverage.sphere.reg)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        popd
+      endif
     endif
     echo $cmd > $touchdir/$hemi.sphreg.touch
   end # Loop over hemilist
