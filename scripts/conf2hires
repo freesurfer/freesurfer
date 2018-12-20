@@ -17,11 +17,12 @@ set longitudinal = 0
 set tpNid = ()
 set longbaseid = ()
 set CopyBiasFromConf = 0;
-set MMode = ()
+set MMode = T2
 set DoT2 = 1
 set DoFLAIR = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
+set DoSurfVolume = 0;
 
 if($?CONF2HIRES_USEDEV == 0) then
   setenv CONF2HIRES_USEDEV 0
@@ -94,7 +95,8 @@ cd $mdir
 # (needed for v6 mris_make_surface with T2).  This output will be
 # rescaled to uchar so have to do it again below to stop
 # rescaling. The rawavg is "hi-res". All the output files labeled
-# "rawavg" will be in the rawavg.cmdc space.
+# "rawavg" will be in the rawavg.cmdc space. Using CMDC makes the
+# orig and rawavg.cmdc share the TkrRAS space.
 set cmd = (mri_convert rawavg.mgz rawavg.cmdc0.mgz --conform-dc --conform_min)
 echo "\n#===============================" | tee -a $LF
 echo $cmd | tee -a $LF
@@ -131,13 +133,26 @@ if($status) goto error_exit;
 
 # Map the various lowres volumes that mris_make_surfaces needs into the hires coords
 # nearest needed for aseg, but not sure whether it matters for others
-foreach v (wm.mgz filled.mgz aseg.presurf.mgz brain.mgz)
+foreach v (wm.mgz filled.mgz aseg.presurf.mgz)
   set cmd = (mri_vol2vol --mov $v --targ rawavg.cmdc.mgz --interp nearest --o rawavg.$v --regheader)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
 end
+
+# Have to do something special here. Map brain.finalsurfs.mgz but call
+# it rawavg.brain.fs.mgz because the name rawavg.brain.finalsurfs.mgz
+# will be reserved for the volume used to place the surfaces which
+# gets created below. This might be a little too complicated. The
+# conformed brain.finalsurfs could have manual edits; it is possible
+# that these edits might not get mapped exactly right due to
+# interpolation effects.
+set cmd = (mri_vol2vol --mov brain.finalsurfs.mgz --targ rawavg.cmdc.mgz \
+  --interp nearest --o rawavg.brain.fs.mgz --regheader)
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
 
 # Map the source surf coords into the rawavg space, need to use regR2C here
 foreach hemi ($hemilist)
@@ -154,7 +169,15 @@ foreach hemi ($hemilist)
   end
 end
 
+# Figure out control points. Do not need to map the control points
+# from conformed space to the rawavg space because using CMDC above
+# makes conf and rawavg share the TkrRAS space.
+set UseControlPoints = 0;
+set ControlPointsFile = $SUBJECTS_DIR/$subject/tmp/control.dat
+if(-e $ControlPointsFile) set UseControlPoints = 1;
+
 if($CopyBiasFromConf) then
+  # This branch might not work anymore
   echo "Copying bias field from conformed" | tee -a $LF
   # Map the rawavg into conformed space but without changing 
   # intensities. MUST use same interp as when orig.mgz was created from
@@ -195,17 +218,20 @@ else
   # created ?h.white.preaparc.rawavg by now
   set cmd = (mri_normalize -sigma 8 -erode 1 -min_dist 1 \
      -surface ../surf/lh.$srcsurf.rawavg identity.nofile \
-     -surface ../surf/rh.$srcsurf.rawavg identity.nofile \
-     rawavg.cmdc.mgz rawavg.norm.mgz)
+     -surface ../surf/rh.$srcsurf.rawavg identity.nofile)
+  if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd rawavg.cmdc.mgz rawavg.norm.mgz)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # Mask the normalized
-  set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.mgz rawavg.brain.finalsurfs.mgz)
+  # Mask the normalized. Remember, rawavg.brain.fs.mgz is the brain.finalsurfs.mgz
+  # mapped from the conformed space. This makes the rawavg.brain.finalsurfs.mgz
+  # have the proper masking with the new normalization.
+  set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.fs.mgz rawavg.brain.finalsurfs.mgz)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # Mmap rawavg.brain.finalsurfs.mgz back to conf space for convenience
+  # Map rawavg.brain.finalsurfs.mgz back to conf space for convenience
   set cmd = (mri_vol2vol --mov rawavg.brain.finalsurfs.mgz --targ orig.mgz \
     --regheader --o rawavg.brain.finalsurfs.conf.mgz --interp nearest)
   echo $cmd | tee -a $LF
@@ -318,6 +344,7 @@ if($#MMode) then
   if($status) goto error_exit;
 
   # Normalize the ${MMode}. Sigma important here.
+  # Could include control point file here, but not done in recon-all
   set cmd = (mri_normalize -sigma $MMnormSigma -nonmax_suppress 0 -min_dist 1 \
     -surface $sdir/lh.white.rawavg identity.nofile \
     -surface $sdir/rh.white.rawavg identity.nofile \
@@ -380,13 +407,15 @@ endif # Do MMode
 date | tee -a $LF
 
 # Generate the volume files (not sure this is really needed here)
-foreach hemi ($hemilist)
-  echo "\n#===============================" | tee -a $LF
-  set cmd = (vertexvol --s $subject --$hemi --th3)
-  echo $cmd |& tee -a $LF 
-  $cmd |& tee -a $LF 
-  if($status) exit 1;
-end
+if($DoSurfVolume) then
+  foreach hemi ($hemilist)
+    echo "\n#===============================" | tee -a $LF
+    set cmd = (vertexvol --s $subject --$hemi --th3)
+    echo $cmd |& tee -a $LF 
+    $cmd |& tee -a $LF 
+    if($status) exit 1;
+  end
+endif
 
 #========================================================
 
@@ -519,6 +548,13 @@ while( $#argv != 0 )
     case "--no-dev":
       set usedev = 0;
       breaksw
+
+    case "-surfvolume":
+      set DoSurfVolume = 1;
+      breaksw;
+    case "-no-surfvolume":
+      set DoSurfVolume = 0;
+      breaksw;
 
     case "--copy-bias-from-conf":
       set CopyBiasFromConf = 1

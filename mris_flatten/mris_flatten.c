@@ -715,6 +715,13 @@ get_option(int argc, char *argv[])
   {
     setRandomSeed(0L) ;
   }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number genererator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "sphere"))
   {
     sphere_flag = 1 ;

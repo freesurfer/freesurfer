@@ -106,6 +106,11 @@ public slots:
   void SetAutoRange( bool bRange );
   void SetForegroundColor( const QColor& color );
   void FlipMarkers();
+  void SetUsePercentile(bool b)
+  {
+    m_bUsePercentile = b;
+    update();
+  }
 
 protected:
   void Initialize();
@@ -128,11 +133,11 @@ protected:
   double      m_dInputRange[2];
 
   int*        m_nOutputData;
-  int         m_nOutputSize;
   double      m_dOutputRange[2];
-  double      m_dOutputTotalArea;
   bool        m_bAutoRange;
   int         m_nNumberOfBins;
+  double      m_dOutputTotalArea;
+  double*     m_dOutputArea;
   unsigned char* m_nColorTable;       // color table for histogram drawing as RGBA
 
   double      m_dBinWidth;
@@ -148,6 +153,7 @@ protected:
   bool        m_bMarkerEditable;
   int         m_nActiveMarker;
   bool        m_bActiveMarkerMirrored;
+  bool        m_bUsePercentile;
 };
 
 template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range)

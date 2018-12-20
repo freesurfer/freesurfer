@@ -6140,6 +6140,9 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
     }
     MRISsetXYZ(mris,vtxno,Mx,My,Mz);
   }
+  // Copy the volume geometry of the destination volume
+  copyVolGeom(&(gcam->atlas), &(mris->vg));
+
   return (0);
 }
 
