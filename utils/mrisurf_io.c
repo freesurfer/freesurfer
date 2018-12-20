@@ -3866,7 +3866,7 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier);
 MRIS* MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 {
   bool useOldBehaviour = true;
-  switch (copeWithLogicProblem("FREESURFER_MRISreadOverAlloc",
+  switch (copeWithLogicProblem("FREESURFER_fix_MRISreadOverAlloc",
     "was creating triangles with vertices that were the same vno when reading quad files")) {
   case LogicProblemResponse_old: 
     break;
@@ -3876,8 +3876,8 @@ MRIS* MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 
   return 
     useOldBehaviour 
-    ? MRISreadOverAlloc_new(fname, nVFMultiplier)
-    : MRISreadOverAlloc_old(fname, nVFMultiplier);
+    ? MRISreadOverAlloc_old(fname, nVFMultiplier)
+    : MRISreadOverAlloc_new(fname, nVFMultiplier);
 }
 
 static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
@@ -4776,7 +4776,7 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name);
 int MRISwrite(MRI_SURFACE *mris, const char *name)
 {
   bool useOldBehaviour = true;
-  switch (copeWithLogicProblem("FREESURFER_MRISwrite",
+  switch (copeWithLogicProblem("FREESURFER_fix_MRISwrite",
     "was combining non-abutting triangles into a quad when writing quad files")) {
   case LogicProblemResponse_old: 
     break;
