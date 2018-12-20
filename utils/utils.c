@@ -1785,7 +1785,7 @@ LogicProblemResponse copeWithLogicProblem2(
   LogicProblemResponse response = LogicProblemResponse_old;
   if (envvarFixer && !!getenv(envvarFixer)) response = LogicProblemResponse_fix;
   
-  if (wasReported) *wasReported= false;
+  if (wasReported) *wasReported = false;
   
   if (!emitReport) return response;
   
