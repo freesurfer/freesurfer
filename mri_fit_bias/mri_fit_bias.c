@@ -77,8 +77,6 @@ MATRIX *MRIbiasXsegs(MRI *seg);
 MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
 MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient);
 MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
-MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template);
-MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat);
 MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
 MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product);
 
@@ -91,9 +89,9 @@ int main(int argc, char *argv[])
   int exsegs[] = {30,62,77,85},nexsegs;
   char tmpstr[2000];
   double sumval,val, rvarSeg, rvarBias, mres;
-  MATRIX *Zwm, *Zm, *ywm, *ywmT, *f, *fT, *alpha0, *alpha, *X;
+  MATRIX *Zwm, *Zm, *ywm, *f, *alpha0, *alpha, *X;
   MATRIX *Xt,*XtX,*iXtX,*iXtXXt;
-  MATRIX *phat, *y0, *mattmp, *yhat,  *beta, *res, *fhat;
+  MATRIX *phat, *y0, *yhat,  *beta, *res, *fhat;
   MRI *mritmp, *aseg;
 
   nwmsegs = sizeof(wmsegs)/sizeof(int);
@@ -156,9 +154,7 @@ int main(int argc, char *argv[])
   // Create initial estimate of bias only from WM
   Zwm = MRIbiasPolyReg(polyorder, wmmask);
 
-  ywmT = MRIvol2mat(src, wmmask, NULL);
-  ywm = MatrixTranspose(ywmT,NULL);
-  MatrixFree(&ywmT);
+  ywm = MRIvol2mat(src, wmmask, 1, NULL);
   alpha0 = MatrixGlmFit(ywm, Zwm, &rvarBias, NULL);
   for(r=0; r < alpha0->rows; r++) alpha0->rptr[r+1][1] = 
     alpha0->rptr[r+1][1]/alpha0->rptr[alpha0->rows][1];
@@ -174,9 +170,7 @@ int main(int argc, char *argv[])
   iXtX = MatrixInverse(XtX,NULL);
   iXtXXt = MatrixMultiplyD(iXtX,Xt,NULL);
 
-  fT = MRIvol2mat(src,seg,NULL);
-  f = MatrixTranspose(fT,NULL);
-  MatrixFree(&fT);
+  f = MRIvol2mat(src,seg,1,NULL);
 
   y0 = NULL;
   yhat = NULL;
@@ -219,15 +213,12 @@ int main(int argc, char *argv[])
   printf("Apply to all voxels in the brain\n");
   Zm = MRIbiasPolyReg(polyorder,mask);
   phat = MatrixMultiply(Zm,alpha,NULL);
-  fT = MRIvol2mat(src,mask,NULL);
-  f = MatrixTranspose(fT,NULL);
-  MatrixFree(&fT);
+  f = MRIvol2mat(src,mask,1,NULL);
 
   printf("Computing output\n");
   y0 = MatrixElementDivide(f,phat,NULL);
-  mattmp = MatrixTranspose(y0,NULL);
-  trg = MRImat2vol(mattmp, mask, src);
-  MatrixFree(&mattmp);
+  trg = MRImat2vol(y0, mask, 1, NULL);
+  MRIcopyPulseParameters(src, trg);
 
   // Normalize mri so that mean in mask is 110
   printf("Rescaling\n");
@@ -262,9 +253,8 @@ int main(int argc, char *argv[])
   if(err) exit(1);
 
   if(biasfile){
-    mattmp = MatrixTranspose(phat,NULL);
-    mritmp = MRImat2vol(mattmp, mask, src);
-    MatrixFree(&mattmp);
+    mritmp = MRImat2vol(phat, mask, 1, NULL);
+    MRIcopyPulseParameters(src, mritmp);
     printf("Wrting to %s\n",biasfile);
     err = MRIwrite(mritmp,biasfile);
     if(err) exit(1);
@@ -275,28 +265,24 @@ int main(int argc, char *argv[])
   if(yhatfile || resfile){
     Zm = MRIbiasPolyReg(polyorder,aseg);
     phat = MatrixMultiply(Zm,alpha,NULL);
-    fT = MRIvol2mat(src,aseg,NULL);
-    f = MatrixTranspose(fT,NULL);
-    MatrixFree(&fT);
+    f = MRIvol2mat(src,aseg,1,NULL);
     y0 = MatrixElementDivide(f,phat,NULL);
     X = MRIbiasXsegs(aseg);
     beta = MatrixGlmFit(y0, X, &rvarSeg, NULL);
     yhat = MatrixMultiplyD(X,beta,NULL);
     if(yhatfile){
-      mattmp = MatrixTranspose(yhat,NULL);
-      mritmp = MRImat2vol(mattmp, aseg, src);
+      mritmp = MRImat2vol(yhat, aseg, 1, NULL);
+      MRIcopyPulseParameters(src, mritmp);
       printf("Wrting to %s\n",yhatfile);
       err = MRIwrite(mritmp,yhatfile);
       if(err) exit(1);
       MRIfree(&mritmp);
-      MatrixFree(&mattmp);
     }
     if(resfile){
       fhat = MatrixElementMultiply(yhat,phat,NULL);
       res = MatrixSubtract(f,fhat,NULL);
-      mattmp = MatrixTranspose(res,NULL);
-      mritmp = MRImat2vol(mattmp, aseg, src);
-      MatrixFree(&mattmp);
+      mritmp = MRImat2vol(res, aseg, 1, NULL);
+      MRIcopyPulseParameters(src, mritmp);
       printf("Wrting to %s\n",resfile);
       err = MRIwrite(mritmp,resfile);
       if(err) exit(1);
@@ -747,107 +733,6 @@ MATRIX *MRIbiasPolyReg(int order, MRI *mask)
   }
 
   return(X);
-}
-
-/*!
-  \fn MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template)
-  \brief Creates a volume from a matrix. Order of dimensions from 
-         slowest to fastest is: slice, col, row (matlab compatible)
-  \parameter mat - nframes by nvoxels input matrix
-  \parameter mask - only include voxels with mask > .0001
-  \parameter template - template volume (required, not overwritten)
-*/
-MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template)
-{
-  int c,r,s,f, nmask;
-  MRI *vol;
-
-  if(template == NULL){
-    printf("ERROR: MRImat2vol(): template required\n");
-    return(NULL);
-  }
-
-  // Count number of voxels in mask so can alloc
-  if(mask){
-    nmask = 0;
-    for (c=0; c < mask->width; c++)
-      for (r=0; r < mask->height; r++)
-	for (s=0; s < mask->depth; s++)
-	  if(MRIgetVoxVal(mask,c,r,s,0) > 0.0001) nmask++;
-  }
-  else nmask = template->width * template->height * template->depth;
-  printf("MRImat2vol(): found %d voxels in mask\n",nmask);
-  if(nmask != mat->cols){
-    printf("ERROR: MRImat2vol(): dimension mismatch %d %d\n",nmask,mat->cols);
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-
-  vol = MRIallocSequence(template->width,template->height,
-			 template->depth,MRI_FLOAT,mat->rows);
-  if(vol == NULL) return(NULL);
-  MRIcopyHeader(template,vol);
-
-  // Note that the order of slice, col, row may be very important
-  // Order is consistent with MRIvol2mat() and matlab
-  nmask = 0;
-  for(s=0; s < vol->depth; s++){
-    for(c=0; c < vol->width; c++){
-      for(r=0; r < vol->height; r++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue;
-	for(f=0; f < vol->nframes; f++)
-	  MRIsetVoxVal(vol,c,r,s,f, mat->rptr[f+1][nmask+1]);
-	nmask++;
-      }
-    }
-  }
-  return(vol);
-}
-
-/*!
-  \fn MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat)
-  \brief Creates a matrix from a volume. Order of dimensions from 
-         slowest to fastest is: slice, col, row (matlab compatible)
-  \parameter src - source volume
-  \parameter mask - only include voxels with mask > .0001
-  \parameter mat - output nframes by nvoxels matrix
-*/
-MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat)
-{
-  int c,r,s,f, nmask;
-
-  // Count number of voxels in mask so can alloc
-  if(mask){
-    nmask = 0;
-    for (c=0; c < mask->width; c++)
-      for (r=0; r < mask->height; r++)
-	for (s=0; s < mask->depth; s++)
-	  if(MRIgetVoxVal(mask,c,r,s,0) > 0.0001) nmask++;
-  }
-  else nmask = src->width * src->height * src->depth;
-  printf("MRIvol2mat(): found %d voxels in mask\n",nmask);
-
-  if(mat == NULL) mat = MatrixAlloc(src->nframes,nmask,MATRIX_REAL);
-  if(mat->rows != src->nframes || mat->cols != nmask){
-    printf("ERROR: MRIvol2mat(): mat mismatch \n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-
-  // Note that the order of slice, col, row may be very important
-  // Order is consistent with MRImat2vol() and matlab
-  nmask = 0;
-  for(s=0; s < src->depth; s++){
-    for(c=0; c < src->width; c++){
-      for(r=0; r < src->height; r++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue;
-	for(f=0; f < src->nframes; f++)
-	  mat->rptr[f+1][nmask+1] = MRIgetVoxVal(src,c,r,s,f);
-	nmask++;
-      }
-    }
-  }
-  return(mat);
 }
 
 /*-------------------------------------------------------------*/
