@@ -74,11 +74,8 @@ int niters = 10, polyorder = 3;
 
 MATRIX *MRIbiasPolyReg(int order, MRI *mask);
 MATRIX *MRIbiasXsegs(MRI *seg);
-MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
-MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient);
 MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
 MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
-MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -178,7 +175,7 @@ int main(int argc, char *argv[])
   alpha = NULL;
   rvarSeg = 0;
   for(k=0; k < niters; k++){
-    y0 = MatrixElementDivide(f,phat,y0);
+    y0 = MatrixDivideElts(f,phat,y0);
     //beta = MatrixGlmFit(y0, X, &rvarSeg, beta);  
     beta = MatrixMultiplyD(iXtXXt,y0,beta);
     yhat = MatrixMultiplyD(X,beta,yhat);
@@ -186,7 +183,7 @@ int main(int argc, char *argv[])
     rvarSeg = VectorVar(res,&mres);
     rvarSeg = rvarSeg*(X->rows-1)/(X->rows-X->cols);
 
-    phat = MatrixElementDivide(f,yhat,phat);
+    phat = MatrixDivideElts(f,yhat,phat);
     alpha = MatrixGlmFit(phat, Zm, &rvarBias, alpha);
     phat = MatrixMultiply(Zm,alpha,phat);
     printf("%2d %6.4f %6.4f\n",k,rvarSeg,rvarBias);
@@ -216,7 +213,7 @@ int main(int argc, char *argv[])
   f = MRIvol2mat(src,mask,1,NULL);
 
   printf("Computing output\n");
-  y0 = MatrixElementDivide(f,phat,NULL);
+  y0 = MatrixDivideElts(f,phat,NULL);
   trg = MRImat2vol(y0, mask, 1, NULL);
   MRIcopyPulseParameters(src, trg);
 
@@ -266,7 +263,7 @@ int main(int argc, char *argv[])
     Zm = MRIbiasPolyReg(polyorder,aseg);
     phat = MatrixMultiply(Zm,alpha,NULL);
     f = MRIvol2mat(src,aseg,1,NULL);
-    y0 = MatrixElementDivide(f,phat,NULL);
+    y0 = MatrixDivideElts(f,phat,NULL);
     X = MRIbiasXsegs(aseg);
     beta = MatrixGlmFit(y0, X, &rvarSeg, NULL);
     yhat = MatrixMultiplyD(X,beta,NULL);
@@ -279,7 +276,7 @@ int main(int argc, char *argv[])
       MRIfree(&mritmp);
     }
     if(resfile){
-      fhat = MatrixElementMultiply(yhat,phat,NULL);
+      fhat = MatrixMultiplyElts(yhat,phat,NULL);
       res = MatrixSubtract(f,fhat,NULL);
       mritmp = MRImat2vol(res, aseg, 1, NULL);
       MRIcopyPulseParameters(src, mritmp);
@@ -735,83 +732,6 @@ MATRIX *MRIbiasPolyReg(int order, MRI *mask)
   return(X);
 }
 
-/*-------------------------------------------------------------*/
-MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta)
-{
-  MATRIX *Xt, *XtX, *iXtX, *Xty, *yhat, *res;
-  double mres,rvar;
-
-  Xt   = MatrixTranspose(X,NULL);
-  XtX  = MatrixMultiplyD(Xt,X,NULL);
-  iXtX = MatrixInverse(XtX,NULL);
-  Xty  = MatrixMultiplyD(Xt,y,NULL);
-  beta = MatrixMultiplyD(iXtX,Xty,beta);
-  yhat = MatrixMultiplyD(X,beta,NULL);
-  res  = MatrixSubtract(y, yhat, NULL);
-  rvar = VectorVar(res,&mres);
-  rvar = rvar*(X->rows-1)/(X->rows-X->cols);
-  *pRVar = rvar;
-
-  MatrixFree(&Xt);
-  MatrixFree(&XtX);
-  MatrixFree(&iXtX);
-  MatrixFree(&Xty);
-  MatrixFree(&yhat);
-  MatrixFree(&res);
-  return(beta);
-}
-/*!
-  \fn MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient)
-  \brief Element-wise matrix division. q = n/(d+FLT_EPSILON). Only works on MATRIX_REAL.
-  \parameter num - numerator
-  \parameter den - denominator
-  \parameter quotient - result
-*/
-MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient)
-{
-  int r,c;
-
-  if(num->rows != den->rows || num->cols != den->cols){
-    printf("ERROR: MatrixElementDivide(): dim mismatch\n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-  if(quotient==NULL)
-    quotient = MatrixAlloc(num->rows,num->cols,MATRIX_REAL);
-
-  for(r=0; r < num->rows; r++){
-    for(c=0; c < num->cols; c++){
-      quotient->rptr[r+1][c+1] = num->rptr[r+1][c+1]/(den->rptr[r+1][c+1] + FLT_EPSILON);
-    }
-  }
-  return(quotient);
-}
-/*!
-  \fn MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product)
-  \brief Element-wise matrix mult. p = m1.*m2. Only works on MATRIX_REAL.
-  \parameter m1 
-  \parameter m2
-  \parameter product
-*/
-MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product)
-{
-  int r,c;
-
-  if(m1->rows != m2->rows || m1->cols != m2->cols){
-    printf("ERROR: MatrixElementDivide(): dim mismatch\n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-  if(product==NULL)
-    product = MatrixAlloc(m1->rows,m1->cols,MATRIX_REAL);
-
-  for(r=0; r < m1->rows; r++){
-    for(c=0; c < m1->cols; c++){
-      product->rptr[r+1][c+1] = m1->rptr[r+1][c+1]*m2->rptr[r+1][c+1];
-    }
-  }
-  return(product);
-}
 /*!
   \fn MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
   \brief Merges multiple segmentations into one. Can be done in-place.

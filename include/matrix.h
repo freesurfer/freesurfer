@@ -117,6 +117,7 @@ MATRIX  *MatrixMultiply_wkr( const MATRIX *m1, const MATRIX *m2, MATRIX *m3,
 	// c1 must equal r2
 
 MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12); // like matlab m1.*m2
+MATRIX *MatrixDivideElts(MATRIX *num, MATRIX *den, MATRIX *quotient); // like matlab num./den
 MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut); // like matlab repmat()
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
@@ -351,6 +352,8 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
 double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R);
+MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
+
 
 #if defined(__cplusplus)
 };
