@@ -150,6 +150,8 @@ MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB);
 */
 void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol);
 
+MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M);
+MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol);
 
 #if defined(__cplusplus)
 };
