@@ -4786,7 +4786,6 @@ int MRISwrite(MRIS *mris, const char *name)
     case LogicProblemResponse_fix:
       useOldBehaviour = false;
     }
-  }
   
   return useOldBehaviour
     ? MRISwrite_old(mris, name)
