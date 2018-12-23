@@ -526,15 +526,26 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode)
     }
     n_extra_faces = 5*n_extra_faces + nloops*MAX_EXTRA_FACES; //4
   } else {
-    n_extra_vertices = __MAX(mris->max_vertices-mris->nvertices,0);
-    n_extra_faces =__MAX(mris->max_faces-mris->nfaces,0);
+    n_extra_vertices = __MAX(mris->max_vertices - mris->nvertices, 0);
+    n_extra_faces    = __MAX(mris->max_faces    - mris->nfaces,    0);
   }
   
+#if 0
   // ATH not sure if this is intentional or a typo, but it seems like mris_dst
   // should be reallocated, not mris. Changing to mris_dst causes downstream assert
   // failures, but just uncommenting it fixes a segfault with no other visible effects.
   // Is it possible this function is no longer needed?
   // MRISreallocVerticesAndFaces(mris, mris->nvertices+n_extra_vertices, mris_dst->nfaces+n_extra_faces);
+  //
+#else
+  // ATH was right, there was a typo here.
+  // The code should probably be this, and the downstream asserts need to be debugged
+  //
+  MRISreallocVerticesAndFaces(
+    mris_dst, 
+    mris_dst->nvertices + n_extra_vertices, 
+    mris_dst->nfaces    + n_extra_faces);
+#endif
 
   return mris_dst;
 }

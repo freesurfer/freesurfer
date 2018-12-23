@@ -26,7 +26,7 @@
 
 // OPTIONS
 
-//#define ROMP_SUPPORT_ENABLED
+#define ROMP_SUPPORT_ENABLED
     // Uncomment this to compile in the code that collects the statistics 
 
 #define ROMP_maxWatchedThreadNum 4

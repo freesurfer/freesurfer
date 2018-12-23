@@ -3865,15 +3865,17 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier);
 
 MRIS* MRISreadOverAlloc(const char *fname, double nVFMultiplier)
 {
-  bool useOldBehaviour = true;
-  switch (copeWithLogicProblem("FREESURFER_fix_MRISreadOverAlloc",
-    "was creating triangles with vertices that were the same vno when reading quad files")) {
-  case LogicProblemResponse_old: 
-    break;
-  case LogicProblemResponse_fix:
-    useOldBehaviour = false;
+  bool useOldBehaviour = false;
+  if (useOldBehaviour) {
+    switch (copeWithLogicProblem("FREESURFER_fix_MRISreadOverAlloc",
+      "was creating triangles with vertices that were the same vno when reading quad files")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      useOldBehaviour = false;
+    }
   }
-
+  
   return 
     useOldBehaviour 
     ? MRISreadOverAlloc_old(fname, nVFMultiplier)
@@ -4742,7 +4744,7 @@ MRIS * MRISread(const char *fname)
   return (mris);
 }
 
-int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices)
+int MRISwriteVertexLocations(MRIS *mris, char *fname, int which_vertices)
 {
   int retval, i;
   float *coords[3];
@@ -4773,15 +4775,17 @@ int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices)
 static int MRISwrite_new(MRI_SURFACE *mris, const char *name);
 static int MRISwrite_old(MRI_SURFACE *mris, const char *name);
 
-int MRISwrite(MRI_SURFACE *mris, const char *name)
+int MRISwrite(MRIS *mris, const char *name)
 {
-  bool useOldBehaviour = true;
-  switch (copeWithLogicProblem("FREESURFER_fix_MRISwrite",
-    "was combining non-abutting triangles into a quad when writing quad files")) {
-  case LogicProblemResponse_old: 
-    break;
-  case LogicProblemResponse_fix:
-    useOldBehaviour = false;
+  bool useOldBehaviour = false;
+  if (useOldBehaviour) {
+    switch (copeWithLogicProblem("FREESURFER_fix_MRISwrite",
+      "was combining non-abutting triangles into a quad when writing quad files")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      useOldBehaviour = false;
+    }
   }
   
   return useOldBehaviour

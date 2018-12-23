@@ -1727,9 +1727,6 @@ int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs) ;
-int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris,
-                                           int navgs,
-                                           int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -1759,7 +1756,6 @@ int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
 int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
-int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) ;
 int   MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order) ;
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
