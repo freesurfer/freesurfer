@@ -1481,6 +1481,7 @@ int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
+void         MRISclearCurvAndVal2(MRIS *mris) ;
 void         MRISclearD(MRIS *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
@@ -2194,15 +2195,15 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_MARKS       11
 
 
-int MRISclearOrigArea(MRI_SURFACE *mris) ;
-int MRISclearOrigDistances(MRI_SURFACE *mris) ;
-int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
+int MRISclearOrigArea(MRIS *mris) ;
+void MRISclearOrigAreaAndVal2(MRIS *mris);
+int MRISclearOrigDistances(MRIS *mris) ;
+int MRIScombine(MRIS *mris_src, MRIS *mris_total,
                 MRIS_HASH_TABLE *mht, int which) ;
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
                       MRIS_HASH_TABLE *mht, int which) ;
 int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
-int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);

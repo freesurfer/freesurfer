@@ -11338,7 +11338,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   MHT *mht_src = NULL;
   double max_len;
 
-  MRISclear(mris_dst, which);
+  MRISclearWhichAndVal2(mris_dst, which);
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
     VERTEX * const vdst = &mris_dst->vertices[vno];
     vdst->d = 0;
@@ -11401,7 +11401,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   double max_len, mean;
 
   MRISclearMarks(mris_dst);
-  MRISclear(mris_dst, which);
+  MRISclearWhichAndVal2(mris_dst, which);
   MRISclearMarks(mris_src);
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
     vdst = &mris_dst->vertices[vno];
