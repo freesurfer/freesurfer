@@ -1084,7 +1084,7 @@ int MRISaverageVertexPositions(MRIS *mris, int navgs)
 {
   // This passes mris_inflate test
   //
-  bool checking = true;
+  bool checking = false;
   if (checking) {
     switch (copeWithLogicProblem("FREESURFER_fix_MRISaverageVertexPositions","MRISaverageVertexPositions was inefficient")) {
     case LogicProblemResponse_old: 
@@ -1151,7 +1151,7 @@ int MRISaverageVertexPositions(MRIS *mris, int navgs)
 //
 void MRISsmoothSurface(MRIS *mris, int niter, float step)
 {
-  bool useOldBehaviour = true;
+  bool useOldBehaviour = false;
   switch (copeWithLogicProblem("FREESURFER_fix_MRISsmoothSurface1","MRISsmoothSurface was calling MRIScomputeMetricProperties too soon")) {
   case LogicProblemResponse_old: 
     break;
@@ -1159,7 +1159,7 @@ void MRISsmoothSurface(MRIS *mris, int niter, float step)
     useOldBehaviour = false;
   }
 
-  bool checking = true;
+  bool checking = false;
   if (checking) {
     switch (copeWithLogicProblem("FREESURFER_fix_MRISsmoothSurface2","MRISsmoothSurface was not using common efficient code")) {
     case LogicProblemResponse_old: 
@@ -1837,9 +1837,10 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 {
   if (mris->dist_alloced_flags&2) return;
   
-  bool useOldBehaviour = true;
+  bool useOldBehaviour = false;
   switch (copeWithLogicProblem("FREESURFER_fix_missing_dist_orig","dist_orig not already computed")) {
   case LogicProblemResponse_old: 
+    useOldBehaviour = true;
     break;
   case LogicProblemResponse_fix:
     useOldBehaviour = false;
@@ -4700,59 +4701,40 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
   }
   cheapAssert(mris->nsize == nsize);
   
-  // Recalculate the avg_nbrs
-  //
-  if (max_nsize_grew) {
-    int ntotal = 0, vtotal = 0;
-
-    int vno;
-    for (vno = 0; vno < mris->nvertices; vno++) {    
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
-      VERTEX                * const v  = &mris->vertices         [vno];
-
-      if (v->ripflag) continue;
-
-      vtotal += vt->vtotal;
-      ntotal++;
-    }
-    mris->avg_nbrs = (float)vtotal / (float)ntotal;
-    if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
-  }
-  
   if (nsize <= mris->dist_nsize) {
-    // this used to precede the "Recalculate the avg_nbrs"
-    // but I have shifted it after, and am awaiting a decision from the main developers 
-    // about whether avg_nbrs should be adjusted even when !max_nsize_grew
     return;
   }
   	
   // Adjust the dist and dist_orig
   // unless they are already valid
   //
-  bool newCodeWouldDoDist     = alwaysDoDist || max_nsize_grew || mris->dist_nsize < nsize ;
-  bool newCodeWouldDoDistOrig = false;
-  if (alwaysDoDist || max_nsize_grew || mris->dist_orig_nsize < nsize) {
+  bool useOldBehaviour = false;
+  if (useOldBehaviour) {
     switch (copeWithLogicProblem("FREESURFER_fix_MRISsetNeighborhoodSizeAndDist","should not be creating dist_origs")) {
     case LogicProblemResponse_old:
-      newCodeWouldDoDistOrig = true;
+      useOldBehaviour = true;
       break;
     case LogicProblemResponse_fix:
-      newCodeWouldDoDistOrig = (mris->dist_alloced_flags & 2); 
+      useOldBehaviour = false; 
     }
   }
+  
+  bool shouldDoDist     = alwaysDoDist || max_nsize_grew || mris->dist_nsize < nsize ;
+  bool shouldDoDistOrig = shouldDoDist && (mris->dist_alloced_flags & 2);
 
-  if (alwaysDoDist != newCodeWouldDoDist) {
-    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist when old did":"old not computing dist");
+  if (useOldBehaviour) {
+    if (shouldDoDist != alwaysDoDist) {
+      copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist when old did":"old not computing dist");
+      shouldDoDist = alwaysDoDist;
+    }
+    if (shouldDoDistOrig != alwaysDoDist) {
+      copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist_orig when old did":"old not computing dist_orig");
+      shouldDoDistOrig = alwaysDoDist;
+    }
   }
   
-  if (alwaysDoDist != newCodeWouldDoDistOrig) {
-    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist_orig when old did":"old not computing dist_orig");
-  }
-  
-  if (alwaysDoDist) {
-    mrisComputeVertexDistances(mris);
-    mrisComputeOriginalVertexDistances(mris);
-  }
+  if (shouldDoDist)     mrisComputeVertexDistances(mris);
+  if (shouldDoDistOrig) mrisComputeOriginalVertexDistances(mris);
 
   cheapAssert( (!(mris->dist_alloced_flags&1)) || (mris->dist_nsize      >= nsize) );
   cheapAssert( (!(mris->dist_alloced_flags&2)) || (mris->dist_orig_nsize >= nsize) );
