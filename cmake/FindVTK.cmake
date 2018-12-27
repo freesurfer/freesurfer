@@ -18,15 +18,6 @@ find_package(VTK HINTS ${VTK_DIR} NO_MODULE)
 if(VTK_FOUND)
 
   # The order of the libraries is important
-  # Putting this here
-  #   message(STATUS "===================================")
-  #   message(STATUS "VTK_LIBRARIES prior to overwrite is" ${VTK_LIBRARIES})
-  #   message(STATUS "===================================")
-  # revealed this order
-  #
-  # vtkCommon vtkFiltering vtkImaging vtkGraphics vtkGenericFiltering vtkIO
-  # vtkRendering vtkVolumeRendering vtkHybrid vtkWidgets vtkInfovis vtkGeovis vtkViews vtkCharts
-  # so the following were reordered to match that order
     
   # overwrite VTK_LIBRARIES with the absolute paths
   library_paths(
@@ -44,7 +35,6 @@ if(VTK_FOUND)
     vtkhdf5
     vtkhdf5_hl
     LSDyna
-    #
     #
     vtkWidgets
     vtkHybrid
