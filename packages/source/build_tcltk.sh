@@ -58,14 +58,20 @@ make install
 cd ../../tk8.4.6/unix
 make install
 
-[ -e "${COMBO_DIR}/lib/libtcl.so.0"   ] && rm -f ${COMBO_DIR}/lib/libtcl.so.0
-[ -e "${COMBO_DIR}/lib/libtcl8.4g.so" ] && rm -f ${COMBO_DIR}/lib/libtcl8.4.so
+[ -e "${COMBO_DIR}/lib/libtcl.so.0"   ] && rm -f               ${COMBO_DIR}/lib/libtcl.so.0
+[ -e "${COMBO_DIR}/lib/libtcl8.4g.so" ] && rm -f               ${COMBO_DIR}/lib/libtcl8.4.so
 [ -e "${COMBO_DIR}/lib/libtcl8.4g.so" ] && ln -s libtcl8.4g.so ${COMBO_DIR}/lib/libtcl8.4.so
-[ -e "${COMBO_DIR}/lib/libtcl8.4.so"  ] && ln -s libtcl8.4.so ${COMBO_DIR}/lib/libtcl.so.0
-[ -e "${COMBO_DIR}/lib/libtk.so.0"    ] && rm -f ${COMBO_DIR}/lib/libtk.so.0
-[ -e "${COMBO_DIR}/lib/libtk8.4g.so"  ] && rm -f ${COMBO_DIR}/lib/libtk8.4.so
-[ -e "${COMBO_DIR}/lib/libtk8.4g.so"  ] && ln -s libtk8.4g.so ${COMBO_DIR}/lib/libtk8.4.so
-[ -e "${COMBO_DIR}/lib/libtk8.4.so"   ] && ln -s libtk8.4.so ${COMBO_DIR}/lib/libtk.so.0
+[ -e "${COMBO_DIR}/lib/libtcl8.4.so"  ] && ln -s libtcl8.4.so  ${COMBO_DIR}/lib/libtcl.so.0
+[ -e "${COMBO_DIR}/lib/libtk.so.0"    ] && rm -f               ${COMBO_DIR}/lib/libtk.so.0
+[ -e "${COMBO_DIR}/lib/libtk8.4g.so"  ] && rm -f               ${COMBO_DIR}/lib/libtk8.4.so
+[ -e "${COMBO_DIR}/lib/libtk8.4g.so"  ] && ln -s libtk8.4g.so  ${COMBO_DIR}/lib/libtk8.4.so
+[ -e "${COMBO_DIR}/lib/libtk8.4.so"   ] && ln -s libtk8.4.so   ${COMBO_DIR}/lib/libtk.so.0
+
+# These are needed for FindTCL to find this built instance rather than /usr/bin etc.
+[ -e "${COMBO_DIR}/bin/tclsh8.4"      ] && ln -s tclsh8.4      ${COMBO_DIR}/bin/tclsh
+[ -e "${COMBO_DIR}/bin/wish8.4"       ] && ln -s wish8.4       ${COMBO_DIR}/bin/wish
+[ -e "${COMBO_DIR}/lib/libtcl8.4.so"  ] && ln -s libtcl8.4.so  ${COMBO_DIR}/lib/libtcl.so
+[ -e "${COMBO_DIR}/lib/libtk8.4.so"   ] && ln -s libtk8.4.so   ${COMBO_DIR}/lib/libtk.so
 
 unset CFLAGS
 

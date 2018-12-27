@@ -32,5 +32,16 @@ cmake . \
   -DVTK_DIR=${VTK_DIR} \
   -DCMAKE_CXX_FLAGS=${cmake_cxx_flags}
 
+# cmake generates sources and scripts the first time
+# that need to be executed to generate a valid make file
+# when building tcl tk as part of the package build
+#
+# Weird but true
+#
+cmake . \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+  -DVTK_DIR=${VTK_DIR} \
+  -DCMAKE_CXX_FLAGS=${cmake_cxx_flags}
+
 make -j8
 make install

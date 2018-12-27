@@ -55,14 +55,17 @@ pkgs = [
   Package('tetgen',      '1.4.1',  'build_tetgen.sh',    'tetgen-1.4.1.tar.gz'),
   Package('itk',         '4.13.0', 'build_itk.sh',       'itk-4.13.0.tar.gz'),
   Package('petsc',       '2.3.3',  'build_petsc.sh',     'petsc-2.3.3.tar.gz', required=False),
-  Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False),
-  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False),
-  Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False)  # must build kwwidgets after vtk
+  Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False)
 ]
 
 # tcltk 8.4.6 cannot be built on modern OSX
 if platform.system() != 'Darwin':
   pkgs.append(Package('tcltktixblt', '8.4.6', 'build_tcltk.sh', 'tcltktixblt-8.4.6.tar.gz', required=False))
+
+# These need tcltk 8.4.6 or earlier so must be built after that
+# and they must use the tcltk that is built here.
+pkgs.append(  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False))
+pkgs.append(  Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False))  # must build kwwidgets after vtk
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,6 +142,11 @@ for package in pkgs:
   ret = subprocess.call('tar -xzf %s' % package.tarball, shell=True)
   if ret != 0: exit(ret)
 
+  # apply patches
+  if package.name == "kwwidgets":
+    print(          'cp -f %s/packages/source/kwwidgets-cvs-replacement-CMakeLists.txt KWWidgets-HEAD-cvs/CMakeLists.txt' % fs_source_dir)
+    subprocess.call('cp -f %s/packages/source/kwwidgets-cvs-replacement-CMakeLists.txt KWWidgets-HEAD-cvs/CMakeLists.txt' % fs_source_dir, shell=True)
+    
   # run the build script
   ret = subprocess.call('%s %s' % (package.script, package_dir), shell=True)
   if ret == 0:
