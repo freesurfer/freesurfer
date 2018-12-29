@@ -4991,6 +4991,222 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
 
 static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
 {
+#if 1
+  bool useOldBehaviour = false;
+#else
+  bool useOldBehaviour = true;
+  switch (copeWithLogicProblem("FREESURFER_fix_MRISwrite",
+    "was combining non-abutting triangles into a quad when writing quad files")) {
+  case LogicProblemResponse_old: 
+    break;
+  case LogicProblemResponse_fix:
+    useOldBehaviour = false;
+  }
+#endif
+  
+  return useOldBehaviour
+    ? MRISwrite_old(mris, name)
+    : MRISwrite_new(mris, name);
+}
+
+static bool quadCombine(int quad[4], int vA[3], int vB[3])
+{
+  if (0) {  // this has been seen to PASS
+  
+    static bool laterTime;
+    if (!laterTime) { laterTime = true;
+      fprintf(stdout, "%s:%d testing quadCombine\n", __FILE__, __LINE__); 
+      
+      // cases where it should be found
+#define QUAD_COMBINE_TEST(A, VA0,VA1,VA2,VB0,VB1,VB2)       \
+        {   int va[3] = {VA0,VA1,VA2};                      \
+            int vb[3] = {VB0,VB1,VB2};                      \
+            cheapAssert(A == quadCombine(quad, va, vb));    \
+        }
+
+      QUAD_COMBINE_TEST(TRUE, 0,1,2, 2,1,4);
+      QUAD_COMBINE_TEST(TRUE, 0,1,2, 4,2,1);
+      QUAD_COMBINE_TEST(TRUE, 0,1,2, 1,4,2);
+
+      QUAD_COMBINE_TEST(TRUE, 1,2,0, 2,1,4);
+      QUAD_COMBINE_TEST(TRUE, 1,2,0, 4,2,1);
+      QUAD_COMBINE_TEST(TRUE, 1,2,0, 1,4,2);
+
+      QUAD_COMBINE_TEST(TRUE, 2,0,1, 2,1,4);
+      QUAD_COMBINE_TEST(TRUE, 2,0,1, 4,2,1);
+      QUAD_COMBINE_TEST(TRUE, 2,0,1, 1,4,2);
+      
+      // cases where it should not be found
+      QUAD_COMBINE_TEST(FALSE, 0,1,2, 2,1,0);    // two edges
+      QUAD_COMBINE_TEST(FALSE, 0,1,2, 4,1,2);    // one edge the same direction
+      QUAD_COMBINE_TEST(FALSE, 0,1,2, 1,2,0);    // two edge the same direction
+      QUAD_COMBINE_TEST(FALSE, 0,1,2, 3,4,5);    // no vertices
+      QUAD_COMBINE_TEST(FALSE, 1,2,0, 3,1,4);    // one vertex
+
+#undef QUAD_COMBINE_TEST
+    }
+  }
+  
+  // Combine into a quad using a shared edge in triangles vA0 vA1 vA2 and vB0 vB1 vB2.
+  // Don't combine them when this would flip a triangle - the combined edge must be in reverse order ... vA0 vA1 == vB2 vB1
+  //
+  int qi = 0;
+
+  int vAi = 0;
+  for (vAi = 0; vAi < 3; vAi++) {
+
+    // Get the next edge in A
+    //  
+    int edge0 = vA[vAi], edge1 = vA[(vAi==2)?0:vAi+1];
+
+    // Put the next vertex from A into quad
+    //
+    if (qi == 4) return false;              // must have shared two edges!
+    quad[qi++] = edge0;
+    
+    // Is there a shared edge in B?
+    //
+    int vBi;
+    for (vBi = 0; vBi < 3; vBi++) {
+      if (edge0 != vB[vBi]) continue;       // not shared vertex
+      int prev = vB[(vBi>0)?vBi-1:2];
+      if (prev != edge1) break;             // not shared edge
+      if (qi == 4) return false;            // must have shared two edges!
+      quad[qi++] = vB[(vBi<2)?vBi+1:0];     // put the third vertex of B into the quad
+    }
+  }
+  
+  return qi == 4;                           // built a valid quad?
+}
+
+static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
+{
+  int k, type;
+  float x, y, z;
+  FILE *fp;
+  char fname[STRLEN];
+
+  chklc();
+  MRISbuildFileName(mris, name, fname);
+  type = MRISfileNameType(fname);
+  if (type == MRIS_ASCII_TRIANGLE_FILE) {
+    return (MRISwriteAscii(mris, fname));
+  }
+  else if (type == MRIS_VTK_FILE) {
+    return (MRISwriteVTK(mris, fname));
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE) {
+    return (MRISwriteGeo(mris, fname));
+  }
+  else if (type == MRIS_ICO_FILE) {
+    return MRISwriteICO(mris, fname);
+  }
+  else if (type == MRIS_STL_FILE) {
+    return MRISwriteSTL(mris, fname);
+  }
+  else if (type == MRIS_GIFTI_FILE) {
+    return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
+  }
+
+  if (mris->type == MRIS_TRIANGULAR_SURFACE) {
+    return (MRISwriteTriangularSurface(mris, fname));
+  }
+
+  fp = fopen(fname, "w");
+  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
+
+#if USE_NEW_QUAD_FILE
+  fwrite3(NEW_QUAD_FILE_MAGIC_NUMBER, fp);
+#else
+  fwrite3(QUAD_FILE_MAGIC_NUMBER, fp);
+#endif
+  fwrite3(mris->nvertices, fp);
+
+  // Below was combining two adjacent faces without checking whether they had an abutting edge!
+  // Calculate how many are really needed
+  //
+  int quadsNeeded = 0;
+  for (k = 0; k < mris->nfaces; k++) {
+    FACE* f = &mris->faces[k];
+
+    int quad[4]; 
+    if ((k+1 < mris->nfaces) && quadCombine(quad, f->v, mris->faces[k+1].v)) {
+      k++;
+    }
+      
+    quadsNeeded++;
+  }
+
+  fwrite3(quadsNeeded, fp);
+
+  for (k = 0; k < mris->nvertices; k++) {
+    x = mris->vertices[k].x;
+    y = mris->vertices[k].y;
+    z = mris->vertices[k].z;
+#if USE_NEW_QUAD_FILE
+    fwriteFloat(x, fp);
+    fwriteFloat(y, fp);
+    fwriteFloat(z, fp);
+#else
+    fwrite2((int)(x * 100), fp);
+    fwrite2((int)(y * 100), fp);
+    fwrite2((int)(z * 100), fp);
+#endif
+  }
+
+  // This was combining two adjacent faces without checking whether they had an abutting edge!
+  // Now it checks, and writes degenerate quads instead if necessary
+  //
+  int quadsWritten = 0;
+  for (k = 0; k < mris->nfaces; k++) {
+    FACE* f = &mris->faces[k];
+
+    int quad[4]; 
+    if ((k+1 < mris->nfaces) && quadCombine(quad, f->v, mris->faces[k+1].v)) {
+      k++;
+    } else {
+      quad[0] = f->v[0];
+      quad[1] = f->v[1];
+      quad[2] = f->v[1];
+      quad[3] = f->v[2];
+    }
+      
+    fwrite3(quad[0], fp);
+    fwrite3(quad[1], fp);
+    fwrite3(quad[2], fp);
+    fwrite3(quad[3], fp);
+    quadsWritten++;
+  }
+  cheapAssert(quadsNeeded == quadsWritten);
+
+  /* write whether vertex data was using the
+     real RAS rather than conformed RAS */
+  fwriteInt(TAG_OLD_USEREALRAS, fp);
+  fwriteInt(mris->useRealRAS, fp);
+  // volume info
+  fwriteInt(TAG_OLD_SURF_GEOM, fp);
+  writeVolGeom(fp, &mris->vg);
+
+  if (!FZERO(mris->group_avg_surface_area)) {
+    long long here;
+    printf("writing group avg surface area %2.0f cm^2 into surface file\n", mris->group_avg_surface_area / 100.0);
+    TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float));
+    fwriteFloat(mris->group_avg_surface_area, fp);
+    TAGwriteEnd(fp, here);
+  }
+  // write other tags
+  {
+    int i;
+
+    for (i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
+  }
+  fclose(fp);
+  return (NO_ERROR);
+}
+
+
+static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
+{
   int k, type;
   float x, y, z;
   FILE *fp;

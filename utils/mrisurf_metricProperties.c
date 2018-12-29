@@ -1884,6 +1884,23 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 #include "mrisComputeVertexDistancesWkr_extracted.h"
 
 
+int MRISclearOrigDistances(MRI_SURFACE *mris)
+{
+  int vno, n;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      continue;
+    }
+    for (n = 0; n < vt->vtotal; n++) {
+      v->dist_orig[n] = 0;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
 double MRISpercentDistanceError(MRIS *mris)
 {
   double dist_scale;
@@ -4699,6 +4716,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
 
     mris->max_nsize = nsize;
   }
+
   cheapAssert(mris->nsize == nsize);
   
   if (nsize <= mris->dist_nsize) {

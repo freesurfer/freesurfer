@@ -50,7 +50,12 @@ def fv(*args, **kwargs):
             error('can not load overlay if no surface is provided')
         surfaces[0] += ':overlay=%s' % _mkvolume(overlay, os.path.join(tmpdir, 'overlay'))
 
+    # check if running remotely
     cmd = 'freeview'
+    display = os.environ.get('DISPLAY', '')
+    if os.path.exists('/etc/opt/VirtualGL/vgl_xauth_key') and \
+        not display.endswith(':0') and not display.endswith(':0.0'):
+        cmd = '/usr/pubsw/bin/vglrun freeview'
 
     if volumes:
         cmd += ' -v ' + ' '.join(volumes)

@@ -207,6 +207,10 @@ if(BUILD_GUIS)
   # only used by mris_decimate_gui
   find_package(WXWidgets)
 
+  # -------- xt --------
+  # used by freeview
+  find_package(Xt)
+  
 endif()
 
 # --------------------------------------------------
