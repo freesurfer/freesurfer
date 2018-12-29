@@ -1768,15 +1768,16 @@ int mrisOrientSurface(MRI_SURFACE *mris)
 //                  dist    might not have been calculated then
 //                  nsize   might have changed since then
 //
-int MRISclearOrigDistances(MRI_SURFACE *mris)
+int MRISclearOrigDistances(MRIS *mris)
 {
-  int vno, n;
+  int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
+    int n;
     for (n = 0; n < vt->vtotal; n++) {
       v->dist_orig[n] = 0;
     }
@@ -1882,23 +1883,6 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 #define OUTPUT_DIST dist_orig
 #define OUTPUT_MAKER MRISmakeDistOrig
 #include "mrisComputeVertexDistancesWkr_extracted.h"
-
-
-int MRISclearOrigDistances(MRI_SURFACE *mris)
-{
-  int vno, n;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    for (n = 0; n < vt->vtotal; n++) {
-      v->dist_orig[n] = 0;
-    }
-  }
-  return (NO_ERROR);
-}
 
 
 double MRISpercentDistanceError(MRIS *mris)
