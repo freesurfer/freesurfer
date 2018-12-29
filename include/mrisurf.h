@@ -2739,8 +2739,8 @@ MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
                                             // includes a mrisCheckVertexVertexTopology check

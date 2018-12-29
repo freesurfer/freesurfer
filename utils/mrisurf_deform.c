@@ -2124,6 +2124,23 @@ int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
   ------------------------------------------------------*/
 int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
+  if (!(mris->dist_alloced_flags & 1)) {
+    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceTerm","should have computed distances already")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      mrisComputeVertexDistances(mris);
+    }
+  }
+  if (!(mris->dist_alloced_flags & 2)) {
+    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceTerm","should have computed dist_origs already")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      mrisComputeOriginalVertexDistances(mris);
+    }
+  }
+
   float l_dist, scale, norm;
   int vno, tno;
   int diag_vno1, diag_vno2;
@@ -8489,6 +8506,23 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
   ------------------------------------------------------*/
 double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
+  if (!(mris->dist_alloced_flags & 1)) {
+    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      mrisComputeVertexDistances(mris);
+    }
+  }
+  if (!(mris->dist_alloced_flags & 2)) {
+    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceTerm","should have computed dist_origs already")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      mrisComputeOriginalVertexDistances(mris);
+    }
+  }
+
   int max_v, max_n, err_cnt, max_errs;
   double dist_scale, sse_dist, max_del;
   static int first = 1;

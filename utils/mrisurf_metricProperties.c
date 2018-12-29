@@ -4688,7 +4688,11 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
     sequentially after it.
   */
 
+  bool const max_nsize_grew = (nsize > mris->max_nsize);
+  
   if (nsize <= mris->max_nsize) {
+    cheapAssert(!max_nsize_grew);
+    
     ROMP_PF_begin
     int vno;
 
@@ -4712,6 +4716,7 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
     mris->nsize = nsize;
 
   } else {
+    cheapAssert(max_nsize_grew);
 
     alwaysDoDist |= (mris->dist_alloced_flags & 1);
 
@@ -4811,32 +4816,66 @@ static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool always
 
     mris->max_nsize = nsize;
   }
+  mris->nsize = nsize;
   
   MRIS_check_vertexNeighbours(mris);
 
-  if (nsize <= mris->dist_nsize) return;
-  
-  int ntotal = 0, vtotal = 0;
-  
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {    
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
-    VERTEX                * const v  = &mris->vertices         [vno];
-    
-    if (v->ripflag) continue;
+  // Recalculate the avg_nbrs
+  //
+  if (max_nsize_grew) {
+    int ntotal = 0, vtotal = 0;
 
-    vtotal += vt->vtotal;
-    ntotal++;
+    int vno;
+    for (vno = 0; vno < mris->nvertices; vno++) {    
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
+      VERTEX                * const v  = &mris->vertices         [vno];
+
+      if (v->ripflag) continue;
+
+      vtotal += vt->vtotal;
+      ntotal++;
+    }
+    mris->avg_nbrs = (float)vtotal / (float)ntotal;
+    if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
+  }
+  
+  if (nsize <= mris->dist_nsize) {
+    // this used to precede the "Recalculate the avg_nbrs"
+    // but I have shifted it after, and am awaiting a decision from the main developers 
+    // about whether avg_nbrs should be adjusted even when !max_nsize_grew
+    return;
+  }
+  	
+  // Adjust the dist and dist_orig
+  // unless they are already valid
+  //
+  bool newCodeWouldDoDist     = alwaysDoDist || max_nsize_grew || mris->dist_nsize < nsize ;
+  bool newCodeWouldDoDistOrig = false;
+  if (alwaysDoDist || max_nsize_grew || mris->dist_orig_nsize < nsize) {
+    switch (copeWithLogicProblem("FREESURFER_fix_MRISsetNeighborhoodSizeAndDist","should not be creating dist_origs")) {
+    case LogicProblemResponse_old:
+      newCodeWouldDoDistOrig = true;
+      break;
+    case LogicProblemResponse_fix:
+      newCodeWouldDoDistOrig = (mris->dist_alloced_flags & 2); 
+    }
   }
 
-  mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  mris->nsize = nsize;
-  if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
-
+  if (alwaysDoDist != newCodeWouldDoDist) {
+    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist when old did":"old not computing dist");
+  }
+  
+  if (alwaysDoDist != newCodeWouldDoDistOrig) {
+    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist_orig when old did":"old not computing dist_orig");
+  }
+  
   if (alwaysDoDist) {
     mrisComputeVertexDistances(mris);
     mrisComputeOriginalVertexDistances(mris);
   }
+
+  cheapAssert( (!(mris->dist_alloced_flags&1)) || (mris->dist_nsize      >= nsize) );
+  cheapAssert( (!(mris->dist_alloced_flags&2)) || (mris->dist_orig_nsize >= nsize) );
 }
 
 #else
