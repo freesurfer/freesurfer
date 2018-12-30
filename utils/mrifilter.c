@@ -4532,14 +4532,17 @@ MRI *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst, MRI *mri_gaus
 /*! -----------------------------------------------------
   \fn MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
   \param mri_src - binarized volume
-  \parm mri_dst - trinerized output (MRI_AMBIGUOUS, MRI_WHITE MRI_NOT_WHITE)
-  \brief Trinerizes the output. If an input voxel is MRI_WHITE and one
+  \parm mri_dst - trinerized output 
+  \brief Trinerizes mri_src. If an input voxel is MRI_WHITE and one
   of its neighbors is MRI_NOT_WHITE, then the output set to MRI_WHITE.
   If an input voxel is MRI_NOT_WHITE and one of its neighbors is
   MRI_WHITE, then the output set to MRI_NOT_WHITE. All other voxels
   are set to MRI_AMBIGUOUS. Basically, it is marking the boundaries
   between white and not white. In practice (eg, mris_make_surfaces),
   mri_src is often wm.mgz, which could give inaccurate segmentation.
+  MRI_AMBIGUOUS (128) - not a border voxel
+  MRI_WHITE (255) - white source voxel with at least one non-white neighbor
+  MRI_NOT_WHITE (1) - non-white source voxel with at least one white neighbor
 ------------------------------------------------------*/
 MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
 {
@@ -4702,6 +4705,17 @@ MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
   return (mri_dst);
 }
 
+/*!
+  \fn int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int y, int z, float *ppw, float *ppg)
+  \brief Classifies voxel as either MRI_NOT_WHITE or MRI_WHITE. Works
+  by computing mean and stddev of each class (defined by mri_labeled)
+  based on intensities in a wsize neighborhood around the given
+  voxel. The probability of each class is computed from means and
+  stddevs and the most likely is chosen. wsize is typically 11, meaning
+  the neighborhood is +/-5 voxels which works out to 1331 voxels, but
+  it might be much less than this if not all voxels in mri_labeled are
+  actually labeled (eg, MRIreclassify() uses only border voxels)
+ */
 int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int y, int z, float *ppw, float *ppg)
 {
   int xk, yk, zk, xi, yi, zi, nw, ng, whalf, val;
@@ -4719,9 +4733,8 @@ int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int
     for (yk = -whalf; yk <= whalf; yk++) {
       yi = mri_src->yi[y + yk];
       for (xk = -whalf; xk <= whalf; xk++) {
-        if (!zk && !yk && !xk) {
+        if (zk==0 && yk==0 && xk==0)
           continue; /* don't use central value as we are classifying it */
-        }
         xi = mri_src->xi[x + xk];
         val = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
         if (MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) == MRI_NOT_WHITE) {
@@ -4765,16 +4778,12 @@ int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int
 
   ptotal = pg + pw;
 
-  if (!FZERO(ptotal)) {
+  if (!FZERO(ptotal)){ 
     pg /= ptotal;
   }
-  pw /= ptotal;
-  if (ppg) {
-    *ppg = pg;
-  }
-  if (ppw) {
-    *ppw = pw;
-  }
+  pw /= ptotal; // is this a bug?
+  if(ppg) *ppg = pg;
+  if(ppw) *ppw = pw;
 
   return (pg > pw ? MRI_NOT_WHITE : MRI_WHITE);
 }
@@ -4831,13 +4840,19 @@ int MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, MRI *mr
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-        Parameters:
+/*!
+  \fn int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, float gray_hi, int wsize)
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  \brief Reclassifies voxels where mri_src intensity is between wm_low
+  and gray_hi using MRIborderClassifyVoxel(), which looks in a
+  neighborhood around the voxel to compute means and stddevs of the
+  two classes (WM, GM), then computes the probability that the given
+  voxel came from each class, then classifies based on which is
+  higher. If the prob is less than 0.7, then the size of the
+  neighborhood is changed from 5 to 21 (step 4). The probs for WM and
+  GM are computed at each scale, and the class with the highest sum of
+  probs is chosen.
+*/
 int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, float gray_hi, int wsize)
 {
   int x, y, z, width, height, depth, nw, ng, nchanged, ntested, w, nmulti;
@@ -4845,27 +4860,39 @@ int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, fl
   float pw, pg, gtotal, wtotal;
   MRI *mri_border;
 
+  // Get WM and non-WM labels along the border. mri_label
+  // is not used again for reclassification, so it is ok 
+  // that its contents are changed along the way.
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL);
-  if (!mri_dst) {
+
+  if (!mri_dst)
     mri_dst = MRIcopy(mri_labeled, NULL);
-  }
 
   width = mri_src->width;
   height = mri_src->height;
   depth = mri_src->depth;
 
-  for (nmulti = ntested = nchanged = nw = ng = z = 0; z < depth; z++) {
+  nmulti = ntested = nchanged = nw = ng = 0;
+  for (z = 0; z < depth; z++) {
     DiagShowPctDone((float)(z) / (float)(depth - 1), 5);
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
         src = (int)MRIgetVoxVal(mri_src, x, y, z, 0);
         label = (int)MRIgetVoxVal(mri_labeled, x, y, z, 0);
+	// Only reclassify voxels between wm_low and gray_hi
         if (src > wm_low && src < gray_hi) {
           ntested++;
+
+	  // Get a new label based on stats of voxels near the border
           new_label = MRIborderClassifyVoxel(mri_src, mri_border, wsize, x, y, z, &pw, &pg);
 
-          if (MAX(pw, pg) < .7) /* do multi-scale search */
-          {
+	  // If the likelihood of the chosen label is sufficiently
+	  // high, then just take it. If not, then do a multi-scale
+	  // search. Where the neighborhood size changes 5:4:21. At
+	  // each neighborhood, the prob of WM and GM are computed.
+	  // The probabilities are summed over the sizes, and the
+	  // class that has the highest sum is chosen.
+          if (MAX(pw, pg) < .7) {
             nmulti++;
             gtotal = wtotal = 0.0;
             for (w = 5; w < 21; w += 4) {
@@ -4873,16 +4900,13 @@ int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, fl
               gtotal += pg;
               wtotal += pw;
             }
-            if (gtotal > wtotal) {
+            if(gtotal > wtotal) 
               new_label = MRI_NOT_WHITE;
-            }
-            else {
+            else
               new_label = MRI_WHITE;
-            }
           }
-          if (new_label != label) {
+          if(new_label != label)
             nchanged++;
-          }
           label = new_label;
         }
         MRIsetVoxVal(mri_dst, x, y, z, 0, label);
@@ -5128,37 +5152,40 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
     
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
-        if (x == Gx && y == Gy && z == Gz) {
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak();
-        }
 
+	// Ignore any voxels in the input marked as ambiguous
         label = MRIgetVoxVal(mri_labeled, x, y, z, 0);
+        if (label == MRI_AMBIGUOUS)
+          continue;
+
         val = MRIgetVoxVal(mri_T1, x, y, z, 0);
         border_label = MRIgetVoxVal(mri_border, x, y, z, 0);
-        if (label == MRI_AMBIGUOUS) {
-          continue;
-        }
+
         if (border_label == MRI_WHITE) {
+          // This is a voxel labeled as WM in the input (and border)
           if ((val >= (gray_low + gray_hi) / 2) || (gray_low < 0)) {
+            // The intensity is > the passed mid gray intensity
+            // Record stats
             nwhite++;
             white_mean += (double)val;
             white_std += (double)(val * val);
-            if (val < white_min) {
+            if (val < white_min) 
               white_min = (double)val;
-            }
-            if (val > white_max) {
+            if (val > white_max) 
               white_max = val;
-            }
             bin = nint(val - min_val);
-            if (bin < 0 || bin >= h_white->nbins) {
+            if (bin < 0 || bin >= h_white->nbins)
               DiagBreak();
-            }
             h_white->counts[bin]++;
           }
         }
-        else if (border_label == MRI_NOT_WHITE) /* gray bordering white */
+        else if (border_label == MRI_NOT_WHITE) 
         {
+          /* Labeled as non-white (gray) in input (and bordering) */
           if ((val >= gray_low && val <= gray_hi) || gray_low < 0) {
+            // value is between gray low and hi
             ngray++;
             gray_mean += (double)val;
             gray_std += (double)(val * val);
@@ -5193,7 +5220,7 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins);
   gray_mode = h_gray->bins[peak];
 
-  // use median instead of mode. More robust
+  // use median instead of mode. More robust, but ignored below
   white_mode = HISTOfindMedian(h_white);
   gray_mode = HISTOfindMedian(h_gray);
   gray_mean /= (double)ngray;
