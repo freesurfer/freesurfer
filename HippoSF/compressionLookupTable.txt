@@ -3,7 +3,7 @@
 4   2 Left-Lateral-Ventricle                  120 18  134 255
 31  3   Left-choroid-plexus        0  200  200    255
 28  4   Left-VentralDC                          165 42  42  255
-10  5  Left-Thalamus-Proper                    0   118 14  255
+10  5  Left-Thalamus                    0   118 14  255
 12  6  Left-Putamen                            236 13  176 255
 13  7  Left-Pallidum                           12  48  255 255
 26  8 Left-Accumbens-area                     255 165 0   255

@@ -13,7 +13,7 @@
 173 12 Midbrain                                242 104 76 255
 18 13 Left-Amygdala                           103 255 255 255
 28 14 Left-VentralDC                          165 42  42  255
-10 15 Left-Thalamus-Proper                    0   118 14  255
+10 15 Left-Thalamus                    0   118 14  255
 14 16 3rd-Ventricle                           204 182 142 255
 12 17 Left-Putamen                            236 13  176 255
 13 18 Left-Pallidum                           12  48  255 255

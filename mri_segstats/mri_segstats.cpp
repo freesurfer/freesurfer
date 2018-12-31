@@ -34,7 +34,7 @@
    16  Brain-Stem                            119  159  176    0
 
     4  Left-Lateral-Ventricle                120   18  134    0
-   10  Left-Thalamus-Proper                    0  118   14    0
+   10  Left-Thalamus                    0  118   14    0
    11  Left-Caudate                          122  186  220    0
    12  Left-Putamen                          236   13  176    0
    13  Left-Pallidum                          12   48  255    0
@@ -44,7 +44,7 @@
    28  Left-VentralDC                        165   42   42    0
 
    43  Right-Lateral-Ventricle               120   18  134    0
-   49  Right-Thalamus-Proper                   0  118   14    0
+   49  Right-Thalamus                   0  118   14    0
    50  Right-Caudate                         122  186  220    0
    51  Right-Putamen                         236   13  176    0
    52  Right-Pallidum                         13   48  255    0
