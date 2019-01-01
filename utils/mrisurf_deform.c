@@ -8356,13 +8356,7 @@ double mrisComputeError(MRI_SURFACE *mris,
   return (rms);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse)
 {
   if (!(Gdiag & DIAG_SHOW)) {
@@ -8497,13 +8491,6 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   if (!(mris->dist_alloced_flags & 1)) {
