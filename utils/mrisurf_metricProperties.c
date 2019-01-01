@@ -2053,21 +2053,16 @@ int MRISzeroNegativeAreas(MRIS *mris)
 }
 
 
-int MRIScomputeMetricProperties(MRI_SURFACE *mris)
+int MRIScomputeMetricProperties(MRIS *mris)
 {
-    mrisCheckVertexFaceTopology(mris);
+  mrisCheckVertexFaceTopology(mris);
 
-  MRIScomputeNormals(mris);                                                 // in this source file
-    mrisCheckVertexFaceTopology(mris);
+  MRIScomputeNormals(mris);             // changes XYZ
 
-  mrisComputeVertexDistances(mris);                                         // in this source file
-    mrisCheckVertexFaceTopology(mris);
+  mrisComputeSurfaceDimensions(mris);
+  mrisComputeVertexDistances(mris);
 
-  mrisComputeSurfaceDimensions(mris);                                       // in this source file
-    mrisCheckVertexFaceTopology(mris);
-
-  MRIScomputeTriangleProperties(mris);                                      // compute areas and normals
-    mrisCheckVertexFaceTopology(mris);
+  MRIScomputeTriangleProperties(mris);  // compute areas and normals
   
   mris->avg_vertex_area = mris->total_area / mris->nvertices;
   MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);

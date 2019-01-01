@@ -678,6 +678,7 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       gamma = DEGREES(delta_t * mris->gamma);
       fprintf(stdout, "rotating brain by (%2.1f, %2.1f, %2.1f)\n", alpha, beta, gamma);
     }
+
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
     if (parms->remove_neg && mris->neg_area > 0) {

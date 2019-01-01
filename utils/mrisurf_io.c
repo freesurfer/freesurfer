@@ -2472,7 +2472,7 @@ int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadOriginalProperties: could not read surface file %s", sname));
 
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
+  MRISsetOriginalXYZfromXYZ(mris);
   MRIScomputeMetricProperties(mris);
   MRIScomputeTriangleProperties(mris);
   MRISstoreMetricProperties(mris);
