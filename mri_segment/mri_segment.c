@@ -77,6 +77,7 @@ static int auto_detect_stats =  1 ;
 static int no1d_remove = 0 ;
 static int log_stats = 1 ;
 static void  usage_exit(int code) ;
+char *segmentdatfile = "segment.dat";
 
 #define BLUR_SIGMA 0.25f
 static float blur_sigma = BLUR_SIGMA ;
@@ -164,91 +165,93 @@ main(int argc, char *argv[])
     mri_src = mri_tmp ;
   }
 
-  if (thicken > 1)
-  {
+  if (thicken > 1)  {
     mri_dst = MRIcopy(mri_src, NULL) ;
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
-    if (no1d_remove == 0)
-    {
-      fprintf(stderr, "removing 1-dimensional structures...\n") ;
+    if (no1d_remove == 0)    {
+      printf("removing 1-dimensional structures...\n") ;
       MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, NULL) ;
     }
-#if 0
-    MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
-    fprintf(stderr, "thickening thin strands....\n") ;
-    MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments,
-                            wm_hi) ;
-#endif
+    //MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
+    //fprintf(stderr, "thickening thin strands....\n") ;
+    //MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments, wm_hi) ;
     MRIwrite(mri_dst, output_file_name) ;
     exit(0) ;
   }
 
   mri_labels = MRIclone(mri_src, NULL) ;
-  if (auto_detect_stats && !wm_low_set) /* widen range to allow
-                                           for more variability */
-  {
+  if (auto_detect_stats && !wm_low_set) /* widen range to allow for more variability */
     wm_low -= 10 ;
-  }
-  fprintf(stderr, "doing initial intensity segmentation...\n") ;
+
+  printf(" WHITE_MATTER_MEAN  %d\n",WHITE_MATTER_MEAN);
+  printf(" wsize  %d\n",wsize);
+
+  printf(" wm_low %g\n",wm_low);
+  printf(" wm_hi  %g\n",wm_hi);
+  printf(" gray_low %g\n",gray_low);
+  printf(" gray_hi  %g\n",gray_hi);
+  fflush(stdout);fflush(stderr);
+
+  // This is just a simple trinarization:
+  // MRI_NOT_WHITE:  lower than wm_low (eg, 79) or higher than wm_hi (eg, 125)
+  // MRI_AMBIGUOUS:  less than gray high (eg, 99) but greater than wm_low (eg, 79)
+  // MRI_WHITE:      otherwise
+  printf("Doing initial trinary intensity segmentation \n");
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_tmp, "tmp1.mgz") ;
-  }
-  fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.int.1.mgz") ;
+
+  printf("Using local statistics to label ambiguous voxels\n");  fflush(stdout);fflush(stderr);
   MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_tmp, "tmp2.mgz") ;
-  }
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.histo.1.mgz") ;
+    
 
-  if (auto_detect_stats)
-  {
-
-    fprintf(stderr, "computing class statistics for intensity windows...\n") ;
+  if (auto_detect_stats) {
+    printf("Autodetecting stats\n");
+    printf("Computing class statistics for intensity windows...\n") ;fflush(stdout);fflush(stderr);
+    //  The mri_tmp is first reduced to boundary voxels that are either WM or NOT WM. 
+    //  The segmentation is further refined with WM voxels needing to have an intensity
+    //  greather than (gray_low+gray_hi)/2 (~70) and NOT WM voxels needing to be
+    //  between gray_low (30) and gray_high (110).
     MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
                               &white_mean, &white_sigma, &gray_mean,
                               &gray_sigma) ;
     if (!isfinite(white_mean) || !isfinite(white_sigma) ||
         !isfinite(gray_mean) || !isfinite(gray_sigma))
-      ErrorExit
-      (ERROR_BADPARM,
-       "%s: class statistics not finite - check input volume!",
-       Progname);
+      ErrorExit(ERROR_BADPARM,"%s: class statistics not finite - check input volume!", Progname);
 
-    if (!wm_low_set)
-    {
-      if (FZERO(gray_sigma))
-      {
+    printf(" white_mean %g\n",white_mean);
+    printf(" white_sigma %g\n",white_sigma);
+    printf(" gray_mean %g\n",gray_mean);
+    printf(" gray_sigma %g\n",gray_sigma);fflush(stdout);
+
+    if (!wm_low_set)    {
+      if (FZERO(gray_sigma))      {
         wm_low = (white_mean+gray_mean) / 2 ;
       }
-      else
-      {
+      else {
+	// Set wm_low to one stddev above GM mean
         wm_low = gray_mean + gray_sigma ;
       }
     }
 
-    if (!gray_hi_set)
-    {
+    if (!gray_hi_set) {
+      // Set gray_hi to two stddevs above GM mean
       gray_hi = gray_mean + 2*gray_sigma ;
-#if 1
       if (gray_hi >= white_mean)
-      {
         gray_hi = white_mean-1 ;
-      }
-#endif
     }
-    fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
-    fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
+    printf("setting bottom of white matter range wm_low to %2.1f\n",wm_low);
+    printf("setting top of gray matter range gray_hi to %2.1f\n", gray_hi) ;
+    printf(" wm_low %g\n",wm_low);
+    printf(" wm_hi  %g\n",wm_hi);
+    printf(" gray_low %g\n",gray_low);
+    printf(" gray_hi  %g\n",gray_hi);fflush(stdout);
 
-    if (log_stats)
-    {
+    if (log_stats) {
       FILE *fp ;
-
-      fp = fopen("segment.dat", "w") ;
-      if (fp)
-      {
+      fp = fopen(segmentdatfile, "w") ;
+      if (fp) {
         fprintf(fp, "WM: %2.1f +- %2.1f\n",white_mean, white_sigma) ;
         fprintf(fp, "GM: %2.1f +- %2.1f\n",gray_mean, gray_sigma) ;
         fprintf(fp, "setting bottom of white matter range to %2.1f\n",wm_low);
@@ -257,11 +260,13 @@ main(int argc, char *argv[])
       }
     }
 
-    fprintf(stderr, "doing initial intensity segmentation...\n") ;
+    printf("Redoing initial intensity segmentation...\n") ;fflush(stdout);
     mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.int.2.mgz") ;
 
-    fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
+    printf("Recomputing local statistics to label ambiguous voxels...\n") ;fflush(stdout);
     MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.histo.2.mgz") ;
   }
   else
   {
@@ -272,55 +277,58 @@ main(int argc, char *argv[])
     gray_sigma = 12 ;
   }
 
-  fprintf(stderr,
-          "using local geometry to label remaining ambiguous voxels...\n") ;
-  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3,
-                gray_hi, wm_low);
-  fprintf(stderr,
-          "\nreclassifying voxels using Gaussian border classifier...\n") ;
+  printf(" wm_low %g\n",wm_low);
+  printf(" wm_hi  %g\n",wm_hi);
+  printf(" gray_low %g\n",gray_low);
+  printf(" gray_hi  %g\n",gray_hi);
 
-  /*
-    now use the gray and white matter border voxels to build a Gaussian
-    classifier at each point in space and reclassify all voxels in the
-    range [wm_low-5,gray_hi].
-    */
-  for (i = 0 ; i < niter ; i++)
-  {
-    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5,gray_hi,wsize);
-  }
+  printf("using local geometry to label remaining ambiguous voxels...\n") ;
+  fflush(stdout);fflush(stderr);
+  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3, gray_hi, wm_low);
   MRIfree(&mri_tmp) ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "seg.medcurv.mgz") ;
+
+  /* now use the gray and white matter border voxels to build a Gaussian
+    classifier at each point in space and reclassify all voxels in the
+    range [wm_low-5,gray_hi].    */
+  printf("\nReclassifying voxels using Gaussian border classifier...\n") ;fflush(stdout);fflush(stderr);
+  for (i = 0 ; i < niter ; i++)
+    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5,gray_hi,wsize);
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "seg.reclassified.mgz") ;
 
   mri_dst = MRImaskLabels(mri_src, mri_labeled, NULL) ;
   MRIfree(&mri_labeled) ;
-  MRIrecoverBrightWhite(mri_src, mri_dst,mri_dst,wm_low,wm_hi,white_sigma,.33);
-  fprintf(stderr,
-          "\nremoving voxels with positive offset direction...\n") ;
 
+  printf("Recovering bright white\n");fflush(stdout);fflush(stderr);
+  MRIrecoverBrightWhite(mri_src, mri_dst,mri_dst,wm_low,wm_hi,white_sigma,.33);
+
+  printf("\nremoving voxels with positive offset direction...\n") ;fflush(stdout);
 #if 0
   MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, mri_labels) ;
 #else
   MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, NULL) ;
 #endif
 
-  if (thicken)
-  {
-    /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
-    if (no1d_remove == 0)
-    {
-      fprintf(stderr, "removing 1-dimensional structures...\n") ;
+  printf("thicken = %d\n",thicken);
+  if(thicken)  {
+    // MRIfilterMorphology(mri_dst, mri_dst);
+    if(no1d_remove == 0) {
+      printf("removing 1-dimensional structures...\n") ;fflush(stdout);fflush(stderr);
       MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
     }
-#if 0
-    MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
-#endif
-    fprintf(stderr, "thickening thin strands....\n") ;
-    MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments,
-                            wm_hi) ;
+    //MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
+    printf("thickening thin strands....\n") ;
+    printf("thickness %d\n",thickness);
+    printf("nsegments %d\n",nsegments);
+    printf("wm_hi %g\n",wm_hi);fflush(stdout);fflush(stderr);
+    MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments, wm_hi) ;
   }
 
   mri_tmp = MRIfindBrightNonWM(mri_src, mri_dst) ;
+
   MRIbinarize(mri_tmp, mri_tmp, WM_MIN_VAL, 255, 0) ;
   MRImaskLabels(mri_dst, mri_tmp, mri_dst) ;
+
   MRIfilterMorphology(mri_dst, mri_dst) ;
 
   if (fill_bg)
@@ -337,11 +345,11 @@ main(int argc, char *argv[])
 
   MRIfree(&mri_src) ;
   msec = TimerStop(&then) ;
-  fprintf(stderr, "white matter segmentation took %2.1f minutes\n",
+  printf("white matter segmentation took %2.1f minutes\n",
           (float)msec/(1000.0f*60.0f));
-  fprintf(stderr, "writing output to %s...\n", output_file_name) ;
-  if (keep_edits)
-  {
+  fflush(stdout);
+
+  if (keep_edits)  {
     MRI *mri_old ;
 
     mri_old = MRIread(output_file_name) ;
@@ -359,6 +367,8 @@ main(int argc, char *argv[])
       MRIfree(&mri_old) ;
     }
   }
+
+  printf("writing output to %s...\n", output_file_name) ;fflush(stdout);
   MRIwrite(mri_dst, output_file_name) ;
 
   MRIfree(&mri_dst) ;
@@ -514,6 +524,20 @@ get_option(int argc, char *argv[])
   {
     fill_ventricles = !fill_ventricles ;
     fprintf(stderr,"%sfilling ventricles\n", fill_ventricles ? "" : "not ") ;
+  }
+  else if (!stricmp(option, "dat")){
+    segmentdatfile = argv[2];
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "diagno")==0 || strcmp(option, "diag_no")==0){
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "diag-write") == 0 ){
+    Gdiag |= DIAG_WRITE;
+  }
+  else if (strcmp(option, "diag-verbose") == 0 ){
+    Gdiag |= DIAG_VERBOSE;
   }
   else switch (toupper(*option))
     {
@@ -1173,6 +1197,7 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mri_ventricles) ;
   return(mri_dst) ;
 }
+
 static MRI *
 MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
                       float wm_low, float wm_hi,
@@ -1183,10 +1208,10 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
   BUFTYPE val ;
   float   intensity_thresh, nvox_thresh ;
 
+  printf("MRIrecoverBrightWhite()\n");
+
   if (!mri_dst)
-  {
     mri_dst = MRIcopy(mri_src, NULL) ;
-  }
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -1194,37 +1219,35 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
   ntested = nchanged = 0 ;
   intensity_thresh = wm_hi+slack ;
   nvox_thresh = (3*3*3-1)*pct_thresh ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
+
+  printf(" wm_low %g\n",wm_low);
+  printf(" wm_hi %g\n",wm_hi);
+  printf(" slack %g\n",slack);
+  printf(" pct_thresh %g\n",pct_thresh);
+  printf(" intensity_thresh %g\n",intensity_thresh);
+  printf(" nvox_thresh %g\n",nvox_thresh);
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      for (x = 0 ; x < width ; x++)      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         if (val > wm_hi && val <= intensity_thresh &&
             MRIgetVoxVal(mri_src, x, y, z, 0) < WM_MIN_VAL)
         {
           ntested++ ;
           nwhite = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
+          for (zk = -1 ; zk <= 1 ; zk++) {
             zi = mri_src->zi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
+            for (yk = -1 ; yk <= 1 ; yk++) {
               yi = mri_src->yi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
+              for (xk = -1 ; xk <= 1 ; xk++) {
                 xi = mri_src->xi[x+xk] ;
                 val = MRIgetVoxVal(mri_T1, xi, yi, zi, 0);
                 if (val >= wm_low && val <= wm_hi)
-                {
                   nwhite++ ;
-                }
               }
             }
           }
-          if (nwhite >= nvox_thresh)
-          {
+          if (nwhite >= nvox_thresh) {
             nchanged++ ;
             MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_T1, x, y, z,0)) ;
           }
@@ -1233,13 +1256,11 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
     }
   }
 
-  if (Gdiag & DIAG_SHOW)
-  {
-    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
-            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
-    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
-            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
-  }
+  printf(" %8d voxels tested (%2.2f%%)\n",
+	 ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+  printf(" %8d voxels changed (%2.2f%%)\n",
+	 nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+
   return(mri_dst) ;
 }
 

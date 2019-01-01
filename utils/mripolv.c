@@ -3926,17 +3926,17 @@ int MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize, int x, in
   }
   return (min_vertex);
 }
-/*-----------------------------------------------------
-        Parameters:
+/*!
+  \fn MRI *MRIcpolvMedianCurveSegment()
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+*/
 MRI *MRIcpolvMedianCurveSegment(
     MRI *mri, MRI *mri_labeled, MRI *mri_dst, int wsize, float len, float gray_hi, float wm_low)
 {
   int x, y, z, width, height, depth, label, nlabeled, non, noff;
+
+  printf("MRIcpolvMedianCurveSegment(): wsize=%d, len=%d, gmhi=%g, wmlow=%g\n",
+	 wsize,len,gray_hi,wm_low);
 
   if (!mri_dst) mri_dst = MRIcopy(mri_labeled, NULL);
 
