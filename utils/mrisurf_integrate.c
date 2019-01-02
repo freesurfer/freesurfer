@@ -1238,6 +1238,8 @@ int MRISregister(MRI_SURFACE *mris,
   FileNamePath(mris->fname, path);
   sprintf(base_name, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
 
+  mrisComputeOriginalVertexDistances(mris);
+  
   if (parms->nbhd_size > 3) {
     int nbrs[MAX_NBHD_SIZE];
 
@@ -1252,6 +1254,7 @@ int MRISregister(MRI_SURFACE *mris,
     MRISrestoreVertexPositions(mris, TMP_VERTICES);
     MRIScomputeMetricProperties(mris);
   }
+  
   base_dt = parms->dt;
   if (Gdiag & DIAG_WRITE) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);

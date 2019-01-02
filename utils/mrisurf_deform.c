@@ -8510,9 +8510,15 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
 
+  if (false) {
+    fprintf(stdout, "%s:%d calling mrisCheckDistOrig\n", __FILE__, __LINE__);
+    if (!mrisCheckDistOrig(mris)) 
+      fprintf(stdout, "  failed mrisCheckDistOrig\n");
+  }
+  
   int max_v, max_n, err_cnt, max_errs;
+  volatile int count_dist_orig_zeros = 0;
   double dist_scale, sse_dist, max_del;
-  static int first = 1;
 
 #if METRIC_SCALE
   if (mris->patch) {
@@ -8531,7 +8537,7 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   max_v = max_n = -1;
 
   err_cnt = 0;
-  max_errs = 1000;
+  max_errs = 100;
 
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
   int trial;
@@ -8540,6 +8546,13 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_dist = 0.0;
+  
+  int const acceptableNumberOfZeros = 
+    ( mris->status == MRIS_PARAMETERIZED_SPHERE
+    ||mris->status == MRIS_SPHERE)
+    ? mris->nvertices * mris->avg_nbrs * 0.01       // only the direction from 000 has to match
+    : mris->nvertices * mris->avg_nbrs * 0.001;     // xyz has to match
+
   
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 
@@ -8565,10 +8578,10 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   ROMP_PF_begin         // mris_register
 
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist) schedule(static, 1)
+  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist)
 #else
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist)
 #endif
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -8602,9 +8615,8 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       
       if (dist_orig_n >= UNFOUND_DIST) continue;
 
-      if (DZERO(dist_orig_n) && first) {
-        first = 0;
-        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, dist_orig_n);
+      if (DZERO(dist_orig_n) && (count_dist_orig_zeros++ > acceptableNumberOfZeros)) {
+        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!, count_dist_orig_zeros:%d\n", vno, n, dist_orig_n, count_dist_orig_zeros);
         fflush(stderr);
         DiagBreak();
         if (++err_cnt > max_errs) {
@@ -12761,7 +12773,7 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     {
       continue;
     }
-    if (vno == 118009) {
+    if (false && vno == 118009) {
       DiagBreak();
     }
     x = (double)v->x;
