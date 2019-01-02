@@ -205,6 +205,8 @@ set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
 set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
 
+set WMSegFromASeg = 0; # use aseg WM instead of mri_segment
+
 # Desired average face area of orig.nofix after decimation. This is
 # set to 0.5 by default because this is the value for the orig.nofix
 # 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
@@ -3121,17 +3123,33 @@ if($DoSegmentation) then
     endif
   endif
   # ----------- Segment -------------------------
-  set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_segment);
-  if ($NoThicken) set cmd = ($cmd -thicken 0)
-  # note: check for wm.mgz happens so that -dontrun output is correct
-  if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
-  if($IsMPRAGE)         set cmd = ($cmd -mprage)
-  if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
-  set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  if(! $WMSegFromASeg) then
+    # Use the traditional mri_segment to generate the wm.seg.mgz
+    set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
+    set cmd = (mri_segment);
+    if ($NoThicken) set cmd = ($cmd -thicken 0)
+    # note: check for wm.mgz happens so that -dontrun output is correct
+    if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
+    if($IsMPRAGE)         set cmd = ($cmd -mprage)
+    if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    rm -f $SUBJECTS_DIR/$subjid/scripts/wmseg-from-aseg
+  else
+    # Use the aseg to generate the wm.seg.mgz
+    set cmd = (mri_binarize --i aseg.presurf.mgz --match 2 41 --o wm.mask-from-aseg.presurf.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (mri_mask brain.mgz  wm.mask-from-aseg.presurf.mgz wm.seg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # Silly way to keep track of whether this was run or not
+    touch $SUBJECTS_DIR/$subjid/scripts/wmseg-from-aseg
+  endif
   # ----------- Edit with ASeg -------------------------
   if($UseAseg) then
     set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile $GlobXOptsFile`;
@@ -7031,6 +7049,15 @@ while( $#argv != 0 )
       breaksw
     case "-emreg":
       set NoEMReg = 0;
+      breaksw
+
+    case "-wmseg-from-aseg"
+      set WMSegFromASeg = 1; # use aseg WM instead of mri_segment
+      set DoSegmentation = 1
+      breaksw
+
+    case "-no-wmseg-from-aseg"
+      set WMSegFromASeg = 0; # use mri_segment instead of WM from aseg
       breaksw
 
     # -th3 turns on new volume calc for mris_anat_stats
