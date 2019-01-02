@@ -48,21 +48,19 @@
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*!
+  \fn float MRIvoxelDx(MRI *mri, int x, int y, int z)
+  \brief This computes the intensity gradient in the column direction
+  by computing the difference between the face and edge neighbors both
+  before and after the target voxel within the slice-plane. The result
+  of this funciton will be dependent on the volume orientation and
+  volume resolution.
+*/
 float MRIvoxelDx(MRI *mri, int x, int y, int z)
 {
   float left, right, dx;
-  // int width, height;
   int xm1, xp1, ym1, yp1;
-
-  // width = mri->width;
-  // height = mri->height;
 
   x = mri->xi[x];
   xm1 = mri->xi[x - 1];
@@ -72,32 +70,33 @@ float MRIvoxelDx(MRI *mri, int x, int y, int z)
   yp1 = mri->yi[y + 1];
   z = mri->zi[z];
 
-  left = 2 * MRIgetVoxVal(mri, xm1, y, z, 0);
-  left += MRIgetVoxVal(mri, xm1, ym1, z, 0);
-  left += MRIgetVoxVal(mri, xm1, yp1, z, 0);
+  // Sum the values within the slice-plane of the voxels
+  // to the "left" of the target voxel, giving the
+  // face neighbor twice the weight as the edge neighbors
+  left  = 2*MRIgetVoxVal(mri, xm1, y,   z, 0);
+  left +=   MRIgetVoxVal(mri, xm1, ym1, z, 0);
+  left +=   MRIgetVoxVal(mri, xm1, yp1, z, 0);
 
-  right = 2 * MRIgetVoxVal(mri, xp1, y, z, 0);
-  right += MRIgetVoxVal(mri, xp1, ym1, z, 0);
-  right += MRIgetVoxVal(mri, xp1, yp1, z, 0);
+  // Same for the voxels to the "right"
+  right  = 2*MRIgetVoxVal(mri, xp1, y, z, 0);
+  right +=   MRIgetVoxVal(mri, xp1, ym1, z, 0);
+  right +=   MRIgetVoxVal(mri, xp1, yp1, z, 0);
 
+  // Take the difference, divide by 8 because of 6 voxels, with two
+  // weighted by x2
   dx = ((float)right - (float)left) / 8.0f;
   return (dx);
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*!
+  \fn float MRIvoxelDy(MRI *mri, int x, int y, int z)
+  \brief This computes the intensity gradient in the row direction
+  by computing the difference between the face and edge neighbors
+  both before and after the target voxel within the slice-plane.
+*/
 float MRIvoxelDy(MRI *mri, int x, int y, int z)
 {
   float top, bottom, dy;
-  // int width, height;
   int xm1, xp1, ym1, yp1;
-
-  // width = mri->width;
-  // height = mri->height;
 
   x = mri->xi[x];
   xm1 = mri->xi[x - 1];
@@ -118,13 +117,12 @@ float MRIvoxelDy(MRI *mri, int x, int y, int z)
   dy = ((float)bottom - (float)top) / 8.0f;
   return (dy);
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*!
+  \fn float MRIvoxelDz(MRI *mri, int x, int y, int z)
+  \brief This computes the intensity gradient in the slice direction
+  by computing the difference between the face and edge neighbors
+  both before and after the target voxel within the row-plane.
+*/
 float MRIvoxelDz(MRI *mri, int x, int y, int z)
 {
   float dz, top, bottom;
@@ -314,43 +312,37 @@ float MRIvoxelStd(MRI *mri, int x0, int y0, int z0, float mean, int wsize)
 
   return (std);
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*!
+  \fn float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
+  \param wsize - window size, typically 3 (ie, nearest face, edge, and corner neighbors)
+*/
 #define MAX_WINDOW 7
 #define MAX_LEN (MAX_WINDOW * MAX_WINDOW * MAX_WINDOW)
 float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
 {
   int whalf, width, height, depth, x, y, z, xmax, ymax, zmax;
-  // int npix, total, xmin, ymin, zmin;
   float dx_win[MAX_LEN], dy_win[MAX_LEN], dz_win[MAX_LEN], dx, dy, dz, odx, ody, odz, *pdx, *pdy, *pdz, dir;
 
-  if (wsize > MAX_WINDOW) ErrorReturn(0.0f, (ERROR_BADPARM, "MRIvoxelDirection: window size %d too big", wsize));
+  if(wsize > MAX_WINDOW) 
+    ErrorReturn(0.0f, (ERROR_BADPARM, "MRIvoxelDirection: window size %d too big", wsize));
+
   whalf = wsize / 2;
-  width = mri->width;
+  width  = mri->width;
   height = mri->height;
-  depth = mri->depth;
+  depth  = mri->depth;
 
-  // total = 0;
-  zmax = MIN(depth - 1, z0 + whalf);
+  zmax = MIN(depth  - 1, z0 + whalf);
   ymax = MIN(height - 1, y0 + whalf);
-  xmax = MIN(width - 1, x0 + whalf);
+  xmax = MIN(width  - 1, x0 + whalf);
 
-// zmin = MAX(0, z0 - whalf);
-// ymin = MAX(0, y0 - whalf);
-// xmin = MAX(0, x0 - whalf);
-// npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1);
-
-/* should do something smarter than this about border conditions */
-#if 0
+  /* should do something smarter than this about border conditions */
+  #if 0
   memset(dx_win, 0, MAX_LEN*sizeof(float)) ;
   memset(dy_win, 0, MAX_LEN*sizeof(float)) ;
   memset(dz_win, 0, MAX_LEN*sizeof(float)) ;
-#endif
+  #endif
+
+  // For each voxel in the window, compute the intensity gradient in each direction
   pdx = dx_win;
   pdy = dy_win;
   pdz = dz_win;
@@ -363,10 +355,14 @@ float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
       }
     }
   }
+
+  // Compute the intensity gradient for the target voxel
   odx = MRIvoxelDx(mri, x0, y0, z0);
   ody = MRIvoxelDy(mri, x0, y0, z0);
   odz = MRIvoxelDz(mri, x0, y0, z0);
 
+  // In this loop, xyz are actually delta-xyz whereas they
+  // are actually xyz in the loop above.
   pdx = dx_win;
   pdy = dy_win;
   pdz = dz_win;
@@ -377,6 +373,13 @@ float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
         dx = *pdx++;
         dy = *pdy++;
         dz = *pdz++;
+	/* x*odx is dx*di0/dx, where dx=x is the signed distance from
+  	   the center voxel to the current voxel and di0/dx=odx is the
+  	   itensity gradient WRT x at the center voxel */
+	/* dx*odx is (di/dx)*(di0/dx), the product of the intensity
+	   gradients WRT x at the current voxel and the center voxel.  */
+	/* Not sure what this is actually doing. Something like checking whether
+	   the gradients of neibhboring voxels point in the same direction.*/
         dir += (x * odx + y * ody + z * odz) * (dx * odx + dy * ody + dz * odz);
       }
     }

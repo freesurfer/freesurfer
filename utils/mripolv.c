@@ -1350,6 +1350,8 @@ MRI *MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
   float nx, ny, nz, xf, yf, zf;
   BUFTYPE *pdst, *psrc;
 
+  printf("MRIfindThinWMStrands() wsize=%d\n",wsize);
+
   width = mri_src->width;
   height = mri_src->height;
   depth = mri_src->depth;
@@ -1674,7 +1676,7 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst, int thickn
   double val, xf, yf, zf, max_dist, up_dist, down_dist /*, xt, yt, zt*/;
   MRI_SEGMENTATION *mriseg;
   MRI *mri_thin, *mri_tmp;
-
+  printf("MRIthickenThinWMStrands(): thickness=%d, nsegments=%d\n",thickness,nsegments);
   width = mri_src->width;
   height = mri_src->height;
   depth = mri_src->depth;
@@ -1683,37 +1685,13 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst, int thickn
   init_basis_vectors();
   if (!mri_dst) mri_dst = MRIclone(mri_src, NULL);
   mri_thin = MRIclone(mri_src, NULL);
-  mri_tmp = MRIremoveIslands(mri_src, NULL, 3, 27 - 3);
+  mri_tmp = MRIremoveIslands(mri_src, NULL, 3, 27-3);
   MRIclose(mri_tmp, mri_tmp);
-
-#if 0
-  /* erase regions we know are not thin temporal strand */
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        MRIvoxelToTalairach(mri_src, x, y, z, &xt, &yt, &zt) ;
-        if ((fabs(xt) < 10) || zt < -50 || zt > 10)
-        {
-          MRIsetVoxVal(mri_tmp, x, y, z,0, 0) ;
-        }
-      }
-    }
-  }
-#endif
-
-#if 0
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_tmp, "closed.mgh") ;
-#endif
 
   MRIcopy(mri_src, mri_dst);
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
-        if (x == 96 && y == 134 && z == 97) DiagBreak();
         thin = 0;
         if (MRIgetVoxVal(mri_src, x, y, z, 0) > 0) /* this is in closed volume to prevent fragmentation */
         {
@@ -1760,15 +1738,7 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst, int thickn
     }
   }
 
-#if 0
-  MRIwrite(mri_thin, "orig.mgh") ;
-  MRIopen(mri_thin, mri_thin) ;
-  MRIwrite(mri_thin, "opened.mgh") ;
-#endif
-
-  /* now thicken the strand, being careful not to connect with other
-  strands.
-  */
+  /* now thicken the strand, being careful not to connect with other  strands.  */
   total_filled = 0;
   mriseg = MRIsegment(mri_thin, 1, 255);
 
@@ -1788,7 +1758,7 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst, int thickn
     MRIfree(&mri_tmp);
   }
 
-#define NDILATIONS 5
+  int NDILATIONS=5;
   for (i = 0; i < NDILATIONS; i++) MRIsegmentDilate(mriseg, mri_src);
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
@@ -1981,7 +1951,7 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst, int thickn
 
     MRIfillPlanarHoles(mri_dst, mri_thin, mri_dst, mseg);
   }
-  fprintf(stderr, "%2d segments, %d filled\n", nseg, total_filled);
+  printf("  %2d segments, %d filled\n", nseg, total_filled);
   MRIsegmentClearIgnoreFlags(mriseg);
 
   MRIsegmentFree(&mriseg);
@@ -3935,7 +3905,7 @@ MRI *MRIcpolvMedianCurveSegment(
 {
   int x, y, z, width, height, depth, label, nlabeled, non, noff;
 
-  printf("MRIcpolvMedianCurveSegment(): wsize=%d, len=%d, gmhi=%g, wmlow=%g\n",
+  printf("MRIcpolvMedianCurveSegment(): wsize=%d, len=%g, gmhi=%g, wmlow=%g\n",
 	 wsize,len,gray_hi,wm_low);
 
   if (!mri_dst) mri_dst = MRIcopy(mri_labeled, NULL);
@@ -3961,20 +3931,13 @@ MRI *MRIcpolvMedianCurveSegment(
     }
   }
 
-  if (Gdiag & DIAG_SHOW) {
-    fprintf(stderr,
-            "              %8d voxels processed (%2.2f%%)\n",
-            nlabeled,
+  printf("  %8d voxels processed (%2.2f%%)\n", nlabeled,
             100.0f * (float)nlabeled / (float)(width * height * depth));
-    fprintf(stderr,
-            "              %8d voxels white (%2.2f%%)\n",
-            non,
+  printf("  %8d voxels white (%2.2f%%)\n", non,
             100.0f * (float)non / (float)(width * height * depth));
-    fprintf(stderr,
-            "              %8d voxels non-white (%2.2f%%)\n",
-            noff,
+  printf("  %8d voxels non-white (%2.2f%%)\n",noff,
             100.0f * (float)noff / (float)(width * height * depth));
-  }
+
   return (mri_dst);
 }
 /*-----------------------------------------------------
