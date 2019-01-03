@@ -152,7 +152,8 @@ switch(fmt)
   volsz = volsz(:)'; % just make sure it's a row vect  
   if(~headeronly) 
     if(permuteflag) mri.vol = permute(hdr.vol,[2 1 3 4]); end
-  else            mri.vol = [];
+  else            
+    mri.vol = [];
   end
   volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
   tr = 1000*hdr.dime.pixdim(5); % msec
@@ -178,7 +179,11 @@ switch(fmt)
   % Just puts all data into dim 4.
   if(~headeronly) 
     hdr.vol = reshape(hdr.vol,[volsz(1) volsz(2) volsz(3) prod(volsz(4:end))]);
-    if(permuteflag) mri.vol = permute(hdr.vol,[2 1 3 4]); end
+    if(permuteflag) 
+      mri.vol = permute(hdr.vol,[2 1 3 4]); 
+    else
+      mri.vol = hdr.vol;
+    end
   else mri.vol = [];
   end
   volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
