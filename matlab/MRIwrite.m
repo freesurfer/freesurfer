@@ -24,7 +24,7 @@ function err = MRIwrite(mri,fstring,datatype,permuteflag)
 % applies to bhdr format.
 % 
 % datatype can be uchar, short, int, float, double, ushort,
-% uint. Only applies to nifti.
+% uint. Only applies to nifti. Setting datatype to '' implies float.
 %
 % Note: you can write unpermuted data with permuteflag=0. If you leave
 % out this flag or set it to anything non-zero, then it will be
