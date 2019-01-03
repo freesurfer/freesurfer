@@ -253,9 +253,15 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
 
-# link map (only for linux)
 if(NOT APPLE)
+  # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+  # Try to use native libGLdispatch.so as versions from /usr/lib64/nvidia may be missing symbols
+  # This should only affect CentOS machines
+  # Alternately add /lib64 to global CMAKE_EXE_LINKER_FLAGS
+  if(EXISTS "/lib64/libGLdispatch.so")
+    set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
+  endif()
 endif()
 
 # check for clock_gettime on mac
