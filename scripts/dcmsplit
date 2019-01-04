@@ -107,7 +107,7 @@ foreach uid ($uidlist)
     if($DoLink) then
       set cmd = (ln -fs $dcmdir/$f .)
     else
-      set cmd = (cp $dcmdir/$f .)
+      set cmd = (cp -p $dcmdir/$f .)
     endif
     echo $cmd >> $LF
     $cmd | tee -a $LF
