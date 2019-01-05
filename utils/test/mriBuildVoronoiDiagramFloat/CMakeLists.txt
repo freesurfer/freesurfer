@@ -1,3 +1,4 @@
 add_executable(test_voronoi EXCLUDE_FROM_ALL test_mriBuildVoronoiDiagramFloat.cpp)
 target_link_libraries(test_voronoi utils)
 add_test_script(NAME voronoi_test SCRIPT test_mriBuildVoronoiDiagramFloat_withData DEPENDS test_voronoi)
+configure_file(testdata.tar.gz . COPYONLY)

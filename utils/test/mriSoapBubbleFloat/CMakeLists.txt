@@ -1,3 +1,4 @@
 add_executable(test_soapbubble EXCLUDE_FROM_ALL test_mriSoapBubbleFloat.cpp)
 target_link_libraries(test_soapbubble utils)
 add_test_script(NAME soapbubble_test SCRIPT test_mriSoapBubbleFloat_withData DEPENDS test_soapbubble)
+configure_file(testdata.tar.gz . COPYONLY)
