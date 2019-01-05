@@ -9,6 +9,7 @@ install(TARGETS mris_sphere DESTINATION bin)
 
 add_test_script(NAME mris_sphere_test SCRIPT test.py DEPENDS mris_sphere)
 add_test_script(NAME mris_sphere_posix_test SCRIPT test_fs_posix DEPENDS mris_sphere)
+configure_file(testdata.tar.gz . COPYONLY)
 
 add_executable(mris_remove_negative_vertices mris_remove_negative_vertices.c)
 target_link_libraries(mris_remove_negative_vertices utils)

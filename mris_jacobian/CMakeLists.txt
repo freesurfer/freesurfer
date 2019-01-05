@@ -7,5 +7,6 @@ add_help(mris_jacobian mris_jacobian.help.xml)
 target_link_libraries(mris_jacobian utils)
 
 add_test_script(NAME mris_jacobian_posix_test SCRIPT test_fs_posix DEPENDS mris_jacobian)
+configure_file(testdata.tar.gz . COPYONLY)
 
 install(TARGETS mris_jacobian DESTINATION bin)

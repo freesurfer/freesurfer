@@ -8,6 +8,7 @@ target_link_libraries(mris_make_surfaces utils)
 install(TARGETS mris_make_surfaces DESTINATION bin)
 
 add_test_script(NAME mris_make_surfaces_test SCRIPT test_mris_make_surfaces DEPENDS mris_make_surfaces)
+configure_file(testdata.tar.gz . COPYONLY)
 
 add_executable(mris_refine_surfaces mris_refine_surfaces.c)
 target_link_libraries(mris_refine_surfaces utils)

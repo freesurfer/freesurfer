@@ -11,6 +11,7 @@ target_link_libraries(mris_volmask utils)
 install(TARGETS mris_volmask DESTINATION bin)
 
 add_test_script(NAME mris_volmask_test SCRIPT test_mris_volmask DEPENDS mris_volmask)
+configure_file(testdata2.tar.gz . COPYONLY)
 
 add_executable(mris_volmask_novtk mris_volmask_old.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask_novtk PRIVATE NO_VTK)
