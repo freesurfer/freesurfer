@@ -7,5 +7,6 @@ add_help(mris_inflate mris_inflate.help.xml)
 target_link_libraries(mris_inflate utils)
 
 add_test_script(NAME mris_inflate_posix_test SCRIPT test_fs_posix DEPENDS mris_inflate)
+configure_file(testdata.tar.gz . COPYONLY)
 
 install(TARGETS mris_inflate DESTINATION bin)

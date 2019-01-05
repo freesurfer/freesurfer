@@ -6,5 +6,6 @@ add_executable(mris_expand mris_expand.c)
 target_link_libraries(mris_expand utils)
 
 add_test_script(NAME mris_expand_test SCRIPT test_mris_expand DEPENDS mris_expand)
+configure_file(testdata.tar.gz . COPYONLY)
 
 install(TARGETS mris_expand DESTINATION bin)

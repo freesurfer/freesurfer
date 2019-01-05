@@ -6,5 +6,6 @@ add_executable(mri_concatenate_lta mri_concatenate_lta.c)
 target_link_libraries(mri_concatenate_lta utils)
 
 add_test_script(NAME mri_concatenate_lta_test SCRIPT test_mri_concatenate_lta DEPENDS mri_concatenate_lta)
+configure_file(testdata.tar.gz . COPYONLY)
 
 install(TARGETS mri_concatenate_lta DESTINATION bin)

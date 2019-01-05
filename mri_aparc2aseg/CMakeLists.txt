@@ -7,5 +7,7 @@ add_help(mri_aparc2aseg mri_aparc2aseg.help.xml)
 target_link_libraries(mri_aparc2aseg utils)
 
 add_test_script(NAME mri_aparc2aseg_test SCRIPT test_mri_aparc2aseg DEPENDS mri_aparc2aseg)
+configure_file(testdata.tar.gz . COPYONLY)
+configure_file(testdata2.tar.gz . COPYONLY)
 
 install(TARGETS mri_aparc2aseg DESTINATION bin)
