@@ -229,7 +229,7 @@ def samsegment(
     if saveHistory:
         history['historyWithinEachMultiResolutionLevel'] = []
 
-    print('samsegment Starting Resolution Loop VmPeak', fs.GetVmPeak())
+    fs.printPeakMemory('samsegment starting resolution loop')
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -344,7 +344,7 @@ def samsegment(
         # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
-            print('samsegment Resolution %d Iter %d VmPeak' % (multiResolutionLevel, iterationNumber), fs.GetVmPeak())
+            fs.printPeakMemory('samsegment resolution %d iteration %d' % (multiResolutionLevel, iterationNumber))
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -620,9 +620,8 @@ def samsegment(
 
         # Get the final node positions
         finalNodePositions = mesh.points
-        # Transform back in template space (i.e., undoing the affine registration
-        # that we applied), and save for later usage
 
+        # Transform back in template space (i.e., undoing the affine registration that we applied), and save for later usage
         tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
         
@@ -653,7 +652,7 @@ def samsegment(
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
 
-    print('samsegment starting sementation VmPeak', fs.GetVmPeak())
+    fs.printPeakMemory('samsegment starting segmentation')
 
     # Get bias field corrected images
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))

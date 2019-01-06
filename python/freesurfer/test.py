@@ -1,36 +1,39 @@
-import os
-import os.path as op
+import os, os.path as op
 import sys
-import argparse
+import shutil
+
 from .util import run, rmdir, rmext
 from .log import term, errorExit
 
+from . import ArgParser
 
-# This class is built specifically for configuring regression tests on 
-# freesurfer binaries within the main source tree. This assumes all test data is
-# stored as a 'testdata.tar.gz' tarball in the directory where the test script
-# lives. Commands should be tested using run(), and outputs should be compared
-# against reference data by using the diff(), mridiff, or surfdiff() functions.
-# Example:
-#
-#   rt = fst.RegressionTest()
-#
-#   rt.run('mri_normalize -mprage nu.mgz T1.mgz')
-#   rt.mridiff('T1.mgz', 'T1.ref.mgz')
-#
-#   rt.run('mri_normalize -gentle orig.mgz gentle.mgz')
-#   rt.mridiff('gentle.mgz', 'gentle.ref.mgz')
-#
-#   rt.cleanup()
-#
-# The initialization of a RegressionTest object will parse the command line args and
-# look for the --regenerate flag, which will overwrite the reference data with any 
-# produced outputs specified in the diff functions.
+'''
+This class is built specifically for configuring regression tests for 
+freesurfer binaries in the main source tree. This assumes all test data is
+stored as a 'testdata.tar.gz' tarball in the directory where the test script
+lives. Commands should be tested using run(), and outputs should be compared
+against reference data by using the diff(), mridiff, or surfdiff() functions.
+Example:
+
+  rt = fst.RegressionTest()
+
+  rt.run('mri_normalize -mprage nu.mgz T1.mgz')
+  rt.mridiff('T1.mgz', 'T1.ref.mgz')
+
+  rt.run('mri_normalize -gentle orig.mgz gentle.mgz')
+  rt.mridiff('gentle.mgz', 'gentle.ref.mgz')
+
+  rt.cleanup()
+
+The initialization of a RegressionTest object will parse the command line and
+look for the --regenerate flag, which will overwrite the reference data with any 
+produced outputs specified in the diff functions.
+'''
 
 class RegressionTest:
   def __init__(self):
     # parse command line arguments
-    parser = argparse.ArgumentParser()
+    parser = ArgParser()
     parser.add_argument('--regenerate', action='store_true', help='regenerate the reference data')
     parser.add_argument('--keep-data', action='store_true', help='keep the testdata dir even after success')
     args = parser.parse_args()
@@ -102,7 +105,7 @@ class RegressionTest:
     # extract the testdata
     rmdir(self.testdatadir)
     # self.runcmd('tar -xzvf ' + self.testdatatar)
-    self.runcmd('tar -xzvf ' + '"' + self.testdatatar + '"')
+    self.runcmd('tar -xzvf "%s"' % self.testdatatar)
     self.cd(self.testdatadir)
     # set number of OMP threads if necessary
     if threads is not None:
@@ -144,8 +147,7 @@ class RegressionTest:
         errorExit('mri_diff of %s and %s failed' % (orig, ref))
 
 
-  # run a diff on two surfs (calls mris_diff, which must be already
-  # built in the source directory)
+  # run a diff on two surfs (calls `mris_diff`, which must be already built in the source directory)
   def surfdiff(self, orig, ref, flags=""):
     if self.regenerate:
       self._regen(orig, ref)
