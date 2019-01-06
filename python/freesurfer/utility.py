@@ -121,8 +121,8 @@ def printPeakMemory(prefix=''):
         print('%sVmPeak: %d kB' % (prefix, peak))
 
 
-# simple timer class
 class Timer:
+    '''A simple timer class to track process speed.'''
     def __init__(self, message=None):
         if message: print(message)
         self.start_time = dt.datetime.now()
