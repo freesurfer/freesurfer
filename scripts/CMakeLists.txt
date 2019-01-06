@@ -32,6 +32,7 @@ install(PROGRAMS
   cuda_setup
   datastruct_utils.py
   dcmdir-info-mgh
+  dcmsplit
   dcmunpack
   deface_subject
   defect-seg

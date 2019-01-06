@@ -249,6 +249,7 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 
 # for stripping unused code
 if(APPLE)
+  add_subdirectory(histo_register)
   set(STRIP_FLAGS "-dead_strip")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
@@ -257,9 +258,26 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
 
-# link map (only for linux)
 if(NOT APPLE)
+  # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+  # CentOS/Redhat
+  if(EXISTS "/etc/redhat-release")
+     add_subdirectory(histo_register)
+     # Try to use native libGLdispatch.so as versions from /usr/lib64/nvidia may be missing symbols
+     # Alternately add /lib64 to global CMAKE_EXE_LINKER_FLAGS
+     if(EXISTS "/lib64/libGLdispatch.so")
+       set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
+       message("CentOS/Redhat build will use the native libGLdispatch.so if needed")
+     endif()
+  # Ubuntu
+  elseif(EXISTS "/etc/os-release")
+     # add_subdirectory(histo_register EXCLUDE_FROM_ALL)
+     # list(REMOVE_ITEM histo_register ????)
+     message("Ubuntu build will exclude subdirectory ./freesurfer/histo_register")
+  else()
+     add_subdirectory(histo_register)
+  endif()
 endif()
 
 # check for clock_gettime on mac
@@ -485,7 +503,6 @@ if(NOT MINIMAL)
     HippoSF
     histo_compute_joint_density
     histo_fix_topology
-    histo_register
     histo_register_block
     histo_segment
     histo_synthesize

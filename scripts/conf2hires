@@ -266,7 +266,11 @@ foreach hemi ($hemilist)
   # Map the surf coords back into the conformed space, need to use regC2R here
   # Could do it after T2, but if T2 fails, it never gets done
   set surflist = (white.rawavg)
-  if($#MMode) set surflist = ($surflist wo{$MMode}.pial.rawavg)
+  if($#MMode) then
+    set surflist = ($surflist wo{$MMode}.pial.rawavg)
+  else
+    set surflist = ($surflist pial.rawavg)
+  endif
   foreach surf ($surflist)
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
       --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)

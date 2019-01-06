@@ -199,11 +199,11 @@ main(int argc, char *argv[])
   printf("Doing initial trinary intensity segmentation \n");
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
-  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.int.1.mgz") ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.int.1.mgz") ;
 
   printf("Using local statistics to label ambiguous voxels\n");  fflush(stdout);fflush(stderr);
   MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
-  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.histo.1.mgz") ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.histo.1.mgz") ;
     
 
   if (auto_detect_stats) {
@@ -262,11 +262,11 @@ main(int argc, char *argv[])
 
     printf("Redoing initial intensity segmentation...\n") ;fflush(stdout);
     mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
-    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.int.2.mgz") ;
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.int.2.mgz") ;
 
     printf("Recomputing local statistics to label ambiguous voxels...\n") ;fflush(stdout);
     MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
-    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "seg.histo.2.mgz") ;
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_tmp, "wmseg.histo.2.mgz") ;
   }
   else
   {
@@ -286,7 +286,7 @@ main(int argc, char *argv[])
   fflush(stdout);fflush(stderr);
   mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3, gray_hi, wm_low);
   MRIfree(&mri_tmp) ;
-  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "seg.medcurv.mgz") ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "wmseg.medcurv.mgz") ;
 
   /* now use the gray and white matter border voxels to build a Gaussian
     classifier at each point in space and reclassify all voxels in the
@@ -294,19 +294,21 @@ main(int argc, char *argv[])
   printf("\nReclassifying voxels using Gaussian border classifier...\n") ;fflush(stdout);fflush(stderr);
   for (i = 0 ; i < niter ; i++)
     MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5,gray_hi,wsize);
-  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "seg.reclassified.mgz") ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "wmseg.reclassified.mgz") ;
 
   mri_dst = MRImaskLabels(mri_src, mri_labeled, NULL) ;
   MRIfree(&mri_labeled) ;
 
   printf("Recovering bright white\n");fflush(stdout);fflush(stderr);
   MRIrecoverBrightWhite(mri_src, mri_dst,mri_dst,wm_low,wm_hi,white_sigma,.33);
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.recover-brightwm.mgz") ;
 
   printf("\nremoving voxels with positive offset direction...\n") ;fflush(stdout);
 #if 0
   MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, mri_labels) ;
 #else
   MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, NULL) ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.wrong-dir.mgz") ;
 #endif
 
   printf("thicken = %d\n",thicken);
@@ -315,6 +317,7 @@ main(int argc, char *argv[])
     if(no1d_remove == 0) {
       printf("removing 1-dimensional structures...\n") ;fflush(stdout);fflush(stderr);
       MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
+      if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.rm1d.mgz") ;
     }
     //MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
     printf("thickening thin strands....\n") ;
@@ -322,14 +325,18 @@ main(int argc, char *argv[])
     printf("nsegments %d\n",nsegments);
     printf("wm_hi %g\n",wm_hi);fflush(stdout);fflush(stderr);
     MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments, wm_hi) ;
+    if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.thicken.mgz") ;
   }
 
   mri_tmp = MRIfindBrightNonWM(mri_src, mri_dst) ;
-
   MRIbinarize(mri_tmp, mri_tmp, WM_MIN_VAL, 255, 0) ;
   MRImaskLabels(mri_dst, mri_tmp, mri_dst) ;
+  MRIfree(&mri_tmp);
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.bright-nonwm.mgz") ;
 
+  // Remove edge and corner defects (?)
   MRIfilterMorphology(mri_dst, mri_dst) ;
+  if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.filter.mgz") ;
 
   if (fill_bg)
   {
@@ -599,58 +606,35 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
   int  x, y, z, width, height, depth, val, nchanged, ntested ;
   float dir /*, d2I_dg2*/ ;
 
+  //eg, MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, NULL) ;
+  printf("MRIremoveWrongDirection() wsize=%d, lowthr=%g, hithr=%g\n",wsize,low_thresh,hi_thresh);
+  printf("  smoothing input volume with sigma = %2.3f\n", blur_sigma) ;
+  fflush(stdout);
+
   mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
-  fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", blur_sigma) ;
   mri_smooth = MRIclone(mri_src, NULL) ;
   MRIconvolveGaussian(mri_src, mri_smooth, mri_kernel) ;
   MRIfree(&mri_kernel) ;
 
   if (!mri_dst)
-  {
     mri_dst = MRIclone(mri_src, NULL) ;
-  }
 
   nchanged = ntested = 0 ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        if (z == 101 && y == 133 && x == 152)
-        {
-          DiagBreak() ;
-        }
-        if (z == 87 && y == 88 && x == 163)
-        {
-          DiagBreak() ;
-        }
-        if (z == 88 && y == 89 && x == 163)
-        {
-          DiagBreak() ;
-        }
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      for (x = 0 ; x < width ; x++)      {
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (val >= low_thresh && val <= hi_thresh)
-        {
+        if (val >= low_thresh && val <= hi_thresh) {
           ntested++ ;
           dir = MRIvoxelDirection(mri_smooth, x, y, z, wsize) ;
-          if (dir > 0.0)
-          {
-#if 0
-            d2I_dg2 = MRIvoxelGradientDir2ndDerivative(mri_smooth,x,y,z,wsize);
-            if (d2I_dg2 < 0)
-#endif
-            {
-              nchanged++ ;
-              val = 0 ;
-              if (mri_labels)
-              {
-                MRIsetVoxVal(mri_labels, x, y, z, 0, 255) ;
-              }
-            }
+          if (dir > 0.0) {
+	    nchanged++ ;
+	    val = 0 ;
+	    if (mri_labels)
+	      MRIsetVoxVal(mri_labels, x, y, z, 0, 255) ;
           }
         }
         MRIsetVoxVal(mri_dst, x, y, z, 0,  val) ;
@@ -658,13 +642,11 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
     }
   }
 
-  if (Gdiag & DIAG_SHOW)
-  {
-    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
-            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
-    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
-            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
-  }
+  printf(" %8d voxels tested (%2.2f%%)\n",
+	  ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+  printf(" %8d voxels changed (%2.2f%%)\n",
+	  nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+  
   MRIfree(&mri_smooth) ;
   return(mri_dst) ;
 }
@@ -811,122 +793,82 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 
-MRI *
-MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
+/*!
+  \fn MRI *MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
+  \brief Appears to remove edge and cornder defects
+*/
+
+MRI *MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, nsix, nvox,
           total ;
   BUFTYPE val ;
 
-  if (!mri_dst)
-  {
-    mri_dst = MRIclone(mri_src, NULL) ;
-  }
+  printf("MRIfilterMorphology() WM_MIN_VAL=%d, DIAGONAL_FILL=%d\n",WM_MIN_VAL,DIAGONAL_FILL);
+
+  if(!mri_dst) mri_dst = MRIclone(mri_src, NULL) ;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  /*  mri_dst = MRIremove1dStructures(mri_src, mri_dst, 10000, 2) ;*/
-
   total = 0 ;
-  do
-  {
+  do  {
     nvox = 0 ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
+    for (z = 0 ; z < depth ; z++)    {
+      for (y = 0 ; y < height ; y++)      {
+        for (x = 0 ; x < width ; x++)        {
+
           val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
-          if (x == 159 && y == 138 && z == 101)
-          {
-            DiagBreak() ;
-          }
-          if (val < WM_MIN_VAL)
-          {
-            continue ;
-          }
+          if(val < WM_MIN_VAL) continue ;
+
           nsix = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                if ((fabs(xk) + fabs(yk) + fabs(zk)) <= 1)
-                {
-                  continue ;
-                }
+          for (zk = -1 ; zk <= 1 ; zk++) {
+            for (yk = -1 ; yk <= 1 ; yk++) {
+              for (xk = -1 ; xk <= 1 ; xk++) {
+		// Must be an edge or corner neighbor
+                if((fabs(xk) + fabs(yk) + fabs(zk)) <= 1) continue ;
                 xi = mri_dst->xi[x+xk] ;
                 yi = mri_dst->yi[y+yk] ;
                 zi = mri_dst->zi[z+zk] ;
-                if (xi == 159 && yi == 138 && zi == 101)
-                {
-                  DiagBreak() ;
-                }
-                if (MRIgetVoxVal(mri_dst, xi, yi, zi, 0) >= WM_MIN_VAL)
-                {
-                  if (xk && MRIgetVoxVal(mri_dst, xi, y, z, 0) >= WM_MIN_VAL)
-                  {
-                    continue ;
-                  }
-                  if (yk && MRIgetVoxVal(mri_dst, x, yi, z, 0) >= WM_MIN_VAL)
-                  {
-                    continue ;
-                  }
-                  if (zk && MRIgetVoxVal(mri_dst, x, y, zi, 0) >= WM_MIN_VAL)
-                  {
-                    continue ;
-                  }
-                  if (xk)
-                  {
-                    if (xi == 141 && y == 132 && z == 30)
-                    {
-                      DiagBreak() ;
-                    }
+		// The edge or corner neighbor must be > MIN
+                if(MRIgetVoxVal(mri_dst, xi, yi, zi, 0) >= WM_MIN_VAL){
+		  // If an adjoining face neighbor is > MIN, then skip
+                  if(xk && MRIgetVoxVal(mri_dst, xi, y, z, 0) >= WM_MIN_VAL) continue ;
+                  if(yk && MRIgetVoxVal(mri_dst, x, yi, z, 0) >= WM_MIN_VAL) continue ;
+                  if(zk && MRIgetVoxVal(mri_dst, x, y, zi, 0) >= WM_MIN_VAL) continue ;
+		  // If it gets here, then we have an edge or cornder defect
+		  // Try to fix the defect by setting the face neighbor to DIAGONAL_FILL
+		  // If this makes the face nbr a diagonal, then set it to 0
+                  if(xk) {
                     MRIsetVoxVal(mri_dst, xi, y, z, 0, DIAGONAL_FILL) ;
-                    if (is_diagonal(mri_dst, xi, y, z))
-                    {
+                    if(is_diagonal(mri_dst, xi, y, z))
                       MRIsetVoxVal(mri_dst, xi, y, z, 0, 0) ;
-                    }
                     else
-                    {
                       nvox++ ;
-                    }
                   }
-                  if (yk)
-                  {
+                  if(yk) {
                     MRIsetVoxVal(mri_dst, x, yi, z, 0, DIAGONAL_FILL) ;
-                    if (is_diagonal(mri_dst, x, yi, z))
-                    {
+                    if(is_diagonal(mri_dst, x, yi, z))
                       MRIsetVoxVal(mri_dst, x, yi, z, 0, 0) ;
-                    }
                     else
-                    {
                       nvox++ ;
-                    }
                   }
-                  if (zk)
-                  {
+                  if (zk) {
                     MRIsetVoxVal(mri_dst, x, y, zi, 0, DIAGONAL_FILL) ;
-                    if (is_diagonal(mri_dst, x, y, zi))
-                    {
+                    if(is_diagonal(mri_dst, x, y, zi))
                       MRIsetVoxVal(mri_dst, x, y, zi, 0, 0) ;
-                    }
                     else
-                    {
                       nvox++ ;
-                    }
                   }
                 }
               }
             }
           }
-        }
-      }
-    }
+
+        }//x
+      }//y
+    }//z
     total += nvox ;
   }
   while (nvox > 0) ;
@@ -935,18 +877,23 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 
-MRI *
-MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
-                      MRI *mri_labels)
+/*!
+  \fn MRI *MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh, MRI *mri_labels)
+  \brief For each voxel above WM_MIN_VAL, it counts the number of face
+  neighboring voxels above WM_MIN_VAL.  If this number is less than
+  thresh (eg, 2), then the voxel is set to 0. This is repeated until
+  the maximum number of iters is reached or nothing changes. The
+  result is dependent upon the order of the axes.
+  eg, MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
+ */
+MRI *MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh, MRI *mri_labels)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, nsix, nvox,
           total, niter ;
   BUFTYPE val ;
 
   if (!mri_dst)
-  {
     mri_dst = MRIclone(mri_src, NULL) ;
-  }
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -954,79 +901,49 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
 
   MRIcopy(mri_src, mri_dst) ;
 
-  if (max_iter == 0)
-  {
-    max_iter = 1000 ;
-  }
+  if(max_iter == 0) max_iter = 1000 ;
+
+  printf("MRIremove1dStructures(): max_iter=%d, thresh=%d, WM_MIN_VAL=%d\n",max_iter,thresh,WM_MIN_VAL);
+  fflush(stdout);
 
   niter = total = 0 ;
-  do
-  {
+  do {
     nvox = 0 ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
+    for (z = 0 ; z < depth ; z++)    {
+      for (y = 0 ; y < height ; y++)      {
+        for (x = 0 ; x < width ; x++)        {
+	  // Potential bug/problem: testing the value of mri_dst makes the result
+	  // dependent on the order that the voxels are traversed. See also below.
+	  // Testing mri_src does not necessarily fix the problem because it might
+	  // be a pointer to mri_dst.
           val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
-          nsix = 0 ;
-          if (val < WM_MIN_VAL)
-          {
-            continue ;
+          if (val < WM_MIN_VAL)  continue ;
+
+	  // Go through nearest face neighbors and count the number that are above WM_MIN_VAL
+          nsix = 0 ; // there can be at most 6 face neighbors
+          for (zk = -1 ; zk <= 1 ; zk++) {
+            zi = z+zk ;
+	    if (zi < 0 || zi >= depth)  continue ;
+            for (yk = -1 ; yk <= 1 ; yk++) {
+              yi = y+yk ;
+              if (yi < 0 || yi >= height) continue ;
+              for (xk = -1 ; xk <= 1 ; xk++) {
+		// must be a face neighbor
+		if((fabs(xk) + fabs(yk) + fabs(zk)) != 1) continue ; 
+                xi = x+xk ;
+                if(xi < 0 || xi >= width) continue ;
+		// Testing mri_dst makes result order dependent
+                if(MRIgetVoxVal(mri_dst, xi, yi, zi,0) >= WM_MIN_VAL)
+                  nsix++ ;
+              }
+            }
           }
 
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = z+zk ;
-            if (zi < 0 || zi >= depth)
-            {
-              continue ;
-            }
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = y+yk ;
-              if (yi < 0 || yi >= height)
-              {
-                continue ;
-              }
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-#if 0
-                if ((z == 124 || z == 125) && y == 162 && x == 158)
-                {
-                  DiagBreak() ;
-                }
-                else
-#endif
-                  if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
-                  {
-                    continue ;
-                  }
-                xi = x+xk ;
-                if (xi < 0 || xi >= width)
-                {
-                  continue ;
-                }
-                if (MRIgetVoxVal(mri_dst, xi, yi, zi,0) >= WM_MIN_VAL)
-                {
-                  nsix++ ;
-                }
-              }
-            }
-          }
-          if (nsix < thresh && val >= WM_MIN_VAL)
-          {
-            if ((z == 124 || z == 125) && y == 162 && x == 158)
-            {
-              DiagBreak() ;
-            }
+	  // Remove voxels that don't have at least thresh (2) face neighbors with val > WM_MIN_VAL
+          if(nsix < thresh && val >= WM_MIN_VAL) { // Isnt val >= WM_MIN_VAL redundant here?
             nvox++ ;
             MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-            if (mri_labels)
-            {
-              MRIsetVoxVal(mri_labels,x,y,z,0,255) ;
-            }
+            if(mri_labels) MRIsetVoxVal(mri_labels,x,y,z,0,255) ;
           }
         }
       }
@@ -1035,49 +952,37 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
   }
   while (nvox > 0 || ++niter > max_iter) ;
 
-  if (width == 256)
-  {
-    fprintf(stderr, "%d sparsely connected voxels removed...\n", total) ;
-  }
+  printf(" %d sparsely connected voxels removed in %d iterations\n", total,niter) ;
+  fflush(stdout);
 
   return(mri_dst) ;
 }
 
-static int
-is_diagonal(MRI *mri, int x, int y, int z)
+/*!
+  \fn int is_diagonal(MRI *mri, int x, int y, int z)
+  \brief Returns 1 if the given voxel has a non-zero edge or corner neighbor
+  without an adjoining face neighbor > WM_MIN_VAL. Basically, it is looking
+  for edge and cornder defects.
+ */
+static int is_diagonal(MRI *mri, int x, int y, int z)
 {
   int xk, yk, zk, xi, yi, zi ;
 
-  for (zk = -1 ; zk <= 1 ; zk++)
-  {
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        if ((fabs(xk) + fabs(yk) + fabs(zk)) <= 1)
-        {
-          continue ;
-        }
+  // Go thru all face, edge, and corner neighbors
+  for (zk = -1 ; zk <= 1 ; zk++)  {
+    for (yk = -1 ; yk <= 1 ; yk++)    {
+      for (xk = -1 ; xk <= 1 ; xk++)      {
+	// must be edge or corner neighbor (ignore face nbrs)
+        if((fabs(xk) + fabs(yk) + fabs(zk)) <= 1) continue ;
         xi = mri->xi[x+xk] ;
         yi = mri->yi[y+yk] ;
         zi = mri->zi[z+zk] ;
-        if (!MRIgetVoxVal(mri, xi, yi, zi, 0))
-        {
-          continue ;  /* not a diagonal */
-        }
-
-        if (xk && MRIgetVoxVal(mri, xi, y, z, 0) >= WM_MIN_VAL)
-        {
-          continue ;  /* not a diagonal */
-        }
-        if (yk && MRIgetVoxVal(mri, x, yi, z, 0) >= WM_MIN_VAL)
-        {
-          continue ;  /* not a diagonal */
-        }
-        if (zk && MRIgetVoxVal(mri, x, y, zi, 0) >= WM_MIN_VAL)
-        {
-          continue ;  /* not a diagonal */
-        }
+	// If edge or corner nbr is zero, then this voxel is not a diagonal
+        if(!MRIgetVoxVal(mri, xi, yi, zi, 0)) continue ; 
+	// If a face nbr is > MIN, then this voxel is not a diagonal
+        if(xk && MRIgetVoxVal(mri, xi, y, z, 0) >= WM_MIN_VAL) continue ;  
+        if(yk && MRIgetVoxVal(mri, x, yi, z, 0) >= WM_MIN_VAL) continue ;  
+        if(zk && MRIgetVoxVal(mri, x, y, zi, 0) >= WM_MIN_VAL) continue ;  
         return(1) ;   /* found a diagonal with no 4-connection */
       }
     }
