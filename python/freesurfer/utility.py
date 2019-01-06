@@ -95,22 +95,9 @@ def hostname(short=True):
     return node
 
 
-# remove extensions from a volume filename
-# TODO only used in test.py
-def rmext(filename):
-  for ext in ('.mgh', '.mgz', '.nii', '.nii.gz'):
-    if filename.endswith(ext): return filename[:-len(ext)]
-
-
 def fshome():
     '''Returns the freesurfer home directory.'''
     return os.environ.get('FREESURFER_HOME')
-
-
-# make sure freesurfer has been sourced
-def checkfs():
-  if not fshome():
-    errorExit('freesurfer has not been sourced')
 
 
 def vmpeak():

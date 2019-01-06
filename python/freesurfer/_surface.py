@@ -3,7 +3,7 @@ import numpy.linalg as npl
 import nibabel as nib
 import math
 
-from . import errorExit, sample_patch
+from . import sample_patch
 
 
 def MRISP(scale, nfuncs):
@@ -17,7 +17,7 @@ def averageRadius(surface):
 
     xhi = yhi = zhi = -10000.0
     xlo = ylo = zlo =  10000.0
-    
+
     for (x, y, z) in surface[0]:
         if x > xhi: xhi = x
         if x < xlo: xlo = x
@@ -121,8 +121,10 @@ def parameterizeSurface(surface, overlay, fno=0, mrisp=None, scale=1.0):
         fillstatus[fillstatus == filling] = filled
         mrisp[:] = tmpimage
         npasses += 1
-        if npasses > 1000: errorExit('could not fill parameterization')
-        if num_unfilled == 0: break
+        if npasses > 1000:
+            raise RuntimeError('could not fill parameterization')
+        if num_unfilled == 0:
+            break
 
     return mrisp
 

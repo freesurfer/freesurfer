@@ -624,7 +624,7 @@ def samsegment(
         # Transform back in template space (i.e., undoing the affine registration that we applied), and save for later usage
         tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
-        
+
         # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
@@ -676,7 +676,7 @@ def samsegment(
     transformMatrix = transform.as_numpy_array
     tmp = np.linalg.solve(transformMatrix, np.pad(nodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
     nodePositionsInTemplateSpace = tmp[:, 0: 3]
-    
+
     # Get the estimated warp in template space
     [estimatedNodeDeformationInTemplateSpace, estimated_averageDistance, estimated_maximumDistance] = gems.kvlWarpMesh(
         optimizationOptions.multiResolutionSpecification[-1].atlasFileName,
@@ -763,9 +763,9 @@ def samsegment(
     for contrastNumber, imageFileName in enumerate(imageFileNames):
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
-        
+
         # First bias field - we're computing it also outside of the mask, but clip the
-        # intensities there to the range observed inside the mask (with some margin) to 
+        # intensities there to the range observed inside the mask (with some margin) to
         # avoid crazy extrapolation values
         logBiasField = biasFields[:, :, :, contrastNumber]
         clippingMargin = np.log(2)
@@ -784,7 +784,7 @@ def samsegment(
             outputFileName,
             gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
         )
-        
+
         # Then bias field corrected data
         biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)
         biasCorrected[
