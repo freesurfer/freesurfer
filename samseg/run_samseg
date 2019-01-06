@@ -15,18 +15,19 @@ from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisu
 parser = fs.ArgParser()
 
 # required
-parser.add_argument('-o', '--output', metavar='directory', dest='outputDirectory', help='Output directory.', required=True)
-parser.add_argument('-i', '--input', action='append', metavar='file', dest='inputFileNames', help='Input image(s).', required=True)
+parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
+parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
 parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
-parser.add_argument('-r', '--reg-mat', metavar='file', help='Skip initial affine registration and read transform from file.')
-parser.add_argument('-a', '--atlas', metavar='directory', help='Point to an alternative atlas directory.')
+parser.add_argument('-r', '--reg-mat', metavar='FILE', help='Skip initial affine registration and read transform from file.')
+parser.add_argument('--init-lta', metavar='FILE', help='Initial affine registration.')
+parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--no-brainmask', action='store_true', default=False, help='Skip the initial brain masking based on the affine atlas registration.')
 parser.add_argument('--diag-covs', action='store_true', default=False, help='Use diagonal covariance matrices (only affects multi-contrast case).')
 parser.add_argument('--stiffness', type=float, default=0.1, help='Stiffness (K) of the mesh. Defaults to 0.1.')
 parser.add_argument('--max-iters', type=int, default=100, help='Maximum number of iterations.')
-parser.add_argument('--options', metavar='file', help='Override advanced options via a json file.')
+parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
@@ -41,7 +42,8 @@ fs.printPeakMemory('run_samseg init')
 # ------ Initial Setup ------
 
 # Make sure freesurfer has been sourced
-fs.checkfs()
+if not fs.fshome():
+    fs.errorExit('FREESURFER_HOME must be set')
 
 # Start the process timer
 timer = fs.Timer()

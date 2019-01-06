@@ -31,7 +31,7 @@ class _HelpFormatter(argparse.HelpFormatter):
             msg = ', '.join([term.bold(opt) for opt in action.option_strings])
             if action.nargs != 0:
                 default = self._get_default_metavar_for_optional(action)
-                msg += '  ' +  term.blue(self._format_args(action, default)).upper()
+                msg += '  ' +  term.blue(self._format_args(action, default).upper())
             return msg
 
     # format the usage string
