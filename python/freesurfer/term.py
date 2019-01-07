@@ -39,7 +39,7 @@ for color, code in colors.items():
 del color, code, mkmethod
 
 
-def colorFormat(string):
+def colorformat(string):
     '''Formats a string with the text formatting options available in `colors`.
 
     Args:
