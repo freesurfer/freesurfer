@@ -2768,12 +2768,11 @@ static void MRISsmooth_surface(MRI_SURFACE *mris,int niter) {
   int const nvertices = mris->nvertices;
 
   float *p0x, *p0y, *p0z;
-  MRISexportXYZ(mris, &p0x,&p0y,&p0z);
+  MRISexportXYZ(mris, &p0x, &p0y, &p0z);
 
-  float* p1x = (float*)memalign(64, nvertices*sizeof(float));
-  float* p1y = (float*)memalign(64, nvertices*sizeof(float));
-  float* p1z = (float*)memalign(64, nvertices*sizeof(float));
-   
+  float *p1x, *p1y, *p1z;
+  MRISmemalignNFloats(nvertices, &p1x, &p1y, &p1z);
+
   int iter;
   for (iter=0; iter < niter; iter++) {
 

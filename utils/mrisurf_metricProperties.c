@@ -47,24 +47,23 @@ static void MRISsetXYZwkr2(MRIS *mris, int vno, float x, float y, float z) {
   const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
 }
 
-void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * file, int line, bool* laterTime) 
-{
+void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * file, int line, bool* laterTime)  {
   MRISsetXYZwkr1(mris, file, line, laterTime);
   MRISsetXYZwkr2(mris, vno, x, y, z);
 }
 
-static void MRImemalignNFloats(size_t n, float* *ppx, float* *ppy, float* *ppz) 
-{
-  if (ppx) *ppx = (float*)memalign(64, n*sizeof(float));    // cache aligned to improve the performance
-  if (ppy) *ppy = (float*)memalign(64, n*sizeof(float));    //      of loops that use the vectors
-  if (ppz) *ppz = (float*)memalign(64, n*sizeof(float));
+void MRISmemalignNFloats(size_t n, float** ppx, float** ppy, float** ppz) {
+  // cache aligned to improve the performance of loops that use the vectors
+  if (ppx) posix_memalign((void**)ppx, 64, n*sizeof(float));
+  if (ppy) posix_memalign((void**)ppy, 64, n*sizeof(float));
+  if (ppz) posix_memalign((void**)ppz, 64, n*sizeof(float));
 }
 
-void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz) {
+void MRISexportXYZ(MRIS *mris, float** ppx, float** ppy, float** ppz) {
   int const nvertices = mris->nvertices;
 
   float *px, *py, *pz;
-  MRImemalignNFloats(nvertices, &px,&py,&pz);
+  MRISmemalignNFloats(nvertices, &px, &py, &pz);
   
   int vno;
   for (vno = 0; vno < nvertices; vno++) {
@@ -1002,7 +1001,7 @@ static void MRISaverageVertexPositionsWkr_part1(MRIS* mris, int navgs, float sca
   // first outputs
   //
   float *qx, *qy, *qz;
-  MRImemalignNFloats(nvertices, &qx,&qy,&qz);
+  MRISmemalignNFloats(nvertices, &qx, &qy, &qz);
   
   // iterate
   //

@@ -2791,6 +2791,7 @@ void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * 
 
 void MRIScopyXYZ(MRIS *mris, MRIS* mris_from);
 
+void MRISmemalignNFloats(size_t n, float** ppx, float** ppy, float** ppz);
 void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz);
 void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const   ppz);
     //
