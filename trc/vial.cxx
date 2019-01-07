@@ -292,7 +292,7 @@ vector<float> AffineReg::GetScale() {
 // Non-linear registration class
 //
 NonlinReg::NonlinReg() {
-  mMorph = boost::shared_ptr<gmp::VolumeMorph>(new gmp::VolumeMorph);
+  mMorph = std::shared_ptr<gmp::VolumeMorph>(new gmp::VolumeMorph);
 }
 
 NonlinReg::~NonlinReg() {}
