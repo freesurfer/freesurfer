@@ -6,10 +6,9 @@ Gheorghe Postelnicu, 2007
 #ifndef _h_pbCluster_mesh_crop_h_
 #define _h_pbCluster_mesh_crop_h_
 
-#include <boost/shared_ptr.hpp>
-
 #include <list>
 #include <vector>
+#include <memory>
 
 #include "fem_3d.h"
 

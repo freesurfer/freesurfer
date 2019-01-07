@@ -61,7 +61,7 @@ function(add_help BINARY HELPTEXT)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   target_sources(${BINARY} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${HELPTEXT}.h)
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
-  # make sure to validate the xml as wel
+  # make sure to validate the xml as well
   add_test(${BINARY}_help_test bash -c "xmllint --noout ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction(add_help)
 

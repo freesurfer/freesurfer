@@ -27,9 +27,6 @@ polymorphic way.
 #include <itkInterpolateImageFunction.h>
 #include <itkVector.h>
 
-// BOOST includes
-#include <boost/shared_ptr.hpp>
-
 // OWN includes
 #include "coords.h"
 #include "mesh.h"

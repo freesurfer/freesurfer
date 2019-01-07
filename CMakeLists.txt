@@ -141,10 +141,6 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # todo: since ITK is now required, we can get rid of this macro
 add_definitions(-DHAVE_ITK_LIBS)
 
-# -------- boost --------
-set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
-find_package(Boost COMPONENTS program_options)
-
 # -------- ann --------
 # ANN is only used by mris_resample
 find_package(ANN)

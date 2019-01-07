@@ -4,10 +4,6 @@
 #include <fstream>
 #include <iostream>
 
-// BOOST
-#include <boost/program_options.hpp>
-#include <boost/progress.hpp>
-
 // MPI
 //#undef SEEK_SET
 //#undef SEEK_END
@@ -21,10 +17,12 @@
 #include "morph_utils.h"
 
 // FreeSurfer
-extern "C"
-{
+#include "argparse.hpp"
+extern "C" {
 #include "mri.h"
-};
+}
+
+#include "applyMorph.help.xml.h"
 
 // required by FreeSurfer
 const char *Progname;
@@ -139,19 +137,15 @@ struct IoParams
 
   unsigned int zlibBuffer;
 
-  void parse(int ac, char* av[]);
+  void parse(int ac, const char** av);
 };
 
 //------------------------------------------------------
 
 int
-main(int argc,
-     char* argv[])
+main(int argc, const char** argv)
 {
-  boost::timer t0;
-
   // cmd-line
-
   IoParams params;
 
   try
@@ -160,8 +154,7 @@ main(int argc,
   }
   catch (const char* msg)
   {
-    std::cerr << " Exception caught while parsing cmd-line\n"
-    << msg << std::endl;
+    std::cerr << " Exception caught while parsing cmd-line" << std::endl << msg << std::endl;
     exit(1);
   }
 
@@ -284,8 +277,6 @@ main(int argc,
     exit(1);
   }
 
-  std::cout << " morph applied in " << t0.elapsed() / 60. << " minutes \n";
-
   // apply morph to one point for debug if needed
   if ( !g_vDbgCoords.empty() )
   {
@@ -304,63 +295,37 @@ main(int argc,
 //---------------------
 
 void
-IoParams::parse(int ac,
-                char* av[])
+IoParams::parse(int ac, const char** av)
 {
+  ArgumentParser parser;
+  // required
+  parser.addArgument("inputs", '+', String, true);
+  parser.addArgument("--template", 1, String, true);
+  parser.addArgument("--transform", 1, String, true);
+  // optional
+  parser.addArgument("--zlib_buffer", 1, Int);
+  parser.addArgument("--dbg_coords", 3, Int);
+  // help text
+  parser.addHelp(applyMorph_help_xml, applyMorph_help_xml_len);
+  parser.parse(ac, av);
+
+  strTemplate = parser.retrieve<std::string>("template");
+  strTransform = parser.retrieve<std::string>("transform");
+
   zlibBuffer = 5;
-
-  namespace po = boost::program_options;
-  typedef std::vector<std::string> StringContainerType;
-  StringContainerType container;
-
-  po::options_description desc("Allowed Options");
-
-  desc.add_options()
-  ("help", " produce help message")
-  ("template", po::value<std::string>(), " template volume ")
-  ("sourcevol", po::value<std::string>(), " source (moving) volume ")
-  ("transform", po::value<std::string>(), " transform file")
-  //("gcam", po::value(&strGcam), " if present, will write a gcam at that location" )
-  ("zlib_buffer", po::value(&zlibBuffer), " zlib buffer pre-allocation multiplier")
-  ("dbg_coords", po::value(&g_vDbgCoords)->multitoken(), " debug coordinates")
-  ;
-
-  po::options_description hidden;
-  hidden.add_options()
-  ("data", po::value<StringContainerType>(), " input files");
-
-  po::positional_options_description p;
-  p.add("data", -1);
-
-  po::options_description cmd_line;
-  cmd_line.add(desc).add(hidden);
-
-  po::variables_map vm;
-  po::store( po::command_line_parser(ac,av).
-             options(cmd_line).positional(p).run(), vm);
-  po::notify(vm);
-
-  if ( vm.count("help") )
-  {
-    std::cout << desc << std::endl;
-    exit(0);
+  if (parser.exists("zlib_buffer")) {
+    zlibBuffer = parser.retrieve<int>("zlib_buffer");
   }
 
-  if ( !vm.count("template") )
-    throw " IoParams - you need to specify a template volume";
-  strTemplate = vm["template"].as<std::string>();
+  if (parser.exists("dbg_coords")) {
+    g_vDbgCoords = parser.retrieve<std::vector<int>>("dbg_coords");
+  }
 
-  if ( !vm.count("transform") )
-    throw " IoParams - you need to specify a transform";
-  strTransform = vm["transform"].as<std::string>();
+  typedef std::vector<std::string> StringVector;
+  StringVector container = parser.retrieve<StringVector>("inputs");
 
-  // process the data vector
-  if ( !vm.count("data") )
-    throw " IoParams - data missing";
-  container = vm["data"].as<StringContainerType>();
 
-  StringContainerType::const_iterator cit = container.begin();
-
+  StringVector::const_iterator cit = container.begin();
   while ( cit != container.end() )
   {
     // read a data item
