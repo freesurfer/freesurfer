@@ -134,9 +134,9 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   LabelIsCompletelyUnassigned(m_label, &unassigned) ;
   if (unassigned)
   {
-//    LabelFree(&m_label) ;
-//    cerr << "label has not been mapped to surface";
-//    return false;
+    //    LabelFree(&m_label) ;
+    //    cerr << "label has not been mapped to surface";
+    //    return false;
     LabelFillUnassignedVertices(m_surface->GetSourceSurface()->GetMRIS(), m_label, CURRENT_VERTICES);
     cout << "label assigned to surface";
   }
@@ -181,7 +181,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   int max_vno;
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
   MHT* hash = MHTcreateVertexTable_Resolution(mris,
-                                    CURRENT_VERTICES, max_spacing/4);
+                                              CURRENT_VERTICES, max_spacing/4);
 
   if (m_label->n_points > 0)
     m_dHeatscaleMin = m_dHeatscaleMax = m_label->lv[0].stat;
@@ -356,6 +356,35 @@ void SurfaceLabel::Resample(LayerMRI *mri)
     LabelFree(&label);
     emit SurfaceLabelChanged();
   }
+}
+
+void SurfaceLabel::Dilate(int nTimes)
+{
+  ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
+                m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+  emit SurfaceLabelChanged();
+}
+
+void SurfaceLabel::Erode(int nTimes)
+{
+  ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
+  emit SurfaceLabelChanged();
+}
+
+void SurfaceLabel::Open(int nTimes)
+{
+  ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
+  ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
+                m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+  emit SurfaceLabelChanged();
+}
+
+void SurfaceLabel::Close(int nTimes)
+{
+  ::LabelDilate(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes,
+                m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+  ::LabelErode(m_label, m_surface->GetSourceSurface()->GetMRIS(), nTimes);
+  emit SurfaceLabelChanged();
 }
 
 bool SurfaceLabel::HasVertex(int nvo)

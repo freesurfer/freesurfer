@@ -3,9 +3,11 @@ import scipy.io
 import math
 import numpy as np
 import logging
+import pickle
 from functools import reduce
 from operator import mul
 
+import freesurfer as fs
 import freesurfer.gems as gems
 
 from .utilities import Specification, requireNumpyArray, ensureDims
@@ -25,54 +27,29 @@ def samsegment(
     optimizationOptions,
     savePath,
     visualizer=None,
+    saveHistory=False,
+    saveMesh=False,
 ):
 
-    # Print input options
-    print()
-    print('----------------------------------------------')
-    print('           Samsegment Input Options')
-    print('----------------------------------------------')
+    # Print specifications
+    print('##----------------------------------------------')
+    print('              Samsegment Options')
+    print('##----------------------------------------------')
     print('output directory:', savePath)
-    print('input images:')
-    for imageFileName in imageFileNames:
-        print('    %s' % imageFileName)
-    print('transformed template: %s' % transformedTemplateFileName)
-    print('----------------------------------------------')
-    model = modelSpecifications
-    print('model:')
-    print('    atlasFileName: %s' % model.atlasFileName)
-    print('    useDiagonalCovarianceMatrices: %s' % model.useDiagonalCovarianceMatrices)
-    print('    brainMaskingSmoothingSigma: %s' % model.brainMaskingSmoothingSigma)
-    print('    brainMaskingThreshold: %s' % model.brainMaskingThreshold)
-    print('    K: %s' % model.K)
-    print('    biasFieldSmoothingKernelSize: %s' % model.biasFieldSmoothingKernelSize)
-    print('    sharedGMMParameters:')
-    for i, params in enumerate(model.sharedGMMParameters):
-        print('        mergedName: %s' % params.mergedName)
-        print('        numberOfComponents: %s' % params.numberOfComponents)
-        print('        searchStrings: %s' % params.searchStrings)
-        if i != len(model.sharedGMMParameters)-1:
-            print('        ----')
-    print('----------------------------------------------')
-    options = optimizationOptions
-    print('optimization:')
-    print('    maximumNumberOfDeformationIterations: %s' % options.maximumNumberOfDeformationIterations)
-    print('    absoluteCostPerVoxelDecreaseStopCriterion: %s' % options.absoluteCostPerVoxelDecreaseStopCriterion)
-    print('    verbose: %s' % options.verbose)
-    print('    maximalDeformationStopCriterion: %s' % options.maximalDeformationStopCriterion)
-    print('    lineSearchMaximalDeformationIntervalStopCriterion: %s' % options.lineSearchMaximalDeformationIntervalStopCriterion)
-    print('    maximalDeformationAppliedStopCriterion: %s' % options.maximalDeformationAppliedStopCriterion)
-    print('    BFGSMaximumMemoryLength: %s' % options.BFGSMaximumMemoryLength)
-    print('    multiResolutionSpecification:')
-    for i, spec in enumerate(options.multiResolutionSpecification):
-        print('        atlasFileName: %s' % spec.atlasFileName)
-        print('        targetDownsampledVoxelSpacing: %s' % spec.targetDownsampledVoxelSpacing)
-        print('        maximumNumberOfIterations: %s' % spec.maximumNumberOfIterations)
-        print('        estimateBiasField: %s' % spec.estimateBiasField)
-        if i != len(options.multiResolutionSpecification)-1:
-            print('        ----')
-    print('----------------------------------------------')
-    print()
+    print('input images:', ', '.join([imageFileName for imageFileName in imageFileNames]))
+    print('transformed template:', transformedTemplateFileName)
+    print('modelSpecifications:', modelSpecifications)
+    print('optimizationOptions:', optimizationOptions)
+
+    # Save input variables in a history dictionary
+    if saveHistory:
+        history = {'input': {
+            'imageFileNames': imageFileNames,
+            'transformedTemplateFileName': transformedTemplateFileName,
+            'modelSpecifications': modelSpecifications,
+            'optimizationOptions': optimizationOptions,
+            'savePath': savePath
+        }}
 
     # Setup a null visualizer if necessary
     if visualizer is None: visualizer = initVisualizer(False, False)
@@ -116,7 +93,6 @@ def samsegment(
     meshCollection.read(modelSpecifications.atlasFileName)
     meshCollection.k = modelSpecifications.K
     meshCollection.transform(transform)
-
 
     # Retrieve the reference mesh, i.e., the mesh representing the average shape.
     mesh = meshCollection.reference_mesh
@@ -184,8 +160,7 @@ def samsegment(
     # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
     # transform the data first. In order to do so, mask out zeros from
     # the images.
-    # This removes any voxel where any contrast has a zero value
-    # (messes up log)
+    # This removes any voxel where any contrast has a zero value (messes up log)
     mask = np.full(imageSize, True, dtype=np.bool)
     for contrastNumber in range(numberOfContrasts):
         mask = mask * (imageBuffers[:, :, :, contrastNumber] > 0)
@@ -197,6 +172,10 @@ def samsegment(
     for contrastNumber in range(numberOfContrasts):
         imageBuffers[np.logical_not(mask), contrastNumber] = 0
     log_buffers = None
+
+    if saveHistory:
+        history['imageBuffers'] = imageBuffers
+        history['mask'] = mask
 
     # Merge classes into "super-structures" that define a single Gaussian mixture model shared between the classes belonging
     # to the same super-structure
@@ -246,6 +225,11 @@ def samsegment(
         numberOfBasisFunctions.append(M)
     basisProduct = reduce(mul, numberOfBasisFunctions, 1)
     biasFieldCoefficients = np.zeros((basisProduct, numberOfContrasts))
+
+    if saveHistory:
+        history['historyWithinEachMultiResolutionLevel'] = []
+
+    print('samsegment Starting Resolution Loop VmPeak', fs.GetVmPeak())
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -353,9 +337,14 @@ def samsegment(
         for contrastNumber in range(numberOfContrasts):
             tmp = downSampledImageBuffers[:, :, :, contrastNumber]
             data[:, contrastNumber] = tmp[downSampledMaskIndices]
+
+        if saveHistory:
+            levelHistory = {'historyWithinEachIteration': []}
+
         # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
+            print('samsegment Resolution %d Iter %d VmPeak' % (multiResolutionLevel, iterationNumber), fs.GetVmPeak())
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -479,7 +468,7 @@ def samsegment(
                                / (np.sum(posterior) + numberOfPseudoMeasurementsOfWishartPrior)
                     if modelSpecifications.useDiagonalCovarianceMatrices:
                         # Force diagonal covariance matrices
-                        variance = np.diag(np.diag(variance));
+                        variance = np.diag(np.diag(variance))
                     variances[gaussianNumber, :, :] = variance
                     means[gaussianNumber, :] = mean.T
                 mixtureWeights = np.sum(posteriors + eps, axis=0).T
@@ -514,7 +503,7 @@ def samsegment(
                         tmp = np.zeros((data.shape[0], 1), order='F')
                         for contrastNumber2 in range(numberOfContrasts):
                             classSpecificWeights = posteriors * precisions[:, contrastNumber1, contrastNumber2].T
-                            weights = np.sum(classSpecificWeights, 1);
+                            weights = np.sum(classSpecificWeights, 1)
                             # Build up stuff needed for rhs
                             predicted = np.sum(classSpecificWeights * np.expand_dims(means[:, contrastNumber2], 2).T / (
                                     np.expand_dims(weights, 1) + eps), 1)
@@ -565,7 +554,7 @@ def samsegment(
                 mixtureWeights=mixtureWeights,
                 numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-            optimizerType = 'L-BFGS';
+            optimizerType = 'L-BFGS'
             optimization_parameters = {
                 'Verbose': optimizationOptions.verbose,
                 'MaximalDeformationStopCriterion': optimizationOptions.maximalDeformationStopCriterion,
@@ -574,8 +563,8 @@ def samsegment(
                 'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
             }
             optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
-            historyOfDeformationCost = [];
-            historyOfMaximalDeformation = [];
+            historyOfDeformationCost = []
+            historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
             while True:
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
@@ -604,6 +593,21 @@ def samsegment(
             activeVoxelCount = len(downSampledMaskIndices[0])
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
+
+            # Save history of the estimation
+            if saveHistory:
+                iterationHistory = {
+                    'historyOfEMCost': historyOfEMCost,
+                    'mixtureWeights': mixtureWeights,
+                    'means': means,
+                    'variances': variances,
+                    'biasFieldCoefficients': biasFieldCoefficients,
+                    'historyOfDeformationCost': historyOfDeformationCost,
+                    'historyOfMaximalDeformation': historyOfMaximalDeformation,
+                    'maximalDeformationApplied': maximalDeformationApplied
+                }
+                levelHistory['historyWithinEachIteration'].append(iterationHistory)
+
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 # Display the cost history
                 if len(historyOfCost) > 2:
@@ -613,6 +617,7 @@ def samsegment(
                 with open(os.path.join(savePath, 'cost.txt'), "a") as file:
                     file.write("atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, iterationNumber + 1, currentCost / activeVoxelCount))
                 break
+
         # Get the final node positions
         finalNodePositions = mesh.points
         # Transform back in template space (i.e., undoing the affine registration
@@ -620,11 +625,35 @@ def samsegment(
 
         tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
+        
         # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
+        # Save history of the estimation
+        if saveHistory:
+            levelHistory['downSamplingFactors'] = downSamplingFactors
+            levelHistory['downSampledImageBuffers'] = downSampledImageBuffers
+            levelHistory['downSampledMask'] = downSampledMask
+            levelHistory['initialNodePositions'] = initialNodePositions
+            levelHistory['finalNodePositions'] = finalNodePositions
+            levelHistory['initialNodePositionsInTemplateSpace'] = initialNodePositionsInTemplateSpace
+            levelHistory['finalNodePositionsInTemplateSpace'] = finalNodePositionsInTemplateSpace
+            levelHistory['historyOfCost'] = historyOfCost
+            levelHistory['priorsAtEnd'] = priors
+            levelHistory['posteriorsAtEnd'] = posteriors
+            history['historyWithinEachMultiResolutionLevel'].append(levelHistory)
+
+    # End resolution level loop
+
+    # Save the history
+    if saveHistory:
+        with open(os.path.join(savePath, 'history.p'), 'wb') as file:
+            pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
+
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
+
+    print('samsegment starting sementation VmPeak', fs.GetVmPeak())
 
     # Get bias field corrected images
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
@@ -663,17 +692,17 @@ def samsegment(
     mesh.points = requireNumpyArray(desiredNodePositions)
     alphas = mesh.alphas
     numberOfStructures = alphas.shape[1]
-    
+
     # Get the priors as dictated by the current mesh position
     data = biasCorrectedImageBuffers
     priors = mesh.rasterize_3(imageSize, -1)
-    
+
     # NOTE: NOT GOING TO RESHAPE, WILL USE MASK INDEXING
     # Ignore everything that's has zero intensity
     priors = priors[mask == 1, :]
     data = data[mask == 1, :]
     likelihood_count = data.shape[0]
-    
+
     # Calculate the posteriors
     posteriors = np.zeros_like(priors, dtype=np.float64)
     for structureNumber in range(numberOfStructures):
@@ -701,11 +730,11 @@ def samsegment(
         posteriors[:, structureNumber] = np.squeeze(mixedLikelihoods) * prior
     normalizer = np.sum(posteriors, 1) + eps
     posteriors = posteriors / ensureDims(normalizer, 2)
-    
+
     # Compute volumes in mm^3
     volumeOfOneVoxel = np.abs(np.linalg.det(imageToWorldTransformMatrix[0:3, 0:3]))
     volumesInCubicMm = (np.sum(posteriors, axis=0)) * volumeOfOneVoxel
-    
+
     # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
     structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
     freeSurferSegmentation = np.zeros(imageSize, dtype=np.uint16)
@@ -722,21 +751,29 @@ def samsegment(
         os.path.join(savePath, 'crispSegmentation.nii'),
         gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
     )
-    
+
+    # Save the final mesh collection
+    if saveMesh:
+        print('Saving the final mesh in template space')
+        mesh_collection = gems.KvlMeshCollection()
+        mesh_collection.read(modelSpecifications.atlasFileName)
+        mesh_collection.reference_mesh.points = requireNumpyArray(desiredNodePositionsInTemplateSpace)
+        mesh_collection.write(os.path.join(savePath, 'mesh.txt'))
+
     # Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
     for contrastNumber, imageFileName in enumerate(imageFileNames):
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
         
-        #  First bias field - we're computing it also outside of the mask, but clip the
-        #  intensities there to the range observed inside the mask (with some margin) to 
-        #  avoid crazy extrapolation values
-        logBiasField = biasFields[:, :, :, contrastNumber];
+        # First bias field - we're computing it also outside of the mask, but clip the
+        # intensities there to the range observed inside the mask (with some margin) to 
+        # avoid crazy extrapolation values
+        logBiasField = biasFields[:, :, :, contrastNumber]
         clippingMargin = np.log(2)
         clippingMin = logBiasField[ mask > 0 ].min() - clippingMargin
         clippingMax = logBiasField[ mask > 0 ].max() + clippingMargin
-        logBiasField[ logBiasField < clippingMin ] = clippingMin;
-        logBiasField[ logBiasField > clippingMax ] = clippingMax;
+        logBiasField[ logBiasField < clippingMin ] = clippingMin
+        logBiasField[ logBiasField > clippingMax ] = clippingMax
         biasField = np.zeros(nonCroppedImageSize, dtype=np.float32)
         biasField[
             croppingOffset[0]:croppingOffset[0] + imageSize[0],
@@ -748,7 +785,6 @@ def samsegment(
             outputFileName,
             gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
         )
-        
         
         # Then bias field corrected data
         biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)

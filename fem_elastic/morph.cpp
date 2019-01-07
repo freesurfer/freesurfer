@@ -1082,6 +1082,10 @@ VolumeMorph::apply_transforms(MRIS* input) const
 {
   MRI_SURFACE* const mris = MRISclone( input );
 
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int const nvertices = input->nvertices;
   for (int ui = 0; ui < nvertices; ++ui) 
   {

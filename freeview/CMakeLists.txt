@@ -1,6 +1,6 @@
 project(freeview)
 
-if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
+if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -183,8 +183,22 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     BinaryTreeNode.cpp
     BinaryTreeView.cpp
     DialogSelectSplines.cpp
+    DialogSurfaceLabelOperations.cpp
     freeview.qrc
   )
+
+  if(USE_QT4)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/json)
+    set(SOURCES ${SOURCES} 
+      json/qjsonarray.cpp
+      json/qjson.cpp
+      json/qjsondocument.cpp
+      json/qjsonobject.cpp
+      json/qjsonparser.cpp
+      json/qjsonvalue.cpp
+      json/qjsonwriter.cpp
+    )
+  endif()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare")
 
@@ -195,10 +209,18 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     set(FREEVIEW_EXEC_NAME freeview)
   endif()
 
+  if(USE_QT4)
+    set(QT_LIBRARIES Qt4::QtCore Qt4::QtGui)
+  else()
+    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+    if(NOT APPLE)
+      set(QT_LIBRARIES ${QT_LIBRARIES} Qt5::X11Extras)
+    endif()
+  endif()
+
   add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
   target_link_libraries(${FREEVIEW_EXEC_NAME} 
-    Qt5::Core
-    Qt5::Widgets
+    ${QT_LIBRARIES}
     ${OPENGL_LIBRARIES}
     utils
     fsgdf
@@ -215,7 +237,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
   )
 
   if(NOT APPLE)
-    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES} Qt5::X11Extras)
+    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
   if(APPLE)
@@ -226,13 +248,15 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
     install(CODE "
       message(STATUS \"Deploying Freeview.app\")
-      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app\" RESULT_VARIABLE retcode)
+      # Add verbosity for debugging
+      # execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=3 -always-overwrite\" RESULT_VARIABLE retcode)
+      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=2 -always-overwrite\" RESULT_VARIABLE retcode)
       if(NOT \${retcode} STREQUAL 0)
         message(FATAL_ERROR \"Could not run macdeployqt\")
       endif()
-      execute_process(COMMAND bash -c \"install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_INSTALL_PREFIX}/Freeview.app/Contents/MacOS/Freeview\" RESULT_VARIABLE retcode)
+      execute_process(COMMAND bash -c \"${CMAKE_CURRENT_SOURCE_DIR}/macdeployqt_patch.py ${CMAKE_INSTALL_PREFIX}/Freeview.app/Contents\" RESULT_VARIABLE retcode)
       if(NOT \${retcode} STREQUAL 0)
-        message(FATAL_ERROR \"Could not run install_name_tool to add rpath to Qt frameworks in application bundle\")
+        message(FATAL_ERROR \"Could not run install_name_tool commands to add rpath to Qt frameworks in application bundle\")
       endif()"
     )
   else()

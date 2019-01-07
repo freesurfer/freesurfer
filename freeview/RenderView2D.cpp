@@ -51,6 +51,8 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
+#include <QApplication>
+#include <QClipboard>
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -624,7 +626,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     connect(act, SIGNAL(triggered()), this, SLOT(OnDuplicateRegion()));
     menu.addAction(act);
   }
-  else if (layers.size() > 1)
+  if (layers.size() > 1)
   {
     QMenu* menu2 = menu.addMenu("Show Color Bar");
     QActionGroup* ag = new QActionGroup(this);
@@ -640,6 +642,36 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
   }
+
+  if (!layers.isEmpty())
+  {
+    if (!menu.actions().isEmpty() && layers.size() == 1)
+      menu.addSeparator();
+
+    if (layers.size() == 1)
+    {
+      LayerMRI* mri = (LayerMRI*)layers.first();
+      double val = mri->GetVoxelValue(mri->GetSlicePosition());
+      QAction* act = new QAction(QString("Copy Voxel Value  (%1)").arg(val), this);
+      act->setProperty("voxel_value", val);
+      connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
+      menu.addAction(act);
+    }
+    else
+    {
+      QMenu* menu2 = menu.addMenu("Copy Voxel Value");
+      foreach (Layer* layer, layers)
+      {
+        LayerMRI* mri = (LayerMRI*)layer;
+        double val = mri->GetVoxelValue(layer->GetSlicePosition());
+        QAction* act = new QAction(layer->GetName() + "  (" + QString::number(val) + ")", this);
+        act->setProperty("voxel_value", val);
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
+        menu2->addAction(act);
+      }
+    }
+  }
+
   LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
   if ( surf && surf->IsContralateralPossible())
   {
@@ -704,4 +736,10 @@ bool RenderView2D::PickLineProfile(int x, int y)
     }
   }
   return false;
+}
+
+void RenderView2D::OnCopyVoxelValue()
+{
+  if (sender())
+    QApplication::clipboard()->setText(sender()->property("voxel_value").toString());
 }

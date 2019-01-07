@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   }
 
   LabelRipRestOfSurface(label, mris) ;
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   if (writesurf)
   {
      MRISwrite(mris, out_fname) ;

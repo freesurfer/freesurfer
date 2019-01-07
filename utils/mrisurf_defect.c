@@ -354,15 +354,15 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   // Restore the topology
   //
   vt->nsizeMax = vs->nsizeMax;
-  vt->nsizeCur = vs->nsizeCur;
-  vt->vtotal   = vs->vtotal;
   vt->vnum     = vs->vnum;
   vt->v2num    = vs->v2num;
   vt->v3num    = vs->v3num;
-
+  MRIS_setNsizeCur(mris, vno, vs->nsizeCur);
+  cheapAssert(vt->vtotal == vs->vtotal);
+  
   int const vsize = mrisVertexVSize(mris, vno);
 
-  if (vsize > 0) {  // keep the zero-size ones for faster future realloc's
+  if (vsize > 0) {  // keep the zero-size ones for faster future realloc's, realloc the non-zero ones now
   
     vt->v = (int*)realloc(vt->v, vsize*sizeof(int));
       // use realloc for efficiency
@@ -7371,8 +7371,9 @@ static void removeVertex(MRIS *mris, int vno)
 
   for (n = 0; n < vt->vnum; n++) {
     /* remove vno from the list of v->v[n] */
-    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vt->v[n]];
-    VERTEX          * const vn  = &mris->vertices         [vt->v[n]];
+    int const vno = vt->v[n];
+    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vno];
+    VERTEX          * const vn  = &mris->vertices         [vno];
     oldlist = vnt->v;
     vnum = vnt->vnum - 1; /* the new # of neighbors */
     if (vnum) {
@@ -7388,10 +7389,12 @@ static void removeVertex(MRIS *mris, int vno)
     else {
       vnt->v = NULL;
     }
+    
     vnt->vnum     = vnum;
     vnt->nsizeMax = 1;
-    vnt->nsizeCur = 1;
-    vnt->vtotal   = vnum;
+    
+    MRIS_setNsizeCur(mris, vno, 1);
+
     /* check if the vertex became singled out */
     if (vnt->vnum == 0) {
       vn->marked = INSIDE_VERTEX;
@@ -8923,7 +8926,8 @@ MRI_SURFACE *MRIScorrectTopology(
       continue;
     }
     
-    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
+    int const vno_dst = vertex_trans[vno];
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vno_dst];
 
     /* count # of good triangles attached to this vertex */
     for (vdstt->num = n = 0; n < vt->num; n++)
@@ -8954,8 +8958,8 @@ MRI_SURFACE *MRIScorrectTopology(
         vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
       
-    vdstt->nsizeCur = vdstt->nsizeMax = 1;
-    vdstt->vtotal = vdstt->vnum;
+    vdstt->nsizeMax = 1;
+    MRIS_setNsizeCur(mris_corrected, vno_dst, 1);
   }
 
   mrisCheckVertexFaceTopology(mris);

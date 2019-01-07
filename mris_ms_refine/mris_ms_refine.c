@@ -682,7 +682,7 @@ main(int argc, char *argv[]) {
       sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
       MRISwriteValues(mris, fname) ;
     }
-    MRISclearDistances(mris) ;
+    MRISclearD(mris) ;
     MRISpositionSurfaces(mris, mri_flash, nvolumes, &parms);
     if (add) {
       for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)

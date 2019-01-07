@@ -171,7 +171,8 @@ SOURCES += \
     DialogSelectSplines.cpp \
     SurfacePath.cpp \
     Interactor3DPathEdit.cpp \
-    DialogCustomFill.cpp
+    DialogCustomFill.cpp \
+    DialogSurfaceLabelOperations.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -330,7 +331,8 @@ HEADERS  += \
     DialogSelectSplines.h \
     SurfacePath.h \
     Interactor3DPathEdit.h \
-    DialogCustomFill.h
+    DialogCustomFill.h \
+    DialogSurfaceLabelOperations.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -382,7 +384,8 @@ FORMS    += MainWindow.ui \
     DialogLoadTransform.ui \
     DialogAddPointSetStat.ui \
     DialogSelectSplines.ui \
-    DialogCustomFill.ui
+    DialogCustomFill.ui \
+    DialogSurfaceLabelOperations.ui
 
 RESOURCES += \
     freeview.qrc
@@ -414,9 +417,10 @@ unix {
     -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
     -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
     -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
-    -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
+    -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser -lvtkjpeg \
+    -lvtkfreetype -lvtkhdf5 -lvtkhdf5_hl -lvtktiff -lvtkexpat -lLSDyna -lvtkNetCDF_cxx
 
-  INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
+  INCLUDEPATH += /usr/pubsw/packages/vtk/5.10.1/include/vtk-5.10 \
                  $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
                  /usr/pubsw/packages/mni/current/include \
                  $$FREESURFER_DEV_DIR/lineprof
@@ -435,7 +439,7 @@ unix {
   }
 
 
-  LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
+  LIBS += -L/usr/pubsw/packages/vtk/5.10.1/lib/vtk-5.10 -L/usr/X11R6/lib \
       -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
       -L/usr/pubsw/packages/vxl/current/lib -L$$ITK_PATH/lib/InsightToolkit \
       $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
@@ -538,3 +542,6 @@ DESTDIR = ./
 OTHER_FILES += \
     resource/QuickRef.html \
     Makefile.am
+
+DISTFILES += \
+    CMakeLists.txt

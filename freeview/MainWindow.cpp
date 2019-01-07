@@ -1142,6 +1142,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  if (parser->Found("view", &sa))
+  {
+    this->AddScript( QStringList("view") << sa[0]);
+  }
+
   if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
@@ -1884,6 +1889,25 @@ void MainWindow::RunScript()
   else if (cmd == "setactivelayer")
   {
     CommandSetActiveLayer(sa);
+  }
+  else if (cmd == "view")
+  {
+    if (sa[1] == "left")
+      ui->view3D->ResetViewLeft();
+    else if (sa[1] == "right")
+      ui->view3D->ResetViewRight();
+    else if (sa[1] == "anterior")
+      ui->view3D->ResetViewAnterior();
+    else if (sa[1] == "posterior")
+      ui->view3D->ResetViewPosterior();
+    else if (sa[1] == "inferior")
+      ui->view3D->ResetViewInferior();
+    else if (sa[1] == "posterior")
+      ui->view3D->ResetViewPosterior();
+    else if (sa[1] == "lateral")
+      ui->view3D->ResetViewLateral();
+    else if (sa[1] == "medial")
+      ui->view3D->ResetViewMedial();
   }
   else
   {
@@ -8329,4 +8353,10 @@ void MainWindow::LoadSurfaceParameterization(const QString &filename)
   {
     QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
   }
+}
+
+void MainWindow::OnStereoRender(bool bOn)
+{
+  ui->view3D->SetStereoTypeToAnaglyph();
+  ui->view3D->SetStereoRender(bOn);
 }

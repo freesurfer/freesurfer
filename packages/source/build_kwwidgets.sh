@@ -22,10 +22,15 @@ if [ ! -e "${VTK_DIR}" ] ; then
   exit 1
 fi
 
+cmake_cxx_flags=
+if [ "$(uname -s)" == "Darwin" ] ; then
+  cmake_cxx_flags="-I/usr/X11/include -mmacosx-version-min=10.8"
+fi
+
 cmake . \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
   -DVTK_DIR=${VTK_DIR} \
-  -DCMAKE_CXX_FLAGS="-I/usr/X11/include -mmacosx-version-min=10.8"
+  -DCMAKE_CXX_FLAGS=${cmake_cxx_flags}
 
 make -j8
 make install

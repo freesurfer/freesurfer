@@ -39,6 +39,7 @@ class SurfaceSpline;
 class QToolButton;
 class QActionGroup;
 class DialogCustomFill;
+class DialogSurfaceLabelOperations;
 
 class PanelSurface : public PanelLayer
 {
@@ -82,6 +83,7 @@ protected slots:
   void OnButtonDeleteLabel();
   void OnButtonNewLabel();
   void OnButtonSaveLabel();
+  void OnSaveLabelAs();
   void OnToggleOverlay(bool bShow);
   void OnToggleAnnotation(bool bShow);
   void OnColorPickerLabelColor(const QColor& color);
@@ -103,6 +105,8 @@ protected slots:
   void OnButtonFillUncutArea();
   void OnButtonUndoCut();
   void OnLabelResample();
+  void OnLabelMoreOps();
+  void OnLabelOperation(const QVariantMap& op);
   void OnSpinBoxZOrder(int nOrder);
   void OnButtonMakePath();
   void OnButtonMakeClosedPath();
@@ -134,6 +138,7 @@ private:
 
   WindowConfigureOverlay* m_wndConfigureOverlay;
   DialogCustomFill*     m_dlgCustomFill;
+  DialogSurfaceLabelOperations* m_dlgLabelOps;
 };
 
 #endif // PANELSURFACE_H

@@ -27,6 +27,7 @@ set DoRecon = 0;
 set DoFill = 1; # Create filled.mgz in samseg2recon
 set DoNormalization2 = 1; # Do Normalization2 in samseg2recon
 set DoHiRes = 1; 
+set DoDecimate = 1; 
 set DoImport = 0
 set HaveT1w = 0;
 set HaveT2w = 0;
@@ -140,6 +141,14 @@ date | tee -a $LF
 # Should probably convert segmentation to INT (now saves as float)
 
 # ========================================================
+
+# refine the segmentation:
+set cmd = (mri_refine_seg --debug -i $outdir/crispSegmentation.nii -o $outdir/crispSegmentation.nii)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# ========================================================
 # Compute dice:
 if($computedice && ! $regonly) then
   set logfile = $outdir/dice.log
@@ -166,6 +175,8 @@ endif
 # Prep for recon
 if($#subject != 0) then
   set cmd = (samseg2recon --i $input --s $subject)
+  set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg)
+  if($cleanup) set cmd = ($cmd --cleanup)
   if($DoFill) set cmd = ($cmd --fill)
   if($DoNormalization2) set cmd = ($cmd --normalization2)
   echo $cmd | tee -a $LF
@@ -185,6 +196,7 @@ if($#subject != 0) then
     if($UseT2w)   set cmd = ($cmd -T2pial)
     if($UseFLAIR) set cmd = ($cmd -FLAIRpial)
     if($DoHiRes) set cmd = ($cmd -hires)
+    if($DoDecimate) set cmd = ($cmd -decimate)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -343,6 +355,11 @@ while( $#argv != 0 )
       setenv SAMSEG_DATA_DIR $argv[1]; shift;
       breaksw
 
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
     case "--regonly":
     case "--reg-only":
       set regonly = 1;
@@ -404,6 +421,10 @@ while( $#argv != 0 )
 
     case "--no-hires":
       set DoHiRes = 0; # for recon-all
+      breaksw
+
+    case "--no-decimate":
+      set DoDecimate = 0; # for recon-all
       breaksw
 
     case "--log":
@@ -573,6 +594,9 @@ usage_exit:
   echo "  --no-normalization2 : create brain.mgz in recon-all instead from samseg2recon (with --recon) "
   echo "  --use-t2w : use the t2-weighted input when running recon-all"
   echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
+  echo "  --no-hires  : do not use -hires when running recon-all"
+  echo "  --no-decimate  : do not use -decimate when running recon-all"
+  echo "  --sd SUBJECTS_DIR"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"

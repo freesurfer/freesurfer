@@ -398,6 +398,10 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
   //MRISedgePrint(surf, edgeno, stdout);
   //printf("%3d %g %g %g  %g\n",surfvtxno,v->x,v->y,v->z,J0);
 
+  MRISfreeDistsButNotOrig(surf);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   gnum = DMatrixAlloc(1,3,MATRIX_REAL);  
   for(wrtdimno=0; wrtdimno < 3; wrtdimno++){
 
@@ -1031,6 +1035,10 @@ double TestBBRCostFace(BBRPARAMS * const bbrpar, int const faceno, int const wrt
   
   double maxgrad = 0, maxdiff = 0;
   
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   // Go through each dimension in the WRT vertex
   //
   BBRFACE* bbrfgrad = NULL;     // these are reused around the loop

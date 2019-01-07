@@ -10,7 +10,7 @@ from .log import error
 # run a shell command and return the exit code
 def run(cmd, silent=False, executable='/bin/bash', background=False):
   if background:
-    cmd += ' &'
+    cmd = '( %s ) &' % cmd
   if silent:
     return sp.call(cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL, shell=True, executable=executable)
   else:
@@ -87,3 +87,17 @@ class Timer:
 
     def mark(self, message):
         print('%s: %s' % (message, str(self.elapsed)))
+
+# Return the peak memory in kb for calling process
+def GetVmPeak():
+  fp = open('/proc/self/status','r');
+  for line in fp:
+    ind = line.rfind('VmPeak:');
+    if(ind != -1):
+      tmp = line.split();
+      return tmp[1];
+   #endif
+  #endfor
+#endfunc
+
+

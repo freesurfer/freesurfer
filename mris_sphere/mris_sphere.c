@@ -254,6 +254,7 @@ main(int argc, char *argv[])
     MRISaverageVertexPositions(mris, smooth_avgs) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    mrisCheckVertexFaceTopology(mris);
   }
 
   if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
@@ -371,13 +372,25 @@ main(int argc, char *argv[])
   {
     MRISwrite(mris, "before") ;
   }
+
+  if (1) {
+    fprintf(stdout, "%s:%d should but doesn't set orig x et al here \n", __FILE__, __LINE__);
+  } else {
+    MRISsetOriginalXYZfromXYZ(mris);
+    mrisComputeOriginalVertexDistances(mris);
+  }
+  
   MRISprojectOntoSphere(mris, mris, target_radius) ;
+
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRISwrite(mris, "after") ;
   }
+  
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
+  
+  MRISsetNeighborhoodSize(mris, nbrs) ;
+  
   if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
   {
     printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;

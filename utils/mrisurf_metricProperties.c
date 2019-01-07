@@ -30,11 +30,125 @@ int mrisurf_orig_clock;
 //==================================================================================================================
 // Simple properties
 //
-//  orig[xyz] are set during the creation of a surface
-//  and during deformations that create an improved 'original' surface.
+// xyz are set in over 100 places
 //
-void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float origz) 
+static void MRISsetXYZwkr1(MRIS *mris, const char * file, int line, bool* laterTime) {
+  if (mris->dist_alloced_flags & 1) {
+    copeWithLogicProblem2(laterTime, NULL,"dist not freed when setXYZ called.  Add call to MRISfreeDistsButNotOrig(MRIS*)",file,line,"<unknown>");
+  }
+}
+
+static void MRISsetXYZwkr2(MRIS *mris, int vno, float x, float y, float z) {
+  cheapAssertValidVno(mris,vno);
+  VERTEX * v = &mris->vertices[vno];
+
+  const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
+  const float * pcy = &v->y;  float * py = (float*)pcy; *py = y;
+  const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
+}
+
+void MRISsetXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char * file, int line, bool* laterTime) 
 {
+  MRISsetXYZwkr1(mris, file, line, laterTime);
+  MRISsetXYZwkr2(mris, vno, x, y, z);
+}
+
+void MRISexportXYZ(MRIS *mris,       float*       * ppx,       float*       * ppy,       float*       * ppz) {
+  int const nvertices = mris->nvertices;
+
+  float* px = (float*)memalign(64, nvertices*sizeof(float));    // cache aligned to improve the performance
+  float* py = (float*)memalign(64, nvertices*sizeof(float));    //      of loops that use the vectors
+  float* pz = (float*)memalign(64, nvertices*sizeof(float));
+  
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX * v = &mris->vertices[vno];
+    px[vno] = v->x; py[vno] = v->y; pz[vno] = v->z;
+  }
+  
+  *ppx = px;
+  *ppy = py;
+  *ppz = pz;
+}
+
+#define SURFACE_DIMENSION_CALC_INIT \
+  float xlo = 10000, ylo = xlo, zlo = ylo, xhi = -xlo, yhi = -ylo, zhi = -zlo;
+
+#define SURFACE_DIMENSION_CALC_ITER \
+    if (x > xhi) xhi = x; \
+    if (x < xlo) xlo = x; \
+    if (y > yhi) yhi = y; \
+    if (y < ylo) ylo = y; \
+    if (z > zhi) zhi = z; \
+    if (z < zlo) zlo = z; \
+    // end of macro
+
+#define SURFACE_DIMENSION_CALC_FINI \
+  mris->xlo = xlo; \
+  mris->xhi = xhi; \
+  mris->ylo = ylo; \
+  mris->yhi = yhi; \
+  mris->zlo = zlo; \
+  mris->zhi = zhi; \
+  \
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi); \
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi); \
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi); \
+  // end of macro
+
+
+void MRISimportXYZ(MRIS *mris, const float* const    px, const float* const    py, const float* const    pz) 
+{
+  static bool laterTime;
+  MRISsetXYZwkr1(mris, __FILE__, __LINE__, &laterTime);
+
+  int const nvertices = mris->nvertices;
+
+  SURFACE_DIMENSION_CALC_INIT
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    float x = px[vno], y = py[vno], z = pz[vno];
+
+    MRISsetXYZwkr2(mris, vno, x,y,z);
+
+    SURFACE_DIMENSION_CALC_ITER
+  }
+  
+  SURFACE_DIMENSION_CALC_FINI
+}
+
+
+void MRIScopyXYZ(MRIS *mris, MRIS* mris_from) {
+  static bool laterTime;
+  MRISsetXYZwkr1(mris, __FILE__, __LINE__, &laterTime);
+  
+  int const nvertices = mris->nvertices;
+  cheapAssert(nvertices == mris_from->nvertices);
+  
+  SURFACE_DIMENSION_CALC_INIT
+  int vno;
+  for (vno = 0; vno < nvertices; vno++) {
+    VERTEX * v = &mris_from->vertices[vno];
+    float x = v->x, y = v->y, z = v->z;
+    
+    MRISsetXYZwkr2(mris, vno, x, y, z);
+    
+    SURFACE_DIMENSION_CALC_ITER
+  }
+  
+  SURFACE_DIMENSION_CALC_FINI
+}
+
+
+//  orig[xyz] are set during the creation of a surface
+//  and during deformations that create an improved 'original' surface
+//
+void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float origx, float origy, float origz, const char * file, int line, bool* laterTime) 
+{
+  if (mris->dist_alloced_flags & 2) {
+    copeWithLogicProblem2(laterTime, NULL,"dist_orig not freed when setOriginalXYZ called.  Add call to MRISfreeDistOrigs(MRIS*)",file,line,"<unknown>");
+  }
+
   cheapAssertValidVno(mris,vno);
   VERTEX * v = &mris->vertices[vno];
     
@@ -47,7 +161,12 @@ void MRISsetOriginalXYZ(MRIS *mris, int vno, float origx, float origy, float ori
   }
 }
 
+
 void MRISsetOriginalXYZfromXYZ(MRIS *mris) {
+  
+  MRISfreeDistOrigs(mris);  
+    // Old values no longer valid
+  
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * v = &mris->vertices[vno];
@@ -61,16 +180,40 @@ void MRISsetOriginalXYZfromXYZ(MRIS *mris) {
 }
 
 
-// xyz are set in over 100 places
+// These should become invalid when XYZ are changed - NYI
 //
-void MRISsetXYZ(MRIS *mris, int vno, float x, float y, float z) 
+int mrisComputeSurfaceDimensions(MRIS *mris)
 {
-  cheapAssertValidVno(mris,vno);
-  VERTEX * v = &mris->vertices[vno];
-    
-  const float * pcx = &v->x;  float * px = (float*)pcx; *px = x;
-  const float * pcy = &v->y;  float * py = (float*)pcy; *py = y;
-  const float * pcz = &v->z;  float * pz = (float*)pcz; *pz = z;
+  float xlo, ylo, zlo, xhi, yhi, zhi;
+
+  xhi = yhi = zhi = -10000;
+  xlo = ylo = zlo = 10000;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *vertex = &mris->vertices[vno];
+    float const x = vertex->x;
+    float const y = vertex->y;
+    float const z = vertex->z;
+    if (x > xhi) xhi = x;
+    if (x < xlo) xlo = x;
+    if (y > yhi) yhi = y;
+    if (y < ylo) ylo = y;
+    if (z > zhi) zhi = z;
+    if (z < zlo) zlo = z;
+  }
+  mris->xlo = xlo;
+  mris->xhi = xhi;
+  mris->ylo = ylo;
+  mris->yhi = yhi;
+  mris->zlo = zlo;
+  mris->zhi = zhi;
+  
+  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
+  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
+  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
+  
+  return (NO_ERROR);
 }
 
 
@@ -78,6 +221,8 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
 {
   int const nvertices = mris->nvertices;
 
+  if (which == CURRENT_VERTICES) MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+   
   int vno;
   for (vno = 0; vno < nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
@@ -268,43 +413,10 @@ int MRISreverse(MRIS *mris, int which, int reverse_face_order)
 }
 
 
-int mrisComputeSurfaceDimensions(MRIS *mris)
-{
-  float xlo, ylo, zlo, xhi, yhi, zhi;
-
-  xhi = yhi = zhi = -10000;
-  xlo = ylo = zlo = 10000;
-
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX *vertex = &mris->vertices[vno];
-    float const x = vertex->x;
-    float const y = vertex->y;
-    float const z = vertex->z;
-    if (x > xhi) xhi = x;
-    if (x < xlo) xlo = x;
-    if (y > yhi) yhi = y;
-    if (y < ylo) ylo = y;
-    if (z > zhi) zhi = z;
-    if (z < zlo) zlo = z;
-  }
-  mris->xlo = xlo;
-  mris->xhi = xhi;
-  mris->ylo = ylo;
-  mris->yhi = yhi;
-  mris->zlo = zlo;
-  mris->zhi = zhi;
-  
-  mris->xctr = 0.5f * (float)((double)xlo + (double)xhi);
-  mris->yctr = 0.5f * (float)((double)ylo + (double)yhi);
-  mris->zctr = 0.5f * (float)((double)zlo + (double)zhi);
-  
-  return (NO_ERROR);
-}
-
-
 int MRISscale(MRIS *mris, double scale)
 {
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+   
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
@@ -338,6 +450,8 @@ int MRISscale(MRIS *mris, double scale)
 
 int mrisFlipPatch(MRIS *mris)
 {
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+   
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
@@ -379,10 +493,75 @@ int MRIStranslate(MRIS *mris, float dx, float dy, float dz)
 }
 
 
+void MRISscaleThenTranslate (MRIS *mris, double sx, double sy, double sz, double dx, double dy, double dz) {
+  //
+  // This uses double because mri_brain_volume was using double,
+  // and because the combined scaling and adding could be much less accurate in float.
+  //
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    v->x = v->x*sx + dx;
+    v->y = v->y*sy + dy;
+    v->z = v->z*sz + dz;
+  }
+
+  // Emulate mrisComputeSurfaceDimensions(mris)
+  //
+  double xlo = mris->xlo;
+  double xhi = mris->xhi;
+  double ylo = mris->ylo;
+  double yhi = mris->yhi;
+  double zlo = mris->zlo;
+  double zhi = mris->zhi;
+  double xctr = mris->xctr;
+  double yctr = mris->yctr;
+  double zctr = mris->zctr;
+  
+  xlo *= sx;
+  xhi *= sx;
+  ylo *= sy;
+  yhi *= sy;
+  zlo *= sz;
+  zhi *= sz;
+  
+  if (sx < 0) { double t = xlo; xlo = xhi; xlo = t; }
+  if (sy < 0) { double t = ylo; ylo = yhi; ylo = t; }
+  if (sz < 0) { double t = zlo; zlo = zhi; zlo = t; }
+  
+  xctr *= sx;
+  yctr *= sy;
+  zctr *= sz;
+  
+  xlo += dx;
+  xhi += dx;
+  ylo += dy;
+  yhi += dy;
+  zlo += dz;
+  zhi += dz;
+  
+  xctr += dx;
+  yctr += dy;
+  zctr += dz;
+
+  mris->xlo = (float)xlo;
+  mris->xhi = (float)xhi;
+  mris->ylo = (float)ylo;
+  mris->yhi = (float)yhi;
+  mris->zlo = (float)zlo;
+  mris->zhi = (float)zhi;
+  mris->xctr = (float)xctr;
+  mris->yctr = (float)yctr;
+  mris->zctr = (float)zctr;
+}
+
+
 int MRISanisotropicScale(MRIS *mris, float sx, float sy, float sz)
 {
   mrisComputeSurfaceDimensions(mris);
-  
+ 
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+   
   /* scale around the center */
   float const x0 = mris->xctr;
   float const y0 = mris->yctr;
@@ -463,6 +642,8 @@ MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst
   xhi = yhi = zhi = -10000;
   xlo = ylo = zlo = 10000;
 
+  MRISfreeDistsButNotOrig(mris_dst);  // it is either this or adjust them...
+
   int vno;
   for (vno = 0; vno < mris_src->nvertices; vno++) {
     VERTEX * v = &mris_dst->vertices[vno];
@@ -499,34 +680,16 @@ MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst
 
 void mrisDisturbVertices(MRIS* mris, double amount)
 {
-  int vno ;
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  int vno ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     VERTEX *v = &mris->vertices[vno] ;
     v->x += randomNumber(-amount, amount) ;
     v->y += randomNumber(-amount, amount) ;
   }
 
   MRIScomputeMetricProperties(mris) ;
-}
-
-
-int MRISscaleDistances(MRIS *mris, float scale)
-{
-  // This operation seems wrong, since this is a derived metric
-  // but there are two users...
-  //
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-    int vsize = mrisVertexVSize(mris, vno);
-    int n;
-    for (n = 0; n < vsize; n++) {
-      v->dist[n] *= scale;
-    }
-  }
-  return (NO_ERROR);
 }
 
 
@@ -565,6 +728,8 @@ MRIS* MRISprojectOntoTranslatedSphere(
 
   mris_dst->radius = r ;
 
+  MRISfreeDistsButNotOrig(mris_dst);  // it is either this or adjust them...
+
   int vno ;
   for (vno = 0 ; vno < mris_dst->nvertices ; vno++) {
     VERTEX* const v = &mris_dst->vertices[vno];
@@ -600,12 +765,33 @@ MRIS* MRISprojectOntoTranslatedSphere(
 
 
 void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale) {
+
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX* v = &mris->vertices[vno];
     v->x = xyzScale*v->x + txyzScale*v->tx;
     v->y = xyzScale*v->y + txyzScale*v->ty;
     v->z = xyzScale*v->z + txyzScale*v->tz;
+  }
+
+  // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)
+  //
+  // mrisComputeSurfaceDimensions(mris);
+}
+
+
+void MRISblendXYZandNXYZ(MRIS* mris, float nxyzScale) 
+{
+  MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX* v = &mris->vertices[vno];
+    v->x = v->x + nxyzScale*v->nx;
+    v->y = v->y + nxyzScale*v->ny;
+    v->z = v->z + nxyzScale*v->nz;
   }
 
   // current only user did not have this, but did immediately call MRIScomputeMetricProperties(mris)
@@ -1156,34 +1342,104 @@ int mrisOrientSurface(MRI_SURFACE *mris)
 }
 
 
-int MRISclearOrigArea(MRI_SURFACE *mris)
+// Distances
+//
+int MRISscaleDistances(MRIS *mris, float scale)
 {
+  // This operation seems wrong, since this is a derived metric
+  // but there are two users...
+  //
   int vno;
-  VERTEX *v;
-
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
+    VERTEX * const v = &mris->vertices[vno];
+    int vsize = mrisVertexVSize(mris, vno);
+    int n;
+    for (n = 0; n < vsize; n++) {
+      v->dist[n] *= scale;
     }
-    v->origarea = 0;
   }
   return (NO_ERROR);
 }
 
 
-int MRISclearDistances(MRI_SURFACE *mris)
+/*-----------------------------------------------------------------
+  Calculate distances between each vertex and each of its neighbors.
+  ----------------------------------------------------------------*/
+static bool mrisComputeVertexDistancesWkr        (MRIS *mris, int new_dist_nsize, bool check);
+static bool mrisComputeOriginalVertexDistancesWkr(MRIS *mris, int new_dist_nsize, bool check);
+
+bool mrisCheckDist(MRIS const * mris) {
+  if (!mris->dist_nsize) return true;
+  return mrisComputeVertexDistancesWkr((MRIS*)mris, mris->dist_nsize, true);
+}
+
+bool mrisCheckDistOrig(MRIS const * mris) {
+  if (!mris->dist_orig_nsize) return true;
+  return mrisComputeOriginalVertexDistancesWkr((MRIS*)mris, mris->dist_orig_nsize, true);
+}
+
+int mrisComputeVertexDistances(MRIS *mris) {
+  mrisComputeVertexDistancesWkr(mris, mris->nsize, false);
+  mris->dist_nsize = mris->nsize;
+  mrisCheckDist(mris);
+  return NO_ERROR;
+}
+
+int mrisComputeOriginalVertexDistances(MRIS *mris) {
+  mrisComputeOriginalVertexDistancesWkr(mris, mris->nsize, false);
+  mris->dist_orig_nsize = mris->nsize;
+  mrisCheckDistOrig(mris);
+  return NO_ERROR;
+}
+
+void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTime, const char* file, int line)
 {
-  int vno;
-  VERTEX *v;
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    v->d = 0.0;
+  if (mris->dist_alloced_flags&2) return;
+  
+  bool useOldBehaviour = true;
+  switch (copeWithLogicProblem("FREESURFER_fix_missing_dist_orig","dist_orig not already computed")) {
+  case LogicProblemResponse_old: 
+    break;
+  case LogicProblemResponse_fix:
+    useOldBehaviour = false;
   }
 
-  return (NO_ERROR);
+  // The old code did not compute this distance, but instead had zero's loaded into the already allocated dist_orig
+  // Computing it here may change the result, so the default is to zero the values after computing them
+  //    thereby allocating the correct size, checking the calculation, but reverting to the old behaviour
+  //
+  mrisComputeOriginalVertexDistances(mris);
+
+  if (!useOldBehaviour) return;
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX const * v = &mris->vertices[vno];
+    float* dist_orig = v->dist_orig;
+    bzero(dist_orig, v->dist_orig_capacity*sizeof(float));
+  }
 }
+
+// The only difference between these should be
+// whether they use     xyz and write dist
+//                  origxyz and write dist_orig
+// but they diverged when these two did not share code.
+//
+#define FUNCTION_NAME mrisComputeVertexDistancesWkr
+#define INPUT_X x
+#define INPUT_Y y
+#define INPUT_Z z
+#define OUTPUT_DIST dist
+#define OUTPUT_MAKER MRISmakeDist
+#include "mrisComputeVertexDistancesWkr_extracted.h"
+
+#define FUNCTION_NAME mrisComputeOriginalVertexDistancesWkr
+#define INPUT_X origx
+#define INPUT_Y origy
+#define INPUT_Z origz
+#define OUTPUT_DIST dist_orig
+#define OUTPUT_MAKER MRISmakeDistOrig
+#include "mrisComputeVertexDistancesWkr_extracted.h"
 
 
 int MRISclearOrigDistances(MRI_SURFACE *mris)
@@ -1198,6 +1454,82 @@ int MRISclearOrigDistances(MRI_SURFACE *mris)
     for (n = 0; n < vt->vtotal; n++) {
       v->dist_orig[n] = 0;
     }
+  }
+  return (NO_ERROR);
+}
+
+
+double MRISpercentDistanceError(MRIS *mris)
+{
+  double dist_scale;
+  if (mris->patch) {
+    dist_scale = 1.0;
+  } else {
+    cheapAssert(mris->total_area > 0.0);
+    cheapAssert(mris->orig_area  > 0.0);
+    dist_scale = sqrt(mris->orig_area / mris->total_area);
+  }
+
+  double mean_dist  = 0.0;
+  double mean_odist = 0.0;
+  double mean_error = 0.0;
+  double pct        = 0.0;
+  int    nnbrs      = 0;
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) continue;
+
+    int n;
+    for (n = 0; n < vt->vtotal; n++) {
+      double dist  = !v->dist      ? 0.0 : v->dist     [n] * dist_scale;
+      double odist = !v->dist_orig ? 0.0 : v->dist_orig[n];
+      
+      nnbrs++;
+      mean_dist  +=  dist;
+      mean_odist += odist;
+      mean_error += fabs(dist - odist);
+      if (!FZERO(odist)) pct += fabs(dist - odist) / odist;
+    }
+  }
+
+  if (mean_dist == 0.0f) {
+    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist zero\n", __FILE__, __LINE__);
+  }
+  
+  if (mean_odist == 0.0f) {
+    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist_orig zero\n", __FILE__, __LINE__);
+  }
+  
+  if (nnbrs == 0) nnbrs = 1;
+  
+  mean_odist /= (double)nnbrs;
+  mean_error /= (double)nnbrs;
+  if (!FZERO(mean_odist)) {
+    pct = mean_error / mean_odist;
+  } else {
+    pct = 1000.0; /* should never happen */
+  }
+
+  return (100.0 * pct);
+}
+
+
+// Area
+//
+int MRISclearOrigArea(MRI_SURFACE *mris)
+{
+  int vno;
+  VERTEX *v;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    v->origarea = 0;
   }
   return (NO_ERROR);
 }
@@ -1728,6 +2060,7 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   
   return (mris_dst);
 }
+
 /*!
   \fn int MRISltaMultiply(MRIS *surf, LTA *lta)
   \brief Applies an LTA matrix to the coords of the given surface.
@@ -1737,30 +2070,64 @@ MRIS* MRISrotate(MRIS *mris_src, MRIS *mris_dst, float alpha, float beta, float 
   (keeping in mind that the LTA might have been reversed). The 
   LTA itself is not changed. 
   See also:   MRISmatrixMultiply() and MRIStransform().
- */
+*/
 int MRISltaMultiply(MRIS *surf, const LTA *lta)
 {
   LTA *ltacopy;
+  extern double vg_isEqual_Threshold;
+  vg_isEqual_Threshold = 10e-4;
 
   // Make a copy of the LTA so source is not contaminated
   ltacopy = LTAcopy(lta,NULL);
 
+  // Check whether the source and destination geometries are the same
+  // since this will make it impossible to determine the direction
+  // from the LTA. 
   if(vg_isEqual(&ltacopy->xforms[0].src, &ltacopy->xforms[0].dst)){
-    printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same.\n");
-    printf("  Make sure you have the direction correct!\n\n");
+    // If they are the same, check whether the registration is the identity
+    // in which case the direction is not important.
+    int c,r,IsIdentity=1;
+    double val;
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+        val = ltacopy->xforms[0].m_L->rptr[r][c];
+        if(r==c && fabs(val-1.0) > 10e-4) IsIdentity = 0;
+        if(r!=c && fabs(val)     > 10e-4) IsIdentity = 0;
+      }
+    }
+    if(! IsIdentity){
+      // Only print out a warning if if they are the same and the reg is not identity.
+      printf("\nINFO: MRISltaMultiply(): LTA src and dst vg's are the same and reg is not identity.\n");
+      printf("  Make sure you have the direction correct!\n\n");
+    }
   }
 
   // Determine which direction the LTA goes by looking at which side
   // matches the surface volume geometry. Invert if necessary
-  if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
-    if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
-      // If this fails a lot, try setting to vg_isEqual_Threshold = 10e-4 or higher
-      printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
-      LTAfree(&ltacopy);
-      return(1);
+  if(surf->vg.valid){
+    if(!vg_isEqual(&ltacopy->xforms[0].src, &surf->vg)){
+      if(!vg_isEqual(&ltacopy->xforms[0].dst, &surf->vg)){
+	// If this fails a lot, try setting vg_isEqual_Threshold higher
+	printf("vg surf ------------------------\n");
+	fflush(stdout);	fflush(stderr);
+	vg_print(&surf->vg);
+	fflush(stdout);	fflush(stderr);
+	printf("LTA ------------------------\n");
+	LTAprint(stdout,lta);
+	printf("------------------------\n");
+	printf("ERROR: MRISltaMultiply(): LTA does not match surface vg\n");
+	printf("   src diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].src, &surf->vg,vg_isEqual_Threshold));
+	printf("   dst diff no %d\n",vg_isNotEqualThresh(&ltacopy->xforms[0].dst, &surf->vg,vg_isEqual_Threshold));
+	printf("   vg_isEqual_Threshold = %10.6e\n",vg_isEqual_Threshold);
+	LTAfree(&ltacopy);
+	return(1);
+      }
+      printf("MRISltaMultiply(): inverting LTA\n");
+      LTAinvert(ltacopy,ltacopy);
     }
-    printf("MRISltaMultiply(): inverting LTA\n");
-    LTAinvert(ltacopy,ltacopy);
+  }
+  else {
+    printf("WARNING: source surface vg is not valid, assuming direction of transform is right\n");
   }
 
   // Must be in regdat space to apply it to the surface
@@ -2362,13 +2729,12 @@ int MRIStransform(MRIS *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
 float mrisComputeArea(MRIS *mris, int fac, int n)
 {
   int n0, n1;
-  face_type *f;
   float v0[3], v1[3], d1, d2, d3, dot, area;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
 
-  f = &mris->faces[fac];
+  FACE const * const f = &mris->faces[fac];
 
   v0[0] = mris->vertices[f->v[n]].x - mris->vertices[f->v[n0]].x;
   v0[1] = mris->vertices[f->v[n]].y - mris->vertices[f->v[n0]].y;
@@ -2394,6 +2760,28 @@ float mrisComputeArea(MRIS *mris, int fac, int n)
 
   return area;
 }
+
+
+float MRIScomputeOrigArea(MRIS* mris)
+{
+  float orig_area = 0.0f;
+  int fno;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    FACE const * const f = &mris->faces[fno];
+    if (f->ripflag) continue;
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    orig_area += fNorm->orig_area;
+  }
+  return orig_area;
+}
+
+
+void MRISsetOrigArea(MRIS* mris) 
+{
+  mris->orig_area = MRIScomputeOrigArea(mris);
+}
+
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -2936,17 +3324,19 @@ int MRISstoreMetricProperties(MRIS *mris)
 #endif
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->origarea = v->area;
 #if 1
-    if (v->dist && v->dist_orig)
-      for (n = 0; n < vt->vtotal; n++) {
+    if (v->dist && v->dist_orig) {
+      // Used to only go to vtotal, but that is v[nsizeCur]num, and the code can go to to v[nsizeMax]num
+      int const vsize = mrisVertexVSize(mris,vno);
+      for (n = 0; n < vsize; n++) {
         v->dist_orig[n] = v->dist[n];
       }
+    }
 #endif
   }
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -2977,13 +3367,13 @@ int MRISrestoreMetricProperties(MRIS *mris)
 
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->area = v->origarea;
-    for (n = 0; n < vt->vtotal; n++) {
+    int const vsize = mrisVertexVSize(mris,vno);
+    for (n = 0; n < vsize; n++) {
       v->dist[n] = v->dist_orig[n];
     }
   }
@@ -3219,12 +3609,13 @@ int MRISrestoreNormals(MRIS *mris, int which)
   ------------------------------------------------------*/
 int MRISrestoreVertexPositions(MRIS *mris, int which)
 {
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
+  int const nvertices = mris->nvertices;
+  
+  mris->dist_nsize = 0;
+  
+  int vno;
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
 #if 0
     if (v->ripflag)
     {
@@ -3287,7 +3678,7 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
   }
   if (mris->status == MRIS_SPHERICAL_PATCH) {
     for (vno = 0; vno < nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -3580,82 +3971,7 @@ double MRIScomputeFolding(MRIS *mris)
   return (folding);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-double MRISpercentDistanceError(MRIS *mris)
-{
-  int vno, n, nvertices;
-  double dist_scale, pct, dist, odist, mean, mean_error;
-
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-
-  mean = 0.0;
-  for (pct = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    for (n = 0; n < vt->vtotal; n++) {
-      nvertices++;
-      dist = dist_scale * v->dist[n];
-      odist = v->dist_orig[n];
-      if (!FZERO(odist)) {
-        pct += fabs(dist - odist) / odist;
-      }
-      mean += odist;
-    }
-  }
-
-  for (mean_error = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    for (n = 0; n < vt->vtotal; n++)
-    {
-      dist = dist_scale * v->dist[n];
-      odist = v->dist_orig[n];
-      mean_error += fabs(dist - odist);
-      if (fabs(dist - odist) > 50) {
-        DiagBreak();
-      }
-    }
-  }
-  mean /= (double)nvertices;
-  mean_error /= (double)nvertices;
-#if 0
-  pct /= (double)nvertices ;
-#else
-  if (!FZERO(mean)) {
-    pct = mean_error / mean;
-  }
-  else {
-    pct = 1000.0; /* should never happen */
-  }
-#endif
-  return (100.0 * pct);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRIScomputeCanonicalCoordinates(MRIS *mris)
 {
   float theta, phi, r, d, x, y, z;
@@ -4334,258 +4650,293 @@ double MRIScomputeTotalVertexSpacingStats(
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize);
+static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool alwaysDoDist);
 
-void MRISsetNeighborhoodSizeAndDist(MRIS *mris, int nsize) {
+static void MRISsetNeighborhoodSizeAndOptionallyDist(MRIS *mris, int nsize, bool alwaysDoDist) {
+  static int count, limit;
+  if (++count == limit) {
+    fprintf(stdout, "%s:%d MRISsetNeighborhoodSizeAndDist count:%d\n",__FILE__,__LINE__,count);
+  }
   mrisCheckVertexFaceTopology(mris);
-  MRISsetNeighborhoodSizeAndDistWkr(mris, nsize);
+  
+  MRISsetNeighborhoodSizeAndDistWkr(mris, nsize, alwaysDoDist);
+  
+  if (!(mris->dist_alloced_flags & 1))  { cheapAssert(mris->dist_nsize == 0);     }
+  else                                  { cheapAssert(mris->dist_nsize >= nsize); }
   mrisCheckVertexFaceTopology(mris);
 }
 
-static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize)
+void MRISsetNeighborhoodSize(MRIS *mris, int nsize) {
+    MRISsetNeighborhoodSizeAndOptionallyDist(mris, nsize, false);
+}
+
+void MRISsetNeighborhoodSizeAndDist(MRIS *mris, int nsize) {
+    MRISsetNeighborhoodSizeAndOptionallyDist(mris, nsize, true);
+}
+
+#if 1
+
+// THIS IS OLD CODE - THE NEW CODE BELOW SHOULD BE CHANGED TO AND DEBUGGED
+//
+static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool alwaysDoDist)
 {
   cheapAssert(1 <= nsize && nsize < 4);
-  int vno, niter, ntotal, vtotal;
-
+  
   /*
     now build a list of 2-connected neighbors. After this is done,
     reallocate the v->n list and arrange the 2-connected neighbors
     sequentially after it.
   */
 
+  bool const max_nsize_grew = (nsize > mris->max_nsize);
+  
   if (nsize <= mris->max_nsize) {
+    cheapAssert(!max_nsize_grew);
+    
     ROMP_PF_begin
+    int vno;
+
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
 
-      VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
-      
+      // seen to fail!  cheapAssert(mris->vertices[vno].marked == 0);
+
       if (mris->vertices[vno].ripflag) continue;
       if (vno == Gdiag_no) DiagBreak();
 
-      cheapAssert(nsize <= v->nsizeMax);
-      switch (nsize) {
-        case 1:
-          v->vtotal = v->vnum;
-          break;
-        case 2:
-          v->vtotal = v->v2num;
-          break;
-        case 3:
-          v->vtotal = v->v3num;
-          break;
-        default:
-          cheapAssert(false);
-      }
-      v->nsizeCur = nsize;
+      MRIS_setNsizeCur(mris,vno,nsize);
 
       ROMP_PFLB_end
     }
     ROMP_PF_end
 
     mris->nsize = nsize;
-    return;
-  }
-  
-  // setting neighborhood size to a value larger than it has been in the past
-  mris->max_nsize = nsize;
-  for (niter = 0; niter < nsize - mris->nsize; niter++) {
-    // this can't be parallelized due to the marking of neighbors
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      int i, n, neighbors, j, vnum, nb_vnum;
-      int vtmp[MAX_NEIGHBORS];
 
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
-      VERTEX          * const v  = &mris->vertices         [vno];
-      if (vno == Gdiag_no) DiagBreak();
+  } else {
+    cheapAssert(max_nsize_grew);
 
-      vnum = vt->vtotal;
-      if (v->ripflag || !vnum) continue;
+    alwaysDoDist |= (mris->dist_alloced_flags & 1);
 
-      memmove(vtmp, vt->v, vnum * sizeof(int));
+    MRISclearMarks(mris);     // added because of the seen-to-fail above
 
-      /* mark 1-neighbors so we don't count them twice */
-      v->marked = 1;
-      for (i = 0; i < vnum; i++) mris->vertices[vt->v[i]].marked = 1;
+    int niter;
+    for (niter = 0; niter < nsize - mris->nsize; niter++) {
+      // this can't be parallelized due to the marking of neighbors
+      int vno;
+      for (vno = 0; vno < mris->nvertices; vno++) {
+        int i, n, neighbors, j, vnum, nb_vnum;
+        int vtmp[MAX_NEIGHBORS];
 
-      /* count 2-neighbors */
-      for (neighbors = vnum, i = 0; neighbors < MAX_NEIGHBORS && i < vnum; i++) {
-        n = vt->v[i];
-        VERTEX_TOPOLOGY const * const vnbt = &mris->vertices_topology[n];
-        VERTEX                * const vnb  = &mris->vertices         [n];
-        vnb->marked = 1;
-        if (vnb->ripflag) continue;
+        VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];    
+        VERTEX          * const v  = &mris->vertices         [vno];
+        if (vno == Gdiag_no) DiagBreak();
 
-        nb_vnum = vnbt->vnum;
+        cheapAssert(v->marked == 0);
 
-        for (j = 0; j < nb_vnum; j++) {
-          VERTEX * const vnb2 = &mris->vertices[vnbt->v[j]];
-          if (vnb2->ripflag || vnb2->marked) continue;
+        vnum = vt->vtotal;
+        if (v->ripflag || !vnum) continue;
 
-          vtmp[neighbors] = vnbt->v[j];
-          vnb2->marked = 1;
-          if (++neighbors >= MAX_NEIGHBORS) {
-            fprintf(stderr, "vertex %d has too many neighbors!\n", vno);
+        memmove(vtmp, vt->v, vnum * sizeof(int));
+
+        /* mark 1-neighbors so we don't count them twice */
+        v->marked = 1;
+        for (i = 0; i < vnum; i++) mris->vertices[vt->v[i]].marked = 1;
+
+        /* count 2-neighbors */
+        for (neighbors = vnum, i = 0; neighbors < MAX_NEIGHBORS && i < vnum; i++) {
+          n = vt->v[i];
+          VERTEX_TOPOLOGY const * const vnbt = &mris->vertices_topology[n];
+          VERTEX                * const vnb  = &mris->vertices         [n];
+          vnb->marked = 1;
+          if (vnb->ripflag) continue;
+
+          nb_vnum = vnbt->vnum;
+
+          for (j = 0; j < nb_vnum; j++) {
+            VERTEX * const vnb2 = &mris->vertices[vnbt->v[j]];
+            if (vnb2->ripflag || vnb2->marked) continue;
+
+            vtmp[neighbors] = vnbt->v[j];
+            vnb2->marked = 1;
+            if (++neighbors >= MAX_NEIGHBORS) {
+              fprintf(stderr, "vertex %d has too many neighbors!\n", vno);
+              break;
+            }
+          }
+        }
+        /*
+          now reallocate the v->v structure and
+          place the 2-connected neighbors
+          suquentially after the 1-connected neighbors.
+        */
+        free(vt->v);
+        vt->v = (int *)calloc(neighbors, sizeof(int));
+        if (!vt->v)
+          ErrorExit(ERROR_NO_MEMORY,
+                    "MRISsetNeighborhoodSize: could not allocate list of %d "
+                    "nbrs at v=%d",
+                    neighbors,
+                    vno);
+
+        v->marked = 0;
+        for (n = 0; n < neighbors; n++) {
+          vt->v[n] = vtmp[n];
+          mris->vertices[vtmp[n]].marked = 0;
+        }
+
+        vt->nsizeMax++;
+        switch (vt->nsizeMax) {
+          case 2:
+            vt->v2num = neighbors;
             break;
+          case 3:
+            vt->v3num = neighbors;
+            break;
+          default: /* store old neighborhood size in v3num */
+            vt->v3num = vt->vtotal;
+            break;
+        }
+        vt->nsizeCur = vt->nsizeMax;
+        vt->vtotal = neighbors;
+        for (n = 0; n < neighbors; n++)
+          for (i = 0; i < neighbors; i++)
+            if (i != n && vt->v[i] == vt->v[n])
+              fprintf(stderr, "warning: vertex %d has duplicate neighbors %d and %d!\n", vno, i, n);
+        if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
+          fprintf(stdout, "v %d: vnum=%d, v2num=%d, vtotal=%d\n", vno, vt->vnum, vt->v2num, vt->vtotal);
+          for (n = 0; n < neighbors; n++) {
+            fprintf(stdout, "v[%d] = %d\n", n, vt->v[n]);
           }
         }
       }
-      /*
-        now reallocate the v->v structure and
-        place the 2-connected neighbors
-        suquentially after the 1-connected neighbors.
-      */
-      free(vt->v);
-      vt->v = (int *)calloc(neighbors, sizeof(int));
-      if (!vt->v)
-        ErrorExit(ERROR_NO_MEMORY,
-                  "MRISsetNeighborhoodSize: could not allocate list of %d "
-                  "nbrs at v=%d",
-                  neighbors,
-                  vno);
-
-      v->marked = 0;
-      for (n = 0; n < neighbors; n++) {
-        vt->v[n] = vtmp[n];
-        mris->vertices[vtmp[n]].marked = 0;
-      }
-      if (v->dist) free(v->dist);
-
-      if (v->dist_orig) free(v->dist_orig);
-
-      v->dist = (float *)calloc(neighbors, sizeof(float));
-      if (!v->dist)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsetNeighborhoodSize: could not allocate list of %d "
-                  "dists at v=%d",
-                  neighbors,
-                  vno);
-      v->dist_orig = (float *)calloc(neighbors, sizeof(float));
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsetNeighborhoodSize: could not allocate list of %d "
-                  "dists at v=%d",
-                  neighbors,
-                  vno);
-      vt->nsizeMax++;
-      switch (vt->nsizeMax) {
-        case 2:
-          vt->v2num = neighbors;
-          break;
-        case 3:
-          vt->v3num = neighbors;
-          break;
-        default: /* store old neighborhood size in v3num */
-          vt->v3num = vt->vtotal;
-          break;
-      }
-      vt->nsizeCur = vt->nsizeMax;
-      vt->vtotal = neighbors;
-      for (n = 0; n < neighbors; n++)
-        for (i = 0; i < neighbors; i++)
-          if (i != n && vt->v[i] == vt->v[n])
-            fprintf(stderr, "warning: vertex %d has duplicate neighbors %d and %d!\n", vno, i, n);
-      if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
-        fprintf(stdout, "v %d: vnum=%d, v2num=%d, vtotal=%d\n", vno, vt->vnum, vt->v2num, vt->vtotal);
-        for (n = 0; n < neighbors; n++) {
-          fprintf(stdout, "v[%d] = %d\n", n, vt->v[n]);
-        }
-      }
     }
-  }
 
-#ifndef __APPLE__
-  // The parallel loop fails under mcheck with an arcane 
-  //        *** Error in `../mris_fix_topology': free(): invalid pointer: 0x0000000007bda5f0 ***
-  // errors.  I suspect mcheck has some threading issues.
-  //
-  // With this loop serial, no problems are detected either here or in the entire mris_fix_topology test
-  // and the only strange thing about this loop is it is intensely free/calloc intensive which is why
-  // I suspect a problem in mcheck rather than here.
-  //
-  // Freeing all the pointers before allocating any gives mcheck a chance to detect duplicate pointers.
-  // It does not find any problems - but when this loop is done in parallel, it complains - further reinforcing
-  // my belief this is a mcheck problem.
-  //
-  static bool allowParallelFreeingOfDist = true;
-  {
-    static long once;
-    if (!once++) {
-      allowParallelFreeingOfDist = (mprobe(malloc(1)) == MCHECK_DISABLED);
-      if (!allowParallelFreeingOfDist) 
-        fprintf(stderr, "%s:%d Disabling this parallel loop because mcheck in use\n",__FILE__,__LINE__);
-    }
+    mris->max_nsize = nsize;
   }
+  mris->nsize = nsize;
+  
+  MRIS_check_vertexNeighbours(mris);
 
-  if (!allowParallelFreeingOfDist) {
-    fprintf(stderr, "%s:%d Doing free's first because mcheck in use - detect duplicate pointers\n",__FILE__,__LINE__);
-    for (vno = 0; vno < mris->nvertices; vno++) {
+  // Recalculate the avg_nbrs
+  //
+  if (max_nsize_grew) {
+    int ntotal = 0, vtotal = 0;
+
+    int vno;
+    for (vno = 0; vno < mris->nvertices; vno++) {    
       VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
       VERTEX                * const v  = &mris->vertices         [vno];
-      if (vt->vtotal > 0) {
-        if (v->dist)      { free(v->dist);        v->dist      = NULL; }
-        if (v->dist_orig) { free(v->dist_orig);   v->dist_orig = NULL; }
-      }
+
+      if (v->ripflag) continue;
+
+      vtotal += vt->vtotal;
+      ntotal++;
     }
-    fprintf(stderr, "%s:%d Free's done, now do allocations\n",__FILE__,__LINE__);
+    mris->avg_nbrs = (float)vtotal / (float)ntotal;
+    if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
   }
-#endif
+  
+  if (nsize <= mris->dist_nsize) {
+    // this used to precede the "Recalculate the avg_nbrs"
+    // but I have shifted it after, and am awaiting a decision from the main developers 
+    // about whether avg_nbrs should be adjusted even when !max_nsize_grew
+    return;
+  }
+  	
+  // Adjust the dist and dist_orig
+  // unless they are already valid
+  //
+  bool newCodeWouldDoDist     = alwaysDoDist || max_nsize_grew || mris->dist_nsize < nsize ;
+  bool newCodeWouldDoDistOrig = false;
+  if (alwaysDoDist || max_nsize_grew || mris->dist_orig_nsize < nsize) {
+    switch (copeWithLogicProblem("FREESURFER_fix_MRISsetNeighborhoodSizeAndDist","should not be creating dist_origs")) {
+    case LogicProblemResponse_old:
+      newCodeWouldDoDistOrig = true;
+      break;
+    case LogicProblemResponse_fix:
+      newCodeWouldDoDistOrig = (mris->dist_alloced_flags & 2); 
+    }
+  }
 
-  ntotal = vtotal = 0;
-  ROMP_PF_begin		// mris_fix_topology
+  if (alwaysDoDist != newCodeWouldDoDist) {
+    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist when old did":"old not computing dist");
+  }
+  
+  if (alwaysDoDist != newCodeWouldDoDistOrig) {
+    copeWithLogicProblem(NULL,alwaysDoDist?"new not computing dist_orig when old did":"old not computing dist_orig");
+  }
+  
+  if (alwaysDoDist) {
+    mrisComputeVertexDistances(mris);
+    mrisComputeOriginalVertexDistances(mris);
+  }
 
-#ifdef HAVE_OPENMP
-#ifndef __APPLE__
-  #pragma omp parallel for if_ROMP2(allowParallelFreeingOfDist,shown_reproducible) reduction(+ : ntotal, vtotal)
+  cheapAssert( (!(mris->dist_alloced_flags&1)) || (mris->dist_nsize      >= nsize) );
+  cheapAssert( (!(mris->dist_alloced_flags&2)) || (mris->dist_orig_nsize >= nsize) );
+}
+
 #else
+
+static void MRISsetNeighborhoodSizeAndDistWkr(MRIS *mris, int nsize, bool alwaysDoDist)
+{
+  Dont forget to implement alwaysDoDist
+  
+  cheapAssert(1 <= nsize && nsize < 4);
+
+  if (nsize <= mris->max_nsize) {
+    MRISresetNeighborhoodSize(mris, nsize);
+    return;
+  }
+  
+  // rebuild all the neighbor caches
+  //
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    int vlist[MAX_NEIGHBORS], hops[MAX_NEIGHBORS];
+    MRISfindNeighborsAtVertex(mris, vno, nsize, MAX_NEIGHBORS, vlist, hops);
+  }
+  MRISresetNeighborhoodSize(mris, nsize);
+
+  if (nsize <= mris->dist_nsize) return;
+
+  int ntotal = 0, vtotal = 0;
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : ntotal, vtotal)
 #endif
-#endif
-
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
+
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];    
     VERTEX                * const v  = &mris->vertices         [vno];
-    if (vt->vtotal > 0) {
-      if (v->dist) free(v->dist);
 
-      if (v->dist_orig) free(v->dist_orig);
-
-      v->dist = (float *)calloc(vt->vtotal, sizeof(float));
-      if (!v->dist)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsetNeighborhoodSize: could not allocate list of %d "
-                  "dists at v=%d",
-                  vt->vtotal,
-                  vno);
-      v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "MRISsetNeighborhoodSize: could not allocate list of %d "
-                  "orig dists at v=%d",
-                  vt->vtotal,
-                  vno);
-    }
-
+    int needed = mrisVertexVSize(mris, vno);
+    
+    v->dist      = (float*)realloc(v->dist,      needed*sizeof(float));
+    v->dist_orig = (float*)realloc(v->dist_orig, needed*sizeof(float));
+    
+    int i;
+    for (i = 0; i < needed; i++) v->dist[i] = v->dist_orig[i] = 0.0f;   // NaN would be a better init value 
+    
     if (v->ripflag) continue;
 
     vtotal += vt->vtotal;
     ntotal++;
+
     ROMP_PFLB_end
   }
   ROMP_PF_end
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
-  mris->nsize = nsize;
-  if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
-
+  
   mrisComputeVertexDistances(mris);
   mrisComputeOriginalVertexDistances(mris);
 }
 
+#endif
 
 
 int MRISsampleFaceCoordsCanonical(
@@ -6511,9 +6862,14 @@ short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrin
 
   retKH = 1;
   retk1k2 = 1;
-  MRISclearMarks(apmris);
+
+  MRISclearMarks(apmris);   // not clear this is needed before the next line
   MRIScomputeTriangleProperties(apmris);
-  MRIScomputeGeometricProperties(apmris);
+
+  // maybe this should have been here MRISclearMarks(apmris);
+  MRIS_facesAtVertices_reorder(apmris);
+  // this leaves marked set - don't know if this is required for the next step
+  
   retKH = MRIS_discreteKH_compute(apmris);
   retk1k2 = MRIS_discretek1k2_compute(apmris, ab_signedPrinciples);
   return (retKH | retk1k2);
@@ -8011,193 +8367,6 @@ int MRIScountNegativeTriangles(MRIS *mris)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int mrisClearDistances(MRIS *mris)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    v->d = 0;
-  }
-  return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------------------
-  Calculate distances between each vertex and each of its neighbors.
-  ----------------------------------------------------------------*/
-int mrisComputeVertexDistances(MRIS *mris)
-{
-  int vno;
-
-  if (debugNonDeterminism) {
-    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
-    mris_print_hash(stdout, mris, "mris ", "\n");
-  }
-
-  switch (mris->status) {
-    default: /* don't really know what to do in other cases */
-
-    case MRIS_PLANE:
-
-      ROMP_PF_begin		// mris_fix_topology
-#ifdef HAVE_OPENMP
-      #pragma omp parallel for if_ROMP(shown_reproducible)
-#endif
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        ROMP_PFLB_begin
-    
-        if (vno == Gdiag_no) DiagBreak();
-
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-        VERTEX                * const v  = &mris->vertices         [vno];
-        if (v->ripflag || v->dist == NULL) continue;
-
-        int *pv;
-        int const vtotal = vt->vtotal;
-        int n;
-        for (pv = vt->v, n = 0; n < vtotal; n++) {
-          VERTEX const * const vn = &mris->vertices[*pv++];
-          // if (vn->ripflag) continue;
-          float xd = v->x - vn->x;
-          float yd = v->y - vn->y;
-          float zd = v->z - vn->z;
-          float d = xd * xd + yd * yd + zd * zd;
-          v->dist[n] = sqrt(d);
-        }
-
-        ROMP_PFLB_end
-      }
-      ROMP_PF_end
-  
-      break;
-
-    case MRIS_PARAMETERIZED_SPHERE:
-    case MRIS_SPHERE: {
-
-      ROMP_PF_begin		// mris_fix_topology
-#ifdef HAVE_OPENMP
-      #pragma omp parallel for if_ROMP(shown_reproducible)
-#endif
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        ROMP_PFLB_begin
-    
-        if (vno == Gdiag_no) DiagBreak();
-
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-        VERTEX          const * const v  = &mris->vertices         [vno];
-        if (v->ripflag || v->dist == NULL) continue;
-
-        XYZ xyz1_normalized;
-        float xyz1_length;
-        XYZ_NORMALIZED_LOAD(&xyz1_normalized, &xyz1_length, v->x, v->y, v->z);  // length 1 along radius vector
-
-        float const radius = xyz1_length;
-
-        int *pv;
-        int const vtotal = vt->vtotal;
-        int n;
-        for (pv = vt->v, n = 0; n < vtotal; n++) {
-          VERTEX const * const vn = &mris->vertices[*pv++];
-          if (vn->ripflag) continue;
-          
-          float angle = fabs(XYZApproxAngle(&xyz1_normalized, vn->x, vn->y, vn->z));
-            // radians, so 2pi around the circumference
-
-          float d = angle * radius;
-            // the length of the arc, rather than the straight line distance
-
-          v->dist[n] = d;
-        }
-        ROMP_PFLB_end
-      }
-      ROMP_PF_end
-
-      break;
-    }
-  }
-    
-  return (NO_ERROR);
-}
-
-
-int mrisComputeOriginalVertexDistances(MRIS *mris)
-{
-  int vno, n, vtotal, *pv;
-  float d, xd, yd, zd, circumference = 0.0f, angle;
-  VECTOR *v1, *v2;
-
-  v1 = VectorAlloc(3, MATRIX_REAL);
-  v2 = VectorAlloc(3, MATRIX_REAL);
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag || v->dist_orig == NULL) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    vtotal = vt->vtotal;
-    switch (mris->status) {
-      default: /* don't really know what to do in other cases */
-      case MRIS_PLANE:
-        for (pv = vt->v, n = 0; n < vtotal; n++) {
-          VERTEX const * const vn = &mris->vertices[*pv++];
-          if (vn->ripflag) {
-            continue;
-          }
-          xd = v->origx - vn->origx;
-          yd = v->origy - vn->origy;
-          zd = v->origz - vn->origz;
-          d = xd * xd + yd * yd + zd * zd;
-          v->dist_orig[n] = sqrt(d);
-        }
-        DiagBreak();
-        break;
-      case MRIS_PARAMETERIZED_SPHERE:
-      case MRIS_SPHERE:
-        VECTOR_LOAD(v1, v->origx, v->origy, v->origz); /* radius vector */
-        if (FZERO(circumference))                      /* only calculate once */
-        {
-          circumference = M_PI * 2.0 * V3_LEN(v1);
-        }
-        for (pv = vt->v, n = 0; n < vtotal; n++) {
-          VERTEX const * const vn = &mris->vertices[*pv++];
-          if (vn->ripflag) {
-            continue;
-          }
-          VECTOR_LOAD(v2, vn->origx, vn->origy, vn->origz); /* radius vector */
-          angle = fabs(Vector3Angle(v1, v2));
-          d = circumference * angle / (2.0 * M_PI);
-          if (angle > M_PI || angle < -M_PI || d > circumference / 2 || angle < 0) {
-            DiagBreak();
-          }
-          v->dist_orig[n] = d;
-        }
-        break;
-    }
-  }
-
-  VectorFree(&v1);
-  VectorFree(&v2);
-  return (NO_ERROR);
-}
-
-
 //==================================================================================================================
 // More complicated properties
 //
@@ -8355,22 +8524,21 @@ int mrisTrackTotalDistance(MRIS *mris)
 
 int MRIScomputeAllDistances(MRIS *mris)
 {
-  int vno, done = 0, nvalid;
-  LABEL *area;
-
-  area = LabelAlloc(1, NULL, NULL);
-
   if (Gdiag & DIAG_SHOW) {
     fprintf(stdout, "\ncomputing complete distance matrix...\n");
   }
 
   MRIScomputeMetricProperties(mris);
-  nvalid = MRISvalidVertices(mris);
 
-  // this for loop can't be parallelized due to the use of MRISdistanceTransform
+  int const nvalid = MRISvalidVertices(mris);
+
+  LABEL* area = LabelAlloc(1, NULL, NULL);
+
+  // this for loop can't be parallelized due to the use of MRISdistanceTransform and of marked
   //
+  int done = 0;
+  int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    int n, *old_v, vno2;
 
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
     VERTEX          * const v  = &mris->vertices         [vno];
@@ -8385,38 +8553,48 @@ int MRIScomputeAllDistances(MRIS *mris)
     }
     area->lv[0].vno = vno;
     area->n_points = 1;
-    MRISdistanceTransform(mris, area, DTRANS_MODE_UNSIGNED);
-    if (v->dist_orig) free(v->dist_orig);
+    MRISdistanceTransform(mris, area, DTRANS_MODE_UNSIGNED);        // reads v->vnum distances out of v->dist
 
-    if (v->dist) {
-      free(v->dist);
-    }
-    old_v = vt->v;
-    v->dist_orig = (float *)calloc(nvalid - 1, sizeof(float));
-    v->dist = (float *)calloc(nvalid - 1, sizeof(float));
-    vt->v = (int *)calloc(nvalid - 1, sizeof(int));
-    if (!vt->v || !v->dist || !v->dist_orig)
+    // make huge v, dist, dist_orig    
+    //
+    int const old_vtotal = vt->vtotal;
+    vt->vtotal = nvalid - 1;                                        // set to something other then v->v#num
+    vt->v = (int *)realloc(vt->v, (nvalid - 1)*sizeof(int));
+    MRISmakeDist(mris, vno);
+    if (!vt->v || !v->dist || !v->dist_orig) {
       ErrorExit(ERROR_NOMEMORY, "MRIScomputeAllDistances: could not allocate %d-sized arrays", nvalid - 1);
-    memmove(vt->v, old_v, vt->vtotal * sizeof(vt->v[0]));
-    free(old_v);
+    }
+    
     MRISclearMarks(mris);
     v->marked = 1;  // don't add self to list
-    // read out first vtotal nbrs
-    for (n = 0; n < vt->vtotal; n++) {
+    
+    // keep the v[0..old_vtotal) so v#num stays right
+    //
+    int n;
+    for (n = 0; n < old_vtotal; n++) {
       VERTEX * const vn = &mris->vertices[vt->v[n]];
-      v->dist[n] = v->dist_orig[n] = vn->val;  // v->dist will be restored by caller
+      v->dist[n] = v->dist_orig[n] = vn->val;                       // v->dist will be restored by caller
       vn->marked = 1;
     }
-    // now read out rest
+    
+    // fill in the rest
+    // this trashes the values between vtotal and vnums[nsizeMax] which is bad
+    // so note the loss
+    //
+    mris->max_nsize = mris->nsize;
+    vt->nsizeMax = vt->nsizeCur;
+    
+    int vno2;
     for (vno2 = 0; vno2 < mris->nvertices; vno2++) {
       VERTEX * const vn = &mris->vertices[vno2];
       if (vn->ripflag || vn->marked) continue;
 
-      v->dist[n] = v->dist_orig[n] = vn->val;
+      v->dist[n] = v->dist_orig[n] = vn->val;                   // set to a different definition of 'distance'
       vt->v[n++] = vno2;
       vn->marked = 1;
+      cheapAssert(n < nvalid);
     }
-    vt->vtotal = nvalid - 1;
+    
     if (vno == Gdiag_no) {
       char fname[STRLEN];
       sprintf(fname, "vno%d.mgz", vno);
@@ -15582,9 +15760,9 @@ MRIS* MRISclone(MRIS const * mris_src)
     vdstt->v2num    = vsrct->v2num;
     vdstt->v3num    = vsrct->v3num;
     vdstt->nsizeMax = vsrct->nsizeMax;
-    vdstt->nsizeCur = vsrct->nsizeCur;
-    vdstt->vtotal   = vsrct->vtotal;
     vdstt->nsizeMaxClock = vsrct->nsizeMaxClock;
+
+    MRIS_setNsizeCur(mris_dst,vno,vsrct->nsizeCur);
     
     {
       int vSize = mrisVertexVSize(mris_src, vno);
@@ -15597,18 +15775,19 @@ MRIS* MRISclone(MRIS const * mris_src)
         }
       }
 
-      vdst->dist      = (float *)calloc(vSize, sizeof(float));
-      vdst->dist_orig = (float *)calloc(vSize, sizeof(float));
-      if (!vdst->dist     ) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
-      if (!vdst->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vSize);
-      if (vsrc->dist)
+      if (vsrc->dist) {
+        MRISmakeDist(mris_dst, vno);
         for (n = 0; n < vSize; n++) {
           vdst->dist[n] = vsrc->dist[n];
         }
-      if (vsrc->dist_orig)
+      }
+      
+      if (vsrc->dist_orig) {
+        MRISmakeDistOrig(mris_dst, vno);
         for (n = 0; n < vSize; n++) {
           vdst->dist_orig[n] = vsrc->dist_orig[n];
         }
+      }
     }
     
     vdst->border   = vsrc->border;

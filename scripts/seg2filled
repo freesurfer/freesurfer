@@ -20,6 +20,9 @@ set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 set filled = ()
+set surfname = ()
+set surfdir = ();
+set subject = ();
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -47,15 +50,15 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-set outdir = `dirname $filled`
 mkdir -p $outdir
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
+if($#surfname) mkdir -p $surfdir
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.seg2filled.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.seg2filled.$$
+  # This can generate a lot of output and may fill up /scratch
+  set tmpdir = $outdir/tmpdir.seg2filled.$$
 endif
 mkdir -p $tmpdir
 
@@ -122,6 +125,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $subcortmass0
 
   # Extract the main component (--match 1)
   set c1 = $tmpdir/subcortmass.$hemi.c1.unfilled.mgh
@@ -137,6 +141,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $ocn
   # For speed, create a mask before extracting connected
   # components. Otherwise, there will be a huge concomp outside the
   # brain which will take a long time to extract. To create the mask,
@@ -154,6 +159,7 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1inv
   # If there is only one cluster, then there are no cavities
   set NClusters = `grep NClusters $invsum | awk '{print $3}'`
   echo "NClusters $NClusters" |& tee -a $LF
@@ -177,6 +183,7 @@ foreach hemi ($hemilist)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit;
+    if($cleanup) rm $c1 $invocn $invocn2 $invocn3 
     set c1 = $c1filled
   endif
 
@@ -186,23 +193,15 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1
   # Have to binarize it again because pretess changes intensities
   set cmd = (mri_binarize --i $c1pretess --min 0.5 --o $c1pretess --binval $hemivalue)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
 
-  if(0 && $#hemilist != 2) then
-    # Create the surface based on the (filled) main component
-    set surfout = $outdir/$hemi.segsurf
-    set cmd = (mri_binarize --i $c1pretess --match 1 --surf $surfout)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
   set c1list = ($c1list $c1pretess)
-end
+end # hemi
 
 if($#hemilist == 2) then
   # Create the filled.mgz
@@ -212,6 +211,7 @@ if($#hemilist == 2) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if($cleanup) rm $c1list
   # Remove any voxels present in both lh and rh. This can happen
   # because pretess might add a voxel. Which begs the question
   # as to whether it should be removed. Below keeps only voxels
@@ -232,22 +232,22 @@ if($#hemilist == 2) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
-  if(0) then
-    # Create surfaces
-    foreach hemi ($hemilist)
-      if($hemi == lh) set hemivalue = 255;
-      if($hemi == rh) set hemivalue = 127;
-      set surfout = $outdir/$hemi.segsurf
-      set cmd = (mri_binarize --i $filled --match $hemivalue --surf $surfout)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    end
-  endif
 else
   set cmd = (mri_convert $c1list[1] -odt uchar --no_scale 1 $filled)
 endif
 
+if($#surfname) then
+  foreach hemi ($hemilist)
+    # Create the surface based on the (filled) main component
+    if($hemi == lh) set hemivalue = 255;
+    if($hemi == rh) set hemivalue = 127;
+    set surfout = $surfdir/$hemi.$surfname
+    set cmd = (mri_binarize --i $filled --match $hemivalue --surf $surfout)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  end
+endif
 
 #========================================================
 
@@ -292,6 +292,21 @@ while( $#argv != 0 )
     case "--o":
       if($#argv < 1) goto arg1err;
       set filled = $argv[1]; shift;
+      breaksw
+
+    case "--surf":
+      if($#argv < 1) goto arg1err;
+      set surfname = $argv[1]; shift;
+      breaksw
+
+    case "--surfdir":
+      if($#argv < 1) goto arg1err;
+      set surfdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
       breaksw
 
     case "--lh":
@@ -374,6 +389,18 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#subject) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  set seg = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
+  set norm = $SUBJECTS_DIR/$subject/mri/norm.mgz
+  set filled = $SUBJECTS_DIR/$subject/mri/aseg.filled.mgz
+  set surfname = orig.aseg.nofix
+  set surfdir  = $SUBJECTS_DIR/$subject/surf
+endif
+
 if($#seg == 0) then
   echo "ERROR: must spec seg"
   exit 1;
@@ -386,6 +413,8 @@ if($#filled == 0) then
   echo "ERROR: must spec output"
   exit 1;
 endif
+set outdir = `dirname $filled`
+if($#surfdir == 0) set surfdir = $outdir
 
 goto check_params_return;
 ############--------------##################
@@ -406,6 +435,8 @@ usage_exit:
   echo "seg2filled --seg seg.mgz --norm norm.mgz --o filled.mgz"
   echo "  --ndil ndil : used to speed cavity detection"
   echo "  --cavity : simulate a cavity to test the filling operation"
+  echo "  --surf surfname : create ?h.surfname"
+  echo "  --surfdir surfdir : dir to put surf (default is same as filled)"
   echo ""
 
   if(! $PrintHelp) exit 1;

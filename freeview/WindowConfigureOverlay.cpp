@@ -135,8 +135,19 @@ void WindowConfigureOverlay::UpdateUI()
     {
       allwidgets[i]->blockSignals( true );
     }
+
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     SurfaceOverlayProperty* p = overlay->GetProperty();
+
+    ui->comboBoxOverlayList->clear();
+    for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+    {
+      SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
+      ui->comboBoxOverlayList->addItem(ol->GetName());
+      if (ol == overlay)
+        ui->comboBoxOverlayList->setCurrentIndex(i);
+    }
+
     ui->sliderOpacity->setValue( (int)( p->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, p->GetOpacity() );
 
@@ -154,7 +165,7 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonCustom  ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
 
     ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
-//    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
+    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
     ui->checkBoxUseNonZeroVertices->setChecked(p->GetIgnoreZeros());
     ui->checkBoxUseNonZeroVertices->setVisible(p->GetUsePercentile());
 
@@ -791,7 +802,8 @@ void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     overlay->GetProperty()->SetUsePercentile(bChecked);
-//    ui->widgetHistogram->SetUsePercentile(bChecked);
+    ui->widgetHistogram->SetUsePercentile(bChecked);
+    UpdateUI();
   }
 }
 
@@ -816,8 +828,8 @@ void WindowConfigureOverlay::OnComboMask(int n)
   if (n == ui->comboBoxMask->count()-1)
   {
     QString filename = QFileDialog::getOpenFileName( this, "Select label file",
-                                                           MainWindow::GetMainWindow()->AutoSelectLastDir( "label" ),
-                                                           "Label files (*)");
+                                                     MainWindow::GetMainWindow()->AutoSelectLastDir( "label" ),
+                                                     "Label files (*)");
     if ( !filename.isEmpty())
     {
       setProperty("wait_for_label", true);
@@ -860,4 +872,13 @@ void WindowConfigureOverlay::OnCheckAutoFrameByVertex(bool bChecked)
 {
   if (bChecked)
     OnCurrentVertexChanged();
+}
+
+void WindowConfigureOverlay::OnComboOverlayChanged(int n)
+{
+  if (m_layerSurface && n < m_layerSurface->GetNumberOfOverlays())
+  {
+    m_layerSurface->SetActiveOverlay(n);
+    emit OverlayChanged();
+  }
 }

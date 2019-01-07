@@ -162,7 +162,10 @@ main(int argc, char *argv[])
     }
     else
       area = NULL ;
-    
+
+    if (mri_overlay->width != mris->nvertices)
+      ErrorExit(ERROR_UNSUPPORTED, "%s: overlay width (%d) does not match number of vertices in surface (%d)", Progname,mri_overlay->width, mris->nvertices);
+
     for (frame = 0 ; frame < mri_overlay->nframes ; frame++)
     {
       printf("\rframe %3.3d of %3.3d", frame, mri_overlay->nframes) ;

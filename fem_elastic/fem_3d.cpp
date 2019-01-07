@@ -641,6 +641,7 @@ CMesh3d::CMesh3d(const CMesh3d& cmesh)
 CMesh3d::~CMesh3d()
 {
   if ( m_poctree ) delete m_poctree;
+  // DNG: octree does not have a destructor
   // free data associated with base class
   //this->free();
 }
@@ -656,13 +657,11 @@ CMesh3d::build_index_src()
 
   if (m_poctree) delete m_poctree;
   Coords3d cbuf = m_cmax - m_cmin;
-//  double ddelta = std::max( cbuf(0), std::max( cbuf(1), cbuf(2)));
+  //  double ddelta = std::max( cbuf(0), std::max( cbuf(1), cbuf(2)));
   cbuf = m_cmin + cbuf;
-  m_poctree = new OctreeType( m_cmin, cbuf,
-                              6, m_maxNodes );
+  m_poctree = new OctreeType( m_cmin, cbuf,6, m_maxNodes );
   m_vpEltBlock.reserve( this->get_no_elts() );
-  for (unsigned int ui=0, noItems = this->get_no_elts();
-       ui < noItems; ++ui)
+  for (unsigned int ui=0, noItems = this->get_no_elts(); ui < noItems; ++ui)
     m_vpEltBlock.push_back( ElementProxy(this, ui) );
 
   std::cout << " done building the list\n";
@@ -776,8 +775,7 @@ DelaunayMesh::DelaunayMesh(PointsListType& sp,
     m_de(de), m_dnu(dnu)
 {}
 
-tetgenio*
-DelaunayMesh::createDelaunay()
+tetgenio* DelaunayMesh::createDelaunay()
 {
   tetgenio in;
   tetgenio* out = new tetgenio;
@@ -915,10 +913,9 @@ DelaunayMesh::convertFormat(tetgenio* p)
   } // next index, pint
 }
 
-CMesh3d*
-DelaunayMesh::get()
+CMesh3d* DelaunayMesh::get()
 {
-  m_pmesh = new CMesh3d;
+  m_pmesh = new CMesh3d; // leak?
 
   tetgenio* out = this->createDelaunay();
   this->convertFormat( out );

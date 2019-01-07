@@ -636,6 +636,11 @@ int main(int argc, char **argv)
     }
 
     MRIScomputeMetricProperties(SurfSrc);
+    
+    MRISfreeDistsButNotOrig(SurfSrc);
+      // MRISsetXYZ will invalidate all of these,
+      // so make sure they are recomputed before being used again!
+
     if(UseSurfSrc == SURF_SRC_XYZ || UseSurfSrc == SURF_SRC_TAL_XYZ) {
       if(DoProj) {
         if(ProjType == 2) {
@@ -1141,7 +1146,7 @@ int main(int argc, char **argv)
     }
     printf("Dilating %d\n",nPatchDil);
     MRISdilateRipped(SurfTrg, nPatchDil);
-    MRISripFaces(SurfTrg);
+    MRISsetRipInFacesWithRippedVertices(SurfTrg);
     SurfTrg->patch = 1 ;
     SurfTrg->status = MRIS_CUT ;
     for (tvtx = 0 ; tvtx < SurfTrg->nvertices ; tvtx++)

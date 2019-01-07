@@ -1016,7 +1016,7 @@ rip_bad_vertices(MRI_SURFACE *mris, MRI *mri_profiles) {
     }
 
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   MRIScomputeMetricProperties(mris) ;
   return(NO_ERROR) ;
 }

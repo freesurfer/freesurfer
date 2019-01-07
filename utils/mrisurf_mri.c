@@ -100,7 +100,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
   MRISstoreMetricProperties(mris);
 
   MRIScomputeNormals(mris);
-  mrisClearDistances(mris);
+  MRISclearD(mris);
 
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
   MRIScomputeMetricProperties(mris);
@@ -454,7 +454,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   MRISstoreMetricProperties(mris);
 
   MRIScomputeNormals(mris);
-  mrisClearDistances(mris);  // v->d=0 for unripped
+  MRISclearD(mris);  // v->d=0 for unripped
 
   MRISclearCurvature(mris); /* v->curv=0 for unripped, curvature will be used to calculate sulc */
 
@@ -845,7 +845,7 @@ int MRISpositionSurface_mef(
   MRISstoreMetricProperties(mris);
 
   MRIScomputeNormals(mris);
-  mrisClearDistances(mris);
+  MRISclearD(mris);
 
   MRISclearCurvature(mris); /* curvature will be used to calculate sulc */
 

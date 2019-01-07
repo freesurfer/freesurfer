@@ -19,9 +19,10 @@ public:
 signals:
   void MenuGoToCentroid();
   void MenuResample();
+  void MenuMoreOps();
+  void MenuSaveAs();
 
 public slots:
-  void OnMenuTriggered();
 
 private:
   QTreeWidgetItem* draggedItem;

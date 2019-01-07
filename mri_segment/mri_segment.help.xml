@@ -84,6 +84,14 @@
       <explanation>extract options from filename</explanation>
       <argument>-w &lt;w&gt;</argument>
       <explanation>set wsize (default=11)</explanation>
+      <argument>-dat datfile</argument>
+      <explanation>set datfile (default is segment.dat)</explanation>
+      <argument>-diagno diagno</argument>
+      <explanation>Set diagnostic number</explanation>
+      <argument>-diag-write</argument>
+      <explanation>Set diagnostic write</explanation>
+      <argument>-diag-verbose</argument>
+      <explanation>Set diagnostic verbose</explanation>
       <argument>-u</argument>
       <explanation>usage</explanation>
     </optional-flagged>
