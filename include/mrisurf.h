@@ -1481,6 +1481,7 @@ int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
+void         MRISclearCurvAndVal2(MRIS *mris) ;
 void         MRISclearD(MRIS *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
@@ -1727,9 +1728,6 @@ int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs) ;
-int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris,
-                                           int navgs,
-                                           int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -1759,7 +1757,6 @@ int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
 int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
-int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) ;
 int   MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order) ;
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
@@ -2198,15 +2195,15 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_MARKS       11
 
 
-int MRISclearOrigArea(MRI_SURFACE *mris) ;
-int MRISclearOrigDistances(MRI_SURFACE *mris) ;
-int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
+int MRISclearOrigArea(MRIS *mris) ;
+void MRISclearOrigAreaAndVal2(MRIS *mris);
+int MRISclearOrigDistances(MRIS *mris) ;
+int MRIScombine(MRIS *mris_src, MRIS *mris_total,
                 MRIS_HASH_TABLE *mht, int which) ;
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
                       MRIS_HASH_TABLE *mht, int which) ;
 int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
-int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);

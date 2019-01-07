@@ -678,6 +678,7 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       gamma = DEGREES(delta_t * mris->gamma);
       fprintf(stdout, "rotating brain by (%2.1f, %2.1f, %2.1f)\n", alpha, beta, gamma);
     }
+
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
     if (parms->remove_neg && mris->neg_area > 0) {
@@ -1237,6 +1238,8 @@ int MRISregister(MRI_SURFACE *mris,
   FileNamePath(mris->fname, path);
   sprintf(base_name, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
 
+  mrisComputeOriginalVertexDistances(mris);
+  
   if (parms->nbhd_size > 3) {
     int nbrs[MAX_NBHD_SIZE];
 
@@ -1251,6 +1254,7 @@ int MRISregister(MRI_SURFACE *mris,
     MRISrestoreVertexPositions(mris, TMP_VERTICES);
     MRIScomputeMetricProperties(mris);
   }
+  
   base_dt = parms->dt;
   if (Gdiag & DIAG_WRITE) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
@@ -3490,14 +3494,20 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisWriteSnapshot(mris, parms, 0);
   }
 
-  switch (copeWithLogicProblem("FREESURFER_fix_inflateBrain","should set origx et al here")) {
-  case LogicProblemResponse_old: 
-    break;
-  case LogicProblemResponse_fix:
+  bool useOldBehaviour = false;
+  if (useOldBehaviour) {
+    switch (copeWithLogicProblem("FREESURFER_fix_inflateBrain","should set origx et al here")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      useOldBehaviour = false;
+    }
+  }
+  if (!useOldBehaviour) {
     MRISsetOriginalXYZfromXYZ(mris);
     mrisComputeOriginalVertexDistances(mris);
   }
-   
+  
   sse = MRIScomputeSSE(mris, parms);
   
   if (!parms->start_t) {

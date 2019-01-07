@@ -219,25 +219,26 @@ if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC
   endif()
 
   add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
+
   target_link_libraries(${FREEVIEW_EXEC_NAME} 
-    ${QT_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    utils
-    fsgdf
     vtkutils
     vtkfsio
     lineprof
     ${VTK_LIBRARIES}
     ${PETSC_LIBRARIES}
+    ${ITK_LIBRARIES}
+    fsgdf
+    utils
+    ${QT_LIBRARIES}
+    ${OPENGL_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${BLAS_LIBRARIES}
     ${GFORTRAN_LIBRARIES}
-    ${ITK_LIBRARIES}
     -static-libgcc
   )
 
   if(NOT APPLE)
-    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
+    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${Xt_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
   if(APPLE)
