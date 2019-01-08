@@ -8,27 +8,29 @@ if(NOT Qt5_DIR)
     set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.6/lib/cmake/Qt5)
   endif()
 endif()
-get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
 
-# find Qt components and trace back root of install
-set(QT_COMPONENTS Core Widgets)
+# find Qt components
+set(_qt_components Core Widgets)
 if(NOT APPLE)
-  set(QT_COMPONENTS ${QT_COMPONENTS} X11Extras)
+  set(_qt_components ${_qt_components} X11Extras)
 endif()
 
-find_package(Qt5 COMPONENTS ${QT_COMPONENTS})
+find_package(Qt5 COMPONENTS ${_qt_components})
+
+# trace back root of install
+get_filename_component(Qt5_INSTALL_DIR "${_qt5_install_prefix}")
 
 # install the shared libraries to the freesurfer lib directory
 if(Qt5_FOUND AND NOT APPLE)
-  file(GLOB QT_LIBRARIES_TO_INSTALL "${QT_INSTALL_DIR}/lib/lib*.so*")
-  if(QT_LIBRARIES_TO_INSTALL)
-    install(PROGRAMS ${QT_LIBRARIES_TO_INSTALL} DESTINATION lib/qt/lib)
+  file(GLOB _qt_libs_to_install "${Qt5_INSTALL_DIR}/lib/lib*.so*")
+  if(_qt_libs_to_install)
+    install(PROGRAMS ${_qt_libs_to_install} DESTINATION lib/qt/lib)
     # add Qt library directory to rpath
     set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/qt/lib:${CMAKE_INSTALL_RPATH}")
     # install the platform plugins as well, and make sure executables know
     # where to find the plugins directory
-    if(EXISTS ${QT_INSTALL_DIR}/plugins/platforms)
-      install(DIRECTORY ${QT_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
+    if(EXISTS ${Qt5_INSTALL_DIR}/plugins/platforms)
+      install(DIRECTORY ${Qt5_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
       install(FILES ${CMAKE_SOURCE_DIR}/qt/qt.conf DESTINATION bin)
     endif()
   endif()

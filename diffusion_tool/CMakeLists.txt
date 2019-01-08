@@ -2,7 +2,7 @@ project(diffusion_tool)
 
 if(BUILD_GUIS AND Qt5_FOUND)
 
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${QT_INCLUDE_DIRS})
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 	set(CMAKE_AUTOUIC ON)
 	set(CMAKE_AUTOMOC ON)
