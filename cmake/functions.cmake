@@ -50,6 +50,31 @@ function(install_tarball)
 endfunction()
 
 
+# mac_deploy_qt(TARGET <target> BUNDLE <bundle> PLIST <plist> ICONS <icons>)
+# Creates a mac app bundle from a given target. The ICONS argument is optional.
+function(mac_deploy_qt)
+  cmake_parse_arguments(APP "" "TARGET;BUNDLE;PLIST;ICONS" "" ${ARGN})
+  # install binary
+  install(TARGETS ${APP_TARGET} DESTINATION ${APP_BUNDLE}/Contents/MacOS)
+  # install the plist
+  install(FILES ${APP_PLIST} DESTINATION ${APP_BUNDLE}/Contents)
+  # install the resources
+  if(${APP_ICONS})
+    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${BUNDLE}/Contents/Resources)
+  endif()
+  # run the qt deployment script and create a wrapper script in the bin
+  # directory that will call the bundle binary
+  install(CODE "
+    message(STATUS \"Deploying ${APP_BUNDLE}\")
+    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
+    endif()
+    file(WRITE ${CMAKE_INSTALL_PREFIX}/bin/${APP_TARGET} \"#!/usr/bin/env bash\\nexit $($FREESURFER_HOME/${APP_BUNDLE}/Contents/MacOS/${APP_TARGET} \"$@\")\")"
+  )
+endfunction()
+
+
 # add_help(<binary> <xml>)
 # Link an xml helptext to a target binary. This will create a target dependency on
 # the help file and will run xxd to create the xml header during the build
