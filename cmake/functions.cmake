@@ -62,15 +62,13 @@ function(mac_deploy_qt)
   if(${APP_ICONS})
     install_symlinks(${APP_ICONS} TYPE files DESTINATION ${BUNDLE}/Contents/Resources)
   endif()
-  # run the qt deployment script and create a wrapper script in the bin
-  # directory that will call the bundle binary
+  # run the qt deployment script
   install(CODE "
     message(STATUS \"Deploying ${APP_BUNDLE}\")
     execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
-    endif()
-    file(WRITE ${CMAKE_INSTALL_PREFIX}/bin/${APP_TARGET} \"#!/usr/bin/env bash\\nexit $($FREESURFER_HOME/${APP_BUNDLE}/Contents/MacOS/${APP_TARGET} \"$@\")\")"
+    endif()"
   )
 endfunction()
 

@@ -221,6 +221,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 
   if(APPLE)
     mac_deploy_qt(TARGET freeview BUNDLE Freeview.app PLIST Info.plist ICONS resource/icons/freeview.icns)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME freeview)
   else()
     install(TARGETS freeview DESTINATION bin)
   endif()
