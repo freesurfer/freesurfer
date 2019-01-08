@@ -17,8 +17,9 @@ endif()
 
 find_package(Qt5 COMPONENTS ${_qt_components})
 
-# trace back root of install
-set(Qt5_INSTALL_DIR ${_qt5_install_prefix})
+# cmake doesn't easily provide us with a cross-platform path to
+# root qt install directory, so we'll use the hidden QtCore prefix
+set(Qt5_INSTALL_DIR ${_qt5Core_install_prefix})
 
 # install the shared libraries to the freesurfer lib directory
 if(Qt5_FOUND AND NOT APPLE)
