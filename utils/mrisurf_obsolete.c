@@ -6562,4 +6562,43 @@ mrisAddVertices(MRIS *mris, double thresh)
   }
   return(nadded) ;
 }
+
+
+int MRISsequentialAverageVertexPositions(MRIS *mris, int navgs)
+{
+  int i, vno, vnb, vnum;
+  float x, y, z, num;
+
+  for (i = 0; i < navgs; i++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
+      if (v->ripflag || v->marked) {
+        continue;
+      }
+      x = v->x;
+      y = v->y;
+      z = v->z;
+      int const * pnb  = vt->v;
+      vnum = vt->vnum;
+      for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag) {
+          continue;
+        }
+        num++;
+        x += vn->x;
+        y += vn->y;
+        z += vn->z;
+      }
+      num++; /* account for central vertex */
+      v->x = x / num;
+      v->y = y / num;
+      v->z = z / num;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
 #endif

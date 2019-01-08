@@ -1,0 +1,27 @@
+<help>
+
+  <name>createMorph</name>
+
+  <arguments>
+
+    <required-flagged>
+      <argument>--in [STR...]</argument>
+      <explanation>Input transforms - affine|volume|morph|mesh|gcam + filename.</explanation>
+      <argument>--out FILE</argument>
+      <explanation>Output transform file (tm3d).</explanation>
+    </required-flagged>
+
+    <optional-flagged>
+      <argument>--template FILE</argument>
+      <explanation>Template volume (only for geometry). If a gcam is present, it needs to be specified.</explanation>
+      <argument>--subject FILE</argument>
+      <explanation>Subject volume (only for geometry).</explanation>
+      <argument>--dbg INT INT INT</argument>
+      <explanation>Debugging coordinates.</explanation>
+    </optional-flagged>
+
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+</help>

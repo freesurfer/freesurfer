@@ -8356,13 +8356,7 @@ double mrisComputeError(MRI_SURFACE *mris,
   return (rms);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse)
 {
   if (!(Gdiag & DIAG_SHOW)) {
@@ -8497,13 +8491,6 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   if (!(mris->dist_alloced_flags & 1)) {
@@ -8523,9 +8510,15 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
 
+  if (false) {
+    fprintf(stdout, "%s:%d calling mrisCheckDistOrig\n", __FILE__, __LINE__);
+    if (!mrisCheckDistOrig(mris)) 
+      fprintf(stdout, "  failed mrisCheckDistOrig\n");
+  }
+  
   int max_v, max_n, err_cnt, max_errs;
+  volatile int count_dist_orig_zeros = 0;
   double dist_scale, sse_dist, max_del;
-  static int first = 1;
 
 #if METRIC_SCALE
   if (mris->patch) {
@@ -8544,7 +8537,7 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   max_v = max_n = -1;
 
   err_cnt = 0;
-  max_errs = 1000;
+  max_errs = 100;
 
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
   int trial;
@@ -8553,6 +8546,13 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_dist = 0.0;
+  
+  int const acceptableNumberOfZeros = 
+    ( mris->status == MRIS_PARAMETERIZED_SPHERE
+    ||mris->status == MRIS_SPHERE)
+    ? mris->nvertices * mris->avg_nbrs * 0.01       // only the direction from 000 has to match
+    : mris->nvertices * mris->avg_nbrs * 0.001;     // xyz has to match
+
   
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 
@@ -8578,10 +8578,10 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   ROMP_PF_begin         // mris_register
 
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist) schedule(static, 1)
+  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist)
 #else
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist)
 #endif
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -8615,9 +8615,8 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       
       if (dist_orig_n >= UNFOUND_DIST) continue;
 
-      if (DZERO(dist_orig_n) && first) {
-        first = 0;
-        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n", vno, n, dist_orig_n);
+      if (DZERO(dist_orig_n) && (count_dist_orig_zeros++ > acceptableNumberOfZeros)) {
+        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!, count_dist_orig_zeros:%d\n", vno, n, dist_orig_n, count_dist_orig_zeros);
         fflush(stderr);
         DiagBreak();
         if (++err_cnt > max_errs) {
@@ -11338,7 +11337,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   MHT *mht_src = NULL;
   double max_len;
 
-  MRISclear(mris_dst, which);
+  MRISclearWhichAndVal2(mris_dst, which);
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
     VERTEX * const vdst = &mris_dst->vertices[vno];
     vdst->d = 0;
@@ -11401,7 +11400,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   double max_len, mean;
 
   MRISclearMarks(mris_dst);
-  MRISclear(mris_dst, which);
+  MRISclearWhichAndVal2(mris_dst, which);
   MRISclearMarks(mris_src);
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
     vdst = &mris_dst->vertices[vno];
@@ -12774,7 +12773,7 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     {
       continue;
     }
-    if (vno == 118009) {
+    if (false && vno == 118009) {
       DiagBreak();
     }
     x = (double)v->x;

@@ -1076,9 +1076,11 @@ int main(int argc, char *argv[])
     if(mristarget != NULL) MRISfree(&mristarget);
     mristarget = MRISclone(mris);
 
+    MRISfreeDistsButNotOrig(mristarget);
+
     for(vno=0; vno < mris->nvertices; vno++){
       VERTEX* const v = &(mristarget->vertices[vno]);
-      v->d = mris->vertices[vno].d; // clone does not copy this
+      v->d   = mris->vertices[vno].d; // clone does not copy this
       v->val = mris->vertices[vno].val; // clone does not copy this
       MRISsetXYZ(mristarget,vno,
         v->x + (v->d*v->nx), // d is the distance to the max gradient

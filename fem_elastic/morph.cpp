@@ -561,7 +561,7 @@ FemTransform3d::doOwnImg(const tCoords& pt) const
 void
 FemTransform3d::doInput(std::istream& is)
 {
-  m_sharedMesh = boost::shared_ptr<CMesh3d>(new CMesh3d);
+  m_sharedMesh = std::shared_ptr<CMesh3d>(new CMesh3d);
 
   m_sharedMesh->load(is);
 }
@@ -590,7 +590,7 @@ FemTransform3d::invert()
   //std::cout << "FemTransform3d: invert" << std::endl;
 
   // ugly, but how else?
-  boost::shared_ptr<CMesh3d>
+  std::shared_ptr<CMesh3d>
   pmesh( new CMesh3d(*dynamic_cast<CMesh3d*>(&*m_sharedMesh) ));
   pmesh->invert();
   pmesh->build_index_src();
@@ -1676,7 +1676,7 @@ VolumeMorph::serialize()
 }
 
 
-boost::shared_ptr<Transform<3> >
+std::shared_ptr<Transform<3> >
 loadTransform(std::istream& is, unsigned int zlibBufferMultiplier)
 {
   // read the string preceding the data
@@ -1697,16 +1697,16 @@ loadTransform(std::istream& is, unsigned int zlibBufferMultiplier)
     strDescription = strDescription.substr(0, sepPos);
   }
 
-  boost::shared_ptr<Transform<3> > bp;
+  std::shared_ptr<Transform<3> > bp;
 
   if ( strDescription == "affine" )
-    bp = boost::shared_ptr<Transform<3> >(new AffineTransform3d);
+    bp = std::shared_ptr<Transform<3> >(new AffineTransform3d);
   else if ( strDescription == "fem" )
-    bp = boost::shared_ptr<Transform<3> >(new FemTransform3d);
+    bp = std::shared_ptr<Transform<3> >(new FemTransform3d);
   else if ( strDescription == "id" )
-    bp = boost::shared_ptr<Transform<3> >(new IdentityTransform3d);
+    bp = std::shared_ptr<Transform<3> >(new IdentityTransform3d);
   else if ( strDescription == "field" )
-    bp = boost::shared_ptr<Transform<3> >(new DeltaTransform3d);
+    bp = std::shared_ptr<Transform<3> >(new DeltaTransform3d);
   else
     throw "loadTransform - unknown transform type";
 
@@ -1719,7 +1719,7 @@ loadTransform(std::istream& is, unsigned int zlibBufferMultiplier)
 
 void
 saveTransform(std::ostream& os,
-              boost::shared_ptr<Transform<3> > ptransform)
+              std::shared_ptr<Transform<3> > ptransform)
 {
   std::cout << " saveTransform code\n";
 

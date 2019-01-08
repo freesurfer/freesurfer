@@ -38,6 +38,7 @@ int mrisClearGradient(MRI_SURFACE *mris);
 int mrisClearExtraGradient(MRI_SURFACE *mris);
 
 void mrisSetVal(MRIS *mris, float val);
+void mrisSetValAndClearVal2(MRIS *mris, float val);
 
 
 void MRISsetCurvaturesToValues    (MRIS *mris, int fno);    //  val = curv
@@ -49,3 +50,5 @@ void MRISsetValuesToCurvatures    (MRIS *mris, int fno);
 int detectContrast(MRIS *mris);
 
 int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_intensity);
+
+void MRISclearWhichAndVal2(MRIS *mris, int which) ;

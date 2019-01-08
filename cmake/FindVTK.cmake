@@ -17,39 +17,45 @@ find_package(VTK HINTS ${VTK_DIR} NO_MODULE)
 
 if(VTK_FOUND)
 
+  # The order of the libraries is important
+    
   # overwrite VTK_LIBRARIES with the absolute paths
   library_paths(
     NAME VTK_LIBRARIES
     LIBDIR ${VTK_LIBRARY_DIRS}
     LIBRARIES
+    #
     vtkverdict
-    vtkGraphics
-    vtkexpat
-    vtkfreetype
-    vtktiff
-    vtkjpeg
     vtkmetaio
-    vtkpng
-    vtkzlib
     vtksqlite
-    vtkImaging
-    vtkFiltering
-    vtkCommon
-    vtksys
-    vtkGenericFiltering
     vtkexoIIc
     vtkNetCDF
     vtkNetCDF_cxx
-    vtkVolumeRendering
-    vtkRendering
-    vtkftgl
-    vtkWidgets
-    vtkHybrid
-    vtkIO
     vtkDICOMParser
     vtkhdf5
     vtkhdf5_hl
     LSDyna
+    #
+    vtkWidgets
+    vtkHybrid
+    vtkVolumeRendering
+    vtkRendering
+    vtkIO
+    vtkGenericFiltering
+    vtkGraphics
+    vtkImaging
+    vtkFiltering
+    #
+    vtkftgl
+    vtktiff
+    vtkjpeg
+    vtkpng
+    vtkzlib
+    vtkexpat
+    vtkfreetype
+    #
+    vtkCommon
+    vtksys
   )
 
   library_paths(

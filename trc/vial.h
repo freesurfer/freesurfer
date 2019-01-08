@@ -28,8 +28,6 @@
 #ifndef NO_CVS_UP_IN_HERE
 // Needed for CVS - these must be included first or else they don't compile
 #include <cmath>
-#include <boost/program_options.hpp>
-#include <boost/progress.hpp>
 #undef SEEK_SET
 #undef SEEK_END
 #undef SEEK_CUR
@@ -38,10 +36,6 @@
 #include "../fem_elastic/surf_utils.h"
 #include "../fem_elastic/morph_utils.h"
 #include "gcamorph.h"
-	/*
-#include "../fem_elastic/morph.h"
-#include "../fem_elastic/morph_utils.h"
-	*/
 #endif
 
 #include <vector>
@@ -87,7 +81,6 @@ class NonlinReg {
                      std::vector<float>::const_iterator InPoint);
 
   private:
-//    boost::shared_ptr<gmp::VolumeMorph> mMorph;
     GCAM *mMorph;
 };
 #endif

@@ -695,6 +695,8 @@ int MRIScountTotalNeighbors(MRIS *mris, int nsize)
 int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 {
   int new_mris_nsize = nsize;
+  int ntotal         = 0;
+  int vtotal         = 0;
 
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -719,8 +721,12 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         MRIS_setNsizeCur(mris, vno, nsize);
         break;
     }
+
+    vtotal += vt->vtotal;
+    ntotal++;
   }
   mris->nsize = new_mris_nsize;
+  mris->avg_nbrs = (float)vtotal / (float)ntotal;
 
   mrisCheckVertexFaceTopology(mris);
 

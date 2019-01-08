@@ -13,7 +13,6 @@ option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
-option(USE_QT4 "Use Qt4 instead of Qt5 for GUIs" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -141,10 +140,6 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # todo: since ITK is now required, we can get rid of this macro
 add_definitions(-DHAVE_ITK_LIBS)
 
-# -------- boost --------
-set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
-find_package(Boost COMPONENTS program_options)
-
 # -------- ann --------
 # ANN is only used by mris_resample
 find_package(ANN)
@@ -163,7 +158,6 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-# version issue for ./freesurfer/histo_register
 if(NOT APPLE)
   find_package(OpenCV)
 endif()
@@ -207,6 +201,10 @@ if(BUILD_GUIS)
   # only used by mris_decimate_gui
   find_package(WXWidgets)
 
+  # -------- xt --------
+  # used by freeview
+  find_package(Xt)
+  
 endif()
 
 # --------------------------------------------------
@@ -245,7 +243,6 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
 
 # for stripping unused code
 if(APPLE)
-  add_subdirectory(histo_register)
   set(STRIP_FLAGS "-dead_strip")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
@@ -257,23 +254,12 @@ endif()
 if(NOT APPLE)
   # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-  # CentOS/Redhat
-  if(EXISTS "/etc/redhat-release")
-     add_subdirectory(histo_register)
-     # Try to use native libGLdispatch.so as versions from /usr/lib64/nvidia may be missing symbols
-     # Alternately add /lib64 to global CMAKE_EXE_LINKER_FLAGS
-     if(EXISTS "/lib64/libGLdispatch.so")
-       set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
-       message("CentOS/Redhat build will use the native libGLdispatch.so if needed")
-     endif()
-  # Ubuntu
-  elseif(EXISTS "/etc/os-release")
-     # add_subdirectory(histo_register EXCLUDE_FROM_ALL)
-     # list(REMOVE_ITEM histo_register ????)
-     message("Ubuntu build will exclude subdirectory ./freesurfer/histo_register")
-  else()
-     add_subdirectory(histo_register)
-  endif()
+endif()
+
+if(EXISTS "/etc/redhat-release" AND EXISTS "/lib64/libGLdispatch.so")
+  # temporary centos7 fix: use native libGLdispatch.so as nvidia version is missing symbols
+  set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
+  message(STATUS "Using the native libGLdispatch.so")
 endif()
 
 # check for clock_gettime on mac

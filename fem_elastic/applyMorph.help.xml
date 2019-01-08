@@ -1,0 +1,30 @@
+<help>
+
+  <name>applyMorph</name>
+
+  <arguments>
+
+    <positional>
+      <argument>inputs</argument>
+      <explanation>Inputs.</explanation>
+    </positional>
+
+    <required-flagged>
+      <argument>--template FILE</argument>
+      <explanation>Template volume.</explanation>
+      <argument>--transform FILE</argument>
+      <explanation>Transform file.</explanation>
+    </required-flagged>
+
+    <optional-flagged>
+      <argument>--zlib_buffer INT</argument>
+      <explanation>Zlib buffer pre-allocation multiplier.</explanation>
+      <argument>--dbg_coords X Y Z</argument>
+      <explanation>Debugging coordinates.</explanation>
+    </optional-flagged>
+
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+</help>

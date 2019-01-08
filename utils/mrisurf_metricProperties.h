@@ -27,7 +27,9 @@
 
 #include "mrisurf_topology.h"
 
-int mrisCheckSurface(MRIS *mris);
+int  mrisCheckSurface( MRIS       * mris);
+bool mrisCheckDist    (MRIS const * mris);
+bool mrisCheckDistOrig(MRIS const * mris);
 
 void MRISmakeDist(MRIS *mris, int vno);
 
