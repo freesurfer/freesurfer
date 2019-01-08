@@ -18,7 +18,7 @@ endif()
 find_package(Qt5 COMPONENTS ${_qt_components})
 
 # trace back root of install
-get_filename_component(Qt5_INSTALL_DIR "${_qt5_install_prefix}")
+set(Qt5_INSTALL_DIR ${_qt5_install_prefix})
 
 # install the shared libraries to the freesurfer lib directory
 if(Qt5_FOUND AND NOT APPLE)
