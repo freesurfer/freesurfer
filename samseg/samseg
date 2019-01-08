@@ -36,6 +36,7 @@ set UseT2w = 0;
 set UseFLAIR = 0;
 set modenamelist = ()
 set refmodename = ();
+set SaveMesh = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -119,6 +120,7 @@ endif
 #========================================================
 
 set cmd0 = (run_samseg -o $outdir --threads $threads)
+if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
@@ -365,6 +367,13 @@ while( $#argv != 0 )
       set regonly = 1;
       breaksw
 
+    case "--save-mesh":
+      set SaveMesh = 1;
+      breaksw
+    case "--no-save-mesh":
+      set SaveMesh = 0;
+      breaksw
+
     case "--monly":
     case "-monly":
       if( $#argv < 1) goto arg1err;
@@ -604,6 +613,8 @@ usage_exit:
   echo " --reg-only : only perform registration"
   echo " --stiffness K : mesh stiffness ($stiffness)"
   echo " --ssdd SAMSEG_DATA_DIR : where the atlas is located"
+  echo " --save-mesh : save the mesh (probably for longitudinal analysis)"
+  echo ""
 
   if(! $PrintHelp) exit 1;
   echo $VERSION
