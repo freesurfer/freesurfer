@@ -506,6 +506,10 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set diceseg = $argv[1]; shift;
       set computedice = 1;
+      if(! -e $diceseg) then
+        echo "ERROR: cannot find $diceseg"
+        exit 1;
+      endif
       breaksw
 
     case "--tmp":
