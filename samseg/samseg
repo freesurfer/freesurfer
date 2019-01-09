@@ -685,6 +685,7 @@ usage_exit:
   echo " --long basedir : base for longitudinal analysis (base must have mesh)"
   echo " --acpvdsc ACPVDSC : absoluteCostPerVoxelDecreaseStopCriterion":
   echo " --max-iters iters"
+  echo " --dice seg.mgz"
   echo ""
 
   if(! $PrintHelp) exit 1;
