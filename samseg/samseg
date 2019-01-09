@@ -40,6 +40,8 @@ set SaveMesh = 0
 set optionsfile = ()
 set longitudinal = 0;
 set basedir = ()
+set ACPVDSC = 1e-4;
+set max_iters = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -123,7 +125,8 @@ endif
 #========================================================
 if($longitudinal) then
   set regmat = $basedir/template_coregistrationMatrices.mat
-  set optionsfile = $outdir/long.options
+  set optionsfile = $outdir/long.options.json
+  rm -f $optionsfile
   echo '{\
     "modelSpecifications": {\
         "atlasFileName": "meshpath"\
@@ -137,12 +140,13 @@ if($longitudinal) then
    }' | sed "s@meshpath@$meshpath@g" > $optionsfile
 endif
 
-set cmd0 = (run_samseg -o $outdir --threads $threads)
+set cmd0 = (run_samseg -o $outdir --threads $threads --acpvdsc $ACPVDSC)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#optionsfile) set cmd0 = ($cmd0 --options $optionsfile)
 if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
+if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 set cmd0 = ($cmd0 --stiffness $stiffness)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
@@ -478,6 +482,16 @@ while( $#argv != 0 )
       set longitudinal = 1;
       breaksw
 
+    case "--acpvdsc":
+      if($#argv < 1) goto arg1err;
+      set ACPVDSC = $argv[1]; shift;
+      breaksw
+
+    case "--max-iters":
+      if($#argv < 1) goto arg1err;
+      set max_iters = $argv[1]; shift;
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -669,6 +683,8 @@ usage_exit:
   echo " --save-mesh : save the mesh (probably for longitudinal analysis)"
   echo " --options optionsfile : to pass to run_samseg"
   echo " --long basedir : base for longitudinal analysis (base must have mesh)"
+  echo " --acpvdsc ACPVDSC : absoluteCostPerVoxelDecreaseStopCriterion":
+  echo " --max-iters iters"
   echo ""
 
   if(! $PrintHelp) exit 1;
