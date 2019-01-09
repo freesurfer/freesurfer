@@ -28,6 +28,7 @@ parser.add_argument('--no-brainmask', action='store_true', default=False, help='
 parser.add_argument('--diag-covs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
 parser.add_argument('--stiffness', type=float, default=0.1, help='stiffness of the mesh (default is 0.1)')
 parser.add_argument('--max-iters', type=int, default=100, help='maximum number of iterations')
+parser.add_argument('--acpvdsc', type=float, default=1e-4, help='absoluteCostPerVoxelDecreaseStopCriterion')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='save history')
@@ -141,7 +142,7 @@ modelSpecifications = Specification({
 userOptimizationOptions = userOptions.get('optimizationOptions')
 optimizationOptions = Specification({
     'maximumNumberOfDeformationIterations': 20,
-    'absoluteCostPerVoxelDecreaseStopCriterion': 1e-4,
+    'absoluteCostPerVoxelDecreaseStopCriterion': args.acpvdsc,
     'verbose': args.verbose,
     'maximalDeformationStopCriterion': 0.001,  # measured in pixels
     'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
