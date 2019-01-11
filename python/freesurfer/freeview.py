@@ -147,13 +147,16 @@ class Freeview:
             return unique
 
 
-def fv(*args, background=True, opts=''):
+def fv(*args, **kwargs):
     '''Freeview wrapper to quickly load an arbitray number of volumes. Inputs can be
     existing volume filenames, numpy arrays, or nibabel images.
 
     Args:
         background: Run freeview as a background process. Defaults to True.
     '''
+    background = kwargs.pop('background', True)
+    opts = kwargs.pop('opts', '')
+
     freeview = Freeview()
     for arg in args:
         freeview.vol(arg)
