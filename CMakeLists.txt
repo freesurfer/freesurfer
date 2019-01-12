@@ -217,7 +217,7 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result -Wno-unused-local-typedefs")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")

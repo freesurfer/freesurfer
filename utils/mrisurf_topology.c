@@ -2010,9 +2010,6 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
      rejecting duplicates
   */
   for (fno = 0; fno < vnewt->num; fno++) {
-    typedef void vno1;
-    typedef void vno2;
-    
     FACE const * const face = &mris->faces[vnewt->f[fno]];
     n1 = vnewt->n[fno] == 0 ? VERTICES_PER_FACE - 1 : vnewt->n[fno] - 1;
     n2 = vnewt->n[fno] == VERTICES_PER_FACE - 1 ? 0 : vnewt->n[fno] + 1;

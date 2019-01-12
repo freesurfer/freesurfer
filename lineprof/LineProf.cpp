@@ -92,8 +92,6 @@ LineProf::ComputeProfiles(double offset,  double dspacing)
     return std::vector < std::vector < std::vector < double > > > (0);
   }
 
-  typedef Tracer::LineType LineType;
-  typedef std::vector<LineType> LineContainerType;
   std::vector < std::vector < std::vector < double > > > lc;
 
 //  // compute isoline at 0.5 level (in the middle)
