@@ -4160,7 +4160,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     HISTOGRAM *h1, *h2, *hs, *hwm, *hwm2, *hwms ;
     MRI_REGION region ;
     int whalf, wsize;
-    double mean, sigma, mean_wm, sigma_wm, previous_val ;
+    double mean, sigma, mean_wm, sigma_wm, previous_val = 0;
     HISTOGRAM *hcdf_rev,*hcdf;
     int bin1, bin2;
     double NUDGE_DIST=0.5;
