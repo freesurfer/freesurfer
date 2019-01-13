@@ -124,12 +124,9 @@ def registerAtlas(
         calculator = gems.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
-        priors = mesh.rasterize_atlas(imageBuffer.shape)
-        visualizer.show(probabilities=priors, window_id='atlas probabilities', title='Atlas Probabilities')
-        tmp = np.sum(priors[:, :, :, 1:], axis=3)
-        centerOfGravityAtlas = np.array(scipy.ndimage.measurements.center_of_mass(tmp))
-        initialTranslation = centerOfGravityImage - centerOfGravityAtlas
         nodePositions = mesh.points
+        meanNodePosition = np.mean(nodePositions, axis=0)
+        initialTranslation = centerOfGravityImage - meanNodePosition
         trialNodePositions = nodePositions + initialTranslation
         mesh.points = trialNodePositions
         trialCost, trialGradient = calculator.evaluate_mesh_position_b(mesh)
