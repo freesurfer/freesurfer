@@ -152,7 +152,8 @@ void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol);
 
 MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M);
 MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol);
-
+MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
+MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask);
 #if defined(__cplusplus)
 };
 #endif

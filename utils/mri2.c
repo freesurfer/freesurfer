@@ -5410,3 +5410,66 @@ MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol)
 
   return(vol);
 }
+/*!
+  \fn MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
+  \brief Merges multiple segmentations into one. Can be done in-place.
+  \parameter seg - original segmentation
+  \parameter seglist - list of segmentation IDs to merge
+  \parameter nsegs - length of list
+  \parameter NewSegId - replace values in list with NewSegId
+  \parameter newseg - new segmentation (also passed as output)
+*/
+MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
+{
+  int c,r,s,n,segid;
+
+  if(newseg == NULL) newseg = MRIcopy(seg,NULL);
+
+  for (c=0; c < seg->width; c++){
+    for (r=0; r < seg->height; r++){
+      for (s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	MRIsetVoxVal(newseg,c,r,s,0, segid);
+	for(n=0; n < nsegs; n++){
+	  if(segid == seglist[n]){
+	    MRIsetVoxVal(newseg,c,r,s,0,NewSegId);
+	    break;
+	  }
+	}
+      }
+    }
+  }
+  return(newseg);
+}
+/*
+  \fn MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
+  \brief Creates a binary mask of voxels that match any of the IDs in the
+    segmentations list. Can be done in-place.
+  \parameter seg - original segmentation
+  \parameter seglist - list of segmentation IDs to merge
+  \parameter nsegs - length of list
+  \parameter MaskId - replace values in list with MaskId
+  \parameter mask - new segmentation (also passed as output)
+*/
+MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
+{
+  int c,r,s,n,segid;
+
+  if(mask == NULL) mask = MRIcopy(seg,NULL);
+
+  for (c=0; c < seg->width; c++){
+    for (r=0; r < seg->height; r++){
+      for (s=0; s < seg->depth; s++){
+	MRIsetVoxVal(mask,c,r,s,0, 0);
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	for(n=0; n < nsegs; n++){
+	  if(segid == seglist[n]){
+	    MRIsetVoxVal(mask,c,r,s,0,MaskId);
+	    break;
+	  }
+	}
+      }
+    }
+  }
+  return(mask);
+}
