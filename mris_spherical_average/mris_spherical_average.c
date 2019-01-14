@@ -36,6 +36,7 @@
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
+#include "mrisurf_vals.h"
 #include "mri.h"
 #include "macros.h"
 #include "mrishash.h"
