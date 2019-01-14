@@ -6,10 +6,9 @@ Gheorghe Postelnicu, 2007
 #ifndef _h_pbCluster_mesh_crop_h_
 #define _h_pbCluster_mesh_crop_h_
 
-#include <boost/shared_ptr.hpp>
-
 #include <list>
 #include <vector>
+#include <memory>
 
 #include "fem_3d.h"
 
@@ -17,7 +16,7 @@ class TopologySolver
 {
 public:
   typedef std::vector<unsigned int> IndexVectorType;
-  typedef boost::shared_ptr<IndexVectorType> IndexVectorPointer;
+  typedef std::shared_ptr<IndexVectorType> IndexVectorPointer;
   typedef std::list<IndexVectorPointer> ClusterContainerType;
 
   TopologySolver(TMesh3d& mesh, unsigned int radius=2,

@@ -27,7 +27,9 @@
 
 #include "mrisurf_topology.h"
 
-int mrisCheckSurface(MRIS *mris);
+int  mrisCheckSurface( MRIS       * mris);
+bool mrisCheckDist    (MRIS const * mris);
+bool mrisCheckDistOrig(MRIS const * mris);
 
 void MRISmakeDist(MRIS *mris, int vno);
 
@@ -115,11 +117,7 @@ int mrisMarkIntersections(MRIS *mris);
 void mrisDumpFace(MRIS *mris, int fno, FILE *fp);
 
 
-int    mrisComputeSurfaceDimensions      (MRIS *mris);
-
 int    MRIScomputeAllDistances           (MRIS *mris);
-int    mrisComputeVertexDistances        (MRIS *mris);
-int    mrisComputeOriginalVertexDistances(MRIS *mris);
 void   MRIScomputeAvgInterVertexDist     (MRIS *Surf, double *StdDev);
 void   mrisSetAvgInterVertexDist         (MRIS *Surf, double to);
 int    mrisTrackTotalDistance            (MRIS *mris);

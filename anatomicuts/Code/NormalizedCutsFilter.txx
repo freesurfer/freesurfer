@@ -70,7 +70,7 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 		sample->PushBack(mv);
 	}
 	std::string lastLabel="1";
-	typedef std::tuple<int, std::string,typename SampleType::Pointer> SamplePriority;
+	// typedef std::tuple<int, std::string,typename SampleType::Pointer> SamplePriority;
 	//std::priority_queue<SamplePriority, std::vector<SamplePriority>, greaterTuples<SamplePriority>> queue;	
 	std::priority_queue<PriorityNode<SampleType>> queue;	
 	//	queue.emplace(sample->Size(),lastLabel,sample);

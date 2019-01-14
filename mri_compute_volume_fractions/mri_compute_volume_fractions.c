@@ -442,11 +442,12 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --o   outstem : output will be oustem.{cortex,subcort_gm,wm,csf}.mgz\n");
-  printf("   --reg regfile : can be LTA or reg.dat\n");
-  printf("\n");
-  printf("   --usf USF : upsample factor (default %d)\n",USF);
+  printf("   --reg regfile : can be LTA or reg.dat (if reg.dat, then need template volume)\n");
   printf("   --regheader subject\n");
+  printf("\n");
+  printf("   --usf USF : set anatomical upsample factor (default %d)\n",USF);
   printf("   --r res   : resolution, sets USF = round(1/res)\n");
+  printf("   --resmm resmm : set functional upsampling resolution (default is aseg->xsize/(USF))\n");
   printf("   --seg  segfile : use segfile instead of %s\n",asegfile);
   printf("   --wsurf wsurf : white surface (default is %s)\n",wsurf);
   printf("   --psurf psurf : pial surface (default is %s)\n",psurf);
@@ -481,6 +482,12 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
   printf("Computes partial volume fractions for cortex, subcortical GM, WM and CSF\n");
+  printf("\n");
+  printf("Example\n");
+  printf("   mri_compute_volume_fractions --nii.gz --reg reg.lta --usf 3 --o pvf.\n");
+  printf("This will create files called pvf.{cortex,subcort_gm,wm,csf}.nii.gz\n");
+  printf("The value at each voxel will be between 0 and 1 and represent the fraction of \n");
+  printf("the given tissue type\n");
   exit(1) ;
 }
 /*---------------------------------------------*/

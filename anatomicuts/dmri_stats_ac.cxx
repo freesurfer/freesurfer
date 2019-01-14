@@ -72,7 +72,7 @@ int main(int narg, char*  arg[])
 	std::vector<ImageType::Pointer> measures;
 	std::vector<std::string> measuresNames;
 	int numMeasures = cl.follow(0,"-m");
-	for(unsigned int i=0;i<numMeasures;i++)
+	for(int i=0;i<numMeasures;i++)
 	{
 		measuresNames.push_back(std::string( cl.next ("")));
 		const char *imFile = cl.next ("");
@@ -108,7 +108,7 @@ int main(int narg, char*  arg[])
 	while ( file.good() )
 	{
 		getline ( file, value, ',' );
-		long long v1 = atoll(value.c_str());
+		// long long v1 = atoll(value.c_str());
 		getline ( file, value, ',' ); 
 		long long v2 = atoll(value.c_str());
 		correspondences.push_back(v2);		

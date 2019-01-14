@@ -12,10 +12,10 @@
 #    surfaces. At that point, the standard recon-all stream is run
 #    until completion. To run with this facility, add the -conf2hires flag.
 #    Do not use -hires or -cubic or -cm.
+# 3. Changes to make it compatible with the longitudinal stream
 # Notes:
 # - No binaries outside of the FreeSurfer version 6 distribution are needed.
-# - This is currently not compatible with the longitudinal analysis.
-# - Will not run with FLAIR instead of T2
+# - Might run with FLAIR instead of T2, but this has not been tested.
 
 #
 # recon-all.v6.hires
@@ -7160,6 +7160,7 @@ while( $#argv != 0 )
 
     case "-conf2hires":
       set DoConf2Hires = 1;
+      set DoSurfVolume = 1;
       set HiRes = 0;
       set ConformMin = 0;
       set UseCubic = 0; # The conformed should be generated with trilin interp

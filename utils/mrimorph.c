@@ -249,15 +249,19 @@ HISTOGRAM *MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh)
 ------------------------------------------------------*/
 int MRIcountAboveThreshold(MRI *mri, double thresh)
 {
-  int x, y, z, width, height, depth, count;
-  double val;
+  int y,  width, height, depth, count;
 
   width = mri->width;
   height = mri->height;
   depth = mri->depth;
 
   count = 0;
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : count)
+#endif
   for (y = 0; y < height; y++) {
+    int x,z;
+    double val;
     for (z = 0; z < depth; z++) {
       for (x = 0; x < width; x++) {
         val = MRIgetVoxVal(mri, x, y, z, 0);

@@ -325,6 +325,11 @@ main(int argc, char *argv[])
     parms.start_t = 0 ;
   }
 
+  MRISfreeDistsButNotOrig(mris_lh);
+  MRISfreeDistsButNotOrig(mris_rh);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   // average lh and rh warps and projects back onto sphere
   for (h = LEFT_HEMISPHERE ; h <= RIGHT_HEMISPHERE ; h++)   // register left to right and right to left
   {

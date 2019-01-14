@@ -206,6 +206,7 @@ static void rompExitHandler(void)
         if (!comFile) {
             fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
         } else {
+            fprintf(stderr, "Created %s\n", ROMP_statsFileName);
             ROMP_show_stats(comFile);
             fclose(comFile);
         }

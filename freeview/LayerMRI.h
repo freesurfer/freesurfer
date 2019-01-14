@@ -423,7 +423,7 @@ protected:
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMapMaxProjection[3];
   vtkSmartPointer<vtkSimpleLabelEdgeFilter>   mEdgeFilter[3];
-  vtkSmartPointer<vtkImageResample>     mResample[3];
+  vtkSmartPointer<vtkImageReslice>     mResample[3];
 
   FSVolume*   m_volumeSource;
   FSVolume*   m_volumeRef;

@@ -13,7 +13,6 @@ option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
-option(USE_QT4 "Use Qt4 instead of Qt5 for GUIs" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -107,7 +106,9 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a gfortran)
+  find_library(GFORTRAN_LIBRARIES
+    HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
+    NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -141,10 +142,6 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # todo: since ITK is now required, we can get rid of this macro
 add_definitions(-DHAVE_ITK_LIBS)
 
-# -------- boost --------
-set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
-find_package(Boost COMPONENTS program_options)
-
 # -------- ann --------
 # ANN is only used by mris_resample
 find_package(ANN)
@@ -163,7 +160,6 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-# version issue for ./freesurfer/histo_register
 if(NOT APPLE)
   find_package(OpenCV)
 endif()
@@ -207,6 +203,10 @@ if(BUILD_GUIS)
   # only used by mris_decimate_gui
   find_package(WXWidgets)
 
+  # -------- xt --------
+  # used by freeview
+  find_package(Xt)
+  
 endif()
 
 # --------------------------------------------------
@@ -219,7 +219,7 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result -Wno-unused-local-typedefs")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
@@ -253,9 +253,15 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
 
-# link map (only for linux)
 if(NOT APPLE)
+  # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+if(EXISTS "/etc/redhat-release" AND EXISTS "/lib64/libGLdispatch.so")
+  # temporary centos7 fix: use native libGLdispatch.so as nvidia version is missing symbols
+  set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
+  message(STATUS "Using the native libGLdispatch.so")
 endif()
 
 # check for clock_gettime on mac
@@ -481,7 +487,6 @@ if(NOT MINIMAL)
     HippoSF
     histo_compute_joint_density
     histo_fix_topology
-    histo_register
     histo_register_block
     histo_segment
     histo_synthesize

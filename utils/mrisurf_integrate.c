@@ -678,6 +678,7 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       gamma = DEGREES(delta_t * mris->gamma);
       fprintf(stdout, "rotating brain by (%2.1f, %2.1f, %2.1f)\n", alpha, beta, gamma);
     }
+
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
     if (parms->remove_neg && mris->neg_area > 0) {
@@ -1237,6 +1238,8 @@ int MRISregister(MRI_SURFACE *mris,
   FileNamePath(mris->fname, path);
   sprintf(base_name, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
 
+  mrisComputeOriginalVertexDistances(mris);
+  
   if (parms->nbhd_size > 3) {
     int nbrs[MAX_NBHD_SIZE];
 
@@ -1251,6 +1254,7 @@ int MRISregister(MRI_SURFACE *mris,
     MRISrestoreVertexPositions(mris, TMP_VERTICES);
     MRIScomputeMetricProperties(mris);
   }
+  
   base_dt = parms->dt;
   if (Gdiag & DIAG_WRITE) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
@@ -3490,7 +3494,22 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisWriteSnapshot(mris, parms, 0);
   }
 
+  bool useOldBehaviour = false;
+  if (useOldBehaviour) {
+    switch (copeWithLogicProblem("FREESURFER_fix_inflateBrain","should set origx et al here")) {
+    case LogicProblemResponse_old: 
+      break;
+    case LogicProblemResponse_fix:
+      useOldBehaviour = false;
+    }
+  }
+  if (!useOldBehaviour) {
+    MRISsetOriginalXYZfromXYZ(mris);
+    mrisComputeOriginalVertexDistances(mris);
+  }
+  
   sse = MRIScomputeSSE(mris, parms);
+  
   if (!parms->start_t) {
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, (float)rms_height, parms->n_averages);
@@ -3511,20 +3530,13 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     parms->l_dist = l_dist * sqrt(n_averages);
     for (n = parms->start_t; n < parms->start_t + niterations; n++) {
       mrisTearStressedRegions(mris, parms)  ;
+      
       if (parms->explode_flag)
       {
         MRISsetOrigArea(mris);  // used to happen inside MRISrenumberRemovingRippedFacesAndVertices
 	MRISrenumberRemovingRippedFacesAndVertices(mris);
       }
   
-#if 0
-      {
-	MRI_SURFACE *mris_tmp ;
-	mris_tmp = MRISremoveRippedSurfaceElements(mris) ;
-	MRISfree(&mris) ;
-	mris = mris_tmp ;
-      }
-#endif
       MRISclearGradient(mris);
       mrisComputeDistanceTerm(mris, parms);
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a, parms->explode_flag);

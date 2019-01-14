@@ -374,9 +374,17 @@ int MRISclearFlags(MRIS *mris, int flags)
 void mrisSetVal(MRIS *mris, float val)
 {
   int n;
-  for (n = 0; n < mris->nvertices; n++) mris->vertices[n].val = val;
+  for (n = 0; n < mris->nvertices; n++) 
+    mris->vertices[n].val = val;
 }
 
+void mrisSetValAndClearVal2(MRIS *mris, float val) {
+  int n;
+  for (n = 0; n < mris->nvertices; n++) { 
+    mris->vertices[n].val  = val;
+    mris->vertices[n].val2 = 0.0f;
+  }
+}
 
 int mrisClearGradient(MRI_SURFACE *mris)
 {
@@ -4073,4 +4081,37 @@ static int MRISsampleDistances_new(MRI_SURFACE *mris, int *nbrs, int max_nbhd, F
   }
 
   return (NO_ERROR);
+}
+
+
+// Some general purpose operations
+//
+void MRISclearWhichAndVal2(MRIS *mris, int which)
+{
+  switch (which) {
+    case VERTEX_AREA:
+      MRISclearOrigAreaAndVal2(mris);
+      return;
+    case VERTEX_CURV:
+      MRISclearCurvAndVal2(mris);
+      return;
+    case VERTEX_LOGODDS:
+    case VERTEX_VAL:
+      mrisSetValAndClearVal2(mris, 0.0f);
+      return;
+  }
+
+  int vno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX *v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    switch (which) {
+      default:
+        cheapAssert(false);
+    }
+    v->val2 = 0;            // surprise!
+  }
 }

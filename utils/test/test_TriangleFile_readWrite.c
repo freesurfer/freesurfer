@@ -32,8 +32,10 @@ bool static trySrc(MRIS* src) {
 
     printf("Trying %s\n", fnm);
       
-    printf("MRISwrite %s returned %d\n",
-      fnm, MRISwrite(src, fnm));
+    int writeStatus = MRISwrite(src, fnm);
+    if (!writeStatus)
+      printf("MRISwrite %s returned %d\n",
+        fnm, writeStatus);
 
     if (ext[0] == 'M') {
       printf("MRISread does not support %s files\n",
@@ -48,9 +50,6 @@ bool static trySrc(MRIS* src) {
       continue;
     }
     
-    printf("MRISread %s returned mris with dims nvertices:%d nfaces:%d\n",
-      fnm, dst->nvertices, dst->nfaces);
-
     if (src->nvertices != dst->nvertices) {
       fails++;
       printf("FAIL src->nvertices:%d != dst->nvertices:%d\n",

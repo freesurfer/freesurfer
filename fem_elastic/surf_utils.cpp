@@ -22,6 +22,10 @@ convert_surf_to_vox(MRI_SURFACE* mris,
 {
   int const nvertices = mris->nvertices;
 
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   for (int vno=0; vno < nvertices; ++vno )
   {
     VERTEX const * v = &mris->vertices[vno];
@@ -52,6 +56,10 @@ convert_vox_to_surf(MRI_SURFACE* mris,
                     MRI* vol)
 {
   int const nvertices = mris->nvertices;
+
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
 
   for (int vno=0; vno < nvertices; ++vno )
   {

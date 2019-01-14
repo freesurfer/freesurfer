@@ -26,7 +26,7 @@ int main(int narg, char*  arg[])
 		typedef itk::Mesh< CoordType, Dimension > MeshType;
 		typedef MeshType::PointsContainer PointsContainer;
 		typedef MeshType::PointType PointType;
-		typedef MeshType::PointIdentifier PointIdentifier;
+		//typedef MeshType::PointIdentifier PointIdentifier;
 		typedef MeshType::CellType CellType;
 		typedef itk::TriangleCell< CellType > TriangleType;
 

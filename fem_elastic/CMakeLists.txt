@@ -1,13 +1,12 @@
 project(fem_elastic)
 
-if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
+if(Tetgen_FOUND AND PETSC_FOUND)
 
   include_directories(
     ${FS_INCLUDE_DIRS}
     ${PETSC_INCLUDE_DIR}
     ${Tetgen_INCLUDE_DIR}
     ${ITK_INCLUDE_DIRS}
-    ${Boost_INCLUDE_DIRS}
   )
 
   set(COMMON3D_SOURCES
@@ -23,17 +22,20 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
 
   # createMorph
   add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(createMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  add_help(createMorph createMorph.help.xml)
+  target_link_libraries(createMorph utils utilscpp ${Tetgen_LIBRARIES})
   install(TARGETS createMorph DESTINATION bin)
 
   # applyMorph
   add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(applyMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  add_help(applyMorph applyMorph.help.xml)
+  target_link_libraries(applyMorph utils utilscpp ${Tetgen_LIBRARIES})
   install(TARGETS applyMorph DESTINATION bin)
 
   # exportGcam
   add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(exportGcam utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  add_help(exportGcam exportGcam.help.xml)
+  target_link_libraries(exportGcam utils utilscpp ${Tetgen_LIBRARIES})
   install(TARGETS exportGcam DESTINATION bin)
 
   if(APPLE)
@@ -67,6 +69,8 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
 
   # fem_elastic library
   add_library(fem_elastic STATIC fcreateMorph.cpp fapplyMorph.cpp ${COMMON3D_SOURCES})
+  add_help(fem_elastic applyMorph.help.xml)
+  add_help(fem_elastic createMorph.help.xml)
   target_link_libraries(fem_elastic)
 
 endif()

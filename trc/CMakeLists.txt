@@ -1,6 +1,6 @@
 project(trc)
 
-if(Boost_FOUND AND PETSC_FOUND)
+if(PETSC_FOUND)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -8,7 +8,6 @@ if(Boost_FOUND AND PETSC_FOUND)
     ${CMAKE_SOURCE_DIR}/fem_elastic
     ${Tetgen_INCLUDE_DIR}
     ${PETSC_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS}
   )
 
   # dmri_spline

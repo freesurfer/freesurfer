@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -e
+
+# input checks
+if [ "$#" -ne "2" ]; then
+  echo "error: mac_deploy requires 2 arguments"
+  echo "usage: mac_deploy <qt-directory> <bundle-directory>"
+  exit 1
+fi
+
+qtdir="$1"
+if [ ! -d "$qtdir" ]; then
+  echo "error: qt directory '$qtdir' does not exist"
+  exit 1
+fi
+
+bundle="$2"
+if [ ! -d "$bundle" ]; then
+  echo "error: bundle directory '$bundle' does not exist"
+  exit 1
+fi
+
+# create the proj language directory
+mkdir -p ${bundle}/Contents/Resources/English.lproj
+
+# locate the bundle binary
+binary="$(ls ${bundle}/Contents/MacOS)"
+if [ "$(echo $binary | wc -w)" -ne "1" ] ; then
+  echo "error: more than 1 file found in ${bundle}/Contents/MacOS"
+  exit 1
+fi
+binarypath="${bundle}/Contents/MacOS/${binary}"
+
+# run macdeployqt
+${qtdir}/bin/macdeployqt ${bundle} -always-overwrite
+
+# if the final binary references the Qt frameworks via rpath, we need to actually
+# add a relative rpath, since macdeployqt completely ignores this
+if [ -n "$(otool -L $binarypath | grep '@rpath/Qt')" ] ; then
+  if [ -z "$(otool -l $binarypath | grep '@executable_path/../Frameworks')" ] ; then
+    install_name_tool -add_rpath "@executable_path/../Frameworks" $binarypath
+  fi
+fi

@@ -46,6 +46,50 @@
 #include "version.h"
 #include "cmdargs.h"
 #include "matrix.h"
+#include "cma.h"
+#include "region.h"
+#ifdef _OPENMP
+#include "romp_support.h"
+#endif
+
+typedef struct {
+  MATRIX *offsetRAS; // 0 point in RAS scanner space
+  MATRIX *offsetCRS; // 0 point in col, row, slice
+  int nfields;
+  double *period; // one for each field
+  int    *dim;    // one for each field
+  MRI *template;
+  MRI *mask;
+  MRI *field;
+  double lpcutoff; // cutoff period in mm
+  MRI_REGION *bbfit; // bounding box
+} DCT_FIELD_SPEC, DCTFS;
+
+typedef struct {
+  MRI *ubermask;
+  MRI *inputbc;
+  MRI *input;
+  MRI *biasfield;
+  MRI *bbinput;
+  MRI *srcseg;
+  MRI *seg;
+  MRI *segerode;
+  int nerode;
+  MRI_REGION *bb;
+  MRI *bbseg;
+  int logflag;
+  int nP[3];
+  MATRIX *y, *Xseg, *Xbf;
+  MATRIX *beta, *betaseg, *betabf;
+  MATRIX *X, *Xt,*XtX,*iXtX,*Xty;
+  double XtXcond;
+  int *exsegs, nexsegs;
+  int *wmsegs, nwmsegs;
+  int *ctxsegs, nctxsegs;
+  DCT_FIELD_SPEC *dct;
+  double wmmean;
+} MRI_BIAS_FIELD, MRIBF;
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -64,40 +108,38 @@ int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-char *subject, *SUBJECTS_DIR;
-char *srcfile=NULL, *trgfile=NULL;
-char *biasfile=NULL, *yhatfile=NULL, *resfile=NULL;
-char *maskfile = "brainmask.mgz";
-char *segfile = "aseg.mgz";
-MRI *src, *seg, *segerode, *mask, *trg, *wmmask;
-int niters = 10, polyorder = 3;
+char *srcfile=NULL, *outfile=NULL,*biasfile=NULL;
+char *maskfile = NULL, *segfile = NULL;
+MRI *src, *seg, *mask, *out;
+int nthreads=0;
+double lpfcutoffmm = 23;
+char *Xfile=NULL, *yfile=NULL, *dctfile=NULL,*betafile=NULL;
+char *yhatfile=NULL, *resfile=NULL;
+char *SUBJECTS_DIR;
 
 MATRIX *MRIbiasPolyReg(int order, MRI *mask);
 MATRIX *MRIbiasXsegs(MRI *seg);
-MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
-MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient);
-MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
-MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template);
-MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat);
-MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
-MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product);
+MRI *MRIdctField(MRI *template, int nP[3], int offset);
+MRI *MRIfitDCTField(MRI *field, MRI *mask, int nP[3]);
+MATRIX *MRIbiasDCTReg(MRI *dctfield, MRI *mask, MATRIX *X);
+int MRIbiasFieldCorLog(MRIBF *bf);
+int DCTfield(DCTFS *dct);
+int DCTspecLPF(DCTFS *dct);
+DCTFS *DCTalloc(void);
+MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, MRI *bc);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,c,r,s,k,nmask,err;
-  int wmsegs[] = {2,41,251,252,253,254,255,7,46},nwmsegs;
+  int nargs;
+  int wmsegs[] = {2,41,251,252,253,254,255},nwmsegs; //7,46
   int csfsegs[] = {4,5,14,24,43,44,75,31,63,15},ncsfsegs;
-  int exsegs[] = {30,62,77,85},nexsegs;
-  char tmpstr[2000];
-  double sumval,val, rvarSeg, rvarBias, mres;
-  MATRIX *Zwm, *Zm, *ywm, *ywmT, *f, *fT, *alpha0, *alpha, *X;
-  MATRIX *Xt,*XtX,*iXtX,*iXtXXt;
-  MATRIX *phat, *y0, *mattmp, *yhat,  *beta, *res, *fhat;
-  MRI *mritmp, *aseg;
+  int ctxsegs[] = {3,42},nctxsegs;
+  int exsegs[] = {30,62,77,85,16,7,8,46,47,12,51,13,52,11,50,17,53,18,54,10,49,28,60,26,58},nexsegs;
 
   nwmsegs = sizeof(wmsegs)/sizeof(int);
   ncsfsegs = sizeof(csfsegs)/sizeof(int);
+  nctxsegs = sizeof(ctxsegs)/sizeof(int);
   nexsegs = sizeof(exsegs)/sizeof(int);
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -125,188 +167,50 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,srcfile);
-  printf("Reading %s\n",tmpstr);
-  src = MRIread(tmpstr);
+  printf("Reading %s\n",srcfile);
+  src = MRIread(srcfile);
   if(src==NULL) exit(1);
 
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,segfile);
-  printf("Reading %s\n",tmpstr);
-  seg = MRIread(tmpstr);
+  printf("Reading %s\n",segfile);
+  seg = MRIread(segfile);
   if(seg==NULL) exit(1);
 
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,maskfile);
-  printf("Reading %s\n",tmpstr);
-  mask = MRIread(tmpstr);
+  printf("Reading %s\n",maskfile);
+  mask = MRIread(maskfile);
   if(mask==NULL) exit(1);
 
-  // keep a copy of the aseg to use later
-  aseg = MRIcopy(seg,NULL); 
+  MRIBF *bf;
+  bf = (MRIBF *)calloc(sizeof(MRIBF),1);
+  bf->input = src;
+  bf->srcseg = seg;
+  bf->nerode = 1;
+  bf->logflag = 1;
+  bf->ubermask = mask;
+  bf->dct = DCTalloc();
+  bf->dct->template = src;
+  bf->dct->lpcutoff = lpfcutoffmm;
+  MRIbiasFieldCorLog(bf);
 
-  // Create mask from wm in aseg
-  wmmask = MRImatchSegs(seg,wmsegs, nwmsegs, 1, NULL);
-  wmmask = MRIerodeSegmentation(wmmask, NULL,2,0);
+  // Apply the bias field. This also rescales so that the mean in the eroded
+  // WM is 110. It also changes the values in the biasfield to account for the
+  // rescaling so that bcoutput = input/biasfield, though I think the unrescaled
+  // bias field is probably more informative (or scaling it so that wm = 1)
+  MRI *bc=MRIapplyBiasField(bf->input, bf->biasfield, bf->segerode, bf->ubermask, 110, NULL);
+  printf("Writing output to %s\n",outfile);fflush(stdout);
+  MRIwrite(bc,outfile);
+  MRIfree(&bc);
 
-  // Modify aseg to merge and exclude some segs
-  seg = MRImergeSegs(seg, wmsegs, nwmsegs, 2, seg);
-  seg = MRImergeSegs(seg, csfsegs, ncsfsegs, 4, seg);
-  seg = MRImergeSegs(seg, exsegs, nexsegs, 0, seg);
-  seg = MRIerodeSegmentation(seg, NULL,1,0);
+  if(biasfile)
+    MRIwrite(bf->biasfield,biasfile);
 
-  // Create initial estimate of bias only from WM
-  Zwm = MRIbiasPolyReg(polyorder, wmmask);
+  if(dctfile)
+    MRIwrite(bf->dct->field,dctfile);
 
-  ywmT = MRIvol2mat(src, wmmask, NULL);
-  ywm = MatrixTranspose(ywmT,NULL);
-  MatrixFree(&ywmT);
-  alpha0 = MatrixGlmFit(ywm, Zwm, &rvarBias, NULL);
-  for(r=0; r < alpha0->rows; r++) alpha0->rptr[r+1][1] = 
-    alpha0->rptr[r+1][1]/alpha0->rptr[alpha0->rows][1];
-  //MatrixWrite(alpha0,"alpha0.mat","alpha0");
+  if(Xfile) MatrixWriteTxt(Xfile,bf->X);
+  if(yfile) MatrixWriteTxt(yfile,bf->y);
+  if(betafile) MatrixWriteTxt(yfile,bf->beta);
 
-  // Eextend init bias to all segs
-  Zm = MRIbiasPolyReg(polyorder,seg);
-  phat = MatrixMultiply(Zm,alpha0,NULL);
-
-  X    = MRIbiasXsegs(seg);
-  Xt   = MatrixTranspose(X,NULL);
-  XtX  = MatrixMultiplyD(Xt,X,NULL);
-  iXtX = MatrixInverse(XtX,NULL);
-  iXtXXt = MatrixMultiplyD(iXtX,Xt,NULL);
-
-  fT = MRIvol2mat(src,seg,NULL);
-  f = MatrixTranspose(fT,NULL);
-  MatrixFree(&fT);
-
-  y0 = NULL;
-  yhat = NULL;
-  beta = NULL;
-  alpha = NULL;
-  rvarSeg = 0;
-  for(k=0; k < niters; k++){
-    y0 = MatrixElementDivide(f,phat,y0);
-    //beta = MatrixGlmFit(y0, X, &rvarSeg, beta);  
-    beta = MatrixMultiplyD(iXtXXt,y0,beta);
-    yhat = MatrixMultiplyD(X,beta,yhat);
-    res  = MatrixSubtract(y0, yhat, NULL);
-    rvarSeg = VectorVar(res,&mres);
-    rvarSeg = rvarSeg*(X->rows-1)/(X->rows-X->cols);
-
-    phat = MatrixElementDivide(f,yhat,phat);
-    alpha = MatrixGlmFit(phat, Zm, &rvarBias, alpha);
-    phat = MatrixMultiply(Zm,alpha,phat);
-    printf("%2d %6.4f %6.4f\n",k,rvarSeg,rvarBias);
-  }
-  for(r=0; r < alpha->rows; r++) alpha->rptr[r+1][1] = 
-    alpha->rptr[r+1][1]/alpha->rptr[alpha->rows][1];
-  //MatrixWrite(alpha,"alpha.mat","alpha");
-  //MatrixWrite(Xsegs,"Xsegs.mat","Xsegs");
-  //MatrixWrite(K,"Z.mat","Z");
-
-  MatrixFree(&alpha0);
-  MatrixFree(&y0);
-  MatrixFree(&res);
-  MatrixFree(&f);
-  MatrixFree(&phat);
-  MatrixFree(&yhat);
-  MatrixFree(&Zm);
-  MatrixFree(&Xt);
-  MatrixFree(&XtX);
-  MatrixFree(&iXtX);
-  MatrixFree(&iXtXXt);
-
-  // Apply to all voxels in the brain
-  printf("Apply to all voxels in the brain\n");
-  Zm = MRIbiasPolyReg(polyorder,mask);
-  phat = MatrixMultiply(Zm,alpha,NULL);
-  fT = MRIvol2mat(src,mask,NULL);
-  f = MatrixTranspose(fT,NULL);
-  MatrixFree(&fT);
-
-  printf("Computing output\n");
-  y0 = MatrixElementDivide(f,phat,NULL);
-  mattmp = MatrixTranspose(y0,NULL);
-  trg = MRImat2vol(mattmp, mask, src);
-  MatrixFree(&mattmp);
-
-  // Normalize mri so that mean in mask is 110
-  printf("Rescaling\n");
-  sumval = 0;
-  nmask = 0;
-  for(s=0; s < wmmask->depth; s++){
-    for(c=0; c < wmmask->width; c++){
-      for(r=0; r < wmmask->height; r++){
-	if(MRIgetVoxVal(wmmask,c,r,s,0) < .0001) continue;
-	nmask ++;
-	sumval += MRIgetVoxVal(trg,c,r,s,0);
-      }
-    }
-  }
-  sumval = sumval/nmask; // now it's the mean
-  printf("In-mask mean %g  %d\n",sumval,nmask);
-  // Rescale all values
-  for(s=0; s < wmmask->depth; s++){
-    for(c=0; c < wmmask->width; c++){
-      for(r=0; r < wmmask->height; r++){
-	if(MRIgetVoxVal(mask,c,r,s,0))	val = MRIgetVoxVal(trg,c,r,s,0);
-	else val = 0;
-	val = 110*val/sumval;
-	if(val <   0) val = 0;
-	MRIsetVoxVal(trg,c,r,s,0,val);
-      }
-    }
-  }
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,trgfile);
-  printf("Wrting to %s\n",tmpstr);
-  err = MRIwrite(trg,tmpstr);
-  if(err) exit(1);
-
-  if(biasfile){
-    mattmp = MatrixTranspose(phat,NULL);
-    mritmp = MRImat2vol(mattmp, mask, src);
-    MatrixFree(&mattmp);
-    printf("Wrting to %s\n",biasfile);
-    err = MRIwrite(mritmp,biasfile);
-    if(err) exit(1);
-    MRIfree(&mritmp);
-  }
-  MatrixFree(&phat);
-
-  if(yhatfile || resfile){
-    Zm = MRIbiasPolyReg(polyorder,aseg);
-    phat = MatrixMultiply(Zm,alpha,NULL);
-    fT = MRIvol2mat(src,aseg,NULL);
-    f = MatrixTranspose(fT,NULL);
-    MatrixFree(&fT);
-    y0 = MatrixElementDivide(f,phat,NULL);
-    X = MRIbiasXsegs(aseg);
-    beta = MatrixGlmFit(y0, X, &rvarSeg, NULL);
-    yhat = MatrixMultiplyD(X,beta,NULL);
-    if(yhatfile){
-      mattmp = MatrixTranspose(yhat,NULL);
-      mritmp = MRImat2vol(mattmp, aseg, src);
-      printf("Wrting to %s\n",yhatfile);
-      err = MRIwrite(mritmp,yhatfile);
-      if(err) exit(1);
-      MRIfree(&mritmp);
-      MatrixFree(&mattmp);
-    }
-    if(resfile){
-      fhat = MatrixElementMultiply(yhat,phat,NULL);
-      res = MatrixSubtract(f,fhat,NULL);
-      mattmp = MatrixTranspose(res,NULL);
-      mritmp = MRImat2vol(mattmp, aseg, src);
-      MatrixFree(&mattmp);
-      printf("Wrting to %s\n",resfile);
-      err = MRIwrite(mritmp,resfile);
-      if(err) exit(1);
-      MRIfree(&mritmp);
-    }
-    MatrixFree(&beta);
-    MatrixFree(&yhat);
-    MatrixFree(&res);
-  }
-
+  printf("#VMPC# mri_fit_bias VmPeak  %d\n",GetVmPeak());
   printf("mri_fit_bias done\n");
   exit(0);
 }
@@ -334,24 +238,68 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--s")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      subject = pargv[0];
+    else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--src")) {
+    else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       srcfile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--trg")) {
+    else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
-      trgfile = pargv[0];
+      outfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--bias")) {
       if (nargc < 1) CMDargNErr(option,1);
       biasfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--mask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      maskfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--seg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      segfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--X")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      Xfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--y")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      yfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--beta")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      betafile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--dct")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      dctfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--cutoff")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&lpfcutoffmm);
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--yhat")) {
@@ -362,16 +310,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--res")) {
       if (nargc < 1) CMDargNErr(option,1);
       resfile = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--niters")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&niters);
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--order")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&polyorder);
       nargsused = 1;
     } 
     else {
@@ -394,16 +332,15 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --s subject : to get subject's dir\n");
-  printf("   --src srcfile : input to intensity normalize\n");
-  printf("   --trg trgfile : intensity normalized output\n");
+  printf("   --i inputvol : input to intensity normalize\n");
+  printf("   --cutoff lpfcutoffmm (%f)\n",lpfcutoffmm);
+  printf("   --seg segvol : segmentation to define WM and Cortex (eg, aseg.presurf.mgz)\n");
+  printf("   --mask maskvol : zero everthing outside of mask (eg,brainmask.mgz)\n");
+  printf("   --o outvol : bias corrected output\n");
+  printf("   --bias biasfield  : output bias field\n");
+  printf("   --dct dctvol : DCT fields file (debugging)\n");
   printf("\n");
-  printf("   --niters N\n");
-  printf("   --order polyorder\n");
-  printf("   --bias biasfile\n");
-  printf("   --yhat yhatfile\n");
-  printf("   --res resfile\n");
-  printf("\n");
+  printf("   --threads nthreads\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -425,16 +362,16 @@ static void print_version(void) {
 }
 /* -----------------------------------------------------------------------*/
 static void check_options(void) {
-  if(subject == NULL){
-    printf("ERROR: need subject \n");
-    exit(1);
-  }
   if(srcfile == NULL){
-    printf("ERROR: need source file\n");
+    printf("ERROR: need input file\n");
     exit(1);
   }
-  if(trgfile == NULL){
-    printf("ERROR: need source file\n");
+  if(segfile == NULL){
+    printf("ERROR: need segmentation file\n");
+    exit(1);
+  }
+  if(outfile == NULL){
+    printf("ERROR: need output file\n");
     exit(1);
   }
 
@@ -450,8 +387,6 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-  fprintf(fp,"subject  %s\n",subject);
-
   return;
 }
 
@@ -563,7 +498,7 @@ MRI *MRIpolyfitBiasField(MRI *vol, int order, MRI *seg, MRI *bias)
 
   // Do the estimation
   Xt   = MatrixTranspose(X,NULL);
-  XtX  = MatrixMultiplyD(Xt,X,NULL);
+  XtX  = MatrixMtM(X, NULL);
   iXtX = MatrixInverse(XtX,NULL);
   Xty  = MatrixMultiplyD(Xt,y,NULL);
   beta = MatrixMultiplyD(iXtX,Xty,NULL);
@@ -749,246 +684,519 @@ MATRIX *MRIbiasPolyReg(int order, MRI *mask)
   return(X);
 }
 
-/*!
-  \fn MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template)
-  \brief Creates a volume from a matrix. Order of dimensions from 
-         slowest to fastest is: slice, col, row (matlab compatible)
-  \parameter mat - nframes by nvoxels input matrix
-  \parameter mask - only include voxels with mask > .0001
-  \parameter template - template volume (required, not overwritten)
-*/
-MRI *MRImat2vol(MATRIX *mat, MRI *mask, MRI *template)
-{
-  int c,r,s,f, nmask;
-  MRI *vol;
 
-  if(template == NULL){
-    printf("ERROR: MRImat2vol(): template required\n");
+
+MRI *MRIfitDCTField(MRI *field, MRI *mask, int nP[3])
+{
+  int r;
+  MRI *P, *fit;
+  MATRIX *X, *y, *XtX, *iXtX, *Xty, *beta, *yhat;
+  double XtXcond,yhatmn;
+
+  P = MRIdctField(field, nP, 1);
+  //MRIwrite(P,"P.mgh");
+
+  y = MRIvol2mat(field, mask, 1, NULL);
+  if(y==NULL) return(NULL);
+  X = MRIvol2mat(P, mask, 1, NULL);
+  if(X==NULL) return(NULL);
+  printf("nvox = %d\n",y->rows);
+
+  XtX = MatrixMtM(X, NULL);
+  iXtX = MatrixInverse(XtX, NULL);
+  XtXcond = MatrixConditionNumber(XtX);
+  printf("MRIfitDCTField(): XtXcond=%g\n", XtXcond);
+  if(iXtX == NULL) {
+    XtXcond = MatrixConditionNumber(XtX);
+    printf("ERROR: MRIfitDCTField(): matrix cannot be inverted, cond=%g\n", XtXcond);
+    MatrixWriteTxt("X.mtx",X);
     return(NULL);
   }
+  Xty = MatrixAtB(X, y, NULL);
+  beta = MatrixMultiplyD(iXtX, Xty, NULL);
+  printf("MRIfitDCTField(): beta\n");
+  MatrixPrint(stdout,beta); fflush(stdout);
+  yhat = MatrixMultiplyD(X, beta, NULL);
 
-  // Count number of voxels in mask so can alloc
-  if(mask){
-    nmask = 0;
-    for (c=0; c < mask->width; c++)
-      for (r=0; r < mask->height; r++)
-	for (s=0; s < mask->depth; s++)
-	  if(MRIgetVoxVal(mask,c,r,s,0) > 0.0001) nmask++;
-  }
-  else nmask = template->width * template->height * template->depth;
-  printf("MRImat2vol(): found %d voxels in mask\n",nmask);
-  if(nmask != mat->cols){
-    printf("ERROR: MRImat2vol(): dimension mismatch %d %d\n",nmask,mat->cols);
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
+  yhatmn = 0;
+  for(r=0; r < yhat->rows; r++) yhatmn += yhat->rptr[r+1][1];
+  yhatmn = yhatmn/yhat->rows;
+  MatrixScalarMul( yhat, 1/yhatmn, yhat);
 
-  vol = MRIallocSequence(template->width,template->height,
-			 template->depth,MRI_FLOAT,mat->rows);
-  if(vol == NULL) return(NULL);
-  MRIcopyHeader(template,vol);
+  fit = MRImat2vol(yhat, mask, 1, NULL);
 
-  // Note that the order of slice, col, row may be very important
-  // Order is consistent with MRIvol2mat() and matlab
-  nmask = 0;
-  for(s=0; s < vol->depth; s++){
-    for(c=0; c < vol->width; c++){
-      for(r=0; r < vol->height; r++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue;
-	for(f=0; f < vol->nframes; f++)
-	  MRIsetVoxVal(vol,c,r,s,f, mat->rptr[f+1][nmask+1]);
-	nmask++;
-      }
-    }
-  }
-  return(vol);
-}
-
-/*!
-  \fn MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat)
-  \brief Creates a matrix from a volume. Order of dimensions from 
-         slowest to fastest is: slice, col, row (matlab compatible)
-  \parameter src - source volume
-  \parameter mask - only include voxels with mask > .0001
-  \parameter mat - output nframes by nvoxels matrix
-*/
-MATRIX *MRIvol2mat(MRI *src, MRI *mask, MATRIX *mat)
-{
-  int c,r,s,f, nmask;
-
-  // Count number of voxels in mask so can alloc
-  if(mask){
-    nmask = 0;
-    for (c=0; c < mask->width; c++)
-      for (r=0; r < mask->height; r++)
-	for (s=0; s < mask->depth; s++)
-	  if(MRIgetVoxVal(mask,c,r,s,0) > 0.0001) nmask++;
-  }
-  else nmask = src->width * src->height * src->depth;
-  printf("MRIvol2mat(): found %d voxels in mask\n",nmask);
-
-  if(mat == NULL) mat = MatrixAlloc(src->nframes,nmask,MATRIX_REAL);
-  if(mat->rows != src->nframes || mat->cols != nmask){
-    printf("ERROR: MRIvol2mat(): mat mismatch \n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-
-  // Note that the order of slice, col, row may be very important
-  // Order is consistent with MRImat2vol() and matlab
-  nmask = 0;
-  for(s=0; s < src->depth; s++){
-    for(c=0; c < src->width; c++){
-      for(r=0; r < src->height; r++){
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue;
-	for(f=0; f < src->nframes; f++)
-	  mat->rptr[f+1][nmask+1] = MRIgetVoxVal(src,c,r,s,f);
-	nmask++;
-      }
-    }
-  }
-  return(mat);
-}
-
-/*-------------------------------------------------------------*/
-MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta)
-{
-  MATRIX *Xt, *XtX, *iXtX, *Xty, *yhat, *res;
-  double mres,rvar;
-
-  Xt   = MatrixTranspose(X,NULL);
-  XtX  = MatrixMultiplyD(Xt,X,NULL);
-  iXtX = MatrixInverse(XtX,NULL);
-  Xty  = MatrixMultiplyD(Xt,y,NULL);
-  beta = MatrixMultiplyD(iXtX,Xty,beta);
-  yhat = MatrixMultiplyD(X,beta,NULL);
-  res  = MatrixSubtract(y, yhat, NULL);
-  rvar = VectorVar(res,&mres);
-  rvar = rvar*(X->rows-1)/(X->rows-X->cols);
-  *pRVar = rvar;
-
-  MatrixFree(&Xt);
+  MatrixFree(&X);
+  MatrixFree(&y);
   MatrixFree(&XtX);
   MatrixFree(&iXtX);
   MatrixFree(&Xty);
+  MatrixFree(&beta);
   MatrixFree(&yhat);
-  MatrixFree(&res);
-  return(beta);
-}
-/*!
-  \fn MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient)
-  \brief Element-wise matrix division. q = n/(d+FLT_EPSILON). Only works on MATRIX_REAL.
-  \parameter num - numerator
-  \parameter den - denominator
-  \parameter quotient - result
-*/
-MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient)
+
+  return(fit);
+} 
+
+MATRIX *MRIbiasDCTReg(MRI *dctfield, MRI *mask, MATRIX *X)
 {
-  int r,c;
+  X = MRIvol2mat(dctfield, mask, 1, X);
+  if(X==NULL) return(NULL);
+  return(X);
+} 
 
-  if(num->rows != den->rows || num->cols != den->cols){
-    printf("ERROR: MatrixElementDivide(): dim mismatch\n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-  if(quotient==NULL)
-    quotient = MatrixAlloc(num->rows,num->cols,MATRIX_REAL);
 
-  for(r=0; r < num->rows; r++){
-    for(c=0; c < num->cols; c++){
-      quotient->rptr[r+1][c+1] = num->rptr[r+1][c+1]/(den->rptr[r+1][c+1] + FLT_EPSILON);
+MRI *MRIdctField(MRI *template, int nP[3], int offset)
+{
+  int c, r, s, nPtot,k=0, n;
+  double *cdm, *rdm, *sdm;
+  MRI *P;
+
+  // dm are vectors that go from -0.5 to +0.5
+  cdm = (double *) calloc(template->width,sizeof(double));
+  for(k=0;k<template->width;k++) cdm[k] = (k - template->width/2.0)/template->width;
+  rdm = (double *) calloc(template->height,sizeof(double));
+  for(k=0;k<template->height;k++) rdm[k] = (k - template->height/2.0)/template->height;
+  sdm = (double *) calloc(template->depth,sizeof(double));
+  for(k=0;k<template->depth;k++) sdm[k] = (k - template->depth/2.0)/template->depth;
+
+  nPtot = nP[0]+nP[1]+nP[2] + offset;
+  P = MRIallocSequence(template->width, template->height, template->depth, MRI_FLOAT, nPtot);
+
+  // Start with a constant = 1
+  k = 0;
+  if(offset){
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for 
+    #endif
+    for(c=0; c < template->width; c++){
+      int r, s;
+      for(r=0; r < template->height; r++){
+        for(s=0; s < template->depth; s++){
+    	  MRIsetVoxVal(P,c,r,s,k,1);
+        }
+      }
     }
+    k = k + 1;
   }
-  return(quotient);
-}
-/*!
-  \fn MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product)
-  \brief Element-wise matrix mult. p = m1.*m2. Only works on MATRIX_REAL.
-  \parameter m1 
-  \parameter m2
-  \parameter product
-*/
-MATRIX *MatrixElementMultiply(MATRIX *m1, MATRIX *m2, MATRIX *product)
-{
-  int r,c;
-
-  if(m1->rows != m2->rows || m1->cols != m2->cols){
-    printf("ERROR: MatrixElementDivide(): dim mismatch\n");
-    printf("%s:%d\n",__FILE__,__LINE__);
-    return(NULL);
-  }
-  if(product==NULL)
-    product = MatrixAlloc(m1->rows,m1->cols,MATRIX_REAL);
-
-  for(r=0; r < m1->rows; r++){
-    for(c=0; c < m1->cols; c++){
-      product->rptr[r+1][c+1] = m1->rptr[r+1][c+1]*m2->rptr[r+1][c+1];
+  // Bases in the col direction
+  for(n=1; n <= nP[0]; n++){
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for 
+    #endif
+    for(c=0; c < template->width; c++){
+      int r, s;
+      double f;
+      f = cos(2*M_PI*cdm[c]*n);
+      for(r=0; r < template->height; r++){
+	for(s=0; s < template->depth; s++){
+	  MRIsetVoxVal(P,c,r,s,k,f);
+	}
+      }
     }
+    k = k + 1;
   }
-  return(product);
+  // Bases in the row direction
+  for(n=1; n <= nP[0]; n++){
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for 
+    #endif
+    for(r=0; r < template->height; r++){
+      int c, s;
+      double f;
+      f = cos(2*M_PI*rdm[r]*n);
+      for(c=0; c < template->width; c++){
+	for(s=0; s < template->depth; s++){
+	  MRIsetVoxVal(P,c,r,s,k,f);
+	}
+      }
+    }
+    k = k + 1;
+  }
+  // Bases in the slice direction
+  for(n=1; n <= nP[0]; n++){
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for 
+    #endif
+    for(s=0; s < template->depth; s++){
+      int c, r;
+      double f;
+      f = cos(2*M_PI*sdm[s]*n);
+      for(c=0; c < template->width; c++){
+	for(r=0; r < template->height; r++){
+	  MRIsetVoxVal(P,c,r,s,k,f);
+	}
+      }
+    }
+    k = k + 1;
+  }
+  
+  free(cdm);
+  free(rdm);
+  free(sdm);
+  return(P);
 }
-/*!
-  \fn MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
-  \brief Merges multiple segmentations into one. Can be done in-place.
-  \parameter seg - original segmentation
-  \parameter seglist - list of segmentation IDs to merge
-  \parameter nsegs - length of list
-  \parameter NewSegId - replace values in list with NewSegId
-  \parameter newseg - new segmentation (also passed as output)
-*/
-MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
+
+int MRIbiasFieldCorLog(MRIBF *bf)
 {
-  int c,r,s,n,segid;
+  int c,r,nwm;
+  MRI *ones;
+  MATRIX *bffit;
+  double wmsum;
 
-  if(newseg == NULL) newseg = MRIcopy(seg,NULL);
+  printf("MRIbiasFieldCorLog()\n");fflush(stdout);
 
-  for (c=0; c < seg->width; c++){
-    for (r=0; r < seg->height; r++){
-      for (s=0; s < seg->depth; s++){
-	segid = MRIgetVoxVal(seg,c,r,s,0);
-	MRIsetVoxVal(newseg,c,r,s,0, segid);
-	for(n=0; n < nsegs; n++){
-	  if(segid == seglist[n]){
-	    MRIsetVoxVal(newseg,c,r,s,0,NewSegId);
-	    break;
-	  }
+  bf->seg = MRIcopy(bf->srcseg,NULL); 
+  MRIcopyPulseParameters(bf->srcseg, bf->seg);
+
+  // Zero out non-WM and non-cortex, and merge all WM and cortex
+  wmsum = 0;
+  nwm = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : wmsum, nwm)
+  #endif
+  for(c=0; c < bf->seg->width; c++){
+    int r, s, segid;
+    for(r=0; r < bf->seg->height; r++){
+      for(s=0; s < bf->seg->depth; s++){
+	segid = MRIgetVoxVal(bf->seg,c,r,s,0);
+	switch (segid) {
+	case Left_Cerebral_White_Matter: 
+	case Right_Cerebral_White_Matter:
+	case 251:
+	case 252:
+	case 253:
+	case 254:
+	case 255:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,Left_Cerebral_White_Matter);
+	  wmsum += MRIgetVoxVal(bf->input,c,r,s,0);
+	  nwm ++;
+	  break;
+	case Left_Cerebral_Cortex: 
+	case Right_Cerebral_Cortex:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,Left_Cerebral_Cortex);
+	  break;
+	case Left_Cerebellum_Cortex:
+	case Right_Cerebellum_Cortex:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,Left_Cerebellum_Cortex);
+	  break;
+        case Left_Cerebellum_White_Matter:
+	case Right_Cerebellum_White_Matter:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,Left_Cerebellum_White_Matter);
+	  break;
+	case Left_Caudate:
+	case Right_Caudate:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,Left_Caudate);
+	  break;
+	case 258:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,0); // 258
+	  break;
+	case 259:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,0); // 259
+	  break;
+	default:
+	  MRIsetVoxVal(bf->seg,c,r,s,0,0);
+	  break;
 	}
       }
     }
   }
-  return(newseg);
+  bf->wmmean = wmsum/nwm;
+  printf("nwm = %d, wmsum = %g, wmmean = %g\n",nwm,wmsum,bf->wmmean);
+
+  // Erode the segmentation
+  bf->segerode = MRIerodeSegmentation(bf->seg, NULL, bf->nerode, 0);
+
+  // Compute the bounding box, pad=1, probably not needed
+  bf->bb = REGIONgetBoundingBox(bf->segerode, 1);
+  REGIONprint(stdout, bf->bb);
+
+  // Extract the bounding box from seg and input
+  bf->bbseg   = MRIextractRegion(bf->segerode, NULL, bf->bb);
+  bf->bbinput = MRIextractRegion(bf->input,    NULL, bf->bb);
+  //MRIwrite(bf->bbseg,"bbseg.mgh");
+
+  // Compute log of input
+  bf->y = MRIvol2mat(bf->bbinput, bf->bbseg, 1, NULL);
+  for(r=1; r <= bf->y->rows; r++){
+    for(c=1; c <= bf->y->cols; c++){
+      if(bf->y->rptr[r][c] <= 0){
+	printf("ERROR: y is less than or equal to 0 %g %d %d\n",bf->y->rptr[r][c],r,c);
+	return(1);
+      }
+      bf->y->rptr[r][c] = log(bf->y->rptr[r][c]);
+    }
+  }
+
+  // Extract the design matrix to compute the segmentation means
+  bf->Xseg = MRIbiasXsegs(bf->bbseg);
+
+  // construct the DCT fields
+  bf->dct->mask = bf->ubermask;
+  bf->dct->bbfit = bf->bb;
+  DCTspecLPF(bf->dct);
+  DCTfield(bf->dct);
+  // extract the DCT fields from the bounding box
+  MRI *dctfield = MRIextractRegion(bf->dct->field, NULL, bf->bb);
+
+  // construct regressors for the DCT
+  bf->Xbf  = MRIbiasDCTReg(dctfield, bf->bbseg, NULL);
+
+  // Compute the GLM. Repackage using fsglm?
+  bf->X  = MatrixHorCat(bf->Xbf,bf->Xseg,NULL);
+  bf->Xt = MatrixTranspose(bf->X,NULL);
+  //bf->XtX  = MatrixMtM(bf->X, NULL); // something wrong with this in parallel
+  bf->XtX  = MatrixMultiplyD(bf->Xt, bf->X,NULL);
+  bf->XtXcond = MatrixConditionNumber(bf->XtX);
+  printf("MRIbiasFieldLog(): XtXcond=%g\n", bf->XtXcond);
+  bf->iXtX = MatrixInverse(bf->XtX,NULL);
+  if(bf->iXtX == NULL) {
+    printf("ERROR: MRIbiasFieldLog(): matrix cannot be inverted\n");
+    MatrixWriteTxt("X.mtx",bf->X);
+    return(1);
+  }
+  bf->Xty  = MatrixMultiplyD(bf->Xt,bf->y,NULL);
+  bf->beta = MatrixMultiplyD(bf->iXtX,bf->Xty,NULL);
+  MatrixFree(&bf->Xt);
+  MatrixFree(&bf->y);
+
+  // Extract the biasfield-related parameters
+  bf->betabf = MatrixAlloc(bf->Xbf->cols,bf->beta->cols,MATRIX_REAL);
+  for(r=1; r <= bf->betabf->rows; r++){
+    for(c=1; c <= bf->betabf->cols; c++){
+      bf->betabf->rptr[r][c] = bf->beta->rptr[r][c];
+    }
+  }
+  printf("alpha\n");
+  MatrixPrint(stdout,bf->betabf); fflush(stdout);
+
+  printf("Transfering to the full FoV\n"); fflush(stdout);
+  ones = MRIcopy(bf->bbseg,NULL);
+  MRIconst(ones->width,ones->height,ones->depth,1,1,ones);
+  MatrixFree(&bf->Xbf);
+  bf->Xbf = MRIbiasDCTReg(bf->dct->field, bf->input, NULL);
+  bffit = MatrixMultiply(bf->Xbf,bf->betabf,NULL);
+  for(r=1; r <= bffit->rows; r++){
+    for(c=1; c <= bffit->cols; c++){
+      bffit->rptr[r][c] = exp(bffit->rptr[r][c]);
+    }
+  }
+  bf->biasfield = MRImat2vol(bffit, bf->input, 1, NULL);
+  printf("MRIbiasFieldCorLog() done\n");fflush(stdout);
+
+  return(0);
 }
 
-/*!
-  \fn MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
-  \brief Creates a binary mask of voxels that match any of the IDs in the
-    segmentations list. Can be done in-place.
-  \parameter seg - original segmentation
-  \parameter seglist - list of segmentation IDs to merge
-  \parameter nsegs - length of list
-  \parameter MaskId - replace values in list with MaskId
-  \parameter mask - new segmentation (also passed as output)
-*/
-MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
+
+int DCTfield(DCTFS *dct)
 {
-  int c,r,s,n,segid;
+  int n,c,r,s,dim;
+  MRI *template = dct->template;
+  double v,period,t=0,offset;
+  MATRIX *vox2ras=NULL,*ras2vox=NULL; //*crs=NULL,*ras=NULL;
 
-  if(mask == NULL) mask = MRIcopy(seg,NULL);
+  printf("DCTfield():\n");
+  vox2ras = MRIxfmCRS2XYZ(template,0);
+  ras2vox = MatrixInverse(vox2ras,NULL);
+  //dct->offsetCRS = MatrixMultiplyD(ras2vox,dct->offsetRAS,dct->offsetCRS);
+  // Put the 0 voxel at the corner of the bounding box
+  dct->offsetCRS->rptr[1][1] = dct->bbfit->x;
+  dct->offsetCRS->rptr[2][1] = dct->bbfit->y;
+  dct->offsetCRS->rptr[3][1] = dct->bbfit->z;
+  dct->offsetRAS = MatrixMultiplyD(vox2ras,dct->offsetCRS,dct->offsetRAS);
+  printf("offsetCRS %7.4f %7.4f %7.4f\n",dct->offsetCRS->rptr[1][1],
+	 dct->offsetCRS->rptr[2][1],dct->offsetCRS->rptr[3][1]);
+  printf("offsetRAS %7.4f %7.4f %7.4f\n",dct->offsetRAS->rptr[1][1],
+	 dct->offsetRAS->rptr[2][1],dct->offsetRAS->rptr[3][1]);
 
-  for (c=0; c < seg->width; c++){
-    for (r=0; r < seg->height; r++){
-      for (s=0; s < seg->depth; s++){
-	MRIsetVoxVal(mask,c,r,s,0, 0);
-	segid = MRIgetVoxVal(seg,c,r,s,0);
-	for(n=0; n < nsegs; n++){
-	  if(segid == seglist[n]){
-	    MRIsetVoxVal(mask,c,r,s,0,MaskId);
-	    break;
+  if(dct->field) MRIfree(&dct->field);
+  dct->field = MRIallocSequence(template->width, template->height, 
+				template->depth, MRI_FLOAT, dct->nfields);
+  MRIcopyHeader(template,dct->field);
+  MRIcopyPulseParameters(template,dct->field);
+
+  //crs = MatrixAlloc(4,1,MATRIX_REAL);
+  //crs->rptr[4][1] = 1;
+  for(n=0; n < dct->nfields; n++){
+    dim = dct->dim[n];
+    period = dct->period[n];
+    offset = dct->offsetCRS->rptr[dim][1];
+    printf("n = %2d, dim=%d period=%6.2f (%6.4f) offset = %7.3f\n",n,dim,period,1.0/period,offset);
+    fflush(stdout);
+    for(c=0; c < template->width; c++){
+      //crs->rptr[1][1] = c;
+      for(r=0; r < template->height; r++){
+        //crs->rptr[2][1] = r;
+	for(s=0; s < template->depth; s++){
+	  if(dct->mask && MRIgetVoxVal(dct->mask,c,r,s,0)<0.5) continue;
+	  //crs->rptr[3][1] = s;
+	  if(period == 0){
+	    MRIsetVoxVal(dct->field,c,r,s,n,1);	    
+	    continue;
 	  }
+	  switch(dim){
+	  case 1: t = (c-offset)*dct->field->xsize; break;
+	  case 2: t = (r-offset)*dct->field->ysize; break;
+	  case 3: t = (s-offset)*dct->field->zsize; break;
+	  }
+	  //ras = MatrixMultiplyD(vox2ras,crs,ras);
+	  //v = cos(2*M_PI*(ras->rptr[dim][1]-offset)/period);
+	  v = cos(2*M_PI*t/period);
+	  MRIsetVoxVal(dct->field,c,r,s,n,v);
 	}
       }
     }
   }
-  return(mask);
+
+  MatrixFree(&vox2ras);
+  MatrixFree(&ras2vox);
+  return(0);
 }
 
+int DCTspecLPF(DCTFS *dct)
+{
+  int dim,nvox,nf;
+  double res,F, deltaF;
+
+  // alloc way more than needed (hopefully:)
+  dct->period = (double*)calloc(sizeof(double),1000);
+  dct->dim    = (int*)calloc(sizeof(int),1000);
+
+  dct->nfields = 0;
+
+  // Do not include a DC term with log fitting
+  //dct->period[dct->nfields] = 0;
+  //dct->dim[dct->nfields] = 1;
+  //dct->nfields ++;
+
+  for(dim=1; dim <= 3; dim++){
+    /* For the given dim, determine the size of the dim and the resolution
+     to determine the frequencies to use. If a bounding box is specified,
+     then the dim size is taken from that. */
+    switch(dim){
+    case 1:
+      if(dct->bbfit) nvox = dct->bbfit->dx;
+      else           nvox = dct->template->width;
+      res = dct->template->xsize;
+      break;
+    case 2:
+      if(dct->bbfit) nvox = dct->bbfit->dy;
+      else           nvox = dct->template->height;
+      res = dct->template->ysize;
+      break;
+    case 3:
+      if(dct->bbfit) nvox = dct->bbfit->dz;
+      else           nvox = dct->template->depth;
+      res = dct->template->zsize;
+      break;
+    }
+    // deltaF is the frequency resolution.  Using 0.5 allows for a
+    // near linear trend across the image (this is what SPM
+    // does). This does mean that the zero point has to be at the
+    // corner of the volume or else the design matrix becomes highly
+    // ill-conditioned.
+    deltaF = 0.5/(nvox*res); // 0.5/FoV
+    printf("dim=%d nvox=%d res=%g deltaF=%g\n",dim,nvox,res,deltaF);
+
+    // count the number of fields for this dim
+    F = deltaF; // Start at the lowest frequency
+    nf = 0;
+    while(F < 1.0/dct->lpcutoff){
+      printf("  nf = %d  %g  %g\n",dct->nfields,F,1/F);
+      dct->period[dct->nfields] = 1.0/F;
+      dct->dim[dct->nfields] = dim;
+      dct->nfields ++;
+      nf++;
+      F += deltaF;
+    }
+    printf("  dim = %d, nf = %d\n",dim,nf);
+  }
+  printf("nfields = %d\n",dct->nfields);
+  fflush(stdout);
+  return(0);
+}
+
+DCTFS *DCTalloc(void)
+{
+  DCTFS *dct = (DCTFS*) calloc(sizeof(DCTFS),1);
+  dct->offsetRAS = MatrixAlloc(4,1,MATRIX_REAL);
+  dct->offsetRAS->rptr[4][1] = 1;
+  dct->offsetCRS = MatrixAlloc(4,1,MATRIX_REAL);
+  dct->offsetCRS->rptr[4][1] = 1;
+  return(dct);
+}
+
+MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, MRI *bc)
+{
+  int nwm,c;
+  double wmsum, wmmean, wmscale;
+
+  if(bc==NULL){
+    bc = MRIallocSequence(input->width, input->height, 
+			  input->depth, MRI_FLOAT, input->nframes);
+    MRIcopyHeader(input,bc);
+    MRIcopyPulseParameters(input,bc);
+  }
+
+  wmsum = 0;
+  nwm = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : wmsum, nwm)
+  #endif
+  for(c=0; c < input->width; c++){
+    int r, s,segid;
+    double val, b;
+    for(r=0; r < input->height; r++){
+      for(s=0; s < input->depth; s++){
+        if(mask && MRIgetVoxVal(mask,c,r,s,0) <0.5){
+          MRIsetVoxVal(bc,c,r,s,0,0);
+	  continue;
+        }
+        b = MRIgetVoxVal(bf,c,r,s,0);
+        val = MRIgetVoxVal(input,c,r,s,0);
+        val = val/(b+FLT_MIN);
+        MRIsetVoxVal(bc,c,r,s,0,val);
+	if(seg){
+          segid = MRIgetVoxVal(seg,c,r,s,0);
+	  switch (segid) {
+            case Left_Cerebral_White_Matter: 
+            case Right_Cerebral_White_Matter:
+   	    case 251:
+	    case 252:
+	    case 253:
+	    case 254:
+	    case 255:
+            wmsum += val;
+  	    nwm ++;
+	    break;
+	  }
+        }
+      }
+    }
+  }
+
+  if(seg==NULL) return(bc);
+
+  wmmean = wmsum/nwm;
+  wmscale = targwmval/wmmean;
+  printf("nwm = %d, wmsum = %g, wmmean = %g, scale = %g\n",nwm,wmsum,wmmean,wmscale);
+
+
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : wmsum, nwm)
+  #endif
+  for(c=0; c < input->width; c++){
+    int r, s;
+    double val,b;
+    for(r=0; r < input->height; r++){
+      for(s=0; s < input->depth; s++){
+        if(mask && MRIgetVoxVal(mask,c,r,s,0) <0.5) continue;
+        val = MRIgetVoxVal(bc,c,r,s,0);
+        MRIsetVoxVal(bc,c,r,s,0,val*wmscale);
+        b = MRIgetVoxVal(bf,c,r,s,0);
+        MRIsetVoxVal(bf,c,r,s,0,b/wmscale);
+      }
+    }
+  }
+
+  return(bc);
+
+}
