@@ -27,12 +27,13 @@
  *
  */
 
-
 #include "mris_topology.h"
 #include "topology/patchdisk.h"
 extern "C" {
 #include "utils.h"
 }
+
+#include "compilerdefs.h"
 
 #define __PRINT_MODE 0
 #define WHICH_OUTPUT stderr
@@ -876,7 +877,19 @@ void MRISinitSurface(MRIS *mris)
     v->vtotal = v->vnum;
   }
 
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#endif
   mrisCheckVertexFaceTopology(mris);
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic pop
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic pop
+#endif
 }
 
 
@@ -1082,7 +1095,19 @@ static MRIS* SurfaceToMRISwkr_old(Surface *surface)
     fdst->v[2]=fsrc->v[2];
   }
 
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#endif
   mrisCheckVertexFaceTopology(mris);
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic pop
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic pop
+#endif
   
   return mris;
 }

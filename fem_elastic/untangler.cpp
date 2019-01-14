@@ -30,7 +30,6 @@ solve_topology_problems( TMesh3d& mesh,
   typedef MeshCrop::IndexSetType IndexSetType;
   typedef std::vector<unsigned int> VectorType;
   typedef TDirectSolver<Constructor, 3> SolverType;
-  typedef VMaterial MaterialType;
   typedef CMesh3d::MaterialConstIteratorType MaterialConstIteratorType;
   typedef CMesh3d::tNode NodeType;
 

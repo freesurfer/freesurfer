@@ -19,7 +19,7 @@ int main(int narg, char* arg[])
 	enum {Dimension =3};
 	typedef int                                                        PixelType;
 	typedef itk::Image< PixelType,Dimension> ImageType;
-	typedef ImageType::IndexType 			IndexType;
+	// typedef ImageType::IndexType 			IndexType;
 	typedef itk::Mesh< PixelType, Dimension > MeshType;
 
 	GetPot cl(narg, const_cast<char**>(arg));
