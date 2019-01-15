@@ -93,9 +93,13 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
       {
         LayerROI* layer = new LayerROI(mri);
         layer->GetProperty()->SetColor(Qt::red);
+        layer->SetFillValue(1);
+        layer->SetBlankValue(0);
         lc->AddLayer(layer);
         layer = new LayerROI(mri);
         layer->GetProperty()->SetColor(Qt::green);
+        layer->SetFillValue(2);
+        layer->SetBlankValue(0);
         lc->AddLayer(layer);
         layers = lc->GetLayers("ROI");
       }
