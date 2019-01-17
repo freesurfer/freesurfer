@@ -56,16 +56,13 @@ HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 double     HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
-HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,
-                          int max_out) ;
+HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_out) ;
 HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 int       HISTOclearZeroBin(HISTOGRAM *h) ;
 HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2,
                         HISTOGRAM *histo_dst) ;
-HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,
-                          int max_val) ;
 HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
                               HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
@@ -188,4 +185,8 @@ HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,f
 HISTOGRAM2D *HISTO2Dread(char *fname) ;
 HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters) ;
 float       HISTOcomputeFWHM(HISTOGRAM *h, int peak) ;
+int HISTOwriteTxt(HISTOGRAM *histo, char *fname) ;
+int HISTOsumNorm(HISTOGRAM *histo);
+HISTOGRAM *HISTOcumsum(HISTOGRAM *h, HISTOGRAM *hout);
+
 #endif
