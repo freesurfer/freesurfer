@@ -5473,3 +5473,34 @@ MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
   }
   return(mask);
 }
+
+
+/*!
+  \fn HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta)
+  \brief Creates a histogram from the intensities in vol from the voxels in the given
+  segmentation. The caller supplies the min, max, and delta for the bins of the histogram.
+  Can't include this in histo.c because of circular dependence.
+ */
+HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta)
+{
+  HISTOGRAM *h;
+  double v,vsegid;
+  int c,r,s,nbins,binno;
+
+  nbins = round((bmax-bmin)/bdelta) + 1;
+  h = HISTOinit(NULL, nbins, bmin, bmax);
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	vsegid  = MRIgetVoxVal(seg,c,r,s,0);
+	if(vsegid!=segid) continue;
+	v = MRIgetVoxVal(vol,c,r,s,0);
+	binno = round(v-bmin)/bdelta;
+	if(binno < 0)      binno=0;
+	if(binno >= nbins) binno=nbins-1;
+	h->counts[binno] ++;
+      }
+    }
+  }
+  return(h);
+}

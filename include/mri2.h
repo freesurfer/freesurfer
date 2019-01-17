@@ -154,6 +154,8 @@ MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M);
 MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol);
 MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg);
 MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask);
+HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta);
+
 #if defined(__cplusplus)
 };
 #endif
