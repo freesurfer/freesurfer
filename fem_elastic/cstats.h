@@ -10,7 +10,6 @@ double
 coords_statistics( const std::vector<TCoords<double, n> >& vcoords,
                    TCoords<double,n>& mean)
 {
-  typedef TCoords<double,n> CoordsType;
   typedef std::vector<TCoords<double,n> > VectorType;
 
   mean.set(0.0);

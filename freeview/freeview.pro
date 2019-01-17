@@ -172,7 +172,9 @@ SOURCES += \
     SurfacePath.cpp \
     Interactor3DPathEdit.cpp \
     DialogCustomFill.cpp \
-    DialogSurfaceLabelOperations.cpp
+    DialogSurfaceLabelOperations.cpp \
+    geos/GeodesicMatting.cpp \
+    geos/kde.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -332,7 +334,9 @@ HEADERS  += \
     SurfacePath.h \
     Interactor3DPathEdit.h \
     DialogCustomFill.h \
-    DialogSurfaceLabelOperations.h
+    DialogSurfaceLabelOperations.h \
+    geos/GeodesicMatting.h \
+    geos/kde.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

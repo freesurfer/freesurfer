@@ -106,7 +106,9 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a gfortran)
+  find_library(GFORTRAN_LIBRARIES
+    HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
+    NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -217,7 +219,7 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 test_big_endian(IS_BIG_ENDIAN)
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result -Wno-unused-local-typedefs")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
