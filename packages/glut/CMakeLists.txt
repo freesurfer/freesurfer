@@ -1,5 +1,7 @@
 project(glut)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${X11_INCLUDE_DIR})
+
 set(SOURCES
   glut_8x13.c
   glut_9x15.c
