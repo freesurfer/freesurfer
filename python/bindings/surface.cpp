@@ -81,11 +81,23 @@ py::array_t<float> CoreSurface::getVertices() {
   Sets the underlying MRIS vertex data from an N x 3 numpy array, where N must match
   the surface's number of vertices.
 */
-void CoreSurface::setVertices(py::array_t<float> array) {
-  throw py::value_error("todo");
-  // for (unsigned int v = 0 ; v < m_mris->nvertices ; v++) {
-  //   MRISsetXYZ(m_mris, v, x, y, z);
-  // }
+void CoreSurface::setVertices(py::array_t<float, py::array::c_style | py::array::forcecast> array) {
+  // get buffer info
+  py::buffer_info info = array.request();
+
+  // sanity check on input dimensions
+  if ((info.ndim != 2) ||(info.shape[0] != m_mris->nvertices) || (info.shape[1] != 3)) {
+    throw py::value_error("vertex array must of shape " + shapeString({m_mris->nvertices, 3}));
+  }
+
+  // set vertex data
+  const float *ptr = array.data(0);
+  for (int v = 0 ; v < m_mris->nvertices ; v++) {
+    VERTEX *vertex = &m_mris->vertices[v];
+    vertex->x = *ptr++;
+    vertex->y = *ptr++;
+    vertex->z = *ptr++;
+  }
 }
 
 
@@ -98,8 +110,7 @@ bool CoreSurface::isSelfIntersecting() {
 
 
 /*
-  Wrapper for MRISfillInterior. Returns a binary numpy array with dimensions that
-  match the input `shape` specification.
+  Wrapper for MRISfillInterior. Returns a binary numpy array.
 */
 py::array CoreSurface::fillInterior() {
   // allocate the destination volume

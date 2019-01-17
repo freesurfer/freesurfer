@@ -27,7 +27,7 @@ public:
 
   // vertices getter/setter
   py::array_t<float> getVertices();
-  void setVertices(py::array_t<float>);
+  void setVertices(py::array_t<float, py::array::c_style | py::array::forcecast>);
 
   // wrapped utilities
   bool isSelfIntersecting();

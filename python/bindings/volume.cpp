@@ -194,8 +194,3 @@ void CoreVolume::setImage(py::array_t<float, py::array::f_style | py::array::for
       setBufferData<float>(array.data(0)); break;
   }
 }
-
-
-void CoreVolume::printValue(int x, int y, int z, int f) {
-  std::cout << MRIgetVoxVal(m_mri, x, y, z, f) << std::endl;
-}

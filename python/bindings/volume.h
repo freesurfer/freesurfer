@@ -42,8 +42,6 @@ public:
     }
   }
 
-  void printValue(int x, int y, int z, int f);
-
 private:
   py::array imagebuffer;
   MRI *m_mri = nullptr;
