@@ -3058,10 +3058,10 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
 void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
 {
   float fMinValue, fMaxValue;
-  MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
+//  MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
+  MRIvalRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-//    qDebug() << "Could not create histogram because non-zero min value is equal to max value.";
     m_bValidHistogram = false;
     return;
   }
@@ -3069,21 +3069,30 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
-  MRI_REGION region;
-  region.x = region.y = region.z = 0;
-  region.dx = m_MRI->width;
-  region.dy = m_MRI->height;
-  region.dz = m_MRI->depth;
-  HISTO *histo;
-  if (highThresh)
-    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
-  else
-    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
-  if (!histo)
-  {
-    qDebug() << "Could not create HISTO";
-    return;
-  }
+//  MRI_REGION region;
+//  region.x = region.y = region.z = 0;
+//  region.dx = m_MRI->width;
+//  region.dy = m_MRI->height;
+//  region.dz = m_MRI->depth;
+//  HISTO *histo;
+//  if (highThresh)
+//    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
+//  else
+//    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
+//  if (!histo)
+//  {
+//    qDebug() << "Could not create HISTO";
+//    return;
+//  }
+  HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
+
+  for (int x = 0; x < m_MRI->width; x++)
+    for (int y = 0; y < m_MRI->height; y++)
+      for (int z = 0; z < m_MRI->depth; z++) {
+        double val = MRIgetVoxVal(m_MRI, x, y, z, frame);
+        if (FZERO(val) || (highThresh && val > threshold)) continue;
+        HISTOaddSample(histo, val, 0, 0);
+      }
 
   if (m_histoCDF)
     HISTOfree(&m_histoCDF);
@@ -3110,6 +3119,7 @@ double FSVolume::GetHistoValueFromPercentile(double percentile, int frame)
     }
     int bin = HISTOfindBinWithCount(m_histoCDF, (float)percentile);
     return m_histoCDF->bins[bin];
+//    return ::MRIfindPercentile(m_MRI, percentile, frame);
   }
   else
     return 0;

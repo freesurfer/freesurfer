@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	typedef MeshType::CellType        CellType;
 	typedef itk::PolylineCell<CellType>                      PolylineCellType;
 	typedef VTKPolyDataToPolylineMeshFilter<MeshType> MeshConverterType;
-	typedef MeshType::CellsContainer::ConstIterator CellIteratorType;
+	// typedef MeshType::CellsContainer::ConstIterator CellIteratorType;
 	typedef MeshType::CellAutoPointer CellAutoPointer;
 	typedef itk::Image<float, 3> ImageType;
 	typedef PolylineMeshToVTKPolyDataFilter<MeshType> VTKConverterType;

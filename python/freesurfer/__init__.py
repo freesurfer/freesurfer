@@ -9,5 +9,21 @@ from .utility import *
 from .geometry import *
 from ._surface import *
 from ._normalize import *
-from .freeview import fv
+from .freeview import *
 from . import metrics
+
+try:
+    from . import bindings
+except ImportError:
+    # check if importing from a local repository - most likely the bindings library
+    # has not been built or an incorrect python version is used, so print out
+    # a message to hopefully get the developer on the right track
+    import os.path as path
+    if path.exists(path.abspath(path.join(__file__ ,"../../CMakeLists.txt"))):
+        error('cannot import freesurfer C bindings. Make sure that the `python/bindings` '
+              'subdirectory has been built and the current python version matches the '
+              'one used to compile the bindings library')
+    raise
+
+from .surface import *
+from .volume import *

@@ -2,10 +2,10 @@ project(stim_polar)
 
 if(OPENGL_FOUND)
 
-  include_directories(${FS_INCLUDE_DIRS} ${GLUT_INCLUDE_DIR}/GL ${X11_INCLUDE_DIR})
+  include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/glut ${X11_INCLUDE_DIR})
 
   add_executable(stim_polar stim_polar.c)
-  target_link_libraries(stim_polar utils ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
+  target_link_libraries(stim_polar utils ${OPENGL_LIBRARIES} glut ${X11_LIBRARIES})
   install(TARGETS stim_polar DESTINATION bin)
 
 endif()

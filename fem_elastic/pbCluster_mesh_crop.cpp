@@ -122,7 +122,7 @@ TopologySolver::BuildClusters()
         cit != vecOrigProblems.end(); ++cit)
   {
     m_clusterContainer.push_back(
-      boost::shared_ptr<IndexVectorType>(new IndexVectorType ) );
+      std::shared_ptr<IndexVectorType>(new IndexVectorType ) );
     bfs.Visit( *cit,
                m_radius,
                std::back_inserter<IndexVectorType>(

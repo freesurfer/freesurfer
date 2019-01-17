@@ -4,134 +4,11 @@
 #include <iostream>
 #include <list>
 
-// BOOST
-//#include <boost/filesystem/operations.hpp>
-//#include <boost/filesystem/exception.hpp>
-
 // OWN
 #include "solver.h"
 #include "pbmesh_crop.h"
 
 #include "untangler.h"
-
-// the following doesn't seem to be used anywhere and causes link errors in debug mode
-#if 0
-typedef std::list<unsigned int> ListType;
-
-static void write_dbg_information( const CMesh3d& mesh,
-                                   ListType& boundary,
-                                   ListType& tetTangled)
-{
-  // delete tangle temp directory
-  namespace bf = boost::filesystem;
-  typedef TPbMeshCrop<Constructor,3> MeshCrop;
-  try
-  {
-    bf::path tmp_dir("ttmp", bf::native);
-    if ( bf::exists(tmp_dir) )
-    {
-      if (!bf::is_empty(tmp_dir))
-        bf::remove_all(tmp_dir);
-      else // dir is empty
-        bf::remove(tmp_dir);
-    }
-  }
-  catch (bf::filesystem_error& er)
-  {
-    std::cerr << " Filesystem error while trying to remove tmp dir : \n"
-    << er.who() << std::endl;
-  }
-  // create tmp directory
-  bf::path tmp_dir("ttmp", bf::native);
-  bf::create_directory( tmp_dir );
-
-  // now the actual write part
-  std::ofstream ofs;
-
-  //-----------------
-  // write geometry
-  ofs.open( ( tmp_dir / "0_geometry.txt" ).string().c_str() );
-  if (!ofs)
-  {
-    std::cerr << " Failed creating geometry file\n";
-    exit(1);
-  }
-  for (unsigned int ui(0), nnodes(mesh.get_no_nodes());
-       ui<nnodes; ++ui)
-  {
-    MeshCrop::NodeType* pnode;
-    mesh.get_node(ui, &pnode);
-    ofs << pnode->coords() << std::endl;
-  }
-  ofs.close();
-
-  //------------------
-  // write delta
-  ofs.open( ( tmp_dir / "0_delta.txt" ).string().c_str() );
-  if (!ofs)
-  {
-    std::cerr << " Failed creating delta file\n";
-    exit(1);
-  }
-  for (unsigned int ui(0), nnodes(mesh.get_no_nodes());
-       ui<nnodes; ++ui)
-  {
-    MeshCrop::NodeType* pnode;
-    mesh.get_node(ui, &pnode);
-    ofs << pnode->delta() << std::endl;
-  }
-  ofs.close();
-
-  //--------------------
-  // connectivity
-  ofs.open( (tmp_dir/"0_connectivity.txt").string().c_str() );
-  if (!ofs)
-  {
-    std::cerr << " Failed creating connectivity file\n";
-    exit(1);
-  }
-  for (unsigned int ui(0), nelts(mesh.get_no_elts());
-       ui<nelts; ++ui)
-  {
-    const MeshCrop::ElementType* cpelt = mesh.get_elt(ui);
-    for (unsigned int n(0), nnodes(cpelt->no_nodes());
-         n<nnodes; ++n)
-    {
-      MeshCrop::NodeType* pnode;
-      cpelt->get_node(n, &pnode);
-      ofs << pnode->get_id() << (n<nnodes-1?" ":"");
-    }
-    ofs << std::endl;
-  }
-
-  //----------------------
-  // write the indices of the elements with pbs
-  ofs.open( (tmp_dir/"0_index.txt").string().c_str() );
-  if (!ofs)
-  {
-    std::cerr << " Failed creating index file\n";
-    exit(1);
-  }
-  for (ListType::const_iterator cit = tetTangled.begin();
-       cit != tetTangled.end(); ++cit )
-    ofs << *cit << " ";
-  ofs << std::endl;
-  ofs.close();
-
-  //-----------------------
-  // boundary file
-  ofs.open( (tmp_dir/"0_boundary.txt").string().c_str() );
-  if (!ofs)
-  {
-    std::cerr << " Failed creating boundary file\n";
-    exit(1);
-  }
-  for (ListType::const_iterator cit = boundary.begin();
-       cit != boundary.end(); ++cit )
-    ofs << *cit << std::endl;
-  ofs.close();
-}
-#endif
 
 /*
 
@@ -153,7 +30,6 @@ solve_topology_problems( TMesh3d& mesh,
   typedef MeshCrop::IndexSetType IndexSetType;
   typedef std::vector<unsigned int> VectorType;
   typedef TDirectSolver<Constructor, 3> SolverType;
-  typedef VMaterial MaterialType;
   typedef CMesh3d::MaterialConstIteratorType MaterialConstIteratorType;
   typedef CMesh3d::tNode NodeType;
 

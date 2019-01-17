@@ -2598,7 +2598,6 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     
     bool const trace = false; // traceTid0 && (tid == 0);
 
-    typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
 
 #define ELT(T,X) T const X = entry->X;

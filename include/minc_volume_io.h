@@ -32,8 +32,8 @@
 
 #if defined(USE_LOCAL_MINC)
 // instead of using the libminc included with an external MNI package build,
-// use the local one found in minc_1_5_1
-#include "netcdf_3_6_0_p1/netcdf.h"
+// use the local one found in packages/minc
+#include "netcdf.h"
 #include "minc_multidim_arrays.h"
 
 typedef bool BOOLEAN;

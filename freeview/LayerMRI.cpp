@@ -83,6 +83,10 @@
 #include <QVariantMap>
 #include "LayerROI.h"
 #include <QFileInfo>
+#include "geos/GeodesicMatting.h"
+#include "vtkImageWeightedSum.h"
+#include "vtkImageCast.h"
+#include "vtkExtractVOI.h"
 
 extern "C"
 {
@@ -3794,6 +3798,13 @@ VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
 
 bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
 {
+
+  return true;
+}
+
+#if 0
+bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
+{
   GEOS_PARMS parm;
   parm.lambda = lambda;
   parm.wsize = wsize;
@@ -3821,6 +3832,7 @@ bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double l
   VLSTfree(&vlist_out);
   return true;
 }
+#endif
 
 void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
 {

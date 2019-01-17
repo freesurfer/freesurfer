@@ -11,19 +11,19 @@ This binary creates a morph, given transforms
 #include <iostream>
 #include <string>
 
-// BOOST
-#include <boost/program_options.hpp>
-
 // OWN
 #include "morph.h"
 #include "transformUtils.h"
 
 // FS
-extern "C"
-{
+#include "argparse.hpp"
+extern "C" {
 #include "gcamorph.h"
 #include "mri.h"
-};
+}
+
+#include "createMorph.help.xml.h"
+
 const char *Progname;
 
 //==================================================
@@ -47,7 +47,7 @@ struct IoParams
   typedef std::vector<int> IntVectorType;
   IntVectorType vDbgCoords;
 
-  void parse(int ac, char* av[]);
+  void parse(int ac, const char** av);
 };
 
 //==================================================
@@ -58,13 +58,12 @@ MRI*
 CopyGcamToDeltaField(GCA_MORPH* gcam, MRI* field);
 
 int
-main(int argc,
-     char* argv[])
+main(int argc, const char** argv)
 {
   IoParams params;
   try
   {
-    params.parse(argc,argv);
+    params.parse(argc, argv);
   }
   catch (const std::exception& excp)
   {
@@ -79,7 +78,7 @@ main(int argc,
   }
 
 
-  boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
+  std::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
 
   if ( !params.strTemplate.empty() )
   {
@@ -109,7 +108,7 @@ main(int argc,
   {
     if ( it->type == "affine" )
     {
-      boost::shared_ptr<gmp::AffineTransform3d>
+      std::shared_ptr<gmp::AffineTransform3d>
       paffine( new gmp::AffineTransform3d);
       float* pf = read_transform( it->file.c_str() );
       if ( !pf )
@@ -123,7 +122,7 @@ main(int argc,
     }
     else if ( it->type == "volume" )
     {
-      boost::shared_ptr<gmp::DeltaTransform3d>
+      std::shared_ptr<gmp::DeltaTransform3d>
       pvol( new gmp::DeltaTransform3d);
       MRI* field = MRIread
                    ( const_cast<char*>( it->file.c_str() ) );
@@ -138,7 +137,7 @@ main(int argc,
     }
     else if ( it->type == "gcam" )
     {
-      boost::shared_ptr<gmp::DeltaTransform3d>
+      std::shared_ptr<gmp::DeltaTransform3d>
       pvol( new gmp::DeltaTransform3d);
       GCA_MORPH* gcam = GCAMread( const_cast<char*>( it->file.c_str() ) );
       if ( !gcam )
@@ -191,7 +190,7 @@ main(int argc,
     }
     else if ( it->type == "morph" )
     {
-      boost::shared_ptr<gmp::VolumeMorph> tmpMorph(new gmp::VolumeMorph);
+      std::shared_ptr<gmp::VolumeMorph> tmpMorph(new gmp::VolumeMorph);
       try
       {
         tmpMorph->load( it->file.c_str() );
@@ -211,8 +210,8 @@ main(int argc,
     }
     else if ( it->type == "mesh" )
     {
-      boost::shared_ptr<gmp::FemTransform3d> pfem(new gmp::FemTransform3d);
-      boost::shared_ptr<CMesh3d> pmesh(new CMesh3d);
+      std::shared_ptr<gmp::FemTransform3d> pfem(new gmp::FemTransform3d);
+      std::shared_ptr<CMesh3d> pmesh(new CMesh3d);
       pmesh->load( it->file.c_str() );
       pfem->m_sharedMesh = pmesh;
       pmorph->m_transforms.push_back(pfem);
@@ -242,60 +241,47 @@ main(int argc,
 
 
 void
-IoParams::parse(int ac,
-                char* av[])
+IoParams::parse(int ac, const char** av)
 {
-  namespace po = boost::program_options;
-  typedef std::vector<std::string> StringVectorType;
-  StringVectorType vItems;
-  po::options_description desc("Allowed Options");
+  ArgumentParser parser;
+  // required
+  parser.addArgument("--in", '+', String, true);
+  parser.addArgument("--out", 1, String, true);
+  // optional
+  parser.addArgument("--template", 1, String);
+  parser.addArgument("--subject", 1, String);
+  parser.addArgument("--dbg", 3, Int);
+  // help text
+  parser.addHelp(createMorph_help_xml, createMorph_help_xml_len);
+  parser.parse(ac, av);
 
-  desc.add_options()
-  ("help", " produce help message")
-  ("out", po::value(&strOut), " output transform file (.tm3d)")
-  ("template", po::value(&strTemplate), " template volume (only for geometry) - if a gcam is present, it needs to be specified")
-  ("subject", po::value(&strSubject), " subject volume (only for geometry)" )
-  ("in", po::value(&vItems)->multitoken(), " input transforms - affine|volume|morph|mesh|gcam + fname")
-  ("dbg", po::value(&vDbgCoords)->multitoken(), " enter debug coordinates ")
-  ;
+  typedef std::vector<std::string> StringVector;
+  StringVector vItems = parser.retrieve<StringVector>("in");
+  strOut = parser.retrieve<std::string>("out");
 
-  po::variables_map vm;
-  po::store( po::parse_command_line(ac,av,desc), vm);
-  po::notify(vm);
+  strTemplate = parser.retrieve<std::string>("template");
+  strSubject = parser.retrieve<std::string>("subject");
 
-  if ( vm.count("help") )
-  {
-    std::cout << desc << std::endl;
-    exit(0);
+  if (parser.exists("dbg")) {
+    vDbgCoords = parser.retrieve<std::vector<int>>("dbg");
   }
 
-  if ( strOut.empty() )
-  {
-    std::cerr << " Empty output file name\n";
-    exit(1);
-  }
-
-  // parse input terms
-  if ( vItems.empty() )
-  {
+  if (vItems.empty()) {
     std::cout << " nothing to do - no transforms specified\n";
     exit(0);
   }
 
-  if (  vItems.size() % 2 )
-  {
+  if (vItems.size() % 2) {
     std::cerr << " odd number of transform tokens\n";
     exit(1);
   }
 
-  for ( StringVectorType::iterator it = vItems.begin();
-        it != vItems.end(); )
-  {
+  for ( StringVector::iterator it = vItems.begin(); it != vItems.end(); ) {
     MorphItem item;
     item.type = *it++;
     item.file = *it++;
     this->items.push_back(item);
-  } // next it
+  }
 }
 
 inline int myNint(double x)

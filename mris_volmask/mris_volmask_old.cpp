@@ -571,7 +571,6 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfRightPial) throw(IoError)
 {
   // determine the mode of the application and infer the input file names
-  // use the BOOST filesystem library to resolve paths (system-independent)
 
   // declare path objects
   std::string pathSurfLeftWhite,

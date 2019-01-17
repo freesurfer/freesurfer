@@ -309,6 +309,18 @@ int main(int argc, char *argv[])
 
   if(DoRegHeader)
     gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
+  VOL_GEOM vg;
+  getVolGeom(gtm->yvol, &vg);
+  if(!vg_isEqual(&vg, &(gtm->anat2pet->xforms[0].dst))){
+    printf("ERROR: registration dst volume geometry does not match input\n");
+    printf("  =======Input volume geometry==========\n");
+    writeVolGeom(stdout, &vg);
+    printf("  =======Registration dst volume geometry=====\n");
+    writeVolGeom(stdout, &(gtm->anat2pet->xforms[0].dst));
+    printf("ERROR: registration dst volume geometry does not match input\n");
+    printf("This might be fixable by setting --vg-thresh\n");
+    exit(1);
+  }
   if(ApplyXFM){
     printf("Applying xfm parameters ");
     for(n=0; n<6; n++) printf("%g ",pxfm[n]);
@@ -1612,6 +1624,9 @@ static void print_usage(void) {
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
   printf("\n");
   printf("   --no-tfe : do not correction for tissue fraction effect (with --psf 0 turns off PVC entirely)\n");
+  printf("   --segpvfres resmm : set the tissue fraction resolution parameter (def is %g)\n",segpvfresmm);
+  printf("     if a negative number is used, then it is treated as an upsampling factor (eg, -3)\n");
+  printf("     The TF is computed by dividing the PET voxel into subvoxels of size segpvfres\n");
   printf("   --rbv             : perform RBV PVC\n");
   printf("   --rbv-res voxsize : set RBV voxel resolution (good for when standard res takes too much memory)\n");
   printf("   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");

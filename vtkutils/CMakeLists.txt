@@ -5,7 +5,7 @@ if(VTK_FOUND)
   include_directories(
     ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${TIFF_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/packages/tiff
     ${VTK_INCLUDE_DIRS}
     ${X11_INCLUDE_DIR}
   )
@@ -43,6 +43,6 @@ if(VTK_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
   add_library(vtkutils STATIC ${SOURCES})
-  target_link_libraries(vtkutils ${TIFF_LIBRARIES})
+  target_link_libraries(vtkutils tiff)
 
 endif()

@@ -13,7 +13,6 @@ option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
-option(USE_QT4 "Use Qt4 instead of Qt5 for GUIs" OFF)
 if(APPLE)
   option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
@@ -107,28 +106,15 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a gfortran)
+  find_library(GFORTRAN_LIBRARIES
+    HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
+    NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
 
 endif()
-
-# -------- jpeg --------
-find_package(JPEG REQUIRED)
-
-# -------- tiff --------
-find_package(TIFF REQUIRED)
-
-# -------- expat --------
-find_package(Expat REQUIRED)
-
-# -------- xml2 --------
-find_package(XML2 REQUIRED)
-
-# -------- tetgen --------
-find_package(Tetgen REQUIRED)
 
 # -------- petsc --------
 find_package(PETSC)
@@ -140,10 +126,6 @@ endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # todo: since ITK is now required, we can get rid of this macro
 add_definitions(-DHAVE_ITK_LIBS)
-
-# -------- boost --------
-set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
-find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -163,7 +145,6 @@ if(OPENMP_FOUND)
 endif()
 
 # -------- openCV --------
-# version issue for ./freesurfer/histo_register
 if(NOT APPLE)
   find_package(OpenCV)
 endif()
@@ -186,9 +167,6 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    # since we have OpenGL, make sure we have glut too
-    find_package(GLUT REQUIRED)
-    add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
   # -------- qt --------
@@ -207,6 +185,10 @@ if(BUILD_GUIS)
   # only used by mris_decimate_gui
   find_package(WXWidgets)
 
+  # -------- xt --------
+  # used by freeview
+  find_package(Xt)
+  
 endif()
 
 # --------------------------------------------------
@@ -217,9 +199,14 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 # general check for big endian
 test_big_endian(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+  set(BYTEORDER 4321)
+else()
+  set(BYTEORDER 1234)
+endif()
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-result -Wno-unused-local-typedefs")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
@@ -233,7 +220,7 @@ add_definitions(-DANSI)
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
 # todo: write some logic to set this correctly
 add_definitions(-DUSE_SSE_MATHFUN)
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse -fPIC")
 
 # large file support: support for files > 2GB
 if(APPLE)
@@ -256,12 +243,12 @@ endif()
 if(NOT APPLE)
   # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-  # Try to use native libGLdispatch.so as versions from /usr/lib64/nvidia may be missing symbols
-  # This should only affect CentOS machines
-  # Alternately add /lib64 to global CMAKE_EXE_LINKER_FLAGS
-  if(EXISTS "/lib64/libGLdispatch.so")
-    set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
-  endif()
+endif()
+
+if(EXISTS "/etc/redhat-release" AND EXISTS "/lib64/libGLdispatch.so")
+  # temporary centos7 fix: use native libGLdispatch.so as nvidia version is missing symbols
+  set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
+  message(STATUS "Using the native libGLdispatch.so")
 endif()
 
 # check for clock_gettime on mac
@@ -336,17 +323,29 @@ endif()
 set(FS_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/minc_1_5_1
-  ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1
+  ${CMAKE_SOURCE_DIR}/packages/minc
+  ${CMAKE_SOURCE_DIR}/packages/netcdf
 )
 
+# build third-party libraries
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
+add_subdirectories(
+  packages/jpeg
+  packages/expat
+  packages/tiff
+  packages/xml2
+  packages/minc
+  packages/netcdf
+  packages/tetgen
+)
+
+if(OPENGL_FOUND)
+  add_subdirectory(packages/glut)
+endif()
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
-  minc_1_5_1
-  netcdf_3_6_0_p1
   unix
   log
   rgb
@@ -487,7 +486,6 @@ if(NOT MINIMAL)
     HippoSF
     histo_compute_joint_density
     histo_fix_topology
-    histo_register
     histo_register_block
     histo_segment
     histo_synthesize

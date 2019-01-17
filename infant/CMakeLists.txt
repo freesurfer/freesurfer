@@ -18,3 +18,5 @@ install(PROGRAMS
 )
 
 install_append_help(infant_recon_all infant_recon_all.help.xml bin)
+
+add_subdirectory(labelfusion)

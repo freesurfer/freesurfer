@@ -5,10 +5,7 @@ if(BUILD_GUIS AND Qt5_FOUND)
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
 
-  include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${QT_INCLUDE_DIRS}
-  )
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
   set(SOURCES
     main.cpp

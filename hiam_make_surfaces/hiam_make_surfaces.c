@@ -1930,9 +1930,8 @@ SmoothSpikes(MRI_SURFACE *mris, int niter) {
 
   int const nvertices = mris->nvertices;
   
-  float* tx = (float*)memalign(64, nvertices*sizeof(float)), 
-       * ty = (float*)memalign(64, nvertices*sizeof(float)),
-       * tz = (float*)memalign(64, nvertices*sizeof(float));
+  float *tx, *ty, *tz;
+  MRISmemalignNFloats(nvertices, &tx, &ty, &tz);
 
   float* px, *py, *pz;
   MRISexportXYZ(mris, &px,&py,&pz);
