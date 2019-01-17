@@ -16,21 +16,3 @@ target_link_libraries(bindings PRIVATE utils fsgdf)
 
 # make sure the bindings library gets built into the repository even in out-of-source builds
 set_target_properties(bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/freesurfer)
-
-
-if(INFANT_MODULE)
-
-  # todoc
-
-  pybind11_add_module(labelfusion
-    numpy.cpp
-    labelfusion/python.cpp
-    labelfusion/cmf3d_ml.cpp
-    labelfusion/fib.cpp
-    labelfusion/perform_front_propagation_3d.cpp
-  )
-
-  # make sure the labelfusion library gets built into the repository even in out-of-source builds
-  set_target_properties(labelfusion PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/freesurfer)
-
-endif()
