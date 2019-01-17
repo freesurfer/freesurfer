@@ -48,8 +48,7 @@ pkgs = [
   Package('itk',         '4.13.0', 'build_itk.sh',       'itk-4.13.0.tar.gz'),
   Package('petsc',       '2.3.3',  'build_petsc.sh',     'petsc-2.3.3.tar.gz', required=False),
   Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False),
-  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False),
-  Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False)  # must build kwwidgets after vtk
+  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False)
 ]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
