@@ -4,44 +4,39 @@
 #include <algorithm>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+
 namespace py = pybind11;
 
 
-template<class T>
-py::array_t<T> createNumpyArray(std::vector<size_t> shape, std::vector<size_t> strides, T *data){
-    py::capsule free_when_done(data, [](void *d) { delete[] (T *)d; });
-    auto result = py::array_t<T>(shape, strides, data, free_when_done);
-    return result;
-}
+enum MemoryOrder {C, Fortran};
 
+std::vector<ssize_t> cstrides(std::vector<ssize_t> shape, size_t size);
+std::vector<ssize_t> fstrides(std::vector<ssize_t> shape, size_t size);
 
-template<class T>
-py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, const T* const data){
-    size_t size = sizeof(T);
-    std::vector<size_t> strides = {1};
-    for(size_t d = shape.size()-1; d > 0; d--){
-        strides.push_back(strides.back()*shape[d]);
-    }
-    std::reverse(strides.begin(), strides.end());
-    for(auto &stride: strides){
-        stride *= size;
-    }
-    return createNumpyArray(shape, strides, data);
-}
-
+std::string shapeString(std::vector<ssize_t> shape);
 
 template<class T>
-py::array_t<T> createNumpyArrayFStyle(std::vector<size_t> shape, const T* const data){
-    size_t size = sizeof(T);
-    std::vector<size_t> strides = {1};
-    for(size_t d = 0; d < shape.size()-1; d++){
-        strides.push_back(strides.back()*shape[d]);
-    }
-    for(auto &stride: strides){
-        stride *= size;
-    }
-    return createNumpyArray(shape, strides, data);
+py::array_t<T> makeArray(std::vector<ssize_t> shape, std::vector<ssize_t> strides, const T* const data, bool free = true) {
+  // make python capsule handle
+  py::capsule capsule;
+  if (free) {
+    capsule = py::capsule(data, [](void *d) { delete[] (T *)d; });
+  } else {
+    capsule = py::capsule(data);
+  }
+  return py::array_t<T>(shape, strides, data, capsule);
 }
 
+template<class T>
+py::array_t<T> makeArray(std::vector<ssize_t> shape, MemoryOrder order, const T* const data, bool free = true) {
+  // determine buffer array strides
+  std::vector<ssize_t> strides;
+  if (order == MemoryOrder::Fortran) {
+    strides = fstrides(shape, sizeof(T));    
+  } else {
+    strides = cstrides(shape, sizeof(T));    
+  }
+  return makeArray(shape, strides, data, free);
+}
 
 #endif

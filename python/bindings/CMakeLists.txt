@@ -1,9 +1,36 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${FS_INCLUDE_DIRS})
 
-# temporary fix so that -g doesn't cause linker errors
+# temporary fix so that -g doesn't produce linker errors
 set(CMAKE_CXX_FLAGS_DEBUG "")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 
-set(FS_PYTHON_DIR ${CMAKE_SOURCE_DIR}/python/freesurfer)
+pybind11_add_module(bindings
+  python.cpp
+  numpy.cpp
+  volume.cpp
+  surface.cpp
+)
 
-add_subdirectories(algorithm)
+# link utilities
+target_link_libraries(bindings PRIVATE utils fsgdf)
+
+# make sure the bindings library gets built into the repository even in out-of-source builds
+set_target_properties(bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/freesurfer)
+
+
+if(INFANT_MODULE)
+
+  # todoc
+
+  pybind11_add_module(labelfusion
+    numpy.cpp
+    labelfusion/python.cpp
+    labelfusion/cmf3d_ml.cpp
+    labelfusion/fib.cpp
+    labelfusion/perform_front_propagation_3d.cpp
+  )
+
+  # make sure the labelfusion library gets built into the repository even in out-of-source builds
+  set_target_properties(labelfusion PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/freesurfer)
+
+endif()

@@ -77,7 +77,7 @@ pyarrayd performFrontPropagation3D(const pyarrayd &weights, const pyarrayd &star
   GW_DELETEARRAY(prop.S)
   GW_DELETEARRAY(prop.Q)
 
-  return createNumpyArrayFStyle({prop.n, prop.p, prop.q}, prop.D);
+  return makeArray({prop.n, prop.p, prop.q}, MemoryOrder::Fortran, prop.D);
 }
 
 

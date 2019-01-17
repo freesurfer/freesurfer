@@ -350,5 +350,5 @@ pyarrayf CMF3D_ML(const pyarrayf &bound, int iNbIters, float fError, float cc, f
     free( (float *) pfgk );
     free( (float *) pfft );
 
-    return createNumpyArrayFStyle({iNy, iNx, iNz, iLab}, u);
+    return makeArray({iNy, iNx, iNz, iLab}, MemoryOrder::Fortran, u);
 }
