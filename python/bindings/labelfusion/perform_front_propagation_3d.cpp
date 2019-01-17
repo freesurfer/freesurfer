@@ -19,9 +19,9 @@
 
 #include <iostream>
 #include <exception>
-#include "perform_front_propagation_3d.h"
-#include "python.h"
-#include "numpy.h"
+
+#include "labelfusion/labelfusion.h"
+#include "labelfusion/perform_front_propagation_3d.h"
 
 
 #define kDead -1
@@ -39,8 +39,10 @@
 #define end_points_(i,s) end_points[(i)+3*(s)]
 
 
-// Performs a fast marching front propagation and computes the distance function from given
-// starting points. This is a python port of the perform_front_propagation_3d tool written by Gabriel Peyre
+/*
+  Performs a fast marching front propagation and computes the distance function from given
+  starting points. This is a python port of the perform_front_propagation_3d tool written by Gabriel Peyre.
+*/
 pyarrayd performFrontPropagation3D(const pyarrayd &weights, const pyarrayd &start, int max_iters, const pyarrayd &values)
 {
   Propagator prop;

@@ -1,9 +1,7 @@
-#ifndef ALGORITHM_PYTHON_H
-#define ALGORITHM_PYTHON_H
+#ifndef LABELFUSION_H
+#define LABELFUSION_H
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-namespace py = pybind11;
+#include "numpy.h"
 
 typedef py::array_t<float>  pyarrayf;
 typedef py::array_t<double> pyarrayd;

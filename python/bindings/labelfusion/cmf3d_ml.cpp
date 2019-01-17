@@ -57,8 +57,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "numpy.h"
-#include "python.h"
+#include "labelfusion/labelfusion.h"
 
 
 #define YES 0
