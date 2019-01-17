@@ -4,13 +4,13 @@ include_directories(
   ${FS_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/include/dicom
   ${CMAKE_SOURCE_DIR}/include/NrrdIO
-  ${XML2_INCLUDE_DIR}
-  ${JPEG_INCLUDE_DIR}
-  ${TIFF_INCLUDE_DIR}
-  ${GLUT_INCLUDE_DIR}/GL
+  ${CMAKE_SOURCE_DIR}/packages/jpeg
+  ${CMAKE_SOURCE_DIR}/packages/expat
+  ${CMAKE_SOURCE_DIR}/packages/tiff
+  ${CMAKE_SOURCE_DIR}/packages/xml2
+  ${CMAKE_SOURCE_DIR}/packages/glut
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIR}
-  ${Expat_INCLUDE_DIR}
 )
 
 set(SOURCES
@@ -243,16 +243,7 @@ set(SOURCES ${SOURCES}
 )
 
 # nrrdio-required definitions
-add_definitions(-DTEEM_DIO=0 -DTEEM_QNANHIBIT=1)
-
-# check for big endian
-include(TestBigEndian)
-test_big_endian(IS_BIG_ENDIAN)
-if(IS_BIG_ENDIAN)
-  add_definitions(-DTEEM_ENDIAN=4321)
-else()
-  add_definitions(-DTEEM_ENDIAN=1234)
-endif()
+add_definitions(-DTEEM_DIO=0 -DTEEM_QNANHIBIT=1 -DTEEM_ENDIAN=${BYTEORDER})
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_definitions(-DTEEM_32BIT=0)
@@ -312,18 +303,17 @@ target_link_libraries(utils
   dicom
   log
   unix
+  jpeg
+  expat
+  tiff
+  xml2
   ${ZLIB_LIBRARIES}
-  ${XML2_LIBRARIES}
-  ${JPEG_LIBRARIES}
-  ${TIFF_LIBRARIES}
   ${ITK_LIBRARIES}
-  ${Expat_LIBRARIES}
 )
 
 if(NOT APPLE)
   target_link_libraries(utils crypt rt)
 endif()
-
 
 # utils binaries
 
@@ -331,25 +321,23 @@ set(GIFTI_SOURCES gifti_io.c gifti_xml.c nifti1_io.c znzlib.c)
 
 # gifti_tool
 add_executable(gifti_tool gifti_tool.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_tool ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(gifti_tool expat ${ZLIB_LIBRARIES})
 install(TARGETS gifti_tool DESTINATION bin)
 
 # gifti test
 add_executable(gifti_test gifti_test.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_test ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(gifti_test expat ${ZLIB_LIBRARIES})
 install(TARGETS gifti_test DESTINATION bin)
 
 # xmlToHtml
 add_executable(xmlToHtml xmlToHtml.c)
-target_link_libraries(xmlToHtml ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(xmlToHtml xml2 expat ${ZLIB_LIBRARIES})
 install(TARGETS xmlToHtml DESTINATION bin)
 
 # fsPrintHelp
 add_executable(fsPrintHelp fsPrintHelp.c)
 target_compile_definitions(fsPrintHelp PRIVATE BUILD_MAIN)
-target_link_libraries(fsPrintHelp ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(fsPrintHelp xml2 ${ZLIB_LIBRARIES})
 install(TARGETS fsPrintHelp DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fsman)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fshelp)
 
 add_subdirectory(test)

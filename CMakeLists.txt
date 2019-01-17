@@ -116,21 +116,6 @@ if(NOT APPLE)
 
 endif()
 
-# -------- jpeg --------
-find_package(JPEG REQUIRED)
-
-# -------- tiff --------
-find_package(TIFF REQUIRED)
-
-# -------- expat --------
-find_package(Expat REQUIRED)
-
-# -------- xml2 --------
-find_package(XML2 REQUIRED)
-
-# -------- tetgen --------
-find_package(Tetgen REQUIRED)
-
 # -------- petsc --------
 find_package(PETSC)
 
@@ -182,9 +167,6 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    # since we have OpenGL, make sure we have glut too
-    find_package(GLUT REQUIRED)
-    add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
   # -------- qt --------
@@ -217,6 +199,11 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 # general check for big endian
 test_big_endian(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+  set(BYTEORDER 4321)
+else()
+  set(BYTEORDER 1234)
+endif()
 
 # compiler warnings
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
@@ -233,7 +220,7 @@ add_definitions(-DANSI)
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
 # todo: write some logic to set this correctly
 add_definitions(-DUSE_SSE_MATHFUN)
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse -fPIC")
 
 # large file support: support for files > 2GB
 if(APPLE)
@@ -336,17 +323,29 @@ endif()
 set(FS_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/minc_1_5_1
-  ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1
+  ${CMAKE_SOURCE_DIR}/packages/minc
+  ${CMAKE_SOURCE_DIR}/packages/netcdf
 )
 
+# build third-party libraries
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
+add_subdirectories(
+  packages/jpeg
+  packages/expat
+  packages/tiff
+  packages/xml2
+  packages/minc
+  packages/netcdf
+  packages/tetgen
+)
+
+if(OPENGL_FOUND)
+  add_subdirectory(packages/glut)
+endif()
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
-  minc_1_5_1
-  netcdf_3_6_0_p1
   unix
   log
   rgb
