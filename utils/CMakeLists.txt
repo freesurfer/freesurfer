@@ -10,7 +10,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/packages/xml2
   ${CMAKE_SOURCE_DIR}/packages/glut
   ${X11_INCLUDE_DIR}
-  ${ITK_INCLUDE_DIR}
+  ${ITK_INCLUDE_DIRS}
 )
 
 set(SOURCES
@@ -302,11 +302,12 @@ target_link_libraries(utils
   hipsstubs
   dicom
   log
-  unix
   jpeg
   expat
   tiff
   xml2
+  minc
+  netcdf
   ${ZLIB_LIBRARIES}
   ${ITK_LIBRARIES}
 )
