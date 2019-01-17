@@ -6,8 +6,8 @@
 #include <vector>
 #include <algorithm>
 
-#include "labelfusion/perform_front_propagation_3d_config.h"
-#include "labelfusion/fib.h"
+#include "perform_front_propagation_3d_config.h"
+#include "fib.h"
 
 
 struct point {

@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 
-#include "labelfusion/labelfusion.h"
+#include "labelfusion.h"
 
 
 PYBIND11_MODULE(labelfusion, m) {

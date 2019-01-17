@@ -20,8 +20,8 @@
 #include <iostream>
 #include <exception>
 
-#include "labelfusion/labelfusion.h"
-#include "labelfusion/perform_front_propagation_3d.h"
+#include "labelfusion.h"
+#include "perform_front_propagation_3d.h"
 
 
 #define kDead -1

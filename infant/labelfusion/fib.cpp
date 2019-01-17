@@ -27,8 +27,8 @@
  *
  */
 
-#include "labelfusion/fib.h"
-#include "labelfusion/fibpriv.h"
+#include "fib.h"
+#include "fibpriv.h"
 
 #include <limits.h>
 #include <stdlib.h>
