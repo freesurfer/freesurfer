@@ -67,7 +67,7 @@ def ensureDims(np_array, dims):
 def icv(structures, includeStructures=None):
     if not includeStructures:
         print("using default intracranial structures to compute sbtiv measure")
-        includeStructures = [  
+        includeStructures = [
             'Brain-Stem',
             'CSF',
             'Left-Cerebellum-Cortex',

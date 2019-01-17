@@ -9,13 +9,9 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
-option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
-if(APPLE)
-  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
-endif()
 
 # enable ctest
 enable_testing()
@@ -175,12 +171,6 @@ if(BUILD_GUIS)
   # -------- tcltktixblt --------
   find_package(TCLTKTIXBLT)
 
-  # -------- kwwidgets --------
-  # once qdec is deprecated, KWWidgets can be removed
-  if(BUILD_QDEC)
-    find_package(KWWidgets)
-  endif()
-
   # -------- wxwidgets --------
   # only used by mris_decimate_gui
   find_package(WXWidgets)
@@ -275,7 +265,7 @@ endif()
 #                   setup python
 # --------------------------------------------------
 
-# Unfortunately, the python version used to run wrapped c-libraries must be equal to
+# Unfortunately, the python version used to run wrapped c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
 # distributing a minimal, custom python installation called fspython. This fspython package
@@ -358,7 +348,7 @@ add_subdirectories(
   opencl_algorithms
 )
 
-# the following utility libraries are required for freeview and qdec
+# the following utility libraries are required for freeview
 add_subdirectories(vtkfsio vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
@@ -712,7 +702,6 @@ if(NOT MINIMAL)
     oct_train
     optseq2
     qdecproject
-    qdec
     qdec_glmfit
     rbftest
     regdat2xfm
@@ -726,8 +715,6 @@ if(NOT MINIMAL)
     template
     test_makevol
     ThalamicNuclei
-    tkmedit
-    # tksurfer
     trc
     tridec
   )

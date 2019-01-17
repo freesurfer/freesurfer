@@ -16,7 +16,6 @@ class Freeview:
         fv.show()
 
         For a quicker but more limited way to view volumes or overlays, see `fv()` and `fvoverlay()`.
-
     '''
     def __init__(self):
         self._tempdir = None

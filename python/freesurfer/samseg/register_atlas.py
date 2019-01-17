@@ -38,7 +38,7 @@ def registerAtlas(
     # ------ Register Image ------
 
     if worldToWorldTransformMatrix is not None:
-        # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image 
+        # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
         # transform (needed for subsequent computations) and be done
         print('world-to-world transform supplied - skipping registration')
         imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
@@ -54,7 +54,7 @@ def registerAtlas(
         K = 1e-7
         maximalDeformationStopCriterion = 0.005
         lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion  # Doesn't seem to matter very much
-    
+
         # Initialization
         if initLTAFile is None:
             initialWorldToWorldTransformMatrix = np.identity(4)
@@ -81,7 +81,7 @@ def registerAtlas(
         rotationMatrix[2, 1] = sin_theta
         rotationMatrix[2, 2] = cos_theta
         initialWorldToWorldTransformMatrix = rotationMatrix @ initialWorldToWorldTransformMatrix
-        
+
         # Isotropic scaling
         scaling = 0.9
         scalingMatrix = np.diag([scaling, scaling, scaling, 1.0])
@@ -95,7 +95,7 @@ def registerAtlas(
         voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
         downSamplingFactors = np.round(targetDownsampledVoxelSpacing / voxelSpacing)
         downSamplingFactors[downSamplingFactors < 1] = 1
-        
+
         # Use initial transform to define the reference (rest) position of the mesh (i.e. the one
         # where the log-prior term is zero)
         mesh_collection = gems.KvlMeshCollection()
@@ -103,7 +103,7 @@ def registerAtlas(
         mesh_collection.k = K * np.prod(downSamplingFactors)
         mesh_collection.transform(gems.KvlTransform(requireNumpyArray(initialImageToImageTransformMatrix)))
         mesh = mesh_collection.reference_mesh
-        
+
         # Get image data
         imageBuffer = image.getImageBuffer()
         visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')

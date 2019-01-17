@@ -1,11 +1,12 @@
-from .util import *
-from .log import *
-from .geometry import *
-from ._surface import *
-from ._normalize import *
-from .freeview import *
-from . import metrics
+# first import basic IO tools
+from . import term
+from .logging import *
+from .parser import ArgParser
 
+# primary utilities
+from .utility import *
+
+# c bindings
 try:
     from . import bindings
 except ImportError:
@@ -21,3 +22,9 @@ except ImportError:
 
 from .surface import *
 from .volume import *
+
+from .geometry import *
+from ._surface import *
+from ._normalize import *
+from .freeview import *
+from . import metrics

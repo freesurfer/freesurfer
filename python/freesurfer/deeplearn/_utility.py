@@ -260,7 +260,7 @@ def build_image_from_patches(in_patches, patch_size, idx_x, idx_y, idx_z, padded
     count_img_data = count_img_data[patch_size[0]:patch_size[0] + unpadded_img_size[0],
                     patch_size[1]:patch_size[1] + unpadded_img_size[1],
                     patch_size[2]:patch_size[2] + unpadded_img_size[2]]
-    
+
     return out_img_data, count_img_data
 
 
