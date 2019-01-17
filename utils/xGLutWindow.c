@@ -22,7 +22,7 @@
  *
  */
 
-#ifdef HAVE_GLUT_LIBS
+#ifdef HAVE_OPENGL
 
 #include "xGLutWindow.h"
 #include <stdlib.h>
@@ -753,4 +753,4 @@ void xGWin_DebugPrintEvent(xGWin_tEventRef this)
   DebugPrint(("\n"));
 }
 
-#endif  // #ifdef HAVE_GLUT_LIBS
+#endif  // #ifdef HAVE_OPENGL

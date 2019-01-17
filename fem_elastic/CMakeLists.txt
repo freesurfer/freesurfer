@@ -1,11 +1,11 @@
 project(fem_elastic)
 
-if(Tetgen_FOUND AND PETSC_FOUND)
+if(PETSC_FOUND)
 
   include_directories(
     ${FS_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/packages/tetgen
     ${PETSC_INCLUDE_DIR}
-    ${Tetgen_INCLUDE_DIR}
     ${ITK_INCLUDE_DIRS}
   )
 
@@ -23,19 +23,19 @@ if(Tetgen_FOUND AND PETSC_FOUND)
   # createMorph
   add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
   add_help(createMorph createMorph.help.xml)
-  target_link_libraries(createMorph utils utilscpp ${Tetgen_LIBRARIES})
+  target_link_libraries(createMorph utils utilscpp tetgen)
   install(TARGETS createMorph DESTINATION bin)
 
   # applyMorph
   add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
   add_help(applyMorph applyMorph.help.xml)
-  target_link_libraries(applyMorph utils utilscpp ${Tetgen_LIBRARIES})
+  target_link_libraries(applyMorph utils utilscpp tetgen)
   install(TARGETS applyMorph DESTINATION bin)
 
   # exportGcam
   add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
   add_help(exportGcam exportGcam.help.xml)
-  target_link_libraries(exportGcam utils utilscpp ${Tetgen_LIBRARIES})
+  target_link_libraries(exportGcam utils utilscpp tetgen)
   install(TARGETS exportGcam DESTINATION bin)
 
   if(APPLE)
@@ -59,7 +59,7 @@ if(Tetgen_FOUND AND PETSC_FOUND)
   )
   target_link_libraries(surf2vol
     utils
-    ${Tetgen_LIBRARIES}
+    tetgen
     ${PETSC_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${BLAS_LIBRARIES}

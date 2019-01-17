@@ -8,7 +8,7 @@ import nibabel as nib
 
 from scipy import ndimage
 from scipy.optimize import minimize
-from freesurfer.algorithm import maxflow, performFrontPropagation3D
+from freesurfer.labelfusion import maxflow, performFrontPropagation3D
 
 
 # ------ Utility Functions ------

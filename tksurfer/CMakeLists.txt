@@ -11,9 +11,9 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
     include_directories(
       ${FS_INCLUDE_DIRS}
       ${CMAKE_SOURCE_DIR}/unix
+      ${CMAKE_SOURCE_DIR}/packages/tiff
+      ${CMAKE_SOURCE_DIR}/packages/glut
       ${TCLTKTIXBLT_INCLUDE_DIR}
-      ${TIFF_INCLUDE_DIR}
-      ${GLUT_INCLUDE_DIR}/GL
       ${X11_INCLUDE_DIR}
     )
 
@@ -22,7 +22,7 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
       utils
       fsgdf
       ${OPENGL_LIBRARIES}
-      ${GLUT_LIBRARIES}
+      glut
       ${X11_LIBRARIES}
       ${TCLTKTIXBLT_LIBRARIES}
     )
