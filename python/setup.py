@@ -51,7 +51,7 @@ setup(
     packages=find_packages(include=packages),
     package_data={'freesurfer': operator.add(
                        find_libs('bindings'),
-                       find_libs('labelfusion', required=False))
+                       find_libs('labelfusion', required=False)),
                   'freesurfer.gems': find_libs('gems_python'),
                   'freesurfer.algorithm': find_libs('algorithm_python')},
     install_requires=requirements,
