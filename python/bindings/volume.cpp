@@ -1,4 +1,3 @@
-#include <iostream>
 #include <stdexcept>
 
 #include "volume.h"
@@ -14,7 +13,6 @@ void bindVolume(py::module &m) {
     .def(py::init<py::array>())
     .def("read", &CoreVolume::read)
     .def("write", &CoreVolume::write)
-    .def("printValue", &CoreVolume::printValue)
     .def_property("image", &CoreVolume::getImage, &CoreVolume::setImage)
   ;
 }

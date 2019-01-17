@@ -68,7 +68,7 @@ void CoreSurface::write(const std::string &filename) {
 py::array_t<float> CoreSurface::getVertices() {
   double* const buffer = new double[m_mris->nvertices * 3];
   double* ptr = buffer;
-  for (unsigned int v = 0 ; v < m_mris->nvertices ; v++) {
+  for (int v = 0 ; v < m_mris->nvertices ; v++) {
     *ptr++ = m_mris->vertices[v].x;
     *ptr++ = m_mris->vertices[v].y;
     *ptr++ = m_mris->vertices[v].z;
