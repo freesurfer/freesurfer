@@ -843,6 +843,7 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   double wmsum;
 
   printf("MRIbiasFieldCorLog()\n");fflush(stdout);
+  printf("VmPeak  %d\n",GetVmPeak());
 
   bf->seg = MRIcopy(bf->srcseg,NULL); 
   MRIcopyPulseParameters(bf->srcseg, bf->seg);
@@ -855,8 +856,15 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   #endif
   for(c=0; c < bf->seg->width; c++){
     int r, s, segid;
+    double val;
     for(r=0; r < bf->seg->height; r++){
       for(s=0; s < bf->seg->depth; s++){
+        val = MRIgetVoxVal(bf->input,c,r,s,0);
+	if(val <= 0){
+          // Exclude voxels that have a value of <=0 
+          MRIsetVoxVal(bf->seg,c,r,s,0,0);
+          continue;
+        }
 	segid = MRIgetVoxVal(bf->seg,c,r,s,0);
 	switch (segid) {
 	case Left_Cerebral_White_Matter: 
@@ -904,9 +912,11 @@ int MRIbiasFieldCorLog(MRIBF *bf)
 
   // Erode the segmentation
   bf->segerode = MRIerodeSegmentation(bf->seg, NULL, bf->nerode, 0);
+  //MRIwrite(bf->segerode,"segerode.mgz");
 
   // Compute the bounding box, pad=1, probably not needed
   bf->bb = REGIONgetBoundingBox(bf->segerode, 1);
+  printf("Bounding box: ");
   REGIONprint(stdout, bf->bb);
 
   // Extract the bounding box from seg and input
@@ -919,12 +929,13 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   for(r=1; r <= bf->y->rows; r++){
     for(c=1; c <= bf->y->cols; c++){
       if(bf->y->rptr[r][c] <= 0){
-	printf("ERROR: y is less than or equal to 0 %g %d %d\n",bf->y->rptr[r][c],r,c);
+	printf("ERROR: y matrix is less than or equal to 0, v=%g (%d %d)\n",bf->y->rptr[r][c],r,c);
 	return(1);
       }
       bf->y->rptr[r][c] = log(bf->y->rptr[r][c]);
     }
   }
+  printf("VmPeak  %d\n",GetVmPeak());
 
   // Extract the design matrix to compute the segmentation means
   bf->Xseg = MRIbiasXsegs(bf->bbseg);
@@ -969,6 +980,7 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   MatrixPrint(stdout,bf->betabf); fflush(stdout);
 
   printf("Transfering to the full FoV\n"); fflush(stdout);
+  printf("VmPeak  %d\n",GetVmPeak());fflush(stdout);
   ones = MRIcopy(bf->bbseg,NULL);
   MRIconst(ones->width,ones->height,ones->depth,1,1,ones);
   MatrixFree(&bf->Xbf);
@@ -981,6 +993,7 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   }
   bf->biasfield = MRImat2vol(bffit, bf->input, 1, NULL);
   printf("MRIbiasFieldCorLog() done\n");fflush(stdout);
+  printf("VmPeak  %d\n",GetVmPeak());fflush(stdout);
 
   return(0);
 }
