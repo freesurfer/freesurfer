@@ -86,6 +86,8 @@
       <explanation>set wsize (default=11)</explanation>
       <argument>-dat datfile</argument>
       <explanation>set datfile (default is segment.dat)</explanation>
+      <argument>-seg segmenationvolume Qwm Qctx NdilWM NdilCtx</argument>
+      <explanation>Uses segmentation (eg, aseg.presurf.mgz) to initialize WM seg</explanation>
       <argument>-diagno diagno</argument>
       <explanation>Set diagnostic number</explanation>
       <argument>-diag-write</argument>
