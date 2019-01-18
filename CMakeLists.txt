@@ -336,7 +336,6 @@ endif()
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
-  unix
   log
   rgb
   hipsstubs
