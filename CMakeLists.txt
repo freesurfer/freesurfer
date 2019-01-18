@@ -265,27 +265,27 @@ endif()
 #                   setup python
 # --------------------------------------------------
 
-# Unfortunately, the python version used to run wrapped c-libraries must be equivalent to
+# Unfortunately, the python version used to run bind c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
 # distributing a minimal, custom python installation called fspython. This fspython package
-# will get installed by default to "freesurfer/lib/python", but an external python can be
-# used instead by turning off the DISTRIBUTE_FSPYTHON option. Turning this off will create a
-# freesurfer/bin/fspythonlink symlink that points to the external python executable located by pybind
-option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
+# will get installed to "freesurfer/python", but an external python can be used instead when the
+# DISTRIBUTE_FSPYTHON option is turned off. Turning this off will create a freesurfer/bin/fspythonlink
+# symlink during install that points to the external python executable located by pybind
+option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" OFF)
 
 if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6/base)
-  if(EXISTS ${FSPYTHON_DIR}/bin/python)
-    # link the fspython distribution
-    symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6)
+  if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
-    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.so)
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.a)
+    # install the barebones python distribution
+    INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
+    )
   else()
-    message(WARNING "Cannot find fspython distribution in FS_PACKAGES_DIR, "
-                    "so must use external python executable")
-    set(DISTRIBUTE_FSPYTHON OFF)
+    message(FATAL_ERROR "Cannot find fspython distribution in FS_PACKAGES_DIR")
   endif()
 endif()
 
