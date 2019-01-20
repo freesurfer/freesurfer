@@ -42,7 +42,7 @@ class RegressionTest:
         self.testdatadir = op.join(self.testdir, 'testdata')
         self.scriptdir = op.dirname(op.realpath(sys.argv[0]))
         self.testdatatar = op.join(self.scriptdir, 'testdata.tar.gz')
-        self.fshome = self._findPath(self.scriptdir, 'distribution')
+        self.fshome = self.findPath(self.scriptdir, 'distribution')
         self._setEnvironment()
 
         # if regenerating testdata...
@@ -73,13 +73,13 @@ class RegressionTest:
     # recursively search upwards for a target
     # this is used to locate the 'distribution' folder or the compiled 'mri_diff'
     # in the build directory
-    def _findPath(self, startpath, target):
+    def findPath(self, startpath, target):
         distpath = op.join(startpath, target)
         if not op.exists(distpath):
             parent = op.abspath(op.join(startpath, '..'))
             if parent == '/':
                 errorExit("max recursion reached - could not locate '%s'" % target)
-            return self._findPath(parent, target)
+            return self.findPath(parent, target)
         return distpath
 
     # print and run a command, and exit if it fails
@@ -127,7 +127,7 @@ class RegressionTest:
             self._regen(orig, ref)
         else:
             os.chdir(self.testdatadir)
-            diffcmd = op.relpath(self._findPath(self.testdatadir, 'mri_diff/mri_diff'))
+            diffcmd = op.relpath(self.findPath(self.testdatadir, 'mri_diff/mri_diff'))
             cmd = '%s %s %s' % (diffcmd, orig, ref)
             origname = op.basename(orig)
             for ext in ('.mgh', '.mgz', '.nii', '.nii.gz'):
@@ -144,7 +144,7 @@ class RegressionTest:
             self._regen(orig, ref)
         else:
             os.chdir(self.testdatadir)
-            diffcmd = op.relpath(self._findPath(self.testdatadir, 'mris_diff/mris_diff'))
+            diffcmd = op.relpath(self.findPath(self.testdatadir, 'mris_diff/mris_diff'))
             cmd = '%s %s %s --debug %s' % (diffcmd, orig, ref, flags)
             if self._runcmd(cmd, fatal=False) != 0:
                 errorExit('mris_diff of %s and %s failed' % (orig, ref))

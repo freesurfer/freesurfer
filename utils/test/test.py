@@ -5,7 +5,7 @@ import freesurfer.test as fst
 
 rt = fst.RegressionTest()
 
-rt.run('testcolortab %s/FreeSurferColorLUT.txt' % rt.fs_home)
+rt.run('testcolortab %s/FreeSurferColorLUT.txt' % rt.fshome)
 rt.run('test_c_nr_wrapper')
 rt.run('extest')
 rt.run('inftest')
