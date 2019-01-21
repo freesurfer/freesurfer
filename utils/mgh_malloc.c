@@ -77,6 +77,11 @@ static void showMallocStatsAllocCounters();
 //
 //      make CCLD="g++ -Wl,--wrap=free -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign"
 //
+//  In CMakeLists.txt for the entity being linked
+//      SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,--wrap=free -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign")
+// or   SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lmcheck") 
+
+//
 //  It may also need
 //           -lmcheck
 

@@ -239,41 +239,78 @@ void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris) {
 //     
 static void freeDistOrDistOrig(bool doOrig, VERTEX* v) {
   if (doOrig) { *(void**)(&v->dist_orig) = NULL; v->dist_orig_capacity = 0; }
-  else        { *(void**)(&v->dist     ) = NULL;                            }
+  else        { *(void**)(&v->dist     ) = NULL; v->dist_capacity      = 0; }
 }
 
-static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldCapacity, int newCapacity) 
+static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldSize, int neededCapacity) 
 {
-  if (oldCapacity >= newCapacity) return;
-  
-  char const flag = (char)(1)<<doOrig;
-  mris->dist_alloced_flags |= flag;
-
   VERTEX const * const v = &mris->vertices[vno];
 
-  float * const * pc = doOrig ? &v->dist_orig : &v->dist;
-  float *       * p  = (float**)pc;
+  const int    * pcCap = doOrig ? &v->dist_orig_capacity : &v->dist_capacity; 
+  float* const * pc    = doOrig ? &v->dist_orig          : &v->dist;
 
-  void  *       * p_storage = doOrig ? &mris->dist_storage[vno] : &mris->dist_orig_storage[vno];
+  if (*pcCap < neededCapacity) {
+  
+    void** p_storage = doOrig ? &mris->dist_orig_storage[vno] : &mris->dist_storage[vno];
+    *p_storage = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+
+    if (!*pc) {
+      char const flag = (char)(1)<<doOrig;
+      mris->dist_alloced_flags |= flag;
+    }
     
-  *p = *p_storage = (float*)realloc(*p_storage, newCapacity*sizeof(float));
-
-  if (newCapacity > oldCapacity) {
-    bzero((*p) + oldCapacity, (newCapacity-oldCapacity)*sizeof(float));
+    *(float**)pc    = *p_storage;
+    *(int   *)pcCap = neededCapacity;
   }
   
-  if (doOrig) {
-    const int * pc = &v->dist_orig_capacity; *(int*)pc = newCapacity;
+  if (neededCapacity > oldSize) {
+    bzero((*pc) + oldSize, (neededCapacity-oldSize)*sizeof(float));
   }
+}
+
+float* mrisStealDistStore(MRIS* mris, int vno, int capacity) {
+
+  // mrisSetDist may be called later, so stealing it now (if it is not being used) 
+  // will avoid the need to malloc some now and to free later
+  //
+  VERTEX const * const v = &mris->vertices[vno];
+  
+  float* p = NULL;
+  if (v->dist == NULL) { p = mris->dist_storage[vno]; mris->dist_storage[vno] = NULL; }
+  
+  return (float*)realloc(p, capacity*sizeof(float));
+}
+
+void mrisSetDist(MRIS* mris, int vno, float* dist, int newCapacity) {
+  // Some code has already computed the dist into a vector.
+  // Here is a quick way of putting it into the vertex
+  // The capacity must not be smaller than the current capacity
+  //
+  bool const doOrig = false;
+  char const flag = (char)(1)<<doOrig;
+  mris->dist_alloced_flags |= flag;
+    
+  VERTEX const * const v = &mris->vertices[vno];
+
+  cheapAssert(newCapacity >= v->dist_capacity);
+
+  float * const * pc = &v->dist;
+  float *       * p  = (float**)pc;
+  
+  if (mris->dist_storage[vno]) free(mris->dist_storage[vno]);   // very frequently avoid the lock
+  *p = mris->dist_storage[vno] = dist;
+  
+  const int * pcCap = &v->dist_capacity; *(int*)pcCap = newCapacity;
 }
 
 static void growDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int minimumCapacity)
 {
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
   VERTEX          const * const v  = &mris->vertices         [vno];
+  int oldSize = doOrig ? v->dist_orig_capacity : vt->vtotal;
   int vSize = mrisVertexVSize(mris, vno);
   if (vSize < minimumCapacity) vSize = minimumCapacity;
-  changeDistOrDistOrig(doOrig, mris, vno, doOrig ? v->dist_orig_capacity : vt->vtotal, vSize);
+  changeDistOrDistOrig(doOrig, mris, vno, oldSize, vSize);
 }
 
 
@@ -652,6 +689,103 @@ void MRISfree(MRIS **pmris)
   MRISdtr(mris);
   free(mris);
 }
+
+
+//======
+// ripped
+//
+char* MRISexportFaceRipflags(MRIS* mris) {
+  char* flags = (char*)malloc(mris->nfaces * sizeof(char));
+  int fno;
+  for (fno = 0 ; fno < mris->nfaces ; fno++){
+    flags[fno] = mris->faces[fno].ripflag;
+  }
+  return flags;
+}
+
+void  MRISimportFaceRipflags(MRIS* mris, const char* flags) {
+  int fno;
+  for (fno = 0 ; fno < mris->nfaces ; fno++){
+    mris->faces[fno].ripflag = flags[fno];
+  }
+}
+
+
+char* MRISexportVertexRipflags(MRIS* mris) {
+  char* flags = (char*)malloc(mris->nvertices * sizeof(char));
+  int vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    flags[vno] = mris->vertices[vno].ripflag;
+  }
+  return flags;
+}
+
+void MRISimportVertexRipflags(MRIS* mris, const char* flags) {
+  int vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    mris->vertices[vno].ripflag = flags[vno];
+  }
+} 
+
+int MRIScountRipped(MRIS *mris)
+{
+  int nripped=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  return(nripped);
+}
+
+
+int MRISstoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->oripflag = v->ripflag;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->oripflag = f->ripflag;
+  }
+  return (NO_ERROR);
+}
+
+int MRISrestoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = v->oripflag;
+  }
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->ripflag = f->oripflag;
+  }
+
+  return (NO_ERROR);
+}
+
+int MRISunrip(MRIS *mris)
+{
+  int vno, fno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].ripflag = 0;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    mris->faces[fno].ripflag = 0;
+  }
+  return (NO_ERROR);
+}
+
 
 
 char const * mrisurf_surface_names[3] = {"inflated", "smoothwm", "smoothwm"};
