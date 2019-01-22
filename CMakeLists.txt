@@ -112,6 +112,9 @@ if(NOT APPLE)
 
 endif()
 
+# -------- armadillo --------
+find_package(Armadillo)
+
 # -------- petsc --------
 find_package(PETSC)
 
