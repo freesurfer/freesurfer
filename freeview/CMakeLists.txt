@@ -183,6 +183,9 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     BinaryTreeView.cpp
     DialogSelectSplines.cpp
     DialogSurfaceLabelOperations.cpp
+    GeoSWorker.cpp
+    geos/GeodesicMatting.cpp
+    geos/kde.cpp
     freeview.qrc
   )
 

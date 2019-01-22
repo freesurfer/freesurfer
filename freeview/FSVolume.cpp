@@ -253,6 +253,7 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
   {
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
+
     if ( !this->MapMRIToImage() )
     {
       return false;
@@ -1986,7 +1987,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
   //  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   imageData->SetDimensions(zX, zY, zZ);
-  imageData->SetNumberOfScalarComponents( zFrames );
+  imageData->SetNumberOfScalarComponents( rasMRI->type == MRI_RGB? 4:zFrames );
 
   // create the scalars for all of the images. set the element size
   // for the data we will read.
@@ -2001,6 +2002,12 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     imageData->SetScalarTypeToInt();
     intScalars = vtkIntArray::New();
     scalars = (vtkDataArray*) intScalars;
+    break;
+  case MRI_RGB:
+    imageData->SetScalarTypeToUnsignedChar();
+    ucharScalars = vtkUnsignedCharArray::New();
+    scalars = (vtkDataArray*) ucharScalars;
+    zFrames = 4;
     break;
   case MRI_LONG:
     imageData->SetScalarTypeToLong();
@@ -2421,6 +2428,14 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
           default:
             break;
           }
+        }
+        if (mri->type == MRI_RGB)
+        {
+          int val = MRIIseq_vox(mri, nX, nY, nZ, 0);
+          scalars->SetComponent( nTuple, 0, val & 0x00ff);
+          scalars->SetComponent( nTuple, 1, (val >> 8) & 0x00ff);
+          scalars->SetComponent( nTuple, 2, (val >> 16) & 0x00ff);
+          scalars->SetComponent( nTuple, 3, 255);
         }
         nTuple++;
       }

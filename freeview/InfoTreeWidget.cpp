@@ -172,6 +172,12 @@ void InfoTreeWidget::UpdateAll()
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames((int)(fIndex[0]+0.5), (int)(fIndex[1]+0.5), (int)(fIndex[2]+0.5));
+        if (layer->GetDataType() == MRI_RGB)
+        {
+          int nval = (int)values[0];
+          values.clear();
+          values << (nval & 0x00ff) << ((nval >> 8) & 0x00ff) << ((nval >> 16) & 0x00ff);
+        }
         QStringList strgs;
         foreach (double value, values)
           strgs << QString("%1").arg(value);

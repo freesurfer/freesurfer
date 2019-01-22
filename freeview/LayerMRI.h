@@ -61,6 +61,7 @@ class SurfaceRegionGroups;
 class LayerMRIWorkerThread;
 class LayerSurface;
 class LayerROI;
+class GeoSWorker;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -322,7 +323,7 @@ public:
   
   bool IsObscuring();
 
-  bool GEOSSegmentation(LayerROI* inside, LayerROI* outside, double lambda, int wsize, double max_dist, LayerMRI* mask);
+  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
 
   void GetVolumeInfo(int* dim, double* voxel_size);
 
@@ -480,6 +481,8 @@ private:
   double      m_dMaskThreshold;
 
   nifti_1_header    m_niftiHeader;
+
+  GeoSWorker* m_geos;
 };
 
 

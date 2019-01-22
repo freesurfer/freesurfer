@@ -451,6 +451,8 @@ public slots:
 
   void UpdateLUTTable();
 
+  void SetCustomColors(const QMap<int, QColor>& colors);
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
