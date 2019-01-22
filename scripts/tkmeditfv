@@ -320,8 +320,8 @@ while( $#argv != 0 )
 
     case "-surfs":
       set DoSurfs = 1;
-      set surflist0 = ($surflist0 lh.white lh.pial rh.white rh.pial)
-      set surfcolor = ($surfcolor yellow red yellow red);
+      set surflist0 = ($surflist0 lh.white rh.white lh.pial rh.pial)
+      set surfcolor = ($surfcolor yellow yellow red red);
       breaksw
 
     case "-pial":
