@@ -642,10 +642,7 @@ mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra)
   if (mrisp_contra)
   {
     printf("\ncomputing cross-hemi correlations\n") ;
-    // first compute norms and make timecourses zero mean
-    cnorms = (double **)calloc(width, sizeof(double *));
-    if (!cnorms)
-      ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+    // first compute means and make timecourses zero mean
     for (x = 0 ; x < width ; x++)
     {
       cnorms[x] = (double *)calloc(height, sizeof(double));
@@ -664,6 +661,26 @@ mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra)
 	mean /= mrisp_contra->Ip->num_frame ;
 	for (t = 0 ; t < mrisp_contra->Ip->num_frame ; t++)
 	  *IMAGEFseq_pix(mrisp_contra->Ip, x, y, t) -= mean ;
+      }
+    }
+
+    // now compute norms from zero mean timecourses
+    cnorms = (double **)calloc(width, sizeof(double *));
+    if (!cnorms)
+      ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+    for (x = 0 ; x < width ; x++)
+    {
+      cnorms[x] = (double *)calloc(height, sizeof(double));
+      if (!cnorms[x])
+	ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+      for (y = 0 ; y < height ; y++)
+      {
+	for (t = 0 ; t < mrisp_contra->Ip->num_frame ; t++)
+	{
+	  val = *IMAGEFseq_pix(mrisp_contra->Ip, x, y, t) ;
+	  cnorms[x][y] += val*val ;
+	}
+	cnorms[x][y] = sqrt(cnorms[x][y]) ;
       }
     }
     corrs = (double ****)calloc(width, sizeof(double)) ;
