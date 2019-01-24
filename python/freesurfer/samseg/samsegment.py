@@ -229,7 +229,7 @@ def samsegment(
     if saveHistory:
         history['historyWithinEachMultiResolutionLevel'] = []
 
-    print('samsegment Starting Resolution Loop VmPeak', fs.GetVmPeak())
+    fs.printPeakMemory('samsegment starting resolution loop')
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -344,7 +344,7 @@ def samsegment(
         # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
-            print('samsegment Resolution %d Iter %d VmPeak' % (multiResolutionLevel, iterationNumber), fs.GetVmPeak())
+            fs.printPeakMemory('samsegment resolution %d iteration %d' % (multiResolutionLevel, iterationNumber))
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -620,12 +620,11 @@ def samsegment(
 
         # Get the final node positions
         finalNodePositions = mesh.points
-        # Transform back in template space (i.e., undoing the affine registration
-        # that we applied), and save for later usage
 
+        # Transform back in template space (i.e., undoing the affine registration that we applied), and save for later usage
         tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
-        
+
         # Record deformation delta here in lieu of maintaining history
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
@@ -653,7 +652,7 @@ def samsegment(
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
 
-    print('samsegment starting sementation VmPeak', fs.GetVmPeak())
+    fs.printPeakMemory('samsegment starting segmentation')
 
     # Get bias field corrected images
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
@@ -677,7 +676,7 @@ def samsegment(
     transformMatrix = transform.as_numpy_array
     tmp = np.linalg.solve(transformMatrix, np.pad(nodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
     nodePositionsInTemplateSpace = tmp[:, 0: 3]
-    
+
     # Get the estimated warp in template space
     [estimatedNodeDeformationInTemplateSpace, estimated_averageDistance, estimated_maximumDistance] = gems.kvlWarpMesh(
         optimizationOptions.multiResolutionSpecification[-1].atlasFileName,
@@ -764,9 +763,9 @@ def samsegment(
     for contrastNumber, imageFileName in enumerate(imageFileNames):
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
-        
+
         # First bias field - we're computing it also outside of the mask, but clip the
-        # intensities there to the range observed inside the mask (with some margin) to 
+        # intensities there to the range observed inside the mask (with some margin) to
         # avoid crazy extrapolation values
         logBiasField = biasFields[:, :, :, contrastNumber]
         clippingMargin = np.log(2)
@@ -785,7 +784,7 @@ def samsegment(
             outputFileName,
             gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
         )
-        
+
         # Then bias field corrected data
         biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)
         biasCorrected[

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [ -z "$FREESURFER_HOME" ] ; then
   echo "error: FreeSurfer has not been sourced"
   exit 1
 fi
 
-export PYTHONPATH="${FREESURFER_HOME}/python:${PYTHONPATH}"
+export PYTHONPATH="${FREESURFER_HOME}/python/packages:${PYTHONPATH}"
 
-if [ -e "${FREESURFER_HOME}/lib/python/bin/python" ] ; then
-  ${FREESURFER_HOME}/lib/python/bin/python "$@"
-elif [ -e "${FREESURFER_HOME}/bin/fspythonlink" ] ; then
-  ${FREESURFER_HOME}/bin/fspythonlink "$@"
+if [ -e "${FREESURFER_HOME}/python/bin/python3" ] ; then
+  ${FREESURFER_HOME}/python/bin/python3 "$@"
 else
-  echo "error: fspython has not been configured correctly"
+  echo "error: fspython has not been configured correctly - \$FREESURFER_HOME/python/bin/python3 does not exist"
   exit 1
 fi

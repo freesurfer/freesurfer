@@ -253,6 +253,7 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
   {
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
+
     if ( !this->MapMRIToImage() )
     {
       return false;
@@ -1986,7 +1987,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
   //  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   imageData->SetDimensions(zX, zY, zZ);
-  imageData->SetNumberOfScalarComponents( zFrames );
+  imageData->SetNumberOfScalarComponents( rasMRI->type == MRI_RGB? 4:zFrames );
 
   // create the scalars for all of the images. set the element size
   // for the data we will read.
@@ -2001,6 +2002,12 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     imageData->SetScalarTypeToInt();
     intScalars = vtkIntArray::New();
     scalars = (vtkDataArray*) intScalars;
+    break;
+  case MRI_RGB:
+    imageData->SetScalarTypeToUnsignedChar();
+    ucharScalars = vtkUnsignedCharArray::New();
+    scalars = (vtkDataArray*) ucharScalars;
+    zFrames = 4;
     break;
   case MRI_LONG:
     imageData->SetScalarTypeToLong();
@@ -2421,6 +2428,14 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
           default:
             break;
           }
+        }
+        if (mri->type == MRI_RGB)
+        {
+          int val = MRIIseq_vox(mri, nX, nY, nZ, 0);
+          scalars->SetComponent( nTuple, 0, val & 0x00ff);
+          scalars->SetComponent( nTuple, 1, (val >> 8) & 0x00ff);
+          scalars->SetComponent( nTuple, 2, (val >> 16) & 0x00ff);
+          scalars->SetComponent( nTuple, 3, 255);
         }
         nTuple++;
       }
@@ -3058,10 +3073,10 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
 void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
 {
   float fMinValue, fMaxValue;
-  MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
+//  MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
+  MRIvalRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-//    qDebug() << "Could not create histogram because non-zero min value is equal to max value.";
     m_bValidHistogram = false;
     return;
   }
@@ -3069,21 +3084,30 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
-  MRI_REGION region;
-  region.x = region.y = region.z = 0;
-  region.dx = m_MRI->width;
-  region.dy = m_MRI->height;
-  region.dz = m_MRI->depth;
-  HISTO *histo;
-  if (highThresh)
-    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
-  else
-    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
-  if (!histo)
-  {
-    qDebug() << "Could not create HISTO";
-    return;
-  }
+//  MRI_REGION region;
+//  region.x = region.y = region.z = 0;
+//  region.dx = m_MRI->width;
+//  region.dy = m_MRI->height;
+//  region.dz = m_MRI->depth;
+//  HISTO *histo;
+//  if (highThresh)
+//    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
+//  else
+//    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
+//  if (!histo)
+//  {
+//    qDebug() << "Could not create HISTO";
+//    return;
+//  }
+  HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
+
+  for (int x = 0; x < m_MRI->width; x++)
+    for (int y = 0; y < m_MRI->height; y++)
+      for (int z = 0; z < m_MRI->depth; z++) {
+        double val = MRIgetVoxVal(m_MRI, x, y, z, frame);
+        if (FZERO(val) || (highThresh && val > threshold)) continue;
+        HISTOaddSample(histo, val, 0, 0);
+      }
 
   if (m_histoCDF)
     HISTOfree(&m_histoCDF);
@@ -3110,6 +3134,7 @@ double FSVolume::GetHistoValueFromPercentile(double percentile, int frame)
     }
     int bin = HISTOfindBinWithCount(m_histoCDF, (float)percentile);
     return m_histoCDF->bins[bin];
+//    return ::MRIfindPercentile(m_MRI, percentile, frame);
   }
   else
     return 0;

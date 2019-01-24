@@ -453,7 +453,7 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
     if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
 
     if (u == 0 && v == 56) DiagBreak();
-    if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    if ((((u == DEBUG_U) && (v == DEBUG_V)) || (vno == Gdiag_no)) && (fno==0))
     {
       printf("v %d --> [%d, %d] (%2.1f, %2.1f)\n", vno, u, v, theta, phi);
       DiagBreak();

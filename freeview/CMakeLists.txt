@@ -183,6 +183,9 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     BinaryTreeView.cpp
     DialogSelectSplines.cpp
     DialogSurfaceLabelOperations.cpp
+    GeoSWorker.cpp
+    geos/GeodesicMatting.cpp
+    geos/kde.cpp
     freeview.qrc
   )
 
@@ -215,7 +218,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   )
 
   if(NOT APPLE)
-    target_link_libraries(freeview ${GLUT_LIBRARIES} ${Xt_LIBRARIES} ${X11_LIBRARIES})
+    target_link_libraries(freeview glut ${Xt_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
   if(APPLE)

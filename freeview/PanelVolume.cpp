@@ -606,7 +606,7 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
     ShowWidgets( m_widgetlistFrame, layer &&
                  !layer->IsTypeOf( "DTI" ) &&
-                 layer->GetNumberOfFrames() > 1 && !layer->GetCorrelationSurface() );
+                 layer->GetNumberOfFrames() > 1 && !layer->GetCorrelationSurface() && layer->GetDataType() != MRI_RGB);
     ui->labelCorrelationSurface->setVisible(layer && layer->GetNumberOfFrames() > 1 && ui->comboBoxCorrelationSurface->count() > 1);
     ui->comboBoxCorrelationSurface->setVisible(ui->labelCorrelationSurface->isVisible());
 
@@ -660,6 +660,8 @@ void PanelVolume::DoUpdateWidgets()
       }
       UpdateColorLabel();
     }
+
+    ui->checkBoxSmooth->setVisible(layer && layer->GetDataType() == MRI_RGB);
   }
   if (layer && nColorMap == LayerPropertyMRI::Heat)
   {

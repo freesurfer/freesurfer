@@ -2,7 +2,6 @@
 
 import os
 import sys
-import argparse
 import numpy as np
 import json
 import scipy.io
@@ -13,38 +12,39 @@ from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisu
 
 # ------ Parse Command Line Arguments ------
 
-parser = argparse.ArgumentParser()
+parser = fs.ArgParser()
 
 # required
-parser.add_argument('-o', '--output', metavar='FOLDER', dest='outputDirectory', help='output directory', required=True)
-parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='input image(s)', required=True)
+parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
+parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
-parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='number of threads')
-parser.add_argument('--init-lta', metavar='FILE', help='initial registration')
-parser.add_argument('--reg-only', action='store_true', default=False, help='only perform registration')
-parser.add_argument('-r', '--reg-mat', metavar='FILE', help='skip registration and read transform from file')
+parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
+parser.add_argument('-r', '--reg-mat', metavar='FILE', help='Skip initial affine registration and read transform from file.')
+parser.add_argument('--init-lta', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
-parser.add_argument('--no-brainmask', action='store_true', default=False, help='no initial brain masking based on affine atlas registration')
-parser.add_argument('--diag-covs', action='store_true', default=False, help='use diagonal covariance matrices (only affect multi-contrast case)')
-parser.add_argument('--stiffness', type=float, default=0.1, help='stiffness of the mesh (default is 0.1)')
-parser.add_argument('--max-iters', type=int, default=100, help='maximum number of iterations')
-parser.add_argument('--acpvdsc', type=float, default=1e-4, help='absoluteCostPerVoxelDecreaseStopCriterion')
+parser.add_argument('--no-brainmask', action='store_true', default=False, help='Skip the initial brain masking based on the affine atlas registration.')
+parser.add_argument('--diag-covs', action='store_true', default=False, help='Use diagonal covariance matrices (only affects multi-contrast case).')
+parser.add_argument('--stiffness', type=float, default=0.1, help='Stiffness (K) of the mesh. Defaults to 0.1.')
+parser.add_argument('--max-iters', type=int, default=100, help='Maximum number of iterations.')
+parser.add_argument('--acpvdsc', type=float, default=1e-4, help='Absolute cost-per-voxel-decrease stop criterion. Defaults to 1e-4.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
-parser.add_argument('--history', action='store_true', default=False, help='save history')
-parser.add_argument('--showfigs', action='store_true', default=False, help='show figures during run')
+parser.add_argument('--history', action='store_true', default=False, help='Save history.')
+parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
-parser.add_argument('--movie', action='store_true', default=False, help='show as arrow key controlled time sequence')
-parser.add_argument('-v', '--verbose', action='store_true', default=False, help='verbose debug output')
+parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
+parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Enable verbose debug output.')
 
 args = parser.parse_args()
 
-print('run_samseg Init VmPeak', fs.GetVmPeak())
+fs.printPeakMemory('run_samseg init')
 
 # ------ Initial Setup ------
 
 # Make sure freesurfer has been sourced
-fs.checkfs()
+if not fs.fshome():
+    fs.errorExit('FREESURFER_HOME must be set')
 
 # Start the process timer
 timer = fs.Timer()
@@ -74,7 +74,7 @@ visualizer = initVisualizer(args.showfigs, args.movie)
 
 # ------ Perform Affine Registration ------
 
-print('run_samseg Performing Affine Reg VmPeak ', fs.GetVmPeak())
+fs.printPeakMemory('run_samseg performing affine reg')
 
 templateFileName = os.path.join(atlasDir, 'template.nii')
 affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
@@ -175,14 +175,12 @@ optimizationOptions.multiResolutionSpecification = [defaultMultiResolution.merge
 
 # ------ Run Samsegment ------
 
-print('run_samseg Running samsegment VmPeak', fs.GetVmPeak())
+fs.printPeakMemory('run_samseg running samsegment')
 
 labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications, optimizationOptions,
                                     args.outputDirectory, visualizer, saveHistory=args.history, saveMesh=args.save_mesh)
 
 # ------ Volumetric Stats ------
-
-print('run_samseg Running volumetric stats VmPeak', fs.GetVmPeak())
 
 # Write structural volumes
 with open(os.path.join(args.outputDirectory, 'samseg.stats'), 'w') as fid:
@@ -194,5 +192,5 @@ sbtiv = icv(zip(*[names, volumes]))
 with open(os.path.join(args.outputDirectory, 'sbtiv.stats'), 'w') as fid:
     fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
-print('#VMPC# run_samseg VmPeak', fs.GetVmPeak())
+fs.printPeakMemory('#VMPC# run_samseg')
 timer.mark('run_samseg complete')

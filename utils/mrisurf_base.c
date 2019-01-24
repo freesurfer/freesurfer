@@ -450,7 +450,7 @@ bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
 #endif
   }
   
-  change = max_vertices - mris->nvertices;
+  change = max_vertices - mris->max_vertices;
   if (change > 0) {
     bzero(mris->dist_storage      + mris->max_vertices, change*sizeof(void*));
     bzero(mris->dist_orig_storage + mris->max_vertices, change*sizeof(void*));

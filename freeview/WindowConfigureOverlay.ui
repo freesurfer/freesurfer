@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>596</width>
-    <height>910</height>
+    <height>913</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -919,6 +919,14 @@ color: gray;</string>
     </widget>
    </item>
   </layout>
+  <action name="actionCycleOverlay">
+   <property name="text">
+    <string>Cycle Overlay</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+O</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

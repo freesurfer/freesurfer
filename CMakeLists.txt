@@ -9,13 +9,9 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
-option(BUILD_QDEC "Build QDEC" OFF)
 option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
-if(APPLE)
-  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
-endif()
 
 # enable ctest
 enable_testing()
@@ -116,20 +112,8 @@ if(NOT APPLE)
 
 endif()
 
-# -------- jpeg --------
-find_package(JPEG REQUIRED)
-
-# -------- tiff --------
-find_package(TIFF REQUIRED)
-
-# -------- expat --------
-find_package(Expat REQUIRED)
-
-# -------- xml2 --------
-find_package(XML2 REQUIRED)
-
-# -------- tetgen --------
-find_package(Tetgen REQUIRED)
+# -------- armadillo --------
+find_package(Armadillo)
 
 # -------- petsc --------
 find_package(PETSC)
@@ -182,9 +166,6 @@ if(BUILD_GUIS)
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
-    # since we have OpenGL, make sure we have glut too
-    find_package(GLUT REQUIRED)
-    add_definitions(-DHAVE_GLUT_LIBS)
   endif()
 
   # -------- qt --------
@@ -192,12 +173,6 @@ if(BUILD_GUIS)
 
   # -------- tcltktixblt --------
   find_package(TCLTKTIXBLT)
-
-  # -------- kwwidgets --------
-  # once qdec is deprecated, KWWidgets can be removed
-  if(BUILD_QDEC)
-    find_package(KWWidgets)
-  endif()
 
   # -------- wxwidgets --------
   # only used by mris_decimate_gui
@@ -217,6 +192,11 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 # general check for big endian
 test_big_endian(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+  set(BYTEORDER 4321)
+else()
+  set(BYTEORDER 1234)
+endif()
 
 # compiler warnings
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
@@ -233,7 +213,7 @@ add_definitions(-DANSI)
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
 # todo: write some logic to set this correctly
 add_definitions(-DUSE_SSE_MATHFUN)
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse -fPIC")
 
 # large file support: support for files > 2GB
 if(APPLE)
@@ -288,27 +268,27 @@ endif()
 #                   setup python
 # --------------------------------------------------
 
-# Unfortunately, the python version used to run wrapped c-libraries must be equal to
+# Unfortunately, the python version used to run bind c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
 # distributing a minimal, custom python installation called fspython. This fspython package
-# will get installed by default to "freesurfer/lib/python", but an external python can be
-# used instead by turning off the DISTRIBUTE_FSPYTHON option. Turning this off will create a
-# freesurfer/bin/fspythonlink symlink that points to the external python executable located by pybind
-option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" ON)
+# will get installed to "freesurfer/python", but an external python can be used instead when the
+# DISTRIBUTE_FSPYTHON option is turned off. Turning this off will create a freesurfer/bin/fspythonlink
+# symlink during install that points to the external python executable located by pybind
+option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" OFF)
 
 if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6/base)
-  if(EXISTS ${FSPYTHON_DIR}/bin/python)
-    # link the fspython distribution
-    symlink(${FSPYTHON_DIR} ${CMAKE_INSTALL_PREFIX}/lib/python)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6)
+  if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
-    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.so)
+    set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.a)
+    # install the barebones python distribution
+    INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
+    )
   else()
-    message(WARNING "Cannot find fspython distribution in FS_PACKAGES_DIR, "
-                    "so must use external python executable")
-    set(DISTRIBUTE_FSPYTHON OFF)
+    message(FATAL_ERROR "Cannot find fspython distribution in FS_PACKAGES_DIR")
   endif()
 endif()
 
@@ -318,7 +298,7 @@ add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
   # link to an external python binary if fspython won't be distributed
-  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/bin/fspythonlink)
+  symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
 endif()
 
 # --------------------------------------------------
@@ -336,18 +316,29 @@ endif()
 set(FS_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/minc_1_5_1
-  ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1
+  ${CMAKE_SOURCE_DIR}/packages/minc
+  ${CMAKE_SOURCE_DIR}/packages/netcdf
 )
 
+# build third-party libraries
 # make sure to use the local minc source
 add_definitions(-DUSE_LOCAL_MINC)
+add_subdirectories(
+  packages/jpeg
+  packages/expat
+  packages/tiff
+  packages/xml2
+  packages/minc
+  packages/netcdf
+  packages/tetgen
+)
+
+if(OPENGL_FOUND)
+  add_subdirectory(packages/glut)
+endif()
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
-  minc_1_5_1
-  netcdf_3_6_0_p1
-  unix
   log
   rgb
   hipsstubs
@@ -359,7 +350,7 @@ add_subdirectories(
   opencl_algorithms
 )
 
-# the following utility libraries are required for freeview and qdec
+# the following utility libraries are required for freeview
 add_subdirectories(vtkfsio vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
@@ -713,7 +704,6 @@ if(NOT MINIMAL)
     oct_train
     optseq2
     qdecproject
-    qdec
     qdec_glmfit
     rbftest
     regdat2xfm
@@ -727,8 +717,6 @@ if(NOT MINIMAL)
     template
     test_makevol
     ThalamicNuclei
-    tkmedit
-    # tksurfer
     trc
     tridec
   )

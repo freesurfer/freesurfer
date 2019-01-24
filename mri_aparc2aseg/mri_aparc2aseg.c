@@ -557,16 +557,15 @@ int main(int argc, char **argv)
 	  DiagBreak() ;
 
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(LHOnly && (asegid == 41 || asegid == 42)) continue;
-	if(RHOnly && (asegid ==  2 || asegid ==  3)) continue;
-        if(asegid == 3 || asegid == 42) IsCortex = 1;
-        else                            IsCortex = 0;
-        if(asegid >= 77 && asegid <= 82) IsHypo = 1;
-        else                             IsHypo = 0;
-        if(asegid == 2 || asegid == 41)  IsWM = 1;
-        else                             IsWM = 0;
-        if(asegid == 8 || asegid == 47 || asegid == 172)  IsCblumCtx = 1;
-        else                             IsCblumCtx = 0;
+	if(LHOnly && (asegid == Right_Cerebral_Cortex || asegid == Right_Cerebral_White_Matter)) continue;
+	if(RHOnly && (asegid ==  Left_Cerebral_Cortex || asegid ==  Left_Cerebral_White_Matter)) continue;
+	IsCortex = IS_CORTEX(asegid) ;
+	IsHypo = IS_HYPO(asegid) ;
+        if(asegid == Left_Cerebral_White_Matter || asegid == Right_Cerebral_White_Matter)  IsWM = 1;
+        else                                                                               IsWM = 0;
+	//  what is 172??? (BRF)
+        if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex || asegid == 172)  IsCblumCtx = 1;
+        else                                                                                        IsCblumCtx = 0;
         if(IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0)) IsWM = 1;
 
         // integrate surface information
@@ -578,21 +577,21 @@ int main(int argc, char **argv)
         //  aseg=GM AND ribbon=WM => WM
         //  ribbon=UNKNOWN => UNKNOWN
         if(UseNewRibbon){
-	  if(IsCortex || IsWM || asegid==0 || IsCblumCtx) {
+	  if(IsCortex || IsWM || (asegid==Unknown || asegid == CSF) || IsCblumCtx) {
 	    RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
 	    if(!IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
-	    if(RibbonVal==2 || RibbonVal==41) {
+	    if(RibbonVal==Left_Cerebral_White_Matter || RibbonVal==Right_Cerebral_White_Matter) {
 	      // Ribbon says it is WM
 	      IsWM = 1;
 	      IsCortex = 0;
 	    }
-	    else if(RibbonVal==3 || RibbonVal==42) {
+	    else if(RibbonVal==Left_Cerebral_Cortex || RibbonVal==Right_Cerebral_Cortex) {
 	      // Ribbon says it is Ctx
 	      IsWM = 0;
 	      IsCortex = 1;
 	      if(IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
 	    }
-	    if(RibbonVal==0)  {
+	    if(RibbonVal==Unknown)  {
 	      // Ribbon says it is unknown
 	      IsWM = 0;
 	      IsCortex = 0;

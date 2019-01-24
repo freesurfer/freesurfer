@@ -83,6 +83,8 @@
 #include <QVariantMap>
 #include "LayerROI.h"
 #include <QFileInfo>
+#include "GeoSWorker.h"
+#include "BrushProperty.h"
 
 extern "C"
 {
@@ -107,6 +109,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_correlationSurface(NULL),
   m_bIgnoreHeader(false)
 {
+  m_strTypeNames.push_back( "Supplement" );
   m_strTypeNames.push_back( "MRI" );
   m_sPrimaryType = "MRI";
   
@@ -169,6 +172,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     GetProperty()->SetTextureSmoothing(1);
     UpdateTextureSmoothing();
   }
+
+  m_geos = NULL;
 }
 
 LayerMRI::~LayerMRI()
@@ -212,6 +217,9 @@ LayerMRI::~LayerMRI()
   foreach (int i, keys)
     m_labelActors[i]->Delete();
   m_labelActors.clear();
+
+  if (m_geos)
+    delete m_geos;
 }
 
 void LayerMRI::ConnectProperty()
@@ -343,6 +351,9 @@ bool LayerMRI::LoadVolumeFromFile()
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
 
   UpdateNiftiHeader();
+
+  if (GetDataType() == MRI_RGB)
+    GetProperty()->SetDisplayRGB(true);
 
   return true;
 }
@@ -1419,7 +1430,7 @@ std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<doubl
 
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
 {
-  QList<double> list;
+  QList<double> list; 
   for (int frame = 0; frame < GetNumberOfFrames(); frame++)
     list << m_volumeSource->GetVoxelValue( i, j, k, frame );
   return list;
@@ -3792,7 +3803,36 @@ VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
   return vlist;
 }
 
-bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
+bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI *mask)
+{
+//  vtkSmartPointer<vtkImageWeightedSum> sum = vtkSmartPointer<vtkImageWeightedSum>::New();
+//  sum->AddInput(interior->GetImageData());
+//  sum->AddInput(exterior->GetImageData());
+//  vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+//  cast->SetInputConnection(sum->GetOutputPort());
+//  cast->SetOutputScalarTypeToUnsignedChar();
+//  cast->Update();
+//  vtkImageData* seeds = cast->GetOutput();
+//  // find the VOI in seeds
+//  int* dim = seeds->GetDimensions();
+//  int bound[6] = {0, dim[0], 0, dim[1], 0, dim[2]};
+//  unsigned char* ptr = (unsigned char*)seeds->GetScalarPointer();
+//  for (int i = 0; )
+//  vtkSmartPointer<vtkExtractVOI> voi = vtkSmartPointer<vtkExtractVOI>::New();
+//  voi->SetInput(seeds);
+//  voi->SetVOI(bound);
+  if (!m_geos)
+  {
+    m_geos = new GeoSWorker;
+    connect(m_geos, SIGNAL(Finished(bool)), SLOT(SetModified()));
+  }
+
+  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
+  return true;
+}
+
+#if 0
+bool LayerMRI::GeodesicSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
 {
   GEOS_PARMS parm;
   parm.lambda = lambda;
@@ -3821,6 +3861,7 @@ bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double l
   VLSTfree(&vlist_out);
   return true;
 }
+#endif
 
 void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
 {

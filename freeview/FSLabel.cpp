@@ -24,7 +24,6 @@
  */
 
 
-#include "FSLabel.h"
 #include <stdexcept>
 #include "vtkImageData.h"
 #include "FSVolume.h"
@@ -34,6 +33,7 @@
 #include <QTextStream>
 #include <vector>
 #include <QDebug>
+#include "FSLabel.h"
 
 using namespace std;
 

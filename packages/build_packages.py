@@ -45,25 +45,11 @@ class Package:
 #                              ~~ freesurfer dependencies ~~
 
 pkgs = [
-  Package('jpeg',        '6b',     'build_jpeg.sh',      'jpeg-6b.tar.gz'),
-  Package('tiff',        '3.6.1',  'build_tiff.sh',      'tiff-3.6.1.tar.gz'),
-  Package('expat',       '2.0.1',  'build_expat.sh',     'expat-2.0.1.tar.gz'),
-  Package('xml2',        '2.7.7',  'build_xml2.sh',      'xml2-2.7.7.tar.gz'),
-  Package('glut',        '3.7',    'build_glut.sh',      'glut-3.7.tar.gz', required=False), # found in freesurfer/glut
-  Package('netcdf',      '3.6.0',  'build_netcdf.sh',    'netcdf-3.6.0-p1.tar.gz', required=False), # found in freesurfer/netcdf_3_6_0_p1
-  Package('minc',        '1.5',    'build_minc.sh',      'minc-1.5.tar.gz', required=False),  # found in freesurfer/minc_1_5_1 
-  Package('tetgen',      '1.4.1',  'build_tetgen.sh',    'tetgen-1.4.1.tar.gz'),
   Package('itk',         '4.13.0', 'build_itk.sh',       'itk-4.13.0.tar.gz'),
   Package('petsc',       '2.3.3',  'build_petsc.sh',     'petsc-2.3.3.tar.gz', required=False),
   Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False),
-  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False),
-  Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False)  # must build kwwidgets after vtk
+  Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False)
 ]
-
-# tcltk 8.4.6 cannot be built on modern OSX
-if platform.system() != 'Darwin':
-  pkgs.append(Package('tcltktixblt', '8.4.6', 'build_tcltk.sh', 'tcltktixblt-8.4.6.tar.gz', required=False))
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

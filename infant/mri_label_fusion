@@ -8,7 +8,7 @@ import nibabel as nib
 
 from scipy import ndimage
 from scipy.optimize import minimize
-from freesurfer.algorithm import maxflow, performFrontPropagation3D
+from freesurfer.labelfusion import maxflow, performFrontPropagation3D
 
 
 # ------ Utility Functions ------
@@ -159,10 +159,6 @@ args = parser.parse_args()
 
 # ------ Setup ------
 
-# Set verbosity
-if args.verbose:
-    fs.setVerbosity(1)
-
 # Options
 rho = args.rho
 beta = args.beta
@@ -228,14 +224,14 @@ prob_vals = []
 mv = np.zeros((num_labels, num_nonzeros))
 dist_map = np.zeros((num_opinions, num_labels, num_nonzeros))
 for n, vol in enumerate(moving_vols):
-    fs.verbose(' %d) processing %s' % (n+1, args.segs[n]))
+    print(' %d) processing %s' % (n+1, args.segs[n]))
     aux = np.zeros((num_labels, num_nonzeros))
     for l, label in enumerate(labels):
         labelmask = vol == label
         if np.any(labelmask):
             dmap = computeDistanceTransform(labelmask)[mask]
         else:
-            fs.verbose('    note: label %d not found in volume' % label)
+            print('    note: label %d not found in volume' % label)
             dmap = np.ones(num_nonzeros) * -200
         aux[l, :] = dmap * rho
     aux -= np.amax(aux, axis=0)
@@ -287,7 +283,7 @@ QM = np.swapaxes(QM, 0, 1)
 print('optimizing for intensity parameters and Q (E-step)')
 max_iter = 20
 for iteration in range(max_iter):
-    fs.verbose('running iteration %d' % (iteration + 1))
+    print('running iteration %d' % (iteration + 1))
 
     mus_old = np.copy(mus)
     variances_old = np.copy(variances)
@@ -334,12 +330,12 @@ for iteration in range(max_iter):
 
         # Termination condition
         inc = np.mean(np.abs(QM_old[mask, :] - QM))
-        fs.verbose('    mean Q increment: %.6f' % inc)
+        print('    mean Q increment: %.6f' % inc)
         if inc < 1e-4:
             break
 
     max_change = np.max((np.max(np.abs(mus_old - mus)), np.sqrt(np.max(np.abs(variances_old - variances)))))
-    fs.verbose('    max change: %.2f' % max_change)
+    print('    max change: %.2f' % max_change)
     if iteration > 1 and max_change < min_param_change:
         break
 

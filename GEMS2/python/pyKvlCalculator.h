@@ -6,6 +6,7 @@
 #include "kvlConditionalGaussianEntropyCostAndGradientCalculator.h"
 #include "kvlMutualInformationCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToPointSetCostAndGradientCalculator.h"
+#include "kvlAverageAtlasMeshPositionCostAndGradientCalculator.h"
 
 #include "kvlAtlasMeshCollection.h"
 #include "pyKvlImage.h"
@@ -27,98 +28,76 @@ public:
                                  py::array_t<float> mixtureWeights=py::array_t<float>(),
                                  py::array_t<int> numberOfGaussiansPerClass=py::array_t<int>(),
                                  py::array_t<double> targetPoints=py::array_t<double>()
-){
-        std::cout << "1" << std::endl;
-        switch( typeName[ 0 ] )
-        {
-            case 'A':
-            {
-                
-                py::buffer_info means_info  = means.request();
+    ){
+        if (typeName == "AtlasMeshToIntensityImage") {
 
-//                 Retrieve means if they are provided
-                const int  numberOfGaussians = means_info.shape[0];
-                const int  numberOfContrasts  = means_info.shape[1];
+            py::buffer_info means_info  = means.request();
 
-                std::vector< vnl_vector< double > >  means_converted;
+            // Retrieve means if they are provided
+            const int  numberOfGaussians = means_info.shape[0];
+            const int  numberOfContrasts  = means_info.shape[1];
 
-                for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
-                    vnl_vector< double >  mean_converted( numberOfContrasts, 0.0f );
+            std::vector< vnl_vector< double > >  means_converted;
 
-                    for ( int contrastNumber = 0; contrastNumber < numberOfContrasts; contrastNumber++ ) {
-                        mean_converted[ contrastNumber ] = means.at(gaussianNumber, contrastNumber);
+            for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                vnl_vector< double >  mean_converted( numberOfContrasts, 0.0f );
+
+                for ( int contrastNumber = 0; contrastNumber < numberOfContrasts; contrastNumber++ ) {
+                    mean_converted[ contrastNumber ] = means.at(gaussianNumber, contrastNumber);
+                }
+                means_converted.push_back( mean_converted );
+            }
+            // Retrieve variances if they are provided
+            std::vector< vnl_matrix< double > >  variances_converted;
+            for ( unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                vnl_matrix< double >  variance( numberOfContrasts, numberOfContrasts, 0.0f );
+                for ( unsigned int row = 0; row < numberOfContrasts; row++ ) {
+                  for ( unsigned int col = 0; col < numberOfContrasts; col++ ) {
+                    variance[ row ][ col ] = variances.at(gaussianNumber, row, col);
                     }
-                    means_converted.push_back( mean_converted );
-                }
-                // Retrieve variances if they are provided
-                std::vector< vnl_matrix< double > >  variances_converted;
-                for ( unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
-                    vnl_matrix< double >  variance( numberOfContrasts, numberOfContrasts, 0.0f );
-                    for ( unsigned int row = 0; row < numberOfContrasts; row++ ) {
-                      for ( unsigned int col = 0; col < numberOfContrasts; col++ ) {
-                        variance[ row ][ col ] = variances.at(gaussianNumber, row, col);
-                        }
-                      }
-                      variances_converted.push_back( variance );
-                }
-                // Retrieve mixtureWeights if they are provided
-                std::vector< double >  mixtureWeights_converted  = std::vector< double >( numberOfGaussians, 0.0f );
-                for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
-                    mixtureWeights_converted[gaussianNumber] = ( mixtureWeights.at(gaussianNumber));
-                }
-                // Retrieve numberOfGaussiansPerClass if they are provided
-                const int  numberOfClasses = numberOfGaussiansPerClass.request().shape[0];
-                std::vector< int >  numberOfGaussiansPerClass_converted = std::vector< int >( numberOfClasses, 0 );
-                for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ ) {
-                    numberOfGaussiansPerClass_converted[ classNumber ] = numberOfGaussiansPerClass.at(classNumber);
-                }
+                  }
+                  variances_converted.push_back( variance );
+            }
+            // Retrieve mixtureWeights if they are provided
+            std::vector< double >  mixtureWeights_converted  = std::vector< double >( numberOfGaussians, 0.0f );
+            for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                mixtureWeights_converted[gaussianNumber] = ( mixtureWeights.at(gaussianNumber));
+            }
+            // Retrieve numberOfGaussiansPerClass if they are provided
+            const int  numberOfClasses = numberOfGaussiansPerClass.request().shape[0];
+            std::vector< int >  numberOfGaussiansPerClass_converted = std::vector< int >( numberOfClasses, 0 );
+            for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ ) {
+                numberOfGaussiansPerClass_converted[ classNumber ] = numberOfGaussiansPerClass.at(classNumber);
+            }
 
-                kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer myCalculator
-                        = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
-                std::vector< ImageType::ConstPointer> images_converted;
-                for(auto image: images){
-                    ImageType::ConstPointer constImage = static_cast< const ImageType* >( image.m_image.GetPointer() );
-                    images_converted.push_back( constImage );
-                }
-                myCalculator->SetImages( images_converted );
-                myCalculator->SetParameters( means_converted, variances_converted, mixtureWeights_converted, numberOfGaussiansPerClass_converted );
-                calculator = myCalculator;
-                break;
+            kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer myCalculator
+                    = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+            std::vector< ImageType::ConstPointer> images_converted;
+            for(auto image: images){
+                ImageType::ConstPointer constImage = static_cast< const ImageType* >( image.m_image.GetPointer() );
+                images_converted.push_back( constImage );
             }
-//            case 'C':
-//            {
-//                std::cout << "ConditionalGaussianEntropy" << std::endl;
-//                kvl::ConditionalGaussianEntropyCostAndGradientCalculator::Pointer  myCalculator
-//                        = kvl::ConditionalGaussianEntropyCostAndGradientCalculator::New();
-//                myCalculator->SetImage( images[ 0 ].imageHandle  );
-//                calculator = myCalculator;
-//                break;
-//            }
-            case 'M':
-            {
-                std::cout << "MutualInformation" << std::endl;
-                kvl::MutualInformationCostAndGradientCalculator::Pointer  myCalculator
-                        = kvl::MutualInformationCostAndGradientCalculator::New();
-                myCalculator->SetImage( images[ 0 ].m_image );
-                calculator = myCalculator;
-                break;
-            }
-            case 'P':
-            {
-                kvl::AtlasMeshToPointSetCostAndGradientCalculator::Pointer  myCalculator
-                        = kvl::AtlasMeshToPointSetCostAndGradientCalculator::New();
-                kvl::AtlasMesh::PointsContainer::Pointer  alphaTargetPoints = kvl::AtlasMesh::PointsContainer::New();
-                CreatePointSetFromNumpy(alphaTargetPoints, targetPoints);
-                myCalculator->SetTargetPoints( alphaTargetPoints );
-                calculator = myCalculator;
-                break;
-            }
-            default:
-            {
-                throw std::invalid_argument( "Calculator type not supported." );
-            }
+            myCalculator->SetImages( images_converted );
+            myCalculator->SetParameters( means_converted, variances_converted, mixtureWeights_converted, numberOfGaussiansPerClass_converted );
+            calculator = myCalculator;
+
+        } else if (typeName == "MutualInformation") {
+
+            kvl::MutualInformationCostAndGradientCalculator::Pointer myCalculator = kvl::MutualInformationCostAndGradientCalculator::New();
+            myCalculator->SetImage( images[ 0 ].m_image );
+            calculator = myCalculator;
+
+        } else if (typeName == "PointSet") {
+
+            kvl::AtlasMeshToPointSetCostAndGradientCalculator::Pointer myCalculator = kvl::AtlasMeshToPointSetCostAndGradientCalculator::New();
+            kvl::AtlasMesh::PointsContainer::Pointer alphaTargetPoints = kvl::AtlasMesh::PointsContainer::New();
+            CreatePointSetFromNumpy(alphaTargetPoints, targetPoints);
+            myCalculator->SetTargetPoints( alphaTargetPoints );
+            calculator = myCalculator;
+
+        } else {
+            throw std::invalid_argument("Calculator type not supported.");
         }
-
 
         // Specify the correct type of boundary condition
         switch( boundaryCondition[ 0 ] )
@@ -162,7 +141,30 @@ public:
             }
         }
     }
-    std::pair<double, py::array_t<double>> EvaluateMeshPosition(const KvlMesh &mesh){
+
+    KvlCostAndGradientCalculator(KvlMeshCollection meshCollection,
+                                 double K0,
+                                 double K1,
+                                 KvlTransform transform
+    ){
+        kvl::AverageAtlasMeshPositionCostAndGradientCalculator::Pointer myCalculator = kvl::AverageAtlasMeshPositionCostAndGradientCalculator::New();
+        myCalculator->SetBoundaryCondition(kvl::AtlasMeshPositionCostAndGradientCalculator::SLIDING);
+        // Retrieve transform if provided
+        TransformType::ConstPointer constTransform = static_cast<const TransformType*>(transform.m_transform.GetPointer());
+        if (constTransform.GetPointer()) calculator->SetMeshToImageTransform( constTransform );
+        // Apply positions and Ks
+        kvl::AtlasMeshCollection::Pointer meshCollectionPtr = meshCollection.GetMeshCollection();
+        std::vector<double> Ks = {K0};
+        std::vector<kvl::AtlasMesh::PointsContainer::ConstPointer> positions = {meshCollectionPtr->GetReferencePosition()};
+        for (int  meshNumber = 0; meshNumber < meshCollectionPtr->GetPositions().size(); meshNumber++) {
+            positions.push_back(meshCollectionPtr->GetPositions()[meshNumber].GetPointer()); 
+            Ks.push_back(K1);
+        }
+        myCalculator->SetPositionsAndKs(positions, Ks);
+        calculator = myCalculator;
+    }
+
+    std::pair<double, py::array_t<double>> EvaluateMeshPosition(const KvlMesh &mesh) {
         calculator->Rasterize( mesh.mesh );
         const double cost = calculator->GetMinLogLikelihoodTimesPrior();
         kvl::AtlasPositionGradientContainerType::ConstPointer gradient = calculator->GetPositionGradient();

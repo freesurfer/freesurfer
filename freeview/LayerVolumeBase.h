@@ -66,7 +66,7 @@ public:
   void Paste( int nPlane );
   bool CopyStructure( int nPlane, double* ras );
 
-  virtual void SaveForUndo( int nPlane = 0 );
+  virtual void SaveForUndo( int nPlane = -1 );
 
   double GetFillValue();
 
@@ -117,6 +117,7 @@ public slots:
   void SetFillValue( double fFill );
   void SetBlankValue( double fBlank );
   void SetBrushRadius( int nRadius );
+  void ClearVoxels();
 
 protected:
   QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove

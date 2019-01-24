@@ -3898,6 +3898,7 @@ int MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize, int x, in
 }
 /*!
   \fn MRI *MRIcpolvMedianCurveSegment()
+  \brief Reclassifies MRI_AMBIGUOUS voxels
 
 */
 MRI *MRIcpolvMedianCurveSegment(

@@ -34,8 +34,7 @@
 #include <QTimer>
 #include <QSettings>
 #include <QDebug>
-#include "LayerROI.h"
-#include "LayerPropertyROI.h"
+#include "LayerPropertyMRI.h"
 
 ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   QWidget(parent),
@@ -83,10 +82,10 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()));
   connect(bp, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
   connect(bp, SIGNAL(EraseValueChanged(double)), this, SLOT(UpdateWidgets()));
-  connect(ui->pushButtonGeoClear, SIGNAL(clicked(bool)), SLOT(OnButtonGeoClear()));
-  connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoGo()));
-  connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeo(QColor)));
-  connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeo(QColor)));
+  connect(ui->pushButtonGeoClear, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegClear()));
+  connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegGo()));
+  connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
+  connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   for (int i = 0; i < 3; i++)
   {
     RenderView2D* view = (RenderView2D*)mainwnd->GetRenderView(i);
@@ -504,42 +503,60 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
   }
 }
 
-void ToolWindowEdit::OnButtonGeoClear()
+void ToolWindowEdit::OnButtonGeoSegClear()
 {
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
-  QList<Layer*> layers = lc->GetLayers("ROI");
+  QList<Layer*> layers = lc->GetLayers("MRI");
   foreach (Layer* layer, layers)
   {
-    ((LayerROI*)layer)->Clear();
+    LayerMRI* mri = (LayerMRI*)layer;
+    if (mri->GetName() == "GEOS_DRAW")
+    {
+      mri->ClearVoxels();
+      MainWindow::GetMainWindow()->RequestRedraw();
+      break;
+    }
   }
 }
 
-void ToolWindowEdit::OnButtonGeoGo()
+void ToolWindowEdit::OnButtonGeoSegGo()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
   if (mri)
   {
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
-    QList<Layer*> layers = lc->GetLayers("ROI");
-    if (layers.size() < 2)
-      return;
-
-    double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
-    double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
-    int wsize = ui->spinBoxGeoWsize->value();
-    mri->GEOSSegmentation((LayerROI*)layers[0], (LayerROI*)layers[1], lambda, wsize, max_dist, NULL);
+    QList<Layer*> layers = lc->GetLayers("MRI");
+    foreach (Layer* layer, layers)
+    {
+      LayerMRI* mri_draw = (LayerMRI*)layer;
+      if (mri_draw->GetName() == "GEOS_DRAW")
+      {
+        double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
+        double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
+        int wsize = ui->spinBoxGeoWsize->value();
+        mri->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, NULL);
+        break;
+      }
+    }
   }
 }
 
-void ToolWindowEdit::OnColorPickerGeo(const QColor &color)
+void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)
 {
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
-  QList<Layer*> layers = lc->GetLayers("ROI");
-  if (layers.size() < 2)
-    return;
-
-  if (sender() == ui->colorPickerGeoInside)
-    ((LayerROI*)layers[0])->GetProperty()->SetColor(color);
-  else
-    ((LayerROI*)layers[1])->GetProperty()->SetColor(color);
+  QList<Layer*> layers = lc->GetLayers("MRI");
+  foreach (Layer* layer, layers)
+  {
+    LayerMRI* mri_draw = (LayerMRI*)layer;
+    if (mri_draw->GetName() == "GEOS_DRAW")
+    {
+      QMap<int, QColor> colors;
+      colors[0] = QColor(0,0,0,0);
+      colors[1] = ui->colorPickerGeoInside->currentColor();
+      colors[2] = ui->colorPickerGeoOutside->currentColor();
+      mri_draw->GetProperty()->SetCustomColors(colors);
+      MainWindow::GetMainWindow()->RequestRedraw();
+      break;
+    }
+  }
 }

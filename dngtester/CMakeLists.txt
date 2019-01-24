@@ -11,6 +11,6 @@ add_executable(dngtester dngtester.c)
 target_link_libraries(dngtester utils fsgdf)
 
 # cpptester
-include_directories(${ITK_INCLUDE_DIR})
+include_directories(${ITK_INCLUDE_DIRS})
 add_executable(cpptester cpptester.cpp)
 target_link_libraries(cpptester utils fsgdf ${ITK_LIBRARIES})
