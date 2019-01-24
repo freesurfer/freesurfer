@@ -1456,14 +1456,19 @@ static IMAGE *PPMReadHeader(FILE *fp, IMAGE *I)
   return I;
 }
 
+#define JPEG_INTERNALS
+#include "jinclude.h"
+#include "jpeglib.h"
+#include "jmorecfg.h"
+
 static IMAGE *JPEGReadImage(const char *fname)
 {
   FILE *infile;
   IMAGE *I;
   struct jpeg_decompress_struct cinfo;
   struct jpeg_error_mgr jerr;
-  JSAMPROW ptr;
-  int rowctr;
+  JSAMPROW  ptr;
+  int rowctr ;
 
   cinfo.err = jpeg_std_error(&jerr);
   jpeg_create_decompress(&cinfo);
@@ -1474,13 +1479,15 @@ static IMAGE *JPEGReadImage(const char *fname)
   jpeg_read_header(&cinfo, TRUE);
 
   cinfo.out_color_space = JCS_GRAYSCALE;
+  cinfo.out_color_space = JCS_RGB ;
 
   jpeg_start_decompress(&cinfo);
-  I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFBYTE, 1);
+  I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFRGB, 1);
 
   rowctr = I->orows - 1;
   while (cinfo.output_scanline < cinfo.output_height) {
-    ptr = IMAGEpix(I, 0, rowctr--);
+    
+    ptr = IMAGERGBpix(I, 0, rowctr--);
     jpeg_read_scanlines(&cinfo, &ptr, 1);
   }
 
