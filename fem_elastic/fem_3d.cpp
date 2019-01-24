@@ -641,9 +641,6 @@ CMesh3d::CMesh3d(const CMesh3d& cmesh)
 CMesh3d::~CMesh3d()
 {
   if ( m_poctree ) delete m_poctree;
-  // DNG: octree does not have a destructor
-  // free data associated with base class
-  //this->free();
 }
 
 #include "simple_timer.h"
