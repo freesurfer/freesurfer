@@ -111,6 +111,7 @@ for arg in argv0:
   LF.write(arg);
   LF.write(" ");
 LF.write("\n\n");
+LF.write('palm subdirectory %s' % palmdir)
 
 # check whether this is a surface-based analysis
 surface_analysis = False
@@ -242,6 +243,13 @@ if maskfile.endswith('.nii.gz'):
   # nii.gz mask can't be used - must convert to nii
   maskfile = convertNifty(maskfile, os.path.join(palmdir, 'mask.nii'))
 
+if input_file.endswith('.nii') and surface_analysis:
+  print('ERROR: for surface based analysis, input cannot be nii or nii.gz');
+  sys.exit(1);
+if maskfile.endswith('.nii') and surface_analysis:
+  print('ERROR: for surface based analysis, mask cannot be nii or nii.gz');
+  sys.exit(1);
+
 # cd to output dir
 os.chdir(palmdir)
 
@@ -337,7 +345,9 @@ if surface_analysis:  # =============================================
     if args.centroid:   cmd += ' --centroid'
     if vars(args)['2spaces']: cmd += ' --bonferroni-max 2'
     if vars(args)['3spaces']: cmd += ' --bonferroni-max 3'
+    print(os.getcwd())
     print(cmd)
+    LF.write(os.getcwd());
     LF.write(cmd);
     LF.write("\n\n");
     ret = call(cmd, shell=True)
@@ -345,7 +355,9 @@ if surface_analysis:  # =============================================
     # Compute mean of input over clusters
     cmd =  'mri_segstats --seg %s.ocn%s --exclude 0' % (con_name,oformat)
     cmd += ' --i %s --avgwf %s.y.ocn.dat' % (input_file, con_name)
+    print(os.getcwd())
     print(cmd)
+    LF.write(os.getcwd());
     LF.write(cmd);
     LF.write("\n\n");
     ret = call(cmd, shell=True)
@@ -360,12 +372,13 @@ if surface_analysis:  # =============================================
     cmd += ' --subject %s --hemi %s' % (targ_subject, hemi)
     cmd += ' --annot aparc --sum %s.dpv.clustertable.summary --no-fixmni --surf white' % con_name
     cmd += ' --mask %s.ocn%s ' % (con_name, oformat)
+    print(os.getcwd())
     print(cmd)
+    LF.write(os.getcwd());
     LF.write(cmd);
     LF.write("\n\n");
     ret = call(cmd, shell=True)
-    if ret != 0: errExit('mri_surfcluster dpv failed', ret)
-
+    if ret != 0: errExit('mri_surfcluster dpv failed, maybe 0 vertices found', ret)
 
 else:  # volume analysis  ===========================================
   print('palm processing complete - running the volume cluster analysis...')

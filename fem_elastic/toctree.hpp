@@ -426,6 +426,11 @@ public:
     m_octreeData.currentLevel = 0;
   }
 
+  ~Octree()
+  {
+    delete m_pnode;
+  }
+
   bool insertItem(const ElementProxy* ep)
   {
     // check if overlapping
