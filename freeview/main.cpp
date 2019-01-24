@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
     "':lock=lock_status' Lock the volume layer so it will not be moved in the layer stack. Status can be '1' or 'true'.\n\n"
     "':visible=visibility' Set the initial visibility of the volume. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
     "':smoothed=flag' Set smoothed display for the volume. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
+    "':rgb=flag' Display 3-frame volume in RGB color. Voxel values must be in the range of 0~255. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\n"
     "':ignore_header=flag' Ignore header information. Use the existing volume's header info. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':frame=number' Set active frame (0 based).\n\n"

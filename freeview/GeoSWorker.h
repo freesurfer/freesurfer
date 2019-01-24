@@ -18,7 +18,7 @@ signals:
   void Finished(bool bSuccess);
 
 public slots:
-  void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds);
+  void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1);
 
 private slots:
   void DoCompute();
@@ -27,6 +27,7 @@ private:
   LayerMRI* m_seeds;
   LayerMRI* m_mri;
   LayerMRI* m_seg;
+  int     m_nMaxDistance;
 
   QThread   m_thread;
 };

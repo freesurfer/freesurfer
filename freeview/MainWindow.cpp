@@ -101,7 +101,6 @@
 #include "LayerLineProfile.h"
 #include "DialogLoadConnectome.h"
 #include "LayerConnectomeMatrix.h"
-#include "DialogLoadSurface.h"
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
 #include "DialogSetCamera.h"
@@ -212,6 +211,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             SLOT(SetCurrentLandmark(int)));
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
+  connect(m_layerCollections["MRI"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
   connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
@@ -1710,6 +1710,10 @@ void MainWindow::RunScript()
   {
     CommandSetSmoothed( sa );
   }
+  else if ( cmd == "setrgb" )
+  {
+    CommandSetRgb( sa );
+  }
   else if ( cmd == "setdisplayoutline")
   {
     CommandSetLabelOutline(sa);
@@ -2217,6 +2221,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert(0, QStringList("setsmoothed") << subArgu);
       }
+      else if (subOption == "rgb" || subOption == "RGB")
+      {
+        m_scripts.insert(0, QStringList("setrgb") << subArgu);
+      }
       else if (subOption == "id")
       {
         sup_data["ID"] = subArgu.toInt();
@@ -2446,6 +2454,20 @@ void MainWindow::CommandSetSmoothed(const QStringList &cmd)
     }
   }
 }
+
+void MainWindow::CommandSetRgb(const QStringList &cmd)
+{
+  QString stemp = cmd[1].toLower();
+  if ( stemp == "yes"|| stemp == "true" || stemp == "1" || stemp == "on")
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri && mri->GetNumberOfFrames() == 3)
+    {
+      mri->GetProperty()->SetDisplayRGB(true);
+    }
+  }
+}
+
 
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
@@ -4688,40 +4710,6 @@ void MainWindow::SetViewLayout( int nLayout )
     m_nViewLayout = nLayout;
     emit ViewLayoutChanged( nLayout );
   }
-}
-
-LayerCollection* MainWindow::GetCurrentLayerCollection()
-{
-  LayerCollection* lc = NULL;
-  /*
-  QString name = ui->tabWidgetControlPanel->tabText( ui->tabWidgetControlPanel->currentIndex() );
-  if ( name == "Volumes" )
-  {
-    lc = GetLayerCollection( "MRI" );
-  }
-  else if ( name == "ROIs" )
-  {
-    lc = GetLayerCollection( "ROI" );
-  }
-  else if ( name == "Surfaces" )
-  {
-    lc = GetLayerCollection( "Surface" );
-  }
-  else if ( name == "Point Sets" )
-  {
-    lc = GetLayerCollection( "PointSet" );
-  }
-  else if ( name == "Tracks" )
-  {
-    lc = GetLayerCollection( "Tract");
-  }
-  else if ( name == "All")
-  {
-    lc = GetLayerCollection(ui->tabAllLayers->GetCurrentLayerType());
-  }
-  */
-
-  return lc;
 }
 
 QString MainWindow::GetCurrentLayerType()

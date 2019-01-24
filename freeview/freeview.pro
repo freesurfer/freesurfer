@@ -174,7 +174,8 @@ SOURCES += \
     DialogCustomFill.cpp \
     DialogSurfaceLabelOperations.cpp \
     geos/GeodesicMatting.cpp \
-    geos/kde.cpp
+    geos/kde.cpp \
+    GeoSWorker.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -336,7 +337,8 @@ HEADERS  += \
     DialogCustomFill.h \
     DialogSurfaceLabelOperations.h \
     geos/GeodesicMatting.h \
-    geos/kde.h
+    geos/kde.h \
+    GeoSWorker.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

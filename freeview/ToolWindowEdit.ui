@@ -91,6 +91,47 @@
        <property name="spacing">
         <number>6</number>
        </property>
+       <item row="3" column="1" colspan="5">
+        <widget class="QComboBox" name="comboBoxReference">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>200</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="lineEditGeoMaxDistance">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>10</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="2" colspan="4">
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -115,69 +156,10 @@
          </item>
         </layout>
        </item>
-       <item row="7" column="3" colspan="2">
-        <widget class="QLabel" name="labelGeoOutsideColor">
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelBrushValue">
          <property name="text">
-          <string>Outside color</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="labelContourValue">
-         <property name="text">
-          <string>Contour value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="labelReference">
-         <property name="text">
-          <string>Reference</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="labelGeoMaxDistance">
-         <property name="text">
-          <string>Max distance</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="3" colspan="2">
-        <widget class="QLabel" name="labelContourColor">
-         <property name="text">
-          <string>Contour color</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="1">
-        <widget class="QLineEdit" name="lineEditGeoMaxDistance">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>3</string>
+          <string>Brush value</string>
          </property>
         </widget>
        </item>
@@ -188,145 +170,6 @@
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="5">
-        <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="labelTolerance">
-         <property name="text">
-          <string>Tolerance</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="2" colspan="4">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="6" column="5">
-        <widget class="QtColorPicker" name="colorPickerGeoInside" native="true"/>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="lineEditContourValue">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2" colspan="3">
-        <widget class="QLabel" name="labelEraseValue">
-         <property name="text">
-          <string>Eraser value</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="labelGeoWsize">
-         <property name="text">
-          <string>WSize</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1">
-        <widget class="QLineEdit" name="lineEditGeoLambda">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="5">
-        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="labelBrushSize">
-         <property name="text">
-          <string>Brush size</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="labelGeoLambda">
-         <property name="text">
-          <string>Lambda</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="5">
-        <widget class="QLineEdit" name="lineEditEraseValue">
-         <property name="minimumSize">
-          <size>
-           <width>50</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>50</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="labelBrushValue">
-         <property name="text">
-          <string>Brush value</string>
          </property>
         </widget>
        </item>
@@ -347,32 +190,23 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1" colspan="5">
-        <widget class="QComboBox" name="comboBoxReference">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+       <item row="5" column="3" colspan="2">
+        <widget class="QLabel" name="labelContourColor">
+         <property name="text">
+          <string>Contour color</string>
          </property>
-         <property name="maximumSize">
-          <size>
-           <width>200</width>
-           <height>16777215</height>
-          </size>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
-        <widget class="QSpinBox" name="spinBoxGeoWsize">
-         <property name="suffix">
-          <string/>
+       <item row="2" column="2" colspan="3">
+        <widget class="QLabel" name="labelEraseValue">
+         <property name="text">
+          <string>Eraser value</string>
          </property>
-         <property name="minimum">
-          <number>3</number>
-         </property>
-         <property name="maximum">
-          <number>100</number>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
@@ -401,7 +235,97 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="0" colspan="6">
+       <item row="5" column="5">
+        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="labelGeoMaxDistance">
+         <property name="text">
+          <string>Max distance</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelBrushSize">
+         <property name="text">
+          <string>Brush size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2" colspan="4">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="6" column="5">
+        <widget class="QtColorPicker" name="colorPickerGeoInside" native="true"/>
+       </item>
+       <item row="2" column="5">
+        <widget class="QLineEdit" name="lineEditEraseValue">
+         <property name="minimumSize">
+          <size>
+           <width>50</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="3" colspan="2">
+        <widget class="QLabel" name="labelGeoOutsideColor">
+         <property name="text">
+          <string>Outside color</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="lineEditContourValue">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0" colspan="6">
         <layout class="QHBoxLayout" name="horizontalLayout_7">
          <item>
           <spacer name="horizontalSpacer_3">
@@ -431,6 +355,82 @@
           </widget>
          </item>
         </layout>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelContourValue">
+         <property name="text">
+          <string>Contour value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="5">
+        <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelReference">
+         <property name="text">
+          <string>Reference</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelTolerance">
+         <property name="text">
+          <string>Tolerance</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="labelGeoWsize">
+         <property name="text">
+          <string>WSize</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="labelGeoLambda">
+         <property name="text">
+          <string>Lambda</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QSpinBox" name="spinBoxGeoWsize">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="minimum">
+          <number>3</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLineEdit" name="lineEditGeoLambda">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>

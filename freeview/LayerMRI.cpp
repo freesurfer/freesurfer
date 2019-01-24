@@ -3822,9 +3822,12 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
 //  voi->SetInput(seeds);
 //  voi->SetVOI(bound);
   if (!m_geos)
+  {
     m_geos = new GeoSWorker;
+    connect(m_geos, SIGNAL(Finished(bool)), SLOT(SetModified()));
+  }
 
-  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds);
+  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
   return true;
 }
 

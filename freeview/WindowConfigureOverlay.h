@@ -88,6 +88,7 @@ protected slots:
   void OnCheckAutoFrameByVertex(bool bChecked);
   void OnCheckUseNonZeroVertices(bool bChecked);
   void OnComboOverlayChanged(int n);
+  void OnCycleOverlay();
 
 private:
   Ui::WindowConfigureOverlay *ui;
