@@ -155,7 +155,7 @@ int main(int narg, char*  arg[])
 				for(pointIdIt  =cells.Value()->PointIdsBegin();pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
 				{
 					//std::cout<< j<< std::endl;	
-					MeshType::PointType pt;
+					MeshType::PointType pt = 0;
 					mesh->GetPoint (*pointIdIt, &pt);
 					dist +=	avgPoints[j].EuclideanDistanceTo(pt);
 					dist_inv +=avgPoints[avgPoints.Size()-j-1].EuclideanDistanceTo(pt);
@@ -169,7 +169,7 @@ int main(int narg, char*  arg[])
 				j=0;
 				for(pointIdIt  =cells.Value()->PointIdsBegin();pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
 				{	
-					MeshType::PointType pt;
+					MeshType::PointType pt = 0;
 					mesh->GetPoint (*pointIdIt, &pt);
 					for(int k=0;k<3;k++)
 					{

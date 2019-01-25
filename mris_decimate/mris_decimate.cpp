@@ -362,7 +362,10 @@ int decimateSurface(MRI_SURFACE **pmris,
 	faceLoadContext.nextFace = 0;
   gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, (gpointer)&faceLoadContext);
 
-  mrisCheckVertexFaceTopology(mris);
+  if (!mrisCheckVertexFaceTopology(mris)) {
+    std::cerr << "Error: surface has invalid topology" << std::endl;
+    return 1;
+  }
 
   if (decimateProgressFn != NULL)
   {
