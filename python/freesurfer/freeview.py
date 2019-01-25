@@ -7,7 +7,10 @@ from . import error, run
 
 
 class Freeview:
-    '''A visualization class that wraps freeview. Volumes and surfaces can be configured like so:
+    '''A visualization class that wraps freeview.
+
+    After configuring the wrapper, the freeview window can be opened with the show() method. Volumes and
+    surfaces can be configured like so:
 
         fv = Freeview()
         fv.vol(volume)
@@ -15,13 +18,32 @@ class Freeview:
         fv.surf(pialfile, overlay=thickness)
         fv.show()
 
-        For a quicker but more limited way to view volumes or overlays, see `fv()` and `fvoverlay()`.
+    The name, colormap, and opacity options for vol() are just easy ways to specify the key-value argument
+    options on the commandline. Additional options can be applied to a volume or surface with the 'opts' option.
+    So, for example, the following:
+
+        fv = Freeview()
+        fv.vol(volume, name='seg1', colormap='lut', opacity=0.5)
+        fv.show()
+
+    Is the same as:
+
+        fv = Freeview()
+        fv.vol(volume, opts=':name=seg1:colormap=lut:opacity=0.5')
+        fv.show()
+
+    Additional flags can be passed to freeview in the show() method:
+
+        fv = Freeview()
+        fv.show(opts='--slice 5 5 5 --verbose')
+
+    For a quicker but more limited way to view volumes or overlays, see `fv()` and `fvoverlay()`.
     '''
     def __init__(self):
         self._tempdir = None
         self.items = {'volumes': [], 'surfaces': []}
 
-    def vol(self, volume, name=None, affine=np.eye(4), colormap=None, opacity=None, opts=''):
+    def vol(self, volume, affine=np.eye(4), name=None, colormap=None, opacity=None, opts=''):
         '''Adds a new volume to the freeview command. If the volume provided is not a
         filepath, then the input will be saved as a volume in a temporary directory. 
 
@@ -34,16 +56,14 @@ class Freeview:
             opacity (float): Opacity of the volume layer.
             opts (str): Additional options to append to the volume argument.
         '''
-        if not name:
-            name = 'volume'
-
-        filename = self._makeVolume(volume, name, affine)
+        filename = self._makeVolume(volume, 'volume', affine)
         if filename is None:
             return
-        
+
+        if name is not None:
+            opts += ':name=' + name
         if colormap is not None:
             opts += ':colormap=' + colormap
-
         if opacity is not None:
             opts += ':opacity=' + str(opacity)
 

@@ -579,7 +579,7 @@ int main(int argc, char **argv)
         if(UseNewRibbon){
 	  if(IsCortex || IsWM || (asegid==Unknown || asegid == CSF) || IsCblumCtx) {
 	    RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-	    if(!IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+	    if(!IsCblumCtx && asegid != CSF) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
 	    if(RibbonVal==Left_Cerebral_White_Matter || RibbonVal==Right_Cerebral_White_Matter) {
 	      // Ribbon says it is WM
 	      IsWM = 1;

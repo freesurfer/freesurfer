@@ -643,6 +643,9 @@ mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra)
   {
     printf("\ncomputing cross-hemi correlations\n") ;
     // first compute means and make timecourses zero mean
+    cnorms = (double **)calloc(width, sizeof(double *));
+    if (!cnorms)
+      ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
     for (x = 0 ; x < width ; x++)
     {
       cnorms[x] = (double *)calloc(height, sizeof(double));
