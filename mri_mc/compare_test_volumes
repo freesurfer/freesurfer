@@ -1,8 +1,0 @@
-#!/bin/tcsh -ef
-rm -f test_volume.mgz
-./build_test_volume
-if (-e ../mri_diff/mri_diff) then
-  set cmd=(../mri_diff/mri_diff test_volume.mgz test_volume_reference.mgz)
-  echo $cmd
-  $cmd
-endif

@@ -20,7 +20,7 @@ install(
   DESTINATION bin
 )
 
-add_test_script(NAME talairach_avi_test SCRIPT test_talairach_avi)
+add_test_script(NAME talairach_avi_test SCRIPT test.sh)
 
 set(TRX_SOURCES rec.c Getifh.c endianio.c)
 
@@ -84,8 +84,6 @@ target_link_libraries(compute_vox2vox ${ICC_LIBRARIES})
 install(TARGETS compute_vox2vox DESTINATION bin)
 
 install(FILES talairach_avi.help.xml DESTINATION docs/xml)
-
-add_test_script(NAME libg2c_linker SCRIPT test_libg2c DEPENDS gauss_4dfp)
 
 install_symlinks(
   3T18yoSchwartzReactN32_as_orig.4dfp.hdr

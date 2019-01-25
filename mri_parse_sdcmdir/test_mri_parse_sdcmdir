@@ -1,6 +1,0 @@
-#! /bin/tcsh -ef
-
-set echo=1
-
-./mri_parse_sdcmdir --sortbyrun --d . --o ./dicomdir.sumfile
-diff ./dicomdir.sumfile ./test_dicomdir.sumfile
