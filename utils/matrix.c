@@ -2663,16 +2663,26 @@ void XYZ_NORMALIZED_LOAD(XYZ *xyz, float *xyz_length, float x, float y, float z)
   }
 }
 
+
 float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
+{
+  float norm =
+      (float)sqrt((double)x2 * (double)x2 + (double)y2 * (double)y2 + (double)z2 * (double)z2);
+
+  if (FZERO(norm)) return (0.0f);
+
+  return XYZApproxAngle_knownLength(normalizedXYZ, x2, y2, z2, norm);
+}
+
+
+float XYZApproxAngle_knownLength(
+    XYZ const * normalizedXYZ, 
+    float x2, float y2, float z2, float norm)
 {
   double x1 = normalizedXYZ->x;
   double y1 = normalizedXYZ->y;
   double z1 = normalizedXYZ->z;
 
-  float norm =  // since normalizedXYZ has a length of 1.0, can skip multiplying in its length
-      (float)sqrt((double)x2 * (double)x2 + (double)y2 * (double)y2 + (double)z2 * (double)z2);
-
-  if (FZERO(norm)) return (0.0f);
 
   float dot = x1 * x2 + y1 * y2 + z1 * z2;
 

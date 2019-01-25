@@ -345,31 +345,44 @@ int MRISremoveTriangleLinks(MRIS *mris)
 }
 
 
-/*
-  Counts the number of edges on the surface. 
-*/
-int MRIScountEdges(MRIS *surf)
+int MRIScountEdges(MRIS* mris)
 {
-  // This is not thread safe and cannot be made thread safe
-  int nedges=0;
-  int vtxno;
-  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
-    VERTEX_TOPOLOGY const * const vt = &(surf->vertices_topology[vtxno]);
-    int nthnbr;
-    for(nthnbr = 0; nthnbr < vt->vnum; nthnbr++){
-      if(vt->v[nthnbr] < vtxno) continue;
+  int nedges = 0;
+
+  int vno;
+  for (vno=0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    int n;
+    for (n = 0; n < vt->vnum; n++) {
+      if (vt->v[n] < vno) continue;
       nedges++;
     }
   }
-  //printf("nedges %d\n",nedges);
-  return(nedges);
+
+  return nedges;
 }
+
+
+int mrisCountTotalNeighbors(MRIS* mris)
+{
+  int total = 0;
+
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) continue;
+    total += vt->vtotal + 1; /* include this vertex in count */
+  }
+  return (total);
+}
+
 
 
 //=============================================================================
 // EulerNumber and similar calculations
 //
-int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int *pnedges)
+int MRIScomputeEulerNumber(MRIS *mris, int *pnvertices, int *pnfaces, int *pnedges)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i;
 
