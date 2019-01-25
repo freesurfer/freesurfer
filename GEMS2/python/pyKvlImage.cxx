@@ -54,7 +54,6 @@ ImagePointer KvlImage::numpy_to_image(const py::array_t<float> &buffer) {
     return image;
 }
 
-
 KvlImage::KvlImage(const std::string &imageFileName) {
     load_mgh_factory();
 
@@ -76,7 +75,7 @@ KvlImage::KvlImage(const std::string &imageFileName) {
 }
 
 KvlImage::KvlImage(const std::string &imageFileName, const std::string &boundingFileName):
-        m_non_cropped_image_size(3), m_cropping_offset(3) {
+        m_non_cropped_image_size(3), m_crop_slices(3) {
     load_mgh_factory();
 
     // Read the image
@@ -96,9 +95,10 @@ KvlImage::KvlImage(const std::string &imageFileName, const std::string &bounding
     m_transform = reader->GetTransform()->Clone();
 
     for ( int index = 0; index < 3; index++ ) {
-        m_non_cropped_image_size[index] = reader->GetOriginalImageOriginalRegion().GetSize( index );
-        m_cropping_offset[index] = reader->GetOriginalImageRegion().GetIndex( index )
-                                   - reader->GetCroppedImageRegion().GetIndex( index );
+        int start = reader->GetOriginalImageRegion().GetIndex(index) - reader->GetCroppedImageRegion().GetIndex(index);
+        int stop = start + reader->GetCroppedImageRegion().GetSize(index);
+        m_crop_slices[index] = py::slice(start, stop, 1);
+        m_non_cropped_image_size[index] = reader->GetOriginalImageOriginalRegion().GetSize(index);
     }
     std::cout << "Read image: " << imageFileName << " cropped by " << boundingFileName << std::endl;
 }
@@ -108,11 +108,12 @@ KvlImage::KvlImage(const py::array_t<float> &buffer) {
     m_transform = TransformType::New();
 }
 
-std::vector<double> KvlImage::GetNonCroppedImageSize() {
+std::vector<int> KvlImage::GetNonCroppedImageSize() {
     return m_non_cropped_image_size;
 }
-std::vector<double> KvlImage::GetCroppingOffset() {
-    return m_cropping_offset;
+
+py::tuple KvlImage::GetCropSlices() {
+    return m_crop_slices;
 }
 
 std::unique_ptr<KvlTransform> KvlImage::GetTransform() {

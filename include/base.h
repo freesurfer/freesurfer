@@ -146,6 +146,11 @@ static float squaref(float x) { return x*x; }
 static double squared(double x) { return x*x; }
 
 
+typedef struct FloatXYZ {
+    float x,y,z;
+} FloatXYZ;
+
+
 #if defined(__cplusplus)
 };
 #endif

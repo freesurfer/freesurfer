@@ -143,6 +143,10 @@ typedef struct edge_type_
     //
     // Used to find and control where various fields are written
     
+typedef struct face_topology_type_ {    // not used much yet
+  vertices_per_face_t v;
+} FACE_TOPOLOGY;
+
 typedef struct face_type_
 {
 #define LIST_OF_FACE_ELTS_1    \
@@ -276,6 +280,7 @@ typedef struct vertex_type_
   /* managed by MRISfreeDists[_orig] and MRISmakeDists[_orig] */ \
   ELTX(float* const,dist)      SEP                                              /* distance to neighboring vertices based on  xyz    */ \
   ELTX(float* const,dist_orig) SEP                                              /* distance to neighboring vertices based on origxyz */ \
+  ELTX(int,dist_capacity)      SEP \
   ELTX(int,dist_orig_capacity) SEP \
   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,x)          SEP             /* current coordinates */                       \
@@ -2325,8 +2330,7 @@ int MRISrasToVoxel(MRI_SURFACE *mris,
                    MRI *mri,
                    double xs, double ys, double zs,
                    double *pxv, double *pyv, double *pzv) ;
-int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
-int MRISstoreRipFlags(MRI_SURFACE *mris) ;
+
 int MRISripMedialWall(MRI_SURFACE *mris) ;
 int MRISripMarked(MRI_SURFACE *mris) ;
 int MRISripUnmarked(MRI_SURFACE *mris) ;
@@ -2729,6 +2733,18 @@ MRIS *MRISsortVertices(MRIS *mris0);
 MRIS *MRISclone(MRIS const * mris_src) ;
 MRIS* MRISunion(MRIS const * mris, MRIS const * mris2);
 
+// Various basic export and import
+//
+char* MRISexportVertexRipflags(MRIS* mris) ;
+void  MRISimportVertexRipflags(MRIS* mris, const char*) ;
+
+char* MRISexportFaceRipflags(MRIS* mris) ;
+void  MRISimportFaceRipflags(MRIS* mris, const char*) ;
+
+int  MRISrestoreRipFlags(MRIS *mris) ;
+int  MRISstoreRipFlags  (MRIS *mris) ;
+
+char* MRISexportVertexRipflags(MRIS* mris) ;
 
 // mrisurf_topology needed by more
 //

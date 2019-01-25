@@ -14,7 +14,8 @@ install(CODE "
   message(STATUS \"Installing: ${CMAKE_INSTALL_PREFIX}/python/freesurfer\")
   execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} ${PIP_FLAGS} --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
   if(NOT \${retcode} STREQUAL 0)
-    message(FATAL_ERROR \"Could not install freesurfer python module\")
+    # message(FATAL_ERROR \"Could not install freesurfer python module\")
+    message(SEND_ERROR \"Could not install freesurfer python module\")
   endif()"
 )
 

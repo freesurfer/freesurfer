@@ -899,6 +899,9 @@ color: gray;</string>
     </layout>
    </item>
    <item>
+    <widget class="QLineEdit" name="lineEdit"/>
+   </item>
+   <item>
     <widget class="QLabel" name="label_4">
      <property name="styleSheet">
       <string notr="true">font-size: 10px;</string>
@@ -924,7 +927,7 @@ color: gray;</string>
     <string>Cycle Overlay</string>
    </property>
    <property name="shortcut">
-    <string>Alt+O</string>
+    <string>Alt+V</string>
    </property>
   </action>
  </widget>

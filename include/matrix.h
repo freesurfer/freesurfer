@@ -223,8 +223,12 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #define XYZ_LOAD(v,x,y,z)             do { XYZ* xyz = &v; xyz.x=x, xyz.y=y, xyz.z=z; } while 0
 void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, float z);
 
-float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2);
-
+float XYZApproxAngle(
+    XYZ const * normalizedXYZ, float x2, float y2, float z2);
+    
+float XYZApproxAngle_knownLength(
+    XYZ const * normalizedXYZ, 
+    float x2, float y2, float z2, float length2);
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 float  VectorLen( const VECTOR *v ) ;
