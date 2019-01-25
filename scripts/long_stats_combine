@@ -164,7 +164,7 @@ def options_parse():
     if options.qdec is None:
         parser.print_help() 
         print()
-        print('ERROR: Specify --qedc')
+        print('ERROR: Specify --qdec')
         print() 
         sys.exit(1)
         

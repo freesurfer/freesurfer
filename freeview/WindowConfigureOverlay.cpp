@@ -43,6 +43,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   m_dSavedOffset(0)
 {
   ui->setupUi(this);
+  ui->layoutOverlayList->removeWidget(ui->labelShortCut);
   setWindowFlags( Qt::Tool );
   m_fDataCache = NULL;
   ui->widgetHistogram->SetNumberOfBins( 200 );
@@ -72,6 +73,8 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
   connect(lc, SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateUI()));
+  addAction(ui->actionCycleOverlay);
+  connect(ui->actionCycleOverlay, SIGNAL(triggered(bool)), SLOT(OnCycleOverlay()));
 }
 
 WindowConfigureOverlay::~WindowConfigureOverlay()
@@ -92,6 +95,20 @@ void WindowConfigureOverlay::showEvent(QShowEvent *)
 {
   UpdateUI();
   UpdateGraph();
+  UpdateGeometry();
+}
+
+void WindowConfigureOverlay::resizeEvent(QResizeEvent *e)
+{
+  UpdateGeometry();
+}
+
+void WindowConfigureOverlay::UpdateGeometry()
+{
+  QRect rc = ui->labelShortCut->geometry();
+  rc.moveLeft(ui->comboBoxOverlayList->geometry().right()+10);
+  rc.moveCenter(QPoint(rc.center().x(), ui->comboBoxOverlayList->geometry().center().y()+1));
+  ui->labelShortCut->setGeometry(rc);
 }
 
 void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
@@ -880,5 +897,13 @@ void WindowConfigureOverlay::OnComboOverlayChanged(int n)
   {
     m_layerSurface->SetActiveOverlay(n);
     emit OverlayChanged();
+  }
+}
+
+void WindowConfigureOverlay::OnCycleOverlay()
+{
+  if (isVisible() && m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
+  {
+    ui->comboBoxOverlayList->setCurrentIndex((m_layerSurface->GetActiveOverlayIndex()+1)%m_layerSurface->GetNumberOfOverlays());
   }
 }

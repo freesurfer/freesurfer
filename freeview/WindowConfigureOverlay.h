@@ -48,6 +48,7 @@ public:
   ~WindowConfigureOverlay();
 
   void showEvent(QShowEvent *);
+  void resizeEvent(QResizeEvent* e);
 
 signals:
   void ActiveFrameChanged();
@@ -88,6 +89,8 @@ protected slots:
   void OnCheckAutoFrameByVertex(bool bChecked);
   void OnCheckUseNonZeroVertices(bool bChecked);
   void OnComboOverlayChanged(int n);
+  void OnCycleOverlay();
+  void UpdateGeometry();
 
 private:
   Ui::WindowConfigureOverlay *ui;

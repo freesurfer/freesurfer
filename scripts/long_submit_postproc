@@ -234,7 +234,7 @@ def options_parse():
     # extensive error checks
     if options.qdec is None or options.prog is None:
         parser.print_help()
-        print('\nERROR: Specify --qedc and --prog')
+        print('\nERROR: Specify --qdec and --prog')
         sys.exit(1)
 
     if not os.path.exists(options.dir):

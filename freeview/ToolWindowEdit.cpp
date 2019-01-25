@@ -513,6 +513,7 @@ void ToolWindowEdit::OnButtonGeoSegClear()
     if (mri->GetName() == "GEOS_DRAW")
     {
       mri->ClearVoxels();
+      MainWindow::GetMainWindow()->RequestRedraw();
       break;
     }
   }
@@ -554,7 +555,7 @@ void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)
       colors[1] = ui->colorPickerGeoInside->currentColor();
       colors[2] = ui->colorPickerGeoOutside->currentColor();
       mri_draw->GetProperty()->SetCustomColors(colors);
-      MainWindow::GetMainWindow()->update();
+      MainWindow::GetMainWindow()->RequestRedraw();
       break;
     }
   }

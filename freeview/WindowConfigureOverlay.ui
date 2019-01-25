@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>596</width>
-    <height>910</height>
+    <height>942</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <widget class="QWidget" name="widgetOverlayList" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout_10">
+     <layout class="QHBoxLayout" name="layoutOverlayList">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -67,6 +67,16 @@
           <width>120</width>
           <height>0</height>
          </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelShortCut">
+        <property name="styleSheet">
+         <string notr="true">font-size:9px;color:gray;</string>
+        </property>
+        <property name="text">
+         <string>(Alt+R to change)</string>
         </property>
        </widget>
       </item>
@@ -919,6 +929,14 @@ color: gray;</string>
     </widget>
    </item>
   </layout>
+  <action name="actionCycleOverlay">
+   <property name="text">
+    <string>Cycle Overlay</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

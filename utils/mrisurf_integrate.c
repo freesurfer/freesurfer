@@ -442,7 +442,8 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   }
 
   mrisProjectSurface(mris);
-  MRIScomputeMetricProperties(mris);
+
+  MRIScomputeMetricProperties(mris);            // this can change XYZ slightly
 
 #if AVERAGE_AREAS
   MRISreadTriangleProperties(mris, mris->fname);
@@ -3419,10 +3420,7 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
 
 int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int n_averages, n, write_iterations, niterations;
-  double delta_t = 0.0, rms_height, desired_rms_height, sse, l_dist;
-
-  write_iterations = parms->write_iterations;
+  int write_iterations = parms->write_iterations;
 
   if (IS_QUADRANGULAR(mris)) {
     MRISremoveTriangleLinks(mris);
@@ -3482,10 +3480,10 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisLogIntegrationParms(stderr, mris, parms);
   }
 
-  MRIScomputeMetricProperties(mris);
-  niterations = parms->niterations;
-  rms_height = MRISrmsTPHeight(mris);
-  desired_rms_height = parms->desired_rms_height;
+  MRIScomputeMetricProperties(mris);    // changes XYZ
+  
+  int    const niterations        = parms->niterations;
+  double const desired_rms_height = parms->desired_rms_height;
   // fprintf(stdout, "inflating to desired rms height = %2.3f\n",
   // desired_rms_height);
 
@@ -3508,26 +3506,30 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisComputeOriginalVertexDistances(mris);
   }
   
-  sse = MRIScomputeSSE(mris, parms);
+  MRIScomputeSSE(mris, parms);        // WHAT DOES THIS ACHIEVE?
+  double rms_height = MRISrmsTPHeight(mris);
   
   if (!parms->start_t) {
     if (Gdiag & DIAG_SHOW)
-      fprintf(stdout, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, (float)rms_height, parms->n_averages);
+      fprintf(stdout, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 0, 0.0f, desired_rms_height, parms->n_averages);
     else
       fprintf(stdout, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, rms_height, desired_rms_height);
     if (Gdiag & DIAG_WRITE) {
       fprintf(
-          parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d", 0, 0.0f, (float)rms_height, parms->n_averages);
+          parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d", 0, 0.0f, rms_height, parms->n_averages);
       fflush(parms->fp);
     }
 
-    MRISclearCurvature(mris); /* curvature will be used to
-                        calculate sulc */
+    MRISclearCurvature(mris); /* curvature will be used to calculate sulc */
   }
 
-  l_dist = parms->l_dist;
+  double const l_dist = parms->l_dist;
+  
+  int n_averages;
   for (n_averages = parms->n_averages; n_averages >= 0; n_averages /= 2) {
     parms->l_dist = l_dist * sqrt(n_averages);
+
+    int n;
     for (n = parms->start_t; n < parms->start_t + niterations; n++) {
       mrisTearStressedRegions(mris, parms)  ;
       
@@ -3551,6 +3553,8 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisComputeSpringTerm(mris, parms->l_spring);
       mrisComputeLaplacianTerm(mris, parms->l_lap);
       mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm);
+      
+      double delta_t;
       switch (parms->integration_type) {
         case INTEGRATE_LM_SEARCH:
           delta_t = mrisLineMinimizeSearch(mris, parms);
@@ -3563,12 +3567,14 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, parms->tol, 0 /*parms->n_averages*/);
           break;
         case INTEGRATE_ADAPTIVE:
-          mrisAdaptiveTimeStep(mris, parms);
+          delta_t = mrisAdaptiveTimeStep(mris, parms);
           break;
       }
+      
       mrisTrackTotalDistanceNew(mris); /* update sulc */
       MRIScomputeMetricProperties(mris);
-      sse = MRIScomputeSSE(mris, parms);
+      
+      MRIScomputeSSE(mris, parms);  // WHAT DOES THIS ACHIEVE?
       
       if (0) mris_print_hash(stdout, mris, "\nBefore calling MRISrmsTPHeight", "\n");
       rms_height = MRISrmsTPHeight(mris);
@@ -3734,7 +3740,7 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, parms->tol, 0 /*parms->n_averages*/);
           break;
         case INTEGRATE_ADAPTIVE:
-          mrisAdaptiveTimeStep(mris, parms);
+          delta_t = mrisAdaptiveTimeStep(mris, parms);
           break;
       }
       mrisTrackTotalDistance(mris); /* update sulc */

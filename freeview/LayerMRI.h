@@ -200,8 +200,6 @@ public:
 
   bool FloodFillByContour2D( double* ras, Contour2D* c2d );
 
-  virtual void SetModified();
-
   bool SaveContourToFile(const QString& fn);
 
   SurfaceRegion* CreateNewSurfaceRegion( double* pt );
@@ -337,6 +335,7 @@ public:
   QVariantMap GetTimeSeriesInfo();
   
 public slots:
+  virtual void SetModified();
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
   {

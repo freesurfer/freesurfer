@@ -201,7 +201,6 @@ main(int argc, char *argv[])
 
   printf("%s\n",vcid);
   printf("  %s\n",MRISurfSrcVersion());
-  fflush(stdout);
 
 #ifdef HAVE_OPENMP
   {
@@ -211,6 +210,8 @@ main(int argc, char *argv[])
       Progname, n_omp_threads);
   }
 #endif
+
+  fflush(stdout); fflush(stderr);
 
   if (parms.base_name[0] == 0)
   {
@@ -233,13 +234,18 @@ main(int argc, char *argv[])
 
   MRISaddCommandLine(mris, cmdline) ;
 
-  fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "disturbing vertex positions...\n") ;
+    fflush(stdout); fflush(stderr);
     mrisDisturbVertices(mris, disturb) ;
   }
   if (quick == 0)
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "reading original vertex positions...\n") ;
+    fflush(stdout); fflush(stderr);
     // don't need original properties unless preserving metric
     err = MRISreadOriginalProperties(mris, orig_name) ;
     if(err)
@@ -249,6 +255,9 @@ main(int argc, char *argv[])
   }
   if (smooth_avgs > 0)
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "smoothing...\n") ;
+    fflush(stdout); fflush(stderr);
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISaverageVertexPositions(mris, smooth_avgs) ;
@@ -259,19 +268,29 @@ main(int argc, char *argv[])
 
   if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "rotating...\n") ;
+    fflush(stdout); fflush(stderr);
     MRISrotate(mris,mris,RADIANS(ralpha),RADIANS(rbeta),RADIANS(rgamma)) ;
     //                if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRISwrite(mris, "rot") ;
   }
-  fprintf(stderr, "unfolding cortex into spherical form...\n");
+
   if (talairach)
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "talairach...\n");
+    fflush(stdout); fflush(stderr);
     MRIStalairachTransform(mris, mris) ;
     MRISwrite(mris, "tal") ;
   }
 
   if (xform_fname)
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "xform...\n");
+    fflush(stdout); fflush(stderr);
+
     LTA *lta ;
     MRI *mri ;
     TRANSFORM transform ;
@@ -293,6 +312,7 @@ main(int argc, char *argv[])
     LTAfree(&lta) ;
     MRISwrite(mris, "xfm") ;
   }
+
 #if 0
   max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
   max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
@@ -316,9 +336,14 @@ main(int argc, char *argv[])
     printf("setting target radius to be %2.3f to match surface areas\n",
            target_radius) ;
   }
+
   //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
   if (!load && do_inflate)
   {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "inflating...\n");
+    fflush(stdout); fflush(stderr);
+
     INTEGRATION_PARMS inflation_parms ;
 
     MRIScenter(mris, mris) ;
@@ -380,6 +405,10 @@ main(int argc, char *argv[])
     mrisComputeOriginalVertexDistances(mris);
   }
   
+  fflush(stdout); fflush(stderr);
+  fprintf(stderr, "projecting onto sphere...\n");
+  fflush(stdout); fflush(stderr);
+
   MRISprojectOntoSphere(mris, mris, target_radius) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -387,15 +416,20 @@ main(int argc, char *argv[])
     MRISwrite(mris, "after") ;
   }
   
+  fflush(stdout); fflush(stderr);
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
+  fflush(stdout); fflush(stderr);
   
   MRISsetNeighborhoodSize(mris, nbrs) ;
   
-  if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
+  int const countNegativeFaces   = MRIScountNegativeFaces(mris);
+  int const allowedNegativeFaces = nint(.8*mris->nfaces);
+  if (countNegativeFaces > allowedNegativeFaces)
   {
-    printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!  everted surface detected (countNegativeFaces:%d > allowedNegativeFaces:%d) - correcting !!!!!!!!!!!!!!\n", countNegativeFaces, allowedNegativeFaces) ;
     MRISevertSurface(mris) ;
   }
+  
   if (quick)
   {
     if (!load)
@@ -421,19 +455,23 @@ main(int argc, char *argv[])
   }
   if (!load)
   {
-    fflush(stdout);
-    fflush(stderr);
+    fflush(stdout); fflush(stderr);
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
+    fflush(stdout); fflush(stderr);
     MRISwrite(mris, out_fname) ;
   }
 
+  fflush(stdout); fflush(stderr);
   // Print usage stats to the terminal (and a file is specified)
   PrintRUsage(RUSAGE_SELF, "mris_sphere ", stdout);
   if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   msec = TimerStop(&then) ;
+  fflush(stdout); fflush(stderr);
   fprintf(stderr, "spherical transformation took %2.4f hours\n",
           (float)msec/(1000.0f*60.0f*60.0f));
+  fflush(stdout); fflush(stderr);
+
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
   int n_omp_threads = omp_get_max_threads();

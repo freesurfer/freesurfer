@@ -33,7 +33,6 @@ extern int fix_vertex_area;
 #ifdef BEVIN_REPRODUCIBLES_CHECK
 
     #define BEVIN_MRISCOMPUTENORMALS_CHECK
-    #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
     #define BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
     #define BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
     #define BEVIN_MRISCOMPUTESSE_CHECK
@@ -42,10 +41,6 @@ extern int fix_vertex_area;
 
 // Configurable support for enabling the new code that does get reproducible results
 //
-#define BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-#define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
-#define BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
-#define BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
@@ -335,6 +330,9 @@ int mrisWriteSnapshot (MRIS *mris, INTEGRATION_PARMS *parms, int t);
 
 extern const float * sigmas;
 extern       double nsigmas;
+
+float* mrisStealDistStore(MRIS* mris, int vno, int newCapacity);
+void   mrisSetDist(MRIS* mris, int vno, float* dist, int newCapacity);
 
 bool MRISreallocVertices            (MRIS* mris, int max_vertices, int nvertices);
 void MRISgrowNVertices              (MRIS* mris, int nvertices);

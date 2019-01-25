@@ -45,7 +45,7 @@ static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $
 
 int main(int argc, char *argv[]) ;
 
-static MRI_SP *mrispComputeCorrelations(MRI_SP *mrisp);
+static MRI_SP *mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra);
 MRI *mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, MRI *mri_corr) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -55,8 +55,12 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static MRI_SURFACE *mris_contra = NULL ;
+static MRI *mri_contra_overlay = NULL ;
+
 static int compute_corr = 0 ;
 static int spherical_corr = 0 ;
+static char *clabel_fname = NULL;  // contra hemi label
 static char *label_fname = NULL;
 static char *seed_label_fname = NULL;
 static int normalize = 0 ;
@@ -78,7 +82,7 @@ main(int argc, char *argv[])
   int          ac, nargs, file_type ;
   char         *in_surf, *in_overlay;
   MRI_SURFACE  *mris;
-  MRI_SP       *mrisp ;
+  MRI_SP       *mrisp, *mrisp_contra = NULL ;
   MRI          *mri_overlay ;
 
   /* rkt: check for and handle version tag */
@@ -122,7 +126,7 @@ main(int argc, char *argv[])
   if (file_type == MRI_MGH_FILE || file_type == NIFTI1_FILE || file_type == NII_FILE)
   {
     int   frame ;
-    LABEL *area ;
+    LABEL *area, *carea ;
 
     if (frame_to_read >= 0)
       mri_overlay = MRIreadEx(in_overlay, frame_to_read) ;
@@ -153,6 +157,8 @@ main(int argc, char *argv[])
     }
 
     printf("processing surface-encoded volume file with %d frames\n", mri_overlay->nframes) ;
+    if (mris_contra)  // compute cross-hemi correlations also
+      mrisp_contra = MRISPalloc(scale, mri_contra_overlay->nframes) ;
     mrisp = MRISPalloc(scale, mri_overlay->nframes) ;
     if (label_fname)
     {
@@ -162,6 +168,15 @@ main(int argc, char *argv[])
     }
     else
       area = NULL ;
+
+    if (clabel_fname)
+    {
+      carea = LabelRead(NULL, clabel_fname) ;
+      if (carea == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", clabel_fname) ;
+    }
+    else
+      carea = NULL ;
 
     if (mri_overlay->width != mris->nvertices)
       ErrorExit(ERROR_UNSUPPORTED, "%s: overlay width (%d) does not match number of vertices in surface (%d)", Progname,mri_overlay->width, mris->nvertices);
@@ -176,7 +191,7 @@ main(int argc, char *argv[])
 
       if (label_fname)  // if compute_corr==TRUE then label is a set of seeds and don't mask
 	LabelMaskSurfaceCurvature(area, mris);
-      
+
       MRISaverageCurvatures(mris, navgs) ;
       if (label_fname)  // if compute_corr==TRUE then label is a set of seeds and don't mask
 	LabelMaskSurfaceCurvature(area, mris);
@@ -190,11 +205,31 @@ main(int argc, char *argv[])
 	MRIStoParameterizationBarycentric(mris, mrisp, scale, frame) ;
       else
 	MRIStoParameterization(mris, mrisp, scale, frame) ;
+      if (mrisp_contra)  // doing cross-hemi correlations
+      {
+	MRISimportValFromMRI(mris_contra, mri_contra_overlay, frame);
+	MRIScopyValuesToCurvature(mris_contra) ;
+	if (normalize)
+	  MRISnormalizeCurvature(mris_contra, NORM_MEAN);
+
+	if (clabel_fname)
+	  LabelMaskSurfaceCurvature(carea, mris_contra);
+
+	MRISaverageCurvatures(mris_contra, navgs) ;
+
+	if (clabel_fname)
+	  LabelMaskSurfaceCurvature(carea, mris_contra);
+
+	if (barycentric)
+	  MRIStoParameterizationBarycentric(mris_contra, mrisp_contra, scale, frame) ;
+	else
+	  MRIStoParameterization(mris_contra, mrisp_contra, scale, frame) ;
+      }
     }
     if (spherical_corr)
     {
       MRI_SP *mrisp_sphere ;
-      mrisp_sphere = mrispComputeCorrelations(mrisp);
+      mrisp_sphere = mrispComputeCorrelations(mrisp, mrisp_contra);
       MRISPfree(&mrisp) ;
       mrisp = mrisp_sphere ;
     }
@@ -202,7 +237,7 @@ main(int argc, char *argv[])
   }
   else // process a 'curvature' file like thickness with a single frame
   {
-    LABEL *area ;
+    LABEL *area, *carea ;
     mrisp = MRISPalloc(scale, 1) ;
     file_type = mri_identify(in_overlay);
     if (file_type == MGH_LABEL_FILE)  // read in a label and create an overlay from it
@@ -243,6 +278,13 @@ main(int argc, char *argv[])
 	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
       LabelMaskSurfaceCurvature(area, mris);
     }
+    if (clabel_fname)
+    {
+      carea = LabelRead(NULL, clabel_fname) ;
+      if (carea == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
+      LabelMaskSurfaceCurvature(carea, mris_contra);
+    }
     
     if (normalize)
       MRISnormalizeCurvature(mris, NORM_MEAN);
@@ -252,6 +294,11 @@ main(int argc, char *argv[])
     {
       LabelMaskSurfaceCurvature(area, mris);
       LabelFree(&area) ;
+    }
+    if (clabel_fname)
+    {
+      LabelMaskSurfaceCurvature(carea, mris_contra);
+      LabelFree(&carea) ;
     }
     
     MRIStoParameterization(mris, mrisp, scale, 0) ;
@@ -313,6 +360,19 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "CONTRA"))
+  {
+    mris_contra = MRISread(argv[2]) ;
+    if (mris_contra == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read contra sphere from %s",
+		Progname, argv[3]) ;
+    mri_contra_overlay = MRIread(argv[3]) ;
+    if (mri_contra_overlay == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read contra overlay volume from %s",
+		Progname, argv[3]) ;
+    nargs = 2 ;
+    printf("reading contra hemi overlay and sphere for cross-hemi calculations\n");
+  }
   else if (!stricmp(option, "CORR"))
   {
     seed_label_fname = argv[2] ;
@@ -353,7 +413,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "scale"))
   {
     scale = atof(argv[2]);
-    printf("scaling width/height MRISP by %2.1f\n", scale) ;
+    printf("scaling width/height MRISP by %2.2f\n", scale) ;
     nargs=1;
   }
   else switch (toupper(*option))
@@ -361,6 +421,11 @@ get_option(int argc, char *argv[])
     case 'L':
       label_fname = argv[2] ;
       printf("masking label %s\n", label_fname) ;
+      nargs = 1; 
+      break ;
+    case 'C':
+      clabel_fname = argv[2] ;
+      printf("masking contra label %s\n", clabel_fname) ;
       nargs = 1; 
       break ;
     case 'A':
@@ -465,15 +530,20 @@ mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, M
 }
 
 static MRI_SP *
-mrispComputeCorrelations(MRI_SP *mrisp)
+mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra)
 {
   MRI_SP *mrisp_sphere, *mrisp_debug ;
   int    nframes, x, y, width, height, t ;
-  double **norms, mean, val;
+  double **norms, mean, val, **cnorms, ****corrs;
 
   mrisp = MRISPclone(mrisp) ;  // we will modify this one and free it later
   width = mrisp->Ip->cols ; height = mrisp->Ip->rows ;
   nframes = width*height ;
+  if (mrisp_contra)
+  {
+    mrisp_contra = MRISPclone(mrisp_contra) ;  // we will modify this one and free it later
+    nframes *= 2 ;
+  }
   mrisp_sphere = MRISPalloc(mrisp->scale, nframes);
   
   mrisp_debug = NULL ;
@@ -486,11 +556,28 @@ mrispComputeCorrelations(MRI_SP *mrisp)
       ErrorExit(ERROR_NOFILE, "could not open %s", cp) ;
   }
 
-  // first compute norms and make timecourses zero mean
+  // first compute means and make timecourses zero mean
   norms = (double **)calloc(width, sizeof(double *));
   if (!norms)
     ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
 //(48,51) and (48,115)
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      mean = 0.0 ;
+      for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
+      {
+	val = *IMAGEFseq_pix(mrisp->Ip, x, y, t) ;
+	mean += val ;
+      }
+      mean /= mrisp->Ip->num_frame ;
+      for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
+	*IMAGEFseq_pix(mrisp->Ip, x, y, t) -= mean ;
+    }
+  }
+
+  // now compute norms of zeromean timecourses
   for (x = 0 ; x < width ; x++)
   {
     norms[x] = (double *)calloc(height, sizeof(double));
@@ -498,21 +585,12 @@ mrispComputeCorrelations(MRI_SP *mrisp)
       ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
     for (y = 0 ; y < height ; y++)
     {
-      if (x == 48 && (y == 51 || y == 115))
-	  DiagBreak() ;
-      if (y == 48 && (x == 51 || x == 115))
-	  DiagBreak() ;
-      mean = 0.0 ;
       for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
       {
 	val = *IMAGEFseq_pix(mrisp->Ip, x, y, t) ;
-	mean += val ;
 	norms[x][y] += val*val ;
       }
       norms[x][y] = sqrt(norms[x][y]) ;
-      mean /= mrisp->Ip->num_frame ;
-      for (t = 0 ; t < mrisp->Ip->num_frame ; t++)
-	*IMAGEFseq_pix(mrisp->Ip, x, y, t) -= mean ;
     }
   }
 
@@ -537,7 +615,11 @@ mrispComputeCorrelations(MRI_SP *mrisp)
       for (x1 = 0 ; x1 < width ; x1++)
 	for (y1 = 0 ; y1 < height ; y1++)
 	{
-	  frame = y1*width + x1 ;
+	  double v1, v2 ;
+	  if (x == 0 && y == 0 && x1 == 10 && y1 == 42) // vertices 0 and 1000 in fsaverage5
+	    DiagBreak() ;
+	  frame = x1*height + y1 ;  // images are stored in column-major format
+	  frame = y1*width + x1 ;  // images are stored in row-major format
 	  norm2 = norms[x1][y1];
 	  if (FZERO(norm2))
 	    continue ;
@@ -547,16 +629,129 @@ mrispComputeCorrelations(MRI_SP *mrisp)
 	    continue ;
 	  }
 	  for (dot = 0.0, t = 0 ; t < mrisp->Ip->num_frame ; t++)
-	    dot += *IMAGEFseq_pix(mrisp->Ip, x, y, t) * *IMAGEFseq_pix(mrisp->Ip, x1, y1, t);
+	  {
+	    v1 = *IMAGEFseq_pix(mrisp->Ip, x, y, t) ;
+	    v2 = *IMAGEFseq_pix(mrisp->Ip, x1, y1, t);
+	    dot += v1 * v2;
+	  }
 	  *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = dot / (norm1*norm2);
 	}
     }
   }
 
+  if (mrisp_contra)
+  {
+    printf("\ncomputing cross-hemi correlations\n") ;
+    // first compute means and make timecourses zero mean
+    for (x = 0 ; x < width ; x++)
+    {
+      cnorms[x] = (double *)calloc(height, sizeof(double));
+      if (!cnorms[x])
+	ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+      for (y = 0 ; y < height ; y++)
+      {
+	mean = 0.0 ;
+	for (t = 0 ; t < mrisp_contra->Ip->num_frame ; t++)
+	{
+	  val = *IMAGEFseq_pix(mrisp_contra->Ip, x, y, t) ;
+	  mean += val ;
+	  cnorms[x][y] += val*val ;
+	}
+	cnorms[x][y] = sqrt(cnorms[x][y]) ;
+	mean /= mrisp_contra->Ip->num_frame ;
+	for (t = 0 ; t < mrisp_contra->Ip->num_frame ; t++)
+	  *IMAGEFseq_pix(mrisp_contra->Ip, x, y, t) -= mean ;
+      }
+    }
+
+    // now compute norms from zero mean timecourses
+    cnorms = (double **)calloc(width, sizeof(double *));
+    if (!cnorms)
+      ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+    for (x = 0 ; x < width ; x++)
+    {
+      cnorms[x] = (double *)calloc(height, sizeof(double));
+      if (!cnorms[x])
+	ErrorExit(ERROR_NOFILE, "mrispComputeCorrelations: could not allocate norm buffer", Progname);
+      for (y = 0 ; y < height ; y++)
+      {
+	for (t = 0 ; t < mrisp_contra->Ip->num_frame ; t++)
+	{
+	  val = *IMAGEFseq_pix(mrisp_contra->Ip, x, y, t) ;
+	  cnorms[x][y] += val*val ;
+	}
+	cnorms[x][y] = sqrt(cnorms[x][y]) ;
+      }
+    }
+    corrs = (double ****)calloc(width, sizeof(double)) ;
+    for (x = 0 ; x < width ; x++)
+    {
+      corrs[x] = (double ***)calloc(height, sizeof(double));
+      for (y = 0 ; y < height ; y++)
+      {
+	int x1, y1, frame ;
+	corrs[x][y] = (double **)calloc(2*width, sizeof(double));
+	for (frame = x1 = 0 ; x1 < 2*width ; x1++)
+	{
+	  corrs[x][y][x1] = (double *)calloc(height, sizeof(double));
+	  for (y1 = 0 ; y1 < height ; y1++, frame++)
+	    corrs[x][y][x1][y1] = *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame);
+	}
+      }
+    }
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+    for (x = 0 ; x < width ; x++)
+    {
+      int x1, y1, y, frame, t ;
+      double norm1, norm2, dot ;
+
+      for (y = 0 ; y < height ; y++)
+      {
+	norm1 = norms[x][y];
+	if (FZERO(norm1))
+	  continue ;
+	for (x1 = 0 ; x1 < width ; x1++)
+	  for (y1 = 0 ; y1 < height ; y1++)
+	  {
+	    frame = (width*height)+x1*height + y1 ; // contra data starts after ipsi data
+	    frame = (width*height)+y1*width + x1 ; // contra data starts after ipsi data
+	    norm2 = cnorms[x1][y1];
+	    if (FZERO(norm2))
+	      continue ;
+	    for (dot = 0.0, t = 0 ; t < mrisp->Ip->num_frame ; t++)
+	      dot += *IMAGEFseq_pix(mrisp->Ip, x, y, t) * *IMAGEFseq_pix(mrisp_contra->Ip, x1, y1, t);
+	    *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) = dot / (norm1*norm2);
+	    corrs[x][y][x1+width][y1] = *IMAGEFseq_pix(mrisp_sphere->Ip, x, y, frame) ;
+	    if (x == Gx && y == Gy)
+	      DiagBreak() ;
+	  }
+      }
+    }
+    for (x = 0 ; x < width ; x++)
+      free(cnorms[x]);
+    free(cnorms) ;
+    for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	int x1 ;
+	for (x1 = 0 ; x1 < 2*width ; x1++)
+	  free(corrs[x][y][x1]) ;
+	free(corrs[x][y]) ;
+      }
+    }
+    free(corrs[x]) ;
+  }
+  free(corrs) ;
+
   for (x = 0 ; x < width ; x++)
     free(norms[x]);
   free(norms) ;
   MRISPfree(&mrisp) ; // not passed version - the one we allocated
+  if (mrisp_contra)
+    MRISPfree(&mrisp_contra) ; // not passed version - the one we allocated
   return(mrisp_sphere) ;
 }
 

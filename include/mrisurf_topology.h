@@ -63,6 +63,7 @@ int mrisValidFaces(MRIS *mris);
 int vertexInFace(MRIS *mris, int vno, int fno);
 int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1);
 
+int mrisCountTotalNeighbors(MRIS *mris);
 
 bool triangleMarked(MRIS *mris, int fno);               // are any of the face's vertices marked?
 int findNonMarkedFace(MRIS *mris, int vno, int vn1);

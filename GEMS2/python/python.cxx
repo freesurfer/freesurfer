@@ -20,7 +20,7 @@ PYBIND11_MODULE(gems_python, m) {
             .def(py::init<const std::string &, const std::string &>())
             .def_property_readonly("transform_matrix", &KvlImage::GetTransform)
             .def_property_readonly("non_cropped_image_size", &KvlImage::GetNonCroppedImageSize)
-            .def_property_readonly("cropping_offset", &KvlImage::GetCroppingOffset)
+            .def_property_readonly("crop_slices", &KvlImage::GetCropSlices)
             .def("getImageBuffer", &KvlImage::GetImageBuffer)
             .def("write", &KvlImage::Write)
             .def_static("smooth_image_buffer", &KvlImage::smoothImageBuffer)
