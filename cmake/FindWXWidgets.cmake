@@ -24,10 +24,8 @@ if(WXWidgets_FOUND)
   # of this when we link (but we'll use our own jpeg, tiff, and expat libraries)
   set(SED_CMD "| sed 's/[^ ]*jpeg[^ ]*//g' | sed 's/[^ ]*tiff[^ ]*//g' | sed 's/[^ ]*expat[^ ]*//g'")
   execute_process(COMMAND bash -c "${WXWidgets_DIR}/bin/wx-config --libs ${SED_CMD}" OUTPUT_VARIABLE WXCONFIG_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND bash -c "${WXWidgets_DIR}/bin/wx-config --libs gl ${SED_CMD}" OUTPUT_VARIABLE WXCONFIG_LIBSGL OUTPUT_STRIP_TRAILING_WHITESPACE)
   separate_arguments(WXCONFIG_LIBS)
-  separate_arguments(WXCONFIG_LIBSGL)
-  set(WXWidgets_LIBRARIES ${WXCONFIG_LIBS} ${WXCONFIG_LIBSGL} ${WXLIB})
+  set(WXWidgets_LIBRARIES ${WXCONFIG_LIBS} ${WXLIB})
 
   # get wx flags
   execute_process(COMMAND bash -c "${WXWidgets_DIR}/bin/wx-config --cxxflags" OUTPUT_VARIABLE WX_CXX_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
