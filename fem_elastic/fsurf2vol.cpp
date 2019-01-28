@@ -768,6 +768,8 @@ main(int argc,
   
   std::cout << " process performed in " << timer.elapsed()/60. << " minutes\n";
   printf("surf2vol done ");PrintMemUsage(stdout);  
+  printf("#VMPC# fsurf2vol VmPeak  %d\n",GetVmPeak());
+
   return 0;
 }
 
