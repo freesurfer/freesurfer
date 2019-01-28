@@ -1704,40 +1704,13 @@ MRI *MRInormFindControlPointsInWindow(MRI *mri_src,
   return (mri_ctrl);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-#if 0
-MRI *
-MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
-{
-  int     width, height, depth ;
-  MRI     *mri_s_ctrl, *mri_s_bias, *mri_s_src, *mri_tmp ;
-
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-
-  mri_s_ctrl = mriDownsampleCtrl2(mri_ctrl, NULL) ;
-  mri_s_src = MRIreduceByte(mri_src, NULL) ;
-  mri_s_bias = MRIclone(mri_s_src, NULL) ;
-  MRIbuildVoronoiDiagram(mri_s_src, mri_s_ctrl, mri_s_bias) ;
-  MRIsoapBubble(mri_s_bias, mri_s_ctrl, mri_s_bias, 25) ;
-  MRIfree(&mri_s_ctrl) ;
-  MRIfree(&mri_s_src) ;
-  mri_bias = MRIupsample2(mri_s_bias, mri_bias) ;
-
-  MRIfree(&mri_s_bias) ;
-  mri_tmp = MRImeanByte(mri_bias, NULL, 3) ;
-  MRImeanByte(mri_tmp, mri_bias, 3) ;
-  MRIfree(&mri_tmp) ;
-  return(mri_bias) ;
-}
-#else
+/*!
+  \fn MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
+  \param mri_src - input image to bias correct
+  \param mri_ctrl - binary input image, usually of white matter
+  \param mri_bias - output
+  \param sigma - smoothing level
+*/
 MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
 {
   // int width, height, depth;
@@ -1753,25 +1726,19 @@ MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
   printf("building Voronoi diagram...\n");
   MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias);
   printf("performing soap bubble smoothing, sigma = %g...\n", sigma);
-#if 1
   MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel);
-  //  if (mri_src->xsize > 0.9) /* replace smoothed bias
-  //    with exact one for control points*/
-  {
-    for (x = 0; x < mri_src->width; x++) {
-      for (y = 0; y < mri_src->height; y++) {
-        for (z = 0; z < mri_src->depth; z++) {
-          if (MRIvox(mri_ctrl, x, y, z) > 0) MRIsetVoxVal(mri_bias, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0));
-        }
+  for (x = 0; x < mri_src->width; x++) {
+    for (y = 0; y < mri_src->height; y++) {
+      for (z = 0; z < mri_src->depth; z++) {
+	if (MRIvox(mri_ctrl, x, y, z) > 0) 
+	  MRIsetVoxVal(mri_bias, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0));
       }
     }
   }
-#else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1);
-#endif
+
   return (mri_bias);
 }
-#endif
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -2196,13 +2163,22 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   return (mri_dst);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+  \param mri_src - input image
+  \param mri_ctrl - binary image of control voxels
+  \param mri_dst - output
+  \brief Iteratively spatially expands values. Starts with immediate
+  neighbors of control voxels. Each neighbor is given the mean of the
+  its nearest control voxels. In the next step, those neighbors are
+  included as control points, and the next layer of neighbors is then
+  expanded, etc, until there are no more neighbors. Neighbors include
+  edges and corners as well as faces. One of the shortcomings to this
+  method is that it does not make use of voxels interior to the the
+  control set, so noisy voxels on the edge an propagate into the
+  volume. It also makes the bias field sensitive to small changes in
+  the input.
+*/
 static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
@@ -2228,6 +2204,7 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   pzi = mri_src->zi;
 
   /* initialize dst image */
+  /*It looks like this just sets dst=src inside the ctrl voxels and counts the number of ctrl voxels*/ 
   for (total = z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
       psrc = &MRIFvox(mri_src, 0, y, z);
@@ -2253,27 +2230,22 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     }
   }
 
-  total = width * height * depth - total; /* total # of voxels to be processed */
+  /* total # of voxels to be processed, ie, outside of the ctrl */
+  total = width * height * depth - total; 
+
+  // mri_marked starts off with all ctrl voxels = CONTROL_NBR
   mri_marked = MRIcopy(mri_ctrl, NULL);
   MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NBR);
 
   /* now propagate values outwards */
   do {
     nchanged = 0;
-/*
-  use mri_marked to keep track of the last set of voxels changed which
-  are marked CONTROL_MARKED. The neighbors of these will be marked
-  with CONTROL_TMP, and they are the only ones which need to be
-  examined.
-*/
-#if 0
-    MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_HAS_VAL, CONTROL_TMP) ;
-    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked,
-                             CONTROL_MARKED,
-                             CONTROL_TMP);
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-#else
+    /*
+      use mri_marked to keep track of the last set of voxels changed which
+      are marked CONTROL_MARKED. The neighbors of these will be marked
+      with CONTROL_TMP, and they are the only ones which need to be
+      examined.
+    */
     /* voxels that were CONTROL_TMP were
     filled on previous iteration, now they
     should be labeled as marked
@@ -2282,30 +2254,27 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     mriMarkUnmarkedNeighbors(mri_marked, mri_marked, mri_marked, CONTROL_NBR, CONTROL_TMP);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_NBR, CONTROL_MARKED);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_NBR);
-#endif
 
-    /*
-      everything in mri_marked=CONTROL_TMP is now a nbr of a point
-      with a value.
-    */
+    /*Everything in mri_marked=CONTROL_TMP is now a nbr of a point with a value.
+      On first pass, nothing is CONTROL_TMP */
     for (visited = z = 0; z < depth; z++) {
       for (y = 0; y < height; y++) {
         pdst = &MRIFvox(mri_dst, 0, y, z);
         for (x = 0; x < width; x++) {
-          if (x == Gx && y == Gy && z == Gz) {
+
+          if (x == Gx && y == Gy && z == Gz)
             DiagBreak();
-          }
+
           mark = MRIgetVoxVal(mri_marked, x, y, z, 0);
-          if (mark != CONTROL_NBR) /* not a neighbor
-                                      of a marked point */
-          {
+          if (mark != CONTROL_NBR) {
+	    /* not a neighbor of a marked point */
             pdst++;
-            ;
             continue;
           }
 
           /* now see if any neighbors are on and set this voxel to the
              average of the marked neighbors (if any) */
+	  // nearest neighbor, resolution dependent
           visited++;
           mean = 0.0f;
           n = 0;
@@ -2322,18 +2291,19 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
               }
             }
           }
-          if (n > 0) /* some neighbors were on */
-          {
+          if (n > 0) {
+	    /* some neighbors were on */
             *pdst++ = (mean / (float)n);
             nchanged++;
           }
-          else /* should never happen anymore */
-          {
+          else  {
+	    /* should never happen anymore */
             pdst++;
           }
-        }
-      }
-    }
+
+        }// z
+      } //y
+    } //z 
     total -= nchanged;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "Voronoi: %d voxels assigned, %d remaining, %d visited.\n", nchanged, total, visited);
@@ -4553,6 +4523,10 @@ MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
   return (mri_out);
 }
 
+/*!
+  \fn MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val)
+  \brief out = in*targetval/bias
+*/
 MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val)
 {
   int x, y, z;
