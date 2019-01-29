@@ -163,6 +163,11 @@ find_package(VTK)
 if(BUILD_GUIS)
 
   # -------- openGL --------
+  if(EXISTS /usr/lib64/nvidia/libGL.so)
+    # on some martinos centos7 machines, linking to the default libGL.so fails due to missing symbols
+    # in the nvidia drivers, so as a temporary fix, link directly to the nvidia GL library
+    list(APPEND CMAKE_PREFIX_PATH "/usr/lib64/nvidia")
+  endif()
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
@@ -178,10 +183,6 @@ if(BUILD_GUIS)
   # only used by mris_decimate_gui
   find_package(WXWidgets)
 
-  # -------- xt --------
-  # used by freeview
-  find_package(Xt)
-  
 endif()
 
 # --------------------------------------------------
@@ -236,12 +237,6 @@ endif()
 if(NOT APPLE)
   # link map (only for linux)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-endif()
-
-if(EXISTS "/etc/redhat-release" AND EXISTS "/lib64/libGLdispatch.so")
-  # temporary centos7 fix: use native libGLdispatch.so as nvidia version is missing symbols
-  set(CMAKE_EXE_LINKER_FLAGS "-lGLdispatch ${CMAKE_EXE_LINKER_FLAGS}")
-  message(STATUS "Using the native libGLdispatch.so")
 endif()
 
 # check for clock_gettime on mac

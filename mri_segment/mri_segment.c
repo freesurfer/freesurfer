@@ -111,12 +111,8 @@ static int MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst,
 char *segfilename = NULL;
 double Qwm=3.0, Qctx=3.0;  // See docs for MRIclassifyAmbiguousNonPar()
 int    NdilWM=2, NdilCtx=2;// See docs for MRIclassifyAmbiguousNonPar()
-//MRI *MRIreclassifyWMCtxNonPar(MRI *norm, MRI *seg, int nitersmax, MRI *newseg);
-//MRI *MRIclassifyAmbiguousNonPar(MRI *norm, MRI *seg, MRI *statseg, double Qwm, double Qctx, int NdilWM, int NdilCtx);
-//int MRIcomputeClassStatisticsSeg(MRI *norm, MRI *seg, float *wmmean, float *wmstd, float *ctxmean, float *ctxstd);
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   MRI     *mri_src, *mri_dst, *mri_tmp=NULL, *mri_labeled, *mri_labels=NULL;
   char    *input_file_name, *output_file_name ;
@@ -582,6 +578,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "seg")){
     segfilename = argv[2];
+    // See docs for MRIclassifyAmbiguousNonPar() for meaning of Qwm, etc
     sscanf(argv[3],"%lf",&Qwm);
     sscanf(argv[4],"%lf",&Qctx);
     sscanf(argv[5],"%d",&NdilWM);
