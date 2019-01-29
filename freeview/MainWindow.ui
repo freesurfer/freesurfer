@@ -254,7 +254,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>19</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1690,6 +1690,14 @@
    </property>
    <property name="text">
     <string>Stereo Render (3D View)</string>
+   </property>
+  </action>
+  <action name="actionCycleOverlay">
+   <property name="text">
+    <string>Cycle Overlay</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
    </property>
   </action>
  </widget>
@@ -3533,6 +3541,7 @@
   </connection>
  </connections>
  <slots>
+  <signal>CycleOverlayRequested()</signal>
   <slot>OnLoadVolume()</slot>
   <slot>OnCloseVolume()</slot>
   <slot>OnCycleLayer()</slot>
