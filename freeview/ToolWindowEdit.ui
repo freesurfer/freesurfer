@@ -1064,10 +1064,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_autoseg.png</normaloff>:/resource/icons/voxel_draw_autoseg.png</iconset>
    </property>
    <property name="text">
-    <string>GEOS Segmentation</string>
+    <string>Geo Segmentation</string>
    </property>
    <property name="toolTip">
-    <string>GEOS Segmentation</string>
+    <string>Geo Segmentation</string>
    </property>
   </action>
  </widget>
