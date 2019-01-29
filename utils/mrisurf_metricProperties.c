@@ -9394,7 +9394,7 @@ float mrisSampleSpringEnergy(
   FACE *face;
   MHT *mht = (MHT *)(parms->mht);
 
-  if (vdist) vdist = 1;
+  if (vdist == 0.0) vdist = 1.0;
 
   project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
   if (v - mris->vertices == Gdiag_no) DiagBreak();
