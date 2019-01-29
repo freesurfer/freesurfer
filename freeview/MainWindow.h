@@ -232,6 +232,7 @@ Q_SIGNALS:
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
+  void CycleOverlayRequested();
 
 public slots:
   void SetMode( int nMode );
