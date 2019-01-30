@@ -506,6 +506,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionToggleWm);
 
   connect(ui->actionNextLabelPoint, SIGNAL(triggered()), ui->widgetAllLayers->GetPanel("MRI"), SLOT(OnGoToNextPoint()));
+  addAction(ui->actionCycleOverlay);
+  connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
 }
 
 MainWindow::~MainWindow()
