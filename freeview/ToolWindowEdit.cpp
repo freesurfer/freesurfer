@@ -275,6 +275,11 @@ void ToolWindowEdit::OnIdle()
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
 
+  ui->labelGeoLambda->hide();
+  ui->labelGeoWsize->hide();
+  ui->lineEditGeoLambda->hide();
+  ui->spinBoxGeoWsize->hide();
+
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
     allwidgets[i]->blockSignals( false );
@@ -298,7 +303,23 @@ void ToolWindowEdit::OnIdle()
 
 void ToolWindowEdit::OnEditMode(QAction *act)
 {
-  MainWindow::GetMainWindow()->SetAction( act->data().toInt() );
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  mainwnd->SetAction( act->data().toInt() );
+  BrushProperty* bp = mainwnd->GetBrushProperty();
+  if (act->data().toInt() == Interactor2DVoxelEdit::EM_GeoSeg && bp->GetReferenceLayer() == NULL)
+  {
+    QList<Layer*> layers = mainwnd->GetLayers("MRI");
+    foreach (Layer* layer, layers)
+    {
+      LayerMRI* mri = (LayerMRI*)layer;
+      if (mri != mainwnd->GetActiveLayer("MRI") && mri->IsVisible() &&
+          mri->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
+      {
+        bp->SetReferenceLayer(mri);
+        break;
+      }
+    }
+  }
   UpdateWidgets();
 }
 
