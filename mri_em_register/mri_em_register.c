@@ -7,7 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
  *    $Date: 2016/10/22 17:31:12 $
@@ -53,12 +52,6 @@
 #include "emregisterutils.h"
 #include "findtranslation.h"
 #include "fsinit.h"
-
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#include "em_register_cuda.h"
-#define FAST_TRANSFORM 0
-#endif // FS_CUDA
 
 #define DEFAULT_MIN_SCALES 3
 #define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
@@ -258,10 +251,6 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   FSinit() ;
-#ifdef FS_CUDA
-  // Force CUDA initialisation
-  AcquireCUDADevice();
-#endif // FS_CUDA
 
   /* rkt: check for and handle version tag */
   nargs =
@@ -1323,14 +1312,7 @@ find_optimal_transform
   }
 
   /////////////////////////////////////////////////////////////////////////////
-#ifdef FS_CUDA
-  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
-  max_log_p = CUDA_ComputeLogSampleProbability( m_L, Gclamp );
-  CUDA_em_register_Release();
-#else
-  max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
-#endif
+  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
 
   // create volume from gca with the size of input
   mri_gca = MRIclone(mri, NULL) ;
@@ -2270,20 +2252,11 @@ find_optimal_linear_xform
   double delta_scale, delta_trans;
   double max_log_p, mean_angle;
   double mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans ;
-  int    i ;
-
-
-#if !( defined(FS_CUDA) && FAST_TRANSFORM )
   double x_trans, y_trans, z_trans;
   double x_scale, y_scale, z_scale;
   double x_angle, y_angle, z_angle;
   double log_p;
-#endif
-
-
-#ifdef FS_CUDA
-  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
-#endif // FS_CUDA
+  int i;
 
   if (rigid)
   {
@@ -2300,20 +2273,12 @@ find_optimal_linear_xform
                               = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
-#ifdef FS_CUDA
-  max_log_p = CUDA_ComputeLogSampleProbability( m_L, Gclamp );
-#else
-  max_log_p = local_GCAcomputeLogSampleProbability
-    (gca, gcas, mri, m_L, nsamples, exvivo, Gclamp) ;
-#endif
+  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L, nsamples, exvivo, Gclamp) ;
 
   // Loop a set number of times to polish transform
 
   for (i = 0 ; i < nreductions ; i++)
   {
-#ifdef FS_CUDA
-    printf( "%s: Starting reduction %i\n", __FUNCTION__, i );
-#endif // FS_CUDA
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
     delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
     if (FZERO(delta_scale) || rigid)
@@ -2340,44 +2305,6 @@ find_optimal_linear_xform
              min_trans, max_trans, delta_trans);
       fflush(stdout) ;
     }
-
-#if defined(FS_CUDA) && FAST_TRANSFORM
-    unsigned int nScale = 1+((max_scale-min_scale)/delta_scale);
-    unsigned int nAngle = 1+((max_angle-min_angle)/delta_rot);
-    unsigned int nTrans = 1+((max_trans-min_trans)/delta_trans);
-    double xMaxTrans, yMaxTrans, zMaxTrans;
-    double xMaxScale, yMaxScale, zMaxScale;
-    double xMaxRot, yMaxRot, zMaxRot;
-    double maxLogP;
-    printf( "%s: %i %i %i\n", __FUNCTION__, nScale, nAngle, nTrans );
-
-    CUDA_FindOptimalTransform( m_L, m_origin,
-                               min_trans, max_trans, nTrans,
-                               min_scale, max_scale, nScale,
-                               min_angle, max_angle, nAngle,
-                               Gclamp,
-                               &maxLogP,
-                               &xMaxTrans, &yMaxTrans, &zMaxTrans,
-                               &xMaxScale, &yMaxScale, &zMaxScale,
-                               &xMaxRot, &yMaxRot, &zMaxRot );
-    if( maxLogP > max_log_p )
-    {
-      x_max_trans = xMaxTrans;
-      y_max_trans = yMaxTrans;
-      z_max_trans = zMaxTrans;
-
-      x_max_scale = xMaxScale;
-      y_max_scale = yMaxScale;
-      z_max_scale = zMaxScale;
-
-      x_max_rot = xMaxRot;
-      y_max_rot = yMaxRot;
-      z_max_rot = zMaxRot;
-      max_log_p = maxLogP;
-    }
-
-#else
-
 
     // scale /////////////////////////////////////////////////////////////
     for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
@@ -2451,13 +2378,7 @@ find_optimal_linear_xform
                       m_L_tmp = MatrixMultiply
                                 (m_trans, m_tmp3, m_L_tmp) ;
 
-#ifdef FS_CUDA
-                      log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, Gclamp );
-#else
-                      log_p =
-                        local_GCAcomputeLogSampleProbability
-                        (gca, gcas, mri, m_L_tmp, nsamples, exvivo, Gclamp);
-#endif
+                      log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp, nsamples, exvivo, Gclamp);
                       if (log_p > max_log_p)
                       {
                         if (exvivo)
@@ -2493,9 +2414,6 @@ find_optimal_linear_xform
         }
       }
     }
-
-#endif
-
 
     if (Gdiag & DIAG_SHOW)
     {
@@ -2562,7 +2480,6 @@ find_optimal_linear_xform
     max_angle = mean_angle + delta_rot ;
   }
 
-
   MatrixFree(&m_x_rot) ;
   MatrixFree(&m_y_rot) ;
   MatrixFree(&m_z_rot) ;
@@ -2572,11 +2489,6 @@ find_optimal_linear_xform
   MatrixFree(&m_tmp2) ;
   MatrixFree(&m_trans) ;
   MatrixFree(&m_tmp3) ;
-
-
-#ifdef FS_CUDA
-  CUDA_em_register_Release();
-#endif
 
   return(max_log_p) ;
 }

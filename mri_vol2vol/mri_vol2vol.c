@@ -437,7 +437,6 @@ ENDHELP --------------------------------------------------------------
 #include "diag.h"
 #include "proto.h"
 
-
 #include "matrix.h"
 #include "mri.h"
 #include "version.h"
@@ -457,13 +456,6 @@ ENDHELP --------------------------------------------------------------
 #include "chronometer.h"
 #include "timer.h"
 #include "mrinorm.h"
-
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#include "mrivol2vol_cuda.h"
-#endif
-
-
 
 #ifdef X
 #undef X
@@ -614,10 +606,6 @@ int main(int argc, char **argv) {
   MRI *crop, *cropnew, *mri;
   MRI_REGION box;
   LTA *ltareg;
-
-#ifdef FS_CUDA
-  AcquireCUDADevice();
-#endif
 
   vg_isEqual_Threshold = 10e-4;
 
@@ -1119,10 +1107,6 @@ int main(int argc, char **argv) {
 
   printf("\n");
   printf("mri_vol2vol done\n");
-
-#ifdef FS_CUDA
-  PrintGPUtimers();
-#endif
 
   return(0);
 }

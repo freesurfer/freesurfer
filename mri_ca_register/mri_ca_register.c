@@ -69,10 +69,6 @@
 #include "mri2.h"
 #include "fsinit.h"
 #include "ctrpoints.h"
-
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#endif
 #include "gcamorphtestutils.h"
 
 static int nozero = 0 ;
@@ -202,9 +198,6 @@ main(int argc, char *argv[])
   int          got_scales =0;
 
   FSinit() ;
-#ifdef FS_CUDA
-  AcquireCUDADevice();
-#endif
 
   parms.l_log_likelihood = 0.2f ;
   parms.niterations = 500 ;
@@ -1640,10 +1633,6 @@ main(int argc, char *argv[])
   // Output formatted so it can be easily grepped
   printf("#VMPC# mri_ca_register VmPeak  %d\n",GetVmPeak());
   printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
-
-#ifdef FS_CUDA
-  PrintGPUtimers();
-#endif
 
   exit(0) ;
   return(0) ;
