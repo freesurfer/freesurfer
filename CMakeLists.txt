@@ -179,10 +179,6 @@ if(BUILD_GUIS)
   # -------- tcltktixblt --------
   find_package(TCLTKTIXBLT)
 
-  # -------- wxwidgets --------
-  # only used by mris_decimate_gui
-  find_package(WXWidgets)
-
 endif()
 
 # --------------------------------------------------
