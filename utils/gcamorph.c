@@ -6039,7 +6039,7 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 
 double GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
-  double rms, see;
+  double rms, sse;
   float nvoxels;
 
   check_gcam(gcam);
