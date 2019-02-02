@@ -31,15 +31,11 @@
 #endif
 #endif
 
-
 #ifdef AFFINE_MATRIX_USE_SSE
-#ifndef __CUDACC__
 #include <xmmintrin.h>
-#endif
 #endif
 
 #include "matrix.h"
-
 
 /*
   Apparently 'const' in C isn't quite the same as 'const' in C++
@@ -47,8 +43,6 @@
 */
 enum { kAffineVectorSize = 4 };
 enum { kAffineMatrixSize = 16 };
-
-// =====================================================
 
 typedef struct _av {
   float vec[kAffineVectorSize] __attribute__ ((aligned (16)));
@@ -88,14 +82,9 @@ void GetFloorAffineVector( const AffineVector* av,
 }
 
 
-
-
-// =====================================================
-
 typedef struct _am {
   float mat[kAffineMatrixSize] __attribute__ ((aligned (16)));
 } AffineMatrix;
-
 
 
 inline static
@@ -139,9 +128,6 @@ void GetAffineMatrix( MATRIX* dst,
 
 }
 
-
-#ifndef __CUDACC__
-
 inline static
 void AffineMatrixFree( AffineMatrix **am ) {
   if( *am != NULL ) {
@@ -178,8 +164,6 @@ AffineMatrix* AffineMatrixCopy( const AffineMatrix *src,
 
   return( dst );
 }
-
-
 
 inline static
 void AffineMV( AffineVector * const y,
@@ -289,9 +273,5 @@ void AffineMM( AffineMatrix * const C,
   }
 #endif
 }
-#endif
-
-
-
 
 #endif

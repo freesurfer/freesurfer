@@ -29,7 +29,6 @@ install(PROGRAMS
   conf2hires
   cor_to_minc
   cp-dicom
-  cuda_setup
   datastruct_utils.py
   dcmdir-info-mgh
   dcmsplit

@@ -85,10 +85,6 @@
 
 #include "romp_support.h"
 
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#endif
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -222,10 +218,6 @@ int main(int argc, char **argv)
   double *BrainVolStats=NULL;
   nhits = 0;
   vol = 0;
-
-#if FS_CUDA
-  AcquireCUDADevice();
-#endif
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -1431,9 +1423,6 @@ int main(int argc, char **argv)
     }
   }// Done with Frame Average
 
-#ifdef FS_CUDA
-  PrintGPUtimers();
-#endif
   printf("mri_segstats done\n");
   return(0);
 }

@@ -30,47 +30,9 @@
  *
  */
 
-// Control which portions are done on the GPU
 #define SHOW_EXEC_LOC 0
 
 #define USE_LINEAR_GCA_COMPUTE_LABELS 0
-
-#ifdef FS_CUDA
-// GCAmorphGPU requires Fermi
-#ifdef GCAMORPH_ON_GPU
-#define GCAM_CMP_GPU
-
-#define GCAM_LABEL_ENERGY_GPU
-#define GCAM_LLENERGY_GPU
-#define GCAM_JACOBENERGY_GPU
-#define GCAM_COMPUTE_RMS_GPU
-#define GCAM_SMOOTHNESS_ENERGY_GPU
-#define GCAM_FIND_OPTIMAL_TIMESTEP_GPU
-
-#define GCAM_SMOOTH_TERM_GPU
-#define GCAM_JACOB_TERM_GPU
-#define GCAM_LL_TERM_GPU
-
-#define GCAM_LABEL_TERM_MAINLOOP_GPU
-#define GCAM_LABEL_TERM_REMOVE_OUTLIERS_GPU
-#define GCAM_LABEL_TERM_COPYDELTAS_GPU
-#define GCAM_LABEL_TERM_POSTANT_GPU
-#define GCAM_LABEL_TERM_FINAL_GPU
-#define GCAM_LABEL_TERM_GPU
-
-#define GCAM_SMOOTH_GRADIENT_GPU
-
-#define GCAM_COMPUTE_GRADIENT_GPU
-
-#define GCAM_COPY_NODE_POSITIONS_GPU
-
-#define GCAM_REGISTER_LEVEL_GPU
-#define GCAM_REGISTER_PIPELINE_GPU
-
-#else
-// Have to turn everything off
-#endif
-#endif
 
 #define MALLOC_CHECK_ 2
 
@@ -100,13 +62,7 @@
 #include "timer.h"
 #include "transform.h"
 #include "utils.h"
-
 #include "chronometer.h"
-
-#ifdef FS_CUDA
-#include "gcamfots_cuda.h"
-#endif
-
 #include "gcamorphtestutils.h"
 
 #if WITH_DMALLOC
@@ -765,16 +721,10 @@ GCA_MORPH *GCAMreadAndInvertNonTal(const char *gcamfname)
   return (gcam);
 }
 
-//! A thin pipeline segment to save a GPU copy
 double GCAMregisterPipelineAndComputeRMS(
     GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms, double *last_rms, int *level_steps, int i)
 {
   double result;
-#ifdef GCAM_REGISTER_PIPELINE_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-
-  result = GCAMregisterPipelineAndComputeRMSGPU(gcam, mri, mri_smooth, parms, last_rms, level_steps, i);
-#else
   *last_rms = GCAMcomputeRMS(gcam, mri, parms);
   if (i == 0) {
     parms->start_rms = *last_rms;
@@ -782,7 +732,6 @@ double GCAMregisterPipelineAndComputeRMS(
   *level_steps = parms->start_t;
   GCAMregisterLevel(gcam, mri, mri_smooth, parms);
   result = GCAMcomputeRMS(gcam, mri, parms);
-#endif
   return result;
 }
 
@@ -851,11 +800,7 @@ void GCAMregister_pctLoop(GCA_MORPH *gcam,
       }
 
       if (parms->write_iterations != 0) {
-#ifdef GCAMORPH_ON_GPU
-        printf("######## GCAMregister_pctLoop_saveBefore not implemented on GPU #########\n");
-#else
         GCAMregister_pctLoop_saveBefore(gcam, mri, parms, level);
-#endif
       }
     }
 
@@ -1964,14 +1909,6 @@ static int different_neighbor_labels(struct different_neighbor_labels_context * 
 
 int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth, double l_log_likelihood)
 {
-#ifdef GCAM_LL_TERM_GPU
-  if (DZERO(l_log_likelihood)) {
-    return (NO_ERROR);
-  }
-
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamLogLikelihoodTermGPU(gcam, mri, mri_smooth, l_log_likelihood);
-#else
   int x = 0, y = 0, z = 0, n = 0 /*,label*/;
   int i;
   int nthreads = 1, tid = 0;
@@ -2164,7 +2101,6 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
     VectorFree(&v_means[i]);
     VectorFree(&v_grad[i]);
   }
-#endif
   return (NO_ERROR);
 }
 
@@ -2321,19 +2257,6 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 
   double sse = 0.0;
 
-#ifdef GCAM_LLENERGY_GPU
-
-  if (gcam->ninputs != 0) {
-    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
-  }
-
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-  sse = gcamLogLikelihoodEnergyGPU(gcam, mri);
-
-#else
-
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -2471,8 +2394,6 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
     ROMP_PFLB_end
   }
   ROMP_PF_end
-#endif
-
 #endif
 
 //  TIMER_INTERVAL_END(loop)
@@ -2658,10 +2579,6 @@ const float jac_scale = 10;
 #if 1
 int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double ratio_thresh)
 {
-#ifdef GCAM_JACOB_TERM_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamJacobianTermGPU(gcam, l_jacobian, jac_scale);
-#else
   int i = 0, j = 0, k = 0, num /*, xi, yi, zi, xk, yk, zk = 0*/;
   int n_omp_threads = 1;
   double dx = 0.0, dy = 0.0, dz = 0.0, norm = 0.0;
@@ -2847,8 +2764,6 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
     ROMP_PFLB_end
   }
   ROMP_PF_end
-
-#endif
 
   return (NO_ERROR);
 }
@@ -3773,9 +3688,6 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   }
 #endif
 
-#ifdef GCAM_CMP_GPU
-  gcamComputeMetricPropertiesGPU(gcam, &Ginvalid);
-#else
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -3968,8 +3880,6 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
     gcam->neg += gcam_neg_counter[i];
     Ginvalid += Ginvalid_counter[i];
   }
-
-#endif
 
 #if GCAM_CMP_OUTPUT
 #if 0
@@ -4167,16 +4077,6 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
   }
 #endif
 
-#ifdef GCAM_JACOBENERGY_GPU
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-  if (gcam->ninputs != 1) {
-    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
-  }
-
-  sse = gcamJacobianEnergyGPU(gcam, mri);
-#else
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -4294,8 +4194,6 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
     ROMP_PFLB_end
   }
   ROMP_PF_end
-#endif
-
 #endif
 
 #if GCAM_JACOBENERGY_OUTPUT
@@ -5172,18 +5070,12 @@ gcamCropNegativeAreaNodeGradient(GCA_MORPH *gcam, float crop)
 #endif
 
 // globals to track conditions by which loop can terminate early
-#ifndef GCAM_REGISTER_LEVEL_GPU
 static int nodesCompressed1, nodesCompressed2, nodesCompressed3;
-#endif
 static int inconsistentLabelNodes;
 static float maxGradient, gradientArea;
 
 int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
-#ifdef GCAM_REGISTER_LEVEL_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamRegisterLevelGPU(gcam, mri, mri_smooth, parms);
-#else
   int n, nsmall, done = 0, which = GCAM_INTEGRATE_OPTIMAL, max_small, increasing, good_step, good_step_ever;
   // int reduced;
   double rms, last_rms, pct_change, orig_dt, min_dt, orig_j, tol, last_pct_change;
@@ -5648,7 +5540,6 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
   parms->start_t = n;
   parms->dt = orig_dt;
 
-#endif
   return (NO_ERROR);
 }
 
@@ -6148,20 +6039,14 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 
 double GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
-  double rms;
-
-#ifdef GCAM_COMPUTE_RMS_GPU
-  rms = gcamComputeRMSonGPU(gcam, mri, parms);
-#else
+  double rms, sse;
   float nvoxels;
-  double sse;
 
   check_gcam(gcam);
   sse = gcamComputeSSE(gcam, mri, parms);
   check_gcam(gcam);
   nvoxels = gcam->width * gcam->height * gcam->depth;
   rms = sqrt(sse / nvoxels);
-#endif
 
   return (rms);
 }
@@ -6286,10 +6171,6 @@ double gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
 int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
-#ifdef GCAM_COMPUTE_GRADIENT_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamComputeGradientGPU(gcam, mri, mri_smooth, parms);
-#else
   static int i = 0;
 
   // make dx = dy = 0
@@ -6388,7 +6269,6 @@ int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PA
     MRIfree(&mri);
   }
   i++; /* for debugging */
-#endif
 
   return (NO_ERROR);
 }
@@ -6574,10 +6454,6 @@ int gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
 
 int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothness)
 {
-#ifdef GCAM_SMOOTH_TERM_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamSmoothnessTermGPU(gcam, l_smoothness);
-#else
   double vx = 0.0, vy = 0.0, vz = 0.0, vnx = 0.0, vny = 0.0, vnz = 0.0;
   double dx = 0.0, dy = 0.0, dz = 0.0;
   int x = 0, y = 0, z = 0, xk = 0, yk = 0, zk = 0, xn = 0, yn = 0, zn = 0;
@@ -6697,7 +6573,6 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
     ROMP_PFLB_end
   }
   ROMP_PF_end
-#endif
   return (NO_ERROR);
 }
 
@@ -6856,13 +6731,6 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
   nCalls++;
 #endif
 
-#ifdef GCAM_SMOOTHNESS_ENERGY_GPU
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-
-  sse = gcamSmoothnessEnergyGPU(gcam);
-#else
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -6964,7 +6832,6 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
     ROMP_PFLB_end
   }
   ROMP_PF_end
-#endif
 
   return (sse);
 }
@@ -6988,15 +6855,6 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   }
   nCalls++;
 #endif
-
-#ifdef GCAM_SMOOTHNESS_ENERGY_GPU
-
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-  double sse = gcamSmoothnessEnergyGPU(gcam);
-
-#else
 
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
@@ -7284,8 +7142,6 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
     }
     free(buffers);
   }
-
-#endif
 
   return (sse);
 }
@@ -8638,10 +8494,6 @@ MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
 
 int gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
 {
-#ifdef GCAM_SMOOTH_GRADIENT_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamSmoothGradientGPU(gcam, navgs);
-#else
 
 #if 1
   MRI *mri_tmp = NULL, *mri_kernel;
@@ -8785,8 +8637,6 @@ int gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
            gcam->nodes[Gx][Gy][Gz].dy,
            gcam->nodes[Gx][Gy][Gz].dz);
 
-#endif
-
   return (NO_ERROR);
 }
 
@@ -8843,7 +8693,6 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
 
   double min_dt;
 
-#ifndef GCAM_FIND_OPTIMAL_TIMESTEP_GPU
   MATRIX *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT;
   double rms, min_rms, dt_in[MAX_SAMPLES], rms_out[MAX_SAMPLES], orig_dt, a, b, c, max_dt, start_dt;
   // double start_rms, pct_change;
@@ -8851,7 +8700,6 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   int N, i, Gxs, Gys, Gzs, suppressed = 0, prev_neg;
   // int  bad;
   long diag;
-#endif
 
 #if GCAM_FOTS_OUTPUT
   const unsigned int outputFreq = 10;
@@ -8869,12 +8717,6 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   }
 #endif
 
-#ifdef GCAM_FIND_OPTIMAL_TIMESTEP_GPU
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-  min_dt = gcamFindOptimalTimestepGPU(gcam, parms, mri);
-#else
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -9102,8 +8944,6 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   Gz = Gzs;
   Gdiag = diag;
 
-#endif
-
 #if GCAM_FOTS_OUTPUT
   nCalls++;
 #endif
@@ -9134,12 +8974,6 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
 
   float sse;
 
-#ifdef GCAM_LABEL_ENERGY_GPU
-#if SHOW_EXEC_LOC
-  printf("%s: CUDA call\n", __FUNCTION__);
-#endif
-  sse = gcamLabelEnergyGPU(gcam);
-#else
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
@@ -9165,8 +8999,6 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
     }
   }
 
-#endif
-
   return (sse);
 }
 
@@ -9178,15 +9010,7 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
 
 int remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, const int whalf, const double thresh)
 {
-  int nremoved;
-
-#ifdef GCAM_LABEL_TERM_REMOVE_OUTLIERS_GPU
-
-  printf("%s: On GPU\n", __FUNCTION__);
-  nremoved = gcamRemoveLabelOutliersGPU(gcam, mri_dist, whalf, thresh);
-
-#else
-  int nremoved_total, n, i, vox_to_examine, niters;
+  int nremoved, nremoved_total, n, i, vox_to_examine, niters;
   MRI *mri_std, *mri_ctrl, *mri_tmp, *mri_ctrl_tmp;
   VOXEL_LIST *vl;
   float diff, val0, oval;
@@ -9387,8 +9211,6 @@ int remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, const int whalf, const
   }
 #endif
 
-#endif
-
   return (nremoved);
 }
 
@@ -9401,12 +9223,6 @@ int remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, const int whalf, const
 
 void gcamLabelTermCopyDeltas(GCA_MORPH *gcam, const MRI *mri_dist, const double l_label)
 {
-#ifdef GCAM_LABEL_TERM_COPYDELTAS_GPU
-
-  printf("%s: On GPU\n", __FUNCTION__);
-
-  gcamLabelTermCopyDeltasGPU(gcam, mri_dist, l_label);
-#else
   int x, y, z;
   GCA_MORPH_NODE *gcamn;
 
@@ -9451,7 +9267,6 @@ void gcamLabelTermCopyDeltas(GCA_MORPH *gcam, const MRI *mri_dist, const double 
       }
     }
   }
-#endif
 }
 
 // ----------------------
@@ -9465,14 +9280,7 @@ int gcamLabelTermPostAntConsistency(GCA_MORPH *gcam, MRI *mri_dist)
     Each voxel depends on those on either side in x,
     and in z.
   */
-  int nremoved;
-#ifdef GCAM_LABEL_TERM_POSTANT_GPU
-
-  printf("%s: On GPU\n", __FUNCTION__);
-
-  nremoved = gcamLabelTermPostAntConsistencyGPU(gcam, mri_dist);
-#else
-  int x, y, z;
+  int nremoved, x, y, z;
 
   GCA_MORPH_NODE *gcamn;
   GCA_MORPH_NODE *gcamn_medial, *gcamn_lateral;
@@ -9556,7 +9364,6 @@ int gcamLabelTermPostAntConsistency(GCA_MORPH *gcam, MRI *mri_dist)
       }
     }
   }
-#endif
 
   return (nremoved);
 }
@@ -9567,15 +9374,6 @@ int gcamLabelTermPostAntConsistency(GCA_MORPH *gcam, MRI *mri_dist)
 
 int gcamLabelTermFinalUpdate(GCA_MORPH *gcam, const MRI *mri_dist, const double l_label)
 {
-#ifdef GCAM_LABEL_TERM_FINAL_GPU
-  int num;
-
-  printf("%s: On GPU\n", __FUNCTION__);
-
-  num = gcamLabelTermFinalUpdateGPU(gcam, mri_dist, l_label);
-
-  return (num);
-#else
   int num, x, y, z;
   GCA_MORPH_NODE *gcamn;
 
@@ -9617,9 +9415,7 @@ int gcamLabelTermFinalUpdate(GCA_MORPH *gcam, const MRI *mri_dist, const double 
       }
     }
   }
-
   return (num);
-#endif
 }
 
 // ----------------------
@@ -9630,12 +9426,6 @@ int gcamLabelTermFinalUpdate(GCA_MORPH *gcam, const MRI *mri_dist, const double 
 void gcamLabelTermMainLoop(
     GCA_MORPH *gcam, const MRI *mri, MRI *mri_dist, const double l_label, const double label_dist, MRI *mri_twm)
 {
-#ifdef GCAM_LABEL_TERM_MAINLOOP_GPU
-
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamLabelTermMainLoopGPU(gcam, mri, mri_dist, l_label, label_dist);
-
-#else
   int x, y, z;
   int xn, yn, zn, ctrl_point_found;
   int best_label, sup_wm, sup_ven, wm_label;
@@ -9904,7 +9694,6 @@ void gcamLabelTermMainLoop(
       }
     }
   }
-#endif
   DiagBreak();
 }
 
@@ -9915,9 +9704,7 @@ void gcamLabelTermMainLoop(
 void SetInconsistentLabelNodes(const int val)
 {
   /*!
-    This is a call back from the GPU version of Label Term.
-    I'm not sure if the inconsistentLabelNodes global is
-    ever actually used.
+    I'm not sure if the inconsistentLabelNodes global is ever actually used.
   */
   inconsistentLabelNodes = val;
 }
@@ -9926,16 +9713,8 @@ void SetInconsistentLabelNodes(const int val)
 
 int gcamLabelTerm(GCA_MORPH *gcam, const MRI *mri, double l_label, double label_dist, MRI *mri_twm)
 {
-#ifdef GCAM_LABEL_TERM_MAINLOOP_GPU
-
-  printf("%s: On GPU\n", __FUNCTION__);
-  gcamLabelTermGPU(gcam, mri, l_label, label_dist);
-
-#else
-
-  int num;
+  int num, nremoved;
   MRI *mri_dist;
-  int nremoved;
 
   if (DZERO(l_label)) {
     return (NO_ERROR);
@@ -9986,8 +9765,7 @@ int gcamLabelTerm(GCA_MORPH *gcam, const MRI *mri, double l_label, double label_
   gcamLabelTermCopyDeltas(gcam, mri_dist, l_label);
 
   /*
-    The following gives different results on the CPU and GPU.
-    It is built around a very nasty, order dependent loop.
+    The following is built around a very nasty, order dependent loop.
   */
   nremoved += gcamLabelTermPostAntConsistency(gcam, mri_dist);
 
@@ -10002,8 +9780,6 @@ int gcamLabelTerm(GCA_MORPH *gcam, const MRI *mri, double l_label, double label_
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     printf("\t%d nodes for which label term applies\n", num);
   }
-
-#endif
 
   return (NO_ERROR);
 }
@@ -10268,10 +10044,6 @@ int GCAMcomputeOriginalProperties(GCA_MORPH *gcam)
 
 int GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to)
 {
-#ifdef GCAM_COPY_NODE_POSITIONS_GPU
-  printf("%s: On GPU\n", __FUNCTION__);
-  GCAMcopyNodePositionsGPU(gcam, from, to);
-#else
   int x, y, z;
   GCA_MORPH_NODE *gcamn;
 
@@ -10404,7 +10176,6 @@ int GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to)
         }
       }
 
-#endif
   return (NO_ERROR);
 }
 

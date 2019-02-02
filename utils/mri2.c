@@ -50,11 +50,6 @@
 //#define MRI2_TIMERS
 
 #include "affine.h"
-
-#ifdef FS_CUDA
-#include "mrivol2vol_cuda.h"
-#endif
-
 #include "romp_support.h"
 
 /* overwrite generic nint to speed up execution
@@ -681,13 +676,9 @@ MRI *MRIreshape1d(MRI *src, MRI *trg)
   ---------------------------------------------------------------*/
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 {
-#ifdef FS_CUDA
-  int cudaReturn;
-#else
   int ct, show_progress_thread;
   int tid = 0;
   float *valvects[_MAX_FS_THREADS];
-#endif
   int sinchw;
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   int FreeMats = 0;
@@ -748,14 +739,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 #ifdef VERBOSE_MODE
   StartChronometer(&tSample);
 #endif
-
-#ifdef FS_CUDA
-  cudaReturn = MRIvol2vol_cuda(src, targ, Vt2s, InterpCode, param);
-  if (cudaReturn != 0) {
-    fprintf(stderr, "%s: CUDA call failed!\n", __FUNCTION__);
-    exit(EXIT_FAILURE);
-  }
-#else
 
   if (InterpCode == SAMPLE_CUBIC_BSPLINE) bspline = MRItoBSpline(src, NULL, 3);
 
@@ -846,8 +829,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   for (tid = 0; tid < _MAX_FS_THREADS; tid++) free(valvects[tid]);
 #else
   free(valvects[0]);
-#endif
-
 #endif
 
 #ifdef VERBOSE_MODE
