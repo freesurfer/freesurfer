@@ -33,10 +33,11 @@
 #include "GetPot.h"
 #include <string>
 #include "vtkSplineFilter.h"
+#include "OrientationPlanesFromParcellationFilter.h"
 extern "C"
 {
-	#include "colortab.h"
-	#include "fsenv.h"
+#include "colortab.h"
+#include "fsenv.h"
 }
 
 typedef std::vector<int>                  PointDataType;
@@ -103,9 +104,9 @@ int SymmetricLabelId(int id)
 	}
 
 	/*if( id == symId && id!=0 && id !=5001 && id != 5002)
-	{
-		std::cout << "label " << id << std::endl;
-	}*/
+	  {
+	  std::cout << "label " << id << std::endl;
+	  }*/
 	return  symId;
 }
 std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes, ImageType::Pointer segmentation, bool removeInterHemispheric)
@@ -117,7 +118,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 		sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
 		ct = CTABreadASCII(tmpstr);
 	}
-	
+
 	std::vector<MeshType::Pointer> meshes;
 	for(unsigned int i=0;i<basicMeshes.size();i++)
 	{
@@ -138,7 +139,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 
 			BasicMeshType::PointType pt=0; 
 			int left=0, right=0;
-			
+
 			if(removeInterHemispheric)
 			{ 
 				for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
@@ -200,7 +201,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 	return meshes;
 }
 
-std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<IndexType> direcciones, bool symmetry)
+std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<itk::Vector<float>> direcciones, bool symmetry)
 {
 	//std::cout << " symmetry " << symmetry << std::endl;
 	std::vector<MeasurementVectorType> measurements;
@@ -233,24 +234,27 @@ std::vector<MeasurementVectorType> SetDirectionalNeighbors(std::vector<MeshType:
 				if (symmetry)	
 				{
 					label= SymmetricLabelId(labelOrig);
-//					std::cout << " labeled " << labelOrig  << " mirrowed label " << label << std::endl;
+					//					std::cout << " labeled " << labelOrig  << " mirrowed label " << label << std::endl;
 				} 
 
 				pointData->push_back(label);
 
 
-				for(unsigned int k=1;k<direcciones.size();k++)
+				for(unsigned int k=0;k<direcciones.size();k++)
 				{
 					PixelType vecino = labelOrig;
-					IndexType ind = index;
+					itk::ContinuousIndex<float,3> continuousIndex = index;
 					MeshType::PointType point = pt1;
+					//std::cout << direcciones[k] << std::endl;
+					IndexType roundedIndex;
 					while(vecino == labelOrig)
 					{
 						for(unsigned int j=0; j<3;j++)
-							ind[j] += direcciones[k][j];
-						if(!segmentation->GetLargestPossibleRegion().IsInside(ind))
+							continuousIndex[j] += direcciones[k][j];
+						roundedIndex.CopyWithRound(continuousIndex);
+						if(!segmentation->GetLargestPossibleRegion().IsInside(roundedIndex))
 							break;
-						vecino = segmentation->GetPixel(ind);
+						vecino = segmentation->GetPixel(roundedIndex);
 					}
 					if(vecino!=0)
 					{
@@ -380,13 +384,6 @@ void GetMeshes(GetPot cl, const char* find1, const char* find2, std::vector<Basi
 
 
 		BasicMeshType::Pointer mesh =  converter->GetOutput();
-		/*typedef itk::FixedVTKSamplingFilter<MeshType,MeshType> SamplingFilterType;
-		SamplingFilterType::Pointer samplingFilter =  SamplingFilterType::New();
-		samplingFilter->SetInput(mesh);
-		samplingFilter->SetSampling(10);
-		samplingFilter->Update();
-		mesh = samplingFilter->GetOutput();
-		*/
 		meshes->push_back(mesh);	
 		k++;
 
@@ -398,9 +395,6 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 	std::vector<BasicMeshType::Pointer> meshes;
 	for (unsigned int i=0;i<polydatas.size(); i++)
 	{
-	//	std::cout << " hola "<< i<< std::endl;
-
-	
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
 		spline->SetInput(polydatas[i]);
 		spline->SetNumberOfSubdivisions(9);
@@ -411,25 +405,12 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 		converter->GenerateData2();
 
 		BasicMeshType::Pointer mesh =  converter->GetOutput();
-		//std::cout << mesh->GetNumberOfPoints() << std::endl;
-		/*typedef itk::FixedVTKSamplingFilter<MeshType,MeshType> SamplingFilterType;
-		SamplingFilterType::Pointer samplingFilter =  SamplingFilterType::New();
-		samplingFilter->SetInput(mesh);
-		samplingFilter->SetSampling(10);
-		samplingFilter->Update();
-		mesh = samplingFilter->GetOutput();
-		*/
 		meshes.push_back(mesh);	
 	}
 	return meshes;
 }
 int main(int narg, char*  arg[])
 {
-	
-
-
-
-
 	try 
 	{
 		enum {Dimension =3};
@@ -442,7 +423,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -labels (-euclid for Eucildean) -sym -o output"  << std::endl;   
+			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -labels (-euclid for Eucildean) -bb -sym -o output"  << std::endl;   
 			return -1;
 		}
 		int numClusters = cl.follow(0,"-c");
@@ -453,8 +434,13 @@ int main(int narg, char*  arg[])
 		readerS->Update();
 		ImageType::Pointer segmentation1  = readerS->GetOutput();
 
+
+
 		segFile = cl.follow ("", "-s2");
 		bool symm =  cl.search("-sym");
+		std::cout << "Symmetry " << symm << std::endl;
+		bool bb =  cl.search("-bb");
+		std::cout << "Baby Mode " << bb << std::endl;
 		readerS = ImageReaderType::New();
 		readerS->SetFileName ( segFile);
 		readerS->Update();
@@ -542,8 +528,31 @@ int main(int narg, char*  arg[])
 		}
 		else// if (cl.search(1,"-labels"))
 		{
+			OrientationPlanesFromParcellationFilter<ImageType,ImageType>::Pointer orientationFilter1 = OrientationPlanesFromParcellationFilter<ImageType, ImageType>::New();
+			orientationFilter1->SetInput(segmentation1);
+			orientationFilter1->SetBabyMode(bb);
+			orientationFilter1->Update();
+			std::vector<itk::Vector<float>> orientations1;
+			orientations1.push_back(orientationFilter1->GetUpDown());
+			orientations1.push_back(orientationFilter1->GetFrontBack());
+			orientations1.push_back(orientationFilter1->GetLeftRight());
+
+			OrientationPlanesFromParcellationFilter<ImageType,ImageType>::Pointer orientationFilter2 = OrientationPlanesFromParcellationFilter<ImageType, ImageType>::New();
+			orientationFilter2->SetInput(segmentation2);
+			orientationFilter2->SetBabyMode(bb);
+			orientationFilter2->Update();
+			std::vector<itk::Vector<float>> orientations2;
+			orientations2.push_back(orientationFilter2->GetUpDown());
+			orientations2.push_back(orientationFilter2->GetFrontBack());
+			orientations2.push_back(orientationFilter2->GetLeftRight());
+
+			//std::cout << orientationFilter1->GetUpDown() << " " << orientationFilter1->GetFrontBack() << " " << orientationFilter1->GetLeftRight() << std::endl;	
+			//std::cout << orientationFilter2->GetUpDown() << " " << orientationFilter2->GetFrontBack() << " " << orientationFilter2->GetLeftRight() << std::endl;	
+
+
 			typedef ImageType::IndexType IndexType;
-			std::vector<IndexType> direcciones;
+			std::vector<itk::Vector<float>> direcciones1;
+			std::vector<itk::Vector<float>> direcciones2;
 			int possibles[3] = {0,1,-1};
 			for(unsigned int i=0;i<3;i++)
 			{
@@ -551,10 +560,33 @@ int main(int narg, char*  arg[])
 				{
 					for(unsigned int j=0;j<3;j++)
 					{
-						IndexType index;
-						index[0] = possibles[i];
-						index[1] = possibles[j];
-						index[2] = possibles[k];
+						/*IndexType index1;
+						  index1[0] = possibles[i] * orientations1[0];
+						  index1[1] = possibles[j] * orientations1[1];
+						  index1[2] = possibles[k] * orientations1[2];
+						  */
+						/*IndexType index2;
+						  index2[0] = possibles[i] * orientations2[0];
+						  index2[1] = possibles[j] * orientations2[1];
+						  index2[2] = possibles[k] * orientations2[2];
+						  */	
+						itk::Vector<float> dir1;
+						itk::Vector<float> dir2;
+						for(int w=0;w<3;w++)
+						{
+
+							dir1[w] = possibles[i] * orientations1[0][w]+possibles[j] * orientations1[1][w]+possibles[k] * orientations1[2][w];
+							if( symm)
+							{
+								dir2[w] = possibles[i] * orientations2[0][w]+possibles[j] * orientations2[1][w]-possibles[k] * orientations2[2][w];
+							}
+							else
+							{
+								dir2[w] = possibles[i] * orientations2[0][w]+possibles[j] * orientations2[1][w]+possibles[k] * orientations2[2][w];
+							}
+						}
+						dir1.Normalize();
+						dir2.Normalize();
 						int howManyZeros=0;
 						if(i==0)
 							howManyZeros++;
@@ -564,13 +596,15 @@ int main(int narg, char*  arg[])
 							howManyZeros++;
 						if(howManyZeros!=3)
 						{
-							direcciones.push_back(index);
+							direcciones1.push_back(dir1);
+							direcciones2.push_back(dir2);
+							//	std::cout << dir1 << " "<< dir2 << std::endl;
 						}
 					}
 				}
 			}
-			std::vector<MeasurementVectorType> measurements1 =  SetDirectionalNeighbors(meshes1, clusterCentroidsIndex1,segmentation1, direcciones, false);
-			std::vector<MeasurementVectorType> measurements2 = SetDirectionalNeighbors(meshes2, clusterCentroidsIndex2,segmentation2, direcciones, symm);
+			std::vector<MeasurementVectorType> measurements1 =  SetDirectionalNeighbors(meshes1, clusterCentroidsIndex1,segmentation1, direcciones1, false);
+			std::vector<MeasurementVectorType> measurements2 = SetDirectionalNeighbors(meshes2, clusterCentroidsIndex2,segmentation2, direcciones2, symm);
 			MembershipFunctionType::Pointer function = MembershipFunctionType::New();		
 			function->SetLabels(true);
 			//		std::cout << measurements1[100] << std::endl;
@@ -634,143 +668,143 @@ int main(int narg, char*  arg[])
 	}
 	return 0;
 }
-			/*std::cout << "starting hungarian algorithm"<< std::endl;
+/*std::cout << "starting hungarian algorithm"<< std::endl;
 
-			//subtract smallest entry in row to the row
-			for(unsigned int i=0;i<distances.rows();i++)
-			{
-				vnl_vector<double> row = distances.get_row(i);
-				row -= row.min_value();
-				distances.set_row(i, row);
-			}
-			//subtract smallest entry in colum to the column
-			for(unsigned int i=0;i<distances.cols();i++)
-			{
-				vnl_vector<double> col = distances.get_column(i);
-				if( col.min_value() >0 )
+//subtract smallest entry in row to the row
+for(unsigned int i=0;i<distances.rows();i++)
+{
+vnl_vector<double> row = distances.get_row(i);
+row -= row.min_value();
+distances.set_row(i, row);
+}
+//subtract smallest entry in colum to the column
+for(unsigned int i=0;i<distances.cols();i++)
+{
+vnl_vector<double> col = distances.get_column(i);
+if( col.min_value() >0 )
+{	
+col -= col.min_value();
+distances.set_column(i, col);
+}
+}
+int covers=0;
+do{
+std::vector<bool> coveredRows(distances.rows(), false);
+std::vector<bool> coveredCols(distances.cols(), false);
+covers=0;
+//draw minimum amount of lines (in columns and rows) to covered every zero.
+for(unsigned int i=0;i<distances.rows();i++)
+{
+for(unsigned int j=0;j<distances.cols();j++)
+{
+if(distances(i,j)==0)	
+{
+int rowZeros=0, colZeros=0;
+if(!coveredRows[i]  && !coveredCols[j])
+{ 
+for(unsigned int k=0;k<distances.cols();k++)
+{	
+if(distances(i,k)==0 && !coveredCols[k])
+rowZeros++;
+if(distances(k,j)==0 && !coveredRows[k])
+colZeros++;
+}
+if(rowZeros>colZeros)
+coveredRows[i]=true;
+else
+coveredCols[j]=true;
+covers++;
+}
+}
+}
+}
+//if the covering lines is equal or greater to the matrix size, we finished.
+//if not continue
+if(covers< distances.rows())
+{
+//determine  the minimum uncovered entry
+double minimum = std::numeric_limits<double>::max();
+for(unsigned int i=0;i<distances.rows();i++)
+{
+for(unsigned int j=0;j<distances.cols();j++)
+{	
+if(!coveredRows[i] && !coveredCols[j] && (distances(i,j) <minimum ))
+minimum= distances(i,j);
+
+}
+}
+
+std::cout << " minimum uncovered element "<< minimum << std::endl;
+for(unsigned int i=0;i<distances.rows();i++)
+{
+for(unsigned int j=0;j<distances.cols();j++)
+{	
+if(coveredCols[j])
+	distances(i,j)+=minimum;
+if(coveredRows[i])
+	distances(i,j)+=minimum;
+
+	}
+}
+
+//subtract minimum to every uncoivered row
+distances-=minimum;
+}
+std::cout << "covered lines " << covers << " " << distances.rows() << std::endl;
+}while(covers<distances.rows());
+
+std::cout << "getting possible solutions "<< std::endl;
+std::map<int, std::set<int>> solution;
+for(unsigned int i=0;i<distances.rows();i++)
+{
+	for(unsigned int j=0;j<distances.cols();j++)
+	{
+		if(distances(i,j)<=0)
+		{
+			if(solution.count(i)==0)
+				solution[i]= std::set<int>();
+			solution[i].insert(j);			
+		}
+	}
+}
+std::cout << "removing restrictions "<< std::endl;	
+bool foundSolution = false;
+bool changed = true;
+//remove options when other row needs it
+while(changed)
+{
+	changed=false;
+	for(unsigned int i=0;i<distances.rows();i++)
+	{
+		if(solution[i].size()==1)
+		{
+			correspondances[i]=*solution[i].begin();
+			for(int j=0;j<distances.cols();j++)
+			{	if(i!=j && solution[j].count(*solution[i].begin())>0)
 				{	
-					col -= col.min_value();
-					distances.set_column(i, col);
+					solution[j].erase(*solution[i].begin());
+					changed=true;
 				}
 			}
-			int covers=0;
-			do{
-				std::vector<bool> coveredRows(distances.rows(), false);
-				std::vector<bool> coveredCols(distances.cols(), false);
-				covers=0;
-				//draw minimum amount of lines (in columns and rows) to covered every zero.
-				for(unsigned int i=0;i<distances.rows();i++)
-				{
-					for(unsigned int j=0;j<distances.cols();j++)
-					{
-						if(distances(i,j)==0)	
-						{
-							int rowZeros=0, colZeros=0;
-							if(!coveredRows[i]  && !coveredCols[j])
-							{ 
-								for(unsigned int k=0;k<distances.cols();k++)
-								{	
-									if(distances(i,k)==0 && !coveredCols[k])
-										rowZeros++;
-									if(distances(k,j)==0 && !coveredRows[k])
-										colZeros++;
-								}
-								if(rowZeros>colZeros)
-									coveredRows[i]=true;
-								else
-									coveredCols[j]=true;
-								covers++;
-							}
-						}
-					}
-				}
-				//if the covering lines is equal or greater to the matrix size, we finished.
-				//if not continue
-				if(covers< distances.rows())
-				{
-					//determine  the minimum uncovered entry
-					double minimum = std::numeric_limits<double>::max();
-					for(unsigned int i=0;i<distances.rows();i++)
-					{
-						for(unsigned int j=0;j<distances.cols();j++)
-						{	
-							if(!coveredRows[i] && !coveredCols[j] && (distances(i,j) <minimum ))
-								minimum= distances(i,j);
-
-						}
-					}
-
-					std::cout << " minimum uncovered element "<< minimum << std::endl;
-					for(unsigned int i=0;i<distances.rows();i++)
-					{
-						for(unsigned int j=0;j<distances.cols();j++)
-						{	
-							if(coveredCols[j])
-								distances(i,j)+=minimum;
-							if(coveredRows[i])
-								distances(i,j)+=minimum;
-
-						}
-					}
-
-					//subtract minimum to every uncoivered row
-					distances-=minimum;
-				}
-				std::cout << "covered lines " << covers << " " << distances.rows() << std::endl;
-			}while(covers<distances.rows());
-
-			std::cout << "getting possible solutions "<< std::endl;
-			std::map<int, std::set<int>> solution;
-			for(unsigned int i=0;i<distances.rows();i++)
-			{
-				for(unsigned int j=0;j<distances.cols();j++)
-				{
-					if(distances(i,j)<=0)
-					{
-						if(solution.count(i)==0)
-							solution[i]= std::set<int>();
-						solution[i].insert(j);			
-					}
-				}
+		}	
+	}
+}
+//delete options
+std::cout << "getting final solution" <<std::endl;
+for(unsigned int i=0;i<distances.rows();i++)
+{
+	auto it = solution[i].begin();
+	correspondances[i]=*it;
+	if(solution[i].size()>1)
+	{
+		for(unsigned int j=0;j<distances.cols();j++)
+		{	if(i!=j && solution[j].count(*it)>0)
+			{	
+				solution[j].erase(*it);
 			}
-			std::cout << "removing restrictions "<< std::endl;	
-			bool foundSolution = false;
-			bool changed = true;
-			//remove options when other row needs it
-			while(changed)
-			{
-				changed=false;
-				for(unsigned int i=0;i<distances.rows();i++)
-				{
-					if(solution[i].size()==1)
-					{
-						correspondances[i]=*solution[i].begin();
-						for(int j=0;j<distances.cols();j++)
-						{	if(i!=j && solution[j].count(*solution[i].begin())>0)
-							{	
-								solution[j].erase(*solution[i].begin());
-								changed=true;
-							}
-						}
-					}	
-				}
-			}
-			//delete options
-			std::cout << "getting final solution" <<std::endl;
-			for(unsigned int i=0;i<distances.rows();i++)
-			{
-				auto it = solution[i].begin();
-				correspondances[i]=*it;
-				if(solution[i].size()>1)
-				{
-					for(unsigned int j=0;j<distances.cols();j++)
-					{	if(i!=j && solution[j].count(*it)>0)
-						{	
-							solution[j].erase(*it);
-						}
-					}
-				}
-			}
+		}
+	}
+}
 
-			std::cout << "finish hungarian algorithm "<< std::endl;
-		*/
+std::cout << "finish hungarian algorithm "<< std::endl;
+*/

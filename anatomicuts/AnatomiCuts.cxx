@@ -75,7 +75,7 @@ int main(int narg, char* arg[])
 	std::vector<std::string> labels;
 	std::vector<std::pair<std::string,std::string>> clusterIdHierarchy;
 	ImageType::Pointer segmentation; 
-
+	std::cout << "number of points  "<< numberOfPoints << std::endl;
 	const unsigned int PointDimension = 3;
 	{
 
@@ -390,6 +390,7 @@ int main(int narg, char* arg[])
 				functionList.push_back(function);
 			}else if(cl.search(1,"-euclid"))
 			{
+				//std::cout << "-euclid" << std::endl;
 				typedef EuclideanMembershipFunction<MeasurementVectorType> MembershipFunctionType;
 				MembershipFunctionType::Pointer function2 = MembershipFunctionType::New();	
 				function2->WithCosine(false);	
