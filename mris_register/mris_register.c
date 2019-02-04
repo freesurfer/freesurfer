@@ -1208,6 +1208,7 @@ get_option(int argc, char *argv[])
       fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
       break ;
     case 'W':
+      Gdiag |= DIAG_SHOW ;
       Gdiag |= DIAG_WRITE ;
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;

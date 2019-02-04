@@ -80,10 +80,12 @@ public:
     m_sRegFilename = fn;
   }
 
-  virtual void SetModified();
 
 Q_SIGNALS:
   void Modified();
+
+public slots:
+  virtual void SetModified();
 
 protected:
 

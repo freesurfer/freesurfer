@@ -125,7 +125,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 		typedef BasicMeshType::CellsContainer::ConstIterator CellIterator;
 		int globalIndex=0;
 		int indexCell =0;
-		typedef MeshType::PointIdentifier PointIdentifier;
+		// typedef MeshType::PointIdentifier PointIdentifier;
 		typedef MeshType::PointDataContainer PointDataContainerType;
 		BasicMeshType::Pointer basicMesh = basicMeshes[i];
 		MeshType::Pointer mesh = MeshType::New();

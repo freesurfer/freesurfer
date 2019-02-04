@@ -227,6 +227,93 @@ void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris) {
 }
 
 
+// dist and dist_orig must be managed separately because 
+//      changing xyz        invalidates dist 
+//      changing origxyz    invalidates dist_orig
+//      changing v          invalidates both
+//
+// By keeping their storage allocation independent of the VERTEX
+// it is very fast to change VERTEX::dist and VERTEX::dist_orig between NULL and !NULL
+// so the code can make the ->dist or ->dist_orig become NULL, making the bad values immediately inaccessible
+// and then quickly having them available again when they are computed
+//     
+static void freeDistOrDistOrig(bool doOrig, VERTEX* v) {
+  if (doOrig) { *(void**)(&v->dist_orig) = NULL; v->dist_orig_capacity = 0; }
+  else        { *(void**)(&v->dist     ) = NULL; v->dist_capacity      = 0; }
+}
+
+static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldSize, int neededCapacity) 
+{
+  VERTEX const * const v = &mris->vertices[vno];
+
+  const int    * pcCap = doOrig ? &v->dist_orig_capacity : &v->dist_capacity; 
+  float* const * pc    = doOrig ? &v->dist_orig          : &v->dist;
+
+  if (*pcCap < neededCapacity) {
+  
+    void** p_storage = doOrig ? &mris->dist_orig_storage[vno] : &mris->dist_storage[vno];
+    *p_storage = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+
+    if (!*pc) {
+      char const flag = (char)(1)<<doOrig;
+      mris->dist_alloced_flags |= flag;
+    }
+    
+    *(float**)pc    = *p_storage;
+    *(int   *)pcCap = neededCapacity;
+  }
+  
+  if (neededCapacity > oldSize) {
+    bzero((*pc) + oldSize, (neededCapacity-oldSize)*sizeof(float));
+  }
+}
+
+float* mrisStealDistStore(MRIS* mris, int vno, int capacity) {
+
+  // mrisSetDist may be called later, so stealing it now (if it is not being used) 
+  // will avoid the need to malloc some now and to free later
+  //
+  VERTEX const * const v = &mris->vertices[vno];
+  
+  float* p = NULL;
+  if (v->dist == NULL) { p = mris->dist_storage[vno]; mris->dist_storage[vno] = NULL; }
+  
+  return (float*)realloc(p, capacity*sizeof(float));
+}
+
+void mrisSetDist(MRIS* mris, int vno, float* dist, int newCapacity) {
+  // Some code has already computed the dist into a vector.
+  // Here is a quick way of putting it into the vertex
+  // The capacity must not be smaller than the current capacity
+  //
+  bool const doOrig = false;
+  char const flag = (char)(1)<<doOrig;
+  mris->dist_alloced_flags |= flag;
+    
+  VERTEX const * const v = &mris->vertices[vno];
+
+  cheapAssert(newCapacity >= v->dist_capacity);
+
+  float * const * pc = &v->dist;
+  float *       * p  = (float**)pc;
+  
+  if (mris->dist_storage[vno]) free(mris->dist_storage[vno]);   // very frequently avoid the lock
+  *p = mris->dist_storage[vno] = dist;
+  
+  const int * pcCap = &v->dist_capacity; *(int*)pcCap = newCapacity;
+}
+
+static void growDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int minimumCapacity)
+{
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
+  int oldSize = doOrig ? v->dist_orig_capacity : vt->vtotal;
+  int vSize = mrisVertexVSize(mris, vno);
+  if (vSize < minimumCapacity) vSize = minimumCapacity;
+  changeDistOrDistOrig(doOrig, mris, vno, oldSize, vSize);
+}
+
+
 // VERTEX, FACE, EDGE primitives
 //
 static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
@@ -235,21 +322,9 @@ static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
   freeAndNULL(v->n);
 }
 
-void MRISfreeDists(MRI_SURFACE *mris)
-  // Maybe should not be here...
-{
-  int vno;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    freeAndNULL(mris->vertices[vno].dist);
-    freeAndNULL(mris->vertices[vno].dist_orig);
-    mris->vertices_topology[vno].vtotal = 0;
-  }
-}
-
-
 static void VERTEXdtr(VERTEX* v) {
-  free((void*)v->dist     ); *(void**)(&v->dist     ) = NULL;
-  free((void*)v->dist_orig); *(void**)(&v->dist_orig) = NULL;
+  freeDistOrDistOrig(false, v);
+  freeDistOrDistOrig(true,  v);
 }
 
 static void FACEdtr(FACE* f) {
@@ -265,6 +340,62 @@ static void MRIS_EDGEdtr(MRI_EDGE* e) {
   for (k=0; k<4; k++){
     if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
   }
+}
+
+void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity)
+{
+  growDistOrDistOrig(false, mris, vno, minimumCapacity);
+}
+
+void MRISgrowDistOrig(MRIS *mris, int vno, int minimumCapacity)
+{
+  growDistOrDistOrig(true, mris, vno, minimumCapacity);
+}
+
+static void makeDistOrDistOrig(bool doOrig, MRIS *mris, int vno) 
+{
+  int vSize = mrisVertexVSize(mris, vno);
+  changeDistOrDistOrig(doOrig, mris, vno, 0, vSize);
+}
+
+void MRISmakeDist(MRIS *mris, int vno) 
+{
+  makeDistOrDistOrig(false, mris, vno);
+}
+
+void MRISmakeDistOrig(MRIS *mris, int vno) 
+{
+  makeDistOrDistOrig(true, mris, vno);
+}
+
+
+// Freeing
+//
+void freeDistsOrDistOrigs(bool doOrig, MRIS *mris)
+{
+  char const flag = (char)(1)<<doOrig;
+
+  if (!(mris->dist_alloced_flags & flag)) return;
+  
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    freeDistOrDistOrig(doOrig, &mris->vertices[vno]);
+  }
+  
+  mris->dist_alloced_flags ^= flag;
+}
+
+void MRISfreeDistsButNotOrig(MRIS* mris)
+  // Maybe should not be here...
+{
+  mris->dist_nsize = 0;
+  freeDistsOrDistOrigs(false,mris);
+}
+
+void MRISfreeDistOrigs(MRIS* mris)
+  // Maybe should not be here...
+{
+  freeDistsOrDistOrigs(true,mris);
 }
 
 
@@ -327,6 +458,12 @@ void MRISreleaseNverticesFrozen(MRIS *mris) {
 }
 
 bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
+
+  // mris->max_vertices should only ever grow
+  // because this code does not know how to free existing ones
+  //
+  if (max_vertices < mris->max_vertices) max_vertices = mris->max_vertices;
+  
   cheapAssert(nvertices >= 0);
   cheapAssert(max_vertices >= nvertices);
   cheapAssert(!mris->nverticesFrozen);
@@ -339,12 +476,21 @@ bool MRISreallocVertices(MRIS * mris, int max_vertices, int nvertices) {
     mris->vertices_topology = (VERTEX_TOPOLOGY *)realloc(mris->vertices_topology, max_vertices*sizeof(VERTEX_TOPOLOGY));
   #endif
   
+  mris->dist_storage      = (void**)realloc(mris->dist_storage,      max_vertices*sizeof(void*));
+  mris->dist_orig_storage = (void**)realloc(mris->dist_orig_storage, max_vertices*sizeof(void*));
+  
   int change = max_vertices - mris->nvertices;
   if (change > 0) { // all above nvertices must be zero'ed, since MRISgrowNVertices does not...
-      bzero(mris->vertices          + mris->nvertices, change*sizeof(VERTEX));
+    bzero(mris->vertices          + mris->nvertices,     change*sizeof(VERTEX));
 #ifdef SEPARATE_VERTEX_TOPOLOGY
-      bzero(mris->vertices_topology + mris->nvertices, change*sizeof(VERTEX_TOPOLOGY));
+    bzero(mris->vertices_topology + mris->nvertices,     change*sizeof(VERTEX_TOPOLOGY));
 #endif
+  }
+  
+  change = max_vertices - mris->max_vertices;
+  if (change > 0) {
+    bzero(mris->dist_storage      + mris->max_vertices, change*sizeof(void*));
+    bzero(mris->dist_orig_storage + mris->max_vertices, change*sizeof(void*));
   }
 
   *(int*)(&mris->max_vertices) = max_vertices;    // get around const
@@ -453,7 +599,7 @@ void MRISctr(MRIS *mris, int max_vertices, int max_faces, int nvertices, int nfa
   bzero(mris, sizeof(MRIS));
   MRISoverAllocVerticesAndFaces(mris, max_vertices, max_faces, nvertices, nfaces);
   
-  mris->nsize = 1;      // only 1-connected neighbors initially
+  mris->max_nsize = mris->nsize = 1;      // only 1-connected neighbors initially
 }
 
 void MRISdtr(MRIS *mris) {
@@ -463,6 +609,7 @@ void MRISdtr(MRIS *mris) {
   freeAndNULL(mris->labels);
   
   if (mris->ct) CTABfree(&mris->ct);
+
   
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -507,6 +654,13 @@ void MRISdtr(MRIS *mris) {
     MatrixFree(&mris->m_sras2vox);
   }
 
+  for (vno = 0; vno < mris->max_vertices; vno++) {
+    freeAndNULL(mris->dist_storage     [vno]);
+    freeAndNULL(mris->dist_orig_storage[vno]);
+  }
+
+  freeAndNULL(mris->dist_storage);
+  freeAndNULL(mris->dist_orig_storage);
 }
 
 
@@ -535,6 +689,103 @@ void MRISfree(MRIS **pmris)
   MRISdtr(mris);
   free(mris);
 }
+
+
+//======
+// ripped
+//
+char* MRISexportFaceRipflags(MRIS* mris) {
+  char* flags = (char*)malloc(mris->nfaces * sizeof(char));
+  int fno;
+  for (fno = 0 ; fno < mris->nfaces ; fno++){
+    flags[fno] = mris->faces[fno].ripflag;
+  }
+  return flags;
+}
+
+void  MRISimportFaceRipflags(MRIS* mris, const char* flags) {
+  int fno;
+  for (fno = 0 ; fno < mris->nfaces ; fno++){
+    mris->faces[fno].ripflag = flags[fno];
+  }
+}
+
+
+char* MRISexportVertexRipflags(MRIS* mris) {
+  char* flags = (char*)malloc(mris->nvertices * sizeof(char));
+  int vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    flags[vno] = mris->vertices[vno].ripflag;
+  }
+  return flags;
+}
+
+void MRISimportVertexRipflags(MRIS* mris, const char* flags) {
+  int vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    mris->vertices[vno].ripflag = flags[vno];
+  }
+} 
+
+int MRIScountRipped(MRIS *mris)
+{
+  int nripped=0, vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(mris->vertices[vno].ripflag) nripped++;
+  }
+  return(nripped);
+}
+
+
+int MRISstoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->oripflag = v->ripflag;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->oripflag = f->ripflag;
+  }
+  return (NO_ERROR);
+}
+
+int MRISrestoreRipFlags(MRIS *mris)
+{
+  int vno, fno;
+  VERTEX *v;
+  FACE *f;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = v->oripflag;
+  }
+
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    f = &mris->faces[fno];
+    f->ripflag = f->oripflag;
+  }
+
+  return (NO_ERROR);
+}
+
+int MRISunrip(MRIS *mris)
+{
+  int vno, fno;
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    mris->vertices[vno].ripflag = 0;
+  }
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    mris->faces[fno].ripflag = 0;
+  }
+  return (NO_ERROR);
+}
+
 
 
 char const * mrisurf_surface_names[3] = {"inflated", "smoothwm", "smoothwm"};
@@ -1187,6 +1438,20 @@ int MRISallocExtraGradients(MRIS *mris)
   return (NO_ERROR);
 }
 
+static float checkNotNanf(float f) {
+  cheapAssert(!devIsnan(f));
+  return f;
+}
+
+void MRIScheckForNans(MRIS *mris)
+{
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX const * const v = &mris->vertices[vno];
+    checkNotNanf(v->odx); checkNotNanf(v->ody); checkNotNanf(v->odz);
+    checkNotNanf(v-> dx); checkNotNanf(v-> dy); checkNotNanf(v-> dz);
+  }  
+}
 
 int slprints(char *apch_txt)
 {
@@ -1432,33 +1697,3 @@ int CompareFaceVertices(const void *vf1, const void *vf2)
   if(f1->v2 < f2->v2) return(-1);
   return(+1);
 }
-
-
-#ifdef FS_CUDA_TIMINGS
-/* this stuff is needed for some of the benchmarking I have been doing */
-#include <stdlib.h>
-#include <sys/time.h>
-#include <unistd.h>
-static int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
-{
-  /* Perform the carry for the later subtraction by updating y. */
-  if (x->tv_usec < y->tv_usec) {
-    int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
-    y->tv_usec -= 1000000 * nsec;
-    y->tv_sec += nsec;
-  }
-  if (x->tv_usec - y->tv_usec > 1000000) {
-    int nsec = (x->tv_usec - y->tv_usec) / 1000000;
-    y->tv_usec += 1000000 * nsec;
-    y->tv_sec -= nsec;
-  }
-
-  /* Compute the time remaining to wait.
-     tv_usec is certainly positive. */
-  result->tv_sec = x->tv_sec - y->tv_sec;
-  result->tv_usec = x->tv_usec - y->tv_usec;
-
-  /* Return 1 if result is negative. */
-  return x->tv_sec < y->tv_sec;
-}
-#endif  // FS_CUDA_TIMINGS

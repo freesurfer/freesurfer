@@ -52,6 +52,9 @@ public:
     unsigned int MeshCount() const;
     KvlMesh* GetMesh(int meshNumber);
     KvlMesh* GetReferenceMesh();
+    py::array_t<double>  GetReferencePosition() const;
+    void SetReferencePosition(const py::array_t<double> &source);
+    void SetPositions(const py::array_t<double> &reference, const std::vector<py::array_t<double>> &positions);
     void Construct(const SHAPE_3D &meshSize, const SHAPE_3D &domainSize,
                    double initialStiffness,
                    unsigned int numberOfClasses, unsigned int numberOfMeshes);

@@ -3,11 +3,6 @@ import math
 import numpy as np
 import colorsys
 
-from freesurfer import errorExit
-
-
-logger = logging.getLogger(__name__)
-
 
 def meshValidityTest(alphas, name):
     probability_discrepancy = np.max(np.abs(np.sum(alphas, axis=1) - 1))
@@ -17,10 +12,8 @@ def meshValidityTest(alphas, name):
 
 
 def kvlMergeAlphas(alphas, names, mergeOptions, FreeSurferLabels=None, colors=None):
-    #
-    # Creates a 'mergedAlphas' matrix where one or more columns of the 'alphas'
-    # matrix have been "merged" (i.e., added together)
-    #
+    '''Creates a 'mergedAlphas' matrix where one or more columns of the 'alphas'
+    matrix have been "merged" (i.e., added together).'''
 
     alpha_count, label_count = alphas.shape
     if FreeSurferLabels is None:
@@ -39,13 +32,14 @@ def kvlMergeAlphas(alphas, names, mergeOptions, FreeSurferLabels=None, colors=No
         mergedNames.append(mergeOption.mergedName.strip())
         for searchString in mergeOption.searchStrings:
             for structureNumber, name in enumerate(names):
-                if searchString in name: translationTable[classNumber, structureNumber] = 1.0
-    
+                if searchString in name:
+                    translationTable[classNumber, structureNumber] = 1.0
+
     if not translationTable.any():
-        errorExit('some structures are not associated with any super-structures')
-    
-    translationTable = translationTable / np.sum(translationTable, 0) 
-    
+        raise ValueError('some structures are not associated with any super-structures')
+
+    translationTable = translationTable / np.sum(translationTable, 0)
+
     mergedAlphas = np.dot(alphas, translationTable.T)
     meshValidityTest(mergedAlphas, 'mergedAlphas')
 
@@ -58,10 +52,10 @@ def kvlMergeAlphas(alphas, names, mergeOptions, FreeSurferLabels=None, colors=No
 
     # Print out merge info
     for classNumber in range(numberOfClasses):
-      print(mergedNames[classNumber])
-      for structureNumber in range(len(names)):
-        percentage = int(translationTable[classNumber, structureNumber] * 100)
-        if percentage > 0:
-            print('    %s (%d%%)' % (names[structureNumber].ljust(len(max(names, key=len))), percentage))
+        print(mergedNames[classNumber])
+        for structureNumber in range(len(names)):
+            percentage = int(translationTable[classNumber, structureNumber] * 100)
+            if percentage > 0:
+                print('    %s (%d%%)' % (names[structureNumber].ljust(len(max(names, key=len))), percentage))
 
     return mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, translationTable

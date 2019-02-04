@@ -17361,7 +17361,7 @@ dilate_ripped(void)
   int    vno, n, nripped ;
   VERTEX *v, *vn ;
 
-  MRISclearDistances(mris) ;
+  MRISclearD(mris) ;
   nripped = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {

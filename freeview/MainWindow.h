@@ -113,7 +113,6 @@ public:
   Layer* GetTopVisibleLayer( const QString& strType );
   QList<Layer*> GetLayers( const QString& strType );
 
-  LayerCollection* GetCurrentLayerCollection();
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );
   bool SetSlicePosition( double* pos );
   bool OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundToGrid = true );
@@ -233,6 +232,7 @@ Q_SIGNALS:
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
+  void CycleOverlayRequested();
 
 public slots:
   void SetMode( int nMode );
@@ -279,6 +279,8 @@ public slots:
   void CenterAtWorldPosition(double* pos, bool mainview_only = false);
 
   void OnLoadSurfaceParameterization();
+
+  void OnStereoRender(bool bOn);
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -385,6 +387,7 @@ protected:
   void CommandSetLayerName      ( const QStringList& cmd );
   void CommandSetVolumeMask     ( const QStringList& cmd );
   void CommandSetSmoothed       ( const QStringList& cmd );
+  void CommandSetRgb            ( const QStringList& cmd );
   void CommandGoToLabel         ( const QStringList& cmd );
   void CommandSaveLayer         ( const QStringList& cmd );
   void CommandSetTrackColor     ( const QStringList& cmd );

@@ -44,17 +44,12 @@
 #include "region.h"
 #include "sig.h"
 #include "stats.h"
-
+#include "mrimorph.h"
 #include "mri2.h"
 
 //#define MRI2_TIMERS
 
 #include "affine.h"
-
-#ifdef FS_CUDA
-#include "mrivol2vol_cuda.h"
-#endif
-
 #include "romp_support.h"
 
 /* overwrite generic nint to speed up execution
@@ -681,13 +676,9 @@ MRI *MRIreshape1d(MRI *src, MRI *trg)
   ---------------------------------------------------------------*/
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 {
-#ifdef FS_CUDA
-  int cudaReturn;
-#else
   int ct, show_progress_thread;
   int tid = 0;
   float *valvects[_MAX_FS_THREADS];
-#endif
   int sinchw;
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   int FreeMats = 0;
@@ -748,14 +739,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 #ifdef VERBOSE_MODE
   StartChronometer(&tSample);
 #endif
-
-#ifdef FS_CUDA
-  cudaReturn = MRIvol2vol_cuda(src, targ, Vt2s, InterpCode, param);
-  if (cudaReturn != 0) {
-    fprintf(stderr, "%s: CUDA call failed!\n", __FUNCTION__);
-    exit(EXIT_FAILURE);
-  }
-#else
 
   if (InterpCode == SAMPLE_CUBIC_BSPLINE) bspline = MRItoBSpline(src, NULL, 3);
 
@@ -846,8 +829,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   for (tid = 0; tid < _MAX_FS_THREADS; tid++) free(valvects[tid]);
 #else
   free(valvects[0]);
-#endif
-
 #endif
 
 #ifdef VERBOSE_MODE
@@ -3068,6 +3049,10 @@ void MRIConvertSurfaceVertexCoordinates(MRIS* mris, MRI* vol)
 {
   int const nvertices = mris->nvertices;
 
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int vno;
   for (vno = 0; vno < nvertices; vno++) {
 
@@ -5260,4 +5245,243 @@ MRI *MRIreorientLIA2RAS(MRI *mriA, MRI *mriB)
   MatrixFree(&vox2rasB);
 
   return(mriB);
+}
+
+/*!
+  \fn MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M)
+  \brief Converts a volume into a matrix. With transposeFlag=0, the
+  output matrix will be nframes-by-nvoxels. If transposeFlag=1, then
+  the transpose is returned. If mask is non-null, then nvoxels is the
+  number of voxels > 0.5 in the mask. The order, from slowest to
+  fastest, that the voxels are packed into the matrix is slice,
+  column, row. This order is compatible with matlab. This function is
+  compatible with MRImat2vol(). See also GTMvol2mat().
+ */
+MATRIX *MRIvol2mat(MRI *vol, MRI *mask, int transposeFlag, MATRIX *M)
+{
+  int nvox, c, r ,s, f, nrows, ncols, nthvox;
+
+  if(mask && MRIdimMismatch(vol, mask, 0)) {
+    printf("ERROR: MRIvol2mat(): mask and vol dimension mismatch\n");
+    return (NULL);
+  }
+
+  if(mask) nvox = MRIcountAboveThreshold(mask,0.5);
+  else     nvox = vol->width * vol->height * vol->depth;
+
+  if(transposeFlag==0){
+    nrows = vol->nframes;
+    ncols = nvox;
+  } else {
+    nrows = nvox;
+    ncols = vol->nframes;
+  }
+
+  if(M==NULL) M = MatrixAlloc(nrows,ncols,MATRIX_REAL);
+  if(M->rows != nrows || M->cols != ncols){
+    printf("ERROR: MRIvol2mat(): dimension mismatch expecting (%d,%d), got (%d,%d)\n",
+	   nrows,ncols,M->rows,M->cols);
+    return(NULL);
+  }
+
+  // col, row, slice order is compatible with MRImat2vol and matlab
+  nthvox = 0;
+  for(s=0; s < vol->depth; s++){
+    for(c=0; c < vol->width; c++){
+      for(r=0; r < vol->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	// Not the most efficient to parallelize here, but can't do above
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for 
+        #endif
+	for(f = 0; f < vol->nframes; f++){
+	  int Mc, Mr;
+	  if(transposeFlag==0){
+	    Mr = f+1; 
+	    Mc = nthvox+1;
+	  }
+	  else {
+	    Mr = nthvox+1;
+	    Mc = f+1; 
+	  }
+	  M->rptr[Mr][Mc] = MRIgetVoxVal(vol,c,r,s,f);
+	} // loop over frame
+	nthvox++;
+      }
+    }
+  }
+
+  return(M);
+}
+
+/*!
+  \fn MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol)
+  \brief Converts a matrix into a volume. With transposeFlag=0, the
+  matrix should have size nframes-by-nvoxels (or nvoxel-by-nframes if
+  transposeFlag=1).  If mask is non-null, then nvoxels is the number
+  of voxels > 0.5 in the mask. The order, from slowest to fastest,
+  that the voxels are unpacked from the matrix is slice, column,
+  row. This order is compatible with matlab. This function is
+  compatible with MRIvol2mat(). See also GTMmat2vol(). Either mask or
+  vol must be non-NULL, otherwise, there is no way to know how big the
+  volume should be. vol does not need to be zeroed.
+ */
+MRI *MRImat2vol(MATRIX *M, MRI *mask, int transposeFlag, MRI *vol)
+{
+  int nvox, c, r ,s, f, nthvox;
+  int nframes;
+
+  if(transposeFlag==0) nframes = M->rows;
+  else                 nframes = M->cols;
+
+  if(mask == NULL && vol == NULL){
+    printf("ERROR: MRImat2vol(): both mask and vol are NULL\n");
+    return(NULL);
+  }
+  if(vol == NULL){
+    vol = MRIallocSequence(mask->width, mask->height, mask->depth, MRI_FLOAT, nframes);
+    MRIcopyHeader(mask, vol);
+    MRIcopyPulseParameters(mask, vol);
+  }
+  if(mask && MRIdimMismatch(vol, mask, 0)) {
+    printf("ERROR: MRImat2vol(): mask and vol dimension mismatch\n");
+    return (NULL);
+  }
+  if(vol->nframes != nframes){
+    printf("ERROR: MRImat2vol(): vol and matrix frame dimension mismatch\n");
+    return (NULL);
+  }
+  if(mask) nvox = MRIcountAboveThreshold(mask,0.5);
+  else     nvox = vol->width * vol->height * vol->depth;
+  if( (transposeFlag==0 && M->cols != nvox) || (transposeFlag==1 && M->rows != nvox)){
+    printf("ERROR: MRImat2vol(): vol and matrix vox dimension mismatch\n");
+    printf("   transposeFlag=%d, rows = %d, cols = %d, nvox = %d\n",transposeFlag,M->rows,M->cols,nvox);
+    return (NULL);
+  }
+
+  // col, row, slice order is compatible with MRIvol2mat and matlab
+  nthvox = 0;
+  for(s=0; s < vol->depth; s++){
+    for(c=0; c < vol->width; c++){
+      for(r=0; r < vol->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  for(f = 0; f < vol->nframes; f++) MRIsetVoxVal(vol,c,r,s,f,0);
+	  continue;
+	}
+	// Not the most efficient to parallelize here, but can't do above
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for 
+        #endif
+	for(f = 0; f < vol->nframes; f++){
+	  int Mr, Mc;
+	  if(transposeFlag==0){
+	    Mr = f+1; 
+	    Mc = nthvox+1;
+	  }
+	  else {
+	    Mr = nthvox+1;
+	    Mc = f+1; 
+	  }
+	  MRIsetVoxVal(vol,c,r,s,f,M->rptr[Mr][Mc]);
+	}// loop over frame
+	nthvox++;
+      }
+    }
+  }
+
+  return(vol);
+}
+/*!
+  \fn MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
+  \brief Merges multiple segmentations into one. Can be done in-place.
+  \parameter seg - original segmentation
+  \parameter seglist - list of segmentation IDs to merge
+  \parameter nsegs - length of list
+  \parameter NewSegId - replace values in list with NewSegId
+  \parameter newseg - new segmentation (also passed as output)
+*/
+MRI *MRImergeSegs(MRI *seg, int *seglist, int nsegs, int NewSegId, MRI *newseg)
+{
+  int c,r,s,n,segid;
+
+  if(newseg == NULL) newseg = MRIcopy(seg,NULL);
+
+  for (c=0; c < seg->width; c++){
+    for (r=0; r < seg->height; r++){
+      for (s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	MRIsetVoxVal(newseg,c,r,s,0, segid);
+	for(n=0; n < nsegs; n++){
+	  if(segid == seglist[n]){
+	    MRIsetVoxVal(newseg,c,r,s,0,NewSegId);
+	    break;
+	  }
+	}
+      }
+    }
+  }
+  return(newseg);
+}
+/*
+  \fn MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
+  \brief Creates a binary mask of voxels that match any of the IDs in the
+    segmentations list. Can be done in-place.
+  \parameter seg - original segmentation
+  \parameter seglist - list of segmentation IDs to merge
+  \parameter nsegs - length of list
+  \parameter MaskId - replace values in list with MaskId
+  \parameter mask - new segmentation (also passed as output)
+*/
+MRI *MRImatchSegs(MRI *seg, int *seglist, int nsegs, int MaskId, MRI *mask)
+{
+  int c,r,s,n,segid;
+
+  if(mask == NULL) mask = MRIcopy(seg,NULL);
+
+  for (c=0; c < seg->width; c++){
+    for (r=0; r < seg->height; r++){
+      for (s=0; s < seg->depth; s++){
+	MRIsetVoxVal(mask,c,r,s,0, 0);
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	for(n=0; n < nsegs; n++){
+	  if(segid == seglist[n]){
+	    MRIsetVoxVal(mask,c,r,s,0,MaskId);
+	    break;
+	  }
+	}
+      }
+    }
+  }
+  return(mask);
+}
+
+
+/*!
+  \fn HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta)
+  \brief Creates a histogram from the intensities in vol from the voxels in the given
+  segmentation. The caller supplies the min, max, and delta for the bins of the histogram.
+  Can't include this in histo.c because of circular dependence.
+ */
+HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, double bdelta)
+{
+  HISTOGRAM *h;
+  double v,vsegid;
+  int c,r,s,nbins,binno;
+
+  nbins = round((bmax-bmin)/bdelta) + 1;
+  h = HISTOinit(NULL, nbins, bmin, bmax);
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	vsegid  = MRIgetVoxVal(seg,c,r,s,0);
+	if(vsegid!=segid) continue;
+	v = MRIgetVoxVal(vol,c,r,s,0);
+	binno = round(v-bmin)/bdelta;
+	if(binno < 0)      binno=0;
+	if(binno >= nbins) binno=nbins-1;
+	h->counts[binno] ++;
+      }
+    }
+  }
+  return(h);
 }

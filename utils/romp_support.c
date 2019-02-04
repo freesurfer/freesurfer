@@ -53,7 +53,9 @@ int romp_omp_get_thread_num()  {
 
 // removes implicit declaration
 #ifdef __APPLE__
-int pthread_getcpuclockid(pthread_t thread_id, clockid_t *clock_id);
+int pthread_getcpuclockid(pthread_t t, clockid_t *clockid) {
+    return 0;
+}
 #endif
 
 
@@ -111,8 +113,8 @@ static Nanosecs cpuTimeUsed() {
     clockid_t clockid;
     int s = pthread_getcpuclockid(pthread_self(), &clockid);
     if (s != 0) {
-	fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
-	exit(1);
+	   fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
+	   exit(1);
     }
     struct timespec timespec;
     int ret =
@@ -206,6 +208,7 @@ static void rompExitHandler(void)
         if (!comFile) {
             fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
         } else {
+            fprintf(stderr, "Created %s\n", ROMP_statsFileName);
             ROMP_show_stats(comFile);
             fclose(comFile);
         }

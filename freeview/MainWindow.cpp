@@ -101,7 +101,6 @@
 #include "LayerLineProfile.h"
 #include "DialogLoadConnectome.h"
 #include "LayerConnectomeMatrix.h"
-#include "DialogLoadSurface.h"
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
 #include "DialogSetCamera.h"
@@ -212,6 +211,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             SLOT(SetCurrentLandmark(int)));
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
+  connect(m_layerCollections["MRI"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
   connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
@@ -506,6 +506,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionToggleWm);
 
   connect(ui->actionNextLabelPoint, SIGNAL(triggered()), ui->widgetAllLayers->GetPanel("MRI"), SLOT(OnGoToNextPoint()));
+  addAction(ui->actionCycleOverlay);
+  connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
 }
 
 MainWindow::~MainWindow()
@@ -1142,6 +1144,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  if (parser->Found("view", &sa))
+  {
+    this->AddScript( QStringList("view") << sa[0]);
+  }
+
   if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
@@ -1705,6 +1712,10 @@ void MainWindow::RunScript()
   {
     CommandSetSmoothed( sa );
   }
+  else if ( cmd == "setrgb" )
+  {
+    CommandSetRgb( sa );
+  }
   else if ( cmd == "setdisplayoutline")
   {
     CommandSetLabelOutline(sa);
@@ -1884,6 +1895,25 @@ void MainWindow::RunScript()
   else if (cmd == "setactivelayer")
   {
     CommandSetActiveLayer(sa);
+  }
+  else if (cmd == "view")
+  {
+    if (sa[1] == "left")
+      ui->view3D->ResetViewLeft();
+    else if (sa[1] == "right")
+      ui->view3D->ResetViewRight();
+    else if (sa[1] == "anterior")
+      ui->view3D->ResetViewAnterior();
+    else if (sa[1] == "posterior")
+      ui->view3D->ResetViewPosterior();
+    else if (sa[1] == "inferior")
+      ui->view3D->ResetViewInferior();
+    else if (sa[1] == "posterior")
+      ui->view3D->ResetViewPosterior();
+    else if (sa[1] == "lateral")
+      ui->view3D->ResetViewLateral();
+    else if (sa[1] == "medial")
+      ui->view3D->ResetViewMedial();
   }
   else
   {
@@ -2193,6 +2223,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert(0, QStringList("setsmoothed") << subArgu);
       }
+      else if (subOption == "rgb" || subOption == "RGB")
+      {
+        m_scripts.insert(0, QStringList("setrgb") << subArgu);
+      }
       else if (subOption == "id")
       {
         sup_data["ID"] = subArgu.toInt();
@@ -2422,6 +2456,20 @@ void MainWindow::CommandSetSmoothed(const QStringList &cmd)
     }
   }
 }
+
+void MainWindow::CommandSetRgb(const QStringList &cmd)
+{
+  QString stemp = cmd[1].toLower();
+  if ( stemp == "yes"|| stemp == "true" || stemp == "1" || stemp == "on")
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri && mri->GetNumberOfFrames() == 3)
+    {
+      mri->GetProperty()->SetDisplayRGB(true);
+    }
+  }
+}
+
 
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
@@ -4664,40 +4712,6 @@ void MainWindow::SetViewLayout( int nLayout )
     m_nViewLayout = nLayout;
     emit ViewLayoutChanged( nLayout );
   }
-}
-
-LayerCollection* MainWindow::GetCurrentLayerCollection()
-{
-  LayerCollection* lc = NULL;
-  /*
-  QString name = ui->tabWidgetControlPanel->tabText( ui->tabWidgetControlPanel->currentIndex() );
-  if ( name == "Volumes" )
-  {
-    lc = GetLayerCollection( "MRI" );
-  }
-  else if ( name == "ROIs" )
-  {
-    lc = GetLayerCollection( "ROI" );
-  }
-  else if ( name == "Surfaces" )
-  {
-    lc = GetLayerCollection( "Surface" );
-  }
-  else if ( name == "Point Sets" )
-  {
-    lc = GetLayerCollection( "PointSet" );
-  }
-  else if ( name == "Tracks" )
-  {
-    lc = GetLayerCollection( "Tract");
-  }
-  else if ( name == "All")
-  {
-    lc = GetLayerCollection(ui->tabAllLayers->GetCurrentLayerType());
-  }
-  */
-
-  return lc;
 }
 
 QString MainWindow::GetCurrentLayerType()
@@ -8329,4 +8343,10 @@ void MainWindow::LoadSurfaceParameterization(const QString &filename)
   {
     QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
   }
+}
+
+void MainWindow::OnStereoRender(bool bOn)
+{
+  ui->view3D->SetStereoTypeToAnaglyph();
+  ui->view3D->SetStereoRender(bOn);
 }

@@ -54,7 +54,7 @@ int main(int narg, char* arg[])
 	typedef int                                                        PixelType;
 	typedef itk::Image< PixelType,Dimension> ImageType;
 	typedef ImageType::IndexType 			IndexType;
-	typedef itk::MinimumMaximumImageCalculator<ImageType>   MinMaxCalculatorType;
+	// typedef itk::MinimumMaximumImageCalculator<ImageType>   MinMaxCalculatorType;
 
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -242,7 +242,7 @@ int main(int narg, char* arg[])
 			typedef MeshBasicType::CellsContainer::ConstIterator CellIterator;
 			int globalIndex=0;
 			int indexCell =0;
-			typedef MeshType::PointIdentifier PointIdentifier;
+			// typedef MeshType::PointIdentifier PointIdentifier;
 			typedef MeshType::PointDataContainer PointDataContainerType;
 			//int outsidePoints = 0;
 			int numCellsPase =0;
@@ -490,7 +490,7 @@ int main(int narg, char* arg[])
 	std::map<std::string,MeshBasicType::CellIdentifier> cellIndices;
 	//int noClusterFibers=0;
 
-	typedef itk::PolylineCell<MeshBasicType::CellType>                      PolylineCellType;
+	// typedef itk::PolylineCell<MeshBasicType::CellType>                      PolylineCellType;
 	for (unsigned int i=0;i<labels.size();i++)
 	{
 		MeshBasicType::CellAutoPointer line;

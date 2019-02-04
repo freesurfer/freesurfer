@@ -215,7 +215,7 @@ public:
     String unstripped = unstrip(name);
     if (index.count(unstripped) == 0) fs_fatal(1) << "'" << unstripped << "' is not a known argument";
     size_t N = index[unstripped];
-    T retrieved;
+    T retrieved{};
     // try to cast the arguments
     try {
       retrieved = variables[N].castTo<T>();

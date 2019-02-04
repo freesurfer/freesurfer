@@ -665,9 +665,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
 
     /* Copy in the vertices. */
-    float xhi, xlo, yhi, ylo, zhi, zlo;
-    xhi = yhi = zhi = -1000000;
-    xlo = ylo = zlo = 1000000;
     int vertex_index;
     for (vertex_index = 0; vertex_index < num_vertices; vertex_index++) {
       mris->vertices_topology[vertex_index].num = 0;
@@ -676,35 +673,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       float z = (float)gifti_get_DA_value_2D(coords, vertex_index, 2);
       MRISsetXYZ(mris,vertex_index,x,y,z);
       mris->vertices[vertex_index].origarea = -1;
-      if (x > xhi) {
-        xhi = x;
-      }
-      if (x < xlo) {
-        xlo = x;
-      }
-      if (y > yhi) {
-        yhi = y;
-      }
-      if (y < ylo) {
-        ylo = y;
-      }
-      if (z > zhi) {
-        zhi = z;
-      }
-      if (z < zlo) {
-        zlo = z;
-      }
     }
-    mris->xlo = xlo;
-    mris->ylo = ylo;
-    mris->zlo = zlo;
-    mris->xhi = xhi;
-    mris->yhi = yhi;
-    mris->zhi = zhi;
-    mris->xctr = (xhi + xlo) / 2;
-    mris->yctr = (yhi + ylo) / 2;
-    mris->zctr = (zhi + zlo) / 2;
-
+    mrisComputeSurfaceDimensions(mris);
+    
     /* Copy in the faces. */
     int face_index;
     for (face_index = 0; face_index < num_faces; face_index++) {
@@ -739,7 +710,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       }
     }
 
-    mrisCheckVertexFaceTopology(mris);
+    mrisCompleteTopology(mris);
     
     // check-for and read coordsys struct for talairach xform
     if (coords->coordsys && (coords->numCS > 0)) {

@@ -4,8 +4,6 @@
 
 #include <vector>
 
-#include <boost/array.hpp>
-
 #include "stl_utils.hpp"
 #include "coords.h"
 
@@ -104,7 +102,7 @@ template<class ElementProxy, unsigned int N>
 class TNode : public TCubicRegion<N>
 {
 public:
-  typedef typename boost::array<unsigned char, POW2(N)> DeterminantType;
+  typedef typename std::array<unsigned char, POW2(N)> DeterminantType;
 protected:
   /*
     since the underlying type is unsigned char,
@@ -181,7 +179,6 @@ actually needed is to decide which of the octants are overlapping with the eleme
 */
 
 // rule => abc --> 1<<(4+a) + 1<<(2+b) + 1<<c
-//boost::array<unsigned char, POW2(N)> m_octantDeterminant = { { 21, 22, 25, 26, 37, 38, 41, 42 } };
 
 template<class ElementProxy, unsigned int N>
 class TIntermediateNode : public TNode<ElementProxy,N>
@@ -190,7 +187,7 @@ class TIntermediateNode : public TNode<ElementProxy,N>
 
   // I know that each intermediate node will have exactly 8 children
   //       so enforce it
-  typedef boost::array<Superclass*,POW2(N)> NodeContainer;
+  typedef std::array<Superclass*,POW2(N)> NodeContainer;
 
   // the next enum is used for bitwise flag operations on each enumeration when deciding
   //     which octant is overlapping with the current region.
@@ -427,6 +424,11 @@ public:
     m_octreeData.maxLevels = maxLevels;
     m_octreeData.maxElementsInLeaf = maxElementsInLeaf;
     m_octreeData.currentLevel = 0;
+  }
+
+  ~Octree()
+  {
+    delete m_pnode;
   }
 
   bool insertItem(const ElementProxy* ep)

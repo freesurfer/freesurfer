@@ -454,6 +454,11 @@ static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
 {
   static int direction = 1;
+  
+  MRISfreeDistsButNotOrig(mris);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
+
   int i;
   for (i = 0; i < mris->nvertices; i++) {
     int const vno =
@@ -1006,6 +1011,10 @@ void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
     }
     
     mrisAverageSignedGradients(mris, avrg);
+
+    MRISfreeDistsButNotOrig(mris);
+      // MRISsetXYZ will invalidate all of these,
+      // so make sure they are recomputed before being used again!
     
     for (k = 0; k < mris->nvertices; k++) {
       VERTEX * const v = &mris->vertices[k];
@@ -2205,6 +2214,10 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
     UseWhite = 1;
   else
     UseWhite = 0;
+ 
+  MRISfreeDistsButNotOrig(pial);
+    // MRISsetXYZ will invalidate all of these,
+    // so make sure they are recomputed before being used again!
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP

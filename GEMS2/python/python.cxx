@@ -20,7 +20,7 @@ PYBIND11_MODULE(gems_python, m) {
             .def(py::init<const std::string &, const std::string &>())
             .def_property_readonly("transform_matrix", &KvlImage::GetTransform)
             .def_property_readonly("non_cropped_image_size", &KvlImage::GetNonCroppedImageSize)
-            .def_property_readonly("cropping_offset", &KvlImage::GetCroppingOffset)
+            .def_property_readonly("crop_slices", &KvlImage::GetCropSlices)
             .def("getImageBuffer", &KvlImage::GetImageBuffer)
             .def("write", &KvlImage::Write)
             .def_static("smooth_image_buffer", &KvlImage::smoothImageBuffer)
@@ -33,23 +33,31 @@ PYBIND11_MODULE(gems_python, m) {
 
     py::class_<KvlCostAndGradientCalculator>(m, "KvlCostAndGradientCalculator")
             .def(py::init<const std::string &,
-            const std::vector<KvlImage> &,
-            const std::string &,
-            const KvlTransform &,
-            const py::array_t<double> &,
-            const py::array_t<double> &,
-            const py::array_t<float> &,
-            const py::array_t< int > &,
-            const py::array_t<double> &>(),
-            py::arg("typeName"),
-            py::arg("images"),
-            py::arg("boundaryCondition"),
-            py::arg("transform")=KvlTransform(nullptr),
-            py::arg("means")=py::array_t<double>(),
-            py::arg("variances")=py::array_t<double>(),
-            py::arg("mixtureWeights")=py::array_t<float>(),
-            py::arg("numberOfGaussiansPerClass")=py::array_t<int>(),
-            py::arg("targetPoints")=py::array_t<double>())
+                const std::vector<KvlImage> &,
+                const std::string &,
+                const KvlTransform &,
+                const py::array_t<double> &,
+                const py::array_t<double> &,
+                const py::array_t<float> &,
+                const py::array_t< int > &,
+                const py::array_t<double> &>(),
+                py::arg("typeName"),
+                py::arg("images"),
+                py::arg("boundaryCondition"),
+                py::arg("transform")=KvlTransform(nullptr),
+                py::arg("means")=py::array_t<double>(),
+                py::arg("variances")=py::array_t<double>(),
+                py::arg("mixtureWeights")=py::array_t<float>(),
+                py::arg("numberOfGaussiansPerClass")=py::array_t<int>(),
+                py::arg("targetPoints")=py::array_t<double>())
+            .def(py::init<KvlMeshCollection &,
+                const double &,
+                const double &,
+                const KvlTransform &>(),
+                py::arg("meshCollection"),
+                py::arg("K0"),
+                py::arg("K1"),
+                py::arg("transform"))
             .def("evaluate_mesh_position", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
             // Aliases to help with profiling
             .def("evaluate_mesh_position_a", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
@@ -88,6 +96,8 @@ PYBIND11_MODULE(gems_python, m) {
             .def_property("k", &KvlMeshCollection::GetK, &KvlMeshCollection::SetK)
             .def_property_readonly("reference_mesh", &KvlMeshCollection::GetReferenceMesh)
             .def("get_mesh", &KvlMeshCollection::GetMesh)
+            .def_property("reference_position", &KvlMeshCollection::GetReferencePosition, &KvlMeshCollection::SetReferencePosition)
+            .def("set_positions", &KvlMeshCollection::SetPositions)
             .def("construct", &KvlMeshCollection::Construct)
             .def("read", &KvlMeshCollection::Read)
             .def("transform", &KvlMeshCollection::Transform)

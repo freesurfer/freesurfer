@@ -629,7 +629,7 @@ main(int argc, char *argv[])
               BrainVolStats[1]);
       fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
 	      BrainVolStats[14]);
-      fprintf(fp,"# Measure Cortex, CortexVol Total cortical gray matter volume, %f, mm^3\n",BrainVolStats[7]);
+      fprintf(fp,"# Measure Cortex, CortexVol, Total cortical gray matter volume, %f, mm^3\n",BrainVolStats[7]);
       fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
       fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
       fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
@@ -1473,7 +1473,7 @@ MRISripVerticesWithMark(MRI_SURFACE *mris, int mark)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1496,7 +1496,7 @@ MRISripVerticesWithoutMark(MRI_SURFACE *mris, int mark)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1542,7 +1542,7 @@ MRISripVerticesWithAnnotation(MRI_SURFACE *mris, int annotation)
       v->ripflag = 1 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -1571,7 +1571,7 @@ MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation)
       v->ripflag = 0 ;
     }
   }
-  MRISripFaces(mris) ;
+  MRISsetRipInFacesWithRippedVertices(mris) ;
   return(NO_ERROR) ;
 }
 

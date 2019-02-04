@@ -36,6 +36,4 @@ add_executable(mris_pmake ${SOURCES})
 add_help(mris_pmake mris_pmake.help.xml)
 target_link_libraries(mris_pmake utils opencl_algorithms)
 
-add_test_script(NAME mris_pmake_test SCRIPT test_mris_pmake DEPENDS mris_pmake)
-
 install(TARGETS mris_pmake DESTINATION bin)

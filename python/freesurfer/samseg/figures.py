@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from freesurfer import errorExit
 
 try:
     import pyqtgraph as pg
@@ -55,8 +54,8 @@ DEFAULT_PALETTE = [
 def initVisualizer(showfigs, movie):
     if showfigs or movie:
         if not SAMSEG_HAVE_QT_PACKAGES:
-            errorExit('the samseg visualization tool requires pyqtgraph and pyqt5 - '
-                      'please install these python packages to show figures')
+            raise RuntimeError('the samseg visualization tool requires pyqtgraph and pyqt5 - '
+                'please install these python packages to show figures')
         else:
             return ShowFigures(show_flag=showfigs, movie_flag=movie)
     else:

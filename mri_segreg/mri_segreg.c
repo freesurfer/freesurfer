@@ -1949,6 +1949,12 @@ int MRISbbrSurfs(char *subject)
 
     printf("GM Proj: %d %lf %lf\n",DoGMProjFrac,GMProjFrac,GMProjAbs);
     printf("WM Proj: %d %lf %lf\n",DoWMProjFrac,WMProjFrac,WMProjAbs);
+
+    MRISfreeDistsButNotOrig(lhwm);
+    MRISfreeDistsButNotOrig(lhctx);
+      // MRISsetXYZ will invalidate all of these,
+      // so make sure they are recomputed before being used again!
+
     for(n = 0; n < lhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhwm,  n, -WMProjAbs);
       if(DoWMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -WMProjFrac);
@@ -2038,6 +2044,11 @@ int MRISbbrSurfs(char *subject)
     }
     
     printf("Projecting RH Surfs\n");
+    MRISfreeDistsButNotOrig(rhwm);
+    MRISfreeDistsButNotOrig(rhctx);
+      // MRISsetXYZ will invalidate all of these,
+      // so make sure they are recomputed before being used again!
+    
     for(n = 0; n < rhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, rhwm,  n, -WMProjAbs);
       if(DoWMProjFrac) ProjNormFracThick(&fx, &fy, &fz, rhwm,  n, -WMProjFrac);

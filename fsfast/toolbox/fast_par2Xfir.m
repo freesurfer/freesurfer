@@ -40,7 +40,8 @@ for c = 1: Nc
   if(~isempty(W)) Wc = W(indc);
   else Wc = [];
   end
-  Xfirc = fast_sched2Xfir(tPres,ntrs,TR,TER,TPreStim,TimeWindow,Wc);
+  psdwin = [TPreStim TER TimeWindow-TPreStim];
+  Xfirc = fast_sched2Xfir(tPres,ntrs,TR,psdwin,Wc);
   Xfir = [Xfir Xfirc];
 end
 

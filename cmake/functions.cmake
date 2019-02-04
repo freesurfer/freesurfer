@@ -44,7 +44,32 @@ function(install_tarball)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
+      # message(FATAL_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
+      message(SEND_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
+    endif()"
+  )
+endfunction()
+
+
+# mac_deploy_qt(TARGET <target> BUNDLE <bundle> PLIST <plist> ICONS <icons>)
+# Creates a mac app bundle from a given target. The ICONS argument is optional.
+function(mac_deploy_qt)
+  cmake_parse_arguments(APP "" "TARGET;BUNDLE;PLIST;ICONS" "" ${ARGN})
+  # install binary
+  install(TARGETS ${APP_TARGET} DESTINATION ${APP_BUNDLE}/Contents/MacOS)
+  # install the plist
+  install(FILES ${APP_PLIST} DESTINATION ${APP_BUNDLE}/Contents)
+  # install the resources
+  if(${APP_ICONS})
+    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${BUNDLE}/Contents/Resources)
+  endif()
+  # run the qt deployment script
+  install(CODE "
+    message(STATUS \"Deploying ${APP_BUNDLE}\")
+    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${Qt5_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
+    if(NOT \${retcode} STREQUAL 0)
+      # message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
+      message(SEND_ERROR \"Could not deploy ${APP_TARGET}\")
     endif()"
   )
 endfunction()
@@ -61,7 +86,7 @@ function(add_help BINARY HELPTEXT)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   target_sources(${BINARY} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${HELPTEXT}.h)
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
-  # make sure to validate the xml as wel
+  # make sure to validate the xml as well
   add_test(${BINARY}_help_test bash -c "xmllint --noout ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction(add_help)
 
@@ -81,7 +106,8 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not append help text to ${SCRIPT}\")
+      # message(FATAL_ERROR \"Could not append help text to ${SCRIPT}\")
+      message(SEND_ERROR \"Could not append help text to ${SCRIPT}\")
     endif()"
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
@@ -102,7 +128,8 @@ function(install_osx_app APP_PATH)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not install ${APP_NAME}\")
+      # message(FATAL_ERROR \"Could not install ${APP_NAME}\")
+      message(SEND_ERROR \"Could not install ${APP_NAME}\")
     endif()"
   )
 endfunction()
@@ -115,7 +142,8 @@ function(symlink TARGET LINKNAME)
     message(STATUS \"Symlinking: ${LINKNAME} to ${TARGET}\")
     execute_process(COMMAND bash -c \"mkdir -p $(dirname ${LINKNAME}) && rm -f ${LINKNAME} && ln -s ${TARGET} ${LINKNAME}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not create symlink to ${TARGET}\")
+      # message(FATAL_ERROR \"Could not create symlink to ${TARGET}\")
+      message(SEND_ERROR \"Could not create symlink to ${TARGET}\")
     endif()"
   )
 endfunction()

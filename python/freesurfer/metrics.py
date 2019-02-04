@@ -1,10 +1,8 @@
 import numpy as np
-from . import error
 
 
 def hausdorffDistance(vol1, vol2, thresh=0.01, measure=np.max):
-    """
-    The Hausdorff distance between two volumes. Computes the max of
+    """The Hausdorff distance between two volumes. Computes the max of
     the minimum euclidian distances between bordering voxels of
     the two input volumes. The mean minimum distance can be reported
     instead of the max minimum distance by setting the `measure` function
@@ -16,18 +14,14 @@ def hausdorffDistance(vol1, vol2, thresh=0.01, measure=np.max):
         thresh (optional): Input volume threshold. Defaults to 0.01.
         measure (optional): Function used to calculate the final
             distance reported. Defaults to `np.max`.
-
     Returns:
         The Hausdorff distance.
-
     """
-    # temporarily import these within the function
     from scipy.ndimage.morphology import binary_erosion
     from scipy.spatial.distance import cdist
-    # make sure inputs are the same shape
+    # make sure inputs have the same shape
     if vol1.shape != vol2.shape:
-      error('hausdorffDistance - inputs must have the same shape')
-      return np.NaN
+        raise ValueError('inputs must have the same shape')
     # find borders by eroding binary masks
     mask1 = vol1 >= thresh
     mask2 = vol2 >= thresh

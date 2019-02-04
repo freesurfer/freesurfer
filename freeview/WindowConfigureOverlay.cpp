@@ -43,6 +43,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   m_dSavedOffset(0)
 {
   ui->setupUi(this);
+  ui->layoutOverlayList->removeWidget(ui->labelShortCut);
   setWindowFlags( Qt::Tool );
   m_fDataCache = NULL;
   ui->widgetHistogram->SetNumberOfBins( 200 );
@@ -72,6 +73,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
   connect(lc, SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateUI()));
+  connect(MainWindow::GetMainWindow(), SIGNAL(CycleOverlayRequested()), SLOT(OnCycleOverlay()));
 }
 
 WindowConfigureOverlay::~WindowConfigureOverlay()
@@ -92,6 +94,20 @@ void WindowConfigureOverlay::showEvent(QShowEvent *)
 {
   UpdateUI();
   UpdateGraph();
+  UpdateGeometry();
+}
+
+void WindowConfigureOverlay::resizeEvent(QResizeEvent *e)
+{
+  UpdateGeometry();
+}
+
+void WindowConfigureOverlay::UpdateGeometry()
+{
+  QRect rc = ui->labelShortCut->geometry();
+  rc.moveLeft(ui->comboBoxOverlayList->geometry().right()+10);
+  rc.moveCenter(QPoint(rc.center().x(), ui->comboBoxOverlayList->geometry().center().y()+1));
+  ui->labelShortCut->setGeometry(rc);
 }
 
 void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
@@ -135,8 +151,19 @@ void WindowConfigureOverlay::UpdateUI()
     {
       allwidgets[i]->blockSignals( true );
     }
+
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     SurfaceOverlayProperty* p = overlay->GetProperty();
+
+    ui->comboBoxOverlayList->clear();
+    for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+    {
+      SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
+      ui->comboBoxOverlayList->addItem(ol->GetName());
+      if (ol == overlay)
+        ui->comboBoxOverlayList->setCurrentIndex(i);
+    }
+
     ui->sliderOpacity->setValue( (int)( p->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, p->GetOpacity() );
 
@@ -154,7 +181,7 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonCustom  ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
 
     ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
-//    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
+    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
     ui->checkBoxUseNonZeroVertices->setChecked(p->GetIgnoreZeros());
     ui->checkBoxUseNonZeroVertices->setVisible(p->GetUsePercentile());
 
@@ -791,7 +818,8 @@ void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     overlay->GetProperty()->SetUsePercentile(bChecked);
-//    ui->widgetHistogram->SetUsePercentile(bChecked);
+    ui->widgetHistogram->SetUsePercentile(bChecked);
+    UpdateUI();
   }
 }
 
@@ -816,8 +844,8 @@ void WindowConfigureOverlay::OnComboMask(int n)
   if (n == ui->comboBoxMask->count()-1)
   {
     QString filename = QFileDialog::getOpenFileName( this, "Select label file",
-                                                           MainWindow::GetMainWindow()->AutoSelectLastDir( "label" ),
-                                                           "Label files (*)");
+                                                     MainWindow::GetMainWindow()->AutoSelectLastDir( "label" ),
+                                                     "Label files (*)");
     if ( !filename.isEmpty())
     {
       setProperty("wait_for_label", true);
@@ -860,4 +888,21 @@ void WindowConfigureOverlay::OnCheckAutoFrameByVertex(bool bChecked)
 {
   if (bChecked)
     OnCurrentVertexChanged();
+}
+
+void WindowConfigureOverlay::OnComboOverlayChanged(int n)
+{
+  if (m_layerSurface && n < m_layerSurface->GetNumberOfOverlays())
+  {
+    m_layerSurface->SetActiveOverlay(n);
+    emit OverlayChanged();
+  }
+}
+
+void WindowConfigureOverlay::OnCycleOverlay()
+{
+  if (m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
+  {
+    ui->comboBoxOverlayList->setCurrentIndex((m_layerSurface->GetActiveOverlayIndex()+1)%m_layerSurface->GetNumberOfOverlays());
+  }
 }

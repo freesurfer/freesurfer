@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pwd.h>
 #include <time.h>
 #include "diag.h"
 #include "error.h"
@@ -37,7 +38,6 @@
 #include "timer.h"
 #include "utils.h"  //  fgetl
 
-extern char *cuserid(char *);
 
 MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
 {
@@ -164,7 +164,15 @@ int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, c
   res = fprintf(fp, "info\n");
   res = fprintf(fp, "numpoints %d\n", count);
   res = fprintf(fp, "useRealRAS %d\n", useRealRAS);
-  res = fprintf(fp, "written by %s on %s\n", cuserid(0), current_date_time());
+  // get user id
+  char user[1024];
+  struct passwd *pw = getpwuid(geteuid());
+  if ((pw != NULL) && (pw->pw_name != NULL)) {
+    strcpy(user, pw->pw_name);
+  } else {
+    strcpy(user, "unknown user");
+  }
+  res = fprintf(fp, "written by %s on %s\n", user, current_date_time());
   res = fclose(fp);
 
   return (NO_ERROR);

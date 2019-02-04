@@ -2967,3 +2967,75 @@ int HISTOisPeak(HISTOGRAM *h, int bin, int whalf)
   }
   return (1);  // h->counts[bin] > all other vals in 2*whalf+1
 }
+
+/*!
+  \fn int HISTOwrite(HISTOGRAM *histo, char *fname) 
+  \brief Writes histogram into the given filename. This uses HISTOwriteInto()
+  which writes in binary format. 
+ */
+int HISTOwrite(HISTOGRAM *histo, char *fname) 
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL){
+    printf("ERROR: HISTOwrite(): opening %s\n",fname);
+    return(1);
+  }
+  HISTOwriteInto(histo, fp);
+  fclose(fp);
+  return(0);
+}
+
+/*!
+  \fn int HISTOwriteTxt(HISTOGRAM *histo, char *fname) 
+  \brief Writes histogram into the given filename in ascii format.
+ */
+int HISTOwriteTxt(HISTOGRAM *histo, char *fname) 
+{
+  int n;
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL){
+    printf("ERROR: HISTOwrite(): opening %s\n",fname);
+    return(1);
+  }
+  for(n=0; n < histo->nbins; n++)
+    fprintf(fp,"%4d %10.5f %10.5f\n",n,histo->bins[n],histo->counts[n]);
+  fclose(fp);
+  return(0);
+}
+
+/*!
+  \fn int HISTOsumNorm(HISTOGRAM *h)
+  \brief Normalize the histogram to have sum=1
+ */
+int HISTOsumNorm(HISTOGRAM *h)
+{
+  int n;
+  double sum=0;
+  for(n=0; n < h->nbins; n++) sum += h->counts[n];
+  if(sum != 0){
+    for(n=0; n < h->nbins; n++) h->counts[n] /= sum;
+  }
+  return(0);
+}
+
+/*!
+  \fn HISTOGRAM *HISTOcumsum(HISTOGRAM *h, HISTOGRAM *hout)
+  \brief Compute the cumulative sum of the histogram. If the histogram is 
+  is a PDF, then this creates a CDF.
+ */
+HISTOGRAM *HISTOcumsum(HISTOGRAM *h, HISTOGRAM *hout)
+{
+  int n;
+  double sum;
+  if(hout==NULL) hout = HISTOcopy(h,hout);
+  sum = 0;
+  for(n=0; n < h->nbins; n++) {
+    sum += h->counts[n];
+    hout->counts[n] = sum;
+  }
+  return(hout);
+}
+
+

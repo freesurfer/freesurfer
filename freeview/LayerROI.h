@@ -71,7 +71,7 @@ public:
   virtual void Undo();
   virtual void Redo();
 
-  virtual void SaveForUndo(int nPlane = 0);
+  virtual void SaveForUndo(int nPlane = -1);
 
   inline LayerPropertyROI* GetProperty()
   {
@@ -81,8 +81,6 @@ public:
   bool SaveROI();
 
   void UpdateLabelData();
-
-  virtual void SetModified();
 
   bool GetCentroidPosition(double* pos);
 
@@ -104,6 +102,8 @@ public:
   }
 
 public slots:
+
+  virtual void SetModified();
   void UpdateOpacity();
   void UpdateColorMap();
   void UpdateThreshold();

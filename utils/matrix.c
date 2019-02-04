@@ -2663,16 +2663,26 @@ void XYZ_NORMALIZED_LOAD(XYZ *xyz, float *xyz_length, float x, float y, float z)
   }
 }
 
+
 float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
+{
+  float norm =
+      (float)sqrt((double)x2 * (double)x2 + (double)y2 * (double)y2 + (double)z2 * (double)z2);
+
+  if (FZERO(norm)) return (0.0f);
+
+  return XYZApproxAngle_knownLength(normalizedXYZ, x2, y2, z2, norm);
+}
+
+
+float XYZApproxAngle_knownLength(
+    XYZ const * normalizedXYZ, 
+    float x2, float y2, float z2, float norm)
 {
   double x1 = normalizedXYZ->x;
   double y1 = normalizedXYZ->y;
   double z1 = normalizedXYZ->z;
 
-  float norm =  // since normalizedXYZ has a length of 1.0, can skip multiplying in its length
-      (float)sqrt((double)x2 * (double)x2 + (double)y2 * (double)y2 + (double)z2 * (double)z2);
-
-  if (FZERO(norm)) return (0.0f);
 
   float dot = x1 * x2 + y1 * y2 + z1 * z2;
 
@@ -4611,6 +4621,33 @@ MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12)
 }
 
 /*!
+  \fn MATRIX *MatrixElementDivide(MATRIX *num, MATRIX *den, MATRIX *quotient)
+  \brief Element-wise matrix division. q = n/(d+FLT_EPSILON). Only works on MATRIX_REAL.
+  \parameter num - numerator
+  \parameter den - denominator
+  \parameter quotient - result
+*/
+MATRIX *MatrixDivideElts(MATRIX *num, MATRIX *den, MATRIX *quotient)
+{
+  int r,c;
+
+  if(num->rows != den->rows || num->cols != den->cols){
+    printf("ERROR: MatrixtDivideElts(): dim mismatch\n");
+    printf("%s:%d\n",__FILE__,__LINE__);
+    return(NULL);
+  }
+  if(quotient==NULL)
+    quotient = MatrixAlloc(num->rows,num->cols,MATRIX_REAL);
+
+  for(r=0; r < num->rows; r++){
+    for(c=0; c < num->cols; c++){
+      quotient->rptr[r+1][c+1] = num->rptr[r+1][c+1]/(den->rptr[r+1][c+1] + FLT_EPSILON);
+    }
+  }
+  return(quotient);
+}
+
+/*!
   MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut)
   Replicate the input matrix nr times in the row direction and nc times 
   in the col direction (same as repmat(mIn,[nr nc]) in matlab)
@@ -4644,4 +4681,33 @@ MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut)
   }
 
   return(mOut);
+}
+
+/*!
+  \fn MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta)
+  \brief Solves the GLM
+*/
+MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta)
+{
+  MATRIX *Xt, *XtX, *iXtX, *Xty, *yhat, *res;
+  double mres,rvar;
+
+  Xt   = MatrixTranspose(X,NULL);
+  XtX  = MatrixMultiplyD(Xt,X,NULL);
+  iXtX = MatrixInverse(XtX,NULL);
+  Xty  = MatrixMultiplyD(Xt,y,NULL);
+  beta = MatrixMultiplyD(iXtX,Xty,beta);
+  yhat = MatrixMultiplyD(X,beta,NULL);
+  res  = MatrixSubtract(y, yhat, NULL);
+  rvar = VectorVar(res,&mres);
+  rvar = rvar*(X->rows-1)/(X->rows-X->cols);
+  *pRVar = rvar;
+
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&Xty);
+  MatrixFree(&yhat);
+  MatrixFree(&res);
+  return(beta);
 }

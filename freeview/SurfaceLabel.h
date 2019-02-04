@@ -112,6 +112,10 @@ public:
   }
 
   void Resample(LayerMRI* mri);
+  void Dilate(int nTimes = 1);
+  void Erode(int nTimes = 1);
+  void Open(int nTimes = 1);
+  void Close(int nTimes = 1);
 
   QString GetFileName()
   {
@@ -133,7 +137,6 @@ public:
   {
     return !m_redoBuffer.isEmpty();
   }
-
 
 Q_SIGNALS:
   void SurfaceLabelChanged();

@@ -374,6 +374,7 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &outside_val, 1);
       printf("setting outside val to %d\n", outside_val) ;
     }
+    else if(strcmp(argv[i], "--no-dwi") == 0)  setenv("FS_LOAD_DWI","0",1);
     else if(strcmp(argv[i], "--debug") == 0)
     {
       debug = 1;

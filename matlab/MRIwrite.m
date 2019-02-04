@@ -1,5 +1,5 @@
-function err = MRIwrite(mri,fstring,datatype)
-% err = MRIwrite(mri,fstring,datatype)
+function err = MRIwrite(mri,fstring,datatype,permuteflag)
+% err = MRIwrite(mri,fstring,datatype,permuteflag)
 %
 % Writes an MRI volume based on the fstring. fstring can be:
 %  1. MGH file. Eg, f.mgh or f.mgz
@@ -24,7 +24,14 @@ function err = MRIwrite(mri,fstring,datatype)
 % applies to bhdr format.
 % 
 % datatype can be uchar, short, int, float, double, ushort,
-% uint. Only applies to nifti.
+% uint. Only applies to nifti. Setting datatype to '' implies float.
+%
+% Note: you can write unpermuted data with permuteflag=0. If you leave
+% out this flag or set it to anything non-zero, then it will be
+% permuted. The permuteflag will not affect the vox2ras info. If you
+% used permuteflag=0 when reading, then use the same when running
+% MRIwrite().
+% 
 
 %
 % MRIwrite.m
@@ -49,11 +56,13 @@ function err = MRIwrite(mri,fstring,datatype)
 
 err = 1;
 
-if(nargin < 2 | nargin > 3)
-  fprintf('err = MRIwrite(mri,fstring,<datatype>)\n');
+if(nargin < 2 | nargin > 4)
+  fprintf('err = MRIwrite(mri,fstring,<datatype>,<permuteflag>)\n');
   return;
 end
-if(nargin == 2) datatype = 'float'; end
+if(exist('datatype')~=1) datatype = ''; end  
+if(isempty(datatype))   datatype = 'float'; end
+if(exist('permuteflag')~=1) permuteflag = 1; end
 
 if(~isfield(mri,'vol'))
   fprintf('ERROR: MRIwrite: structure does not have a vol field\n');
@@ -84,7 +93,11 @@ switch(fmt)
  case {'mgh','mgz'} %----------- MGH/MGZ ------------%
   M = mri.vox2ras0;
   mr_parms = [mri.tr mri.flip_angle mri.te mri.ti];
-  err = save_mgh(permute(mri.vol,[2 1 3 4]), fspec, M, mr_parms);  
+  if(permuteflag)
+    err = save_mgh(permute(mri.vol,[2 1 3 4]), fspec, M, mr_parms);  
+  else
+    err = save_mgh(mri.vol,fspec, M, mr_parms);  
+  end
   return;
  case {'bhdr'} %----------- BHDR ------------%
   bmri.te = mri.te;
@@ -175,7 +188,11 @@ switch(fmt)
   hdr.magic           = 'n+1';
 
   % Note that the order is 2 1 3 4
-  hdr.vol = permute(mri.vol,[2 1 3 4]);
+  if(permuteflag)
+    hdr.vol = permute(mri.vol,[2 1 3 4]);
+  else
+    hdr.vol = mri.vol;
+  end
   err = save_nifti(hdr,fspec);
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);

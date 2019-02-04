@@ -1,20 +1,19 @@
 #!/usr/bin/env fspython
 
-import argparse
+import freesurfer as fs
 from freesurfer.samseg import icv
 
-
 description = '''
-Calculates the total intracranial volume of a subject by summing the individual volumes computed by samseg.
-A file containing a list of intracranial label-names can be provided via the '--map' flag, but if omitted,
-a default list is used. Label-names must be identical to those defined in the samseg atlas.
+Calculates the total intracranial volume of a subject by summing individual volumes computed by samseg. \
+A file containing a list of intracranial labelnames can be provided via the '--labels' flag, but if omitted, \
+a default list is used. Labelnames must be identical to those defined in the samseg atlas.
 '''
 
 # parse command line args
-parser = argparse.ArgumentParser(description=description)
-parser.add_argument('-i', '--input',  metavar='FILE', help='samseg stats input file', required=True)
-parser.add_argument('-o', '--output', metavar='FILE', help='stats output file')
-parser.add_argument('-m', '--map',    metavar="FILE", help='file containing list of intracranial structure labels')
+parser = fs.ArgParser(description=description)
+parser.add_argument('stats', metavar='FILE', help='Volume stats input file.')
+parser.add_argument('-o', '--out', metavar='FILE', help='Intracranial stats output file.')
+parser.add_argument('-l', '--labels', metavar="FILE", help='File containing a list of intracranial structure labelnames to include in the calculation.')
 args = parser.parse_args()
 
 # read in structure names and volumes from samseg stats 
@@ -36,4 +35,4 @@ sbtiv = icv(structures, includeStructures)
 # write out and exit
 print('intracranial volume: %.6f mm^3' % sbtiv)
 if args.output:
-  with open(args.output, 'w') as fid: fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
+    with open(args.output, 'w') as fid: fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)

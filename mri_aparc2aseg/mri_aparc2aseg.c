@@ -557,16 +557,15 @@ int main(int argc, char **argv)
 	  DiagBreak() ;
 
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(LHOnly && (asegid == 41 || asegid == 42)) continue;
-	if(RHOnly && (asegid ==  2 || asegid ==  3)) continue;
-        if(asegid == 3 || asegid == 42) IsCortex = 1;
-        else                            IsCortex = 0;
-        if(asegid >= 77 && asegid <= 82) IsHypo = 1;
-        else                             IsHypo = 0;
-        if(asegid == 2 || asegid == 41)  IsWM = 1;
-        else                             IsWM = 0;
-        if(asegid == 8 || asegid == 47 || asegid == 172)  IsCblumCtx = 1;
-        else                             IsCblumCtx = 0;
+	if(LHOnly && (asegid == Right_Cerebral_Cortex || asegid == Right_Cerebral_White_Matter)) continue;
+	if(RHOnly && (asegid ==  Left_Cerebral_Cortex || asegid ==  Left_Cerebral_White_Matter)) continue;
+	IsCortex = IS_CORTEX(asegid) ;
+	IsHypo = IS_HYPO(asegid) ;
+        if(asegid == Left_Cerebral_White_Matter || asegid == Right_Cerebral_White_Matter)  IsWM = 1;
+        else                                                                               IsWM = 0;
+	//  what is 172??? (BRF)
+        if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex || asegid == 172)  IsCblumCtx = 1;
+        else                                                                                        IsCblumCtx = 0;
         if(IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0)) IsWM = 1;
 
         // integrate surface information
@@ -578,21 +577,21 @@ int main(int argc, char **argv)
         //  aseg=GM AND ribbon=WM => WM
         //  ribbon=UNKNOWN => UNKNOWN
         if(UseNewRibbon){
-	  if(IsCortex || IsWM || asegid==0 || IsCblumCtx) {
+	  if(IsCortex || IsWM || (asegid==Unknown || asegid == CSF) || IsCblumCtx) {
 	    RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-	    if(!IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
-	    if(RibbonVal==2 || RibbonVal==41) {
+	    if(!IsCblumCtx && asegid != CSF) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+	    if(RibbonVal==Left_Cerebral_White_Matter || RibbonVal==Right_Cerebral_White_Matter) {
 	      // Ribbon says it is WM
 	      IsWM = 1;
 	      IsCortex = 0;
 	    }
-	    else if(RibbonVal==3 || RibbonVal==42) {
+	    else if(RibbonVal==Left_Cerebral_Cortex || RibbonVal==Right_Cerebral_Cortex) {
 	      // Ribbon says it is Ctx
 	      IsWM = 0;
 	      IsCortex = 1;
 	      if(IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
 	    }
-	    if(RibbonVal==0)  {
+	    if(RibbonVal==Unknown)  {
 	      // Ribbon says it is unknown
 	      IsWM = 0;
 	      IsCortex = 0;
@@ -611,7 +610,7 @@ int main(int argc, char **argv)
 	else
 	  dthresh = 0.5 ;
 	dist = MRIgetVoxVal(mri_dist, c, r, s, 0) ;
-	if (IsWM && asegid == 0 && mri_fixed != NULL && dist < dthresh)  // interior to white matter but labeled unknown
+	if (IsWM && (asegid == 0 || asegid == CSF) && mri_fixed != NULL && dist < dthresh)  // interior to white matter but labeled unknown
 	  MRIsetVoxVal(mri_fixed, c, r, s, 0, 0) ;     // allow it to be relabeled below
 
         // If it's not labeled as cortex or wm in the aseg, skip
@@ -823,8 +822,37 @@ int main(int argc, char **argv)
         if ( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;  //ctx-rh
         if (!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;  // wm-lh
         if (!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;  // wm-rh
-        if (!IsCortex && dmin > dmaxctx && hemi == 1) segval = 5001;
-        if (!IsCortex && dmin > dmaxctx && hemi == 2) segval = 5002;
+        if (!IsCortex && dmin > dmaxctx && hemi == 1) 
+	{
+	  if (dmin > 2*fabs(dist))  // in medial wall (dist is to a ripped vertex so not reflected in dmin)
+	    segval = asegid ;
+	  else
+	    segval = Left_Unsegmented_WM ;
+	}
+        if (!IsCortex && dmin > dmaxctx && hemi == 2) 
+	{
+	  if (dmin > 2*fabs(dist))  // in medial wall (dist is to a ripped vertex so not reflected in dmin)
+	    segval = asegid ;
+	  else
+	    segval = Right_Unsegmented_WM;
+	}
+
+	if (LabelWM) // unsegmented wm shouldn't be labeled as such
+	{
+	  switch (segval)
+	  {
+	  case Left_Cerebral_White_Matter:
+	  case wm_lh_unknown:
+	    segval = Left_Unsegmented_WM ;
+	    break ;
+	  case Right_Cerebral_White_Matter:
+	  case wm_rh_unknown:
+	    segval = Right_Unsegmented_WM ;
+	    break ;
+	  default:
+	    break ;
+	  }
+	}
 
         // This is a hack for getting the right cortical seg with --rip-unknown
         // The aparc+aseg should be passed as CtxSeg. Used with WMParc
@@ -1126,9 +1154,9 @@ int main(int argc, char **argv)
        may be eliminated.
      */
     printf("Fixing Parahip LH WM\n");
-    CCSegment(ASeg, 3016, 5001); //3016 = lhphwm, 5001 = unsegmented WM left
+    CCSegment(ASeg, 3016, Left_Unsegmented_WM); //3016 = lhphwm, 5001 = unsegmented WM left
     printf("Fixing Parahip RH WM\n");
-    CCSegment(ASeg, 4016, 5002); //4016 = rhphwm, 5002 = unsegmented WM right
+    CCSegment(ASeg, 4016, Right_Unsegmented_WM); //4016 = rhphwm, 5002 = unsegmented WM right
   }
 
   printf("Writing output aseg to %s\n",OutASegFile);

@@ -48,10 +48,12 @@ public:
   ~WindowConfigureOverlay();
 
   void showEvent(QShowEvent *);
+  void resizeEvent(QResizeEvent* e);
 
 signals:
   void ActiveFrameChanged();
   void MaskLoadRequested(const QString& filename);
+  void OverlayChanged();
 
 public slots:
   void UpdateGraph(bool bApply = false);
@@ -86,6 +88,9 @@ protected slots:
   void OnSurfaceLabelAdded(SurfaceLabel* label);
   void OnCheckAutoFrameByVertex(bool bChecked);
   void OnCheckUseNonZeroVertices(bool bChecked);
+  void OnComboOverlayChanged(int n);
+  void OnCycleOverlay();
+  void UpdateGeometry();
 
 private:
   Ui::WindowConfigureOverlay *ui;

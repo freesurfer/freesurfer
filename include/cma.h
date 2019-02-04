@@ -359,6 +359,10 @@ extern "C" {
 
 */
 
+#define wm_lh_unknown        3000
+#define wm_rh_unknown        4000
+#define Left_Unsegmented_WM  5001
+#define Right_Unsegmented_WM 5002
 #define MIN_CORTICAL_PARCELLATION   1000
 
 #define    ctx_lh_unknown  1000 //                      25  5   25  0

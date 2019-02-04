@@ -1347,3 +1347,10 @@ QString LayerVolumeBase::GenerateCacheFileName()
 #endif
   return strg;
 }
+
+void LayerVolumeBase::ClearVoxels()
+{
+  int* dim = m_imageData->GetDimensions();
+  memset(m_imageData->GetScalarPointer(), 0, ((size_t)dim[0])*dim[1]*dim[2]*m_imageData->GetScalarSize());
+  m_imageData->Modified();
+}

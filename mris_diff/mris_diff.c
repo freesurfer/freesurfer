@@ -142,6 +142,8 @@ static int error_count=0;
 static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
 // set by cmd-line parm --maxerrs
 
+MRI *MRISminDist(MRIS *srcsurf, MRIS *trgsurf);
+
 // Because slight numerical differences can cause triangles, especially those on folds, 
 // to end up at significantly different orientations (seen as big variations in nx,ny,nz)
 // it is important to understand how well the whole surface fits, rather than just looking for the
@@ -718,6 +720,21 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%ld",&seed);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--min-dist")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      surf1 = MRISread(pargv[0]);
+      if(surf1==NULL) exit(1);
+      surf2 = MRISread(pargv[1]);
+      if(surf2==NULL) exit(1);
+      // mindist will be on surf2
+      MRI *mindist = MRISminDist(surf1, surf2);
+      if(mindist==NULL) exit(1);
+      printf("Writing mindist to %s\n",pargv[2]);
+      MRIwrite(mindist,pargv[2]);
+      printf("mris_diff done\n");
+      exit(0);
+      nargsused = 3;
+    } 
     else {
       if (surf1path == NULL) {
         surf1path = option;
@@ -765,6 +782,8 @@ static void print_usage(void) {
   printf("   --xyz-rms xyzrmsfile : compute and save rms diff between xyz\n");
   printf("   --angle-rms anglermsfile : compute angle on sphere between xyz\n");
   printf("   --seed seed : set random seed for degenerate normals\n");
+  printf("   --min-dist surf1 surf2 mindist : compute vertex-by-vert RMS distance between surfs\n");
+  printf("     surfs do not need to have the same number of vertices. Output on surf2\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
   printf("   --checkopts   don't run anything, just check options and exit\n");
@@ -864,3 +883,46 @@ static void dump_options(FILE *fp) {
 
   return;
 }
+
+/*!
+  \fn MRI *MRISminDist(MRIS *srcsurf, MRIS *trgsurf)
+  \brief Computes the RMS distance between two surfaces when they do
+  not have the same number of vertices. Output is in the target
+  surface space. Algorithm is not perfect as it just computes the
+  distance between vertices. So if there is a case where the vertex of
+  one surface is very close to the face of the other but not close to
+  a vertex, the distance could look largeish when it is really quite
+  small.
+ */
+MRI *MRISminDist(MRIS *srcsurf, MRIS *trgsurf)
+{
+  int svtx = 0, tvtx;
+  VERTEX *vtrg,*vsrc;
+  float dmin;
+  MHT *srchash = NULL, *trghash = NULL;
+  MRI *mindist;
+
+  mindist = MRIallocSequence(trgsurf->nvertices, 1, 1, MRI_FLOAT, 1);
+
+  srchash = MHTcreateVertexTable_Resolution(srcsurf, CURRENT_VERTICES, 16);
+  trghash = MHTcreateVertexTable_Resolution(trgsurf, CURRENT_VERTICES, 16);
+
+  /* Go through the forward loop (finding closest srcvtx to each trgvtx).
+  This maps each target vertex to a source vertex */
+  for(tvtx = 0; tvtx < trgsurf->nvertices; tvtx++) {
+    // Compute the source vertex that corresponds to this target vertex
+    vtrg = &(trgsurf->vertices[tvtx]);
+    svtx = MHTfindClosestVertexNo(srchash, srcsurf, vtrg, &dmin);
+    MRIsetVoxVal(mindist,tvtx,0,0,0,dmin);
+  }
+  // Go through the reverse loop
+  for(svtx = 0; svtx < srcsurf->nvertices; svtx++) {
+    vsrc = &(srcsurf->vertices[svtx]);
+    tvtx = MHTfindClosestVertexNo(trghash, trgsurf, vsrc, &dmin);
+    if(dmin > MRIgetVoxVal(mindist,tvtx,0,0,0)) MRIsetVoxVal(mindist,tvtx,0,0,0,dmin);
+  }
+  MHTfree(&srchash);
+  MHTfree(&trghash);
+  return(mindist);
+}
+

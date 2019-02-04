@@ -1,26 +1,23 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import glob
 import platform
+import operator
+import os.path as path
 from setuptools import setup, find_packages, Distribution
 
 
 # the freesurfer python packages
 packages = [
     'freesurfer',
-    'freesurfer.algorithm',
     'freesurfer.gems',
     'freesurfer.samseg'
 ]
 
 # get required dependencies from requirements.txt
-base_dir = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
-    requirements = [line for line in requirements_file.read().splitlines()
-                    if not line.startswith('#')]
-
+with open(path.join(path.dirname(path.realpath(__file__)), 'requirements.txt')) as file:
+    requirements = [line for line in file.read().splitlines() if not line.startswith('#')]
 
 # ---- run the setup ----
 
@@ -33,12 +30,12 @@ class BinaryDistribution(Distribution):
         return True
 
 # locates cpython libraries compiled with pybind
-def find_shared_libs(libname):
+def find_libs(libname, required=True):
     libraries = glob.glob('**/%s.*%s*.so' % (libname, platform.system().lower()), recursive=True)
-    if not libraries:
+    if required and not libraries:
         print('error: could not find %s library that matches the current python version' % libname)
         sys.exit(1)
-    return [os.path.basename(filename) for filename in libraries]
+    return [path.basename(filename) for filename in libraries]
 
 setup(
     distclass=BinaryDistribution,
@@ -49,8 +46,10 @@ setup(
     author_email='freesurfer@nmr.mgh.harvard.edu',
     url='https://github.com/freesurfer/freesurfer',
     packages=find_packages(include=packages),
-    package_data={'freesurfer.gems': find_shared_libs('gems_python'),
-                  'freesurfer.algorithm': find_shared_libs('algorithm_python')},
+    package_data={'freesurfer': operator.add(
+                       find_libs('bindings'),
+                       find_libs('labelfusion', required=False)),
+                  'freesurfer.gems': find_libs('gems_python')},
     install_requires=requirements,
     include_package_data=True
 )

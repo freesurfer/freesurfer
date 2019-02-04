@@ -1,6 +1,6 @@
 project(freeview)
 
-if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
+if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -9,7 +9,6 @@ if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC
     ${CMAKE_SOURCE_DIR}/lineprof
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
-    ${QT_INCLUDE_DIRS}
   )
 
   set(CMAKE_AUTOUIC ON)
@@ -183,83 +182,50 @@ if(BUILD_GUIS AND (Qt5_FOUND OR Qt4_FOUND) AND VTK_FOUND AND ITK_FOUND AND PETSC
     BinaryTreeNode.cpp
     BinaryTreeView.cpp
     DialogSelectSplines.cpp
+    DialogSurfaceLabelOperations.cpp
+    GeoSWorker.cpp
+    geos/GeodesicMatting.cpp
+    geos/kde.cpp
     freeview.qrc
   )
 
-  if(USE_QT4)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/json)
-    set(SOURCES ${SOURCES} 
-      json/qjsonarray.cpp
-      json/qjson.cpp
-      json/qjsondocument.cpp
-      json/qjsonobject.cpp
-      json/qjsonparser.cpp
-      json/qjsonvalue.cpp
-      json/qjsonwriter.cpp
-    )
-  endif()
-
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare")
+
+  set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
 
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework IOKit -framework Accelerate")
-    set(FREEVIEW_EXEC_NAME Freeview)
   else()
-    set(FREEVIEW_EXEC_NAME freeview)
+    set(QT_LIBRARIES ${QT_LIBRARIES} Qt5::X11Extras)
   endif()
 
-  if(USE_QT4)
-    set(QT_LIBRARIES Qt4::QtCore Qt4::QtGui)
-  else()
-    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
-    if(NOT APPLE)
-      set(QT_LIBRARIES ${QT_LIBRARIES} Qt5::X11Extras)
-    endif()
-  endif()
-
-  add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
-  target_link_libraries(${FREEVIEW_EXEC_NAME} 
-    ${QT_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    utils
-    fsgdf
+  add_executable(freeview ${SOURCES})
+  target_link_libraries(freeview 
     vtkutils
     vtkfsio
     lineprof
     ${VTK_LIBRARIES}
     ${PETSC_LIBRARIES}
+    ${ITK_LIBRARIES}
+    fsgdf
+    utils
+    ${QT_LIBRARIES}
+    ${OPENGL_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${BLAS_LIBRARIES}
     ${GFORTRAN_LIBRARIES}
-    ${ITK_LIBRARIES}
     -static-libgcc
   )
 
   if(NOT APPLE)
-    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
+    target_link_libraries(freeview glut ${X11_LIBRARIES})
   endif()
 
   if(APPLE)
-    install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION Freeview.app/Contents/MacOS)
-    install(PROGRAMS freeview_wrapper_osx DESTINATION bin RENAME freeview)
-    install(FILES Info.plist DESTINATION Freeview.app/Contents)
-    install(DIRECTORY DESTINATION Freeview.app/Contents/Resources/English.lproj)
-    install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
-    install(CODE "
-      message(STATUS \"Deploying Freeview.app\")
-      # Add verbosity for debugging
-      # execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=3 -always-overwrite\" RESULT_VARIABLE retcode)
-      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app -verbose=2 -always-overwrite\" RESULT_VARIABLE retcode)
-      if(NOT \${retcode} STREQUAL 0)
-        message(FATAL_ERROR \"Could not run macdeployqt\")
-      endif()
-      execute_process(COMMAND bash -c \"${CMAKE_CURRENT_SOURCE_DIR}/macdeployqt_patch.py ${CMAKE_INSTALL_PREFIX}/Freeview.app/Contents\" RESULT_VARIABLE retcode)
-      if(NOT \${retcode} STREQUAL 0)
-        message(FATAL_ERROR \"Could not run install_name_tool commands to add rpath to Qt frameworks in application bundle\")
-      endif()"
-    )
+    mac_deploy_qt(TARGET freeview BUNDLE Freeview.app PLIST Info.plist ICONS resource/icons/freeview.icns)
+    install(PROGRAMS mac_wrapper DESTINATION bin RENAME freeview)
   else()
-    install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION bin)
+    install(TARGETS freeview DESTINATION bin)
   endif()
 
 endif()

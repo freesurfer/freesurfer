@@ -322,9 +322,9 @@ int decimateSurface(MRI_SURFACE **pmris,
     freeAndNULL(mris->vertices_topology[vno].f);
     freeAndNULL(mris->vertices_topology[vno].n);
     freeAndNULL(mris->vertices_topology[vno].v);
-    freeAndNULL(mris->vertices[vno].dist);
-    freeAndNULL(mris->vertices[vno].dist_orig);
   }
+  MRISfreeDistsButNotOrig(mris);
+  MRISfreeDistOrigs      (mris);
 
   // DNG 7/16/18: these two frees were in the original. I don't know how it ever worked
   // because the realloc below needs these to be valid pointers
@@ -362,7 +362,10 @@ int decimateSurface(MRI_SURFACE **pmris,
 	faceLoadContext.nextFace = 0;
   gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, (gpointer)&faceLoadContext);
 
-  mrisCheckVertexFaceTopology(mris);
+  if (!mrisCheckVertexFaceTopology(mris)) {
+    std::cerr << "Error: surface has invalid topology" << std::endl;
+    return 1;
+  }
 
   if (decimateProgressFn != NULL)
   {

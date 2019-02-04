@@ -66,6 +66,7 @@
 #include "icosahedron.h"
 #include "mrisutils.h"
 #include "mri2.h"
+#include "gcamorph.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -344,7 +345,30 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     } 
-
+    else if (!strcasecmp(option, "--m3z")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      printf("Reading in %s\n",pargv[0]);
+      MRIS *m3zsurf = MRISread(pargv[0]);
+      if(m3zsurf==NULL) exit(1);
+      printf("Reading in %s\n",pargv[1]);
+      GCA_MORPH *gcam;
+      gcam = GCAMread(pargv[1]);
+      if(gcam==NULL) exit(1);
+      printf("Inverting GCAM\n");
+      MRI *mri_tmp ;
+      mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT) ;
+      useVolGeomToMRI(&gcam->image, mri_tmp);
+      GCAMinvert(gcam, mri_tmp) ;
+      MRIfree(&mri_tmp) ;
+      int err = GCAMmorphSurf(m3zsurf, gcam);
+      if(err) exit(1);
+      printf("Writing surf to %s\n",pargv[2]);
+      err = MRISwrite(m3zsurf,pargv[2]);
+      if(err) exit(1);
+      nargsused = 3;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -383,7 +407,10 @@ static void print_usage(void) {
   printf("   --ones  : replace input with ones\n");
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
-  printf("    other options do not apply to --lta\n");
+  printf("     other options do not apply to --lta\n");
+  printf("\n");
+  printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
+  printf("     other options do not apply to --m3z\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");

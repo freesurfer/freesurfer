@@ -83,6 +83,8 @@
 #include <QVariantMap>
 #include "LayerROI.h"
 #include <QFileInfo>
+#include "GeoSWorker.h"
+#include "BrushProperty.h"
 
 extern "C"
 {
@@ -107,6 +109,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_correlationSurface(NULL),
   m_bIgnoreHeader(false)
 {
+  m_strTypeNames.push_back( "Supplement" );
   m_strTypeNames.push_back( "MRI" );
   m_sPrimaryType = "MRI";
   
@@ -169,6 +172,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     GetProperty()->SetTextureSmoothing(1);
     UpdateTextureSmoothing();
   }
+
+  m_geos = NULL;
 }
 
 LayerMRI::~LayerMRI()
@@ -212,6 +217,9 @@ LayerMRI::~LayerMRI()
   foreach (int i, keys)
     m_labelActors[i]->Delete();
   m_labelActors.clear();
+
+  if (m_geos)
+    delete m_geos;
 }
 
 void LayerMRI::ConnectProperty()
@@ -343,6 +351,9 @@ bool LayerMRI::LoadVolumeFromFile()
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
 
   UpdateNiftiHeader();
+
+  if (GetDataType() == MRI_RGB)
+    GetProperty()->SetDisplayRGB(true);
 
   return true;
 }
@@ -888,10 +899,10 @@ void LayerMRI::InitializeActors()
     m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
     
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
-    mResample[i] = vtkSmartPointer<vtkImageResample>::New();
-    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+    mResample[i] = vtkSmartPointer<vtkImageReslice>::New();
+//    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+//    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+//    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
     mResample[i]->SetInterpolationModeToNearestNeighbor();
     
     // Set ourselves up.
@@ -1419,7 +1430,7 @@ std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<doubl
 
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
 {
-  QList<double> list;
+  QList<double> list; 
   for (int frame = 0; frame < GetNumberOfFrames(); frame++)
     list << m_volumeSource->GetVoxelValue( i, j, k, frame );
   return list;
@@ -2539,12 +2550,13 @@ void LayerMRI::UpdateLabelOutline()
     double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
     {
-      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
-      mResample[i]->SetInterpolationModeToNearestNeighbor();
+//      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+//      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+//      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
       double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
       mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
+      mResample[i]->SetOutputSpacing(vsize[0]/IMAGE_RESAMPLE_FACTOR, vsize[1]/IMAGE_RESAMPLE_FACTOR, vsize[2]/IMAGE_RESAMPLE_FACTOR);
+      mResample[i]->SetInterpolationModeToNearestNeighbor();
       mEdgeFilter[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       mColorMap[i]->SetInputConnection( mEdgeFilter[i]->GetOutputPort() );
       pos[i] = m_dSlicePosition[i];
@@ -2607,9 +2619,9 @@ void LayerMRI::UpdateUpSampleMethod()
       mColorMap[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       if ( !GetProperty()->GetShowLabelOutline() )
       {
-        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
-        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
-        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
+//        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
       }
     }
   }
@@ -3395,7 +3407,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
                 << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
     */
     
-    vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+    vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
     vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
@@ -3412,8 +3424,9 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
     resampler->SetInput(mask);
-    for (int i = 0; i < 3; i++)
-      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+//    for (int i = 0; i < 3; i++)
+//      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+    resampler->SetOutputSpacing(s1);
     resampler->SetInterpolationModeToNearestNeighbor();
     threshold->ThresholdByUpper(m_dMaskThreshold);
     threshold->SetInput(resampler->GetOutput());
@@ -3790,7 +3803,36 @@ VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
   return vlist;
 }
 
-bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
+bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI *mask)
+{
+//  vtkSmartPointer<vtkImageWeightedSum> sum = vtkSmartPointer<vtkImageWeightedSum>::New();
+//  sum->AddInput(interior->GetImageData());
+//  sum->AddInput(exterior->GetImageData());
+//  vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+//  cast->SetInputConnection(sum->GetOutputPort());
+//  cast->SetOutputScalarTypeToUnsignedChar();
+//  cast->Update();
+//  vtkImageData* seeds = cast->GetOutput();
+//  // find the VOI in seeds
+//  int* dim = seeds->GetDimensions();
+//  int bound[6] = {0, dim[0], 0, dim[1], 0, dim[2]};
+//  unsigned char* ptr = (unsigned char*)seeds->GetScalarPointer();
+//  for (int i = 0; )
+//  vtkSmartPointer<vtkExtractVOI> voi = vtkSmartPointer<vtkExtractVOI>::New();
+//  voi->SetInput(seeds);
+//  voi->SetVOI(bound);
+  if (!m_geos)
+  {
+    m_geos = new GeoSWorker;
+    connect(m_geos, SIGNAL(Finished(bool)), SLOT(SetModified()));
+  }
+
+  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
+  return true;
+}
+
+#if 0
+bool LayerMRI::GeodesicSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
 {
   GEOS_PARMS parm;
   parm.lambda = lambda;
@@ -3819,6 +3861,7 @@ bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double l
   VLSTfree(&vlist_out);
   return true;
 }
+#endif
 
 void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
 {

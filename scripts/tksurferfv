@@ -18,6 +18,7 @@ set label = ();
 set UseTkSurfer = 0;
 set curv = curv
 set DoAllSurfs = 0;
+set altargs = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -83,6 +84,7 @@ else
     set cmd = ($cmd -overlay $overlay)
   end
 endif
+set cmd = ($cmd $altargs)
 echo $cmd
 $cmd
 
@@ -238,9 +240,10 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
-      echo $cmdline
-      exit 1
+      set altargs = ($altargs $flag)
+      #echo ERROR: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
       breaksw
   endsw
 

@@ -254,7 +254,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>19</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -362,6 +362,7 @@
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
     <addaction name="separator"/>
+    <addaction name="actionStereoRender"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -1681,6 +1682,22 @@
   <action name="actionLoadParameterization">
    <property name="text">
     <string>Load Parameterization...</string>
+   </property>
+  </action>
+  <action name="actionStereoRender">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Stereo Render (3D View)</string>
+   </property>
+  </action>
+  <action name="actionCycleOverlay">
+   <property name="text">
+    <string>Cycle Overlay</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
    </property>
   </action>
  </widget>
@@ -3506,8 +3523,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionStereoRender</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnStereoRender(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
+  <signal>CycleOverlayRequested()</signal>
   <slot>OnLoadVolume()</slot>
   <slot>OnCloseVolume()</slot>
   <slot>OnCycleLayer()</slot>
@@ -3609,5 +3643,6 @@
   <slot>OnReloadROI()</slot>
   <slot>OnReloadPointSet()</slot>
   <slot>OnLoadSurfaceParameterization()</slot>
+  <slot>OnStereoRender(bool)</slot>
  </slots>
 </ui>

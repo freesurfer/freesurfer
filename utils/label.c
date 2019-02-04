@@ -643,7 +643,7 @@ int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
     v = &mris->vertices[vno];
     v->ripflag = 0;
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   MRISremoveRipped(mris);
   return (NO_ERROR);
 }
@@ -676,7 +676,7 @@ int LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thr
     v = &mris->vertices[vno];
     v->ripflag = 0;
   }
-  MRISripFaces(mris);
+  MRISsetRipInFacesWithRippedVertices(mris);
   MRISremoveRipped(mris);
   return (NO_ERROR);
 }

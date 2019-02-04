@@ -38,7 +38,7 @@ def registerAtlas(
     # ------ Register Image ------
 
     if worldToWorldTransformMatrix is not None:
-        # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image 
+        # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
         # transform (needed for subsequent computations) and be done
         print('world-to-world transform supplied - skipping registration')
         imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
@@ -54,7 +54,7 @@ def registerAtlas(
         K = 1e-7
         maximalDeformationStopCriterion = 0.005
         lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion  # Doesn't seem to matter very much
-    
+
         # Initialization
         if initLTAFile is None:
             initialWorldToWorldTransformMatrix = np.identity(4)
@@ -81,7 +81,7 @@ def registerAtlas(
         rotationMatrix[2, 1] = sin_theta
         rotationMatrix[2, 2] = cos_theta
         initialWorldToWorldTransformMatrix = rotationMatrix @ initialWorldToWorldTransformMatrix
-        
+
         # Isotropic scaling
         scaling = 0.9
         scalingMatrix = np.diag([scaling, scaling, scaling, 1.0])
@@ -95,7 +95,7 @@ def registerAtlas(
         voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
         downSamplingFactors = np.round(targetDownsampledVoxelSpacing / voxelSpacing)
         downSamplingFactors[downSamplingFactors < 1] = 1
-        
+
         # Use initial transform to define the reference (rest) position of the mesh (i.e. the one
         # where the log-prior term is zero)
         mesh_collection = gems.KvlMeshCollection()
@@ -103,7 +103,7 @@ def registerAtlas(
         mesh_collection.k = K * np.prod(downSamplingFactors)
         mesh_collection.transform(gems.KvlTransform(requireNumpyArray(initialImageToImageTransformMatrix)))
         mesh = mesh_collection.reference_mesh
-        
+
         # Get image data
         imageBuffer = image.getImageBuffer()
         visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
@@ -119,27 +119,31 @@ def registerAtlas(
         gmClassNumber = 3  # Needed for displaying purposes
         numberOfClasses = alphas.shape[1]
         visualizer.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
-        
+
         # Get a registration cost and use it to evaluate some promising starting point proposals
         calculator = gems.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
-        priors = mesh.rasterize_atlas(imageBuffer.shape)
-        visualizer.show(probabilities=priors, window_id='atlas probabilities', title='Atlas Probabilities')
-        tmp = np.sum(priors[:, :, :, 1:], axis=3)
-        centerOfGravityAtlas = np.array(scipy.ndimage.measurements.center_of_mass(tmp))
-        initialTranslation = centerOfGravityImage - centerOfGravityAtlas
         nodePositions = mesh.points
-        trialNodePositions = nodePositions + initialTranslation
-        mesh.points = trialNodePositions
-        trialCost, trialGradient = calculator.evaluate_mesh_position_b(mesh)
-        if trialCost >= cost:
-            # Center of gravity was not a success; revert to what we had before
-            mesh.points = nodePositions
-        else:
-            # This is better starting position; remember that we applied it
-            initialImageToImageTransformMatrix[0:3, 3] = initialImageToImageTransformMatrix[0:3, 3] + (
-                    np.diag(downSamplingFactors) @ initialTranslation)
+
+        # Get the mean node position of the mesh in order to attempt a rough center-of-gravity initialization
+        meanNodePosition = np.mean(nodePositions, axis=0)
+        baseTranslation = centerOfGravityImage - meanNodePosition
+
+        # Attempt a few different initial alignments. If the initial center-of-gravity placement fails
+        # try shifting the translation up and down along the Y axis by 10 voxels
+        for verticalDisplacement in (0, -10, 10):
+            translation = baseTranslation + np.array((0, verticalDisplacement, 0))
+            mesh.points = nodePositions + translation
+            trialCost, trialGradient = calculator.evaluate_mesh_position_b(mesh)
+            if trialCost >= cost:
+                # Trial alignment was not a success - revert to what we had before
+                mesh.points = nodePositions
+            else:
+                # This is better starting position - remember that we applied it
+                initialImageToImageTransformMatrix[0:3, 3] = initialImageToImageTransformMatrix[0:3, 3] + (np.diag(downSamplingFactors) @ translation)
+                break
+
         originalNodePositions = mesh.points
 
         # Get an optimizer, and stick the cost function into it

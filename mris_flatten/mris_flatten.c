@@ -396,7 +396,7 @@ main(int argc, char *argv[])
       MRISclearMarks(mris) ;
       LabelMark(area, mris) ;
       MRISripUnmarked(mris) ;
-      MRISripFaces(mris);
+      MRISsetRipInFacesWithRippedVertices(mris);
       mris->patch = 1 ;
       mris->status = MRIS_CUT ;
       LabelFree(&area) ;
@@ -714,6 +714,13 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "norand"))
   {
     setRandomSeed(0L) ;
+  }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number genererator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "sphere"))
   {

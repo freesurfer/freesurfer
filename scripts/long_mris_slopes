@@ -445,13 +445,13 @@ def options_parse():
     # extensive error checks
 #    if options.fsgd is None and 
     if options.qdec is None:
-#        print('ERROR: Specify --fsgd or --qedc')
+#        print('ERROR: Specify --fsgd or --qdec')
         parser.print_help()
-        print('\nERROR: Specify --qedc (and other required arguments)\n')
+        print('\nERROR: Specify --qdec (and other required arguments)\n')
         sys.exit(1)
 
 #    if options.fsgd is not None and options.qdec is not None:
-#        print('ERROR: Specify either --fsgd or --qedc, not both')
+#        print('ERROR: Specify either --fsgd or --qdec, not both')
 #        sys.exit(1)
         
     if options.hemi is None:

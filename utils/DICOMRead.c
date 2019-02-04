@@ -1322,10 +1322,10 @@ int AllocElementData(DCM_ELEMENT *e)
   ---------------------------------------------------------------*/
 char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
 {
-  char *evstring;
+  char *evstring=NULL;
   int n, len;
-  char tmpstr[20000];
-  char tmpstr2[20000];
+  char tmpstr[2000];
+  char tmpstr2[2000];
 
   memset(&tmpstr[0], 0, 2000);
 
@@ -1349,13 +1349,15 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
       sprintf(tmpstr, "%s", e->d.string);
       break;
     case DCM_OB:
+      evstring = (char *) calloc(sizeof(char),e->length+1);
+      len = e->length;
       for (n = 0; n < e->length; n++) {
         if (isprint(e->d.string[n]))
-          tmpstr[n] = e->d.string[n];
+          evstring[n] = e->d.string[n];
         else if (e->d.string[n] == '\r' || e->d.string[n] == '\n' || e->d.string[n] == '\v')
-          tmpstr[n] = '\n';
+          evstring[n] = '\n';
         else
-          tmpstr[n] = ' ';
+          evstring[n] = ' ';
       }
       // printf("%s\n",tmpstr);
       break;
@@ -1393,9 +1395,11 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
       return (NULL);
   }
 
-  len = strlen(tmpstr);
-  evstring = (char *)calloc(len + 1, sizeof(char));
-  memmove(evstring, tmpstr, len + 1);
+  if(evstring==NULL){
+    len = strlen(tmpstr);
+    evstring = (char *)calloc(len + 1, sizeof(char));
+    memmove(evstring, tmpstr, len + 1);
+  }
 
   if (DoBackslash) {
     // replace backslashes with spaces

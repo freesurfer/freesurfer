@@ -398,9 +398,6 @@ def options_parse():
         options.base  = True
         options.long  = True
         
-    if options.long:
-        options.check = True    
-        
     if options.bdir is None:
         options.bdir = options.cdir
         
@@ -1125,7 +1122,7 @@ if __name__=="__main__":
         if options.base: time.sleep(options.pause)
         run_long(qdectable,options)
 
-    if options.check or options.long:
+    if options.check:
         if options.long: time.sleep(options.pause)
         check_long(qdectable,options)
        

@@ -6,7 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
  *    $Date: 2011/04/15 17:33:17 $
@@ -34,23 +33,8 @@
 #include "macros.h"
 #include "proto.h"
 
-#ifdef FS_CUDA
-#define FAST_TRANSLATION 0
-#include "devicemanagement.h"
-#include "em_register_cuda.h"
-#endif
-
-
-//#define OUTPUT_STAGES
-
-
 #ifdef OUTPUT_STAGES
-#ifdef FS_CUDA
-const std::string stem( "TransGPU" );
-#else
 const std::string stem( "TransCPU" );
-#endif
-
 const std::string stern( ".output" );
 
 
@@ -120,16 +104,6 @@ double find_optimal_translation( GCA *gca,
   y_trans = 0;
   z_trans = 0;
 
-#ifdef FS_CUDA
-  if( exvivo ) {
-    std::cerr << __FUNCTION__
-              << ": exvivo not supported!"
-              << std::endl;
-    exit( EXIT_FAILURE );
-  }
-  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
-#endif // FS_CUDA
-
   delta = (max_trans-min_trans) / trans_steps ;
   m_L_tmp = NULL ;
   m_trans = MatrixIdentity(4, NULL) ;
@@ -161,20 +135,6 @@ double find_optimal_translation( GCA *gca,
       fflush(stdout) ;
     }
 
-#if defined(FS_CUDA) && FAST_TRANSLATION
-    unsigned int nTrans = static_cast<unsigned int>( 1+((max_trans-min_trans)/delta) );
-    float myMaxLogP, mydx, mydy, mydz;
-    CUDA_FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
-                                 clamp,
-                                 &myMaxLogP, &mydx, &mydy, &mydz );
-    if( myMaxLogP > max_log_p )
-    {
-      max_log_p = myMaxLogP;
-      x_max = mydx;
-      y_max = mydy;
-      z_max = mydz;
-    }
-#else
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
     {
       *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -194,14 +154,8 @@ double find_optimal_translation( GCA *gca,
           // get the transform
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
           // calculate the LogSample probability
-#ifdef FS_CUDA
-          log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, clamp );
-#else
-          log_p =
-            local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples, exvivo, clamp) ;
-#endif
 
+          log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples, exvivo, clamp) ;
 
 #if 0
           printf( "%s: %8.3f %8.3f %8.3f %12.6f\n",
@@ -250,7 +204,6 @@ double find_optimal_translation( GCA *gca,
         }
       }
     }
-#endif
 
     if( Gdiag & DIAG_SHOW )
     {
@@ -267,12 +220,8 @@ double find_optimal_translation( GCA *gca,
     // create a new transform by multiplying the previous one.
     m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
-#ifdef FS_CUDA
-    max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, clamp );
-#else
-    max_log_p = local_GCAcomputeLogSampleProbability
-      (gca, gcas, mri, m_L,nsamples, exvivo, clamp) ;
-#endif
+
+    max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, exvivo, clamp) ;
 
 #if 1
     // Repeat for debugging
@@ -280,7 +229,6 @@ double find_optimal_translation( GCA *gca,
       "max log p = %12.6f @ (%4.3f, %4.3f, %4.3f)\n",
       max_log_p, x_max, y_max, z_max) ;
 #endif
-
 
     x_max = y_max = z_max = 0.0 ;
     /* we've translated transform by old maxs */
@@ -292,10 +240,6 @@ double find_optimal_translation( GCA *gca,
   }
 
   MatrixFree(&m_trans) ;
-
-#ifdef FS_CUDA
-  CUDA_em_register_Release();
-#endif
 
 #ifdef OUTPUT_STAGES
   std::cerr << __FUNCTION__

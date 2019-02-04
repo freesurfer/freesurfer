@@ -17,39 +17,45 @@ find_package(VTK HINTS ${VTK_DIR} NO_MODULE)
 
 if(VTK_FOUND)
 
+  # The order of the libraries is important
+    
   # overwrite VTK_LIBRARIES with the absolute paths
   library_paths(
     NAME VTK_LIBRARIES
     LIBDIR ${VTK_LIBRARY_DIRS}
     LIBRARIES
+    #
     vtkverdict
-    vtkGraphics
-    vtkexpat
-    vtkfreetype
-    vtktiff
-    vtkjpeg
     vtkmetaio
-    vtkpng
-    vtkzlib
     vtksqlite
-    vtkImaging
-    vtkFiltering
-    vtkCommon
-    vtksys
-    vtkGenericFiltering
     vtkexoIIc
     vtkNetCDF
     vtkNetCDF_cxx
-    vtkVolumeRendering
-    vtkRendering
-    vtkftgl
-    vtkWidgets
-    vtkHybrid
-    vtkIO
     vtkDICOMParser
     vtkhdf5
     vtkhdf5_hl
     LSDyna
+    #
+    vtkWidgets
+    vtkHybrid
+    vtkVolumeRendering
+    vtkRendering
+    vtkIO
+    vtkGenericFiltering
+    vtkGraphics
+    vtkImaging
+    vtkFiltering
+    #
+    vtkftgl
+    vtktiff
+    vtkjpeg
+    vtkpng
+    vtkzlib
+    vtkexpat
+    vtkfreetype
+    #
+    vtkCommon
+    vtksys
   )
 
   library_paths(
@@ -67,28 +73,6 @@ if(VTK_FOUND)
     vtkIOTCL
     vtkCommonTCL
   )
-
-  # vtkWrapTcl and vtkWrapTclInit commands (required for qdec and vtkutils)
-  if(NOT VTK_WRAP_TCL_EXE OR NOT VTK_WRAP_TCL_INIT_EXE)
-    message(FATAL_ERROR "VTK must be built with VTK_WRAP_TCL ON")
-  endif()
-
-  # create a simple cmake function to use vtkWrapTcl
-  function(vtk_wrap_tcl INFILE OUTFILE)
-    add_custom_command(
-      OUTPUT  ${OUTFILE}
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
-      COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
-              ${VTK_LIBRARY_DIRS}/hints 1 ${OUTFILE})
-  endfunction()
-
-  # create a simple cmake function to use vtkWrapTclInit
-  function(vtk_wrap_tcl_init INFILE OUTFILE)
-    add_custom_command(
-      OUTPUT  ${OUTFILE}
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
-      COMMAND ${VTK_WRAP_TCL_INIT_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} ${OUTFILE})
-  endfunction()
 
   if(NOT APPLE)
     # install the shared libraries to the freesurfer lib directory

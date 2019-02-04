@@ -36,6 +36,7 @@
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
+#include "mrisurf_vals.h"
 #include "mri.h"
 #include "macros.h"
 #include "mrishash.h"
@@ -216,7 +217,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read ico from %s",Progname,fname) ;
   }
 
-  MRISclear(mris_avg, which) ;
+  MRISclearWhichAndVal2(mris_avg, which) ;
 
 #define FIRST_SUBJECT 5
   for (nsubjects = 0, i = FIRST_SUBJECT ; i < argc-1 ; i++, nsubjects++)
@@ -466,7 +467,7 @@ main(int argc, char *argv[])
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   }
 
-  MRISclear(mris, which) ;
+  MRISclearWhichAndVal2(mris, which) ;
   mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL,
                                        CURRENT_VERTICES);
   if (max_len > mean+3*sigma)

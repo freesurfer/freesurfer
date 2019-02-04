@@ -44,14 +44,11 @@
 #include "region.h"
 #include "talairachex.h"
 #include "timer.h"
+#include "cma.h"
 
 #include "romp_support.h"
-
 #include "chronometer.h"
-#ifdef FS_CUDA
-#include "mriconvolve_cuda.h"
-#include "mrimean_cuda.h"
-#endif
+
 #ifdef HAVE_OPENMP
 #include "romp_support.h"
 #endif
@@ -2057,9 +2054,6 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     MRIcopyHeader(mri_src, mri_dst);
   }
 
-#ifdef FS_CUDA
-  mri_dst = MRImean_cuda(mri_src, mri_dst, wsize);
-#else
   {
     int frame, z;
 
@@ -2070,7 +2064,6 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 #endif
       for (z = 0; z < depth; z++) {
         ROMP_PFLB_begin
-	
         int x, y, x0, y0, z0;
         float val, num;
 
@@ -2097,12 +2090,11 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
           }
         }
         exec_progress_callback(frame * depth + z, mri_src->nframes * depth, 0, 1);
-	ROMP_PFLB_end
+        ROMP_PFLB_end
       }
       ROMP_PF_end
     }
   }
-#endif
 
   return (mri_dst);
 }
@@ -2580,10 +2572,8 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
   // int width, height, depth;
   int klen;
-#ifndef FS_CUDA
   int frame;
   MRI *mtmp1, *mri_tmp;
-#endif
   float *kernel;
 
 #if 0
@@ -2612,12 +2602,6 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     exit(EXIT_FAILURE);
   }
 
-#ifdef FS_CUDA
-  if (mri_src->width <= 1 || mri_src->height <= 1 || mri_src->depth <= 1)
-    ErrorExit(ERROR_BADPARM, "MRIconvolveGaussian: (cuda) insufficient dimension (%d, %d, %d)", mri_src->width, mri_src->height, mri_src->depth);
-
-  mri_dst = MRIconvolveGaussian_cuda(mri_src, mri_dst, kernel, klen);
-#else
   if (mri_dst == mri_src) {
     mri_tmp = mri_dst = MRIclone(mri_src, NULL);
   }
@@ -2645,17 +2629,14 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   }
 
   MRIfree(&mtmp1);
-#endif
   MRIcopyHeader(mri_src, mri_dst);
 
-#ifndef FS_CUDA
   if (mri_tmp)  // src and dst are the same
   {
     MRIcopy(mri_tmp, mri_src);
     mri_dst = mri_src;
     MRIfree(&mri_tmp);
   }
-#endif
 
   return (mri_dst);
 }
@@ -3032,12 +3013,10 @@ MRI *MRIreduceByte(MRI *mri_src, MRI *mri_dst)
 MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int width, height, depth;
-#ifndef FS_CUDA
   int x = 0, y = 0, z = 0, halflen, *xi, *yi, *zi;
   register int i = 0;
   BUFTYPE *inBase = NULL;
   float *ki = NULL, total = 0, *inBase_f = NULL, *foutPix = NULL, val = 0;
-#endif
 
   width = mri_src->width;
   height = mri_src->height;
@@ -3053,9 +3032,6 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT);
   }
 
-#ifdef FS_CUDA
-  MRIconvolve1d_cuda(mri_src, mri_dst, k, len, axis, src_frame, dst_frame);
-#else
   if (mri_dst->type == MRI_UCHAR) {
     return (MRIconvolve1dByte(mri_src, mri_dst, k, len, axis, src_frame, dst_frame));
   }
@@ -3337,7 +3313,6 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
       }
       break;
   }
-#endif
 
   return (mri_dst);
 }
@@ -4532,14 +4507,17 @@ MRI *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst, MRI *mri_gaus
 /*! -----------------------------------------------------
   \fn MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
   \param mri_src - binarized volume
-  \parm mri_dst - trinerized output (MRI_AMBIGUOUS, MRI_WHITE MRI_NOT_WHITE)
-  \brief Trinerizes the output. If an input voxel is MRI_WHITE and one
+  \parm mri_dst - trinerized output 
+  \brief Trinerizes mri_src. If an input voxel is MRI_WHITE and one
   of its neighbors is MRI_NOT_WHITE, then the output set to MRI_WHITE.
   If an input voxel is MRI_NOT_WHITE and one of its neighbors is
   MRI_WHITE, then the output set to MRI_NOT_WHITE. All other voxels
   are set to MRI_AMBIGUOUS. Basically, it is marking the boundaries
   between white and not white. In practice (eg, mris_make_surfaces),
   mri_src is often wm.mgz, which could give inaccurate segmentation.
+  MRI_AMBIGUOUS (128) - not a border voxel
+  MRI_WHITE (255) - white source voxel with at least one non-white neighbor
+  MRI_NOT_WHITE (1) - non-white source voxel with at least one white neighbor
 ------------------------------------------------------*/
 MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
 {
@@ -4702,6 +4680,17 @@ MRI *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
   return (mri_dst);
 }
 
+/*!
+  \fn int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int y, int z, float *ppw, float *ppg)
+  \brief Classifies voxel as either MRI_NOT_WHITE=1 or MRI_WHITE=255. Works
+  by computing mean and stddev of each class (defined by mri_labeled)
+  based on intensities in a wsize neighborhood around the given
+  voxel. The probability of each class is computed from means and
+  stddevs and the most likely is chosen. wsize is typically 11, meaning
+  the neighborhood is +/-5 voxels which works out to 1331 voxels, but
+  it might be much less than this if not all voxels in mri_labeled are
+  actually labeled (eg, MRIreclassify() uses only border voxels)
+ */
 int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int y, int z, float *ppw, float *ppg)
 {
   int xk, yk, zk, xi, yi, zi, nw, ng, whalf, val;
@@ -4719,9 +4708,8 @@ int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int
     for (yk = -whalf; yk <= whalf; yk++) {
       yi = mri_src->yi[y + yk];
       for (xk = -whalf; xk <= whalf; xk++) {
-        if (!zk && !yk && !xk) {
+        if (zk==0 && yk==0 && xk==0)
           continue; /* don't use central value as we are classifying it */
-        }
         xi = mri_src->xi[x + xk];
         val = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
         if (MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) == MRI_NOT_WHITE) {
@@ -4765,16 +4753,12 @@ int MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, int
 
   ptotal = pg + pw;
 
-  if (!FZERO(ptotal)) {
+  if (!FZERO(ptotal)){ 
     pg /= ptotal;
   }
-  pw /= ptotal;
-  if (ppg) {
-    *ppg = pg;
-  }
-  if (ppw) {
-    *ppw = pw;
-  }
+  pw /= ptotal; // is this a bug?
+  if(ppg) *ppg = pg;
+  if(ppw) *ppw = pw;
 
   return (pg > pw ? MRI_NOT_WHITE : MRI_WHITE);
 }
@@ -4831,13 +4815,19 @@ int MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, MRI *mr
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-        Parameters:
+/*!
+  \fn int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, float gray_hi, int wsize)
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  \brief Reclassifies voxels where mri_src intensity is between wm_low
+  and gray_hi using MRIborderClassifyVoxel(), which looks in a
+  neighborhood around the voxel to compute means and stddevs of the
+  two classes (WM, GM), then computes the probability that the given
+  voxel came from each class, then classifies based on which is
+  higher. If the prob is less than 0.7, then the size of the
+  neighborhood is changed from 5 to 21 (step 4). The probs for WM and
+  GM are computed at each scale, and the class with the highest sum of
+  probs is chosen. Every voxel is considered.
+*/
 int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, float gray_hi, int wsize)
 {
   int x, y, z, width, height, depth, nw, ng, nchanged, ntested, w, nmulti;
@@ -4845,27 +4835,42 @@ int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, fl
   float pw, pg, gtotal, wtotal;
   MRI *mri_border;
 
+  printf("MRIreclassify(): wm_low=%g, gray_hi=%g, wsize=%d\n",wm_low,gray_hi,wsize);
+  fflush(stdout);
+
+  // Get WM and non-WM labels along the border. mri_label
+  // is not used again for reclassification, so it is ok 
+  // that its contents are changed along the way.
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL);
-  if (!mri_dst) {
+
+  if (!mri_dst)
     mri_dst = MRIcopy(mri_labeled, NULL);
-  }
 
   width = mri_src->width;
   height = mri_src->height;
   depth = mri_src->depth;
 
-  for (nmulti = ntested = nchanged = nw = ng = z = 0; z < depth; z++) {
+  nmulti = ntested = nchanged = nw = ng = 0;
+  for (z = 0; z < depth; z++) {
     DiagShowPctDone((float)(z) / (float)(depth - 1), 5);
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
         src = (int)MRIgetVoxVal(mri_src, x, y, z, 0);
         label = (int)MRIgetVoxVal(mri_labeled, x, y, z, 0);
+	// Only reclassify voxels between wm_low and gray_hi
         if (src > wm_low && src < gray_hi) {
           ntested++;
+
+	  // Get a new label based on stats of voxels near the border
           new_label = MRIborderClassifyVoxel(mri_src, mri_border, wsize, x, y, z, &pw, &pg);
 
-          if (MAX(pw, pg) < .7) /* do multi-scale search */
-          {
+	  // If the likelihood of the chosen label is sufficiently
+	  // high, then just take it. If not, then do a multi-scale
+	  // search. Where the neighborhood size changes 5:4:21. At
+	  // each neighborhood, the prob of WM and GM are computed.
+	  // The probabilities are summed over the sizes, and the
+	  // class that has the highest sum is chosen.
+          if (MAX(pw, pg) < .7) {
             nmulti++;
             gtotal = wtotal = 0.0;
             for (w = 5; w < 21; w += 4) {
@@ -4873,16 +4878,13 @@ int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, fl
               gtotal += pg;
               wtotal += pw;
             }
-            if (gtotal > wtotal) {
+            if(gtotal > wtotal) 
               new_label = MRI_NOT_WHITE;
-            }
-            else {
+            else
               new_label = MRI_WHITE;
-            }
           }
-          if (new_label != label) {
+          if(new_label != label)
             nchanged++;
-          }
           label = new_label;
         }
         MRIsetVoxVal(mri_dst, x, y, z, 0, label);
@@ -4890,24 +4892,346 @@ int MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, float wm_low, fl
     }
   }
 
-  if (Gdiag & DIAG_SHOW) {
-    fprintf(stderr,
-            "               %8d voxels tested (%2.2f%%)\n",
-            ntested,
-            100.0f * (float)ntested / (float)(width * height * depth));
-    fprintf(stderr,
-            "               %8d voxels changed (%2.2f%%)\n",
-            nchanged,
-            100.0f * (float)nchanged / (float)(width * height * depth));
-    fprintf(stderr,
-            "               %8d multi-scale searches  (%2.2f%%)\n",
-            nmulti,
-            100.0f * (float)nmulti / (float)(width * height * depth));
-  }
+  printf("  %8d voxels tested (%2.2f%%)\n",
+            ntested, 100.0f * (float)ntested / (float)(width * height * depth));
+  printf("  %8d voxels changed (%2.2f%%)\n",
+            nchanged,100.0f * (float)nchanged / (float)(width * height * depth));
+  printf("  %8d multi-scale searches  (%2.2f%%)\n",
+            nmulti, 100.0f * (float)nmulti / (float)(width * height * depth));
+  fflush(stdout);
 
   MRIfree(&mri_border);
   return (NO_ERROR);
 }
+
+
+/*!
+  \fn MRI *MRIreclassifyWMCtxNonPar(MRI *norm, MRI *seg, int nitersmax, MRI *newseg)
+  \brief Reclassifies WM and Cortex based on non-parametric
+  probability intensity distributions.  The passed seg (eg,
+  aseg.presurf.mgz) is used to determine the non-parametric PDFs for
+  WM and cortex and an optimal threshold is chosen. Voxels that are on
+  the border between WM and cortex are then examined and possibly
+  recoded based on intensity. This process is iterated until either
+  nitersmax is reached or no more voxels are recoded. This funciton
+  itself could be iterated because the PDFs are computed from the
+  segmentation; however, this iteration does not stablize (in one case
+  it caused WM to take over all GM).
+ */
+MRI *MRIreclassifyWMCtxNonPar(MRI *norm, MRI *seg, int nitersmax, MRI *newseg)
+{
+  int wmsegs[] = {2,41,251,252,253,254,255},nwmsegs;
+  int ctxsegs[] = {3,42},nctxsegs;
+  int nwm,nctx;
+  MRI *wmmask, *ctxmask;
+  float wmmin,  wmmax,  wmrange,  wmmean,  wmstd;
+  float ctxmin, ctxmax, ctxrange, ctxmean, ctxstd;
+  int wmm, ctxm, nbrwmm, nbrctxm, isborder, c,r,s,dc, dr, ds,nrecode,nborder,nhits,segid;
+  HISTOGRAM *hwm, *hctx;
+  double val,min,thresh,hbinmin,hbinmax,d;
+  int n,nmin=0,k;
+
+  printf("MRIreclassifyWMCtxNonPar(): nitersmax = %d \n",nitersmax);fflush(stdout);
+  if(seg==newseg){
+    printf("ERROR: cannot be done in-place\n");
+    return(NULL);
+  }
+
+  /* Create binary masks of WM and Cortex (note corpus callosum will not be
+     in aseg.presurf.mgz, so 251-255 will not be relevant*/
+  nwmsegs  = sizeof(wmsegs)/sizeof(int);
+  wmmask = MRImatchSegs(seg,wmsegs, nwmsegs, 1, NULL);//1=output value
+  nctxsegs = sizeof(ctxsegs)/sizeof(int);
+  ctxmask = MRImatchSegs(seg,ctxsegs, nctxsegs, 1, NULL);//1=output value
+
+  // Compute stats from WM
+  nwm = MRIsegStats(wmmask, 1, norm, 0, &wmmin, &wmmax, &wmrange,&wmmean,&wmstd);
+  if(nwm == 0){
+    printf("ERROR: could not find any WM voxels\n");
+    return(NULL);
+  }
+  printf("wmstats  n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nwm,wmmean,wmstd,wmmin,wmmax);
+
+  // Compute stats from Cortex
+  nctx = MRIsegStats(ctxmask, 1, norm, 0, &ctxmin, &ctxmax, &ctxrange,&ctxmean,&ctxstd);
+  if(nctx == 0){
+    printf("ERROR: could not find any CTX voxels\n");
+    return(NULL);
+  }
+  printf("ctxstats n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nctx,ctxmean,ctxstd,ctxmin,ctxmax);
+  fflush(stdout);
+
+  // Get intensity limits for histogram
+  hbinmin = MIN(wmmin,ctxmin);
+  hbinmax = MIN(wmmax,ctxmax);
+  printf("hbminmin = %g, hbinmax = %g\n",hbinmin,hbinmax);
+
+  // Create histogram (PDF) of WM voxels, then CDF
+  hwm = HISTOseg(wmmask, 1, norm, hbinmin,hbinmax,1);
+  HISTOsumNorm(hwm);
+  HISTOcumsum(hwm,hwm);
+
+  // Create histogram (PDF) of Cortex voxels, then CDF
+  hctx = HISTOseg(ctxmask, 1, norm, hbinmin,hbinmax,1);
+  HISTOsumNorm(hctx);
+  HISTOcumsum(hctx,hctx);
+
+  //HISTOwriteTxt(hwm, "wmhist.dat");
+  //HISTOwriteTxt(hctx, "ctxhist.dat");
+
+  /* Find threshold where (1-CtxCDF) = WMCDF. This is the place where
+     the probability that a voxel is WM equals that of Cortex.  This
+     is a non-parametric way of computing it (ie, instead of computing
+     means, stddevs, and z-scores). This assumes T1-weighting. */
+  min = 10e10;
+  for(n=0; n < hwm->nbins; n++){
+    d = (1.0-hctx->counts[n]) - hwm->counts[n];
+    if(fabs(d)<min){
+      min = d;
+      nmin = n;
+    }
+  }
+  thresh = hwm->bins[nmin];
+  printf("thresh = %g\n",thresh);
+  HISTOfree(&hwm);
+  HISTOfree(&hctx);
+
+  /* Iteratively recode voxels based on the threshold. Only voxels
+     that are face border voxels are eligible to be recoded in
+     a given iteration. */
+  for(k=0; k < nitersmax; k++){
+    // Copy seg into newseg to keep changes separate. 
+    // Note: seg = newseg from previous iteration
+    newseg = MRIcopy(seg,newseg); 
+
+    // Create new wm and cortex masks
+    wmmask = MRImatchSegs(seg,wmsegs, nwmsegs, 1, wmmask);//1=output value
+    ctxmask = MRImatchSegs(seg,ctxsegs, nctxsegs, 1, ctxmask);//1=output value
+    
+    nhits = 0;   // total number of wm or ctx voxels
+    nborder = 0; // total number of face border voxels
+    nrecode=0;   // number of voxels recoded on this iteration
+    for(c=0; c < wmmask->width; c++){
+      for(r=0; r < wmmask->height; r++){
+	for(s=0; s < wmmask->depth; s++){
+	  wmm  = MRIgetVoxVal(wmmask,c,r,s,0);
+	  ctxm = MRIgetVoxVal(ctxmask,c,r,s,0);
+	  // If this voxel is neither WM or Cortex, then skip
+	  if(!wmm && !ctxm) continue;
+	  nhits ++;
+	  // Check whether it is a border voxel by determining
+	  // whether any face neighbors have a different tissue class 
+	  isborder = 0;
+	  for(dc=-1; dc <= +1; dc++){
+	    if(isborder) break;
+	    for(dr=-1; dr <= +1; dr++){
+	      if(isborder) break;
+	      for(ds=-1; ds <= +1; ds++){
+		if(isborder) break;
+		if(abs(dc)+abs(dr)+abs(ds) != 1) continue; // face
+		nbrwmm  = MRIgetVoxVal(wmmask,c+dc,r+dr,s+ds,0);
+		nbrctxm = MRIgetVoxVal(ctxmask,c+dc,r+dr,s+ds,0);
+		if((wmm && nbrctxm) || (ctxm && nbrwmm))
+		  isborder = 1;
+	      }
+	    }
+	  }
+	  // If it is not a border voxel, skip it
+	  if(!isborder) continue;
+	  nborder++;
+
+	  // Classify depending upon whether the value is above or
+	  // below threshold. Note: corpus callosum will not be in
+	  // aseg.presurf.mgz, so 251-255 will not be relevant
+	  val = MRIgetVoxVal(norm,c,r,s,0);	
+	  segid = MRIgetVoxVal(seg,c,r,s,0); // current seg
+	  if(val > thresh){
+	    // Recode cortex to WM
+	    if(segid == Left_Cerebral_Cortex){
+	      MRIsetVoxVal(newseg,c,r,s,0,Left_Cerebral_White_Matter);
+	      nrecode++;
+	    }
+	    if(segid == Right_Cerebral_Cortex){
+	      MRIsetVoxVal(newseg,c,r,s,0,Right_Cerebral_White_Matter);
+	      nrecode++;
+	    }
+	  }
+	  else {
+	    // Recode WM to cortex
+	    if(segid == Left_Cerebral_White_Matter){
+	      MRIsetVoxVal(newseg,c,r,s,0,Left_Cerebral_Cortex);
+	      nrecode++;
+	    }
+	    if(segid == Right_Cerebral_White_Matter){
+	      MRIsetVoxVal(newseg,c,r,s,0,Right_Cerebral_Cortex);
+	      nrecode++;
+	    }
+	  }
+	}
+      }
+    }
+    printf("iter %2d/%2d ",k,nitersmax);
+    printf("nborder = %d, nrecode = %d\n",nborder,nrecode);
+    fflush(stdout);
+    if(nrecode==0) break;
+    seg = newseg;
+  }
+
+  MRIfree(&wmmask);
+  MRIfree(&ctxmask);
+
+  return(newseg);
+}
+
+/*!
+  \fn MRI *MRIclassifyAmbiguousNonPar(MRI *norm, MRI *seg, MRI *statseg, double Qwm, double Qctx, int NdilWM, int NdilCtx)
+  \brief Relabels all voxels into MRI_AMBIGUOUS=128, MRI_WHITE=255, or
+  MRI_NOT_WHITE=1. Candidate voxels must be within NdilWM voxels of WM
+  and NdilCtx voxels of cortex as indicated by the seg
+  volume. Ambiguous voxels are defined as being between low and hi
+  thresholds. The low threshold is determined by the value at which
+  Prob(Ctx) > Qctx*Prob(WM). The hi threshold is determined by the
+  value at which Prob(WM) > Qwm*Prob(WM). Prob() is determined by
+  computing the PDF of the histogram of WM and Cortex based on the
+  statseg. This second seg is a bit of a hack because seg usually
+  comes from MRIreclassifyWMCtxNonPar(), which has already used
+  intensity to segment. Example parameters Qwm=Qctx=3.0, NdilWM=NdilCtx=2.
+ */
+MRI *MRIclassifyAmbiguousNonPar(MRI *norm, MRI *seg, MRI *statseg, double Qwm, double Qctx, int NdilWM, int NdilCtx)
+{
+  int wmsegs[] = {2,41,251,252,253,254,255},nwmsegs;
+  int ctxsegs[] = {3,42},nctxsegs;
+  int nwm,nctx;
+  MRI *wmmask, *ctxmask, *wmmaskdil, *ctxmaskdil, *ambi;
+  float wmmin,  wmmax,  wmrange,  wmmean,  wmstd;
+  float ctxmin, ctxmax, ctxrange, ctxmean, ctxstd;
+  int wmm, ctxm, c,r,s,nrecode,nhits;
+  HISTOGRAM *hwm, *hctx, *wmcdf, *ctxcdf;
+  double val,min,thresh,hbinmin,hbinmax,d,thresh_low,thresh_hi,q;
+  int n,nmin=0;
+
+  printf("MRIclassifyAmbiguousNonPar(): Qwm=%g, Qctx=%g, NdilWM=%d, NdilCtx=%d \n",Qwm,Qctx,NdilWM,NdilCtx);
+
+  /* Create binary masks of WM and Cortex (note corpus callosum will not be
+     in aseg.presurf.mgz, so 251-255 will not be relevant*/
+  nwmsegs  = sizeof(wmsegs)/sizeof(int);
+  nctxsegs = sizeof(ctxsegs)/sizeof(int);
+  wmmask = MRImatchSegs(statseg,wmsegs, nwmsegs, 1, NULL);//1=output value
+  ctxmask = MRImatchSegs(statseg,ctxsegs, nctxsegs, 1, NULL);//1=output value
+
+  // Compute stats from WM
+  nwm = MRIsegStats(wmmask, 1, norm, 0, &wmmin, &wmmax, &wmrange,&wmmean,&wmstd);
+  if(nwm == 0){
+    printf("ERROR: could not find any WM voxels\n");
+    return(NULL);
+  }
+  printf("wmstats  n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nwm,wmmean,wmstd,wmmin,wmmax);
+
+  // Compute stats from Cortex
+  nctx = MRIsegStats(ctxmask, 1, norm, 0, &ctxmin, &ctxmax, &ctxrange,&ctxmean,&ctxstd);
+  if(nctx == 0){
+    printf("ERROR: could not find any CTX voxels\n");
+    return(NULL);
+  }
+  printf("ctxstats n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nctx,ctxmean,ctxstd,ctxmin,ctxmax);
+  fflush(stdout);
+
+  // Get intensity limits for histogram
+  hbinmin = MIN(wmmin,ctxmin);
+  hbinmax = MIN(wmmax,ctxmax);
+  printf("hbminmin = %g, hbinmax = %g\n",hbinmin,hbinmax);
+
+  // Create histogram (PDF) of WM voxels, then CDF
+  hwm = HISTOseg(wmmask, 1, norm, hbinmin,hbinmax,1);
+  HISTOsumNorm(hwm);
+  wmcdf = HISTOcumsum(hwm,NULL);
+
+  // Create histogram (PDF) of Cortex voxels, then CDF
+  hctx = HISTOseg(ctxmask, 1, norm, hbinmin,hbinmax,1);
+  HISTOsumNorm(hctx);
+  ctxcdf = HISTOcumsum(hctx,NULL);
+
+  HISTOwriteTxt(hwm, "wm.pdf.dat");
+  HISTOwriteTxt(hctx,"ctx.pdf.dat");
+  //HISTOwriteTxt(wmcdf, "wm.cdf.dat");
+  //HISTOwriteTxt(ctxcdf,"ctx.cdf.dat");
+
+  /* Find threshold where (1-CtxCDF) = WMCDF. This is the place where
+     the probability that a voxel is WM equals that of Cortex.  This
+     is a non-parametric way of computing it (ie, instead of computing
+     means, stddevs, and z-scores). This assumes T1-weighting. */
+  min = 10e10;
+  for(n=0; n < wmcdf->nbins; n++){
+    d = (1.0-ctxcdf->counts[n]) - wmcdf->counts[n];
+    if(fabs(d)<min){
+      min = d;
+      nmin = n;
+    }
+  }
+  thresh = hwm->bins[nmin];
+  // From this minimum, look back toward 0 to find where the prob of Ctx >= Qctx*prob of WM
+  for(n=nmin; n>=0;  n--){
+    q = hctx->counts[n]/(hwm->counts[n]+1e-6);
+    if(q >= Qctx) break;
+  }
+  thresh_low = hctx->bins[n];
+  // From this minimum, look ahead toward max to find where the prob of Cwm >= Qctx*prob of Ctx
+  for(n=0; n < hwm->nbins; n++){
+    q = hwm->counts[n]/(hctx->counts[n]+1e-6);
+    if(q >= Qwm) break;
+  }
+  thresh_hi = hwm->bins[n];
+  printf("thresh = (%g,%g,%g)\n",thresh,thresh_low,thresh_hi);
+
+  HISTOfree(&hwm);
+  HISTOfree(&wmcdf);
+  HISTOfree(&hctx);
+  HISTOfree(&ctxcdf);
+
+  wmmask  = MRImatchSegs(seg,wmsegs,  nwmsegs,  1, wmmask);//1=output value
+  ctxmask = MRImatchSegs(seg,ctxsegs, nctxsegs, 1, ctxmask);//1=output value
+  wmmaskdil = NULL;
+  for(n=0; n < NdilWM; n++)  wmmaskdil = MRIdilate(wmmask, wmmaskdil);
+  ctxmaskdil = NULL;
+  for(n=0; n < NdilCtx; n++)  ctxmaskdil = MRIdilate(ctxmask, ctxmaskdil);
+
+  ambi = MRIalloc(seg->width,seg->height,seg->depth,MRI_UCHAR);
+  MRIcopyHeader(seg,ambi);
+
+  nhits = 0;   // total number of wm or ctx voxels
+  nrecode=0;   // number of voxels recoded on this iteration
+  for(c=0; c < wmmask->width; c++){
+    for(r=0; r < wmmask->height; r++){
+      for(s=0; s < wmmask->depth; s++){
+	wmm  = MRIgetVoxVal(wmmask,c,r,s,0);
+	if(wmm) MRIsetVoxVal(ambi,c,r,s,0,MRI_WHITE);
+	else 	MRIsetVoxVal(ambi,c,r,s,0,MRI_NOT_WHITE);
+	wmm  = MRIgetVoxVal(wmmaskdil,c,r,s,0);
+	ctxm = MRIgetVoxVal(ctxmaskdil,c,r,s,0);
+	// If this voxel is neither WM or Cortex in dilation, then skip
+	if(!wmm && !ctxm) continue;
+	nhits ++;
+	val = MRIgetVoxVal(norm,c,r,s,0);	
+	if(val > thresh_low && val < thresh_hi){
+	  MRIsetVoxVal(ambi,c,r,s,0,MRI_AMBIGUOUS);
+	  nrecode++;
+	}
+      }
+    }
+  }
+  printf("nhits = %d, nrecode = %d\n",nhits,nrecode);
+  fflush(stdout);
+
+  MRIfree(&wmmask);
+  MRIfree(&ctxmask);
+  MRIfree(&wmmaskdil);
+  MRIfree(&ctxmaskdil);
+
+  return(ambi);
+}
+
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -5128,37 +5452,40 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
     
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
-        if (x == Gx && y == Gy && z == Gz) {
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak();
-        }
 
+	// Ignore any voxels in the input marked as ambiguous
         label = MRIgetVoxVal(mri_labeled, x, y, z, 0);
+        if (label == MRI_AMBIGUOUS)
+          continue;
+
         val = MRIgetVoxVal(mri_T1, x, y, z, 0);
         border_label = MRIgetVoxVal(mri_border, x, y, z, 0);
-        if (label == MRI_AMBIGUOUS) {
-          continue;
-        }
+
         if (border_label == MRI_WHITE) {
+          // This is a voxel labeled as WM in the input (and border)
           if ((val >= (gray_low + gray_hi) / 2) || (gray_low < 0)) {
+            // The intensity is > the passed mid gray intensity
+            // Record stats
             nwhite++;
             white_mean += (double)val;
             white_std += (double)(val * val);
-            if (val < white_min) {
+            if (val < white_min) 
               white_min = (double)val;
-            }
-            if (val > white_max) {
+            if (val > white_max) 
               white_max = val;
-            }
             bin = nint(val - min_val);
-            if (bin < 0 || bin >= h_white->nbins) {
+            if (bin < 0 || bin >= h_white->nbins)
               DiagBreak();
-            }
             h_white->counts[bin]++;
           }
         }
-        else if (border_label == MRI_NOT_WHITE) /* gray bordering white */
+        else if (border_label == MRI_NOT_WHITE) 
         {
+          /* Labeled as non-white (gray) in input (and bordering) */
           if ((val >= gray_low && val <= gray_hi) || gray_low < 0) {
+            // value is between gray low and hi
             ngray++;
             gray_mean += (double)val;
             gray_std += (double)(val * val);
@@ -5193,7 +5520,7 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins);
   gray_mode = h_gray->bins[peak];
 
-  // use median instead of mode. More robust
+  // use median instead of mode. More robust, but ignored below
   white_mode = HISTOfindMedian(h_white);
   gray_mode = HISTOfindMedian(h_gray);
   gray_mean /= (double)ngray;
@@ -5213,6 +5540,46 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   *psigma_wm = white_std;
   *psigma_gm = gray_std;
   return (NO_ERROR);
+}
+
+/*!
+  \fn int MRIcomputeClassStatisticsSeg(MRI *norm, MRI *seg, float *wmmean, float *wmstd, float *ctxmean, float *ctxstd)
+  \brief Computes WM and cortex mean and stddev based on the segementation.
+ */
+int MRIcomputeClassStatisticsSeg(MRI *norm, MRI *seg, float *wmmean, float *wmstd, float *ctxmean, float *ctxstd)
+{
+  int wmsegs[] = {2,41,251,252,253,254,255},nwmsegs;
+  int ctxsegs[] = {3,42},nctxsegs;
+  int nwm,nctx;
+  float wmmin,  wmmax,  wmrange;
+  float ctxmin, ctxmax, ctxrange;
+  MRI *wmmask, *ctxmask;
+
+  /* Create binary masks of WM and Cortex */
+  nwmsegs  = sizeof(wmsegs)/sizeof(int);
+  nctxsegs = sizeof(ctxsegs)/sizeof(int);
+  wmmask = MRImatchSegs(seg,wmsegs, nwmsegs, 1, NULL);//1=output value
+  ctxmask = MRImatchSegs(seg,ctxsegs, nctxsegs, 1, NULL);//1=output value
+
+  // Compute stats from WM
+  nwm = MRIsegStats(wmmask, 1, norm, 0, &wmmin, &wmmax, &wmrange,wmmean,wmstd);
+  if(nwm == 0){
+    printf("ERROR: could not find any WM voxels\n");
+    return(1);
+  }
+  printf("wmstats  n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nwm,*wmmean,*wmstd,wmmin,wmmax);
+
+  // Compute stats from Cortex
+  nctx = MRIsegStats(ctxmask, 1, norm, 0, &ctxmin, &ctxmax, &ctxrange,ctxmean,ctxstd);
+  if(nctx == 0){
+    printf("ERROR: could not find any CTX voxels\n");
+    return(1);
+  }
+  printf("ctxstats n=%6d, mean=%g, std=%g, min=%g, max=%g\n",nctx,*ctxmean,*ctxstd,ctxmin,ctxmax);
+  MRIfree(&wmmask);
+  MRIfree(&ctxmask);
+  fflush(stdout);
+  return(0);
 }
 
 MRI *MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter, float thresh)

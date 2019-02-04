@@ -117,6 +117,7 @@ MATRIX  *MatrixMultiply_wkr( const MATRIX *m1, const MATRIX *m2, MATRIX *m3,
 	// c1 must equal r2
 
 MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12); // like matlab m1.*m2
+MATRIX *MatrixDivideElts(MATRIX *num, MATRIX *den, MATRIX *quotient); // like matlab num./den
 MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut); // like matlab repmat()
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
@@ -222,8 +223,12 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #define XYZ_LOAD(v,x,y,z)             do { XYZ* xyz = &v; xyz.x=x, xyz.y=y, xyz.z=z; } while 0
 void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, float z);
 
-float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2);
-
+float XYZApproxAngle(
+    XYZ const * normalizedXYZ, float x2, float y2, float z2);
+    
+float XYZApproxAngle_knownLength(
+    XYZ const * normalizedXYZ, 
+    float x2, float y2, float z2, float length2);
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 float  VectorLen( const VECTOR *v ) ;
@@ -351,6 +356,8 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
 double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R);
+MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
+
 
 #if defined(__cplusplus)
 };

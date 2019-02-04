@@ -21,7 +21,7 @@ int main(int narg, char* arg[])
 	enum {Dimension =3};
 	typedef int                                                        PixelType;
 	typedef itk::Image< PixelType,Dimension> ImageType;
-	typedef ImageType::IndexType 			IndexType;
+	// typedef ImageType::IndexType 			IndexType;
 	typedef itk::Mesh< PixelType, Dimension > MeshType;
 	typedef itk::ImageFileWriter<ImageType>                               WriterType;
 	typedef itk::ImageFileReader<ImageType>                               ReaderType;

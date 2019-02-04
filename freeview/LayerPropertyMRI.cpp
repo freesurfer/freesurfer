@@ -574,6 +574,17 @@ void LayerPropertyMRI::UpdateLUTTable()
   }
 }
 
+void LayerPropertyMRI::SetCustomColors(const QMap<int, QColor> &colors)
+{
+  mLUTTable->RemoveAllPoints();
+  QList<int> idx = colors.keys();
+  foreach (int id, idx)
+  {
+    mLUTTable->AddRGBAPoint(id, colors[id].redF(), colors[id].greenF(), colors[id].blueF(), colors[id].alphaF());
+  }
+  mLUTTable->Build();
+}
+
 void LayerPropertyMRI::OnColorMapChanged ()
 {
   if ( !mSource )
