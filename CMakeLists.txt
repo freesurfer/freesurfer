@@ -335,7 +335,6 @@ add_subdirectories(
   dicom
   utils
   utilscpp
-  fsgdf
   svm-lib
   opencl_algorithms
 )

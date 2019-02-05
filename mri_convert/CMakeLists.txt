@@ -4,7 +4,7 @@ include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_convert mri_convert.c)
 add_help(mri_convert mri_convert.help.xml)
-target_link_libraries(mri_convert utils fsgdf)
+target_link_libraries(mri_convert utils)
 
 install(TARGETS mri_convert DESTINATION bin)
 
