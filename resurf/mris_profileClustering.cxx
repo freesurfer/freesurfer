@@ -76,6 +76,7 @@ int main(int narg, char * arg[])
 		std::cout<< arg[0] << " -s surface -i image  -c numClusters -d deep -o outputImage"  << std::endl;   
 		return -1;
 	}
+
 	const char *surfFilename= cl.follow ("", "-s");
 	const char *imageFilename = cl.follow ("", "-i");
 	const char *outputImageFilename = cl.follow ("", "-o");
