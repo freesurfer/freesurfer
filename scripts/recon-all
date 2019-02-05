@@ -5002,8 +5002,8 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.label \
         --l $hemi.V2_exvivo.label \
         --l $hemi.MT_exvivo.label \
-        --l $hemi.entorhinal_exvivo.label \
         --l $hemi.perirhinal_exvivo.label \
+        --l $hemi.entorhinal_exvivo.label \
         --a BA_exvivo \
         --maxstatwinner \
         --noverbose )
@@ -5029,8 +5029,8 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.thresh.label \
         --l $hemi.V2_exvivo.thresh.label \
         --l $hemi.MT_exvivo.thresh.label \
-        --l $hemi.entorhinal_exvivo.thresh.label \
         --l $hemi.perirhinal_exvivo.thresh.label \
+        --l $hemi.entorhinal_exvivo.thresh.label \
         --a BA_exvivo.thresh \
         --maxstatwinner \
         --noverbose )
