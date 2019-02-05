@@ -13,6 +13,11 @@ option(BUILD_GUIS "Build GUIs" ON)
 option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 
+if(NOT APPLE)
+  # linux-only build options
+  option(TKTOOLS_MODULE "Install old Linux TK GUIs" OFF)
+endif()
+
 # enable ctest
 enable_testing()
 
@@ -176,9 +181,6 @@ if(BUILD_GUIS)
   # -------- qt --------
   find_package(QT)
 
-  # -------- tcltktixblt --------
-  find_package(TCLTKTIXBLT)
-
 endif()
 
 # --------------------------------------------------
@@ -298,9 +300,6 @@ endif()
 
 # first, prepare the freesurfer distribution
 add_subdirectory(distribution)
-if(NOT MINIMAL)
-  add_subdirectory(images)
-endif()
 
 # the top-level include dir contain the most commonly
 # included freesurfer header files
@@ -715,4 +714,9 @@ endif()
 # infant freesurfer
 if(INFANT_MODULE)
   add_subdirectories(infant)
+endif()
+
+# tk tools
+if(TKTOOLS_MODULE)
+  add_subdirectory(tktools)
 endif()
