@@ -131,7 +131,7 @@ add_definitions(-DHAVE_ITK_LIBS)
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate and mris_decimate_gui
+# only used by mris_decimate
 find_package(GTS)
 
 # -------- openMP --------
@@ -178,10 +178,6 @@ if(BUILD_GUIS)
 
   # -------- tcltktixblt --------
   find_package(TCLTKTIXBLT)
-
-  # -------- wxwidgets --------
-  # only used by mris_decimate_gui
-  find_package(WXWidgets)
 
 endif()
 
@@ -623,7 +619,6 @@ if(NOT MINIMAL)
     mris_compute_volume_fractions
     mris_congeal
     mris_copy_header
-    mris_decimate_gui
     mris_defects_pointset
     mris_deform
     mris_density

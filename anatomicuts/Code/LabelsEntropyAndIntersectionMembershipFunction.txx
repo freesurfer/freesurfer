@@ -132,7 +132,9 @@ LabelsEntropyAndIntersectionMembershipFunction< TVector >
 		}
 
 		dist=std::min(dist/labels1->size(), dist_inv/labels1->size());
-		return 1.0/(dist+1);
+		dist =  100000.0/(dist+1);
+		//std::cout << dist << std::endl;
+		return dist;
 	}
 	else if(this->m_gaussian)
 	{
@@ -250,6 +252,7 @@ LabelsEntropyAndIntersectionMembershipFunction< TVector >
 		return 1.0/(dist+1.0);
 
 	}
+	std::cout << " ups "<< std::endl;
 	return -1;
 /*	else if(this->m_entropy )
 	{

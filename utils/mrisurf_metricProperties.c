@@ -1827,110 +1827,6 @@ int MRIScomputeMetricProperties(MRIS *mris)
   return (NO_ERROR);
 }
 
-
-#ifdef FS_CUDA
-/* this is a fork of mrisComputeMetricProperties,
-   but ultimately shouldn't be
-*/
-int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
-{
-#ifdef FS_CUDA_TIMINGS
-  struct timeval tv1, tv2, result;
-#endif  // FS_CUDA_TIMINGS
-
-  if (mris->status == MRIS_SPHERE || mris->status == MRIS_PARAMETERIZED_SPHERE) {
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv1, NULL);
-#endif  // FS_CUDA_TIMINGS
-    MRIScomputeNormals(mris);
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv2, NULL);
-    timeval_subtract(&result, &tv2, &tv1);
-    printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n", result.tv_sec * 1000 + result.tv_usec / 1000);
-    fflush(stdout);
-#endif  // FS_CUDA_TIMINGS
-
-    /* UPLOAD the vertices here */
-    MRISCuploadVertices(mrics, mris);
-
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv1, NULL);
-#endif  // FS_CUDA_TIMINGS
-    // mrisComputeVertexDistances(mris);
-    MRISCcomputeVertexDistances(mrics, mris);
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv2, NULL);
-    timeval_subtract(&result, &tv2, &tv1);
-    printf(
-        "CUDA MRIScomputeMetricProperties->mrisComputeVertexDistances: "
-        "%ld ms\n",
-        result.tv_sec * 1000 + result.tv_usec / 1000);
-    fflush(stdout);
-#endif  // FS_CUDA_TIMINGS
-
-    /* DOWNLOAD distances */
-    MRISCdownloadDistances(mrics, mris);
-  }
-  else {
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv1, NULL);
-#endif  // FS_CUDA_TIMINGS
-    int rval = MRIScomputeMetricProperties(mris);
-#ifdef FS_CUDA_TIMINGS
-    gettimeofday(&tv2, NULL);
-    timeval_subtract(&result, &tv2, &tv1);
-    printf(
-        "CPU MRIScomputeMetricProperties->mrisComputeVertexDistances: "
-        "%ld ms\n",
-        result.tv_sec * 1000 + result.tv_usec / 1000);
-    fflush(stdout);
-#endif  // FS_CUDA_TIMINGS
-    return rval;
-  }
-
-#ifdef FS_CUDA_TIMINGS
-  gettimeofday(&tv1, NULL);
-#endif  // FS_CUDA_TIMINGS
-  mrisComputeSurfaceDimensions(mris);
-#ifdef FS_CUDA_TIMINGS
-  gettimeofday(&tv2, NULL);
-  timeval_subtract(&result, &tv2, &tv1);
-  printf(
-      "MRIScomputeMetricProperties->mrisComputeSurfaceDimensions: "
-      "%ld ms\n",
-      result.tv_sec * 1000 + result.tv_usec / 1000);
-  fflush(stdout);
-
-  gettimeofday(&tv1, NULL);
-#endif                                 // FS_CUDA_TIMINGS
-  MRIScomputeTriangleProperties(mris); /* compute areas and normals */
-#ifdef FS_CUDA_TIMINGS
-  gettimeofday(&tv2, NULL);
-  timeval_subtract(&result, &tv2, &tv1);
-  printf(
-      "MRIScomputeMetricProperties->MRIScomputeTriangleProperties: "
-      "%ld ms\n",
-      result.tv_sec * 1000 + result.tv_usec / 1000);
-  fflush(stdout);
-#endif  // FS_CUDA_TIMINGS
-
-  mris->avg_vertex_area = mris->total_area / mris->nvertices;
-  // this would obviously require the distances
-
-  MRIScomputeAvgInterVertexDist(mris, &mris->std_vertex_dist);
-  mrisOrientSurface(mris);
-  // See also MRISrescaleMetricProperties()
-  if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_RIGID_BODY || mris->status == MRIS_SPHERE) {
-    double old_area;
-    old_area = mris->total_area;
-    mris->total_area = M_PI * mris->radius * mris->radius * 4.0;
-  }
-  return (NO_ERROR);
-}
-#endif /* FS_CUDA */
-
-
-
 // Convenience functions
 //
 int load_orig_triangle_vertices(MRIS *mris, int fno, double U0[3], double U1[3], double U2[3])
@@ -9394,7 +9290,7 @@ float mrisSampleSpringEnergy(
   FACE *face;
   MHT *mht = (MHT *)(parms->mht);
 
-  if (vdist) vdist = 1;
+  if (vdist == 0.0) vdist = 1.0;
 
   project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
   if (v - mris->vertices == Gdiag_no) DiagBreak();

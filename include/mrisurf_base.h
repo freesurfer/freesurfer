@@ -207,11 +207,6 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
 #define MAXFACES (2 * MAXVERTICES)
 #define MAX_NBHD_VERTICES 20000     // must fit in short because VERTEX.vnum etc are short
 
-
-// uncomment this to expose code which shows timings of gpu activities:
-//#define FS_CUDA_TIMINGS
-
-
 /*---------------------------- STRUCTURES -------------------------*/
 
 /*---------------------------- CONSTANTS -------------------------*/

@@ -46,10 +46,6 @@
 #include "macros.h"
 #include "version.h"
 
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#endif // FS_CUDA
-
 static char vcid[] =
   "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $";
 
@@ -97,11 +93,6 @@ main(int argc, char *argv[])
   (argc, argv,
    "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
    "$Name:  $", cmdline);
-
-#ifdef FS_CUDA
-  // Force CUDA initialisation
-  AcquireCUDADevice();
-#endif // FS_CUDA
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option

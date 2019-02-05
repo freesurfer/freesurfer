@@ -1617,20 +1617,6 @@ MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, 
 
   int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
 
-#ifdef FS_CUDA
-  void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
-				    MRI* mri_dst,
-				    int label,
-				    int mark,
-				    int six_connected );
-
-  float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
-						     const MRI *mri_vals,
-						     const int label,
-						     MRI *mri_mixing_coef,
-						     MRI *mri_nbr_labels );
-#endif
-
 #if defined(__cplusplus)
 };
 #endif

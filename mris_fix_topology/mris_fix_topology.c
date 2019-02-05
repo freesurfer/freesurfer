@@ -51,10 +51,6 @@
 #include "mrishash.h"
 #include "version.h"
 
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#endif // FS_CUDA
-
 static char vcid[] =
   "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $";
 
@@ -108,11 +104,6 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   char cmdline[CMD_LINE_LEN] ;
-
-#ifdef FS_CUDA
-  // Force CUDA initialisation
-  AcquireCUDADevice();
-#endif // FS_CUDA
 
   make_cmd_version_string
   (argc,

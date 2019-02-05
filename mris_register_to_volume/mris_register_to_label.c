@@ -774,9 +774,6 @@ find_optimal_linear_xform(MRI *mri_dist, MRI *mri_src, LABEL *area,
   }
   for (i = 0 ; i < nreductions+1 ; i++)
   {
-#ifdef FS_CUDA
-    printf( "%s: Starting reduction %i\n", __FUNCTION__, i );
-#endif // FS_CUDA
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
     if (scale_steps <= 1)
       delta_scale = 1 ;

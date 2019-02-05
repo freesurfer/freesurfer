@@ -48,10 +48,6 @@
 #include "timer.h"
 #include "version.h"
 
-#ifdef FS_CUDA
-#include "mrisurf_cuda.h"
-#endif // FS_CUDA
-
 static char vcid[]=
   "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $";
 
@@ -140,11 +136,6 @@ main(int argc, char *argv[])
     exit (0);
   }
   argc -= nargs;
-
-#ifdef FS_CUDA
-  /* print GPU device info */
-  MRISCdeviceInfo();
-#endif // FS_CUDA
 
   TimerStart(&then) ;
   Progname = argv[0] ;

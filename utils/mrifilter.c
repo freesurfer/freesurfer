@@ -47,12 +47,8 @@
 #include "cma.h"
 
 #include "romp_support.h"
-
 #include "chronometer.h"
-#ifdef FS_CUDA
-#include "mriconvolve_cuda.h"
-#include "mrimean_cuda.h"
-#endif
+
 #ifdef HAVE_OPENMP
 #include "romp_support.h"
 #endif
@@ -2058,9 +2054,6 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     MRIcopyHeader(mri_src, mri_dst);
   }
 
-#ifdef FS_CUDA
-  mri_dst = MRImean_cuda(mri_src, mri_dst, wsize);
-#else
   {
     int frame, z;
 
@@ -2071,7 +2064,6 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 #endif
       for (z = 0; z < depth; z++) {
         ROMP_PFLB_begin
-	
         int x, y, x0, y0, z0;
         float val, num;
 
@@ -2098,12 +2090,11 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
           }
         }
         exec_progress_callback(frame * depth + z, mri_src->nframes * depth, 0, 1);
-	ROMP_PFLB_end
+        ROMP_PFLB_end
       }
       ROMP_PF_end
     }
   }
-#endif
 
   return (mri_dst);
 }
@@ -2581,10 +2572,8 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
   // int width, height, depth;
   int klen;
-#ifndef FS_CUDA
   int frame;
   MRI *mtmp1, *mri_tmp;
-#endif
   float *kernel;
 
 #if 0
@@ -2613,12 +2602,6 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     exit(EXIT_FAILURE);
   }
 
-#ifdef FS_CUDA
-  if (mri_src->width <= 1 || mri_src->height <= 1 || mri_src->depth <= 1)
-    ErrorExit(ERROR_BADPARM, "MRIconvolveGaussian: (cuda) insufficient dimension (%d, %d, %d)", mri_src->width, mri_src->height, mri_src->depth);
-
-  mri_dst = MRIconvolveGaussian_cuda(mri_src, mri_dst, kernel, klen);
-#else
   if (mri_dst == mri_src) {
     mri_tmp = mri_dst = MRIclone(mri_src, NULL);
   }
@@ -2646,17 +2629,14 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   }
 
   MRIfree(&mtmp1);
-#endif
   MRIcopyHeader(mri_src, mri_dst);
 
-#ifndef FS_CUDA
   if (mri_tmp)  // src and dst are the same
   {
     MRIcopy(mri_tmp, mri_src);
     mri_dst = mri_src;
     MRIfree(&mri_tmp);
   }
-#endif
 
   return (mri_dst);
 }
@@ -3033,12 +3013,10 @@ MRI *MRIreduceByte(MRI *mri_src, MRI *mri_dst)
 MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int width, height, depth;
-#ifndef FS_CUDA
   int x = 0, y = 0, z = 0, halflen, *xi, *yi, *zi;
   register int i = 0;
   BUFTYPE *inBase = NULL;
   float *ki = NULL, total = 0, *inBase_f = NULL, *foutPix = NULL, val = 0;
-#endif
 
   width = mri_src->width;
   height = mri_src->height;
@@ -3054,9 +3032,6 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT);
   }
 
-#ifdef FS_CUDA
-  MRIconvolve1d_cuda(mri_src, mri_dst, k, len, axis, src_frame, dst_frame);
-#else
   if (mri_dst->type == MRI_UCHAR) {
     return (MRIconvolve1dByte(mri_src, mri_dst, k, len, axis, src_frame, dst_frame));
   }
@@ -3338,7 +3313,6 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
       }
       break;
   }
-#endif
 
   return (mri_dst);
 }
