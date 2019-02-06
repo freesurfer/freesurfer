@@ -53,6 +53,7 @@ install(PROGRAMS
   fix_subject_corrected-rh
   fix_subject_on_seychelles
   fixup_mni_paths
+  flirt.newdefault.20080811.sch
   fname2ext
   fname2stem
   freesurfer
