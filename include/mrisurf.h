@@ -2870,6 +2870,8 @@ void mrisSetVertexFaceIndex(MRIS *mris, int vno, int fno);
     // is being used outside mrissurf_topology but shouldn't be
     
 void setFaceAttachmentDeferred(MRIS* mris, bool to);                                // for performance reasons, defer adding them; or do all the deferred ones
+int mrisCountAttachedFaces(MRIS* mris, int vno0, int vno1);
+bool mrisCanAttachFaceToVertices(MRIS* mris, int vno1, int vno2, int vno3);         // returns whether such a face would be legal
 void mrisAttachFaceToEdges   (MRIS* mris, int fno, int vno1, int vno2, int vno3);   // edges must already exist
 void mrisAttachFaceToVertices(MRIS* mris, int fno, int vno1, int vno2, int vno3);   // adds any needed edges
 
@@ -2943,3 +2945,4 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
   }
 
 void MRIScheckForNans(MRIS *mris);
+void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);

@@ -173,6 +173,137 @@ bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const *mr
 }
 
 
+static int  MRIScheckIsPolyhedronCalls;
+
+void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line) {
+  MRIScheckIsPolyhedronCalls++;
+  
+  return ;  // HACK
+  
+  bool const tearsOk = true;
+  
+  static const char* prevFile = "<none>";
+  static        int  prevLine = 0;
+  
+  int const nvertices = mris->nvertices;
+  int const nfaces    = mris->nfaces;
+
+  typedef struct Edges {
+    size_t hiVnosCount;
+    size_t hiVnosBegin;
+  } Edges;
+  Edges* edges  = (Edges*)malloc(nvertices*sizeof(Edges));
+   
+  size_t hiVnosCapacity = 0;
+  int*   hiVnos         = NULL;
+  size_t hiVnosSize     = 0;
+
+  // Record all the edges - defined by 1-hop neighbours
+  // and check that they are commutative and unique
+  //
+  size_t maxNeighbours;
+  for (maxNeighbours = 16; maxNeighbours < 1024; maxNeighbours *= 2) {
+    hiVnosCapacity = nvertices*maxNeighbours;
+    hiVnos = (int*)malloc(hiVnosCapacity * sizeof(int));
+    
+    int vno;
+    for (vno = 0; vno < nvertices; vno++) {
+      size_t const hiVnosBegin = hiVnosSize;
+      
+      if (mris->vertices[vno].ripflag) continue;
+      
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      
+      int n;
+      for (n = 0; n < vt->vnum; n++) {
+        int const vno2 = vt->v[n];
+        if (mris->vertices[vno2].ripflag) continue;
+        if (vno < vno2) {
+          if (hiVnosSize == hiVnosCapacity) goto TryLargerCapacity;
+          hiVnos[hiVnosSize++] = vno2;
+        } else {
+          Edges const * const edgesForVno2 = &edges[vno2];
+          int count = 0;
+          int i;
+          for (i = 0; i < edgesForVno2->hiVnosCount; i++) {
+            if (hiVnos[edgesForVno2->hiVnosBegin + i] == vno) count++;
+          }
+          cheapAssert(count == 1);  // each should be entered exactly once
+        }
+      }
+
+      Edges* const edgesForVno = &edges[vno];
+      edgesForVno->hiVnosCount = hiVnosSize - hiVnosBegin;
+      edgesForVno->hiVnosBegin = hiVnosBegin;
+    }
+    break;
+    
+  TryLargerCapacity:
+    freeAndNULL(hiVnos);
+  }
+  
+  // Count all the faces contributing to edges
+  //
+  char* nFacesPerEdge = (char*)calloc(hiVnosSize, sizeof(char));
+  bool badCount = false;
+  
+  do {
+  
+    int reports1 = 0, reportsNot1 = 0;
+    int fno;
+    for (fno = 0; fno < nfaces; fno++) {
+      FACE const * const face = &mris->faces[fno];
+      int n1;
+      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
+        int const n2 = (n1 > 0) ? n1-1 : VERTICES_PER_FACE-1;
+        int vno1 = face->v[n1];
+        int vno2 = face->v[n2];
+        if (vno1 > vno2) { vno1 = vno2; vno2 = face->v[n1]; } else cheapAssert(vno1 != vno2);
+        Edges const * const edgesForVno = &edges[vno1];
+        int i;
+        for (i = 0; i < edgesForVno->hiVnosCount; i++) {
+          if (hiVnos   [edgesForVno->hiVnosBegin + i] != vno2) continue;
+          // found the entry for an edge
+          if (!badCount) {
+            nFacesPerEdge[edgesForVno->hiVnosBegin + i]++;  // yeah, might wrap - unlikely
+          } else {
+            int const count = nFacesPerEdge[edgesForVno->hiVnosBegin + i];
+            if (count != 2) {
+              if ((count == 1) ? (reports1++    < 10)
+                               : (reportsNot1++ < 10)) {
+                fprintf(stdout, "Fno %d contributes edge %d..%d towards a count of %d\n", 
+                  fno, vno1, vno2, count);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    cheapAssert(!reportsNot1);
+    
+    if (badCount) break;
+    
+    int edgeNo;
+    for (edgeNo = 0; edgeNo < hiVnosSize; edgeNo++) {
+      int count = nFacesPerEdge[edgeNo];
+      if (count == 2) continue;
+      if (count <  2 && tearsOk) continue;
+      badCount = true;
+      fprintf(stdout, "MRIScheckIsPolyhedron failed during call %d at %s:%d, previously good at %s:%d because count:%d for edgeNo:%d\n", 
+        MRIScheckIsPolyhedronCalls, file, line, prevFile, prevLine, count, edgeNo);
+      break;
+    }
+    
+  } while (badCount);
+    
+  freeAndNULL(nFacesPerEdge);
+  freeAndNULL(hiVnos);
+  freeAndNULL(edges);
+
+  prevFile = file;
+  prevLine = line;
+}
 int MRISvalidVertices(MRIS *mris)
 {
   int vno, nvertices, nvalid;
@@ -1574,6 +1705,39 @@ int mrisValidFaces(MRIS *mris)
 }
 
 
+int mrisCountAttachedFaces(MRIS* mris, int vno0, int vno1) {
+  int count = 0;
+  
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno0];
+
+  int n;
+  for (n = 0; n < vt->num; n++) {                   // For each face attached to vno0
+    int const fno = vt->f[n];
+    FACE const * const f = &mris->faces[fno];
+    int m;
+    for (m = 0; m < VERTICES_PER_FACE; m++) {       // For each vertex of the face
+      if (f->v[m] == vno1) count++;                 // Count the faces sharing this edge
+    }
+  }
+
+  return count;
+}
+
+
+bool mrisCanAttachFaceToVertices(MRIS* mris, int vno0, int vno1, int vno2) {
+  
+  // Should not even be contemplating this!
+  //
+  cheapAssert(vno0 != vno1 && vno0 != vno2 && vno1 != vno2);
+  
+  // None of the three edges can have two faces already using them
+  //
+  return 
+    mrisCountAttachedFaces(mris,vno0,vno1) < 2 &&
+    mrisCountAttachedFaces(mris,vno0,vno2) < 2 &&
+    mrisCountAttachedFaces(mris,vno1,vno2) < 2;
+}
+
 
 // Return the index of the triangular face vno0-->vno1-->vno2, or -1
 //
@@ -1802,7 +1966,7 @@ static void mrisAttachFaceWkr(MRIS* mris, int fno, int vno0, int vno1, int vno2,
   cheapAssertValidVno(mris,vno1);
   cheapAssertValidVno(mris,vno2);
  
-  cheapAssert(vno0 != vno1 && vno0 != vno2 && vno1 != vno2);
+  cheapAssert(mrisCanAttachFaceToVertices(mris, vno0, vno1, vno2));
     //
     // This assertion was seen when a triangular tesselation written as a quad file did so by creating quad with two identical vertices
     // which then might be read back as two triangles, one of which has identical vertices!  This would ruin euler
