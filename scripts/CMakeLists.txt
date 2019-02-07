@@ -143,7 +143,6 @@ install(PROGRAMS
   mergeseg
   minc2seqinfo
   misc.py
-  mkfsdist
   mkheadsurf
   mkima_index.tcl
   mkmnc_index.tcl
