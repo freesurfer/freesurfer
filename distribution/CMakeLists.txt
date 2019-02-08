@@ -41,7 +41,6 @@ install_symlinks(
 # these aren't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
   add_subdirectory(diffusion)
-  install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
   install(FILES sessions/README DESTINATION sessions)
   install_tarball(trctrain/trctraindata.tar.gz DESTINATION trctrain)
 endif()

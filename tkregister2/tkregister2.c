@@ -4967,9 +4967,6 @@ int main(argc, argv)   /* new main */
   int argc;
   char **argv;
 {
-  /* char str[NAME_LENGTH]; */
-  char *envptr;
-  FILE *fp ;
   int nargs;
 
   /* rkt: check for and handle version tag */
@@ -4985,8 +4982,16 @@ int main(argc, argv)   /* new main */
   initcolormap();
 #endif // HAVE_TCL_TK_GL
 
+  /* start program, now as function; gl window not opened yet */
+  //printf("tkregister: starting register\n");
+  Register((ClientData) NULL, interp, argc, argv);/* event loop commented out*/
+
+#ifdef HAVE_TCL_TK_GL
+
+  FILE *fp ;
+
   /* get tkregister tcl startup script location from environment */
-  envptr = getenv("FREESURFER_HOME");
+  char *envptr = getenv("FREESURFER_HOME");
   if (envptr==NULL) {
     printf("tkregister: env var FREESURFER_HOME undefined (use setenv)\n");
     printf("    [dir containing mri distribution]\n");
@@ -5001,12 +5006,6 @@ int main(argc, argv)   /* new main */
     printf("tkregister2: startup script %s not found\n",tkregister_tcl);
     exit(1);
   } else fclose(fp);
-
-  /* start program, now as function; gl window not opened yet */
-  //printf("tkregister: starting register\n");
-  Register((ClientData) NULL, interp, argc, argv);/* event loop commented out*/
-
-#ifdef HAVE_TCL_TK_GL
 
   /* start tcl/tk; first make interpreter */
   interp = Tcl_CreateInterp();
