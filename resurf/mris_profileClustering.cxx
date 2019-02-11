@@ -52,6 +52,7 @@ int main(int narg, char * arg[])
 	constexpr unsigned int Dimension = 3;
 	typedef float CoordType;
 	typedef itk::Image< CoordType, Dimension >         ImageType;
+	typedef itk::Image< CoordType, 4 >         OutputImageType;
 	typedef itk::ImageFileReader<ImageType> ReaderType;
 	typedef itk::VariableLengthVector<CoordType> MeasurementVectorType;
 	typedef itk::Statistics::ListSample< MeasurementVectorType > SampleType;
@@ -73,56 +74,84 @@ int main(int narg, char * arg[])
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
 	{
 		std::cout<<"Usage: " << std::endl;
-		std::cout<< arg[0] << " -s surface -i image  -c numClusters -d deep -o outputImage"  << std::endl;   
+		std::cout<< arg[0] << " -s surface -i N image1 .. imageN  -c numClusters -d deep -o outputImage -a annot -b surf "  << std::endl;   
 		return -1;
 	}
 
 	const char *surfFilename= cl.follow ("", "-s");
-	const char *imageFilename = cl.follow ("", "-i");
 	const char *outputImageFilename = cl.follow ("", "-o");
+	const char *outputSurfaceFilename = cl.follow ("", "-b");
+	const char *annotationFilename = cl.follow ("", "-a");
 	int numClusters = cl.follow(10,"-c");
 	int deep= cl.follow(10,"-d");
+	int imageNumber= cl.follow (1, "-i");
+	std::vector<const char *> imageFilenames;
+	std::vector<ImageType::Pointer> images;
+	for(int i=0; i< imageNumber;i++)	
+	{
+		imageFilenames.push_back(cl.next(""));
+		ReaderType::Pointer reader = ReaderType::New();
+		reader->SetFileName(imageFilenames[i]);
+		reader->Update();
+		images.push_back( reader->GetOutput());
+		std::cout << i << std::endl;
+	}
 	
+	ImageType::Pointer image =images[0];
+
 	MRI_SURFACE *surf;
 	surf = MRISread(surfFilename);
 
 	SurfaceType::Pointer surface =  SurfaceType::New();
 	surface->Load(&*surf);
 
- 	MRI *imageFS =  MRIread(imageFilename) ;
+ 	MRI *imageFS =  MRIread(imageFilenames[0]) ;
 
-	ReaderType::Pointer reader = ReaderType::New();
-	reader->SetFileName(imageFilename);
-	reader->Update();
-	ImageType::Pointer image = reader->GetOutput();
-
-	SampleType::Pointer sample = SampleType::New();
-	sample->SetMeasurementVectorSize( deep*2);
+		SampleType::Pointer sample = SampleType::New();
+	int vectorLenght= (deep*2+1)*imageNumber;
+	std::cout<< vectorLenght<< std::endl;
+	sample->SetMeasurementVectorSize( vectorLenght);
 
 	std::vector<SurfaceType::PointType>  points;
-	ImageType::Pointer output = ImageType::New();
-	output->SetRegions(image->GetLargestPossibleRegion());
+	ImageType::RegionType region3D = image->GetLargestPossibleRegion();
+	ImageType::DirectionType direction3D =  image->GetDirection();
+	ImageType::SpacingType spacing3D =  image->GetSpacing();
+	
+	OutputImageType::Pointer output = OutputImageType::New();
+	OutputImageType::RegionType region4D;
+	OutputImageType::DirectionType direction;
+	OutputImageType::SpacingType spacing;
+	OutputImageType::PointType origin;
+
+	OutputImageType::SizeType size;
+	OutputImageType::IndexType start;
+	float vol=0;	
+	direction.SetIdentity();
+	for(int i=0;i<3;i++)
+	{
+		size[i]=region3D.GetSize()[i];
+		start[i]=region3D.GetIndex()[i];
+		spacing[i]=spacing3D[i];
+		origin[i]=  image->GetOrigin()[i];
+		for(int j=0;j<3;j++)
+			direction[j][i]=direction3D[j][i];
+	}
+	start[3]=0;
+	size[3]=vectorLenght;
+	//spacing[3]=vol/3;
+	origin[3]=0;
+	region4D.SetSize(size);
+	region4D.SetIndex(start);
+	output->SetRegions(region4D);	
+	output->SetDirection(direction);
+  	output->SetSpacing(spacing);
+	output->SetOrigin(origin);
 	output->Allocate();
 	std::cout << image->GetDirection() << std::endl;
-	ImageType::DirectionType direction =  image->GetDirection();
-	/*for(int i=0;i<3;i++)
-	{
-		for(int j=0;j<3;j++)
-		{
-			direction[i][j]=-direction[i][j];
-		}
-	}
-*/
-	//image->SetDirection(image->GetInverseDirection());
-  	//std::cout << image->GetInverseDirection()  << std::endl;
-	//image->SetDirection(direction);
+	std::cout << output->GetDirection() << std::endl;
+	std::cout << image->GetOrigin() << " " << output->GetOrigin() << std::endl;	
 	
-	output->SetDirection(direction);
-
-	output->SetOrigin(image->GetOrigin());
-  	output->SetSpacing(image->GetSpacing());
-	
-for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begin();itCells != surface->GetCells()->End();itCells++)
+	for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begin();itCells != surface->GetCells()->End();itCells++)
 	{
 		SurfaceType::CellType::PointIdIterator pointsIt = itCells.Value()->PointIdsBegin();
 		SurfaceType::PointType p1 = surface->GetPoint(*pointsIt);
@@ -130,7 +159,7 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 		SurfaceType::PointType p3 = surface->GetPoint(*(++pointsIt));
 		SurfaceType::PointType edge1 = p1-p2;
 		SurfaceType::PointType edge2 = p1-p3;
-		std::cout << p1 << std::endl;	
+		//std::cout << p1 << std::endl;	
 		vnl_vector<CoordType> normal = vnl_cross_3d(edge1.GetVnlVector(), edge2.GetVnlVector());
 		normal=normal.normalize();
 		SurfaceType::PointType mean ;
@@ -141,44 +170,39 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 		ImageType::IndexType index; 
 	
 		MeasurementVectorType mv;
-		mv.SetSize(deep*2);
-	
-		for( int d=-deep;d<deep;d++)
+		mv.AllocateElements(vectorLenght);
+		mv.SetSize(vectorLenght);
+		for(int j=0; j<images.size();j++)
 		{
-			SurfaceType::PointType pt;
-			for(int i=0;i<3;i++)
-				pt[i]= mean[i]+d*normal[i];
+			for( int d=-deep;d<=deep;d++)
+			{
+				SurfaceType::PointType pt;
+				for(int i=0;i<3;i++)
+					pt[i]= mean[i]+d*normal[i];
 
-			/*image->TransformPhysicalPointToIndex(pt, index);
-			std::cout << index << std::endl;
-
-			output->TransformPhysicalPointToIndex(pt, index);
-			std::cout << index << std::endl;
-			*/
-			double x,y,z;
-			MRISsurfaceRASToVoxel(surf, imageFS, pt[0], pt[1],pt[2], &x,&y,&z);
-			//if (output->TransformPhysicalPointToIndex(pt, index))
-			index[0]=x;
-			index[1]=y;
-			index[2]=z;
-			mv[d+deep]= image->GetPixel(index);
+				double x,y,z;
+				MRISsurfaceRASToVoxel(surf, imageFS, pt[0], pt[1],pt[2], &x,&y,&z);
+				index[0]=x;
+				index[1]=y;
+				index[2]=z;
+				mv[j*(deep*2+1)+d+deep]= images[j]->GetPixel(index);
+			}
 		}
 		sample->PushBack( mv );
 		points.push_back(mean);
 	}
 
-	//output->SetDirection(direction);
   	TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
 	treeGenerator->SetSample( sample );
 	treeGenerator->SetBucketSize( 160 );
 	treeGenerator->Update();
 
 	EstimatorType::Pointer estimator = EstimatorType::New();
-	EstimatorType::ParametersType initialMeans(deep*numClusters);
+	EstimatorType::ParametersType initialMeans(vectorLenght*numClusters);
 	for(unsigned int c=0;c<numClusters;c++)
 	{
-		for(unsigned int i=0;i<deep;i++)
-			initialMeans[c*deep+i] = sample->GetMeasurementVector(c*(sample->Size()/numClusters))[i]; 
+		for(unsigned int i=0;i<=vectorLenght;i++)
+			initialMeans[c*vectorLenght+i] = sample->GetMeasurementVector(c*(sample->Size()/numClusters))[i]; 
 		
 	}
 	estimator->SetParameters( initialMeans );
@@ -189,12 +213,12 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 
 	EstimatorType::ParametersType estimatedMeans = estimator->GetParameters();
 
-	for ( unsigned int i = 0 ; i < numClusters ; ++i )
+	/*for ( unsigned int i = 0 ; i < numClusters ; ++i )
 	{
 		std::cout << "cluster[" << i << "] " << std::endl;
 		std::cout << "    estimated mean : " << estimatedMeans[i] << std::endl;
 	}
-
+	*/
 	DecisionRuleType::Pointer decisionRule = DecisionRuleType::New();
 	ClassifierType::Pointer classifier = ClassifierType::New();
 	classifier->SetDecisionRule(decisionRule);
@@ -215,7 +239,7 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 
 	MembershipFunctionVectorType &  membershipFunctionsVector = membershipFunctionsObject->Get();
 
-	MembershipFunctionType::CentroidType origin( sample->GetMeasurementVectorSize() );
+	MembershipFunctionType::CentroidType centroid( sample->GetMeasurementVectorSize() );
 	int index = 0;
 	std::vector<MembershipFunctionPointer> functions;
 	std::vector<MeasurementVectorType> clusterMeans;
@@ -224,13 +248,13 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 		MembershipFunctionPointer membershipFunction = MembershipFunctionType::New();
 		for ( unsigned int j = 0 ; j < sample->GetMeasurementVectorSize(); j++ )
 		{
-			origin[j] = estimatedMeans[index++];
+			centroid[j] = estimatedMeans[index++];
 		}
-		membershipFunction->SetCentroid( origin );
+		membershipFunction->SetCentroid( centroid );
 		functions.push_back(membershipFunction);
 		membershipFunctionsVector.push_back( membershipFunction.GetPointer() );
 		MeasurementVectorType mean;
-		mean.SetSize(deep*2);
+		mean.SetSize(vectorLenght);
 		mean.Fill(0);
 		clusterMeans.push_back(mean);
 	}
@@ -254,11 +278,18 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 
 	iter = membershipSample->Begin();
 	int i=0;
+
+	COLOR_TABLE *ct;
+	int vtxno, vtx_clusterno, annot, n;
+
+	ct = CTABalloc(numClusters+ 1);
+	surf->ct = ct;
+
 	while ( iter != membershipSample->End() )
 	{
 
 		//MeasurementVectorType meanIntensityDecay = clusterMeans[iter.GetClassLabel()]; ///norm[iter.GetClassLabel()];
-		ImageType::IndexType index;
+		OutputImageType::IndexType index;
 		//output->TransformPhysicalPointToIndex(points[i], index);
 
 		double x,y,z;
@@ -266,14 +297,28 @@ for(SurfaceType::CellsContainerConstIterator itCells = surface->GetCells()->Begi
 		index[0]=x;
 		index[1]=y;
 		index[2]=z;
-		output->SetPixel(index, iter.GetClassLabel());
-		
+		for(int j=0;j<vectorLenght;j++)
+		{
+			index[3]=j;
+			output->SetPixel(index, iter.GetMeasurementVector()[index[3]]);
+		}
+		CTABannotationAtIndex(surf->ct, iter.GetClassLabel(), &annot);
+		surf->vertices[surface->GetFaces()[i].indexPoint[0]].annotation=annot;
+		surf->vertices[surface->GetFaces()[i].indexPoint[1]].annotation=annot;
+		surf->vertices[surface->GetFaces()[i].indexPoint[2]].annotation =annot;
 		++iter;
 		i++;
+
 	}
-	typedef  itk::ImageFileWriter< ImageType  > WriterType;
+	std::cout << " i " << i << " " << surf->nvertices << "  " << surf->nfaces << std::endl;
+
+	typedef  itk::ImageFileWriter< OutputImageType  > WriterType;
 	WriterType::Pointer writer = WriterType::New();
 	writer->SetFileName(outputImageFilename);
 	writer->SetInput(output);
 	writer->Update();
+	
+	MRISwriteAnnotation(surf,annotationFilename) ;
+	MRISwrite(surf,outputSurfaceFilename);
+ 	MRISfree(&surf);	
 }
