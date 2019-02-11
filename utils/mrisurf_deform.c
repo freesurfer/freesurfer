@@ -13228,6 +13228,7 @@ int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     DiagBreak();
   }
 
+  cheapAssert(mrisCanAttachFaceToVertices(mris, vno0, vno1, vno2));
   f = &mris->faces[fno];
   f->v[0] = vno0;
   f->v[1] = vno1;

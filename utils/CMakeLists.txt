@@ -64,6 +64,7 @@ set(SOURCES
   fs_lbfgs_subject.cpp
   fs_powell.cpp
   fsenv.c
+  fsgdf.c
   fsglm.c
   fsinit.c
   fsPrintHelp.c
