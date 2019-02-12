@@ -101,6 +101,7 @@ static int PrintDet = 0;
 static int PrintOrientation = 0;
 static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
+static int PrintCenter = 0;
 static int PrintP0 = 0;
 static int PrintEntropy = 0;
 static int PrintVoxVolSum = 0;
@@ -374,7 +375,14 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcasecmp(option, "--cras"))
     {
+      // CRAS is the RAS at nv/2. This is used in the MRI struct 
+      // to indicate geometry and is not the actual center.
       PrintCRAS = 1;
+    }
+    else if (!strcasecmp(option, "--center"))
+    {
+      // This is the actual center of the volume at (nv-1)/2
+      PrintCenter = 1;
     }
     else if (!strcasecmp(option, "--p0"))
     {
@@ -503,7 +511,8 @@ static void print_usage(void)
   printf("   --tkr2scanner : print tkrRAS-to-scannerRAS matrix \n");
   printf("   --scanner2tkr : print scannerRAS-to-tkrRAS matrix \n");
   printf("   --ras_good : print the ras_good_flag\n");
-  printf("   --cras : print the RAS at the 'center' of the volume\n");
+  printf("   --cras : print the RAS near the center of the volume (at nv/2)\n");
+  printf("   --center : print the RAS at the actual center of the volume (at (nv-1)/2)\n");
   printf("   --zero-cras : zero the center ras\n");
   printf("   --p0 : print the RAS at voxel (0,0,0)\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
@@ -862,6 +871,21 @@ static void do_file(char *fname)
   if (PrintCRAS)
   {
     fprintf(fpout,"%g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
+    return;
+  }
+  if (PrintCenter)
+  {
+    m = MRIgetVoxelToRasXform(mri) ;
+    p = MatrixAlloc(4,1,MATRIX_REAL);
+    p->rptr[1][1] = (mri->width-1.0)/2.0;
+    p->rptr[2][1] = (mri->height-1.0)/2.0;
+    p->rptr[3][1] = (mri->depth-1.0)/2.0;
+    p->rptr[4][1] = 1;
+    m2 = MatrixMultiply(m,p,NULL);
+    fprintf(fpout,"%g %g %g\n",m2->rptr[1][1],m2->rptr[2][1],m2->rptr[3][1]);
+    MatrixFree(&m) ;
+    MatrixFree(&m2) ;
+    MatrixFree(&p) ;
     return;
   }
   if (PrintP0)
