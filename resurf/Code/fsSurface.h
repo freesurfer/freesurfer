@@ -44,6 +44,8 @@ namespace fs
 			void Load(MRI_SURFACE *surf);
 			MRI_SURFACE* GetFSSurface(MRI_SURFACE *surf);
 			std::vector<PointType> GetAdjacentPoints(int idPoint) const;
+			std::vector<Face> GetFaces(){ return this->faces;}
+	
 		private:
 
 			std::vector<Face> faces;
