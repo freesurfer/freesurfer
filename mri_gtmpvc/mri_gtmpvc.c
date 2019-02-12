@@ -686,8 +686,10 @@ int main(int argc, char *argv[])
     }
     if(SynthOnly){
       printf("SynthOnly requested so exiting now\n");
+      printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
       printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
       fprintf(logfp,"SynthOnly requested so exiting now\n");
+      fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
       fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
       exit(0);
     }
@@ -968,6 +970,7 @@ int main(int argc, char *argv[])
   }
   if(RVarOnly){
     printf("rvar-only requested so exiting now\n");
+    printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
     printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
     exit(0);
   }
@@ -1116,9 +1119,11 @@ int main(int argc, char *argv[])
   PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
+  fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
   fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   fprintf(logfp,"mri_gtmpvc done\n");
   fclose(logfp);
+  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
   printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   printf("mri_gtmpvc done\n");
   return(0);
