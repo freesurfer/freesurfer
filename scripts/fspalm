@@ -194,7 +194,7 @@ num_waves = len(xg_content[0].split())
 
 # check if the design is a one-sample group mean (matrix is a column of all ones)
 if num_waves == 1 and all([float(row) == 1.0 for row in xg_content]):
-  print('design detected as a one-sample group mean')
+  print('Design detected as a one-sample group mean, adding -ise to implment sign flipping')
   extra_opts.append("'-ise'")
 
 # write the palm design.mat
