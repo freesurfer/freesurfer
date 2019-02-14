@@ -195,6 +195,10 @@ OPTIONS
     When using paint/w output format, this specifies which frame to output. This
     format can store only one frame. The frame number is zero-based (default is 0).
 
+  --mul Mul
+  --div Div
+    Multiply or divide the input by the given value
+
   --reshape
 
     Force mri_surf2surf to save the output as multiple 'slices'; has
@@ -305,6 +309,7 @@ ENDHELP
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "mri.h"
 #include "icosahedron.h"
@@ -486,6 +491,8 @@ char *TrgSurfVolFile=NULL;
 MRI  *TrgSurfVol=NULL;
 int   prunemask = 0;
 float prune_thr = FLT_MIN;
+int DoMultiply = 0;
+double MultiplyVal = 0;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -826,6 +833,11 @@ int main(int argc, char **argv)
     fprintf(stderr,"ERROR loading source values from %s\n",srcvalfile);
     exit(1);
   }
+  if(DoMultiply){
+    printf("Multiplying by %lf\n",MultiplyVal);
+    MRImultiplyConst(SrcVals, MultiplyVal, SrcVals);
+  }
+
   n = SrcVals->width * SrcVals->height * SrcVals->depth;
   if(SrcSurfReg->nvertices != n) {
     printf("ERROR: dimension mismatch between surface reg (%d)\n",
@@ -1696,7 +1708,37 @@ static int parse_commandline(int argc, char **argv)
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--srchits")) {
+    } 
+    else if ( !strcmp(option, "--mul") ){
+      if (nargc < 1)argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && 
+	 pargv[0][0] != '+' && pargv[0][0] != '.'){
+        printf("ERROR: value passed to the --mul flag must be a number\n");
+        printf("       If you want to multiply two images, use fscalc\n");
+        exit(1);
+      }
+      sscanf(pargv[0],"%lf",&MultiplyVal);
+      DoMultiply = 1;
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--div") ){
+      if (nargc < 1)argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && 
+	 pargv[0][0] != '+' && pargv[0][0] != '.'){
+        printf("ERROR: value passed to the --div flag must be a number\n");
+        printf("       If you want to divide two images, use fscalc\n");
+        exit(1);
+      }
+      sscanf(pargv[0],"%lf",&MultiplyVal);
+      if(MultiplyVal == 0){
+	printf("ERROR: you can't divide by zero\n");
+	exit(1);
+      }
+      MultiplyVal = 1.0/MultiplyVal;
+      DoMultiply = 1;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srchits")) {
       if (nargc < 1) {
         argnerr(option,1);
       }
@@ -1789,6 +1831,8 @@ static void print_usage(void)
   printf("   --label-src label : source smoothing mask\n");
   printf("   --label-trg label : target smoothing mask\n");
 
+  printf("     --mul Mul : Multiply the input by the given value\n");
+  printf("     --div Div : Divide the input by the given value\n");
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
   printf("   --reshape3d : reshape fsaverage (ico7) into 42 x 47 x 83\n");
