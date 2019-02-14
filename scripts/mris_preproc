@@ -81,6 +81,7 @@ set subjlistfile = ();
 set fsgdf = ();
 set outstem = ()
 set format = mgh
+set DoETIV = 0; # scale each subject by ETIV as found in aseg.stats
 
 set SessFile = ();
 set SessDirFile = ();
@@ -199,6 +200,17 @@ foreach subj ($subjlist)
 
   set subjpath = $SUBJECTS_DIR/$subj
 
+  set ETIV = 1;
+  if($DoETIV) then
+    set asegstats = $subjpath/stats/aseg.stats
+    if(! -e $asegstats) then
+      echo "ERROR: cannot find $asegstats, needed for --etiv"
+      exit 1;
+    endif
+    set ETIV = `grep EstimatedTotalIntraCranialVol $asegstats | awk '{print $9}' | sed 's/,/ /g'`
+    echo "$subj ETIV = $ETIV" | tee -a $LF
+  endif
+
   if($CacheOutOnly && $CacheOutUpdate) then
     if($trghemi == $srchemi) then
       set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile
@@ -249,6 +261,7 @@ foreach subj ($subjlist)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
     if($DualHemi) set cmd = ($cmd --dual-hemi)
+    if($DoETIV) set cmd = ($cmd --div $ETIV)
     set cmd = ($cmd --tval $tval)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
@@ -547,6 +560,10 @@ while( $#argv != 0 )
 
     case "--dual-hemi":
       set DualHemi = 1;
+      breaksw
+
+    case "--etiv":
+      set DoETIV = 1;
       breaksw
 
     case "--target":
@@ -1073,6 +1090,7 @@ usage_exit:
   echo "  --offset             : use fsfast mean offset (h-offset)"
   echo "  --map mapname        : use fsfast contrast/map"
   echo ""
+  echo "  --etiv : divide each subject's value by the Estimated Total Intra Cranial Volume as found in aseg.stats"
   echo "  --fwhm fwhm : smooth by fwhm mm on the target surface"
   echo "  --fwhm-src fwhmsrc : smooth by fwhm mm on the source surface"
   echo ""
