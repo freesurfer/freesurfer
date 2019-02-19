@@ -323,6 +323,8 @@ public:
 
   bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
 
+  void GeodesicSegmentationApply(LayerMRI* filled);
+
   void GetVolumeInfo(int* dim, double* voxel_size);
 
   void SetIgnoreHeader(bool b)
@@ -356,6 +358,7 @@ Q_SIGNALS:
   void IsoSurfaceUpdated();
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
+  void GeodesicSegmentationApplied();
 
 protected slots:
   void UpdateDisplayMode();

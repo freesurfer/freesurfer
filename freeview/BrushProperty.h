@@ -30,6 +30,7 @@
 #define BrushProperty_h
 
 #include <QObject>
+#include <QVariantMap>
 
 class LayerVolumeBase;
 class Layer;
@@ -93,6 +94,16 @@ public:
     return m_bIsCloning;
   }
 
+  QVariantMap GetGeosSettings()
+  {
+    return m_mapGeos;
+  }
+
+  void SetGeosSettings(const QString& name, const QVariant& val)
+  {
+    m_mapGeos[name] = val;
+  }
+
 signals:
   void FillValueChanged(double);
   void EraseValueChanged(double);
@@ -137,6 +148,8 @@ protected:
 
   double m_dFillValue;
   double m_dEraseValue;
+
+  QVariantMap m_mapGeos;
 
   LayerVolumeBase* m_layerRef;
 };
