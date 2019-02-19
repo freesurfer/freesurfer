@@ -12,7 +12,9 @@ if(VTK_FOUND)
     vtkFSVolumeSource.cxx
   )
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+  if(SUPPRESS_WARNINGS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+  endif()
 
   add_library(vtkfsio STATIC ${SOURCES})
 
