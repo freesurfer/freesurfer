@@ -3824,11 +3824,19 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
   if (!m_geos)
   {
     m_geos = new GeoSWorker;
-    connect(m_geos, SIGNAL(Finished(bool)), SLOT(SetModified()));
   }
 
   m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
   return true;
+}
+
+void LayerMRI::GeodesicSegmentationApply(LayerMRI *filled)
+{
+  if (!m_geos)
+    m_geos = new GeoSWorker;
+
+  connect(m_geos, SIGNAL(ApplyFinished()), this, SIGNAL(GeodesicSegmentationApplied()), Qt::UniqueConnection);
+  m_geos->Apply(this, filled);
 }
 
 #if 0

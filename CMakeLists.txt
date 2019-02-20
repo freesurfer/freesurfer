@@ -197,13 +197,22 @@ else()
   set(BYTEORDER 1234)
 endif()
 
+# prevents itk from importing as a system
+
+# to see all warnings add -DSUPPRESS_WARNINGS=OFF to cmake command line
+option(SUPPRESS_WARNINGS "Allow building in subdirs to supress warnings" ON)
+# option(SUPPRESS_WARNINGS "Allow building in subdirs to supress warnings" OFF)
+
 # compiler warnings
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
-else()
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-but-set-variable")
+
+if(SUPPRESS_WARNINGS)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
+  else()
+    set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-but-set-variable")
+  endif()
 endif()
 
 # ANSI
@@ -227,14 +236,23 @@ if(APPLE)
   set(STRIP_FLAGS "-dead_strip")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
 else()
-  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  if(SUPPRESS_WARNINGS)
+    set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  else()
+    # set(STRIP_FLAGS "-fdata-sections -ffunction-sections")
+    # Need this linker option for linux else, e.g., linking of gifti_test fails
+    set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+
+  endif()
   set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 endif()
 
 if(NOT APPLE)
   # link map (only for linux)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+  if(SUPPRESS_WARNINGS)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+  endif()
 endif()
 
 # check for clock_gettime on mac

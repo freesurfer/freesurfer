@@ -225,6 +225,8 @@ public:
 
   void SaveLayers(const QList<Layer*>& layers);
 
+  Layer* FindSupplementLayer(const QString& name);
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );

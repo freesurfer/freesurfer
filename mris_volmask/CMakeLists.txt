@@ -2,7 +2,9 @@ project(mris_volmask)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+if(SUPPRESS_WARNINGS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+endif()
 
 add_executable(mris_volmask mris_volmask.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask PRIVATE NO_VTK)

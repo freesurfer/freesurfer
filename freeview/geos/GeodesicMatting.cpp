@@ -5,6 +5,8 @@
 #include <QtDebug>
 #include <QElapsedTimer>
 
+#define LARGENUMBER 1e12
+
 using namespace std;
 
 GeodesicMatting::GeodesicMatting()
@@ -178,17 +180,17 @@ int GeodesicMatting::GetMinValIndexInSorted(const std::vector<double>& vals, con
 
 int GeodesicMatting::GetMinValIndex(const std::vector<double>& vals)
 {
-    double d_min = 1e10;
-    int idx = 0;
-    for (size_t i = 0; i < vals.size(); i++)
+  double d_min = 1e10;
+  int idx = 0;
+  for (size_t i = 0; i < vals.size(); i++)
+  {
+    if (d_min > vals[i])
     {
-      if (d_min > vals[i])
-      {
-        d_min = vals[i];
-        idx = i;
-      }
+      d_min = vals[i];
+      idx = i;
     }
-    return idx;
+  }
+  return idx;
 }
 
 template <typename T> vector<size_t> sort_indexes(const vector<T> &v) {
@@ -218,7 +220,7 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     memset(DISTS[i], 0, vol_size*sizeof(double));
   }
 
-  int n_steps = 100;
+  int n_steps = 15;
   std::vector<double> v;
   double step_size = (mri_range_in[1]-mri_range_in[0])/n_steps;
   for (int i = 0; i <= n_steps; i++)
@@ -270,6 +272,7 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   }
 
   double* D = new double[vol_size];
+  double* TRIALVALS = new double[vol_size];
   unsigned char* KNOWN = new unsigned char[vol_size];
   unsigned char* TRIAL = new unsigned char[vol_size];
   QElapsedTimer timer;
@@ -287,22 +290,16 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
       }
     }
     Dilate(dim, KNOWN, TRIAL);
-    std::vector<int> its, jts, kts;
     for (size_t i = 0; i < vol_size; i++)
     {
       if (TRIAL[i])
       {
-        its.push_back(i%dim[0]);
-        jts.push_back((i/dim[0])%dim[1]);
-        kts.push_back(i/(dim[0]*dim[1]));
+        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));;
       }
-    }
-    std::vector<double> vals;
-    for (int i = 0; i < its.size(); i++)
-    {
-      double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, its[i], jts[i], kts[i]);
-      D[its[i]+jts[i]*dim[0]+kts[i]*dim[0]*dim[1]] = val;
-      vals.push_back(val);
+      else
+      {
+        TRIALVALS[i]=LARGENUMBER;
+      }
     }
 
     // fast marching
@@ -314,79 +311,149 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
       if (npix%10000 == 0)
         qDebug() << npix;
 
-      int n = GetMinValIndex(vals);
-//      qDebug() << n_sorted << n;
-      size_t i = its[n], j = jts[n], k = kts[n];
-      its.erase(its.begin()+n);
-      jts.erase(jts.begin()+n);
-      kts.erase(kts.begin()+n);
-      vals.erase(vals.begin()+n);
-      size_t idx = i + j*dim[0] + k*dim[1]*dim[0];
-      KNOWN[idx] = 1;
-      TRIAL[idx] = 0;
+      double mini = LARGENUMBER;
+      int idx = -1;
+      for (size_t i = 0; i < vol_size; i++)
+      {
+        if (TRIALVALS[i]<mini)
+        {
+          mini=TRIALVALS[i];
+          idx=i;
+        }
+      }
+      if (idx < 0 || mini >= LARGENUMBER)
+        break;
 
-      if (i > 0 && KNOWN[idx-1] == 0 && TRIAL[idx-1] == 0)
+      KNOWN[idx]=1;
+      TRIAL[idx]=0;
+      TRIALVALS[idx]=LARGENUMBER;
+      D[idx]=mini;
+
+      size_t i = idx%dim[0];
+      size_t j = (idx/dim[0])%dim[1];
+      size_t k =  idx/(dim[0]*dim[1]);
+
+      if (i > 0 && KNOWN[idx-1] == 0)
       {
-        TRIAL[idx-1] = 1;
-        its.push_back(i-1);
-        jts.push_back(j);
-        kts.push_back(k);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
-        D[idx-1] = val;
-        vals.push_back(val);
-      }
-      if (i < dim[0]-1 && KNOWN[idx+1] == 0 && TRIAL[idx+1] == 0)
-      {
-        TRIAL[idx+1] = 1;
-        its.push_back(i+1);
-        jts.push_back(j);
-        kts.push_back(k);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
-        D[idx+1] = val;
-        vals.push_back(val);
-      }
-      if (j > 0 && KNOWN[idx-dim[0]] == 0 && TRIAL[idx-dim[0]] == 0)
-      {
-        TRIAL[idx-dim[0]] = 1;
-        its.push_back(i);
-        jts.push_back(j-1);
-        kts.push_back(k);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
-        D[idx-dim[0]] = val;
-        vals.push_back(val);
-      }
-      if (j < dim[1]-1 && KNOWN[idx+dim[0]] == 0 && TRIAL[idx+dim[0]] == 0)
-      {
-        TRIAL[idx+dim[0]] = 1;
-        its.push_back(i);
-        jts.push_back(j+1);
-        kts.push_back(k);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
-        D[idx+dim[0]] = val;
-        vals.push_back(val);
-      }
-      if (k > 0 && KNOWN[idx-dim[0]*dim[1]] == 0 && TRIAL[idx-dim[0]*dim[1]] == 0)
-      {
-        TRIAL[idx-dim[0]*dim[1]] = 1;
-        its.push_back(i);
-        jts.push_back(j);
-        kts.push_back(k-1);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
-        D[idx-dim[0]*dim[1]] = val;
-        vals.push_back(val);
-      }
-      if (k < dim[2]-1 && KNOWN[idx+dim[0]*dim[1]] == 0 && TRIAL[idx+dim[0]*dim[1]] == 0)
-      {
-        TRIAL[idx+dim[0]*dim[1]] = 1;
-        its.push_back(i);
-        jts.push_back(j);
-        kts.push_back(k+1);
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
-        D[idx+dim[0]*dim[1]] = val;
-        vals.push_back(val);
+        //        TRIAL[idx-1] = 1;
+        //        TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
+
+        if (TRIAL[idx-1] == 0)
+        {
+          TRIAL[idx-1] = 1;
+          TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-1] - lHood[l][idx]);
+
+          TRIALVALS[idx-1] = qMin(TRIALVALS[idx-1],mini+step);
+        }
       }
 
-      if (vals.size() == 0)
+      if (i < dim[0]-1 && KNOWN[idx+1] == 0)
+      {
+        //        TRIAL[idx+1] = 1;
+        //        TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
+
+        if (TRIAL[idx+1] == 0)
+        {
+          TRIAL[idx+1] = 1;
+          TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+1] - lHood[l][idx]);
+
+          TRIALVALS[idx+1] = qMin(TRIALVALS[idx+1],mini+step);
+        }
+      }
+
+      if (j > 0 && KNOWN[idx-dim[0]] == 0)
+      {
+        //        TRIAL[idx-dim[0]] = 1;
+        //        TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
+
+        if (TRIAL[idx-dim[0]] == 0)
+        {
+          TRIAL[idx-dim[0]] = 1;
+          TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-dim[0]] - lHood[l][idx]);
+
+          TRIALVALS[idx-dim[0]] = qMin(TRIALVALS[idx-dim[0]],mini+step);
+        }
+      }
+
+      if (j < dim[1]-1 && KNOWN[idx+dim[0]] == 0)
+      {
+        //        TRIAL[idx+dim[0]] = 1;
+        //        TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
+
+        if (TRIAL[idx+dim[0]] == 0)
+        {
+          TRIAL[idx+dim[0]] = 1;
+          TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+dim[0]] - lHood[l][idx]);
+
+          TRIALVALS[idx+dim[0]] = qMin(TRIALVALS[idx+dim[0]],mini+step);
+        }
+      }
+
+      if (k > 0 && KNOWN[idx-dim[0]*dim[1]] == 0)
+      {
+        //        TRIAL[idx-dim[0]*dim[1]] = 1;
+        //        TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
+
+        if (TRIAL[idx-dim[0]*dim[1]] == 0)
+        {
+          TRIAL[idx-dim[0]*dim[1]] = 1;
+          TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-dim[0]*dim[1]] - lHood[l][idx]);
+
+          TRIALVALS[idx-dim[0]*dim[1]] = qMin(TRIALVALS[idx-dim[0]*dim[1]],mini+step);
+        }
+      }
+
+      if (k < dim[2]-1  && KNOWN[idx+dim[0]*dim[1]] == 0)
+      {
+        //        TRIAL[idx+dim[0]*dim[1]] = 1;
+        //        TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
+
+        if (TRIAL[idx+dim[0]*dim[1]] == 0)
+        {
+          TRIAL[idx+dim[0]*dim[1]] = 1;
+          TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+dim[0]*dim[1]] - lHood[l][idx]);
+
+          TRIALVALS[idx+dim[0]*dim[1]] = qMin(TRIALVALS[idx+dim[0]*dim[1]],mini+step);
+        }
+      }
+
+      if (npix>=vol_size)
         ready = true;
     }
     memcpy(DISTS[l], D, sizeof(double)*vol_size);
@@ -409,6 +476,10 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     if (n != label_list.size()-1)
       seeds_out[i] = label_list[n];
   }
+  delete[] D;
+  delete[] TRIALVALS;
+  delete[] KNOWN;
+  delete[] TRIAL;
 
   for (size_t i = 0; i < label_list.size(); i++)
   {
@@ -417,13 +488,12 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   }
   delete[] lHood;
   delete[] DISTS;
+
   return true;
 }
 
-
-
 bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
-                              unsigned char *seeds_out)
+                                         unsigned char *seeds_out)
 {
   double** lHood = new double*[label_list.size()];
   double** DISTS = new double*[label_list.size()];
@@ -436,7 +506,7 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
     memset(DISTS[i], 0, vol_size*sizeof(double));
   }
 
-  int n_steps = 100;
+  int n_steps = 15;
   std::vector<double> v;
   double step_size = (mri_range_in[1]-mri_range_in[0])/n_steps;
   for (int i = 0; i <= n_steps; i++)
@@ -490,6 +560,7 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
   double* D = new double[vol_size];
   unsigned char* KNOWN = new unsigned char[vol_size];
   unsigned char* TRIAL = new unsigned char[vol_size];
+  double* TRIALVALS = new double[vol_size];
   QElapsedTimer timer;
   timer.start();
   for (size_t l = 0; l < label_list.size(); l++)
@@ -505,37 +576,21 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
       }
     }
     Dilate(dim, KNOWN, TRIAL);
-    std::vector<int> its, jts, kts;
+    std::vector<size_t> idxs;
     for (size_t i = 0; i < vol_size; i++)
     {
       if (TRIAL[i])
       {
-        its.push_back(i%dim[0]);
-        jts.push_back((i/dim[0])%dim[1]);
-        kts.push_back(i/(dim[0]*dim[1]));
+        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));
+        idxs.push_back(i);
+      }
+      else
+      {
+        TRIALVALS[i] = LARGENUMBER;
       }
     }
-    std::vector<double> vals;
-    for (int i = 0; i < its.size(); i++)
-    {
-      double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, its[i], jts[i], kts[i]);
-      D[its[i]+jts[i]*dim[0]+kts[i]*dim[0]*dim[1]] = val;
-      vals.push_back(val);
-    }
-    std::vector<size_t> sorted_idx = sort_indexes(vals);
-    std::vector<double> vals_temp(sorted_idx.size());
-    std::vector<int> its_temp(sorted_idx.size()), jts_temp(sorted_idx.size()), kts_temp(sorted_idx.size());
-    for (size_t i = 0; i < sorted_idx.size(); i++)
-    {
-      vals_temp[i] = vals[sorted_idx[i]];
-      its_temp[i] = its[sorted_idx[i]];
-      jts_temp[i] = jts[sorted_idx[i]];
-      kts_temp[i] = kts[sorted_idx[i]];
-    }
-    vals = vals_temp;
-    its = its_temp;
-    jts = jts_temp;
-    kts = kts_temp;
+
+    //    std::vector<size_t> sorted_idx = sort_indexes(vals);
 
     // fast marching
     bool ready = false;
@@ -546,83 +601,168 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
       if (npix%10000 == 0)
         qDebug() << npix;
 
-      size_t i = its[0], j = jts[0], k = kts[0];
-      its.erase(its.begin());
-      jts.erase(jts.begin());
-      kts.erase(kts.begin());
-      vals.erase(vals.begin());
-      size_t idx = i + j*dim[0] + k*dim[1]*dim[0];
+      double mini = LARGENUMBER;
+      size_t idx = -1;
+      int n_idxs = -1;
+      //      for (size_t i = 0; i < idxs.size(); i++)
+      //      {
+      //        if (TRIALVALS[idxs[i]] < mini)
+      //        {
+      //          mini = TRIALVALS[idxs[i]];
+      //          idx = idxs[i];
+      //          n_idxs = i;
+      //        }
+      //      }
+
+      for (size_t i = 0; i < vol_size; i++)
+      {
+        if (TRIALVALS[i]<mini)
+        {
+          mini=TRIALVALS[i];
+          idx=i;
+        }
+      }
+
+      if (idx < 0 || mini >= LARGENUMBER)
+        break;
+
       KNOWN[idx] = 1;
       TRIAL[idx] = 0;
+      TRIALVALS[idx] = LARGENUMBER;
+      D[idx] = mini;
+      //      idxs.erase(idxs.begin()+n_idxs);
 
-      if (i > 0 && KNOWN[idx-1] == 0 && TRIAL[idx-1] == 0)
+      size_t i = idx%dim[0];
+      size_t j = (idx/dim[0])%dim[1];
+      size_t k =  idx/(dim[0]*dim[1]);
+
+      if (i > 0 && KNOWN[idx-1] == 0)
       {
-        TRIAL[idx-1] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i-1);
-        jts.insert(jts.begin()+n, j);
-        kts.insert(kts.begin()+n, k);
-        D[idx-1] = val;
-      }
-      if (i < dim[0]-1 && KNOWN[idx+1] == 0 && TRIAL[idx+1] == 0)
-      {
-        TRIAL[idx+1] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i+1);
-        jts.insert(jts.begin()+n, j);
-        kts.insert(kts.begin()+n, k);
-        D[idx+1] = val;
-      }
-      if (j > 0 && KNOWN[idx-dim[0]] == 0 && TRIAL[idx-dim[0]] == 0)
-      {
-        TRIAL[idx-dim[0]] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i);
-        jts.insert(jts.begin()+n, j-1);
-        kts.insert(kts.begin()+n, k);
-        D[idx-dim[0]] = val;
-      }
-      if (j < dim[1]-1 && KNOWN[idx+dim[0]] == 0 && TRIAL[idx+dim[0]] == 0)
-      {
-        TRIAL[idx+dim[0]] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i);
-        jts.insert(jts.begin()+n, j+1);
-        kts.insert(kts.begin()+n, k);
-        D[idx+dim[0]] = val;
-      }
-      if (k > 0 && KNOWN[idx-dim[0]*dim[1]] == 0 && TRIAL[idx-dim[0]*dim[1]] == 0)
-      {
-        TRIAL[idx-dim[0]*dim[1]] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i);
-        jts.insert(jts.begin()+n, j);
-        kts.insert(kts.begin()+n, k-1);
-        D[idx-dim[0]*dim[1]] = val;
-      }
-      if (k < dim[2]-1 && KNOWN[idx+dim[0]*dim[1]] == 0 && TRIAL[idx+dim[0]*dim[1]] == 0)
-      {
-        TRIAL[idx+dim[0]*dim[1]] = 1;
-        double val = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
-        int n = BinarySearch(val, vals);
-        vals.insert(vals.begin()+n, val);
-        its.insert(its.begin()+n, i);
-        jts.insert(jts.begin()+n, j);
-        kts.insert(kts.begin()+n, k+1);
-        D[idx+dim[0]*dim[1]] = val;
+        //        TRIAL[idx-1] = 1;
+        //        TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
+
+        if (TRIAL[idx-1] == 0)
+        {
+          TRIAL[idx-1] = 1;
+          TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-1] - lHood[l][idx]);
+
+          TRIALVALS[idx-1] = qMin(TRIALVALS[idx-1],mini+step);
+        }
+        //  idxs.push_back(idx-1);
       }
 
-      if (vals.size() == 0)
+      if (i < dim[0]-1 && KNOWN[idx+1] == 0)
+      {
+        //        TRIAL[idx+1] = 1;
+        //        TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
+
+        if (TRIAL[idx+1] == 0)
+        {
+          TRIAL[idx+1] = 1;
+          TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+1] - lHood[l][idx]);
+
+          TRIALVALS[idx+1] = qMin(TRIALVALS[idx+1],mini+step);
+        }
+        //   idxs.push_back(idx+1);
+      }
+
+      if (j > 0 && KNOWN[idx-dim[0]] == 0)
+      {
+        //        TRIAL[idx-dim[0]] = 1;
+        //        TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
+
+        if (TRIAL[idx-dim[0]] == 0)
+        {
+          TRIAL[idx-dim[0]] = 1;
+          TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-dim[0]] - lHood[l][idx]);
+
+          TRIALVALS[idx-dim[0]] = qMin(TRIALVALS[idx-dim[0]],mini+step);
+        }
+        //  idxs.push_back(idx-dim[0]);
+      }
+
+      if (j < dim[1]-1 && KNOWN[idx+dim[0]] == 0)
+      {
+        //        TRIAL[idx+dim[0]] = 1;
+        //        TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
+
+        if (TRIAL[idx+dim[0]] == 0)
+        {
+          TRIAL[idx+dim[0]] = 1;
+          TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+dim[0]] - lHood[l][idx]);
+
+          TRIALVALS[idx+dim[0]] = qMin(TRIALVALS[idx+dim[0]],mini+step);
+        }
+        //  idxs.push_back(idx+dim[0]);
+      }
+
+      if (k > 0 && KNOWN[idx-dim[0]*dim[1]] == 0)
+      {
+        //        TRIAL[idx-dim[0]*dim[1]] = 1;
+        //        TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
+
+        if (TRIAL[idx-dim[0]*dim[1]] == 0)
+        {
+          TRIAL[idx-dim[0]*dim[1]] = 1;
+          TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx-dim[0]*dim[1]] - lHood[l][idx]);
+
+          TRIALVALS[idx-dim[0]*dim[1]] = qMin(TRIALVALS[idx-dim[0]*dim[1]],mini+step);
+        }
+        //  idxs.push_back(idx-dim[0]*dim[1]);
+      }
+
+      if (k < dim[2]-1  && KNOWN[idx+dim[0]*dim[1]] == 0)
+      {
+        //        TRIAL[idx+dim[0]*dim[1]] = 1;
+        //        TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
+
+        if (TRIAL[idx+dim[0]*dim[1]] == 0)
+        {
+          TRIAL[idx+dim[0]*dim[1]] = 1;
+          TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
+        }
+        else
+        {
+          double step = 0;
+          for (int l = 0; l < label_list.size(); l++)
+            step += qAbs(lHood[l][idx+dim[0]*dim[1]] - lHood[l][idx]);
+
+          TRIALVALS[idx+dim[0]*dim[1]] = qMin(TRIALVALS[idx+dim[0]*dim[1]],mini+step);
+        }
+        //  idxs.push_back(idx+dim[0]*dim[1]);
+      }
+
+      if (npix>=vol_size)
         ready = true;
     }
     memcpy(DISTS[l], D, sizeof(double)*vol_size);
@@ -645,6 +785,10 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
     if (n != label_list.size()-1)
       seeds_out[i] = label_list[n];
   }
+  delete[] D;
+  delete[] KNOWN;
+  delete[] TRIAL;
+  delete[] TRIALVALS;
 
   for (size_t i = 0; i < label_list.size(); i++)
   {
