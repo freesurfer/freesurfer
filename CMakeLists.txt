@@ -238,6 +238,11 @@ if(APPLE)
 else()
   if(SUPPRESS_WARNINGS)
     set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  else()
+    # set(STRIP_FLAGS "-fdata-sections -ffunction-sections")
+    # Need this linker option for linux else, e.g., linking of gifti_test fails
+    set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+
   endif()
   set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
