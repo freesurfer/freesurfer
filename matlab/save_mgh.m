@@ -117,7 +117,8 @@ r = 0;
 if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') || ...
 		strcmpi(fname((length(fname)-3):length(fname)), '.GZ'))
   cmd = sprintf('gzip -f %s ; mv %s.gz %s', fname, fname, fname);
-  unix(cmd);
+  [status,msg] = unix(cmd);
+  if status ~= 0, fprintf('%s\n',msg) ; end
 end
 
 return;

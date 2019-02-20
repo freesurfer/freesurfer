@@ -56,7 +56,7 @@ if(nargin < 1 | nargin > 4)
 end
 
 % unzip if it is compressed 
-if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
+if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') || ...
 		strcmpi(fname((strlen(fname)-3):strlen(fname)), '.GZ'))
   rand('state', sum(100*clock));
   gzipped =  round(rand(1)*10000000 + ...
@@ -69,10 +69,11 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
   end
   
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
-    unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
+    [status,msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
   else
-    unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+    [status,msg] = unix(sprintf('zcat %s > %s', fname, new_fname)) ;
   end
+  if status ~= 0, fprintf('%s\n',msg) ; end
   fname = new_fname ;
 else
   gzipped = -1 ;
@@ -97,7 +98,10 @@ end
 v       = fread(fid, 1, 'int') ; 
 if(isempty(v))
   fprintf('ERROR: problem reading fname\n');
-  if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
+  if(gzipped >=0)
+  [status,msg] = unix(sprintf('rm -f %s', fname));
+  if status ~= 0, fprintf('%s\n',msg) ; end
+  end
 end
 ndim1   = fread(fid, 1, 'int') ; 
 ndim2   = fread(fid, 1, 'int') ; 
@@ -178,7 +182,10 @@ if(headeronly)
     end
   end
   fclose(fid);
-  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
+  if(gzipped >=0)
+  [status,msg] = unix(sprintf('rm -f %s', fname));
+  if status ~= 0, fprintf('%s\n',msg) ; end
+  end
   return;
 end
 
@@ -203,7 +210,10 @@ if(slices(1) <= 0 & frames(1) <= 0)
     end
   end
   fclose(fid) ;
-  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
+  if(gzipped >=0)
+  [status,msg] = unix(sprintf('rm -f %s', fname));
+  if status ~= 0, fprintf('%s\n',msg) ; end
+  end
   
   nread = prod(size(vol));
   if(nread ~= nv)
@@ -249,7 +259,10 @@ for frame = frames
       fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);
       fprintf('  tried to read %d, actually read %d\n',nvslice,nread);
       fclose(fid);
-      if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
+      if(gzipped >=0)
+      [status,msg] = unix(sprintf('rm -f %s', fname));
+      if status ~= 0, fprintf('%s\n',msg) ; end
+      end
       return;
     end
 
@@ -272,6 +285,9 @@ if(~feof(fid))
 end
 
 fclose(fid) ;
-if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
+if(gzipped >=0)
+[status,msg] = unix(sprintf('rm -f %s', fname));
+if status ~= 0, fprintf('%s\n',msg) ; end
+end
 
 return;
