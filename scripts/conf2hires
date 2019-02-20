@@ -315,8 +315,8 @@ if($#MMode) then
   set OKtoCopy = 1;
   if(-e $MMreg && -e $MMregAuto) then
     # If they are different, then don't overwrite manual
-    set tmp = `diff $MMreg $MMregAuto | wc -l`
-    if($#tmp != 0) set OKtoCopy = 0;
+    set DontCopy = `diff $MMreg $MMregAuto | grep -v \# | grep -v filename | wc -l`
+    if($DontCopy) set OKtoCopy = 0;
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --proj-abs 1.5 --threads $threads)
