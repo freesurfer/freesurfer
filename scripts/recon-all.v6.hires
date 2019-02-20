@@ -2071,28 +2071,38 @@ skullstrip:
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
 
+  # Specify the name of the LTA used by watershed
+  if($#EMRegMaskArg == 0) then
+    set WSLTA = talairach_with_skull.lta
+  else
+    set WSLTA = talairach_with_externmask.lta
+  endif
+
   set cmd = (mri_watershed)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
     if ( ! $WSUseTalXfm) then # dont bother if using talairach.xfm
       # if using the GCA atlas to help with the skull-strip, then run the
       # GCA registration (mri_em_register) to align to an atlas with a skull,
-      # unless that file already exists
-      if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
+      # unless that file already exists. But see below if external mask is spec
+      if ( ! -e transforms/$WSLTA || $DoCleanLta ) then
         if($NoEMReg == 0) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
-          set cmd2 = (mri_em_register)
-          set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
-          set cmd2 = ($cmd2 -skull)
-          set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
-          set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
+          set cmd2 = (mri_em_register $xopts2 )
+          if($#EMRegMaskArg == 0) then
+            set cmd2 = ($cmd2 -skull nu.mgz ${GCADIR}/$GCASkull)
+          else
+            # When using an external mask, register to the GCA without skull
+            set cmd2 = ($cmd2 -mask $EMRegMask nu.mgz ${GCADIR}/$GCA)
+          endif
+          # Calling this "with skull" is inaccurate with external mask
+          set cmd2 = ($cmd2 transforms/$WSLTA)
         else
           # Convert talairach.xfm to LTA format
           set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
           set xfm = transforms/talairach.xfm 
-          set lta = transforms/talairach_with_skull.lta
+          set lta = transforms/$WSLTA
           set cmd2 = (lta_convert --src orig.mgz --trg $mni305 \
              --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
         endif
@@ -2110,7 +2120,7 @@ skullstrip:
                     transforms/talairach.xfm $opts)
       else
         set opts = (-brain_atlas ${GCADIR}/$GCASkull \
-                    transforms/talairach_with_skull.lta $opts)
+                    transforms/$WSLTA $opts)
       endif
     endif
   endif
@@ -2196,7 +2206,7 @@ skullstrip:
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
         if ( ! -e $BMA) continue;
-        set LTA = transforms/talairach_with_skull.lta
+        set LTA = transforms/$WSLTA
         set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
         set cmd = ($cmd $xopts ${GCADIR}/$GCA $LTA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2351,7 +2361,7 @@ if($DoGCAReg) then
   else
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
-      set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
+      #set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
         set cmd = ($cmd -mask brainmask.mgz $xopts \
@@ -2361,7 +2371,7 @@ if($DoGCAReg) then
         # default processing:
         set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
+        set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
                     nu.mgz ${GCADIR}/$GCA $lta)
       endif
     else
