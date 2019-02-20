@@ -807,19 +807,19 @@ void PanelSurface::OnButtonNewLabel()
 
 void PanelSurface::OnButtonSaveLabel()
 {
-  static QString last_dir = "";
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if (surf)
   {
     SurfaceLabel* label = surf->GetActiveLabel();
     if (label)
     {
+      QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())
       {
         QString def_fn = label->GetName() + ".label";
-        if (!last_dir.isEmpty())
-          def_fn = last_dir + "/" + def_fn;
+        def_fn = dir.absoluteFilePath(def_fn);
         fn = QFileDialog::getSaveFileName( this, "Select label file",
                                            def_fn,
                                            "Label files (*)");
@@ -827,7 +827,6 @@ void PanelSurface::OnButtonSaveLabel()
       if (!fn.isEmpty())
       {
         label->SaveToFile(fn);
-        last_dir = QFileInfo(fn).absolutePath();
       }
     }
   }
