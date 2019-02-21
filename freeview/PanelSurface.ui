@@ -1197,6 +1197,19 @@
           </property>
          </spacer>
         </item>
+        <item>
+         <widget class="QToolButton" name="toolButtonMoreLabelOptions">
+          <property name="text">
+           <string>More options</string>
+          </property>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextOnly</enum>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item row="20" column="0">

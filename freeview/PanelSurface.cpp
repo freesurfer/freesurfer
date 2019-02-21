@@ -106,7 +106,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->labelLabelZOrderLabel
                  << ui->spinBoxZOrderLabel
                  << ui->labelLabelOpacity
-                 << ui->lineEditLabelOpacity;
+                 << ui->lineEditLabelOpacity
+                 << ui->toolButtonMoreLabelOptions;
 
   m_widgetsOverlay << ui->pushButtonConfigureOverlay
                    << ui->pushButtonRemoveOverlay
@@ -581,6 +582,22 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
 
     ui->toolButtonLabelUp->setEnabled(label != layer->GetLabel(0));
     ui->toolButtonLabelDown->setEnabled(label != layer->GetLabel(layer->GetNumberOfLabels()-1));
+
+    QMenu* menu = new QMenu();
+    ui->toolButtonMoreLabelOptions->setMenu(menu);
+    QAction* act = new QAction("Go To Centroid", this);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToSurfaceLabel()));
+    menu->addAction(act);
+    act = new QAction("Resample", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelResample()));
+    menu->addAction(act);
+    act = new QAction("Dilate/Erode/Open/Close...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
+    menu->addAction(act);
+    menu->addSeparator();
+    act = new QAction("Save As...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnSaveLabelAs()));
+    menu->addAction(act);
 
     if (block_signals)
       BlockAllSignals(false);
