@@ -7121,9 +7121,11 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
           continue;
         }
 
-        if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
-          continue;
-        }
+        // ath - temporarily removing (#626)
+        // if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
+        //  continue;
+        // }
+
         /* add this new face to the defect faces */
         mrisAddFace(mris, vno, vn1, vn2);
         if (nthings == nfaces) {
