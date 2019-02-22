@@ -404,9 +404,9 @@ include ($$PWD/json/qjson.pri)
 QMAKE_CXXFLAGS += -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
                    -DDEVELOPMENT -DHAVE_OPENMP
 
-if(SUPPRESS_WARNINGS)
+if(SUPPRESS_WARNINGS) {
   QMAKE_CXXFLAGS_WARN_ON += -Wno-deprecated -Wno-write-strings #-Wno-reorder
-endif()
+}
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer_dev

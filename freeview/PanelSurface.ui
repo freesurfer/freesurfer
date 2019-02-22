@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>431</width>
-     <height>1276</height>
+     <height>1311</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,1">
@@ -1197,6 +1197,19 @@
           </property>
          </spacer>
         </item>
+        <item>
+         <widget class="QToolButton" name="toolButtonMoreLabelOptions">
+          <property name="text">
+           <string>More options</string>
+          </property>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextOnly</enum>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item row="20" column="0">
@@ -1537,7 +1550,7 @@
      <normaloff>:/resource/icons/surface_path.png</normaloff>:/resource/icons/surface_path.png</iconset>
    </property>
    <property name="text">
-    <string>Path</string>
+    <string>Custom Fill</string>
    </property>
   </action>
   <action name="actionMakePath">
