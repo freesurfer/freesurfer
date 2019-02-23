@@ -94,8 +94,8 @@ char *xUtil_GetErrorString(xUtil_tErr ieCode)
   return xUtil_ksaErrorString[eCode];
 }
 
-struct timeval sStartTime = {};
-struct timeval sEndTime = {};
+struct timeval sStartTime = {0, 0};
+struct timeval sEndTime = {0, 0};
 
 void xUtil_StartTimer() { gettimeofday(&sStartTime, NULL); }
 

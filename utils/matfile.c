@@ -874,7 +874,7 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
   long32 dt;
   char ctmp[4];
   long32 tmp;
-  int fourbytes = 4;
+  unsigned int fourbytes = 4;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) DiagPrintf(DIAG_VERBOSE, "MatReadHeader: fp=%lx, mf=%lx\n", fp, mf);
 

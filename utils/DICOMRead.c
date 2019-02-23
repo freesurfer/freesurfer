@@ -1351,7 +1351,7 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
     case DCM_OB:
       evstring = (char *) calloc(sizeof(char),e->length+1);
       len = e->length;
-      for (n = 0; n < e->length; n++) {
+      for (n = 0; n < (int)e->length; n++) {
         if (isprint(e->d.string[n]))
           evstring[n] = e->d.string[n];
         else if (e->d.string[n] == '\r' || e->d.string[n] == '\n' || e->d.string[n] == '\v')
@@ -1378,14 +1378,14 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
       break;
     case DCM_FL:
       sprintf(tmpstr, "%f ", (float)(e->d.fd[0]));
-      for (n = 1; n < e->multiplicity; n++) {
+      for (n = 1; n < (int)e->multiplicity; n++) {
         sprintf(tmpstr2, "%s %f ", tmpstr, (float)(e->d.fd[n]));
         sprintf(tmpstr, "%s", tmpstr2);
       }
       break;
     case DCM_FD:
       sprintf(tmpstr, "%lf ", (double)(e->d.fd[0]));
-      for (n = 1; n < e->multiplicity; n++) {
+      for (n = 1; n < (int)e->multiplicity; n++) {
         sprintf(tmpstr2, "%s %lf ", tmpstr, (double)(e->d.fd[n]));
         sprintf(tmpstr, "%s", tmpstr2);
       }
@@ -1593,7 +1593,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
     // backslashes in front of any parens
     memset(&filename[0], 0, 1024);
     k = 0;
-    for (i = 0; i < strlen(dcmfile); i++) {
+    for (i = 0; i < (int)strlen(dcmfile); i++) {
       if (dcmfile[i] == '(' || dcmfile[i] == ')' || dcmfile[i] == '[' || dcmfile[i] == ']') {
         filename[k] = 92;  // 92 is ascii dec for backslash
         k++;
@@ -2017,7 +2017,7 @@ int dcmImageDirCos(const char *dcmfile, float *Vcx, float *Vcy, float *Vcz, floa
 
   /* replace back slashes with spaces */
   nbs = 0;
-  for (n = 0; n < strlen(s); n++) {
+  for (n = 0; n < (int)strlen(s); n++) {
     if (s[n] == '\\') {
       s[n] = ' ';
       nbs++;
@@ -2079,7 +2079,7 @@ int dcmImagePosition(const char *dcmfile, float *x, float *y, float *z)
 
   /* replace back slashes with spaces */
   nbs = 0;
-  for (n = 0; n < strlen(s); n++) {
+  for (n = 0; n < (int)strlen(s); n++) {
     if (s[n] == '\\') {
       s[n] = ' ';
       nbs++;
@@ -4386,9 +4386,9 @@ CONDITION GetMultiDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d[]
   i = 0;
   j = 0;
   mult = 0;
-  while (mult < multiplicity && i < attribute.length) {
+  while (mult < multiplicity && i < (int)attribute.length) {
     j = 0;
-    while (s[i] != '\\' && i < attribute.length) {
+    while (s[i] != '\\' && i < (int)attribute.length) {
       ss[j++] = s[i++];
     }
     i++;
@@ -4422,9 +4422,9 @@ CONDITION GetMultiShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *us[],
   i = 0;
   j = 0;
   mult = 0;
-  while (mult < multiplicity && i < attribute.length) {
+  while (mult < multiplicity && i < (int)attribute.length) {
     j = 0;
-    while (s[i] != '\\' && i < attribute.length) {
+    while (s[i] != '\\' && i < (int)attribute.length) {
       ss[j++] = s[i++];
     }
     i++;
@@ -6912,7 +6912,7 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
     free(e);
     return (7);
   }
-  for (n = 0; n < strlen(e->d.string); n++)
+  for (n = 0; n < (int)strlen(e->d.string); n++)
     if (e->d.string[n] == '\\') e->d.string[n] = ' ';
   sscanf(e->d.string, "%lf", pbval);
   free(e);
@@ -7167,12 +7167,12 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   // Scroll through the nasty string and find the keywords
   bval_flag = 0;
   bvec_flag = 0;
-  for (n = 0; n < e->length; n++) {
+  for (n = 0; n < (int)e->length; n++) {
     c = e->d.string[n];
     if (c == 'B') {
       sscanf(&(e->d.string[n]), "%s", tmpstr);
       if (strcmp(tmpstr, "B_value") == 0) {
-        for (m = n; m < e->length; m++) {
+        for (m = n; m < (int)e->length; m++) {
           c = e->d.string[m];
           if (isdigit(c)) {
             sscanf(&(e->d.string[m]), "%lf", pbval);
@@ -7183,7 +7183,7 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
         }    // for m
         // Skip past the number just read
         while (isdigit(c) || c == '.') {
-          if (m >= e->length) break;
+          if (m >= (int)e->length) break;
           m = m + 1;
           c = e->d.string[m];
         }
@@ -7194,7 +7194,7 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
       sscanf(&(e->d.string[n]), "%s", tmpstr);
       if (strcmp(tmpstr, "DiffusionGradientDirection") == 0) {
         for (k = 0; k < 3; k++) {
-          for (m = n; m < e->length; m++) {
+          for (m = n; m < (int)e->length; m++) {
             c = e->d.string[m];
             if (isdigit(c) || c == '-' || c == '+' || c == '.') {
               sscanf(&(e->d.string[m]), "%lf", &val);
@@ -7208,7 +7208,7 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
           }    // m
           // Skip past the number just read
           while (isdigit(c) || c == '-' || c == '+' || c == '.') {
-            if (m >= e->length) break;
+            if (m >= (int)e->length) break;
             m = m + 1;
             c = e->d.string[m];
           }
@@ -7282,7 +7282,7 @@ int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz,
 
   /* replace back slashes with spaces */
   nbs = 0;
-  for (n = 0; n < strlen(s); n++) {
+  for (n = 0; n < (int)strlen(s); n++) {
     if (s[n] == '\\') {
       s[n] = ' ';
       nbs++;
