@@ -324,7 +324,7 @@ int tagNameIs(char *c, xmlNodePtr cur)
 int wrdLen(char *c)
 {
   int i;
-  for (i = 0; i < strlen(c); i++)
+  for (i = 0; i < (int)strlen(c); i++)
     if (*(c + i) == ' ' || *(c + i) == '_' || *(c + i) == '/') {
       return i;
     }

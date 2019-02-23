@@ -233,13 +233,13 @@ static void printName(xmlNodePtr cur)
 
 // Prints the text of a tag in the correct format
 // at most FSPRINT_MAX_CHARS characters per line with the correct number of tabs
-#define FSPRINT_MAX_CHARS 78
+const int FSPRINT_MAX_CHARS = 78;
 static void printContents(xmlDocPtr doc, xmlNodePtr cur)
 {
   xmlChar *contents;
   contents = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
   int i = 0, j;
-  while (i < strlen((char *)contents)) {
+  while (i < (int)strlen((char *)contents)) {
     int tabNum = 1;
     printf("\n\t");
     if (tagNameIs("explanation", cur)) {
@@ -249,7 +249,7 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur)
     if (*(contents + i) == ' ') {
       i++;
     }
-    for (j = i; j < FSPRINT_MAX_CHARS - tabNum * 8 + i && j < strlen((char *)contents) &&
+    for (j = i; j < FSPRINT_MAX_CHARS - tabNum * 8 + i && j < (int)strlen((char *)contents) &&
                 (wrdLen((char *)(contents + j)) > FSPRINT_MAX_CHARS - tabNum * 8 ||
                  wrdLen((char *)(contents + j)) <= FSPRINT_MAX_CHARS - tabNum * 8 + i - j);
          j++) {
@@ -280,7 +280,7 @@ static int tagNameIs(char *c, xmlNodePtr cur) { return !(xmlStrcasecmp(cur->name
 static int wrdLen(char *c)
 {
   int i;
-  for (i = 0; i < strlen(c); i++) {
+  for (i = 0; i < (int)strlen(c); i++) {
     if (*(c + i) == ' ' || *(c + i) == '_' || *(c + i) == '/') {
       return i;
     }
