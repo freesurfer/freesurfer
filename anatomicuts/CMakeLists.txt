@@ -7,8 +7,11 @@ if(VTK_FOUND)
     ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/Code
     ${CMAKE_SOURCE_DIR}/freeview/track_io
-    ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
+  )
+
+  include_directories(
+    SYSTEM ${ITK_INCLUDE_DIRS}
   )
 
   include(${ITK_USE_FILE})  
