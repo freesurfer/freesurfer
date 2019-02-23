@@ -68,7 +68,7 @@ int main(int narg, char * arg[])
 	typedef ClassifierType::ClassLabelVectorType                     ClassLabelVectorType;
 	typedef ClassifierType::MembershipFunctionVectorObjectType       MembershipFunctionVectorObjectType;
 	typedef ClassifierType::MembershipFunctionVectorType             MembershipFunctionVectorType;
-	typedef SurfaceType::TriangleType 				TriangleType;
+	// typedef SurfaceType::TriangleType 				TriangleType;
   	
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -125,7 +125,7 @@ int main(int narg, char * arg[])
 
 	OutputImageType::SizeType size;
 	OutputImageType::IndexType start;
-	float vol=0;	
+	// float vol=0;	
 	direction.SetIdentity();
 	for(int i=0;i<3;i++)
 	{
@@ -172,7 +172,7 @@ int main(int narg, char * arg[])
 		MeasurementVectorType mv;
 		mv.AllocateElements(vectorLenght);
 		mv.SetSize(vectorLenght);
-		for(int j=0; j<images.size();j++)
+		for(size_t j=0; j<images.size();j++)
 		{
 			for( int d=-deep;d<=deep;d++)
 			{
@@ -199,11 +199,11 @@ int main(int narg, char * arg[])
 
 	EstimatorType::Pointer estimator = EstimatorType::New();
 	EstimatorType::ParametersType initialMeans(vectorLenght*numClusters);
-	for(unsigned int c=0;c<numClusters;c++)
+	for(int c=0;c<numClusters;c++)
 	{
-		for(unsigned int i=0;i<=vectorLenght;i++)
+	  for(int i=0;i<=vectorLenght;i++) {
 			initialMeans[c*vectorLenght+i] = sample->GetMeasurementVector(c*(sample->Size()/numClusters))[i]; 
-		
+	  }	
 	}
 	estimator->SetParameters( initialMeans );
 	estimator->SetKdTree( treeGenerator->GetOutput() );
@@ -229,9 +229,9 @@ int main(int narg, char * arg[])
 	classifier->SetClassLabels( classLabelsObject );
 
 	ClassLabelVectorType &  classLabelsVector = classLabelsObject->Get();
-	for(unsigned int i=0; i<numClusters;i++)
+	for(int i=0; i<numClusters;i++) {
 		classLabelsVector.push_back( i );
-
+	}
 
 	MembershipFunctionVectorObjectType::Pointer membershipFunctionsObject =
 	MembershipFunctionVectorObjectType::New();
@@ -243,7 +243,7 @@ int main(int narg, char * arg[])
 	int index = 0;
 	std::vector<MembershipFunctionPointer> functions;
 	std::vector<MeasurementVectorType> clusterMeans;
-	for ( unsigned int i = 0 ; i < numClusters ; i++ )
+	for ( int i = 0 ; i < numClusters ; i++ )
 	{
 		MembershipFunctionPointer membershipFunction = MembershipFunctionType::New();
 		for ( unsigned int j = 0 ; j < sample->GetMeasurementVectorSize(); j++ )
@@ -280,7 +280,7 @@ int main(int narg, char * arg[])
 	int i=0;
 
 	COLOR_TABLE *ct;
-	int vtxno, vtx_clusterno, annot, n;
+	int annot;
 
 	ct = CTABalloc(numClusters+ 1);
 	surf->ct = ct;
