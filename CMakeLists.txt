@@ -204,7 +204,7 @@ option(SUPPRESS_WARNINGS "Allow building in subdirs to supress warnings" ON)
 # option(SUPPRESS_WARNINGS "Allow building in subdirs to supress warnings" OFF)
 
 # compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter")
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 
 if(SUPPRESS_WARNINGS)
