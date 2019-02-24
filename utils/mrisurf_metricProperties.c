@@ -10151,7 +10151,7 @@ int MRISaverageGradients(MRIS *mris, int num_avgs)
       // Do all the iterations
       for (i = 0 ; i < num_avgs ; i++) {
         
-        int chunksIndex;
+        size_t chunksIndex;
         ROMP_PF_begin
 #ifdef HAVE_OPENMP
         #pragma omp parallel for if_ROMP(assume_reproducible)

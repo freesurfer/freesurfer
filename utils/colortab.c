@@ -593,7 +593,7 @@ COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries)
                  len));
   }
   name = (char *)malloc(len + 1);
-  if (fread(name, sizeof(char), len, fp) != len) {
+  if (fread(name, sizeof(char), len, fp) != (size_t)len) {
     ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
   }
   strncpy(ct->fname, name, sizeof(ct->fname));
@@ -624,7 +624,7 @@ COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries)
                    len));
     }
     name = (char *)malloc(len + 1);
-    if (fread(name, sizeof(char), len, fp) != len) {
+    if (fread(name, sizeof(char), len, fp) != (size_t)len) {
       ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
     }
     strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));
@@ -728,7 +728,7 @@ COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp)
                  "was %d",
                  len));
   name = (char *)malloc(len + 1);
-  if (fread(name, sizeof(char), len, fp) != len) {
+  if (fread(name, sizeof(char), len, fp) != (size_t)len) {
     ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
   }
   strncpy(ct->fname, name, sizeof(ct->fname));
@@ -778,7 +778,7 @@ COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp)
                    len));
     }
     name = (char *)malloc(len + 1);
-    if (fread(name, sizeof(char), len, fp) != len) {
+    if (fread(name, sizeof(char), len, fp) != (size_t)len) {
       ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
     }
     strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));

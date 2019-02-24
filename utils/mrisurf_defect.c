@@ -2021,8 +2021,8 @@ static void cachedOrComputeVertexPseudoNormal(
       
       if (0) {
       	cheapAssert(0 <= index);
-      	cheapAssert(index       < PerThreadVertexPseudoNormalCacheSize);
-      	cheapAssert(initedIndex < PerThreadVertexPseudoNormalCacheInitedSize);
+      	cheapAssert(index       < (int)PerThreadVertexPseudoNormalCacheSize);
+      	cheapAssert(initedIndex < (int)PerThreadVertexPseudoNormalCacheInitedSize);
       }
       
       inited = p->inited[initedIndex] & initedMask;
@@ -4122,7 +4122,7 @@ MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms)
 // used for fs_topo_fixer
 void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name)
 {
-  int static n_br = 0;
+  static int n_br = 0;
   char fname[512];
   int n;
   double x, y, z, xv, yv, zv;

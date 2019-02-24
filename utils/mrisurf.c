@@ -131,7 +131,7 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
     #define ELTX(TYPE,   MBR) // don't hash excluded elements
 #ifdef SEPARATE_VERTEX_TOPOLOGY
     #define ELTT(TYPE,   MBR) \
-        for (i = 0; i < vectorSize; i++) {                                                              \
+      for (i = 0; i < (int)vectorSize; i++) {				\
             MRIS_HASH  * hash = &hashVector[i];                                                         \
             MRIS const * mris = mrisPVector[i];                                                         \
             VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];                                 \
@@ -149,7 +149,7 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
     #undef ELTT
 #endif
     #define ELTT(TYPE,   MBR) \
-        for (i = 0; i < vectorSize; i++) {                                                              \
+      for (i = 0; i < (int)vectorSize; i++) {				\
             MRIS_HASH  * hash = &hashVector[i];                                                         \
             MRIS const * mris = mrisPVector[i];                                                         \
             VERTEX const * v = &mris->vertices[vno];                                                    \
@@ -170,7 +170,7 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
     
     // Now include some of the pointer targets
     //
-    for (i = 0; i < vectorSize; i++) {
+      for (i = 0; i < (int)vectorSize; i++) {
         MRIS_HASH  * hash = &hashVector[i];
         MRIS const * mris = mrisPVector[i];
         VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
@@ -217,7 +217,7 @@ static bool face_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
     #define SEP
     #define ELTP(TARGET,NAME) // don't hash pointers
     #define ELTT(TYPE,       MBR) \
-        for (i = 0; i < vectorSize; i++) {                                                              \
+      for (i = 0; i < (int)vectorSize; i++) {				\
             MRIS_HASH  * hash = &hashVector[i];                                                         \
             MRIS const * mris = mrisPVector[i];                                                         \
             FACE* face = &mris->faces[fno];                                                             \
