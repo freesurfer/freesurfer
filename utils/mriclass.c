@@ -141,7 +141,7 @@ MRIC *MRICalloc(int nrounds, int *types, int *features, void *parms)
 
   mric->nrounds = nrounds;
   for (round = 0; round < nrounds; round++) {
-    for (ninputs = 0, f = 0x001; f != MAX_FEATURE; f <<= 1)
+    for (ninputs = 0, f = 0x001; f != (int)MAX_FEATURE; f <<= 1)
       if (f & features[round]) ninputs++;
 
     if (ninputs < 1 || ninputs > MAX_INPUTS)
@@ -1182,7 +1182,7 @@ char *MRICfeatureName(MRIC *mric, int round, int feature_number)
   /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0; f != MAX_FEATURE; f <<= 1)
+  for (f = 0x001, fno = 0; f != (int)MAX_FEATURE; f <<= 1)
     if ((f & mric->features[round]) && (fno++ == feature_number)) break;
 
   if (f & FEATURE_INTENSITY) return ("INTENSITY");
@@ -1220,7 +1220,7 @@ char *MRICfeatureNumberToName(int feature_number)
   int f, fno;
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0; f != MAX_FEATURE; f <<= 1)
+  for (f = 0x001, fno = 0; f != (int)MAX_FEATURE; f <<= 1)
     if (fno++ == feature_number) break;
 
   if (f & FEATURE_INTENSITY) return ("INTENSITY");
@@ -1267,7 +1267,7 @@ int MRICfeatureNumberCode(int feature_number)
   int f, fno;
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0; f != MAX_FEATURE; f <<= 1)
+  for (f = 0x001, fno = 0; f != (int)MAX_FEATURE; f <<= 1)
     if (fno++ == feature_number) break;
 
   if (f & FEATURE_POSITION) return (FEATURE_POSITION);
@@ -1289,7 +1289,7 @@ int MRICfeatureCode(MRIC *mric, int round, int feature_number)
   /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0; f != MAX_FEATURE; f <<= 1)
+  for (f = 0x001, fno = 0; f != (int)MAX_FEATURE; f <<= 1)
     if ((f & mric->features[round]) && (fno++ == feature_number)) break;
 
   return (f);
@@ -1309,7 +1309,7 @@ int MRICfeatureNumber(MRIC *mric, int round, int feature_code)
   /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0; f != MAX_FEATURE; f <<= 1) {
+  for (f = 0x001, fno = 0; f != (int)MAX_FEATURE; f <<= 1) {
     if (f & feature_code) return (fno);
     if (f & mric->features[round]) fno++;
   }

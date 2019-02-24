@@ -4158,7 +4158,7 @@ float MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, float x, float y, float z,
 }
 int MRIvertexToVector(int vertex, float *pdx, float *pdy, float *pdz)
 {
-  if ((vertex < 0) || (vertex >= sizeof(ic_x_vertices) / sizeof(ic_x_vertices[0])))
+  if ((vertex < 0) || (vertex >= (int)(sizeof(ic_x_vertices) / sizeof(ic_x_vertices[0]))))
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIvertexToVector(%d): index out of range", vertex));
   *pdx = ic_x_vertices[vertex];
   *pdy = ic_y_vertices[vertex];
