@@ -34,7 +34,8 @@ static int non_hippo_labels[] = {
 
 MRI *HIPPOremoveNonHippoLabels(MRI *mri_src, MRI *mri_dst)
 {
-  int i, label;
+  int label;
+  size_t i;
 
   mri_dst = MRIcopy(mri_src, mri_dst);
 

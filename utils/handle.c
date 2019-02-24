@@ -177,7 +177,7 @@ int HandleOk(PTR_HANDLE handle)
 {
   HandleInfo *handleInfo;
 
-  if ((handle <= (PTR_HANDLE)0) || (handle > nhandles)) return (0);
+  if ((handle <= (PTR_HANDLE)0) || (handle > (size_t)nhandles)) return (0);
 
   handleInfo = handleTable + (handle - 1);
   if (handleInfo->status == HANDLE_FREE) return (-1);

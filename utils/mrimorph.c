@@ -4564,7 +4564,7 @@ MORPH_3D *MRI3DreadSmall(char *fname)
   if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRI3DreadSmall: could not open file %s", fname));
 
   magic = freadInt(fp);
-  if (magic != M3D_MAGIC) {
+  if (magic != (int)M3D_MAGIC) {
     fclose(fp);
     ErrorReturn(NULL, (ERROR_BADFILE, "file %s not an old 3d morph file.\nTry a new 3d morph read routine.\n", fname));
   }

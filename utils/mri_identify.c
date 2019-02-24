@@ -1132,7 +1132,7 @@ int is_nrrd(const char *fname)
   dot = strrchr(fname, '.');
 
   if (dot != NULL) {
-    if ((strcmp(dot, ".nrrd") == 0) && (strlen(fname) == dot - fname + 5)) {
+    if ((strcmp(dot, ".nrrd") == 0) && (strlen(fname) == (size_t)(dot - fname + 5))) {
       return (TRUE);
     }
   }

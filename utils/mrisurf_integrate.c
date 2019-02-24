@@ -2146,7 +2146,7 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 static float area_coefs[] = {1.0f, 1.0f, 0.1f};
 static float dist_coefs[] = {0.1f, 1.0f, 1.0f};
 
-#define NCOEFS sizeof(area_coefs) / sizeof(area_coefs[0])
+#define NCOEFS ((int)(sizeof(area_coefs) / sizeof(area_coefs[0])))
 
 #define MAX_NBHD_SIZE 200
 #define NBR_COEF (M_PI * 1.0f)

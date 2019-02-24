@@ -2247,7 +2247,7 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
       fseek(fp, 6144, SEEK_SET);
 
       for (i = 0; i < rows; i++) {
-        if (fread(&MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short), cols, fp) != cols){
+        if (fread(&MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short), cols, fp) != (size_t)cols){
           ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -11440,10 +11440,13 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     if (znzreadFloatEx(&fval, fp)) {
       mri->flip_angle = fval;
       // flip_angle is double. I cannot use the same trick.
-      if (znzreadFloatEx(&(mri->te), fp))
-        if (znzreadFloatEx(&(mri->ti), fp))
-          if (znzreadFloatEx(&(mri->fov), fp))
+      if (znzreadFloatEx(&(mri->te), fp)) {
+        if (znzreadFloatEx(&(mri->ti), fp)) {
+          if (znzreadFloatEx(&(mri->fov), fp)) {
             ;
+	  }
+	}
+      }
     }
   }
   // tag reading

@@ -803,12 +803,12 @@ int MRISsetCurvatureName(int nth, char const *name)
 
 int MRISprintCurvatureNames(FILE *fp)
 {
-  int k;
+  size_t k;
   for (k = 0; k < sizeof(curvature_names) / sizeof(curvature_names[0]); k++) {
     if (curvature_names[k])
-      printf("%d %s\n", k, curvature_names[k]);
+      printf("%zd %s\n", k, curvature_names[k]);
     else if (mrisurf_surface_names[k])
-      printf("%d %s (computed)\n", k, mrisurf_surface_names[k]);
+      printf("%zd %s (computed)\n", k, mrisurf_surface_names[k]);
   }
   return (0);
 }

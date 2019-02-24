@@ -9578,9 +9578,9 @@ int mrisRemoveNegativeArea(
       pnum = &parms->l_spring;
     }
 
-  for (total_steps = npasses = 0; npasses < MAX_PASSES; npasses++) {
+  for (total_steps = npasses = 0; npasses < (int)MAX_PASSES; npasses++) {
     *pnum = 1.0;
-    *pdenom = cmod * (npasses >= MAX_PASSES ? neg_area_ratios[MAX_PASSES - 1] : neg_area_ratios[npasses]);
+    *pdenom = cmod * (npasses >= (int)MAX_PASSES ? neg_area_ratios[MAX_PASSES - 1] : neg_area_ratios[npasses]);
 
     ratio = *pnum / *pdenom;
 
