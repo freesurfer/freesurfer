@@ -1495,7 +1495,7 @@ static int xoffsets[] = {0, -1, 0, 1, 0};
 static int yoffsets[] = {-1, 0, 0, 0, 1};
 #define ONE_EIGHTH (1.0f / 8.0f)
 static float weights[] = {ONE_EIGHTH, ONE_EIGHTH, -0.5f, ONE_EIGHTH, ONE_EIGHTH};
-#define LAPLACIAN_POINTS (sizeof(xoffsets) / sizeof(xoffsets[0]))
+#define LAPLACIAN_POINTS ((int)(sizeof(xoffsets) / sizeof(xoffsets[0])))
 
 IMAGE *ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
 {

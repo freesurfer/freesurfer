@@ -5230,7 +5230,7 @@ GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
     histo[n] = (float)nint(0.25 + histo[n] * (float)nsamples / total);
   }
 
-  for (n = 0; n < sizeof(exclude_classes) / sizeof(exclude_classes[0]); n++) {
+  for (n = 0; n < (int)(sizeof(exclude_classes) / sizeof(exclude_classes[0])); n++) {
     histo[exclude_classes[n]] = 0;
   }
 
@@ -18349,7 +18349,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
     h_mri = HISTOalloc(nbins);
     h_mtl = HISTOalloc(nbins);
     h_caudate = HISTOalloc(nbins);
-    for (j = 0; j < NALIGN_LABELS; j++) {
+    for (j = 0; j < (int)NALIGN_LABELS; j++) {
       l = align_labels[j];
       if (l == Gdiag_no) {
         DiagBreak();
@@ -18964,7 +18964,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
 
       HISTOmakePDF(h_mtl, h_mtl);
       mri_peak = HISTOfindHighestPeakInRegion(h_mtl, 0, h_mtl->nbins);
-      for (j = 0; j < MTL_LABELS; j++) {
+      for (j = 0; j < (int)MTL_LABELS; j++) {
         l = mtl_labels[j];
         h_gca = gcaGetLabelHistogram(gca, l, 0, 1);
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins);
@@ -19074,7 +19074,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
       }
     }
     fprintf(stdout, "not using caudate to estimate GM means\n");
-    for (k = 0; k < NHEMI_LABELS; k++) {
+    for (k = 0; k < (int)NHEMI_LABELS; k++) {
       int lhl, rhl;
       if (computed[lh_labels[k]] && !computed[rh_labels[k]]) {
         lhl = lh_labels[k];
@@ -19111,7 +19111,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
     num = 0;
     mean_gm_scale = 0;
     mean_gm_offset = 0;
-    for (k = 0; k < NGM_LABELS; k++) {
+    for (k = 0; k < (int)NGM_LABELS; k++) {
       label = gm_labels[k];
       if (computed[label]) {
         mean_gm_scale += label_scales[label];
@@ -19131,7 +19131,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
     num = 0;
     mean_wm_scale = 0;
     mean_wm_offset = 0;
-    for (k = 0; k < NWM_LABELS; k++) {
+    for (k = 0; k < (int)NWM_LABELS; k++) {
       label = wm_labels[k];
       if (computed[label]) {
         mean_wm_scale += label_scales[label];
@@ -19151,7 +19151,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
     num = 0;
     mean_csf_scale = 0;
     mean_csf_offset = 0;
-    for (k = 0; k < NCSF_LABELS; k++) {
+    for (k = 0; k < (int)NCSF_LABELS; k++) {
       label = csf_labels[k];
       if (computed[label]) {
         mean_csf_scale += label_scales[label];
@@ -19687,7 +19687,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
   h_mri = HISTOalloc(nbins);
   h_mtl = HISTOalloc(nbins);
   h_caudate = HISTOalloc(nbins);
-  for (j = 0; j < NALIGN_LABELS; j++) {
+  for (j = 0; j < (int)NALIGN_LABELS; j++) {
     l = align_labels[j];
     if (l == Gdiag_no) DiagBreak();
 
@@ -20068,7 +20068,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
 
     HISTOmakePDF(h_mtl, h_mtl);
     mri_peak = HISTOfindHighestPeakInRegion(h_mtl, 0, h_mtl->nbins);
-    for (j = 0; j < MTL_LABELS; j++) {
+    for (j = 0; j < (int)MTL_LABELS; j++) {
       l = mtl_labels[j];
       h_gca = gcaGetLabelHistogram(gca, l, 0, 1);
       gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins);
@@ -20178,7 +20178,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
     }
   }
   fprintf(stdout, "not using caudate to estimate GM means\n");
-  for (k = 0; k < NHEMI_LABELS; k++) {
+  for (k = 0; k < (int)NHEMI_LABELS; k++) {
     int lhl, rhl;
     if (computed[lh_labels[k]] && !computed[rh_labels[k]]) {
       lhl = lh_labels[k];
@@ -20215,7 +20215,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
   num = 0;
   mean_gm_scale = 0;
   mean_gm_offset = 0;
-  for (k = 0; k < NGM_LABELS; k++) {
+  for (k = 0; k < (int)NGM_LABELS; k++) {
     label = gm_labels[k];
     if (computed[label]) {
       mean_gm_scale += label_scales[label];
@@ -20235,7 +20235,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
   num = 0;
   mean_wm_scale = 0;
   mean_wm_offset = 0;
-  for (k = 0; k < NWM_LABELS; k++) {
+  for (k = 0; k < (int)NWM_LABELS; k++) {
     label = wm_labels[k];
     if (computed[label]) {
       mean_wm_scale += label_scales[label];
@@ -20255,7 +20255,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
   num = 0;
   mean_csf_scale = 0;
   mean_csf_offset = 0;
-  for (k = 0; k < NCSF_LABELS; k++) {
+  for (k = 0; k < (int)NCSF_LABELS; k++) {
     label = csf_labels[k];
     if (computed[label]) {
       mean_csf_scale += label_scales[label];
@@ -24178,7 +24178,7 @@ int GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transfo
   HISTOGRAM *h_gca;
   MRI *mri_aseg;
 
-  for (i = 0; i < NUM_ENTROPY_LABELS; i++) {
+  for (i = 0; i < (int)NUM_ENTROPY_LABELS; i++) {
     scales[i] = 1.0;
     h_gca = gcaGetLabelHistogram(gca, entropy_labels[i], 0, 0);
     peak_bin = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins);
@@ -24208,7 +24208,7 @@ int GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transfo
     gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, 1);
     {
       int n;
-      for (n = 0; n < NUM_ENTROPY_LABELS; n++)
+      for (n = 0; n < (int)NUM_ENTROPY_LABELS; n++)
         printf("scales[%s] = %2.3f, peak = %2.0f (rh=%2.0f)\n",
                cma_label_to_name(entropy_labels[n]),
                scales[n],
@@ -24253,7 +24253,7 @@ int GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transfo
     }
   } while (!done);
 
-  for (i = 0; i < NUM_ENTROPY_LABELS; i++) {
+  for (i = 0; i < (int)NUM_ENTROPY_LABELS; i++) {
     printf("scaling %s by %2.3f from %2.0f to %2.0f (rh=%2.0f)\n",
            cma_label_to_name(entropy_labels[i]),
            scales[i],

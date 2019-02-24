@@ -223,9 +223,9 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line) {
           hiVnos[hiVnosSize++] = vno2;
         } else {
           Edges const * const edgesForVno2 = &edges[vno2];
-          int count = 0;
+          unsigned int count = 0;
           int i;
-          for (i = 0; i < edgesForVno2->hiVnosCount; i++) {
+          for (i = 0; i < (int)edgesForVno2->hiVnosCount; i++) {
             if (hiVnos[edgesForVno2->hiVnosBegin + i] == vno) count++;
           }
           cheapAssert(count == 1);  // each should be entered exactly once
@@ -261,7 +261,7 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line) {
         if (vno1 > vno2) { vno1 = vno2; vno2 = face->v[n1]; } else cheapAssert(vno1 != vno2);
         Edges const * const edgesForVno = &edges[vno1];
         int i;
-        for (i = 0; i < edgesForVno->hiVnosCount; i++) {
+        for (i = 0; i < (int)edgesForVno->hiVnosCount; i++) {
           if (hiVnos   [edgesForVno->hiVnosBegin + i] != vno2) continue;
           // found the entry for an edge
           if (!badCount) {
@@ -285,7 +285,7 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line) {
     if (badCount) break;
     
     int edgeNo;
-    for (edgeNo = 0; edgeNo < hiVnosSize; edgeNo++) {
+    for (edgeNo = 0; edgeNo < (int)hiVnosSize; edgeNo++) {
       int count = nFacesPerEdge[edgeNo];
       if (count == 2) continue;
       if (count <  2 && tearsOk) continue;
@@ -920,13 +920,15 @@ void MRIS_VertexNeighbourInfo_check(
   cheapAssert(lhs->hops == rhs->hops);
   
   int i;
-  for (i = 0; i <= lhs->hops; i++)
+  for (i = 0; i <= (int)lhs->hops; i++) {
     cheapAssert(lhs->vnum[i] == rhs->vnum[i]); 
+  }
     
   // Even test the algorithms put them in the same order!
   //
-  for (i = 0; i < lhs->vnum[lhs->hops]; i++) 
+  for (i = 0; i < lhs->vnum[lhs->hops]; i++) {
     cheapAssert(lhs->v[i] == rhs->v[i]);
+  }
 }
 
 
@@ -941,16 +943,18 @@ void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, 
   case 0: info->vnum[0] = 1;
   }
   int i;
-  for (i = 0; i < info->vnum[info->hops]; i++) info->v[i] = vt->v[i];
+  for (i = 0; i < info->vnum[info->hops]; i++) {
+    info->v[i] = vt->v[i];
+  }
 }
 
 void MRIS_VertexNeighbourInfo_load_from_vlist (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno, size_t listSize, int* vlist, int* hops) {
   info->vnum[0] = 1;
   int i;
-  for (i = 0; i < listSize; i++) {
+  for (i = 0; i < (int)listSize; i++) {
     info->v[i] = vlist[i];
     info->hops = hops[i];
-    cheapAssert(info->hops >= 0);
+    // cheapAssert(info->hops >= 0); Unsigned must be greater than zero
     cheapAssert(info->hops <= 3);
     info->vnum[info->hops] = i+1;
   }
@@ -1109,7 +1113,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   static Temp tempForEachThread[_MAX_FS_THREADS];
   
   Temp* const temp = &tempForEachThread[omp_get_thread_num()];
-  if (temp->capacity < mris->nvertices) {
+  if ((int)temp->capacity < mris->nvertices) {
     temp->capacity = mris->nvertices;
     temp->status   = (unsigned char*)realloc(temp->status, temp->capacity*sizeof(unsigned char));
     bzero(temp->status, temp->capacity*sizeof(unsigned char));
@@ -1170,7 +1174,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
       
       temp->status[vnoCandidate] = Status_inSet;
 
-      cheapAssert(neighborCount < listCapacity);
+      cheapAssert(neighborCount < (int)listCapacity);
       vlist[neighborCount] = vnoCandidate;
       hops [neighborCount] = ringLinks;
       neighborCount++;
@@ -1207,7 +1211,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
 
         temp->status[vnoCandidate] = Status_inSet;
 
-        cheapAssert(neighborCount < listCapacity);
+        cheapAssert(neighborCount < (int)listCapacity);
         vlist[neighborCount] = vnoCandidate;
         hops [neighborCount] = ringLinks;
         neighborCount++;
@@ -1249,7 +1253,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
         vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
       }
 
-      cheapAssert(vt->nsizeCur >= 0);
+      // cheapAssert(vt->nsizeCur >= 0); Unsigned must be greater than zero
       cheapAssert(vt->nsizeCur <= vt->nsizeMax);
       vt->vtotal = vnums[vt->nsizeCur];
     }
