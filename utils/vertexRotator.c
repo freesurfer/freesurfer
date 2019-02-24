@@ -47,7 +47,7 @@ static void rotateVertices1axis_wkr(
   float const sa = sin(alpha);
   float const ca = cos(alpha);
 
-  int vno;
+  size_t vno;
   
   for (vno = 0; vno < nvertices; vno++) {
     float x  = xv_inp[vno];
@@ -98,7 +98,7 @@ static inline void rotateVertices_wkr(
   float const cbcg = cb * cg;
   float const cbsg = cb * sg;
 
-  int vno;
+  size_t vno;
   
   for (vno = 0; vno < nvertices; vno++) {
 

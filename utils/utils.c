@@ -1097,7 +1097,7 @@ int ItemsInString(const char *str)
 char *deblank(const char *str)
 {
   char *dbstr;
-  int n, m;
+  size_t n, m;
 
   dbstr = (char *)calloc(strlen(str) + 1, sizeof(char));
 
@@ -1119,7 +1119,7 @@ char *deblank(const char *str)
 */
 char *str_toupper(char *str)
 {
-  int n;
+  size_t n;
   for (n = 0; n < strlen(str); n++) str[n] = toupper(str[n]);
   return (0);
 }

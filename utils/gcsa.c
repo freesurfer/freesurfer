@@ -622,8 +622,9 @@ GCSA *GCSAread(char *fname)
   else if (trace) fprintf(stdout, "GCSAread(%s): opened file", fname);
   
   magic = freadInt(fp);
-  if (magic != GCSA_MAGIC)
+  if (magic != (int)GCSA_MAGIC) {
     ErrorReturn(NULL, (ERROR_BADFILE, "GCSAread(%s): file magic #%x != GCSA_MAGIC (%x)", fname, magic, GCSA_MAGIC));
+  }
   ninputs = freadInt(fp);
   icno_classifiers = freadInt(fp);
   icno_priors = freadInt(fp);
@@ -637,7 +638,7 @@ GCSA *GCSAread(char *fname)
   for (i = 0; i < ninputs; i++) {
     gcsa->inputs[i].type = freadInt(fp);
     j = freadInt(fp);
-    if (fread(gcsa->inputs[i].fname, sizeof(char), j, fp) != j) {
+    if (fread(gcsa->inputs[i].fname, sizeof(char), j, fp) != (size_t)j) {
       ErrorPrintf(ERROR_BADFILE, "afniRead(): error reading from file %s", gcsa->inputs[i].fname);
     }
     gcsa->inputs[i].navgs = freadInt(fp);

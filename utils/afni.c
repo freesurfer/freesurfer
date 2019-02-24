@@ -825,7 +825,7 @@ MRI *afniRead(const char *fname, int read_volume)
           {
             pmem = (void *)malloc(bytes_per_voxel * mri->width);
             if (pmem) {
-              if (fread(pmem, bytes_per_voxel, mri->width, fp) != mri->width) {
+              if (fread(pmem, bytes_per_voxel, mri->width, fp) != (size_t)mri->width) {
                 fclose(fp);
                 MRIfree(&header);
                 errno = 0;

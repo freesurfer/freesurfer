@@ -736,7 +736,7 @@ IMAGE *ImageMorph(IMAGE *Isrc, IMAGE *Idst, int which)
   IMAGE *Iin, *Itmp, *Iout, *Ifiltered;
   unsigned char *lut;
 
-  if (which < 0 || which >= NLUTS) ErrorReturn(NULL, (ERROR_BADPARM, "ImageMorph(%d): unknown operation code", which));
+  if (which < 0 || which >= (int)NLUTS) ErrorReturn(NULL, (ERROR_BADPARM, "ImageMorph(%d): unknown operation code", which));
 
   lut = lut_pointers[which];
 
