@@ -279,8 +279,10 @@ float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms)
   short *sdata = NULL;
   float *fdata = NULL;
   FILE *fp;
-  int err, nread, type, endian, archendian, n;
+  int err, type, endian, archendian;
+  size_t nread;
   size_t ntot;
+  size_t n;
   bferr = 0;
 
   /* get endianness of current architecture */
@@ -323,7 +325,7 @@ float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms)
       sprintf(bfmsg, "bf_ldbfile(): error reading %s", bfname);
       bferr = 1;
       fprintf(stderr, "%s \n", bfmsg);
-      fprintf(stderr, " ntoberead = %d, nread = %d\n", (int)ntot, nread);
+      fprintf(stderr, " ntoberead = %zu, nread = %zu\n", ntot, nread);
       free(fdata);
       return (NULL);
     }
@@ -350,7 +352,7 @@ float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms)
       sprintf(bfmsg, "bf_ldbfile(): error reading %s", bfname);
       bferr = 1;
       fprintf(stderr, "%s \n", bfmsg);
-      fprintf(stderr, " ntoberead = %d, nread = %d\n", (int)ntot, nread);
+      fprintf(stderr, " ntoberead = %zu, nread = %zu\n", ntot, nread);
       free(fdata);
       free(sdata);
       return (NULL);
@@ -374,9 +376,11 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
   float *fdata = NULL;
   char hdrfile[1000];
   FILE *fp;
-  int type, nwrote, archendian, n, err;
+  int type, archendian, err;
   int fdatadealloc = 0;
   size_t ntot;
+  size_t nwrote;
+  size_t n;
   bferr = 0;
 
   /* get endianness of current architecture */
@@ -436,7 +440,7 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
       sprintf(bfmsg, "bf_svbfile(): error writing to %s", bfname);
       bferr = 1;
       fprintf(stderr, "%s \n", bfmsg);
-      fprintf(stderr, " ntobewritten = %d, nwritten = %d\n", (int)ntot, nwrote);
+      fprintf(stderr, " ntobewritten = %zd, nwritten = %zd\n", ntot, nwrote);
       return (1);
     }
   }
@@ -446,7 +450,7 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
     /* copy data into a short buffer */
     sdata = (short *)calloc(ntot, sizeof(short));
     if (sdata == NULL) {
-      sprintf(bfmsg, "bf_svbfile(): could not alloc short %d\n", (int)ntot);
+      sprintf(bfmsg, "bf_svbfile(): could not alloc short %zd\n", ntot);
       bferr = 1;
       fprintf(stderr, "%s \n", bfmsg);
       return (1);
@@ -466,7 +470,7 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
       sprintf(bfmsg, "bf_svbfile(): error writing to %s", bfname);
       bferr = 1;
       fprintf(stderr, "%s \n", bfmsg);
-      fprintf(stderr, " ntobewritten = %d, nwritten = %d\n", (int)ntot, nwrote);
+      fprintf(stderr, " ntobewritten = %zd, nwritten = %zd\n", ntot, nwrote);
       return (1);
     }
   }

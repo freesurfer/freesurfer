@@ -694,9 +694,11 @@ static int csf_labels[] = {CSF,
 
 int MRIcountCSFInNbhd(MRI *mri_seg, int wsize, int x, int y, int z)
 {
-  int total, n;
+  int total;
+  size_t n;
 
-  for (n = total = 0; n < NCSF_LABELS; n++) total += MRIcountValInNbhd(mri_seg, wsize, x, y, z, csf_labels[n]);
-
+  for (n = total = 0; n < NCSF_LABELS; n++) {
+    total += MRIcountValInNbhd(mri_seg, wsize, x, y, z, csf_labels[n]);
+  }
   return (total);
 }

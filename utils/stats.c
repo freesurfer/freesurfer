@@ -450,7 +450,7 @@ SV *StatReadVolume(const char *prefix)
     for (event = 0; event < sv->nevents; event++) {
       /* read slice of means for each time point */
       for (t = 0; t < sv->time_per_event; t++) {
-        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+        if (fread(buf, sizeof(float), nitems, fp) != (size_t)nitems)
           ErrorReturn(NULL,
                       (ERROR_BADFILE,
                        "StatReadVolume: could not read "
@@ -470,7 +470,7 @@ SV *StatReadVolume(const char *prefix)
       /* read slice of standard deviations for each time point */
       if (sv->mri_stds[event])
         for (t = 0; t < sv->time_per_event; t++) {
-          if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          if (fread(buf, sizeof(float), nitems, fp) != (size_t)nitems)
             ErrorReturn(NULL,
                         (ERROR_BADFILE,
                          "StatReadVolume: could not read "
@@ -500,7 +500,7 @@ SV *StatReadVolume(const char *prefix)
     for (event = 0; event < sv->nevents; event++) {
       /* read slice of mean dofs for each time point */
       for (t = 0; t < sv->time_per_event; t++) {
-        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+        if (fread(buf, sizeof(float), nitems, fp) != (size_t)nitems)
           ErrorReturn(NULL,
                       (ERROR_BADFILE,
                        "StatReadVolume: could not read "
@@ -520,7 +520,7 @@ SV *StatReadVolume(const char *prefix)
       /* read slice of standard deviation dofs for each time point */
       if (sv->mri_stds[event])
         for (t = 0; t < sv->time_per_event; t++) {
-          if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          if (fread(buf, sizeof(float), nitems, fp) != (size_t)nitems)
             ErrorReturn(NULL,
                         (ERROR_BADFILE,
                          "StatReadVolume: could not read "
@@ -1238,7 +1238,7 @@ int StatWriteVolume(SV *sv, const char *prefix)
             buf[y * width + x] = fval;
           }
         }
-        if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
+        if (fwrite(buf, sizeof(float), nitems, fp) != (size_t)nitems)
           ErrorReturn(ERROR_BADFILE,
                       (ERROR_BADFILE,
                        "StatWriteVolume: could not write "
@@ -1258,7 +1258,7 @@ int StatWriteVolume(SV *sv, const char *prefix)
               buf[y * width + x] = fval;
             }
           }
-          if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
+          if (fwrite(buf, sizeof(float), nitems, fp) != (size_t)nitems)
             ErrorReturn(ERROR_BADFILE,
                         (ERROR_BADFILE,
                          "StatWriteVolume: could not write "
