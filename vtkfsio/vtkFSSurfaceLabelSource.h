@@ -36,16 +36,16 @@ class vtkPoints;
 class vtkPolyData;
 class vtkFSSurfaceSource;
 
-#include "vtkSource.h"
+#include "vtkPolyDataAlgorithm.h"
 extern "C" {
 #include "mrisurf.h"
 }
 
-class vtkFSSurfaceLabelSource : public vtkSource {
+class vtkFSSurfaceLabelSource : public vtkPolyDataAlgorithm {
 public:
 
   static vtkFSSurfaceLabelSource *New();
-  vtkTypeRevisionMacro(vtkFSSurfaceLabelSource,vtkSource);
+  vtkTypeMacro(vtkFSSurfaceLabelSource,vtkPolyDataAlgorithm);
 
   // Description:
   // vtkFSSurfaceLabelSource needs an MRIS object on which to map the

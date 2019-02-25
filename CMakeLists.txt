@@ -156,9 +156,6 @@ endif()
 # -------- X11 ---------
 find_package(X11 REQUIRED)
 
-# -------- vtk --------
-find_package(VTK)
-
 # search for GUI libraries
 if(BUILD_GUIS)
 
@@ -184,6 +181,9 @@ if(BUILD_GUIS)
   find_package(WXWidgets)
 
 endif()
+
+# -------- vtk --------
+find_package(VTK HINTS ${FS_PACKAGES_DIR}/vtk/8.1.2)
 
 # --------------------------------------------------
 #             global build configuration

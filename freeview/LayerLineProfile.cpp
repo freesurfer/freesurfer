@@ -131,7 +131,11 @@ std::vector < std::vector < double > > LayerLineProfile::Points3DToSpline2D(std:
   polydata->SetPoints(points);
   polydata->SetLines(lines);
   vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  spline->SetInputData(polydata);
+#else
   spline->SetInput(polydata);
+#endif
   spline->SetSubdivideToLength();
   spline->SetLength(distance);
   spline->Update();
@@ -173,7 +177,11 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   polydata->SetPoints(points);
   polydata->SetLines(lines);
   vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  spline->SetInputData(polydata);
+#else
   spline->SetInput(polydata);
+#endif
   spline->SetNumberOfSubdivisions(nSample);
   spline->Update();
   polydata = spline->GetOutput();
@@ -279,7 +287,11 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   polydata->SetLines(lines);
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  tube->SetInputData(polydata);
+#else
   tube->SetInput(polydata);
+#endif
   tube->SetNumberOfSides(6);
   tube->SetRadius(radius);
 
@@ -291,7 +303,7 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
 
   vtkSmartPointer<vtkCutter> cutter =
       vtkSmartPointer<vtkCutter>::New();
-  cutter->SetInput( tube->GetOutput() );
+  cutter->SetInputConnection( tube->GetOutputPort() );
   cutter->SetCutFunction( plane );
 
   vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
@@ -303,8 +315,12 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
 
   vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  triangleFilter->SetInputData( cutpoly );
+#else
   triangleFilter->SetInput( cutpoly );
-  mapper->SetInput(tube->GetOutput());
+#endif
+  mapper->SetInputConnection(tube->GetOutputPort());
   /*
   mapper->SetScalarVisibility(true);
   vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();

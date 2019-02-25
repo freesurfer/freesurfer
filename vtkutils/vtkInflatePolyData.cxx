@@ -41,7 +41,7 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTriangle.h"
 
-vtkCxxRevisionMacro(vtkInflatePolyData, "$Revision: 1.3 $");
+//vtkCxxRevisionMacro(vtkInflatePolyData, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkInflatePolyData);
 
 vtkInflatePolyData::vtkInflatePolyData() :
@@ -63,7 +63,7 @@ vtkInflatePolyData::RequestInformation ( vtkInformation *vtkNotUsed(iRequest),
 
   // Just 1 piece.
   outInfo->
-    Set( vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(), 1 );
+    Set( vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(), 1 );
   
   return 1;
 }

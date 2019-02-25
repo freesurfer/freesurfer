@@ -656,36 +656,56 @@ void LayerSurface::InitializeActors()
 
   // main surface actor
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( m_surfaceSource->GetPolyData() );
+#else
   mapper->SetInput( m_surfaceSource->GetPolyData() );
+#endif
   m_mainActor->SetMapper( mapper );
   mapper->Update();
 
   // vector actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  tube->SetInputData(m_surfaceSource->GetVectorPolyData());
+#else
   tube->SetInput(m_surfaceSource->GetVectorPolyData());
+#endif
   tube->SetNumberOfSides(8);
   tube->SetRadius(0.04);
   tube->CappingOn();
-  mapper->SetInput( tube->GetOutput() );
+  mapper->SetInputConnection( tube->GetOutputPort() );
   m_vectorActor->SetMapper( mapper );
   //  mapper->Update();
 
   for ( int i = 0; i < 3; i++ )
   {
     mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+    mapper->SetInputData(  m_surfaceSource->GetVector2DPolyData( i ) );
+#else
     mapper->SetInput(  m_surfaceSource->GetVector2DPolyData( i ) );
+#endif
     m_vectorActor2D[i]->SetMapper( mapper );
   }
 
   // vertex actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData(  m_surfaceSource->GetVertexPolyData() );
+#else
   mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
+#endif
   m_vertexActor->SetMapper( mapper );
 
   // wireframe actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData(  m_surfaceSource->GetWireframePolyData() );
+#else
   mapper->SetInput(  m_surfaceSource->GetWireframePolyData() );
+#endif
   m_wireframeActor->SetMapper( mapper );
   mapper->Update();
 
@@ -706,7 +726,11 @@ void LayerSurface::InitializeActors()
     m_box[i] = vtkSmartPointer<vtkBox>::New();
     m_box[i]->SetBounds(bounds);
     vtkSmartPointer<vtkExtractPolyDataGeometry> extract = vtkSmartPointer<vtkExtractPolyDataGeometry>::New();
+#if VTK_MAJOR_VERSION > 5
+    extract->SetInputData(m_surfaceSource->GetPolyData());
+#else
     extract->SetInput(m_surfaceSource->GetPolyData());
+#endif
     extract->ExtractInsideOn();
     extract->ExtractBoundaryCellsOn();
     extract->SetImplicitFunction(m_box[i]);
@@ -1530,8 +1554,13 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
       }
       for ( int i = 0; i < nCount; i++ )
       {
+#if VTK_MAJOR_VERSION > 5
+        array->SetTypedTuple( i, data + i*4 );
+#else
         array->SetTupleValue( i, data + i*4 );
+#endif
       }
+      array->Modified();
       delete[] data;
       polydata->GetPointData()->SetActiveScalars( "Overlay" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1599,8 +1628,13 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {
+#if VTK_MAJOR_VERSION > 5
+          array->SetTypedTuple( i, data + i*4 );
+#else
           array->SetTupleValue( i, data + i*4 );
+#endif
         }
+        array->Modified();
         delete[] data;
         polydata->GetPointData()->SetActiveScalars( "Overlay" );
         if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
