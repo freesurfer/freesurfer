@@ -23,7 +23,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-320</y>
      <width>431</width>
      <height>1311</height>
     </rect>
@@ -1621,6 +1621,55 @@
    <header>SplineTreeWidget.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEditFileName</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>comboBoxColor</tabstop>
+  <tabstop>comboBoxRender</tabstop>
+  <tabstop>comboBoxMeshColor</tabstop>
+  <tabstop>checkBoxShowVertices</tabstop>
+  <tabstop>spinBoxVertexPointSize</tabstop>
+  <tabstop>comboBoxCurvature</tabstop>
+  <tabstop>sliderMidPoint</tabstop>
+  <tabstop>lineEditMidPoint</tabstop>
+  <tabstop>sliderSlope</tabstop>
+  <tabstop>lineEditSlope</tabstop>
+  <tabstop>comboBoxOverlay</tabstop>
+  <tabstop>pushButtonConfigureOverlay</tabstop>
+  <tabstop>pushButtonRemoveOverlay</tabstop>
+  <tabstop>spinBoxZOrderOverlay</tabstop>
+  <tabstop>comboBoxAnnotation</tabstop>
+  <tabstop>checkBoxAnnotationOutline</tabstop>
+  <tabstop>spinBoxZOrderAnnotation</tabstop>
+  <tabstop>pushButtonNewLabel</tabstop>
+  <tabstop>pushButtonLoadLabel</tabstop>
+  <tabstop>pushButtonSaveLabel</tabstop>
+  <tabstop>pushButtonDeleteLabel</tabstop>
+  <tabstop>treeWidgetLabels</tabstop>
+  <tabstop>toolButtonLabelUp</tabstop>
+  <tabstop>toolButtonLabelDown</tabstop>
+  <tabstop>lineEditLabelOpacity</tabstop>
+  <tabstop>toolButtonMoreLabelOptions</tabstop>
+  <tabstop>comboBoxLabelColorCode</tabstop>
+  <tabstop>lineEditLabelHeatscaleMin</tabstop>
+  <tabstop>lineEditLabelHeatscaleMax</tabstop>
+  <tabstop>lineEditLabelThreshold</tabstop>
+  <tabstop>checkBoxLabelOutline</tabstop>
+  <tabstop>spinBoxZOrderLabel</tabstop>
+  <tabstop>checkBoxUseSurfaceColor2D</tabstop>
+  <tabstop>spinBoxEdgeThickness</tabstop>
+  <tabstop>comboBoxVectorDisplay</tabstop>
+  <tabstop>spinBoxVectorPointSize</tabstop>
+  <tabstop>pushButtonLoadSpline</tabstop>
+  <tabstop>pushButtonDeleteSpline</tabstop>
+  <tabstop>treeWidgetSplines</tabstop>
+  <tabstop>checkBoxSplineProjection</tabstop>
+  <tabstop>lineEditPositionOffset</tabstop>
+  <tabstop>lineEditMappingSurface</tabstop>
+  <tabstop>checkBoxShowInfo</tabstop>
+  <tabstop>checkBoxHideIn3DView</tabstop>
+ </tabstops>
  <resources>
   <include location="freeview.qrc"/>
  </resources>
