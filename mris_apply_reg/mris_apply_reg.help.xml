@@ -30,9 +30,9 @@
   <arguments>
     <required-flagged>
       <intro>None</intro>
-      <argument>--src srcvalfile</argument>
+      <argument>--src srcvalfile (or use --i)</argument>
       <explanation> Input file that supplies the source values to convert</explanation>
-      <argument>--trg trgvalfile</argument>
+      <argument>--trg trgvalfile (or use --o)</argument>
       <explanation> Output file</explanation>
       <argument>--streg srcreg1 trgreg1</argument>
       <explanation> source-target registration pair</explanation>
@@ -44,6 +44,8 @@
     <optional-flagged>
       <argument>--streg srcreg2 trgreg2</argument>
       <explanation> source-target registration pair</explanation>
+      <argument>--curv</argument>
+      <explanation> Save output in curv format</explanation>
     </optional-flagged>
   </arguments>
   <example>
