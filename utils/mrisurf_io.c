@@ -275,28 +275,18 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+\fn int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
+\brief Writes the curvature field to the give file. If the file
+is a volume format (eg, mgz), then it will use MRIwrite(). Can
+save in VTK as well. 
+*/
 int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
 {
-  int k, mritype,err;
+  int k, mritype;
   float curv;
   char fname[STRLEN], *cp, path[STRLEN], name[STRLEN], *hemi;
   FILE *fp;
-
-  if(mri_identify(sname) > 0) {
-    printf("MRISwriteCurvature(): writing curv file in volume format\n");
-    MRI *mri;
-    mri = MRIcopyMRIS(NULL, mris, 0, "curv");
-    err = MRIwrite(mri,sname);
-    MRIfree(&mri);
-    return(err);
-  }
 
   switch (mris->hemisphere) {
     case LEFT_HEMISPHERE:
@@ -5375,6 +5365,10 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   char *cp, path[STRLEN], fname[STRLEN], type;
   int mritype, frame, nv, c, r, s, vno;
   MRI *TempMRI;
+
+
+
+
 
   cp = strchr(sname, '/');
   if (!cp) /* no path - use same one as mris was read from */
