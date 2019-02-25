@@ -284,10 +284,19 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   ------------------------------------------------------*/
 int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
 {
-  int k, mritype;
+  int k, mritype,err;
   float curv;
   char fname[STRLEN], *cp, path[STRLEN], name[STRLEN], *hemi;
   FILE *fp;
+
+  if(mri_identify(sname) > 0) {
+    printf("MRISwriteCurvature(): writing curv file in volume format\n");
+    MRI *mri;
+    mri = MRIcopyMRIS(NULL, mris, 0, "curv");
+    err = MRIwrite(mri,sname);
+    MRIfree(&mri);
+    return(err);
+  }
 
   switch (mris->hemisphere) {
     case LEFT_HEMISPHERE:
