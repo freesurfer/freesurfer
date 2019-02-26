@@ -106,7 +106,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->labelLabelZOrderLabel
                  << ui->spinBoxZOrderLabel
                  << ui->labelLabelOpacity
-                 << ui->lineEditLabelOpacity;
+                 << ui->lineEditLabelOpacity
+                 << ui->toolButtonMoreLabelOptions;
 
   m_widgetsOverlay << ui->pushButtonConfigureOverlay
                    << ui->pushButtonRemoveOverlay
@@ -582,6 +583,22 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     ui->toolButtonLabelUp->setEnabled(label != layer->GetLabel(0));
     ui->toolButtonLabelDown->setEnabled(label != layer->GetLabel(layer->GetNumberOfLabels()-1));
 
+    QMenu* menu = new QMenu();
+    ui->toolButtonMoreLabelOptions->setMenu(menu);
+    QAction* act = new QAction("Go To Centroid", this);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToSurfaceLabel()));
+    menu->addAction(act);
+    act = new QAction("Resample", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelResample()));
+    menu->addAction(act);
+    act = new QAction("Dilate/Erode/Open/Close...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
+    menu->addAction(act);
+    menu->addSeparator();
+    act = new QAction("Save As...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnSaveLabelAs()));
+    menu->addAction(act);
+
     if (block_signals)
       BlockAllSignals(false);
   }
@@ -807,19 +824,19 @@ void PanelSurface::OnButtonNewLabel()
 
 void PanelSurface::OnButtonSaveLabel()
 {
-  static QString last_dir = "";
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if (surf)
   {
     SurfaceLabel* label = surf->GetActiveLabel();
     if (label)
     {
+      QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())
       {
         QString def_fn = label->GetName() + ".label";
-        if (!last_dir.isEmpty())
-          def_fn = last_dir + "/" + def_fn;
+        def_fn = dir.absoluteFilePath(def_fn);
         fn = QFileDialog::getSaveFileName( this, "Select label file",
                                            def_fn,
                                            "Label files (*)");
@@ -827,7 +844,6 @@ void PanelSurface::OnButtonSaveLabel()
       if (!fn.isEmpty())
       {
         label->SaveToFile(fn);
-        last_dir = QFileInfo(fn).absolutePath();
       }
     }
   }

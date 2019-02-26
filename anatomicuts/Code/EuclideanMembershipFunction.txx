@@ -31,16 +31,16 @@ EuclideanMembershipFunction< TVector >
 	const std::vector<CellType>* labels2 =m2->GetLabels();
 	double dist=0.0, dist_inv=0.0;	
 	//double cos=1, cos_inv=1;
-	
+	//std::cout << labels1->size() << std::endl;	
 
-	for(int i=0;i<labels1->size();i++)
+	for(int i=0;i<labels1->size()-1;i++)
 	{
 		double euclid=0, euclid_inv=0;
 		double cos=1, cos_inv=1;
 		for(int k=0;k<3;k++)
 		{
 			euclid+=pow((*m1)[i*3+k]-(*m2)[i*3+k],2);
-			euclid_inv+=pow((*m1)[i*3+k]-(*m2)[labels2->size()*3-i*3+k-3],2);
+			euclid_inv+=pow((*m1)[i*3+k]-(*m2)[(labels2->size()-1)*3-i*3+k-3],2);
 		}
 		if(this->m_withCosine )
 		{
@@ -77,7 +77,7 @@ EuclideanMembershipFunction< TVector >
 
 	//dist =	   max( dist, dist_inv); ///(labels1->size()*7); 
 	dist = std::min(dist, dist_inv)/labels1->size();
-	dist = 1/(dist+1.0);
+	dist = 100000.0/(dist+1.0);
 //	dist = exp(-dist/25);
 //	std::cout << dist << std::endl ;
 	return dist;

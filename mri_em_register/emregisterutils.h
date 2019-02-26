@@ -6,7 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
  *    $Date: 2011/04/13 19:08:22 $

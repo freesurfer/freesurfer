@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>294</height>
+    <height>349</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,7 +26,7 @@
       <item>
        <widget class="QCheckBox" name="checkBoxFillToPaths">
         <property name="text">
-         <string>Up to and include paths</string>
+         <string>Up to and including paths</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -44,6 +44,13 @@
        <widget class="QCheckBox" name="checkBoxFillToUnlabeled">
         <property name="text">
          <string>Up to unlabeled</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxFillToCurvature">
+        <property name="text">
+         <string>Up to and including different curvature</string>
         </property>
        </widget>
       </item>

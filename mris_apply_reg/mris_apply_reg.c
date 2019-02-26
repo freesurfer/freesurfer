@@ -99,6 +99,7 @@ int SynthSeed = -1;
 char *AnnotFile = NULL;
 char *LabelFile = NULL;
 char *SurfXYZFile = NULL;
+int OutputCurvFormat=0;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 
 /*---------------------------------------------------------------*/
@@ -233,11 +234,21 @@ int main(int argc, char *argv[]) {
   }
   else{
     printf("Writing %s\n",TrgValFile);
-    MRIwrite(TrgVal,TrgValFile);
+    err = 0;
+    if(OutputCurvFormat){
+      MRIScopyMRI(SurfReg[nsurfs-1], TrgVal, 0, "curv");
+      err = MRISwriteCurvature(SurfReg[nsurfs-1],TrgValFile);
+    }
+    else
+      err = MRIwrite(TrgVal,TrgValFile);
+    if(err) {
+      printf("ERROR: writing to %s\n",TrgValFile);
+      exit(1);
+    }
   }
   
   printf("mris_apply_reg done\n");
-  return 0;
+  exit(0);
 }
 /*------------------------------------------------------------*/
 /*------------------------------------------------------------*/
@@ -273,8 +284,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-jac")) DoJac = 0;
     else if (!strcasecmp(option, "--randn")) DoSynthRand = 1;
     else if (!strcasecmp(option, "--ones")) DoSynthOnes = 1;
+    else if (!strcasecmp(option, "--curv")) OutputCurvFormat=1;
 
-    else if (!strcasecmp(option, "--src") || !strcasecmp(option, "--sval")) {
+    else if (!strcasecmp(option, "--src") || !strcasecmp(option, "--sval") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       SrcValFile = pargv[0];
       if(!fio_FileExistsReadable(SrcValFile)){
@@ -320,7 +332,7 @@ static int parse_commandline(int argc, char **argv) {
       TrgValFile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--streg")) {
+    else if (!strcasecmp(option, "--streg") || !strcasecmp(option, "--st")) {
       if (nargc < 2) CMDargNErr(option,2);
       SurfRegFile[nsurfs] = pargv[0];
       nsurfs++;
@@ -390,7 +402,7 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf(" Input specifcation (pick one):\n");
-  printf("   --src srcvalfile : source values (surface overlay)\n");
+  printf("   --src srcvalfile : source values (surface overlay) Can also use --i\n");
   printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
   printf("   --src-label labelfile : source label (implies --no-rev)\n");
   printf("   --src-xyz surfacefile : use xyz coords from given surface as input\n");
@@ -405,6 +417,7 @@ static void print_usage(void) {
   printf("   --no-rev : do not do reverse mapping\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
+  printf("   --curv  : save output in curv file format (spec full path)\n");
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
   printf("     other options do not apply to --lta\n");

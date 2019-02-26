@@ -89,18 +89,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         return false;
       }
 
+      LayerMRI* layer_draw = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
       LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
-      QList<Layer*> layers = lc->GetLayers("MRI");    // Get foreground/background drawing layer
-      LayerMRI* layer_draw = NULL;
-      foreach (Layer* layer, layers)
-      {
-        if (layer->GetName() == "GEOS_DRAW")
-        {
-          layer_draw = (LayerMRI*)layer;
-          break;
-        }
-      }
-
       if (!layer_draw)
       {
         layer_draw = new LayerMRI(mri);
@@ -110,14 +100,34 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           delete layer_draw;
           return false;
         }
+        QVariantMap map = bp->GetGeosSettings();
         QMap<int, QColor> colors;
         colors[0] = QColor(0,0,0,0);
-        colors[1] = QColor(0,255,0);
-        colors[2] = QColor(255,0,0);
+        colors[1] = map.contains("ForegroundColor")?map["ForegroundColor"].value<QColor>():QColor(0,255,0);
+        colors[2] = map.contains("BackgroundColor")?map["BackgroundColor"].value<QColor>():QColor(255,0,0);
         layer_draw->GetProperty()->SetCustomColors(colors);
         layer_draw->GetProperty()->SetColorMapToLUT();
-        lc->AddLayer(layer_draw);
         layer_draw->SetName( "GEOS_DRAW" );
+
+        LayerMRI* layer_fill = new LayerMRI(mri);
+        if ( !layer_fill->Create( mri, false, MRI_UCHAR) )
+        {
+        //  QMessageBox::warning( this, "Error", "Can not create drawing layer." );
+          delete layer_fill;
+          return false;
+        }
+        colors.clear();
+        colors[0] = QColor(0,0,0,0);
+        colors[1] = map.contains("FillColor")?map["FillColor"].value<QColor>():QColor(255,255,0);
+        layer_fill->GetProperty()->SetCustomColors(colors);
+        layer_fill->GetProperty()->SetColorMapToLUT();
+        layer_fill->SetName( "GEOS_FILL" );
+        layer_fill->SetFillValue(1);
+        if (map.contains("Opacity"))
+        layer_fill->GetProperty()->SetOpacity(map.value("Opacity").toDouble());
+
+        lc->AddLayer(layer_fill);
+        lc->AddLayer(layer_draw);
       }
 
       layer_draw->SetFillValue(event->button() == Qt::RightButton ? 2:1);

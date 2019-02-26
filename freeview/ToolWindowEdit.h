@@ -63,7 +63,10 @@ protected slots:
 
   void OnButtonGeoSegClear();
   void OnButtonGeoSegGo();
+  void OnButtonGeoSegClearFilling();
+  void OnButtonGeoSegApply();
   void OnColorPickerGeoSeg(const QColor& color);
+  void OnSliderGeoOpacity(int nVal);
 
 protected:
   virtual void showEvent(QShowEvent *);

@@ -901,7 +901,7 @@ void WindowConfigureOverlay::OnComboOverlayChanged(int n)
 
 void WindowConfigureOverlay::OnCycleOverlay()
 {
-  if (isVisible() && m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
+  if (m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
   {
     ui->comboBoxOverlayList->setCurrentIndex((m_layerSurface->GetActiveOverlayIndex()+1)%m_layerSurface->GetNumberOfOverlays());
   }

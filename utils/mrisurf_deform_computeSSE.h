@@ -1,7 +1,5 @@
 // Do not include, intended only to be included into mrisurf_deform.c
 
-#ifndef MRIS_COMPUTESSE_CUDA
-
 static double MRIScomputeSSE_new(MRIS *mris, INTEGRATION_PARMS *parms, bool debug);
 static double MRIScomputeSSE_old(MRIS *mris, INTEGRATION_PARMS *parms, bool debug);
 
@@ -19,20 +17,6 @@ double MRIScomputeSSE(MRIS *mris, INTEGRATION_PARMS *parms) {
     return new_sse;
 }
 
-#else
-
-static double MRIScomputeSSE_CUDA_new(MRIS *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
-static double MRIScomputeSSE_CUDA_old(MRIS *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
-
-static double MRIScomputeSSE_CUDA(MRIS *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms) {
-    static const bool useOld = false;
-    double old_sse =  useOld ? MRIScomputeSSE_CUDA_old(mris, parms) : 0.0;
-    double new_sse = !useOld : MRIScomputeSSE_CUDA_new(mris, parms) : 0.0;
-    return useOld ? old_sse : new_sse;
-}
-#endif
-
-
 // These are in the order the original code computed them, so that side effects are not reordered
 // In older code the ashburner_triangle is computed but not used , here it is not computed at all
 //
@@ -43,11 +27,7 @@ static double MRIScomputeSSE_CUDA(MRIS *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATI
 //      sse_corr                    mrisComputeCorrelationError(mris, parms, 1)     mrisurf_deform.c    iterates over vertices using xyz calling mrisp.c MRISPfunctionValTraceable
 //                                                                                                                          which does a lot more work than the others
 //
-#ifndef MRIS_COMPUTESSE_CUDA
-    #define COMPUTE_DISTANCE_ERROR mrisComputeDistanceError(mris, parms)
-#else
-    #define COMPUTE_DISTANCE_ERROR mrisComputeDistanceErrorCUDA(mris, mrisc, parms)
-#endif
+#define COMPUTE_DISTANCE_ERROR mrisComputeDistanceError(mris, parms)
 
 #define SSE_TERMS \
       ELT(sse_area                  , parms->l_parea,                            true,    computed_area                                                                   ) SEP \
@@ -82,12 +62,7 @@ static double MRIScomputeSSE_CUDA(MRIS *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATI
       ELT(sse_vectorCorrelationError, 1.0,                    use_multiframes,            mrisComputeVectorCorrelationError(mris, parms, 1)                               )     \
       // end of list
 
-
-#ifndef MRIS_COMPUTESSE_CUDA
 double MRIScomputeSSE_new(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, bool debug)
-#else
-static double MRIScomputeSSE_CUDA_new(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
-#endif
 {
   bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
   double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
@@ -282,12 +257,7 @@ static double MRIScomputeSSE_CUDA_new(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc
 
 // OLD CODE
 
-
-#ifndef MRIS_COMPUTESSE_CUDA
 double MRIScomputeSSE_old(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, bool debug)
-#else
-static double MRIScomputeSSE_CUDA_old(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
-#endif
 {
   double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
   double const l_curv_scaled    = (double)parms->l_curv * CURV_SCALE;
@@ -467,11 +437,7 @@ static double MRIScomputeSSE_CUDA_old(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc
     sse_nl_dist = mrisComputeNonlinearDistanceSSE(mris);
   }
   if (!DZERO(parms->l_dist)) {
-#ifndef MRIS_COMPUTESSE_CUDA
     sse_dist = mrisComputeDistanceError(mris, parms);
-#else
-    sse_dist = mrisComputeDistanceErrorCUDA(mris, mrisc, parms);
-#endif
   }
   if (!DZERO(parms->l_spring)) {
     sse_spring = mrisComputeSpringEnergy(mris);

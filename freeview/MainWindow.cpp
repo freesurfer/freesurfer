@@ -212,6 +212,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
   connect(m_layerCollections["MRI"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
+  connect(m_layerCollections["Supplement"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
+
   connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
@@ -4958,6 +4960,23 @@ bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
 
   OnSetModeNavigate();
 
+  if (GetLayers("MRI").isEmpty())
+  {
+    LayerCollection* lc = GetLayerCollection("Supplement");
+    QList<Layer*> layers = lc->GetLayers("MRI");
+    foreach (Layer* layer, layers)
+    {
+      if (layer->GetName() == "GEOS_DRAW")
+      {
+        lc->RemoveLayer(layer);
+      }
+      else if (layer->GetName() == "GEOS_FILL")
+      {
+        lc->RemoveLayer(layer);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -8349,4 +8368,16 @@ void MainWindow::OnStereoRender(bool bOn)
 {
   ui->view3D->SetStereoTypeToAnaglyph();
   ui->view3D->SetStereoRender(bOn);
+}
+
+Layer* MainWindow::FindSupplementLayer(const QString &name)
+{
+  LayerCollection* lc = GetLayerCollection("Supplement");
+  QList<Layer*> layers = lc->GetLayers();
+  foreach (Layer* layer, layers)
+  {
+    if (layer->GetName() == name)
+      return layer;
+  }
+  return NULL;
 }

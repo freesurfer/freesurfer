@@ -1,4 +1,0 @@
-This is a bunch of tests for the GPU version of the code, based on the 'tm' system written by Robert McLay at TACC
-I've not checked 'tm' itself (which in turn depends on his tweaked version of lua) into the repository, so this won't work by default.
-
-The simplest usage is just to type 'tm .' in this directory

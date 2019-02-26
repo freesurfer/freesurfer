@@ -7751,12 +7751,11 @@ int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 /*-----------------------------------------------------
   Description
-  MRIScomputeSSE, MRIScomputeSSE_CUDA and MRIScomputeSSEExternal
+  MRIScomputeSSE and MRIScomputeSSEExternal
   are used for the numerical integration.
   As such, they represent the exact error function being minimized, as opposed to computeError above.
   ------------------------------------------------------*/
 #include "mrisurf_deform_computeSSE.h"
-#include "mrisurf_deform_computeSSE_CUDA.h"
 
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse)
 {
@@ -7851,30 +7850,7 @@ double mrisComputeError(MRI_SURFACE *mris,
   *pangle_rms = (float)sqrt(sse_angle / (double)(ntriangles * ANGLES_PER_TRIANGLE));
   *pcorr_rms = (float)sqrt(sse_corr / (double)nv);
 
-#ifdef FS_CUDA
-  INTEGRATION_PARMS *tparms;
-
-  /* Change the parameters such that the distance error won't be calculated in
-     MRIScomputeSSE
-
-     This optimization doesn't buy really anything, but serves to test a lazy
-     evaluation scheme.
-  */
-  tparms = mrisCloneIP(parms);
-  tparms->l_dist = 0.0;
-  tparms->l_corr = 0.0;
-  tparms->l_curv = 0.0;
-
-  rms = MRIScomputeSSE(mris, tparms);
-
-  mrisDeleteIP(tparms);
-
-  /* Now add the distance error */
-  rms += sse_dist * parms->l_dist + sse_corr * parms->l_corr + sse_curv * parms->l_curv * CURV_SCALE;
-
-#else
   rms = MRIScomputeSSE(mris, parms);
-#endif /* FS_CUDA */
 
 #if 0
   rms =
@@ -8211,65 +8187,11 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   } // trial
 #endif
 
-#ifdef FS_CUDA
-  /* investigate some of the flags. Neither being true would help
-     tremendously with the GPU implementation as it removes the need
-     to have or produce the information involved with these flags
-  */
-  fprintf(stdout,
-          "mrisComputeDistanceError: parms->dist_error=%d, "
-          "parms->vsmoothness=%d, sse_dist=%lg\n",
-          (parms->dist_error != NULL),
-          (parms->vsmoothness != NULL),
-          sse_dist);
-#endif /* FS_CUDA */
-
   freeAndNULL(vertexRipflags);  
 
   /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
   return (sse_dist);
 }
-
-#ifdef FS_CUDA
-static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
-{
-  double dist_scale, sse_dist;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-  else
-    dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
-                                                   : sqrt(mris->orig_area / mris->total_area);
-#else
-  dist_scale = 1.0;
-#endif
-
-  /*
-  if(dist_scale != 1.0) {
-    fprintf(stdout,"FYFYF: dist_scale = %lg\n",dist_scale);
-  }
-  */
-
-  if (parms->vsmoothness == NULL && parms->dist_error == NULL) {
-    sse_dist = (double)(MRISCcomputeDistanceError(mrisc, dist_scale));
-  }
-  else {
-    sse_dist = mrisComputeDistanceError(mris, parms);
-  }
-
-  /*
-    fprintf(stdout,"mrisComputeDistanceErrorCUDA: **************************************** sse_dist=%lg\n",sse_dist);
-  */
-  return (sse_dist);
-}
-
-#endif /* FS_CUDA */
-
 
 int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
@@ -9673,11 +9595,7 @@ int mrisRemoveNegativeArea(
     }
     for (done = 0, n_averages = base_averages; !done; n_averages /= 4) {
       parms->n_averages = n_averages;
-#ifdef FS_CUDA
-      steps = mrisIntegrateCUDA(mris, parms, n_averages);
-#else
       steps = MRISintegrate(mris, parms, n_averages);
-#endif /* FS_CUDA */
       parms->start_t += steps;
       total_steps += steps;
       pct_neg = 100.0 * mris->neg_area / (mris->neg_area + mris->total_area);
@@ -13310,6 +13228,8 @@ int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     DiagBreak();
   }
 
+  // ath - temporarily removing (#626)
+  // cheapAssert(mrisCanAttachFaceToVertices(mris, vno0, vno1, vno2));
   f = &mris->faces[fno];
   f->v[0] = vno0;
   f->v[1] = vno1;

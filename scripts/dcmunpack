@@ -151,8 +151,16 @@ if($#infofile == 0) then
     set infofile = /tmp/dcmdir-all.$$
   endif
 endif
-rm -f $infofile
-if($#SrcInfo) cp $SrcInfo $infofile
+if($#SrcInfo) then
+  if($SrcInfo != $infofile) then
+    # This may still fail if they are truly the same file but diff
+    # path spec, but that will not be important (it just might
+    # confuse people)
+    cp $SrcInfo $infofile
+  endif
+else
+  rm -f $infofile
+endif
 
 set dumpfile = /tmp/dcmunpack.dump.$$
 rm -f $dumpfile 
@@ -258,9 +266,10 @@ foreach series ($SeriesNos)
   echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
 
   if($DoAutoRunSeq) then
-    if($descr == Localizer || $descr == localizer || $descr == AAHScout || \
-       $descr == AAHScout_sag || $descr == AAHScout_cor || \
-       $descr == AAHScout_tra || $descr == AAScout) continue
+    if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
+       "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
+       "$descr" == AAHScout_tra || "$descr" == AAScout || \
+       "$descr" == T1w_setter || "$descr" == T2w_setter) continue
     set AutoRunNos = ($AutoRunNos $series)
     set AutoSubDirs = ($AutoSubDirs ".")
     set AutoFormats = ($AutoFormats $AutoRunSeqFmt)

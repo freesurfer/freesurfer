@@ -7093,6 +7093,10 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
 
       for (m = 0; m < v->vnum; m++) {
         vn2 = v->v[m];
+        
+        // edges should not go between the same vno!
+        // but this checks anyway...
+        //
         if (vn1 == vn2) {
           continue;
         }
@@ -7116,6 +7120,11 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
         if (containsAnotherVertexOnSphere(mris, vno, vn1, vn2, optimal)) {
           continue;
         }
+
+        // ath - temporarily removing (#626)
+        // if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
+        //  continue;
+        // }
 
         /* add this new face to the defect faces */
         mrisAddFace(mris, vno, vn1, vn2);
@@ -13565,6 +13574,7 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
   dno++ ;  /* for debugging */
   tessellatePatch(mri,mris, mris_corrected, defect,
                   vertex_trans, et, nedges, NULL, NULL,parms);
+  MRIScheckIsPolyhedron(mris_corrected, __FILE__,__LINE__);
 
   return(NO_ERROR) ;
 

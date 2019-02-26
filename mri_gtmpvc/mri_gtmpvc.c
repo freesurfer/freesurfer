@@ -311,13 +311,13 @@ int main(int argc, char *argv[])
     gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
   VOL_GEOM vg;
   getVolGeom(gtm->yvol, &vg);
-  if(!vg_isEqual(&vg, &(gtm->anat2pet->xforms[0].dst))){
+  if(!vg_isEqual(&vg, &(gtm->anat2pet->xforms[0].src))){
     printf("ERROR: registration dst volume geometry does not match input\n");
     printf("  =======Input volume geometry==========\n");
     writeVolGeom(stdout, &vg);
     printf("  =======Registration dst volume geometry=====\n");
-    writeVolGeom(stdout, &(gtm->anat2pet->xforms[0].dst));
-    printf("ERROR: registration dst volume geometry does not match input\n");
+    writeVolGeom(stdout, &(gtm->anat2pet->xforms[0].src));
+    printf("ERROR: registration src volume geometry does not match input\n");
     printf("This might be fixable by setting --vg-thresh\n");
     exit(1);
   }
@@ -686,8 +686,10 @@ int main(int argc, char *argv[])
     }
     if(SynthOnly){
       printf("SynthOnly requested so exiting now\n");
+      printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
       printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
       fprintf(logfp,"SynthOnly requested so exiting now\n");
+      fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
       fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
       exit(0);
     }
@@ -968,6 +970,7 @@ int main(int argc, char *argv[])
   }
   if(RVarOnly){
     printf("rvar-only requested so exiting now\n");
+    printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
     printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
     exit(0);
   }
@@ -1116,9 +1119,11 @@ int main(int argc, char *argv[])
   PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
+  fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
   fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   fprintf(logfp,"mri_gtmpvc done\n");
   fclose(logfp);
+  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
   printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   printf("mri_gtmpvc done\n");
   return(0);
@@ -1602,8 +1607,9 @@ static void print_usage(void) {
   printf("         --frame F : only process 0-based frame F from inputvol\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
-  printf("   --reg reg.lta : LTA registration file that maps anatomical to PET\n");
+  printf("   --reg reg.lta : LTA registration file that maps PET to anatomical\n");
   printf("   --regheader : assume input and seg share scanner space\n");
+  printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("   --o   outdir    : output directory\n");
   printf("\n");
   printf("   --mask volfile : ignore areas outside of the mask (in input vol space)\n");
@@ -1618,7 +1624,6 @@ static void print_usage(void) {
   printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
-  printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("   --rescale Id1 <Id2...>  : specify reference region(s) used to rescale (default is pons)\n");
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");

@@ -11,6 +11,8 @@ set(SOURCES
   svm-sketch.cpp
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value")
+if(SUPPRESS_WARNINGS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value")
+endif()
 
 add_library(svm STATIC ${SOURCES})

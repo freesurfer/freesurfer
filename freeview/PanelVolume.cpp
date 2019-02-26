@@ -687,7 +687,6 @@ void PanelVolume::DoUpdateWidgets()
   UpdateTrackVolumeThreshold();
 
   ui->checkBoxUpsampleContour->hide();
-  ui->checkBoxUpsample->hide();
 
   BlockAllSignals( false );
 }

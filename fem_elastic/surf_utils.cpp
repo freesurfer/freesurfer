@@ -31,9 +31,7 @@ convert_surf_to_vox(MRI_SURFACE* mris,
     VERTEX const * v = &mris->vertices[vno];
 
     double vx, vy, vz;
-    MRIvoxelToSurfaceRAS( vol,
-                          v->x, v->y, v->z,
-                          &vx, &vy, &vz);
+    MRIsurfaceRASToVoxel(vol, v->x, v->y, v->z, &vx, &vy, &vz);
 
     MRISsetXYZ(mris, vno, vx,vy,vz);
   }

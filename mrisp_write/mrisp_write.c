@@ -280,6 +280,9 @@ main(int argc, char *argv[])
     }
     if (clabel_fname)
     {
+      if (mris_contra == NULL)
+	ErrorExit(ERROR_NOFILE, "no contra surface specified (use -contra or remove -c <label>)");
+
       carea = LabelRead(NULL, clabel_fname) ;
       if (carea == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;

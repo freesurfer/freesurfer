@@ -2668,7 +2668,9 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
   bool bDoNotCrossLabels = options["DoNotCrossLabels"].toBool();
   bool bDoNotFillUnlabeled = options["DoNotFillUnlabeled"].toBool();
   bool bDoNotCrossThreshold = options["DoNotCrossThreshold"].toBool();
+  bool bDoNotCrossCurv = (HasCurvature() && options["FillToCurvature"].toBool());
   bool bNewLabel = options["CreateLabel"].toBool();
+  double seed_curv = 0;
   double seed_value = 0;
   SurfaceOverlay* overlay = GetActiveOverlay();
   if (!overlay)
@@ -2679,6 +2681,8 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
     seed_value = overlay->GetDataAtVertex(seed_vno);
     fthresh = overlay->GetProperty()->GetMinPoint();
   }
+  if (bDoNotCrossCurv)
+    seed_curv = mris->vertices[seed_vno].curv;
 
   while (num_filled_this_iter > 0)
   {
@@ -2723,6 +2727,9 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
         {
           continue;
         }
+
+        if (bDoNotCrossCurv && ((seed_curv <= 0 && v->curv > 0) || (seed_curv >= 0 && v->curv < 0)))
+          continue;
 
         /* if we're not crossing the cmid, see if the cmid at this
            vertex is on the other side of the cmid as the seed

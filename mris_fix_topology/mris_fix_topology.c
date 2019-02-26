@@ -51,10 +51,6 @@
 #include "mrishash.h"
 #include "version.h"
 
-#ifdef FS_CUDA
-#include "devicemanagement.h"
-#endif // FS_CUDA
-
 static char vcid[] =
   "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $";
 
@@ -108,11 +104,6 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   char cmdline[CMD_LINE_LEN] ;
-
-#ifdef FS_CUDA
-  // Force CUDA initialisation
-  AcquireCUDADevice();
-#endif // FS_CUDA
 
   make_cmd_version_string
   (argc,
@@ -223,15 +214,7 @@ main(int argc, char *argv[])
   eno = MRIScomputeEulerNumber(mris, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "before topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
-  if(eno == 2 ){
-    printf("The Euler Number of this surface is 2, nothing to do\n");
-    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, out_name,suffix);
-    printf("writing output surface to %s...\n", fname) ;
-    if(MRISwrite(mris, fname)) exit(1);
-    printf("#VMPC# mris_fix_topology VmPeak  %d\n",GetVmPeak());
-    printf("mris_fix_topology done\n");
-    exit(0);
-  }
+
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
 
   MRISsmoothOnSphere(mris,sphere_smooth);

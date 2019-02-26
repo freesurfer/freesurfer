@@ -193,10 +193,6 @@ set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set DoRobustMotionCor = 1; # if 1, then use mri_robust_template for motion cor
 set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
                      # correction, construct template from: 0 Mean, 1 Median
-set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
-                 # mri_em_register_cuda, mri_ca_register_cuda,
-                 # mris_inflate_cuda, mris_sphere_cuda
-set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
@@ -2142,7 +2138,6 @@ skullstrip:
         if($NoEMReg == 0) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
           set cmd2 = (mri_em_register)
-          if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
 	  set cmd2 = ($cmd2 $nocerebellum )
 	  if ($LHonly) set cmd2 = ($cmd2 -lh )
@@ -2411,7 +2406,6 @@ if($DoGCAReg) then
   else
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
-      if($UseCuda) set cmd = (mri_em_register_cuda)
       set cmd = ($cmd $nocerebellum )
       if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 7)
       if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 7)
@@ -2517,7 +2511,6 @@ if($DoCAReg) then
 
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_register)
-  if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh)
   if ($RHonly) set cmd = ($cmd -rh)
@@ -2573,8 +2566,6 @@ if($DoCARegInv) then
   $PWD |& tee -a $LF
   # set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`; # careful here
   set cmd = (mri_ca_register)
-  #NJS: cuda version doesnt work will -invert-and-save:
-  #if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.inv.dat) 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2620,7 +2611,6 @@ if($DoSkullLTA) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_em_register)
-  if ($UseCuda) set cmd = (mri_em_register_cuda)
   set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
@@ -3217,7 +3207,6 @@ if($DoInflate1 && ( ! $longitudinal )) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_inflate $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_inflate)
-    if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd  -no-save-sulc $xopts \
       ../surf/$hemi.smoothwm.nofix ../surf/$hemi.inflated.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3250,7 +3239,6 @@ if($DoQSphere && ( ! $longitudinal )) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_sphere -q  -p 6 -a 128 )
-    if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
@@ -3536,7 +3524,6 @@ if($DoInflate2) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_inflate $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_inflate)
-    if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd -rusage $touchdir/rusage.mris_inflate.$hemi.dat) 
     set cmd = ($cmd $xopts ../surf/$hemi.smoothwm \
                ../surf/$hemi.inflated)
@@ -3697,7 +3684,6 @@ if($DoSphere) then
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_sphere)
-      if($UseCuda) set cmd = (mris_sphere_cuda)
       set cmd = ($cmd -rusage $touchdir/rusage.mris_sphere.$hemi.dat) 
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -5016,8 +5002,8 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.label \
         --l $hemi.V2_exvivo.label \
         --l $hemi.MT_exvivo.label \
-        --l $hemi.entorhinal_exvivo.label \
         --l $hemi.perirhinal_exvivo.label \
+        --l $hemi.entorhinal_exvivo.label \
         --a BA_exvivo \
         --maxstatwinner \
         --noverbose )
@@ -5043,8 +5029,8 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.thresh.label \
         --l $hemi.V2_exvivo.thresh.label \
         --l $hemi.MT_exvivo.thresh.label \
-        --l $hemi.entorhinal_exvivo.thresh.label \
         --l $hemi.perirhinal_exvivo.thresh.label \
+        --l $hemi.entorhinal_exvivo.thresh.label \
         --a BA_exvivo.thresh \
         --maxstatwinner \
         --noverbose )
@@ -7342,24 +7328,6 @@ while( $#argv != 0 )
       set DoShowEdits = 1;
       breaksw;
 
-    case "-use-cuda":
-    case "-use_cuda":
-    case "-use-gpu":
-    case "-use_gpu":
-      set UseCuda = 1;
-      # then set LD_LIBRARY_PATH to distributed cuda libs
-      source $FREESURFER_HOME/bin/cuda_setup
-      breaksw;
-
-    case "-get-cuda":
-    case "-get-gpu":
-    case "-show-cuda":
-    case "-show-gpu":
-      set GetCuda = 1; # info dump in check_params section below
-      # then set LD_LIBRARY_PATH to distributed cuda libs
-      source $FREESURFER_HOME/bin/cuda_setup
-      breaksw;
-
     case "-parallel":
       set DoParallel = 1;
       if ( ! $OMP_NUM_SET ) then
@@ -7530,28 +7498,6 @@ check_params:
   if($DoT2pial && $DoFLAIRpial) then
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
-  endif
-
-  if($UseCuda || $GetCuda) then
-    # test a binary
-    echo "Testing for CUDA device:"
-    $FREESURFER_HOME/bin/mri_em_register_cuda --version \
-        | grep -v "\-\-all\-info"
-    if ($status) goto error_exit;
-    echo ""
-
-    # print version of installed driver
-    if ( -e /proc/driver/nvidia/version) then
-      echo "NVIDIA driver version info:"
-      cat /proc/driver/nvidia/version | grep NVIDIA
-      echo ""
-    endif
-
-    if ($GetCuda) then
-      $FREESURFER_HOME/bin/cudadetect
-      if ($status) goto error_exit;
-      exit 0;
-    endif
   endif
 
   if(! $DoVersionsOnly) then
