@@ -181,7 +181,7 @@ if(BUILD_GUIS)
 endif()
 
 # -------- vtk --------
-find_package(VTK HINTS ${FS_PACKAGES_DIR}/vtk/8.1.2)
+find_package(VTK HINTS ${FS_PACKAGES_DIR}/vtk/5.10.1)
 
 # --------------------------------------------------
 #             global build configuration
