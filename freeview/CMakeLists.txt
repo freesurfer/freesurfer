@@ -11,6 +11,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     ${VTK_INCLUDE_DIRS}
   )
 
+  include(${VTK_USE_FILE})
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
@@ -92,8 +93,6 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     PanelSurface.cpp
     PanelVolume.cpp
     qtcolorpicker.cpp
-    QVTKWidget.cxx
-    QVTKPaintEngine.cxx
     Region2D.cpp
     Region2DLine.cpp
     Region2DPolyline.cpp
@@ -189,6 +188,11 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     freeview.qrc
   )
 
+  if(NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vtk)
+    set(SOURCES ${SOURCES} QVTKWidget/QVTKWidget.cxx QVTKWidget/QVTKPaintEngine.cxx)
+  endif()
+
   if(SUPPRESS_WARNINGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare")
   endif()
@@ -204,7 +208,6 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   add_executable(freeview ${SOURCES})
   target_link_libraries(freeview 
     vtkutils
-    vtkfsio
     lineprof
     ${VTK_LIBRARIES}
     ${PETSC_LIBRARIES}

@@ -40,7 +40,11 @@ std::vector<MeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointer<vtk
 	for (unsigned int i=0;i<polydatas.size(); i++)
 	{
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+		spline->SetInputData(polydatas[i]);
+#else
 		spline->SetInput(polydatas[i]);
+#endif
 		spline->SetNumberOfSubdivisions(19);
 		spline->Update();
 

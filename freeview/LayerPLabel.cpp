@@ -38,6 +38,7 @@
 #include <vtkImageActor.h>
 #include <vtkImageReslice.h>
 #include <vtkAbstractTransform.h>
+#include "vtkImageMapper3D.h"
 #include <QFileInfo>
 #include <QDebug>
 
@@ -85,11 +86,7 @@ bool LayerPLabel::LoadVolumeFiles()
   }
 
   m_imageData = vtkSmartPointer<vtkImageData>::New();
-  m_imageData->SetScalarTypeToUnsignedChar();
-  m_imageData->SetNumberOfScalarComponents(4);
   m_imageIndex = vtkSmartPointer<vtkImageData>::New();
-  m_imageIndex->SetScalarTypeToFloat();
-  m_imageIndex->SetNumberOfScalarComponents(2);
   for ( int i = 0; i < m_sFilenames.size(); i++ )
   {
     QString fn = QFileInfo( m_sFilenames[i] ).completeBaseName();
@@ -124,12 +121,21 @@ bool LayerPLabel::LoadVolumeFiles()
       m_imageData->SetOrigin( imageData->GetOrigin() );
       m_imageData->SetSpacing( imageData->GetSpacing() );
       m_imageData->SetExtent( imageData->GetExtent() );
-      m_imageData->AllocateScalars();
       m_imageIndex->SetDimensions( imageData->GetDimensions() );
       m_imageIndex->SetOrigin( imageData->GetOrigin() );
       m_imageIndex->SetSpacing( imageData->GetSpacing() );
       m_imageIndex->SetExtent( imageData->GetExtent() );
-      m_imageIndex->AllocateScalars();
+#if VTK_MAJOR_VERSION > 5
+      m_imageData->AllocateScalars(VTK_UNSIGNED_CHAR, 4);
+      m_imageIndex->AllocateScalars(VTK_FLOAT, 2);
+#else
+      m_imageData->SetNumberOfScalarComponents(4);
+      m_imageData->SetScalarTypeToUnsignedChar();
+      m_imageData->AllocateScalars();
+      m_imageIndex->SetNumberOfScalarComponents(2);
+      m_imageData->SetScalarTypeToFloat();
+      m_imageData->AllocateScalars();
+#endif
     }
 
     int* dim = m_imageData->GetDimensions();
@@ -193,8 +199,8 @@ bool LayerPLabel::LoadVolumeFiles()
   InitializeActors();
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetInput( mReslice[i]->GetOutput() );
-    m_sliceActor3D[i]->SetInput( mReslice[i]->GetOutput() );
+    m_sliceActor2D[i]->GetMapper()->SetInputConnection( mReslice[i]->GetOutputPort() );
+    m_sliceActor3D[i]->GetMapper()->SetInputConnection( mReslice[i]->GetOutputPort() );
   }
   return true;
 }

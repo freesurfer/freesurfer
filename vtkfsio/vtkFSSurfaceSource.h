@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "vtkSource.h"
+#include "vtkPolyDataAlgorithm.h"
 #include "vtkSmartPointer.h"
 extern "C" {
 #include "mrisurf.h"
@@ -38,11 +38,11 @@ class vtkFloatArray;
 class vtkPolyData;
 class vtkTransform;
 
-class vtkFSSurfaceSource : public vtkSource {
+class vtkFSSurfaceSource : public vtkPolyDataAlgorithm {
 public:
 
   static vtkFSSurfaceSource *New();
-  vtkTypeRevisionMacro(vtkFSSurfaceSource,vtkSource);
+  vtkTypeMacro(vtkFSSurfaceSource,vtkPolyDataAlgorithm);
 
   // Description:
   // This will call the MRISread function from the FS library.

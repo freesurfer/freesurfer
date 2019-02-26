@@ -56,7 +56,11 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 
 	// Compute the center of mass
 	vtkSmartPointer<vtkCenterOfMass> centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
 	centerOfMassFilter->SetInput(polydata);
+#endif
 	centerOfMassFilter->SetUseScalarsAsWeights(false);
 	centerOfMassFilter->Update();
 	
@@ -122,7 +126,11 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 	//orient the normal of the sagital plane from left to right
 	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
 	polydata->SetPoints(lhThalamus);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
 	centerOfMassFilter->SetInput(polydata);
+#endif
 	centerOfMassFilter->SetUseScalarsAsWeights(false);
 	centerOfMassFilter->Update();
 	
@@ -131,7 +139,11 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 
 	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
 	polydata->SetPoints(rhThalamus);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
 	centerOfMassFilter->SetInput(polydata);
+#endif
 	centerOfMassFilter->SetUseScalarsAsWeights(false);
 	centerOfMassFilter->Update();
 	
@@ -155,7 +167,11 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 	//find axial plane
 	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
 	polydata->SetPoints(pointsCC1);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
 	centerOfMassFilter->SetInput(polydata);
+#endif
 	centerOfMassFilter->SetUseScalarsAsWeights(false);
 	centerOfMassFilter->Update();
 	
@@ -164,7 +180,11 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 
 	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
 	polydata->SetPoints(pointsCC5);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
 	centerOfMassFilter->SetInput(polydata);
+#endif
 	centerOfMassFilter->SetUseScalarsAsWeights(false);
 	centerOfMassFilter->Update();
 	

@@ -78,8 +78,6 @@ SOURCES += \
     PanelSurface.cpp \
     PanelVolume.cpp \
     qtcolorpicker.cpp \
-    QVTKWidget.cxx \
-    QVTKPaintEngine.cxx \
     Region2D.cpp \
     Region2DLine.cpp \
     Region2DPolyline.cpp \
@@ -175,7 +173,9 @@ SOURCES += \
     DialogSurfaceLabelOperations.cpp \
     geos/GeodesicMatting.cpp \
     geos/kde.cpp \
-    GeoSWorker.cpp
+    GeoSWorker.cpp \
+    QVTKWidget/QVTKWidget.cxx \
+    QVTKWidget/QVTKPaintEngine.cxx
 
 HEADERS  += \
     Annotation2D.h \
@@ -248,7 +248,6 @@ HEADERS  += \
     PanelSurface.h \
     PanelVolume.h \
     qtcolorpicker.h \
-    QVTKWidget.h \
     Region2D.h \
     Region2DLine.h \
     Region2DPolyline.h \
@@ -338,7 +337,9 @@ HEADERS  += \
     DialogSurfaceLabelOperations.h \
     geos/GeodesicMatting.h \
     geos/kde.h \
-    GeoSWorker.h
+    GeoSWorker.h \
+    QVTKWidget/QVTKWidget.h
+    QVTKWidget/QVTKPaintEngine.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

@@ -161,9 +161,6 @@ endif()
 # -------- X11 ---------
 find_package(X11 REQUIRED)
 
-# -------- vtk --------
-find_package(VTK)
-
 # search for GUI libraries
 if(BUILD_GUIS)
 
@@ -182,6 +179,12 @@ if(BUILD_GUIS)
   find_package(QT)
 
 endif()
+
+# -------- vtk --------
+if(NOT VTK_DIR)
+  set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
+endif()
+find_package(VTK HINTS ${VTK_DIR})
 
 # --------------------------------------------------
 #             global build configuration
@@ -358,7 +361,7 @@ add_subdirectories(
 )
 
 # the following utility libraries are required for freeview
-add_subdirectories(vtkfsio vtkutils lineprof)
+add_subdirectories(vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)

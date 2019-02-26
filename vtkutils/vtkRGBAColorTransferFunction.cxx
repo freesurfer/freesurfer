@@ -45,13 +45,13 @@
 
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
-#include <vtkstd/vector>
-#include <vtkstd/set>
-#include <vtkstd/algorithm>
-#include <vtkstd/iterator>
+#include <vector>
+#include <set>
+#include <algorithm>
+#include <iterator>
 #include <math.h>
 
-vtkCxxRevisionMacro(vtkRGBAColorTransferFunction, "$Revision: 1.2 $");
+//vtkCxxRevisionMacro(vtkRGBAColorTransferFunction, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkRGBAColorTransferFunction);
 
 //=============================================================================
@@ -114,7 +114,7 @@ public:
 class vtkRGBAColorTransferFunctionInternals
 {
 public:
-  vtkstd::vector<vtkCTFNode*> Nodes;
+  std::vector<vtkCTFNode*> Nodes;
   vtkCTFCompareNodes          CompareNodes;
   vtkCTFFindNodeEqual         FindNodeEqual;
   vtkCTFFindNodeInRange       FindNodeInRange;
@@ -159,8 +159,8 @@ inline double vtkRGBAColorTransferFunctionAngleDiff(double a1, double a2)
 {
   double adiff = a1 - a2;
   if (adiff < 0.0) adiff = -adiff;
-  while (adiff >= 2*vtkMath::DoublePi()) adiff -= 2*vtkMath::DoublePi();
-  if (adiff > vtkMath::DoublePi()) adiff = 2*vtkMath::DoublePi() - adiff;
+  while (adiff >= 2*vtkMath::Pi()*2) adiff -= 2*vtkMath::Pi()*2;
+  if (adiff > vtkMath::Pi()*2) adiff = 2*vtkMath::Pi()*2 - adiff;
   return adiff;
 }
 
@@ -181,7 +181,7 @@ inline double vtkRGBAColorTransferFunctionAdjustHue(const double msh[3],
     double hueSpin = (  msh[1]*sqrt(unsatM*unsatM - msh[0]*msh[0])
                       / (msh[0]*sin(msh[1])) );
     // Spin hue away from 0 except in purple hues.
-    if (msh[2] > -0.3*vtkMath::DoublePi())
+    if (msh[2] > -0.3*vtkMath::Pi()*2)
       {
       return msh[2] + hueSpin;
       }
@@ -211,7 +211,7 @@ inline void vtkRGBAColorTransferFunctionInterpolateDiverging(double s,
   // If the endpoints are distinct saturated colors, then place white in between
   // them.
   if (   (msh1[1] > 0.05) && (msh2[1] > 0.05)
-      && (vtkRGBAColorTransferFunctionAngleDiff(msh1[2], msh2[2]) > 0.33*vtkMath::DoublePi()) )
+      && (vtkRGBAColorTransferFunctionAngleDiff(msh1[2], msh2[2]) > 0.33*vtkMath::Pi()*2) )
     {
     // Insert the white midpoint by setting one end to white and adjusting the
     // scalar value.
@@ -438,7 +438,7 @@ int vtkRGBAColorTransferFunction::AddHSVAPoint( double x, double h,
 // the Range
 void vtkRGBAColorTransferFunction::SortAndUpdateRange()
 {
-  vtkstd::sort( this->Internal->Nodes.begin(),
+  std::sort( this->Internal->Nodes.begin(),
                 this->Internal->Nodes.end(),
                 this->Internal->CompareNodes );
   
@@ -487,8 +487,8 @@ int vtkRGBAColorTransferFunction::RemovePoint( double x )
   // Now use STL to find it, so that we can remove it
   this->Internal->FindNodeEqual.X = x;
   
-  vtkstd::vector<vtkCTFNode*>::iterator iter = 
-    vtkstd::find_if(this->Internal->Nodes.begin(),
+  std::vector<vtkCTFNode*>::iterator iter = 
+    std::find_if(this->Internal->Nodes.begin(),
                     this->Internal->Nodes.end(),
                     this->Internal->FindNodeEqual );
   
@@ -563,8 +563,8 @@ void vtkRGBAColorTransferFunction::AddRGBASegment( double x1, double r1,
     this->Internal->FindNodeInRange.X1 = x1;
     this->Internal->FindNodeInRange.X2 = x2;
   
-    vtkstd::vector<vtkCTFNode*>::iterator iter = 
-      vtkstd::find_if(this->Internal->Nodes.begin(),
+    std::vector<vtkCTFNode*>::iterator iter = 
+      std::find_if(this->Internal->Nodes.begin(),
                       this->Internal->Nodes.end(),
                       this->Internal->FindNodeInRange );
   
@@ -1574,8 +1574,8 @@ int vtkRGBAColorTransferFunction::AdjustRange(double range[2])
     this->Internal->FindNodeOutOfRange.X1 = range[0];
     this->Internal->FindNodeOutOfRange.X2 = range[1];
   
-    vtkstd::vector<vtkCTFNode*>::iterator iter = 
-      vtkstd::find_if(this->Internal->Nodes.begin(),
+    std::vector<vtkCTFNode*>::iterator iter = 
+      std::find_if(this->Internal->Nodes.begin(),
                       this->Internal->Nodes.end(),
                       this->Internal->FindNodeOutOfRange );
   

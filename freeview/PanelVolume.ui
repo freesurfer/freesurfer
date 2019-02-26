@@ -26,7 +26,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-323</y>
      <width>312</width>
      <height>1822</height>
     </rect>
@@ -430,7 +430,7 @@
       <item row="4" column="1">
        <widget class="QCheckBox" name="checkBoxAutoAdjustFrameLevel">
         <property name="text">
-         <string>Auto adjust window level 
+         <string>Auto adjust window level
 of each frame</string>
         </property>
        </widget>
@@ -1565,6 +1565,74 @@ of each frame</string>
    </slots>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEditFileName</tabstop>
+  <tabstop>comboBoxCorrelationSurface</tabstop>
+  <tabstop>sliderFrame</tabstop>
+  <tabstop>spinBoxFrame</tabstop>
+  <tabstop>checkBoxRememberFrame</tabstop>
+  <tabstop>checkBoxAutoAdjustFrameLevel</tabstop>
+  <tabstop>checkBoxDisplayVector</tabstop>
+  <tabstop>checkBoxDisplayRGB</tabstop>
+  <tabstop>checkBoxDisplayTensor</tabstop>
+  <tabstop>comboBoxRenderObject</tabstop>
+  <tabstop>lineEditVectorLineWidth</tabstop>
+  <tabstop>lineEditVectorScale</tabstop>
+  <tabstop>spinBoxVectorSkip</tabstop>
+  <tabstop>checkBoxNormalizeVectors</tabstop>
+  <tabstop>comboBoxInversion</tabstop>
+  <tabstop>comboBoxMask</tabstop>
+  <tabstop>lineEditMaskThreshold</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>checkBoxSmooth</tabstop>
+  <tabstop>checkBoxUpsample</tabstop>
+  <tabstop>comboBoxColorMap</tabstop>
+  <tabstop>comboBoxLookUpTable</tabstop>
+  <tabstop>comboBoxDirectionCode</tabstop>
+  <tabstop>sliderWindow</tabstop>
+  <tabstop>lineEditWindow</tabstop>
+  <tabstop>sliderLevel</tabstop>
+  <tabstop>lineEditLevel</tabstop>
+  <tabstop>sliderMin</tabstop>
+  <tabstop>lineEditMin</tabstop>
+  <tabstop>sliderMid</tabstop>
+  <tabstop>lineEditMid</tabstop>
+  <tabstop>sliderMax</tabstop>
+  <tabstop>lineEditMax</tabstop>
+  <tabstop>sliderOffset</tabstop>
+  <tabstop>lineEditOffset</tabstop>
+  <tabstop>checkBoxPercentile</tabstop>
+  <tabstop>checkBoxTruncate</tabstop>
+  <tabstop>checkBoxInvert</tabstop>
+  <tabstop>checkBoxSetMidToMin</tabstop>
+  <tabstop>checkBoxClearHigher</tabstop>
+  <tabstop>checkBoxClearBackground</tabstop>
+  <tabstop>pushButtonResetWindowLevel</tabstop>
+  <tabstop>lineEditBrushValue</tabstop>
+  <tabstop>checkBoxSelectAllLabels</tabstop>
+  <tabstop>checkBoxShowExistingLabels</tabstop>
+  <tabstop>treeWidgetColorTable</tabstop>
+  <tabstop>sliderTrackVolumeThresholdLow</tabstop>
+  <tabstop>lineEditTrackVolumeThresholdLow</tabstop>
+  <tabstop>comboBoxProjectionMapType</tabstop>
+  <tabstop>lineEditProjectionMapRange</tabstop>
+  <tabstop>checkBoxShowOutline</tabstop>
+  <tabstop>checkBoxShowContour</tabstop>
+  <tabstop>checkBoxShowLabelContour</tabstop>
+  <tabstop>sliderContourThresholdLow</tabstop>
+  <tabstop>lineEditContourThresholdLow</tabstop>
+  <tabstop>sliderContourThresholdHigh</tabstop>
+  <tabstop>lineEditContourThresholdHigh</tabstop>
+  <tabstop>lineEditContourLabelRange</tabstop>
+  <tabstop>checkBoxUpsampleContour</tabstop>
+  <tabstop>checkBoxContourExtractAll</tabstop>
+  <tabstop>sliderContourSmoothIteration</tabstop>
+  <tabstop>lineEditContourSmoothIteration</tabstop>
+  <tabstop>checkBoxUseColorMap</tabstop>
+  <tabstop>pushButtonContourSave</tabstop>
+  <tabstop>checkBoxShowInfo</tabstop>
+ </tabstops>
  <resources>
   <include location="freeview.qrc"/>
  </resources>
