@@ -358,7 +358,7 @@ add_subdirectories(
 )
 
 # the following utility libraries are required for freeview
-add_subdirectories(vtkfsio vtkutils lineprof)
+add_subdirectories(vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
