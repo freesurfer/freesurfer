@@ -4,9 +4,7 @@
 #include "numpy.h"
 
 // utils
-extern "C" {
 #include "mri.h"
-}
 
 
 void bindVolume(py::module &m);

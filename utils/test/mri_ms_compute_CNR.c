@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   MRI    *mri_flash[MAX_IMAGES], *mri_label, *mri_mask;
   int index;
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
-  struct timeb start ;
+  Timer start ;
   float max_val, min_val, value;
   float *LDAweight = NULL;
   float **LDAmeans = NULL; /* Centroid for each considered class */
@@ -175,7 +175,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  TimerStart(&start) ;
+  start.reset() ;
 
   ac = argc ;
   av = argv ;
@@ -654,7 +654,7 @@ main(int argc, char *argv[])
 
   free(LDAweight);
 
-  msec = TimerStop(&start) ;
+  msec = start.milliseconds() ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;

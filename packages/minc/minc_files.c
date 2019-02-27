@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -2640,5 +2638,3 @@ VIO_Status  io_unsigned_chars(
 
     return( status );
 }
-
-#endif // USE_LOCAL_MINC

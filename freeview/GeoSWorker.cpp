@@ -50,7 +50,11 @@ void GeoSWorker::DoCompute()
   size_t vol_size = dim[0]*dim[1]*dim[2];
 
   vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast->SetInputData(m_seeds->GetImageData());
+#else
   cast->SetInput(m_seeds->GetImageData());
+#endif
   cast->SetOutputScalarTypeToUnsignedChar();
   cast->Update();
   vtkImageData* seeds = cast->GetOutput();
@@ -108,7 +112,11 @@ void GeoSWorker::DoCompute()
   voi->SetVOI(bound);
   voi->Update();
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast2->SetInputData(m_mri->GetImageData());
+#else
   cast2->SetInput(m_mri->GetImageData());
+#endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();
   voi2->SetInputConnection(cast2->GetOutputPort());

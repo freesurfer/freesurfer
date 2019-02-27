@@ -27,12 +27,12 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+ 
 #include "mri.h"
 #include "mrisurf.h"
 #include "version.h"
   const char *Progname = "mri_surfacemask";
-}
+
 
 using namespace std;
 

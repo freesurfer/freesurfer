@@ -45,7 +45,7 @@ void xDbg_PrintStatus ();
 void xDbg_RegisterSegfaultHandler ( void(*f)(int) );
 void xDbg_PushStack ( char* isTitle, char* isNote );
 void xDbg_PopStack ();
-char* xDbg_GetCurrentFunction ();
+const char* xDbg_GetCurrentFunction ();
 void xDbg_PrintStack ();
 void xDbg_SegfaultHandler ( int );
 void xDbg_Segfault ();

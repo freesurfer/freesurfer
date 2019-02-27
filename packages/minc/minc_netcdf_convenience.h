@@ -1,7 +1,5 @@
-#if defined(USE_LOCAL_MINC)
-
-#ifndef  DEF_MINC_NETCDF_CONVENIENCE
-#define  DEF_MINC_NETCDF_CONVENIENCE
+#ifndef  MINC_NETCDF_CONVENIENCE_H
+#define  MINC_NETCDF_CONVENIENCE_H
 
 /*
  * Original Author: Bevin Brett
@@ -45,22 +43,13 @@ int miclose(int cdfid);
 int miattputdbl(int cdfid, int varid, const char *name, double value);
 int miattputstr(int cdfid, int varid, const char *name, const char *value);
 
-int mivarput(int cdfid, int varid, long start[], long count[],
-                    nc_type datatype, char *sign, void *values);
-int mivarput1(int cdfid, int varid, long mindex[],
-                     nc_type datatype, char *sign, void *value);
-		     
-int micopy_all_atts(int incdfid, int invarid, 
-                           int outcdfid, int outvarid);
+int mivarput(int cdfid, int varid, long start[], long count[], nc_type datatype, char *sign, void *values);
+int mivarput1(int cdfid, int varid, long mindex[], nc_type datatype, char *sign, void *value);
 
-int micopy_all_var_defs(int incdfid, int outcdfid, int nexclude,
-                               int excluded_vars[]);
+int micopy_all_atts(int incdfid, int invarid, int outcdfid, int outvarid);
+int micopy_all_var_defs(int incdfid, int outcdfid, int nexclude, int excluded_vars[]);
+int micopy_all_var_values(int incdfid, int outcdfid, int nexclude, int excluded_vars[]);
 
-int micopy_all_var_values(int incdfid, int outcdfid, int nexclude,
-                                 int excluded_vars[]);
-				 			       
 int micreate(const char *path, int cmode);
-			   
-#endif /* DEF_MINC_NETCDF_CONVENIENCE */
-
-#endif // USE_LOCAL_MINC
+   
+#endif

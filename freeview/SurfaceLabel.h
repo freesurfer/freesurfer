@@ -33,10 +33,10 @@
 #include <vtkSmartPointer.h>
 #include <QList>
 
-extern "C"
-{
+
+
 #include "label.h"
-}
+
 
 class LayerSurface;
 class vtkRGBAColorTransferFunction;

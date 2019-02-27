@@ -3,10 +3,10 @@
 #include "itkMesh.h"
 #include "itkTriangleCell.h"
 #include "vtkSmartPointer.h"
-extern "C" 
-{
+ 
+
 #include "mrisurf.h"
-}
+
 
 using namespace itk;
 namespace fs

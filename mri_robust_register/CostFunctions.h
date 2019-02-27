@@ -30,16 +30,9 @@
 #ifndef CostFunctions_H
 #define CostFunctions_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "mri.h"
 #include "mriBSpline.h"
 #include "matrix.h"
-#ifdef __cplusplus
-}
-#endif
 
 //#include <utility>
 //#include <string>

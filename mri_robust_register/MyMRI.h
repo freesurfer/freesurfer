@@ -29,15 +29,8 @@
 #ifndef MyMRI_H
 #define MyMRI_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
 #include "mri.h"
-#ifdef __cplusplus
-}
-#endif
 
 #include <utility>
 #include <string>

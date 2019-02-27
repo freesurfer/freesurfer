@@ -8,12 +8,6 @@
 #include <vnl/vnl_inverse.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 
-// all other software are all in "C"
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
@@ -21,10 +15,6 @@ extern "C"
 #include "resample.h"
 #include "registerio.h"
 #include "version.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

@@ -28,7 +28,7 @@
 #ifndef LABEL_H
 #define LABEL_H
 
-#include "minc_volume_io.h"
+#include "minc.h"
 
 #include "matrix.h"
 #include "const.h"
@@ -114,7 +114,7 @@ LABEL  *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst);
 LABEL   *LabelCompact(LABEL *lsrc, LABEL *ldst) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
-LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
+LABEL   *LabelAlloc(int max_points, const char *subject_name, const char *label_name) ;
 LABEL   *LabelRealloc(LABEL *lb, int max_points);
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
                       int max_vertices, MRI_SURFACE *mris) ;

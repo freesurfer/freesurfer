@@ -65,11 +65,8 @@
 #include <vtkTriangleFilter.h>
 #include <vtkPiecewiseFunction.h>
 #include <vtkColorTransferFunction.h>
-#include <vtkVolumeRayCastMapper.h>
 #include <vtkVolumeProperty.h>
 #include <vtkVolume.h>
-#include <vtkVolumeRayCastCompositeFunction.h>
-#include <vtkVolumeTextureMapper2D.h>
 #include <vtkFixedPointVolumeRayCastMapper.h>
 #include <vtkImageCast.h>
 #include <vtkImageClip.h>
@@ -139,7 +136,11 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
     vtkRenderLargeImage* image = vtkRenderLargeImage::New();
     image->SetInput( renderer );
     image->SetMagnification( nMag );
+#if VTK_MAJOR_VERSION > 5
+    writer->SetInputData( image->GetOutput() );
+#else
     writer->SetInput( image->GetOutput() );
+#endif
     writer->SetFileName( fn.toUtf8().data() );
     writer->Write();
     if ( writer->GetErrorCode() != 0 )
@@ -218,7 +219,11 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
   Q_UNUSED(ext);
   int i = labelIndex;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+#if VTK_MAJOR_VERSION > 5
+  threshold->SetInputData( data_in );
+#else
   threshold->SetInput( data_in );
+#endif
   threshold->ThresholdBetween( i-0.5, i+0.5 );
   threshold->ReplaceOutOn();
   threshold->SetOutValue( 0 );
@@ -281,7 +286,11 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
   foreach (int i, labelIndices)
   {
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+#if VTK_MAJOR_VERSION > 5
+    threshold->SetInputData( data_in );
+#else
     threshold->SetInput( data_in );
+#endif
     threshold->ThresholdBetween( i-0.5, i+0.5 );
     threshold->ReplaceOutOn();
     threshold->SetOutValue( 0 );
@@ -299,7 +308,7 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
     contour->SetInputConnection( bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
     contour->SetValue(0, i);
-    append->AddInput(contour->GetOutput());
+    append->AddInputConnection(contour->GetOutputPort());
   }
   /*
   contour->Update();
@@ -368,11 +377,19 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
     vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
     if (bUpsample)
     {
+#if VTK_MAJOR_VERSION > 5
+      resampler->SetInputData(data_in);
+#else
       resampler->SetInput(data_in);
+#endif
       clipper->SetInputConnection(resampler->GetOutputPort());
     }
     else
+#if VTK_MAJOR_VERSION > 5
+      clipper->SetInputData( data_in );
+#else
       clipper->SetInput( data_in );
+#endif
     clipper->SetOutputWholeExtent( ext );
     threshold->SetInputConnection( clipper->GetOutputPort() );
   }
@@ -380,11 +397,19 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
   {
     if (bUpsample)
     {
+#if VTK_MAJOR_VERSION > 5
+      resampler->SetInputData(data_in);
+#else
       resampler->SetInput(data_in);
+#endif
       threshold->SetInputConnection(resampler->GetOutputPort());
     }
     else
+#if VTK_MAJOR_VERSION > 5
+      threshold->SetInputData( data_in );
+#else
       threshold->SetInput( data_in );
+#endif
   }
   threshold->ThresholdByLower( dTh2 );
   threshold->ReplaceOutOn();
@@ -471,7 +496,11 @@ bool MyVTKUtils::BuildVolume( vtkImageData* data_in,
       vtkSmartPointer<vtkFixedPointVolumeRayCastMapper>::New();
 
   vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast->SetInputData( data_in );
+#else
   cast->SetInput( data_in );
+#endif
   cast->SetOutputScalarTypeToUnsignedShort();
 
   // qDebug() << volumeMapper->GetIntermixIntersectingGeometry();
@@ -508,7 +537,11 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
   int m_nPlane = nPlane_in;
   int m_nSlice = nSlice_in;
 
+#if VTK_MAJOR_VERSION > 5
+  m_imageClip->SetInputData( image_in );
+#else
   m_imageClip->SetInput( image_in );
+#endif
   int ext[6];
   image_in->GetExtent( ext );
   ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;

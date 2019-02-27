@@ -2,7 +2,7 @@ project(talairach_afd)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(talairach_afd talairach_afd.c)
+add_executable(talairach_afd talairach_afd.cpp)
 add_help(talairach_afd talairach_afd.help.xml)
 target_link_libraries(talairach_afd utils)
 

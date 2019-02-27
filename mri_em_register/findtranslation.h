@@ -30,27 +30,15 @@
 #include "gca.h"
 #include "matrix.h"
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-  
-  double find_optimal_translation( GCA *gca,
-                                   GCA_SAMPLE *gcas,
-                                   MRI *mri,
-                                   int nsamples,
-                                   MATRIX *m_L,
-                                   float min_trans,
-                                   float max_trans,
-                                   float trans_steps,
-                                   int nreductions,
-                                   double clamp);
-
-
-#if defined(__cplusplus)
-};
-#endif
-
-
+double find_optimal_translation( GCA *gca,
+                              GCA_SAMPLE *gcas,
+                              MRI *mri,
+                              int nsamples,
+                              MATRIX *m_L,
+                              float min_trans,
+                              float max_trans,
+                              float trans_steps,
+                              int nreductions,
+                              double clamp);
 
 #endif

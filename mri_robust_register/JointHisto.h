@@ -29,15 +29,8 @@
 #ifndef JointHisto_H
 #define JointHisto_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "mri.h"
 #include "mriBSpline.h"
-#ifdef __cplusplus
-}
-#endif
 
 #define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix_fixed.h>

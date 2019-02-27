@@ -5,11 +5,11 @@
 #include <QColor>
 #include "vtkSmartPointer.h"
 
-extern "C"
-{
+
+
 #include "mri.h"
 #include "colortab.h"
-}
+
 
 class vtkActor;
 class LayerSurface;

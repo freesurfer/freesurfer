@@ -23,19 +23,19 @@ if(PETSC_FOUND)
   # createMorph
   add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
   add_help(createMorph createMorph.help.xml)
-  target_link_libraries(createMorph utils utilscpp tetgen)
+  target_link_libraries(createMorph utils tetgen)
   install(TARGETS createMorph DESTINATION bin)
 
   # applyMorph
   add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
   add_help(applyMorph applyMorph.help.xml)
-  target_link_libraries(applyMorph utils utilscpp tetgen)
+  target_link_libraries(applyMorph utils tetgen)
   install(TARGETS applyMorph DESTINATION bin)
 
   # exportGcam
   add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
   add_help(exportGcam exportGcam.help.xml)
-  target_link_libraries(exportGcam utils utilscpp tetgen)
+  target_link_libraries(exportGcam utils tetgen)
   install(TARGETS exportGcam DESTINATION bin)
 
   if(APPLE)

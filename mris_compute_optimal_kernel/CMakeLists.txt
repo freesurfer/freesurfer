@@ -2,7 +2,7 @@ project(mris_compute_optimal_kernel)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_compute_optimal_kernel mris_compute_optimal_kernel.c)
+add_executable(mris_compute_optimal_kernel mris_compute_optimal_kernel.cpp)
 target_link_libraries(mris_compute_optimal_kernel utils)
 
 install(TARGETS mris_compute_optimal_kernel DESTINATION bin)

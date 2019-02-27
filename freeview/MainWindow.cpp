@@ -135,7 +135,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
 {
-
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -156,6 +155,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_volumeCropper = new VolumeCropper( this );
+
   connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)), this, SLOT(RequestRedraw()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));

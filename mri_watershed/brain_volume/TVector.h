@@ -39,8 +39,6 @@
 
 #include <iostream>
 
-#ifdef __cplusplus
-
 class TVector {
 
 public:
@@ -133,5 +131,4 @@ std::ostream &operator<<(std::ostream &s, const TVector &v) {
   return s;
 }
 
-#endif // __cplusplus
 #endif // multiple inclusion protection

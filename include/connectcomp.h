@@ -201,7 +201,7 @@ typedef MYqueueStruct *MYqueue;
 
 void* myMalloc(int size);
 void* myRealloc(void* ptr, int size);
-void myError(char error_text[]);
+void myError(const char error_text[]);
 
 MYlist  myList(int elementSize);
 MYlist  myList1(int elementSize, int capacity);

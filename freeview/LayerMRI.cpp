@@ -61,6 +61,7 @@
 #include "vtkMath.h"
 #include "vtkImageThreshold.h"
 #include "vtkImageShiftScale.h"
+#include "vtkImageMapper3D.h"
 #include "MyUtils.h"
 #include "MyVTKUtils.h"
 #include "FSVolume.h"
@@ -85,12 +86,13 @@
 #include <QFileInfo>
 #include "GeoSWorker.h"
 #include "BrushProperty.h"
+#include "vtkImageResliceMapper.h"
 
-extern "C"
-{
+
+
 #include "utils.h"
 #include "geos.h"
-}
+
 
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
@@ -126,7 +128,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     */
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
-    
+
     m_glyphActor2D[i] = vtkActor::New();
     m_glyphActor3D[i] = vtkActor::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -139,11 +141,21 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     m_vectorDotActor2D[i]->GetProperty()->SetPointSize(3);
     m_vectorDotActor2D[i]->GetProperty()->SetInterpolationToFlat();
     m_projectionMapActor[i] = vtkImageActor::New();
+    m_projectionMapActor[i]->VisibilityOff();
+#if VTK_MAJOR_VERSION > 5
+    m_sliceActor2D[i]->ForceOpaqueOn();
+    m_sliceActor3D[i]->ForceOpaqueOn();
+    m_projectionMapActor[i]->ForceOpaqueOn();
+#endif
   }
   
   m_actorContour = vtkSmartPointer<vtkActor>::New();
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( vtkSmartPointer<vtkPolyData>::New() );
+#else
   mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
+#endif
   m_actorContour->SetMapper( mapper );
   
   m_propVolume = vtkSmartPointer<vtkVolume>::New();
@@ -511,7 +523,11 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
       threshold->ReplaceInOn();
       threshold->ReplaceOutOn();
       threshold->SetOutputScalarType(m_imageData->GetScalarType());
+#if VTK_MAJOR_VERSION > 5
+      threshold->SetInputData(m_imageDataRef);
+#else
       threshold->SetInput(m_imageDataRef);
+#endif
       threshold->Update();
       m_imageData->DeepCopy(threshold->GetOutput());
     }
@@ -866,7 +882,11 @@ void LayerMRI::InitializeActors()
     // The reslice object just takes a slice out of the volume.
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
+#if VTK_MAJOR_VERSION > 5
+    mReslice[i]->SetInputData( m_imageData );
+#else
     mReslice[i]->SetInput( m_imageData );
+#endif
     mReslice[i]->BorderOn();
     mReslice[i]->SetResliceTransform( tr );
     mReslice[i]->AutoCropOutputOn();
@@ -895,8 +915,8 @@ void LayerMRI::InitializeActors()
     //
     // Prop in scene with plane mesh and texture.
     //
-    m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-    m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+    m_sliceActor2D[i]->GetMapper()->SetInputConnection(mColorMap[i]->GetOutputPort());
+    m_sliceActor3D[i]->GetMapper()->SetInputConnection( mColorMap[i]->GetOutputPort());
     
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
     mResample[i] = vtkSmartPointer<vtkImageReslice>::New();
@@ -923,6 +943,7 @@ void LayerMRI::UpdateOpacity()
   {
     m_sliceActor2D[i]->SetOpacity( GetProperty()->GetOpacity() );
     m_sliceActor3D[i]->SetOpacity( GetProperty()->GetOpacity() );
+    m_projectionMapActor[i]->SetOpacity(GetProperty()->GetOpacity());
   }
   m_actorContour->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
   QList<int> keys = m_labelActors.keys();
@@ -1092,7 +1113,7 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
   }
   else
   {
-    renderer->AddViewProp( m_sliceActor2D[nPlane] );
+    renderer->AddViewProp(m_sliceActor2D[nPlane]);
     renderer->AddViewProp(m_projectionMapActor[nPlane]);
   }
 }
@@ -1269,15 +1290,15 @@ void LayerMRI::UpdateDisplayMode()
     if (GetProperty()->GetDisplayRGB())
     {
       vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-      cast->SetInput(mReslice[i]->GetOutput());
+      cast->SetInputConnection(mReslice[i]->GetOutputPort());
       cast->SetOutputScalarTypeToUnsignedChar();
-      m_sliceActor2D[i]->SetInput( cast->GetOutput() );
-      m_sliceActor3D[i]->SetInput( cast->GetOutput() );
+      m_sliceActor2D[i]->GetMapper()->SetInputConnection( cast->GetOutputPort() );
+      m_sliceActor3D[i]->GetMapper()->SetInputConnection( cast->GetOutputPort() );
     }
     else
     {
-      m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-      m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+      m_sliceActor2D[i]->GetMapper()->SetInputConnection( mColorMap[i]->GetOutputPort() );
+      m_sliceActor3D[i]->GetMapper()->SetInputConnection( mColorMap[i]->GetOutputPort() );
     }
   }
   if ( GetProperty()->GetDisplayVector() )
@@ -1673,8 +1694,13 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
        n[1] < 0 || n[1] >= dim[1] ||
        n[2] < 0 || n[2] >= dim[2] )
   {
+#if VTK_MAJOR_VERSION > 5
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInputData( polydata );
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInputData( polydata );
+#else
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
+#endif
     return;
   }
   
@@ -1685,24 +1711,37 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   if ( nVectorRep == LayerPropertyMRI::VR_Bar )
   {
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+    tube->SetInputData( polydata );
+#else
     tube->SetInput( polydata );
+#endif
     tube->SetNumberOfSides( 4 );
     tube->SetRadius( qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 8 * GetProperty()->GetVectorLineWidth());
     tube->CappingOn();
-    vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
-    vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInputConnection( tube->GetOutputPort() );
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInputConnection( tube->GetOutputPort() );
   }
   else
   {
+#if VTK_MAJOR_VERSION > 5
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInputData( polydata );
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInputData( polydata );
+#else
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
+#endif
     
     if (nVectorRep == LayerPropertyMRI::VR_Direction_Line)
     {
       vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
       pts->GenerateVerticesOn();
       pts->SetOnRatio(2);
+#if VTK_MAJOR_VERSION > 5
+      pts->SetInputData(polydata);
+#else
       pts->SetInput(polydata);
+#endif
       vtkPolyDataMapper::SafeDownCast( m_vectorDotActor2D[nPlane]->GetMapper() )->SetInputConnection( pts->GetOutputPort() );
     }
   }
@@ -1801,8 +1840,13 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
             c[1] = (int)(fabs( v[1] *255 ) );
             c[2] = (int)(fabs( v[2] *255 ) );
           }
+#if VTK_MAJOR_VERSION > 5
+          scalars->InsertNextTypedTuple( c );
+          scalars->InsertNextTypedTuple( c );
+#else
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
+#endif
         }
       }
     }
@@ -1868,8 +1912,13 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
             c[1] = (int)(fabs( v[1] *255 ) );
             c[2] = (int)(fabs( v[2] *255 ) );
           }
+#if VTK_MAJOR_VERSION > 5
+          scalars->InsertNextTypedTuple( c );
+          scalars->InsertNextTypedTuple( c );
+#else
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
+#endif
         }
       }
     }
@@ -1935,8 +1984,13 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
             c[1] = (int)(fabs( v[1] *255 ) );
             c[2] = (int)(fabs( v[2] *255 ) );
           }
+#if VTK_MAJOR_VERSION > 5
+          scalars->InsertNextTypedTuple( c );
+          scalars->InsertNextTypedTuple( c );
+#else
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
+#endif
         }
       }
     }
@@ -2002,8 +2056,13 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
        n[2] < 0 || n[2] >= dim[2] )
   {
     vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+#if VTK_MAJOR_VERSION > 5
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInputData( polydata );
+    vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInputData( polydata );
+#else
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
+#endif
     return;
   }
   
@@ -2070,9 +2129,13 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
   append->Update();
   vtkPolyData* polydata = append->GetOutput();
   polydata->GetPointData()->SetScalars( scalars );
+#if VTK_MAJOR_VERSION > 5
+  vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInputData( polydata );
+  vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInputData( polydata );
+#else
   vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
   vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
-  
+#endif
   emit ActorUpdated();
 }
 
@@ -2169,15 +2232,23 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     int nPts = sourcepolydata->GetPoints()->GetNumberOfPoints();
     for ( int i = 0; i < nPts; i++ )
     {
+#if VTK_MAJOR_VERSION > 5
+      scalars->InsertNextTypedTuple( c );
+#else
       scalars->InsertNextTupleValue( c );
+#endif
     }
     
     vtkSmartPointer<vtkTransformPolyDataFilter> filter =
         vtkSmartPointer<vtkTransformPolyDataFilter>::New();
     filter->SetTransform( tr );
+#if VTK_MAJOR_VERSION > 5
+    filter->SetInputData( sourcepolydata );   
+    a->AddInputData( filter->GetOutput() );
+#else
     filter->SetInput( sourcepolydata );
-    
     a->AddInput( filter->GetOutput() );
+#endif
   }
 }
 
@@ -3166,10 +3237,18 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   vtkSmartPointer<vtkTransformPolyDataFilter> filter =
       vtkSmartPointer<vtkTransformPolyDataFilter>::New();
   filter->SetTransform( tr );
+#if VTK_MAJOR_VERSION > 5
+  filter->SetInputData( vtkPolyDataMapper::SafeDownCast( m_actorContour->GetMapper())->GetInput() );
+#else
   filter->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorContour->GetMapper())->GetInput() );
+#endif
   filter->Update();
   vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
+#if VTK_MAJOR_VERSION > 5
+  writer->SetInputData( filter->GetOutput() );
+#else
   writer->SetInput( filter->GetOutput() );
+#endif
   writer->SetFileName( fn.toLatin1().constData() );
   bool ret = writer->Write();
   writer->Delete();
@@ -3266,16 +3345,23 @@ void LayerMRI::UpdateProjectionMap()
       image->SetSpacing(m_imageData->GetSpacing());
       dim[i] = 1;
       image->SetDimensions(dim);
-      image->SetNumberOfScalarComponents( 1 );
+#if VTK_MAJOR_VERSION > 5
+      image->AllocateScalars(VTK_FLOAT, 1);
+#else
+      image->SetNumberOfScalarComponents(1);
       image->SetScalarTypeToFloat();
-      //    image->SetOrigin( m_imageData->GetOrigin() );
       image->AllocateScalars();
+#endif
       float* ptr = ( float* )image->GetScalarPointer();
       memset(ptr, 0, ((size_t)sizeof(float))*dim[0]*dim[1]*dim[2]);
       ptrs[i] = ptr;
     }
     vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+    cast->SetInputData(m_imageData);
+#else
     cast->SetInput(m_imageData);
+#endif
     cast->SetOutputScalarTypeToFloat();
     cast->Update();
     vtkImageData* new_image = cast->GetOutput();
@@ -3316,7 +3402,11 @@ void LayerMRI::UpdateProjectionMap()
     for (int i = 0; i < 3; i++)
     {
       vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
+#if VTK_MAJOR_VERSION > 5
+      reslice->SetInputData(images[i]);
+#else
       reslice->SetInput(images[i]);
+#endif
       reslice->BorderOff();
       //  reslice->SetResliceTransform( tr );
       reslice->SetOutputDimensionality( 2 );
@@ -3342,11 +3432,11 @@ void LayerMRI::UpdateProjectionMap()
       if (true) // this->m_projectionMapActor[i]->GetInput() == NULL)
       {
         mColorMapMaxProjection[i] = vtkSmartPointer<vtkImageMapToColors>::New();
+        mColorMapMaxProjection[i]->SetInputConnection(reslice->GetOutputPort());
         mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
-        m_projectionMapActor[i]->SetInput(mColorMapMaxProjection[i]->GetOutput());
+        m_projectionMapActor[i]->GetMapper()->SetInputConnection(mColorMapMaxProjection[i]->GetOutputPort());
         m_projectionMapActor[i]->InterpolateOff();
       }
-      mColorMapMaxProjection[i]->SetInput(reslice->GetOutput());
     }
   }
   SetVisible(IsVisible());
@@ -3364,7 +3454,11 @@ bool LayerMRI::SaveIsoSurface(const QString &fn)
   vtkPolyData* polydata = vtkPolyData::SafeDownCast(m_actorContour->GetMapper()->GetInput());
   if (polydata)
   {
+#if VTK_MAJOR_VERSION > 5
+    writer->SetInputData( polydata );
+#else
     writer->SetInput( polydata );
+#endif
     writer->SetFileName( qPrintable(fn) );
     return writer->Write();
   }
@@ -3423,20 +3517,29 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     double s1[3], s2[3];
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
+#if VTK_MAJOR_VERSION > 5
+    resampler->SetInputData(mask);
+#else
     resampler->SetInput(mask);
+#endif
 //    for (int i = 0; i < 3; i++)
 //      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
     resampler->SetOutputSpacing(s1);
     resampler->SetInterpolationModeToNearestNeighbor();
     threshold->ThresholdByUpper(m_dMaskThreshold);
-    threshold->SetInput(resampler->GetOutput());
+    threshold->SetInputConnection(resampler->GetOutputPort());
     threshold->ReplaceInOn();
     threshold->ReplaceOutOn();
     threshold->SetInValue(1);
     threshold->SetOutValue(0);
     threshold->SetOutputScalarTypeToUnsignedChar();
+#if VTK_MAJOR_VERSION > 5
+    mask_filter->SetInputData(m_imageDataBackup);
+    mask_filter->SetMaskInputData(threshold->GetOutput());
+#else
     mask_filter->SetInput(m_imageDataBackup);
     mask_filter->SetMaskInput(threshold->GetOutput());
+#endif
     mask_filter->SetMaskedOutputValue(0);
     mask_filter->Update();
     source->DeepCopy(mask_filter->GetOutput());
@@ -3472,13 +3575,21 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
     if (image->GetNumberOfScalarComponents() > 1)
     {
       vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+#if VTK_MAJOR_VERSION > 5
+      extract->SetInputData(image);
+#else
       extract->SetInput(image);
+#endif
       extract->SetComponents(src_frame);
-      threshold->SetInput(extract->GetOutput());
+      threshold->SetInputConnection(extract->GetOutputPort());
     }
     else
     {
+#if VTK_MAJOR_VERSION > 5
+      threshold->SetInputData(image);
+#else
       threshold->SetInput(image);
+#endif
     }
     threshold->SetOutputScalarTypeToChar();
     threshold->SetInValue(1.0);
@@ -3627,15 +3738,23 @@ void LayerMRI::SetCorrelationSurface(LayerSurface *surf)
       m_imageRawDisplay->SetExtent(m_imageData->GetExtent());
       m_imageRawDisplay->SetSpacing(m_imageData->GetSpacing());
       m_imageRawDisplay->SetOrigin(m_imageData->GetOrigin());
-      m_imageRawDisplay->SetScalarTypeToFloat();
+#if VTK_MAJOR_VERSION > 5
+      m_imageRawDisplay->AllocateScalars(VTK_FLOAT, 1);
+#else
       m_imageRawDisplay->SetNumberOfScalarComponents(1);
+      m_imageRawDisplay->SetScalarType(VTK_FLOAT);
       m_imageRawDisplay->AllocateScalars();
+#endif
       GetProperty()->SetWindowLevel(1, 0);
       GetProperty()->SetHeatScale(0, 0.5, 1);
     }
     for ( int i = 0; i < 3; i++ )
     {
+#if VTK_MAJOR_VERSION > 5
+      mReslice[i]->SetInputData( m_imageRawDisplay );
+#else
       mReslice[i]->SetInput( m_imageRawDisplay );
+#endif
     }
     connect(m_correlationSurface, SIGNAL(CurrentVertexChanged(int)), this, SLOT(UpdateSurfaceCorrelationData()));
   }
@@ -3643,7 +3762,11 @@ void LayerMRI::SetCorrelationSurface(LayerSurface *surf)
   {
     for ( int i = 0; i < 3; i++ )
     {
+#if VTK_MAJOR_VERSION > 5
+      mReslice[i]->SetInputData( m_imageData );
+#else
       mReslice[i]->SetInput( m_imageData );
+#endif
     }
   }
   emit ActorUpdated();

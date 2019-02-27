@@ -9,7 +9,7 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author$
- *    $Date$
+ *    $Date$f
  *    $Revision$
  *
  * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
@@ -30,14 +30,8 @@
 #endif
 #include "fs_vnl/fs_powell.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <stdio.h>   // printf
 #include <stdlib.h>  // calloc and free
-#ifdef __cplusplus
-}
-#endif
 
 #include <vcl_cassert.h>
 #include <vnl/algo/vnl_brent.h>

@@ -35,9 +35,6 @@
 
 #include  "minc_internals.h"
 
-#if !(defined(USE_LOCAL_MINC) || defined(TESTING_GAUSSIAN_C))
-static const bool doPrint = false;
-#else
 #if !defined(TESTING_GAUSSIAN_C)
 
 static const bool doPrint = false;
@@ -158,8 +155,6 @@ static const char* invert_4x4_matrix_wkr_simple( double* mat, double* inv, int* 
 
     return NULL;
 }
-#endif
-
 #endif
 
 

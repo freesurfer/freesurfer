@@ -83,9 +83,9 @@ IMAFILEINFO;
 /*******************************************/
 typedef struct
 {
-  char *key;
+  const char *key;
   int   offset;
-  char *typestring;
+  const char *typestring;
   int   type;
   int   typesize;
   int   nitems;
@@ -95,7 +95,7 @@ IMA_DICTIONARY_ENTRY;
 
 extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
 extern int   nImaDictionary, ImaDictionaryGood;
-extern char *imaTypeString[6];
+extern const char *imaTypeString[6];
 extern int   imaTypeSize[6];
 
 int imaTypeFromString(const char *typestring);

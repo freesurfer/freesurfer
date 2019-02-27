@@ -82,7 +82,7 @@ MRI *dwi;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
 
   dump_options();
 
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   if (inMatFile) {		// Estimate between-volume motion
     int nframe = 0;
@@ -385,7 +385,7 @@ int main(int argc, char **argv) {
     outfile.close();
   }
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   cout << "Done in " << cputime/1000.0 << " sec." << endl;
 
   cout << "dmri_motion done" << endl;

@@ -28,17 +28,8 @@
 // mrivariables.h
 //
 
-// these functions are only in "C"
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <mri.h>
-#include <mrisurf.h>
-
-#ifdef __cplusplus
-}
-#endif
+#include "mri.h"
+#include "mrisurf.h"
 
 #ifndef c_mrivariables_h
 #define c_mrivariables_h

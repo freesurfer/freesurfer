@@ -28,10 +28,10 @@
 #include <QList>
 #include <QVector>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 namespace Ui
 {

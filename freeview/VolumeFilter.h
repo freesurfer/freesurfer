@@ -29,10 +29,10 @@
 #include <QObject>
 #include "CommonDataStruct.h"
 
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 class LayerMRI;
 class QTimer;

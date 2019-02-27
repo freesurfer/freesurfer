@@ -38,10 +38,6 @@
 #include "transform.h"
 #include "label.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #define GCAM_UNLABELED                   0x0000
 #define GCAM_LABELED                     0x0001
 #define GCAM_PRESERVE_METRIC_PROPERTIES  0x0002
@@ -633,9 +629,5 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   int gcamSmoothGradient( GCA_MORPH *gcam, int navgs );
 
 MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);
-
-#if defined(__cplusplus)
-};
-#endif
 
 #endif

@@ -31,16 +31,9 @@
 #ifndef MyMatrix_H
 #define MyMatrix_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
 #include "mri.h"
 #include "transform.h"
-#ifdef __cplusplus
-}
-#endif
 
 #include <utility>
 #include <string>

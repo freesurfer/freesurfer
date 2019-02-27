@@ -28,8 +28,8 @@
 #include <stdlib.h>
 
 // nint
-extern "C"
-{
+
+
 #include "macros.h"
 #include "version.h"
 
@@ -49,7 +49,7 @@ extern "C"
 #include "mri_identify.h"
 
 
-}
+
 
 #include <vtkVersion.h>
 #include <vtkSmartPointer.h>
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
   MRI_SURFACE  *mris  = NULL;
 
   int          msec, minutes, seconds ;
-  struct timeb start ;
+  Timer start ;
 
   char cmdline[CMD_LINE_LEN] ;
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  TimerStart(&start) ;
+  start.reset() ;
 
   argc--;
   argv++;
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
   MRISfree(&mris);
   MRISfree(&mris_subdivide);
 
-  msec = TimerStop(&start) ;
+  msec = start.milliseconds() ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;

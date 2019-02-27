@@ -39,10 +39,10 @@
 #include "LayerMRI.h"
 #include "MyUtils.h"
 
-extern "C"
-{
+
+
 #include "utils.h"
-}
+
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),

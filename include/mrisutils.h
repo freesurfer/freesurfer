@@ -117,13 +117,13 @@ int MRISscanner2Tkr(MRIS *mris);
 int MRIStkr2Scanner(MRIS *mris);
 int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile);
 
-LABEL2SURF *L2Salloc(int nsurfs, char *subject);
+LABEL2SURF *L2Salloc(int nsurfs, const char *subject);
 int L2Sinit(LABEL2SURF *l2s);
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation);
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs, int Operation);
 int L2Sfree(LABEL2SURF **pl2s);
 int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
-int L2Stest(char *subject);
+int L2Stest(const char *subject);
 
 int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0);
 
