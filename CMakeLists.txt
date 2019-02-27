@@ -185,6 +185,15 @@ if(NOT VTK_DIR)
   set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
 endif()
 find_package(VTK HINTS ${VTK_DIR})
+if(VTK_FOUND AND NOT APPLE)
+  # install the shared libraries to the freesurfer lib directory
+  file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
+  if(VTK_LIBRARIES_TO_INSTALL)
+    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib/vtk)
+    # add vtk library directory to rpath
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
+  endif()
+endif()
 
 # --------------------------------------------------
 #             global build configuration
