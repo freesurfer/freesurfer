@@ -7,7 +7,7 @@
 #include <sstream>
 
 #include "misc.h"
-//#include "solver.h"
+#include "timer.h"
 
 #include "fem_3d.h"
 
@@ -643,8 +643,6 @@ CMesh3d::~CMesh3d()
   if ( m_poctree ) delete m_poctree;
 }
 
-#include "simple_timer.h"
-
 int
 CMesh3d::build_index_src()
 {
@@ -663,7 +661,7 @@ CMesh3d::build_index_src()
 
   std::cout << " done building the list\n";
   unsigned int count = 0;//, oldPercentage = 0, percentage;
-  SimpleTimer timer;
+  Timer timer;
   for (std::vector<ElementProxy>::const_iterator cit = m_vpEltBlock.begin();
        cit != m_vpEltBlock.end(); ++cit, ++count )
   {
@@ -671,10 +669,10 @@ CMesh3d::build_index_src()
     if ( !(count % 100000) )
     {
       std::cout << "\t count inserted = " << count
-      << " elapsed = " << timer.elapsed() << " seconds "
+      << " elapsed = " << timer.seconds() << " seconds "
       << " element count = " << m_poctree->getElementCount()
       << std::endl;
-      timer = SimpleTimer();
+      timer.reset();
     }
   }
 

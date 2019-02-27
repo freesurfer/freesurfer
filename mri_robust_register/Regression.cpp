@@ -41,16 +41,9 @@
 #include <vnl/algo/vnl_qr.h>
 #undef export
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

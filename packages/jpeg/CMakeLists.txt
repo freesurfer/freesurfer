@@ -1,10 +1,6 @@
 project(jpeg)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-main")
-
-set(SOURCES
+add_library(jpeg STATIC
   jcapimin.c
   jcapistd.c
   jctrans.c
@@ -52,6 +48,3 @@ set(SOURCES
   jmemmgr.c
   jmemnobs.c
 )
-
-add_library(jpeg STATIC ${SOURCES})
-

@@ -74,7 +74,7 @@ const char            *Progname ;
 int
 main(int argc, char *argv[]) {
   int         nargs, msec, i=0, order=7;
-  struct timeb  then ;
+  Timer then ;
   MRIS        *mris_in, *mris_out;
   MRI_SP      *mrisp ;
   FILE        *fp_p;
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM,
               "usage: %s <cc_volume> <medial axis file> <P_value> <output_volume> ", Progname);
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   fprintf(stdout, "reading surface from %s\n", argv[1]);
   mris_in = MRISread(argv[1]) ;
@@ -134,7 +134,7 @@ main(int argc, char *argv[]) {
   MRISfree(&mris_in);
   MRISfree(&mris_out);
   fclose(fp_p);
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
 
   exit(0) ;
   return(0) ;

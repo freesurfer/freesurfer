@@ -53,10 +53,10 @@
 #include <QDebug>
 #include <QDir>
 
-extern "C"
-{
+
+
 #include "mri_identify.h"
-}
+
 using namespace std;
 
 

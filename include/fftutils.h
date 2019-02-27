@@ -36,10 +36,10 @@ void RFFTforward(float* data,int length, float* re, float* im );
 
 
 void RFFT( float* data, int data_length, int length, int direction );
-void FFTdebugAssert(int b, char *string);
+void FFTdebugAssert(int b, const char *string);
 int FFTisPowerOf2( int x ); 
 int FFTpow2( int exponent );
-float FFTdist(int x,int y,int z,float xsize,float ysize,float zsize,int len);
+float FFTdist(int x,int y,int z,int len);
 int FFTlog2( int x );
 void FFTswitch_with_z (float *** vect, int dimension, int is_y);
 void FFTmodarg_to_reim(float *** re_mod, float *** im_arg, int l);

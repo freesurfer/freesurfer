@@ -87,7 +87,7 @@ vector<MRI *>  incMask, excMask;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
 
     cout << "Processing input file " << itract+1 << " of " << nTract
          << "..." << endl;
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
       if (inDir)
@@ -713,7 +713,7 @@ int main(int argc, char **argv) {
       trkwriter.Close();
     }
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 

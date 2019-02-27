@@ -76,7 +76,7 @@ extern int fix_vertex_area;
 #include "error.h"
 #include "fio.h"
 #include "fnv_hash.h"
-#include "gifti_local.h"
+#include "gifti.h"
 #include "icosahedron.h"
 #include "machine.h"
 #include "macros.h"
@@ -92,7 +92,7 @@ extern int fix_vertex_area;
 #include "tags.h"
 #include "talairachex.h"
 #include "timer.h"
-#include "topology/topo_parms.h"
+#include "topo_parms.h"
 #include "transform.h"
 #include "tritri.h"
 #include "utils.h"
@@ -208,7 +208,6 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
 #define MAX_NBHD_VERTICES 20000     // must fit in short because VERTEX.vnum etc are short
 
 /*---------------------------- STRUCTURES -------------------------*/
-
 /*---------------------------- CONSTANTS -------------------------*/
 
 #define D_DIST          0.1         // sampling distance along tangent plane for computing derivatives

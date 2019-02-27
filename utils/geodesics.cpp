@@ -12,14 +12,13 @@
 
 #include "geodesics.h"
 
-extern "C" {
 #include "macros.h"
 #include "mrisurf.h"
 #include "timer.h"
+
 #ifdef _OPENMP
 #include "romp_support.h"
 #endif
-}
 
 // Vertex
 struct Vertex
@@ -53,11 +52,10 @@ static Vertex extendedPoint(Vertex A, Vertex B, float dA, float dB, float dAB);
 static std::pair< int, int > makeKey(int a, int b);
 static void progressBar(float progress);
 
-extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
+Geodesics *computeGeodesics(MRIS *surf, float maxdist)
 {
   int msec;
-  struct timeb mytimer;
-  TimerStart(&mytimer);
+  Timer mytimer;
   printf("computeGeodesics(): maxdist = %g, nvertices = %d\n", maxdist, surf->nvertices);
   fflush(stdout);
 
@@ -80,7 +78,7 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
     triangle->inChain = false;
   }
 
-  msec = TimerStop(&mytimer);
+  msec = mytimer.milliseconds();
   printf("precompute t = %g min\n", msec / (1000.0 * 60));
   fflush(stdout);
 
@@ -255,7 +253,7 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
   }
   progressBar(1.0);
   std::cout << std::endl;
-  msec = TimerStop(&mytimer);
+  msec = mytimer.milliseconds();
   printf("step 1 t = %g min\n", msec / (1000.0 * 60));
   fflush(stdout);
 
@@ -333,27 +331,27 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
   progressBar(1.0);
   std::cout << std::endl;
 
-  msec = TimerStop(&mytimer);
+  msec = mytimer.milliseconds();
   printf("t = %g min\n", msec / (1000.0 * 60));
   fflush(stdout);
 
   return geo;
 }
 
-extern "C" void geodesicsWrite(Geodesics *geo, int nvertices, char *fname)
+void geodesicsWrite(Geodesics *geo, int nvertices, char *fname)
 {
   int vtxno;
   FILE *fp;
   int msec;
-  struct timeb mytimer;
 
   printf("geodesicsWrite(): uniquifying\n");
-  TimerStart(&mytimer);
+  Timer mytimer;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
   for (vtxno = 0; vtxno < nvertices; vtxno++) geodesicsUniquify(&geo[vtxno]);
-  msec = TimerStop(&mytimer);
+  msec = mytimer.milliseconds();
   printf(" uniquification took %g min\n", msec / (1000.0 * 60));
 
   fp = fopen(fname, "wb");
@@ -368,7 +366,7 @@ extern "C" void geodesicsWrite(Geodesics *geo, int nvertices, char *fname)
   fclose(fp);
 }
 
-extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices)
+Geodesics *geodesicsRead(char *fname, int *pnvertices)
 {
   int magic, nthvtx;
   char tmpstr[1000];
@@ -422,7 +420,7 @@ extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices)
 \fn int geodesicsUniquify(Geodesics *geod)
 \brief Removes relicants from the v (and dist) lists; vnum is updated.
 */
-extern "C" int geodesicsUniquify(Geodesics *geod)
+int geodesicsUniquify(Geodesics *geod)
 {
   int nthnbr, *vlist, nunique, k, *vuniq;
   float *dist;
@@ -677,7 +675,6 @@ Geodesics* geodesicsReadV2(char* fname, int *pnvertices)
   FILE *fp;
   int vtxno,*vnum,*vlist,nth,nthnbr,nnbrstot;
   float *dist;
-  struct timeb  mytimer;
   int msec; 
 
   fp = fopen(fname, "rb");
@@ -702,30 +699,24 @@ Geodesics* geodesicsReadV2(char* fname, int *pnvertices)
   printf("  alloc vnum \n");fflush(stdout);
   vnum = (int *) calloc(sizeof(int),*pnvertices);
   printf("  reading in vnum %d \n",*pnvertices);fflush(stdout);
-  TimerStart(&mytimer) ;
+  Timer mytimer;
   fread(vnum,sizeof(int), *pnvertices, fp);
-  msec = TimerStop(&mytimer) ;
+  msec = mytimer.milliseconds() ;
   printf("  t = %g min\n",msec/(1000.0*60));
-  //printf(" setting vnum %d\n",*pnvertices);
-  //for(vtxno = 0; vtxno < *pnvertices; vtxno++) 
-  //  geo[vtxno].vnum = vnum[vtxno];
-  //free(vnum);
-  //msec = TimerStop(&mytimer) ;
-  //printf("  t = %g min\n",msec/(1000.0*60));
 
-  TimerStart(&mytimer) ;
+  mytimer.reset();
   printf("  allocing vlist and dlist %d\n",nnbrstot);fflush(stdout);
   vlist = (int *)   calloc(sizeof(int),  nnbrstot);
   dist  = (float *) calloc(sizeof(float),nnbrstot);
   printf("  reading in vlist %d\n",nnbrstot);fflush(stdout);
   fread(vlist,sizeof(int), nnbrstot, fp);
-  msec = TimerStop(&mytimer); printf("  t = %g min\n",msec/(1000.0*60));
+  msec = mytimer.milliseconds(); printf("  t = %g min\n",msec/(1000.0*60));
   printf("  reading in dist %d\n",nnbrstot);fflush(stdout);
   fread(dist, sizeof(float), nnbrstot, fp);
-  msec = TimerStop(&mytimer); printf("  t = %g min\n",msec/(1000.0*60));
+  msec = mytimer.milliseconds(); printf("  t = %g min\n",msec/(1000.0*60));
   printf("Alloc geo\n");
   Geodesics *geo = (Geodesics*) calloc(*pnvertices, sizeof(Geodesics));
-  msec = TimerStop(&mytimer); printf("  t = %g min\n",msec/(1000.0*60));
+  msec = mytimer.milliseconds(); printf("  t = %g min\n",msec/(1000.0*60));
   printf("Setting\n");
   nth = 0;
   for(vtxno = 0; vtxno < *pnvertices; vtxno++){
@@ -739,7 +730,7 @@ Geodesics* geodesicsReadV2(char* fname, int *pnvertices)
   free(vlist);
   free(dist);
   free(vnum);
-  msec = TimerStop(&mytimer); printf("  t = %g min\n",msec/(1000.0*60));
+  msec = mytimer.milliseconds(); printf("  t = %g min\n",msec/(1000.0*60));
 
   fclose(fp);
 

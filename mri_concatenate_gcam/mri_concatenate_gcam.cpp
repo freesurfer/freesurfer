@@ -3,10 +3,6 @@
 #include <iostream>
 #include <fstream>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "utils.h"
 #include "macros.h"
@@ -14,10 +10,6 @@ extern "C"
 #include "version.h"
 #include "transform.h"
 #include "gcamorph.h"
-#ifdef __cplusplus
-}
-#endif
-
 
 struct Parameters
 {

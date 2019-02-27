@@ -29,16 +29,9 @@
 #ifndef Registration_H
 #define Registration_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
 #include "error.h"
 #include "mri.h"
-#ifdef __cplusplus
-}
-#endif
 
 #include <utility>
 #include <string>

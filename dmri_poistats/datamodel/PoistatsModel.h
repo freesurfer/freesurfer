@@ -10,9 +10,9 @@
 #include <itkArray.h>
 #include <itkPointSet.h>
 
-extern "C" {
+ 
 #include "mri.h"
-}
+
 
 class InitializePath;
 

@@ -27,8 +27,6 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -59,8 +57,6 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
 
 #include "gcautils.hpp"
 
-extern "C"
-{
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
@@ -85,10 +81,9 @@ extern "C"
 #include "gcamorph.h"
 #include "cma.h"
 #include "transform.h"
-
 #include "talairachex.h"
 #include "mri_circulars.h"
-}
+
 
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */
@@ -485,7 +480,7 @@ double Sphereadius(Sphere *sphere);
 
 void initSurfaces(MRIS *mris_curv,MRIS *mris_dCOG, const Sphere *sphere);
 void MRISdistanceToCOG(MRI_SURFACE *mris);
-double mrisComputeCorrelationError(MRI_SURFACE *mris,
+double mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris,
                                    INTEGRATION_PARMS *parms,
                                    int use_stds);
 
@@ -7631,10 +7626,10 @@ int ValidationSurfaceShape(MRI_variables *MRI_var)
   //calcul of the initial sse
   init_sse=0;
   parms.frame_no = 0 ;
-  init_sse=mrisComputeCorrelationError(mris_curv,&parms,1);
+  init_sse=mrisComputeCorrelationErrorLocal(mris_curv,&parms,1);
   var_init_sse=parms.momentum;
   parms.frame_no = 3 ;
-  init_sse+=mrisComputeCorrelationError(mris_dCOG,&parms,1);
+  init_sse+=mrisComputeCorrelationErrorLocal(mris_dCOG,&parms,1);
   var_init_sse+=parms.momentum;
   parms.frame_no = 0 ;
   init_sse/=2.;
@@ -7680,10 +7675,10 @@ int ValidationSurfaceShape(MRI_variables *MRI_var)
   //calcul of the rotated sse
   rot_sse=0;
   parms.frame_no = 0 ;
-  rot_sse=mrisComputeCorrelationError(mris_curv,&parms,1);
+  rot_sse=mrisComputeCorrelationErrorLocal(mris_curv,&parms,1);
   var_rot_sse=parms.momentum;
   parms.frame_no = 3 ;
-  rot_sse+=mrisComputeCorrelationError(mris_dCOG,&parms,1);
+  rot_sse+=mrisComputeCorrelationErrorLocal(mris_dCOG,&parms,1);
   var_rot_sse+=parms.momentum;
   parms.frame_no = 0 ;
   rot_sse/=2.;
@@ -7853,7 +7848,7 @@ void MRISdistanceToCOG(MRI_SURFACE *mris)
 #define CORR_THRESHOLD 5.3f
 
 double
-mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                             int use_stds)
 {
   double   src, target, sse, var_sse,delta, std ;
@@ -7991,17 +7986,17 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
     {
     case DIST_MODE:
       parms->frame_no = 3 ;
-      min_sse = mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       break;
     case CURV_MODE:
       parms->frame_no = 0 ;
-      min_sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       break;
     case DEFAULT_MODE:
       parms->frame_no = 0 ;
-      min_sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       parms->frame_no = 3 ;
-      min_sse += mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      min_sse += mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       min_sse/=2.;
       break;
     }
@@ -8029,21 +8024,21 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
             MRISsaveVertexPositions(mris_dist, TMP_VERTICES) ;
             MRISrotate(mris_dist, mris_dist, alpha, beta, gamma) ;
             parms->frame_no = 3 ;
-            sse = mrisComputeCorrelationError(mris_dist, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
             MRISrestoreVertexPositions(mris_dist, TMP_VERTICES) ;
             break;
           case CURV_MODE:
             MRISsaveVertexPositions(mris_curv, TMP_VERTICES) ;
             MRISrotate(mris_curv, mris_curv, alpha, beta, gamma) ;
             parms->frame_no = 0 ;
-            sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
             MRISrestoreVertexPositions(mris_curv, TMP_VERTICES) ;
             break;
           case DEFAULT_MODE:
             MRISsaveVertexPositions(mris_curv, TMP_VERTICES) ;
             MRISrotate(mris_curv, mris_curv, alpha, beta, gamma) ;
             parms->frame_no = 0 ;
-            sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
 
             MRISrestoreVertexPositions(mris_curv, TMP_VERTICES) ;
 
@@ -8051,7 +8046,7 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
             MRISrotate(mris_dist, mris_dist, alpha, beta, gamma) ;
             parms->frame_no = 3 ;
             sse +=
-              mrisComputeCorrelationError(mris_dist, parms, 1) ;
+              mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
 
             MRISrestoreVertexPositions(mris_dist, TMP_VERTICES) ;
             sse/=2.;
@@ -8098,9 +8093,9 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
       MRISrotate(mris_curv, mris_curv, mina, minb, ming) ;
       MRISrotate(mris_dist, mris_dist, mina, minb, ming) ;
       parms->frame_no = 0 ;
-      sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       parms->frame_no = 3 ;
-      sse += mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      sse += mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       sse/=2;
     }
   }

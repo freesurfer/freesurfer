@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -1639,4 +1637,3 @@ VIOAPI  void  set_minc_input_promote_invalid_to_min_flag(
 }
 
 #endif 	// BEVIN_UNSUPPRESS
-#endif	// USE_LOCAL_MINC

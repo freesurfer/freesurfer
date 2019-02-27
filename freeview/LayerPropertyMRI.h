@@ -35,10 +35,10 @@
 #include <QVariantMap>
 #include <QColor>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 class vtkFreesurferLookupTable;
 class vtkRGBAColorTransferFunction;

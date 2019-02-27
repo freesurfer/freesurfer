@@ -53,15 +53,15 @@
 #include <omp.h>
 #endif
 
-extern "C"
-{
+
+
 #include "registerio.h"
 #include "utils.h"
 #include "macros.h"
 #include "mrisegment.h"
 #include "mri.h"
 #include "mri2.h"
-}
+
 
 #define NUM_OF_HISTO_BINS 10000
 

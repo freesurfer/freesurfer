@@ -34,11 +34,11 @@
 #include <string>
 #include "vtkSplineFilter.h"
 #include "OrientationPlanesFromParcellationFilter.h"
-extern "C"
-{
+
+
 #include "colortab.h"
 #include "fsenv.h"
-}
+
 
 typedef std::vector<int>                  PointDataType;
 typedef float PixelType;

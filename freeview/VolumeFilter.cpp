@@ -31,10 +31,10 @@
 #include "MyVTKUtils.h"
 #include <QTimer>
 
-extern "C"
-{
+
+
 #include "utils.h"
-}
+
 
 VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   QObject( parent ),

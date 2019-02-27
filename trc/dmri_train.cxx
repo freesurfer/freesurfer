@@ -82,7 +82,7 @@ char *outDir = NULL, *outTestDir = NULL,
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
 
     cout << "Processing pathway " << itrk+1 << " of " << trainTrkList.size()
          << "..." << endl;
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     myblood.ComputePriors();
 
@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     else
       myblood.WriteOutputs(fbase);
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 

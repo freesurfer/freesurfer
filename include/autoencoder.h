@@ -36,7 +36,6 @@ extern int test ;
 #include "matrix.h"
 #include "voxlist.h"
 #include "transform.h"
-#include "rbm.h"
 
 #ifndef SIGMOID
 #define SIGMOID(x)    (1.0/(1.0+exp(-(x))))

@@ -20,7 +20,7 @@
 // the isfinite defined in utils conflicts with vnl
 #undef isfinite
 
-#include "simple_timer.h"
+#include "timer.h"
 #include "transformUtils.h"
 #include "morph.h"
 
@@ -38,13 +38,13 @@
 #define MORPH_WITH_MESH 1
 #define DO_MORPH_REGRESSION 0
 
-extern "C"
-{
+
+
 #include "error.h"
 #include "mri.h"
 #include "mrinorm.h"
 #include "mrisurf.h"
-};
+;
 
 
 const char *Progname;
@@ -271,7 +271,7 @@ main(int argc,
      char* argv[])
 {
 
-  SimpleTimer timer;
+  Timer timer;
 
   PetscErrorCode    ierr;
 
@@ -466,7 +466,7 @@ main(int argc,
 
   std::cout << " srcPoints size = " << srcPoints.size() << std::endl;
 
-  printf("baseline %g",timer.elapsed()/60);PrintMemUsage(stdout);
+  printf("baseline %g",timer.minutes()); PrintMemUsage(stdout);
   try
   {
     Transform3SPointer ptransform(new gmp::IdentityTransform3d);
@@ -476,7 +476,7 @@ main(int argc,
     for ( int step = noSteps; step > params.iEndStep; --step )
     {
       std::cout << " ======================\n step = " << step  << "\n===============\n";
-      printf("step %d %g ",step,timer.elapsed()/60);PrintMemUsage(stdout);
+      printf("step %d %g ",step,timer.minutes());PrintMemUsage(stdout);
       TSolver<Constructor,3> solver;
 
       // linearly vary the element volume in the given range
@@ -489,17 +489,17 @@ main(int argc,
 
       DelaunayMesh dmesh(srcPoints, cmin, cmax,deltVol , params.YoungModulus, params.poissonRatio);
 
-      printf("preget %g ",timer.elapsed()/60); PrintMemUsage(stdout);
+      printf("preget %g ",timer.minutes()); PrintMemUsage(stdout);
       CMesh3d* pmesh = dmesh.get();
-      printf("postget %g",timer.elapsed()/60); PrintMemUsage(stdout);
+      printf("postget %g",timer.minutes()); PrintMemUsage(stdout);
 
       // print basic information about the mesh
       std::cout << " mesh nodes = " << pmesh->get_no_nodes()
       << " mesh elts = " << pmesh->get_no_elts() << std::endl;
 
-      printf("prebuild %g ",timer.elapsed()/60); PrintMemUsage(stdout);
+      printf("prebuild %g ",timer.minutes()); PrintMemUsage(stdout);
       pmesh->build_index_src();
-      printf("postbuild %g ",timer.elapsed()/60); PrintMemUsage(stdout);
+      printf("postbuild %g ",timer.minutes()); PrintMemUsage(stdout);
 
 
       solver.set_mesh(pmesh);
@@ -510,11 +510,10 @@ main(int argc,
 
       // todo - the next timer shows time that could be saved (most of it)
       // namely at the first iteration the time is what it should always be
-      SimpleTimer t1;
+      Timer t1;
 
       update_sources( srcPoints, pmesh );
-      std::cout << " c0324 time elapsed updating the sources (seconds) = "
-      << t1.elapsed()  << std::endl;
+      std::cout << " c0324 time elapsed updating the sources (seconds) = " << t1.seconds() << std::endl;
 
 
       if ( !pmesh->orientation_pb(both) )
@@ -766,7 +765,7 @@ main(int argc,
   ierr = PetscFinalize();
   CHKERRQ(ierr);
   
-  std::cout << " process performed in " << timer.elapsed()/60. << " minutes\n";
+  std::cout << " process performed in " << timer.minutes() << " minutes\n";
   printf("surf2vol done ");PrintMemUsage(stdout);  
   printf("#VMPC# fsurf2vol VmPeak  %d\n",GetVmPeak());
 

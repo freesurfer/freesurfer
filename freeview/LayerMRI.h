@@ -31,11 +31,11 @@
 #include <QString>
 #include <QList>
 
-extern "C"
-{
+
+
 #include "colortab.h"
 #include "nifti1.h"
-}
+
 
 class vtkImageReslice;
 class vtkImageMapToColors;

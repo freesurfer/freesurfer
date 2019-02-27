@@ -4,14 +4,14 @@
 
 #include "surf_types.h"
 
-extern "C"
-{
+
+
 // both /usr/pubsw/packages/petsc/current/include/petscvec.h and mrisurf.h
 // define NORM_MAX, so undef it to reveal who uses it, if anybody.
 #undef NORM_MAX
 #include "mrisurf.h"
 #undef NORM_MAX
-}
+
 
 //
 // the energy defined will be the MAX of the norm of the error

@@ -32,7 +32,7 @@
 #include <string>
 #include <sys/utsname.h>
 
-extern "C" {
+ 
 #include "fio.h"
 #include "mri.h"
 #include "utils.h"
@@ -45,10 +45,10 @@ extern "C" {
 #include "version.h"
 #include "proto.h"
 #include "error.h"
-#include "gifti_local.h"
+#include "gifti.h"
 
 const char *Progname = "mris_info";
-}
+
 
 static int  parse_commandline(int argc, char **argv);
 static void print_usage(void);

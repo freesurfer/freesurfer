@@ -79,7 +79,7 @@ char *inListFile = NULL, *outRefFile = NULL, *outBase = NULL;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   // Read output reference volume
   if (outRefFile) {
@@ -758,7 +758,7 @@ if (0) {
     MatrixFree(&outv2r);
   }
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   cout << "Done in " << cputime/1000.0 << " sec." << endl;
 
   cout << "dmri_group done" << endl;

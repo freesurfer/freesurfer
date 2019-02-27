@@ -5,15 +5,15 @@
 #include <algorithm>
 #include <utility>
 
-#include "argparse.hpp"
-#include "pointset.hpp"
+#include "argparse.h"
+#include "pointset.h"
 
-extern "C" {
+ 
 #include "mri.h"
 #include "mri2.h"
 #include "fio.h"
 #include "volcluster.h"
-}
+
 
 #include "mri_refine_seg.help.xml.h"
 
@@ -182,7 +182,7 @@ int main(int argc, const char **argv) {
   // load input
   std::string segname = parser.retrieve<std::string>("in");
   MRI *seg = MRIread(segname.c_str());
-  if (!seg) fs_fatal(1) << "could not read input volume " << segname;
+  if (!seg) logFatal(1) << "could not read input volume " << segname;
   MRI *orig_seg = MRIcopy(seg, NULL);
 
   // allocate buffer for label mask (used for efficient cluster-finding)

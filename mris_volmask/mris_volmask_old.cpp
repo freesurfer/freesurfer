@@ -47,8 +47,8 @@
 #include "cmd_line_interface.h"
 
 // FS
-extern "C"
-{
+
+
 #include "fsenv.h"
 #include "mrisurf.h"
 #include "mri.h"
@@ -58,7 +58,7 @@ extern "C"
 #include "diag.h"
 #include "macros.h"
 #include "gca.h"
-};
+;
 const char *Progname;
 
 // static function declarations

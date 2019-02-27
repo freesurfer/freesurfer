@@ -5,10 +5,6 @@
 #ifndef geodesics
 #define geodesics
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "mrisurf.h"
 
 #define MAX_GEODESICS 8000
@@ -48,9 +44,5 @@ int VtxVolIndexSortTest(int nlist);
 VTXVOLINDEX *VtxVolIndexUnique(VTXVOLINDEX *vvi, int nlist, int *nunique);
 VTXVOLINDEX *VtxVolIndexPack(Geodesics *geod, int vtxno, MRI *volindex);
 Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

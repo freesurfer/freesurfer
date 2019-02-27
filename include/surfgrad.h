@@ -26,10 +26,6 @@
 #ifndef SURFGRAD_H
 #define SURFGRAD_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #ifdef X
 #undef X
 #endif
@@ -95,10 +91,5 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
 int BBRPARsras2vox(BBRPARAMS *bbrpar);
 long double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX *gradCost);
 double MRISedgeCost(MRIS *surf, DMATRIX *gradCost);
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

@@ -100,10 +100,10 @@ COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct);
 int CTABrgb2Annotation(int r, int g, int b);
 
 /* Return the color table index given the name of the entry*/
-int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct);
+int CTABentryNameToIndex(const char *EntryName, COLOR_TABLE *ct);
 
 /* Return the color table annotation given the name of the entry.*/
-int CTABentryNameToAnnotation(char *EntryName, COLOR_TABLE *ct);
+int CTABentryNameToAnnotation(const char *EntryName, COLOR_TABLE *ct);
 
 /* Copy the file name. */
 int CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len);
@@ -177,7 +177,7 @@ int CTABunique(COLOR_TABLE *ct, int nmax);
 #define RGBToAnnot(r,g,b,annot)                                     \
   annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
 
-COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, char *schema);
+COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, const char *schema);
 COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct);
 COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct);
 int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp);

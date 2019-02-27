@@ -2,7 +2,7 @@ project(mris_annot_to_segmentation)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_annot_to_segmentation mris_annot_to_segmentation.c)
+add_executable(mris_annot_to_segmentation mris_annot_to_segmentation.cpp)
 target_link_libraries(mris_annot_to_segmentation utils)
 
 install(TARGETS mris_annot_to_segmentation DESTINATION bin)

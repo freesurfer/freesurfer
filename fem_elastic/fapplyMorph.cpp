@@ -17,10 +17,10 @@
 #include "morph_utils.h"
 
 // FreeSurfer
-#include "argparse.hpp"
-extern "C" {
+#include "argparse.h"
+ 
 #include "mri.h"
-}
+
 
 #include "applyMorph.help.xml.h"
 

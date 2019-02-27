@@ -31,11 +31,11 @@
 #include <QMap>
 #include <QColor>
 
-extern "C"
-{
+
+
 #include "fsgdf.h"
 #undef isfinite  // conflicts with vnl
-}
+
 
 class FSVolume;
 

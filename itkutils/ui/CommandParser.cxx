@@ -1,17 +1,10 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
 
 #include "CommandParser.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-#include <stdlib.h> // atoi
-#ifdef __cplusplus
-}
-#endif
 
 CommandParser::CommandParser( int inArgs, char ** iaArgs ) {
   m_nArgs = inArgs;

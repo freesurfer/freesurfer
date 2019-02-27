@@ -31,9 +31,7 @@
 //#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkLookupTable.h"
 
-extern "C" {
 #include "colortab.h"
-}
 
 class vtkFreesurferLookupTable : public vtkLookupTable {
 

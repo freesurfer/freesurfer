@@ -42,10 +42,10 @@
 #include <vnl/vnl_cross.h>
 #include <cmath>
 
-extern "C" 
-{
+ 
+
 	#include "mrisurf.h"
-}
+
 
 int main(int narg, char * arg[])
 {

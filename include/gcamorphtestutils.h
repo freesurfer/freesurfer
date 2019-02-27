@@ -29,19 +29,8 @@
 
 #include "gcamorph.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-  //! Writes a GCAM with one input defined
-  void WriteGCAMoneInput( const GCAM* src, const char* fName );
-
-
-#if defined(__cplusplus)
-};
-#endif
-
-
+///! Writes a GCAM with one input defined
+void WriteGCAMoneInput( const GCAM* src, const char* fName );
 
 
 #endif

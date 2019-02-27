@@ -35,10 +35,10 @@
 #include "MyVTKUtils.h"
 #include <QTimer>
 #include <QDebug>
-extern "C"
-{
+
+
 #include "cma.h"
-}
+
 
 LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
   LayerMRI( ref, parent ),

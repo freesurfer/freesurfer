@@ -25,13 +25,9 @@
 #ifndef xxVoxl_H
 #define xxVoxl_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "xTypes.h"
 
-/* Enable this to turn on macros, see details below. */
+/* Enable item to turn on macros, see details below. */
 #define XVOXL_USE_MACROS
 
 typedef struct
@@ -85,39 +81,39 @@ float xVoxl_GetFloatZ ( xVoxelRef ThisKRT );
 /* The do/while garbage is to allow the compiler to parse a semicolon
 after the macro call. */
 
-#define xVoxl_Set(this,x,y,z) \
+#define xVoxl_Set(item,x,y,z) \
   do { \
-    (this)->mfX = (x); \
-    (this)->mfY = (y); \
-    (this)->mfZ = (z); \
+    (item)->mfX = (x); \
+    (item)->mfY = (y); \
+    (item)->mfZ = (z); \
   }while(0)
 
-#define xVoxl_GetX(this) (int)(floor( (this)->mfX + 0.5 ))
-#define xVoxl_GetY(this) (int)(floor( (this)->mfY + 0.5 ))
-#define xVoxl_GetZ(this) (int)(floor( (this)->mfZ + 0.5 ))
+#define xVoxl_GetX(item) (int)(floor( (item)->mfX + 0.5 ))
+#define xVoxl_GetY(item) (int)(floor( (item)->mfY + 0.5 ))
+#define xVoxl_GetZ(item) (int)(floor( (item)->mfZ + 0.5 ))
 
-#define xVoxl_GetRoundX(this)   rint( (this)->mfX )
-#define xVoxl_GetRoundY(this)   rint( (this)->mfY )
-#define xVoxl_GetRoundZ(this)   rint( (this)->mfZ )
+#define xVoxl_GetRoundX(item)   rint( (item)->mfX )
+#define xVoxl_GetRoundY(item)   rint( (item)->mfY )
+#define xVoxl_GetRoundZ(item)   rint( (item)->mfZ )
 
-#define xVoxl_SetFloat(this,x,y,z) \
+#define xVoxl_SetFloat(item,x,y,z) \
   do { \
-    (this)->mfX = (x); \
-    (this)->mfY = (y); \
-    (this)->mfZ = (z); \
+    (item)->mfX = (x); \
+    (item)->mfY = (y); \
+    (item)->mfZ = (z); \
   }while(0)
 
-#define xVoxl_SetX(this,x)   (this)->mfX = (x)
-#define xVoxl_SetY(this,y)   (this)->mfY = (y)
-#define xVoxl_SetZ(this,z)   (this)->mfZ = (z)
+#define xVoxl_SetX(item,x)   (item)->mfX = (x)
+#define xVoxl_SetY(item,y)   (item)->mfY = (y)
+#define xVoxl_SetZ(item,z)   (item)->mfZ = (z)
 
-#define xVoxl_SetFloatX(this,x)   (this)->mfX = (x)
-#define xVoxl_SetFloatY(this,y)   (this)->mfY = (y)
-#define xVoxl_SetFloatZ(this,z)   (this)->mfZ = (z)
+#define xVoxl_SetFloatX(item,x)   (item)->mfX = (x)
+#define xVoxl_SetFloatY(item,y)   (item)->mfY = (y)
+#define xVoxl_SetFloatZ(item,z)   (item)->mfZ = (z)
 
-#define xVoxl_GetFloatX(this)   (this)->mfX
-#define xVoxl_GetFloatY(this)   (this)->mfY
-#define xVoxl_GetFloatZ(this)   (this)->mfZ
+#define xVoxl_GetFloatX(item)   (item)->mfX
+#define xVoxl_GetFloatY(item)   (item)->mfY
+#define xVoxl_GetFloatZ(item)   (item)->mfZ
 
 #endif /* end of macro versions */
 
@@ -146,16 +142,4 @@ void xVoxl_PrintDebug ( xVoxelRef  ThisKRT );
 #define xVoxl_ExpandInt(v)   xVoxl_GetX(v),      xVoxl_GetY(v),      xVoxl_GetZ(v)
 #define xVoxl_ExpandRint(v)   (int)rint(xVoxl_GetX(v)), (int)rint(xVoxl_GetY(v)), (int)rint(xVoxl_GetZ(v))
 
-#if defined(__cplusplus)
-};
 #endif
-
-
-#endif
-
-
-
-
-
-
-

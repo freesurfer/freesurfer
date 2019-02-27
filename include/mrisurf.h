@@ -27,7 +27,7 @@
 
 
 
-#include "minc_volume_io.h"
+#include "minc.h"
 #include "const.h"
 #include "matrix.h"
 #include "dmatrix.h"
@@ -495,10 +495,7 @@ typedef struct vertex_type_
 #undef ELTX
 #undef SEP
 
-#if defined(__cplusplus)
-    // C++ requires const members be initialized
-    vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
-#endif
+  vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
 
 }
 vertex_type, VERTEX ;
@@ -1123,10 +1120,8 @@ typedef struct INTEGRATION_PARMS
   double       stressthresh ;
   int          explode_flag ;
   
-#ifdef __cplusplus
   INTEGRATION_PARMS() : fp(NULL) {}
   INTEGRATION_PARMS(FILE* file) : fp(file) {}
-#endif 
   
 }
 INTEGRATION_PARMS ;
@@ -1614,7 +1609,7 @@ MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
-int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
+int          MRISPwrite(MRI_SP *mrisp, const char *fname) ;
 
 int          MRISwriteArea(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISwriteMarked(MRI_SURFACE *mris,const  char *sname) ;
@@ -1999,7 +1994,7 @@ MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI *mri, 
-   MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, char *defectbasename);
+   MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, const char *defectbasename);
 
 int MRISsmoothOnSphere(MRIS* mris, int niters);
 int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
@@ -2211,8 +2206,8 @@ int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
-int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
-MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
+int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, const char *Field);
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field);
 
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ);
 MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MRI *Targ);
@@ -2452,7 +2447,7 @@ void	cprints(
 );
 
 void	cprintd(
-	char*		apch_left,
+	const char*		apch_left,
 	int		a_right
 );
 
@@ -2474,7 +2469,7 @@ short	VECTOR_elementIndex_find(
 short	MRIS_vertexProgress_print(
     	MRIS*			apmris,
     	int			avertex,
-    	char*			apch_message
+    	const char*			apch_message
 );
 
 int	FACE_vertexIndexAtMask_find(
@@ -2752,11 +2747,11 @@ char* MRISexportVertexRipflags(MRIS* mris) ;
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
-                                            // includes a mrisCheckVertexVertexTopology check
+inline static bool returnTrue() { return true; };
+#define mrisCheckVertexFaceTopology(_MRIS)   returnTrue() // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) returnTrue() // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
 
 //  Vertices
 //

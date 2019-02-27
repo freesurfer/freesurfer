@@ -2,7 +2,7 @@ project(histo_compute_joint_density)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(histo_compute_joint_density histo_compute_joint_density.c)
+add_executable(histo_compute_joint_density histo_compute_joint_density.cpp)
 target_link_libraries(histo_compute_joint_density utils)
 
 install(TARGETS histo_compute_joint_density DESTINATION bin)

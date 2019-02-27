@@ -11,7 +11,7 @@ if(OpenCL_FOUND)
 endif()
 
 set(SOURCES
-  abs2rel.c
+  abs2rel.cpp
   asynch.cpp
   c_SMessage.cpp
   c_SSocket.cpp
@@ -24,7 +24,7 @@ set(SOURCES
   general.cpp
   help.cpp
   mris_pmake.cpp
-  rel2abs.c
+  rel2abs.cpp
   scanopt.cpp
   surface.cpp
   C_mpmOverlay.cpp

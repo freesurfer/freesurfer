@@ -32,10 +32,6 @@
 #ifndef CMDARGS_H
 #define CMDARGS_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 const char * CMDSrcVersion(void);
 void CMDargNErr(char *option, int n);
 int CMDsingleDash(char *flag);
@@ -47,11 +43,4 @@ int CMDprintUsage(FILE *fp, char *ProgName);
 int CMDusageExit(char *ProgName);
 int CMDprintHelp(FILE *fp, char *ProgName);
 
-#if defined(__cplusplus)
-};
 #endif
-
-#endif
-
-
-

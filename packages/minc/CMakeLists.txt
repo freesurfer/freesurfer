@@ -1,8 +1,8 @@
 project(minc)
 
-include_directories(${FS_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/packages/netcdf)
 
-set(SOURCES
+add_library(minc STATIC
   minc_convenience.c
   minc_files.c
   minc_gaussian.c
@@ -19,5 +19,3 @@ set(SOURCES
   minc_value_conversion.c
   minc_volume_io.c
 )
-
-add_library(minc STATIC ${SOURCES})

@@ -25,7 +25,7 @@
 #ifndef FSGDFPLOT_H
 #define FSGDFPLOT_H
 
-extern "C" {
+ 
 
 #include "tix.h"
 #include "fsgdf_wrap.h"
@@ -49,7 +49,7 @@ extern "C" {
 #ifndef Tix_SafeInit
   int Tix_SafeInit ( Tcl_Interp* interp );
 #endif
-}
+
 
 class FsgdfPlot
 {

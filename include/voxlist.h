@@ -30,11 +30,6 @@
 #include "mri.h"
 #include "label.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 #define VOXLIST_NORMAL   0
 #define VOXLIST_SPLINE   1
 
@@ -122,10 +117,5 @@ double VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step
 float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size) ;
   double VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist) ;
   double VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist) ;
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

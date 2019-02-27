@@ -74,7 +74,7 @@ static double cc_tal_z = 96 ;
 int
 main(int argc, char *argv[]) {
   int         nargs, msec, n_sample = 100, n=0, i=0;
-  struct timeb  then ;
+  Timer then ;
   MRI         *mri_pd, *mri_t1;
   FILE        *fp_in, *fp_out;
   float       x, y, radius, val=0;
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM,
               "usage: %s <medial_axis_file> <output_file> <input_volume_1> <input_volume_2> ", Progname);
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   if ((fp_in = fopen(argv[1], "r")) == NULL) {
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "medial axis measurement: file %s does not exist!", argv[1]));
@@ -130,7 +130,7 @@ main(int argc, char *argv[]) {
 
   MRIfree(&mri_t1) ;
   MRIfree(&mri_pd);
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fclose(fp_in);
   fclose(fp_out);
   exit(0) ;

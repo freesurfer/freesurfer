@@ -28,9 +28,7 @@
 #define MRICLASS_H
 
 #include "classify.h"
-#include "backprop.h"
 #include "gclass.h"
-#include "artmap.h"
 #include "mri.h"
 #include "rbf.h"
 
@@ -108,8 +106,6 @@ RBF_PARMS ;
 
 typedef union
 {
-  BACKPROP   *bp ;
-  ARTMAP     *artmap ;
   GCLASSIFY  *gc ;
   RBF        *rbf ;
 } CL_UNION ;
@@ -145,19 +141,19 @@ int    MRInormalizePriors(MRI *mri_priors) ;
 int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src,
                             MRI *mri_wm, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
-char   *MRICclassName(MRIC *mric, int round, int classno) ;
+const char *MRICclassName(MRIC *mric, int round, int classno) ;
 int    MRICdump(FILE *fp, MRIC *mric) ;
-char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
+const char *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
 int    MRICfeatureCode(MRIC *mric, int round, int feature_number) ;
 int    MRICfeatureNumberCode(int feature_number) ;
 int    MRICfeatureNumber(MRIC *mric, int round, int feature_code) ;
-char   *MRICfeatureNumberToName(int feature_number) ;
+const char *MRICfeatureNumberToName(int feature_number) ;
 int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
-int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
+int    MRICbuildScatterPlot(MRIC *mric, int classnum, MATRIX *m_scatter,
                             char *training_file_name) ;
 int    MRICsetRegionSize(MRIC *mric, int rwidth, int rheight, int rdepth) ;
 int    MRICresetRegionSize(MRIC *mric) ;
 
-extern char *class_names[] ;
+extern const char *class_names[] ;
 
 #endif

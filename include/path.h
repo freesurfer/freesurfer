@@ -27,7 +27,6 @@
 #ifndef PATHS_INCLUDED
 #define PATHS_INCLUDED
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #ifdef Darwin
 // Mac OS X doesnt have gnulib, so it doesn't have getline,

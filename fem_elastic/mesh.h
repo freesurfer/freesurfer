@@ -26,10 +26,10 @@
 #include "stl_utils.hpp"
 
 #if 0
-extern "C"
-{
+
+
 #include "fio.h"
-};
+;
 #endif
 
 typedef std::stack<int> tStack;

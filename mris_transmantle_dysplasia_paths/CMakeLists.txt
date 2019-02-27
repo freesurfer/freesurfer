@@ -2,7 +2,7 @@ project(mris_transmantle_dysplasia_paths)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_transmantle_dysplasia_paths mris_transmantle_dysplasia_paths.c)
+add_executable(mris_transmantle_dysplasia_paths mris_transmantle_dysplasia_paths.cpp)
 target_link_libraries(mris_transmantle_dysplasia_paths utils)
 
 install(TARGETS mris_transmantle_dysplasia_paths DESTINATION bin)
