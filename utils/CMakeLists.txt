@@ -221,15 +221,15 @@ endif()
 
 # utils binaries
 
-# # xmlToHtml
-# add_executable(xmlToHtml xmlToHtml.c)
+# xmlToHtml
+# add_executable(xmlToHtml xmlToHtml.cpp)
 # target_link_libraries(xmlToHtml xml2 ${ZLIB_LIBRARIES})
 # install(TARGETS xmlToHtml DESTINATION bin)
 
-# # fsPrintHelp
-# add_executable(fsPrintHelp fsPrintHelp.c)
-# target_compile_definitions(fsPrintHelp PRIVATE BUILD_MAIN)
-# target_link_libraries(fsPrintHelp xml2 ${ZLIB_LIBRARIES})
-# install(TARGETS fsPrintHelp DESTINATION bin)
+# fsPrintHelp
+add_executable(fsPrintHelp fsPrintHelp.cpp)
+target_compile_definitions(fsPrintHelp PRIVATE BUILD_MAIN)
+target_link_libraries(fsPrintHelp xml2 ${ZLIB_LIBRARIES})
+install(TARGETS fsPrintHelp DESTINATION bin)
 
 # add_subdirectory(test)
