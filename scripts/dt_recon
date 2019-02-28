@@ -22,7 +22,7 @@ set infodump = ();
 set OutDir = ();
 set reg = ();
 set mask = ();
-set bbrinit = fsl
+set bbrinit = coreg
 
 set PrintHelp = 0;
 set LF = ();
@@ -347,6 +347,10 @@ while( $#argv != 0 )
       set bbrinit = spm
       breaksw
 
+    case "--init-coreg":
+      set bbrinit = coreg
+      breaksw
+
     case "--eres-save":
       set SaveERes = 1;
       breaksw
@@ -484,7 +488,8 @@ usage_exit:
   echo "  --eres-save      : save resdidual error (dwires and eres)"
   echo "  --pca            : run PCA/SVD analysis on eres (saves in pca-eres dir)"
   echo "  --prune_thr thr  : set threshold for masking (default is FLT_MIN)"
-  echo "  --init-spm       : init BBR with SPM instead of FSL (requires matlab)"
+  echo "  --init-spm       : init BBR with SPM instead of coreg (requires matlab)"
+  echo "  --init-fsl       : init BBR with FSL instead of coreg"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
   echo "  --help           : voluminous bits of wisdom"
