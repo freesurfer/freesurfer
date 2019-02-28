@@ -567,7 +567,7 @@ if(NOT MINIMAL)
     mri_update_gca
     mri_vol2roi
     mri_volcluster
-    # mri_volsynth
+    mri_volsynth
     mri_warp_convert
     mri_wbc
     mri_wmfilter
