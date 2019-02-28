@@ -10,7 +10,6 @@ enable_language(C CXX Fortran)
 # a few build options
 option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
-option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 
@@ -54,6 +53,7 @@ if(NOT FS_BUILD_STAMP)
   set(FS_BUILD_STAMP "freesurfer")
 endif()
 install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
+
 # --------------------------------------------------
 #               external dependencies
 # --------------------------------------------------
@@ -147,11 +147,6 @@ endif()
 # -------- openCV --------
 if(NOT APPLE)
   find_package(OpenCV)
-endif()
-
-# -------- openCL --------
-if(USE_OPENCL)
-  find_package(OpenCL)
 endif()
 
 # -------- X11 ---------
@@ -265,19 +260,7 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
 endif()
 
-# ANSI
-add_definitions(-DANSI)
-
-# SSE matrix and math functions (affine.h and sse_mathfun.h)
-# todo: write some logic to set this correctly
-add_definitions(-DUSE_SSE_MATHFUN)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -msse2 -mfpmath=sse -fPIC")
-
-# large file support: support for files > 2GB
-# todo: can this just be removed entirely?
-if(APPLE)
-  add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # linker options
 if(APPLE)
@@ -312,7 +295,7 @@ set(FS_INCLUDE_DIRS
 )
 
 # build the freesurfer static libraries
-add_subdirectories(utils opencl_algorithms)
+add_subdirectories(utils)
 
 # the following utility libraries are required for freeview
 add_subdirectories(vtkutils lineprof)
@@ -628,7 +611,7 @@ if(NOT MINIMAL)
     mris_multiscale_stats
     mris_niters2fwhm
     mris_parcellate_connectivity
-    # mris_pmake
+    mris_pmake
     mris_register_label_map
     mris_register_to_volume
     mris_remove_variance
