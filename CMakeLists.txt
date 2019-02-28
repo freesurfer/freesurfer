@@ -29,6 +29,10 @@ include(CheckFunctionExists)
 # prevent third-party packages from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
+# create build stamp during install
+set(BUILD_STAMP "freesurfer" CACHE STRING "Distribution build-stamp")
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
+
 # if an install prefix is not provided, check the FS_INSTALL_DIR env var, and
 # if that is not defined, set the default path to /usr/local/freesurfer
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -47,12 +51,6 @@ endif()
 
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
-
-# create build stamp during install
-if(NOT FS_BUILD_STAMP)
-  set(FS_BUILD_STAMP "freesurfer")
-endif()
-install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
 
 # --------------------------------------------------
 #               external dependencies
@@ -120,12 +118,8 @@ find_package(Armadillo)
 find_package(PETSC)
 
 # -------- itk --------
-if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
-endif()
+set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
-# todo: since ITK is now required, we can get rid of this macro
-add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -172,9 +166,7 @@ if(BUILD_GUIS)
 endif()
 
 # -------- vtk --------
-if(NOT VTK_DIR)
-  set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
-endif()
+set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1 CACHE PATH "VTK install directory")
 find_package(VTK HINTS ${VTK_DIR})
 if(VTK_FOUND AND NOT APPLE)
   # install the shared libraries to the freesurfer lib directory
