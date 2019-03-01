@@ -40,8 +40,8 @@ namespace Freesurfer
 void GCAlinearPrior::PrintStats(ostream &os) const
 {
   os << "Stats for GCAlinearPrior" << endl;
-  os << "  Exhumation time = " << this->tExhume << endl;
-  os << "  Inhumation time = " << this->tInhume << endl;
+  os << "  Exhumation time = " << exhumeTime << " ms" << endl;
+  os << "  Inhumation time = " << inhumeTime << " ms" << endl;
 }
 
 // ==========================================
@@ -116,7 +116,7 @@ void GCAlinearPrior::Exhume(const GCA *const src)
     from the source GCA, and packing into the linear arrays
   */
 
-  this->tExhume.Start();
+  Timer tExhume;
 
   this->ExtractDims(src);
   this->Allocate();
@@ -155,7 +155,7 @@ void GCAlinearPrior::Exhume(const GCA *const src)
     }
   }
 
-  this->tExhume.Stop();
+  this->exhumeTime = tExhume.milliseconds();
 }
 
 // ==========================================
@@ -177,7 +177,7 @@ void GCAlinearPrior::Inhume(GCA *dst) const
     probably involve writing them first.
   */
 
-  this->tInhume.Start();
+  Timer tInhume;
 
   // Dump the old data
   this->ScorchPriors(dst);
@@ -231,7 +231,7 @@ void GCAlinearPrior::Inhume(GCA *dst) const
     }
   }
 
-  this->tInhume.Stop();
+  this->inhumeTime = tInhume.milliseconds();
 }
 
 // ==========================================

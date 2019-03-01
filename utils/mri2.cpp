@@ -30,7 +30,6 @@
 #include <sys/types.h>
 
 #include "bfileio.h"
-#include "chronometer.h"
 #include "cma.h"
 #include "corio.h"
 #include "diag.h"
@@ -698,7 +697,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
     nintfunc = &nint2;
 
 #ifdef VERBOSE_MODE
-  Chronometer tTotal, tSample;
 
   printf("%s: Begin\n", __FUNCTION__);
 
@@ -708,9 +706,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   printf("Target sizes are w=%i h=%i d=%i f=%i\n", src->width, src->height, src->depth, src->nframes);
   printf("targ type is %i\n", targ->type);
 
-  InitChronometer(&tTotal);
-  InitChronometer(&tSample);
-  StartChronometer(&tTotal);
+  Timer tTotal;
 #endif
 
   if (src->nframes != targ->nframes) {
@@ -737,7 +733,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   sinchw = nint(param);
 
 #ifdef VERBOSE_MODE
-  StartChronometer(&tSample);
+  Timer tSample;
 #endif
 
   if (InterpCode == SAMPLE_CUBIC_BSPLINE) bspline = MRItoBSpline(src, NULL, 3);
@@ -832,7 +828,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 #endif
 
 #ifdef VERBOSE_MODE
-  StopChronometer(&tSample);
+  int tSampleTime = tSample.milliseconds();
 #endif
 
   if (FreeMats) {
@@ -845,11 +841,9 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   if (bspline) MRIfreeBSpline(&bspline);
 
 #ifdef VERBOSE_MODE
-  StopChronometer(&tTotal);
-
   printf("Timings ------------\n");
-  printf("  tSample : %9.3f ms\n", GetChronometerValue(&tSample));
-  printf("Total     : %9.3f ms\n", GetChronometerValue(&tTotal));
+  printf("  tSample : %d ms\n", tSampleTime);
+  printf("Total     : %d ms\n", tTotal.milliseconds());
   printf("%s: Done\n", __FUNCTION__);
 #endif
 
@@ -3095,8 +3089,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
   const VERTEX *v;
 
 #ifdef MRI2_TIMERS
-  Chronometer tLoop;
-  InitChronometer(&tLoop);
+  Timer tLoop;
 #endif
 
   if (vsm) {
@@ -3151,7 +3144,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
 
 /*--- loop through each vertex ---*/
 #ifdef MRI2_TIMERS
-  StartChronometer(&tLoop);
+  tLoop.reset();
   unsigned int skipped = 0;
 #endif
   for (vtx = 0; vtx < TrgSurf->nvertices; vtx += nskip) {
@@ -3259,8 +3252,7 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
     if (SrcHitVol != NULL) MRIFseq_vox(SrcHitVol, icol, irow, islc, 0)++;
   }
 #ifdef MRI2_TIMERS
-  StopChronometer(&tLoop);
-  printf("%s: Main Loop complete in %6.3f ms (%6u %6u)\n", __FUNCTION__, GetChronometerValue(&tLoop), skipped, nhits);
+  printf("%s: Main Loop complete in %d ms (%6u %6u)\n", __FUNCTION__, tLoop.milliseconds(), skipped, nhits);
 #endif
 
   MatrixFree(&ras2vox);

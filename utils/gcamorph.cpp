@@ -62,7 +62,6 @@
 #include "timer.h"
 #include "transform.h"
 #include "utils.h"
-#include "chronometer.h"
 #include "gcamorphtestutils.h"
 
 #if WITH_DMALLOC
@@ -8685,10 +8684,7 @@ int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
 double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
 #if GCAM_FOTS_TIMERS
-  Chronometer tFOTS;
-
-  InitChronometer(&tFOTS);
-  StartChronometer(&tFOTS);
+  Timer tFOTS;
 #endif
 
   double min_dt;
@@ -8949,8 +8945,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
 #endif
 
 #if GCAM_FOTS_TIMERS
-  StopChronometer(&tFOTS);
-  printf("%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue(&tFOTS));
+  printf("%s: Complete in %d ms\n", __FUNCTION__, tFOTS.milliseconds());
 #endif
 
   return (min_dt);

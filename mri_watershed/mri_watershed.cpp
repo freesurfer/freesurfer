@@ -45,10 +45,6 @@
 
 #define FAST_GCAsourceVoxelToPrior 1
 
-#if INDIVIDUAL_TIMERS
-#include "chronometer.hpp"
-#endif
-
 #ifndef powerpc
 #include "affine.hpp"
 #endif
@@ -83,6 +79,7 @@
 #include "transform.h"
 #include "talairachex.h"
 #include "mri_circulars.h"
+#include "timer.h"
 
 
 #define WM_CONST 110 /* not used anymore */
@@ -1464,10 +1461,8 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   int xp, yp, zp;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 
@@ -1565,12 +1560,8 @@ void MRI_weight_atlas(MRI *mri_with_skull,
     }
   }
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -3041,10 +3032,8 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
                         float &var )
 {
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 
@@ -3091,11 +3080,8 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
   mean/=count;
   var=sqrt(var/count-mean*mean);
 
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -3123,10 +3109,8 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
   int number_seed = 20;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
   AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
@@ -3260,12 +3244,8 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
     parms->nb_seed_points++;
   }
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -3998,10 +3978,8 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
   double nu;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 #if FAST_GCAsourceVoxelToPrior
@@ -4106,15 +4084,9 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
       }
   fprintf(stdout," %i basins merged thanks to atlas ", nb_merging);
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
-
-
 }
 
 
