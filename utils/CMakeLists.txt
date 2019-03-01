@@ -31,7 +31,6 @@ add_library(utils STATIC
   cluster.cpp
   cma.cpp
   cmat.cpp
-  cmat.cpp
   cmdargs.cpp
   colortab.cpp
   connectcomp.cpp
