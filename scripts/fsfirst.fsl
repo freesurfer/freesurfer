@@ -1,0 +1,373 @@
+#!/bin/tcsh -f
+# fsfirst.fsl
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set FSLSTD1mm = $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz 
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+setenv FSLOUTPUTTYPE NIFTI_GZ
+
+set outdir = ();
+set subject = ();
+set source = ();
+set diceseg = ()
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.fsfirst.fsl.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.fsfirst.fsl.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/fsfirst.fsl.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fsfirst.fsl" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+set ext = `fname2ext $source`
+
+# make a link to the source volume
+pushd $outdir > /dev/null
+set cmd = (ln -sf $source source.$ext)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($#diceseg) then
+  set cmd = (ln -sf $diceseg .)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+endif
+
+if($status) goto error_exit;
+popd > /dev/null
+
+# Convert the source to nii to make sure it is RAS as needed by FSL
+set input = $outdir/input.ras.nii.gz
+set cmd = (mri_convert $source $input --out_orientation RAS)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+if(0)then
+# Run flirt with appropriate input matrix
+# Not needed when converting to RAS above
+set reg0 = $outdir/reg0.dat
+set fslmat0 = $outdir/fslreg0.mat
+set cmd = (tkregister2_cmdl --mov $input --reg $reg0 \
+     --regheader --fslregout $fslmat0 --targ $FSLSTD1mm --noedit);
+echo "" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit
+set fslmat = $outdir/fslreg.mat
+set inputstd = $outdir/input.std.nii
+set cmd = (flirt -ref $FSLSTD1mm -in $input -omat $fslmat -o $inputstd)
+echo "" | tee -a $LF
+date | tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit
+endif
+
+# Run FIRST
+set cmd = (run_first_all -d -i $input -o $outdir/first.nii.gz)
+#set cmd = ($cms  -a $fslmat); # for when flirt is run separately
+echo "" | tee -a $LF
+date | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+# Convert seg back to the orientation of the source
+set firstseg = $outdir/first_all_fast_firstseg.nii.gz
+set sourceseg = $outdir/source.first_all_fast_firstseg.nii.gz
+set cmd = (mri_vol2vol --mov $firstseg --targ $source --regheader \
+  --interp nearest --o $sourceseg)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Compute segstats
+set cmd = (mri_segstats --seg $sourceseg --sum $segstats \
+  --ctab-default --excludeid 0 --i $source)
+echo ""| tee -a $LF
+date | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Compute dice
+if($#diceseg) then
+  set logfile = $outdir/first.dice.log
+  set tablefile = $outdir/first.dice.table.dat
+  rm -f $logfile # need to rm because it just appends
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $sourceseg)
+  echo ""| tee -a $LF
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) then
+    echo "error: could not compute seg overlap";
+    goto error_exit;
+  endif
+endif
+
+# Convert the registration to reg.dat and reg.lta
+# This might be good to have for QA purposes.
+# Note that the FIRST registration may not look good outside of
+# the subcortical region.
+set cmd = (tkregister2 --mov $input --targ $FSLSTD1mm \
+  --fsl $outdir/input.ras_to_std_sub.mat --reg $outdir/reg.input.ras_to_std_sub.dat \
+  --ltaout $outdir/reg.input.ras_to_std_sub.lta --noedit)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -f $outdir/input.nii.gz
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fsfirst.Fsl-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fsfirst.Fsl-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Fsfirst.Fsl-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fsfirst.fslDone" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set source = $argv[1]; shift;
+      breaksw
+
+    case "--dice":
+      if($#argv < 1) goto arg1err;
+      set diceseg = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+if($#source == 0 && $#subject == 0) then
+  echo "ERROR: must spec either input or subject"
+  exit 1;
+endif
+if($#source != 0 && $#subject != 0) then
+  echo "ERROR: cannot spec both input and subject"
+  exit 1;
+endif
+
+set segstats = $outdir/first.fsl.stats
+if($#subject) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  set source  = $SUBJECTS_DIR/$subject/mri/orig.mgz
+  set outdir = $SUBJECTS_DIR/$subject/mri/first
+  set segstats = $SUBJECTS_DIR/$subject/stats/first.fsl.stats
+  set diceseg  = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
+endif
+if(! -e $source) then
+  echo "ERROR: cannot find $source"
+  exit 1;
+endif
+set source = `getfullpath $source`
+
+if(! -e $FSLSTD1mm) then
+  echo "ERROR: cannot find $FSLSTD1mm"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsfirst.fsl : wrapper to run the FSL FIRST program"
+  echo "  --i input"
+  echo "  --o outdir"
+  echo "  --dice diceseg : compute dice wrt given input"
+  echo "  --s subject"
+  echo "     use subject/mri/orig.mgz as input"
+  echo "     sets outdir to subject/mri/first"
+  echo "     sets diceseg to subject/mri/aseg.presurf.mgz"
+  echo "     puts stats in subject/stats/first.fsl.stats"
+  echo " --help"
+  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Wrapper to run the FSL FIRST program to perform subcortical segmentation. Handles
+formats and orientations, computes segmentation stats, and will compute dice
+coefficients with a passed segmentation. 
+
+If run with --s, the input becomes orig.mgz, the seg used for dice
+becomes aseg.presurf.mgz, the output will be mri/first, and the stats
+file will go into the stats folder (ie, stats/first.fsl.stats)
+
+For more info see https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST
+
+The following reference is the main journal paper describing FIRST:
+Patenaude, B., Smith, S.M., Kennedy, D., and Jenkinson M. A Bayesian
+"Model of Shape and Appearance for Subcortical Brain" NeuroImage,
+56(3):907-922, 2011.
+
