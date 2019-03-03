@@ -10760,8 +10760,11 @@ int MRIsampleVolumeDirectionScale(
   sigma=0, then these are just summed, otherwise they are gaussian
   weighted.  The mag is then the diff between the out and the in
   normalized to the distance (or total weight).  The step size is
-  either 0.25mm or sigma/5, whichever is larger. The distance is
-  either 2*sigma or the step size, whichever is larger.
+  either 0.25vox or sigma/5 vox, whichever is larger. The distance is
+  either 2*sigma or the step size, whichever is larger. Note that
+  everything is in voxels, meaning that the behavior will change
+  depending on the voxel size. Eg, at highres, the max distance and sigma
+  are less in mm terms. The derivative magnitude is per voxel, not per mm.
 */
 int MRIsampleVolumeDerivativeScale(
     MRI *mri, double x, double y, double z, double dx, double dy, double dz, double *pmag, double sigma)
@@ -10806,7 +10809,6 @@ int MRIsampleVolumeDerivativeScale(
   vm1 /= (double)ktotal;
   vp1 /= (double)ktotal;
   len /= (double)ktotal;
-
   *pmag = (vp1 - vm1) / (2.0 * len);
   return (NO_ERROR);
 }
