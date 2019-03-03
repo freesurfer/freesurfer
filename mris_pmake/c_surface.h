@@ -31,18 +31,10 @@
 #include "general.h"
 #include "env.h"
 
-#ifdef __cplusplus
-extern  "C" {
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #include <string>
 using namespace std;

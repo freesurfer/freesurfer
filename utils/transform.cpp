@@ -3353,7 +3353,7 @@ LTAwriteEx(const LTA *lta, const char *fname)
   user = getenv("USER");
   if (!user) user = getenv("LOGNAME");
   if (!user) user = "UNKNOWN";
-  fprintf(fp, "# transform file %s\n# created by %s on %s\n", fname, user, currentDateTime().c_str());
+  fprintf(fp, "# transform file %s\n# created by %s on %s\n\n", fname, user, currentDateTime().c_str());
   LTAprint(fp, lta);
   fclose(fp);
 

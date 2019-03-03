@@ -28,10 +28,7 @@
 #include <vector>
 using namespace std;
 
-#include "chronometer.hpp"
-
 #include "gcamorphtestutils.hpp"
-
 #include "gcamorphtestutils.h"
 
 // ======================================================================

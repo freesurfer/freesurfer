@@ -21,6 +21,7 @@ signals:
   void MenuResample();
   void MenuMoreOps();
   void MenuSaveAs();
+  void MenuMaskOverlay();
 
 public slots:
 

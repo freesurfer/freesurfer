@@ -10,7 +10,6 @@ enable_language(C CXX Fortran)
 # a few build options
 option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
-option(USE_OPENCL "Build OpenCL algorithms" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 
@@ -29,6 +28,10 @@ include(CheckFunctionExists)
 
 # prevent third-party packages from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
+
+# create build stamp during install
+set(BUILD_STAMP "freesurfer" CACHE STRING "Distribution build-stamp")
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # if an install prefix is not provided, check the FS_INSTALL_DIR env var, and
 # if that is not defined, set the default path to /usr/local/freesurfer
@@ -49,11 +52,6 @@ endif()
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
 
-# create build stamp during install
-if(NOT FS_BUILD_STAMP)
-  set(FS_BUILD_STAMP "freesurfer")
-endif()
-install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
 # --------------------------------------------------
 #               external dependencies
 # --------------------------------------------------
@@ -120,12 +118,8 @@ find_package(Armadillo)
 find_package(PETSC)
 
 # -------- itk --------
-if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
-endif()
+set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
-# todo: since ITK is now required, we can get rid of this macro
-add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -147,11 +141,6 @@ endif()
 # -------- openCV --------
 if(NOT APPLE)
   find_package(OpenCV)
-endif()
-
-# -------- openCL --------
-if(USE_OPENCL)
-  find_package(OpenCL)
 endif()
 
 # -------- X11 ---------
@@ -177,9 +166,7 @@ if(BUILD_GUIS)
 endif()
 
 # -------- vtk --------
-if(NOT VTK_DIR)
-  set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
-endif()
+set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1 CACHE PATH "VTK install directory")
 find_package(VTK HINTS ${VTK_DIR})
 if(VTK_FOUND AND NOT APPLE)
   # install the shared libraries to the freesurfer lib directory
@@ -256,7 +243,7 @@ endif()
 # --------------------------------------------------
 
 # warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-sign-compare -Wno-write-strings")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-sign-compare -Wno-write-strings -Wno-unused-result")
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -265,19 +252,7 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
 endif()
 
-# ANSI
-add_definitions(-DANSI)
-
-# SSE matrix and math functions (affine.h and sse_mathfun.h)
-# todo: write some logic to set this correctly
-add_definitions(-DUSE_SSE_MATHFUN)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -msse2 -mfpmath=sse -fPIC")
-
-# large file support: support for files > 2GB
-# todo: can this just be removed entirely?
-if(APPLE)
-  add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # linker options
 if(APPLE)
@@ -312,7 +287,7 @@ set(FS_INCLUDE_DIRS
 )
 
 # build the freesurfer static libraries
-add_subdirectories(utils opencl_algorithms)
+add_subdirectories(utils)
 
 # the following utility libraries are required for freeview
 add_subdirectories(vtkutils lineprof)
@@ -567,7 +542,7 @@ if(NOT MINIMAL)
     mri_update_gca
     mri_vol2roi
     mri_volcluster
-    # mri_volsynth
+    mri_volsynth
     mri_warp_convert
     mri_wbc
     mri_wmfilter
@@ -628,7 +603,7 @@ if(NOT MINIMAL)
     mris_multiscale_stats
     mris_niters2fwhm
     mris_parcellate_connectivity
-    # mris_pmake
+    mris_pmake
     mris_register_label_map
     mris_register_to_volume
     mris_remove_variance

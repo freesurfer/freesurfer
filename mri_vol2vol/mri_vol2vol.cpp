@@ -453,7 +453,6 @@ ENDHELP --------------------------------------------------------------
 #include "cmdargs.h"
 #include "mri_circulars.h"
 #include "mriBSpline.h"
-#include "chronometer.h"
 #include "timer.h"
 #include "mrinorm.h"
 
