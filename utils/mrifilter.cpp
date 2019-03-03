@@ -46,7 +46,6 @@
 #include "cma.h"
 
 #include "romp_support.h"
-#include "chronometer.h"
 
 #ifdef HAVE_OPENMP
 #include "romp_support.h"

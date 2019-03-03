@@ -57,7 +57,7 @@
 
 #include "affine.h"
 
-#include "chronometer.h"
+#include "timer.h"
 
 #include "znzlib.h"
 
@@ -22406,10 +22406,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
   MRI_SEGMENTATION *mriseg;
   int free_transform = 0;
 #ifdef GCAbuildMostLikelyVolumeForStructure_TIMERS
-  Chronometer tTot;
-  InitChronometer(&tTot);
-
-  StartChronometer(&tTot);
+  Timer tTot;
 #endif
 
   if (transform == NULL) {
@@ -22623,9 +22620,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
   }
 
 #ifdef GCAbuildMostLikelyVolumeForStructure_TIMERS
-  StopChronometer(&tTot);
-
-  printf("%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue(&tTot));
+  printf("%s: Complete in %d ms\n", __FUNCTION__, tTot.milliseconds());
 #endif
 
   return (mri);

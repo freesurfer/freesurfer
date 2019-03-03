@@ -24,6 +24,9 @@ void LabelTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SIGNAL(MenuMoreOps()));
     menu->addAction(act);
+    act = new QAction("Mask Overlay", this);
+    connect(act, SIGNAL(triggered()), this, SIGNAL(MenuMaskOverlay()));
+    menu->addAction(act);
     menu->addSeparator();
     act = new QAction("Save As...", this);
     connect(act, SIGNAL(triggered()), this, SIGNAL(MenuSaveAs()));

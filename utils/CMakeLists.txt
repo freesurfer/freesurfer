@@ -27,12 +27,9 @@ add_library(utils STATIC
   box.cpp
   Bruker.cpp
   chklc.cpp
-  chronometer.cpp
-  chronometerpp.cpp
   class_array.cpp
   cluster.cpp
   cma.cpp
-  cmat.cpp
   cmat.cpp
   cmdargs.cpp
   colortab.cpp
