@@ -19,6 +19,7 @@ set UseTkSurfer = 0;
 set curv = curv
 set DoAllSurfs = 0;
 set altargs = ()
+set UseVGLRun = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -67,7 +68,9 @@ if(! $UseTkSurfer) then
       set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=1"
     end
     foreach overlay ($overlaylist)
-      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmax"
+      # Change this when RP changes linear opaque in fv
+      set fmid = $fthresh;
+      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax"
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
     if($#label) set surfarg = "$surfarg":"label=$label"
@@ -86,7 +89,12 @@ else
 endif
 set cmd = ($cmd $altargs)
 echo $cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 
 #========================================================
 
@@ -213,6 +221,10 @@ while( $#argv != 0 )
       set UseTkSurfer = 1;
       breaksw
 
+    case "-vgl":
+      set UseVGLRun = 1;
+      breaksw
+
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
@@ -333,6 +345,7 @@ usage_exit:
   echo "Can have multiple annotations"
   echo ""
   echo "-all : load white, pial, inflated"
+  echo "-vgl : setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION
