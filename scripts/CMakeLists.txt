@@ -57,6 +57,7 @@ install(PROGRAMS
   fname2ext
   fname2stem
   freesurfer
+  fsfirst.fsl
   fs_lib_check
   fs_time
   fs_tutorial_data
