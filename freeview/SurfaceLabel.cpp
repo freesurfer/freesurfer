@@ -522,3 +522,10 @@ void SurfaceLabel::SaveForUndo()
     ::LabelFree(&l);
   m_redoBuffer.clear();
 }
+
+void SurfaceLabel::MaskOverlay()
+{
+  ::LabelMaskSurface(m_label, m_surface->GetSourceSurface()->GetMRIS());
+  UpdateOutline();
+  emit SurfaceLabelChanged();
+}

@@ -105,6 +105,7 @@ protected slots:
   void OnButtonFillUncutArea();
   void OnButtonUndoCut();
   void OnLabelResample();
+  void OnLabelMaskOverlay();
   void OnLabelMoreOps();
   void OnLabelOperation(const QVariantMap& op);
   void OnSpinBoxZOrder(int nOrder);

@@ -152,6 +152,7 @@ public slots:
   void Redo();
   void SaveForUndo();
   void SetOpacity(double dval);
+  void MaskOverlay();
 
 private:
   void UpdateOutline();

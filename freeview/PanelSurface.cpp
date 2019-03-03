@@ -594,6 +594,9 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
     menu->addAction(act);
+    act = new QAction("MaskOverlay", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
+    menu->addAction(act);
     menu->addSeparator();
     act = new QAction("Save As...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnSaveLabelAs()));
@@ -1293,6 +1296,13 @@ void PanelSurface::OnLabelResample()
   }
   if ( surf && surf->GetActiveLabel())
     surf->GetActiveLabel()->Resample(mri);
+}
+
+void PanelSurface::OnLabelMaskOverlay()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->MaskOverlay();
 }
 
 void PanelSurface::OnLabelMoreOps()
