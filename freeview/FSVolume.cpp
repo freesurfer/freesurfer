@@ -2040,6 +2040,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     return false;
   }
 #else
+  imageData->SetNumberOfScalarComponents(zFrames);
   switch ( rasMRI->type )
   {
   case MRI_UCHAR:
@@ -2147,6 +2148,7 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
     return false;
   }
 #else
+  imageData->SetNumberOfScalarComponents(zFrames);
   switch ( rasMRI->type )
   {
   case MRI_UCHAR:
