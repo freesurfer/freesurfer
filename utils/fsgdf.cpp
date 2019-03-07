@@ -600,8 +600,14 @@ static FSGD *gdfReadV1(char *gdfname) {
           "WARNING: gdfReadV1: no variables on 'Variables' line found\n");
         continue;
       }
-      for (m=0; m < r; m++)
+      for (m=0; m < r; m++){
         fscanf(fp,"%s",gd->varlabel[m]);
+	if(strcasecmp(gd->varlabel[m],"sex")==0 || strcasecmp(gd->varlabel[m],"gender")==0){
+	  printf("WARNING: variable %d is \"%s\" which is often a discrete factor\n",m,gd->varlabel[m]);
+	  printf("  The proper way to handle discrete factors is to create classes.\n");
+	  printf("  See https://surfer.nmr.mgh.harvard.edu/fswiki/FsgdExamples\n");
+	}
+      }
       gd->nvariables = r;
       r = gdfCheckVarRep(gd);
       if (r != -1) {
@@ -669,7 +675,17 @@ static FSGD *gdfReadV1(char *gdfname) {
         //printf("%s\n",tmpstr);
         goto formaterror;
       }
-      for (m=0; m < gd->nvariables; m++) fscanf(fp,"%f",&gd->varvals[n][m]);
+      for (m=0; m < gd->nvariables; m++) {
+	char tmpstr[1000];
+	fscanf(fp,"%s",tmpstr);
+	if(isalpha(tmpstr[0])){
+	  printf("ERROR: gdfReadV1: Format Error: Input line %d, subjid = %s\n",n+1,gd->subjid[n]);
+	  printf(" Variable %d has character string %s\n",m+1,tmpstr);
+	  printf(" Variables should be continuous numbers\n");
+	  goto formaterror;
+	}
+	fscanf(fp,"%f",&gd->varvals[n][m]);
+      }
       for (m=0; m < gd->nvarsfromfile; m++) {
         sprintf(tmpstr,"%s/%s/%s",
                 env->SUBJECTS_DIR,gd->subjid[n],gd->tablefile[m]);
