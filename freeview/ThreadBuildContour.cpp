@@ -97,7 +97,6 @@ void ThreadBuildContour::run()
     dTh2 = m_nSegValue + 0.5;
   }
 
-  //  int ext[6] = { 370, 520, 0, 140, 0, 280 };
   vtkImageData* imagedata = m_mri->GetImageData();
   if (m_mri->GetNumberOfFrames() > 1)
   {
@@ -122,7 +121,7 @@ void ThreadBuildContour::run()
         vtkActor* actor = vtkActor::New();
         actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
         actor->GetMapper()->ScalarVisibilityOn();
-        MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+        MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour, false );
         map[i] = actor;
       }
     }

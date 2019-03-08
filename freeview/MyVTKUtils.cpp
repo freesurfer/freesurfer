@@ -84,6 +84,14 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QMap>
+#include "vtkDataSetMapper.h"
+#include "vtkGlyph3DMapper.h"
+#include "vtkThreshold.h"
+#include "vtkDataSetAttributes.h"
+#include "vtkGeometryFilter.h"
+#include "vtkPointData.h"
+#include "vtkFloatArray.h"
+#include "vtkPassThrough.h"
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
                                    vtkRenderer* renderer,
@@ -214,7 +222,7 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
 
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                          int labelIndex,
-                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
+                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample, bool bVoxelized)
 {
   Q_UNUSED(ext);
   int i = labelIndex;
@@ -265,10 +273,62 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
   stripper->SetInputConnection( normals->GetOutputPort() );
   vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
   cleaner->SetInputConnection(stripper->GetOutputPort());
-  cleaner->Update();
-  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
-  mapper->SetInputConnection( cleaner->GetOutputPort() );
-  mapper->ScalarVisibilityOn();
+//  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
+  if (!bVoxelized)
+  {
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    cleaner->Update();
+    mapper->SetInputConnection( cleaner->GetOutputPort() );
+    actor_out->SetMapper(mapper);
+    mapper->ScalarVisibilityOn();
+  }
+  else
+  {
+    threshold->SetOutputScalarTypeToFloat();
+    threshold->Update();
+    vtkImageData* outputImage = threshold->GetOutput();
+    int* dim = outputImage->GetDimensions();
+    double* voxel_size = outputImage->GetSpacing();
+    double* origin = outputImage->GetOrigin();
+    float* p = static_cast<float*>(outputImage->GetScalarPointer());
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkFloatArray> scalars = vtkSmartPointer<vtkFloatArray>::New();
+    for (int i = 0; i < dim[0]; i++)
+    {
+      for (int j = 0; j < dim[1]; j++)
+      {
+        for (int k = 0; k < dim[2]; k++)
+        {
+          float val = p[i+j*dim[0]+k*dim[0]*dim[1]];
+          if (val > 0)
+          {
+            points->InsertNextPoint(origin[0]+voxel_size[0]*i, origin[1]+voxel_size[1]*j, origin[2]+voxel_size[2]*k);
+            scalars->InsertNextValue(val);
+          }
+        }
+      }
+    }
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    polydata->SetPoints(points);
+    polydata->GetPointData()->SetScalars(scalars);
+    vtkSmartPointer<vtkCubeSource> cube = vtkSmartPointer<vtkCubeSource>::New();
+    cube->SetXLength(voxel_size[0]);
+    cube->SetYLength(voxel_size[1]);
+    cube->SetZLength(voxel_size[2]);
+    vtkSmartPointer<vtkGlyph3DMapper> glyph = vtkSmartPointer<vtkGlyph3DMapper>::New();
+    glyph->SetSourceConnection(cube->GetOutputPort());
+    glyph->SetScaleModeToNoDataScaling();
+#if VTK_MAJOR_VERSION > 5
+    glyph->SetInputData(polydata);
+#else
+    vtkSmartPointer<vtkPassThrough> pass = vtkSmartPointer<vtkPassThrough>::New();
+    pass->SetInput(polydata);
+    glyph->SetInputConnection(pass->GetOutputPort());
+#endif
+    glyph->Update();
+    actor_out->SetMapper(glyph);
+    glyph->ScalarVisibilityOn();
+  }
 
   return true;
 }
