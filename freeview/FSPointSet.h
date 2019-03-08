@@ -32,10 +32,10 @@
 #include <QList>
 #include <QVariantMap>
 
-extern "C"
-{
+
+
 #include "label.h"
-}
+
 
 
 class FSVolume;

@@ -24,10 +24,8 @@
  *
  */
 
-extern "C" {
 #include <getopt.h>
 #include <stdlib.h> // exit
-}
 
 #include <string>
 #include <iostream>

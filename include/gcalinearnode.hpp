@@ -26,8 +26,7 @@
 
 #include <vector>
 
-#include "chronometer.hpp"
-
+#include "timer.h"
 #include "gca.h"
 
 
@@ -63,8 +62,7 @@ public:
 			  means(), variances(),
 			  nJustPriors(), nTraining(), regularised(),
 			  gc1dDirecLabelPriors(),
-			  gc1dDirecLabels(),
-			  tExhume(), tInhume() {};
+			  gc1dDirecLabels() {};
   
   // -------------------------------------------------
   bool hasGibbsNeighbourhood;
@@ -437,10 +435,10 @@ private:
 
   // -------------------------------------------------
 
-  //! Timer for exhumation
-  mutable SciGPU::Utilities::Chronometer tExhume;
-  //! Inhumation timer
-  mutable SciGPU::Utilities::Chronometer tInhume;
+  //! Exhumation time
+  mutable long exhumeTime;
+  //! Inhumation time
+  mutable long inhumeTime;
 
   // -------------------------------------------------
 

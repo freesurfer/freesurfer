@@ -40,7 +40,11 @@ std::vector<MeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointer<vtk
 	for (unsigned int i=0;i<polydatas.size(); i++)
 	{
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+		spline->SetInputData(polydatas[i]);
+#else
 		spline->SetInput(polydatas[i]);
+#endif
 		spline->SetNumberOfSubdivisions(19);
 		spline->Update();
 
@@ -49,6 +53,7 @@ std::vector<MeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointer<vtk
 		converter->GenerateData2();
 
 		MeshType::Pointer mesh =  converter->GetOutput();
+		std::cout << mesh->GetNumberOfCells() << std::endl;
 		meshes.push_back(mesh);	
 	}
 	return meshes;
@@ -98,8 +103,8 @@ int main(int narg, char*  arg[])
 	for(unsigned int i =0;i<meshesIds.size();i++)
 	{
 		bundlesIndeces[meshesIds[i]]=i;
+		std::cout << meshesIds[i]<< " " << i <<  std::endl;
 	}
-
 	std::ifstream file( fileCorr); 
 	std::string value;
 	getline ( file, value, ',' ); 
@@ -112,6 +117,7 @@ int main(int narg, char*  arg[])
 		getline ( file, value, ',' ); 
 		long long v2 = atoll(value.c_str());
 		correspondences.push_back(v2);		
+		std::cout << v2 << std::endl;
 	} 	
 	std::ofstream csv_file;
 	csv_file.open (fileName);
@@ -125,6 +131,7 @@ int main(int narg, char*  arg[])
 
 	for(unsigned int k=0;k<correspondences.size();k++)  
 	{
+		std::cout << correspondences[k] << " " << bundlesIndeces[correspondences[k]]<< std::endl;
 		MeshType::Pointer mesh =  bundles[bundlesIndeces[correspondences[k]]];
 		csv_file << correspondences[k] <<  " , " << mesh->GetNumberOfCells() ;
 
@@ -155,7 +162,7 @@ int main(int narg, char*  arg[])
 				for(pointIdIt  =cells.Value()->PointIdsBegin();pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
 				{
 					//std::cout<< j<< std::endl;	
-					MeshType::PointType pt;
+					MeshType::PointType pt = 0;
 					mesh->GetPoint (*pointIdIt, &pt);
 					dist +=	avgPoints[j].EuclideanDistanceTo(pt);
 					dist_inv +=avgPoints[avgPoints.Size()-j-1].EuclideanDistanceTo(pt);
@@ -169,7 +176,7 @@ int main(int narg, char*  arg[])
 				j=0;
 				for(pointIdIt  =cells.Value()->PointIdsBegin();pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
 				{	
-					MeshType::PointType pt;
+					MeshType::PointType pt = 0;
 					mesh->GetPoint (*pointIdIt, &pt);
 					for(int k=0;k<3;k++)
 					{

@@ -2,10 +2,10 @@ project(mri_aparc2aseg)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mri_aparc2aseg mri_aparc2aseg.c)
+add_executable(mri_aparc2aseg mri_aparc2aseg.cpp)
 add_help(mri_aparc2aseg mri_aparc2aseg.help.xml)
 target_link_libraries(mri_aparc2aseg utils)
 
-add_test_script(NAME mri_aparc2aseg_test SCRIPT test_mri_aparc2aseg DEPENDS mri_aparc2aseg)
+add_test_script(NAME mri_aparc2aseg_test SCRIPT test.sh DEPENDS mri_aparc2aseg)
 
 install(TARGETS mri_aparc2aseg DESTINATION bin)

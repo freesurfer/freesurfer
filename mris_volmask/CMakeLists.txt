@@ -2,7 +2,9 @@ project(mris_volmask)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+if(SUPPRESS_WARNINGS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+endif()
 
 add_executable(mris_volmask mris_volmask.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask PRIVATE NO_VTK)
@@ -10,7 +12,7 @@ add_help(mris_volmask mris_volmask.help.xml)
 target_link_libraries(mris_volmask utils)
 install(TARGETS mris_volmask DESTINATION bin)
 
-add_test_script(NAME mris_volmask_test SCRIPT test_mris_volmask DEPENDS mris_volmask)
+add_test_script(NAME mris_volmask_test SCRIPT test.sh DEPENDS mris_volmask)
 
 add_executable(mris_volmask_novtk mris_volmask_old.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask_novtk PRIVATE NO_VTK)

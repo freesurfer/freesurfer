@@ -35,10 +35,10 @@
 #include "MyVTKUtils.h"
 #include <QTimer>
 #include <QDebug>
-extern "C"
-{
+
+
 #include "cma.h"
-}
+
 
 LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
   LayerMRI( ref, parent ),
@@ -124,7 +124,11 @@ void LayerVolumeTrack::RebuildActors()
   {
     vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
     extract->SetComponents(i);
+#if VTK_MAJOR_VERSION > 5
+    extract->SetInputData(m_imageData);
+#else
     extract->SetInput(m_imageData);
+#endif
     extract->Update();
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -184,7 +188,11 @@ void LayerVolumeTrack::UpdateFrameActor(int n)
   vtkActor* actor = m_actors[n];
   vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
   extract->SetComponents(n);
+#if VTK_MAJOR_VERSION > 5
+  extract->SetInputData(m_imageData);
+#else
   extract->SetInput(m_imageData);
+#endif
   extract->Update();
   MRI* mri = m_volumeSource->GetMRI();
   MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[n].thresh, 1e8, actor);

@@ -117,7 +117,7 @@ echo "Searching for matching files" | tee -a $LF
 date | tee -a $LF
 set flist = ();
 foreach d ($SrcDirList2)
-  echo "Searching $d" >> $LF
+  #echo "Searching $d" >> $LF
   if($#SrcPre || $#SrcPat || $#SrcExt) then
     set flist0 = (`find $d -name "$SrcPre*$SrcPat*$SrcExt"`)
   else
@@ -151,8 +151,16 @@ if($#infofile == 0) then
     set infofile = /tmp/dcmdir-all.$$
   endif
 endif
-rm -f $infofile
-if($#SrcInfo) cp $SrcInfo $infofile
+if($#SrcInfo) then
+  if($SrcInfo != $infofile) then
+    # This may still fail if they are truly the same file but diff
+    # path spec, but that will not be important (it just might
+    # confuse people)
+    cp $SrcInfo $infofile
+  endif
+else
+  rm -f $infofile
+endif
 
 set dumpfile = /tmp/dcmunpack.dump.$$
 rm -f $dumpfile 
@@ -161,7 +169,7 @@ foreach f ($flist)
   @ nth = $nth + 1;
   set filetype = `mri_probedicom --i $f --d filetype`
   if($filetype == notdicom) continue;
-  echo "#@# $nth/$#flist `date`" >>& $LF
+  #echo "#@# $nth/$#flist `date`" >>& $LF
 
   mri_probedicom --i $f >& $dumpfile
   if($status) then
@@ -214,10 +222,10 @@ rm -f $dumpfile
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
 
-echo "Subject $Patient"
-echo "Date $Date"
-echo "Time $Time"
-echo "$Institution"
+echo "Subject $Patient" | tee -a $LF
+echo "Date $Date" | tee -a $LF
+echo "Time $Time" | tee -a $LF
+echo "$Institution" | tee -a $LF
 
 
 # Print out one line for each series:
@@ -258,9 +266,10 @@ foreach series ($SeriesNos)
   echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
 
   if($DoAutoRunSeq) then
-    if($descr == Localizer || $descr == localizer || $descr == AAHScout || \
-       $descr == AAHScout_sag || $descr == AAHScout_cor || \
-       $descr == AAHScout_tra || $descr == AAScout) continue
+    if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
+       "$descr" == AAHScout_sag || "$descr" == AAHScout_cor || \
+       "$descr" == AAHScout_tra || "$descr" == AAScout || \
+       "$descr" == T1w_setter || "$descr" == T2w_setter) continue
     set AutoRunNos = ($AutoRunNos $series)
     set AutoSubDirs = ($AutoSubDirs ".")
     set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
@@ -270,6 +279,8 @@ foreach series ($SeriesNos)
     set AutoNDrops = ($AutoNDrops 0)
   endif
 end
+
+cat $SeriesInfo >> $LF
 
 if($DoAutoRunSeq) then
   set RunNos = ($AutoRunNos)

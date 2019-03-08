@@ -10,7 +10,7 @@ For questions and support, email freesurfer@nmr.mgh.harvard.edu
 
 ### Building
 
-Please visit our [build guide](https://surfer.nmr.mgh.harvard.edu/fswiki/freesurfer_linux_developers_page) for information on how to build the source code.
+Please visit our [build guide](https://surfer.nmr.mgh.harvard.edu/fswiki/BuildGuide) for information on how to build the source code.
 
 ### License
 

@@ -32,10 +32,10 @@
 #include <QObject>
 #include <vtkSmartPointer.h>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;

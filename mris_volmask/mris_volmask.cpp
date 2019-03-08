@@ -38,8 +38,8 @@
 #include "cmd_line_interface.h"
 
 // FS
-extern "C"
-{
+
+
 #include "fsenv.h"
 #include "mrisurf.h"
 #include "mri.h"
@@ -50,7 +50,7 @@ extern "C"
 #include "timer.h"
 #include "gca.h"
 #include "version.h"
-};
+;
 const char *Progname;
 
 typedef Math::Point<int> Pointd;
@@ -160,9 +160,9 @@ main(int ac, char* av[])
 {
   // first, handle stuff for --version and --all-info args
   int nargs = 0, msec;
-  struct timeb then ;
+  Timer then ;
 
-  TimerStart(&then) ;
+  then.reset() ;
   nargs =handle_version_option( ac, av,"$Id: mris_volmask.cpp,v 1.28 2016/11/18 19:19:29 fischl Exp $","$Name:  $");
   if (nargs && ac - nargs == 1)
     exit (0);
@@ -230,7 +230,7 @@ main(int ac, char* av[])
     printf("writing output to %s\n",
            (const_cast<char*>( pathMriOutput.c_str() )));
     MRIwrite(mriTemplate,  (const_cast<char*>( pathMriOutput.c_str() ))) ;
-    msec = TimerStop(&then) ;
+    msec = then.milliseconds() ;
     fprintf(stderr, "mris_volmask took %2.2f minutes\n", (float)msec/(1000.0f*60.0f));
     exit(0) ;
   }
@@ -387,7 +387,7 @@ main(int ac, char* av[])
     }
   }
 
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stderr, "mris_volmask took %2.2f minutes\n", (float)msec/(1000.0f*60.0f));
   return 0;
 }

@@ -1,3 +1,0 @@
-#!/bin/tcsh -ef
-source $FREESURFER_HOME/bin/tcl_setup
-$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/fsfget.tcl $argv

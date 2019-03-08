@@ -87,7 +87,7 @@ MRI *l1, *l2, *l3, *v1;
 struct utsname uts;
 char *cmdline, cwd[2000], subjName[100], pathName[100] ;
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   printf("Computing statistics on %s...\n", inTrcDir?inTrcDir:inTrkFile);
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   if (dtBase) {
     sprintf(fname, "%s_L1.nii.gz", dtBase);
@@ -494,7 +494,7 @@ int main(int argc, char **argv) {
     fvox.close();
   }
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   printf("Done in %g sec.\n", cputime/1000.0);
 
   printf("dmri_pathstats done\n");

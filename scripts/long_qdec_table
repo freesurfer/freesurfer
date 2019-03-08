@@ -116,7 +116,7 @@ def options_parse():
 
     if options.qdec is None:
         parser.print_help()
-        print('\nERROR: Specify --qedc')
+        print('\nERROR: Specify --qdec')
         sys.exit(1)
 
     if ( options.sort is not None or options.cross ) and options.out is None:

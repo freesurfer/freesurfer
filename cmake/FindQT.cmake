@@ -28,11 +28,15 @@ if(Qt5_FOUND AND NOT APPLE)
     install(PROGRAMS ${_qt_libs_to_install} DESTINATION lib/qt/lib)
     # add Qt library directory to rpath
     set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/qt/lib:${CMAKE_INSTALL_RPATH}")
-    # install the platform plugins as well, and make sure executables know
-    # where to find the plugins directory
+    # install the platform plugins
     if(EXISTS ${Qt5_INSTALL_DIR}/plugins/platforms)
       install(DIRECTORY ${Qt5_INSTALL_DIR}/plugins/platforms DESTINATION lib/qt/plugins)
-      install(FILES ${CMAKE_SOURCE_DIR}/qt/qt.conf DESTINATION bin)
     endif()
+    # install the image format plugins
+    if(EXISTS ${Qt5_INSTALL_DIR}/plugins/imageformats)
+      install(DIRECTORY ${Qt5_INSTALL_DIR}/plugins/imageformats DESTINATION lib/qt/plugins)
+    endif()
+    # make sure executables know where to find the plugins directory
+    install(FILES ${CMAKE_SOURCE_DIR}/qt/qt.conf DESTINATION bin)
   endif()
 endif()

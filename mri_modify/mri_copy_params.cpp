@@ -25,13 +25,13 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+ 
 #include "error.h"
 #include "mri.h"
 #include "version.h"
 #include "macros.h"
   const char *Progname = "mri_copy_params";
-}
+
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_version(void) ;

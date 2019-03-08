@@ -105,6 +105,7 @@ protected slots:
   void OnButtonFillUncutArea();
   void OnButtonUndoCut();
   void OnLabelResample();
+  void OnLabelMaskOverlay();
   void OnLabelMoreOps();
   void OnLabelOperation(const QVariantMap& op);
   void OnSpinBoxZOrder(int nOrder);
@@ -117,6 +118,7 @@ protected slots:
   void OnLineEditLabelOpacity(const QString& text);
   void OnButtonLabelUp();
   void OnButtonLabelDown();
+  void SetOverlayFrame(int nFrame);
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();

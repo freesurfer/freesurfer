@@ -1,9 +1,9 @@
 #ifndef __InitializePath_h
 #define __InitializePath_h
 
-extern "C" {
+ 
 #include "mri.h"
-}
+
 
 #include <vector>
 

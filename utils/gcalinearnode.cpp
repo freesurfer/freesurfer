@@ -40,8 +40,8 @@ namespace Freesurfer
 void GCAlinearNode::PrintStats(ostream &os) const
 {
   os << "Stats for GCAlinearNode" << endl;
-  os << "  Exhumation time = " << this->tExhume << endl;
-  os << "  Inhumation time = " << this->tInhume << endl;
+  os << "  Exhumation time = " << exhumeTime << " ms" << endl;
+  os << "  Inhumation time = " << inhumeTime << " ms" << endl;
 }
 
 // ==========================================
@@ -52,7 +52,7 @@ void GCAlinearNode::Exhume(const GCA *const src)
     the source GCA, and packing into the linear arrays
   */
 
-  this->tExhume.Start();
+  Timer tExhume;
 
   this->ExtractDims(src);
   this->Allocate();
@@ -160,7 +160,7 @@ void GCAlinearNode::Exhume(const GCA *const src)
     }
   }
 
-  this->tExhume.Stop();
+  this->exhumeTime = tExhume.milliseconds();
 }
 
 // ====================================================
@@ -183,7 +183,7 @@ void GCAlinearNode::Inhume(GCA *dst) const
     However, that would involve writing some of them first.
   */
 
-  this->tInhume.Start();
+  Timer tInhume;
 
   // Dispose of the old node data
   this->ScorchNodes(dst);
@@ -332,7 +332,7 @@ void GCAlinearNode::Inhume(GCA *dst) const
     }
   }
 
-  this->tInhume.Stop();
+  this->inhumeTime = tInhume.milliseconds();
 }
 
 // ====================================================

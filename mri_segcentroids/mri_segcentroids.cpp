@@ -6,10 +6,10 @@
 #include <map>
 #include <iomanip>
 
-extern "C" {
+ 
   #include "mri.h"
   #include "mri2.h"
-}
+
 
 
 #include "mri_segcentroids.help.xml.h"

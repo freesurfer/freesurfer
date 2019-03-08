@@ -57,8 +57,8 @@
 #include <iostream>
 #include "mris_decimate.h"
 
-extern "C"
-{
+
+
 #include "macros.h"
 #include "utils.h"
 #include "fio.h"
@@ -66,7 +66,7 @@ extern "C"
 #include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
-}
+
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -362,7 +362,10 @@ int decimateSurface(MRI_SURFACE **pmris,
 	faceLoadContext.nextFace = 0;
   gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, (gpointer)&faceLoadContext);
 
-  mrisCheckVertexFaceTopology(mris);
+  if (!mrisCheckVertexFaceTopology(mris)) {
+    std::cerr << "Error: surface has invalid topology" << std::endl;
+    return 1;
+  }
 
   if (decimateProgressFn != NULL)
   {

@@ -2,10 +2,10 @@ project(mri_segment)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mri_segment mri_segment.c)
+add_executable(mri_segment mri_segment.cpp)
 add_help(mri_segment mri_segment.help.xml)
 target_link_libraries(mri_segment utils)
 
-add_test_script(NAME mri_segment_test SCRIPT test.py DEPENDS mri_segment)
+add_test_script(NAME mri_segment_test SCRIPT test.sh DEPENDS mri_segment)
 
 install(TARGETS mri_segment DESTINATION bin)

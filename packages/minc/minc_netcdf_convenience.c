@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /*
  * Original Author: Peter Neelin, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -1831,10 +1829,3 @@ MNCAPI long *miset_coords(int nvals, long value, long coords[])
 
 
 #endif	// defined(BEVIN_SUPPRESS..)
-
-
-// Stuff that has been proven to be needed
-//
-
-
-#endif	// defined(USE_LOCAL_MINC)

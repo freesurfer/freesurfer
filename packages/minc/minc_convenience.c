@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /*
  * Original Author: (assumed to be) Peter Neelin, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -1513,4 +1511,3 @@ const char * miget_version(void)
 
 
 #endif 	// BEVIN_UNSUPPRESS
-#endif	// USE_LOCAL_MINC

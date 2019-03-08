@@ -30,10 +30,6 @@
 #ifndef CMAT_H
 #define CMAT_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "label.h"
 
 typedef struct
@@ -54,9 +50,5 @@ CMAT *CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CM
 int CMATtoVoxel(CMAT *cmat, MRI *mri) ;
 int CMATtoTKreg(CMAT *cmat, MRI *mri) ;
 int CMATtoScannerRAS(CMAT *cmat, MRI *mri) ;
-
-#if defined(__cplusplus)
-};
-#endif
 
 #endif

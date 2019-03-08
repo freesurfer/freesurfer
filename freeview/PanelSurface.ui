@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-320</y>
      <width>431</width>
-     <height>1276</height>
+     <height>1311</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,1">
@@ -1197,6 +1197,19 @@
           </property>
          </spacer>
         </item>
+        <item>
+         <widget class="QToolButton" name="toolButtonMoreLabelOptions">
+          <property name="text">
+           <string>More options</string>
+          </property>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextOnly</enum>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item row="20" column="0">
@@ -1537,7 +1550,7 @@
      <normaloff>:/resource/icons/surface_path.png</normaloff>:/resource/icons/surface_path.png</iconset>
    </property>
    <property name="text">
-    <string>Path</string>
+    <string>Custom Fill</string>
    </property>
   </action>
   <action name="actionMakePath">
@@ -1608,6 +1621,55 @@
    <header>SplineTreeWidget.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEditFileName</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>comboBoxColor</tabstop>
+  <tabstop>comboBoxRender</tabstop>
+  <tabstop>comboBoxMeshColor</tabstop>
+  <tabstop>checkBoxShowVertices</tabstop>
+  <tabstop>spinBoxVertexPointSize</tabstop>
+  <tabstop>comboBoxCurvature</tabstop>
+  <tabstop>sliderMidPoint</tabstop>
+  <tabstop>lineEditMidPoint</tabstop>
+  <tabstop>sliderSlope</tabstop>
+  <tabstop>lineEditSlope</tabstop>
+  <tabstop>comboBoxOverlay</tabstop>
+  <tabstop>pushButtonConfigureOverlay</tabstop>
+  <tabstop>pushButtonRemoveOverlay</tabstop>
+  <tabstop>spinBoxZOrderOverlay</tabstop>
+  <tabstop>comboBoxAnnotation</tabstop>
+  <tabstop>checkBoxAnnotationOutline</tabstop>
+  <tabstop>spinBoxZOrderAnnotation</tabstop>
+  <tabstop>pushButtonNewLabel</tabstop>
+  <tabstop>pushButtonLoadLabel</tabstop>
+  <tabstop>pushButtonSaveLabel</tabstop>
+  <tabstop>pushButtonDeleteLabel</tabstop>
+  <tabstop>treeWidgetLabels</tabstop>
+  <tabstop>toolButtonLabelUp</tabstop>
+  <tabstop>toolButtonLabelDown</tabstop>
+  <tabstop>lineEditLabelOpacity</tabstop>
+  <tabstop>toolButtonMoreLabelOptions</tabstop>
+  <tabstop>comboBoxLabelColorCode</tabstop>
+  <tabstop>lineEditLabelHeatscaleMin</tabstop>
+  <tabstop>lineEditLabelHeatscaleMax</tabstop>
+  <tabstop>lineEditLabelThreshold</tabstop>
+  <tabstop>checkBoxLabelOutline</tabstop>
+  <tabstop>spinBoxZOrderLabel</tabstop>
+  <tabstop>checkBoxUseSurfaceColor2D</tabstop>
+  <tabstop>spinBoxEdgeThickness</tabstop>
+  <tabstop>comboBoxVectorDisplay</tabstop>
+  <tabstop>spinBoxVectorPointSize</tabstop>
+  <tabstop>pushButtonLoadSpline</tabstop>
+  <tabstop>pushButtonDeleteSpline</tabstop>
+  <tabstop>treeWidgetSplines</tabstop>
+  <tabstop>checkBoxSplineProjection</tabstop>
+  <tabstop>lineEditPositionOffset</tabstop>
+  <tabstop>lineEditMappingSurface</tabstop>
+  <tabstop>checkBoxShowInfo</tabstop>
+  <tabstop>checkBoxHideIn3DView</tabstop>
+ </tabstops>
  <resources>
   <include location="freeview.qrc"/>
  </resources>

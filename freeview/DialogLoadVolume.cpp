@@ -32,10 +32,10 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 DialogLoadVolume::DialogLoadVolume(QWidget *parent) :
   QDialog(parent),

@@ -1,7 +1,5 @@
-#if defined(USE_LOCAL_MINC)
-
-#ifndef  DEF_MINC_FILES
-#define  DEF_MINC_FILES
+#ifndef  MINC_FILES_H
+#define  MINC_FILES_H
 
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
@@ -139,6 +137,4 @@ VIO_Status  copy_file(
 void  remove_file(
     const char*  filename );
 
-#endif /* DEF_FILES */
-
-#endif // USE_LOCAL_MINC
+#endif

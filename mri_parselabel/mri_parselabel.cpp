@@ -42,7 +42,7 @@
 #include <vector>
 #include <algorithm>
 
-extern "C" {
+ 
 #include "macros.h"
 #include "mri.h"
 #include "version.h"
@@ -50,7 +50,7 @@ extern "C" {
 #include "transform.h"
 #include "talairachex.h"
   const char *Progname;
-}
+
 
 using namespace std;
 

@@ -12,8 +12,9 @@ if(VTK_FOUND)
   )
 
   include(${ITK_USE_FILE})  
+  include(${VTK_USE_FILE})
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wmaybe-uninitialized")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-local-typedefs")
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
@@ -41,4 +42,18 @@ if(VTK_FOUND)
   add_executable(dmri_stats_ac dmri_stats_ac.cxx ${TRACKIO})
   target_link_libraries(dmri_stats_ac utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_stats_ac DESTINATION bin)
- endif()
+
+#orientation planes
+  add_executable(testOrientationPlanesFromParcellation testOrientationFromParcellationFilter.cxx ) 
+  target_link_libraries(testOrientationPlanesFromParcellation ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS testOrientationPlanesFromParcellation DESTINATION bin)
+
+#Save histograms
+  add_executable(dmri_saveHistograms SaveHistograms.cxx ${TRACKIO}) 
+  target_link_libraries(dmri_saveHistograms ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_saveHistograms DESTINATION bin)
+else() 
+message("VTK not found")
+endif()
+
+

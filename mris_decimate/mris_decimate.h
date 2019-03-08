@@ -36,10 +36,10 @@
 #ifndef MRIS_DECIMATE_H
 #define MRIS_DECIMATE_H
 
-extern "C"
-{
+
+
 #include "mrisurf.h"
-}
+
 
 ///
 //  Types

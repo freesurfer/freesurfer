@@ -29,10 +29,10 @@
 #include <QList>
 #include <QString>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 class LUTDataHolder
 {

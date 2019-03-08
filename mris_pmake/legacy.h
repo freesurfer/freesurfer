@@ -32,19 +32,6 @@
 #include "env.h"
 #include "scanopt.h"
 
-//#ifdef __cplusplus
-//extern  "C" {
-//#endif
-//
-//#include "mri.h"
-//#include "mrisurf.h"
-//#include "label.h"
-//#include "error.h"
-//
-//#ifdef __cplusplus
-//}
-//#endif
-
 // Forward declaration of environment structure
 typedef struct _env s_env;
 

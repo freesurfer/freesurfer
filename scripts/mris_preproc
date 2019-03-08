@@ -79,6 +79,9 @@ set DoXHemiOnly = 0; # do not include the non-xhemi
 set DualHemi = 0;
 set subjlistfile = ();
 set fsgdf = ();
+set outstem = ()
+set format = mgh
+set DoETIV = 0; # scale each subject by ETIV as found in aseg.stats
 
 set SessFile = ();
 set SessDirFile = ();
@@ -197,6 +200,17 @@ foreach subj ($subjlist)
 
   set subjpath = $SUBJECTS_DIR/$subj
 
+  set ETIV = 1;
+  if($DoETIV) then
+    set asegstats = $subjpath/stats/aseg.stats
+    if(! -e $asegstats) then
+      echo "ERROR: cannot find $asegstats, needed for --etiv"
+      exit 1;
+    endif
+    set ETIV = `grep EstimatedTotalIntraCranialVol $asegstats | awk '{print $9}' | sed 's/,/ /g'`
+    echo "$subj ETIV = $ETIV" | tee -a $LF
+  endif
+
   if($CacheOutOnly && $CacheOutUpdate) then
     if($trghemi == $srchemi) then
       set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile
@@ -208,7 +222,7 @@ foreach subj ($subjlist)
 
   if($CacheIn) then
     # Input has been cached
-    set tval = $subjpath/$surfdir/$srchemi.$meas.mgh
+    set tval = $subjpath/$surfdir/$srchemi.$meas.$format
     if(! -e $tval) then
       echo "ERROR: cannot find cached file $tval"
       exit 1;
@@ -217,7 +231,7 @@ foreach subj ($subjlist)
     # Input has NOT been cached, create
     if($srcvol) then
       # Source is a volume, run mri_vol2surf
-      set srcsurfpath = $tmpdir/subjsurfvals.mgh
+      set srcsurfpath = $tmpdir/subjsurfvals.$format
       set vol = $ivplist[$nthsubj];
       set reg = $irplist[$nthsubj];
       set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $srchemi)
@@ -242,11 +256,12 @@ foreach subj ($subjlist)
     endif
     # Now srcsurfpath file exists, convert it to the target subject
     set subjtmp = `echo $subj | sed 's/\//./g'`; # Hack to handle xhemi subdirs
-    set tval = $tmpdir/$subjtmp.$nthsubj.mgh
+    set tval = $tmpdir/$subjtmp.$nthsubj.$format
     set cmd = (mri_surf2surf)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
     if($DualHemi) set cmd = ($cmd --dual-hemi)
+    if($DoETIV) set cmd = ($cmd --div $ETIV)
     set cmd = ($cmd --tval $tval)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
@@ -272,9 +287,9 @@ foreach subj ($subjlist)
   # Copy/smooth resampled data to CacheOutFile
   if($#CacheOutFile) then
     if($trghemi == $srchemi) then
-      set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile.$format
     else
-      set tcache = $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile.$format
     endif
     # Smooth in the target space
     #   Need to add pruning here, ie, mask out any zero-valued voxels 
@@ -297,9 +312,9 @@ foreach subj ($subjlist)
     else
       # Does this work?
       if($trghemi == $srchemi) then
-        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$CacheOutFile.mgh)
+        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$CacheOutFile.$format)
       else
-        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile.mgh)
+        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile.$format)
       endif
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
@@ -547,10 +562,16 @@ while( $#argv != 0 )
       set DualHemi = 1;
       breaksw
 
+    case "--etiv":
+      set DoETIV = 1;
+      breaksw
+
     case "--target":
       if ( $#argv == 0) goto arg1err;
       set target = $argv[1]; shift;
-      if($target != fsaverage) set SrcSurfReg = $target.sphere.reg
+      # This logic will not reset SrcSurfReg with target fsavergeX
+      set fsatest = `echo $target | cut -c 1-9`
+      if($fsatest != fsaverage) set SrcSurfReg = $target.sphere.reg
       breaksw
 
     case "--fwhm-src":
@@ -672,9 +693,15 @@ while( $#argv != 0 )
     case "--cache-out-only":
       if( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
-      set tmpdir = $tmpdir/tmp.mris_preproc.$$
       echo tmpdir $tmpdir
       set CacheOutOnly = 1;
+      breaksw
+
+    case "--mgz":
+      set format = mgz
+      breaksw
+    case "--mgh":
+      set format = mgh
       breaksw
 
     case "--log":
@@ -971,7 +998,7 @@ foreach subj ($subjlist)
   endif
   if($#meas) then
     if(! $CacheIn) set measpath = $subjpath/$surfdir/$srchemi.$meas
-    if($CacheIn) set measpath = $subjpath/$surfdir/$srchemi.$meas.mgh
+    if($CacheIn)   set measpath = $subjpath/$surfdir/$srchemi.$meas.$format
     if(! -e $measpath) then
       echo "ERROR: cannot find $measpath"
       exit 1;
@@ -1065,6 +1092,7 @@ usage_exit:
   echo "  --offset             : use fsfast mean offset (h-offset)"
   echo "  --map mapname        : use fsfast contrast/map"
   echo ""
+  echo "  --etiv : divide each subject's value by the Estimated Total Intra Cranial Volume as found in aseg.stats"
   echo "  --fwhm fwhm : smooth by fwhm mm on the target surface"
   echo "  --fwhm-src fwhmsrc : smooth by fwhm mm on the source surface"
   echo ""
@@ -1073,6 +1101,8 @@ usage_exit:
   echo ""
   echo "  --no-cortex-only : include meidal wall"
   echo "  --cortex-only : exclude medial wall (default)"
+  echo ""
+  echo "  --mgz : use mgz format internally (mainly good for caching)"
   echo ""
   echo "  --no-jac : turn off jacobian correction (automatically turned on for"
   echo "      area, area.mid, area.pial, and volume)"
@@ -1085,7 +1115,7 @@ usage_exit:
   echo "  --cache-out cachefile"
   echo "  --cache-in  cachefile"
   echo "  --cache-out-only tmpdir"
-  echo "  --cache-out-update tmpdir : implies --cach-out-only"
+  echo "  --cache-out-update tmpdir : implies --cache-out-only"
   echo ""
   echo "  --mean : compute the mean of all inputs"
   echo "  --std : compute the standard deviation of all inputs"
@@ -1283,22 +1313,21 @@ Same as --paired-diff, but normalizes by time point 2, ie,
 Unless you are planning to do some type of semi-real-time processing,
 you can ignore caching. With --cache-out cachefile, mris_preproc will
 save the data for each subject, after resampling to the target and
-smoothing, in the subjects surf directory as hemi.cachefile. In a
+smoothing, in the subjects surf directory as hemi.cachefile.mgh. In a
 subsequent call to mris_preproc, you can specify --cache-in cachefile,
 and the precomputed data will be used. If you are going to smooth your
 data at some point, do it when caching out. If you want to cache
 without actually creating an output, then --cache-out-only. You must
-supply a tmpdir. The true tmpdir will be created under this. tmpdir
-itself will not be deleted. None of the paired diff options will
-affect caching. --cache-out-update is the same as --cache-out-only
-except the output file will not be recreated if it already exists
-(does not check dates).
+supply a tmpdir, which will be deleted at the end of the script. None
+of the paired diff options will affect caching. --cache-out-update is
+the same as --cache-out-only except the output file will not be
+recreated if it already exists (does not check dates).
 
   mris_preproc --target fsaverage --hemi lh --s subj1 --s subj2 \
-    --meas thickness --fwhm 5 --cache-out thickness.avg7.sm5.mgh \
-    --cache-out-only tmp
+    --meas thickness --fwhm 5 --cache-out thickness.avg7.sm5 \
+    --cache-out-only tmp.mris_preproc
   mris_preproc --target fsaverage --hemi lh --s subj1 --s subj2 \
-    --cache-in thickness.avg7.sm5.mgh --out s12.thickness.avg7.sm5.mgh \
+    --cache-in thickness.avg7.sm5 --out s12.thickness.avg7.sm5.mgh \
 
 --mean
 

@@ -87,7 +87,7 @@ vector<char *> outDir, inDirList, initFile, roiFile1, roiFile2,
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 
     cout << "Processing pathway " << iout+1 << " of " << outDir.size() << "..."
          << endl;
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     //if (mycoffin.RunMcmcFull())
     if (mycoffin.RunMcmcSingle())
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
     else
       cout << "ERROR: Pathway reconstruction failed" << endl;
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     printf("Done in %g sec.\n", cputime/1000.0);
   }
 

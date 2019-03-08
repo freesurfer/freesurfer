@@ -164,7 +164,7 @@ int
 main(int argc, char *argv[]) {
   char        *cp, fname[STRLEN];
   int         nargs, msec, n_sample = 100, length = 100 ;
-  struct timeb  then ;
+  Timer then ;
   MRI         *cc_medial_axis;
   MEDATOM     *medial_axis;
 
@@ -188,7 +188,7 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   /* starting the searching of mid-saggital plane */
   if ( WM == 1 ) {
@@ -213,7 +213,7 @@ main(int argc, char *argv[]) {
   MRIfree(&mri_intensity);
   MRIfree(&cc_medial_axis);
   free(medial_axis);
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stdout, "corpus callosum matter segmentation and processing took %2.1f minutes\n", (float)msec/(1000.0f*60.0f));
   exit(0) ;
   return(0) ;

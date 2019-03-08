@@ -39,6 +39,7 @@ set CursorCRS = ();
 set CenterCursor = 0;
 set Zoom = ();
 set altargs = ()
+set UseVGLRun = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -133,7 +134,12 @@ else
   if($DoSurfs) set cmd = ($cmd -surfs)
 endif
 echo $cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 
 #========================================================
 
@@ -358,6 +364,10 @@ while( $#argv != 0 )
       set UseTkMedit = 1;
       breaksw
 
+    case "-vgl":
+      set UseVGLRun = 1;
+      breaksw
+
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
@@ -557,6 +567,7 @@ usage_exit:
   echo "-white : load {l,r}h.white"
   echo "-pial : load {l,r}h.pial"
   echo "-surfext ext : add ext to the name of the surface"
+  echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

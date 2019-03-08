@@ -16,6 +16,7 @@ GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
   m_nMaxDistance = 10;
   connect(this, SIGNAL(ComputeTriggered()), SLOT(DoCompute()));
+  connect(this, SIGNAL(ApplyTriggered()), SLOT(DoApply()));
   moveToThread(&m_thread);
   m_thread.start();
 }
@@ -36,13 +37,24 @@ void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_
   emit ComputeTriggered();
 }
 
+void GeoSWorker::Apply(LayerMRI *seg, LayerMRI *filled)
+{
+  m_seg = seg;
+  m_filled = filled;
+  emit ApplyTriggered();
+}
+
 void GeoSWorker::DoCompute()
 {
   int* dim = m_seg->GetImageData()->GetDimensions();
   size_t vol_size = dim[0]*dim[1]*dim[2];
 
   vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast->SetInputData(m_seeds->GetImageData());
+#else
   cast->SetInput(m_seeds->GetImageData());
+#endif
   cast->SetOutputScalarTypeToUnsignedChar();
   cast->Update();
   vtkImageData* seeds = cast->GetOutput();
@@ -100,7 +112,11 @@ void GeoSWorker::DoCompute()
   voi->SetVOI(bound);
   voi->Update();
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast2->SetInputData(m_mri->GetImageData());
+#else
   cast2->SetInput(m_mri->GetImageData());
+#endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();
   voi2->SetInputConnection(cast2->GetOutputPort());
@@ -118,10 +134,10 @@ void GeoSWorker::DoCompute()
   mri->GetDimensions(dim_new);
   vol_size = dim_new[0]*dim_new[1]*dim_new[2];
   unsigned char* seeds_out = new unsigned char[vol_size];
-  bool bSuccess = geos.ComputeWithSorting(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  bool bSuccess = geos.Compute(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
-    m_seg->SaveForUndo();
+//    m_seg->SaveForUndo();
     void* p = m_seg->GetImageData()->GetScalarPointer();
     int nDataType = m_seg->GetImageData()->GetScalarType();
     double fillValue = m_seg->GetFillValue();
@@ -148,7 +164,42 @@ void GeoSWorker::DoCompute()
         }
       }
     }
-    m_seg->Modified();
+    m_seg->SetModified();
   }
-  emit Finished(bSuccess);
+  else
+    emit Failed();
+}
+
+void GeoSWorker::DoApply()
+{
+  m_seg->SaveForUndo();
+  void* p = m_seg->GetImageData()->GetScalarPointer();
+  int nDataType = m_seg->GetImageData()->GetScalarType();
+  double fillValue = m_seg->GetFillValue();
+  int* dim = m_filled->GetImageData()->GetDimensions();
+  unsigned char* p_filled = (unsigned char*)m_filled->GetImageData()->GetScalarPointer();
+  size_t vol_size = dim[0]*dim[1]*dim[2];
+  for (size_t i = 0; i < vol_size; i++)
+  {
+    if (p_filled[i])
+    {
+      switch (nDataType)
+      {
+      case VTK_INT:
+        ((int*)p)[i] = (int)fillValue;
+        break;
+      case VTK_UNSIGNED_CHAR:
+        ((unsigned char*)p)[i] = (unsigned char)fillValue;
+        break;
+      case VTK_FLOAT:
+        ((float*)p)[i] = (float)fillValue;
+        break;
+      case VTK_DOUBLE:
+        ((double*)p)[i] = (double)fillValue;
+        break;
+      }
+    }
+  }
+  m_seg->SetModified();
+  emit ApplyFinished();
 }

@@ -62,7 +62,11 @@ void LivewireTool::UpdateImageDataInfo( vtkImageData* image_in, int nPlane, int 
     m_nPlane = nPlane;
     m_nSlice = nSlice;
     vtkSmartPointer<vtkImageClip> clip = vtkSmartPointer<vtkImageClip>::New();
+#if VTK_MAJOR_VERSION > 5
+    clip->SetInputData( image_in );
+#else
     clip->SetInput( image_in );
+#endif
     int ext[6];
     image_in->GetExtent( ext );
     ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;

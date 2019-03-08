@@ -75,7 +75,7 @@ int main(int narg, char* arg[])
 	std::vector<std::string> labels;
 	std::vector<std::pair<std::string,std::string>> clusterIdHierarchy;
 	ImageType::Pointer segmentation; 
-
+	std::cout << "number of points  "<< numberOfPoints << std::endl;
 	const unsigned int PointDimension = 3;
 	{
 
@@ -199,7 +199,11 @@ int main(int narg, char* arg[])
 				trkReader->TrkToVTK();
 			
 				vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+				spline->SetInputData(trkReader->GetOutputPolyData());
+#else
 				spline->SetInput(trkReader->GetOutputPolyData());
+#endif
 				spline->SetNumberOfSubdivisions(numberOfPoints);
 				spline->Update();
 				converter->SetVTKPolyData ( spline->GetOutput());
@@ -214,7 +218,11 @@ int main(int narg, char* arg[])
 				vtkReader->Update();
 				
 				vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+				spline->SetInputConnection(vtkReader->GetOutputPort());
+#else
 				spline->SetInput(vtkReader->GetOutput());
+#endif
 				spline->SetNumberOfSubdivisions(numberOfPoints);
 				spline->Update();
 				converter->SetVTKPolyData ( spline->GetOutput());
@@ -390,6 +398,7 @@ int main(int narg, char* arg[])
 				functionList.push_back(function);
 			}else if(cl.search(1,"-euclid"))
 			{
+				//std::cout << "-euclid" << std::endl;
 				typedef EuclideanMembershipFunction<MeasurementVectorType> MembershipFunctionType;
 				MembershipFunctionType::Pointer function2 = MembershipFunctionType::New();	
 				function2->WithCosine(false);	
@@ -583,7 +592,11 @@ int main(int narg, char* arg[])
 
 			vtkSmartPointer<vtkPolyDataWriter> writerFixed = vtkPolyDataWriter::New();
 			writerFixed->SetFileName ( meshName2);
+#if VTK_MAJOR_VERSION > 5
+			writerFixed->SetInputData(vtkConverter->GetOutputPolyData());
+#else
 			writerFixed->SetInput(vtkConverter->GetOutputPolyData());
+#endif
 			writerFixed->SetFileTypeToBinary();
 			writerFixed->Update();
 			//std::cout << " saving file " << meshName2 << std::endl;

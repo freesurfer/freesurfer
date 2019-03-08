@@ -36,6 +36,8 @@
       <explanation>"Moveable" volume. This is the template for the cross-modal volume. Eg, for fMRI, it is the volume used for motion correction.</explanation>
       <argument>--reg register.{dat,lta}</argument>
       <explanation>Output FreeSurfer registration file (tkregister-style or LTA format).</explanation>
+      <argument>--vsm VoxelShiftMap </argument>
+      <explanation>Include B0 distortion correction while performing registration. A voxel shift map can be created from a B0 map with the epidewarp.fsl script (in FreeSurfer)</explanation>
       <intro>Initialization Arguments</intro>
       <argument>--init-coreg (Default)</argument>
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>

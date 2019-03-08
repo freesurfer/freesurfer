@@ -43,12 +43,12 @@
 #include <string>
 #include <iostream>
 
-extern "C"
-{
+
+
 #include "mri.h"
 #include "mrisurf.h"
 #include "colortab.h"
-}
+
 
 using namespace std;
 

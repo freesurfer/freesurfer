@@ -44,22 +44,13 @@
 #include <vnl/vnl_matlab_print.h>
 #undef export
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
 using namespace std;
 
-extern "C"
-{
+extern "C" {
 
 // complex Schur decomposition
 extern void zgees_(char *jobvs, char *sort, long (*select)(), long *n,
@@ -92,7 +83,7 @@ extern void ztrsen_(char *job, char *compq, int *select, long *n,
 // 
 // }
 
-// extern "C"{
+// extern "C" {
 // /*: Computes Schur Decomposistion of nxn complex matrix */
 // extern int v3p_netlib_zgees_(
 //   char v3p_netlib_const *jobvs,

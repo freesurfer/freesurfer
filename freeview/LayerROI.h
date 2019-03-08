@@ -44,9 +44,9 @@ class LayerMRI;
 class LayerPropertyROI;
 class LayerSurface;
 
-extern "C" {
+ 
 #include "label.h"
-}
+
 
 class LayerROI : public LayerVolumeBase
 {

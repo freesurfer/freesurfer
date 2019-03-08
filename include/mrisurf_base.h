@@ -33,7 +33,6 @@ extern int fix_vertex_area;
 #ifdef BEVIN_REPRODUCIBLES_CHECK
 
     #define BEVIN_MRISCOMPUTENORMALS_CHECK
-    #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
     #define BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
     #define BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
     #define BEVIN_MRISCOMPUTESSE_CHECK
@@ -42,10 +41,6 @@ extern int fix_vertex_area;
 
 // Configurable support for enabling the new code that does get reproducible results
 //
-#define BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-#define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
-#define BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
-#define BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
@@ -81,7 +76,7 @@ extern int fix_vertex_area;
 #include "error.h"
 #include "fio.h"
 #include "fnv_hash.h"
-#include "gifti_local.h"
+#include "gifti.h"
 #include "icosahedron.h"
 #include "machine.h"
 #include "macros.h"
@@ -97,7 +92,7 @@ extern int fix_vertex_area;
 #include "tags.h"
 #include "talairachex.h"
 #include "timer.h"
-#include "topology/topo_parms.h"
+#include "topo_parms.h"
 #include "transform.h"
 #include "tritri.h"
 #include "utils.h"
@@ -212,13 +207,7 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
 #define MAXFACES (2 * MAXVERTICES)
 #define MAX_NBHD_VERTICES 20000     // must fit in short because VERTEX.vnum etc are short
 
-
-// uncomment this to expose code which shows timings of gpu activities:
-//#define FS_CUDA_TIMINGS
-
-
 /*---------------------------- STRUCTURES -------------------------*/
-
 /*---------------------------- CONSTANTS -------------------------*/
 
 #define D_DIST          0.1         // sampling distance along tangent plane for computing derivatives
@@ -335,6 +324,9 @@ int mrisWriteSnapshot (MRIS *mris, INTEGRATION_PARMS *parms, int t);
 
 extern const float * sigmas;
 extern       double nsigmas;
+
+float* mrisStealDistStore(MRIS* mris, int vno, int newCapacity);
+void   mrisSetDist(MRIS* mris, int vno, float* dist, int newCapacity);
 
 bool MRISreallocVertices            (MRIS* mris, int max_vertices, int nvertices);
 void MRISgrowNVertices              (MRIS* mris, int nvertices);

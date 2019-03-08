@@ -32,19 +32,11 @@
 #ifndef __C_MPM_PROG_H__
 #define __C_MPM_PROG_H__
 
-#ifdef __cplusplus
-extern  "C" {
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
 #include "fio.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "env.h"
 #include "C_mpmOverlay.h"

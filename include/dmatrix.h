@@ -26,10 +26,6 @@
 #ifndef DMATRIX_H
 #define DMATRIX_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #ifdef X
 #undef X
 #endif
@@ -71,10 +67,5 @@ double DVectorLen(const DVECTOR *v);
 DVECTOR *DVectorCrossProduct(const DVECTOR *v1, const DVECTOR *v2, DVECTOR *vdst);
 DMATRIX_TYPE DMatrixMaxAbs(DMATRIX *M);
 DMATRIX *DMatrixDRand48(int rows, int cols, DMATRIX *m);
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

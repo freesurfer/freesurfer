@@ -213,7 +213,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->sliderOpacity
                             << ui->doubleSpinBoxOpacity
                             << ui->checkBoxSmooth
-                            << ui->checkBoxUpsample
+                      //      << ui->checkBoxUpsample
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
 
@@ -231,7 +231,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
         << m_widgetlistGenericColorMap << m_widgetlistLUT
         << m_widgetlistDirectionCode << m_widgetlistVector
         << m_widgetlistContour << m_widgetlistEditable
-        << ui->checkBoxSmooth << ui->checkBoxUpsample
+        << ui->checkBoxSmooth // << ui->checkBoxUpsample
         << ui->labelColorMap << ui->comboBoxColorMap
         << ui->checkBoxShowContour << ui->checkBoxShowOutline;
 
@@ -243,6 +243,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
       combo.removeAt(n);
   }
   m_widgetlistNonVolumeTrack = combo;
+
+  ui->checkBoxUpsample->hide();
 
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
@@ -661,7 +663,8 @@ void PanelVolume::DoUpdateWidgets()
       UpdateColorLabel();
     }
 
-    ui->checkBoxSmooth->setVisible(layer && layer->GetDataType() == MRI_RGB);
+    if (layer && layer->GetDataType() == MRI_RGB)
+      ui->checkBoxSmooth->setVisible(true);
   }
   if (layer && nColorMap == LayerPropertyMRI::Heat)
   {
@@ -684,7 +687,6 @@ void PanelVolume::DoUpdateWidgets()
   UpdateTrackVolumeThreshold();
 
   ui->checkBoxUpsampleContour->hide();
-  ui->checkBoxUpsample->hide();
 
   BlockAllSignals( false );
 }

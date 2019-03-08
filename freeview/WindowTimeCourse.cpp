@@ -30,6 +30,7 @@
 #include "FSVolume.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
+#include "SurfaceOverlayProperty.h"
 #include "FSSurface.h"
 #include <QSettings>
 #include <QDebug>
@@ -44,10 +45,10 @@ WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
   ui->setupUi(this);
   this->setWindowFlags(Qt::Tool);
   this->setWindowTitle("Time Course");
-  ui->frameSecondVolume->hide();
+  ui->frameSecondPlot->hide();
   connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)));
   connect(ui->widgetPlot, SIGNAL(PlotRangeChanged()), this, SLOT(UpdateScaleInfo()), Qt::QueuedConnection);
-  connect(ui->comboBoxSecondVolume, SIGNAL(currentIndexChanged(int)), SLOT(OnComboSecondVolume(int)));
+  connect(ui->comboBoxSecondPlot, SIGNAL(currentIndexChanged(int)), SLOT(OnComboSecondPlot(int)));
 
   QSettings s;
   QVariant v = s.value("WindowTimeCourse/Geomerty");
@@ -86,31 +87,61 @@ void WindowTimeCourse::UpdateUI()
     {
       QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
       LayerMRI* current_2nd_layer = qobject_cast<LayerMRI*>(
-            ui->comboBoxSecondVolume->itemData(ui->comboBoxSecondVolume->currentIndex()).value<QObject*>());
+            ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
       foreach (Layer* l, layers)
       {
         if (((LayerMRI*)l)->GetNumberOfFrames() == layer->GetNumberOfFrames() && l != layer)
           valid_layers << ((LayerMRI*)l);
       }
-      ui->comboBoxSecondVolume->blockSignals(true);
-      ui->comboBoxSecondVolume->clear();
-      ui->comboBoxSecondVolume->addItem("Off");
+      ui->comboBoxSecondPlot->blockSignals(true);
+      ui->comboBoxSecondPlot->clear();
+      ui->comboBoxSecondPlot->addItem("Off");
       int n = 0;
       for (int i = 0; i < valid_layers.size(); i++)
       {
         if (valid_layers[i] == current_2nd_layer)
           n = i+1;
-        ui->comboBoxSecondVolume->addItem(valid_layers[i]->GetName(), QVariant::fromValue((QObject*)valid_layers[i]));
+        ui->comboBoxSecondPlot->addItem(valid_layers[i]->GetName(), QVariant::fromValue((QObject*)valid_layers[i]));
       }
-      ui->comboBoxSecondVolume->setCurrentIndex(n);
-      ui->comboBoxSecondVolume->blockSignals(false);
+      ui->comboBoxSecondPlot->setCurrentIndex(n);
+      ui->comboBoxSecondPlot->blockSignals(false);
     }
-    ui->frameSecondVolume->setVisible(!valid_layers.isEmpty());
+    ui->frameSecondPlot->setVisible(!valid_layers.isEmpty());
+    ui->labelSecondPlot->setText("Second Volume");
+  }
+  else if (type == "Surface")
+  {
+    QList<SurfaceOverlay*> valid_overlays;
+    LayerSurface* layer = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
+    if (layer && layer->GetNumberOfOverlays() > 1 && layer->GetActiveOverlay())
+    {
+      QList<SurfaceOverlay*> overlays = layer->GetOverlays();
+      SurfaceOverlay* current_overlay = layer->GetActiveOverlay();
+      SurfaceOverlay* current_2nd_overlay = qobject_cast<SurfaceOverlay*>(
+            ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
+      foreach (SurfaceOverlay* l, overlays)
+      {
+        if (l->GetNumberOfFrames() == current_overlay->GetNumberOfFrames() && l != current_overlay)
+          valid_overlays << l;
+      }
+      ui->comboBoxSecondPlot->blockSignals(true);
+      ui->comboBoxSecondPlot->clear();
+      ui->comboBoxSecondPlot->addItem("Off");
+      int n = 0;
+      for (int i = 0; i < valid_overlays.size(); i++)
+      {
+        if (valid_overlays[i] == current_2nd_overlay)
+          n = i+1;
+        ui->comboBoxSecondPlot->addItem(valid_overlays[i]->GetName(), QVariant::fromValue((QObject*)valid_overlays[i]));
+      }
+      ui->comboBoxSecondPlot->setCurrentIndex(n);
+      ui->comboBoxSecondPlot->blockSignals(false);
+    }
+    ui->frameSecondPlot->setVisible(!valid_overlays.isEmpty());
+    ui->labelSecondPlot->setText("Second Overlay");
   }
   else
-  {
-    ui->frameSecondVolume->hide();
-  }
+    ui->comboBoxSecondPlot->hide();
 }
 
 void WindowTimeCourse::UpdateData(bool bForce)
@@ -147,7 +178,7 @@ void WindowTimeCourse::UpdateData(bool bForce)
       QList<double> data, data2;
       for (int i = 0; i < layer->GetNumberOfFrames(); i++)
         data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
-      LayerMRI* layer2 = qobject_cast<LayerMRI*>(ui->comboBoxSecondVolume->itemData(ui->comboBoxSecondVolume->currentIndex()).value<QObject*>());
+      LayerMRI* layer2 = qobject_cast<LayerMRI*>(ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
       if (layer2)
       {
         MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
@@ -222,11 +253,24 @@ void WindowTimeCourse::UpdateData(bool bForce)
       double range[2];
       overlay->GetDataAtVertex(nVert, buffer);
       overlay->GetRawRange(range);
-      QList<double> data;
+      QList<double> data, data2;
       for (int i = 0; i < nFrames; i++)
         data << buffer[i];
+      SurfaceOverlay* overlay2 = qobject_cast<SurfaceOverlay*>(ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
+
+      if (overlay2)
+      {
+        double range2[2];
+        overlay2->GetDataAtVertex(nVert, buffer);
+        overlay2->GetRawRange(range2);
+        range[0] = qMin(range[0], range2[0]);
+        range[1] = qMax(range[1], range2[1]);
+        for (int i = 0; i < nFrames; i++)
+          data2 << buffer[i];
+      }
       delete[] buffer;
       ui->widgetPlot->SetTimeCourseData(data, range[0], range[1]);
+      ui->widgetPlot->SetSecondData(data2);
       ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
       setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
       lastSurface = surf;
@@ -247,6 +291,10 @@ void WindowTimeCourse::OnFrameChanged(int frame)
     {
       layer->SetActiveFrame(frame);
     }
+  }
+  else
+  {
+    emit OverlayFrameChanged(frame);
   }
 }
 
@@ -319,7 +367,7 @@ void WindowTimeCourse::OnLineEditScaleReturnPressed()
   ui->widgetPlot->SetPlotRange(range);
 }
 
-void WindowTimeCourse::OnComboSecondVolume(int nSel)
+void WindowTimeCourse::OnComboSecondPlot(int nSel)
 {
   UpdateData();
 }
@@ -328,3 +376,4 @@ void WindowTimeCourse::OnCheckShowFrameNumber(bool b)
 {
   ui->widgetPlot->SetShowFrameNumber(b);
 }
+

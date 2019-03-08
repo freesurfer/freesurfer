@@ -27,10 +27,6 @@
 #ifndef FIO_H
 #define FIO_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "znzlib.h"
 
 FILE  *MGHopen_file(const char *fname,const char *rwmode) ;
@@ -105,9 +101,5 @@ int fio_mkdirp(const char *path, mode_t mode);
 int fio_FileHasCarriageReturn(char *fname);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
-
-#if defined(__cplusplus)
-};
-#endif
 
 #endif

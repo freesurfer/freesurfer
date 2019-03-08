@@ -31,17 +31,13 @@
 
 #include "vtkKWQdecApp.h"
 
-extern "C" {
-
 #include "diag.h"
 #include "error.h"
 #include "unistd.h" // getcwd
 #include "tix.h"
   
-  extern int Qdeclib_SafeInit( Tcl_Interp* iInterp );
-  extern int Blt_Init( Tcl_Interp* iInterp );
-
-}
+extern int Qdeclib_SafeInit( Tcl_Interp* iInterp );
+extern int Blt_Init( Tcl_Interp* iInterp );
 
 using namespace std;
 

@@ -30,9 +30,9 @@
 #include "general.h"
 #include "pathconvert.h"
 
-extern "C" {
+ 
   extern const char *Progname;
-}
+
 extern string   G_SELF;
 extern bool     Gb_stdout;
 

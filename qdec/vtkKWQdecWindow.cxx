@@ -94,10 +94,8 @@
 #include "vtkWindowToImageFilter.h"
 #include "QdecProject.h"
 
-extern "C" {
 #include "mrisutils.h"
 #include "fsenv.h"
-}
 
 using namespace std;
 

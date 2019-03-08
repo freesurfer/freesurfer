@@ -21,14 +21,10 @@
  *
  */
 
-//FreeSurfer C includes
-extern "C"
-{
 #include "fsenv.h"
 #include "mri.h"
 #include "diag.h"
 #include "DICOMRead.h"
-};
 #include <stdexcept>
 #include <vector>
 #include <iterator>

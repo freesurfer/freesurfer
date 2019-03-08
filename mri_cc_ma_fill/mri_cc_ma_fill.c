@@ -75,7 +75,7 @@ int
 main(int argc, char *argv[]) {
   int         nargs, msec, length = 100, n=0, i=0, j=0, k=0;
   int         cc_x=0, width, height, depth;
-  struct timeb  then ;
+  Timer then ;
   MRI         *mri_cc, *mri_ma, *mri_out;
   FILE        *fp;
   float       x, y, val;
@@ -95,7 +95,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM,
               "usage: %s <cc_volume> <P_value> <output_volume> ", Progname);
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   fprintf(stdout, "reading corpus callosum volume from %s\n", argv[1]);
   mri_cc = MRIread(argv[1]) ;
@@ -153,7 +153,7 @@ main(int argc, char *argv[]) {
 
   MRIfree(&mri_cc);
   free(medial_axis);
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fclose(fp);
   exit(0) ;
   return(0) ;

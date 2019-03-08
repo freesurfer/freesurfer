@@ -26,11 +26,6 @@
 #ifndef RFUTILS_H
 #define RFUTILS_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 #include "mri.h"
 #include "transform.h"
 #include "colortab.h"
@@ -38,7 +33,5 @@ extern "C" {
 #include "affine.h"
 #include "rforest.h"
 #include "cma.h"
-
-
 
 #endif

@@ -31,16 +31,8 @@
 #include <list>
 #include <vector>
 #include <string>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <stdio.h> // printf
 #include <stdlib.h>
-#ifdef __cplusplus
-}
-#endif
 
 #define GMP_ISOPTION(c) ((c) == '-')
 

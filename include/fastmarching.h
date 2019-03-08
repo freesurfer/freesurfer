@@ -26,12 +26,6 @@
 #ifndef fastmarching_h
 #define fastmarching_h
 
-// The following is usable from C
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "diag.h"
@@ -50,23 +44,16 @@ void MRISextractOutsideDistanceMap(MRIS *mris,
                                    float resolution,
                                    float max_distance);
 
-#ifdef __cplusplus
-}
-#endif
-
-// C++ portion starts here
-#ifdef __cplusplus
-
 #include <queue>
 #include <functional>
 #include <climits>
 #include <list>
 
-extern "C"
-{
+
+
 #include "mrisurf.h"
 #include "error.h"
-}
+
 
 #define mapMRI_XYZ(mri,x,y,z) for(int z =0 ; z < mri->depth ; z++) \
                  for(int y = 0 ; y < mri->height ; y++) \
@@ -586,7 +573,5 @@ public:
   }
 
 };
-#endif  // C++ portion ends here
-
 
 #endif // ifndef fastmarching_h

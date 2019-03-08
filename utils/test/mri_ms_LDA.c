@@ -137,7 +137,7 @@ main(int argc, char *argv[])
   int    ac, nargs, i, j,  x, y, z, width, height, depth;
   MRI    *mri_flash[MAX_IMAGES], *mri_label, *mri_mask, *mri_tmp;
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
-  struct timeb start ;
+  Timer start ;
   float max_val, min_val, value;
   float *LDAmean1, *LDAmean2, *LDAweight;
   int label;
@@ -156,7 +156,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  TimerStart(&start) ;
+  start.reset() ;
 
   ac = argc ;
   av = argv ;
@@ -526,7 +526,7 @@ main(int argc, char *argv[])
   free(LDAmean2);
   free(LDAweight);
 
-  msec = TimerStop(&start) ;
+  msec = start.milliseconds() ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;

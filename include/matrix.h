@@ -26,11 +26,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 #ifdef X
 #undef X
 #endif
@@ -129,7 +124,7 @@ int     MatrixPrint(FILE *fp, const MATRIX *mat) ;
 int     MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
-int     MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post);
+int     MatrixPrintWithString(FILE *fp, MATRIX *m, const char *Pre, const char *Post);
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
@@ -223,8 +218,12 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #define XYZ_LOAD(v,x,y,z)             do { XYZ* xyz = &v; xyz.x=x, xyz.y=y, xyz.z=z; } while 0
 void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, float z);
 
-float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2);
-
+float XYZApproxAngle(
+    XYZ const * normalizedXYZ, float x2, float y2, float z2);
+    
+float XYZApproxAngle_knownLength(
+    XYZ const * normalizedXYZ, 
+    float x2, float y2, float z2, float length2);
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 float  VectorLen( const VECTOR *v ) ;
@@ -353,11 +352,5 @@ double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R);
 MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
-
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

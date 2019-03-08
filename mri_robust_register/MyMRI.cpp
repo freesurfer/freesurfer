@@ -36,19 +36,11 @@
 #include "CostFunctions.h"
 #include "RobustGaussian.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "limits.h"
 #include "error.h"
 #include "macros.h"
 #include "mrimorph.h"
 #include "histo.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

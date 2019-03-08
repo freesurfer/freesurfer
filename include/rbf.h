@@ -74,24 +74,24 @@ typedef struct
 }
 RBF ;
 
-RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
+RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], const char *names[]) ;
 int   RBFtrain(RBF *rbf, int (*get_observation_func)
-               (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
+               (VECTOR *v_obs, int no, void *parm, int same_class,int *classnum),
                void *parm, float momentum) ;
 int   RBFretrain(RBF *rbf, int (*get_observation_func)
-                 (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
+                 (VECTOR *v_obs, int no, void *parm, int same_class,int *classnum),
                  void *parm, float momentum) ;
 int   RBFfree(RBF **prbf) ;
 int   RBFprint(RBF *rbf, FILE *fp) ;
 int   RBFprintActivations(RBF *rbf, VECTOR *v_obs, VECTOR *v_error,
-                          int class, FILE *fp);
+                          int classnum, FILE *fp);
 int   RBFclassify(RBF *rbf, VECTOR *v_obs) ;
 int   RBFwrite(RBF *rbf, char *fname) ;
 RBF   *RBFread(char *fname) ;
 int   RBFwriteInto(RBF *rbf, FILE *fp) ;
 RBF   *RBFreadFrom(FILE *fp) ;
 RBF   *RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst) ;
-float RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error) ;
+float RBFcomputeErrors(RBF *rbf, int classnum, VECTOR *v_error) ;
 int   RBFexamineTrainingSet(RBF *rbf, int (*get_observation_func)
                             (VECTOR *v_obs, int no, void *parm,
                              int same_class,int *pclass), void *parm) ;

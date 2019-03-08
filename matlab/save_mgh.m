@@ -1,4 +1,4 @@
-function r = save_mgh(vol, fname, M, mr_parms);
+function r = save_mgh(vol, fname, M, mr_parms)
 %
 % save_mgh(vol,fname, M, <mr_parms>);
 %
@@ -35,7 +35,7 @@ function r = save_mgh(vol, fname, M, mr_parms);
 
 r = 1;
 
-if(nargin < 2 | nargin > 4)
+if(nargin < 2 || nargin > 4)
   msg = 'USAGE: save_mgh2(vol,fname,M)';
   return;
 end
@@ -114,25 +114,12 @@ fclose(fid) ;
 
 r = 0;
 
-if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') | ...
+if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') || ...
 		strcmpi(fname((length(fname)-3):length(fname)), '.GZ'))
-
-  % This does not generate a unique fname
-  %gzipped =  round(rand(1)*10000000);
-  %ind = findstr(fname, '.');
-  %new_fname = sprintf('/scratch/tmp%d.mgh', gzipped);
-
-  if(exist('/scratch'))
-    new_fname = tempname('/scratch');
-  else
-    new_fname = tempname('/tmp');
-  end
-  new_fname = sprintf('%s.mgh', new_fname);
-  %fprintf('save_mgh tmp file name %s\n',new_fname);
-  unix(sprintf('mv %s %s ; gzip %s ; mv %s.gz %s', fname, new_fname, new_fname, new_fname, fname)) ;
-  fname = new_fname ;
-
-end	
+  cmd = sprintf('gzip -f %s ; mv %s.gz %s', fname, fname, fname);
+  [status,msg] = unix(cmd);
+  if status ~= 0, fprintf('%s\n',msg) ; end
+end
 
 return;
 

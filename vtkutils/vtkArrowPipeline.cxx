@@ -41,7 +41,7 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.7 $" );
+//vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.7 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 

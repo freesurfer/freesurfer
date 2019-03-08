@@ -27,13 +27,13 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+ 
 #include "macros.h"
 #include "mri.h"
 #include "transform.h"
 #include "version.h"
   const char *Progname = "mri_modify";
-}
+
 
 using namespace std;
 

@@ -65,11 +65,9 @@ def samsegment(
         image = gems.KvlImage(imageFileName, transformedTemplateFileName)
         transform = image.transform_matrix
         nonCroppedImageSize = image.non_cropped_image_size
-        croppingOffset = image.cropping_offset
+        cropping = image.crop_slices
         images.append(image)
         imageBuffers.append(image.getImageBuffer())
-    nonCroppedImageSize = [int(dim) for dim in nonCroppedImageSize]
-    croppingOffset = [int(offset) for offset in croppingOffset]
 
     imageSize = imageBuffers[0].shape
     imageBuffers = np.transpose(imageBuffers, axes=[1, 2, 3, 0])
@@ -150,20 +148,15 @@ def samsegment(
     for contrastNumber in range(numberOfContrasts):
         imageBuffers[:, :, :, contrastNumber] *= brainMask
 
-    visualizer.show(
-        images=imageBuffers,
-        window_id='samsegment images',
-        title='Samsegment Masked Contrasts'
-    )
+    visualizer.show(images=imageBuffers, window_id='samsegment images', title='Samsegment Masked Contrasts')
 
     # Let's prepare for the bias field correction that is part of the imaging model. It assumes
     # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
-    # transform the data first. In order to do so, mask out zeros from
-    # the images.
+    # transform the data first. In order to do so, mask out zeros from the images.
     # This removes any voxel where any contrast has a zero value (messes up log)
     mask = np.full(imageSize, True, dtype=np.bool)
     for contrastNumber in range(numberOfContrasts):
-        mask = mask * (imageBuffers[:, :, :, contrastNumber] > 0)
+        mask *= imageBuffers[:, :, :, contrastNumber] > 0
     with np.warnings.catch_warnings():
         np.warnings.filterwarnings('ignore')
         log_buffers = np.log(imageBuffers)
@@ -596,7 +589,7 @@ def samsegment(
 
             # Save history of the estimation
             if saveHistory:
-                iterationHistory = {
+                levelHistory['historyWithinEachIteration'].append({
                     'historyOfEMCost': historyOfEMCost,
                     'mixtureWeights': mixtureWeights,
                     'means': means,
@@ -605,8 +598,7 @@ def samsegment(
                     'historyOfDeformationCost': historyOfDeformationCost,
                     'historyOfMaximalDeformation': historyOfMaximalDeformation,
                     'maximalDeformationApplied': maximalDeformationApplied
-                }
-                levelHistory['historyWithinEachIteration'].append(iterationHistory)
+                })
 
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 # Display the cost history
@@ -698,8 +690,8 @@ def samsegment(
 
     # NOTE: NOT GOING TO RESHAPE, WILL USE MASK INDEXING
     # Ignore everything that's has zero intensity
-    priors = priors[mask == 1, :]
-    data = data[mask == 1, :]
+    priors = priors[mask, :]
+    data = data[mask, :]
     likelihood_count = data.shape[0]
 
     # Calculate the posteriors
@@ -738,13 +730,11 @@ def samsegment(
     structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
     freeSurferSegmentation = np.zeros(imageSize, dtype=np.uint16)
     FreeSurferLabels = np.array(FreeSurferLabels, dtype=np.uint16)
-    freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
+    freeSurferSegmentation[mask] = FreeSurferLabels[structureNumbers]
 
     # Write to file, remembering to un-crop the segmentation to the original image size
     uncroppedFreeSurferSegmentation = np.zeros(nonCroppedImageSize, dtype=np.float32)
-    uncroppedFreeSurferSegmentation[croppingOffset[0]: imageSize[0] + croppingOffset[0],
-    croppingOffset[1]: imageSize[1] + croppingOffset[1],
-    croppingOffset[2]: imageSize[2] + croppingOffset[2]] = freeSurferSegmentation
+    uncroppedFreeSurferSegmentation[cropping] = freeSurferSegmentation
     print('Writing out freesurfer segmentation')
     gems.KvlImage(requireNumpyArray(uncroppedFreeSurferSegmentation)).write(
         os.path.join(savePath, 'crispSegmentation.nii'),
@@ -759,40 +749,40 @@ def samsegment(
         mesh_collection.reference_mesh.points = requireNumpyArray(desiredNodePositionsInTemplateSpace)
         mesh_collection.write(os.path.join(savePath, 'mesh.txt'))
 
+    # Isolate the white matter posteriors to compute the average intensity of white matter voxels for each input
+    wmRightIndex = names.index('Right-Cerebral-White-Matter')
+    wmLeftIndex = names.index('Left-Cerebral-White-Matter')
+    wmPosteriors = np.zeros(imageSize, dtype=float)
+    wmPosteriors[mask] = posteriors[:, wmRightIndex] + posteriors[:, wmLeftIndex]
+
     # Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
     for contrastNumber, imageFileName in enumerate(imageFileNames):
         image_base_path, ext = os.path.splitext(imageFileName)
         data_path, scanName = os.path.split(image_base_path)
 
-        # First bias field - we're computing it also outside of the mask, but clip the
-        # intensities there to the range observed inside the mask (with some margin) to
-        # avoid crazy extrapolation values
+        # First bias field - we're computing it also outside of the mask, but clip the intensities there to
+        # the range observed inside the mask (with some margin) to avoid crazy extrapolation values
         logBiasField = biasFields[:, :, :, contrastNumber]
         clippingMargin = np.log(2)
-        clippingMin = logBiasField[ mask > 0 ].min() - clippingMargin
-        clippingMax = logBiasField[ mask > 0 ].max() + clippingMargin
+        clippingMin = logBiasField[mask].min() - clippingMargin
+        clippingMax = logBiasField[mask].max() + clippingMargin
         logBiasField[ logBiasField < clippingMin ] = clippingMin
         logBiasField[ logBiasField > clippingMax ] = clippingMax
         biasField = np.zeros(nonCroppedImageSize, dtype=np.float32)
-        biasField[
-            croppingOffset[0]:croppingOffset[0] + imageSize[0],
-            croppingOffset[1]:croppingOffset[1] + imageSize[1],
-            croppingOffset[2]:croppingOffset[2] + imageSize[2],
-            ] = np.exp( logBiasField )
+        biasField[cropping] = np.exp( logBiasField )
         outputFileName = os.path.join(savePath, scanName + '_biasField.nii')
-        gems.KvlImage(biasField).write(
-            outputFileName,
-            gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix))
-        )
+        gems.KvlImage(biasField).write(outputFileName, gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix)))
 
-        # Then bias field corrected data
-        biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)
-        biasCorrected[
-            croppingOffset[0]:croppingOffset[0] + imageSize[0],
-            croppingOffset[1]:croppingOffset[1] + imageSize[1],
-            croppingOffset[2]:croppingOffset[2] + imageSize[2],
-            ] = np.exp(biasCorrectedImageBuffers[:, :, :, contrastNumber])
+        # Then save the bias-corrected image (scale the white matter average to 110)
+        biasCorrected = np.exp(biasCorrectedImageBuffers[:, :, :, contrastNumber])
+        biasCorrectedOutput = np.zeros(nonCroppedImageSize, dtype=np.float32)
+        scaleFactor = 110 / np.average(biasCorrected, weights=wmPosteriors)
+        biasCorrectedOutput[cropping] = biasCorrected * scaleFactor
         outputFileName = os.path.join(savePath, scanName + '_biasCorrected.nii')
-        gems.KvlImage(biasCorrected).write(outputFileName, gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix)))
+        gems.KvlImage(biasCorrectedOutput).write(outputFileName, gems.KvlTransform(requireNumpyArray(imageToWorldTransformMatrix)))
+
+        # Save a note indicating the scaling factor
+        with open(os.path.join(savePath, 'scaling-factor.txt'), 'w') as f:
+            print(scaleFactor, file=f)
 
     return [FreeSurferLabels, names, volumesInCubicMm]

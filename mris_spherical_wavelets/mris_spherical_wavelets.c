@@ -77,7 +77,7 @@ static char     *fname;
 int
 main(int argc, char *argv[]) {
   int           nargs, msec, order, i, number, vno, nnum, m, k, b1, b2, cno, flag=0, fno;
-  struct timeb  then ;
+  Timer then ;
   MRIS          *mris_in, *mris_out, *mris_high;
   MRI_SP        *mrisp ;
   VERTEX        *vm_out, *vm_high, *v;
@@ -97,7 +97,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM,
               "usage: %s <input surface> <orig surface> <finest order> <output surface>", Progname);
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   order = atoi (argv[3]);
   fprintf(stdout, "Set %s as the finest scale level\n", argv[3]);
@@ -614,7 +614,7 @@ main(int argc, char *argv[]) {
 
   MRISfree(&mris_out);
   MRISfree(&mris_high) ;
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stdout, "spherical wavelet took %2.1f minutes\n", (float)msec/(1000.0f*60.0f));
   exit(0) ;
   return(0) ;

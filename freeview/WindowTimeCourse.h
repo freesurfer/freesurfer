@@ -53,13 +53,18 @@ public slots:
   void OnLineEditScaleReturnPressed();
   void OnCheckAutoScale(bool bChecked);
   void OnCheckMaxScale(bool bChecked);
-  void OnComboSecondVolume(int nSel);
+  void OnComboSecondPlot(int nSel);
   void UpdateScaleInfo();
   void UpdateUI();
   void OnCheckShowFrameNumber(bool);
+  void UpdateAll()
+  {
+    UpdateUI();
+    UpdateData();
+  }
 
 signals:
-  void FrameChanged(int frame);
+  void OverlayFrameChanged(int frame);
 
 private:
 

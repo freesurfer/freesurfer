@@ -43,10 +43,10 @@
 #define TRANSLATION_INCREMENT 0.5
 #define SCALE_INCREMENT       0.05
 
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   QDialog(parent),
