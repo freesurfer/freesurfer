@@ -1623,7 +1623,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     printf("rh pial:  %d %g\n",*rhpvtx,drhp);
     return(1);
   }
-  if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0)
+  if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && (*lhwvtx >= 0))
   {
     annot = lhwhite->vertices[*lhwvtx].annotation;
     hemi = 1;
@@ -1637,7 +1637,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     }
     dmin = dlhw;
   }
-  if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0)
+  if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && (*lhpvtx >= 0))
   {
     annot = lhwhite->vertices[*lhpvtx].annotation;
     hemi = 1;
@@ -1652,7 +1652,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     dmin = dlhp;
   }
 
-  if (drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0)
+  if (drhw < dlhp && drhw < dlhw && drhw <= drhp && (*rhwvtx >= 0))
   {
     annot = rhwhite->vertices[*rhwvtx].annotation;
     hemi = 2;
@@ -1666,7 +1666,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     }
     dmin = drhw;
   }
-  if (drhp < dlhp && drhp < drhw && drhp < dlhw && rhpvtx >= 0)
+  if (drhp < dlhp && drhp < drhw && drhp < dlhw && (*rhpvtx >= 0))
   {
     annot = rhwhite->vertices[*rhpvtx].annotation;
     hemi = 2;
