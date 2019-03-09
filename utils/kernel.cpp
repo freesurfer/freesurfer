@@ -112,7 +112,7 @@ void KernelCopy(KIMAGE *ksrc, KIMAGE *kdst, int src_row, int src_col, int dst_ro
   KERNEL *src_kernel, *dst_kernel;
   register float *src_w, *dst_w;
 
-  if (src_row == 8 && dst_row == 8) src_col = src_row = 8; /* remove warning for now */
+  // if (src_row == 8 && dst_row == 8) src_col = src_row = 8; /* remove warning for now */
 
   src_kernel = KIMAGEpix(ksrc, dst_row, dst_col);
   dst_kernel = KIMAGEpix(kdst, dst_row, dst_col);

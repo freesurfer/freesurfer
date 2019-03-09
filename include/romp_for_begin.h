@@ -66,12 +66,13 @@
       typedef void ROMP_SUMREDUCTION1;
       if (sizeof(ROMP_SUMREDUCTION1*)) {
 	;  // use to avoid a warning msg
+      }
 #endif
 #ifdef ROMP_SUMREDUCTION2
-        typedef void ROMP_SUMREDUCTION2;
-	if (sizeof(ROMP_SUMREDUCTION2*)) {
-	  ;  // use to avoid a warning msg
-	}
+      typedef void ROMP_SUMREDUCTION2;
+      if (sizeof(ROMP_SUMREDUCTION2*)) {
+	;  // use to avoid a warning msg
+      }
 #endif
                 
         // Parallel iteration over the partial sums
