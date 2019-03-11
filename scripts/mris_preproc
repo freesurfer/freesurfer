@@ -569,7 +569,9 @@ while( $#argv != 0 )
     case "--target":
       if ( $#argv == 0) goto arg1err;
       set target = $argv[1]; shift;
-      if($target != fsaverage) set SrcSurfReg = $target.sphere.reg
+      # This logic will not reset SrcSurfReg with target fsavergeX
+      set fsatest = `echo $target | cut -c 1-9`
+      if($fsatest != fsaverage) set SrcSurfReg = $target.sphere.reg
       breaksw
 
     case "--fwhm-src":

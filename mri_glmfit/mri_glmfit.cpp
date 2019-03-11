@@ -1182,20 +1182,29 @@ int main(int argc, char **argv) {
     printf("Design matrix ------------------\n");
     MatrixPrint(stdout,mriglm->Xg);
     printf("--------------------------------\n");
-    printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
-           Xcond);
-    printf("--------------------------------\n");
+    printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",Xcond);
+    printf("\n\n--------------------------------\n");
+    printf("-------- ERROR: READ THIS -----------------\n");
+    printf("--vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv-----\n");
     printf("Possible problem with experimental design:\n");
     printf("Check for duplicate entries and/or lack of range of\n"
            "continuous variables within a class.\n");
     printf("If you seek help with this problem, make sure to send:\n");
     printf("  1. Your command line:\n");
     printf("    %s\n",cmdline);
-    printf("  2. The FSGD file (if using one)\n");
-    printf("  3. And the design matrix above\n");
+    printf("  2. The terminal output of this program (ie, everything it prints to the screen)\n");
+    if(fsgdfile){
+      printf("  3. The FSGD file (%s)\n",fsgdfile);
+      printf("  4. The design matrix %s/Xg.dat\n",GLMDir);
+    }
+    else  printf("  3. The design matrix %s/Xg.dat\n",GLMDir);
     printf("Attempting to diagnose further \n");
+    if(fsgd) gdfCheckNPerClass(fsgd);
     err = GLMdiagnoseDesignMatrix(mriglm->Xg);
+    // Could check to make sure that there are enough members of the class given 
+    // the number of variables.
     if(err == 0) printf(" ... could not determine the cause of the problem\n");
+    printf("--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----\n\n\n");
     exit(1);
   }
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
@@ -3952,3 +3961,5 @@ MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out)
   }// f
   return(out);
 }
+
+

@@ -861,6 +861,7 @@ int main(int argc, char *argv[])
     printf("Placing white surface white_sigma=%g, max_white_averages=%d\n",white_sigma, max_white_averages);
   current_sigma = white_sigma ;
   n_averages = max_white_averages;
+
   for (i = 0 ;  n_averages >= min_white_averages ; n_averages /= 2, current_sigma /= 2, i++)
   {
     if(nowhite) break ; // skip if not placing the white surface
@@ -887,7 +888,6 @@ int main(int argc, char *argv[])
     parms.n_averages = n_averages ;
 
     MRISprintTessellationStats(mris, stdout) ;
-
     if(mri_aseg){
       printf("Freezing midline and others\n");  fflush(stdout);
       // This rips the midline vertices so that they do not move (thus
@@ -1087,6 +1087,10 @@ int main(int argc, char *argv[])
         v->y + (v->d*v->ny),
         v->z + (v->d*v->nz));
     }
+
+    //sprintf(fname, "./%s.white.target.i%02d", hemi, i);
+    //printf("writing white target surface to %s...\n", fname) ;
+    //MRISwrite(mristarget, fname);
 
     // Everything up to now has been leading up to this. This is where
     // the surfaces get placed.
@@ -1785,6 +1789,7 @@ int main(int argc, char *argv[])
         // border_low = min_gray_at_csf_border = meanGM-V*stdGM (V=3) (eg, 45.7)
         // outside_low = min_csf = meanGM - MAX(0.5,(V-1)*stdGM) (eg, 10)
         // outside_hi  = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
+
 	printf("Starting ComputeBorderVals\n");
         MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
@@ -2476,7 +2481,12 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "cortex"))
   {
+    // -cortex 0 to turn off
     label_cortex = atoi(argv[2]) ;
+    if((label_cortex != 0 && label_cortex != 1 ) || isalpha(argv[2][0]) || argv[2][0] == '-'){
+      printf("ERROR: -cortex flag takes one argument that must be 0 or 1; you passed %s\n",argv[2]);
+      exit(1);
+    }
     printf("%sgenerating cortex label to subject's "
            "label/?h.cortex.label file\n", label_cortex ? "" : "not ") ;
     nargs = 1 ;

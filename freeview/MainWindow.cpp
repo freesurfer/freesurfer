@@ -292,6 +292,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
+  connect(m_wndTimeCourse, SIGNAL(OverlayFrameChanged(int)), ui->widgetAllLayers->GetPanel("Surface"), SLOT(SetOverlayFrame(int)));
 
   m_wndGroupPlot = new WindowGroupPlot(this);
   m_wndGroupPlot->hide();
@@ -5640,6 +5641,8 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveSurfaceChanged(int)), ui->view3D, SLOT(OnLayerVisibilityChanged()), Qt::UniqueConnection);
   connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), m_wndTimeCourse, SLOT(UpdateUI()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(ActiveOverlayChanged(int)), m_wndTimeCourse, SLOT(UpdateAll()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -8380,4 +8383,9 @@ Layer* MainWindow::FindSupplementLayer(const QString &name)
       return layer;
   }
   return NULL;
+}
+
+void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
+{
+  m_wndTimeCourse->SetCurrentFrame(nFrame);
 }

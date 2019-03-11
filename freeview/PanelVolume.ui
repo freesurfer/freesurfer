@@ -1434,7 +1434,7 @@ of each frame</string>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">height: 5px; padding: 0x;</string>
+         <string notr="true"/>
         </property>
         <property name="maximum">
          <number>0</number>

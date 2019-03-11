@@ -425,6 +425,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--fill":
+      # Do fill in samseg2recon, not recon-all
       set DoFill = 1;
       breaksw
     case "--no-fill":
@@ -432,8 +433,10 @@ while( $#argv != 0 )
       breaksw
 
     case "--normalization2":
+      # Do norm2 in samseg2recon, not recon-all
       set DoNormalization2 = 1;
       breaksw
+    case "--no-normalization2":
     case "--nonormalization2":
       set DoNormalization2 = 0;
       breaksw

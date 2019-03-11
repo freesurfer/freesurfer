@@ -118,6 +118,7 @@ protected slots:
   void OnLineEditLabelOpacity(const QString& text);
   void OnButtonLabelUp();
   void OnButtonLabelDown();
+  void SetOverlayFrame(int nFrame);
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();

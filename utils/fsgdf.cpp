@@ -600,8 +600,14 @@ static FSGD *gdfReadV1(char *gdfname) {
           "WARNING: gdfReadV1: no variables on 'Variables' line found\n");
         continue;
       }
-      for (m=0; m < r; m++)
+      for (m=0; m < r; m++){
         fscanf(fp,"%s",gd->varlabel[m]);
+	if(strcasecmp(gd->varlabel[m],"sex")==0 || strcasecmp(gd->varlabel[m],"gender")==0){
+	  printf("WARNING: variable %d is \"%s\" which is often a discrete factor\n",m,gd->varlabel[m]);
+	  printf("  The proper way to handle discrete factors is to create classes.\n");
+	  printf("  See https://surfer.nmr.mgh.harvard.edu/fswiki/FsgdExamples\n");
+	}
+      }
       gd->nvariables = r;
       r = gdfCheckVarRep(gd);
       if (r != -1) {
@@ -669,7 +675,17 @@ static FSGD *gdfReadV1(char *gdfname) {
         //printf("%s\n",tmpstr);
         goto formaterror;
       }
-      for (m=0; m < gd->nvariables; m++) fscanf(fp,"%f",&gd->varvals[n][m]);
+      for (m=0; m < gd->nvariables; m++) {
+	char tmpstr[1000];
+	fscanf(fp,"%s",tmpstr);
+	if(isalpha(tmpstr[0])){
+	  printf("ERROR: gdfReadV1: Format Error: Input line %d, subjid = %s\n",n+1,gd->subjid[n]);
+	  printf(" Variable %d has character string %s\n",m+1,tmpstr);
+	  printf(" Variables should be continuous numbers\n");
+	  goto formaterror;
+	}
+	sscanf(tmpstr,"%f",&gd->varvals[n][m]);
+      }
       for (m=0; m < gd->nvarsfromfile; m++) {
         sprintf(tmpstr,"%s/%s/%s",
                 env->SUBJECTS_DIR,gd->subjid[n],gd->tablefile[m]);
@@ -706,9 +722,10 @@ static FSGD *gdfReadV1(char *gdfname) {
   }
 
   r = gdfCheckAllClassesUsed(gd);
-  if (r != -1)
-    printf("WARNING: gdfReadV1: class %s is defined but not used.\n",
-           gd->classlabel[r]);
+  if (r != -1){
+    printf("ERROR: gdfReadV1: class %s is defined but not used.\n",gd->classlabel[r]);
+    goto formaterror;
+  }
 
   r = gdfCheckSubjRep(gd);
   if (r != -1) {
@@ -721,8 +738,7 @@ static FSGD *gdfReadV1(char *gdfname) {
 
   r = gdfGetDefVarLabelNo(gd);
   if (r == -1) {
-    printf("ERROR: gdfReadV1: default varible %s does not exist in list\n",
-           gd->defvarlabel);
+    printf("ERROR: gdfReadV1: default variable %s does not exist in list\n",gd->defvarlabel);
     sprintf(tag,"DefaultVariable");
     goto formaterror;
   }
@@ -778,6 +794,9 @@ static FSGD *gdfReadV1(char *gdfname) {
 
   gdfVarMeans(gd);
   gdfClassVarMeans(gd);
+
+  r = gdfCheckNPerClass(gd);
+  if(r) return(NULL);
 
   return(gd);
 
@@ -989,6 +1008,33 @@ static int gdfCheckAllClassesUsed(FSGD *gd) {
   return(-1);
 }
 
+/*!
+  \fn int gdfCheckNPerClass(FSGD *gd);
+  \brief Checks to make sure that each class has the minimum number
+  of members given the mtxmethod and number of variables
+ */
+int gdfCheckNPerClass(FSGD *gd)
+{
+  int cno;
+  if(strcmp(gd->gd2mtx_method,"doss") == 0) return(0);
+
+  for (cno = 0; cno < gd->nclasses; cno++) {
+    //printf("Class %s has %d members\n",gd->classlabel[cno],(int)gd->NPerClass[cno]);
+    if(gd->NPerClass[cno] < gd->nvariables+1){
+      printf("ERROR: Class %s has %d members. With %d variables and using DODS, "
+	     "you need at least %d members\n",gd->classlabel[cno],(int)gd->NPerClass[cno],
+	     gd->nvariables,gd->nvariables+1);
+      return(1);
+    }
+    if(gd->NPerClass[cno] == gd->nvariables+1){
+      printf("WARNING: Class %s has %d members. With %d variables and using DODS, "
+	     "This is the bare minimum which may cause problems with the design matrix.\n",
+	     gd->classlabel[cno],(int)gd->NPerClass[cno],gd->nvariables);
+    }
+  }
+  return(0);
+}
+
 
 /*--------------------------------------------------
   gdfGetDefVarLabelNo() - returns the label number
@@ -1094,9 +1140,9 @@ int gdfClassVarMeans(FSGD *gd) {
   }
 
   if (gd->nvariables > 0) {
-    printf("Class Means of each Continuous Variable\n");
+    printf("Class Size and Means of each Continuous Variable\n");
     for (cno = 0; cno < gd->nclasses; cno++) {
-      printf("%d %s ",cno+1,gd->classlabel[cno]);
+      printf("%d %s %2d ",cno+1,gd->classlabel[cno],(int)gd->NPerClass[cno]);
       for (vno = 0; vno < gd->nvariables; vno++)
         printf("%8.4f ",gd->ClassVarMeans[cno][vno]);
       printf("\n");
