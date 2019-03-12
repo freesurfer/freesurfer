@@ -186,10 +186,10 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->lineEditContourSmoothIteration
                       << ui->labelSmoothIteration
                       << ui->pushButtonContourSave
-                      << ui->labelContourLabelRange
-                      << ui->lineEditContourLabelRange
                       << ui->checkBoxShowLabelContour
-                      << ui->checkBoxUpsampleContour;
+                      << ui->checkBoxUpsampleContour
+                      << ui->checkBoxVoxelizedContour
+                      << ui->labelContourSpaceHolder;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -202,9 +202,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelContourThresholdLow
                             << ui->labelContourColor
                             << ui->pushButtonContourSave;
-
-  m_widgetlistContourLabel << ui->labelContourLabelRange
-                           << ui->lineEditContourLabelRange;
 
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
@@ -488,7 +485,6 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
-    ui->lineEditContourLabelRange->setText(layer->GetProperty()->GetLabelContourRange().trimmed());
 
     ui->colorPickerContour->setEnabled( !layer->GetProperty()->GetContourUseImageColorMap() );
     double rgb[3];
@@ -632,9 +628,15 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
     {
-      ui->checkBoxShowLabelContour->setChecked(layer->GetProperty()->GetShowAsLabelContour());
-      ShowWidgets( m_widgetlistContourNormal, !layer->GetProperty()->GetShowAsLabelContour());
-      ShowWidgets( m_widgetlistContourLabel, false); //layer->GetProperty()->GetShowAsLabelContour());
+      bool bShowAsLabelContour = layer->GetProperty()->GetShowAsLabelContour();
+      bool bVoxelizedContour = layer->GetProperty()->GetShowVoxelizedContour();
+      ui->checkBoxShowLabelContour->setChecked(bShowAsLabelContour);
+      ShowWidgets( m_widgetlistContourNormal, !bShowAsLabelContour);
+      ui->checkBoxVoxelizedContour->setVisible(bShowAsLabelContour);
+      ui->checkBoxVoxelizedContour->setChecked(bVoxelizedContour);
+      ui->labelSmoothIteration->setVisible(!bVoxelizedContour);
+      ui->sliderContourSmoothIteration->setVisible(!bVoxelizedContour);
+      ui->lineEditContourSmoothIteration->setVisible(!bVoxelizedContour);
     }
 
     //  ShowWidgets( m_widgetlistContour, false );
@@ -1321,10 +1323,6 @@ void PanelVolume::OnContourValueChanged()
         {
           layer->GetProperty()->SetContourSmoothIterations(nSmooth);
         }
-        else
-        {
-          layer->GetProperty()->SetLabelContourRange(ui->lineEditContourLabelRange->text().trimmed());
-        }
       }
     }
   }
@@ -1868,5 +1866,14 @@ void PanelVolume::OnColorTableChangeColor()
         layer->GetProperty()->UpdateLUTTable();
       }
     }
+  }
+}
+
+void PanelVolume::OnCheckVoxelizedContour(bool bVoxelize)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetShowVoxelizedContour(bVoxelize);
   }
 }

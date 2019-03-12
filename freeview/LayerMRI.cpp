@@ -241,7 +241,8 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ContourChanged()), this, SLOT(UpdateContour()) );
   connect( p, SIGNAL(ContourColorChanged()), this, SLOT(UpdateContourColor()) );
   connect( p, SIGNAL(ContourShown(bool)), this, SLOT(ShowContour()) );
-  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(OnContourSmoothIterationChanged()) );
+  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(RebuildContour()));
+  connect( p, SIGNAL(ContourVoxelized(bool)), this, SLOT(RebuildContour()));
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
@@ -3881,7 +3882,7 @@ void LayerMRI::OnLabelContourChanged(int n)
   }
 }
 
-void LayerMRI::OnContourSmoothIterationChanged()
+void LayerMRI::RebuildContour()
 {
   QList<int> keys = m_labelActors.keys();
   foreach (int i, keys)
