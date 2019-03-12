@@ -113,8 +113,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->lineEditWindow
                         << ui->lineEditLevel
                         << ui->sliderWindow
-                        << ui->sliderLevel
-                        << ui->checkBoxPercentile;
+                        << ui->sliderLevel;
 
   m_widgetlistHeatScale << ui->sliderMid
                         << ui->sliderOffset
@@ -133,6 +132,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                               << ui->sliderMax
                               << ui->labelMin
                               << ui->labelMax
+                              << ui->checkBoxPercentile
                               << ui->pushButtonResetWindowLevel;
 
   m_widgetlistLUT << ui->treeWidgetColorTable

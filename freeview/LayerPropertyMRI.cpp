@@ -190,7 +190,7 @@ void LayerPropertyMRI::RestoreSettings( const QString& filename )
 void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 {
   LayerMRI* mri = qobject_cast<LayerMRI*>(parent());
-  m_bUsePercentile = (map["UsePercentile"].toDouble() > 0);
+//  m_bUsePercentile = (map["UsePercentile"].toDouble() > 0);
   if ( map.contains("MinGrayscaleWindow") )
   {
     mMinGrayscaleWindow = map["MinGrayscaleWindow"].toDouble();
