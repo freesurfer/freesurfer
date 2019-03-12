@@ -5830,7 +5830,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (!user)  user = "UNKNOWN";
 
   auto cdt = currentDateTime();
-  if (true) // HACK Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
 
   FILE *fp = fopen(fname, "w");
