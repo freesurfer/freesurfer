@@ -5825,33 +5825,29 @@ SMALL_SURFACE *MRISreadVerticesOnly(char *fname)
   ------------------------------------------------------*/
 int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
 {
-  int k, n;
-  FILE *fp;
-  const char *user, *time_str;
+  const char *user = getenv("USER");
+  if (!user)  user = getenv("LOGNAME");
+  if (!user)  user = "UNKNOWN";
 
-  user = getenv("USER");
-  if (!user) {
-    user = getenv("LOGNAME");
-  }
-  if (!user) {
-    user = "UNKNOWN";
-  }
-  time_str = currentDateTime().c_str();
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, time_str);
-  fp = fopen(fname, "w");
+  auto cdt = currentDateTime();
+  if (true) // HACK Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
+
+  FILE *fp = fopen(fname, "w");
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
+  
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n", user, time_str);
+  fprintf(fp, "created by %s on %s\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
-  for (k = 0; k < mris->nvertices; k++) {
+
+  for (int k = 0; k < mris->nvertices; k++) {
     fwriteFloat(mris->vertices[k].x, fp);
     fwriteFloat(mris->vertices[k].y, fp);
     fwriteFloat(mris->vertices[k].z, fp);
   }
-  for (k = 0; k < mris->nfaces; k++) {
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
+  for (int k = 0; k < mris->nfaces; k++) {
+    for (int n = 0; n < VERTICES_PER_FACE; n++) {
       fwriteInt(mris->faces[k].v[n], fp);
     }
   }
@@ -5872,13 +5868,13 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     TAGwriteEnd(fp, here);
   }
   {
-    int i;
-
-    for (i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
+    for (int i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
   }
+  
   fclose(fp);
   return (NO_ERROR);
 }
+
 /*-----------------------------------------------------
   Parameters:
 
