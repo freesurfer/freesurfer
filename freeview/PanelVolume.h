@@ -145,6 +145,8 @@ protected slots:
 
   void OnColorTableChangeColor();
 
+  void OnCheckVoxelizedContour( bool bVoxelize );
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();
@@ -163,7 +165,6 @@ private:
   QList<QWidget*> m_widgetlistVector;
   QList<QWidget*> m_widgetlistContour;
   QList<QWidget*> m_widgetlistContourNormal;
-  QList<QWidget*> m_widgetlistContourLabel;
   QList<QWidget*> m_widgetlistNormalDisplay;
   QList<QWidget*> m_widgetlistEditable;
   QList<QWidget*> m_widgetlistVolumeTrack;

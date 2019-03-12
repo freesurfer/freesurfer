@@ -388,7 +388,7 @@ protected slots:
   void ResetRef();
 
   void OnLabelContourChanged(int n = -1);
-  void OnContourSmoothIterationChanged();
+  void RebuildContour();
 
   void OnLabelInformationReady();
 

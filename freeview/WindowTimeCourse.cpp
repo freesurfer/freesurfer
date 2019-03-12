@@ -141,7 +141,7 @@ void WindowTimeCourse::UpdateUI()
     ui->labelSecondPlot->setText("Second Overlay");
   }
   else
-    ui->comboBoxSecondPlot->hide();
+    ui->frameSecondPlot->hide();
 }
 
 void WindowTimeCourse::UpdateData(bool bForce)
