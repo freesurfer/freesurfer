@@ -553,7 +553,7 @@ dt_recon --i 6-1025.dcm --s M87102113 --o dti
 dt_recon --i f.nii.gz --b f.bvals f.bvecs --s M87102113 --o dti
 
 # Check registration
-tkregister2 --mov dti/lowb.nii.gz --reg dti/register.lta \ 
+tkregisterfv --mov dti/lowb.nii.gz --reg dti/register.lta \ 
   --surf orig --tag
 
 # View FA on the subject's anat:
