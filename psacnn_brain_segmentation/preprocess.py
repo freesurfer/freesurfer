@@ -32,7 +32,7 @@ def predict_segmentation(input_file, output_dir, contrast = 't1w',
 
     model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model_files')
     if model_file is None:
-       model_file = opj(model_dir, 't1t2_psacnn_p'+str(patch_dim)+'_v1.h5')
+       model_file = opj(model_dir, 'flt1t2_psacnn_p'+str(patch_dim)+'.h5')
 
     loss = 'dice_coef_loss2'
     curr_unet = DeepImageSynth.DeepImageSynth.from_file(model_file, loss, n_labels=len(aseg_labels), labels=aseg_labels,
