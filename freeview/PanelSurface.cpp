@@ -835,6 +835,7 @@ void PanelSurface::OnButtonSaveLabel()
     if (label)
     {
       QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cdUp();
       dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())

@@ -28,7 +28,7 @@
      <x>0</x>
      <y>-265</y>
      <width>312</width>
-     <height>1793</height>
+     <height>1784</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -1190,11 +1190,31 @@ of each frame</string>
      </widget>
     </item>
     <item>
-     <widget class="QCheckBox" name="checkBoxShowContour">
-      <property name="text">
-       <string>Show as isosurface in 3D view</string>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_21">
+      <item>
+       <widget class="QCheckBox" name="checkBoxShowContour">
+        <property name="text">
+         <string>Show as isosurface in 3D view</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_5">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="BusyIndicator" name="widgetBusyIndicator" native="true"/>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayoutContour" columnstretch="0,0">
@@ -1215,13 +1235,23 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="labelContourColor">
         <property name="text">
          <string>Surface color</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelContourSpaceHolder">
+        <property name="styleSheet">
+         <string notr="true">color:rgba(0,0,0,0)</string>
+        </property>
+        <property name="text">
+         <string>Smooth iterations</string>
         </property>
        </widget>
       </item>
@@ -1265,7 +1295,7 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="1">
+      <item row="9" column="1">
        <widget class="QCheckBox" name="checkBoxUseColorMap">
         <property name="text">
          <string>Use color map</string>
@@ -1335,7 +1365,7 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="12" column="1">
+      <item row="11" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_16">
         <item>
          <widget class="QPushButton" name="pushButtonContourSave">
@@ -1359,51 +1389,6 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="8" column="1">
-       <widget class="QProgressBar" name="progressBarWorking">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>5</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
-        <property name="maximum">
-         <number>0</number>
-        </property>
-        <property name="value">
-         <number>-1</number>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelContourThresholdLow">
-        <property name="text">
-         <string>Low threshold</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="checkBoxUpsampleContour">
-        <property name="text">
-         <string>Upsample volume</string>
-        </property>
-       </widget>
-      </item>
       <item row="2" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_8">
         <item>
@@ -1422,13 +1407,23 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelContourSpaceHolder">
-        <property name="styleSheet">
-         <string notr="true">color:rgba(0,0,0,0)</string>
-        </property>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelContourThresholdLow">
         <property name="text">
-         <string>Smooth iterations</string>
+         <string>Low threshold</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="checkBoxUpsampleContour">
+        <property name="text">
+         <string>Upsample volume</string>
         </property>
        </widget>
       </item>
@@ -1552,6 +1547,12 @@ of each frame</string>
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
+  <customwidget>
+   <class>BusyIndicator</class>
+   <extends>QWidget</extends>
+   <header>BusyIndicator.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>lineEditFileName</tabstop>
@@ -1606,7 +1607,6 @@ of each frame</string>
   <tabstop>comboBoxProjectionMapType</tabstop>
   <tabstop>lineEditProjectionMapRange</tabstop>
   <tabstop>checkBoxShowOutline</tabstop>
-  <tabstop>checkBoxShowContour</tabstop>
   <tabstop>sliderContourThresholdLow</tabstop>
   <tabstop>lineEditContourThresholdLow</tabstop>
   <tabstop>sliderContourThresholdHigh</tabstop>

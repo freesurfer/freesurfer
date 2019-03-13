@@ -165,9 +165,10 @@ void GeoSWorker::DoCompute()
       }
     }
     m_seg->SetModified();
+    emit ComputeFinished(true);
   }
   else
-    emit Failed();
+    emit ComputeFinished(false);
 }
 
 void GeoSWorker::DoApply()

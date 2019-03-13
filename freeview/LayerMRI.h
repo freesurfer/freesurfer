@@ -359,6 +359,7 @@ Q_SIGNALS:
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
   void GeodesicSegmentationApplied();
+  void GeodesicSegmentationFinished();
 
 protected slots:
   void UpdateDisplayMode();

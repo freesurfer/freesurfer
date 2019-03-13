@@ -67,6 +67,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->colorPickerGeoInside->setCurrentColor(Qt::green);
   ui->colorPickerGeoOutside->setCurrentColor(Qt::red);
   ui->colorPickerGeoFill->setCurrentColor(Qt::yellow);
+  ui->widgetBusyIndicator->setColor(Qt::darkGray);
+  ui->widgetBusyIndicator->setFixedSize(QSize(20,20));
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   BrushProperty* bp = mainwnd->GetBrushProperty();
@@ -143,7 +145,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->widgetGeoColors
                    << ui->sliderGeoOpacity
                    << ui->pushButtonGeoApply
-                   << ui->labelTipsGeoS;
+                   << ui->labelTipsGeoS
+                   << ui->widgetBusyIndicator;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -290,6 +293,7 @@ void ToolWindowEdit::OnIdle()
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
 
   ui->labelGeoLambda->hide();
   ui->labelGeoWsize->hide();
@@ -572,9 +576,21 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
       double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
       int wsize = ui->spinBoxGeoWsize->value();
+      mri_fill->ClearVoxels();
       mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, NULL);
+      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished()), this, SLOT(ResetGeoSegUI()), Qt::UniqueConnection);
+      ui->pushButtonGeoGo->setEnabled(false);
+      ui->pushButtonGeoApply->setEnabled(false);
+      ui->widgetBusyIndicator->show();
     }
   }
+}
+
+void ToolWindowEdit::ResetGeoSegUI()
+{
+  ui->pushButtonGeoApply->setEnabled(true);
+  ui->pushButtonGeoGo->setEnabled(true);
+  ui->widgetBusyIndicator->hide();
 }
 
 void ToolWindowEdit::OnButtonGeoSegApply()
@@ -623,10 +639,12 @@ void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)
 void ToolWindowEdit::OnSliderGeoOpacity(int nVal)
 {
   LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
   if (mri_fill)
-  {
     mri_fill->GetProperty()->SetOpacity(nVal/100.0);
-    BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
-    bp->SetGeosSettings("Opacity", nVal/100.0);
-  }
+  if (mri)
+    mri->GetProperty()->SetOpacity(nVal/100.0);
+
+  BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+  bp->SetGeosSettings("Opacity", nVal/100.0);
 }
