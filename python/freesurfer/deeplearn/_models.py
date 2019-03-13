@@ -378,10 +378,12 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
     if collapse_dim != None:
         upL = AvgPoolingL((1,1,conv.shape[dim-1]), name=('pool_GP' + layer_prefix), data_format='channels_last')(upL)
         ConvL = Conv2D
+        upL_shape = K.int_shape(upL)
+        upL = Reshape((upL_shape[1], upL_shape[2], upL_shape[4]))(upL)
+        out_filter_shape = (1,1)
 #        upL = ConvL(1, (1,1), padding="same", activation="relu", kernel_initializer="he_normal",name='conv3D_to_2D')(upL)
 #        upL = Reshape(tuple([upL.shape[0:collapse_dim+1]])+tuple([upL.shape[dim]]))(upL)
-        upL = Reshape((input_shape[0], input_shape[1], num_filters+1))(upL)
-        out_filter_shape = (1,1)
+
         
     print('is_seg_network' + str(is_seg_network))
     if is_seg_network == False:
