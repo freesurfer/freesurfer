@@ -2026,25 +2026,6 @@ int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) ;
 int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) ;
 int MRISimportValFromMRI(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname) ;
-int MRIScomputeBorderValuesVertex(
-    int           const vno,
-    MRI_SURFACE *       mris,
-    MRI         * const mri_brain,
-    MRI         * const mri_smooth,
-    double        const inside_hi,
-    double        const border_hi,
-    double        const border_low,
-    double        const outside_low,
-    double        const outside_hi,
-    double        const sigma,
-    float         const max_thickness,
-    FILE        * const log_fp,
-    int           const which,
-    MRI *         const mri_mask,
-    double        const thresh,
-    int           const flags,
-    MRI *         const mri_aseg);
-
 
 /* multi-timepoint (or stc) files */
 int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,

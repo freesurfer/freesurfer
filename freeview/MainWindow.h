@@ -549,6 +549,8 @@ protected slots:
 
   void OnUnloadVolumeTransform();
 
+  void SetCurrentTimeCourseFrame(int nFrame);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();

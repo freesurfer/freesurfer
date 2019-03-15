@@ -147,7 +147,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndConfigureOverlay->hide();
   connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
-  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(SetCurrentTimeCourseFrame(int)));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
@@ -834,6 +835,7 @@ void PanelSurface::OnButtonSaveLabel()
     if (label)
     {
       QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cdUp();
       dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())
@@ -1457,4 +1459,9 @@ void PanelSurface::OnButtonLabelDown()
       ui->treeWidgetLabels->setCurrentItem(curItem);
     }
   }
+}
+
+void PanelSurface::SetOverlayFrame(int nFrame)
+{
+  m_wndConfigureOverlay->OnFrameChanged(nFrame);
 }

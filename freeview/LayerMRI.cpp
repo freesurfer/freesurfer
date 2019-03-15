@@ -241,7 +241,8 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ContourChanged()), this, SLOT(UpdateContour()) );
   connect( p, SIGNAL(ContourColorChanged()), this, SLOT(UpdateContourColor()) );
   connect( p, SIGNAL(ContourShown(bool)), this, SLOT(ShowContour()) );
-  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(OnContourSmoothIterationChanged()) );
+  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(RebuildContour()));
+  connect( p, SIGNAL(ContourVoxelized(bool)), this, SLOT(RebuildContour()));
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
@@ -3881,7 +3882,7 @@ void LayerMRI::OnLabelContourChanged(int n)
   }
 }
 
-void LayerMRI::OnContourSmoothIterationChanged()
+void LayerMRI::RebuildContour()
 {
   QList<int> keys = m_labelActors.keys();
   foreach (int i, keys)
@@ -3947,6 +3948,7 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
   if (!m_geos)
   {
     m_geos = new GeoSWorker;
+    connect(m_geos, SIGNAL(ComputeFinished(bool)), this, SIGNAL(GeodesicSegmentationFinished()));
   }
 
   m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);

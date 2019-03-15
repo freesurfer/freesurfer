@@ -307,8 +307,8 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
 
     for i in range(unet_depth):
         if i == 0:
-            if num_channels > 100:
-                conv1x1 = ConvL(int(num_filters * (2 ** 0)), onexone_filter_shape, padding='same', dilation_rate=1,
+            if num_channels > 100000:
+                conv1x1 = ConvL(int(num_filters * (2 ** 5)), onexone_filter_shape, padding='same', dilation_rate=1,
                                 name='2a' + str(0))(
                     input_layer)
                 conv1x1 = BatchNormalization()(conv1x1)
@@ -517,7 +517,7 @@ def unet_encoder_dense(feature_shape, output_shape, unet_num_filters, depth, dep
 
 
 def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, initial_learning_rate,
-                 loss='binary_crossentropy', batch_norm=True):
+                 loss='binary_crossentropy', batch_norm=True, use_bias=True):
     dim = len(feature_shape)
     num_channels = feature_shape[-1]
     if dim == 3:
@@ -564,13 +564,13 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         if iter_layer == 0:
 
             model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
-                            input_shape=input_shape_append, kernel_initializer="he_normal"))
+                            input_shape=input_shape_append, kernel_initializer="he_normal", use_bias=use_bias))
             if batch_norm == True:
                 model.add(BatchNormalization())
 
             for iter_depth_per_layer in range(depth_per_level - 1):
                 model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
-                                kernel_initializer="he_normal"))
+                                kernel_initializer="he_normal", use_bias=use_bias))
                 if batch_norm == True:
                     model.add(BatchNormalization())
 
@@ -579,22 +579,22 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         else:
             for iter_depth_per_layer in range(depth_per_level):
                 model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
-                                kernel_initializer="he_normal"))
+                                kernel_initializer="he_normal", use_bias=use_bias))
                 if batch_norm == True:
                     model.add(BatchNormalization())
 
             model.add(MaxPoolingL(pool_size=pool_shape))
-            # model.add(Dropout(0.25))
+            model.add(Dropout(0.1))
 
     model.add(Flatten())
-    model.add(Dense(512, activation='relu', kernel_initializer="he_normal"))
-    # model.add(Dropout(0.5))
+    model.add(Dense(512, activation='relu', kernel_initializer="he_normal", use_bias=use_bias))
+    model.add(Dropout(0.2))
     if n_labels > 0:
-        model.add(Dense(n_labels, activation='softmax', kernel_initializer="he_normal"))
+        model.add(Dense(n_labels, activation='softmax', use_bias=use_bias, kernel_initializer="he_normal"))
         model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
 
     elif n_labels == 0:
-        model.add(Dense(1, activation='linear', kernel_initializer="he_normal"))
+        model.add(Dense(1, activation='linear', kernel_initializer="he_normal", use_bias=use_bias))
         model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
 
     return model
