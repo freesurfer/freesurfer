@@ -137,6 +137,8 @@ static int ComputeNormalDist=0;
 static int CheckCurv=0;
 static int CheckAParc=0;
 
+static int renumberedSpecified=0;
+
 static long seed=1234;
 
 static int error_count=0;
@@ -414,7 +416,7 @@ int main(int argc, char *argv[]) {
   printf("Number of faces    %d %d\n",surf1->nfaces,surf2->nfaces);
 
   //Number of Vertices ----------------------------------------
-  if (surf1->nvertices >= surf2->nvertices) {
+  if (surf1->nvertices > surf2->nvertices) {
     printf("Swapping surf1 and surf2 to make the surf1 be the one with the least vertices\n");
     std::swap(surf1,surf2);
   }
@@ -426,11 +428,21 @@ int main(int argc, char *argv[]) {
   
   std::vector<int> surf1Vno_to_surf2Vno(surf1->nvertices);
 
-  if (surf1->nvertices == surf2->nvertices) {
+  if (surf1->nvertices != surf2->nvertices) {
+    printf("Surfaces differ in number of vertices %d %d%s\n",
+         surf1->nvertices,surf2->nvertices,
+         renumberedSpecified?"":" Consider using --renumbered\n");
+  }
+
+  if (!renumberedSpecified) {
+
+    if (surf1->nvertices != surf2->nvertices) {
+      exit(101);
+    }
+
     for (int i = 0; i < surf1->nvertices; i++) surf1Vno_to_surf2Vno[i] = i;   
+
   } else {
-    printf("Surfaces differ in number of vertices %d %d\n",
-           surf1->nvertices,surf2->nvertices);
 
     bool closeEnough =
       compareVertexPositions(surf1,surf2,surf1Vno_to_surf2Vno);
@@ -439,7 +451,7 @@ int main(int argc, char *argv[]) {
       exit(101);
     }
     
-    printf("Surfaces have enough exactly equally placed vertices to probably differ only by some defect ripping diff or other renumbering issue\n");
+    printf("Surfaces have enough vertices in about the same locations to try to match up the faces\n");
   }
   
 
@@ -448,53 +460,68 @@ int main(int argc, char *argv[]) {
   // for every face1 in surf1, find a vno1 on it, find the corresponding vno2 in surf2, find the corresponding surf2 face 
 
   // Even if there are the same number of faces, they need to be matched this way
-  std::vector<int> surf1Fno_to_surf2Fno(surf1->nfaces);
-
-  int matchedFaces = 0;
-
-  for (int fno1 = 0; fno1 < surf1->nfaces; fno1++) {
-    surf1Fno_to_surf2Fno[fno1] = -1;
-
-    FACE const * f1 = &surf1->faces[fno1];
-
-    int vnos2[3];
-    for (int i = 0; i < 3; i++) vnos2[i] = surf1Vno_to_surf2Vno[f1->v[i]]; 
-    std::sort(vnos2+0,vnos2+3);
-
-    if (vnos2[0] < 0) continue;
-
-    size_t found = 0;
-    VERTEX_TOPOLOGY const * v2 = &surf2->vertices_topology[vnos2[0]];
-    for (int fi2 = 0; fi2 < v2->num; fi2++) {
-      FACE const * candidateF2 = &surf2->faces[v2->f[fi2]];
-      int candidateVnos[3];
-      for (int i = 0; i < 3; i++) candidateVnos[i] = candidateF2->v[i]; 
-      std::sort(candidateVnos+0,candidateVnos+3);
-      if (candidateVnos[0] == vnos2[0]
-      &&  candidateVnos[1] == vnos2[1]
-      &&  candidateVnos[2] == vnos2[2]) {
-        cheapAssert(!found);
-        found = 1;
-        surf1Fno_to_surf2Fno[fno1] = v2->f[fi2];
-      }
-    } 
-
-    if (found) matchedFaces++;
-  }
 
   if (surf1->nfaces != surf2->nfaces) {
-    printf("Surfaces differ in number of faces %d %d\n",
-      surf1->nfaces,surf2->nfaces);
-  }
-             
-  if (matchedFaces != surf1->nfaces) {
-    printf("Matched %d of %d faces\n", matchedFaces, surf1->nfaces);
-    if (matchedFaces < 0.99 * surf1->nfaces) {
-      printf("Not enough faces matched to try to compare the surfaces\n");
-      exit(101);
-    }
+    printf("Surfaces differ in number of faces %d %d%s\n",
+      surf1->nfaces,surf2->nfaces,
+      renumberedSpecified?"":" Consider using --renumbered\n");
   }
 
+  std::vector<int> surf1Fno_to_surf2Fno(surf1->nfaces);
+
+  if (!renumberedSpecified) {
+
+    if (surf1->nfaces != surf2->nfaces) {
+      exit(101);
+    }
+
+    for (int fno1 = 0; fno1 < surf1->nfaces; fno1++) {
+      surf1Fno_to_surf2Fno[fno1] = fno1;
+    }
+
+  } else {
+
+    int matchedFaces = 0;
+
+    for (int fno1 = 0; fno1 < surf1->nfaces; fno1++) {
+      surf1Fno_to_surf2Fno[fno1] = -1;
+
+      FACE const * f1 = &surf1->faces[fno1];
+
+      int vnos2[3];
+      for (int i = 0; i < 3; i++) vnos2[i] = surf1Vno_to_surf2Vno[f1->v[i]]; 
+      std::sort(vnos2+0,vnos2+3);
+
+      if (vnos2[0] < 0) continue;
+
+      size_t found = 0;
+      VERTEX_TOPOLOGY const * v2 = &surf2->vertices_topology[vnos2[0]];
+      for (int fi2 = 0; fi2 < v2->num; fi2++) {
+        FACE const * candidateF2 = &surf2->faces[v2->f[fi2]];
+        int candidateVnos[3];
+        for (int i = 0; i < 3; i++) candidateVnos[i] = candidateF2->v[i]; 
+        std::sort(candidateVnos+0,candidateVnos+3);
+        if (candidateVnos[0] == vnos2[0]
+        &&  candidateVnos[1] == vnos2[1]
+        &&  candidateVnos[2] == vnos2[2]) {
+          cheapAssert(!found);
+          found = 1;
+          surf1Fno_to_surf2Fno[fno1] = v2->f[fi2];
+        }
+      } 
+
+      if (found) matchedFaces++;
+    }
+
+    if (matchedFaces != surf1->nfaces) {
+      printf("Matched %d of %d faces\n", matchedFaces, surf1->nfaces);
+      if (matchedFaces < 0.99 * surf1->nfaces) {
+        printf("Not enough faces matched to try to compare the surfaces\n");
+        exit(101);
+      }
+    }
+  }
+  
   if (ComputeNormalDist) {
     MRI* mri_dist = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;
     
@@ -728,7 +755,10 @@ int main(int argc, char *argv[]) {
     } // end loop over faces
     if (maxdiff>0) printf("maxdiff=%g\n",maxdiff);
     
-    printf("%d surf1 faces of %d have no equivalent in surf2\n", faces_with_no_equiv_count, surf1->nfaces);
+    if (faces_with_no_equiv_count > 0) {
+      printf("%d surf1 faces of %d have no equivalent in surf2\n", faces_with_no_equiv_count, surf1->nfaces);
+    }
+    
     if (faces_with_no_equiv_count > surf1->nfaces * 0.01) {
       error_count++;
     }
@@ -866,6 +896,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--no-check-xyz")) CheckXYZ = 0;
     else if (!strcasecmp(option, "--no-check-nxyz")) CheckNXYZ = 0;
+    else if (!strcasecmp(option, "--renumbered")) renumberedSpecified = 1;
     else if (!strcasecmp(option, "--ndist")) {
       ComputeNormalDist = 1;
       out_fname = pargv[0];
@@ -993,6 +1024,7 @@ static void print_usage(void) {
   printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
          MAX_NUM_ERRORS);
+  printf("   --renumbered  the vertices or faces may have been renumbered and a few deleted\n");
   printf("\n");
   printf("   --no-check-xyz  : do not check vertex xyz\n");
   printf("   --no-check-nxyz : do not check vertex normals\n");
