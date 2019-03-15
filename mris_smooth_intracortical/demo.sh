@@ -1,13 +1,14 @@
-# If You use this tool, please cite: 
+## 
 ##
-##
-#Blazejewska AI, Fischl B, Wald LL, Polimeni JR, Intracortical smoothing of small-voxel fMRI data can provide increased detection power without spatial resolution losses compared to conventional large-voxel fMRI data. NeuroImage 2019. 189:601-614.\n"
+## If You use this tool, please cite: 
+## Blazejewska AI, Fischl B, Wald LL, Polimeni JR, Intracortical smoothing of small-voxel fMRI data can provide increased detection power without spatial resolution losses compared to conventional large-voxel fMRI data. NeuroImage 2019. 189:601-614.\n"
 ##
 ##
 
+# example subject
 SUBJECT=/cluster/visuo/users/anna/surfSM/test_subjects/t01/
 
-# step 0. run FreeSurfer recon-all
+# step 0. run FreeSurfer recon-all, motion correct EPI data etc.
 
 # step 1. generate intermediate surfaces
 for l in  $(seq 0 0.1 1); do 
@@ -37,15 +38,16 @@ done;
 
 
 # step 4. example uses of surface-based smoothing
-MAP_SURF_DIR=${SUBJECT}map_surf_smooth;
+
+MAP_SURF_DIR=${SUBJECT}/map_surf_smooth;
 mkdir $MAP_SURF_DIR;
 
 # with gaussian weights
-./mris_smooth_intracortical --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.05 --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.05.mgz --nb-rad 2 --nb-weights gauss
+mris_smooth_intracortical --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.05 --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.05.mgz --nb-rad 2 --nb-weights gauss
 
-# with original weights (paper)
-./mris_smooth_intracortical --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.05 --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.05.mgz --nb-rad 2 --nb-weights 1bynb  --output_name lh.midgray.05.1bynb.mgz
+# with 1/NB weights (original from the manuscript)
+mris_smooth_intracortical --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.05 --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.05.mgz --output_dir $MAP_SURF_DIR --output_name lh.midgray.05.nb2_1bynb.mgz --nb-rad 2 --nb-weights 1bynb
 
 # intracortical smoothing in both direction (tangential & radial) with default gaussian smoothing
-./mris_smooth_intracortical  --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.* --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.??.mgz --nb-rad 2 --ic-start 3 --ic-size 5 
+mris_smooth_intracortical --surf_dir $SUBJECT/recon/surf/ --surf_name lh.midgray.* --overlay_dir  $SUBJECT/map_surf/ --overlay_name lh.*.??.mgz --nb-rad 2 --ic-start 3 --ic-size 5 
 
