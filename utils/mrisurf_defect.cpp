@@ -7122,10 +7122,14 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
           continue;
         }
 
-        // ath - temporarily removing (#626)
-        // if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
-        //  continue;
-        // }
+        if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
+          static unsigned long count,limit = 1;
+          if (count++ >= limit) {
+            limit *= 2;
+            fprintf(stderr, "%s:%d suppressed badly attaching a face, count:%ld\n", __FILE__,__LINE__, count);
+          }
+          continue;
+        }
 
         /* add this new face to the defect faces */
         mrisAddFace(mris, vno, vn1, vn2);
@@ -7286,36 +7290,44 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 
 static void computeDefectVertexNormals(MRIS *mris, DP *dp)
 {
-  int n, m;
-  float nx, ny, nz, len;
-  TP *tp;
-
-  tp = &dp->tp;
+  TP* const tp = &dp->tp;
+  
   /* compute vertex normals only for modified vertices */
-  for (n = 0; n < tp->nvertices; n++) {
+  for (int n = 0; n < tp->nvertices; n++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[tp->vertices[n]];
     VERTEX                * const v  = &mris->vertices         [tp->vertices[n]];
 
     /* compute normal at vertex */
-    nx = ny = nz = 0.0f;
-    for (m = 0; m < vt->num; m++) {
+    float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+    for (int m = 0; m < vt->num; m++) {
       FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vt->f[m]);
       nx += fNorm->nx;
       ny += fNorm->ny;
       nz += fNorm->nz;
     }
+
     /* normalize */
-    len = sqrtf(nx * nx + ny * ny + nz * nz);
+    float len = sqrtf(nx * nx + ny * ny + nz * nz);     // this should have been double precision
+                                                        // but fixing might change results
+
     if (FZERO(len)) {
-      fprintf(WHICH_OUTPUT,
+
+      // BRB it is possible the patch doesn't attach any faces to a vertex
+      //
+      if (vt->num > 0) {
+        fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
               tp->vertices[n],
               (int)vt->num);  // TO BE CHECKED
-      if ((int)vt->num == 0) {
-        ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
       }
-      len = 1;
+
+      // if ((int)vt->num == 0) {
+      //  ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
+      // }
+      
+      len = 1.0f;
     }
+    
     v->nx = nx / len;
     v->ny = ny / len;
     v->nz = nz / len;
