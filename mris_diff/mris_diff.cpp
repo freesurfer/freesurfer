@@ -75,6 +75,8 @@
 
     mris_diff --worst-bucket bucket_file --okayBucketMax int file1 file2
     
+    mris_diff --grid {[xyz]} spacingfloat grid_file ...
+    
   ENDHELP
 */
 
@@ -128,10 +130,15 @@ static char *curvname=NULL, *aparcname=NULL,*aparc2name=NULL, *surfname=NULL;
 static char *surf1path=NULL, *surf2path=NULL;
 static char *out_fname ;
 static char tmpstr[2000];
-static char *xyzRMSFile=NULL;
-static char *angleRMSFile=NULL;
-static char *worstBucketFile=NULL;
+static const char *xyzRMSFile=NULL;
+static const char *angleRMSFile=NULL;
+static const char *worstBucketFile=NULL;
 static int   okayBucketMax=1;
+static int   gridx=0, gridy=0, gridz=0;
+static float gridspacing=0;
+static char* gridFile=NULL;
+
+
 static MRIS *surf1, *surf2;
 
 static int CheckSurf=0;
@@ -797,11 +804,54 @@ int main(int argc, char *argv[]) {
       printf("Writing worstBucket\n");
       for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
         auto & v = surf1->vertices[nthvtx];
-        v.stat = (vnoToWorstBucket[nthvtx] > okayBucketMax) ? -1 : 1;
-        if (v.stat > 0.0f) v.marked = 1;
+        bool interesting = (vnoToWorstBucket[nthvtx] > okayBucketMax);
+        
+        // yellow interesting, grey uninteresting by default
+        if (interesting) {
+          v.stat   = 1;                     
+          v.marked = 1;
+        }
+        
       }
       LABEL* area = LabelFromMarkedSurface(surf1);
       LabelWrite(area,worstBucketFile);
+    }
+
+    if(gridFile && gridspacing > 0.0){
+      printf("Writing gridFile\n");
+      size_t interestingCount = 0;
+      for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
+        auto & vt = surf1->vertices_topology[nthvtx];
+        auto & v  = surf1->vertices         [nthvtx];
+        int interesting = 0;
+        
+        for (int ni = 0; ni < vt.vnum; ni++) {
+          auto spans = [&](const char* which, float d0,float d1)->bool { 
+            bool result = int(d0/gridspacing) != int(d1/gridspacing); 
+            return result;
+          };
+          auto & v2 = surf1->vertices[vt.v[ni]];
+          interesting |= (gridx && spans("x",v.x,v2.x)) ? 1 : 0;
+          interesting |= (gridy && spans("y",v.y,v2.y)) ? 2 : 0;
+          interesting |= (gridz && spans("z",v.z,v2.z)) ? 4 : 0;
+          if (false) {
+            static size_t count,limit = 1;
+            if (count++ > limit) { if (limit < 100) limit++; else limit *= 2;
+              printf("%6ld d0:(%f,%f,%f) d1:(%f,%f,%f) result:%d\n", count, v.x,v.y,v.z,v2.x,v2.y,v2.z,interesting); 
+            }
+          }
+        }
+        
+        if (interesting) {
+          v.stat   = 1;                     
+          v.marked = 1;
+          interestingCount++; 
+        }
+      }
+      LABEL* area = LabelFromMarkedSurface(surf1);
+      printf("gridfile populated with interestingCount:%ld out of %d\n", interestingCount, surf1->nvertices);
+      if (area) LabelWrite(area,gridFile);
+      else printf("No interesting points, so gridfile not written\n");
     }
 
     exit(0);
@@ -951,6 +1001,23 @@ static int parse_commandline(int argc, char **argv) {
       okayBucketMax = int(val);
       nargsused = 1;
     }     
+    else if (!strcasecmp(option, "--grid")) {
+      if (nargc < 3) CMDargNErr(option,0);
+      char const * p = pargv[0];
+      while (int c = *p++) { 
+        switch (c) {
+          case 0              :  break;
+          case 'x' : case 'X' : gridx = 1; continue;   
+          case 'y' : case 'Y' : gridy = 1; continue;   
+          case 'z' : case 'Z' : gridz = 1; continue;   
+          default:   fprintf(stderr, "--grid only supports {[xyz]}, not %s\n",pargv[1]); continue;
+        }
+        break;
+      } 
+      sscanf(pargv[1],"%f",&gridspacing);
+      gridFile = pargv[2];
+      nargsused = 3;
+    }     
     else if (!strcasecmp(option, "--s1")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject1 = pargv[0];
@@ -1065,6 +1132,7 @@ static void print_usage(void) {
          MAX_NUM_ERRORS);
   printf("   --renumbered  the vertices or faces may have been renumbered and a few deleted\n");
   printf("   --worst-bucket worstbucketfile : compute the worst histogram bucket each vertex is in\n");
+  printf("   --grid {[xyz]} spacingfloat grid_file : label the vertices of edges that span a grid\n");
   printf("\n");
   printf("   --no-check-xyz  : do not check vertex xyz\n");
   printf("   --no-check-nxyz : do not check vertex normals\n");
