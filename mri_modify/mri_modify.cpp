@@ -32,6 +32,8 @@
 #include "mri.h"
 #include "transform.h"
 #include "version.h"
+
+#include "compilerdefs.h"
   const char *Progname = "mri_modify";
 
 
@@ -129,7 +131,20 @@ int main(int argc, char *argv[]) {
     exit (0);
   argc -= nargs;
 
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#endif
   VOL_GEOM vg = {}; // all values are initialized to be zero to detect change
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic pop
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic pop
+#endif
+
   new_transform_fname[0]=0; // null xform filename (assume no change)
 
   // argument handling

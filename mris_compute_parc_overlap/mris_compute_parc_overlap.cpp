@@ -57,6 +57,8 @@
 #include "error.h"
 #include "utils.h"
 
+#include "compilerdefs.h"
+
 #define MAX_VNOS 200000
 typedef struct _labelInfo
 {
@@ -76,6 +78,13 @@ static LABEL_INFO surf2BoundaryLabels[MAX_LABELS];
 #define MAX_SKIPPED_LABELS 100000
 static char skippedLabels[MAX_SKIPPED_LABELS];
 
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#endif
 // this mini colortable is used when two labels are being compared
 static const COLOR_TABLE_ENTRY unknown = 
 {"unknown", 0,0,0,255, 0,0,0,255};
@@ -85,6 +94,11 @@ static COLOR_TABLE_ENTRY userLabel =
 static const CTE *entries[2] = {&unknown, &userLabel};
 static const COLOR_TABLE miniColorTable = 
 {(CTE**)entries, 2, "miniColorTable", 2};
+#if defined(FS_COMP_GNUC)
+#pragma GCC diagnostic pop
+#elif defined(FS_COMP_CLANG)
+#pragma clang diagnostic pop
+#endif
 
 static void addToExcludedLabelsList(COLOR_TABLE *ct, char *labelToExclude);
 static int isExcludedLabel(int colortabIndex);

@@ -2581,17 +2581,20 @@ bool Coffin::InitializeFixOffWhite(int FailSegment) {
 // where an error occured
 //
 int Coffin::FindErrorSegment() {
-  const unsigned int ierr = (mSpline.GetAllPointsEnd() -
-                             mSpline.GetAllPointsBegin())/3 - 1;
+  const int ierr = (mSpline.GetAllPointsEnd() -
+		    mSpline.GetAllPointsBegin())/3 - 1;
   int iseg;
-
-  if (ierr < 0)
+  
+  if (ierr < 0) {
     iseg = 0;
-  else
+  } else {
     iseg = (int) mSpline.PointToSegment(ierr);
-
-  if (iseg == mNumControl-1)	// Spline interpolation was completed w/o error
+  }
+  
+  if (iseg == mNumControl-1) {
+    // Spline interpolation was completed w/o error
     iseg = -1;
+  }
 
   return iseg;
 }
