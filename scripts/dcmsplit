@@ -77,7 +77,8 @@ set tmpfile = /tmp/dcmsplit.$$.tmp
 set flistfile = $outdir/flist.txt
 rm -f $flistfile
 cd $dcmdir
-set flist = (`ls -d *`)
+#set flist = (`ls -d *`)
+set flist = (`find -print`)
 echo "Found $#flist files, checking"
 foreach f ($flist)
   if(! -f $f) continue

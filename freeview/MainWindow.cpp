@@ -135,7 +135,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
 {
-
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -156,6 +155,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_volumeCropper = new VolumeCropper( this );
+
   connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)), this, SLOT(RequestRedraw()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
@@ -212,6 +212,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
   connect(m_layerCollections["MRI"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
+  connect(m_layerCollections["Supplement"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
+
   connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
@@ -290,6 +292,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
+  connect(m_wndTimeCourse, SIGNAL(OverlayFrameChanged(int)), ui->widgetAllLayers->GetPanel("Surface"), SLOT(SetOverlayFrame(int)));
 
   m_wndGroupPlot = new WindowGroupPlot(this);
   m_wndGroupPlot->hide();
@@ -4958,6 +4961,23 @@ bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
 
   OnSetModeNavigate();
 
+  if (GetLayers("MRI").isEmpty())
+  {
+    LayerCollection* lc = GetLayerCollection("Supplement");
+    QList<Layer*> layers = lc->GetLayers("MRI");
+    foreach (Layer* layer, layers)
+    {
+      if (layer->GetName() == "GEOS_DRAW")
+      {
+        lc->RemoveLayer(layer);
+      }
+      else if (layer->GetName() == "GEOS_FILL")
+      {
+        lc->RemoveLayer(layer);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -5621,6 +5641,8 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveSurfaceChanged(int)), ui->view3D, SLOT(OnLayerVisibilityChanged()), Qt::UniqueConnection);
   connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), m_wndTimeCourse, SLOT(UpdateUI()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(ActiveOverlayChanged(int)), m_wndTimeCourse, SLOT(UpdateAll()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -8349,4 +8371,21 @@ void MainWindow::OnStereoRender(bool bOn)
 {
   ui->view3D->SetStereoTypeToAnaglyph();
   ui->view3D->SetStereoRender(bOn);
+}
+
+Layer* MainWindow::FindSupplementLayer(const QString &name)
+{
+  LayerCollection* lc = GetLayerCollection("Supplement");
+  QList<Layer*> layers = lc->GetLayers();
+  foreach (Layer* layer, layers)
+  {
+    if (layer->GetName() == name)
+      return layer;
+  }
+  return NULL;
+}
+
+void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
+{
+  m_wndTimeCourse->SetCurrentFrame(nFrame);
 }

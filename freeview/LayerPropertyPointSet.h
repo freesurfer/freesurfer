@@ -35,10 +35,10 @@
 #include <vector>
 #include <QVariantMap>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 
 struct ScalarValues

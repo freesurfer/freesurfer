@@ -76,7 +76,7 @@ vector<char *> tractFileList;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
   Forrest myforrest;
 
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   cout << "Reading test subject data..." << endl;
   myforrest.ReadTestSubject(testDir, maskFile, asegFile, orientFile);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   cout << "Done in " << cputime/1000.0 << " sec." << endl;
 
   cout << "dmri_forrest done" << endl;

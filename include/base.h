@@ -40,12 +40,6 @@
 
 #include "proto.h"  // malloc   is needed from here
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 extern const char *Progname;
     // various of the utility programs define this global variable to be their name
 
@@ -145,13 +139,6 @@ static float squaref(float x) { return x*x; }
 #pragma GCC diagnostic ignored "-Wunused-function"
 static double squared(double x) { return x*x; }
 
-
 typedef struct FloatXYZ {
     float x,y,z;
 } FloatXYZ;
-
-
-#if defined(__cplusplus)
-};
-#endif
-

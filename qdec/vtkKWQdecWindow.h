@@ -34,10 +34,8 @@
 #include <string>
 #include <vector>
 
-extern "C" {
 #include "colortab.h"
 #include "surfcluster.h"
-}
 
 #include "vtkKWWindow.h"
 #include "ProgressUpdateGUI.h"

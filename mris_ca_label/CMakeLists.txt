@@ -2,7 +2,7 @@ project(mris_ca_label)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_ca_label mris_ca_label.c)
+add_executable(mris_ca_label mris_ca_label.cpp)
 add_help(mris_ca_label mris_ca_label.help.xml)
 target_link_libraries(mris_ca_label utils)
 

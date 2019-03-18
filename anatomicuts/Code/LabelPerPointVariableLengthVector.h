@@ -23,8 +23,8 @@ public:
   typedef typename MeshType::PixelType			PixelType; //??
   typedef typename MeshType::CellPixelType		CellType; //??
   typedef typename MeshType::CellAutoPointer		CellAutoPointerType; //??
-typedef std::unordered_map<int,float> LabelsMapType;
-typedef typename std::vector<LabelsMapType> LabelsDirectionType;
+  typedef std::unordered_map<int,float> LabelsMapType;
+  typedef typename std::vector<LabelsMapType> LabelsDirectionType;
   LabelPerPointVariableLengthVector():Superclass(){
 	;
 }; 
@@ -40,7 +40,7 @@ typedef typename std::vector<LabelsMapType> LabelsDirectionType;
 	{
 		return &this->m_labels;
 	}
-	const int GetCellId() const
+	int GetCellId() const
 	{
 		return this->m_cellId;
 	}

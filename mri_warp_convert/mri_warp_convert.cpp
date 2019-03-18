@@ -27,22 +27,12 @@
 #include <iostream>
 #include <fstream>
 
-// C compat
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "error.h"
 #include "gcamorph.h"
 #include "macros.h"
 #include "mri.h"
 #include "mri_circulars.h"
 #include "version.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

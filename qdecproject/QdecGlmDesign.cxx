@@ -37,12 +37,7 @@
 #include <stdexcept>
 
 #include "QdecGlmDesign.h"
-
-extern "C"
-{
-  #include "mri.h" // MRIallocSequence
-}
-
+#include "mri.h"
 
 // Constructors/Destructors
 //

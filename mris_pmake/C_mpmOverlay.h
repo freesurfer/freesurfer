@@ -34,19 +34,11 @@
 #ifndef __C_MPMOVERLAY_H__
 #define __C_MPMOVERLAY_H__
 
-#ifdef __cplusplus
-extern  "C" {
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
 #include "fio.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "env.h"
 #include "general.h"

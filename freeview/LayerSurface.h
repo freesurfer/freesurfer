@@ -176,6 +176,11 @@ public:
 
   void CopyCorrelationOverlay(LayerSurface* surf);
 
+  QList<SurfaceOverlay*> GetOverlays()
+  {
+    return m_overlays;
+  }
+
   // annotation functions
   int GetNumberOfAnnotations();
 

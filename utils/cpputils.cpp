@@ -22,15 +22,12 @@
  *
  */
 
-const char *CPPUTILS_VERSION = "$Revision: 1.4 $";
-
-extern "C" {
 #include "cma.h"
 #include "diag.h"
 #include "macros.h"
 #include "mri.h"
 #include "mrisurf.h"
-}
+
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -47,7 +44,7 @@ using namespace std;
 
 /* This function finds the closest distance of voxels with the distance d of volume mri_dist to the surface mris.
  */
-extern "C" MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance)
+MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance)
 {
   // this volume is used to track visited voxels
   MRI* mri_visited = MRIcloneDifferentType(mri_dist, MRI_INT);
@@ -166,7 +163,7 @@ extern "C" MRI *MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dis
  * around 4 to 5 minutes ) but it's very accurate. returned MRI structure (mri_out) is an MRI_INT MRI volume with voxels
  * inside having the value 1 and voxels outside with value 0.
  */
-extern "C" MRI *MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
+MRI *MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
 {
   MRI *_mridist, *mri_out;
 

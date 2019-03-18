@@ -30,10 +30,10 @@
 #include <QDir>
 #include <QDebug>
 #include <iostream>
-extern "C"
-{
+
+
 #include "matrix.h"
-}
+
 
 using namespace std;
 

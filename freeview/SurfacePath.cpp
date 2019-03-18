@@ -86,7 +86,11 @@ void SurfacePath::RebuildActor()
     polydata->SetVerts(verts);
   }
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( polydata );
+#else
   mapper->SetInput( polydata );
+#endif
   m_actorOutline->SetMapper( mapper );
   emit Updated();
 }

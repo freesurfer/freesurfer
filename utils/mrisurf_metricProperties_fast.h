@@ -16,6 +16,17 @@
 //
 typedef struct MRIS_MP {
 
+  // ATH - temporarily adding this constructor to avoid the 'uninitialized const member' errors in g++ > 4
+  MRIS_MP() :
+    status(0),
+    nvertices(0),
+    nfaces(0),
+    nsize(0),
+    radius(0),
+    vertices_topology(0),
+    faces_topology(0)
+    {};
+
 #define SEP
 #define ELTX(C,T,N) ELT(C,T,N)
 

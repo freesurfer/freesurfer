@@ -30,10 +30,10 @@
 #include <vtkImageMedian3D.h>
 #include "ProgressCallback.h"
 
-extern "C"
-{
+
+
 #include "utils.h"
-}
+
 
 VolumeFilterConvolve::VolumeFilterConvolve( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   VolumeFilter( input, output, parent ),

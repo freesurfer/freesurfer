@@ -4,9 +4,7 @@
 #include "numpy.h"
 
 // utils
-extern "C" {
 #include "mrisurf.h"
-}
 
 
 void bindSurface(py::module &m);

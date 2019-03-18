@@ -22,13 +22,10 @@
  *
  */
 
-
 #ifndef MINC_INTERNALS_H
 #define MINC_INTERNALS_H
 
 #include "minc_volume_io.h"
-
-#if defined(USE_LOCAL_MINC)
 
 enum {X=0, Y=1, Z=2};
 
@@ -673,12 +670,10 @@ int MI_varaccess(int operation, int cdfid, int varid,
                              nc_type datatype, int sign, void *values,
                              int *bufsize_step, mi_icv_type *icvp);
 			     						
-#endif // defined(USE_LOCAL_MINC)
-
 typedef double Double4x4[4*4];
 #define Index4x4(I,J) (4*(I)+(J))
 bool invert_4x4_matrix( 
-	const Double4x4 * mat, 		// doubles are read, not changed
+	const Double4x4 * mat, 	// doubles are read, not changed
 	Double4x4 * 	  inv );	// doubles are written
 
-#endif // defined(MINC_VOLUME_IO_H)
+#endif

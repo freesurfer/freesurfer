@@ -1,11 +1,11 @@
 
 #include "surf_powell.h"
 
-extern "C"
-{
+
+
 #include "numerics.h"
 #include "matrix.h"
-};
+;
 
 static float
 compute_powell_cost(float *p);

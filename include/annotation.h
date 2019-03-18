@@ -27,6 +27,8 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
+#include <vector>
+#include <string>
 
 #ifdef ANNOTATION_SRC
 char *annotation_table_file = NULL;
@@ -36,8 +38,8 @@ extern char *annotation_table_file;
 
 int   	read_annotation_table(void) ;
 int   	read_named_annotation_table(char *fname) ;
-char*	index_to_name(int index);
-char*	annotation_to_name(int annotation, int *pindex) ;
+const char*	index_to_name(int index);
+const char*	annotation_to_name(int annotation, int *pindex) ;
 int   	annotation_to_index(int annotation) ;
 int   	print_annotation_table(FILE *fp);
 int   	print_annotation_colortable(FILE *fp);
@@ -46,7 +48,7 @@ LABEL*	annotation2label(int annotid, MRIS *Surf);
 int 	set_atable_from_ctable(COLOR_TABLE *pct);
 int  	MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int  	MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;
-int  	MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparcname);
+int  	MRISmergeAnnotations(MRIS *mris, int nparcs, std::vector<std::string> parcnames, const char *newparcname);
 MRI*	MRISannot2seg(MRIS *surf, int base);
 MRI*	MRISannot2border(MRIS *surf);
 int 	MRISaparc2lobes(MRIS *surf, int a_lobeDivisionType);

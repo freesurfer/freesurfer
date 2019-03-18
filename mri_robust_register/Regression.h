@@ -34,14 +34,7 @@
 #ifndef Regression_H
 #define Regression_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
-#ifdef __cplusplus
-}
-#endif
 
 #define SATr 4.685  // this is suggested for gaussian noise
 #include <utility>

@@ -29,14 +29,7 @@
 #ifndef RegistrationStep_H
 #define RegistrationStep_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "mri.h"
-#ifdef __cplusplus
-}
-#endif
 
 #include <utility>
 #include <vector>

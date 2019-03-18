@@ -31,11 +31,11 @@
 #include <QString>
 #include <QList>
 
-extern "C"
-{
+
+
 #include "colortab.h"
 #include "nifti1.h"
-}
+
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -323,6 +323,8 @@ public:
 
   bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
 
+  void GeodesicSegmentationApply(LayerMRI* filled);
+
   void GetVolumeInfo(int* dim, double* voxel_size);
 
   void SetIgnoreHeader(bool b)
@@ -356,6 +358,8 @@ Q_SIGNALS:
   void IsoSurfaceUpdated();
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
+  void GeodesicSegmentationApplied();
+  void GeodesicSegmentationFinished();
 
 protected slots:
   void UpdateDisplayMode();
@@ -385,7 +389,7 @@ protected slots:
   void ResetRef();
 
   void OnLabelContourChanged(int n = -1);
-  void OnContourSmoothIterationChanged();
+  void RebuildContour();
 
   void OnLabelInformationReady();
 

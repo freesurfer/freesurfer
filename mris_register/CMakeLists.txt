@@ -2,7 +2,7 @@ project(mris_register)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_register mris_register.c)
+add_executable(mris_register mris_register.cpp)
 add_help(mris_register mris_register.help.xml)
 target_link_libraries(mris_register utils)
 

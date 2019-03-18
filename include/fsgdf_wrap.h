@@ -59,20 +59,12 @@
 #define SWIG_prefix  ""
 #define SWIG_version "0.0"
 
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #ifdef MAC_TCL
 #pragma export on
 #endif
   SWIGEXPORT(int) SWIG_init(Tcl_Interp *);
 #ifdef MAC_TCL
 #pragma export off
-#endif
-#ifdef __cplusplus
-}
 #endif
 
 #endif

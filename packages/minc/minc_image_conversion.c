@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : image_conversion.c
 @DESCRIPTION: File of functions to manipulate image conversion variables
@@ -2724,5 +2722,3 @@ int miicv_attach(int icvid, int cdfid, int varid)
 
    return (MI_NOERROR);
 }
-
-#endif	// defined(USE_LOCAL_MINC)

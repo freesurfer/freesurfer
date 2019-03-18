@@ -33,10 +33,10 @@
 #include <vtkSmartPointer.h>
 #include <QList>
 
-extern "C"
-{
+
+
 #include "label.h"
-}
+
 
 class LayerSurface;
 class vtkRGBAColorTransferFunction;
@@ -152,6 +152,7 @@ public slots:
   void Redo();
   void SaveForUndo();
   void SetOpacity(double dval);
+  void MaskOverlay();
 
 private:
   void UpdateOutline();

@@ -25,11 +25,6 @@
 #ifndef NUMERICS_H_
 #define NUMERICS_H_
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "matrix.h"
 
 
@@ -188,9 +183,5 @@ extern "C"
 
   double sc_cdf_chisq_Q(double x, double nu);
   double sc_cdf_chisq_Qinv(double Q, double nu);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /*NUMERICS_H_*/

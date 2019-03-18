@@ -3,10 +3,10 @@
 #include "itkMesh.h"
 #include "itkTriangleCell.h"
 #include "vtkSmartPointer.h"
-extern "C" 
-{
+ 
+
 #include "mrisurf.h"
-}
+
 
 using namespace itk;
 namespace fs
@@ -44,6 +44,8 @@ namespace fs
 			void Load(MRI_SURFACE *surf);
 			MRI_SURFACE* GetFSSurface(MRI_SURFACE *surf);
 			std::vector<PointType> GetAdjacentPoints(int idPoint) const;
+			std::vector<Face> GetFaces(){ return this->faces;}
+	
 		private:
 
 			std::vector<Face> faces;

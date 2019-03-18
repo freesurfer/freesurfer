@@ -88,7 +88,7 @@ Preprocessor::convertInputToPointSet()
         pt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
       pointSet->SetPoint(ptSetCounter++, pt);
       fBuf = (float)counter;
-      floatArray->SetTupleValue( *idPtr, &fBuf);
+      floatArray->SetTuple( *idPtr, &fBuf);
     } // next ui
     ++counter;
   }
@@ -132,7 +132,7 @@ Preprocessor::convertInputToPointSet()
         cit != distMap.end(); ++cit )
     {
       fBuf = cit->second / fLength;
-      floatArray->SetTupleValue( cit->first, &fBuf );
+      floatArray->SetTuple( cit->first, &fBuf );
     }
 
     counter++;

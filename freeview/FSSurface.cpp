@@ -53,10 +53,10 @@
 #include <QDebug>
 #include <QDir>
 
-extern "C"
-{
+
+
 #include "mri_identify.h"
-}
+
 using namespace std;
 
 
@@ -1020,7 +1020,7 @@ void FSSurface::UpdateVerticesAndNormals()
   m_polydata->GetPointData()->SetNormals( newNormals );
   m_polydataVertices->SetPoints( newPoints );
   m_polydataWireframes->SetPoints( newPoints );
-  m_polydata->Update();
+//  m_polydata->Update();
 
   // if vector data exist
   UpdateVectors();
@@ -1177,7 +1177,11 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
       pos[nPlane] = slice_pos;
       slicer->SetOrigin( pos );
       slicer->SetNormal( (nPlane==0), (nPlane==1), (nPlane==2) );
+#if VTK_MAJOR_VERSION > 5
+      cutter->SetInputData( m_polydataTarget );
+#else
       cutter->SetInput( m_polydataTarget );
+#endif
       cutter->SetCutFunction( slicer );
       cutter->Update();
       target_polydata = cutter->GetOutput();

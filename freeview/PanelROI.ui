@@ -464,6 +464,25 @@
    </slots>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEditFileName</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>comboBoxColorMap</tabstop>
+  <tabstop>lineEditHeatscaleMin</tabstop>
+  <tabstop>lineEditHeatscaleMax</tabstop>
+  <tabstop>lineEditThreshold</tabstop>
+  <tabstop>comboBoxMappedSurface</tabstop>
+  <tabstop>pushButtonResample</tabstop>
+  <tabstop>pushButtonDilate</tabstop>
+  <tabstop>spinBoxDilateTimes</tabstop>
+  <tabstop>pushButtonErode</tabstop>
+  <tabstop>spinBoxErodeTimes</tabstop>
+  <tabstop>pushButtonOpen</tabstop>
+  <tabstop>spinBoxOpenTimes</tabstop>
+  <tabstop>pushButtonClose</tabstop>
+  <tabstop>spinBoxCloseTimes</tabstop>
+ </tabstops>
  <resources>
   <include location="freeview.qrc"/>
  </resources>

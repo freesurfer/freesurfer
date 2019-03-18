@@ -213,7 +213,7 @@ Currently, this program is just a front-end for the FSL FLIRT program.
 
 To check the registration, run:
 
-tkregister2 --mov $FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz \
+tkregisterfv --mov $FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz \
   --reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
   --surf 
 
@@ -222,7 +222,7 @@ is a volumetric registration.
 
 You should also check the registration with your GFEAT results:
 
-tkregister2 --mov subject.gfeat/mean_func.nii.gz \
+tkregisterfv --mov subject.gfeat/mean_func.nii.gz \
   --reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
   --surf 
 
@@ -243,14 +243,14 @@ $SUBJECTS_DIR/$subject/mri/transforms
 ----------------------------------------------------------------------
 Example usage with FSL GFEAT of a single subject:
 
-tkmedit subject orig.mgz -aparc+aseg \
+tkmeditfv subject orig.mgz -aparc+aseg \
   -overlay subject.gfeat/cope1.feat/stats/zstat1.nii.gz \
   -reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat
 
 mri_vol2surf --mov subject.gfeat/cope1.feat/stats/zstat1.nii.gz \
   -reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
   --hemi lh --projfrac 0.5 --o lh.subject.zstat1.mgh 
-tksurfer subject lh inflated -aparc -overlay lh.subject.zstat1.mgh 
+tksurferfv subject lh inflated -aparc -overlay lh.subject.zstat1.mgh 
 
 ----------------------------------------------------------------------
 Example usage with FSL GFEAT of multiple subjects in preparation

@@ -1,4 +1,4 @@
-# before starting the project, set gcc/g++ as default
+# before starting the project, set gcc/g++ as the default compiler
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
 
@@ -9,9 +9,9 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
-option(BUILD_GUIS "Build GUIs" ON)
-option(USE_OPENCL "Build OpenCL algorithms" OFF)
+option(BUILD_GUIS "Build GUI tools" ON)
 option(INFANT_MODULE "Include infant recon-all" OFF)
+option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -26,17 +26,11 @@ include(cmake/functions.cmake)
 include(TestBigEndian)
 include(CheckFunctionExists)
 
-# prevents itk from importing as a system
+# prevent third-party packages from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
-# xxd is used to generate the helptext headers - make sure it exists
-find_program(XXD xxd)
-if(NOT XXD)
-  message(FATAL_ERROR "The xxd program is required to build freesurfer")
-endif()
-
-# allow reading installation dir from environment var, but if not defined,
-# then override default install dir /usr/local (too messy to install there)
+# if an install prefix is not provided, check the FS_INSTALL_DIR env var, and
+# if that is not defined, set the default path to /usr/local/freesurfer
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
     set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE PATH "Copied from FS_INSTALL_DIR env variable" FORCE)
@@ -44,6 +38,10 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer" CACHE PATH "Default install path" FORCE)
   endif()
 endif()
+
+# create build stamp during install
+set(BUILD_STAMP "freesurfer" CACHE STRING "Distribution build-stamp")
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # set the default build type to 'Release' for optimization purposes
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -54,15 +52,15 @@ endif()
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
 
-# create build stamp during install
-if(NOT FS_BUILD_STAMP)
-  set(FS_BUILD_STAMP "freesurfer")
-endif()
-install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
+# --------------------------------------------------
+#               external dependencies
+# --------------------------------------------------
 
-# --------------------------------------------------
-#   library dependencies and third-party packages
-# --------------------------------------------------
+# xxd is used to generate the helptext headers
+find_program(XXD xxd)
+if(NOT XXD)
+  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+endif()
 
 # Most of the packages required by freesurfer are located by custom find-modules stored in the
 # 'cmake' subdir. The find-modules expect each package to be installed under a common
@@ -106,17 +104,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(ZLIB REQUIRED)
 add_definitions(-DHAVE_ZLIB)
 
+# -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-
-  # -------- gfortran --------
   find_library(GFORTRAN_LIBRARIES
     HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
     NAMES libgfortran.a gfortran)
-
-  # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-
 endif()
 
 # -------- armadillo --------
@@ -126,12 +120,8 @@ find_package(Armadillo)
 find_package(PETSC)
 
 # -------- itk --------
-if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
-endif()
+set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
-# todo: since ITK is now required, we can get rid of this macro
-add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -155,16 +145,8 @@ if(NOT APPLE)
   find_package(OpenCV)
 endif()
 
-# -------- openCL --------
-if(USE_OPENCL)
-  find_package(OpenCL)
-endif()
-
 # -------- X11 ---------
 find_package(X11 REQUIRED)
-
-# -------- vtk --------
-find_package(VTK)
 
 # search for GUI libraries
 if(BUILD_GUIS)
@@ -185,8 +167,21 @@ if(BUILD_GUIS)
 
 endif()
 
+# -------- vtk --------
+set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1 CACHE PATH "VTK install directory")
+find_package(VTK HINTS ${VTK_DIR})
+if(VTK_FOUND AND NOT APPLE)
+  # install the shared libraries to the freesurfer lib directory
+  file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
+  if(VTK_LIBRARIES_TO_INSTALL)
+    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib/vtk)
+    # add vtk library directory to rpath
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
+  endif()
+endif()
+
 # --------------------------------------------------
-#             global build configuration
+#              global system information
 # --------------------------------------------------
 
 add_definitions(-D${CMAKE_SYSTEM_NAME})
@@ -199,71 +194,20 @@ else()
   set(BYTEORDER 1234)
 endif()
 
-# compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
-# clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
-else()
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-but-set-variable")
-endif()
-
-# ANSI
-add_definitions(-DANSI)
-
-# SSE matrix and math functions (affine.h and sse_mathfun.h)
-# todo: write some logic to set this correctly
-add_definitions(-DUSE_SSE_MATHFUN)
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse -fPIC")
-
-# large file support: support for files > 2GB
-if(APPLE)
-  add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
-endif()
-
-# todo: implement processor-based logic to determine this
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
-
-# for stripping unused code
-if(APPLE)
-  set(STRIP_FLAGS "-dead_strip")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
-else()
-  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
-endif()
-
-if(NOT APPLE)
-  # link map (only for linux)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-endif()
-
-# check for clock_gettime on mac
-if(APPLE)
-  check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
-  if(HAVE_CLOCK_GETTIME)
-    add_definitions(-DHAVE_CLOCK_GETTIME)
-  endif()
-endif()
-
-# apply C and CXX flags
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
-
 # enable std c++11
 set(CMAKE_CXX_STANDARD 11)
 
-# set executable rpath
-if(NOT APPLE)
-  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib:${CMAKE_INSTALL_RPATH}")
-endif()
-
 # --------------------------------------------------
-#                   setup python
+#                  third-party code
 # --------------------------------------------------
 
-# Unfortunately, the python version used to run bind c-libraries must be equivalent to
+add_subdirectory(packages)
+
+# --------------------------------------------------
+#                    setup python
+# --------------------------------------------------
+
+# Unfortunately, the python version used to run pybind c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
 # distributing a minimal, custom python installation called fspython. This fspython package
@@ -288,7 +232,7 @@ if(DISTRIBUTE_FSPYTHON)
 endif()
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)  # minimum version required
+set(PYBIND11_PYTHON_VERSION 3.5)
 add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
@@ -297,52 +241,58 @@ if(NOT DISTRIBUTE_FSPYTHON)
 endif()
 
 # --------------------------------------------------
+#             freesurfer build settings
+# --------------------------------------------------
+
+# warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-sign-compare -Wno-write-strings -Wno-unused-result -Wno-unused-parameter")
+
+# clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+# linker options
+if(APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -static-libgcc")
+else()
+  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STRIP_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+# check for clock_gettime on mac
+if(APPLE)
+  check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+  if(HAVE_CLOCK_GETTIME)
+    add_definitions(-DHAVE_CLOCK_GETTIME)
+  endif()
+endif()
+
+# --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
 
-# first, prepare the freesurfer distribution
+# prepare the freesurfer distribution
 add_subdirectory(distribution)
 
-# the top-level include dir contain the most commonly
-# included freesurfer header files
+# the top-level include dir contain the most commonly included freesurfer header files
 set(FS_INCLUDE_DIRS
-  ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/packages/minc
   ${CMAKE_SOURCE_DIR}/packages/netcdf
+  ${CMAKE_SOURCE_DIR}/packages/nifti
 )
 
-# build third-party libraries
-# make sure to use the local minc source
-add_definitions(-DUSE_LOCAL_MINC)
-add_subdirectories(
-  packages/jpeg
-  packages/expat
-  packages/tiff
-  packages/xml2
-  packages/minc
-  packages/netcdf
-  packages/tetgen
-)
-
-if(OPENGL_FOUND)
-  add_subdirectory(packages/glut)
-endif()
-
-# now build the freesurfer static libraries (order here matters!)
-add_subdirectories(
-  log
-  rgb
-  hipsstubs
-  dicom
-  utils
-  utilscpp
-  svm-lib
-  opencl_algorithms
-)
+# build the freesurfer static libraries
+add_subdirectories(utils)
 
 # the following utility libraries are required for freeview
-add_subdirectories(vtkfsio vtkutils lineprof)
+add_subdirectories(vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
@@ -448,9 +398,8 @@ add_subdirectories(
   tkregister2
 )
 
-# the following program subdirectories aren't required in the standard
-# recon-all stream - they will be built by default, but not if a minimal build
-# is configured
+# the following program subdirectories aren't required in the standard recon-all stream.
+# they will be built by default, but not if a minimal build is configured
 if(NOT MINIMAL)
   add_subdirectories(
     anatomicuts
@@ -459,6 +408,7 @@ if(NOT MINIMAL)
     connectgraph
     diffusion_tool
     dmri_tensoreig
+    dummy
     dngtester
     freeview
     fsfast

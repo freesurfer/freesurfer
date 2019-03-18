@@ -111,10 +111,10 @@ void SurfaceSpline::BuildSphereActor(vtkActor* actor, vtkPoints* pts)
     sphere->SetRadius( 0.625 );
     sphere->SetThetaResolution( 10 );
     sphere->SetPhiResolution( 20 );
-    append->AddInput( sphere->GetOutput() );
+    append->AddInputConnection( sphere->GetOutputPort() );
   }
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapper->SetInput( append->GetOutput() );
+  mapper->SetInputConnection( append->GetOutputPort() );
   actor->SetMapper(mapper);
 }
 
@@ -172,12 +172,16 @@ void SurfaceSpline::RebuildActors()
       polydata->SetPoints(points);
       polydata->SetLines(lines);
       vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+      spline->SetInputData(polydata);
+#else
       spline->SetInput(polydata);
+#endif
       vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
-      tube->SetInput(spline->GetOutput());
+      tube->SetInputConnection(spline->GetOutputPort());
       tube->SetNumberOfSides(8);
       tube->SetRadius(0.25);
-      mapper->SetInput(tube->GetOutput());
+      mapper->SetInputConnection(tube->GetOutputPort());
       BuildSphereActor(m_actorSpheres, points);
     }
     for (int n = 0; n < 3; n++)
@@ -186,7 +190,11 @@ void SurfaceSpline::RebuildActors()
       polydata->SetPoints(points);
       polydata->SetLines(lines);
       vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+      spline->SetInputData(polydata);
+#else
       spline->SetInput(polydata);
+#endif
       spline->Update();
       vtkPolyData* spline_poly = spline->GetOutput();
       vtkPoints* spline_points = spline_poly->GetPoints();
@@ -211,10 +219,14 @@ void SurfaceSpline::RebuildActors()
       }
 
       vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+      tube->SetInputData(spline_poly);
+#else
       tube->SetInput(spline_poly);
+#endif
       tube->SetNumberOfSides(8);
       tube->SetRadius(0.25);
-      mapper2d[n]->SetInput(tube->GetOutput());
+      mapper2d[n]->SetInputConnection(tube->GetOutputPort());
       BuildSphereActor(m_actor2DSpheres[n], ctrl_points);
     }
   }

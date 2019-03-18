@@ -37,7 +37,7 @@
 ////////////////////////////////////////////
 #include "ANN.h"
 
-extern "C" {
+ 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ extern "C" {
 #include "version.h"
 #include "error.h"
 #include "matrix.h"
-}
+
 
 //static char vcid[] = "$Id: mris_spharm.c,v 1.7 2011/03/02 00:04:34 nicks Exp $";
 
@@ -86,7 +86,7 @@ main(int argc, char *argv[]) {
   char          fname[STRLEN];
   int           nargs, msec, order, i, j, k, nvertices, dimension, count, fno;
   float         phi, d, theta, area;
-  struct timeb  then ;
+  Timer then ;
   MRIS          *mris_in, *mris_out;
   //MRI_SP        *mrisp ;
   MATRIX        *m_Z, *m_V, *m_c, *m_Z_inv, *m_V_new;
@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM,
               "usage: %s <input surface> <orig surface> <finest order> <output surface>", Progname);
 
-  TimerStart(&then) ;
+  then.reset() ;
 
   mris_in = MRISread(argv[1]) ;
   if (!mris_in)
@@ -301,7 +301,7 @@ main(int argc, char *argv[]) {
   //MRISPfree(&mrisp) ;
   MRISfree(&mris_in) ;
   MRISfree(&mris_out);
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stdout, "spherical wavelet took %2.1f minutes\n", (float)msec/(1000.0f*60.0f));
   exit(0) ;
   return(0) ;

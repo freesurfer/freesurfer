@@ -27,8 +27,6 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -47,10 +45,6 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
 
 #define FAST_GCAsourceVoxelToPrior 1
 
-#if INDIVIDUAL_TIMERS
-#include "chronometer.hpp"
-#endif
-
 #ifndef powerpc
 #include "affine.hpp"
 #endif
@@ -59,8 +53,6 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
 
 #include "gcautils.hpp"
 
-extern "C"
-{
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
@@ -85,10 +77,10 @@ extern "C"
 #include "gcamorph.h"
 #include "cma.h"
 #include "transform.h"
-
 #include "talairachex.h"
 #include "mri_circulars.h"
-}
+#include "timer.h"
+
 
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */
@@ -485,7 +477,7 @@ double Sphereadius(Sphere *sphere);
 
 void initSurfaces(MRIS *mris_curv,MRIS *mris_dCOG, const Sphere *sphere);
 void MRISdistanceToCOG(MRI_SURFACE *mris);
-double mrisComputeCorrelationError(MRI_SURFACE *mris,
+double mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris,
                                    INTEGRATION_PARMS *parms,
                                    int use_stds);
 
@@ -1469,31 +1461,18 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   int xp, yp, zp;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 
 #if FAST_GCAsourceVoxelToPrior
   LTA *lta = (LTA*)transform->xform;
-#if USE_SSE_MATHFUN
   Freesurfer::AffineMatrix<float> myTrans, A, B, C;
   A.Set( parms->gca->prior_r_to_i__ );
   B.Set( parms->gca->mri_tal__->i_to_r__ );
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
-#else
-  AffineMatrix myTrans, tmp, C;
-  const AffineMatrix *A, *B;
-  A = parms->gca->prior_r_to_i__;
-  B = parms->gca->mri_tal__->i_to_r__;
-  SetAffineMatrix( &C, lta->xforms[0].m_L );
-
-  AffineMM( &tmp, A, B );
-  AffineMM( &myTrans, &tmp, &C );
-#endif
 #endif
 
 
@@ -1526,17 +1505,10 @@ void MRI_weight_atlas(MRI *mri_with_skull,
                  &xpd2, &ypd2, &zpd2 );
         */
 #if FAST_GCAsourceVoxelToPrior
-#if USE_SSE_MATHFUN
         Freesurfer::AffineVector<float> rp, rv;
         rv.Set( x, y, z );
         rp = myTrans * rv;
         rp.GetFloor( xp, yp, zp );
-#else
-        AffineVector rp, rv;
-        SetAffineVector( &rv, x, y, z );
-        AffineMV( &rp, &myTrans, &rv );
-        GetFloorAffineVector( &rp, &xp, &yp, &zp );
-#endif
 #else
         GCAsourceVoxelToPrior(parms->gca,
                               mri_with_skull,
@@ -1588,12 +1560,8 @@ void MRI_weight_atlas(MRI *mri_with_skull,
     }
   }
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -3064,10 +3032,8 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
                         float &var )
 {
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 
@@ -3079,22 +3045,11 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
 
 #if FAST_GCAsourceVoxelToPrior
   LTA *lta = (LTA*)parms->transform->xform;
-#ifdef USE_SSE_MATHFUN
   Freesurfer::AffineMatrix<float> myTrans, A, B, C;
   A.Set( parms->gca->prior_r_to_i__ );
   B.Set( parms->gca->mri_tal__->i_to_r__ );
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
-#else
-  AffineMatrix myTrans, C, tmp;
-  const AffineMatrix *A, *B;
-  A = parms->gca->prior_r_to_i__;
-  B = parms->gca->mri_tal__->i_to_r__;
-  SetAffineMatrix( &C, lta->xforms[0].m_L );
-
-  AffineMM( & tmp, A, B );
-  AffineMM( &myTrans, &tmp, &C );
-#endif
 #endif
 
   for (k=2; k<MRI_var->depth-2; k++)
@@ -3103,17 +3058,10 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
       {
         vox = MRIvox(MRI_var->mri_src,i,j,k);
 #if FAST_GCAsourceVoxelToPrior
-#ifdef USE_SSE_MATHFUN
         Freesurfer::AffineVector<float> rp, rv;
         rv.Set( i, j, k );
         rp = myTrans * rv;
         rp.GetFloor( xp, yp, zp );
-#else
-        AffineVector rp, rv;
-        SetAffineVector( &rv, i, j, k );
-        AffineMV( &rp, &myTrans, &rv );
-        GetFloorAffineVector( &rp, &xp, &yp, &zp );
-#endif
 #else
         GCAsourceVoxelToPrior(parms->gca,
                               MRI_var->mri_src,
@@ -3132,11 +3080,8 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
   mean/=count;
   var=sqrt(var/count-mean*mean);
 
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -3164,10 +3109,8 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
   int number_seed = 20;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
   AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
@@ -3176,23 +3119,11 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
 #if FAST_GCAsourceVoxelToPrior
   LTA *lta = (LTA*)parms->transform->xform;
-#ifdef USE_SSE_MATHFUN
   Freesurfer::AffineMatrix<float> myTrans, A, B, C;
   A.Set( parms->gca->prior_r_to_i__ );
   B.Set( parms->gca->mri_tal__->i_to_r__ );
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
-#else
-  AffineMatrix myTrans, C, tmp;
-  const AffineMatrix *A, *B;
-
-  A = parms->gca->prior_r_to_i__;
-  B = parms->gca->mri_tal__->i_to_r__;
-  SetAffineMatrix( &C, lta->xforms[0].m_L );
-
-  AffineMM( &tmp, A, B );
-  AffineMM( &myTrans, &tmp, &C );
-#endif
 #endif
 
   for (k=2; k<MRI_var->depth-2; k++)
@@ -3206,17 +3137,10 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
         {
           vox = MRIvox(MRI_var->mri_src,i,j,k);
 #if FAST_GCAsourceVoxelToPrior
-#ifdef USE_SSE_MATHFUN
           Freesurfer::AffineVector<float> rp, rv;
           rv.Set( i, j, k );
           rp = myTrans * rv;
           rp.GetFloor( xp, yp, zp );
-#else
-          AffineVector rp, rv;
-          SetAffineVector( &rv, i, j, k );
-          AffineMV( &rp, &myTrans, &rv );
-          GetFloorAffineVector( &rp, &xp, &yp, &zp );
-#endif
 #else
           GCAsourceVoxelToPrior(parms->gca,
                                 MRI_var->mri_src,
@@ -3263,17 +3187,10 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
           {
 
 #if FAST_GCAsourceVoxelToPrior
-#ifdef USE_SSE_MATHFUN
             Freesurfer::AffineVector<float> rp, rv;
             rv.Set( i, j, k );
             rp = myTrans * rv;
             rp.GetFloor( xp, yp, zp );
-#else
-            AffineVector rp, rv;
-            SetAffineVector( &rv, i, j, k );
-            AffineMV( &rp, &myTrans, &rv );
-            GetFloorAffineVector( &rp, &xp, &yp, &zp );
-#endif
 #else
             GCAsourceVoxelToPrior(parms->gca,
                                   MRI_var->mri_src,
@@ -3327,12 +3244,8 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
     parms->nb_seed_points++;
   }
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
 }
 
@@ -4065,31 +3978,17 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
   double nu;
 
 #if INDIVIDUAL_TIMERS
-  printf( "%s: Begin\n", __FUNCTION__ );
-  SciGPU::Utilities::Chronometer tTotal;
-
-  tTotal.Start();
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  Timer tTotal;
 #endif
 
 #if FAST_GCAsourceVoxelToPrior
   LTA *lta = (LTA*)parms->transform->xform;
-#ifdef USE_SSE_MATHFUN
   Freesurfer::AffineMatrix<float> myTrans, A, B, C;
   A.Set( parms->gca->prior_r_to_i__ );
   B.Set( parms->gca->mri_tal__->i_to_r__ );
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
-#else
-  AffineMatrix myTrans, C, tmp;
-  const AffineMatrix *A, *B;
-
-  A =parms->gca->prior_r_to_i__;
-  B = parms->gca->mri_tal__->i_to_r__;
-  SetAffineMatrix( &C, lta->xforms[0].m_L );
-
-  AffineMM( &tmp, A, B );
-  AffineMM( &myTrans, &tmp, &C );
-#endif
 #endif
 
   for (k=2; k<MRI_var->depth-2; k++)
@@ -4134,17 +4033,10 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
         if (cell->type)
         {
 #if FAST_GCAsourceVoxelToPrior
-#ifdef USE_SSE_MATHFUN
           Freesurfer::AffineVector<float> rp, rv;
           rv.Set( i, j, k );
           rp = myTrans * rv;
           rp.GetFloor( xp, yp, zp );
-#else
-          AffineVector rp, rv;
-          SetAffineVector( &rv, i, j, k );
-          AffineMV( &rp, &myTrans, &rv );
-          GetFloorAffineVector( &rp, &xp, &yp, &zp );
-#endif
 #else
           GCAsourceVoxelToPrior(parms->gca,
                                 MRI_var->mri_src,
@@ -4192,15 +4084,9 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
       }
   fprintf(stdout," %i basins merged thanks to atlas ", nb_merging);
 
-
-
 #if INDIVIDUAL_TIMERS
-  tTotal.Stop();
-
-  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal.milliseconds() << " ms" << std::endl;
 #endif
-
-
 }
 
 
@@ -7631,10 +7517,10 @@ int ValidationSurfaceShape(MRI_variables *MRI_var)
   //calcul of the initial sse
   init_sse=0;
   parms.frame_no = 0 ;
-  init_sse=mrisComputeCorrelationError(mris_curv,&parms,1);
+  init_sse=mrisComputeCorrelationErrorLocal(mris_curv,&parms,1);
   var_init_sse=parms.momentum;
   parms.frame_no = 3 ;
-  init_sse+=mrisComputeCorrelationError(mris_dCOG,&parms,1);
+  init_sse+=mrisComputeCorrelationErrorLocal(mris_dCOG,&parms,1);
   var_init_sse+=parms.momentum;
   parms.frame_no = 0 ;
   init_sse/=2.;
@@ -7680,10 +7566,10 @@ int ValidationSurfaceShape(MRI_variables *MRI_var)
   //calcul of the rotated sse
   rot_sse=0;
   parms.frame_no = 0 ;
-  rot_sse=mrisComputeCorrelationError(mris_curv,&parms,1);
+  rot_sse=mrisComputeCorrelationErrorLocal(mris_curv,&parms,1);
   var_rot_sse=parms.momentum;
   parms.frame_no = 3 ;
-  rot_sse+=mrisComputeCorrelationError(mris_dCOG,&parms,1);
+  rot_sse+=mrisComputeCorrelationErrorLocal(mris_dCOG,&parms,1);
   var_rot_sse+=parms.momentum;
   parms.frame_no = 0 ;
   rot_sse/=2.;
@@ -7853,7 +7739,7 @@ void MRISdistanceToCOG(MRI_SURFACE *mris)
 #define CORR_THRESHOLD 5.3f
 
 double
-mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                             int use_stds)
 {
   double   src, target, sse, var_sse,delta, std ;
@@ -7991,17 +7877,17 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
     {
     case DIST_MODE:
       parms->frame_no = 3 ;
-      min_sse = mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       break;
     case CURV_MODE:
       parms->frame_no = 0 ;
-      min_sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       break;
     case DEFAULT_MODE:
       parms->frame_no = 0 ;
-      min_sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      min_sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       parms->frame_no = 3 ;
-      min_sse += mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      min_sse += mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       min_sse/=2.;
       break;
     }
@@ -8029,21 +7915,21 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
             MRISsaveVertexPositions(mris_dist, TMP_VERTICES) ;
             MRISrotate(mris_dist, mris_dist, alpha, beta, gamma) ;
             parms->frame_no = 3 ;
-            sse = mrisComputeCorrelationError(mris_dist, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
             MRISrestoreVertexPositions(mris_dist, TMP_VERTICES) ;
             break;
           case CURV_MODE:
             MRISsaveVertexPositions(mris_curv, TMP_VERTICES) ;
             MRISrotate(mris_curv, mris_curv, alpha, beta, gamma) ;
             parms->frame_no = 0 ;
-            sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
             MRISrestoreVertexPositions(mris_curv, TMP_VERTICES) ;
             break;
           case DEFAULT_MODE:
             MRISsaveVertexPositions(mris_curv, TMP_VERTICES) ;
             MRISrotate(mris_curv, mris_curv, alpha, beta, gamma) ;
             parms->frame_no = 0 ;
-            sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+            sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
 
             MRISrestoreVertexPositions(mris_curv, TMP_VERTICES) ;
 
@@ -8051,7 +7937,7 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
             MRISrotate(mris_dist, mris_dist, alpha, beta, gamma) ;
             parms->frame_no = 3 ;
             sse +=
-              mrisComputeCorrelationError(mris_dist, parms, 1) ;
+              mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
 
             MRISrestoreVertexPositions(mris_dist, TMP_VERTICES) ;
             sse/=2.;
@@ -8098,9 +7984,9 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
       MRISrotate(mris_curv, mris_curv, mina, minb, ming) ;
       MRISrotate(mris_dist, mris_dist, mina, minb, ming) ;
       parms->frame_no = 0 ;
-      sse = mrisComputeCorrelationError(mris_curv, parms, 1) ;
+      sse = mrisComputeCorrelationErrorLocal(mris_curv, parms, 1) ;
       parms->frame_no = 3 ;
-      sse += mrisComputeCorrelationError(mris_dist, parms, 1) ;
+      sse += mrisComputeCorrelationErrorLocal(mris_dist, parms, 1) ;
       sse/=2;
     }
   }

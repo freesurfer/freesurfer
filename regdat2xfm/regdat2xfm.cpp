@@ -31,14 +31,14 @@
 #endif
 #include <string>
 
-extern "C" {
+ 
 #include "error.h"
 #include "mri.h"
 #include "transform.h"
 #include "talairachex.h"
 #include "utils.h"
   const char *Progname="regdat2xfm";
-}
+
 
 using namespace std;
 

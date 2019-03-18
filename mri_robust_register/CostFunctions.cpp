@@ -31,18 +31,10 @@
 #include <sstream>
 #include "RobustGaussian.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "macros.h"
 #include "mrimorph.h"
 #include "matrix.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #define export // obsolete feature
 #include <vnl/vnl_matrix_fixed.h>

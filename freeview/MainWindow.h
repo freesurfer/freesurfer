@@ -225,6 +225,8 @@ public:
 
   void SaveLayers(const QList<Layer*>& layers);
 
+  Layer* FindSupplementLayer(const QString& name);
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
@@ -546,6 +548,8 @@ protected slots:
   void OnLoadVolumeTransform();
 
   void OnUnloadVolumeTransform();
+
+  void SetCurrentTimeCourseFrame(int nFrame);
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

@@ -29,11 +29,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 int     ErrorInit(char *fname,
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args)) ;
@@ -64,10 +59,5 @@ int ErrorWriteDoneFile(char *DoneFile, int errorcode);
 #define ERROR_OUT_OF_BOUNDS   -8
 
 extern int Gerror ;    /* global error value */
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

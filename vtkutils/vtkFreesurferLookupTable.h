@@ -28,19 +28,17 @@
 #define vtkFreesurferLookupTable_h
 
 #include <string>
-
+//#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkLookupTable.h"
 
-extern "C" {
 #include "colortab.h"
-}
 
 class vtkFreesurferLookupTable : public vtkLookupTable {
 
  public:
   
   static vtkFreesurferLookupTable* New();
-  vtkTypeRevisionMacro( vtkFreesurferLookupTable, vtkLookupTable );
+  vtkTypeMacro( vtkFreesurferLookupTable, vtkLookupTable );
 
   // Description:
   // Clears and sets its internal entries by reading a Freesurfer LUT

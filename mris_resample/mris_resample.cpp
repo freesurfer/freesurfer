@@ -46,11 +46,11 @@
 #include <ANN/ANN.h>
 
 // FS includes
-#include "argparse.hpp"
-extern "C" {
+#include "argparse.h"
+ 
 #include "error.h"
 #include "mrisurf.h"
-}
+
 
 #include "mris_resample.help.xml.h"
 
@@ -178,8 +178,8 @@ IoParams::parse(int ac, const char** av)
 
   annotation = false;
 
-  if (strAnnotationOut.empty() && !strAnnotationIn.empty()) fs_fatal(1) << "missing --annot_out flag";
-  if (!strAnnotationOut.empty() && strAnnotationIn.empty()) fs_fatal(1) << "missing --annot_in flag";
+  if (strAnnotationOut.empty() && !strAnnotationIn.empty()) logFatal(1) << "missing --annot_out flag";
+  if (!strAnnotationOut.empty() && strAnnotationIn.empty()) logFatal(1) << "missing --annot_in flag";
 
   if (!strAnnotationOut.empty() && !strAnnotationIn.empty()) {
     annotation = true;

@@ -219,7 +219,11 @@ void RenderView3D::UpdateSliceFrames()
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
+#if VTK_MAJOR_VERSION > 5
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[0]->GetMapper())->SetInputData( polydata );
+#else
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[0]->GetMapper())->SetInput( polydata );
+#endif
 
   points = vtkSmartPointer<vtkPoints>::New();
   points->InsertPoint( 0, bounds[0], slicepos[1], bounds[4] );
@@ -229,7 +233,11 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
+#if VTK_MAJOR_VERSION > 5
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[1]->GetMapper())->SetInputData( polydata );
+#else
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[1]->GetMapper())->SetInput( polydata );
+#endif
 
   points = vtkSmartPointer<vtkPoints>::New();
   points->InsertPoint( 0, bounds[0], bounds[2], slicepos[2] );
@@ -239,7 +247,11 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
+#if VTK_MAJOR_VERSION > 5
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[2]->GetMapper())->SetInputData( polydata );
+#else
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[2]->GetMapper())->SetInput( polydata );
+#endif
 
   for ( int i = 0; i < 3; i++ )
   {

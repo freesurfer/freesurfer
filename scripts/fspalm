@@ -131,9 +131,13 @@ with open(glm_log, 'r') as f:
 # extract input filename
 input_file = None
 for line in loglines:
-  if line.split()[0] == 'y':
+  firstWord = line.split()[0]
+  if firstWord == 'y':
     input_file = line.split()[1]
-    break
+  elif firstWord == 'cmdline' and '--fwhm' in line:
+    # sanity check to make sure fwhm was not used
+    print('ERROR: --fwhm was used in mri_glmfit. To run fspalm, explicitly smooth your data using mris_fwhm or mri_fwhm, rerun mri_glmfit without --fwhm, then run fspalm')
+    sys.exit(1)
 if not input_file:
   errExit("could not extract input filename from mri_glmfit.log")
 if not os.path.isfile(input_file):
@@ -188,6 +192,11 @@ xg_content = [x.strip() for x in xg_content]
 num_points = len(xg_content)
 num_waves = len(xg_content[0].split())
 
+# check if the design is a one-sample group mean (matrix is a column of all ones)
+if num_waves == 1 and all([float(row) == 1.0 for row in xg_content]):
+  print('Design detected as a one-sample group mean, adding -ise to implment sign flipping')
+  extra_opts.append("'-ise'")
+
 # write the palm design.mat
 f = open(os.path.join(palmdir, 'design.mat'), "w")
 f.write('/NumWaves {0}\n'.format(num_waves))
@@ -198,7 +207,6 @@ for thing in xg_content:
     errExit('number of waves (cols) in Xg.dat are not consistent')
   f.write(thing + '\n')
 f.close()
-
 
 # ---- contrasts ----
 # read in the C.dat files

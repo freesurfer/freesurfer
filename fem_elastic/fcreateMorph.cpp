@@ -16,11 +16,11 @@ This binary creates a morph, given transforms
 #include "transformUtils.h"
 
 // FS
-#include "argparse.hpp"
-extern "C" {
+#include "argparse.h"
+ 
 #include "gcamorph.h"
 #include "mri.h"
-}
+
 
 #include "createMorph.help.xml.h"
 

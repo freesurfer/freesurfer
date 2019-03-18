@@ -36,11 +36,11 @@
 #include <set>
 #include <map>
 
-extern "C"
-{
+
+
 #include "mri.h"
 
-}
+
 using namespace std ;
 
 

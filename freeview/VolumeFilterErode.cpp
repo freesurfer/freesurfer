@@ -29,10 +29,10 @@
 #include <vtkImageData.h>
 #include "ProgressCallback.h"
 
-extern "C"
-{
+
+
 #include "utils.h"
-}
+
 
 VolumeFilterErode::VolumeFilterErode( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   VolumeFilter( input, output, parent )

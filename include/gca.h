@@ -30,10 +30,6 @@
 #ifndef GCA_H
 #define GCA_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "faster_variants.h"
 
 #include "mri.h"
@@ -649,11 +645,5 @@ double csf_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) 
 double gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI **seg, MRI *out);
 MRI *GCAsampleToVolWMSAprob(MRI *mri, GCA *gca, TRANSFORM *transform, MRI *out);
-
-#if defined(__cplusplus)
-};
-#endif
-
-
 
 #endif

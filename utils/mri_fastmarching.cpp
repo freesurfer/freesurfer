@@ -24,20 +24,17 @@
 
 #include "fastmarching.h"
 
-extern "C" MRI *MRIextractDistanceMap(
-    MRI *mri_src, MRI *mri_dst, int label, float max_distance, int mode, MRI *mri_mask)
+MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst, int label, float max_distance, int mode, MRI *mri_mask)
 {
   MRI *mri_distance = NULL;
 
-#if 0
-  int  free_mri = 0 ;
+  // int  free_mri = 0 ;
 
-  if (mri_src->type != MRI_FLOAT)
-  {
-    mri_src = MRIchangeType(mri_src, MRI_FLOAT, 0, 1, 1) ;
-    free_mri = 1 ;
-  }
-#endif
+  // if (mri_src->type != MRI_FLOAT)
+  // {
+  //   mri_src = MRIchangeType(mri_src, MRI_FLOAT, 0, 1, 1) ;
+  //   free_mri = 1 ;
+  // }
 
   // make sure that the max distance is greater than 0
   if (max_distance <= 0) {

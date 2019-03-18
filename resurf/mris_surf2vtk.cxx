@@ -9,10 +9,10 @@
 #include <string>
 #include "colortab.h"
 #include "fsenv.h"
-extern "C" 
-{
+ 
+
 	#include "mrisurf.h"
-}
+
 
 #include "mrisurf.h"
 #include "itkVTKPolyDataWriter.h"

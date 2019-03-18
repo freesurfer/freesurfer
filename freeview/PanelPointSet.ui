@@ -706,6 +706,32 @@
    </slots>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEditFileName</tabstop>
+  <tabstop>pushButtonGoToPoint</tabstop>
+  <tabstop>spinBoxGoToPoint</tabstop>
+  <tabstop>sliderOpacity</tabstop>
+  <tabstop>doubleSpinBoxOpacity</tabstop>
+  <tabstop>lineEditRadius</tabstop>
+  <tabstop>checkBoxSnapToCenter</tabstop>
+  <tabstop>checkBoxShowSpline</tabstop>
+  <tabstop>comboBoxSplineColor</tabstop>
+  <tabstop>comboBoxScalarMap</tabstop>
+  <tabstop>sliderMin</tabstop>
+  <tabstop>lineEditMin</tabstop>
+  <tabstop>sliderMid</tabstop>
+  <tabstop>lineEditMid</tabstop>
+  <tabstop>sliderMax</tabstop>
+  <tabstop>lineEditMax</tabstop>
+  <tabstop>sliderOffset</tabstop>
+  <tabstop>lineEditOffset</tabstop>
+  <tabstop>lineEditSplineRadius</tabstop>
+  <tabstop>pushButtonStatAdd</tabstop>
+  <tabstop>pushButtonStatDelete</tabstop>
+  <tabstop>treeWidgetStats</tabstop>
+  <tabstop>pushButtonCommentAdd</tabstop>
+  <tabstop>scrollAreaComments</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

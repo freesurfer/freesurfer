@@ -477,7 +477,7 @@ get_transform:
 }
 
 
-#include "minc_volume_io.h"
+#include "minc.h"
 
 int  ltaMNIwrite(LTA *lta, char *fname)
 {

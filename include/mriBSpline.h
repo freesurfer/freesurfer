@@ -33,10 +33,6 @@
 #ifndef MRIBSPLINE_H
 #define MRIBSPLINE_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "mri.h"
 #include "transform.h"
 
@@ -87,10 +83,5 @@ MRI *MRIdownsample2BSpline(const MRI* mri_src, MRI *mri_dst) ;
 
 /** Direct methods for upsample (based on simplified algorithm) */
 MRI *MRIupsample2BSpline(const MRI* mri_src, MRI *mri_dst) ;
-
-
-#if defined(__cplusplus)
-};
-#endif
 
 #endif

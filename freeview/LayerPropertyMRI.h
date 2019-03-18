@@ -35,10 +35,10 @@
 #include <QVariantMap>
 #include <QColor>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 class vtkFreesurferLookupTable;
 class vtkRGBAColorTransferFunction;
@@ -315,14 +315,14 @@ public:
     return this->m_bShowAsLabelContour;
   }
 
+  bool GetShowVoxelizedContour()
+  {
+    return m_bShowVoxelizedContour;
+  }
+
   bool GetContourUpsample()
   {
     return this->m_bContourUpsample;
-  }
-
-  QString GetLabelContourRange()
-  {
-    return m_sLabelContourRange;
   }
 
   double GetVectorScale()
@@ -402,6 +402,7 @@ public slots:
   void SetTextureSmoothing ( int iSmooth );
   void SetShowAsContour( bool bContour );
   void SetShowAsLabelContour(bool bLabelContour);
+  void SetShowVoxelizedContour(bool bVoxelize);
   void SetClearZero( bool bClear );
   void SetResliceInterpolation ( int iMode );
   void SetWindow( double iWindow );
@@ -429,7 +430,6 @@ public slots:
 
   void SetRememberFrameSettings(bool bFlag);
 
-  void SetLabelContourRange(const QString& range_strg );
   void SetVectorScale(double dval);
 
   void SetUsePercentile(bool b)
@@ -464,6 +464,7 @@ signals:
   void ContourChanged();
   void ContourColorChanged();
   void ContourSmoothIterationChanged( int );
+  void ContourVoxelized(bool bVoxelize);
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
   void ProjectionMapChanged();
@@ -550,9 +551,9 @@ private:
   bool    m_bContourUpsample;
 
   bool    m_bShowAsLabelContour;
-  QString m_sLabelContourRange;
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
+  bool    m_bShowVoxelizedContour;
 
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;

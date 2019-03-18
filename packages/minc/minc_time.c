@@ -1,4 +1,3 @@
-#if defined(USE_LOCAL_MINC)
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -58,7 +57,7 @@
 #define CLK_TCK CLOCKS_PER_SEC
 #endif
 
-#include "timer.h"
+// #include "timer.h"
 
 #ifndef lint
 //static char rcsid[] = "$Header: /private-cvsroot/minc/volume_io/Prog_utils/time.c,v 1.21.2.3 2005/07/13 19:59:19 bert Exp $";
@@ -256,7 +255,17 @@ void  print_time(
 
 char* get_clock_time( void )
 {
-    return( strdup(current_date_time()) );
+    time_t           clock_time;
+    struct  tm       *time_tm;
+    char             *str;
+
+    (void) time( &clock_time );
+
+    time_tm = localtime( &clock_time );
+
+    str = asctime( time_tm );
+
+    return( strdup( str ) );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -301,8 +310,15 @@ void sleep_program( double seconds )
 
 const char* get_date() 
 {
-    return strdup(current_date_time());
+    time_t           clock_time;
+    struct  tm       *time_tm;
+    char             *str;
+
+    (void) time( &clock_time );
+
+    time_tm = localtime( &clock_time );
+
+    str = asctime( time_tm );
+
+    return( strdup( str ) );
 }
-
-
-#endif

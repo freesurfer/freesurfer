@@ -6,15 +6,15 @@
 #include <map>
 
 #include "mri_seg_overlap.help.xml.h"
-#include "argparse.hpp"
-#include "lut.hpp"
-#include "json.hpp"
-#include "log.hpp"
+#include "argparse.h"
+#include "lut.h"
+#include "json.h"
+#include "log.h"
 
-extern "C" {
+ 
 #include "mri.h"
 #include "mri2.h"
-}
+
 
 
 struct IntermediateMetrics {
@@ -65,15 +65,15 @@ int main(int argc, const char **argv)
 
   std::string seg1_fname = parser.retrieve<std::string>("seg1");
   MRI *seg1 = MRIread(seg1_fname.c_str());
-  if (!seg1) fs_fatal(1) << "could not read input volume " << seg1;
+  if (!seg1) logFatal(1) << "could not read input volume " << seg1;
 
   std::string seg2_fname = parser.retrieve<std::string>("seg2");
   MRI *seg2 = MRIread(seg2_fname.c_str());
-  if (!seg2) fs_fatal(1) << "could not read input volume " << seg2;
+  if (!seg2) logFatal(1) << "could not read input volume " << seg2;
 
   // check input dimensions
-  if (MRIdimMismatch(seg1, seg2, 0))  fs_fatal(1) << "input volumes must have matching dimensions";
-  if (seg1->nframes != seg2->nframes) fs_fatal(1) << "input volumes must have the same number of frames";
+  if (MRIdimMismatch(seg1, seg2, 0))  logFatal(1) << "input volumes must have matching dimensions";
+  if (seg1->nframes != seg2->nframes) logFatal(1) << "input volumes must have the same number of frames";
 
   // ------ retrieve user options ------
 
@@ -86,7 +86,7 @@ int main(int argc, const char **argv)
     for (auto const &str : parser.retrieve<std::vector<std::string>>("measures")) {
       if (str == "dice") measures.push_back(OverlapMeasure("dice", &computeDice));
       else if (str == "jaccard") measures.push_back(OverlapMeasure("jaccard", &computeJaccard));
-      else fs_fatal(1) << "unknown measure '" << str << "'... options are: dice, jaccard";
+      else logFatal(1) << "unknown measure '" << str << "'... options are: dice, jaccard";
     }
   } else {
     // by default, only report dice scores
@@ -95,11 +95,11 @@ int main(int argc, const char **argv)
 
   // a few sanity checks on the user input
   if (parser.exists("labelfile") && parser.exists("labels")) {
-    fs_fatal(1) << "can't use both the --labels and --labelfile options together";
+    logFatal(1) << "can't use both the --labels and --labelfile options together";
   } else if (parser.exists("names") && !parser.exists("labels")) {
-    fs_fatal(1) << "the --names option must be used along with the --labels option";
+    logFatal(1) << "the --names option must be used along with the --labels option";
   } else if (parser.exists("seg") && (parser.exists("labelfile") || parser.exists("labels"))) {
-    fs_fatal(1) << "can't specify --seg in addition to a custom label list";
+    logFatal(1) << "can't specify --seg in addition to a custom label list";
   }
 
   // check if user wants to ignore label names
@@ -116,7 +116,7 @@ int main(int argc, const char **argv)
       // user provided custom label names as well 
       std::vector<std::string> names = parser.retrieve<std::vector<std::string>>("names");
       if (names.size() != labels.size()) {
-        fs_fatal(1) << "number of label names (" << labelnames.size() << ") must match "
+        logFatal(1) << "number of label names (" << labelnames.size() << ") must match "
                        "the number of specified labels (" << labels.size() << ")";
       }
       for (unsigned int i = 0 ; i < labels.size() ; i++) labelnames[labels[i]] = names[i];
@@ -124,7 +124,7 @@ int main(int argc, const char **argv)
   } else if (parser.exists("labelfile")) {
     // user specified labels via a file - assume lookup-table format
     LookupTable lut(parser.retrieve<std::string>("labelfile"));
-    if (lut.empty()) fs_fatal(1) << "provided label file contains no valid labels";
+    if (lut.empty()) logFatal(1) << "provided label file contains no valid labels";
     labels = lut.labels();
     if (lut.hasNameInfo()) for (int i : labels) labelnames[i] = lut[i].name;
   } else if (parser.exists("seg")) {
@@ -190,13 +190,13 @@ int main(int argc, const char **argv)
   }
 
   // sanity check to make sure the label list isn't empty
-  if (labels.empty()) fs_fatal(1) << "no matching labels to report on";
+  if (labels.empty()) logFatal(1) << "no matching labels to report on";
 
   // determine default label names (if not already known) via FreeSurferColorLUT
   if (reportNames && labelnames.empty()) {
     LookupTable lut(std::string(std::getenv("FREESURFER_HOME")) + "/FreeSurferColorLUT.txt");
     if (lut.empty()) {
-      fs_warning << "can't load default FreeSurferColorLUT - is FREESURFER_HOME set?";
+      logWarning << "can't load default FreeSurferColorLUT - is FREESURFER_HOME set?";
       reportNames = false;
     } else if (lut.hasNameInfo()) {
       for (int l : labels) labelnames[l] = lut[l].name;
@@ -249,11 +249,11 @@ int main(int argc, const char **argv)
       for (int l : labels) if (labelnames[l].length() + 2 > name_width) name_width = labelnames[l].length() + 2;
     }
     // print the table header
-    std::cout << std::fixed << std::left << std::setprecision(4) << fs::term::bold();
+    std::cout << std::fixed << std::left << std::setprecision(4) << term::bold();
     std::cout << std::setw(7) << "label";
     if (reportNames) std::cout << std::setw(name_width) << "names";
     for (auto const &measure : measures) std::cout << std::setw(8) << measure.name;
-    std::cout << fs::term::reset() << std::endl;
+    std::cout << term::reset() << std::endl;
     // print rows of results
     for (int l : labels) {
       std::cout << std::setw(7) << l;
