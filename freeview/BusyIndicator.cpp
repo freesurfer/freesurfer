@@ -39,7 +39,7 @@ void BusyIndicator::setColor(QColor color)
   fillColor = color;
 }
 
-const BusyIndicator::IndicatorStyle BusyIndicator::indicatorStyle() const
+BusyIndicator::IndicatorStyle BusyIndicator::indicatorStyle() const
 {
   return m_style;
 }
