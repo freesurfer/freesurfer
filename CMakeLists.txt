@@ -71,12 +71,14 @@ endif()
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
 # Note: FS_PACKAGES_DIR can be defined in an environment variable
 
+
+
 if(NOT FS_PACKAGES_DIR)
   if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
     # check if FS_PACKAGES_DIR has been set 
     set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from FS_PACKAGES_DIR environment variable")
   elseif(EXISTS /usr/pubsw/packages)
-    # if the user is at Martinos, default to /usr/pubsw/packages
+    # if the user is at Martinos, default to /usr/pubsw/packages 
     set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
@@ -219,7 +221,7 @@ if(DISTRIBUTE_FSPYTHON)
   if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
     set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.a)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
       DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
@@ -657,6 +659,7 @@ if(NOT MINIMAL)
     ThalamicNuclei
     trc
     tridec
+    mris_smooth_intracortical # added by aib
   )
 endif()
 
