@@ -71,14 +71,12 @@ endif()
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
 # Note: FS_PACKAGES_DIR can be defined in an environment variable
 
-
-
 if(NOT FS_PACKAGES_DIR)
   if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
     # check if FS_PACKAGES_DIR has been set 
     set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from FS_PACKAGES_DIR environment variable")
   elseif(EXISTS /usr/pubsw/packages)
-    # if the user is at Martinos, default to /usr/pubsw/packages 
+    # if the user is at Martinos, default to /usr/pubsw/packages
     set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
@@ -623,6 +621,7 @@ if(NOT MINIMAL)
     mris_segmentation_stats
     mris_shrinkwrap
     mris_simulate_atrophy
+    mris_smooth_intracortical
     mris_spherical_average
     mris_surface_change
     mris_surface_to_vol_distances
@@ -659,7 +658,6 @@ if(NOT MINIMAL)
     ThalamicNuclei
     trc
     tridec
-    mris_smooth_intracortical # added by aib
   )
 endif()
 
