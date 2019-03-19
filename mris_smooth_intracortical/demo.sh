@@ -5,9 +5,6 @@
 ##
 ##
 
-# example subject
-SUBJECT=/cluster/visuo/users/anna/surfSM/test_subjects/t01/
-
 # step 0. run FreeSurfer recon-all, motion correct EPI data etc.
 
 # step 1. generate intermediate surfaces
