@@ -185,6 +185,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     GeoSWorker.cpp
     geos/GeodesicMatting.cpp
     geos/kde.cpp
+    BusyIndicator.cpp
     freeview.qrc
   )
 

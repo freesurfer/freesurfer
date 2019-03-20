@@ -17,7 +17,7 @@ signals:
   void ComputeTriggered();
   void ApplyTriggered();
   void ApplyFinished();
-  void Failed();
+  void ComputeFinished(bool bSuccess);
 
 public slots:
   void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1);

@@ -90,6 +90,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
   ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->treeWidgetColorTable, SIGNAL(customContextMenuRequested(QPoint)), SLOT(OnCustomContextMenu(QPoint)));
   ui->labelBrushValueWarning->hide();
+  ui->widgetBusyIndicator->hide();
+  ui->widgetBusyIndicator->setFixedSize(QSize(20,20));
+  ui->widgetBusyIndicator->setColor(Qt::darkGray);
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( !mainwnd )
@@ -265,7 +268,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
     return;
   }
 
-  ui->progressBarWorking->hide();
+  ui->widgetBusyIndicator->hide();
   m_curCTAB = NULL;
   LayerPropertyMRI* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
@@ -304,8 +307,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
   connect( ui->checkBoxAutoAdjustFrameLevel, SIGNAL(toggled(bool)), p, SLOT(SetAutoAdjustFrameLevel(bool)));
   connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
-  connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
-  connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
+  connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->widgetBusyIndicator, SLOT(show()));
+  connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
 }

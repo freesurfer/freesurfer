@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
     fvox.close();
   }
 
-  if (inTrcDir > 0) {			// Probabilistic paths
+  if (inTrcDir != nullptr) {		     // Probabilistic paths
     int len, nx, ny, nz, nvox = 0;
     float wtot = 0, pthresh = 0;
     vector<int> lengths, pathmap, basepathmap;

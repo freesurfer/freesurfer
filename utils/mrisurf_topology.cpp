@@ -945,7 +945,7 @@ void MRIS_VertexNeighbourInfo_load_from_vlist (MRIS_VertexNeighbourInfo* info, M
   for (unsigned int i = 0; i < listSize; i++) {
     info->v[i] = vlist[i];
     info->hops = hops[i];
-    cheapAssert(info->hops >= 0);
+    // cheapAssert(info->hops >= 0); Always true for unsigned
     cheapAssert(info->hops <= 3);
     info->vnum[info->hops] = i+1;
   }
@@ -1245,7 +1245,7 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
         vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
       }
 
-      cheapAssert(vt->nsizeCur >= 0);
+      // cheapAssert(vt->nsizeCur >= 0); Always true for unsigned
       cheapAssert(vt->nsizeCur <= vt->nsizeMax);
       vt->vtotal = vnums[vt->nsizeCur];
     }

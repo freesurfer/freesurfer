@@ -11627,10 +11627,13 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     if (znzreadFloatEx(&fval, fp)) {
       mri->flip_angle = fval;
       // flip_angle is double. I cannot use the same trick.
-      if (znzreadFloatEx(&(mri->te), fp))
-        if (znzreadFloatEx(&(mri->ti), fp))
-          if (znzreadFloatEx(&(mri->fov), fp))
+      if (znzreadFloatEx(&(mri->te), fp)) {
+        if (znzreadFloatEx(&(mri->ti), fp)) {
+          if (znzreadFloatEx(&(mri->fov), fp)) {
             ;
+	  }
+	}
+      }
     }
   }
   // tag reading

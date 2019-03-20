@@ -3948,6 +3948,7 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
   if (!m_geos)
   {
     m_geos = new GeoSWorker;
+    connect(m_geos, SIGNAL(ComputeFinished(bool)), this, SIGNAL(GeodesicSegmentationFinished()));
   }
 
   m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
