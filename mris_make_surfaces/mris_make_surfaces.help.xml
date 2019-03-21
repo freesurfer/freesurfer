@@ -114,6 +114,14 @@
       <explanation>save residual (for debugging)</explanation>
       <argument>-v vertexno </argument>
       <explanation>set Gdiag_no to vertexno</explanation>
+      <argument>-diag-vertex vertexno </argument>
+      <explanation>set Gdiag_no to vertexno, turn off writing of  cortex label or curv files. Set output suffix to debug-vertex-vertexno</explanation>
+      <argument>-rip ripfile </argument>
+      <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-white sigmawhitefile </argument>
+      <explanation>Save white surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-pial sigmapialfile </argument>
+      <explanation>Save pial surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
