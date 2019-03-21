@@ -75,6 +75,10 @@
 #define MAX_VERTICES (500000) // max number of surfaces
 #define SEP "/"
 
+#ifndef GLOB_PERIOD
+#define GLOB_PERIOD 0
+#endif
+
 int main(int argc, char *argv[]);
 static void calculate_nb_weights(float *nb_weights, int nb_num, int *hops);
 
