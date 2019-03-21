@@ -400,12 +400,20 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   double sse, delta_t = 0.0, rms, dt, l_intensity, base_dt, last_sse, last_rms, max_mm;
   MHT *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current = NULL, *mht_pial = NULL;
   int msec;
+  VERTEX *vgdiag;
 
   printf("Entering MRISpositionSurface()\n");
   max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_smooth->xsize, MIN(mri_smooth->ysize, mri_smooth->zsize)) / 2);
   printf("  max_mm = %g\n",max_mm);
   printf("  MAX_REDUCTIONS = %d, REDUCTION_PCT = %g\n",MAX_REDUCTIONS,REDUCTION_PCT);
   printf("  parms->check_tol = %d \n",parms->check_tol);
+  if(Gdiag_no > 0){
+    vgdiag = &mris->vertices[Gdiag_no];
+    printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d, xyz=[%g,%g,%g]; nxyz=[%g,%g,%g];\n",
+	   Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag,
+	   vgdiag->x,vgdiag->y,vgdiag->z,vgdiag->nx,vgdiag->ny,vgdiag->nz);
+  }
+  fflush(stdout);
 
   if (!FZERO(parms->l_surf_repulse)) {
     mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
@@ -576,6 +584,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeNonlinearTangentialSpringTerm(mris, parms->l_nltspring, parms->min_dist);
     mrisComputeMaxSpringTerm(mris, parms->l_max_spring);
     mrisComputeAngleAreaTerms(mris, parms);
+
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  xyz=[%g,%g,%g]; nxyz=[%g,%g,%g]; dxyz=[%g,%g,%g];\n",
+	     Gdiag_no,vgdiag->x,vgdiag->y,vgdiag->z,vgdiag->nx,vgdiag->ny,vgdiag->nz,
+	     vgdiag->dx,vgdiag->dy,vgdiag->dz);
+      fflush(stdout);
+    }
 
     // This do loop will move the vertices along the direction
     // computed above. It may adjust the step size for the next iter.
@@ -1484,7 +1500,7 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg);
+    MRI *         const mri_aseg, int vno_start, int vno_stop);
     
 int MRIScomputeBorderValues(
     MRI_SURFACE *       mris,
@@ -1502,14 +1518,14 @@ int MRIScomputeBorderValues(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg)
+    MRI *         const mri_aseg,int vno_start, int vno_stop)
 {
   int result;
   if (1) {
     result = 
       MRIScomputeBorderValues_new(
         mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
-        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg,vno_start,vno_stop);
   } else {
     result = 
       MRIScomputeBorderValues_old(
@@ -1586,7 +1602,8 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg) 
+    MRI *         const mri_aseg,
+    int vno_start, int vno_stop)
 {
   float const step_size = mri_brain->xsize/2;
   Timer mytimer ;
@@ -1610,6 +1627,9 @@ static int MRIScomputeBorderValues_new(
   printf("  BorderValsHiRes=%d\n",BorderValsHiRes);
   printf("  nvertices=%d\n",mris->nvertices);
   printf("  Gdiag_no=%d\n",Gdiag_no);
+  if(vno_start < 0) vno_start = 0;
+  if(vno_stop  < 0) vno_stop = mris->nvertices;
+  printf("  vno start=%d, stop=%d\n",vno_start,vno_stop);
   if(Gdiag_no > 0){
     vgdiag = &mris->vertices[Gdiag_no];
     printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d, xyz=[%g,%g,%g]; nxyz=[%g,%g,%g];\n",
@@ -1654,7 +1674,7 @@ static int MRIScomputeBorderValues_new(
     reduction(+:total_vertices,ngrad_max,ngrad,nmin,nmissing,nout,nin,nfound,nalways_missing,num_changed) \
     reduction(+:n_sigma_increases)
 #endif
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
     
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
@@ -1727,7 +1747,7 @@ static int MRIScomputeBorderValues_new(
 
         if (fabs(dist) + orig_dist > max_thickness) {
           // too far from the orig
-	  if(vno == Gdiag_no) printf("vno=%d Breaking inner loop, too far from orig\n",vno);
+	  if(vno == Gdiag_no) printf("vno=%d Breaking inner loop, too far from orig. dist=%g, orig_dist=%g\n",vno,dist,orig_dist);
           break;
         }
 
@@ -1741,7 +1761,10 @@ static int MRIScomputeBorderValues_new(
 	// normal (nx,ny,nz) always points outward. mri_tmp is mri_brain.
 	// It may be a copy if mri_brain is UCHAR. nx,ny,nz are in voxel space
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);   // expensive
-        if(vno == Gdiag_no) printf("vno=%d #SB# %6.4f  %6.4f %7.4f %7.4f\n",vno,current_sigma,dist,val,mag);
+        if(vno == Gdiag_no) {
+	  MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+	  printf("vno=%d #SB# %6.4f  %6.4f %7.4f %7.4f\n",vno,current_sigma,dist,val,mag);
+	}
         if (mag >= 0.0) {
           // In a T1, this should decrease, so break if it increases
           if(vno == Gdiag_no) printf("vno=%d Gradient mag = %g > 0, breaking inward loop\n",vno,mag);
@@ -1830,7 +1853,10 @@ static int MRIScomputeBorderValues_new(
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
 
-        if(vno == Gdiag_no) printf("vno=%d #SB# %6.4f  %6.4f %7.4f %7.4f\n",vno,current_sigma,dist,val,mag);
+        if(vno == Gdiag_no){
+	  MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+	  printf("vno=%d #SB# %6.4f  %6.4f %7.4f %7.4f\n",vno,current_sigma,dist,val,mag);
+	}
         if(mag >= 0.0){
 	  if(vno == Gdiag_no) printf("vno=%d Gradient mag = %g > 0, breaking outward loop\n",vno,mag);
           break;
@@ -1881,7 +1907,7 @@ static int MRIScomputeBorderValues_new(
       char fname[STRLEN];
       sprintf(fname, "v%d.%2.0f.log", Gdiag_no, sigma * 100);
       fp = fopen(fname, "w");
-      fprintf(stdout,"vno=%d Searching bracket inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
+      fprintf(stdout,"vno=%d Searching bracket inward dist %6.4f, outward dist %6.4f, sigma %6.4f\n",
               vno,inward_dist,outward_dist,current_sigma);
     }
 
@@ -2042,8 +2068,9 @@ static int MRIScomputeBorderValues_new(
 
         if ((fabs(mag) > fabs(previous_mag)) && (fabs(mag) > fabs(next_mag)) && 
 	    (val <= border_hi) && (val >= border_low)) {
-          if(Gdiag_no==vno) printf("vno=%d Might have a local grad max at  distance=%g\n",vno,dist);
-	  // Gradient maximum has been found if the grad at this
+	  // Shouldn't do a test here and reject for max_mag > mag? 
+          if(Gdiag_no==vno) printf("vno=%d Might have a local grad max at  distance=%g (maxmag=%g)\n",vno,dist,max_mag);
+	  // Local gradient maximum has been found if the grad at this
 	  // distance is greater than the grad at dist-STEP and
 	  // dist+STEP and the inensity is between BorderHi
 	  // (MeanWM+1WMSTD) and BorderLow (MeanGM).  Below determines
@@ -2078,14 +2105,28 @@ static int MRIScomputeBorderValues_new(
             max_mag      = fabs(mag);
             max_mag_val  = val;         
           }
+	  else {
+	    if(Gdiag_no==vno) {
+	      printf("vno=%d dist=%g Rejecting this point because:\n",vno,dist);
+	      if(!(next_val >= outside_low) && (next_val <= border_hi  ) && (next_val <= outside_hi )){
+		printf(" next_val=%g is out of range:\n",next_val);
+		printf("   >= outside_low=%g\n",outside_low);
+		printf("   <= border_hi=%g\n",border_hi);
+		printf("   <= outside_hi=%g\n",outside_hi);
+	      }
+	      if(max_mag > fabs(mag)){
+		printf(" max_mag=%g > mag=%g\n",max_mag,fabs(mag));
+	      }
+	    }
+	  }
         }
         else {
           /* If no local max found yet, just used largest gradient if
             the intensity is in the right range. This basically keeps
-            track of the max grad until a local max has been found.
-          */
+            track of the max grad until a local max has been found. */
 	  if(Gdiag_no==vno) printf("vno=%d Local grad max NOT found at distance=%g\n",vno,dist);
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
+	    if(Gdiag_no==vno) printf("  ... but mag>max and val is within border\n");
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
             double xw,yw,zw;
             // double next_val;  // define with loop scope
@@ -2095,10 +2136,14 @@ static int MRIScomputeBorderValues_new(
             MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
             if (next_val >= outside_low && next_val <= border_hi && next_val < outside_hi) {
+	      if(Gdiag_no==vno) printf("  ... and next_val is in range, so keeping this distance as a candidate\n");
               max_mag_dist = dist;
               max_mag = fabs(mag);
               max_mag_val = val;
             }
+	    else {
+	      if(Gdiag_no==vno) printf("  ... but next_val=%g is NOT in range, so NOT keeping this distance as a candidate\n",next_val);
+	    }
           }
         }
       }
