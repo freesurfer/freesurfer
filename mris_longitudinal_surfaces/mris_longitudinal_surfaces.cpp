@@ -620,7 +620,7 @@ main(int argc, char *argv[])
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border,
                             max_border_white /*max_gray*/, current_sigma,
-                            2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, 0, NULL) ;
+                            2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, 0, NULL, -1, -1) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -812,7 +812,7 @@ main(int argc, char *argv[])
                               max_gray_at_csf_border, min_gray_at_csf_border,
                               min_csf,(max_csf+max_gray_at_csf_border)/2,
                               current_sigma, 2*max_thickness, parms.fp,
-                              GRAY_CSF, NULL, 0, 0, NULL) ;
+                              GRAY_CSF, NULL, 0, 0, NULL, -1, -1) ;
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       if (vavgs)
       {
@@ -922,7 +922,7 @@ main(int argc, char *argv[])
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/,
                               current_sigma, 2*max_thickness, parms.fp,
-                              GRAY_WHITE, NULL, 0, 0, NULL) ;
+                              GRAY_WHITE, NULL, 0, 0, NULL, -1, -1) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
