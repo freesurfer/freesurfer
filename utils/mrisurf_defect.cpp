@@ -17325,3 +17325,85 @@ static void mrisComputeSurfaceStatistics(
   TPfree(&tp);
 }
 
+
+/*!
+  \fn int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol)
+  \brief Sample the defect numbers into the volume to create a
+  segmentation. Works by going through all the vertices and finding
+  them with non-zero defectno.  For each neighboring face, the voxel
+  above and below is set to defectno+offset. vol must already exist
+  and have the geometry of orig.mgz; it will be ready (eg, zeroed) to
+  be filled with the defectno. surf should be the ?h.orig.nofix.
+  defects should be an MRI struct with each voxel/vertex indicating
+  the defectno (eg, ?h.defect_labels).  It might be nice to be able to
+  dilate the defects.
+ */
+int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol)
+{
+  int n, defectno;
+  VERTEX *v, *vf;
+  double delta, projsign;
+  double x,y,z, c,r,s, cx,cy,cz;
+  int ic,ir,is,nthface,faceno,vno,k,m,oob;
+  float snorm[3];
+
+  delta = vol->xsize/5.0; // could be smarter
+
+  MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(vol, surf);
+  //MRIconst(vol->width,vol->height,vol->depth,vol->nframes,0,vol); // set MRI to 0, but not here
+
+  if(surf->nvertices != defects->width){
+    printf("ERROR: MRISdefectNo2Vol(): dimension mismatch surf=%d, defects=%d\n",
+	   surf->nvertices,defects->width);
+    fflush(stdout);
+    return(1);
+  }
+
+  for(n=0; n < surf->nvertices; n++){
+    defectno = MRIgetVoxVal(defects,n,0,0,0);
+    if(defectno==0) continue; // This vertex is not part of a defect
+    v = &(surf->vertices[n]);
+    // Go through all the faces associated with this vertex
+    VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[n]);
+    for(nthface=0; nthface <  vt->num; nthface++){
+      faceno = vt->f[nthface];
+      // Compute the centroid of the face
+      FACE *face = &(surf->faces[faceno]);
+      cx = 0;
+      cy = 0;
+      cz = 0;
+      for(k=0; k<3; k++){
+	m = k + 1;
+	if(m>2) m = 0;
+	vno = face->v[k];
+	vf = &(surf->vertices[vno]);
+	cx += vf->x;
+	cy += vf->y;
+	cz += vf->z;
+      }
+      cx /= 3.0;
+      cy /= 3.0;
+      cz /= 3.0;
+      // Compute the normal of the face
+      mrisNormalFace(surf, faceno, 0, snorm);
+      // Sample the volume at a voxel just above and just below the face
+      for(projsign = -1; projsign <= +1; projsign+=2){
+	x = cx + (projsign*delta)*snorm[0];
+	y = cy + (projsign*delta)*snorm[1];
+	z = cz + (projsign*delta)*snorm[2];
+	MRIS_useRAS2VoxelMap(sras2v_map, vol, x, y, z, &c, &r, &s);
+	ic = nint(c);
+	ir = nint(r);
+	is = nint(s);
+	oob = MRIindexNotInVolume(vol,ic,ir,is);
+	if(oob) continue;
+	// Assign the voxel to the given vertex no
+	MRIsetVoxVal(vol,ic,ir,is,0,defectno+offset);
+      }
+    }
+  }
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
+
+  return(0);
+}
+
