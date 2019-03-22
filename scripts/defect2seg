@@ -17,6 +17,8 @@ set rhdefects  = ();
 set rhpointset = ();
 set rhoffset = ();
 set template = ()
+set DoLH = 1;
+set DoRH = 1;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -158,6 +160,16 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    # These only apply with --subject
+    case "--lh-only":
+      set DoLH = 1;
+      set DoRH = 0;
+      breaksw
+    case "--rh-only":
+      set DoLH = 0;
+      set DoRH = 1;
+      breaksw
+
     case "--lh":
       if($#argv < 4) goto arg4err;
       set lhsurf     = $argv[1]; shift;
@@ -235,17 +247,27 @@ if($#subject)then
     exit 1;
   endif
   set sd = $SUBJECTS_DIR/$subject
-  set outputseg  = $sd/mri/surface.defects.mgz
-  set template   = $sd/mri/orig.mgz
-  set lhsurf     = $sd/surf/lh.orig.nofix
-  set lhdefects  = $sd/surf/lh.defect_labels
-  set lhpointset = $sd/surf/lh.defects.pointset
-  set lhoffset   = 1000
-  set rhsurf     = $sd/surf/rh.orig.nofix
-  set rhdefects  = $sd/surf/rh.defect_labels
-  set rhpointset = $sd/surf/rh.defects.pointset
-  set rhoffset   = 2000
   set LF = $sd/scripts/defect2seg.log
+  set template   = $sd/mri/orig.mgz
+  set outputseg  = $sd/mri/surface.defects.mgz
+  if($DoLH && ! $DoRH) then
+     set outputseg = $sd/mri/lh.surface.defects.mgz
+  endif
+  if($DoRH && ! $DoLH) then
+     set outputseg = $sd/mri/rh.surface.defects.mgz
+  endif
+  if($DoLH) then
+    set lhsurf     = $sd/surf/lh.orig.nofix
+    set lhdefects  = $sd/surf/lh.defect_labels
+    set lhpointset = $sd/surf/lh.defects.pointset
+    set lhoffset   = 1000
+  endif
+  if($DoRH) then
+    set rhsurf     = $sd/surf/rh.orig.nofix
+    set rhdefects  = $sd/surf/rh.defect_labels
+    set rhpointset = $sd/surf/rh.defects.pointset
+    set rhoffset   = 2000
+  endif
 endif
 
 if($#lhsurf == 0 && $#rhsurf == 0) then
@@ -295,8 +317,11 @@ usage_exit:
   echo "  --rh rh_surf rh_defect_labels rh_pointset rhoffset"
   echo "  --s subject"
   echo "     sets template to orig.mgz"
+  echo "     sets output to surface.defects.mgz"
   echo "     sets lh.orig lh.defect_labels lh.defects.pointset 1000"
   echo "     sets rh.orig rh.defect_labels rh.defects.pointset 2000"
+  echo "  --lh-only, --rh-only"
+  echo "  These only apply to --s. Changes the ouutput to ?h.surface.defects.mgz"
   echo ""
   echo ""
 
