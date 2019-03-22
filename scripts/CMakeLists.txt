@@ -33,6 +33,7 @@ install(PROGRAMS
   dcmsplit
   dcmunpack
   deface_subject
+  defect2seg
   defect-seg
   dicom-rename
   dmrirc.example
