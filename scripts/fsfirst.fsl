@@ -168,7 +168,7 @@ endif
 # This might be good to have for QA purposes.
 # Note that the FIRST registration may not look good outside of
 # the subcortical region.
-set cmd = (tkregister2 --mov $input --targ $FSLSTD1mm \
+set cmd = (tkregister2_cmdl --mov $input --targ $FSLSTD1mm \
   --fsl $outdir/input.ras_to_std_sub.mat --reg $outdir/reg.input.ras_to_std_sub.dat \
   --ltaout $outdir/reg.input.ras_to_std_sub.lta --noedit)
 echo $cmd | tee -a $LF

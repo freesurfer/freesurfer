@@ -258,6 +258,7 @@ static int write_vals = 0 ;
 static char *suffix = "" ;
 static char *output_suffix = "" ;
 static char *xform_fname = NULL ;
+char *ripfilename=NULL, *whitesigmafilename=NULL, *pialsigmafilename=NULL;
 
 static char pial_name[STRLEN] = "pial" ;
 static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ; // "white"
@@ -341,6 +342,7 @@ int main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
+  VERTEX *vgdiag;
 
   FSinit() ;
   make_cmd_version_string
@@ -692,6 +694,7 @@ int main(int argc, char *argv[])
   
   if (auto_detect_stats)
   {
+    printf("Auto detecting stats\n");
     MRI *mri_tmp ;
     float white_mode, gray_mode ;
 
@@ -713,6 +716,8 @@ int main(int argc, char *argv[])
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
       //MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
+      // This makes the identity of mris very important! It will be orig_name by default but will
+      // become white_name if white_name specified.
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
@@ -898,7 +903,15 @@ int main(int argc, char *argv[])
       // It does not unrip any vertices, so, unless they are unripped
       // at some other point, the number of ripped vertices will 
       // increase.
+      if(Gdiag_no > 0){
+	vgdiag = &mris->vertices[Gdiag_no];
+	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+      }
       fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
+      if(Gdiag_no > 0){
+	vgdiag = &mris->vertices[Gdiag_no];
+	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+      }
     }
 
     if (mri_cover_seg) {
@@ -972,9 +985,13 @@ int main(int argc, char *argv[])
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               outside_hi, current_sigma,
-                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags,mri_aseg) ;
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags,mri_aseg,-1,-1) ;
       printf("Finding expansion regions\n"); fflush(stdout);
       MRISfindExpansionRegions(mris) ;
+      if(Gdiag_no > 0){
+	vgdiag = &mris->vertices[Gdiag_no];
+	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+      }
     }
 
     else if (flairwhite)  {
@@ -1108,10 +1125,22 @@ int main(int argc, char *argv[])
     //parms.l_tspring = MIN(1.0,parms.l_tspring) ; // This had a bad effect on highres and no effect on 1mm
     parms.l_nspring = MIN(1.0, parms.l_nspring) ;
     parms.l_spring = MIN(1.0, parms.l_spring) ;
-    printf("Positioning Surface: tspring = %g, nspring = %g, spring = %g, niters = %d ",
+    printf("Positioning White Surface: tspring = %g, nspring = %g, spring = %g, niters = %d ",
 	   parms.l_tspring,parms.l_nspring,parms.l_spring,parms.niterations); 
     printf("l_repulse = %g, checktol = %d\n",parms.l_repulse,parms.check_tol);fflush(stdout);
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d, xyz=[%g,%g,%g]; nxyz=[%g,%g,%g];\n",
+	     Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag,
+	     vgdiag->x,vgdiag->y,vgdiag->z,vgdiag->nx,vgdiag->ny,vgdiag->nz);
+    }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d, xyz=[%g,%g,%g]; nxyz=[%g,%g,%g];\n",
+	     Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag,
+	     vgdiag->x,vgdiag->y,vgdiag->z,vgdiag->nx,vgdiag->ny,vgdiag->nz);
+    }
 
     old_parms.start_t = parms.start_t ;
     INTEGRATION_PARMS_copy(&parms, &old_parms) ;
@@ -1128,8 +1157,21 @@ int main(int argc, char *argv[])
   // ==========================================================================
 
   if(!nowhite) {
-    MRISunrip(mris) ;
     printf("Done placing white\n");
+    if(ripfilename){
+      printf("Saving ripflag overlay to %s\n",ripfilename);
+      MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "ripflag");
+      MRIwrite(mritmp,ripfilename);
+      MRIfree(&mritmp);
+    }
+    if(whitesigmafilename){
+      printf("Saving white sigma overlay to %s\n",whitesigmafilename);
+      MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "val2");
+      MRIwrite(mritmp,whitesigmafilename);
+      MRIfree(&mritmp);
+    }
+    printf("Unripping vertices\n");
+    MRISunrip(mris) ;
   }
 
   if(nowhite){ /* read in previously generated white matter surface */
@@ -1189,6 +1231,11 @@ int main(int argc, char *argv[])
       MRIfree(&ValResid);
     }
 
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",
+	     Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+    }
     if(SaveTarget) {
       if (getenv("FS_POSIX")) {
         sprintf(fname, "./%s.%s.target%s%s", hemi, white_matter_name, output_suffix, suffix);
@@ -1209,7 +1256,7 @@ int main(int argc, char *argv[])
     } else {
       sprintf(fname,"%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, white_matter_name, output_suffix, suffix);
     }
-    fprintf(stdout, "writing white surface to %s...\n", fname) ;
+    printf("writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
     if(mri_aseg && label_cortex) {
@@ -1288,6 +1335,7 @@ int main(int argc, char *argv[])
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
+
     MRISfree(&mristarget);
 
     if (create)   /* write out curvature and area files */
@@ -1308,7 +1356,7 @@ int main(int argc, char *argv[])
       MRISwriteArea(mris, fname) ;
       MRISprintTessellationStats(mris, stderr) ;
     }
-  }
+  } // done with white surface placement
 
   if (white_only)  {
     msec = then.milliseconds() ;
@@ -1318,18 +1366,26 @@ int main(int argc, char *argv[])
     exit(0) ;
   }
 
-  //////////////////////////////////////////////////////////////////
-  // below will place the pial surface #pial
-  //////////////////////////////////////////////////////////////////
+  // ==========================================================================
+  // Place pial surface. #pial
   printf("\n\n\nPlacing pial surface\n");
 
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
-
   MRISunrip(mris) ;
 
   // Rip vertices in the midline and other places
-  if(mri_aseg) 
+  if(mri_aseg) {
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+    }
+    printf("Freezing midline and others\n");  fflush(stdout);
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
+    if(Gdiag_no > 0){
+      vgdiag = &mris->vertices[Gdiag_no];
+      printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
+    }
+  }
 
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
@@ -1703,9 +1759,10 @@ int main(int argc, char *argv[])
       } // if T2_name ==================================================
 
       parms.sigma = current_sigma ;
+      // This mri_kernel does not appear to do anything
       mri_kernel = MRIgaussian1d(current_sigma, 100) ;
-      fprintf(stdout, "smoothing T1 volume with sigma = %2.3f\n",
-              current_sigma) ;
+      printf("smoothing T1 volume with sigma = %2.3f\n",current_sigma) ;
+
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
 
@@ -1782,20 +1839,19 @@ int main(int argc, char *argv[])
 
       else if (flair_or_T2_name == NULL) 
       {
-        // Intensity is ignored with T2 or FLAIR
         // This is the main CBV for pial
+        // Intensity is ignored with T2 or FLAIR
         // inside_hi = max_gray (eg, 99.05)
         // border_hi = max_gray_at_csf_border = meanGM-1stdGM (eg, 65.89)
         // border_low = min_gray_at_csf_border = meanGM-V*stdGM (V=3) (eg, 45.7)
         // outside_low = min_csf = meanGM - MAX(0.5,(V-1)*stdGM) (eg, 10)
         // outside_hi  = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
-
-	printf("Starting ComputeBorderVals\n");
+	printf("Starting ComputeBorderVals for pial\n");
         MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+max_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
+ 	 GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg,-1,-1) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       }
 
@@ -1804,7 +1860,7 @@ int main(int argc, char *argv[])
 	printf("adding %2.2f to pial targets\n", pial_target_offset);
       }
 
-      {// open scope
+      {// open scope -- this section generally has no effect because pial_num=0
         int ii, vno, n, vtotal ;
         for (ii = 0; ii < pial_num ; ii++)
         {
@@ -1899,13 +1955,15 @@ int main(int argc, char *argv[])
 	  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 	  old_parms.start_t = parms.start_t ;
 	  INTEGRATION_PARMS_copy(&parms, &old_parms) ;
-	  if (!FZERO(parms.l_intensity)) // l_intensity should be 0 for T2/FLAIR
+	  if (!FZERO(parms.l_intensity)){ // l_intensity should be 0 for T2/FLAIR
+
 	    MRIScomputeBorderValues
 	      (mris, mri_T1, mri_smooth, max_gray,
 	       max_gray_at_csf_border, min_gray_at_csf_border,
 	       min_csf,(max_csf+max_gray_at_csf_border)/2,
 	       current_sigma, 2*max_thickness, parms.fp,
-	       GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
+	       GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg,-1,-1) ;
+	  }
         }// loop over k
 	start_t = parms.start_t ;
 	INTEGRATION_PARMS_copy(&parms, &saved_parms) ;
@@ -1983,6 +2041,14 @@ int main(int argc, char *argv[])
   }
   fprintf(stdout, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
+
+  if(pialsigmafilename){
+    printf("Saving pial sigma overlay to %s\n",pialsigmafilename);
+    MRI *mritmp = MRIcopyMRIS(NULL, mris, 0, "val2");
+    MRIwrite(mritmp,pialsigmafilename);
+    MRIfree(&mritmp);
+  }
+
   if(create)   /* write out curvature and area files */
   {
     MRIScomputeMetricProperties(mris) ;
@@ -2080,7 +2146,7 @@ int main(int argc, char *argv[])
          max_border_white, min_border_white,
          min_gray_at_white_border, max_border_white /*max_gray*/,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_WHITE, NULL, 0, parms.flags, mri_aseg) ;
+         GRAY_WHITE, NULL, 0, parms.flags, mri_aseg,-1,-1) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
@@ -2104,7 +2170,17 @@ int main(int argc, char *argv[])
         sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
         MRISwriteValues(mris, fname) ;
       }
+      if(Gdiag_no > 0){
+	vgdiag = &mris->vertices[Gdiag_no];
+	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d(%g,%g,%g)\n",
+	       Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag,vgdiag->x,vgdiag->y,vgdiag->z);
+      }
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+      if(Gdiag_no > 0){
+	vgdiag = &mris->vertices[Gdiag_no];
+	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d(%g,%g,%g)\n",
+	       Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag,vgdiag->x,vgdiag->y,vgdiag->z);
+      }
       if (parms.l_location > 0)
       {
 	int vno ;
@@ -2866,6 +2942,27 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "appending %s to output names...\n", output_suffix) ;
   }
+  else if (!stricmp(option, "rip"))
+  {
+    // This is the full file name, so you need to add lh/rh, suffix, etc
+    ripfilename = argv[2] ;
+    printf("saving ripflag to %s\n",ripfilename);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "sigma-white"))
+  {
+    // This is the full file name, so you need to add lh/rh, suffix, etc
+    whitesigmafilename = argv[2] ;
+    printf("saving white surf sigma to %s\n",whitesigmafilename);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "sigma-pial"))
+  {
+    // This is the full file name, so you need to add lh/rh, suffix, etc
+    pialsigmafilename = argv[2] ;
+    printf("saving white surf sigma to %s\n",pialsigmafilename);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "vavgs"))
   {
     vavgs = atoi(argv[2]) ;
@@ -3025,6 +3122,31 @@ get_option(int argc, char *argv[])
     printf("Not saving target surface\n");
     nargs = 0 ;
   }
+  else if(!stricmp(option, "debug-vertex")){
+    // 1=vno 2=surf 3=mri 4=aseg 5=which 6=insidehi 7=blow 8=bhi 9=olow 10=ohi 11=sigma
+    Gdiag_no = atoi(argv[2]) ;
+    MRI_SURFACE *mris = MRISread(argv[3]);
+    if(mris==NULL) exit(1);
+    MRIScomputeMetricProperties(mris); /* surface normals */
+    MRISsaveVertexPositions(mris, ORIG_VERTICES) ;
+    MRI *mri = MRIread(argv[4]);
+    if(mri==NULL) exit(1);
+    MRI *mriaseg = NULL;
+    if(strcmp(argv[5],"noaseg")!=0){
+      mriaseg = MRIread(argv[5]);
+      if(mriaseg==NULL) exit(1);
+    }
+    int which          = atoi(argv[6]); //1=white, 2=pial
+    double inside_hi   = atof(argv[7]);
+    double border_low  = atof(argv[8]);
+    double border_hi   = atof(argv[9]);
+    double outside_low = atof(argv[10]);
+    double outside_hi  = atof(argv[11]);
+    double sigma       = atof(argv[12]);
+    MRIScomputeBorderValues(mris,mri,NULL,inside_hi,border_hi,border_low,outside_low,outside_hi,sigma,
+			    2*max_thickness,NULL,which,NULL,0,0,mriaseg,Gdiag_no,Gdiag_no+1);
+    exit(1);
+  }
   else if (!stricmp(option, "openmp")) 
   {
     char str[STRLEN] ;
@@ -3102,7 +3224,7 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       break ;
     case 'C':
-      create = !create ;
+      create = 0;
       fprintf(stderr,
               "%screating area and curvature files for wm surface...\n",
               create ? "" : "not ") ;
@@ -3704,6 +3826,7 @@ static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *h
       // 1=use_abs, hidden parameter
       // nx, ny, nz are in vox coords making orientation a hidden parameter
       // Are nx,ny,nz ever used?
+      if(vno == Gdiag_no) printf("vno=%d, putamen label: running compute_label_normal\n",vno);
       compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
     }
     else

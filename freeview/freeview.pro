@@ -175,7 +175,8 @@ SOURCES += \
     geos/kde.cpp \
     GeoSWorker.cpp \
     QVTKWidget/QVTKWidget.cxx \
-    QVTKWidget/QVTKPaintEngine.cxx
+    QVTKWidget/QVTKPaintEngine.cxx \
+    BusyIndicator.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -338,7 +339,8 @@ HEADERS  += \
     geos/GeodesicMatting.h \
     geos/kde.h \
     GeoSWorker.h \
-    QVTKWidget/QVTKWidget.h
+    QVTKWidget/QVTKWidget.h \
+    BusyIndicator.h
     QVTKWidget/QVTKPaintEngine.h
 
 FORMS    += MainWindow.ui \

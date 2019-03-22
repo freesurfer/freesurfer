@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     dst->height = in->height;
     dst->depth = in->depth;
   }
-  if (bSizeDifferent);
+  if (bSizeDifferent)
   {
     if (copy_voxel_size)
     {

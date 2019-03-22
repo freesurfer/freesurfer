@@ -114,7 +114,7 @@ if($status) goto error_exit;
 # Create a registration to go from conformed space to rawavg. 
 set regC2R = transforms/conf2rawavg.dat
 set regC2Rlta = transforms/conf2rawavg.lta
-set cmd = (tkregister --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
+set cmd = (tkregister2_cmdl --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
   --reg $regC2R  --ltaout $regC2Rlta)
 echo "\n#===============================" | tee -a $LF
 echo $cmd | tee -a $LF
@@ -124,7 +124,7 @@ if($status) goto error_exit;
 # Create a registration to go from rawavg to conformed space (inv of above)
 set regR2C = transforms/rawavg2conf.dat
 set regR2Clta = transforms/rawavg2conf.lta
-set cmd = (tkregister --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
+set cmd = (tkregister2_cmdl --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
   --reg $regR2C --ltaout $regR2Clta)
 echo "\n#===============================" | tee -a $LF
 echo $cmd | tee -a $LF

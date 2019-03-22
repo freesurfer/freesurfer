@@ -1025,7 +1025,9 @@ static void insertFnoIntoRealmTreeNode(RealmTree* realmTree, RealmTreeNode* n, i
         realmTree->interestingRealmTreeNode = n;
     }
     
-    if (realmTree->interestingRealmTreeNode) costlyAssert(isFnoInRealmTreeNode(realmTree, interestingFno));
+    if (realmTree->interestingRealmTreeNode) {
+      costlyAssert(isFnoInRealmTreeNode(realmTree, interestingFno));
+    }
 }
 
 static void removeFnoFromRealmTree(RealmTree* realmTree, int fno) {
@@ -1068,7 +1070,9 @@ static void removeFnoFromRealmTree(RealmTree* realmTree, int fno) {
         }
     }
 
-    if (realmTree->interestingRealmTreeNode) costlyAssert(isFnoInRealmTreeNode(realmTree, interestingFno));
+    if (realmTree->interestingRealmTreeNode) {
+      costlyAssert(isFnoInRealmTreeNode(realmTree, interestingFno));
+    }
 }
 
 

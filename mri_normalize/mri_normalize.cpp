@@ -118,7 +118,7 @@ const char *Progname ;
 static int scan_type = MRI_UNKNOWN ;
 
 static int prune = 0 ;  /* off by default */
-static MRI_NORM_INFO  mni = {} ;
+static MRI_NORM_INFO  mni; // = {} ;
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
 

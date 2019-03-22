@@ -1831,7 +1831,8 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               float max_dist,
                               FILE *log_fp,
                               int white,
-                              MRI *mri_mask, double thresh, int flags, MRI *mri_aseg);
+                              MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
+                              int vno_start, int vno_stop);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
@@ -1867,6 +1868,7 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
                                 double *pmin, double *pmax);
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
+int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 

@@ -102,6 +102,7 @@ GenericRenderView::~GenericRenderView()
     m_renderer2->Delete();
   }
 }
+
 void GenericRenderView::SetLightIntensity(double key, double head, double fill, double back)
 {
   SetKeyLightIntensity(key, false);
@@ -130,6 +131,7 @@ void GenericRenderView::SetKeyLightIntensity(double d, bool redraw)
   }
   emit KeyLightIntensityChanged(d);
 }
+
 double GenericRenderView::GetHeadLightIntensity()
 {
   return (1.0/m_lightKit->GetKeyToHeadRatio() - MIN_RATIO_LIGHT) / (1 - MIN_RATIO_LIGHT);

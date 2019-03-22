@@ -361,7 +361,7 @@ will do the same as Example 1.
 Example 3: check that the average subject volume aligns with the
 talairach subject:
 
-  tkregister2 --fstal --s avgsubject --mgz
+  tkregisterfv --fstal --s avgsubject --mgz
 
 Example 4: check that the average subject surfaces align with the
 volume:
