@@ -2003,6 +2003,7 @@ int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
 int MRIScountNegativeFaces(MRI_SURFACE *mris) ;
 int MRISevertSurface(MRI_SURFACE *mris) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
+int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol);
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
