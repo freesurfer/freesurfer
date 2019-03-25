@@ -14100,3 +14100,43 @@ int MRISprintVertexStats(MRIS *mris, int vno, FILE *fp, int which_vertices)
 }
 
 
+/*!
+  \fn int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
+  \brief Prints out info about a vertex. Neighbor info if formated:
+  (1) Ordinal Neighbor number
+  (2) Vertex index number of vertex neighbor
+  (3) Distance to the vertex neighbor (mm)
+  (4) "Area" of the neighbor vertex (mm2)
+  (5) Face index number of nth face neighbor
+  (6) Area of face 
+  See also int MRISprintVertexStats()
+ */
+int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
+{
+  int n, vnno, faceno;
+  VERTEX *v = &(surf->vertices[vertexno]);
+  VERTEX *vn;
+  VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[vertexno]);
+  double dx, dy, dz, dist;
+  FACE *face;
+
+  fprintf(fp,"vertexno %d\n",vertexno);
+  fprintf(fp,"xyz  %7.4f %7.4f %7.4f\n",v->x,v->y,v->z);
+  fprintf(fp,"nxyz %7.4f %7.4f %7.4f\n",v->nx,v->ny,v->nz);
+  fprintf(fp,"vertex_area %lf\n",v->area);
+  fprintf(fp,"neighbors %d\n",vt->num);
+  for(n=0; n < vt->num; n++){
+    vnno = vt->v[n];
+    vn = &(surf->vertices[vnno]);
+    dx = v->x - vn->x;
+    dy = v->y - vn->y;
+    dz = v->z - vn->z;
+    dist = sqrt(dx*dx+dy*dy+dz*dz);
+    faceno = vt->f[n];
+    face = &(surf->faces[faceno]);
+    // nbr nbrno vno dist varea faceno farea
+    fprintf(fp,"nbr %d  %5d %6.4lf %6.4lf %5d %6.4f\n",n,vnno,dist,vn->area,faceno,face->area);
+  }
+
+  return(0);
+}

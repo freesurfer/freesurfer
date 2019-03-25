@@ -823,7 +823,7 @@ main(int argc, char *argv[]) {
            max_gray_at_csf_border, min_gray_at_csf_border,
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
-           GRAY_CSF, NULL, 0, parms.flags, NULL) ;
+           GRAY_CSF, NULL, 0, parms.flags, NULL, -1, -1) ;
 
       if (i == 0)
       {

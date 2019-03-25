@@ -602,7 +602,7 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
         qDebug() << npix;
 
       double mini = LARGENUMBER;
-      size_t idx = -1;
+      long long idx = -1;
       int n_idxs = -1;
       //      for (size_t i = 0; i < idxs.size(); i++)
       //      {

@@ -75,7 +75,7 @@ MATRIX *XFM=NULL;
 int rescale = 0;
 double scale=0;
 int diag_vno=-1;
-
+int vnox = -1;
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -163,6 +163,10 @@ int main(int argc, char *argv[]) {
            mris->vertices[diag_vno].y, 
            mris->vertices[diag_vno].z) ;
     return(0);
+  }
+  if(vnox >= 0){
+    MRISprintVertexInfo(stdout, mris, vnox);
+    exit(0);
   }
 
   // attempt to load curvature info, which has the side-effect of checking
@@ -370,11 +374,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--v") ) {
+    } 
+    else if ( !strcmp(option, "--v") ) {
       if (nargc < 1) argnerr(option,1);
       diag_vno = atoi(pargv[0]);
       nargsused = 1;
-    } else if ( !strcmp(option, "--c") ) {
+    } 
+    else if ( !strcmp(option, "--vx") ) {
+      if (nargc < 1) argnerr(option,1);
+      vnox = atoi(pargv[0]);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--c") ) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
       nargsused = 1;
@@ -421,6 +432,8 @@ static void print_usage(void) {
   printf("  --r : rescale group surface so metrics same as "
          "avg of individuals\n");
   printf("  --v vnum : print out vertex information for vertex vnum\n") ;
+  printf("  --vx vnum : print out extended vertex information for vertex vnum\n") ;
+  printf("     NbrInfo: nbrno, nbrvno, nbrdist, nbrarea, faceno, facearea\n");
   printf("  --c curvfile : check if the specified curvature file has the\n");
   printf("                 same number of vertices as the surface, and\n");
   printf("                 exit with error if not. This is a QA check.\n");
@@ -459,3 +472,4 @@ static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+

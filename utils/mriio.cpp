@@ -11627,10 +11627,13 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     if (znzreadFloatEx(&fval, fp)) {
       mri->flip_angle = fval;
       // flip_angle is double. I cannot use the same trick.
-      if (znzreadFloatEx(&(mri->te), fp))
-        if (znzreadFloatEx(&(mri->ti), fp))
-          if (znzreadFloatEx(&(mri->fov), fp))
+      if (znzreadFloatEx(&(mri->te), fp)) {
+        if (znzreadFloatEx(&(mri->ti), fp)) {
+          if (znzreadFloatEx(&(mri->fov), fp)) {
             ;
+	  }
+	}
+      }
     }
   }
   // tag reading
@@ -12039,8 +12042,10 @@ MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   int srcdims[3], dstdims[3];
   float srcsizes[3], dstsizes[3];
 
-  printf("MRIreorder() -----------\n");
-  printf("xdim=%d ydim=%d zdim=%d\n", xdim, ydim, zdim);
+  if(Gdiag > 0){
+    printf("MRIreorder() -----------\n");
+    printf("xdim=%d ydim=%d zdim=%d\n", xdim, ydim, zdim);
+  }
   /* check that the source ras coordinates are good and
      that each direction is used once and only once */
   if (abs(xdim) * abs(ydim) * abs(zdim) != 6 || abs(xdim) + abs(ydim) + abs(zdim) != 6) {
@@ -12075,20 +12080,23 @@ MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
     mri_dst->zsize = dstsizes[2];
   }
   MRIreorderVox2RAS(mri_src, mri_dst, xdim, ydim, zdim);
-  printf("src %d %d %d, %f %f %f\n",
-         mri_src->width,
-         mri_src->height,
-         mri_src->depth,
-         mri_src->xsize,
-         mri_src->ysize,
-         mri_src->zsize);
-  printf("dst %d %d %d, %f %f %f\n",
-         mri_dst->width,
-         mri_dst->height,
-         mri_dst->depth,
-         mri_dst->xsize,
-         mri_dst->ysize,
-         mri_dst->zsize);
+
+  if(Gdiag > 0){
+    printf("src %d %d %d, %f %f %f\n",
+	   mri_src->width,
+	   mri_src->height,
+	   mri_src->depth,
+	   mri_src->xsize,
+	   mri_src->ysize,
+	   mri_src->zsize);
+    printf("dst %d %d %d, %f %f %f\n",
+	   mri_dst->width,
+	   mri_dst->height,
+	   mri_dst->depth,
+	   mri_dst->xsize,
+	   mri_dst->ysize,
+	   mri_dst->zsize);
+  }
 
   xd = yd = zd = 0;
 

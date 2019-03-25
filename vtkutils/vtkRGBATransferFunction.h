@@ -111,7 +111,11 @@ public:
 
   // Description:
   // Map one value through the lookup table.
+#if VTK_MAJOR_VERSION >= 8 && VTK_MINOR_VERSION >= 2
+  virtual const unsigned char *MapValue(double v);
+#else
   virtual unsigned char *MapValue(double v);
+#endif
 
   // Description:
   // Returns min and max position of all function points.
