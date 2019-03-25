@@ -4,6 +4,7 @@
 #include "kde.h"
 #include <QtDebug>
 #include <QElapsedTimer>
+#include <QMutexLocker>
 
 #define LARGENUMBER 1e12
 
@@ -11,7 +12,13 @@ using namespace std;
 
 GeodesicMatting::GeodesicMatting()
 {
+  m_bAbort = false;
+}
 
+void GeodesicMatting::Abort()
+{
+  QMutexLocker locker(&m_mutex);
+  m_bAbort = true;
 }
 
 double GeodesicMatting::Interpolate(const std::vector<double> &v, const std::vector<double> &hf, double val)
@@ -209,6 +216,7 @@ template <typename T> vector<size_t> sort_indexes(const vector<T> &v) {
 bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
                               unsigned char *seeds_out)
 {
+  m_bAbort = false;
   double** lHood = new double*[label_list.size()];
   double** DISTS = new double*[label_list.size()];
   size_t vol_size = ((size_t)dim[0])*dim[1]*dim[2];
@@ -305,17 +313,17 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     // fast marching
     bool ready = false;
     int npix = 0;
-    while (!ready)
+    while (!ready && !m_bAbort)
     {
       npix++;
       if (npix%10000 == 0)
         qDebug() << npix;
 
       double mini = LARGENUMBER;
-      int idx = -1;
+      long long idx = -1;
       for (size_t i = 0; i < vol_size; i++)
       {
-        if (TRIALVALS[i]<mini)
+        if (TRIALVALS[i] < mini)
         {
           mini=TRIALVALS[i];
           idx=i;
@@ -458,23 +466,26 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     }
     memcpy(DISTS[l], D, sizeof(double)*vol_size);
   }
-  qDebug() << timer.elapsed()/1000.;
 
-  memset(seeds_out, 0, vol_size);
-  for (size_t i = 0; i < vol_size; i++)
+  if (!m_bAbort)
   {
-    double dmin = 1e10;
-    int n = 0;
-    for (size_t l = 0; l < label_list.size(); l++)
+    qDebug() << timer.elapsed()/1000.;
+    memset(seeds_out, 0, vol_size);
+    for (size_t i = 0; i < vol_size; i++)
     {
-      if (DISTS[l][i] < dmin)
+      double dmin = 1e10;
+      int n = 0;
+      for (size_t l = 0; l < label_list.size(); l++)
       {
-        dmin = DISTS[l][i];
-        n = l;
+        if (DISTS[l][i] < dmin)
+        {
+          dmin = DISTS[l][i];
+          n = l;
+        }
       }
+      if (n != label_list.size()-1)
+        seeds_out[i] = label_list[n];
     }
-    if (n != label_list.size()-1)
-      seeds_out[i] = label_list[n];
   }
   delete[] D;
   delete[] TRIALVALS;
@@ -489,7 +500,7 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   delete[] lHood;
   delete[] DISTS;
 
-  return true;
+  return (!m_bAbort);
 }
 
 bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
@@ -604,19 +615,10 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
       double mini = LARGENUMBER;
       long long idx = -1;
       int n_idxs = -1;
-      //      for (size_t i = 0; i < idxs.size(); i++)
-      //      {
-      //        if (TRIALVALS[idxs[i]] < mini)
-      //        {
-      //          mini = TRIALVALS[idxs[i]];
-      //          idx = idxs[i];
-      //          n_idxs = i;
-      //        }
-      //      }
 
       for (size_t i = 0; i < vol_size; i++)
       {
-        if (TRIALVALS[i]<mini)
+        if (TRIALVALS[i] < mini)
         {
           mini=TRIALVALS[i];
           idx=i;
