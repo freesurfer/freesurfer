@@ -5,6 +5,7 @@
 #include <QThread>
 
 class LayerMRI;
+class GeodesicMatting;
 
 class GeoSWorker : public QObject
 {
@@ -22,6 +23,7 @@ signals:
 public slots:
   void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1);
   void Apply(LayerMRI* seg, LayerMRI* filled);
+  void Abort();
 
 private slots:
   void DoCompute();
@@ -33,6 +35,7 @@ private:
   LayerMRI* m_seg;
   LayerMRI* m_filled;
   int     m_nMaxDistance;
+  GeodesicMatting*  m_geos;
 
   QThread   m_thread;
 };
