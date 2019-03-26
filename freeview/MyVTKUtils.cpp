@@ -92,6 +92,10 @@
 #include "vtkPointData.h"
 #include "vtkFloatArray.h"
 #include "vtkPassThrough.h"
+#include "vtkDiscreteMarchingCubes.h"
+#if VTK_MAJOR_VERSION > 5
+#include "vtkFlyingEdges3D.h"
+#endif
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
                                    vtkRenderer* renderer,
@@ -491,7 +495,6 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
   vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
   contour->SetInputConnection( threshold->GetOutputPort());
   contour->SetValue(0, dTh1);
-
   {
     vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
     conn->SetInputConnection( contour->GetOutputPort() );

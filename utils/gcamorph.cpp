@@ -1619,10 +1619,10 @@ int GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, TRANSFORM *transform, in
     LTA *lta = (LTA *)transform->xform;
     gcam->m_affine = MatrixCopy(lta->xforms[0].m_L, NULL);
     gcam->det = MatrixDeterminant(gcam->m_affine);
-    fprintf(stderr,
-            "det(m_affine) = %2.2f (predicted orig area = %2.1f)\n",
-            gcam->det,
-            gcam->spacing * gcam->spacing * gcam->spacing / gcam->det);
+//    fprintf(stderr,
+//            "det(m_affine) = %2.2f (predicted orig area = %2.1f)\n",
+//            gcam->det,
+//            gcam->spacing * gcam->spacing * gcam->spacing / gcam->det);
   }
   gcamComputeMetricProperties(gcam);
   for (x = 0; x < width; x++)

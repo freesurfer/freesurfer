@@ -14,6 +14,7 @@
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
+  m_geos = new GeodesicMatting;
   m_nMaxDistance = 10;
   connect(this, SIGNAL(ComputeTriggered()), SLOT(DoCompute()));
   connect(this, SIGNAL(ApplyTriggered()), SLOT(DoApply()));
@@ -25,6 +26,7 @@ GeoSWorker::~GeoSWorker()
 {
   m_thread.quit();
   m_thread.wait();
+  delete m_geos;
 }
 
 void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance)
@@ -124,7 +126,6 @@ void GeoSWorker::DoCompute()
   voi2->Update();
   seeds = voi->GetOutput();
   vtkImageData* mri = voi2->GetOutput();
-  GeodesicMatting geos;
   std::vector<unsigned char> label_list;
   label_list.push_back(1);
   label_list.push_back(2);
@@ -134,10 +135,9 @@ void GeoSWorker::DoCompute()
   mri->GetDimensions(dim_new);
   vol_size = dim_new[0]*dim_new[1]*dim_new[2];
   unsigned char* seeds_out = new unsigned char[vol_size];
-  bool bSuccess = geos.Compute(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  bool bSuccess = m_geos->Compute(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
-//    m_seg->SaveForUndo();
     void* p = m_seg->GetImageData()->GetScalarPointer();
     int nDataType = m_seg->GetImageData()->GetScalarType();
     double fillValue = m_seg->GetFillValue();
@@ -203,4 +203,9 @@ void GeoSWorker::DoApply()
   }
   m_seg->SetModified();
   emit ApplyFinished();
+}
+
+void GeoSWorker::Abort()
+{
+  m_geos->Abort();
 }

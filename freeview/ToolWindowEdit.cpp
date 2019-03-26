@@ -93,6 +93,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoFill, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->sliderGeoOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderGeoOpacity(int)));
+  connect(ui->pushButtonAbort, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegAbort()));
 
   for (int i = 0; i < 3; i++)
   {
@@ -582,8 +583,16 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       ui->pushButtonGeoGo->setEnabled(false);
       ui->pushButtonGeoApply->setEnabled(false);
       ui->widgetBusyIndicator->show();
+      ui->pushButtonAbort->setEnabled(true);
     }
   }
+}
+
+void ToolWindowEdit::OnButtonGeoSegAbort()
+{
+  LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
+  if (mri_fill)
+    mri_fill->GeodesicSegmentationAbort();
 }
 
 void ToolWindowEdit::ResetGeoSegUI()
@@ -591,6 +600,7 @@ void ToolWindowEdit::ResetGeoSegUI()
   ui->pushButtonGeoApply->setEnabled(true);
   ui->pushButtonGeoGo->setEnabled(true);
   ui->widgetBusyIndicator->hide();
+  ui->pushButtonAbort->setEnabled(false);
 }
 
 void ToolWindowEdit::OnButtonGeoSegApply()

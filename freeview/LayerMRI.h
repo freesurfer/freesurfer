@@ -323,6 +323,8 @@ public:
 
   bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
 
+  void GeodesicSegmentationAbort();
+
   void GeodesicSegmentationApply(LayerMRI* filled);
 
   void GetVolumeInfo(int* dim, double* voxel_size);

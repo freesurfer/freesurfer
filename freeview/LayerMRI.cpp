@@ -3929,22 +3929,6 @@ VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
 
 bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI *mask)
 {
-//  vtkSmartPointer<vtkImageWeightedSum> sum = vtkSmartPointer<vtkImageWeightedSum>::New();
-//  sum->AddInput(interior->GetImageData());
-//  sum->AddInput(exterior->GetImageData());
-//  vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-//  cast->SetInputConnection(sum->GetOutputPort());
-//  cast->SetOutputScalarTypeToUnsignedChar();
-//  cast->Update();
-//  vtkImageData* seeds = cast->GetOutput();
-//  // find the VOI in seeds
-//  int* dim = seeds->GetDimensions();
-//  int bound[6] = {0, dim[0], 0, dim[1], 0, dim[2]};
-//  unsigned char* ptr = (unsigned char*)seeds->GetScalarPointer();
-//  for (int i = 0; )
-//  vtkSmartPointer<vtkExtractVOI> voi = vtkSmartPointer<vtkExtractVOI>::New();
-//  voi->SetInput(seeds);
-//  voi->SetVOI(bound);
   if (!m_geos)
   {
     m_geos = new GeoSWorker;
@@ -3953,6 +3937,12 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
 
   m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
   return true;
+}
+
+void LayerMRI::GeodesicSegmentationAbort()
+{
+  if (m_geos)
+    m_geos->Abort();
 }
 
 void LayerMRI::GeodesicSegmentationApply(LayerMRI *filled)

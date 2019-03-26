@@ -469,7 +469,10 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
     if (mriheader->height == 1 && mriheader->depth == 1)
     {
       // likely wrong overlay data
-      cerr << "Number of vertices in overlay data does not match with surface.\n";
+      printf("Number of vertices in overlay data (%d or %d) does not match with surface (%d).\n",
+	     mriheader->width*mriheader->height*mriheader->depth, 
+	     mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes,
+	     m_MRIS->nvertices);
       return false;
     }
 
