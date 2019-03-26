@@ -17327,20 +17327,21 @@ static void mrisComputeSurfaceStatistics(
 
 
 /*!
-  \fn int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol)
+  \fn int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol)
   \brief Sample the defect numbers into the volume to create a
   segmentation. Works by going through all the vertices and finding
-  them with non-zero defectno.  For each neighboring face, the voxel
-  above and below is set to defectno+offset. vol must already exist
-  and have the geometry of orig.mgz; it will be ready (eg, zeroed) to
-  be filled with the defectno. surf should be the ?h.orig.nofix.
-  defects should be an MRI struct with each voxel/vertex indicating
-  the defectno (eg, ?h.defect_labels).  It might be nice to be able to
-  dilate the defects.
+  the ones with non-zero defectno.  For each neighboring face, the
+  voxel above and below is set to defectno+offset. vol must already
+  exist and have the geometry of orig.mgz; it should be ready (eg,
+  zeroed) to be filled with the defectno. surf should be the
+  ?h.orig.nofix.  defects should be an MRI struct with each
+  voxel/vertex indicating the defectno (eg, ?h.defect_labels).  A
+  segmentation color table is imbedded in the vol.  It might be nice
+  to be able to dilate the defects.
  */
-int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol)
+int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol)
 {
-  int n, defectno;
+  int n, defectno,defectnomax;
   VERTEX *v, *vf;
   double delta, projsign;
   double x,y,z, c,r,s, cx,cy,cz;
@@ -17350,13 +17351,34 @@ int MRISdefectNo2Vol(MRIS *surf, MRI *defects, int offset, MRI *vol)
   delta = vol->xsize/5.0; // could be smarter
 
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(vol, surf);
-  //MRIconst(vol->width,vol->height,vol->depth,vol->nframes,0,vol); // set MRI to 0, but not here
 
   if(surf->nvertices != defects->width){
     printf("ERROR: MRISdefectNo2Vol(): dimension mismatch surf=%d, defects=%d\n",
 	   surf->nvertices,defects->width);
     fflush(stdout);
     return(1);
+  }
+
+  // Get the maximum number of defects
+  defectnomax = 0;
+  for(n=0; n < surf->nvertices; n++){
+    defectno = MRIgetVoxVal(defects,n,0,0,0);
+    if(defectno > defectnomax) defectnomax = defectno;
+  }
+  int nentries = defectnomax+offset+2;
+  if(vol->ct != NULL) nentries = MAX(nentries,vol->ct->nentries);
+  COLOR_TABLE *ctab = CTABalloc(nentries);
+  CTABunique(ctab, 10);
+  for(n=0; n <= defectnomax; n++){
+    sprintf(ctab->entries[n+offset]->name,"Defect-%03d",n+offset);
+  }
+  if(vol->ct == NULL) {
+    vol->ct = ctab;
+  }
+  else {
+    CTABmerge(ctab,vol->ct);
+    CTABfree(&vol->ct);
+    vol->ct=ctab;
   }
 
   for(n=0; n < surf->nvertices; n++){

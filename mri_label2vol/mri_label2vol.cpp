@@ -732,7 +732,7 @@ static int parse_commandline(int argc, char **argv) {
 	}
       }
       printf("Converting defects to volume: offset=%d, merge=%d\n",defoffset,defmerge);
-      deferr = MRISdefectNo2Vol(defsurf, defno, defoffset, deftemp);
+      deferr = MRISdefects2Seg(defsurf, defno, defoffset, deftemp);
       if(deferr) exit(1);
       printf("Writing to %s\n",pargv[5]);
       deferr = MRIwrite(deftemp,pargv[5]);
