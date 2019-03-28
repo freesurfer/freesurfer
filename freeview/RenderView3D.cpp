@@ -171,7 +171,8 @@ void RenderView3D::OnIdle()
 {
   if ( m_bToUpdateRASPosition )
   {
-    DoUpdateRASPosition( m_nPickCoord[0], m_nPickCoord[1] );
+    if (QApplication::mouseButtons() == Qt::NoButton)
+      DoUpdateRASPosition( m_nPickCoord[0], m_nPickCoord[1] );
     m_bToUpdateRASPosition = false;
   }
   if ( m_bToUpdateCursorPosition )

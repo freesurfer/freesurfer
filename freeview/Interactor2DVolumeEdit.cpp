@@ -38,6 +38,7 @@
 #include <QDebug>
 #include "LayerROI.h"
 #include "LayerPropertyROI.h"
+#include <QTimer>
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const QString& layerTypeName, QObject* parent ) :
   Interactor2D( parent ),
@@ -135,10 +136,11 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
       view->MousePositionToRAS( event->x(), event->y(), ras );
+      layer_draw->SaveForUndo(view->GetViewPlane());
       if (event->modifiers() & Qt::ShiftModifier)
         layer_draw->SetVoxelByRAS(ras, view->GetViewPlane(), false);
       else
-        layer_draw->SetVoxelByRAS( ras, view->GetViewPlane() );
+        layer_draw->SetVoxelByRAS(ras, view->GetViewPlane());
       m_bEditing = true;
       view->grabMouse();
       return false;
@@ -398,6 +400,9 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
   PreprocessMouseEvent(event);
 
   UpdateCursor( event, renderview );
+
+//  if (m_nAction == EM_GeoSeg)
+//    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SupplementLayerChanged()));
 
   if ( m_bEditing )
   {

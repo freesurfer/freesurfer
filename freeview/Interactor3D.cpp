@@ -34,6 +34,7 @@
 #include "VolumeCropper.h"
 #include "SurfaceROI.h"
 #include <vtkRenderer.h>
+#include <QDebug>
 
 Interactor3D::Interactor3D(QObject* parent) :
   Interactor(parent),
@@ -46,6 +47,14 @@ Interactor3D::Interactor3D(QObject* parent) :
 
 Interactor3D::~Interactor3D()
 {}
+
+bool Interactor3D::ProcessMouseWheelEvent(QWheelEvent *event, RenderView *renderview)
+{
+  RenderView3D* view = ( RenderView3D* )renderview;
+  view->CancelUpdateMouseRASPosition();
+
+  return Interactor::ProcessMouseWheelEvent(event, view);
+}
 
 bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {

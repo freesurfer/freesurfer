@@ -89,11 +89,13 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->pushButtonGeoClearFilling, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegClearFilling()));
   connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegGo()));
   connect(ui->pushButtonGeoApply, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegApply()));
+  connect(ui->pushButtonGeoUndo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegUndo()));
   connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoFill, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->sliderGeoOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderGeoOpacity(int)));
   connect(ui->pushButtonAbort, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegAbort()));
+  connect(mainwnd, SIGNAL(SupplementLayerChanged()), this, SLOT(UpdateWidgets()));
 
   for (int i = 0; i < 3; i++)
   {
@@ -146,6 +148,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->widgetGeoColors
                    << ui->sliderGeoOpacity
                    << ui->pushButtonGeoApply
+                   << ui->pushButtonGeoUndo
                    << ui->labelTipsGeoS
                    << ui->widgetBusyIndicator;
 
@@ -202,6 +205,7 @@ void ToolWindowEdit::OnIdle()
     return;
   }
 
+  m_bToUpdateWidgets = false;
   QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -319,7 +323,8 @@ void ToolWindowEdit::OnIdle()
     ui->lineEditExcludeRangeHigh->setEnabled(false);
   }
 
-  m_bToUpdateWidgets = false;
+//  LayerMRI* mri_draw = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
+//  ui->pushButtonGeoUndo->setEnabled(mri_draw && mri_draw->HasUndo());
 }
 
 void ToolWindowEdit::OnEditMode(QAction *act)
@@ -551,6 +556,16 @@ void ToolWindowEdit::OnButtonGeoSegClear()
   if (mri)
   {
     mri->ClearVoxels();
+    MainWindow::GetMainWindow()->RequestRedraw();
+  }
+}
+
+void ToolWindowEdit::OnButtonGeoSegUndo()
+{
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
+  if (mri)
+  {
+    mri->Undo();
     MainWindow::GetMainWindow()->RequestRedraw();
   }
 }

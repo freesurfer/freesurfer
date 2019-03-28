@@ -238,13 +238,19 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   for (size_t l = 0; l < label_list.size(); l++)
   {
     KDE kde;
+    bool bFound = false;
     for (size_t i = 0; i < vol_size; i++)
     {
       if (seeds_in[i] == label_list[l])
       {
         kde.add_data(mri_in[i]);
-        //  qDebug() << mri_in[i];
+        bFound = true;
       }
+    }
+    if (!bFound)
+    {
+      m_bAbort = true;
+      break;
     }
 
     std::vector<double> hf;
