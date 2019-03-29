@@ -129,6 +129,8 @@ struct Parameters
   bool entball;
   bool entcorrection;
   double powelltol;
+  bool whitebgmov;
+  bool whitebgdst;
 };
 static struct Parameters P =
 { "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false, false,
@@ -136,7 +138,7 @@ static struct Parameters P =
     NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
     "", -1, -1, Registration::ROB,
 //  256,
-    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5 };
+    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5, false, false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -1770,6 +1772,12 @@ static void initRegistration(Registration & R, Parameters & P)
 
   cout << endl;
 
+  // set oustide value to white if passed
+  if (P.whitebgmov)
+    MyMRI::setMaxOutsideVal(mri_mov);
+  if (P.whitebgdst)
+    MyMRI::setMaxOutsideVal(mri_dst);
+
   // now actually set source and target (and possibly reslice):
   // important that first everything else is set!
   R.setSourceAndTarget(mri_mov, mri_dst, !P.floattype);
@@ -2176,6 +2184,20 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.symmetry = false;
     nargs = 0;
     cout << "--nosym: Will resample source to target (no half-way space)!"
+        << endl;
+  }
+  else if (!strcmp(option, "WHITEBGMOV"))
+  {
+    P.whitebgmov = true;
+    nargs = 0;
+    cout << "--whitebgmov: Will assume white background in MOV!"
+        << endl;
+  }
+  else if (!strcmp(option, "WHITEBGDST"))
+  {
+    P.whitebgdst = true;
+    nargs = 0;
+    cout << "--whitebgdst: Will assume white background in DST!"
         << endl;
   }
   else if (!strcmp(option, "ISCALEOUT"))

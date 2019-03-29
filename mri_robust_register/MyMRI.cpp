@@ -563,6 +563,25 @@ MRI * MyMRI::gaussianCube(int size)
 }
 
 
+void MyMRI::setMaxOutsideVal(MRI * mri)
+{
+  float maxval = MRIgetVoxVal (mri,0,0,0,0);
+  int w,h,d;
+  for (d = 0; d<mri->depth; d++)
+  {
+    for (h = 0; h<mri->height; h++)
+    {
+      for (w = 0; w<mri->width; w++)
+      {
+         const float & val = MRIgetVoxVal (mri, w, h, d,0);
+         if (val > maxval) maxval = val;
+      }
+    }
+  }
+  mri->outside_val = maxval;
+}
+
+
 float MyMRI::getBackground(MRI * mri)
 // simple approach : count min and max values
 // this will fail if background is gray
@@ -598,6 +617,7 @@ float MyMRI::getBackground(MRI * mri)
       }
     }
   }
+  //std::cout << "min: " << minval << " (# " << mins<<" ),   max: " << maxval << " (# " <<maxs<<" ) " << std::endl; 
   if (mins > maxs) return minval;
   else return maxval;
   

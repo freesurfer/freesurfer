@@ -139,6 +139,10 @@ Note: most cost functions require the image backgrounds to be black! Also, only 
       <explanation>subsample if dim &gt; # on all axes (default no subsampling)</explanation>
       <argument>--floattype</argument>
       <explanation>convert images to float internally (default: keep input type)</explanation> 
+      <argument>--whitebgmov</argument>
+      <explanation>assume white background in MOV for padding (default: black)</explanation> 
+      <argument>--whitebgdst</argument>
+      <explanation>assume white background in DST for padding (default: black)</explanation> 
             
       <argument>--maskmov &lt;mask.mgz&gt;</argument>
       <explanation>mask mov image with mask.mgz</explanation>
