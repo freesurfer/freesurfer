@@ -143,6 +143,8 @@ Note: most cost functions require the image backgrounds to be black! Also, only 
       <explanation>assume white background in MOV for padding (default: black)</explanation> 
       <argument>--whitebgdst</argument>
       <explanation>assume white background in DST for padding (default: black)</explanation> 
+      <argument>--uchar</argument>
+      <explanation>convert inputs to UCHAR (with re-scale and histogram cropping) (default: keep original type)</explanation> 
             
       <argument>--maskmov &lt;mask.mgz&gt;</argument>
       <explanation>mask mov image with mask.mgz</explanation>

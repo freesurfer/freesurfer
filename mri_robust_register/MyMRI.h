@@ -103,6 +103,9 @@ public:
   
   //! Set outside value in header to the max value of image
   static void setMaxOutsideVal(MRI * mri);
+  
+  //! Change type to UCHAR
+  static MRI* setTypeUCHAR(MRI * mri);
 
 private:
   static MRI * getPrefilter();

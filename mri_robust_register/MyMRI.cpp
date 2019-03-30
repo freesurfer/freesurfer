@@ -562,6 +562,20 @@ MRI * MyMRI::gaussianCube(int size)
   return g;
 }
 
+MRI * MyMRI::setTypeUCHAR(MRI * mri)
+{
+  int no_scale_flag = FALSE;
+  printf("       -- changing data type from %d to %d (noscale = %d)...\n",
+      mri->type, MRI_UCHAR , no_scale_flag);
+    // not sure what happens if mri is already UCHAR?
+  MRI * mri2 = MRISeqchangeType(mri, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
+  if (mri2 == NULL)
+  {
+    printf("ERROR: MRISeqchangeType in MyMRI::setTypeUCHAR\n");
+    exit(1);
+  }
+  return mri2;
+}
 
 void MyMRI::setMaxOutsideVal(MRI * mri)
 {
