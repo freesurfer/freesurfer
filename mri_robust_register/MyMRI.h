@@ -100,6 +100,12 @@ public:
   
   //! Get background intensity (vox val with largest level set)
   static float getBackground(MRI * mri);
+  
+  //! Set outside value in header to the max value of image
+  static void setMaxOutsideVal(MRI * mri);
+  
+  //! Change type to UCHAR
+  static MRI* setTypeUCHAR(MRI * mri);
 
 private:
   static MRI * getPrefilter();
