@@ -1532,6 +1532,7 @@ int MRISscaleDistances(MRIS *mris, float scale)
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const v = &mris->vertices[vno];
+    if(v->ripflag) continue;
     int vsize = mrisVertexVSize(mris, vno);
     int n;
     for (n = 0; n < vsize; n++) {
@@ -7019,6 +7020,9 @@ int MRISmeasureCorticalThickness(MRIS *mris, int nbhd_size, float max_thick)
             continue;
           }
           dist = sqrt(dx * dx + dy * dy + dz * dz);
+	  if(Gdiag_no == vno) {
+	    printf("vno=%d A %3d %6d (%g,%g,%g) (%g,%g,%g) %g %g\n",vno,n,vnt->v[n],v->origx,v->origy,v->origz,v->x,v->y,v->z,dist,min_dist);
+	  }
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
@@ -7105,6 +7109,9 @@ int MRISmeasureCorticalThickness(MRIS *mris, int nbhd_size, float max_thick)
             continue;
           }
           dist = sqrt(dx * dx + dy * dy + dz * dz);
+	  if(Gdiag_no == vno) {
+	    printf("vno=%d B %3d %6d (%g,%g,%g) (%g,%g,%g) %g %g\n",vno,n,vnt->v[n],vn2->origx,vn2->origy,vn2->origz,v->x,v->y,v->z,dist,min_dist);
+	  }
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
@@ -7136,6 +7143,8 @@ int MRISmeasureCorticalThickness(MRIS *mris, int nbhd_size, float max_thick)
     if (v->curv < 0) {
       DiagBreak();
     }
+    if(Gdiag_no == vno) 
+      printf("vno = %d, final measurment %g\n",vno,v->curv);
   }
 
   fprintf(stdout, "thickness calculation complete, %d:%d truncations.\n", nwg_bad, ngw_bad);
