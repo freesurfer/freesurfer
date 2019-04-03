@@ -560,6 +560,9 @@ fall inside the pial surface or are cut by the pial surface.  The idea
 is that the volume of everything in the pial surface can be computed
 using the surface and that this function can be used to compute
 everything else. Note that there is no partial volume correction.
+Note 4/2/2019: there was a bug here in that the voxel volume was
+defined as an int instead of double which means that the used voxel
+volume would have been truncated and affecting the total.
 \param aseg - aseg.mgz or aparc+aseg.mgz
 \param ribbon is the ribbon.mgz, which has non-zero values for
 everything inside the pial surf.
@@ -568,7 +571,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 {
   int c,r,s,SegId;
   double vol = 0;
-  int RibbonVal, VoxSize;
+  int RibbonVal;
+  double VoxSize; // was int
 
   VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
   for(c=0; c < aseg->width; c++){
@@ -634,7 +638,9 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 \brief Computes the volume of non-cortical structures within the
 ribbon. This should be subtracted from the cortical GM volume computed
 by subtracting the volume inside the white from the volume inside the
-pial.
+pial. Note 4/2/2019: there was a bug here in that the voxel volume was
+defined as an int instead of double which means that the used voxel
+volume would have been truncated and affecting the total.
 \param aseg - segmentation
 \param ribbon - ribbon
 \param hemi - 1=left, 2=right
@@ -643,7 +649,8 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
 {
   int c,r,s,SegId;
   double vol = 0, vol2 = 0;
-  int RibbonVal, VoxSize;
+  int RibbonVal;
+  double VoxSize;
 
   VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
   for(c=0; c < aseg->width; c++){
@@ -891,7 +898,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
   double SubCortGMVol, CerebellumVol, CerebellumGMVol, VentChorVol;
   double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
   double OptChiasmVol, CSFVol;
-  double *stats=NULL;
+  double *stats = NULL;
+  double VoxelVol;
 
   if (suffix == NULL)
     suffix = "" ;
@@ -947,6 +955,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
     asegfixed = aseg;
     ribbonRead = 0;
   }
+  VoxelVol = aseg->xsize * aseg->ysize * aseg->zsize;
+  printf("ComputeBrainVolumeStats() using version with fixed volume, VoxelVol=%g\n",VoxelVol);
 
   lhCtxGMCor = 0;
   rhCtxGMCor = 0;
@@ -967,66 +977,63 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
   OptChiasmVol = 0;
   CSFVol = 0;
   TFFC = 0;
-  for(c=0; c < aseg->width; c++){
-    for(r=0; r < aseg->height; r++){
-      for(s=0; s < aseg->depth; s++){
-	asegid = MRIgetVoxVal(aseg,c,r,s,0);
-	asegfixedid = MRIgetVoxVal(asegfixed,c,r,s,0);
-	ribbonid = MRIgetVoxVal(ribbon,c,r,s,0);
-	// Corpus Callosum
-	if(asegid == 251 || asegid == 252 || asegid == 253 ||
-	   asegid == 254 || asegid == 255) CCVol++;
-	// Correct CtxGM by anything in the ribbon that is not GM, WM, or Unkown in the aseg
-	if(ribbonid ==  3 && asegid !=  3 && asegid !=  2 && asegid != 0) lhCtxGMCor += 1;
-	if(ribbonid == 42 && asegid != 42 && asegid != 41 && asegid != 0) rhCtxGMCor += 1;
-	// Correct CtxWM by anything in the WMribbon that is not WM, eg, GM structures.
-	// Does not use PVC for subcort GM. Make sure to include hypointensities (77)
-	if(ribbonid ==  2 && asegfixedid != 2 && asegfixedid != 77 && 
-	   asegfixedid != 251 && asegfixedid != 252 && asegfixedid != 253 &&
-	   asegfixedid != 254 && asegfixedid != 255) lhCtxWMCor += 1;
-	if(ribbonid == 41 && asegfixedid != 41 && asegfixedid != 77 && 
-	   asegfixedid != 251 && asegfixedid != 252 && asegfixedid != 253 &&
-	   asegfixedid != 254 && asegfixedid != 255) rhCtxWMCor += 1;
-	// Subcortical GM structures (does not use PVC)
-	if(IsSubCorticalGray(asegfixedid)) SubCortGMVol++;
-	// Cerebellum GM volume
-	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex)
-	  CerebellumGMVol++;	  
-	// Cerebellum (GM+WM) volume
-	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
-	   asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
-	  CerebellumVol++;	  
-	// Ventricle Volume
-	if(asegid == Left_choroid_plexus     || asegid == Right_choroid_plexus ||
-	   asegid == Left_Lateral_Ventricle  || asegid == Right_Lateral_Ventricle ||
-	   asegid == Left_Inf_Lat_Vent       || asegid == Right_Inf_Lat_Vent)
-	  VentChorVol++;
-	// 3rd, 4th, 5th, CSF
-	if(asegid == Third_Ventricle         || asegid == Fourth_Ventricle ||
-	   asegid == Fifth_Ventricle	     || asegid == CSF)
-	  TFFC++;
-	// Other
-	if(asegid == 30 || asegid == 62) VesselVol++;
-	if(asegid == 85) OptChiasmVol++;
-	if(asegid == 24) CSFVol++;
-	// Total number of voxels in the segmentation. Use fixed to exclude
-	// stuff outside of the brain (eg, dura)
-	if(asegfixedid != 0 && asegfixedid != Brain_Stem)  BrainSegVol++;
-	// Total number of voxels in the brainmask
-	if(MRIgetVoxVal(brainmask,c,r,s,0) > 0) MaskVol++;
-	// Total number of voxels in the CtxGM, CtxWM of asegfixed
-	// This is to check against the surface-based measures
-	if(asegfixedid ==  3) lhCtxGMCount++;
-	if(asegfixedid == 42) rhCtxGMCount++;
-	// For CtxWM, include hypointensities. The hypos are not lateralized,
-	// so just lateralize them based on column (not perfect, but it is only a check)
-	if(asegfixedid ==  2 || asegfixedid ==  78 || (asegfixedid == 77 && c <  128)) lhCtxWMCount++;
-	if(asegfixedid == 41 || asegfixedid ==  79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount++;
-      } //c 
-    } //r
-  } //s
 
-  // CtxGM = everything inside pial surface minus everything in white surface 
+  for (c = 0; c < aseg->width; c++) {
+    for (r = 0; r < aseg->height; r++) {
+      for (s = 0; s < aseg->depth; s++) {
+        asegid = MRIgetVoxVal(aseg, c, r, s, 0);
+        asegfixedid = MRIgetVoxVal(asegfixed, c, r, s, 0);
+        ribbonid = MRIgetVoxVal(ribbon, c, r, s, 0);
+        // Corpus Callosum
+        if (asegid == 251 || asegid == 252 || asegid == 253 || asegid == 254 || asegid == 255) CCVol += VoxelVol;
+        // Correct CtxGM by anything in the ribbon that is not GM, WM, or Unkown in the aseg
+        if (ribbonid == 3 && asegid != 3 && asegid != 2 && asegid != 0) lhCtxGMCor += VoxelVol;
+        if (ribbonid == 42 && asegid != 42 && asegid != 41 && asegid != 0) rhCtxGMCor += VoxelVol;
+        // Correct CtxWM by anything in the WMribbon that is not WM, eg, GM structures.
+        // Does not use PVC for subcort GM. Make sure to include hypointensities (77)
+        if (ribbonid == 2 && asegfixedid != 2 && asegfixedid != 77 && asegfixedid != 251 && asegfixedid != 252 &&
+            asegfixedid != 253 && asegfixedid != 254 && asegfixedid != 255)
+          lhCtxWMCor += VoxelVol;
+        if (ribbonid == 41 && asegfixedid != 41 && asegfixedid != 77 && asegfixedid != 251 && asegfixedid != 252 &&
+            asegfixedid != 253 && asegfixedid != 254 && asegfixedid != 255)
+          rhCtxWMCor += VoxelVol;
+        // Subcortical GM structures (does not use PVC)
+        if (IsSubCorticalGray(asegfixedid)) SubCortGMVol += VoxelVol;
+        // Cerebellum GM volume
+        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex) CerebellumGMVol += VoxelVol;
+        // Cerebellum (GM+WM) volume
+        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
+            asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
+          CerebellumVol += VoxelVol;
+        // Ventricle Volume
+        if (asegid == Left_choroid_plexus || asegid == Right_choroid_plexus || asegid == Left_Lateral_Ventricle ||
+            asegid == Right_Lateral_Ventricle || asegid == Left_Inf_Lat_Vent || asegid == Right_Inf_Lat_Vent)
+          VentChorVol += VoxelVol;
+        // 3rd, 4th, 5th, CSF
+        if (asegid == Third_Ventricle || asegid == Fourth_Ventricle || asegid == Fifth_Ventricle || asegid == CSF)
+          TFFC += VoxelVol;
+        // Other
+        if (asegid == 30 || asegid == 62) VesselVol += VoxelVol;
+        if (asegid == 85) OptChiasmVol += VoxelVol;
+        if (asegid == 24) CSFVol += VoxelVol;
+        // Total number of voxels in the segmentation. Use fixed to exclude
+        // stuff outside of the brain (eg, dura)
+        if (asegfixedid != 0 && asegfixedid != Brain_Stem) BrainSegVol += VoxelVol;
+        // Total number of voxels in the brainmask
+        if (MRIgetVoxVal(brainmask, c, r, s, 0) > 0) MaskVol += VoxelVol;
+        // Total number of voxels in the CtxGM, CtxWM of asegfixed
+        // This is to check against the surface-based measures
+        if (asegfixedid == 3) lhCtxGMCount += VoxelVol;
+        if (asegfixedid == 42) rhCtxGMCount += VoxelVol;
+        // For CtxWM, include hypointensities. The hypos are not lateralized,
+        // so just lateralize them based on column (not perfect, but it is only a check)
+        if (asegfixedid == 2 || asegfixedid == 78 || (asegfixedid == 77 && c < 128)) lhCtxWMCount += VoxelVol;
+        if (asegfixedid == 41 || asegfixedid == 79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount += VoxelVol;
+      }  // c
+    }    // r
+  }      // s
+
+  // CtxGM = everything inside pial surface minus everything in white surface
   // minus stuff in the ribbon that is not cortex
   lhCtxGM = lhpialvolTot - lhwhitevolTot - lhCtxGMCor;
   rhCtxGM = rhpialvolTot - rhwhitevolTot - rhCtxGMCor;
@@ -1035,9 +1042,9 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
   lhCtxWM = lhwhitevolTot - lhCtxWMCor;
   rhCtxWM = rhwhitevolTot - rhCtxWMCor;
 
-  // Add half of CC to each hemi for counting, 
-  lhCtxWMCount += CCVol/2;
-  rhCtxWMCount += CCVol/2;
+  // Add half of CC to each hemi for counting,
+  lhCtxWMCount += CCVol / 2.0;
+  rhCtxWMCount += CCVol / 2.0;
 
   // Supratentorial volume is everything inside the pial surface plus 
   // stuff that is ouside the surface but still in the ST (eg, hippo, amyg)
