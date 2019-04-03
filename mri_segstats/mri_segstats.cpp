@@ -1041,6 +1041,15 @@ int main(int argc, char **argv)
       fprintf(fp,"# subjectname %s\n",subject);
     }
     if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
+    if(BrainVolStats){
+      if(fabs(voxelvolume-1)>.01){
+	// This indicates that the global stats has been fixed
+	fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
+      }
+      else{
+	fprintf(fp,"# BrainVolStatsFixed-NotNeeded because voxelvolume=1mm3\n");
+      }
+    }
     if (BrainVolFromSeg)
     {
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
