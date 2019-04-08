@@ -27,6 +27,7 @@
 #include "RenderView.h"
 #include <vtkSmartPointer.h>
 #include <QVariantMap>
+#include <QThread>
 
 class vtkActor;
 class vtkProp;
@@ -43,9 +44,12 @@ class Layer;
 class LayerSurface;
 class SurfaceROI;
 class Interactor3DPathEdit;
+class RenderView3D;
 
 class RenderView3D : public RenderView
 {
+  friend class PropPickingThread;
+
   Q_OBJECT
 public:
   RenderView3D( QWidget* parent );

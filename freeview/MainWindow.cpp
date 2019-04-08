@@ -550,6 +550,7 @@ void MainWindow::LoadSettings()
   m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
   m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
   m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
+  m_settingsScreenshot.HideScaleBar = settings.value("ScreenShot/HideScaleBar", true).toBool();
   m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
   m_settingsScreenshot.AutoTrim = settings.value("ScreenShot/AutoTrim", false).toBool();
   m_settings = settings.value("Settings/General").toMap();
@@ -655,6 +656,7 @@ void MainWindow::SaveSettings()
     settings.setValue("ScreenShot/Magnification", s.Magnification);
     settings.setValue("ScreenShot/AntiAliasing", s.AntiAliasing);
     settings.setValue("ScreenShot/HideAnnotation", s.HideCoords);
+    settings.setValue("ScreenShot/HideScaleBar", s.HideScaleBar);
     settings.setValue("ScreenShot/HideCursor", s.HideCursor);
   }
   if (m_dlgPreferences)
@@ -6444,6 +6446,7 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
+    bool bMidToMin = m_settings["AutoSetMidToMin"].toBool();
     if (!scales_in.isEmpty())
     {
       QList<double> scales = scales_in;
@@ -6474,9 +6477,9 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
         }
         else if ( scales.size() == 2 )
         {
-          p->SetHeatScaleAutoMid(true);
-          p->SetHeatScaleMinThreshold( scales[0] );
-          p->SetHeatScaleMaxThreshold( scales[1] );
+          p->SetHeatScaleAutoMid(true, bMidToMin);
+          p->SetHeatScaleMinThreshold( scales[0], bMidToMin );
+          p->SetHeatScaleMaxThreshold( scales[1], bMidToMin );
         }
         else if ( !scales.empty() )
         {
@@ -7814,10 +7817,29 @@ void MainWindow::UpdateSettings()
 {
   if (m_dlgPreferences)
   {
+    QVariantMap old = m_settings;
     QVariantMap map = m_dlgPreferences->GetSettings();
     QStringList keys = map.keys();
     foreach (QString key, keys)
       m_settings[key] = map[key];
+
+    if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
+    {
+      QList<Layer*> layers = GetLayers("MRI");
+      foreach (Layer* l, layers)
+      {
+        LayerMRI* mri = (LayerMRI*)l;
+        if (mri->GetProperty()->GetHeatScaleAutoMid())
+        {
+          double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
+          double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
+          if (m_settings["AutoSetMidToMin"].toBool())
+            mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
+          else
+            mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
+        }
+      }
+    }
   }
 }
 
