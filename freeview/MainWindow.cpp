@@ -550,6 +550,7 @@ void MainWindow::LoadSettings()
   m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
   m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
   m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
+  m_settingsScreenshot.HideScaleBar = settings.value("ScreenShot/HideScaleBar", true).toBool();
   m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
   m_settingsScreenshot.AutoTrim = settings.value("ScreenShot/AutoTrim", false).toBool();
   m_settings = settings.value("Settings/General").toMap();
@@ -655,6 +656,7 @@ void MainWindow::SaveSettings()
     settings.setValue("ScreenShot/Magnification", s.Magnification);
     settings.setValue("ScreenShot/AntiAliasing", s.AntiAliasing);
     settings.setValue("ScreenShot/HideAnnotation", s.HideCoords);
+    settings.setValue("ScreenShot/HideScaleBar", s.HideScaleBar);
     settings.setValue("ScreenShot/HideCursor", s.HideCursor);
   }
   if (m_dlgPreferences)

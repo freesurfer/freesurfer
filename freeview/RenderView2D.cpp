@@ -138,6 +138,11 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
     {
       m_annotation2D->AppendAnnotations( m_renderer );
     }
+    if (!bForScreenShot || !setting.HideScaleBar)
+    {
+      m_annotation2D->AppendAnnotations( m_renderer, true );
+    }
+
     m_selection2D->AppendProp( m_renderer );
 
     // add scalar bar

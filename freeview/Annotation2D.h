@@ -45,7 +45,7 @@ public:
 
   void Update( vtkRenderer* renderer, int nPlane );
 
-  void AppendAnnotations( vtkRenderer* renderer );
+  void AppendAnnotations( vtkRenderer* renderer, bool bScaleBar = false );
 
   bool GetShowScaleLine();
 
