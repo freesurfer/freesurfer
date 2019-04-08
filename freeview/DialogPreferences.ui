@@ -486,7 +486,7 @@
           <item>
            <widget class="QCheckBox" name="checkBoxAutoMidToMin">
             <property name="text">
-             <string>Auto-set Mid threshold to Min threshold</string>
+             <string>Set Mid threshold to Min when Auto-set Mid is enabled</string>
             </property>
             <property name="checked">
              <bool>false</bool>
