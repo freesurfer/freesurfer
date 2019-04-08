@@ -1441,6 +1441,27 @@ static int parse_commandline(int argc, char **argv) {
       SegRegCostFile = pargv[0];
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--spm-vbm",0)) {
+      if(nargc < 4){
+	printf("  --spm-vbm input warp interp out\n");
+	argnerr(option,7);
+      }
+      mov = MRIread(pargv[0]);
+      if(mov == NULL) exit(1);
+      MRI *warp = MRIread(pargv[1]);
+      if(warp == NULL) exit(1);
+      sscanf(pargv[2],"%d",&interpcode);
+      printf("Running MRIapplySpmVbmWarp() inerp = %d\n",interpcode);
+      out = MRIapplySpmVbmWarp(mov, warp, interpcode, NULL);
+      if(out == NULL) exit(1);
+      printf("Writing to %s\n",pargv[3]);
+      err = MRIwrite(out,pargv[3]);
+      if(err) exit(1);
+      MRIfree(&warp);
+      printf("mri_vol2vol spm-vbm done\n");
+      printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
+      exit(0);
+    }
     else if (istringnmatch(option, "--gcam",0)) {
       LTA *srclta, *dstlta;
       if(nargc < 7){
@@ -1542,6 +1563,10 @@ printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
 printf("     interp %d=nearest, %d=trilin, %d=cubicbspline\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR,SAMPLE_CUBIC_BSPLINE);
+printf("  --spm-vbm mov warp interp output\n");
+printf("     mov is anything that shares a RAS space with the VBM input\n");
+printf("     warp is typically y_rinput.nii\n");
+printf("     interp %d=nearest, %d=trilin\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR);
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");

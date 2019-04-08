@@ -2725,3 +2725,62 @@ static int CompareAVIndices(const void *i1, const void *i2)
   // Same volume index and seg id.
   return (0);
 }
+
+
+/*!
+  \fn MRI *MRIapplySpmVbmWarp(MRI *vol, MRI *warp, int interp, MRI *out)
+  \brief Applies a warp field computed from SPM VBM, eg, with DNG's
+  run-vbm.  The input vol is anything that shares the scanner space
+  with the input to vbm.  The warp field is y_rinput.nii. Interp:
+  SAMPLE_NEAREST=0 or SAMPLE_TRILINEAR=1. Handles multiple frames.
+  The output will be in the warp space.
+ */
+MRI *MRIapplySpmVbmWarp(MRI *vol, MRI *warp, int interp, MRI *out)
+{
+  int c,r,s,k,f;
+  double cc,rr,ss,val;
+
+  if(interp != SAMPLE_NEAREST && interp != SAMPLE_TRILINEAR){
+    printf("ERROR: MRIapplyVBMWarp():  sample type = %d, must be %d or %d\n",
+	   interp,SAMPLE_NEAREST,SAMPLE_TRILINEAR);
+    return(NULL);
+  }
+
+  if(out==NULL){
+    out = MRIallocSequence(warp->width,warp->height,warp->depth,MRI_FLOAT,vol->nframes);
+    if(out==NULL) return(NULL);
+    MRIcopyHeader(warp,out);
+    MRIcopyPulseParameters(vol, out);
+  }
+  
+  MATRIX *vox2ras = MRIxfmCRS2XYZ(vol, 1); // spm crs base=1
+  MATRIX *ras2vox = MatrixInverse(vox2ras,NULL);
+
+  MATRIX *CRS  = MatrixAlloc(4,1,MATRIX_REAL);
+  MATRIX *dRAS = MatrixAlloc(4,1,MATRIX_REAL);
+  dRAS->rptr[4][1] = 1;
+  for(c=0; c < warp->width; c++){
+    for(r=0; r < warp->height; r++){
+      for(s=0; s < warp->depth; s++){
+	for(k=0; k<3; k++) dRAS->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
+	CRS = MatrixMultiplyD(ras2vox,dRAS,CRS);
+	cc = CRS->rptr[1][1] - 1; // spm crs base=1
+	rr = CRS->rptr[2][1] - 1;
+	ss = CRS->rptr[3][1] - 1;
+	if(cc < 0 || cc >= vol->width)  continue;
+	if(rr < 0 || rr >= vol->height) continue;
+	if(ss < 0 || ss >= vol->depth)  continue;
+	for(f=0; f < vol->nframes; f++){
+	  MRIsampleVolumeFrameType(vol, cc, rr, ss, f, interp, &val);
+	  MRIsetVoxVal(out,c,r,s,f,val);
+	}
+      }
+    }
+  }
+  MatrixFree(&vox2ras);
+  MatrixFree(&ras2vox);
+  MatrixFree(&dRAS);
+  MatrixFree(&CRS);
+
+  return(out);
+}
