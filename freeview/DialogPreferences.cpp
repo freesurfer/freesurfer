@@ -107,6 +107,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxDecimalVoxelCoord, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoScaleFont, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxFontSize, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxAutoMidToMin, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 
   QList<QComboBox*> list_combos;
   list_combos << ui->comboBoxShortcutCycleLayer << ui->comboBoxShortcutToggleSurface
@@ -149,6 +150,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->colorPickerAnnotation->setCurrentColor(map["AnnotationColor"].value<QColor>());
   ui->checkBoxRightButtonErase->setChecked(map["RightButtonErase"].toBool());
   ui->checkBoxAutoReorientView->setChecked(map["AutoReorientView"].toBool());
+  ui->checkBoxAutoMidToMin->setChecked(map["AutoSetMidToMin"].toBool());
   ui->checkBoxDecimalVoxelCoord->setChecked(map["DecimalVoxelCoord"].toBool());
   ui->checkBoxAutoScaleFont->setChecked(map["AutoScaleText"].toBool());
   ui->spinBoxFontSize->setValue(map["TextSize"].toInt());
@@ -195,6 +197,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["AnnotationColor"] = ui->colorPickerAnnotation->currentColor();
   map["RightButtonErase"] = ui->checkBoxRightButtonErase->isChecked();
   map["AutoReorientView"] = ui->checkBoxAutoReorientView->isChecked();
+  map["AutoSetMidToMin"] = ui->checkBoxAutoMidToMin->isChecked();
   map["DecimalVoxelCoord"] = ui->checkBoxDecimalVoxelCoord->isChecked();
   map["ShortcutCycleLayer"] = ui->comboBoxShortcutCycleLayer->currentText();
   map["ShortcutToggleVolume"] = ui->comboBoxShortcutToggleVolume->currentText();

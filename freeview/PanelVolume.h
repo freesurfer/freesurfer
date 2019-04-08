@@ -147,6 +147,8 @@ protected slots:
 
   void OnCheckVoxelizedContour( bool bVoxelize );
 
+  void OnCheckBoxSetAutoMid(bool b);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();

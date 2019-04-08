@@ -66,6 +66,7 @@
 #include "MyUtils.h"
 #include "FSSurface.h"
 #include "Interactor3DPathEdit.h"
+#include <QElapsedTimer>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 

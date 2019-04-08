@@ -6444,6 +6444,7 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
+    bool bMidToMin = m_settings["AutoSetMidToMin"].toBool();
     if (!scales_in.isEmpty())
     {
       QList<double> scales = scales_in;
@@ -6474,9 +6475,9 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
         }
         else if ( scales.size() == 2 )
         {
-          p->SetHeatScaleAutoMid(true);
-          p->SetHeatScaleMinThreshold( scales[0] );
-          p->SetHeatScaleMaxThreshold( scales[1] );
+          p->SetHeatScaleAutoMid(true, bMidToMin);
+          p->SetHeatScaleMinThreshold( scales[0], bMidToMin );
+          p->SetHeatScaleMaxThreshold( scales[1], bMidToMin );
         }
         else if ( !scales.empty() )
         {

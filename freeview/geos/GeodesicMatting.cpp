@@ -807,4 +807,3 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
   delete[] DISTS;
   return true;
 }
-
