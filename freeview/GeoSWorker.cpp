@@ -135,7 +135,7 @@ void GeoSWorker::DoCompute()
   mri->GetDimensions(dim_new);
   vol_size = dim_new[0]*dim_new[1]*dim_new[2];
   unsigned char* seeds_out = new unsigned char[vol_size];
-  bool bSuccess = m_geos->Compute(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  bool bSuccess = m_geos->ComputeWithBinning(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
     void* p = m_seg->GetImageData()->GetScalarPointer();
