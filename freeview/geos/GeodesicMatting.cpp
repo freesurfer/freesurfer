@@ -610,16 +610,16 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       }
     }
     Dilate(dim, KNOWN, TRIAL);
-    double range[2] = {LARGENUMBER,-LARGENUMBER};
+    double range[2] = {0, 2.0*qMax(qMax(dim[0], dim[1]), dim[2])};
     for (size_t i = 0; i < vol_size; i++)
     {
       if (TRIAL[i])
       {
         TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));
-        if (TRIALVALS[i] < range[0])
-          range[0] = TRIALVALS[i];
-        if (TRIALVALS[i] > range[1])
-          range[1] = TRIALVALS[i];
+//        if (TRIALVALS[i] < range[0])
+//          range[0] = TRIALVALS[i];
+//        if (TRIALVALS[i] > range[1])
+//          range[1] = TRIALVALS[i];
       }
       else
       {
@@ -629,10 +629,11 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
 
     // fast marching
     bool ready = false;
-    int nBins = 1000;
+    int nBins = 1000000;
     qlonglong npix = 0;
-    QVector<long long> bins[nBins];
-//    bins.resize(nBins);
+    QVector< QVector<long long> > bins;
+    bins.resize(nBins);
+    int nCurBin = 0;
     double bin_step_size = (range[1]-range[0])/nBins;
     for (size_t i = 0; i < vol_size; i++)
     {
@@ -642,7 +643,7 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
         bins[nBinIdx] << i;
       }
     }
-//    qDebug() << "range:" << range[0] << range[1];
+
     while (!ready && !m_bAbort)
     {
       npix++;
@@ -659,7 +660,7 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
 //          idx=i;
 //        }
 //      }
-      for (int i = 0; i < nBins; i++)
+      for (int i = nCurBin; i < nBins; i++)
       {
         if (!bins[i].isEmpty())
         {
@@ -668,6 +669,8 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
           bins[i].removeFirst();
           break;
         }
+        else
+          nCurBin++;
       }
       if (idx < 0 || mini >= LARGENUMBER)
         break;
