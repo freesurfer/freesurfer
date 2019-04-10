@@ -569,12 +569,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
     {
       lHood[l][i] = Interpolate(v, hf, mri_in[i]);
     }
-
-    //    if (l == 0)
-    //    {
-    //      for (size_t i = 0; i < hf.size(); i++)
-    //        qDebug() << hf[i];
-    //    }
   }
 
   // normalize probabilities
@@ -616,10 +610,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       if (TRIAL[i])
       {
         TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));
-//        if (TRIALVALS[i] < range[0])
-//          range[0] = TRIALVALS[i];
-//        if (TRIALVALS[i] > range[1])
-//          range[1] = TRIALVALS[i];
       }
       else
       {
@@ -652,14 +642,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
 
       double mini = LARGENUMBER;
       long long idx = -1;
-//      for (size_t i = 0; i < vol_size; i++)
-//      {
-//        if (TRIALVALS[i] < mini)
-//        {
-//          mini=TRIALVALS[i];
-//          idx=i;
-//        }
-//      }
       for (int i = nCurBin; i < nBins; i++)
       {
         if (!bins[i].isEmpty())
@@ -686,9 +668,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       long long next_idx = idx-1;
       if (i > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-1] = 1;
-        //        TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;
@@ -716,9 +695,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       next_idx = idx+1;
       if (i < dim[0]-1 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+1] = 1;
-        //        TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;
@@ -746,9 +722,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       next_idx = idx-dim[0];
       if (j > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-dim[0]] = 1;
-        //        TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;
@@ -776,9 +749,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       next_idx = idx+dim[0];
       if (j < dim[1]-1 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+dim[0]] = 1;
-        //        TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;
@@ -806,9 +776,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       next_idx = idx-dim[0]*dim[1];
       if (k > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-dim[0]*dim[1]] = 1;
-        //        TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;
@@ -836,9 +803,6 @@ bool GeodesicMatting::ComputeWithBinning(int *dim, double *mri_in, double* mri_r
       next_idx = idx+dim[0]*dim[1];
       if (k < dim[2]-1  && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+dim[0]*dim[1]] = 1;
-        //        TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
-
         if (TRIAL[next_idx] == 0)
         {
           TRIAL[next_idx] = 1;

@@ -11,6 +11,7 @@
 #include "vtkExtractVOI.h"
 #include <QDebug>
 #include <QFile>
+#include "vtkImageGaussianSmooth.h"
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
@@ -29,11 +30,12 @@ GeoSWorker::~GeoSWorker()
   delete m_geos;
 }
 
-void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance)
+void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing)
 {
   m_mri = mri;
   m_seg = seg;
   m_seeds = seeds;
+  m_dSmoothing = smoothing;
   if (max_distance > 0)
     m_nMaxDistance = max_distance;
   emit ComputeTriggered();
@@ -125,7 +127,18 @@ void GeoSWorker::DoCompute()
   voi2->SetVOI(bound);
   voi2->Update();
   seeds = voi->GetOutput();
-  vtkImageData* mri = voi2->GetOutput();
+  vtkSmartPointer<vtkImageData> mri = voi2->GetOutput();
+  if (m_dSmoothing > 0)
+  {
+    vtkSmartPointer<vtkImageGaussianSmooth> smooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
+    smooth->SetDimensionality(3);
+    smooth->SetRadiusFactor(3);
+    smooth->SetStandardDeviation(m_dSmoothing);
+    smooth->SetInputConnection(voi2->GetOutputPort());
+    smooth->Update();
+    mri = smooth->GetOutput();
+  }
+
   std::vector<unsigned char> label_list;
   label_list.push_back(1);
   label_list.push_back(2);

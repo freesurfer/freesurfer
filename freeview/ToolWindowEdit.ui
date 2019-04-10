@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>392</width>
+    <width>432</width>
     <height>1020</height>
    </rect>
   </property>
@@ -91,62 +91,6 @@
        <property name="spacing">
         <number>6</number>
        </property>
-       <item row="0" column="2" colspan="5">
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>1</width>
-             <height>1</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBoxReconEditing">
-           <property name="text">
-            <string>Recon editing</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item row="0" column="1">
-        <widget class="QSpinBox" name="spinBoxBrushSize">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>512</number>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="lineEditContourValue">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
        <item row="6" column="5">
         <widget class="QSpinBox" name="spinBoxGeoWsize">
          <property name="suffix">
@@ -160,260 +104,10 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="3" colspan="2">
-        <widget class="QLabel" name="labelGeoWsize">
-         <property name="text">
-          <string>WSize</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="6">
-        <widget class="QLineEdit" name="lineEditEraseValue">
-         <property name="minimumSize">
-          <size>
-           <width>50</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>50</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="1">
-        <widget class="QLineEdit" name="lineEditGeoMaxDistance">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>10</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1" colspan="6">
-        <widget class="QComboBox" name="comboBoxReference">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>200</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEditBrushValue">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>1</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="labelContourValue">
-         <property name="text">
-          <string>Contour value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="labelTolerance">
-         <property name="text">
-          <string>Tolerance</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="labelReference">
-         <property name="text">
-          <string>Reference</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="labelBrushValue">
-         <property name="text">
-          <string>Brush value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="12" column="0" colspan="7">
-        <layout class="QHBoxLayout" name="horizontalLayout_7">
-         <item>
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="BusyIndicator" name="widgetBusyIndicator" native="true">
-           <property name="minimumSize">
-            <size>
-             <width>10</width>
-             <height>0</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_14">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>5</width>
-             <height>0</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButtonAbort">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="text">
-            <string>Abort</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButtonGeoGo">
-           <property name="text">
-            <string>Test</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButtonGeoApply">
-           <property name="text">
-            <string>Apply</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
        <item row="4" column="1">
         <widget class="QSpinBox" name="spinBoxTolerance">
          <property name="suffix">
           <string>%</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="3" colspan="2">
-        <widget class="QLabel" name="labelContourColor">
-         <property name="text">
-          <string>Contour color</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2" colspan="3">
-        <widget class="QLabel" name="labelEraseValue">
-         <property name="text">
-          <string>Eraser value</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="6">
-        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
-       </item>
-       <item row="4" column="2" colspan="5">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="labelGeoMaxDistance">
-         <property name="text">
-          <string>Max distance</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="labelBrushSize">
-         <property name="text">
-          <string>Brush size</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="labelGeoLambda">
-         <property name="text">
-          <string>Lambda</string>
          </property>
         </widget>
        </item>
@@ -442,6 +136,68 @@
          </property>
         </widget>
        </item>
+       <item row="4" column="2" colspan="5">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="5" column="3" colspan="2">
+        <widget class="QLabel" name="labelContourColor">
+         <property name="text">
+          <string>Contour color</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="6">
+        <widget class="QLineEdit" name="lineEditEraseValue">
+         <property name="minimumSize">
+          <size>
+           <width>50</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelContourValue">
+         <property name="text">
+          <string>Contour value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelReference">
+         <property name="text">
+          <string>Reference</string>
+         </property>
+        </widget>
+       </item>
        <item row="8" column="0" colspan="7">
         <widget class="QWidget" name="widgetGeoColors" native="true">
          <property name="minimumSize">
@@ -451,6 +207,12 @@
           </size>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
+          <property name="topMargin">
+           <number>5</number>
+          </property>
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
           <item row="1" column="6">
            <widget class="QLabel" name="labelGeoOpacity">
             <property name="text">
@@ -567,6 +329,302 @@
           </item>
          </layout>
         </widget>
+       </item>
+       <item row="0" column="2" colspan="5">
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>1</width>
+             <height>1</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxReconEditing">
+           <property name="text">
+            <string>Recon editing</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="spinBoxBrushSize">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>512</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelBrushSize">
+         <property name="text">
+          <string>Brush size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QLabel" name="labelEraseValue">
+         <property name="text">
+          <string>Eraser value</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="lineEditBrushValue">
+         <property name="minimumSize">
+          <size>
+           <width>50</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>1</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelTolerance">
+         <property name="text">
+          <string>Tolerance</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="lineEditContourValue">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="6">
+        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLineEdit" name="lineEditGeoMaxDistance">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="labelGeoMaxDistance">
+         <property name="text">
+          <string>Max distance</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelBrushValue">
+         <property name="text">
+          <string>Brush value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="3" colspan="2">
+        <widget class="QLabel" name="labelGeoWsize">
+         <property name="text">
+          <string>WSize</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0" colspan="7">
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="BusyIndicator" name="widgetBusyIndicator" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>10</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_14">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>5</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonAbort">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Abort</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonGeoGo">
+           <property name="text">
+            <string>Test</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonGeoApply">
+           <property name="text">
+            <string>Apply</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="labelGeoLambda">
+         <property name="text">
+          <string>Lambda</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1" colspan="3">
+        <widget class="QComboBox" name="comboBoxReference">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>160000</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="3" colspan="4">
+        <layout class="QHBoxLayout" name="horizontalLayout_11">
+         <item>
+          <spacer name="horizontalSpacer_15">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxApplySmoothing">
+           <property name="text">
+            <string>Apply smoothing</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEditSmoothingStd">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>35</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="baseSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0.5</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
@@ -1236,12 +1294,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>128</x>
-     <y>294</y>
+     <x>139</x>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
-     <y>325</y>
+     <y>477</y>
     </hint>
    </hints>
   </connection>
@@ -1252,12 +1310,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>308</x>
-     <y>294</y>
+     <x>319</x>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
-     <x>223</x>
-     <y>324</y>
+     <x>225</x>
+     <y>476</y>
     </hint>
    </hints>
   </connection>
@@ -1268,12 +1326,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>294</y>
+     <x>195</x>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
      <x>110</x>
-     <y>324</y>
+     <y>476</y>
     </hint>
    </hints>
   </connection>
@@ -1284,12 +1342,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>242</x>
-     <y>294</y>
+     <x>253</x>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
-     <x>157</x>
-     <y>325</y>
+     <x>159</x>
+     <y>477</y>
     </hint>
    </hints>
   </connection>
@@ -1300,12 +1358,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>161</x>
-     <y>353</y>
+     <x>172</x>
+     <y>505</y>
     </hint>
     <hint type="destinationlabel">
      <x>110</x>
-     <y>383</y>
+     <y>535</y>
     </hint>
    </hints>
   </connection>
@@ -1316,12 +1374,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>78</x>
-     <y>353</y>
+     <x>89</x>
+     <y>505</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
-     <y>384</y>
+     <y>536</y>
     </hint>
    </hints>
   </connection>
@@ -1332,12 +1390,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>204</x>
-     <y>353</y>
+     <x>215</x>
+     <y>505</y>
     </hint>
     <hint type="destinationlabel">
-     <x>157</x>
-     <y>384</y>
+     <x>159</x>
+     <y>536</y>
     </hint>
    </hints>
   </connection>
@@ -1348,12 +1406,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>158</x>
-     <y>424</y>
+     <x>167</x>
+     <y>576</y>
     </hint>
     <hint type="destinationlabel">
-     <x>106</x>
-     <y>455</y>
+     <x>116</x>
+     <y>607</y>
     </hint>
    </hints>
   </connection>
@@ -1364,12 +1422,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>353</y>
+     <x>306</x>
+     <y>505</y>
     </hint>
     <hint type="destinationlabel">
-     <x>223</x>
-     <y>383</y>
+     <x>225</x>
+     <y>535</y>
     </hint>
    </hints>
   </connection>
@@ -1380,28 +1438,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>241</x>
-     <y>424</y>
+     <x>250</x>
+     <y>576</y>
     </hint>
     <hint type="destinationlabel">
-     <x>188</x>
-     <y>455</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>comboBoxReference</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>ToolWindowEdit</receiver>
-   <slot>OnComboReference(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>298</x>
-     <y>129</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>431</x>
-     <y>129</y>
+     <x>190</x>
+     <y>607</y>
     </hint>
    </hints>
   </connection>
@@ -1412,11 +1454,11 @@ Shift + Left button to erase.
    <slot>OnLineEditContourValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>163</x>
+     <x>153</x>
      <y>188</y>
     </hint>
     <hint type="destinationlabel">
-     <x>442</x>
+     <x>431</x>
      <y>161</y>
     </hint>
    </hints>
@@ -1429,7 +1471,7 @@ Shift + Left button to erase.
    <hints>
     <hint type="sourcelabel">
      <x>110</x>
-     <y>324</y>
+     <y>476</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -1444,8 +1486,8 @@ Shift + Left button to erase.
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>223</x>
-     <y>324</y>
+     <x>225</x>
+     <y>476</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1461,7 +1503,7 @@ Shift + Left button to erase.
    <hints>
     <hint type="sourcelabel">
      <x>110</x>
-     <y>383</y>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
@@ -1476,8 +1518,8 @@ Shift + Left button to erase.
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>223</x>
-     <y>383</y>
+     <x>225</x>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
      <x>344</x>
@@ -1492,8 +1534,8 @@ Shift + Left button to erase.
    <slot>OnLineEditSmoothSD(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>188</x>
-     <y>455</y>
+     <x>190</x>
+     <y>607</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
@@ -1524,7 +1566,7 @@ Shift + Left button to erase.
    <slot>OnCheckReconEditing(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>290</x>
+     <x>330</x>
      <y>56</y>
     </hint>
     <hint type="destinationlabel">
@@ -1540,12 +1582,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>241</x>
-     <y>55</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
-     <x>217</x>
-     <y>89</y>
+     <x>325</x>
+     <y>100</y>
     </hint>
    </hints>
   </connection>
@@ -1556,12 +1598,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>56</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
-     <x>269</x>
-     <y>87</y>
+     <x>381</x>
+     <y>100</y>
     </hint>
    </hints>
   </connection>
@@ -1572,8 +1614,8 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>56</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
      <x>143</x>
@@ -1588,7 +1630,7 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>275</x>
+     <x>315</x>
      <y>56</y>
     </hint>
     <hint type="destinationlabel">
@@ -1608,7 +1650,7 @@ Shift + Left button to erase.
      <y>97</y>
     </hint>
     <hint type="destinationlabel">
-     <x>497</x>
+     <x>431</x>
      <y>149</y>
     </hint>
    </hints>
@@ -1620,11 +1662,11 @@ Shift + Left button to erase.
    <slot>OnLineEditEraseValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>285</x>
-     <y>91</y>
+     <x>381</x>
+     <y>100</y>
     </hint>
     <hint type="destinationlabel">
-     <x>472</x>
+     <x>431</x>
      <y>177</y>
     </hint>
    </hints>
@@ -1636,12 +1678,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>302</x>
+     <x>342</x>
      <y>58</y>
     </hint>
     <hint type="destinationlabel">
-     <x>179</x>
-     <y>353</y>
+     <x>190</x>
+     <y>505</y>
     </hint>
    </hints>
   </connection>
@@ -1652,12 +1694,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>266</x>
-     <y>65</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
-     <x>39</x>
-     <y>384</y>
+     <x>44</x>
+     <y>536</y>
     </hint>
    </hints>
   </connection>
@@ -1668,12 +1710,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>265</x>
-     <y>60</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
      <x>110</x>
-     <y>383</y>
+     <y>535</y>
     </hint>
    </hints>
   </connection>
@@ -1684,12 +1726,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>265</x>
-     <y>63</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
-     <x>157</x>
-     <y>384</y>
+     <x>159</x>
+     <y>536</y>
     </hint>
    </hints>
   </connection>
@@ -1700,12 +1742,12 @@ Shift + Left button to erase.
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>62</y>
+     <x>380</x>
+     <y>69</y>
     </hint>
     <hint type="destinationlabel">
-     <x>223</x>
-     <y>383</y>
+     <x>225</x>
+     <y>535</y>
     </hint>
    </hints>
   </connection>
@@ -1716,12 +1758,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>69</x>
-     <y>241</y>
+     <x>80</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
-     <x>32</x>
-     <y>267</y>
+     <x>44</x>
+     <y>435</y>
     </hint>
    </hints>
   </connection>
@@ -1732,12 +1774,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>89</x>
-     <y>248</y>
+     <x>100</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
-     <x>85</x>
-     <y>265</y>
+     <x>110</x>
+     <y>435</y>
     </hint>
    </hints>
   </connection>
@@ -1748,12 +1790,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>199</x>
-     <y>245</y>
+     <x>210</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
-     <x>191</x>
-     <y>271</y>
+     <x>225</x>
+     <y>435</y>
     </hint>
    </hints>
   </connection>
@@ -1764,12 +1806,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>144</x>
-     <y>242</y>
+     <x>155</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
-     <x>142</x>
-     <y>271</y>
+     <x>159</x>
+     <y>435</y>
     </hint>
    </hints>
   </connection>
@@ -1780,12 +1822,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>44</x>
-     <y>301</y>
+     <x>55</x>
+     <y>463</y>
     </hint>
     <hint type="destinationlabel">
-     <x>21</x>
-     <y>328</y>
+     <x>33</x>
+     <y>493</y>
     </hint>
    </hints>
   </connection>
@@ -1796,12 +1838,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>66</x>
-     <y>301</y>
+     <x>77</x>
+     <y>463</y>
     </hint>
     <hint type="destinationlabel">
-     <x>64</x>
-     <y>323</y>
+     <x>106</x>
+     <y>493</y>
     </hint>
    </hints>
   </connection>
@@ -1812,12 +1854,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>154</x>
-     <y>302</y>
+     <x>165</x>
+     <y>463</y>
     </hint>
     <hint type="destinationlabel">
-     <x>150</x>
-     <y>325</y>
+     <x>159</x>
+     <y>493</y>
     </hint>
    </hints>
   </connection>
@@ -1828,12 +1870,12 @@ Shift + Left button to erase.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>209</x>
-     <y>306</y>
+     <x>220</x>
+     <y>463</y>
     </hint>
     <hint type="destinationlabel">
-     <x>205</x>
-     <y>327</y>
+     <x>225</x>
+     <y>493</y>
     </hint>
    </hints>
   </connection>
@@ -1844,11 +1886,11 @@ Shift + Left button to erase.
    <slot>OnEraseRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>269</y>
+     <x>110</x>
+     <y>435</y>
     </hint>
     <hint type="destinationlabel">
-     <x>635</x>
+     <x>431</x>
      <y>332</y>
     </hint>
    </hints>
@@ -1860,11 +1902,11 @@ Shift + Left button to erase.
    <slot>OnEraseRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>218</x>
-     <y>270</y>
+     <x>225</x>
+     <y>435</y>
     </hint>
     <hint type="destinationlabel">
-     <x>610</x>
+     <x>431</x>
      <y>273</y>
     </hint>
    </hints>
@@ -1876,11 +1918,11 @@ Shift + Left button to erase.
    <slot>OnEraseExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>100</x>
-     <y>333</y>
+     <x>110</x>
+     <y>493</y>
     </hint>
     <hint type="destinationlabel">
-     <x>632</x>
+     <x>431</x>
      <y>373</y>
     </hint>
    </hints>
@@ -1892,12 +1934,44 @@ Shift + Left button to erase.
    <slot>OnEraseExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>327</y>
+     <x>225</x>
+     <y>493</y>
     </hint>
     <hint type="destinationlabel">
-     <x>522</x>
+     <x>431</x>
      <y>364</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxReference</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnComboReference(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>203</x>
+     <y>129</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>129</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxApplySmoothing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditSmoothingStd</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>345</x>
+     <y>239</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>402</x>
+     <y>237</y>
     </hint>
    </hints>
   </connection>

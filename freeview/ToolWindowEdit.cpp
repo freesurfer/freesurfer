@@ -150,7 +150,9 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->pushButtonGeoApply
                    << ui->pushButtonGeoUndo
                    << ui->labelTipsGeoS
-                   << ui->widgetBusyIndicator;
+                   << ui->widgetBusyIndicator
+                   << ui->checkBoxApplySmoothing
+                   << ui->lineEditSmoothingStd;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -593,7 +595,11 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
       int wsize = ui->spinBoxGeoWsize->value();
       mri_fill->ClearVoxels();
-      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, NULL);
+      bool ok = false;
+      double std = 0;
+      if (ui->checkBoxApplySmoothing->isChecked())
+        std = ui->lineEditSmoothingStd->text().toDouble(&ok);
+      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0, NULL);
       connect(mri_fill, SIGNAL(GeodesicSegmentationFinished()), this, SLOT(ResetGeoSegUI()), Qt::UniqueConnection);
       ui->pushButtonGeoGo->setEnabled(false);
       ui->pushButtonGeoApply->setEnabled(false);

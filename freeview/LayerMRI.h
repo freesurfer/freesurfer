@@ -321,7 +321,7 @@ public:
   
   bool IsObscuring();
 
-  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
+  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing_std, LayerMRI* mask);
 
   void GeodesicSegmentationAbort();
 
