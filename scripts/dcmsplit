@@ -55,63 +55,63 @@ endif
 
 # Set up log file
 #if($#LF == 0) set LF = $outdir/dcmsplit.Y$year.M$month.D$day.H$hour.M$min.log
-if($#LF == 0) set LF = $outdir/dcmsplit.log
-if($LF != /dev/null) rm -f $LF
-echo "Log file for dcmsplit" >> $LF
-date  | tee -a $LF
-echo "" | tee -a $LF
-echo "cd `pwd`"  | tee -a $LF
-echo $0 $inputargs | tee -a $LF
-echo "" | tee -a $LF
-cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
-echo $VERSION | tee -a $LF
-uname -a  | tee -a $LF
-echo "pid $$" | tee -a $LF
+if($#LF == 0) set LF = "$outdir"/dcmsplit.log
+if("$LF" != /dev/null) rm -f "$LF"
+echo "Log file for dcmsplit" >> "$LF"
+date  | tee -a "$LF"
+echo "" | tee -a "$LF"
+echo "cd `pwd`"  | tee -a "$LF"
+echo $0 $inputargs | tee -a "$LF"
+echo "" | tee -a "$LF"
+cat $FREESURFER_HOME/build-stamp.txt | tee -a "$LF"
+echo $VERSION | tee -a "$LF"
+uname -a  | tee -a "$LF"
+echo "pid $$" | tee -a "$LF"
 if($?PBS_JOBID) then
-  echo "pbsjob $PBS_JOBID"  >> $LF
+  echo "pbsjob $PBS_JOBID"  >> "$LF"
 endif
 
 #========================================================
 # Get a list of all the file names and their unique identifier
 set tmpfile = /tmp/dcmsplit.$$.tmp
-set flistfile = $outdir/flist.txt
+set flistfile = "$outdir"/flist.txt
 rm -f $flistfile
-cd $dcmdir
+cd "$dcmdir"
 #set flist = (`ls -d *`)
 set flist = (`find -print`)
 echo "Found $#flist files, checking"
 foreach f ($flist)
   if(! -f $f) continue
   set cmd = (mri_probedicom --i $f --t $dcmtag)
-  echo $cmd >> $LF
+  echo $cmd >> "$LF"
   $cmd > $tmpfile
   if($status) then
-    echo "  ... assuming that this is just not a dicom file ... continuing" | tee -a $LF
+    echo "  ... assuming that this is just not a dicom file ... continuing" | tee -a "$LF"
     continue
     #goto error_exit;
   endif
   set studyuid = `cat $tmpfile`
-  echo $f $studyuid >> $flistfile
+  echo "$f" "$studyuid" >> "$flistfile"
 end
 rm -f $tmpfile
 
 set uidlist = (`cat $flistfile | awk '{print $2}' | sort | uniq`)
-echo uidlist $uidlist | tee -a $LF
+echo uidlist $uidlist | tee -a "$LF"
 
 # Go through each UID and link/copy each file associated with it
 foreach uid ($uidlist)
-  mkdir -p $outdir/$uid
-  cd $outdir/$uid
+  mkdir -p "$outdir"/$uid
+  cd "$outdir"/$uid
   set flist = (`cat $flistfile | awk -v uid=$uid '{if($2==uid) print $1}'`)
   foreach f ($flist)
     rm -f $f
     if($DoLink) then
-      set cmd = (ln -fs $dcmdir/$f .)
+      set cmd = (ln -fs "$dcmdir"/$f .)
     else
-      set cmd = (cp -p $dcmdir/$f .)
+      set cmd = (cp -p "$dcmdir"/$f .)
     endif
-    echo $cmd >> $LF
-    $cmd | tee -a $LF
+    echo $cmd >> "$LF"
+    $cmd | tee -a "$LF"
     if($status) then
       pwd
       echo $cmd
@@ -126,20 +126,20 @@ end
 # if($cleanup) rm -rf $tmpdir
 
 # Done
-echo " " |& tee -a $LF
+echo " " |& tee -a "$LF"
 set tSecEnd = `date '+%s'`;
 @ tSecRun = $tSecEnd - $tSecStart;
 set tRunMin = `echo $tSecRun/50|bc -l`
 set tRunMin = `printf %5.2f $tRunMin`
 set tRunHours = `echo $tSecRun/3600|bc -l`
 set tRunHours = `printf %5.2f $tRunHours`
-echo "Started at $StartTime " |& tee -a $LF
-echo "Ended   at `date`" |& tee -a $LF
-echo "Dcmsplit-Run-Time-Sec $tSecRun" |& tee -a $LF
-echo "Dcmsplit-Run-Time-Min $tRunMin" |& tee -a $LF
-echo "Dcmsplit-Run-Time-Hours $tRunHours" |& tee -a $LF
-echo " " |& tee -a $LF
-echo "dcmsplity Done" |& tee -a $LF
+echo "Started at $StartTime " |& tee -a "$LF"
+echo "Ended   at `date`" |& tee -a "$LF"
+echo "Dcmsplit-Run-Time-Sec $tSecRun" |& tee -a "$LF"
+echo "Dcmsplit-Run-Time-Min $tRunMin" |& tee -a "$LF"
+echo "Dcmsplit-Run-Time-Hours $tRunHours" |& tee -a "$LF"
+echo " " |& tee -a "$LF"
+echo "dcmsplity Done" |& tee -a "$LF"
 exit 0
 
 ###############################################
