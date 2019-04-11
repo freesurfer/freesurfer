@@ -13,9 +13,8 @@ public:
 
   bool Compute(int* dim, double* mri_in, double* mri_range_in,
                unsigned char* seeds_in, std::vector<unsigned char>& label_list, unsigned char* seeds_out);
-  bool ComputeWithSorting(int* dim, double* mri_in, double* mri_range_in,
+  bool ComputeWithBinning(int* dim, double* mri_in, double* mri_range_in,
                           unsigned char* seeds_in, std::vector<unsigned char>& label_list, unsigned char* seeds_out);
-
   void Abort();
 
 private:

@@ -3927,7 +3927,7 @@ VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
   return vlist;
 }
 
-bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI *mask)
+bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing, LayerMRI *mask)
 {
   if (!m_geos)
   {
@@ -3935,7 +3935,7 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
     connect(m_geos, SIGNAL(ComputeFinished(bool)), this, SIGNAL(GeodesicSegmentationFinished()));
   }
 
-  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist);
+  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist, smoothing);
   return true;
 }
 
