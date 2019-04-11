@@ -13607,7 +13607,10 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   if (nedges > 200000) {
 #if 1
-    printf("XL defect detected...\n");
+    printf("An extra large defect has been detected...\n");
+    printf("This often happens because cerebellum or dura has not been removed from wm.mgz.\n");
+    printf("This may cause recon-all to run very slowly or crash.\n");
+    printf("if so, see https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/TopologicalDefect_freeview\n");
     max_unchanged = MIN(max_unchanged, 1);
     max_patches = MAX(MIN(max_patches, 3), 1);
     max_edges = MIN(max_edges, 25);
@@ -13621,7 +13624,10 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 #endif
   }
   else if (nedges > 100000) {
-    printf("L defect detected...\n");
+    printf("A large defect has been detected...\n");
+    printf("This often happens because cerebellum or dura has not been removed from wm.mgz.\n");
+    printf("This may cause recon-all to run very slowly or crash.\n");
+    printf("if so, see https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/TopologicalDefect_freeview\n");
     max_unchanged = MIN(max_unchanged, 1);
     max_patches = MAX(MIN(max_patches, 10), 1);
     max_edges = MIN(max_edges, 100);
