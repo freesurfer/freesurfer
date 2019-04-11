@@ -14,6 +14,7 @@ set DoLink = 1;
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
+set UseSeriesNo = 0
 set dcmtag = (20 d) # Study UID
 
 set inputargs = ($argv);
@@ -91,20 +92,55 @@ foreach f ($flist)
     #goto error_exit;
   endif
   set studyuid = `cat $tmpfile`
-  echo "$f" "$studyuid" >> "$flistfile"
+
+  set seriesno = ()
+  if($UseSeriesNo) then
+    set cmd = (mri_probedicom --i $f --t 20 11)
+    echo $cmd >> "$LF"
+    $cmd > $tmpfile
+    if($status) then
+      echo "  ... assuming that this is just not a dicom file ... continuing" | tee -a "$LF"
+      continue
+      #goto error_exit;
+    endif
+    set seriesno = `cat $tmpfile`
+  endif
+
+  echo "$f" "$studyuid $seriesno" >> "$flistfile"
 end
 rm -f "$tmpfile"
 
-set uidlist = (`cat "$flistfile" | awk '{print $2}' | sort | uniq`)
+# Get a unique list of UIDs
+echo "Getting unique UIDs (UseSeriesNo=$UseSeriesNo)" | tee -a "$LF"
+if($UseSeriesNo == 0) then
+  set uidlist = (`cat "$flistfile" | awk '{print $2}' | sort | uniq`)
+else
+  set uidlist = (`cat "$flistfile" | awk '{print $2"/"$3}' | sort | uniq`)
+endif
 echo uidlist $uidlist | tee -a "$LF"
 
+#set nfiles = `wc -l "$flistfile"`
+
 # Go through each UID and link/copy each file associated with it
+echo "Processing each uid"|& tee -a "$LF"
 foreach uid ($uidlist)
+  echo $uid |& tee -a "$LF"
   mkdir -p "$outdir"/$uid
   cd "$outdir"/$uid
-  set flist = (`cat "$flistfile" | awk -v uid=$uid '{if($2==uid) print $1}'`)
+  pwd |& tee -a "$LF"
+  if($UseSeriesNo == 0) then
+    set flist = (`cat "$flistfile" | awk -v uid=$uid '{if($2==uid) print $1}'`)
+  else
+    set flist = (`cat "$flistfile" | awk -v uid=$uid '{if($2"/"$3==uid) print $1}'`)
+  endif
   foreach f ($flist)
-    rm -f $f
+    set bf = `basename $f`
+    #echo $f $bf
+    if(-e $bf) then
+      echo "WARNING: $bf already exists"
+      echo "  There may be a name collision, consider using --series+"
+    endif
+    rm -f $bf
     if($DoLink) then
       set cmd = (ln -fs "$dcmdir"/$f .)
     else
@@ -184,6 +220,9 @@ while( $#argv != 0 )
     case "--seriesno":
       set dcmtag = (20 11) # Series Number
       breaksw
+    case "--series+":
+      set UseSeriesNo = 1;
+      breaksw
     case "--t":
       if($#argv < 2) goto arg2err;
       set dcmtag = ($argv[1] $argv[2]); shift;shift;
@@ -252,6 +291,12 @@ endif
 pushd $dcmdir > /dev/null
 set dcmdir = `pwd`;
 popd > /dev/null
+if($#dcmdir != 1) then
+  echo "ERROR: it appears that the dicom path has a space in it:"
+  echo "  $dcmdir"
+  echo "This will cause this program to fail"
+  exit 1;
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -277,6 +322,7 @@ usage_exit:
   echo "  --name     : split by patient name instead of uid"
   echo "  --uid      : split by Study UID instead of name (the default)"
   echo "  --seriesno : split by series number"
+  echo "  --series+ : split by series number and either name or uid"
   echo "  --t group element : split by given dicom tag"
   echo ""
 
@@ -299,11 +345,17 @@ By default, the UID is the Study UID (dicom tag 20 d) but it can be
 changed to Patient Name (tag 10 10) with --name, Series Number with
 --seriesno or some other tag with --t group element.  
 
+If --series+ is used, then the folder will be UID/SeriesNo. This can
+be used to prevent name collisions.
+
 By default, all the files for a given UID will by symlinked to 
 a file of the same name in the folder for that UID. The files 
 can be copied instead with --cp.
 
 Any file that causes mri_probedicom to exit with error is ignored. 
+
+If dcmdir has a space anywhere in its path (going back to root),
+then the program will exit with error.
 
 
 
