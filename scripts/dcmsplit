@@ -93,16 +93,16 @@ foreach f ($flist)
   set studyuid = `cat $tmpfile`
   echo "$f" "$studyuid" >> "$flistfile"
 end
-rm -f $tmpfile
+rm -f "$tmpfile"
 
-set uidlist = (`cat $flistfile | awk '{print $2}' | sort | uniq`)
+set uidlist = (`cat "$flistfile" | awk '{print $2}' | sort | uniq`)
 echo uidlist $uidlist | tee -a "$LF"
 
 # Go through each UID and link/copy each file associated with it
 foreach uid ($uidlist)
   mkdir -p "$outdir"/$uid
   cd "$outdir"/$uid
-  set flist = (`cat $flistfile | awk -v uid=$uid '{if($2==uid) print $1}'`)
+  set flist = (`cat "$flistfile" | awk -v uid=$uid '{if($2==uid) print $1}'`)
   foreach f ($flist)
     rm -f $f
     if($DoLink) then
