@@ -14,11 +14,14 @@ public:
   explicit GeoSWorker(QObject *parent = nullptr);
   ~GeoSWorker();
 
+  QString GetErrorMessage();
+
 signals:
   void ComputeTriggered();
   void ApplyTriggered();
   void ApplyFinished();
-  void ComputeFinished(bool bSuccess);
+  void ComputeFinished(double time_in_secs);  // -1 means fail
+  void Progress(double val);
 
 public slots:
   void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1, double smoothing = 0);

@@ -486,18 +486,30 @@
        </item>
        <item row="12" column="0" colspan="7">
         <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
          <item>
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+          <widget class="QLabel" name="labelGeoMessage">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
+           <property name="text">
+            <string/>
            </property>
-          </spacer>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+           <property name="wordWrap">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="BusyIndicator" name="widgetBusyIndicator" native="true">
@@ -530,6 +542,12 @@
            <property name="enabled">
             <bool>false</bool>
            </property>
+           <property name="maximumSize">
+            <size>
+             <width>60</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="text">
             <string>Abort</string>
            </property>
@@ -537,6 +555,12 @@
          </item>
          <item>
           <widget class="QPushButton" name="pushButtonGeoGo">
+           <property name="maximumSize">
+            <size>
+             <width>60</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="text">
             <string>Test</string>
            </property>
@@ -544,6 +568,12 @@
          </item>
          <item>
           <widget class="QPushButton" name="pushButtonGeoApply">
+           <property name="maximumSize">
+            <size>
+             <width>60</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="text">
             <string>Apply</string>
            </property>
@@ -1141,7 +1171,7 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_freehand.png</normaloff>:/resource/icons/voxel_draw_freehand.png</iconset>
    </property>
    <property name="text">
-    <string>FreeHand</string>
+    <string>Freehand</string>
    </property>
    <property name="toolTip">
     <string>Freehand</string>
@@ -1171,10 +1201,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_livewire.png</normaloff>:/resource/icons/voxel_draw_livewire.png</iconset>
    </property>
    <property name="text">
-    <string>LiveWire</string>
+    <string>Live Wire</string>
    </property>
    <property name="toolTip">
-    <string>Live wire</string>
+    <string>Live Wire</string>
    </property>
   </action>
   <action name="actionFill">
@@ -1216,10 +1246,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_colorpicker.png</normaloff>:/resource/icons/voxel_draw_colorpicker.png</iconset>
    </property>
    <property name="text">
-    <string>ColorPicker</string>
+    <string>Color Picker</string>
    </property>
    <property name="toolTip">
-    <string>Color picker</string>
+    <string>Color Picker</string>
    </property>
   </action>
   <action name="actionReplaceLabel">
@@ -1258,10 +1288,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_autoseg.png</normaloff>:/resource/icons/voxel_draw_autoseg.png</iconset>
    </property>
    <property name="text">
-    <string>Geo Segmentation</string>
+    <string>Geodesic Segmentation</string>
    </property>
    <property name="toolTip">
-    <string>Geo Segmentation</string>
+    <string>Geodesic Segmentation</string>
    </property>
   </action>
  </widget>
