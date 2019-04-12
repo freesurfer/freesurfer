@@ -45,6 +45,7 @@ class LayerSurface;
 class SurfaceROI;
 class Interactor3DPathEdit;
 class RenderView3D;
+class vtkInteractorStyleMyTrackballCamera;
 
 class RenderView3D : public RenderView
 {
@@ -127,6 +128,11 @@ public:
 
   void MapToInflatedCoords(double* pos_in);
 
+  bool GetFocalPointAtCursor()
+  {
+    return m_bFocalPointAtCursor;
+  }
+
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
@@ -158,6 +164,7 @@ public slots:
   void Azimuth(double degrees);
   void Elevation(double degrees);
   void UpdateScalarBar();
+  void SetFocalPointAtCursor(bool b);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -193,6 +200,7 @@ private:
   bool    m_bShowSliceFrames;
   bool    m_bShowAxes;
   bool    m_bShowCursor;
+  bool    m_bFocalPointAtCursor;
 
   double  m_dIntersectPoint[3];
   Interactor3DNavigate*   m_interactorNavigate;
@@ -200,6 +208,8 @@ private:
   Interactor3DVolumeCrop* m_interactorVolumeCrop;
   Interactor3DROIEdit*    m_interactorROIEdit;
   Interactor3DPathEdit*   m_interactorPathEdit;
+
+  vtkSmartPointer<vtkInteractorStyleMyTrackballCamera>  m_interactorStyle;
 };
 
 #endif // RENDERVIEW3D_H

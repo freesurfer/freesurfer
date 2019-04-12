@@ -67,11 +67,14 @@
 #include "FSSurface.h"
 #include "Interactor3DPathEdit.h"
 #include <QElapsedTimer>
+#include "vtkInteractorStyleMyTrackballCamera.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
 RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
 {
+  m_interactorStyle = vtkSmartPointer<vtkInteractorStyleMyTrackballCamera>::New();
+  this->GetRenderWindow()->GetInteractor()->SetInteractorStyle(m_interactorStyle);
   this->GetRenderWindow()->GetInteractor()->SetDesiredUpdateRate(30);
   this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
 
@@ -84,6 +87,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_bShowSliceFrames = true;
   m_bShowAxes = true;
   m_bShowCursor = true;
+  m_bFocalPointAtCursor = false;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -164,6 +168,8 @@ void RenderView3D::OnSlicePositionChanged(bool bCenter)
   m_cursor3D->SetPosition( lc->GetSlicePosition() );
   UpdateSliceFrames();
   UpdateSurfaceCorrelationData();
+  if (m_bFocalPointAtCursor)
+    m_interactorStyle->SetRotateByPoint(true, lc->GetSlicePosition());
 
   RenderView::OnSlicePositionChanged();
 }
@@ -1349,7 +1355,14 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   submenu->addAction(mainwnd->ui->actionResetViewInferior);
   menu->addSeparator();
 
-  QAction* act = new QAction("Show All Slices", this);
+  QAction* act = new QAction("Rotate Around Cursor", this);
+  act->setCheckable(true);
+  act->setChecked(GetFocalPointAtCursor());
+  connect(act, SIGNAL(toggled(bool)), SLOT(SetFocalPointAtCursor(bool)));
+  menu->addAction(act);
+  menu->addSeparator();
+
+  act = new QAction("Show All Slices", this);
   act->setData(3);
   menu->addAction(act);
   connect(act, SIGNAL(triggered()), this, SLOT(OnShowSlice()));
@@ -1565,3 +1578,10 @@ void RenderView3D::OnLayerVisibilityChanged()
   if (bShowCursor != m_cursor3D->IsShown() || bShowInflated != m_cursorInflatedSurf->IsShown())
     RequestRedraw();
 }
+
+void RenderView3D::SetFocalPointAtCursor(bool b)
+{
+  m_bFocalPointAtCursor = b;
+  m_interactorStyle->SetRotateByPoint(b, b?m_cursor3D->GetPosition():NULL);
+}
+
