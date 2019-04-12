@@ -79,8 +79,21 @@ void InfoTreeWidget::OnMousePositionChanged()
 void InfoTreeWidget::showEvent(QShowEvent * e)
 {
   // hack to fix a qdesigner bug
-  headerItem()->setText(1,"");
+  headerItem()->setText(1, "");
   QTreeWidget::showEvent(e);
+}
+
+void InfoTreeWidget::ShowHeaderText()
+{
+  headerItem()->setText(1, "Hold Shift to update");
+  QFont fnt = headerItem()->font(1);
+  fnt.setPointSize(8);
+  headerItem()->setFont(1, fnt);
+}
+
+void InfoTreeWidget::ClearHeaderText()
+{
+  headerItem()->setText(1, "");
 }
 
 void InfoTreeWidget::UpdateAll()

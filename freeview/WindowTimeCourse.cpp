@@ -283,7 +283,7 @@ void WindowTimeCourse::OnFrameChanged(int frame)
 {
   QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
   if (type != "MRI" && type != "Surface")
-    type == "MRI";
+    type = "MRI";
   if (type == "MRI")
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));

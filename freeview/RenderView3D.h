@@ -79,7 +79,7 @@ public:
   void MoveSliceToScreenCoord( int x, int y );
 
   void UpdateCursorRASPosition( int posX, int posY );
-  void UpdateMouseRASPosition( int posX, int posY );
+  void UpdateMouseRASPosition( int posX, int posY, bool bSlicePickOnly = false );
   bool InitializeSelectRegion( int posX, int poboolsY );
 
   void AddSelectRegionLoopPoint( int posX, int posY );
@@ -167,7 +167,7 @@ public slots:
   void SetFocalPointAtCursor(bool b);
 
 protected:
-  void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
+  void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
   void DoUpdateConnectivityDisplay();
 
   void HighlightSliceFrame( int n );
@@ -183,6 +183,7 @@ private:
   bool m_bToUpdateRASPosition;
   bool m_bToUpdateCursorPosition;
   bool m_bToUpdateConnectivity;
+  bool m_bSlicePickOnly;
 
   Cursor3D* m_cursor3D;
   Cursor3D* m_cursorInflatedSurf;

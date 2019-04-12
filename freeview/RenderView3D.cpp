@@ -163,8 +163,8 @@ void RenderView3D::OnSlicePositionChanged(bool bCenter)
 {
   Q_UNUSED(bCenter);
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
-//  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-//  m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf && surf->IsInflated());
+  //  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  //  m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf && surf->IsInflated());
   m_cursor3D->SetPosition( lc->GetSlicePosition() );
   UpdateSliceFrames();
   UpdateSurfaceCorrelationData();
@@ -179,7 +179,7 @@ void RenderView3D::OnIdle()
   if ( m_bToUpdateRASPosition )
   {
     if (QApplication::mouseButtons() == Qt::NoButton)
-      DoUpdateRASPosition( m_nPickCoord[0], m_nPickCoord[1] );
+      DoUpdateRASPosition( m_nPickCoord[0], m_nPickCoord[1], false, m_bSlicePickOnly);
     m_bToUpdateRASPosition = false;
   }
   if ( m_bToUpdateCursorPosition )
@@ -415,7 +415,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
-void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
+void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool bSlicePickOnly )
 {
   LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   LayerCollection* lc_roi = MainWindow::GetMainWindow()->GetLayerCollection( "ROI" );
@@ -435,18 +435,21 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   {
     picker->InitializePickList();
 
-    vtkPropCollection* props = GetRenderer()->GetViewProps();
-    if ( props )
+    if (!bSlicePickOnly)
     {
-      props->InitTraversal();
-      vtkProp* prop = props->GetNextProp();
-      while ( prop )
+      vtkPropCollection* props = GetRenderer()->GetViewProps();
+      if ( props )
       {
-        if ( vtkActor::SafeDownCast( prop ) )
+        props->InitTraversal();
+        vtkProp* prop = props->GetNextProp();
+        while ( prop )
         {
-          picker->AddPickList( prop );
+          if ( vtkActor::SafeDownCast( prop ) )
+          {
+            picker->AddPickList( prop );
+          }
+          prop = props->GetNextProp();
         }
-        prop = props->GetNextProp();
       }
     }
     // add bounding box for slice frame picking
@@ -521,19 +524,19 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       }
     }
 
-    if ( !bFramePicked )
-    {
-      //  if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
-      {
-        for ( int i = 0; i < 3; i++ )
-        {
-          picker->DeletePickList( m_actorSliceBoundingBox[i] );
-        }
+    if ( !bFramePicked)
+      HighlightSliceFrame( -1 );
 
-        picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
-        picker->GetPickPosition( pos );
-        prop = picker->GetViewProp();
+    if ( !bFramePicked && !bSlicePickOnly )
+    {
+      for ( int i = 0; i < 3; i++ )
+      {
+        picker->DeletePickList( m_actorSliceBoundingBox[i] );
       }
+
+      picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+      picker->GetPickPosition( pos );
+      prop = picker->GetViewProp();
 
       if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) )
       {
@@ -589,8 +592,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         else
           lc_mri->SetCurrentRASPosition( pos );
       }
-
-      HighlightSliceFrame( -1 );
     }
   }
 }
@@ -822,9 +823,10 @@ void RenderView3D::UpdateCursorRASPosition( int posX, int posY )
   m_nCursorCoord[1] = posY;
 }
 
-void RenderView3D::UpdateMouseRASPosition( int posX, int posY )
+void RenderView3D::UpdateMouseRASPosition( int posX, int posY, bool bSlicePickOnly )
 {
   m_bToUpdateRASPosition = true;
+  m_bSlicePickOnly = bSlicePickOnly;
   m_nPickCoord[0] = posX;
   m_nPickCoord[1] = posY;
 }
@@ -1329,24 +1331,24 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   layers << mainwnd->GetLayers("PointSet");
 
   QMenu* submenu = menu->addMenu("Reset View");
-//  QAction* act = new QAction("Right", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
-//  submenu->addAction(act);
-//  act = new QAction("Left", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewLeft()));
-//  submenu->addAction(act);
-//  act = new QAction("Anterior", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewAnterior()));
-//  submenu->addAction(act);
-//  act = new QAction("Posterior", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewPosterior()));
-//  submenu->addAction(act);
-//  act = new QAction("Superior", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewSuperior()));
-//  submenu->addAction(act);
-//  act = new QAction("Inferior", this);
-//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewInferior()));
-//  submenu->addAction(act);
+  //  QAction* act = new QAction("Right", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
+  //  submenu->addAction(act);
+  //  act = new QAction("Left", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewLeft()));
+  //  submenu->addAction(act);
+  //  act = new QAction("Anterior", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewAnterior()));
+  //  submenu->addAction(act);
+  //  act = new QAction("Posterior", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewPosterior()));
+  //  submenu->addAction(act);
+  //  act = new QAction("Superior", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewSuperior()));
+  //  submenu->addAction(act);
+  //  act = new QAction("Inferior", this);
+  //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewInferior()));
+  //  submenu->addAction(act);
   submenu->addAction(mainwnd->ui->actionResetViewLeft);
   submenu->addAction(mainwnd->ui->actionResetViewRight);
   submenu->addAction(mainwnd->ui->actionResetViewAnterior);
