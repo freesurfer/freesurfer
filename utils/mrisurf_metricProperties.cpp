@@ -3008,7 +3008,11 @@ int MRISstoreMetricProperties(MRIS *mris)
     }
     v->origarea = v->area;
 #if 1
-    if (v->dist && v->dist_orig) {
+    if (v->dist) {
+      
+      if (!v->dist_orig)
+        MRISmakeDistOrig(mris, vno);
+       
       // Used to only go to vtotal, but that is v[nsizeCur]num, and the code can go to to v[nsizeMax]num
       int const vsize = mrisVertexVSize(mris,vno);
       for (n = 0; n < vsize; n++) {
