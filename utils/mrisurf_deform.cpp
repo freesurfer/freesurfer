@@ -12513,11 +12513,11 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
 
 int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
-  int old_status, steps;
+  int steps;
   INTEGRATION_PARMS parms;
 
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
-  old_status = mris->status; /* okay, okay, this is a hack too... */
+  auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
   memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
@@ -12555,11 +12555,11 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 
 int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
-  int n, old_status, steps;
+  int n, steps;
   INTEGRATION_PARMS parms;
 
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
-  old_status = mris->status; /* okay, okay, this is a hack too... */
+  auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
   memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
@@ -12630,7 +12630,7 @@ int MRISrigidBodyAlignGlobal(
 
   mrisOrientSurface(mris);
 
-  int const old_status = mris->status;
+  auto const old_status = mris->status;
   mris->status = MRIS_RIGID_BODY;
 
   if (!parms->start_t) {
@@ -12857,7 +12857,7 @@ int MRISrigidBodyAlignVectorGlobal(
     MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
 {
   double alpha, beta, gamma, degrees, delta, mina, minb, ming, sse, min_sse;
-  int old_status = mris->status;
+  auto const old_status = mris->status;
 
   min_degrees = RADIANS(min_degrees);
   max_degrees = RADIANS(max_degrees);

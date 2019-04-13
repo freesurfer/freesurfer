@@ -287,7 +287,7 @@ typedef struct vertex_type_
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
   \
-  ELTT(const float,origx)                                       SEP             /* original coordinates */                          \
+  ELTT(const float,origx)                                       SEP             /* original coordinates, see also MRIS::origxyz_status */   \
   ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() */                      \
   ELTT(const float,origz)                                       SEP             /* or MRISsetOriginalXYZfromXYZ to set */           \
   \
@@ -538,6 +538,37 @@ typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
 typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
 
+
+#if 1
+enum MRIS_Status {
+  MRIS_SURFACE               = 0,
+  MRIS_PATCH                 = 1,
+  MRIS_CUT                   = MRIS_PATCH,
+  MRIS_PLANE                 = 2,
+  MRIS_ELLIPSOID             = 3,
+  MRIS_SPHERE                = 4,
+  MRIS_PARAMETERIZED_SPHERE  = 5,
+  MRIS_RIGID_BODY            = 6,
+  MRIS_SPHERICAL_PATCH       = 7,
+  MRIS_UNORIENTED_SPHERE     = 8,
+  MRIS_PIAL_SURFACE          = 9,
+  MRIS_Status__end           = 10
+};
+#else
+  #define MRIS_SURFACE               0
+  #define MRIS_PATCH                 1
+  #define MRIS_CUT                   MRIS_PATCH
+  #define MRIS_PLANE                 2
+  #define MRIS_ELLIPSOID             3
+  #define MRIS_SPHERE                4
+  #define MRIS_PARAMETERIZED_SPHERE  5
+  #define MRIS_RIGID_BODY            6
+  #define MRIS_SPHERICAL_PATCH       7
+  #define MRIS_UNORIENTED_SPHERE     8
+  #define MRIS_PIAL_SURFACE          9
+#endif
+
+
 typedef struct MRIS
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
@@ -620,7 +651,8 @@ typedef struct MRIS
   ELTT(float,Kmin) SEP              /* min Gaussian curvature */    \
   ELTT(float,Kmax) SEP              /* max Gaussian curvature */    \
   ELTT(double,Ktotal) SEP           /* total Gaussian curvature */    \
-  ELTT(int,status) SEP              /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,status) SEP          /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,origxyz_status) SEP  /* type of surface (e.g. sphere, plane) that this origxyz were obtained from */    \
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
@@ -851,18 +883,6 @@ positive areas */
 #define INTEGRATE_MOMENTUM         1
 #define INTEGRATE_ADAPTIVE         2
 #define INTEGRATE_LM_SEARCH        3  /* binary search for minimum */
-
-#define MRIS_SURFACE               0
-#define MRIS_PATCH                 1
-#define MRIS_CUT                   MRIS_PATCH
-#define MRIS_PLANE                 2
-#define MRIS_ELLIPSOID             3
-#define MRIS_SPHERE                4
-#define MRIS_PARAMETERIZED_SPHERE  5
-#define MRIS_RIGID_BODY            6
-#define MRIS_SPHERICAL_PATCH       7
-#define MRIS_UNORIENTED_SPHERE     8
-#define MRIS_PIAL_SURFACE          9
 
 // different Hausdorff distance modes
 #define HDIST_MODE_SYMMETRIC_MEAN 0
