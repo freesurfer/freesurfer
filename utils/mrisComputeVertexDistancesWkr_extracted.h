@@ -12,10 +12,14 @@ static bool FUNCTION_NAME(
   
 #ifndef COMPILING_MRIS_MP
   if (debugNonDeterminism) {
-    fprintf(stdout, "%s:%d %s stdout ",__FILE__,__LINE__, __MYFUNCTION__);
+    fprintf(stdout, "%s:%d %s ",__FILE__,__LINE__, __MYFUNCTION__);
     mris_print_hash(stdout, mris, "mris ", "\n");
   }
 #endif
+
+  if (mris->status != mris->INPUT_STATUS) {
+    fprintf(stdout, "%s:%d %s mris->status:%d != mris->INPUT_STATUS:%d ",__FILE__,__LINE__, __MYFUNCTION__, int(mris->status), int( mris->INPUT_STATUS));
+  }
 
   int nonZeroInputXCount = 0;
   
@@ -23,7 +27,7 @@ static bool FUNCTION_NAME(
   
   int vno;
 
-  switch (mris->status) {
+  switch (mris->INPUT_STATUS) {
     default: /* don't really know what to do in other cases */
 
     case MRIS_PLANE:
@@ -217,6 +221,7 @@ static bool FUNCTION_NAME(
 }
 
 #undef FUNCTION_NAME 
+#undef INPUT_STATUS
 #undef INPUT_X 
 #undef INPUT_Y 
 #undef INPUT_Z

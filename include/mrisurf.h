@@ -2949,10 +2949,15 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 
 // Vals
 //
-void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
+    //
+    // This includes copying the MRIS::status to the MRIS::origxyz_status
+    
+void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 #define MRISsetOriginalXYZ(_MRIS,_VNO,_X,_Y,_Z) \
     { static bool laterTime; MRISsetOriginalXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z),__FILE__,__LINE__, &laterTime); }
+    //
+    // The values being set need to match the MRIS::origxyz_status
 
 int mrisComputeOriginalVertexDistances(MRIS *mris);
 void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTime, const char* file, int line);

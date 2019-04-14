@@ -1232,6 +1232,9 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
 
   MRIS * const mris = (!mrisInit) ? MRISclone(mrisp->mris) : mrisInit;
 
+  if (which_vertices == ORIGINAL_VERTICES)
+    cheapAssert(mris->origxyz_status == mrisInit->origxyz_status);
+  
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const vertex = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();

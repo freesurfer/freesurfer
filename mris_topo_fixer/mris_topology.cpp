@@ -482,6 +482,8 @@ MRIS *MRISduplicateOver(MRIS *mris,int mode)
   //clone the surface mris
   MRIS * mris_dst = MRISclone(mris);
   
+  cheapAssert(mris_dst->origxyz_status == mris->origxyz_status);
+  
   for (int n = 0 ; n < mris->nvertices ; n++) {
     VERTEX *vdst = &mris_dst->vertices[n];
     VERTEX *vsrc = &mris->vertices[n];
@@ -1132,6 +1134,9 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
   int newNumFaces     = currNumFaces    + mris->nfaces    - nfaces;
 
   MRISreallocVerticesAndFaces(mris_dst, newNumVertices, newNumFaces);
+
+  cheapAssert(mris_dst->origxyz_status == mris->origxyz_status);
+  
 
   //vertices
   for (int n = 0 ; n < mris->nvertices ; n++) {

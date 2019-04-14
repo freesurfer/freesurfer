@@ -8759,7 +8759,7 @@ MRI_SURFACE *MRIScorrectTopology(
   memset(face_trans,   -1, mris->nfaces       * sizeof(int));
   
   // create a new surface
-  MRI_SURFACE * mris_corrected = MRISoverAlloc(mris->nvertices + 10, 2 * mris->nfaces, kept_vertices, 2 * mris->nfaces);
+  MRIS * mris_corrected = MRISoverAlloc(mris->nvertices + 10, 2 * mris->nfaces, kept_vertices, 2 * mris->nfaces);
   
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
@@ -8767,7 +8767,9 @@ MRI_SURFACE *MRIScorrectTopology(
   copyVolGeom(&mris->vg, &mris_corrected->vg);
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
-  
+  mris_corrected->status         = mris->status;            // this should have been done
+  mris_corrected->origxyz_status = mris->origxyz_status;    // this is new 
+
 #if 0
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
 #endif
@@ -12120,8 +12122,10 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
 
   /* allocate temporary surface */
   mris_dst = MRISalloc(nvertices, nfaces);
+  mris_dst->type   = MRIS_TRIANGULAR_SURFACE;
   mris_dst->status = MRIS_SPHERICAL_PATCH;
-  mris_dst->type = MRIS_TRIANGULAR_SURFACE;
+  mris_dst->origxyz_status = mris_src->origxyz_status;
+  
   mris_dst->radius = DEFAULT_RADIUS;
 
   /* copy faces */
