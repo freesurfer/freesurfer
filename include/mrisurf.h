@@ -539,34 +539,38 @@ typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
 
 
-#if 1
-enum MRIS_Status {
-  MRIS_SURFACE               = 0,
-  MRIS_PATCH                 = 1,
-  MRIS_CUT                   = MRIS_PATCH,
-  MRIS_PLANE                 = 2,
-  MRIS_ELLIPSOID             = 3,
-  MRIS_SPHERE                = 4,
-  MRIS_PARAMETERIZED_SPHERE  = 5,
-  MRIS_RIGID_BODY            = 6,
-  MRIS_SPHERICAL_PATCH       = 7,
-  MRIS_UNORIENTED_SPHERE     = 8,
-  MRIS_PIAL_SURFACE          = 9,
-  MRIS_Status__end           = 10
+enum MRIS_Status_DistanceFormula {
+  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
+  MRIS_Status_DistanceFormula_1
 };
-#else
-  #define MRIS_SURFACE               0
-  #define MRIS_PATCH                 1
-  #define MRIS_CUT                   MRIS_PATCH
-  #define MRIS_PLANE                 2
-  #define MRIS_ELLIPSOID             3
-  #define MRIS_SPHERE                4
-  #define MRIS_PARAMETERIZED_SPHERE  5
-  #define MRIS_RIGID_BODY            6
-  #define MRIS_SPHERICAL_PATCH       7
-  #define MRIS_UNORIENTED_SPHERE     8
-  #define MRIS_PIAL_SURFACE          9
-#endif
+
+enum MRIS_Status {
+#define MRIS_Status_ELTS \
+  ELT(MRIS_SURFACE              ,0) SEP \
+  ELT(MRIS_PATCH                ,0) SEP \
+  ELT(MRIS_PLANE                ,0) SEP \
+  ELT(MRIS_ELLIPSOID            ,0) SEP \
+  ELT(MRIS_SPHERE               ,1) SEP \
+  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
+  ELT(MRIS_RIGID_BODY           ,0) SEP \
+  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
+  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
+  ELT(MRIS_PIAL_SURFACE         ,0)     \
+  // end of macro
+#define SEP ,
+#define ELT(E,D) E
+  MRIS_Status_ELTS,
+  MRIS_Status__end, 
+  MRIS_CUT = MRIS_PATCH
+#undef ELT
+#undef SEP
+};
+
+const char* MRIS_Status_text(MRIS_Status s1);
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
+bool areCompatible(MRIS_Status s1, MRIS_Status s2);
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
+#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
 
 
 typedef struct MRIS

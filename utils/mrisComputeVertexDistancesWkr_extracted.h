@@ -27,11 +27,12 @@ static bool FUNCTION_NAME(
   
   int vno;
 
-  switch (mris->INPUT_STATUS) {
-    default: /* don't really know what to do in other cases */
+  switch (MRIS_Status_distanceFormula(mris->INPUT_STATUS)) {
+    default: 
+      cheapAssert(false);
 
-    case MRIS_PLANE:
-
+    case MRIS_Status_DistanceFormula_0:
+    {
       ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
       #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+:errors)  reduction(+:nonZeroInputXCount)
@@ -88,12 +89,10 @@ static bool FUNCTION_NAME(
         ROMP_PFLB_end
       }
       ROMP_PF_end
-  
-      break;
+    } break;
 
-    case MRIS_PARAMETERIZED_SPHERE:
-    case MRIS_SPHERE: {
-
+    case MRIS_Status_DistanceFormula_1:
+    {
       // Sped up by computing the normalized vectors for all the vertices once rather than repeatedly
       // and storing them along with their ripflag in a structure!
       //
