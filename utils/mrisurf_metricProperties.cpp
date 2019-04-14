@@ -3129,172 +3129,99 @@ void MRISpopXYZ (MRIS *mris, MRISsavedXYZ ** ppMRISsavedXYZ) {
 }
 
 
+/*-----------------------------------------------------
+    These functions abuse the ORIGINAL_VERTICES and other fields
+    using them as temp storage.  This abuse is especially bad for the 
+    orig_xyz because these are input the two different dist_orig algorithms
+    so putting other values into there is especially bad.
+  ------------------------------------------------------*/
 int MRISsaveVertexPositions(MRIS *mris, int which)
 {
   if (which == ORIGINAL_VERTICES) {
-    cheapAssert(mris->status == mris->origxyz_status);
+
+    MRISsetOriginalXYZfromXYZ(mris);
+
+  } else {
+  
+    int const nvertices = mris->nvertices;
+
+    int vno;
+    for (vno = 0; vno < nvertices; vno++) {
+      VERTEX * const v = &mris->vertices[vno];
+  #if 0
+      if (v->ripflag)
+      {
+        continue ;
+      }
+  #endif
+      switch (which) {
+        case LAYERIV_VERTICES:
+          v->l4x = v->x;
+          v->l4y = v->y;
+          v->l4z = v->z;
+          break;
+        case TARGET_VERTICES:
+          v->targx = v->x;
+          v->targy = v->y;
+          v->targz = v->z;
+          break;
+        case WHITE_VERTICES:
+          v->whitex = v->x;
+          v->whitey = v->y;
+          v->whitez = v->z;
+          break;
+        case PIAL_VERTICES:
+          v->pialx = v->x;
+          v->pialy = v->y;
+          v->pialz = v->z;
+          break;
+        case INFLATED_VERTICES:
+          v->infx = v->x;
+          v->infy = v->y;
+          v->infz = v->z;
+          break;
+        case FLATTENED_VERTICES:
+          v->fx = v->x;
+          v->fy = v->y;
+          v->fz = v->z;
+          break;
+        case CANONICAL_VERTICES:
+          v->cx = v->x;
+          v->cy = v->y;
+          v->cz = v->z;
+          break;
+        case TMP2_VERTICES:
+          v->tx2 = v->x;
+          v->ty2 = v->y;
+          v->tz2 = v->z;
+          break;
+        case TMP_VERTICES:
+          v->tx = v->x;
+          v->ty = v->y;
+          v->tz = v->z;
+          break;
+        default:
+          cheapAssert(false);
+      }
+    }
   }
   
-  int const nvertices = mris->nvertices;
-
-  int vno;
-  for (vno = 0; vno < nvertices; vno++) {
-    VERTEX * const v = &mris->vertices[vno];
-#if 0
-    if (v->ripflag)
-    {
-      continue ;
-    }
-#endif
-    switch (which) {
-      case LAYERIV_VERTICES:
-        v->l4x = v->x;
-        v->l4y = v->y;
-        v->l4z = v->z;
-        break;
-      case TARGET_VERTICES:
-        v->targx = v->x;
-        v->targy = v->y;
-        v->targz = v->z;
-        break;
-      case WHITE_VERTICES:
-        v->whitex = v->x;
-        v->whitey = v->y;
-        v->whitez = v->z;
-        break;
-      case PIAL_VERTICES:
-        v->pialx = v->x;
-        v->pialy = v->y;
-        v->pialz = v->z;
-        break;
-      case INFLATED_VERTICES:
-        v->infx = v->x;
-        v->infy = v->y;
-        v->infz = v->z;
-        break;
-      case FLATTENED_VERTICES:
-        v->fx = v->x;
-        v->fy = v->y;
-        v->fz = v->z;
-        break;
-      case CANONICAL_VERTICES:
-        v->cx = v->x;
-        v->cy = v->y;
-        v->cz = v->z;
-        break;
-      case ORIGINAL_VERTICES:
-        MRISsetOriginalXYZ(mris, vno, v->x, v->y, v->z);
-        break;
-      case TMP2_VERTICES:
-        v->tx2 = v->x;
-        v->ty2 = v->y;
-        v->tz2 = v->z;
-        break;
-      default:
-      case TMP_VERTICES:
-        v->tx = v->x;
-        v->ty = v->y;
-        v->tz = v->z;
-        break;
-    }
-  }
   if (which == CANONICAL_VERTICES) {
     MRIScomputeCanonicalCoordinates(mris);
   }
+  
   return (NO_ERROR);
 }
 
 
-int MRISsaveNormals(MRIS *mris, int which)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    switch (which) {
-      case TMP_VERTICES:
-        v->tx = v->nx;
-        v->ty = v->ny;
-        v->tz = v->nz;
-        break;
-      case TMP2_VERTICES:
-        v->tx2 = v->nx;
-        v->ty2 = v->ny;
-        v->tz2 = v->nz;
-        break;
-      case PIAL_VERTICES:
-        v->pnx = v->nx;
-        v->pny = v->ny;
-        v->pnz = v->nz;
-        break;
-      case WHITE_VERTICES:
-        v->wnx = v->nx;
-        v->wny = v->ny;
-        v->wnz = v->nz;
-        break;
-      case INFLATED_VERTICES:
-      case FLATTENED_VERTICES:
-      case CANONICAL_VERTICES:
-      case ORIGINAL_VERTICES:
-      default:
-        ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
-        break;
-    }
-  }
-  return (NO_ERROR);
-}
-
-
-int MRISrestoreNormals(MRIS *mris, int which)
-{
-  int vno, nvertices;
-  VERTEX *v;
-
-  nvertices = mris->nvertices;
-  for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
-    switch (which) {
-      case TMP_VERTICES:
-        v->nx = v->tx;
-        v->ny = v->ty;
-        v->nz = v->tz;
-        break;
-      case TMP2_VERTICES:
-        v->nx = v->tx2;
-        v->ny = v->ty2;
-        v->nz = v->tz2;
-        break;
-      case PIAL_VERTICES:
-        v->nx = v->pnx;
-        v->ny = v->pny;
-        v->nz = v->pnz;
-        break;
-      case WHITE_VERTICES:
-      case INFLATED_VERTICES:
-      case FLATTENED_VERTICES:
-      case CANONICAL_VERTICES:
-      case ORIGINAL_VERTICES:
-      default:
-        ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
-        break;
-    }
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISrestoreVertexPositions(MRIS *mris, int which)
 {
   if (which == ORIGINAL_VERTICES) {
-    cheapAssert(mris->status == mris->origxyz_status);
+    
+    // Verify it is plausible to copy these values into the MRIS vertices xyz 
+    // without changing the status
+    //
+    checkOrigXYZCompatible(mris->status,mris->origxyz_status);
   }
   
   int const nvertices = mris->nvertices;
@@ -3416,6 +3343,86 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
     }
   }
   mrisComputeSurfaceDimensions(mris);
+  return (NO_ERROR);
+}
+
+
+int MRISsaveNormals(MRIS *mris, int which)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    switch (which) {
+      case TMP_VERTICES:
+        v->tx = v->nx;
+        v->ty = v->ny;
+        v->tz = v->nz;
+        break;
+      case TMP2_VERTICES:
+        v->tx2 = v->nx;
+        v->ty2 = v->ny;
+        v->tz2 = v->nz;
+        break;
+      case PIAL_VERTICES:
+        v->pnx = v->nx;
+        v->pny = v->ny;
+        v->pnz = v->nz;
+        break;
+      case WHITE_VERTICES:
+        v->wnx = v->nx;
+        v->wny = v->ny;
+        v->wnz = v->nz;
+        break;
+      case INFLATED_VERTICES:
+      case FLATTENED_VERTICES:
+      case CANONICAL_VERTICES:
+      case ORIGINAL_VERTICES:
+      default:
+        ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
+        break;
+    }
+  }
+  return (NO_ERROR);
+}
+
+
+int MRISrestoreNormals(MRIS *mris, int which)
+{
+  int vno, nvertices;
+  VERTEX *v;
+
+  nvertices = mris->nvertices;
+  for (vno = 0; vno < nvertices; vno++) {
+    v = &mris->vertices[vno];
+    switch (which) {
+      case TMP_VERTICES:
+        v->nx = v->tx;
+        v->ny = v->ty;
+        v->nz = v->tz;
+        break;
+      case TMP2_VERTICES:
+        v->nx = v->tx2;
+        v->ny = v->ty2;
+        v->nz = v->tz2;
+        break;
+      case PIAL_VERTICES:
+        v->nx = v->pnx;
+        v->ny = v->pny;
+        v->nz = v->pnz;
+        break;
+      case WHITE_VERTICES:
+      case INFLATED_VERTICES:
+      case FLATTENED_VERTICES:
+      case CANONICAL_VERTICES:
+      case ORIGINAL_VERTICES:
+      default:
+        ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
+        break;
+    }
+  }
   return (NO_ERROR);
 }
 
