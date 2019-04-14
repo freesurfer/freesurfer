@@ -40,7 +40,8 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 # create build stamp during install
-set(BUILD_STAMP "freesurfer" CACHE STRING "Distribution build-stamp")
+string(TIMESTAMP TODAY "%Y%m%d")
+set(BUILD_STAMP "freesurfer-local-build-dev-${TODAY}" CACHE STRING "Distribution build stamp")
 install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # set the default build type to 'Release' for optimization purposes

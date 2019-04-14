@@ -213,7 +213,7 @@
               </column>
               <column>
                <property name="text">
-                <string>-</string>
+                <string> </string>
                </property>
               </column>
              </widget>
@@ -233,7 +233,7 @@
               </column>
               <column>
                <property name="text">
-                <string>-</string>
+                <string> </string>
                </property>
               </column>
              </widget>

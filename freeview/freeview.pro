@@ -176,7 +176,8 @@ SOURCES += \
     GeoSWorker.cpp \
     QVTKWidget/QVTKWidget.cxx \
     QVTKWidget/QVTKPaintEngine.cxx \
-    BusyIndicator.cpp
+    BusyIndicator.cpp \
+    vtkInteractorStyleMyTrackballCamera.cxx
 
 HEADERS  += \
     Annotation2D.h \
@@ -340,8 +341,9 @@ HEADERS  += \
     geos/kde.h \
     GeoSWorker.h \
     QVTKWidget/QVTKWidget.h \
-    BusyIndicator.h
-    QVTKWidget/QVTKPaintEngine.h
+    BusyIndicator.h \
+    QVTKWidget/QVTKPaintEngine.h \
+    vtkInteractorStyleMyTrackballCamera.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

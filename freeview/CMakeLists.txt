@@ -186,6 +186,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     geos/GeodesicMatting.cpp
     geos/kde.cpp
     BusyIndicator.cpp
+    vtkInteractorStyleMyTrackballCamera.cxx
     freeview.qrc
   )
 

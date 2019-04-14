@@ -252,6 +252,8 @@ void RenderView::enterEvent( QEvent* event )
     this->setFocus();
   }
 
+  emit MouseIn();
+
   if ( m_interactor->ProcessMouseEnterEvent( event, this ) )
   {
     GenericRenderView::enterEvent( event );
@@ -260,6 +262,8 @@ void RenderView::enterEvent( QEvent* event )
 
 void RenderView::leaveEvent( QEvent* event )
 {
+  emit MouseOut();
+
   if ( m_interactor->ProcessMouseLeaveEvent( event, this ) )
   {
     GenericRenderView::leaveEvent( event );
