@@ -39,6 +39,45 @@ int mris_sort_compare_float(const void *pc1, const void *pc2)
 }
 
 
+const char* MRIS_Status_text(MRIS_Status s1)
+{
+    switch (s1) {
+#define SEP
+#define ELT(S,D) case S : return #S;
+    MRIS_Status_ELTS
+#undef ELT
+#undef SEP
+    default: cheapAssert(false); return "<Bad MRIS_Status>";
+    }
+}
+
+
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1)
+{
+    switch (s1) {
+#define SEP
+#define ELT(S,D) case S : return MRIS_Status_DistanceFormula_##D;
+    MRIS_Status_ELTS
+#undef ELT
+#undef SEP
+    default: cheapAssert(false); return MRIS_Status_DistanceFormula_0;
+    }
+}
+
+
+bool areCompatible(MRIS_Status s1, MRIS_Status s2)
+{
+  return MRIS_Status_distanceFormula(s1) == MRIS_Status_distanceFormula(s2);
+}
+
+
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line) {
+  if (areCompatible(s1,s2)) return;
+  fprintf(stderr, "%s:%d using incompatible %s %s\n", file, line, 
+    MRIS_Status_text(s1), MRIS_Status_text(s2));
+}
+
+
 int  MRIS_acquireTemp(MRIS* mris, MRIS_TempAssigned temp) {
   int const bits = 1 << temp;
   int const * tc = &mris->tempsAssigned;

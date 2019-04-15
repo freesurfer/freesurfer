@@ -235,6 +235,8 @@ resampleSurface( MRIS* mrisAtlasReg,
                  MRIS* mrisSubject,
                  bool passAnnotation )
 {
+  cheapAssert(mrisAtlasReg->origxyz_status == mrisSubject->origxyz_status);
+
   /* this function assumes the mapping function is stored
      as the "INFLATED vertex" of mris_template */
 
