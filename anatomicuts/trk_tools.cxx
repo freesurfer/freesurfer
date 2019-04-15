@@ -24,7 +24,7 @@ int main(int narg, char* arg[])
 	// typedef ImageType::IndexType 			IndexType;
 	typedef itk::Mesh< PixelType, Dimension > MeshType;
 	typedef itk::ImageFileWriter<ImageType>                               WriterType;
-	typedef itk::ImageFileReader<ImageType>                               ReaderType;
+	//typedef itk::ImageFileReader<ImageType>                               ReaderType;
 	typedef MeshToImageFilter<MeshType,ImageType> MeshToImageType;
 	typedef VTKPolyDataToPolylineMeshFilter<MeshType> MeshConverterType;
 	typedef itk::ImageFileReader<ImageType> ImageReaderType;

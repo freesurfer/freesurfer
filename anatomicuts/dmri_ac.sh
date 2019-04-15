@@ -59,7 +59,6 @@ function tractography()
 	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
 
 }
-
 function getMaps()
 {
 	subject=$1
@@ -74,8 +73,6 @@ function getMaps()
 	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
 
 }
-
-
 function call()
 {
 	#export SUBJECTS_DIR=${subjects_dir}
@@ -87,7 +84,6 @@ function call()
 		pbsubmit -n 1 -c "bash ${0} $1 ${subject}"                                                                                                                    
 	done      
 }
-
 function anat2dwi()
 {
 	subject=$1
@@ -109,6 +105,14 @@ function filterStreamlines()
     ${string}
 
 } 
+function PreAC()
+{
+	tractography $1
+	getMaps $1
+	anat2dwi $1
+	filterStreamlines $1
+}
+
 function anatomiCuts()
 {
     subject=$1
