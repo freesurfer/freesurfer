@@ -21,8 +21,8 @@ static bool FUNCTION_NAME(
     auto oldStatusFormula = MRIS_Status_distanceFormula(mris->status);
     auto newStatusFormula = MRIS_Status_distanceFormula(mris->INPUT_STATUS);
     fprintf(stdout, "%s:%d %s mris->status:%s != mris->INPUT_STATUS:%s\n",__FILE__,__LINE__, __MYFUNCTION__,
-      MRIS_Status_text((mris->status), 
-      MRIS_Status_text((mris->INPUT_STATUS));
+      MRIS_Status_text(mris->status), 
+      MRIS_Status_text(mris->INPUT_STATUS));
     if (oldStatusFormula != newStatusFormula) 
       fprintf(stdout, "  executing formula_%d instead of _%d\n", newStatusFormula, oldStatusFormula);
     else
