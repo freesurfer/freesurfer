@@ -27,7 +27,7 @@
 
 
 
-#include "minc_volume_io.h"
+#include "minc.h"
 #include "const.h"
 #include "matrix.h"
 #include "dmatrix.h"
@@ -287,7 +287,7 @@ typedef struct vertex_type_
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
   \
-  ELTT(const float,origx)                                       SEP             /* original coordinates */                          \
+  ELTT(const float,origx)                                       SEP             /* original coordinates, see also MRIS::origxyz_status */   \
   ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() */                      \
   ELTT(const float,origz)                                       SEP             /* or MRISsetOriginalXYZfromXYZ to set */           \
   \
@@ -495,10 +495,7 @@ typedef struct vertex_type_
 #undef ELTX
 #undef SEP
 
-#if defined(__cplusplus)
-    // C++ requires const members be initialized
-    vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
-#endif
+  vertex_type_() : dist(nullptr), dist_orig(nullptr), x(0), y(0), z(0), origx(0), origy(0), origz(0) {}
 
 }
 vertex_type, VERTEX ;
@@ -540,6 +537,41 @@ STRIP;
 typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
 typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
+
+
+enum MRIS_Status_DistanceFormula {
+  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
+  MRIS_Status_DistanceFormula_1
+};
+
+enum MRIS_Status {
+#define MRIS_Status_ELTS \
+  ELT(MRIS_SURFACE              ,0) SEP \
+  ELT(MRIS_PATCH                ,0) SEP \
+  ELT(MRIS_PLANE                ,0) SEP \
+  ELT(MRIS_ELLIPSOID            ,0) SEP \
+  ELT(MRIS_SPHERE               ,1) SEP \
+  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
+  ELT(MRIS_RIGID_BODY           ,0) SEP \
+  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
+  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
+  ELT(MRIS_PIAL_SURFACE         ,0)     \
+  // end of macro
+#define SEP ,
+#define ELT(E,D) E
+  MRIS_Status_ELTS,
+  MRIS_Status__end, 
+  MRIS_CUT = MRIS_PATCH
+#undef ELT
+#undef SEP
+};
+
+const char* MRIS_Status_text(MRIS_Status s1);
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
+bool areCompatible(MRIS_Status s1, MRIS_Status s2);
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
+#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
+
 
 typedef struct MRIS
 {
@@ -623,7 +655,8 @@ typedef struct MRIS
   ELTT(float,Kmin) SEP              /* min Gaussian curvature */    \
   ELTT(float,Kmax) SEP              /* max Gaussian curvature */    \
   ELTT(double,Ktotal) SEP           /* total Gaussian curvature */    \
-  ELTT(int,status) SEP              /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,status) SEP          /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,origxyz_status) SEP  /* type of surface (e.g. sphere, plane) that this origxyz were obtained from */    \
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
@@ -854,18 +887,6 @@ positive areas */
 #define INTEGRATE_MOMENTUM         1
 #define INTEGRATE_ADAPTIVE         2
 #define INTEGRATE_LM_SEARCH        3  /* binary search for minimum */
-
-#define MRIS_SURFACE               0
-#define MRIS_PATCH                 1
-#define MRIS_CUT                   MRIS_PATCH
-#define MRIS_PLANE                 2
-#define MRIS_ELLIPSOID             3
-#define MRIS_SPHERE                4
-#define MRIS_PARAMETERIZED_SPHERE  5
-#define MRIS_RIGID_BODY            6
-#define MRIS_SPHERICAL_PATCH       7
-#define MRIS_UNORIENTED_SPHERE     8
-#define MRIS_PIAL_SURFACE          9
 
 // different Hausdorff distance modes
 #define HDIST_MODE_SYMMETRIC_MEAN 0
@@ -1123,10 +1144,8 @@ typedef struct INTEGRATION_PARMS
   double       stressthresh ;
   int          explode_flag ;
   
-#ifdef __cplusplus
   INTEGRATION_PARMS() : fp(NULL) {}
   INTEGRATION_PARMS(FILE* file) : fp(file) {}
-#endif 
   
 }
 INTEGRATION_PARMS ;
@@ -1614,7 +1633,7 @@ MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
-int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
+int          MRISPwrite(MRI_SP *mrisp, const char *fname) ;
 
 int          MRISwriteArea(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISwriteMarked(MRI_SURFACE *mris,const  char *sname) ;
@@ -1836,7 +1855,8 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               float max_dist,
                               FILE *log_fp,
                               int white,
-                              MRI *mri_mask, double thresh, int flags, MRI *mri_aseg);
+                              MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
+                              int vno_start, int vno_stop);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
@@ -1872,6 +1892,7 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
                                 double *pmin, double *pmax);
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
+int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
@@ -1999,13 +2020,14 @@ MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, MRI *mri, 
-   MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, char *defectbasename);
+   MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms, const char *defectbasename);
 
 int MRISsmoothOnSphere(MRIS* mris, int niters);
 int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
 int MRIScountNegativeFaces(MRI_SURFACE *mris) ;
 int MRISevertSurface(MRI_SURFACE *mris) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
+int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol);
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
@@ -2031,7 +2053,6 @@ int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) ;
 int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) ;
 int MRISimportValFromMRI(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname) ;
-
 
 /* multi-timepoint (or stc) files */
 int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
@@ -2211,8 +2232,8 @@ int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
-int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
-MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
+int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, const char *Field);
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field);
 
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ);
 MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MRI *Targ);
@@ -2452,7 +2473,7 @@ void	cprints(
 );
 
 void	cprintd(
-	char*		apch_left,
+	const char*		apch_left,
 	int		a_right
 );
 
@@ -2474,7 +2495,7 @@ short	VECTOR_elementIndex_find(
 short	MRIS_vertexProgress_print(
     	MRIS*			apmris,
     	int			avertex,
-    	char*			apch_message
+    	const char*			apch_message
 );
 
 int	FACE_vertexIndexAtMask_find(
@@ -2752,11 +2773,11 @@ char* MRISexportVertexRipflags(MRIS* mris) ;
 //  Edges are implicit (MRI_EDGE is more than just an edge), and are created by telling each of the end vertices that they are neighbors.
 //  Faces get associated with three edges associated with three vertices (VERTICES_PER_FACE is 3)
 //
-#define mrisCheckVertexVertexTopology(_MRIS) true // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
-#define mrisCheckVertexFaceTopology(_MRIS)   true // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
 bool mrisCheckVertexVertexTopologyWkr(const char* file, int line, MRIS const * mris, bool always);
 bool mrisCheckVertexFaceTopologyWkr  (const char* file, int line, MRIS const * mris, bool always);
-                                            // includes a mrisCheckVertexVertexTopology check
+inline static bool returnTrue() { return true; };
+#define mrisCheckVertexFaceTopology(_MRIS)   returnTrue() // mrisCheckVertexFaceTopologyWkr  (__FILE__,__LINE__,_MRIS,false)
+#define mrisCheckVertexVertexTopology(_MRIS) returnTrue() // mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,_MRIS,false)
 
 //  Vertices
 //
@@ -2932,10 +2953,15 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 
 // Vals
 //
-void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
+    //
+    // This includes copying the MRIS::status to the MRIS::origxyz_status
+    
+void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 #define MRISsetOriginalXYZ(_MRIS,_VNO,_X,_Y,_Z) \
     { static bool laterTime; MRISsetOriginalXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z),__FILE__,__LINE__, &laterTime); }
+    //
+    // The values being set need to match the MRIS::origxyz_status
 
 int mrisComputeOriginalVertexDistances(MRIS *mris);
 void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTime, const char* file, int line);

@@ -67,6 +67,7 @@ set DoSurfSmooth = 0;
 set DoSmooth = 1; # any smoothing
 set DoInorm  = 0;
 set ProjFrac = (); # default will be 0.5
+set ProjFracExpKey = ()
 set DoProjAvg = 0;
 set DoReg = 1;
 set ToSurf = 0;
@@ -278,6 +279,7 @@ foreach sess ($SessList)
     if($UseB0DC)    set cmd = ($cmd -b0dc)
     if($PerRun)   set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
+    if($#ProjFrac)  set cmd = ($cmd -projfrac $ProjFrac -expkey $ProjFracExpKey)
     if($#volsurffwhm) set cmd = ($cmd -volsurffwhm $volsurffwhm) # for testing
     if(! $UseCortexLabel) set cmd = ($cmd -no-cortex-label)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
@@ -489,8 +491,9 @@ while( $#argv != 0 )
       breaksw
 
     case "-projfrac":
-      if ( $#argv == 0) goto arg1err;
+      if ( $#argv < 2) goto arg2err;
       set ProjFrac = $argv[1]; shift;
+      set ProjFracExpKey = $argv[1]; shift;
       breaksw
 
     case "-projfrac-avg":
@@ -859,6 +862,12 @@ check_params:
     exit 1;
   endif
 
+  if($DoB0DC && $#ProjFracExpKey) then
+    # This can actually be done but will create a conflict at the time of mkanalysis
+    echo "WARNING: specifying -b0dc and -projfrac at the same time may create a conflict when mkanalysis-sess is run"
+    #exit 1;
+  endif
+
   if($#regfile == 0) then
     if(! $UseB0DC) set regfile = register.dof$RegDOF.lta
     if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.lta
@@ -943,7 +952,10 @@ usage_exit:
   echo ""
   echo ""
   echo "  -regfile regfile   : registration file for use with -surf-fwhm (register.dat)"
-  echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
+  echo "  -projfrac frac expkey : projection fraction for use with -surf-fwhm (0.5)"
+  echo "    expkey is a code string used to make sure that the output file name is unique."
+  echo "    This should be passed to mkanalysis-sess with -expkey. "
+  echo "    Example: -projfrac 0.2 pf020"
   echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
   echo "  -no-cortex-label : do not use cortex label for masking surfaces"
   echo ""

@@ -15,8 +15,12 @@ else
   MCRROOT="$1"
   echo ---
   
-  LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${LD_LIBRARY_PATH}:${MCRROOT}/sys/opengl/lib/glnxa64:$LD_LIBRARY_PATH ;
+  # since we're going to call fs binaries from matlab, we want them to link to the system libstdc++ and not the matlab version
+  libstdpath="$(/sbin/ldconfig -p | grep libstdc++.so | sed -n 1p | awk '{ print $NF }')"
+  if [ -z "$libstdpath" ]; then echo "error: can't find libstdc++.so" && exit 1; fi
+  libstddir="$(dirname $libstdpath)"
 
+  LD_LIBRARY_PATH=.:${libstddir}:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}:$LD_LIBRARY_PATH ;
   export LD_LIBRARY_PATH;
   
   unset JAVA_TOOL_OPTIONS

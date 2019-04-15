@@ -118,14 +118,22 @@ int main(int narg, char*  arg[])
 			//if(segmentation.IsNotNull())
 			trkReader->SetReferenceImage(segmentation);
 			trkReader->TrkToVTK();
+#if VTK_MAJOR_VERSION > 5
+			spline->SetInputData(trkReader->GetOutputPolyData());
+#else
 			spline->SetInput(trkReader->GetOutputPolyData());
+#endif
 		}
 		else
 		{
 			vtkSmartPointer<vtkPolyDataReader> vtkReader = vtkPolyDataReader::New();
 			vtkReader->SetFileName ( fiberFile);
 			vtkReader->Update();
+#if VTK_MAJOR_VERSION > 5
+			spline->SetInputConnection( vtkReader->GetOutputPort() );
+#else
 			spline->SetInput( vtkReader->GetOutput() );
+#endif
 		}
 		spline->Update();
 		converter->SetVTKPolyData ( spline->GetOutput() );

@@ -135,7 +135,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
 {
-
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -156,6 +155,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_volumeCropper = new VolumeCropper( this );
+
   connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)), this, SLOT(RequestRedraw()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
@@ -292,6 +292,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
   connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)), m_wndTimeCourse, SLOT(UpdateUI()));
+  connect(m_wndTimeCourse, SIGNAL(OverlayFrameChanged(int)), ui->widgetAllLayers->GetPanel("Surface"), SLOT(SetOverlayFrame(int)));
 
   m_wndGroupPlot = new WindowGroupPlot(this);
   m_wndGroupPlot->hide();
@@ -393,6 +394,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
           this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
+  connect(m_views[3], SIGNAL(MouseIn()), ui->treeWidgetMouseInfo, SLOT(ShowHeaderText()));
+  connect(m_views[3], SIGNAL(MouseOut()), ui->treeWidgetMouseInfo, SLOT(ClearHeaderText()));
+
   for ( int i = 0; i < 4; i++ )
   {
     connect( this, SIGNAL(SlicePositionChanged(bool)), m_views[i], SLOT(OnSlicePositionChanged(bool)) );
@@ -549,6 +553,7 @@ void MainWindow::LoadSettings()
   m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
   m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
   m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
+  m_settingsScreenshot.HideScaleBar = settings.value("ScreenShot/HideScaleBar", true).toBool();
   m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
   m_settingsScreenshot.AutoTrim = settings.value("ScreenShot/AutoTrim", false).toBool();
   m_settings = settings.value("Settings/General").toMap();
@@ -654,6 +659,7 @@ void MainWindow::SaveSettings()
     settings.setValue("ScreenShot/Magnification", s.Magnification);
     settings.setValue("ScreenShot/AntiAliasing", s.AntiAliasing);
     settings.setValue("ScreenShot/HideAnnotation", s.HideCoords);
+    settings.setValue("ScreenShot/HideScaleBar", s.HideScaleBar);
     settings.setValue("ScreenShot/HideCursor", s.HideCursor);
   }
   if (m_dlgPreferences)
@@ -5640,6 +5646,8 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveSurfaceChanged(int)), ui->view3D, SLOT(OnLayerVisibilityChanged()), Qt::UniqueConnection);
   connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), m_wndTimeCourse, SLOT(UpdateUI()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(ActiveOverlayChanged(int)), m_wndTimeCourse, SLOT(UpdateAll()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -6441,6 +6449,7 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
+    bool bMidToMin = m_settings["AutoSetMidToMin"].toBool();
     if (!scales_in.isEmpty())
     {
       QList<double> scales = scales_in;
@@ -6471,9 +6480,9 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
         }
         else if ( scales.size() == 2 )
         {
-          p->SetHeatScaleAutoMid(true);
-          p->SetHeatScaleMinThreshold( scales[0] );
-          p->SetHeatScaleMaxThreshold( scales[1] );
+          p->SetHeatScaleAutoMid(true, bMidToMin);
+          p->SetHeatScaleMinThreshold( scales[0], bMidToMin );
+          p->SetHeatScaleMaxThreshold( scales[1], bMidToMin );
         }
         else if ( !scales.empty() )
         {
@@ -7811,10 +7820,29 @@ void MainWindow::UpdateSettings()
 {
   if (m_dlgPreferences)
   {
+    QVariantMap old = m_settings;
     QVariantMap map = m_dlgPreferences->GetSettings();
     QStringList keys = map.keys();
     foreach (QString key, keys)
       m_settings[key] = map[key];
+
+    if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
+    {
+      QList<Layer*> layers = GetLayers("MRI");
+      foreach (Layer* l, layers)
+      {
+        LayerMRI* mri = (LayerMRI*)l;
+        if (mri->GetProperty()->GetHeatScaleAutoMid())
+        {
+          double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
+          double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
+          if (m_settings["AutoSetMidToMin"].toBool())
+            mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
+          else
+            mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
+        }
+      }
+    }
   }
 }
 
@@ -8380,4 +8408,9 @@ Layer* MainWindow::FindSupplementLayer(const QString &name)
       return layer;
   }
   return NULL;
+}
+
+void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
+{
+  m_wndTimeCourse->SetCurrentFrame(nFrame);
 }

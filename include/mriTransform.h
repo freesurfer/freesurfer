@@ -25,10 +25,6 @@
 #ifndef mriTransform_h
 #define mriTransform_h
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "matrix.h"
 #include "mri.h"    /* transform.h requires mri.h */
 #include "transform.h"
@@ -179,18 +175,9 @@ Trns_tErr Trns_CalcMatricies_ ( mriTransformRef ThisKRT );
 /* debugging support */
 Trns_tErr Trns_Verify         ( mriTransformRef ThisKRT );
 void      Trns_DebugPrint_    ( mriTransformRef ThisKRT );
-void      Trns_Signal         ( char*           inMsg,
+void      Trns_Signal         ( const char*           inMsg,
                                 int             inLineNum,
                                 Trns_tErr       ieCode );
-char*     Trns_GetErrorString ( Trns_tErr       ieCode );
-
-#if defined(__cplusplus)
-};
-#endif
+const char* Trns_GetErrorString ( Trns_tErr       ieCode );
 
 #endif
-
-
-
-
-

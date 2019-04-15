@@ -28,10 +28,10 @@
 #define MeasureVolume_h
 
 #include <string>
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 using namespace std;
 

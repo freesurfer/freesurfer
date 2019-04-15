@@ -103,7 +103,7 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 
 # Create talairach.lta for conformed space, needed by mri_fill
-set cmd = (tkregister --mov norm.mgz --targ $hrmdir/norm.mgz --reg /tmp/junk.$$.dat \
+set cmd = (tkregister2_cmdl --mov norm.mgz --targ $hrmdir/norm.mgz --reg /tmp/junk.$$.dat \
   --ltaout transforms/conform.lta --regheader --noedit)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF

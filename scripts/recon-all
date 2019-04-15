@@ -799,9 +799,8 @@ date >> $SF
 # Put a copy of myself (this script) in the scripts dir
 if ("`uname -s`" == "Linux") then
   set FullProgName = `readlink -f $0`; 
-  cp -v $FullProgName $subjdir/scripts/recon-all.local-copy
+  cp -vp $FullProgName $subjdir/scripts/recon-all.local-copy
 endif
-
 
 # Wait for a file to appear #
 if($#WaitForFile != 0) then
@@ -3264,6 +3263,7 @@ endif
 ##---------------     -fix     -------------------#
 #----------------              -------------------#
 if($DoFix && ( ! $longitudinal )) then
+  cd $subjdir/scripts
 
   set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
 
@@ -3302,7 +3302,11 @@ if($DoFix && ( ! $longitudinal )) then
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $cmd >& mris_euler_number.${hemi}.log
-        if($status) goto error_exit;
+        if($status) then
+          # have to run it again or else wont get info about why it failed
+          $cmd |& tee -a $LF |& tee -a $CF
+          goto error_exit;
+        endif
         set defect_idx=`grep "total defect index" mris_euler_number.${hemi}.log | awk '{print $5}'`
         if("$defect_idx" != "0") then
           echo "mris_fix_topology failed on ${hemi}! (euler number != 2)" |& tee -a $LF
@@ -3320,6 +3324,13 @@ if($DoFix && ( ! $longitudinal )) then
         rm -f mris_euler_number.${hemi}.log
       endif
     end # hemi loop
+
+    # Convert the defects into a segmentation
+    set cmd = (defect2seg --s $subjid)
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist-only)
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
   endif # UseOldTopoFix
 
   # the 'new' topology fixer is run if either the 'old' one failed,

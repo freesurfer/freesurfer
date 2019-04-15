@@ -37,7 +37,7 @@ The registration can fail because of several reasons, most likely due to large i
  * If you are trying to estimate an --affine registration, try rigid first and then pass it with --ixform to the affine step in a second run.
  * Depending on your image resoution, it may be that the coarsest level is too coarse, misaligning the image. Try to specify a larger --minsize to avoid computation on very coarse scales (especially for 2D registrations, e.g. --minsize 120, for 3d --minsize 40).
  * If you used automatic saturation estimation in ROB or ROBENT (--satit), try to specify the sensitivity manually via --sat. A high sat is less sensitive to outliers, low is more sensitive (range approx. from 4 to 20 in most cases).
-  * If you specified a manual saturation in ROB or ROBENT (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:
+ * If you specified a manual saturation in ROB or ROBENT (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:
    freeview dst.mgz mappedmov.mgz ow.mgz:colormap=heat 
 If most of the brain is labeled outlier (red/yellow), try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value. --satit works best for 3D brain images.
 </description>
@@ -130,15 +130,21 @@ Note: most cost functions require the image backgrounds to be black! Also, only 
       <argument>--nomulti</argument>
       <explanation>process highest resolution only (no multiscale)</explanation>
       <argument>--maxsize &lt;#&gt;</argument>
-      <explanation>specify largest dimension for gaussian pyramid (will not process resolutions higher than #). Default: process up to the input resolution. You can use this to prevent the algorithm to run on the high resolutions (to avoid long runtimes and memory issues)</explanation>
+      <explanation>specify largest voxel dimension for gaussian pyramid (e.g. --maxsize 256 will not process resolutions with more than 256 voxels in any direction). Default: process up to the input resolution. You can use this to prevent the algorithm to run on the high resolutions (to avoid long runtimes and memory issues)</explanation>
       <argument>--minsize &lt;#&gt;</argument>
-      <explanation>specify smallest dimension for gaussian pyramid (will not downsample resolutions smaller than #). Default: smallest dimension 16</explanation>      
+      <explanation>specify smallest voxel dimension for gaussian pyramid (will not downsample resolutions smaller than #). Default: smallest dimension 16 voxels</explanation>      
       <argument>--wlimit &lt;real&gt;</argument>
       <explanation>(expert option) sets maximal outlier limit for --satit (default 0.16), reduce to decrease outlier sensitivity </explanation>
       <argument>--subsample &lt;real&gt;</argument>
       <explanation>subsample if dim &gt; # on all axes (default no subsampling)</explanation>
       <argument>--floattype</argument>
       <explanation>convert images to float internally (default: keep input type)</explanation> 
+      <argument>--whitebgmov</argument>
+      <explanation>assume white background in MOV for padding (default: black)</explanation> 
+      <argument>--whitebgdst</argument>
+      <explanation>assume white background in DST for padding (default: black)</explanation> 
+      <argument>--uchar</argument>
+      <explanation>convert inputs to UCHAR (with re-scale and histogram cropping) (default: keep original type)</explanation> 
             
       <argument>--maskmov &lt;mask.mgz&gt;</argument>
       <explanation>mask mov image with mask.mgz</explanation>

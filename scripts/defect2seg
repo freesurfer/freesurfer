@@ -1,0 +1,348 @@
+#!/bin/tcsh -f
+# defect2seg - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set subject = ();
+set lhsurf = ();
+set rhsurf = ();
+set lhdefects  = ();
+set lhpointset = ();
+set lhoffset = ();
+set rhdefects  = ();
+set rhpointset = ();
+set rhoffset = ();
+set template = ()
+set DoLH = 1;
+set DoRH = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outputseg`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.defect2seg.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.defect2seg.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/defect2seg.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for defect2seg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+if($#lhsurf) then
+   set cmd = (mri_label2vol --defects $lhsurf $lhdefects $template $lhoffset 0 $outputseg)
+   echo "$cmd"|& tee -a $LF
+   $cmd |& tee -a $LF
+   if($status) goto error_exit;
+   set cmd = (mris_defects_pointset -s $lhsurf -d $lhdefects -o $lhpointset)
+   echo "$cmd"|& tee -a $LF
+   $cmd |& tee -a $LF
+   if($status) goto error_exit;
+endif
+if($#rhsurf) then
+   set src = $template
+   set merge = 0
+   if($#lhsurf) then
+     set src = $outputseg
+     set merge = 1
+   endif
+   set cmd = (mri_label2vol --defects $rhsurf $rhdefects $src $rhoffset $merge $outputseg)
+   echo "$cmd"|& tee -a $LF
+   $cmd |& tee -a $LF
+   if($status) goto error_exit;
+   set cmd = (mris_defects_pointset -s $rhsurf -d $rhdefects -o $rhpointset)
+   echo "$cmd"|& tee -a $LF
+   $cmd |& tee -a $LF
+   if($status) goto error_exit;
+endif
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Defect2seg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Defect2seg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Defect2seg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "tkmeditfv $subject orig.mgz -defect -c $SUBJECTS_DIR/$subject/surf/?h.defects.pointset"
+echo "defect2seg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outputseg = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+    case "--subject":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    # These only apply with --subject
+    case "--lh-only":
+      set DoLH = 1;
+      set DoRH = 0;
+      breaksw
+    case "--rh-only":
+      set DoLH = 0;
+      set DoRH = 1;
+      breaksw
+
+    case "--lh":
+      if($#argv < 4) goto arg4err;
+      set lhsurf     = $argv[1]; shift;
+      set lhdefects  = $argv[1]; shift;
+      set lhpointset = $argv[1]; shift;
+      set lhoffset   = $argv[1]; shift;
+      breaksw
+
+    case "--rh":
+      if($#argv < 4) goto arg4err;
+      set rhsurf     = $argv[1]; shift;
+      set rhdefects  = $argv[1]; shift;
+      set rhpointset = $argv[1]; shift;
+      set rhoffset   = $argv[1]; shift;
+      breaksw
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set template = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject)then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  set sd = $SUBJECTS_DIR/$subject
+  set LF = $sd/scripts/defect2seg.log
+  set template   = $sd/mri/orig.mgz
+  set outputseg  = $sd/mri/surface.defects.mgz
+  if($DoLH && ! $DoRH) then
+     set outputseg = $sd/mri/lh.surface.defects.mgz
+  endif
+  if($DoRH && ! $DoLH) then
+     set outputseg = $sd/mri/rh.surface.defects.mgz
+  endif
+  if($DoLH) then
+    set lhsurf     = $sd/surf/lh.orig.nofix
+    set lhdefects  = $sd/surf/lh.defect_labels
+    set lhpointset = $sd/surf/lh.defects.pointset
+    set lhoffset   = 1000
+  endif
+  if($DoRH) then
+    set rhsurf     = $sd/surf/rh.orig.nofix
+    set rhdefects  = $sd/surf/rh.defect_labels
+    set rhpointset = $sd/surf/rh.defects.pointset
+    set rhoffset   = 2000
+  endif
+endif
+
+if($#lhsurf == 0 && $#rhsurf == 0) then
+  echo "ERROR: must spec at least one surf"
+  exit 1;
+endif
+if($#template == 0) then
+  echo "ERROR: must spec template"
+  exit 1;
+endif
+
+foreach fname ($lhsurf $lhdefects $rhsurf $rhdefects $template)
+  if(! -e $fname) then
+    echo "ERROR: cannot find $fname"
+    exit 1;
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "defect2seg"
+  echo "  --o outputseg"
+  echo "  --t template"
+  echo "  --lh lh_surf lh_defect_labels lh_pointset lhoffset"
+  echo "  --rh rh_surf rh_defect_labels rh_pointset rhoffset"
+  echo "  --s subject"
+  echo "     sets template to orig.mgz"
+  echo "     sets output to surface.defects.mgz"
+  echo "     sets lh.orig lh.defect_labels lh.defects.pointset 1000"
+  echo "     sets rh.orig rh.defect_labels rh.defects.pointset 2000"
+  echo "  --lh-only, --rh-only"
+  echo "  These only apply to --s. Changes the ouutput to ?h.surface.defects.mgz"
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Converts surface defect labels into a segmentation volume and
+pointsets to make it easier to examine and evaluate.
+
+The most simple way to run it is with --s. You can then
+view it in freeview with something like
+
+tkmeditfv subject orig.mgz -defect -c subject/surf/?h.defects.pointset
+
+This script is similar to defect-seg but does not create annotations
+or sample onto fsaverage.
+
+
+

@@ -128,7 +128,7 @@ static void SORT_NAME(SORT_ELEMENT* elts, size_t size, bool useThreads) {
         losIn  [nPartitions-1] = 0;
         sizesIn[nPartitions-1] = size;
         while (2*nPartitions <= PARTITIONS_CAPACITY) {
-            int p;
+            unsigned int p;
             #pragma omp parallel for schedule(guided)
             for (p = 0; p < nPartitions; p++) {
                 size_t lo     = losIn[p];
@@ -143,7 +143,7 @@ static void SORT_NAME(SORT_ELEMENT* elts, size_t size, bool useThreads) {
             temp = losIn;   losIn   = losOut;   losOut   = temp;
             temp = sizesIn; sizesIn = sizesOut; sizesOut = temp;
         }
-        int p;
+        unsigned int p;
         #pragma omp parallel for schedule(guided)
         for (p = 0; p < nPartitions; p++) {
             SORT_NAME(&elts[losIn[p]],sizesIn[p], false);

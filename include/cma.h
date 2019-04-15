@@ -28,11 +28,6 @@
 #ifndef CMA_H
 #define CMA_H
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "stats.h"
 #include "mri2.h"
 
@@ -655,11 +650,5 @@ MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
 MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
 SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm);
 int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm);
-
-#if defined(__cplusplus)
-};
-#endif
-
-
 
 #endif

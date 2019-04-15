@@ -11,9 +11,13 @@
 #include "vtkExtractVOI.h"
 #include <QDebug>
 #include <QFile>
+#include "vtkImageGaussianSmooth.h"
+#include <QElapsedTimer>
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
+  m_geos = new GeodesicMatting;
+  connect(m_geos, SIGNAL(Progress(double)), this, SIGNAL(Progress(double)));
   m_nMaxDistance = 10;
   connect(this, SIGNAL(ComputeTriggered()), SLOT(DoCompute()));
   connect(this, SIGNAL(ApplyTriggered()), SLOT(DoApply()));
@@ -25,13 +29,15 @@ GeoSWorker::~GeoSWorker()
 {
   m_thread.quit();
   m_thread.wait();
+  m_geos->deleteLater();
 }
 
-void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance)
+void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing)
 {
   m_mri = mri;
   m_seg = seg;
   m_seeds = seeds;
+  m_dSmoothing = smoothing;
   if (max_distance > 0)
     m_nMaxDistance = max_distance;
   emit ComputeTriggered();
@@ -50,7 +56,11 @@ void GeoSWorker::DoCompute()
   size_t vol_size = dim[0]*dim[1]*dim[2];
 
   vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast->SetInputData(m_seeds->GetImageData());
+#else
   cast->SetInput(m_seeds->GetImageData());
+#endif
   cast->SetOutputScalarTypeToUnsignedChar();
   cast->Update();
   vtkImageData* seeds = cast->GetOutput();
@@ -103,20 +113,36 @@ void GeoSWorker::DoCompute()
   bound[3] = qMin(dim[1]-1, bound[3]);
   bound[4] = qMax(0, bound[4]);
   bound[5] = qMin(dim[2]-1, bound[5]);
+  if (bound[0] > bound[1])
+    memset(bound, 0, sizeof(int)*6);
   vtkSmartPointer<vtkExtractVOI> voi = vtkSmartPointer<vtkExtractVOI>::New();
   voi->SetInputConnection(cast->GetOutputPort());
   voi->SetVOI(bound);
   voi->Update();
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+  cast2->SetInputData(m_mri->GetImageData());
+#else
   cast2->SetInput(m_mri->GetImageData());
+#endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();
   voi2->SetInputConnection(cast2->GetOutputPort());
   voi2->SetVOI(bound);
   voi2->Update();
   seeds = voi->GetOutput();
-  vtkImageData* mri = voi2->GetOutput();
-  GeodesicMatting geos;
+  vtkSmartPointer<vtkImageData> mri = voi2->GetOutput();
+  if (m_dSmoothing > 0)
+  {
+    vtkSmartPointer<vtkImageGaussianSmooth> smooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
+    smooth->SetDimensionality(3);
+    smooth->SetRadiusFactor(3);
+    smooth->SetStandardDeviation(m_dSmoothing);
+    smooth->SetInputConnection(voi2->GetOutputPort());
+    smooth->Update();
+    mri = smooth->GetOutput();
+  }
+
   std::vector<unsigned char> label_list;
   label_list.push_back(1);
   label_list.push_back(2);
@@ -126,10 +152,11 @@ void GeoSWorker::DoCompute()
   mri->GetDimensions(dim_new);
   vol_size = dim_new[0]*dim_new[1]*dim_new[2];
   unsigned char* seeds_out = new unsigned char[vol_size];
-  bool bSuccess = geos.Compute(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  QElapsedTimer timer;
+  timer.start();
+  bool bSuccess = m_geos->ComputeWithBinning(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
-//    m_seg->SaveForUndo();
     void* p = m_seg->GetImageData()->GetScalarPointer();
     int nDataType = m_seg->GetImageData()->GetScalarType();
     double fillValue = m_seg->GetFillValue();
@@ -157,9 +184,10 @@ void GeoSWorker::DoCompute()
       }
     }
     m_seg->SetModified();
+    emit ComputeFinished(timer.elapsed()/1000.0);
   }
   else
-    emit Failed();
+    emit ComputeFinished(-1);
 }
 
 void GeoSWorker::DoApply()
@@ -194,4 +222,14 @@ void GeoSWorker::DoApply()
   }
   m_seg->SetModified();
   emit ApplyFinished();
+}
+
+void GeoSWorker::Abort()
+{
+  m_geos->Abort();
+}
+
+QString GeoSWorker::GetErrorMessage()
+{
+  return m_geos?m_geos->GetErrorMessage():"";
 }

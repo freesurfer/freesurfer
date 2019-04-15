@@ -13,11 +13,8 @@ if(VTK_FOUND)
 
   include(${ITK_USE_FILE})  
   include(${VTK_USE_FILE})
-  
 
-  if(SUPPRESS_WARNINGS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wmaybe-uninitialized")
-  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-local-typedefs")
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 

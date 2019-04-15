@@ -33,6 +33,7 @@ install(PROGRAMS
   dcmsplit
   dcmunpack
   deface_subject
+  defect2seg
   defect-seg
   dicom-rename
   dmrirc.example
@@ -57,6 +58,7 @@ install(PROGRAMS
   fname2ext
   fname2stem
   freesurfer
+  fsfirst.fsl
   fs_lib_check
   fs_time
   fs_tutorial_data

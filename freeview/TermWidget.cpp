@@ -81,7 +81,7 @@ TermWidget::TermWidget(QWidget *parent) :
 //#else
 //#endif
   SetRedirectStdOutput(true);
-  SetDuplicateStdOutput(true);
+//  SetDuplicateStdOutput(true);
 
   Known_Shell_Cmds << "ls" << "pwd" << "cd" << "cp" << "dir" << "copy";
 

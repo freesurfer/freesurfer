@@ -293,7 +293,7 @@ if(-e $SUBJECTS_DIR/$subject/surf/lh.orig) then
 endif
 
 echo "To check results, run:"
-echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+echo "tkregisterfv --mov $movvol --reg $regfile $tmp"
 echo " "
 
 

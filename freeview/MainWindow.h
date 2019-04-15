@@ -235,6 +235,7 @@ Q_SIGNALS:
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
   void CycleOverlayRequested();
+  void SupplementLayerChanged();
 
 public slots:
   void SetMode( int nMode );
@@ -548,6 +549,8 @@ protected slots:
   void OnLoadVolumeTransform();
 
   void OnUnloadVolumeTransform();
+
+  void SetCurrentTimeCourseFrame(int nFrame);
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

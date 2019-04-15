@@ -513,7 +513,11 @@ void Annotation2D::UpdateScaleActors( double length,
   normCoords->SetCoordinateSystemToNormalizedViewport();
 
   vtkPolyDataMapper2D* pMapper = vtkPolyDataMapper2D::New();
-  pMapper->SetInput( poly );
+#if VTK_MAJOR_VERSION > 5
+  pMapper->SetInputData( poly );
+#else
+  pMapper->SetInput(poly);
+#endif
   pMapper->SetTransformCoordinate(normCoords);
   poly->Delete();
   normCoords->Delete();
@@ -526,15 +530,20 @@ void Annotation2D::UpdateScaleActors( double length,
   m_actorScaleTitle->SetInput( title );
 }
 
-void Annotation2D::AppendAnnotations( vtkRenderer* renderer )
+void Annotation2D::AppendAnnotations( vtkRenderer* renderer, bool bScaleBar )
 {
-  for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
+  if (!bScaleBar)
   {
-    renderer->AddViewProp( m_actorCoordinates[i] );
+    for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
+    {
+      renderer->AddViewProp( m_actorCoordinates[i] );
+    }
   }
-
-  renderer->AddViewProp( m_actorScaleLine );
-  renderer->AddViewProp( m_actorScaleTitle );
+  else
+  {
+    renderer->AddViewProp( m_actorScaleLine );
+    renderer->AddViewProp( m_actorScaleTitle );
+  }
 }
 
 void Annotation2D::ShowScaleLine( bool bShow )

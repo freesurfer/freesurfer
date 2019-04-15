@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
   char **av, *in_surf_fname, *out_fname;
   int fno, vno0, vno1, vno2;
   int nargs, ac, msec;
-  struct timeb then;
+  Timer then;
 
   MRI_SURFACE *mris, *mris_template, *mris_template_map;
   FACE *face;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     exit (0);
   argc -= nargs;
 
-  TimerStart(&then) ;
+  then.reset() ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
   MRISfree(&mris);
   MRISfree(&mris_template);
 
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stderr, "indirect spherical mapping or morphing took %2.2f hours\n",
           (float)msec/(1000.0f*60.0f*60.0f));
 

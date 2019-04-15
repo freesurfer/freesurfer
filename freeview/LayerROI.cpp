@@ -43,6 +43,7 @@
 #include "vtkProperty.h"
 #include "vtkFreesurferLookupTable.h"
 #include "vtkImageChangeInformation.h"
+#include "vtkImageMapper3D.h"
 #include "LayerPropertyROI.h"
 #include "MyUtils.h"
 #include "LayerMRI.h"
@@ -83,14 +84,18 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     m_imageData = vtkSmartPointer<vtkImageData>::New();
     // m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
 
-    m_imageData->SetNumberOfScalarComponents( 1 );
-    m_imageData->SetScalarTypeToFloat();
     m_imageData->SetOrigin( GetWorldOrigin() );
     m_imageData->SetSpacing( GetWorldVoxelSize() );
     m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
         ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
         ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
+#if VTK_MAJOR_VERSION > 5
+    m_imageData->AllocateScalars(VTK_FLOAT, 1);
+#else
+    m_imageData->SetScalarTypeToFloat();
+    m_imageData->SetNumberOfScalarComponents(1);
     m_imageData->AllocateScalars();
+#endif
     float* ptr = (float*)m_imageData->GetScalarPointer();
     int* dim = m_imageData->GetDimensions();
     size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
@@ -160,7 +165,11 @@ void LayerROI::InitializeActors()
     // The reslice object just takes a slice out of the volume.
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
+#if VTK_MAJOR_VERSION > 5
+    mReslice[i]->SetInputData( m_imageData );
+#else
     mReslice[i]->SetInput( m_imageData );
+#endif
     //  mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
     mReslice[i]->BorderOff();
 
@@ -186,8 +195,8 @@ void LayerROI::InitializeActors()
     //
     // Prop in scene with plane mesh and texture.
     //
-    m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-    m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+    m_sliceActor2D[i]->GetMapper()->SetInputConnection( mColorMap[i]->GetOutputPort() );
+    m_sliceActor3D[i]->GetMapper()->SetInputConnection( mColorMap[i]->GetOutputPort() );
 
     // Set ourselves up.
     this->OnSlicePositionChanged( i );

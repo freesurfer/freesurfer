@@ -13,10 +13,10 @@
 #include "itkVTKPolyDataWriter.h"
 		
 
-extern "C" 
-{
+ 
+
 	#include "mrisurf.h"
-}
+
 
 int main(int narg, char*  arg[])
 {

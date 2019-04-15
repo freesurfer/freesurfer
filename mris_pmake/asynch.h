@@ -32,19 +32,11 @@
 #include "help.h"
 #include "c_SSocket.h"
 
-#ifdef __cplusplus
-extern  "C" {
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
 #include "C_mpmProg.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #include <string>
 using namespace std;

@@ -38,11 +38,11 @@
 #include <vector>
 #include <string>
 
-extern "C"
-{
+
+
 #include "mrisurf.h"
 #include "mri.h"
-}
+
 
 #define NUM_OF_VSETS 5
 

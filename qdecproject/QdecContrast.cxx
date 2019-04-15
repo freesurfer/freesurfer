@@ -33,15 +33,7 @@
 #include <sys/stat.h>
 
 #include "QdecContrast.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <stdio.h> // printf
-#ifdef __cplusplus
-}
-#endif
 
 
 // Constructors/Destructors

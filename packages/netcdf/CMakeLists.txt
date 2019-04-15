@@ -1,8 +1,6 @@
 project(netcdf)
 
-include_directories(${FS_INCLUDE_DIRS})
-
-set(SOURCES
+add_library(netcdf STATIC
   attr.c
   dim.c
   error.c
@@ -16,5 +14,3 @@ set(SOURCES
   v2i.c
   var.c
 )
-
-add_library(netcdf STATIC ${SOURCES})

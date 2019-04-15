@@ -53,7 +53,9 @@
       <argument>-max_gray_scale  mgs</argument>
       <explanation>in white deformation set outside_hi = (max_border_white + mgs*max_gray) / (mgs+1.0)</explanation>
       <argument>-c</argument>
-      <explanation>Create curvature and area files from white matter surface</explanation>
+      <explanation>Do not create curvature and area files from white matter surface</explanation>
+      <argument>-cortex 0-or-1</argument>
+      <explanation>Set to 0 to turn off creation of cortex label file </explanation>
       <argument>-a &lt;avgs&gt;</argument>
       <explanation>Average curvature values &lt;avgs&gt; times (default=10)</explanation>
       <argument>-first_wm_peak</argument>
@@ -112,6 +114,14 @@
       <explanation>save residual (for debugging)</explanation>
       <argument>-v vertexno </argument>
       <explanation>set Gdiag_no to vertexno</explanation>
+      <argument>-diag-vertex vertexno </argument>
+      <explanation>set Gdiag_no to vertexno, turn off writing of  cortex label or curv files. Set output suffix to debug-vertex-vertexno</explanation>
+      <argument>-rip ripfile </argument>
+      <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-white sigmawhitefile </argument>
+      <explanation>Save white surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-pial sigmapialfile </argument>
+      <explanation>Save pial surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

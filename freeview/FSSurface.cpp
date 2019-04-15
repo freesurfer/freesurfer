@@ -53,10 +53,10 @@
 #include <QDebug>
 #include <QDir>
 
-extern "C"
-{
+
+
 #include "mri_identify.h"
-}
+
 using namespace std;
 
 
@@ -469,7 +469,10 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
     if (mriheader->height == 1 && mriheader->depth == 1)
     {
       // likely wrong overlay data
-      cerr << "Number of vertices in overlay data does not match with surface.\n";
+      printf("Number of vertices in overlay data (%d or %d) does not match with surface (%d).\n",
+	     mriheader->width*mriheader->height*mriheader->depth, 
+	     mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes,
+	     m_MRIS->nvertices);
       return false;
     }
 
@@ -1020,7 +1023,7 @@ void FSSurface::UpdateVerticesAndNormals()
   m_polydata->GetPointData()->SetNormals( newNormals );
   m_polydataVertices->SetPoints( newPoints );
   m_polydataWireframes->SetPoints( newPoints );
-  m_polydata->Update();
+//  m_polydata->Update();
 
   // if vector data exist
   UpdateVectors();
@@ -1177,7 +1180,11 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
       pos[nPlane] = slice_pos;
       slicer->SetOrigin( pos );
       slicer->SetNormal( (nPlane==0), (nPlane==1), (nPlane==2) );
+#if VTK_MAJOR_VERSION > 5
+      cutter->SetInputData( m_polydataTarget );
+#else
       cutter->SetInput( m_polydataTarget );
+#endif
       cutter->SetCutFunction( slicer );
       cutter->Update();
       target_polydata = cutter->GetOutput();

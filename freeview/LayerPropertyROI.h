@@ -34,10 +34,10 @@
 #include "LayerProperty.h"
 #include <QColor>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 class vtkRGBAColorTransferFunction;
 

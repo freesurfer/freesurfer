@@ -90,6 +90,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
   ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->treeWidgetColorTable, SIGNAL(customContextMenuRequested(QPoint)), SLOT(OnCustomContextMenu(QPoint)));
   ui->labelBrushValueWarning->hide();
+  ui->widgetBusyIndicator->hide();
+  ui->widgetBusyIndicator->setFixedSize(QSize(20,20));
+  ui->widgetBusyIndicator->setColor(Qt::darkGray);
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( !mainwnd )
@@ -113,8 +116,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->lineEditWindow
                         << ui->lineEditLevel
                         << ui->sliderWindow
-                        << ui->sliderLevel
-                        << ui->checkBoxPercentile;
+                        << ui->sliderLevel;
 
   m_widgetlistHeatScale << ui->sliderMid
                         << ui->sliderOffset
@@ -133,6 +135,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                               << ui->sliderMax
                               << ui->labelMin
                               << ui->labelMax
+                              << ui->checkBoxPercentile
                               << ui->pushButtonResetWindowLevel;
 
   m_widgetlistLUT << ui->treeWidgetColorTable
@@ -186,10 +189,10 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->lineEditContourSmoothIteration
                       << ui->labelSmoothIteration
                       << ui->pushButtonContourSave
-                      << ui->labelContourLabelRange
-                      << ui->lineEditContourLabelRange
                       << ui->checkBoxShowLabelContour
-                      << ui->checkBoxUpsampleContour;
+                      << ui->checkBoxUpsampleContour
+                      << ui->checkBoxVoxelizedContour
+                      << ui->labelContourSpaceHolder;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -203,9 +206,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelContourColor
                             << ui->pushButtonContourSave;
 
-  m_widgetlistContourLabel << ui->labelContourLabelRange
-                           << ui->lineEditContourLabelRange;
-
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
 
@@ -213,7 +213,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->sliderOpacity
                             << ui->doubleSpinBoxOpacity
                             << ui->checkBoxSmooth
-                      //      << ui->checkBoxUpsample
+                               //      << ui->checkBoxUpsample
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
 
@@ -268,7 +268,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
     return;
   }
 
-  ui->progressBarWorking->hide();
+  ui->widgetBusyIndicator->hide();
   m_curCTAB = NULL;
   LayerPropertyMRI* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
@@ -285,6 +285,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
   connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)) );
+  connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetAutoMid(bool)));
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -295,7 +296,6 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(OnLineEditBrushValue()));
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
-  connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleAutoMid(bool)));
   connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
   connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );
   connect( ui->checkBoxShowOutline, SIGNAL(toggled(bool)), p, SLOT(SetShowLabelOutline(bool)) );
@@ -307,8 +307,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
   connect( ui->checkBoxAutoAdjustFrameLevel, SIGNAL(toggled(bool)), p, SLOT(SetAutoAdjustFrameLevel(bool)));
   connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
-  connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
-  connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
+  connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->widgetBusyIndicator, SLOT(show()));
+  connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
 }
@@ -488,7 +488,6 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
-    ui->lineEditContourLabelRange->setText(layer->GetProperty()->GetLabelContourRange().trimmed());
 
     ui->colorPickerContour->setEnabled( !layer->GetProperty()->GetContourUseImageColorMap() );
     double rgb[3];
@@ -632,9 +631,15 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
     {
-      ui->checkBoxShowLabelContour->setChecked(layer->GetProperty()->GetShowAsLabelContour());
-      ShowWidgets( m_widgetlistContourNormal, !layer->GetProperty()->GetShowAsLabelContour());
-      ShowWidgets( m_widgetlistContourLabel, false); //layer->GetProperty()->GetShowAsLabelContour());
+      bool bShowAsLabelContour = layer->GetProperty()->GetShowAsLabelContour();
+      bool bVoxelizedContour = layer->GetProperty()->GetShowVoxelizedContour();
+      ui->checkBoxShowLabelContour->setChecked(bShowAsLabelContour);
+      ShowWidgets( m_widgetlistContourNormal, !bShowAsLabelContour);
+      ui->checkBoxVoxelizedContour->setVisible(bShowAsLabelContour);
+      ui->checkBoxVoxelizedContour->setChecked(bVoxelizedContour);
+      ui->labelSmoothIteration->setVisible(!bVoxelizedContour);
+      ui->sliderContourSmoothIteration->setVisible(!bVoxelizedContour);
+      ui->lineEditContourSmoothIteration->setVisible(!bVoxelizedContour);
     }
 
     //  ShowWidgets( m_widgetlistContour, false );
@@ -1066,6 +1071,7 @@ void PanelVolume::OnSliderMin( int nVal )
   double fMax = curLayer->GetProperty()->GetMaxValue();
   double fScaleMin = fMin - (fMax-fMin)/4;
   double fScaleMax = fMax + (fMax-fMin)/4;
+  bool bAutoMidToMin = MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool();
   foreach (LayerMRI* layer, layers)
   {
     switch ( layer->GetProperty()->GetColorMap() )
@@ -1079,10 +1085,11 @@ void PanelVolume::OnSliderMin( int nVal )
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
-        layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+        layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0), bAutoMidToMin);
       else
         layer->GetProperty()->SetHeatScaleMinThreshold( nVal /
-                                                        100.0 * ( fMax - fMin ) + fMin );
+                                                        100.0 * ( fMax - fMin ) + fMin,
+                                                        bAutoMidToMin);
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
@@ -1122,6 +1129,7 @@ void PanelVolume::OnSliderMax( int nVal )
   double fMax = curLayer->GetProperty()->GetMaxValue();
   double fScaleMin = fMin - (fMax-fMin)/4;
   double fScaleMax = fMax + (fMax-fMin)/4;
+  bool bAutoMidToMin = MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool();
   foreach (LayerMRI* layer, layers)
   {
     switch ( layer->GetProperty()->GetColorMap() )
@@ -1135,10 +1143,11 @@ void PanelVolume::OnSliderMax( int nVal )
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
-        layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+        layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0), bAutoMidToMin);
       else
         layer->GetProperty()->SetHeatScaleMaxThreshold( nVal /
-                                                        100.0 * ( fMax - fMin ) + fMin );
+                                                        100.0 * ( fMax - fMin ) + fMin,
+                                                        bAutoMidToMin);
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
@@ -1209,7 +1218,8 @@ void PanelVolume::OnLineEditMin( const QString& text )
         layer->GetProperty()->SetMinGrayscaleWindow( dVal );
         break;
       case LayerPropertyMRI::Heat:
-        layer->GetProperty()->SetHeatScaleMinThreshold( dVal );
+        layer->GetProperty()->SetHeatScaleMinThreshold( dVal,
+                                                        MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool() );
         break;
       default:
         layer->GetProperty()->SetMinGenericThreshold( dVal );
@@ -1252,7 +1262,8 @@ void PanelVolume::OnLineEditMax( const QString& text )
         layer->GetProperty()->SetMaxGrayscaleWindow( dVal );
         break;
       case LayerPropertyMRI::Heat:
-        layer->GetProperty()->SetHeatScaleMaxThreshold( dVal );
+        layer->GetProperty()->SetHeatScaleMaxThreshold( dVal,
+                                                        MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool() );
         break;
       default:
         layer->GetProperty()->SetMaxGenericThreshold( dVal );
@@ -1272,6 +1283,19 @@ void PanelVolume::OnLineEditOffset( const QString& text )
     if ( layer && bOK && layer->GetProperty()->GetHeatScaleOffset() != dVal )
     {
       layer->GetProperty()->SetHeatScaleOffset( dVal );
+    }
+  }
+}
+
+void PanelVolume::OnCheckBoxSetAutoMid(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if ( layer && layer->GetProperty()->GetHeatScaleAutoMid() != b )
+    {
+      layer->GetProperty()->SetHeatScaleAutoMid(b,
+                                                MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool());
     }
   }
 }
@@ -1320,10 +1344,6 @@ void PanelVolume::OnContourValueChanged()
             sender() == ui->sliderContourSmoothIteration )
         {
           layer->GetProperty()->SetContourSmoothIterations(nSmooth);
-        }
-        else
-        {
-          layer->GetProperty()->SetLabelContourRange(ui->lineEditContourLabelRange->text().trimmed());
         }
       }
     }
@@ -1868,5 +1888,14 @@ void PanelVolume::OnColorTableChangeColor()
         layer->GetProperty()->UpdateLUTTable();
       }
     }
+  }
+}
+
+void PanelVolume::OnCheckVoxelizedContour(bool bVoxelize)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetShowVoxelizedContour(bVoxelize);
   }
 }

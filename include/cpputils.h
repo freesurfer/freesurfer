@@ -26,18 +26,7 @@
 #ifndef cpputils_h
 #define cpputils_h
 
-# ifdef __cplusplus
-extern "C"
-{
-#endif
-
-
-// The following is usable from C
 MRI* MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance);
 MRI* MRISfillInterior2(MRI_SURFACE *mris, MRI* mri_interior);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif 

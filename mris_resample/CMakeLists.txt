@@ -5,7 +5,7 @@ if(ANN_FOUND)
 
   add_executable(mris_resample mris_resample.cpp)
   add_help(mris_resample mris_resample.help.xml)
-  target_link_libraries(mris_resample utils utilscpp ${ANN_LIBRARIES})
+  target_link_libraries(mris_resample utils ${ANN_LIBRARIES})
 
   install(TARGETS mris_resample DESTINATION bin)
 endif()

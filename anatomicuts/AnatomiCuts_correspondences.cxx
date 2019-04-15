@@ -34,11 +34,11 @@
 #include <string>
 #include "vtkSplineFilter.h"
 #include "OrientationPlanesFromParcellationFilter.h"
-extern "C"
-{
+
+
 #include "colortab.h"
 #include "fsenv.h"
-}
+
 
 typedef std::vector<int>                  PointDataType;
 typedef float PixelType;
@@ -367,10 +367,18 @@ void GetMeshes(GetPot cl, const char* find1, const char* find2, std::vector<Basi
 		vtkPolyDataReader *reader = vtkPolyDataReader::New();
 		reader->SetFileName ( cl.next("") );
 		files->push_back(reader->GetFileName());
+#if VTK_MAJOR_VERSION > 5
+		reader->Update();
+#else
 		reader->GetOutput()->Update();
+#endif
 
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+		spline->SetInputConnection(reader->GetOutputPort());
+#else
 		spline->SetInput(reader->GetOutput());
+#endif
 		spline->SetNumberOfSubdivisions(9);
 		spline->Update();
 
@@ -396,7 +404,11 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 	for (unsigned int i=0;i<polydatas.size(); i++)
 	{
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+		spline->SetInputData(polydatas[i]);
+#else
 		spline->SetInput(polydatas[i]);
+#endif
 		spline->SetNumberOfSubdivisions(9);
 		spline->Update();
 

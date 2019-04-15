@@ -62,7 +62,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
   if (v.isValid())
   {
-    this->restoreGeometry(v.toByteArray());
+   this->restoreGeometry(v.toByteArray());
   }
   v = settings.value("WindowConfigureOverlay/AutoApply");
   if (!v.isValid())
@@ -753,7 +753,7 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
     delete[] m_fDataCache;
     m_fDataCache = NULL;
     UpdateGraph(true);
-    emit ActiveFrameChanged();
+    emit ActiveFrameChanged(nFrame);
   }
 }
 

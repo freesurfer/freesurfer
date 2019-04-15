@@ -147,7 +147,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndConfigureOverlay->hide();
   connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
-  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(SetCurrentTimeCourseFrame(int)));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
@@ -594,6 +595,9 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
     menu->addAction(act);
+    act = new QAction("MaskOverlay", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
+    menu->addAction(act);
     menu->addSeparator();
     act = new QAction("Save As...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnSaveLabelAs()));
@@ -831,6 +835,7 @@ void PanelSurface::OnButtonSaveLabel()
     if (label)
     {
       QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cdUp();
       dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())
@@ -1295,6 +1300,13 @@ void PanelSurface::OnLabelResample()
     surf->GetActiveLabel()->Resample(mri);
 }
 
+void PanelSurface::OnLabelMaskOverlay()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->MaskOverlay();
+}
+
 void PanelSurface::OnLabelMoreOps()
 {
   m_dlgLabelOps->show();
@@ -1447,4 +1459,9 @@ void PanelSurface::OnButtonLabelDown()
       ui->treeWidgetLabels->setCurrentItem(curItem);
     }
   }
+}
+
+void PanelSurface::SetOverlayFrame(int nFrame)
+{
+  m_wndConfigureOverlay->OnFrameChanged(nFrame);
 }

@@ -34,13 +34,13 @@ polymorphic way.
 
 #include "fem_3d.h"
 
-extern "C"
-{
+
+
 #include "mri.h"
 #define class xclass
 #include "gcamorph.h"
 #undef class
-};
+;
 
 
 /*

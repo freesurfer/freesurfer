@@ -32,7 +32,7 @@
 #include <math.h>
 #include <ctype.h>
 
-extern "C" {
+ 
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -42,10 +42,10 @@ extern "C" {
 #include "macros.h"
 #include "version.h"
 #include "timer.h"
-#include "topology/topo_parms.h"
-}
+#include "topo_parms.h"
+
 #include "mris_topology.h"
-#include "topology/patchdisk.h"
+#include "patchdisk.h"
 
 int main(int argc, char *argv[]) ;
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
   MRI_SURFACE   *mris, *mris_corrected ;
   // MRI           *mri, *mri_wm ;
   int           msec, nvert, nfaces, nedges, eno ,is_valid;
-  struct timeb  then ;
+  Timer then ;
 
   char cmdline[CMD_LINE_LEN] ;
 
@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
   printf("  %s\n",MRISurfSrcVersion());
   fflush(stdout); */
 
-  TimerStart(&then) ;
+  then.reset() ;
   sname = argv[1] ;
   hemi = argv[2] ;
   if (strlen(sdir) == 0) {
@@ -459,7 +459,7 @@ int main(int argc, char *argv[]) {
 
   fprintf(stderr,"\n\n");
 
-  msec = TimerStop(&then) ;
+  msec = then.milliseconds() ;
   fprintf(stderr,"topology fixing took %2.1f minutes\n",
           (float)msec/(60*1000.0f));
 

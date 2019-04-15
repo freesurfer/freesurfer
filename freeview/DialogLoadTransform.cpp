@@ -4,10 +4,10 @@
 #include <QFileDialog>
 #include <QFileInfo>
 
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 
 DialogLoadTransform::DialogLoadTransform(QWidget *parent) :

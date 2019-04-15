@@ -120,7 +120,11 @@ void Region2DRectangle::Update()
   polydata->SetPoints( pts );
   polydata->SetPolys( poly );
   vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( polydata );
+#else
   mapper->SetInput( polydata );
+#endif
 
   vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
   coords->SetCoordinateSystemToViewport();

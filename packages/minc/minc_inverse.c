@@ -12,10 +12,8 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#if defined(USE_LOCAL_MINC)
-
-#include  "minc_internals.h"
 #include <stdio.h>
+#include "minc_internals.h"
 
 bool compute_transform_inverse(
     Transform  *transform,
@@ -63,6 +61,3 @@ bool compute_transform_inverse(
 
     return( success );
 }
-
-
-#endif

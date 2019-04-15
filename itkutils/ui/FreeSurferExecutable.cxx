@@ -2,20 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include <iterator>
-
+#include <stdlib.h> // getenv
 #include <unistd.h>
 #include <sys/utsname.h>
 
 #include "FreeSurferExecutable.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-#include <stdlib.h> // getenv
-#ifdef __cplusplus
-}
-#endif
 
 FreeSurferExecutable::FreeSurferExecutable( int inArgs, char ** iaArgs ) {
   m_Parser = new CommandParser( inArgs, iaArgs );

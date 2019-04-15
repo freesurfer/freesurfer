@@ -1,15 +1,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <stdlib.h> // exit
-#ifdef __cplusplus
-}
-#endif
 
 #include "transformUtils.h"
 

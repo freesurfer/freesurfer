@@ -1,10 +1,6 @@
 project(xml2)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized -Wno-pointer-sign")
-
-set(SOURCES
+add_library(xml2 STATIC
   c14n.c
   catalog.c
   chvalid.c
@@ -50,6 +46,3 @@ set(SOURCES
   xpath.c
   xpointer.c
 )
-
-add_library(xml2 STATIC ${SOURCES})
-

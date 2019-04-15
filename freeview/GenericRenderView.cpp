@@ -42,6 +42,8 @@
 #include <vtkAssemblyPath.h>
 #include <vtkAssemblyNode.h>
 #include <vtkCellPicker.h>
+#include "vtkGenericOpenGLRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QImage>
@@ -60,11 +62,24 @@
 #define DEFAULT_FILL_LIGHT  0.25
 #define DEFAULT_BACK_LIGHT  0.2
 
-GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) :
-  QVTKWidget(parent, f)
+#if VTK_MAJOR_VERSION > 5
+GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKOpenGLWidget(parent, f)
+#else
+GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKWidget(parent, f)
+#endif
 {
+#if VTK_MAJOR_VERSION > 5
+  setAutoFillBackground(false);
+  this->setAttribute(Qt::WA_NoBackground);
+#endif
+
   m_renderer = vtkRenderer::New();
+#if VTK_MAJOR_VERSION > 5
+  vtkSmartPointer<vtkGenericOpenGLRenderWindow> renWin = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+  SetRenderWindow(renWin);
+#else
   vtkRenderWindow* renWin = GetRenderWindow();
+#endif
   renWin->AddRenderer(m_renderer);
 
   m_renderer2 = NULL;
@@ -117,6 +132,7 @@ void GenericRenderView::SetKeyLightIntensity(double d, bool redraw)
   }
   emit KeyLightIntensityChanged(d);
 }
+
 double GenericRenderView::GetHeadLightIntensity()
 {
   return (1.0/m_lightKit->GetKeyToHeadRatio() - MIN_RATIO_LIGHT) / (1 - MIN_RATIO_LIGHT);
@@ -199,11 +215,11 @@ void GenericRenderView::RefreshAllActors(bool bForScreenshot)
   emit ActorsUpdated();
 }
 
-// avoid sending key event to QVTKWidget because of a bug in QVTKInteractor
+// avoid sending key event to QVTKOpenGLWidget because of a bug in QVTKInteractor
 void GenericRenderView::keyPressEvent(QKeyEvent* event)
 {
   QWidget::keyPressEvent(event);
-  //  QVTKWidget::keyPressEvent(event);
+  //  QVTKOpenGLWidget::keyPressEvent(event);
 }
 
 vtkCamera* GenericRenderView::GetCamera()
@@ -237,14 +253,22 @@ void GenericRenderView::SetBackgroundColor(const QColor& qc)
 
 void GenericRenderView::wheelEvent(QWheelEvent* event)
 {
+#if VTK_MAJOR_VERSION > 5
+  QVTKOpenGLWidget::wheelEvent(event);
+#else
   QVTKWidget::wheelEvent(event);
+#endif
   emit RenderTriggeredByWheel();
 }
 
 void GenericRenderView::mousePressEvent(QMouseEvent* event)
 {
   ptOld = event->pos();
+#if VTK_MAJOR_VERSION > 5
+  QVTKOpenGLWidget::mousePressEvent(event);
+#else
   QVTKWidget::mousePressEvent(event);
+#endif
 }
 
 void GenericRenderView::mouseReleaseEvent(QMouseEvent* event)
@@ -253,8 +277,11 @@ void GenericRenderView::mouseReleaseEvent(QMouseEvent* event)
   {
     emit MouseReleasedWithoutMove(event);
   }
-
+#if VTK_MAJOR_VERSION > 5
+  QVTKOpenGLWidget::mouseReleaseEvent(event);
+#else
   QVTKWidget::mouseReleaseEvent(event);
+#endif
 }
 
 bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, int nMag)
@@ -302,7 +329,11 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
     vtkRenderLargeImage* image = vtkRenderLargeImage::New();
     image->SetInput(m_renderer);
     image->SetMagnification(nMag);
+#if VTK_MAJOR_VERSION > 5
+    writer->SetInputData(image->GetOutput());
+#else
     writer->SetInput(image->GetOutput());
+#endif
     writer->SetFileName(fn.toLatin1().data());
     writer->Write();
     image->Delete();
@@ -314,12 +345,20 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
 
 int GenericRenderView::GetAntialiasing()
 {
+#if VTK_MAJOR_VERSION > 5
+  return GetRenderer()->GetUseFXAA();
+#else
   return GetRenderWindow()->GetAAFrames() > 0 ? 1: 0;
+#endif
 }
 
 void GenericRenderView::SetAntialiasing(int bSet, bool redraw)
 {
+#if VTK_MAJOR_VERSION > 5
+  GetRenderer()->SetUseFXAA(bSet);
+#else
   GetRenderWindow()->SetAAFrames(bSet > 0 ? 6 : 0);
+#endif
   if (redraw)
   {
     Render();

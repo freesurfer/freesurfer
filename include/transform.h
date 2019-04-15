@@ -26,12 +26,6 @@
 #define MGH_TRANSFORM_H
 
 #include "matrix.h"
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 #include "const.h"
 #include "float.h"
 
@@ -64,7 +58,7 @@ typedef struct
   MATRIX     *m_L ;          /* transform matrix */
   MATRIX     *m_dL ;         /* gradient of fuctional wrt transform matrix */
   MATRIX     *m_last_dL ;    /* last time step for momentum */
-  TransformType type;        /* record transform type       */
+  int        type;           /* record transform type       */
   VOL_GEOM   src;            /* src for the transform       */
   VOL_GEOM   dst;            /* dst for the transform       */
   int        label ;         // if this xform only applies to a specific label
@@ -284,11 +278,5 @@ int LTAmriIsSource(const LTA *lta, const MRI *mri);
 int LTAmriIsTarget(const LTA *lta, const MRI *mri);
 LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type);
 double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius);
-
-#if defined(__cplusplus)
-};
-#endif
-
-
 
 #endif

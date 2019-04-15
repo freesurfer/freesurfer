@@ -87,7 +87,11 @@ void Cursor3D::RebuildActor(double scale)
   polydata->SetLines( lines );
 
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  tube->SetInputData( polydata );
+#else
   tube->SetInput( polydata );
+#endif
   tube->SetNumberOfSides( 12 );
   tube->SetRadius( 0.15*(1+(m_nThickness-1)/3.0) );
   tube->CappingOn();

@@ -70,14 +70,14 @@
 #include <errno.h>
 #include <math.h>
 
-extern "C"
-{
+
+
 #include "mri.h"
 #include "error.h"
 #include "diag.h"
 #include "version.h"
 #include "utils.h"
-}
+
 
 #include "pre_pro.cpp"
 #include "graphcut.cpp"

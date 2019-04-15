@@ -32,10 +32,10 @@
 #include <QObject>
 #include <QString>
 
-extern "C"
-{
+
+
 #include "mri.h"
-}
+
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;

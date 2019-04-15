@@ -114,7 +114,7 @@ int mrisMarkIntersections(MRIS *mris);
 #define BORDER_VERTEX TRIANGLE_VERTEX /* part of a triangle! */
 #define USED_VERTEX 5                 /* used in the final tessellation */
 
-void mrisDumpFace(MRIS *mris, int fno, FILE *fp);
+void mrisDumpFace(MRIS const * mris, int fno, FILE *fp);
 
 
 int    MRIScomputeAllDistances           (MRIS *mris);

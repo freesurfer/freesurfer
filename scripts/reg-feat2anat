@@ -74,7 +74,7 @@ check_params_return:
 
 if($?DEV == 0) set DEV = "";
 
-set TKR = tkregister2
+set TKR = tkregister2_cmdl
 if($usedev) set TKR = $DEV/$TKR/$TKR
 if(! $manual) set TKR = $TKR"_cmdl"
 
@@ -399,7 +399,7 @@ if($cleanup == 0) then
   echo "0 0 1 0" >> $outvolreg
   echo "0 0 0 1" >> $outvolreg
   echo "Or you can run:" | tee -a $LF
-  set tkregcheckcmd2 = (tkregister2 --s $subject --mov $outvol)
+  set tkregcheckcmd2 = (tkregister2_cmdl --s $subject --mov $outvol)
   set tkregcheckcmd2 = ($tkregcheckcmd2 --reg $outvolreg --surf orig);
   echo $tkregcheckcmd2 | tee -a $LF
   echo ""

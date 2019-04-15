@@ -6,7 +6,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-extern "C" {
 #include "mrisurf.h"
 #include "utils.h"
 #include "error.h"
@@ -14,7 +13,7 @@ extern "C" {
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "minc_volume_io.h"
+#include "minc.h"
 #include "region.h"
 #include "machine.h"
 #include "fio.h"
@@ -36,7 +35,7 @@ extern "C" {
 #include "matrix.h"
 #include "matfile.h"
 #include "randomfields.h"
-}
+
 static void ErrorValidation(const char *string) {
   fprintf(stdout, "\nValidation Error: %s\n",string) ;
   exit(1) ;

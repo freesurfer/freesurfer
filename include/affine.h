@@ -25,10 +25,8 @@
 #ifndef AFFINE_H
 #define AFFINE_H
 
-#ifdef USE_SSE_MATHFUN
 #if (__GNUC__ > 3) && !defined(HAVE_MCHECK)     // mcheck does not understand _mm_alloc et. al.
 #define AFFINE_MATRIX_USE_SSE
-#endif
 #endif
 
 #ifdef AFFINE_MATRIX_USE_SSE

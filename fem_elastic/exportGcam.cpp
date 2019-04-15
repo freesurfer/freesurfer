@@ -20,15 +20,13 @@ As a validation, it will use the gcam to morph again the volumes
 
 #include "morph.h"
 
-// OWN
-#include "simple_timer.h"
-
 // FS
-#include "argparse.hpp"
-extern "C" {
+#include "argparse.h"
+#include "timer.h"
+
 #include "mri.h"
 #include "gcamorph.h"
-}
+
 
 #include "exportGcam.help.xml.h"
 
@@ -72,7 +70,7 @@ void initOctree2( gmp::VolumeMorph& morph)
 int
 main(int ac, const char** av)
 {
-  SimpleTimer timer;
+  Timer timer;
 
   IoParams params;
   try
@@ -131,15 +129,13 @@ main(int ac, const char** av)
   if (params.doTest)
   {
     std::cout << " Writing out some tests.\n";
-    SimpleTimer t1;
+    Timer t1;
     VOL_GEOM vgLike;
     initVolGeom(&vgLike);
     getVolGeom(pmorph->m_template, &vgLike);
 
-    MRI* mriOut  = pmorph->apply_transforms(mriMoving,
-                                            true,
-                                            &vgLike);
-    std::cout << " morph completed in " << t1.elapsed_min() << " minutes\n";
+    MRI* mriOut  = pmorph->apply_transforms(mriMoving, true, &vgLike);
+    std::cout << " morph completed in " << t1.minutes() << " minutes\n";
     //MRIwrite(mriOut, "tmpout1.mgz");
     MRIfree(&mriOut);
   }
@@ -179,7 +175,7 @@ main(int ac, const char** av)
     std::cout << " skipping tmpout2.mgz - using bounding box\n";
   }
 
-  std::cout << " Export performed in " << timer.elapsed_min() << " minutes \n";
+  std::cout << " Export performed in " << timer.minutes() << " minutes \n";
   printf("#VMPC# exportGcam VmPeak  %d\n",GetVmPeak());
 
   return 0;

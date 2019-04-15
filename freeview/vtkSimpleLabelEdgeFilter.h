@@ -33,13 +33,14 @@
 #ifndef __vtkSimpleLabelEdgeFilter_h
 #define __vtkSimpleLabelEdgeFilter_h
 
+//#include "vtkImagingGeneralModule.h" // For export macro
 #include "vtkSimpleImageToImageFilter.h"
 
-class VTK_IMAGING_EXPORT vtkSimpleLabelEdgeFilter : public vtkSimpleImageToImageFilter
+class /*VTKIMAGINGGENERAL_EXPORT*/ vtkSimpleLabelEdgeFilter : public vtkSimpleImageToImageFilter
 {
 public:
   static vtkSimpleLabelEdgeFilter *New();
-  vtkTypeRevisionMacro(vtkSimpleLabelEdgeFilter,vtkSimpleImageToImageFilter);
+  vtkTypeMacro(vtkSimpleLabelEdgeFilter,vtkSimpleImageToImageFilter);
 
 protected:
   vtkSimpleLabelEdgeFilter() {};

@@ -77,7 +77,7 @@ char *inFile = NULL, *maskFile = NULL,
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -108,11 +108,11 @@ int main(int argc, char **argv) {
   Spline myspline(inFile, maskFile);
 
   printf("Computing spline...\n");
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   myspline.InterpolateSpline();
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   printf("Done in %g sec.\n", cputime/1000.0);
 
   if (outVolFile)
@@ -125,13 +125,13 @@ int main(int argc, char **argv) {
     char fname[PATH_MAX];
 
     printf("Computing analytical tangent, normal, and curvature...\n");
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     myspline.ComputeTangent(true);
     myspline.ComputeNormal(true);
     myspline.ComputeCurvature(true);
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     printf("Done in %g sec.\n", cputime/1000.0);
 
     // Write tangent, normal, and curvature (analytical) to text files
@@ -143,13 +143,13 @@ int main(int argc, char **argv) {
     myspline.WriteCurvature(fname);
 
     printf("Computing discrete tangent, normal, and curvature...\n");
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     myspline.ComputeTangent(false);
     myspline.ComputeNormal(false);
     myspline.ComputeCurvature(false);
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     printf("Done in %g sec.\n", cputime/1000.0);
 
     // Write tangent, normal, and curvature (discrete) to text files

@@ -39,11 +39,11 @@
 #include "error.h"
 #include <fenv.h>
 #include <QFile>
-extern "C"
-{
+
+
 #include "fsinit.h"
 #include "chklc.h"
-}
+
 
 const char* Progname;
 

@@ -2,10 +2,10 @@ project(mris_register_to_volume)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_register_to_volume mris_register_to_volume.c)
+add_executable(mris_register_to_volume mris_register_to_volume.cpp)
 target_link_libraries(mris_register_to_volume utils)
 install(TARGETS mris_register_to_volume DESTINATION bin)
 
-add_executable(mris_register_to_label mris_register_to_label.c)
+add_executable(mris_register_to_label mris_register_to_label.cpp)
 target_link_libraries(mris_register_to_label utils)
 install(TARGETS mris_register_to_label DESTINATION bin)

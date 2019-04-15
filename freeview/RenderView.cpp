@@ -46,6 +46,7 @@
 #include "vtkScalarBarActor.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
+#include "vtkRenderWindowInteractor.h"
 #include <QPainter>
 #include <QAction>
 #include <vtkCellPicker.h>
@@ -98,7 +99,11 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   normCoords->SetCoordinateSystemToNormalizedDisplay();
 
   vtkSmartPointer<vtkPolyDataMapper2D> pMapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+#if VTK_MAJOR_VERSION > 5
+  pMapper->SetInputData(Grid);
+#else
   pMapper->SetInput(Grid);
+#endif
   pMapper->SetTransformCoordinate(normCoords);
 
   m_actorFocusFrame->SetMapper(pMapper);
@@ -247,6 +252,8 @@ void RenderView::enterEvent( QEvent* event )
     this->setFocus();
   }
 
+  emit MouseIn();
+
   if ( m_interactor->ProcessMouseEnterEvent( event, this ) )
   {
     GenericRenderView::enterEvent( event );
@@ -255,6 +262,8 @@ void RenderView::enterEvent( QEvent* event )
 
 void RenderView::leaveEvent( QEvent* event )
 {
+  emit MouseOut();
+
   if ( m_interactor->ProcessMouseLeaveEvent( event, this ) )
   {
     GenericRenderView::leaveEvent( event );

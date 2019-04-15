@@ -76,7 +76,7 @@ char *inDir = NULL, *inFile[100], *outFile = NULL, *ctabFile = NULL;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  TimerStart(&cputimer);
+  cputimer.reset();
 
   for (int iframe = 0; iframe < nframe; iframe++) {
     float inmax = 0;
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  cputime = TimerStop(&cputimer);
+  cputime = cputimer.milliseconds();
   printf("Done in %g sec.\n", cputime/1000.0);
 
   printf("dmri_mergepaths done\n");
