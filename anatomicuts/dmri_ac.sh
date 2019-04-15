@@ -1,14 +1,27 @@
+#!/usr/bin/env bash
+
 #this step is into tracula preproc
 targetSubject="6002_16_01192018"
-top=/space/snoke/1/public/vivros/
-anatomicuts=${top}/AnatomiCuts_l35/${subject}
 
-SUBJECTS_DIR=/space/snoke/1/public/vivros/data/recons/
-DMRI_DIR=/space/snoke/1/public/vivros/data/tracula/jones_900/
-ODMRI_DIR=/space/snoke/1/public/vivros/viv/
+#SUBJECTS_DIR=/space/snoke/1/public/vivros/data/recons/
+#DMRI_DIR=/space/snoke/1/public/vivros/data/tracula/jones_900/
+#ODMRI_DIR=/space/snoke/1/public/vivros/viv/
+if [[ ! ${SUBJECTS_DIR} ]]; then
+	echo "ERROR: SUBJECTS_DIR not set!" 
+	exit 1
+fi
+
+if [[ ! ${DMRI_DIR} ]]; then
+	DMRI_DIR=${SUBJECTS_DIR}
+fi
+
+if [[ ! ${ODMRI_DIR} ]]; then
+	ODMRI_DIR=${SUBJECTS_DIR}
+fi
+
 
 clusters=(200 150 100 50)
-code=/space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
+#code=/space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
 filtershortFibers=${code}streamlineFilter
 anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
@@ -16,7 +29,6 @@ stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
 ac_output=/space/snoke/1/public/vivros/AnatomiCuts_l35/
 
-<<COMMENT
 function preprocessDWI()
 {
 	subject=$1
@@ -43,17 +55,17 @@ function preprocessDWI()
 	eddy --mask=$output/data_lowb_brain_mask.nii.gz --imain=$output/data.nii.gz --bvecs=$output/data.bvecs --bvals=$output/data.bvals --out=$output/data_eddy --index=$output/index.txt --acqp=$output/acqp.txt
 
 }
-COMMENT
 
 function tractography()
 {
+	echo "tractography"
 	subject=$1
 	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
 	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
 	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
 	output=\'${DMRI_DIR}/${subject}/GQI/\'
 
-	mkdir -p ${DMRI_DIR}/{subject}/GQI/
+	mkdir -p ${DMRI_DIR}/${subject}/GQI/
 
 	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
 	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
@@ -61,6 +73,7 @@ function tractography()
 }
 function getMaps()
 {
+	echo "getMaps"
 	subject=$1
 	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
 	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
@@ -76,6 +89,7 @@ function getMaps()
 function call()
 {
 	#export SUBJECTS_DIR=${subjects_dir}
+	echo "call"
  	cd ${SUBJECTS_DIR}                                                
 	for s in 6*/;       
 	do                                                                                                                                                                           
@@ -86,6 +100,7 @@ function call()
 }
 function anat2dwi()
 {
+	echo "anat2dwi"
 	subject=$1
 	mri_convert ${SUBJECTS_DIR}/${subject}/mri/brain.mgz  ${SUBJECT_DIR}/${subject}/mri/brain.nii.gz
 	flirt -in ${SUBJECT_DIR}/${subject}/mri/brain.nii.gz -ref ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz -omat ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat
@@ -99,19 +114,20 @@ function anat2dwi()
 }
 function filterStreamlines()
 {
+	echo "filterStreamlines"
     subject=$1
     lenght=$2 
     ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -nu -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
     ${string}
 
 } 
-function PreAC()
-{
-	tractography $1
-	getMaps $1
-	anat2dwi $1
-	filterStreamlines $1
-}
+#function PreAC()
+#{
+#	tractography $1
+#	getMaps $1
+#	anat2dwi $1
+#	filterStreamlines $1
+#}
 
 function anatomiCuts()
 {

@@ -27,8 +27,8 @@ if(ITK_FOUND AND VTK_FOUND)
   target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
-  add_executable(mris_image2vtk mris_image2vtk.cxx)
-  target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS mris_image2vtk DESTINATION bin)
+  #add_executable(mris_image2vtk mris_image2vtk.cxx)
+  #target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  #install(TARGETS mris_image2vtk DESTINATION bin)
   
 endif()
