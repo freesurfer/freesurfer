@@ -17,7 +17,7 @@ static bool FUNCTION_NAME(
   }
 #endif
 
-  if (true && mris->status != mris->INPUT_STATUS) {
+  if (false && mris->status != mris->INPUT_STATUS) {
     auto oldStatusFormula = MRIS_Status_distanceFormula(mris->status);
     auto newStatusFormula = MRIS_Status_distanceFormula(mris->INPUT_STATUS);
     fprintf(stdout, "%s:%d %s mris->status:%s != mris->INPUT_STATUS:%s\n",__FILE__,__LINE__, __MYFUNCTION__,
