@@ -562,7 +562,7 @@ int main(int narg, char*  arg[])
 			//std::cout << orientationFilter2->GetUpDown() << " " << orientationFilter2->GetFrontBack() << " " << orientationFilter2->GetLeftRight() << std::endl;	
 
 
-			typedef ImageType::IndexType IndexType;
+			//typedef ImageType::IndexType IndexType;
 			std::vector<itk::Vector<float>> direcciones1;
 			std::vector<itk::Vector<float>> direcciones2;
 			int possibles[3] = {0,1,-1};
