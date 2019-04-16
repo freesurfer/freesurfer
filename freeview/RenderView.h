@@ -85,6 +85,8 @@ public:
 
 signals:
   void ViewChanged();
+  void MouseIn();
+  void MouseOut();
 
 public slots:
   void RequestRedraw( bool bForce = false );

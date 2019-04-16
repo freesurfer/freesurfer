@@ -12,10 +12,12 @@
 #include <QDebug>
 #include <QFile>
 #include "vtkImageGaussianSmooth.h"
+#include <QElapsedTimer>
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
   m_geos = new GeodesicMatting;
+  connect(m_geos, SIGNAL(Progress(double)), this, SIGNAL(Progress(double)));
   m_nMaxDistance = 10;
   connect(this, SIGNAL(ComputeTriggered()), SLOT(DoCompute()));
   connect(this, SIGNAL(ApplyTriggered()), SLOT(DoApply()));
@@ -27,7 +29,7 @@ GeoSWorker::~GeoSWorker()
 {
   m_thread.quit();
   m_thread.wait();
-  delete m_geos;
+  m_geos->deleteLater();
 }
 
 void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing)
@@ -111,6 +113,8 @@ void GeoSWorker::DoCompute()
   bound[3] = qMin(dim[1]-1, bound[3]);
   bound[4] = qMax(0, bound[4]);
   bound[5] = qMin(dim[2]-1, bound[5]);
+  if (bound[0] > bound[1])
+    memset(bound, 0, sizeof(int)*6);
   vtkSmartPointer<vtkExtractVOI> voi = vtkSmartPointer<vtkExtractVOI>::New();
   voi->SetInputConnection(cast->GetOutputPort());
   voi->SetVOI(bound);
@@ -148,6 +152,8 @@ void GeoSWorker::DoCompute()
   mri->GetDimensions(dim_new);
   vol_size = dim_new[0]*dim_new[1]*dim_new[2];
   unsigned char* seeds_out = new unsigned char[vol_size];
+  QElapsedTimer timer;
+  timer.start();
   bool bSuccess = m_geos->ComputeWithBinning(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
@@ -178,10 +184,10 @@ void GeoSWorker::DoCompute()
       }
     }
     m_seg->SetModified();
-    emit ComputeFinished(true);
+    emit ComputeFinished(timer.elapsed()/1000.0);
   }
   else
-    emit ComputeFinished(false);
+    emit ComputeFinished(-1);
 }
 
 void GeoSWorker::DoApply()
@@ -221,4 +227,9 @@ void GeoSWorker::DoApply()
 void GeoSWorker::Abort()
 {
   m_geos->Abort();
+}
+
+QString GeoSWorker::GetErrorMessage()
+{
+  return m_geos?m_geos->GetErrorMessage():"";
 }

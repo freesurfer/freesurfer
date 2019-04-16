@@ -1193,9 +1193,9 @@ MRIScongealRigidBodyAlignGlobal(MRI_SURFACE *mris_ico, MRI_SURFACE *mris,
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
   sse, min_sse, ext_sse ;
-  int      old_status = mris->status, old_norm ;
-
-  old_norm = parms->abs_norm ;
+  auto const old_status = mris->status;
+  auto const old_norm   = parms->abs_norm ;
+  
   parms->abs_norm = 1 ;
   min_degrees = RADIANS(min_degrees) ;
   max_degrees = RADIANS(max_degrees) ;

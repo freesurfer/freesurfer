@@ -177,6 +177,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
   connect(m_worker, SIGNAL(LabelInformationReady()), this, SLOT(OnLabelInformationReady()));
+
+  connect(this, SIGNAL(Modified()), this, SLOT(UpdateLabelInformation()));
   
   QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
   if (map["Smoothed"].toBool())
@@ -977,8 +979,13 @@ void LayerMRI::UpdateColorMap()
   m_actorContour->GetMapper()->SetLookupTable( GetProperty()->GetActiveLookupTable() );
   emit ActorUpdated();
   
-  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT &&
-      this->m_nAvailableLabels.isEmpty() && !m_worker->isRunning())
+  if (this->m_nAvailableLabels.isEmpty())
+    UpdateLabelInformation();
+}
+
+void LayerMRI::UpdateLabelInformation()
+{
+  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT && !m_worker->isRunning())
     m_worker->start();
 }
 
@@ -3932,7 +3939,8 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
   if (!m_geos)
   {
     m_geos = new GeoSWorker;
-    connect(m_geos, SIGNAL(ComputeFinished(bool)), this, SIGNAL(GeodesicSegmentationFinished()));
+    connect(m_geos, SIGNAL(ComputeFinished(double)), this, SIGNAL(GeodesicSegmentationFinished(double)));
+    connect(m_geos, SIGNAL(Progress(double)), this, SIGNAL(GeodesicSegmentationProgress(double)));
   }
 
   m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist, smoothing);
@@ -3953,38 +3961,6 @@ void LayerMRI::GeodesicSegmentationApply(LayerMRI *filled)
   connect(m_geos, SIGNAL(ApplyFinished()), this, SIGNAL(GeodesicSegmentationApplied()), Qt::UniqueConnection);
   m_geos->Apply(this, filled);
 }
-
-#if 0
-bool LayerMRI::GeodesicSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
-{
-  GEOS_PARMS parm;
-  parm.lambda = lambda;
-  parm.wsize = wsize;
-  parm.max_dist = max_dist;
-
-  VOXEL_LIST* vlist_interior = LabelToVoxelList(GetSourceVolume()->GetMRI(), interior->GetRawLabel());
-  VOXEL_LIST* vlist_exterior = LabelToVoxelList(GetSourceVolume()->GetMRI(), exterior->GetRawLabel());
-  VOXEL_LIST* vlist_out = GEOSproposeSegmentation(GetSourceVolume()->GetMRI(), mask ? mask->GetSourceVolume()->GetMRI() : NULL, NULL,
-                                                  vlist_interior, vlist_exterior, &parm);
-
-  qDebug() << "Number of voxels: " << vlist_out->nvox;
-  for (int n = 0; n < vlist_out->nvox; n++)
-  {
-    double ras[3];
-    int ind[3] = { vlist_out->xi[n], vlist_out->yi[n], vlist_out->zi[n] };
-    qDebug() << ind[0] << ind[1] << ind[2];
-    OriginalIndexToRAS(ind, ras);
-    GetSourceVolume()->RASToTarget(ras, ras);
-    SetVoxelByRAS(ras, 0, true, true);
-  }
-  qDebug() << "\n";
-
-  VLSTfree(&vlist_exterior);
-  VLSTfree(&vlist_interior);
-  VLSTfree(&vlist_out);
-  return true;
-}
-#endif
 
 void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
 {
@@ -4051,4 +4027,9 @@ QVariantMap LayerMRI::GetTimeSeriesInfo()
     info["tr"] = m_volumeSource->GetMRI()->tr;
   }
   return info;
+}
+
+QString LayerMRI::GetGeoSegErrorMessage()
+{
+  return m_geos?m_geos->GetErrorMessage():"";
 }

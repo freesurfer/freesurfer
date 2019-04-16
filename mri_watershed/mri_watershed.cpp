@@ -246,7 +246,7 @@ SPHERE_ELTS
         MRISfree(&mris);
     }
     MRIS* mris;
-    int   const status;
+    MRIS_Status const status;
     int   const nvertices;
     float radius;
     struct Vertex {
@@ -7858,8 +7858,8 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
            sse, min_sse ;
-  int      curv_old_status = mris_curv->status
-                             ,dist_old_status=mris_dist->status ;
+  auto const curv_old_status = mris_curv->status;
+  auto const dist_old_status = mris_dist->status;
 
   //to stop the compilator warnings !
   min_sse=0;

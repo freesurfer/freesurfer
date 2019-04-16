@@ -208,7 +208,7 @@ int
 main(int argc, char *argv[]) {
   char            **av, *in_fname, *out_prefix, out_fname[100], name[100],
   path[100], *cp, hemi[100], fname[100], *surf_fname ;
-  int             ac, nargs, size, ino, old_status, i, drawn, is_flat ;
+  int             ac, nargs, size, ino, i, drawn, is_flat ;
   float           angle = 0.0f ;
   unsigned short  *red=NULL, *green=NULL, *blue=NULL;
   unsigned char   *rgb=NULL;
@@ -427,9 +427,9 @@ main(int argc, char *argv[]) {
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseGaussianCurvature(mris) ;
       break ;
-    case AREA_ERRORS:
+    case AREA_ERRORS: {
       MRISstoreCurrentPositions(mris) ;
-      old_status = mris->status ;
+      auto const old_status = mris->status ;
       mris->status = MRIS_SURFACE ;
       MRISreadVertexPositions(mris, "smoothwm") ;
       MRIScomputeMetricProperties(mris) ;
@@ -438,7 +438,7 @@ main(int argc, char *argv[]) {
       mris->status = old_status ;
       MRIScomputeMetricProperties(mris) ;
       MRISuseAreaErrors(mris) ;
-      break ;
+    } break ;
     }
 
     if (normalize_flag)
