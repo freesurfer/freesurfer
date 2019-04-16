@@ -10,7 +10,6 @@ install(PROGRAMS
   find_neighbors_byAge_extended.csh
   find_neighbors_byMI.csh
   find_neighbors_byMI_extended.csh
-  mri_label_fusion
   run_label_fusion.csh
   set_babydev_packages.csh
   set_infant_recon_params.csh
@@ -19,4 +18,5 @@ install(PROGRAMS
 
 install_append_help(infant_recon_all infant_recon_all.help.xml bin)
 
+install_pyscript(mri_label_fusion)
 add_subdirectory(labelfusion)

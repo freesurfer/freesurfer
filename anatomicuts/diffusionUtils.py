@@ -1,0 +1,79 @@
+import numpy as np
+from dipy.data import fetch_taiwan_ntu_dsi, read_taiwan_ntu_dsi, get_sphere
+from dipy.reconst.gqi import GeneralizedQSamplingModel
+from dipy.direction import peaks_from_model
+from dipy.io import read_bvals_bvecs
+from dipy.core.gradients import gradient_table
+import nibabel as nib
+from dipy.segment.mask import median_otsu
+from dipy.tracking.local import LocalTracking, ThresholdTissueClassifier
+from dipy.tracking.utils import random_seeds_from_mask
+from nibabel.streamlines import Tractogram
+from dipy.tracking.streamline import Streamlines
+import dipy.reconst.dki as dki
+from dipy.io.streamline import save_trk
+from dipy.io.image import save_nifti
+from scipy.ndimage.filters import gaussian_filter
+
+def tractography(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+	gqmodel = GeneralizedQSamplingModel(gtab, method='gqi2', sampling_length=.5)
+	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	gqfit = gqmodel.fit(data, mask=mask)
+	sphere = get_sphere('symmetric724')
+
+	ODF = gqfit.odf(sphere)
+	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask,  return_odf=False,  normalize_peaks=True)
+
+	gqpeak_values = gqpeaks.peak_values
+	gqpeak_indices = gqpeaks.peak_indices
+	GFA = gqpeaks.gfa
+
+	gqpeaks = peaks_from_model(model=gqmodel, data=data,sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask, return_odf=True, normalize_peaks=True)
+
+	tissue_classifier = ThresholdTissueClassifier(GFA, 0.01)
+	seeds = random_seeds_from_mask(GFA > 0.01, seeds_count=1)
+	streamline_generator = LocalTracking(gqpeaks, tissue_classifier, seeds, affine=np.eye(4), step_size=0.5)
+	streamlines = Streamlines(streamline_generator)
+
+	save_trk(subject_folder+"/streamlines.trk",streamlines,img.affine, img.header.get_zooms()[:3], GFA.shape)
+	save_nifti(subject_folder+'/gfa_map.nii.gz', GFA, img.affine)
+
+	#cmc classifier or act, but you need pv.
+
+def getMaps(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	fwhm=1.25
+	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+	data_smooth = np.zeros(data.shape)
+	for v in range(data.shape[-1]):
+	    data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
+
+	dkimodel = dki.DiffusionKurtosisModel(gtab)
+	dkifit = dkimodel.fit(data_smooth, mask=mask)
+	
+	FA = dkifit.fa
+	MD = dkifit.md
+	AD = dkifit.ad
+	RD = dkifit.rd
+
+	MK = dkifit.mk(0, 3)
+	AK = dkifit.ak(0, 3)
+	RK = dkifit.rk(0, 3)
+
+	save_nifti(subject_folder+'/dki_FA.nii.gz', FA, img.affine)
+	save_nifti(subject_folder+'/dki_MD.nii.gz', MD, img.affine)
+	save_nifti(subject_folder+'/dki_RD.nii.gz', RD, img.affine)
+	save_nifti(subject_folder+'/dki_AD.nii.gz', AD, img.affine)
+	save_nifti(subject_folder+'/dki_MK.nii.gz', MK, img.affine)
+	save_nifti(subject_folder+'/dki_AK.nii.gz', AK, img.affine)
+	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)

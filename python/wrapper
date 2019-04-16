@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+[ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
+exec $FREESURFER_HOME/bin/fspython $FREESURFER_HOME/python/scripts/@SCRIPTNAME@ "$@"
