@@ -6,8 +6,3 @@
 *.py filter=rcs-keywords
 *.am filter=rcs-keywords
 *.m filter=rcs-keywords
-
-# Set language recognition for fspython files
-samseg/run_samseg linguist-language=Python
-samseg/sbtiv linguist-language=Python
-infant/mri_label_fusion linguist-language=Python

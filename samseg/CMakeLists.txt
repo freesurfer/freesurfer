@@ -1,3 +1,4 @@
 project(samseg)
 
-install(PROGRAMS run_samseg sbtiv samseg DESTINATION bin)
+install(PROGRAMS samseg DESTINATION bin)
+install_pyscript(run_samseg sbtiv)
