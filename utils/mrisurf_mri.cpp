@@ -21,6 +21,7 @@
  */
 #include "mrisurf_mri.h"
 #include "mrisurf_timeStep.h"
+#include "region.h"
 
 MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features)
 {
@@ -2124,7 +2125,13 @@ static int MRIScomputeBorderValues_new(
           /* If no local max found yet, just used largest gradient if
             the intensity is in the right range. This basically keeps
             track of the max grad until a local max has been found. */
-	  if(Gdiag_no==vno) printf("vno=%d Local grad max NOT found at distance=%g\n",vno,dist);
+	  if(Gdiag_no==vno) {
+	    printf("vno=%d Local grad max NOT found at distance=%g because\n",vno,dist);
+	    if(fabs(mag) < fabs(previous_mag)) printf("  abs(mag=%g) < abs(prev_mag=%g)\n",mag,previous_mag);
+	    if(fabs(mag) < fabs(next_mag))     printf("  abs(mag=%g) < abs(next_mag=%g)\n",mag,next_mag);
+	    if(val > border_hi)                printf("  val=%g > border_hi=%g\n",val,border_hi);
+	    if(val < border_low)               printf("  val=%g < border_low=%g\n",val,border_low);
+	  }
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
 	    if(Gdiag_no==vno) printf("  ... but mag>max and val is within border\n");
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
@@ -2136,13 +2143,13 @@ static int MRIScomputeBorderValues_new(
             MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
             if (next_val >= outside_low && next_val <= border_hi && next_val < outside_hi) {
-	      if(Gdiag_no==vno) printf("  ... and next_val is in range, so keeping this distance as a candidate\n");
+	      if(Gdiag_no==vno) printf("  ... and next_val @ 1mm is in range, so keeping this distance as a candidate\n");
               max_mag_dist = dist;
               max_mag = fabs(mag);
               max_mag_val = val;
             }
 	    else {
-	      if(Gdiag_no==vno) printf("  ... but next_val=%g is NOT in range, so NOT keeping this distance as a candidate\n",next_val);
+	      if(Gdiag_no==vno) printf("  ... but next_val=%g @ 1mm is NOT in range, so NOT keeping this distance as a candidate\n",next_val);
 	    }
           }
         }
@@ -7530,3 +7537,148 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
   return (val);
 }
 
+MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp)
+{
+  int vno,frame,nframes;
+  double val, x, y, z, c,r,s;
+  VERTEX *v;
+  double d;
+
+  MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(mri, mris);
+
+  nframes = 0;
+  for(d=dstart; d<=dend; d += dstep) nframes++;
+
+  if(nsamp == NULL)
+    nsamp = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,nframes);
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag || v->val < 0) continue;
+    frame = 0;
+    for(d=dstart; d<=dend; d += dstep){
+      x = v->x + d*v->nx;
+      y = v->y + d*v->ny;
+      z = v->z + d*v->nz;
+      MRIS_useRAS2VoxelMap(sras2v_map, mri,x, y, z, &c, &r, &s);
+      if(sigma < 0){
+	MRIsampleVolume(mri, c, r, s, &val);
+      }
+      else {
+	double c2,r2,s2,dc,dr,ds,mag;
+	MRIS_useRAS2VoxelMap(sras2v_map, mri,x+v->nx, y+v->ny, z+v->nz, &c2, &r2, &s2);
+	dc = c2-c;
+	dr = r2-r;
+	ds = s2-s;
+	mag = sqrt(dc*dc+dr*dr+ds*ds);
+	dc /= mag;
+	dr /= mag;
+	ds /= mag;
+	MRIsampleVolumeDerivativeScale(mri, c,r,s, dc,dr,ds, &val, sigma);
+	val /= mri->xsize;
+      }
+      MRIsetVoxVal(nsamp,vno,0,0,frame,val);
+      frame++;
+    }
+  }
+
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
+
+  return(nsamp);
+}
+
+MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor)
+{
+  double x, y, z, c,r,s,d;
+  VERTEX *v;
+  int ic,ir,is,OutOfBounds;
+  MRI *vol;
+  MRIS_SurfRAS2VoxelMap* sras2v_map;
+  
+  v = &surf->vertices[vno];
+
+  vol = MRIallocFromVolGeom(&surf->vg, MRI_FLOAT, 1,0);
+  sras2v_map = MRIS_makeRAS2VoxelMap(vol,surf);
+
+  for(d=dstart; d<=dend; d += dstep){
+    x = v->x + d*v->nx;
+    y = v->y + d*v->ny;
+    z = v->z + d*v->nz;
+    MRIS_useRAS2VoxelMap(sras2v_map, vol, x, y, z, &c, &r, &s);
+    ic = nint(c);
+    ir = nint(r);
+    is = nint(s);
+    OutOfBounds = MRIindexNotInVolume(vol, ic, ir, is);
+    if(OutOfBounds) continue;
+    MRIsetVoxVal(vol,ic,ir,is,0,1);
+  }
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
+
+  // Extract a region that only includes the mask. These lines will force
+  // the region to share the scanner RAS with the surface volume
+  MRI_REGION *region = REGIONgetBoundingBox(vol,2);
+  MRI *mriregion = MRIextractRegion(vol, NULL, region);
+  MRI *mriregionUS = MRIupsampleN(mriregion, NULL, UpsampleFactor);
+  MRIfree(&vol);
+  MRIfree(&mriregion);
+  MRIconst(mriregionUS->width,mriregionUS->height,mriregionUS->depth,1,0,mriregionUS);
+  printf("us size: %d %d %d\n",mriregionUS->width,mriregionUS->height,mriregionUS->depth);
+
+  // Now do it again, this time with the high res. In this case, the
+  // voxel is assigned the distance from the vertex
+  sras2v_map = MRIS_makeRAS2VoxelMap(mriregionUS,surf);
+  for(d=dstart; d<=dend; d += dstep){
+    x = v->x + d*v->nx;
+    y = v->y + d*v->ny;
+    z = v->z + d*v->nz;
+    MRIS_useRAS2VoxelMap(sras2v_map, mriregionUS,x, y, z, &c, &r, &s);
+    ic = nint(c);
+    ir = nint(r);
+    is = nint(s);
+    OutOfBounds = MRIindexNotInVolume(mriregionUS, ic, ir, is);
+    //printf("%3d %3d %3d   %7.4f  %d\n",ic,ir,is,d,OutOfBounds);
+    if(OutOfBounds) continue;
+    MRIsetVoxVal(mriregionUS,ic,ir,is,0,d);
+  }
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
+
+  return(mriregionUS);
+}
+
+/*!
+  \fn int MRI *MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp)
+  \brief Outputs a pointset file that can be loaded into freeview with
+  -c. The points are uniformly placed on the normal to the given
+  vertex.
+ */
+int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp)
+{
+  VERTEX *v;
+  double d,x,y,z;
+  int frame;
+
+  v = &mris->vertices[vno];
+  // make sure the first point is at the vertex
+  frame = 0;
+  fprintf(fp,"%g %g %g\n",v->x,v->y,v->z);
+  d = 0;
+  x = v->x + d*v->nx;
+  y = v->y + d*v->ny;
+  z = v->z + d*v->nz;
+  printf("%d  %2d %6.4f %g %g %g   %g %g %g  %g %g %g\n",vno,frame,d,v->x,v->y,v->z,v->nx,v->ny,v->nz,x,y,z);
+  frame++;
+  for(d=dstart; d<=dend; d += dstep){
+    x = v->x + d*v->nx;
+    y = v->y + d*v->ny;
+    z = v->z + d*v->nz;
+    printf("%d  %2d %6.4f %g %g %g   %g %g %g  %g %g %g\n",vno,frame,d,v->x,v->y,v->z,v->nx,v->ny,v->nz,x,y,z);
+    fprintf(fp,"%g %g %g\n",x,y,z);
+    frame++;
+  }
+  fprintf(fp,"info\n");
+  fprintf(fp,"numpoints %d\n",frame);
+  fprintf(fp,"useRealRAS 0\n");
+  fflush(fp);
+
+  return(0);
+}

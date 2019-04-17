@@ -394,6 +394,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
           this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
+  connect(m_views[3], SIGNAL(MouseIn()), ui->treeWidgetMouseInfo, SLOT(ShowHeaderText()));
+  connect(m_views[3], SIGNAL(MouseOut()), ui->treeWidgetMouseInfo, SLOT(ClearHeaderText()));
+
   for ( int i = 0; i < 4; i++ )
   {
     connect( this, SIGNAL(SlicePositionChanged(bool)), m_views[i], SLOT(OnSlicePositionChanged(bool)) );

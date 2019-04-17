@@ -241,6 +241,64 @@ double MRIScomputeSSE_new(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, bool debu
     #undef SEP
   }
   
+  // This code matches code Bevin added to the previous good code to compare old and new runs
+  //
+  static int logSSECount, logSSE;
+  if (!logSSECount) { logSSE = !!getenv("FREESURFER_logSSE"); }
+  logSSECount++;
+  
+  if (false || logSSE) {
+    fprintf(stdout, "logSSE:%d \n", logSSECount);
+    
+    if (parms->l_dist) {
+      bool dist_avail  = 
+#ifdef COMPILING_MRIS_MP
+        !!mris->v_dist[0];
+#else
+        !!(mris->dist_alloced_flags & 1);
+#endif
+      #define ELT(X) fprintf(stdout, " %s:%f\n", #X, (float)(X));
+      ELT(dist_avail)
+      if (dist_avail) {
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[0];
+        VERTEX          const * const v  = &mris->vertices         [0];
+        int n;
+        for (n = 0; n < vt->vtotal; n++) {
+          float const dist_n      = !v->dist      ? 0.0 : v->dist     [n];
+          float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+          ELT(dist_n);
+          ELT(dist_orig_n);
+        }
+      }
+      ELT(mris->patch)
+      ELT(mris->status)
+      ELT(mris->orig_area)
+      ELT(mris->total_area)
+      ELT(mris->neg_area)
+#undef ELT
+    }
+
+#define SEP
+#define ELTM(NAME, MULTIPLIER, COND, EXPR, EXPRM) \
+    { double term = (MULTIPLIER) * (NAME); \
+      if (term != 0.0) { fprintf(stdout, "new %s : %f \n", #NAME, term);  } \
+    }
+
+#ifdef COMPILING_MRIS_MP
+#define ELT(NAME, MULTIPLIER, COND, EXPR)
+#else
+#define ELT(NAME, MULTIPLIER, COND, EXPR) ELTM(NAME, MULTIPLIER, NotUsed, NotUsed, NotUsed)
+#endif
+    ELT(sse_init, 1, true, sse_init)
+    SSE_TERMS
+    fprintf(stdout, "new sum = %f \n", sse);
+
+#undef ELT
+#undef ELTM
+#undef SEP
+  }
+  //
+  // end of Bevin added
 
   if (mht_v_current) MHTfree(&mht_v_current);
   if (mht_f_current) MHTfree(&mht_f_current);

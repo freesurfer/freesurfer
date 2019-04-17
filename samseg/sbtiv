@@ -1,4 +1,4 @@
-#!/usr/bin/env fspython
+#!/usr/bin/env python
 
 import freesurfer as fs
 from freesurfer.samseg import icv

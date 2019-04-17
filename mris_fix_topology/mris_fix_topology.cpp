@@ -279,6 +279,7 @@ main(int argc, char *argv[])
   /* at this point : original vertices
      real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;
+
   if (!mris_corrected || exit_after_diag)  /* for now */
     exit(0) ;
 

@@ -260,8 +260,8 @@ EXAMPLES:
 
    This will create lh.white.func in the current directory. template.nii.gz
    is a volume in the functional space. register.dat is the registration
-   file between anatomical and functional spaces. View result with:
-     freeview -v template.nii.gz -f lh.white.func
+   file between anatomical (target) and functional (movable) spaces. 
+   View result with:  freeview -v template.nii.gz -f lh.white.func
 
    When using an LTA instead of a register.dat, do not include a target volume
 
@@ -1981,9 +1981,6 @@ printf("    'holes'). If nnfr is chosen, then each hole is assigned to the close
 printf("    target vertex. If a target vertex has multiple source vertices, then the\n");
 printf("    source values are averaged together. It does not seem to make much difference.\n");
 printf("\n");
-printf("--jac\n");
-printf("    Turn on jacobian correction. This is needed when applying to area or volume \n");
-printf("\n");
 printf("  --fwhm-src fwhmsrc\n");
 printf("  --fwhm-trg fwhmtrg (can also use --fwhm)\n");
 printf("\n");
@@ -2025,6 +2022,10 @@ printf("  --frame framenumber\n");
 printf("\n");
 printf("    When using paint/w output format, this specifies which frame to output. This\n");
 printf("    format can store only one frame. The frame number is zero-based (default is 0).\n");
+printf("\n");
+printf("  --mul Mul\n");
+printf("  --div Div\n");
+printf("    Multiply or divide the input by the given value\n");
 printf("\n");
 printf("  --reshape\n");
 printf("\n");
@@ -2087,8 +2088,8 @@ printf("      --s yoursubject\n");
 printf("\n");
 printf("   This will create lh.white.func in the current directory. template.nii.gz\n");
 printf("   is a volume in the functional space. register.dat is the registration\n");
-printf("   file between anatomical and functional spaces. View result with:\n");
-printf("     freeview -v template.nii.gz -f lh.white.func\n");
+printf("   file between anatomical (target) and functional (movable) spaces. \n");
+printf("   View result with:  freeview -v template.nii.gz -f lh.white.func\n");
 printf("\n");
 printf("   When using an LTA instead of a register.dat, do not include a target volume\n");
 printf("\n");

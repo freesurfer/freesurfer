@@ -133,6 +133,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
 void ToolWindowMeasure::OnAction(QAction *act)
 {
   MainWindow::GetMainWindow()->SetAction( act->data().toInt() );
+  setWindowTitle(tr("Measure - %1").arg(act->text()));
   UpdateWidgets();
 }
 

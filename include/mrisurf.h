@@ -287,7 +287,7 @@ typedef struct vertex_type_
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,y)          SEP             /* use MRISsetXYZ() to set */                   \
   ELTT(/*CONST_EXCEPT_MRISURF_METRIC_PROPERTIES*/ float,z)          SEP                                                             \
   \
-  ELTT(const float,origx)                                       SEP             /* original coordinates */                          \
+  ELTT(const float,origx)                                       SEP             /* original coordinates, see also MRIS::origxyz_status */   \
   ELTT(const float,origy)                                       SEP             /* use MRISsetOriginalXYZ() */                      \
   ELTT(const float,origz)                                       SEP             /* or MRISsetOriginalXYZfromXYZ to set */           \
   \
@@ -538,6 +538,41 @@ typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
 typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
 
+
+enum MRIS_Status_DistanceFormula {
+  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
+  MRIS_Status_DistanceFormula_1
+};
+
+enum MRIS_Status {
+#define MRIS_Status_ELTS \
+  ELT(MRIS_SURFACE              ,0) SEP \
+  ELT(MRIS_PATCH                ,0) SEP \
+  ELT(MRIS_PLANE                ,0) SEP \
+  ELT(MRIS_ELLIPSOID            ,0) SEP \
+  ELT(MRIS_SPHERE               ,1) SEP \
+  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
+  ELT(MRIS_RIGID_BODY           ,0) SEP \
+  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
+  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
+  ELT(MRIS_PIAL_SURFACE         ,0)     \
+  // end of macro
+#define SEP ,
+#define ELT(E,D) E
+  MRIS_Status_ELTS,
+  MRIS_Status__end, 
+  MRIS_CUT = MRIS_PATCH
+#undef ELT
+#undef SEP
+};
+
+const char* MRIS_Status_text(MRIS_Status s1);
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
+bool areCompatible(MRIS_Status s1, MRIS_Status s2);
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
+#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
+
+
 typedef struct MRIS
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
@@ -620,7 +655,8 @@ typedef struct MRIS
   ELTT(float,Kmin) SEP              /* min Gaussian curvature */    \
   ELTT(float,Kmax) SEP              /* max Gaussian curvature */    \
   ELTT(double,Ktotal) SEP           /* total Gaussian curvature */    \
-  ELTT(int,status) SEP              /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,status) SEP          /* type of surface (e.g. sphere, plane) */    \
+  ELTT(MRIS_Status,origxyz_status) SEP  /* type of surface (e.g. sphere, plane) that this origxyz were obtained from */    \
   ELTT(int,patch) SEP               /* if a patch of the surface */    \
   ELTT(int,nlabels) SEP    \
   ELTP(MRIS_AREA_LABEL,labels) SEP  /* nlabels of these (may be null) */    \
@@ -851,18 +887,6 @@ positive areas */
 #define INTEGRATE_MOMENTUM         1
 #define INTEGRATE_ADAPTIVE         2
 #define INTEGRATE_LM_SEARCH        3  /* binary search for minimum */
-
-#define MRIS_SURFACE               0
-#define MRIS_PATCH                 1
-#define MRIS_CUT                   MRIS_PATCH
-#define MRIS_PLANE                 2
-#define MRIS_ELLIPSOID             3
-#define MRIS_SPHERE                4
-#define MRIS_PARAMETERIZED_SPHERE  5
-#define MRIS_RIGID_BODY            6
-#define MRIS_SPHERICAL_PATCH       7
-#define MRIS_UNORIENTED_SPHERE     8
-#define MRIS_PIAL_SURFACE          9
 
 // different Hausdorff distance modes
 #define HDIST_MODE_SYMMETRIC_MEAN 0
@@ -2929,10 +2953,15 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 
 // Vals
 //
-void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
+    //
+    // This includes copying the MRIS::status to the MRIS::origxyz_status
+    
+void MRISsetOriginalXYZwkr(MRIS *mris, int vno, float x, float y, float z, const char* file, int line, bool* laterTime);
 #define MRISsetOriginalXYZ(_MRIS,_VNO,_X,_Y,_Z) \
     { static bool laterTime; MRISsetOriginalXYZwkr((_MRIS),(_VNO),(_X),(_Y),(_Z),__FILE__,__LINE__, &laterTime); }
+    //
+    // The values being set need to match the MRIS::origxyz_status
 
 int mrisComputeOriginalVertexDistances(MRIS *mris);
 void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTime, const char* file, int line);
@@ -2943,3 +2972,11 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 
 void MRIScheckForNans(MRIS *mris);
 void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
+int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
+int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);
+int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
+int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
+MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
+MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
+  

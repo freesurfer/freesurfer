@@ -2465,15 +2465,13 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   ------------------------------------------------------*/
 int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
 {
-  int old_status;
-
   if (!sname) {
     sname = "smoothwm";
   }
 
   MRISsaveVertexPositions(mris, TMP_VERTICES);
 
-  old_status = mris->status;
+  auto const old_status = mris->status;
   mris->status = MRIS_PATCH; /* so no orientating will be done */
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadOriginalProperties: could not read surface file %s", sname));

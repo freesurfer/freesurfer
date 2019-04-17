@@ -10382,7 +10382,6 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
 /* extract the non-marked vertices from a surface */
 MRIS *MRISextractMarkedVertices(MRIS *mris)
 {
-  MRIS *mris_corrected;
   int *face_trans, *vertex_trans;
   FACE *f, *fdst;
   int vno, i, n, fno;
@@ -10392,13 +10391,15 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
   memset(vertex_trans, -1, mris->nvertices * sizeof(int));
   memset(face_trans, -1, mris->nfaces * sizeof(int));
   // create a new surface
-  mris_corrected = MRISalloc(mris->nvertices, mris->nfaces);
+  MRIS *mris_corrected = MRISalloc(mris->nvertices, mris->nfaces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
   copyVolGeom(&mris->vg, &mris_corrected->vg);
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
-
+  mris_corrected->status         = mris->status;            // this should have been done
+  mris_corrected->origxyz_status = mris->origxyz_status;    // this is new
+  
   int newNVertices;
   for (newNVertices = vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
@@ -10661,6 +10662,10 @@ MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbos
 
 int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE *mht, int which)
 {
+  if (which == VERTEX_COORDS) {
+    cheapAssert(mris_src->origxyz_status == mris_total->origxyz_status);
+  }
+  
   int vno;
   VERTEX *v, *vdst;
   MHT *mht_src = NULL;
@@ -10805,6 +10810,12 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
 #if 1
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which)
 {
+  switch (which) {
+    case VERTEX_COORDS:
+      cheapAssert(mris_dst->origxyz_status == mris_src->origxyz_status);
+      break;
+  }
+  
   int vno;
   MHT *mht_src = NULL;
   double max_len;
@@ -11039,7 +11050,6 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 {
   int *vertex_trans, *face_trans;
   int vno, fno, i, n, nrippedfaces, nrippedvertices, kept_vertices, kept_faces;
-  MRIS *mris_corrected;
 
   FACE *f, *fdst;
 
@@ -11068,12 +11078,14 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
   }
 
   // create a new surface
-  mris_corrected = MRISalloc(kept_vertices, kept_faces);
+  MRIS *mris_corrected = MRISalloc(kept_vertices, kept_faces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
   copyVolGeom(&mris->vg, &mris_corrected->vg);
 
-  mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
+  mris_corrected->type           = MRIS_TRIANGULAR_SURFACE;
+  mris_corrected->status         = mris->status;                // this should have been set, but wasn't
+  mris_corrected->origxyz_status = mris->origxyz_status;        // this is new
 
   int newNVertices = 0;
   for (nrippedvertices = vno = 0; vno < mris->nvertices; vno++) {
@@ -11473,6 +11485,8 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
 {
   MRISclearMarks(mris_new);
 
+  mris_new->origxyz_status = mris->origxyz_status;
+  
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const vold = &mris->vertices[vno];
@@ -12513,11 +12527,11 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
 
 int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
-  int old_status, steps;
+  int steps;
   INTEGRATION_PARMS parms;
 
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
-  old_status = mris->status; /* okay, okay, this is a hack too... */
+  auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
   memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
@@ -12555,11 +12569,11 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 
 int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
-  int n, old_status, steps;
+  int n, steps;
   INTEGRATION_PARMS parms;
 
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
-  old_status = mris->status; /* okay, okay, this is a hack too... */
+  auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
   memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
@@ -12630,7 +12644,7 @@ int MRISrigidBodyAlignGlobal(
 
   mrisOrientSurface(mris);
 
-  int const old_status = mris->status;
+  auto const old_status = mris->status;
   mris->status = MRIS_RIGID_BODY;
 
   if (!parms->start_t) {
@@ -12857,7 +12871,7 @@ int MRISrigidBodyAlignVectorGlobal(
     MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
 {
   double alpha, beta, gamma, degrees, delta, mina, minb, ming, sse, min_sse;
-  int old_status = mris->status;
+  auto const old_status = mris->status;
 
   min_degrees = RADIANS(min_degrees);
   max_degrees = RADIANS(max_degrees);
@@ -13090,6 +13104,7 @@ static int mrisPlaceVertexInOrigFace(MRIS * const mris_vno, int const vno, MRIS 
   ADD(e1, e2, P);
   ADD(P, U0, P);
 
+  cheapAssert(mris->status == mris->origxyz_status);
   MRISsetOriginalXYZ(mris_vno, vno, P[0], P[1], P[2]);
 
   return (NO_ERROR);

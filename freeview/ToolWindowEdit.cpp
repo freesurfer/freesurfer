@@ -150,7 +150,9 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->pushButtonGeoApply
                    << ui->pushButtonGeoUndo
                    << ui->labelTipsGeoS
-                   << ui->widgetBusyIndicator;
+                   << ui->widgetBusyIndicator
+                   << ui->checkBoxApplySmoothing
+                   << ui->lineEditSmoothingStd;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -206,6 +208,7 @@ void ToolWindowEdit::OnIdle()
   }
 
   m_bToUpdateWidgets = false;
+  ui->labelGeoMessage->clear();
   QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -298,7 +301,8 @@ void ToolWindowEdit::OnIdle()
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
-  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
+//  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
+  ui->widgetBusyIndicator->hide();
 
   ui->labelGeoLambda->hide();
   ui->labelGeoWsize->hide();
@@ -346,6 +350,8 @@ void ToolWindowEdit::OnEditMode(QAction *act)
       }
     }
   }
+  setWindowTitle(tr("Voxel Edit - %1").arg(act->text()));
+
   UpdateWidgets();
 }
 
@@ -555,6 +561,7 @@ void ToolWindowEdit::OnButtonGeoSegClear()
   LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
   if (mri)
   {
+    mri->SaveForUndo();
     mri->ClearVoxels();
     MainWindow::GetMainWindow()->RequestRedraw();
   }
@@ -582,6 +589,7 @@ void ToolWindowEdit::OnButtonGeoSegClearFilling()
 
 void ToolWindowEdit::OnButtonGeoSegGo()
 {
+  ui->labelGeoMessage->clear();
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
   if (mri)
   {
@@ -593,12 +601,21 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
       int wsize = ui->spinBoxGeoWsize->value();
       mri_fill->ClearVoxels();
-      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, NULL);
-      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished()), this, SLOT(ResetGeoSegUI()), Qt::UniqueConnection);
+      bool ok = false;
+      double std = 0;
+      if (ui->checkBoxApplySmoothing->isChecked())
+        std = ui->lineEditSmoothingStd->text().toDouble(&ok);
+      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0, NULL);
+      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnGeoSegFinished(double)), Qt::UniqueConnection);
+      connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
       ui->pushButtonGeoGo->setEnabled(false);
       ui->pushButtonGeoApply->setEnabled(false);
-      ui->widgetBusyIndicator->show();
+//      ui->widgetBusyIndicator->show();
       ui->pushButtonAbort->setEnabled(true);
+    }
+    else
+    {
+      ui->labelGeoMessage->setText("<span style=\"color:red\">No inside pixels found</span>");
     }
   }
 }
@@ -610,12 +627,25 @@ void ToolWindowEdit::OnButtonGeoSegAbort()
     mri_fill->GeodesicSegmentationAbort();
 }
 
-void ToolWindowEdit::ResetGeoSegUI()
+void ToolWindowEdit::OnGeoSegFinished(double time_in_secs)
 {
   ui->pushButtonGeoApply->setEnabled(true);
   ui->pushButtonGeoGo->setEnabled(true);
   ui->widgetBusyIndicator->hide();
   ui->pushButtonAbort->setEnabled(false);
+  if (time_in_secs < 0)
+  {
+    LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
+    ui->labelGeoMessage->setText(QString("<span style=\"color:red\">%1</span>")
+                                 .arg(mri_fill?mri_fill->GetGeoSegErrorMessage():""));
+  }
+  else
+    ui->labelGeoMessage->setText(QString::asprintf("Time taken: %.3fs", time_in_secs));
+}
+
+void ToolWindowEdit::OnGeoSegProgress(double val)
+{
+  ui->labelGeoMessage->setText(QString::asprintf("%.1f%%", val));
 }
 
 void ToolWindowEdit::OnButtonGeoSegApply()
