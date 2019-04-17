@@ -1813,6 +1813,8 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Left_Caudate:
       case Left_Accumbens_area:
       case Right_Accumbens_area:
+      case Left_VentralDC:
+      case Right_VentralDC:
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -1825,8 +1827,6 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case 691:  // Cerebellum CbmWM_Gyri_Right
       case Brain_Stem:
       case 174:  // Pons
-      case Left_VentralDC:
-      case Right_VentralDC:
       case WM_hypointensities:
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
@@ -1968,6 +1968,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Left_Caudate:
       case Left_Accumbens_area:
       case Right_Accumbens_area:
+      case Left_VentralDC:
+      case Right_VentralDC:
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -1980,8 +1982,6 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case 691:  // Cerebellum CbmWM_Gyri_Right
       case Brain_Stem:
       case 174:  // Pons
-      case Left_VentralDC:
-      case Right_VentralDC:
       case WM_hypointensities:
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
