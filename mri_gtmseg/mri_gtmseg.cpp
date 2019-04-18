@@ -137,6 +137,8 @@ int main(int argc, char *argv[]) {
     printf("Merging CTAB master with merge ctab\n");
     CTABmerge(ctMaster,ctMerge);
   }
+  printf("master tissue type schema %s\n",ctMaster->TissueTypeSchema);
+
   //err = CTABwriteFileASCIItt(ctMerge,"merge.copy.ctab");
   //err = CTABwriteFileASCIItt(ctMaster,"master.ctab");
   //if(err) exit(1);
@@ -166,6 +168,7 @@ int main(int argc, char *argv[]) {
     ct = GTMSEGctab(gtmseg, ctMaster);
     if(ct == NULL) exit(1);
   }
+  printf("tissue type schema %s\n",ct->TissueTypeSchema);
 
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,OutVolFile);
   printf("Writing output file to %s\n",tmpstr);
