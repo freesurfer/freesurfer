@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 
   dump_options(stdout);
 
-  ctMaster = TissueTypeSchema(NULL,"default-jan-2014+head");
+  ctMaster = TissueTypeSchema(NULL,"default-apr-2019+head");
 
   if(ctMerge) {
     printf("Merging CTAB master with merge ctab\n");
