@@ -180,6 +180,7 @@ int CTABunique(COLOR_TABLE *ct, int nmax);
 COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, const char *schema);
 COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct);
 COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct);
+COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct);
 int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp);
 int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname);
 COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
