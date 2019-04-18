@@ -161,6 +161,8 @@ int regtype;
 int SaveEres=0, SaveYhat=0,SaveYhat0=0, SaveInput=0,SaveYhatFullFoV=0;
 int SaveRBVSeg=0;
 int SaveGTMText=0;
+int LateralizeTT=0;
+int UpdateTT=0;
 
 GTM *gtm;
 GTMOPT *gtmopt;
@@ -302,7 +304,19 @@ int main(int argc, char *argv[])
     gtm->ctGTMSeg->entries[77]->gi = 148;
     gtm->ctGTMSeg->entries[77]->bi =  10;
     gtm->ctGTMSeg->entries[77]->ai = 255;
-    gtm->ctGTMSeg->entries[77]->TissueType = 3;
+    // Should change this to search for WM
+    if(!LateralizeTT)
+      gtm->ctGTMSeg->entries[77]->TissueType = 3;
+    else
+      gtm->ctGTMSeg->entries[77]->TissueType = 6;
+  }
+  if(UpdateTT){
+    printf("Updating tissue types\n");
+    TissueTypeSchemaDefaultHead(gtm->ctGTMSeg);
+  }
+  if(LateralizeTT){
+    printf("Lateralizing tissue types\n");
+    TissueTypeSchemaLat(gtm->ctGTMSeg);
   }
 
   if(DoRegHeader)
@@ -361,6 +375,8 @@ int main(int argc, char *argv[])
   printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
   if(Gdiag_no > 0) printf("  done pruning ctab\n"); fflush(stdout);
+
+  printf("tissue type schema %s\n",gtm->ctGTMSeg->TissueTypeSchema);
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -523,7 +539,9 @@ int main(int argc, char *argv[])
   /* Create the "SegPVF". This is a multi-frame volume, each frame corresponds to a
      different Seg ID. The value is the PVF of that SegID. This is independent of
      the PSF (but accounts for the volume fraction effect). */
-  printf("Computing Seg PVF \n");fflush(stdout);
+  // Note: tissue type lateralization (LateralizeTT) will sligthly affect this since 
+  // the tissue type is used to resolve ties.
+  printf("Computing Seg volume fraction \n");fflush(stdout);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
   gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, segpvfresmm, gtm->segidlist, 
@@ -821,18 +839,54 @@ int main(int argc, char *argv[])
     printf("Performing MGX PVC\n");
     if(Gdiag_no > 0) PrintMemUsage(stdout);
     fprintf(logfp,"MGX PVC\n");
-    GTMmgxpvc(gtm,1);
-    GTMmgxpvc(gtm,2);
-    GTMmgxpvc(gtm,3);
+
+    MRI *mgx;
+    mgx = GTMmgxpvc(gtm,1);
     sprintf(tmpstr,"%s/mgx.ctxgm.nii.gz",OutDir);
-    err = MRIwrite(gtm->mgx_ctx,tmpstr);
+    err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
+    MRIfree(&mgx);
+
+    mgx = GTMmgxpvc(gtm,2);
     sprintf(tmpstr,"%s/mgx.subctxgm.nii.gz",OutDir);
-    err = MRIwrite(gtm->mgx_subctx,tmpstr);
+    err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
+    MRIfree(&mgx);
+
+    mgx = GTMmgxpvc(gtm,3);
     sprintf(tmpstr,"%s/mgx.gm.nii.gz",OutDir);
-    err = MRIwrite(gtm->mgx_gm,tmpstr);
+    err = MRIwrite(mgx,tmpstr);
     if(err) exit(1);
+    MRIfree(&mgx);
+
+    if(LateralizeTT){
+      mgx = GTMmgxpvc(gtm,4);
+      sprintf(tmpstr,"%s/mgx.ctx.lh.nii.gz",OutDir);
+      err = MRIwrite(mgx,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mgx);
+      mgx = GTMmgxpvc(gtm,5);
+      sprintf(tmpstr,"%s/mgx.ctx.rh.nii.gz",OutDir);
+      err = MRIwrite(mgx,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mgx);
+      mgx = GTMmgxpvc(gtm,6);
+      sprintf(tmpstr,"%s/mgx.subcort.lh.nii.gz",OutDir);
+      err = MRIwrite(mgx,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mgx);
+      mgx = GTMmgxpvc(gtm,7);
+      sprintf(tmpstr,"%s/mgx.subcort.rh.nii.gz",OutDir);
+      err = MRIwrite(mgx,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mgx);
+      mgx = GTMmgxpvc(gtm,8);
+      sprintf(tmpstr,"%s/mgx.subcort.mid.nii.gz",OutDir);
+      err = MRIwrite(mgx,tmpstr);
+      if(err) exit(1);
+      MRIfree(&mgx);
+    }
+
     if(Gdiag_no > 0) printf("done with mgxpvc\n");
     fprintf(logfp,"done with mgxpvc\n");
   }
@@ -1205,10 +1259,13 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if(!strcmp(option, "--ctab-default"))  gtm->ctGTMSeg = TissueTypeSchemaDefaultHead(NULL);
-
+    else if(!strcmp(option, "--lat"))  LateralizeTT=1;
+    else if(!strcmp(option, "--no-lat"))  LateralizeTT=1;
+    else if(!strcmp(option, "--update-tt"))  UpdateTT=1;
+    else if(!strcmp(option, "--no-update-tt"))  UpdateTT=0;
     else if(!strcasecmp(option, "--tt-reduce")){
       ttReduce = 1;
-      gtm->scale_refids[0] = 3; // probably WM
+      gtm->scale_refids[0] = 3; // probably WM (might not be with lat)
     }
     else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
     else if(!strcasecmp(option, "--default-seg-merge"))
@@ -1625,6 +1682,14 @@ static void print_usage(void) {
   printf("   --rescale Id1 <Id2...>  : specify reference region(s) used to rescale (default is pons)\n");
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
+  printf("   --ctab ctab : specify color table explicitly\n");
+  printf("   --ctab-default : use default ctab\n");
+  printf("   --tt-update : changes tissue type of VentralDC, BrainStem, and Pons to be SubcortGM\n");
+  printf("     This will become the default for gtmseg in post FS6 versions\n");
+  printf("   --lat : lateralize tissue types (--no-lat will turn off lateralization flag)\n");
+  printf("      Mainly used with MGX to produce laterized maps (good for asymmetry studies)\n");
+  printf("      Note: tissue type lateralization will sligthly affect results since \n");
+  printf("      the tissue type is used to resolve ties.\n");
   printf("\n");
   printf("   --no-tfe : do not correction for tissue fraction effect (with --psf 0 turns off PVC entirely)\n");
   printf("   --segpvfres resmm : set the tissue fraction resolution parameter (def is %g)\n",segpvfresmm);
