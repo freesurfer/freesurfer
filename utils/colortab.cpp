@@ -1717,11 +1717,12 @@ depending upon the schema)
 */
 COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, const char *schema)
 {
-  if (strcmp(schema, "default-jan-2014") == 0) {
+  if(strcmp(schema, "default-jan-2014")==0 ||
+     strcmp(schema, "default-apr-2019+head")==0) {
     ct = TissueTypeSchemaDefault(ct);
     return (ct);
   }
-  if (strcmp(schema, "default-jan-2014+head") == 0) {
+  if(strcmp(schema, "default-jan-2014+head") == 0) {
     ct = TissueTypeSchemaDefaultHead(ct);
     return (ct);
   }
