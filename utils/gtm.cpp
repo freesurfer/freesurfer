@@ -533,6 +533,7 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
   ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
 
   ct->ctabTissueType = CTABdeepCopy(ctSubCort->ctabTissueType);
+  strcpy(ct->TissueTypeSchema,ctSubCort->TissueTypeSchema);
 
   // Add an entry for unknown
   segid = 0;
