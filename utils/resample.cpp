@@ -2733,9 +2733,10 @@ static int CompareAVIndices(const void *i1, const void *i2)
   run-vbm (which uses DARTEL).  The input vol is anything that shares
   the scanner space with the input to vbm.  The warp field is
   y_rinput.nii. LRRev=0,1 indicates that the pixels in the anatomical
-  were left-right reversed before the warp was computed (good for asym
-  studies). This will only work when the column of the warp input is
-  in the left-right direction. Interp: SAMPLE_NEAREST=0 or
+  were left-right reversed before the warp was computed. I thought
+  thiwas good for asym studies, but it turns out it is not
+  needed. This will only work when the column of the warp input is in
+  the left-right direction. Interp: SAMPLE_NEAREST=0 or
   SAMPLE_TRILINEAR=1.  Handles multiple frames.  The output will be in
   the warp space.
  */
@@ -2801,9 +2802,10 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
   vbmiRAS->rptr[4][1] = 1;
   MATRIX *CRS  = MatrixAlloc(4,1,MATRIX_REAL);
   CRS->rptr[4][1] = 1;
-  for(c=0; c < warp->width; c++){
-    for(r=0; r < warp->height; r++){
-      for(s=0; s < warp->depth; s++){
+  // use 1 to N-1 instead of 1 to N because edge voxels are invalid in the warp
+  for(c=1; c < warp->width-1; c++){
+    for(r=1; r < warp->height-1; r++){
+      for(s=1; s < warp->depth-1; s++){
 	// Get the RAS in the vbm input space
 	for(k=0; k<3; k++) vbmiRAS->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
 	// Get the 1-based CRS in the vbm-input space (usually a conformed space)
