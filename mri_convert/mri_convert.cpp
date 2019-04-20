@@ -1049,6 +1049,10 @@ int main(int argc, char *argv[])
       {
         out_data_type = MRI_FLOAT;
       }
+      else if(strcmp(StrLower(out_data_type_string), "rgb") == 0)
+      {
+        out_data_type = MRI_RGB;
+      }
       else
       {
         fprintf(stderr, "\n%s: unknown data type \"%s\"\n",

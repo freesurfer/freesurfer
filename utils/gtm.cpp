@@ -533,6 +533,7 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
   ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
 
   ct->ctabTissueType = CTABdeepCopy(ctSubCort->ctabTissueType);
+  strcpy(ct->TissueTypeSchema,ctSubCort->TissueTypeSchema);
 
   // Add an entry for unknown
   segid = 0;
@@ -1509,27 +1510,53 @@ int GTMrbv0(GTM *gtm)
 }
 /*--------------------------------------------------------------------------*/
 /*
-  \fn int GTMmgpvc(GTM *gtm)
+  \fn int GTMmgxpvc(GTM *gtm)
   \brief GLM-based modified Muller-Gartner PVC.  Residualizes input
   wrt the GLM estimate of the non-target tissue, the divides the
-  residual by the fraction of the target in a voxel. Target=1 means
-  cortex only, Target=2 means subcorticalgm only, Target=3 means both
-  cortical and subcortical GM. Tissue type IDs are hard-coded.
+  residual by the fraction of the target in a voxel. 
+   Target=1 cortex only
+   Target=2 subcorticalgm only
+   Target=3 all GM 
+   Target=4 left hemi cortex
+   Target=5 right hemi cortex
+   Target=6 left hemi subcort gm
+   Target=7 right hemi subcort gm
+   Target=8 non-lateralized subcort gm
+   Targets 4-8 require lateralized tissue type ctab, eg, see
+    TissueTypeSchemaLat()
  */
-int GTMmgxpvc(GTM *gtm, int Target)
+MRI *GTMmgxpvc(GTM *gtm, int Target)
 {
-  int nthseg, segid, r, tt, f;
+  int nthseg, segid, r, f, tt;
   MATRIX *betaNotTarg, *yNotTarg, *ydiff;
   double sum;
+  MRI *mgx=NULL;
+  COLOR_TABLE_ENTRY *cte;
+  //COLOR_TABLE *ttctab = gtm->ctGTMSeg->ctabTissueType;
 
   // Set beta values to 0 if they are not in the target tissue type(s)
   betaNotTarg = MatrixAlloc(gtm->beta->rows, gtm->beta->cols, MATRIX_REAL);
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
     segid = gtm->segidlist[nthseg];
     tt = gtm->ctGTMSeg->entries[segid]->TissueType;
-    if (Target == 1 && tt == 1) continue;
-    if (Target == 2 && tt == 2) continue;
-    if (Target == 3 && (tt == 1 || tt == 2)) continue;
+    cte = gtm->ctGTMSeg->ctabTissueType->entries[tt];
+    if(Target == 1 || Target == 3){
+      if(strcmp("cortex",cte->name)==0) continue;
+      if(strcmp("cortex-lh",cte->name)==0) continue;
+      if(strcmp("cortex-rh",cte->name)==0) continue;
+    }
+    if(Target == 2 || Target == 3){
+      if(strcmp("subcort_gm",cte->name)==0) continue;
+      if(strcmp("subcort_gm-lh",cte->name)==0) continue;
+      if(strcmp("subcort_gm-rh",cte->name)==0) continue;
+      if(strcmp("subcort_gm-mid",cte->name)==0) continue;
+    }
+    if(Target == 4 && strcmp("cortex-lh",cte->name)==0) continue;
+    if(Target == 5 && strcmp("cortex-rh",cte->name)==0) continue;
+    if(Target == 6 && strcmp("subcort_gm-lh",cte->name)==0) continue;
+    if(Target == 7 && strcmp("subcort_gm-rh",cte->name)==0) continue;
+    if(Target == 8 && strcmp("subcort_gm-mid",cte->name)==0) continue;
+    // otherwise
     for (f = 0; f < gtm->nframes; f++) betaNotTarg->rptr[nthseg + 1][f + 1] = gtm->beta->rptr[nthseg + 1][f + 1];
   }
 
@@ -1544,10 +1571,34 @@ int GTMmgxpvc(GTM *gtm, int Target)
     for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
       segid = gtm->segidlist[nthseg];
       tt = gtm->ctGTMSeg->entries[segid]->TissueType;
-      if (Target == 1 && tt != 1) continue;
-      if (Target == 2 && tt != 2) continue;
-      if (Target == 3 && tt != 1 && tt != 2) continue;
-      sum += gtm->X->rptr[r + 1][nthseg + 1];
+      cte = gtm->ctGTMSeg->ctabTissueType->entries[tt];
+      if(Target == 1){ // asking for cortex
+	if(strcmp("cortex",cte->name)!=0 &&
+	   strcmp("cortex-lh",cte->name)!=0 &&
+	   strcmp("cortex-rh",cte->name)!=0) continue; // but this is not cortex
+      }
+      if(Target == 2){ // asking for subcort
+	if(strcmp("subcort_gm",cte->name)!=0 && 
+	   strcmp("subcort_gm-lh",cte->name)!=0 &&
+	   strcmp("subcort_gm-rh",cte->name)!=0) continue; // but this is not subcort
+      }
+      if(Target == 3){ // asking for any GM
+	if(strcmp("cortex",cte->name)!=0 &&
+	   strcmp("cortex-lh",cte->name)!=0 &&
+	   strcmp("cortex-rh",cte->name)!=0 &&
+	   strcmp("subcort_gm",cte->name)!=0 &&
+	   strcmp("subcort_gm-lh",cte->name)!=0 &&
+	   strcmp("subcort_gm-rh",cte->name)!=0 &&
+	   strcmp("subcort_gm-mid",cte->name)!=0) continue; // but this is not GM
+      }
+      if(Target == 4 && strcmp("cortex-lh",cte->name)!=0) continue;
+      if(Target == 5 && strcmp("cortex-rh",cte->name)!=0) continue;
+      if(Target == 6 && strcmp("subcort_gm-lh",cte->name)!=0) continue;
+      if(Target == 7 && strcmp("subcort_gm-rh",cte->name)!=0) continue;
+      if(Target == 8 && strcmp("subcort_gm-mid",cte->name)!=0) continue;
+
+      // otherwise
+      sum += gtm->X->rptr[r+1][nthseg+1];
     }
     if (sum < gtm->mgx_gmthresh)
       for (f = 0; f < gtm->nframes; f++) ydiff->rptr[r + 1][f + 1] = 0;
@@ -1555,15 +1606,14 @@ int GTMmgxpvc(GTM *gtm, int Target)
       for (f = 0; f < gtm->nframes; f++) ydiff->rptr[r + 1][f + 1] /= sum;
   }
 
-  if (Target == 1) gtm->mgx_ctx = GTMmat2vol(gtm, ydiff, NULL);
-  if (Target == 2) gtm->mgx_subctx = GTMmat2vol(gtm, ydiff, NULL);
-  if (Target == 3) gtm->mgx_gm = GTMmat2vol(gtm, ydiff, NULL);
+  mgx = GTMmat2vol(gtm, ydiff, NULL);
+
 
   MatrixFree(&betaNotTarg);
   MatrixFree(&yNotTarg);
   MatrixFree(&ydiff);
 
-  return (0);
+  return(mgx);
 }
 
 /*--------------------------------------------------------------------------*/

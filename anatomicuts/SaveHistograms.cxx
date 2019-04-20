@@ -39,7 +39,7 @@ int main(int narg, char*  arg[])
 	}
 	const unsigned int PointDimension = 3;
 	typedef itk::Mesh< PixelType, PointDimension > MeshType;
-	typedef PolylineMeshToVTKPolyDataFilter<MeshType> VTKConverterType;
+	//typedef PolylineMeshToVTKPolyDataFilter<MeshType> VTKConverterType;
 	typedef VTKPolyDataToPolylineMeshFilter<MeshType> MeshConverterType;
 
 	const char* filename =cl.follow("histograms.csv",2,"-O","-o"); 
@@ -142,10 +142,10 @@ int main(int narg, char*  arg[])
 		MeshType::Pointer mesh =  converter->GetOutput();
 
 		MeshType::CellsContainer::ConstIterator itCell = mesh->GetCells()->Begin();
-		int cellId = 0;
+		//int cellId = 0;
 
 		std::vector<std::map<int,int>> histograms;
-		for( int i=0;i<direcciones.size();i++)
+		for(unsigned int i=0;i<direcciones.size();i++)
 			histograms.push_back(std::map<int,int>());
 
 		for( ;itCell != mesh->GetCells()->End();itCell++)
@@ -165,7 +165,7 @@ int main(int narg, char*  arg[])
 				else
 					histograms[0][label]=1;
 
-				for(int i=0;i<direcciones.size();i++)
+				for(unsigned int i=0;i<direcciones.size();i++)
 				{
 					PixelType vecino = label;
 					itk::ContinuousIndex<float,3> continuousIndex = index;
@@ -199,7 +199,7 @@ int main(int narg, char*  arg[])
 				}
 			}
 		}
-		for(int i=0;i<indeces.size();i++)
+		for(unsigned int i=0;i<indeces.size();i++)
 		{
 			csv_file << fiberFile << ",D:"<<indeces[i][0]<< ":"<<indeces[i][1]<<":"<<indeces[i][2]<<",";
 			for(std::map<int,int>::iterator it=histograms[i].begin(); it!= histograms[i].end(); ++it)

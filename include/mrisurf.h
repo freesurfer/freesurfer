@@ -2910,3 +2910,11 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 
 void MRIScheckForNans(MRIS *mris);
 void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
+int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
+int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);
+int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
+int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
+MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
+MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
+  

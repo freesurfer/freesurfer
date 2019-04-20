@@ -16412,6 +16412,8 @@ const char *MRItype2str(int type)
     return ("bitmap");
   case MRI_TENSOR:
     return ("tensor");
+  case MRI_RGB:
+    return ("RGB") ;
   }
   return ("unknown data type");
 }

@@ -189,3 +189,22 @@ function(library_paths)
   endforeach()
   set(${ARG_NAME} ${LIB_LIST} PARENT_SCOPE)
 endfunction()
+
+
+# pyscript(<scripts>)
+# This function installs and wraps python scripts that are meant to be run
+# with fspython. It will install the actual scripts to python/scripts and create
+# a wrapper with the same names in the bin directory. For example:
+#     pyscript(samseg)
+# creates the bash script $FREESURFER_HOME/bin/samseg that calls the real samseg
+# with the correct fspython distribution and packages.
+function(install_pyscript)
+  foreach(SCRIPT ${ARGN})
+    install(FILES ${SCRIPT} DESTINATION python/scripts)
+    install(CODE "
+      message(STATUS \"Configuring python wrapper: ${CMAKE_INSTALL_PREFIX}/bin/${SCRIPT}\")
+      set(SCRIPTNAME ${SCRIPT})
+      configure_file(${CMAKE_SOURCE_DIR}/python/wrapper ${CMAKE_INSTALL_PREFIX}/bin/${SCRIPT} @ONLY)"
+    )
+  endforeach()
+endfunction()
