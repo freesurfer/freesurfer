@@ -131,6 +131,14 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 #define freeAndNULL(PTR) { free((void*)(PTR)); (PTR) = NULL; }
 
 
+// Some trivial types
+//
+#ifndef uchar
+typedef unsigned char unsigned_char;
+#define uchar unsigned_char
+#endif
+
+typedef const float * ptr_to_const_float;
 // Some trivial math functions needed lots
 //
 #pragma GCC diagnostic ignored "-Wunused-function"

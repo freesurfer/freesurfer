@@ -28,7 +28,7 @@
 
 #include "diag.h"
 #include "error.h"
-#include "label.h"
+#include "mrisurf.h"
 #include "macros.h"
 #include "mri.h"
 #include "proto.h"
