@@ -38,6 +38,7 @@ set DoClusterMean = 1
 set OutputAnnot = 1
 set DoGRFOCNAnat = 0;
 set y = ()
+set framemask = ()
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -164,6 +165,15 @@ while($#glmfitcmd)
       endif
     endif
     if("$flag" == "--table") set UseTable = 1;
+    breaksw
+  case "--frame-mask"
+    set framemask = $glmfitcmd[1]; 
+    shift glmfitcmd;
+    if(! -e $framemask) then
+      echo "ERROR: cannot find frame mask $framemask"
+      exit 1;
+    endif
+    echo "Using frame mask $framemask"
     breaksw
   case "--wls"
     if($nulltype == perm) then
@@ -417,6 +427,7 @@ if($DoSim) then
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
+    if($#framemask)  set cmd = ($cmd --frame-mask $framemask)
     # --y must go after --fsgd
     if(! $UseTable) then
       set cmd = ($cmd --mask $mask)
