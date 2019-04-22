@@ -1,3 +1,4 @@
+#pragma once
 /**
  * @file  mrishash.h
  * @brief Implements a hash table mechanism to speed comparing vertices
@@ -25,16 +26,14 @@
  *
  */
 
-
-#ifndef MRISHASH_ONCE_H
-#define MRISHASH_ONCE_H
+#include "mrisurf_aaa.h"
+#include "error.h"
 
 // define the following to get a single inclusion of non-renamed functions
 #define MRISHASH_VANILLA_FUNCS
 
 
 //--------------------------
-typedef struct _mht MRIS_HASH_TABLE, MHT ;
 
 // Ad hoc test functions
 int MHT_gw_version(void);  // version of that unit
@@ -168,4 +167,3 @@ int mhtBruteForceClosestFace(MRIS const *mris,
 void MHT_maybeParallel_begin();     // Note: Can be nested!
 void MHT_maybeParallel_end();
 
-#endif // END #ifndef MRISHASH_ONCE_H
