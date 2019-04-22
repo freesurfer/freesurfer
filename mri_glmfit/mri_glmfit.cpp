@@ -2248,8 +2248,7 @@ int main(int argc, char **argv) {
 
   // --------- Save FSGDF stuff --------------------------------
   if (fsgd != NULL) {
-    if ((NULL == fsgd->measname) || (strlen(fsgd->measname) == 0))
-    {
+    if (strlen(fsgd->measname) == 0) {
       strcpy(fsgd->measname,"external");
     }
     if(yOutFile != NULL) sprintf(fsgd->datafile,"%s",yOutFile);

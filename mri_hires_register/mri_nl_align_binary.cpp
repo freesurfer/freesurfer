@@ -182,10 +182,11 @@ main(int argc, char *argv[])
 {
 	char         **av, *source_fname, *target_fname, *out_fname, fname[STRLEN] ;
   int          ac, nargs, i, new_transform = 0, pad ;
-	MRI          *mri_target, *mri_source, *mri_tmp, *mri_orig_source, *mri_orig_target ;
+	MRI          *mri_target = nullptr, *mri_source, *mri_tmp, *mri_orig_source, *mri_orig_target ;
 #if NONMAX
-	MRI          *mri_dist_target = NULL, *mri_dist_source_sup, 
-		*mri_dist_target_sup, *mri_dist_source = NULL ;
+	MRI          *mri_dist_target = nullptr, *mri_dist_source_sup, 
+		*mri_dist_target_sup, *mri_dist_source = nullptr
+     ;
 #endif
 	MRI_REGION   box ;
   Timer start ;

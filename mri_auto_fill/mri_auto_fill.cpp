@@ -83,7 +83,7 @@ main(int argc, char *argv[])
   *mri_inv_T1_std, *mri_tmp ;
   char   *filled_fname, *template_fname, *out_fname, *xform_fname, fname[100],
   *T1_fname ;
-  M3D    *m3d ;
+  M3D    *m3d = nullptr;
   GCAM   *gcam;
   int     msec ;
 

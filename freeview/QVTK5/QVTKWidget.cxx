@@ -42,7 +42,7 @@
 # include "vtkTDxMacDevice.h"
 #endif
 
-# include "QVTKWidget/QVTKPaintEngine.h"
+#include "QVTKPaintEngine.h"
 
 #include "qevent.h"
 #include "qapplication.h"

@@ -2904,7 +2904,7 @@ MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, i
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
 {
   int width, height, depth, x, y, z, nvox;
-  BUFTYPE *psrc, *pdst;
+  BUFTYPE *psrc, *pdst = nullptr;
 
   MRIcheckVolDims(mri_src, mri_dst);
 

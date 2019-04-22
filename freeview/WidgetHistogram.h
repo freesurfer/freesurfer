@@ -29,7 +29,7 @@
 #include <QColor>
 #include <QPolygon>
 
-class LineMarker;
+struct LineMarker;
 typedef QVector<LineMarker> LineMarkers;
 
 struct LineMarker

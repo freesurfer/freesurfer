@@ -23,13 +23,13 @@
  *
  */
 
-using namespace std;
-
 #ifndef __SURFACE_H__
 #define __SURFACE_H__
 
 #include "mri.h"
 #include "mrisurf.h"
+
+using namespace std;
 
 void  mark_geodesic(MRIS *surf, int vno_i, int vno_f, int mark);
 

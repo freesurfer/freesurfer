@@ -1570,7 +1570,6 @@ private:
 {};
 
   std::vector<int> m_vecAparcIgnored;
-  int ctIndex;
   MRIS* m_psurf;
 
   void

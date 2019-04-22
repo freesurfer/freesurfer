@@ -270,27 +270,27 @@ static void checkThread0()
 }
  
 static void lockBuckets(const MRIS_HASH_TABLE *mhtc) {
-    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
 #ifdef HAVE_OPENMP
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
     if (parallelLevel) omp_set_lock(&mht->buckets_lock); else checkThread0();
 #endif
 }
 static void unlockBuckets(const MRIS_HASH_TABLE *mhtc) {
-    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
 #ifdef HAVE_OPENMP
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
     if (parallelLevel) omp_unset_lock(&mht->buckets_lock); else checkThread0();
 #endif
 }
 
 static void lockBucket(const MHBT *bucketc) {
-    MHBT *bucket = (MHBT *)bucketc;
 #ifdef HAVE_OPENMP
+    MHBT *bucket = (MHBT *)bucketc;
     if (parallelLevel) omp_set_lock(&bucket->bucket_lock); else checkThread0();
 #endif
 }
 static void unlockBucket(const MHBT *bucketc) {
-    MHBT *bucket = (MHBT *)bucketc;
 #ifdef HAVE_OPENMP
+    MHBT *bucket = (MHBT *)bucketc;
     if (parallelLevel) omp_unset_lock(&bucket->bucket_lock); else checkThread0();
 #endif
 }
@@ -894,9 +894,12 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRIS const *mris, int which, fl
   -------------------------------------------------------------*/
 static int mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int forvnum)
 {
-  if (xv < 0) xv = 0;  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
-  if (yv < 0) yv = 0;  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
-  if (zv < 0) zv = 0;  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
+  if (xv < 0) xv = 0;
+  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
+  if (yv < 0) yv = 0;
+  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
+  if (zv < 0) zv = 0;
+  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
   // [GW] (removed xv,yv,zv check here, as it's impossible to trigger)
 
@@ -958,10 +961,10 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
   int i;
 
   if (xv < 0) xv = 0;
-  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
   if (yv < 0) yv = 0;
-  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
   if (zv < 0) zv = 0;
+  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
+  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
   if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
   if (!existsBuckets2(mht,xv,yv)) return (NO_ERROR);  // no bucket at such coordinates

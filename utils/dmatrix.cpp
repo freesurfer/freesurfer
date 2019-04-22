@@ -48,8 +48,8 @@ int DMatrixTest(void)
   double v,vf,vd;
 
   printf("DMatrix: testing constant value ...");
-  mf = MatrixConstVal(14,7,2.4,NULL);
-  md = DMatrixConstVal(14,7,2.4,NULL);
+  mf = MatrixConstVal(14,7,2,NULL);
+  md = DMatrixConstVal(14,7,2,NULL);
   if(md==NULL) return(1);
   v = DMatrixCompareFMatrix(mf,md);
   if(v > .0001){

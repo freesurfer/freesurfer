@@ -138,7 +138,7 @@ class IntersectsWith : public std::unary_function<VectorType, bool>
 {
   TopologySolver::IndexVectorPointer& m_container;
 public:
-  IntersectsWith(TopologySolver::IndexVectorPointer c) : m_container(c)
+  IntersectsWith(TopologySolver::IndexVectorPointer& c) : m_container(c)
   {}
 
   bool operator()(const TopologySolver::IndexVectorPointer other) const

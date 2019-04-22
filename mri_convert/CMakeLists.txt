@@ -1,5 +1,8 @@
 project(mri_convert)
 
+# ATH: temporarily turning off this warning
+add_compile_options(-Wno-self-assign)
+
 include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/dicom)
 
 add_executable(mri_convert mri_convert.cpp)

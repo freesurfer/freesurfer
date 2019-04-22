@@ -74,6 +74,7 @@ public:
   {}
   virtual ~IoError() throw()
   {}
+  using std::exception::what;
   virtual const char* what()
   {
     return m_what.c_str();

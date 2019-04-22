@@ -725,7 +725,7 @@ simpleSynopsis_show(void)
 void *
 xmalloc (size_t size)
 {
-  register void *value = malloc (size);
+  void *value = malloc (size);
   if (value == 0)
   {
     ErrorExit(10, "%s: virtual memory exhausted.", G_pch_progname);

@@ -4,17 +4,17 @@ if(ITK_FOUND AND VTK_FOUND)
 
   include(${ITK_USE_FILE})
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-local-typedefs")
+  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-unused-variable -Wno-unused-local-typedefs)
 
   include_directories(
     ${FS_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Code
+    ${CMAKE_SOURCE_DIR}/anatomicuts/Code
+    SYSTEM
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/anatomicuts/Code
-    Code
   )
   
-  #set (CMAKE_CXX_FLAGS "-fpermissive")
   add_executable(mris_multimodal mris_multimodal.cxx)
   target_link_libraries(mris_multimodal utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal DESTINATION bin)
