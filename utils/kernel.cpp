@@ -228,7 +228,7 @@ void KernelImageDump(KIMAGE *kimage, FILE *fp)
       fprintf(fp, "kernel at (%d, %d), row0, col0 = (%d, %d)\n", row, col, kernel->row0, kernel->col0);
       for (krow = 0; krow < kernel->rows; krow++) {
         for (kcol = 0; kcol < kernel->cols; kcol++) {
-          if (fabs(kernel->weights[krow][kcol] > 0.00001)) {
+          if (fabs(kernel->weights[krow][kcol]) > 0.00001) {
             fprintf(fp,
                     "\t(%d, %d) --> (%d, %d) = %f\n",
                     krow,

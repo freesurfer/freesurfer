@@ -23,15 +23,14 @@
  *
  */
 
-
-using namespace std;
-
 #ifndef __DIJKSTRA_H__
 #define __DIJKSTRA_H__
 
 #include <string>
 #include <iostream>
 #include <fstream>
+
+using namespace std;
 
 #include "mri.h"
 #include "mrisurf.h"
