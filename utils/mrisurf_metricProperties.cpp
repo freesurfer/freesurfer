@@ -3691,11 +3691,7 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
   return (NO_ERROR);
 }
 
-<<<<<<< HEAD
 int MRISvertexCoord2XYZ_float(VERTEX const * const v, int const which, float * const x, float * const y, float * const z)
-=======
-int MRISvertexCoord2XYZ_float(VERTEX const *v, int which, float *x, float *y, float *z)
->>>>>>> dev
 {
   switch (which) {
     case ORIGINAL_VERTICES:

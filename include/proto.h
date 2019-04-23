@@ -28,8 +28,6 @@
 #ifndef _PROTO_H_
 #define _PROTO_H_
 
-#include "base.h"
-
 #if defined(SunOS) | defined(IRIX)
 #include <ieeefp.h>
 #endif
@@ -126,7 +124,6 @@ int ftime(struct timeb *tp) ;
 #ifdef IRIX
 //#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /*  ((int)(rint((double)f))) */
-/*#define isnan(f)  0*/
 double rint(double x) ;
 #endif
 
@@ -134,7 +131,6 @@ double rint(double x) ;
 #ifdef _MSDOS
 //#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)((double)f+(f < 0 ? -0.5 : 0.5))) */
-#define isnan(f) 0
 #define unlink _unlink
 #define hypot  _hypot
 #endif   /* MSDOS */

@@ -30,6 +30,7 @@
 #endif
 
 #include <math.h>
+#include <cmath>        // isnan
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -134,6 +135,24 @@ typedef const float * ptr_to_const_float;
 
 // Some trivial math functions needed lots
 //
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isnan   (float  v) { return std::isnan(v);    }
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isnan   (double v) { return std::isnan(v);    }
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isfinite(float  v) { return std::isfinite(v); }
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isfinite(double v) { return std::isfinite(v); }
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isinf(float  v) { return std::isinf(v); }
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+static bool isinf(double v) { return std::isinf(v); }
+
 #pragma GCC diagnostic ignored "-Wunused-function"
 static float squaref(float x) { return x*x; }
 
