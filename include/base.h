@@ -136,10 +136,7 @@ typedef const float * ptr_to_const_float;
 // Some trivial math functions needed lots
 //
 #pragma GCC diagnostic ignored "-Wunused-function"
-static bool isnan   (float  v) { return std::isnan(v);    }
-
-#pragma GCC diagnostic ignored "-Wunused-function"
-static bool isnan   (double v) { return std::isnan(v);    }
+static bool isnan   (long double v) { return std::isnan(v);    }
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 static bool isfinite(float  v) { return std::isfinite(v); }
