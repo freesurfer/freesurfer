@@ -139,6 +139,8 @@ typedef unsigned char unsigned_char;
 #endif
 
 typedef const float * ptr_to_const_float;
+
+
 // Some trivial math functions needed lots
 //
 #pragma GCC diagnostic ignored "-Wunused-function"

@@ -81,7 +81,7 @@ int    mrisComputeCorrelationTerm               (MRI_SURFACE *mris,             
 int    mrisComputeDistanceTerm                  (MRI_SURFACE *mris,                              INTEGRATION_PARMS *parms);
 int    mrisComputeExpandwrapTerm                (MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap);
 int    mrisComputeExpansionTerm                 (MRI_SURFACE *mris, double l_expand);
-int    mrisComputeIntensityGradientTerm         (MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth);
+int    mrisComputeIntensityGradientTerm         (MRI_SURFACE *mris, double l_grad,      MRI *mri_brain, MRI *mri_smooth);
 int    mrisComputeIntensityTerm                 (MRI_SURFACE *mris, double l_intensity, MRI *mri_brain, MRI *mri_smooth, double sigma, INTEGRATION_PARMS *parms);
 int    mrisComputeLinkTerm                      (MRI_SURFACE *mris, double l_spring, int    pial);
 int    mrisComputeMaxSpringTerm                 (MRI_SURFACE *mris, double l_spring);
@@ -202,4 +202,5 @@ int MRISrestoreExtraGradients(MRI_SURFACE *mris);
 
 int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse);
 
-
+bool   MRISMP_computeSSE_canDo(               INTEGRATION_PARMS *parms);
+double MRISMP_computeSSE      (MRIS_MP* mris, INTEGRATION_PARMS *parms);

@@ -55,6 +55,45 @@
     //
     // This is used in a repeatable arbitrary true false selector based on the resulting int being EVEN or ODD
 
+typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
+typedef char    MRIS_subject_name_t[STRLEN] ;
+typedef char    MRIS_fname_t[STRLEN] ;
+
+
+enum MRIS_Status_DistanceFormula {
+  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
+  MRIS_Status_DistanceFormula_1
+};
+
+enum MRIS_Status {
+#define MRIS_Status_ELTS \
+  ELT(MRIS_SURFACE              ,0) SEP \
+  ELT(MRIS_PATCH                ,0) SEP \
+  ELT(MRIS_PLANE                ,0) SEP \
+  ELT(MRIS_ELLIPSOID            ,0) SEP \
+  ELT(MRIS_SPHERE               ,1) SEP \
+  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
+  ELT(MRIS_RIGID_BODY           ,0) SEP \
+  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
+  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
+  ELT(MRIS_PIAL_SURFACE         ,0)     \
+  // end of macro
+#define SEP ,
+#define ELT(E,D) E
+  MRIS_Status_ELTS,
+  MRIS_Status__end, 
+  MRIS_CUT = MRIS_PATCH
+#undef ELT
+#undef SEP
+};
+
+const char* MRIS_Status_text(MRIS_Status s1);
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
+bool areCompatible(MRIS_Status s1, MRIS_Status s2);
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
+#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
+
+
 
 typedef struct _mht                 MRIS_HASH_TABLE, MHT ;
 typedef struct LABEL_VERTEX         LABEL_VERTEX,    LV  ;

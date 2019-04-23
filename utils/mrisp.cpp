@@ -1674,7 +1674,6 @@ MRIS *MRISgradientFromParameterization(MRI_SP *mrisp, MRIS *mris)
 void MRISPfunctionVal_radiusR(                                                      // returns the value that would be stored in resultsForEachFno[0] for fnoLo
                               MRI_SURFACE_PARAMETERIZATION *mrisp,  
                               MRISPfunctionValResultForAlpha* resultsForEachAlpha,  // must be numAlphas elements
-                              MRIS *mris,
                               float r, float x, float y, float z, 
                               int fnoLo, bool getNextAlso,                          // always fills in resultsForEachAlpha.curr for fno, optionally fills in .next for fno+1
                               float const * alphas, float numAlphas,                // rotate x,y,z by these alphas (radians) and get the values
@@ -1777,13 +1776,13 @@ void MRISPfunctionVal_radiusR(                                                  
 }
 
 
-double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno, bool trace)
+double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, float desired_radius, float x, float y, float z, int fno, bool trace)
 {
   double r = sqrt(x * x + y * y + z * z);
 
-  if (!FEQUAL(r, mris->radius)) /* project it onto sphere */
+  if (!FEQUAL(r, desired_radius)) /* project it onto sphere */
   {
-    r = mris->radius;
+    r = desired_radius;
     double r2 = r * r;
     double r4 = r2 * r2;
     double r6 = r2 * r4;
@@ -1804,12 +1803,12 @@ double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris
 
   float zero = 0.0f;
   MRISPfunctionValResultForAlpha result;
-  MRISPfunctionVal_radiusR(mrisp, &result, mris, r, x, y, z, fno, false, &zero, 1, trace);
+  MRISPfunctionVal_radiusR(mrisp, &result, r, x, y, z, fno, false, &zero, 1, trace);
   return result.curr;
 }
 
-double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno) {
-    return MRISPfunctionValTraceable(mrisp, mris, x, y, z, fno, false);
+double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, float desired_radius, float x, float y, float z, int fno) {
+    return MRISPfunctionValTraceable(mrisp, desired_radius, x, y, z, fno, false);
 }
 
 /*-----------------------------------------------------

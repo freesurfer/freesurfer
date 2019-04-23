@@ -471,45 +471,6 @@ STRIP;
 
 #include "transform.h" // TRANSFORM, LTA
 
-typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
-typedef char    MRIS_subject_name_t[STRLEN] ;
-typedef char    MRIS_fname_t[STRLEN] ;
-
-
-enum MRIS_Status_DistanceFormula {
-  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
-  MRIS_Status_DistanceFormula_1
-};
-
-enum MRIS_Status {
-#define MRIS_Status_ELTS \
-  ELT(MRIS_SURFACE              ,0) SEP \
-  ELT(MRIS_PATCH                ,0) SEP \
-  ELT(MRIS_PLANE                ,0) SEP \
-  ELT(MRIS_ELLIPSOID            ,0) SEP \
-  ELT(MRIS_SPHERE               ,1) SEP \
-  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
-  ELT(MRIS_RIGID_BODY           ,0) SEP \
-  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
-  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
-  ELT(MRIS_PIAL_SURFACE         ,0)     \
-  // end of macro
-#define SEP ,
-#define ELT(E,D) E
-  MRIS_Status_ELTS,
-  MRIS_Status__end, 
-  MRIS_CUT = MRIS_PATCH
-#undef ELT
-#undef SEP
-};
-
-const char* MRIS_Status_text(MRIS_Status s1);
-MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
-bool areCompatible(MRIS_Status s1, MRIS_Status s2);
-void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
-#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
-
-
 struct MRIS
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
@@ -1289,11 +1250,10 @@ int          MRIScomputeNormal(MRIS *mris, int which, int vno,
 int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
 			      INTEGRATION_PARMS *parms) ;
-MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src,
-                                    MRI_SURFACE *mris_dst, double r) ;
-MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src,
-                                       MRI_SURFACE *mris_dst,
-                                       float a, float b, float c) ;
+
+MRIS* MRISprojectOntoSphere   (MRIS* mris_src, MRIS* mris_dst, double r) ;
+MRIS* MRISprojectOntoEllipsoid(MRIS* mris_src, MRIS* mris_dst, float a, float b, float c) ;
+
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
                                       int nbrs_per_distance) ;
@@ -1494,7 +1454,21 @@ double       MRISmomentumTimeStep(MRI_SURFACE *mris,
                                   float dt,
                                   float tol,
                                   float n_averages) ;
+                                  
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
+
+typedef struct MRIScomputeSSE_asThoughGradientApplied_ctx MRIScomputeSSE_asThoughGradientApplied_ctx;
+void   MRIScomputeSSE_asThoughGradientApplied_ctx_free(MRIScomputeSSE_asThoughGradientApplied_ctx** ctx);
+
+double       MRIScomputeSSE_asThoughGradientApplied(
+                MRIS*              mris, 
+                double             delta_t, 
+                INTEGRATION_PARMS* parms,
+                MRIScomputeSSE_asThoughGradientApplied_ctx ** ctx);     
+                        // ctx  should be NULL on the first call,
+                        //      should be passed to MRIScomputeSSE_asThoughGradientApplied_ctx_free
+                        //          before any changes to the MRIS happen
+
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
 int          MRIScomputeSurfaceNormals(MRI_SURFACE *mris,
                                        int which,
@@ -1522,17 +1496,16 @@ typedef struct MRISPfunctionValResultForAlpha {
 void MRISPfunctionVal_radiusR(                                                      // returns the value that would be stored in resultsForEachFno[0] for fnoLo
                               MRI_SURFACE_PARAMETERIZATION *mrisp,  
                               MRISPfunctionValResultForAlpha* resultsForEachAlpha,  // must be numAlphas elements
-                              MRI_SURFACE *mris,
                               float r, float x, float y, float z, 
                               int fno, bool getNextAlso,                            // always fills in resultsForEachAlpha.curr for fno, optionally fills in .next for fno+1
                               const float* alphas, float numAlphas,                 // rotate x,y,z by these alphas (radians) and get the values
                               bool trace) ;                                         // note: this rotation is around the z axis, hence z does not change
                              
 double       MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp,
-                              MRI_SURFACE *mris,
+                              float desired_radius,
                               float x, float y, float z, int fno, bool trace) ;
 double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
-                              MRI_SURFACE *mris,
+                              float desired_radius,
                               float x, float y, float z, int fno) ;
                               
 MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp,
@@ -2910,6 +2883,7 @@ void mrisComputeOriginalVertexDistancesIfNecessaryWkr(MRIS *mris, bool* laterTim
 
 void MRIScheckForNans(MRIS *mris);
 void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
+
 int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
 int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
 double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);

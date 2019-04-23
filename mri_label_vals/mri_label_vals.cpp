@@ -52,6 +52,7 @@ static char *annot_prefix = NULL ;
 static int quiet = 0 ;
 static int scaleup_flag = 0 ;
 static int cras =0; // 0 is false.  1 is true
+static int cras_not_set = 1 ;
 static char *surface_dir = NULL ;
 static char *hemi ;
 static int erode = 0 ;
@@ -242,7 +243,7 @@ main(int argc, char *argv[]) {
         xw =  area->lv[i].x ;
         yw =  area->lv[i].y ;
         zw =  area->lv[i].z ;
-        if (cras == 1)
+        if (cras == 1 || (cras_not_set && area->coords == LABEL_COORDS_SCANNER_RAS))
           MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
         else
           MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
@@ -281,7 +282,10 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (strcmp("cras", option) == 0)
+  {
     cras = 1;
+    cras_not_set = 0 ;
+  }
   else if (strcmp("scaleup", option) == 0)
     scaleup_flag = 1 ;
   else if (strcmp("segmentation", option) == 0) {
