@@ -3029,7 +3029,7 @@ int main(int argc, char *argv[])
 	  MRIfree(&mri) ; MRIfree(&mri_template) ; 
 	  mri = mri_tmp ;
 	  useVolGeomToMRI(&gcam->image, mri_template) ;
-	  mri_template = mri_template ;
+    mri_template = mri_template;  // ATH I'm guessing this is a bug and it's supposed to be `mri_transformed = mri_template`
 	}
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  

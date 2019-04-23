@@ -386,8 +386,8 @@ resampleSurface( MRIS* mrisAtlasReg,
   }
 
   if (annkdTree) delete annkdTree;
-  if (annIndex) delete annIndex;
-  if (annDist) delete annDist;
+  if (annIndex) delete[] annIndex;
+  if (annDist) delete[] annDist;
   if (QueryPt) delete QueryPt;
 
   return;

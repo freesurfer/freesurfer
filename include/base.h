@@ -74,15 +74,6 @@ extern const char *Progname;
 //
 #define _MAX_FS_THREADS 128 
 
-#ifndef HAVE_OPENMP
-    // Make it easier to write code which is insensitive to OpenMP being present
-    //
-    #pragma GCC diagnostic ignored "-Wunused-function"
-    static int omp_get_max_threads() { return 1; }
-    #pragma GCC diagnostic ignored "-Wunused-function"
-    static int omp_get_thread_num()  { return 0; }
-#endif
-
 // assertions
 //
 void assertFailed(const char* file, int line, const char* tst);

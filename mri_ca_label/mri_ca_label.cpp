@@ -1285,8 +1285,7 @@ int main(int argc, char *argv[])
     MRIwrite(mri_labeled, fname) ;
   }
 
-  if (reclassify_unlikely && 0)
-  {
+  if (0 && reclassify_unlikely) {
     MRI *mri_sigma ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {

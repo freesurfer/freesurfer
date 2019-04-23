@@ -874,11 +874,11 @@ IMAGE *ImageOpen(IMAGE *Isrc, IMAGE *Idst)
 static int filter[3][3] = {{1, 8, 64}, {2, 16, 128}, {4, 32, 256}};
 static void morphFilter(IMAGE *Isrc, IMAGE *Idst)
 {
-  register unsigned char *spix;
+  unsigned char *spix;
   int rows, cols, row, col, row_start, row_end, col_start, col_end, *dpix;
   // int row_pix;
   // int *endpix;
-  register int val, frow, fcol;
+  int val, frow, fcol;
 
   // row_pix =
   rows = Isrc->rows;
@@ -919,7 +919,7 @@ static void morphFilter(IMAGE *Isrc, IMAGE *Idst)
 static void morphApplyLut(IMAGE *Isrc, IMAGE *Idst, unsigned char *lut)
 {
   int row, col, rows, cols, *spix;
-  register unsigned char *dpix;  //, *endpix;
+  unsigned char *dpix;  //, *endpix;
 
   rows = Isrc->rows;
   cols = Isrc->cols;

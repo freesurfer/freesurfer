@@ -143,7 +143,7 @@ int RFAnodeToVoxel(const RFA *rfa, double xt, double yt, double zt, double *px, 
 int RFAsourceVoxelToNode(
     const RFA *rfa, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv, int *px, int *py, int *pz)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt, xd, yd, zd;
   // int retval;
 

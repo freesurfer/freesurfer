@@ -1644,8 +1644,7 @@ compute_voxlist_surface_correlations_across_runs(VOXEL_LIST *vl, int num_maps, M
   }
 
   MRIscalarMul(mri_dst, mri_dst, 1.0/(float)runs) ; // make it an average
-  if (write_diags && 0)
-  {
+  if (0 && write_diags) {
     static int cno = 1 ;
     char fname[STRLEN] ;
     sprintf(fname, "c%d.mgz", cno++) ;

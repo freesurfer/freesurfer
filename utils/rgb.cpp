@@ -119,8 +119,8 @@ int ifilbuf(RGB_IMAGE *image) {
 }
 
 unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c) {
-  register unsigned short *base;
-  register int n, rn;
+  unsigned short *base;
+  int n, rn;
   int size;
 
   if ((image->flags&_IOWRT)==0)
@@ -312,42 +312,42 @@ void img_setrowsize(RGB_IMAGE *image, long cnt, long y, long z) {
 int img_rle_compact(unsigned short *expbuf, int ibpp,
                     unsigned short *rlebuf, int obpp, int cnt) {
   if (ibpp == 1 && obpp == 1) {
-    register unsigned char *iptr = (unsigned char *)expbuf;
-    register unsigned char *ibufend = iptr+cnt;
-    register unsigned char *sptr;
-    register unsigned char *optr = (unsigned char *)rlebuf;
-    register short todo, cc;
-    register long count;
+    unsigned char *iptr = (unsigned char *)expbuf;
+    unsigned char *ibufend = iptr+cnt;
+    unsigned char *sptr;
+    unsigned char *optr = (unsigned char *)rlebuf;
+    short todo, cc;
+    long count;
 
     docompact;
     return optr - (unsigned char *)rlebuf;
   } else if (ibpp == 1 && obpp == 2) {
-    register unsigned char *iptr = (unsigned char *)expbuf;
-    register unsigned char *ibufend = iptr+cnt;
-    register unsigned char *sptr;
-    register unsigned short *optr = rlebuf;
-    register short todo, cc;
-    register long count;
+    unsigned char *iptr = (unsigned char *)expbuf;
+    unsigned char *ibufend = iptr+cnt;
+    unsigned char *sptr;
+    unsigned short *optr = rlebuf;
+    short todo, cc;
+    long count;
 
     docompact;
     return optr - rlebuf;
   } else if (ibpp == 2 && obpp == 1) {
-    register unsigned short *iptr = expbuf;
-    register unsigned short *ibufend = iptr+cnt;
-    register unsigned short *sptr;
-    register unsigned char *optr = (unsigned char *)rlebuf;
-    register short todo, cc;
-    register long count;
+    unsigned short *iptr = expbuf;
+    unsigned short *ibufend = iptr+cnt;
+    unsigned short *sptr;
+    unsigned char *optr = (unsigned char *)rlebuf;
+    short todo, cc;
+    long count;
 
     docompact;
     return optr - (unsigned char *)rlebuf;
   } else if (ibpp == 2 && obpp == 2) {
-    register unsigned short *iptr = expbuf;
-    register unsigned short *ibufend = iptr+cnt;
-    register unsigned short *sptr;
-    register unsigned short *optr = rlebuf;
-    register short todo, cc;
-    register long count;
+    unsigned short *iptr = expbuf;
+    unsigned short *ibufend = iptr+cnt;
+    unsigned short *sptr;
+    unsigned short *optr = rlebuf;
+    short todo, cc;
+    long count;
 
     docompact;
     return optr - rlebuf;
@@ -375,27 +375,27 @@ int img_rle_compact(unsigned short *expbuf, int ibpp,
 void img_rle_expand(unsigned short *rlebuf, int ibpp,
                     unsigned short *expbuf, int obpp) {
   if (ibpp == 1 && obpp == 1) {
-    register unsigned char *iptr = (unsigned char *)rlebuf;
-    register unsigned char *optr = (unsigned char *)expbuf;
-    register unsigned short pixel,count;
+    unsigned char *iptr = (unsigned char *)rlebuf;
+    unsigned char *optr = (unsigned char *)expbuf;
+    unsigned short pixel,count;
 
     doexpand;
   } else if (ibpp == 1 && obpp == 2) {
-    register unsigned char *iptr = (unsigned char *)rlebuf;
-    register unsigned short *optr = expbuf;
-    register unsigned short pixel,count;
+    unsigned char *iptr = (unsigned char *)rlebuf;
+    unsigned short *optr = expbuf;
+    unsigned short pixel,count;
 
     doexpand;
   } else if (ibpp == 2 && obpp == 1) {
-    register unsigned short *iptr = rlebuf;
-    register unsigned char  *optr = (unsigned char *)expbuf;
-    register unsigned short pixel,count;
+    unsigned short *iptr = rlebuf;
+    unsigned char  *optr = (unsigned char *)expbuf;
+    unsigned short pixel,count;
 
     doexpand;
   } else if (ibpp == 2 && obpp == 2) {
-    register unsigned short *iptr = rlebuf;
-    register unsigned short *optr = expbuf;
-    register unsigned short pixel,count;
+    unsigned short *iptr = rlebuf;
+    unsigned short *optr = expbuf;
+    unsigned short pixel,count;
 
     doexpand;
   } else
@@ -403,11 +403,11 @@ void img_rle_expand(unsigned short *rlebuf, int ibpp,
 }
 
 int putrow_uc(RGB_IMAGE *image, unsigned char *buffer, unsigned int y, unsigned int z) {
-  register unsigned char   *sptr;
-  register unsigned char      *cptr;
-  register unsigned int x;
-  register unsigned long min, max;
-  register long cnt;
+  unsigned char   *sptr;
+  unsigned char      *cptr;
+  unsigned int x;
+  unsigned long min, max;
+  long cnt;
 
   if ( !(image->flags & (_IORW|_IOWRT)) )
     return -1;
@@ -451,11 +451,11 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer, unsigned int y, unsigned 
 }
 
 int putrow(RGB_IMAGE *image, unsigned short *buffer, unsigned int y, unsigned int z) {
-  register unsigned short   *sptr;
-  register unsigned char      *cptr;
-  register unsigned int x;
-  register unsigned long min, max;
-  register long cnt;
+  unsigned short   *sptr;
+  unsigned char      *cptr;
+  unsigned int x;
+  unsigned long min, max;
+  long cnt;
 
   if ( !(image->flags & (_IORW|_IOWRT)) )
     return -1;
@@ -579,10 +579,10 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer, unsigned int y, unsigned in
 
 int getrow(RGB_IMAGE *image, unsigned short *buffer,
            unsigned int y, unsigned int z) {
-  register short i;
-  register unsigned char *cptr;
-  register unsigned short *sptr;
-  register short cnt;
+  short i;
+  unsigned char *cptr;
+  unsigned short *sptr;
+  short cnt;
 
   if ( !(image->flags & (_IORW|_IOREAD)) )
     return -1;
@@ -671,10 +671,10 @@ RGB_IMAGE *fiopen(int f, const char *mode, unsigned int type, unsigned int dim, 
 }
 
 RGB_IMAGE *imgopen(int f, const char *file, const char *mode, unsigned int type, unsigned int dim, unsigned int xsize, unsigned int ysize, unsigned int zsize) {
-  register RGB_IMAGE  *image;
-  register int rw;
+  RGB_IMAGE  *image;
+  int rw;
   int tablesize;
-  register int i, max;
+  int i, max;
 
   image = (RGB_IMAGE*)calloc(1,sizeof(RGB_IMAGE));
   if (!image ) {
@@ -809,9 +809,9 @@ long reverse(unsigned long lwrd) {
 }
 
 void cvtshorts( unsigned short *buffer, long n) {
-  register short i;
-  register long nshorts = n>>1;
-  register unsigned short swrd;
+  short i;
+  long nshorts = n>>1;
+  unsigned short swrd;
 
   for (i=0; i<nshorts; i++) {
     swrd = *buffer;
@@ -820,10 +820,10 @@ void cvtshorts( unsigned short *buffer, long n) {
 }
 
 
-void cvtlongs( long *buffer, register long n) {
-  register short i;
-  register long nlongs = n>>2;
-  register unsigned long lwrd;
+void cvtlongs( long *buffer, long n) {
+  short i;
+  long nlongs = n>>2;
+  unsigned long lwrd;
 
   for (i=0; i<nlongs; i++) {
     lwrd = buffer[i];

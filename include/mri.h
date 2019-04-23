@@ -258,10 +258,11 @@ typedef struct
   ELTT( int, ischunked ) SEP          /* 1 means alloc is one big chunk */    \
   ELTP( void, chunk ) SEP              /* pointer to the one big chunk of buffer */    \
   ELTT( size_t, bytes_per_vox ) SEP      /* # bytes per voxels */    \
-  ELTT( size_t, bytes_per_row ) SEP      /* # bytes per row */    \
-  ELTT( size_t, bytes_per_slice ) SEP    /* # bytes per slice */    \
-  ELTT( size_t, bytes_per_vol ) SEP      /* # bytes per volume/timepoint */    \
   ELTT( size_t, bytes_total ) SEP        /* # total number of pixel bytes in the struct */    \
+  ELTT( size_t, vox_per_row ) SEP \
+  ELTT( size_t, vox_per_slice ) SEP \
+  ELTT( size_t, vox_per_vol ) SEP \
+  ELTT( size_t, vox_total ) SEP \
   ELTP( COLOR_TABLE, ct ) SEP    \
   ELTP( MRI_FRAME, frames )    \
 

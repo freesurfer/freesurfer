@@ -647,7 +647,7 @@ int main(int argc, char **argv) {
     printf("Crop %lf\n",CropScale);
     mov = MRIread(movvolfile);
     if(mov == NULL) exit(1);
-    err = MRIboundingBox(mov, 0.5, &box);
+    err = MRIboundingBox(mov, 0, &box);
     if(err) exit(1);
     crop  = MRIcrop(mov,box.x, box.y, box.z,
 		    box.x+box.dx, box.y+box.dy, box.z+box.dz);

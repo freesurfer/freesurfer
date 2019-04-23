@@ -821,7 +821,9 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MAT
   int r, m, nTaskAvgs, nAvgs, Cfree, J;
   // int nNuisAvgs;
   float diagsum;
-  double dtmp, dtmp1, dtmp2;
+  double dtmp = 0;
+  double dtmp1 = 0;
+  double dtmp2 = 0;
 
   X = MatrixHorCat(Xtask, Xnuis, NULL);
   nTaskAvgs = Xtask->cols;

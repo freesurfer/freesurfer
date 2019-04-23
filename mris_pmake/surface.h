@@ -23,8 +23,6 @@
  *
  */
 
-using namespace std;
-
 #ifndef __SURFACE_H__
 #define __SURFACE_H__
 

@@ -94,7 +94,6 @@ void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file,
 #define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
 
 
-
 typedef struct _mht                 MRIS_HASH_TABLE, MHT ;
 typedef struct LABEL_VERTEX         LABEL_VERTEX,    LV  ;
 typedef struct LABEL                LABEL;

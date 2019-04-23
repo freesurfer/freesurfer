@@ -8639,7 +8639,7 @@ int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
 
-  MHT *mht_v_current = NULL, *mht_f_current;
+  MHT *mht_v_current = nullptr, *mht_f_current = nullptr;
   if (!FZERO(parms->l_repulse)) {
     mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
     mht_f_current = MHTcreateFaceTable(mris);

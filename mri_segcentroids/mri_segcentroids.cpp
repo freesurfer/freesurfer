@@ -6,15 +6,12 @@
 #include <map>
 #include <iomanip>
 
- 
-  #include "mri.h"
-  #include "mri2.h"
-
+#include "mri.h"
+#include "mri2.h"
 
 
 #include "mri_segcentroids.help.xml.h"
-static void printHelp(int exit_val)
-{
+static void printHelp(int exit_val) {
   outputHelpXml(mri_segcentroids_help_xml, mri_segcentroids_help_xml_len);
   exit(exit_val);
 }
@@ -136,10 +133,6 @@ public:
 
 int main(int argc, char **argv) {
 
-
-  // -------------------- setup --------------------
-
-
   InputParser input(argc, argv);
 
   // load segmentation
@@ -236,8 +229,7 @@ int main(int argc, char **argv) {
     centroids[centroid.id] = centroid;
   }
 
-  std::cout << "computing centers of mass for "
-            << centroids.size() << " structures\n";
+  std::cout << "computing centers of mass for " << centroids.size() << " structures\n";
 
   // iterate through voxels
   int voxid;
@@ -331,7 +323,7 @@ int main(int argc, char **argv) {
 
   tablefile.close();
 
-  std::cout << "mri_segcentroids done\n";
+  std::cout << "mri_segcentroids done" << std::endl;
 
   return 0;
 }

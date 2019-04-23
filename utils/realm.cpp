@@ -726,9 +726,9 @@ static int chooseChild(
 static void widenSubtree_wkr(RealmTreeNode* n, float xLo, float xHi, float yLo, float yHi, float zLo, float zHi, unsigned widen_Mask) {
     if (!n || (widen_Mask == 0)) return;
     //
-    if (widen_Mask & Widen_xLo) n->xLo = xLo; if (widen_Mask & Widen_xHi) n->xHi = xHi;
-    if (widen_Mask & Widen_yLo) n->yLo = yLo; if (widen_Mask & Widen_yHi) n->yHi = yHi;
-    if (widen_Mask & Widen_zLo) n->zLo = zLo; if (widen_Mask & Widen_zHi) n->zHi = zHi;
+    if (widen_Mask & Widen_xLo) { n->xLo = xLo; } if (widen_Mask & Widen_xHi) { n->xHi = xHi; }
+    if (widen_Mask & Widen_yLo) { n->yLo = yLo; } if (widen_Mask & Widen_yHi) { n->yHi = yHi; }
+    if (widen_Mask & Widen_zLo) { n->zLo = zLo; } if (widen_Mask & Widen_zHi) { n->zHi = zHi; }
     
     if (n->vnos) return;    // leaf nodes
 

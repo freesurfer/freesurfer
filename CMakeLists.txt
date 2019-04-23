@@ -244,7 +244,7 @@ endif()
 # --------------------------------------------------
 
 # warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-sign-compare -Wno-write-strings -Wno-unused-result -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-absolute-value -Wno-sign-compare -Wno-write-strings -Wno-unused-result -Wno-unused-parameter")
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -257,7 +257,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # linker options
 if(APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -static-libgcc")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+  endif()
 else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STRIP_FLAGS}")

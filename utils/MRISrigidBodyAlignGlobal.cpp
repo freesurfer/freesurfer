@@ -418,9 +418,9 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
             for (oci = 0; oci < outCentersSize; oci++) {
               struct Center* oc = &outCenters[oci];
               bool nearBy = 
-                  fabsf(oc->center_ai - ai) <= radius
-               && fabsf(oc->center_bi - bi) <= radius
-               && fabsf(oc->center_gi - gi) <= radius;
+                  std::abs(oc->center_ai - ai) <= radius
+               && std::abs(oc->center_bi - bi) <= radius
+               && std::abs(oc->center_gi - gi) <= radius;
               if (nearBy) {
                 if (oc->center_sse_known && oc->center_sse < sse) {
                   oci = -1;                                 // Don't replace any

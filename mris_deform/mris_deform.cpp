@@ -1814,7 +1814,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     MRIclear(mri_white) ; MRIclear(mri_pial) ; MRIclear(mri_l4) ;
     recompute_target_locations(mris, mri_white, mri_l4, mri_pial, dp) ;
   }
-  if (Gdiag & DIAG_WRITE && 0)
+  if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
     static int i = 0 ;

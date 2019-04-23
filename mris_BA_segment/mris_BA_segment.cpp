@@ -373,7 +373,7 @@ compute_MT_log_likelihood(MRI_SURFACE *mris, MRI *mri_profiles, int vno0, double
       DiagBreak() ;
     if (v->d <= radius || v->d > radius+exterior_mm)
       continue ;   // not in immediate exterior of putative MT
-    for (ll_vno = 0.0, i = i ; i < nsamples ; i++)
+    for (ll_vno = 0.0 ; i < nsamples ; i++)
     {
       val = MRIgetVoxVal(mri_profiles, vno, 0,0, i) ;
       v_exterior[i] += SQR(val-u_interior[i]) ;

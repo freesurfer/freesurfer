@@ -1246,7 +1246,7 @@ int GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv, int *p
 int GCAsourceVoxelToPrior(
     const GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt;
   int retval = NO_ERROR;
   LTA *lta;
@@ -1322,7 +1322,7 @@ int GCAsourceVoxelToPrior(
 int GCAsourceFloatVoxelToPrior(
     GCA *gca, MRI *mri, TRANSFORM *transform, float xv, float yv, float zv, int *pxp, int *pyp, int *pzp)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt, xrp, yrp, zrp;
 
   LTA *lta;
@@ -1358,7 +1358,7 @@ int GCAsourceFloatVoxelToPrior(
 int GCAsourceFloatVoxelToPriorReal(
     GCA *gca, MRI *mri, TRANSFORM *transform, float xv, float yv, float zv, double *pxp, double *pyp, double *pzp)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt, xrp, yrp, zrp;
 
   LTA *lta;
@@ -1499,8 +1499,8 @@ int GCApriorToSourceVoxelFloat(GCA *gca,
                                float *pzv)
 {
   int width, height, depth;
-  double xt, yt, zt;
-  float xv, yv, zv;
+  double xt = 0, yt = 0, zt = 0;
+  float xv = 0, yv = 0, zv = 0;
   double xc, yc, zc;
   int errCode = NO_ERROR;
   LTA *lta;
@@ -5114,7 +5114,7 @@ static int compare_gca_samples(const void *pc1, const void *pc2);
 
 static int compare_gca_samples(const void *pgcas1, const void *pgcas2)
 {
-  register GCA_SAMPLE *gcas1, *gcas2;
+  GCA_SAMPLE *gcas1, *gcas2;
 
   gcas1 = (GCA_SAMPLE *)pgcas1;
   gcas2 = (GCA_SAMPLE *)pgcas2;
@@ -12406,7 +12406,7 @@ int GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform
     }
   }
 
-  if (DIAG_VERBOSE_ON && 0) {
+  if (DIAG_VERBOSE_ON) {
     HISTOGRAM *histo;
     char fname[STRLEN];
 
@@ -25346,9 +25346,8 @@ MRI *GCAreclassifyUnlikelyVoxels(GCA *gca,
 
               MRIsetVoxVal(mri_changed, x, y, z, 0, 0);  // will change to 1 if changed
               if (max_gc) {
-                // d_new = 
-                sqrt(GCAmahDist(max_gc, vals, gca->ninputs));
-                //                if (d_new < mah_dist_thresh/2)
+                // d_new = sqrt(GCAmahDist(max_gc, vals, gca->ninputs));
+                // if (d_new < mah_dist_thresh/2)
                 {
                   if (max_label != label) {
                     nchanged++;
@@ -25977,7 +25976,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
 int GCAsourceVoxelToPriorReal(
     GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv, double *pxp, double *pyp, double *pzp)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt;
   // int retval;
 

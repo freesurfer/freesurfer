@@ -6491,7 +6491,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
             sy += dy = vn->origy - y;
             sz += dz = vn->origz - z;
             sd += sqrt(dx * dx + dy * dy + dz * dz);
-            n++;
+            n++;  // ATH is this supposed to be incremented again?
           }
           // mean distance to the neighbors
           sx = sx / (float)n;
@@ -6643,7 +6643,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           sy += dy = vn->origy - y;
           sz += dz = vn->origz - z;
           sd += sqrt(dx * dx + dy * dy + dz * dz);
-          n++;
+          n++;  // ATH is this supposed to be incremented again?
         }
         // mean distance to the neighbors
         sx = sx / (float)n;
@@ -12430,7 +12430,7 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
 
 static int compare_edge_length(const void *pe0, const void *pe1)
 {
-  register EDGE *e0, *e1;
+  EDGE *e0, *e1;
 
   e0 = (EDGE *)pe0;
   e1 = (EDGE *)pe1;
