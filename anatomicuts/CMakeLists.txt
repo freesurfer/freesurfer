@@ -52,8 +52,15 @@ if(VTK_FOUND)
   add_executable(dmri_saveHistograms SaveHistograms.cxx ${TRACKIO}) 
   target_link_libraries(dmri_saveHistograms ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_saveHistograms DESTINATION bin)
+
 else() 
 message("VTK not found")
 endif()
 
+install(PROGRAMS
+  	dmri_ac.sh
+	DESTINATION bin
+)
+
+install_pyscript(diffusionUtils)
 

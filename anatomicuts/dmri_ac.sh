@@ -27,7 +27,7 @@ anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
-ac_output=/space/snoke/1/public/vivros/AnatomiCuts_l35/
+ac_output=${ODMRI} #/space/snoke/1/public/vivros/AnatomiCuts_l35/
 
 function preprocessDWI()
 {
