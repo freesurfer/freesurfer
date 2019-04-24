@@ -126,7 +126,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   connect( this, SIGNAL(ContourSmoothIterationChanged(int)), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(DisplayModeChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(LabelOutlineChanged(bool)), this, SIGNAL(PropertyChanged()) );
-  connect( this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()) );
+//  connect( this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(ResliceInterpolationChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(TextureSmoothingChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(UpSampleMethodChanged(int)), this, SIGNAL(PropertyChanged()) );

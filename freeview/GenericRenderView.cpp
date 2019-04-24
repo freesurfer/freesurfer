@@ -330,7 +330,7 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
     image->SetInput(m_renderer);
     image->SetMagnification(nMag);
 #if VTK_MAJOR_VERSION > 5
-    writer->SetInputData(image->GetOutput());
+    writer->SetInputConnection(image->GetOutputPort());
 #else
     writer->SetInput(image->GetOutput());
 #endif
@@ -346,7 +346,7 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
 int GenericRenderView::GetAntialiasing()
 {
 #if VTK_MAJOR_VERSION > 5
-  return GetRenderer()->GetUseFXAA();
+  return GetRenderWindow()->GetMultiSamples() > 0 ? 1: 0;
 #else
   return GetRenderWindow()->GetAAFrames() > 0 ? 1: 0;
 #endif
@@ -355,7 +355,7 @@ int GenericRenderView::GetAntialiasing()
 void GenericRenderView::SetAntialiasing(int bSet, bool redraw)
 {
 #if VTK_MAJOR_VERSION > 5
-  GetRenderer()->SetUseFXAA(bSet);
+  GetRenderWindow()->SetMultiSamples(bSet? 8 : 0);
 #else
   GetRenderWindow()->SetAAFrames(bSet > 0 ? 6 : 0);
 #endif
