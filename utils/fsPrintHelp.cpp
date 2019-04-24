@@ -258,7 +258,7 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur)
         break;
       }
       else if (wrdLen((char *)(contents + j)) > FSPRINT_MAX_CHARS - tabNum * 8) {
-        for (j = j; j < FSPRINT_MAX_CHARS - tabNum * 8 + i; j++) {
+        for (; j < FSPRINT_MAX_CHARS - tabNum * 8 + i; j++) {
           printf("%c", *(contents + j));
         }
       }

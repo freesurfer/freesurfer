@@ -700,7 +700,7 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
             Iup);
 
   if ((I >= MIN(Iup, Idown)) && (I <= MAX(Iup, Idown))) {
-    starting_slice = starting_slice;
+    // do nothing
   }
   else if ((Iup >= MIN(I, Idown)) && (Iup <= MAX(I, Idown))) {
     starting_slice = starting_slice - SLICE_OFFSET;
@@ -830,8 +830,8 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
                               MRI *mri_not_control)
 {
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
-  int *pxi, *pyi, *pzi, ctrl, nctrl, nfilled, too_low, total_filled;
-  int n, whalf, pass = 0;
+  int *pxi, *pyi, *pzi, ctrl, nfilled, too_low, total_filled;
+  int n, whalf, pass = 0, nctrl = 0;
   float wm_val, gm_val, csf_val, mean_val, min_val, max_val, val, val0, low_thresh, hi_thresh;
   float int_below_adaptive;
   MRI *mri_tmp;
@@ -4243,10 +4243,9 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     HISTOplot(h, "h0.plt");
   }
-  if (mriConformed(mri_src) || 1) {
+  if (1 || mriConformed(mri_src)) {
     HISTOclearBins(h, h, 0, 5);
     hsmooth = HISTOsmooth(h, NULL, 2);
-    ;
   }
   else {
 #if 0
@@ -4460,7 +4459,7 @@ MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma,
       }
     }
   }
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE) {
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_bias, "bsnr.mgz");
     MRIwrite(mri_norm, "nsnr.mgz");
   }

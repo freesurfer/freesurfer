@@ -3695,7 +3695,7 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
   return (NO_ERROR);
 }
 
-int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z)
+int MRISvertexCoord2XYZ_float(VERTEX const *v, int which, float *x, float *y, float *z)
 {
   switch (which) {
     case ORIGINAL_VERTICES:
@@ -3765,7 +3765,8 @@ int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z
   }
   return (NO_ERROR);
 }
-int MRISvertexCoord2XYZ_double(VERTEX *v, int which, double *x, double *y, double *z)
+
+int MRISvertexCoord2XYZ_double(VERTEX const *v, int which, double *x, double *y, double *z)
 {
   switch (which) {
     default:
@@ -5824,6 +5825,122 @@ int MRISmeasureDistanceBetweenSurfaces(MRIS *mris, MRIS *mris2, int signed_dist)
 }
 
 
+
+/*!
+  \bf int StuffVertexCoords(MRIS *surf, int vertexno, double p[3])
+  \brief Stuff vertex xyz coords into a double array[3]
+*/
+int StuffVertexCoords(MRIS *surf, int vertexno, double p[3])
+{
+  p[0] = surf->vertices[vertexno].x;
+  p[1] = surf->vertices[vertexno].y;
+  p[2] = surf->vertices[vertexno].z;
+  return(0);
+}
+/*!
+  \bf int StuffFaceCoords(MRIS *surf, int vertexno, double p[3])
+  \brief Stuff xyz coords of a given face corner into a double array[3]
+*/
+int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3])
+{
+  int vertexno = surf->faces[faceno].v[cornerno];
+  StuffVertexCoords(surf,vertexno,p);
+  return(0);
+}
+/*!
+  \bf double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL)
+  \brief Compute the RMS distance from a given point (ptest) to the
+  triangle defined by points (p1,p2,p3). Uses brute force (BF) by
+  barycentrically tessellating the triangle into dL spaced points. It
+  is possible to do this analytically, but this was easy.
+*/
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL)
+{
+  double l1, l2, l3,d,dmin;
+  double r[3], pr[3];
+  int k;
+
+  dmin = 10e10;
+  for(l1=0; l1 < 1; l1 += dL){
+    for(l2=0; l2 < 1; l2 += dL){
+      l3 = 1.0 - (l1+l2);
+      if(l3 < 0.0 || l3 > 1.0) continue;
+      d = 0;
+      for(k=0; k<3; k++) {
+	r[k] = l1*p1[k] + l2*p2[k] + l3*p3[k];// location of barycentric point
+	pr[k] = ptest[k]-r[k]; //dist to test point for this k
+	d += (pr[k]*pr[k]); // accumulate
+      }
+      d = sqrt(d);
+      // check for min
+      if(d<dmin) dmin=d;
+    }
+  }
+  return(dmin);
+}
+
+/*!
+  \bf int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
+  \brief Computes the distance from a vertex on surf1 to the closest
+  point on surf2. It works by finding the vertex on surf2 that is
+  closest to the given vertex on surf1, then finds the closest point
+  on the neighboring faces of the surf2 vertex. The original purpose
+  of this function was to help assess changes in surface position due
+  to some processing where the number of vertices might have changed
+  or their position might have shifted but the surface itself might
+  not have moved. In that case, the closest vertex may be 1mm or so
+  away eventhough the surfaces are nearly on top of each other. This
+  function should not be used to compute thickness because it does not
+  assure that the closest point is in the normal direction. Currently
+  is not truly "exact" in that the faces are tessellated into 25
+  points controlled by dL), and the distance is computed as the
+  closest of those 25. An exact solution is possible, just harder 
+  to program. The difference is put in to the curv field of surf1.
+*/
+int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
+{
+  int vno1, nthface, faceno2,vno2; 
+  VERTEX_TOPOLOGY *vt2;
+  MRIS_HASH_TABLE *mht;
+  float dminv;
+  double d,dmin,dL=0.2;
+  double pv1[3], pf1[3], pf2[3], pf3[3];
+  VERTEX *v1, *v2;
+
+  mht = MHTcreateVertexTable_Resolution(surf1, CURRENT_VERTICES, 10);
+
+  for (vno1 = 0; vno1 < surf1->nvertices; vno1++) {
+    v1 = &surf1->vertices[vno1];
+    if (v1->ripflag)  continue;
+
+    // Get the coords for this vertex on surf1
+    StuffVertexCoords(surf1, vno1, pv1);
+
+    // Get the closest vertex in surf2
+    vno2 = MHTfindClosestVertexNo(mht, surf2, v1, &dminv);
+    v2 = &surf2->vertices[vno2];    
+    vt2 = &surf2->vertices_topology[vno2];
+
+    // Go through each face of this vertex
+    dmin = dminv;
+    for(nthface = 0; nthface < vt2->num; nthface++){
+      faceno2 = vt2->f[nthface];
+      StuffFaceCoords(surf2, faceno2, 0, pf1);
+      StuffFaceCoords(surf2, faceno2, 1, pf2);
+      StuffFaceCoords(surf2, faceno2, 2, pf3);
+      // Find the closest point on the surface from vertex1 to this face
+      d = MinDistToTriangleBF(pf1,pf2,pf3,pv1,dL);
+      if(d<dmin) dmin = d;
+    }
+    if(vno1 == Gdiag_no || vno2 == Gdiag_no) printf("%6d %6d  %6.4f %6.4f\n",vno1,vno2,dminv,dmin);
+
+    v1->curv = dmin;
+  }
+
+  MHTfree(&mht);
+  return (NO_ERROR);
+}
+
 short FACES_Hcurvature_determineSign(MRIS *apmris,
     	int			apFACE_O_fno,
     	int			apFACE_I_fno)
@@ -7196,7 +7313,7 @@ static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -7235,7 +7352,7 @@ static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -7274,7 +7391,7 @@ static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -10019,8 +10136,8 @@ int MRISaverageGradients(MRIS *mris, int num_avgs)
     // - only the new algorithm
     // - both algorithms, and compare them
     
-    static const int doNew = 1;
-    static const int doOld = 0;
+    static int doNew = 1;
+    static int doOld = 0;
     
     if (doOld && doNew && num_avgs > 10) {
         fprintf(stdout, "%s:%d reducing num_avgs:%d to 10\n", __FILE__, __LINE__, num_avgs);
@@ -10292,7 +10409,7 @@ int MRISaverageGradients(MRIS *mris, int num_avgs)
       }  // end of one of the num_avgs iterations
 
     }  // if (doOld) 
-    
+
     if (doOld && doNew) {
       fprintf(stdout, "%s:%d comparing old and new algorithms\n", __FILE__, __LINE__);
       int errors = 0;

@@ -71,7 +71,7 @@ int
 main(int argc, char *argv[]) {
   char   *out_fname, **av ;
   int    ac, nargs, niter, operation, i ;
-  MRI    *mri_src, *mri_dst, *mri_saved_src = NULL ;
+  MRI    *mri_src, *mri_dst = nullptr, *mri_saved_src = nullptr ;
   int          msec, minutes, seconds ;
   Timer start ;
 

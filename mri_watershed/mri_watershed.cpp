@@ -6560,8 +6560,6 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
       f2m+=force;
 
-      force1=force1;
-
       // Delta = 0.8 x St + force1 x Sn + force x Vn
       /////////////////////////////////////////////////////
       dx = sxt*0.8 + force1*sxn + v->nx*force;
@@ -10057,7 +10055,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
       /*brainatlas force*/
       force3=v->val;
       force4=v->val2;
-      force1=force1;
 
       v->curv=force; //test
 
@@ -10399,7 +10396,6 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
         force=MIN(0.5,force);  // this means 0. or .5
       }
 
-      force1=force1;
       dx = sxt*0.8 + sxn * force1 + v->nx*force;
       dy = syt*0.8 + syn * force1 + v->ny*force;
       dz = szt*0.8 + szn * force1 + v->nz*force;

@@ -242,10 +242,9 @@ main(int argc, char *argv[])
 
   if (SaveSulc)
   {
-    if (compute_sulc_mm && 0)
-      mrisComputeSulcInMM(mris) ;   // disable this for now
-    sprintf(fname, "%s/%s.%s", path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
+    // disable this for now
+    // if (compute_sulc_mm) mrisComputeSulcInMM(mris);
+    sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
     MRISwriteCurvature(mris, fname) ;
   }

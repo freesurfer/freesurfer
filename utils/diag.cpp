@@ -88,6 +88,17 @@ void assertFailed(const char* file, int line, const char* tst) {
     fprintf(stderr, "ASSERTION FAILED: %s:%d %s\n", file, line, tst);
     fflush(stdout);
     fflush(stderr);
+    
+    while (!!getenv("FREESURFER_HANG_ON_ASSERT")) {
+      fprintf(stdout, "FREESURFER_HANG_ON_ASSERT\n");
+      fprintf(stderr, "FREESURFER_HANG_ON_ASSERT\n");
+      fflush(stdout);
+      fflush(stderr);
+      static volatile long count;
+      count = 0;
+      while (count < 4000000000L) count++;
+    }
+    
     *(int*)(-1) = 0;
 }
 

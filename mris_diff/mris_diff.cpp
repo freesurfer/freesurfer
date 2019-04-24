@@ -1081,10 +1081,15 @@ static int parse_commandline(int argc, char **argv) {
       surf2 = MRISread(pargv[1]);
       if(surf2==NULL) exit(1);
       // mindist will be on surf2
+      //MRISdistanceBetweenSurfacesExact(surf1, surf2);
+      //MRI *mindist = MRIcopyMRIS(NULL, surf1, 0, "curv");
       MRI *mindist = MRISminDist(surf1, surf2);
       if(mindist==NULL) exit(1);
       printf("Writing mindist to %s\n",pargv[2]);
       MRIwrite(mindist,pargv[2]);
+      MRISfree(&surf1);
+      MRISfree(&surf2);
+      MRIfree(&mindist);
       printf("mris_diff done\n");
       exit(0);
       nargsused = 3;

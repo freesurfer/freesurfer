@@ -500,21 +500,11 @@ main(int argc, char *argv[])
     if (ct0)
     {
       int cno;
-      for (cno=0; cno < ct0->nentries; cno++)
-      {
-        if (ct0->entries[cno])
-        {
-          if (ct0->entries[cno]->name)
-          {
-            if (0==strcmp(label_name,ct0->entries[cno]->name))
-            {
-              // we found this label! so update local colortable with info
-              memcpy(miniColorTable.entries[1],
-                     ct0->entries[cno],
-                     sizeof(COLOR_TABLE_ENTRY));
-              break;
-            }
-          }
+      for (cno=0; cno < ct0->nentries; cno++) {
+        if ((ct0->entries[cno]) && (strcmp(label_name, ct0->entries[cno]->name) == 0)) {
+          // we found this label! so update local colortable with info
+          memcpy(miniColorTable.entries[1], ct0->entries[cno], sizeof(COLOR_TABLE_ENTRY));
+          break;
         }
       }
     }
@@ -731,27 +721,25 @@ get_option(int argc, char *argv[])
   {
     userealras_flag = 1;
   }
-  else if (!stricmp(option, "-cras_correction") ||
-	   !stricmp(option, "-cras_add") ){
+  else if (!stricmp(option, "-cras_correction") || !stricmp(option, "-cras_add")) {
     cras_add = 1;
     cras_subtract = 0;
     ToScanner = 0;
     ToTkr = 0;
   }
-  else if (!stricmp(option, "-cras_remove") ||
-	   !stricmp(option, "-cras_subtract") ){
+  else if (!stricmp(option, "-cras_remove") || !stricmp(option, "-cras_subtract")) {
     cras_add = 0;
     cras_subtract = 1;
     ToScanner = 0;
     ToTkr = 0;
   }
-  else if (!stricmp(option, "-to-scanner")){
+  else if (!stricmp(option, "-to-scanner")) {
     ToScanner = 1;
     ToTkr = 0;
     cras_add = 0;
     cras_subtract = 0;
   }
-  else if (!stricmp(option, "-to-tkr")){
+  else if (!stricmp(option, "-to-tkr")) {
     ToScanner = 0;
     ToTkr = 1;
     cras_add = 0;
@@ -1085,4 +1073,3 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
 
   return(0);
 }
-

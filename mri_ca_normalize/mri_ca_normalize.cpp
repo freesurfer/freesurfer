@@ -418,7 +418,7 @@ main(int argc, char *argv[])
     }
     if (T2_mask_fname)
     {
-      MRI *mri_T2, *mri_aparc_aseg ;
+      MRI *mri_T2, *mri_aparc_aseg = nullptr;
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)

@@ -249,7 +249,6 @@ void Cursor2D::SetColor( double r, double g, double b )
 void Cursor2D::SetColor( const QColor& color )
 {
   SetColor( color.redF(), color.greenF(), color.blueF() );
-  int GetRadius();
 }
 
 void Cursor2D::GetColor( double* rgb )

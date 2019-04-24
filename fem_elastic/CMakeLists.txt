@@ -4,6 +4,7 @@ if(PETSC_FOUND)
 
   include_directories(
     ${FS_INCLUDE_DIRS}
+    SYSTEM
     ${CMAKE_SOURCE_DIR}/packages/tetgen
     ${PETSC_INCLUDE_DIR}
     ${ITK_INCLUDE_DIRS}

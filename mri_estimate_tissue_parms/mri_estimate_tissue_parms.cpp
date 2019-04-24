@@ -953,7 +953,7 @@ no_valid_data(MRI **mri_flash, int nvolumes, int x, int y, int z, float thresh) 
 
 static int
 compare_sort_array(const void *pc1, const void *pc2) {
-  register int c1, c2 ;
+  int c1, c2 ;
 
   c1 = *(int *)pc1 ;
   c2 = *(int *)pc2 ;

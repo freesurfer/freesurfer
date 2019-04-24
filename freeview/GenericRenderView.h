@@ -28,7 +28,7 @@
 #if VTK_MAJOR_VERSION > 5
 #include "QVTKOpenGLWidget.h"
 #else
-#include "QVTKWidget/QVTKWidget.h"
+#include "QVTKWidget.h"
 #endif
 #include <vtkSmartPointer.h>
 #include <QPoint>

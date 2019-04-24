@@ -6,7 +6,9 @@ if(PETSC_FOUND)
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${FS_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/fem_elastic
+    SYSTEM
     ${CMAKE_SOURCE_DIR}/packages/tetgen
+    ${ITK_INCLUDE_DIRS}
     ${PETSC_INCLUDE_DIR}
   )
 

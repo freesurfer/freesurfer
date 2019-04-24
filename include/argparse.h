@@ -97,9 +97,9 @@ enum ArgType {Unknown, Bool, String, Int, Float};
 class ArgumentParser {
 private:
   class Any;
-  class Argument;
   class PlaceHolder;
   class Holder;
+  struct Argument;
   typedef std::string String;
   typedef std::vector<Any> AnyVector;
   typedef std::vector<String> StringVector;

@@ -77,6 +77,8 @@ class /*VTKCOMMONCORE_EXPORT*/ vtkRGBAColorTransferFunction : public vtkScalarsT
 public:
   static vtkRGBAColorTransferFunction *New();
   vtkTypeMacro(vtkRGBAColorTransferFunction,vtkScalarsToColors);
+
+  using vtkScalarsToColors::DeepCopy;
   void DeepCopy( vtkRGBAColorTransferFunction *f );
   void ShallowCopy( vtkRGBAColorTransferFunction *f );
 
@@ -253,7 +255,7 @@ protected:
   // Set the range of scalars being mapped. The set has no functionality
   // in this subclass of vtkScalarsToColors.
   virtual void SetRange(double, double) {};
-  void SetRange(double rng[2]) {this->SetRange(rng[0],rng[1]);};
+  void SetRange(const double rng[2]) {this->SetRange(rng[0],rng[1]);};
 
   // Internal method to sort the vector and update the
   // Range whenever a node is added or removed

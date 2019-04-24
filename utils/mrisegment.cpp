@@ -228,7 +228,7 @@ MRI_SEGMENTATION *MRImaxsegment(MRI *mri, float low_val, float hi_val)
               label = mriSegmentNew(mriseg);
               // returns this added segment position
               mseg = &mriseg->segments[label];
-              if (DIAG_VERBOSE_ON && 0)
+              if (0 && DIAG_VERBOSE_ON)
                 fprintf(stdout, "allocating new label %d (%d total)\n", label, mriseg->nsegments);
               break;
             case 1: /* assign this voxel to the one that it borders */
@@ -309,7 +309,7 @@ MRI_SEGMENTATION *MRImaxsegment(MRI *mri, float low_val, float hi_val)
   MRIremoveSmallSegments(mriseg, 0.01 * maxarea);
   // MRIcompactSegments(mriseg) ;
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && 0) MRIwrite(mri_labeled, "labeled.mgh");
+  if (0 && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "labeled.mgh");
   MRIfree(&mri_labeled);
   mriComputeSegmentStatistics(mriseg);
   return (mriseg);
@@ -393,7 +393,7 @@ MRI_SEGMENTATION *MRIsegment(MRI *mri, float low_val, float hi_val)
               label = mriSegmentNew(mriseg);
               // returns this added segment position
               mseg = &mriseg->segments[label];
-              if (DIAG_VERBOSE_ON && 0)
+              if (0 && DIAG_VERBOSE_ON)
                 fprintf(stdout, "allocating new label %d (%d total)\n", label, mriseg->nsegments);
               break;
             case 1: /* assign this voxel to the one that it borders */
@@ -466,7 +466,7 @@ MRI_SEGMENTATION *MRIsegment(MRI *mri, float low_val, float hi_val)
   }
   MRIcompactSegments(mriseg);
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && 0) MRIwrite(mri_labeled, "labeled.mgh");
+  if (0 && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "labeled.mgh");
   MRIfree(&mri_labeled);
   mriComputeSegmentStatistics(mriseg);
   return (mriseg);
@@ -536,7 +536,7 @@ static int mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1, MRI *mri_la
   MRI_SEGMENT *mseg0, *mseg1;
   int v, total_voxels, x, y, z;
 
-  if (DIAG_VERBOSE_ON && 0) fprintf(stdout, "merging segments %d and %d\n", s0, s1);
+  if (0 && DIAG_VERBOSE_ON) fprintf(stdout, "merging segments %d and %d\n", s0, s1);
   mseg0 = &mriseg->segments[s0];
   mseg1 = &mriseg->segments[s1];
   total_voxels = mseg0->nvoxels + mseg1->nvoxels;
@@ -766,7 +766,7 @@ int MRIcompactSegments(MRI_SEGMENTATION *mriseg)
   int s, s2;
 
   if (mriseg->nsegments == 0) return (NO_ERROR);
-  if (DIAG_VERBOSE_ON && 0) fprintf(stdout, "compacting segments...\n");
+  if (0 && DIAG_VERBOSE_ON) fprintf(stdout, "compacting segments...\n");
 
   for (s = 0; s < mriseg->max_segments; s++) {
     // if voxel count = 0, then
@@ -809,7 +809,7 @@ int MRIcompactSegments(MRI_SEGMENTATION *mriseg)
   newseg = (MRI_SEGMENT *)realloc(mriseg->segments, s * sizeof(MRI_SEGMENT));
   if (newseg) {
     mriseg->segments = newseg;
-    if (DIAG_VERBOSE_ON && 0) fprintf(stdout, "\n        segments reduced to %d\n", s);
+    if (0 && DIAG_VERBOSE_ON) fprintf(stdout, "\n        segments reduced to %d\n", s);
   }
   else {
     MRI_SEGMENT *oldseg = mriseg->segments;
@@ -889,7 +889,7 @@ int MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
 {
   int s;
 
-  if (DIAG_VERBOSE_ON && 0) fprintf(stdout, "compacting segments...\n");
+  if (0 && DIAG_VERBOSE_ON) fprintf(stdout, "compacting segments...\n");
 
   for (s = 0; s < mriseg->max_segments; s++)
     if (mriseg->segments[s].nvoxels < min_voxels) {
@@ -907,7 +907,7 @@ int MRIeraseSmallSegments(MRI_SEGMENTATION *mriseg, MRI *mri_seg, int min_voxels
   int s, v, nerased = 0, x, y, z, f;
   MRI_SEGMENT *mseg;
 
-  if (DIAG_VERBOSE_ON && 0) fprintf(stdout, "compacting segments...\n");
+  if (0 && DIAG_VERBOSE_ON) fprintf(stdout, "compacting segments...\n");
 
   for (s = 0; s < mriseg->max_segments; s++) {
     mseg = &mriseg->segments[s];

@@ -39,7 +39,11 @@
 #include "error.h"
 #include <fenv.h>
 #include <QFile>
+#include <QSurfaceFormat>
 
+#if VTK_MAJOR_VERSION > 5
+#include <QVTKOpenGLWidget.h>
+#endif
 
 #include "fsinit.h"
 #include "chklc.h"
@@ -275,8 +279,12 @@ int main(int argc, char *argv[])
   cmd.SetProgramDescription( progDesc );
   if ( !cmd.Parse( argc, argv ) )
   {
-    return false;
+    return 1;
   }
+
+#if VTK_MAJOR_VERSION > 5
+  QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
+#endif
 
 #ifdef Q_OS_LINUX
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
@@ -318,13 +326,13 @@ int main(int argc, char *argv[])
   {
     QMessageBox::warning(&w, "License Error", license_msg);
     w.close();
-    return false;
+    return 1;
   }
 
   if (!w.ParseCommand(argc, argv, true))
   {
     w.close();
-    return false;
+    return 1;
   }
 
   int ret = app.exec();

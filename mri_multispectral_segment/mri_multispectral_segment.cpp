@@ -935,7 +935,6 @@ static void shrink_Outer_Skull(void) {
         szt /= d;
       }
 
-      force1=force1;
       dx = sxt*0.5 + force1*sxn+v->nx*force;
       dy = syt*0.5 + force1*syn+v->ny*force;
       dz = szt*0.5 + force1*szn+v->nz*force;
@@ -1259,7 +1258,6 @@ static void shrink_Outer_Skin(void) {
         szt /= d;
       }
 
-      force1=force1;
       dx = sxt*0.5 + force1*sxn+v->nx*force;
       dy = syt*0.5 + force1*syn+v->ny*force;
       dz = szt*0.5 + force1*szn+v->nz*force;

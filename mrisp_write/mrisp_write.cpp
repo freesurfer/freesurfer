@@ -537,7 +537,7 @@ mrispComputeCorrelations(MRI_SP *mrisp, MRI_SP *mrisp_contra)
 {
   MRI_SP *mrisp_sphere, *mrisp_debug ;
   int    nframes, x, y, width, height, t ;
-  double **norms, mean, val, **cnorms, ****corrs;
+  double **norms, mean, val, **cnorms, ****corrs = nullptr;
 
   mrisp = MRISPclone(mrisp) ;  // we will modify this one and free it later
   width = mrisp->Ip->cols ; height = mrisp->Ip->rows ;

@@ -3630,7 +3630,7 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
 {
   int n, min_vno, i, vno;
   LV *lv;
-  double min_dist, x, y, z, vx, vy, vz;
+  double min_dist, x, y, z, vx = 0, vy = 0, vz = 0;
   VERTEX *v;
 
   x = y = z = 0;  // quick bug fix. should review whether code is correct
@@ -3946,7 +3946,7 @@ static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, fl
 
 static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
 {
-  double xv, yv, zv;
+  double xv = 0, yv = 0, zv = 0;
 
   switch (area->coords) {
   case LABEL_COORDS_TKREG_RAS:

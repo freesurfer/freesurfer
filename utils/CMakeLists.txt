@@ -1,6 +1,7 @@
 project(utils)
 
-add_compile_options(-Wno-pointer-arith)
+# ATH: temporarily turning off this warning in mrisurf_defect.cpp
+add_compile_options(-Wno-for-loop-analysis)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
@@ -14,6 +15,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/packages/cephes
   ${CMAKE_SOURCE_DIR}/packages/nifti
   ${CMAKE_SOURCE_DIR}/packages/gifti
+  SYSTEM
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIRS}
 )

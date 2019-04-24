@@ -22,7 +22,7 @@
 
 int mris_sort_compare_float(const void *pc1, const void *pc2)
 {
-  register float c1, c2;
+  float c1, c2;
 
   c1 = *(float *)pc1;
   c2 = *(float *)pc2;

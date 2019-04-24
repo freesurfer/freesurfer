@@ -2328,7 +2328,7 @@ static MRI *mincRead(const char *fname, int read_volume)
   status = start_volume_input(tmp, 0, const_cast<char**>(dim_names), NC_UNSPECIFIED, 0, 0, 0, TRUE, &vol, NULL, &input_info);
   free(tmp);
 
-  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW) {
+  if (Gdiag & DIAG_VERBOSE_ON & DIAG_SHOW) {
     printf("status = %d\n", status);
     printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
     printf("nc_data_type = %d\n", vol->nc_data_type);
@@ -2546,7 +2546,7 @@ static MRI *mincRead2(const char *fname, int read_volume)
                               TRUE, &vol, NULL, &input_info);
   free(tmp);
 
-  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW)
+  if (Gdiag & DIAG_VERBOSE_ON & DIAG_SHOW)
   {
     printf("status = %d\n", status);
     printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
@@ -4921,7 +4921,7 @@ static MRI *genesisRead(const char *fname, int read_volume)
   float n_r, n_a, n_s;
   float xlength, ylength, zlength;
   int i, y;
-  MRI *header;
+  MRI *header = nullptr;
   float xfov, yfov, zfov;
   float nlength;
   int twoformats = 0, odd_only, even_only;
@@ -5332,7 +5332,7 @@ static MRI *gelxRead(const char *fname, int read_volume)
   int i, y;
   int ecount, scount, icount;
   int good_flag;
-  MRI *header;
+  MRI *header = nullptr;
   float xfov, yfov, zfov;
 
   /* ----- check the first (passed) file ----- */

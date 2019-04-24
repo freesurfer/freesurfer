@@ -2699,7 +2699,7 @@ MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri)
   }
   else {
     if (outmri->width != inmri->width || outmri->height != inmri->height || outmri->depth != inmri->depth ||
-        outmri->nframes != outmri->nframes) {
+        outmri->nframes != inmri->nframes) {
       printf("ERROR: fMRIcumSum(): output dimension mismatch\n");
       return (NULL);
     }

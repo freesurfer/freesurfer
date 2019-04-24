@@ -2471,7 +2471,7 @@ int CDBNcomputeGradients(CDBN *cdbn,
 
     // compute visible bias and variance change and
     for (v = 0; v < rbm->nvisible; v++) {
-      double dvar_data, dvar_model, var;
+      double dvar_data = 0, dvar_model = 0, var;
 
       var = exp(rbm->variance[v]);
       V0 = visible[v];
@@ -2480,6 +2480,7 @@ int CDBNcomputeGradients(CDBN *cdbn,
       dvisible_bias[0] += (V0 - Vn) / var;
 
       // compute variance update
+      // ATH: is this supposed to be missing?
 
       // compute weight update
       for (h = 0; h < rbm->nhidden; h++) {
