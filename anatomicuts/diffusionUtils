@@ -14,6 +14,7 @@ import dipy.reconst.dki as dki
 from dipy.io.streamline import save_trk
 from dipy.io.image import save_nifti
 from scipy.ndimage.filters import gaussian_filter
+import freesurfer as fs
 
 def tractography(fdwi, fbval, fbvec, subject_folder):
 	img = nib.load(fdwi)
@@ -79,8 +80,6 @@ def getMaps(fdwi, fbval, fbvec, subject_folder):
 	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)
 
 
-def getMaps(fdwi, fbval, fbvec, subject_folder):
-def tractography(fdwi, fbval, fbvec, subject_folder):
 parser = fs.ArgParser()
 # Required
 parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
