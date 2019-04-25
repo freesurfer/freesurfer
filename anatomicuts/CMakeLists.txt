@@ -59,8 +59,9 @@ endif()
 
 install(PROGRAMS
   	dmri_ac.sh
-	diffusionUtils
 	DESTINATION bin
 )
 
-
+install_pyscript(
+	diffusionUtils
+)
