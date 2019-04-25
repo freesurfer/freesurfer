@@ -27,7 +27,7 @@ anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
-ac_output=/space/snoke/1/public/vivros/AnatomiCuts_l35/
+ac_output=${ODMRI} #/space/snoke/1/public/vivros/AnatomiCuts_l35/
 
 function preprocessDWI()
 {
@@ -67,8 +67,9 @@ function tractography()
 
 	mkdir -p ${DMRI_DIR}/${subject}/GQI/
 
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
+	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
+	diffusionUtils tractography $fdwi $fbval $fbvec $output
 
 }
 function getMaps()
@@ -82,8 +83,10 @@ function getMaps()
 
 	mkdir -p ${DMRI_DIR}/${subject}/DKI/
 	
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	
+	diffusionUtils getMaps $fdwi $fbval $fbvec $output
 
 }
 function call()
