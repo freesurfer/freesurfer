@@ -67,8 +67,9 @@ function tractography()
 
 	mkdir -p ${DMRI_DIR}/${subject}/GQI/
 
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
+	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
+	diffusionUtils tractography $fdwi $fbval $fbvec $output
 
 }
 function getMaps()
@@ -82,8 +83,10 @@ function getMaps()
 
 	mkdir -p ${DMRI_DIR}/${subject}/DKI/
 	
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	
+	diffusionUtils getMaps $fdwi $fbval $fbvec $output
 
 }
 function call()
