@@ -552,6 +552,8 @@ protected slots:
 
   void SetCurrentTimeCourseFrame(int nFrame);
 
+  void OnViewLayerInfo();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();

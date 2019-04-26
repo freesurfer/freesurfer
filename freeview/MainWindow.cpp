@@ -514,6 +514,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(ui->actionNextLabelPoint, SIGNAL(triggered()), ui->widgetAllLayers->GetPanel("MRI"), SLOT(OnGoToNextPoint()));
   addAction(ui->actionCycleOverlay);
   connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
+
+  addAction(ui->actionViewLayerInfo);
+  connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
 }
 
 MainWindow::~MainWindow()
@@ -1958,8 +1961,15 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     {
       args.removeFirst();
     }
-    args.prepend("freeview");
-    ParseCommand(args.join(" "));
+    if (!args.isEmpty() && args.first().at(0) == '-')
+    {
+      args.prepend("freeview");
+      ParseCommand(args.join(" "));
+    }
+    else
+    {
+      AddScript(args);
+    }
   }
 }
 
@@ -7912,8 +7922,13 @@ void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
 
   if (lc)
   {
-    int nId = cmd[2].toInt();
-    Layer* layer = lc->GetLayerById(nId);
+    bool bOK = false;
+    int nId = cmd[2].toInt(&bOK);
+    Layer* layer = NULL;
+    if (bOK)
+      layer = lc->GetLayerById(nId);
+    else
+      layer = lc->GetLayerByName(cmd[2]);
     if (layer)
       lc->SetActiveLayer(layer);
     if (cmd.size() >= 4)
@@ -8413,4 +8428,17 @@ Layer* MainWindow::FindSupplementLayer(const QString &name)
 void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
 {
   m_wndTimeCourse->SetCurrentFrame(nFrame);
+}
+
+void MainWindow::OnViewLayerInfo()
+{
+  LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
+  if (lc)
+  {
+    Layer* layer = lc->GetActiveLayer();
+    if (layer)
+    {
+      qDebug() << layer->GetName() << layer->GetEndType() << layer->GetID();
+    }
+  }
 }
