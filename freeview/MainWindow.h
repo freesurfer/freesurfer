@@ -285,6 +285,11 @@ public slots:
 
   void OnStereoRender(bool bOn);
 
+  void AbortScripts()
+  {
+    ClearScripts();
+  }
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
