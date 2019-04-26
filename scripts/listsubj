@@ -97,7 +97,7 @@ for s in $subj; do
     elif [[ $state == e && ! -e "$d/recon-all.error" ]]; then
         continue
     elif [[ $state == r && ! -e "$d/IsRunning.lh" && \
-        ! -e "$d/IsRunning.rh" ]]; then
+            ! -e "$d/IsRunning.rh" ]]; then
         continue
     fi
     out+=("${path}${s##*/}") # Basename only.
