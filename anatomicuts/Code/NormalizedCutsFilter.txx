@@ -39,14 +39,6 @@ class PriorityNode {
 	bool operator<(const PriorityNode n) const { return n._priority > this->_priority; }
 };
 
-/*template <class T> struct greaterTuples : binary_function <T,T,bool> {
-	bool operator() (const T x, const T y) const 
-	{
-		std::cout << std::get<0>(x) <<  " : " << std::get<0>(y) << std::endl;
-		return std::get<0>(x)<std::get<0>(y);
-	}
-};
-*/
 template< class TMesh,class  TMembershipFunctionType>
 	void
 NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
@@ -62,7 +54,6 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 
 	typename SampleType::Pointer sample = SampleType::New();
 	//itk 3
-	//		sample->SetMeasurementVectorSize(numberOfPoints*3);
 	for(unsigned int i =0; i<this->GetInput()->GetNumberOfCells();i++)
 	{
 		MeasurementVectorType mv(numberOfPoints*3);	      
@@ -70,12 +61,8 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 		sample->PushBack(mv);
 	}
 	std::string lastLabel="1";
-	// typedef std::tuple<int, std::string,typename SampleType::Pointer> SamplePriority;
-	//std::priority_queue<SamplePriority, std::vector<SamplePriority>, greaterTuples<SamplePriority>> queue;	
 	std::priority_queue<PriorityNode<SampleType>> queue;	
-	//	queue.emplace(sample->Size(),lastLabel,sample);
 	queue.push(PriorityNode<SampleType>(sample->Size(),lastLabel,sample));
-	//	while(sampleList.size()>0 && lastLabel < 300)
 	while(queue.size()<this->GetNumberOfClusters())
 	{
 		PriorityNode<SampleType> node = queue.top();
@@ -89,45 +76,6 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 		
 		if(sample->Size() > this->GetNumberOfFibersForEigenDecomposition())
 		{
-			/*
- 			DecisionRuleType::Pointer decisionRule = DecisionRuleType::New();
-			typename ClassifierType::Pointer classifier = ClassifierType::New();
-			classifier->SetNumberOfIterations(1) ; //this->GetNumberOfIterations());
-			classifier->SetDecisionRule(decisionRule);
-			classifier->SetInput( sample );
-			ClassLabelVectorType   classLabelsVector; // = classLabelsObject->Get();
-			for(int i =0; i<this->GetNumberOfFibersForEigenDecomposition();i++)
-			{
-				classLabelsVector.push_back( centroidIndices[i].first );
-			}
-			classifier->SetClassLabels(&classLabelsVector);
-			classifier->SetMembershipFunctions( this->GetMembershipFunctionVector());
-			classifier->SetNumberOfClasses( this->GetNumberOfFibersForEigenDecomposition() );
-			classifier->SetMinValue(-std::numeric_limits<double>::max()); 
-
-			for ( int i = 0 ; i < this->GetNumberOfFibersForEigenDecomposition() ; i++ )
-			{
-				(*this->GetMembershipFunctionVector())[i]->SetCentroid( &sample->GetMeasurementVector(centroidIndices[i].second));
-			}
-			classifier->Update();
-			const typename ClassifierType::MembershipSampleType* membershipSample = classifier->GetOutput();
-
-			typename ClassifierType::MembershipSampleType::ConstIterator iter = membershipSample->Begin();
-			while ( iter != membershipSample->End() )
-			{
-				labels[iter.GetMeasurementVector().GetCellId()]=iter.GetClassLabel()+lastLabel*10;
-
-				if(iter.GetClassLabel()==0)
-				{
-					samplePositives->PushBack(iter.GetMeasurementVector());
-				}
-				else
-				{
-					sampleNegatives->PushBack(iter.GetMeasurementVector());
-				}
-				++iter;
-			}
-			*/
 			//Multi-thread
 			std::vector<std::pair<int, int>> inIndeces;
 			std::vector<std::pair<int, int>> outIndeces;
@@ -154,16 +102,6 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 			for(int j=0; j< sample->Size();j++)
 			{
 				int argmax =0; //, maxVal=0;
-				/*for( int i=0; i< centroidIndeces.size();i++)
-				{	
-					if( (*ms)(j,centroidIndeces[i].second) > maxVal)
-					{
-						argmax = i;
-						maxVal =  (*ms)(j,centroidIndeces[i].second);
-					}
-				}
-				*/
-				//std::cout << centroidIndeces[argmax].first << std::endl;
 				argmax=maxvals[j];
 				labels[sample->GetMeasurementVector(j).GetCellId()]=lastLabel +std::to_string(centroidIndeces[argmax].first) ;
 
@@ -429,60 +367,4 @@ NormalizedCutsFilter < TMesh ,TMembershipFunctionType>::SelectCentroids(typename
 	return indices;*/
 
 }
-/*template< class TMesh,class  TMembershipFunctionType>
-	void
-NormalizedCutsFilter < TMesh ,TMembershipFunctionType>::SaveClustersInMeshes(MembershipFunctionVectorType membershipFunctionsVector)
-{
-	int numberOfPoints  = this->GetInput()->GetCells()->Begin().Value()->GetNumberOfPoints();
-	for(int i=0;i<membershipFunctionsVector.size();i++)
-	{ 
-		MeshPointerType om = MeshType::New();
-		om->SetCellsAllocationMethod( MeshType::CellsAllocatedDynamicallyCellByCell );
-		int pointIndex = 0;
-		int cellIndex = 0;
-		int cellIndexCentroid = -1;
-		MembershipFunctionPointer memFunc = membershipFunctionsVector[i];
-		for(int j=0; j< memFunc->GetChilds().size();j++)
-		{
-
-			MeasurementVectorType child = memFunc->GetChilds()[j];
-
-			MeshCellAutoPointer line;
-			line.TakeOwnership ( new PolylineCellType);
-			for (int k=0; k < numberOfPoints ; k++)
-			{
-				typename MeshType::PointType pt;
-				pt[0]= (*child.GetPoints())(k+1)(0);
-				pt[1]= (*child.GetPoints())(k+1)(1);
-				pt[2]= (*child.GetPoints())(k+1)(2);
-
-				om->SetPoint (pointIndex, pt);
-
-				line->SetPointId (k,pointIndex);
-
-				pointIndex++;
-			}
-			//pointIndex++;
-			om->SetCell (cellIndex, line);
-			if(j == memFunc->GetCentroidIndex())
-			{
-				//this is the representative
-				om->SetCellData(0,cellIndex);
-				cellIndexCentroid = cellIndex;
-			}
-
-			cellIndex++;
-
-		}
-		//std::cout << std::endl;
-		if(cellIndexCentroid != -1)
-		{
-			this->m_Output.push_back(om);
-		}
-
-	}
-
-
-}*/
-
 #endif

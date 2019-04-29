@@ -14,7 +14,7 @@ if(VTK_FOUND)
   include(${ITK_USE_FILE})  
   include(${VTK_USE_FILE})
 
-  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-unused-variable -Wno-unused-local-typedefs)
+  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-unused-variable -Wno-unused-local-typedefs )
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 

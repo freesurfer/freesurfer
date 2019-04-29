@@ -77,7 +77,8 @@ EuclideanMembershipFunction< TVector >
 
 	//dist =	   max( dist, dist_inv); ///(labels1->size()*7); 
 	dist = std::min(dist, dist_inv)/labels1->size();
-	dist = 100000.0/(dist+1.0);
+	//dist = 100000.0/(dist+1.0);
+	dist =  1.0/(dist+1);
 //	dist = exp(-dist/25);
 //	std::cout << dist << std::endl ;
 	return dist;
