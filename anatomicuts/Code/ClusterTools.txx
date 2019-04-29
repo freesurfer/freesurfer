@@ -392,6 +392,12 @@ int ClusterTools<TColorMesh, TImage, THistogramMesh>::GetAverageStreamline(typen
 
 	typename ColorMeshType::CellsContainer::ConstIterator cells = mesh->GetCells()->Begin();
 	std::vector<typename ColorMeshType::PointType> avgPoints(cells.Value()->GetNumberOfPoints(),0);
+	for(int i=0;i<cells.Value()->GetNumberOfPoints();i++)
+	{
+		typename ColorMeshType::PointType pt;
+		pt.Fill(0);
+		avgPoints[i]=	pt;
+	}
 	for(;cells!= mesh->GetCells()->End(); cells++)
 	{
 		typename ColorMeshType::CellTraits::PointIdIterator  pointIdIt;
@@ -421,7 +427,7 @@ int ClusterTools<TColorMesh, TImage, THistogramMesh>::GetAverageStreamline(typen
 	}
 	cells = mesh->GetCells()->Begin();
 
-	int cellId;
+	int cellId=-1;
 
 	float minDistance=std::numeric_limits<int>::max();
 
