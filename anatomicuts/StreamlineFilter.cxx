@@ -5,6 +5,7 @@
 #include "itkMesh.h"
 #include "vtkSplineFilter.h"
 
+
 #include <vtkPolyData.h>
 #include <vtkPolyDataReader.h>
 #include <vtkPolyDataWriter.h>
@@ -18,7 +19,6 @@
 #include "TrkVTKPolyDataFilter.txx"
 #include "itkImage.h"
 #include "PolylineMeshToVTKPolyDataFilter.h"
-#include "VTKPolyDataToPolylineMeshFilter.h"
 #include "LabelPerPointVariableLengthVector.h"
 #include "EuclideanMembershipFunction.h"
 #include "ClusterTools.h"
@@ -64,7 +64,6 @@ int main(int argc, char *argv[])
 	//typedef VTKPolyDataToPolylineMeshFilter<MeshType> MeshConverterType;
 	// typedef MeshType::CellsContainer::ConstIterator CellIteratorType;
 	typedef ColorMeshType::CellAutoPointer CellAutoPointer;
-	//typedef PolylineMeshToVTKPolyDataFilter<MeshType> VTKConverterType;
 
 	GetPot cl(argc, const_cast<char**>(argv));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -193,40 +192,14 @@ int main(int argc, char *argv[])
 			}
 
 		}
-		/*
+		
 		std::cout <<" output file: "<<  outputName<< om->GetNumberOfCells() <<std::endl;
 		char meshName2[100];
 		sprintf(meshName2, "%s", outputName);
 
 		std::cout << " mesh name  " << meshName2 << std::endl;
-		VTKConverterType::Pointer vtkConverter =  VTKConverterType::New();
-		vtkConverter->SetInput(om);
-		vtkConverter->Update();
-		if(  std::string(outputName).find(".trk") != std::string::npos)
-		{
-			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
-			trkReader->SetInput(vtkConverter->GetOutputPolyData());
-			if( cl.search(2,"-m","-M"))
-			{
-				trkReader->SetReferenceImage(mask);
-			}
-			trkReader->SetReferenceTrack(	std::string(inputName));
-			trkReader->VTKToTrk(std::string(outputName));
 
-		}
-		else
-		{
-			vtkPolyDataWriter *writerFixed = vtkPolyDataWriter::New();
-			writerFixed->SetFileName ( meshName2);
-#if VTK_MAJOR_VERSION > 5
-			writerFixed->SetInputData(vtkConverter->GetOutputPolyData());
-#else
-			writerFixed->SetInput(vtkConverter->GetOutputPolyData());
-#endif
-			writerFixed->SetFileTypeToBinary();
-			writerFixed->Update();
-		}*/
-
+		clusterTools->SaveMesh(input, mask, std::string(meshName2), std::string(inputName)); 
 	}
 }
 

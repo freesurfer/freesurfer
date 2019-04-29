@@ -1,7 +1,6 @@
 #ifndef _ClusterTools_h__
 #define _ClusterTools_h_
 
-
 #include "itkMeshToMeshFilter.h"
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
@@ -19,6 +18,14 @@
 
 #include "TrkVTKPolyDataFilter.txx"
 
+#include "itkPolylineCell.h"
+#include "vtkCellData.h"
+
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkFieldData.h>
+#include "PolylineMeshToVTKPolyDataFilter.h"
+#include "VTKPolyDataToPolylineMeshFilter.h"
 
 using namespace itk;
 template <class TColorMesh, class TImage, class THistogramMesh>
@@ -52,6 +59,10 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 		typedef LabelsEntropyAndIntersectionMembershipFunction<MeasurementVectorType>  MembershipFunctionType;	
 		//typedef EuclideanMembershipFunction<MeasurementVectorType> MembershipFunctionType;
 
+		typedef typename ColorMeshType::PointsContainerPointer PointsContainerPointer;
+
+		typedef typename ColorMeshType::PointsContainer 		PointsContainer;
+
 		typedef TImage ImageType;
 		typedef typename ImageType::Pointer ImagePointer;
 		typedef typename ImageType::IndexType IndexType;
@@ -65,6 +76,9 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 		float GetDistance(HistogramMeshPointer mesh, int index_i, int index_j); 
 		
 			//typedef std::vector<int>                  PointDataType;
+		
+		
+		void SaveMesh(ColorMeshPointer mesh, ImagePointer image,std::string outputFilename, std::string refFiber);
 
 		int SymmetricLabelId(int);
 	protected:

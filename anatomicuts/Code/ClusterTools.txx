@@ -324,6 +324,40 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<
 
 	}
 }
+
+template <class TColorMesh, class TImage, class THistogramMesh>
+void ClusterTools<TColorMesh, TImage, THistogramMesh>::SaveMesh(typename TColorMesh::Pointer mesh ,typename TImage::Pointer image,  std::string outputName, std::string refFiber)
+{
+
+	typename VTKConverterType::Pointer vtkConverter =  VTKConverterType::New();
+	vtkConverter->SetInput(mesh);
+	vtkConverter->Update();
+	if(  std::string(outputName).find(".trk") != std::string::npos)
+	{
+		itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
+		trkReader->SetInput(vtkConverter->GetOutputPolyData());
+		trkReader->SetReferenceImage(image);
+		trkReader->SetReferenceTrack(	std::string(refFiber));
+		trkReader->VTKToTrk(std::string(outputName));
+
+	}
+	else
+	{
+		vtkPolyDataWriter *writerFixed = vtkPolyDataWriter::New();
+		writerFixed->SetFileName ( outputName.c_str());
+#if VTK_MAJOR_VERSION > 5
+		writerFixed->SetInputData(vtkConverter->GetOutputPolyData());
+#else
+		writerFixed->SetInput(vtkConverter->GetOutputPolyData());
+#endif
+		writerFixed->SetFileTypeToBinary();
+		writerFixed->Update();
+	}
+
+
+}
+
+
 template <class TColorMesh, class TImage, class THistogramMesh>
 std::vector<typename TColorMesh::Pointer> ClusterTools<TColorMesh, TImage, THistogramMesh>::FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> polydatas, int numberOfPoints)
 {
