@@ -2362,7 +2362,15 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   if (sa.size() > 2)
   {
     strg = sa[2];
-    if ( strg == "heatscale" )
+    bool bOK;
+    strg.toDouble((&bOK));
+    int nStart = 3;
+    if (bOK)
+    {
+      nColorMapScale = nColorMap;
+      nStart = 2;
+    }
+    else if ( strg == "heatscale" )
     {
       nColorMapScale = LayerPropertyMRI::Heat;
     }
@@ -2375,7 +2383,7 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
       nColorMapScale = LayerPropertyMRI::LUT;
     }
 
-    for ( int i = 3; i < sa.size(); i++ )
+    for ( int i = nStart; i < sa.size(); i++ )
     {
       bool bOK;
       double dValue = sa[i].toDouble(&bOK);
