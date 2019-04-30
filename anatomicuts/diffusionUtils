@@ -87,7 +87,7 @@ parser = fs.ArgParser()
 parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
 parser.add_argument('-d','--dwi', metavar='file',required=True,  help='Diffusion MRI image.')
 parser.add_argument('-b','--bval', metavar='file', required=True, help='bvalue file.')
-parser.add_argument('-v','--bvec', type=float, required=True, help='bvectors file')
+parser.add_argument('-v','--bvec', metavar='file', required=True, help='bvectors file')
 parser.add_argument('-s','--subject_folder', required=True, help='subject folder')
 args = parser.parse_args()
 
