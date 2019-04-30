@@ -28,6 +28,8 @@
 #include "VTKPolyDataToPolylineMeshFilter.h"
 
 using namespace itk;
+enum DirectionsType{ALL=0, DIAGONAL=1, STRAIGHT=2};
+
 template <class TColorMesh, class TImage, class THistogramMesh>
 class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 {
@@ -55,6 +57,7 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 		typedef typename HistogramMeshType::Pointer  HistogramMeshPointer;
 		typedef typename HistogramMeshType::PointType  HistogramPointType;
 		typedef typename HistogramMeshType::PixelType  HistogramPixelType;
+		typedef typename HistogramMeshType::CellPixelType HistogramDataType;
 		typedef LabelPerPointVariableLengthVector<ColorPixelType , HistogramMeshType> MeasurementVectorType;	
 		typedef LabelsEntropyAndIntersectionMembershipFunction<MeasurementVectorType>  MembershipFunctionType;	
 		//typedef EuclideanMembershipFunction<MeasurementVectorType> MembershipFunctionType;
@@ -67,9 +70,10 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 		typedef typename ImageType::Pointer ImagePointer;
 		typedef typename ImageType::IndexType IndexType;
 
-		void GetPolyDatas(std::vector<std::string> files, std::vector<vtkSmartPointer<vtkPolyData>> polydatas, ImagePointer image);
-		std::vector<ColorMeshPointer> FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> p , int i);
-		std::vector<HistogramMeshPointer> ColorMeshToHistogramMesh(std::vector<ColorMeshPointer> basicMeshes, ImagePointer segmentation, bool removeInterHemispheric);
+		void GetPolyDatas(std::vector<std::string> files, std::vector<vtkSmartPointer<vtkPolyData>>* polydatas, ImagePointer image);
+		std::vector<ColorMeshPointer>* FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> p , int i);
+		std::vector<HistogramMeshPointer>* ColorMeshToHistogramMesh(std::vector<ColorMeshPointer> basicMeshes, ImagePointer segmentation, bool removeInterHemispheric);
+		void  SetDirectionalNeighbors(std::vector<HistogramMeshPointer>* meshes, ImagePointer segmentation, std::vector<itk::Vector<float>> direcciones, bool symmetry);
 	
 		int GetAverageStreamline(ColorMeshPointer mesh);
 		float  GetStandardDeviation(HistogramMeshPointer mesh, int averageStreamlineIndex);
@@ -80,7 +84,10 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 		
 		void SaveMesh(ColorMeshPointer mesh, ImagePointer image,std::string outputFilename, std::string refFiber);
 
+
 		int SymmetricLabelId(int);
+		std::vector<itk::Vector<float>>* GetDirections(DirectionsType dir);
+		
 	protected:
 		ClusterTools(){}
 		~ClusterTools() {}

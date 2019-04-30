@@ -43,8 +43,42 @@ int ClusterTools<TColorMesh, TImage, THistogramMesh>::SymmetricLabelId(int id)
 	}
 	return  symId;
 }
+
 template <class TColorMesh, class TImage, class THistogramMesh>
-std::vector<typename THistogramMesh::Pointer> ClusterTools<TColorMesh, TImage, THistogramMesh>::ColorMeshToHistogramMesh(std::vector<typename TColorMesh::Pointer> basicMeshes,typename  TImage::Pointer segmentation, bool removeInterHemispheric)
+std::vector<itk::Vector<float>>* ClusterTools<TColorMesh, TImage, THistogramMesh>::GetDirections(DirectionsType dir)
+{
+	std::vector<itk::Vector<float>>* direcciones = new std::vector<itk::Vector<float>>();
+	int possibles[3] = {0,1,-1};
+	for(int i=0;i<3;i++)
+	{
+		for(int k=0;k<3;k++)
+		{
+			for(int j=0;j<3;j++)
+			{
+				itk::Vector<float> index;
+				index[0] = possibles[i];
+				index[1] = possibles[j];
+				index[2] = possibles[k];
+				int howManyZeros=0;
+				if(i==0)
+					howManyZeros++;
+				if(j==0)
+					howManyZeros++;
+				if(k==0)
+					howManyZeros++;
+				if((dir == DirectionsType::ALL && howManyZeros!=3)|| (DirectionsType::STRAIGHT == dir&& howManyZeros== 2) || (DirectionsType::DIAGONAL == dir && howManyZeros>=1 &&howManyZeros!=3)) 
+				{
+					direcciones->push_back(index);
+				}
+			}
+		}
+
+	}
+
+	return direcciones;
+}
+template <class TColorMesh, class TImage, class THistogramMesh>
+std::vector<typename THistogramMesh::Pointer>* ClusterTools<TColorMesh, TImage, THistogramMesh>::ColorMeshToHistogramMesh(std::vector<typename TColorMesh::Pointer> basicMeshes,typename  TImage::Pointer segmentation, bool removeInterHemispheric)
 {
 	if( ct == NULL)
 	{
@@ -54,7 +88,7 @@ std::vector<typename THistogramMesh::Pointer> ClusterTools<TColorMesh, TImage, T
 		ct = CTABreadASCII(tmpstr);
 	}
 
-	std::vector<typename HistogramMeshType::Pointer> meshes;
+	std::vector<typename HistogramMeshType::Pointer>* meshes = new std::vector<typename HistogramMeshType::Pointer>();
 	for(unsigned int i=0;i<basicMeshes.size();i++)
 	{
 		typedef typename ColorMeshType::CellsContainer::ConstIterator CellIterator;
@@ -126,51 +160,40 @@ std::vector<typename THistogramMesh::Pointer> ClusterTools<TColorMesh, TImage, T
 		//std::cout << " val " << val << std::endl;
 		if( val> 0.20)
 		{
-			meshes.push_back(HistogramMeshType::New());
+			meshes->push_back(HistogramMeshType::New());
 		}
 		else
 		{
-			meshes.push_back(mesh);
+			meshes->push_back(mesh);
 		}
 	}
 	return meshes;
 }
-/*
+
 template <class TColorMesh, class TImage, class THistogramMesh>
-std::vector<MeasurementVectorType> ClusterTools<TColorMesh, TImage, THistogramMesh>::SetDirectionalNeighbors(std::vector<ColorMeshType::Pointer> meshes, std::vector<int> clusterCentroidsIndex, ImageType::Pointer segmentation, std::vector<itk::Vector<float>> direcciones, bool symmetry)
+void ClusterTools<TColorMesh, TImage, THistogramMesh>::SetDirectionalNeighbors(std::vector<typename HistogramMeshType::Pointer>* meshes, typename ImageType::Pointer segmentation, std::vector<itk::Vector<float>> direcciones, bool symmetry)
 {
-	//std::cout << " symmetry " << symmetry << std::endl;
 	std::vector<MeasurementVectorType> measurements;
-	for(unsigned int i=0;i<meshes.size();i++)
+	for(unsigned int i=0;i<meshes->size();i++)
 	{	
 		int  pointId =0;
 		//ColorMeshType::CellTraits::PointIdIterator  pointIdEnd =meshes[i]->GetNumberOfPoints();
-		int  pointIdEnd =meshes[i]->GetNumberOfPoints();
-		int numPoints = meshes[i]->GetNumberOfPoints();
-		if(clusterCentroidsIndex[i]>-1)
-		{
-
-			CellAutoPointer cell1;
-			meshes[i]->GetCell(clusterCentroidsIndex[i], cell1);
-			pointId  =*cell1->PointIdsBegin();
-			pointIdEnd=*cell1->PointIdsEnd();
-			numPoints= pointIdEnd - pointId;
-		}
+		int  pointIdEnd =(*meshes)[i]->GetNumberOfPoints();
+		int numPoints = (*meshes)[i]->GetNumberOfPoints();
 
 		for(;pointId != pointIdEnd; pointId++)
 		{
-			ColorMeshType::PointType pt1=0;
-			meshes[i]->GetPoint (pointId, &pt1);
-			IndexType index;	
+			typename HistogramMeshType::PointType pt1=0;
+			(*meshes)[i]->GetPoint (pointId, &pt1);
+			typename ImageType::IndexType index;	
 			if (segmentation->TransformPhysicalPointToIndex(pt1,index))
 			{
-				PointDataType* pointData = new PointDataType();
-				PixelType labelOrig = segmentation->GetPixel(index);
-				PixelType label = labelOrig;
+				HistogramDataType* pointData = new HistogramDataType();
+				typename ImageType::PixelType labelOrig = segmentation->GetPixel(index);
+				typename ImageType::PixelType label = labelOrig;
 				if (symmetry)	
 				{
 					label= SymmetricLabelId(labelOrig);
-					//					std::cout << " labeled " << labelOrig  << " mirrowed label " << label << std::endl;
 				} 
 
 				pointData->push_back(label);
@@ -178,11 +201,11 @@ std::vector<MeasurementVectorType> ClusterTools<TColorMesh, TImage, THistogramMe
 
 				for(unsigned int k=0;k<direcciones.size();k++)
 				{
-					PixelType vecino = labelOrig;
+					typename ImageType::PixelType vecino = labelOrig;
 					itk::ContinuousIndex<float,3> continuousIndex = index;
-					ColorMeshType::PointType point = pt1;
+					HistogramPointType point = pt1;
 					//std::cout << direcciones[k] << std::endl;
-					IndexType roundedIndex;
+					typename ImageType::IndexType roundedIndex;
 					while(vecino == labelOrig)
 					{
 						for(unsigned int j=0; j<3;j++)
@@ -205,108 +228,28 @@ std::vector<MeasurementVectorType> ClusterTools<TColorMesh, TImage, THistogramMe
 						pointData->push_back(label);
 					}
 				}
-				meshes[i]->SetPointData(pointId, *pointData);
+				(*meshes)[i]->SetPointData(pointId, *pointData);
 			}
 			else
 			{
-
-				std::cout << pointId << " " << pointIdEnd << " "<< pt1 <<" " << index<<std::endl;
+				std::cout << "ClusterTools::SetDirectionalNeighbors: Point outside image. " << index<<std::endl;
 			}
 		}
-		MeasurementVectorType mv(numPoints*3);
-		mv.SetCell(meshes[i],clusterCentroidsIndex[i]);
-		measurements.push_back(mv);
-
 	}
-	return measurements;
 
 }
 template <class TColorMesh, class TImage, class THistogramMesh>
-std::vector<int> ClusterTools<TColorMesh, TImage, THistogramMesh>::GetCentroidIndices(std::vector<ColorMeshType::Pointer> meshes)
-{
-	std::vector<int> clusterCentroidsIndex( meshes.size(),0);
-	for(unsigned int i=0; i<meshes.size();i++)	
-	{
-		std::vector<ColorMeshType::PointType> avgPoints(meshes[i]->GetCells()->Begin().Value()->GetNumberOfPoints(),0);
-		ColorMeshType::CellsContainer::ConstIterator cells = meshes[i]->GetCells()->Begin();
-		int cell_i=0;
-		for(;cells!= meshes[i]->GetCells()->End(); cells++)
-		{
-			cell_i++;
-			ColorMeshType::CellTraits::PointIdIterator  pointIdIt  =cells.Value()->PointIdsBegin();
-			double dist=0.0;
-			double dist_inv=0.0;
-			for(unsigned int j=0;pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
-			{
-				ColorMeshType::PointType pt=0;
-				meshes[i]->GetPoint (*pointIdIt, &pt);
-				for(unsigned int k=0;k<3;k++)
-					pt[k]=pt[k]*(cell_i/meshes[i]->GetNumberOfCells());
-
-				dist +=	avgPoints[j].EuclideanDistanceTo(pt);
-				dist_inv +=avgPoints[avgPoints.size()-j-1].EuclideanDistanceTo(pt);
-			}
-			pointIdIt  =cells.Value()->PointIdsBegin();
-			for(unsigned int j=0;pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
-			{	
-				ColorMeshType::PointType pt=0;
-				meshes[i]->GetPoint (*pointIdIt, &pt);
-				for(unsigned int k=0;k<3;k++)
-				{
-					if(dist<dist_inv)
-						avgPoints[j][k]+=pt[k]/meshes[i]->GetNumberOfCells();
-					else
-						avgPoints[avgPoints.size()-j-1][k]+=pt[k]/meshes[i]->GetNumberOfCells();
-				}
-			}
-		}
-		//clusterCentroids.push_back(avgPoints);
-		cells = meshes[i]->GetCells()->Begin();
-		float min_dist = std::numeric_limits<float>::max();
-		cell_i=0;
-		for(;cells!= meshes[i]->GetCells()->End(); cells++)
-		{
-			ColorMeshType::CellTraits::PointIdIterator  pointIdIt  =cells.Value()->PointIdsBegin();
-			double dist=0.0;
-			double dist_inv=0.0;
-			for(unsigned int j=0;pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
-			{
-				ColorMeshType::PointType pt=0;
-				meshes[i]->GetPoint (*pointIdIt, &pt);
-
-				dist +=	avgPoints[j].EuclideanDistanceTo(pt);
-				dist_inv +=avgPoints[avgPoints.size()-j-1].EuclideanDistanceTo(pt);
-			}
-			if(dist<min_dist)
-			{
-				min_dist = dist;
-				clusterCentroidsIndex[i]= cell_i;
-			}
-			if(dist_inv<min_dist)
-			{
-				min_dist = dist_inv;
-				clusterCentroidsIndex[i]= cell_i;
-			}
-		}
-
-
-	}
-	return clusterCentroidsIndex;
-}
-*/
-template <class TColorMesh, class TImage, class THistogramMesh>
-void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<std::string> files, std::vector<vtkSmartPointer<vtkPolyData>> polydatas, typename TImage::Pointer image)
+void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<std::string> files, std::vector<vtkSmartPointer<vtkPolyData>>* polydatas, typename TImage::Pointer image)
 {
 	for(int i =0; i< files.size(); i++)   
 	{
-		typename MeshConverterType::Pointer converter = MeshConverterType::New();
 		if(  files[i].find(".trk") !=std::string::npos)
 		{
 			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 			trkReader->SetTrkFileName(files[i]);
 			trkReader->SetReferenceImage(image);
 			trkReader->TrkToVTK();
-			polydatas.push_back(trkReader->GetOutputPolyData());
+			polydatas->push_back(trkReader->GetOutputPolyData());
 
 		}
 		else
@@ -318,7 +261,7 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<
 			polydatas.push_back(reader->GetOutputPort());
 #else
 			reader->GetOutput()->Update();
-			polydatas.push_back(reader->GetOutput());
+			polydatas->push_back(reader->GetOutput());
 #endif
 		}
 
@@ -359,10 +302,10 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::SaveMesh(typename TColorM
 
 
 template <class TColorMesh, class TImage, class THistogramMesh>
-std::vector<typename TColorMesh::Pointer> ClusterTools<TColorMesh, TImage, THistogramMesh>::FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> polydatas, int numberOfPoints)
+std::vector<typename TColorMesh::Pointer>* ClusterTools<TColorMesh, TImage, THistogramMesh>::FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> polydatas, int numberOfPoints)
 {
 
-	std::vector<typename ColorMeshType::Pointer> meshes;
+	std::vector<typename ColorMeshType::Pointer>* meshes = new std::vector<typename ColorMeshType::Pointer>();
 	for (unsigned int i=0;i<polydatas.size(); i++)
 	{
 		vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
@@ -379,7 +322,7 @@ std::vector<typename TColorMesh::Pointer> ClusterTools<TColorMesh, TImage, THist
 		converter->GenerateData2();
 
 		typename ColorMeshType::Pointer mesh =  converter->GetOutput();
-		meshes.push_back(mesh);	
+		meshes->push_back(mesh);	
 	}
 	return meshes;
 }
@@ -431,12 +374,12 @@ int ClusterTools<TColorMesh, TImage, THistogramMesh>::GetAverageStreamline(typen
 
 	float minDistance=std::numeric_limits<int>::max();
 
-	int j=0;
-	for(;cells!= mesh->GetCells()->End(); cells++)
+	for(int k=0;cells!= mesh->GetCells()->End(); cells++, k++)
 	{
 		typename ColorMeshType::CellTraits::PointIdIterator  pointIdIt;
 		double dist=0.0;
 		double dist_inv=0.0;
+		int j=0;
 		for(pointIdIt  =cells.Value()->PointIdsBegin();pointIdIt != cells.Value()->PointIdsEnd(); pointIdIt++,j++)
 		{	
 			typename ColorMeshType::PointType pt;
@@ -444,12 +387,11 @@ int ClusterTools<TColorMesh, TImage, THistogramMesh>::GetAverageStreamline(typen
 			dist +=	avgPoints[j].EuclideanDistanceTo(pt);
 			dist_inv +=avgPoints[avgPoints.size()-j-1].EuclideanDistanceTo(pt);
 		}
-		if(minDistance < std::min(dist, dist_inv))
+		if(minDistance > std::min(dist, dist_inv))
 		{
-			cellId=j;	
+			cellId=k;	
 			minDistance =std::min(dist,dist_inv);
 		}
-		j+=1;
 	}
 	return cellId;	
 }
@@ -458,8 +400,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetStandardDeviation(typ
 {	
 
 	typename MembershipFunctionType::Pointer function = MembershipFunctionType::New();	
-	function->WithCosine(false);	
-
+	function->SetMeanEuclidean(true);
 	typename HistogramMeshType::CellsContainer::ConstIterator cells =mesh->GetCells()->Begin();
 	int numberOfPoints= cells.Value()->GetNumberOfPoints();
 
@@ -470,6 +411,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetStandardDeviation(typ
 	{
 		MeasurementVectorType mv(numberOfPoints*3);	      
 		mv.SetCell(mesh, j) ;
+		//std::cout << function->Evaluate(&mv, &average) << std::endl;
 		distance +=pow( 1.0/function->Evaluate(&mv,&average)-1,2);		
 	}
 	return 	std::sqrt(distance/(mesh->GetNumberOfCells()-1));
@@ -479,7 +421,7 @@ template <class TColorMesh, class TImage, class THistogramMesh>
 float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetDistance(typename THistogramMesh::Pointer mesh, int clusterMean, int cellId)
 {	
 	typename MembershipFunctionType::Pointer function = MembershipFunctionType::New();	
-	function->WithCosine(false);	
+	function->SetMeanEuclidean(true);
 
 	typename HistogramMeshType::CellsContainer::ConstIterator cells = mesh->GetCells()->Begin();
 	int numberOfPoints= cells.Value()->GetNumberOfPoints();

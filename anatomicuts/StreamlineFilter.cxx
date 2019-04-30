@@ -23,24 +23,8 @@
 #include "EuclideanMembershipFunction.h"
 #include "ClusterTools.h"
 #include "itkDefaultStaticMeshTraits.h"
-/*
-enum {Dimension =3};
-typedef int                                                        PixelType;
-typedef itk::Image< PixelType,Dimension> ImageType;
-typedef ImageType::IndexType 			IndexType;
-const unsigned int PointDimension = 3;
-typedef std::vector<int>                  PointDataType;
-const unsigned int MaxTopologicalDimension = 3;
-typedef double CoordinateType;
-typedef double InterpolationWeightType;
-typedef itk::DefaultStaticMeshTraits<
-	PointDataType, PointDimension, MaxTopologicalDimension,
-	CoordinateType, InterpolationWeightType, PointDataType > MeshTraits;
-typedef itk::Mesh< PixelType, PointDimension, MeshTraits > MeshType;
-typedef itk::Mesh< PixelType, PointDimension > MeshBasicType;
-typedef VTKPolyDataToPolylineMeshFilter<MeshBasicType> MeshConverterType;
 
-*/
+
 int main(int argc, char *argv[])
 {		
 	enum {Dimension =3};
@@ -69,16 +53,15 @@ int main(int argc, char *argv[])
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
 	{
 		std::cout<<"Usage: " << std::endl;
-		std::cout << argv[0] << " -i streamlines -o streamlines -l minLength  -m mask/segmentation -nu (filter ushape fibers) -s subsample -c cleaningThreshold (std times)" << std::endl;
+		std::cout << argv[0] << " -i streamlines -o streamlines -l minLength  -m mask/segmentation -nu (filter ushape fibers) -s subsample -c cleaningThreshold (std times) -d outputDirectory" << std::endl;
 		return EXIT_FAILURE;
 	}
-	const char* inputName= cl.follow("",2,"-i","-I");
-	const char* outputName = cl.follow("",2,"-o","-O");
+	const char* outputDirectory = cl.follow("",2,"-d","-D");
 	int maxLenght  = cl.follow(-1,2,"-l","-L");
 	int subSample = cl.follow(-1,2,"-s","-S");
 	bool filterUShape =cl.search("-nu");
 	bool maskFibers  =cl.search("-m");
-	bool cleaningThreshold = cl.follow(0,2,"-c","-C");
+	float cleaningThreshold = cl.follow(0.0,2,"-c","-C");
 
 	ImageType::Pointer refImage;
 	ImageType::Pointer mask;
@@ -91,30 +74,41 @@ int main(int argc, char *argv[])
 		reader->Update();
 		mask = reader->GetOutput();
 	}
-	std::vector<std::string> files;
-	files.push_back(std::string(inputName));
-	std::vector<ColorMeshType::Pointer> meshes;
-	
+
+	std::vector<std::string> inputFiles;
+	for(std::string inputName = std::string(cl.follow("",2,"-i","-I")); access(inputName.c_str(),0)==0; inputName = std::string(cl.next("")))
+	{
+		inputFiles.push_back(inputName);
+	}
+
+	std::vector<std::string> outputFiles;
+	for(std::string outputName = cl.follow("",2,"-o","-O"); access(outputName.c_str(),0)==0; outputName = std::string(cl.next("")))
+	{
+		outputFiles.push_back(outputName);
+	}
+	std::vector<ColorMeshType::Pointer>* meshes;
 	std::vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
 	
-	clusterTools->GetPolyDatas(files, polydatas, mask) ;
+	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask) ;
 	meshes = clusterTools->FixSampleClusters(polydatas, 20);
-	std::vector<HistogramMeshType::Pointer> histoMeshes = clusterTools->ColorMeshToHistogramMesh(meshes, mask, false);;
+	std::vector<HistogramMeshType::Pointer>* histoMeshes = clusterTools->ColorMeshToHistogramMesh(*meshes, mask, false);
+	
+	clusterTools->SetDirectionalNeighbors(histoMeshes,  mask, *clusterTools->GetDirections(DirectionsType::ALL), false);
 
+
+	std::cout << polydatas.size() <<  " " << meshes->size() << std::endl;
 		
-	for(int i=0; i<meshes.size(); i++)
+	for(int i=0; i<meshes->size(); i++)
 	{ 
-		ColorMeshType::Pointer input = meshes[i];
+		ColorMeshType::Pointer input = (*meshes)[i];
 		int offset =(subSample>0)? input->GetNumberOfCells()/subSample:1;
 
-		ColorMeshType::Pointer om = ColorMeshType::New();
-		om->SetCellsAllocationMethod( ColorMeshType::CellsAllocatedDynamicallyCellByCell );
-
-		int averageId = clusterTools->GetAverageStreamline(meshes[i]);	
-		float stdCluster =  clusterTools->GetStandardDeviation(histoMeshes[i],averageId)*cleaningThreshold;
+		std::cout << (*meshes)[i]->GetNumberOfCells() << " " <<(*histoMeshes)[i]->GetNumberOfCells() << std::endl;
+		int averageId = clusterTools->GetAverageStreamline((*meshes)[i]);	
+		float stdCluster =  clusterTools->GetStandardDeviation((*histoMeshes)[i],averageId)*cleaningThreshold;
 
 
 		std::set<int> unfilteredIds;
@@ -155,9 +149,9 @@ int main(int argc, char *argv[])
 					}		
 				}
 			}
-			float dist= clusterTools->GetDistance(histoMeshes[i],averageId, cellId);		
-
-			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist>stdCluster))
+			float dist= clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId);		
+			std::cout << " dist "<< dist << " " << stdCluster << std::endl;
+			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<stdCluster))
 			{	
 
 				unfilteredIds.insert(cellId);
@@ -165,6 +159,9 @@ int main(int argc, char *argv[])
 
 		}
 	
+		ColorMeshType::Pointer om = ColorMeshType::New();
+		om->SetCellsAllocationMethod( ColorMeshType::CellsAllocatedDynamicallyCellByCell );
+
 		inputCellIt = input->GetCells()->Begin();
 		for (int cellId=0 ; inputCellIt!=input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
@@ -192,14 +189,22 @@ int main(int argc, char *argv[])
 			}
 
 		}
-		
-		std::cout <<" output file: "<<  outputName<< om->GetNumberOfCells() <<std::endl;
-		char meshName2[100];
-		sprintf(meshName2, "%s", outputName);
+		std::string outputName;
+		if(outputFiles.size() == inputFiles.size())
+		{		
+			outputName = outputFiles[i];
+		}
+		else
+		{	
+			std::string filename = inputFiles[i].substr(inputFiles[i].find_last_of("/\\") + 1);	
+			outputName= std::string(outputDirectory)+ "/"+filename;
+		}
+	
+		std::cout << " mesh name  " << outputName << std::endl;
 
-		std::cout << " mesh name  " << meshName2 << std::endl;
-
-		clusterTools->SaveMesh(input, mask, std::string(meshName2), std::string(inputName)); 
+		clusterTools->SaveMesh(om, mask, outputName, inputFiles[i]); 
 	}
+	delete meshes;
+	delete histoMeshes;
 }
 
