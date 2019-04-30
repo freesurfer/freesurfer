@@ -406,10 +406,7 @@ if(NOT MINIMAL)
   add_subdirectories(
     anatomicuts
     BrainstemSS
-    check_siemens_dir
-    connectgraph
     diffusion_tool
-    dmri_tensoreig
     dummy
     dngtester
     freeview
@@ -420,59 +417,37 @@ if(NOT MINIMAL)
     hiam_register
     HippoSF
     histo_compute_joint_density
-    histo_fix_topology
     histo_register_block
-    histo_segment
     histo_synthesize
     label2flat
     label2patch
-    label_area
-    label_border
     mkxsubjreg
     matlab
-    mri_apply_inu_correction
-    mri_aseg_edit_reclassify
-    mri_aseg_edit_train
-    mri_auto_fill
     mri_average
-    mri_bc_sc_bias_correct
     mri_bias
-    mri_build_priors
     mri_ca_tissue_parms
     mri_ca_train
     mri_cal_renormalize_gca
-    mri_cht2p
-    mri_classify
     mri_cnr
     mri_compile_edits
     mri_compute_change_map
-    mri_compute_structure_transforms
     mri_compute_volume_fractions
-    mri_concatenate_gcam
-    mri_convert_mdh
     mri_copy_values
     mri_cor2label
     mri_correct_segmentations
     mri_cvs_register
     mri_dct_align
     mri_distance_transform
-    mri_divide_segmentation
-    mri_elastic_energy
-    mri_estimate_tissue_parms
     mri_evaluate_morph
     mri_extract
-    mri_extract_conditions
     mri_extract_fcd_features
     mri_extract_label
-    mri_fcili
     mri_fdr
     mri_fieldsign
     mri_fit_bias
     mri_fslmat_to_lta
     mri_fuse_intensity_images
     mri_gca_ambiguous
-    mri_gcab_train
-    mri_gdfglm
     mri_glmfit
     mri_gtmpvc
     mri_gtmseg
@@ -480,47 +455,27 @@ if(NOT MINIMAL)
     mri_head
     mri_hires_register
     mri_histo_eq
-    mri_histo_normalize
-    mri_ibmc
-    mri_interpolate
-    mri_jacobian
     mri_joint_density
-    mri_label_accuracy
     mri_label_histo
     mri_label_vals
     mri_label_volume
     mri_linear_register
-    mri_make_bem_surfaces
-    mri_make_density_map
-    mri_make_labels
-    mri_make_register
-    mri_make_template
     mri_map_cpdat
     mri_mark_temporal_lobe
     mri_mcsim
     mri_mi
     mri_modify
     mri_morphology
-    mri_mosaic
-    mri_ms_EM
-    mri_ms_EM_with_atlas
     mri_ms_fitparms
-    mri_ms_LDA
-    mri_multiscale_segment
-    mri_multispectral_segment
     mri_nlfilter
     mri_otl
     mri_paint
     mri_parse_sdcmdir
-    mri_parselabel
-    mri_partial_ribbon
     mri_path2label
     mri_polv
     mri_probe_ima
     mri_reduce
-    mri_register
     mri_rf_label
-    mri_rf_long_label
     mri_rf_long_train
     mri_rf_train
     mri_ribbon
@@ -529,81 +484,56 @@ if(NOT MINIMAL)
     mri_seg_diff
     mri_segcentroids
     mri_seghead
-    mri_segment_tumor
-    mri_segment_wm_damage
-    mri_simulate_atrophy
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
     mri_synthesize
-    mri_threshold
     mri_topologycorrection
     mri_train
-    mri_train_autoencoder
     mri_transform
-    mri_transform_to_COR
     mri_twoclass
-    mri_update_gca
-    mri_vol2roi
     mri_volcluster
     mri_volsynth
     mri_warp_convert
     mri_wbc
-    mri_wmfilter
-    mri_xcorr
     mri_xvolavg
     mri_z2p
     mris2rgb
-    mris_add_template
     mris_annot_to_segmentation
     mris_apply_reg
-    mris_aseg_distance
     mris_average_curvature
-    mris_average_parcellation
     mris_BA_segment
     mris_ca_train
-    mris_classify_thickness
     mris_compute_acorr
     mris_compute_lgi
-    mris_compute_optimal_kernel
-    mris_compute_overlap
     mris_compute_parc_overlap
     mris_compute_volume_fractions
     mris_congeal
     mris_copy_header
     mris_defects_pointset
     mris_deform
-    mris_density
     mris_distance_map
     mris_distance_to_label
-    mris_distance_transform
     mris_entropy
     mris_errors
     mris_expand
     mris_extract_patches
-    mris_fbirn_annot
     mris_fill
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
-    mris_glm
     mris_hausdorff_dist
     mris_init_global_tractography
-    mris_interpolate_warp
     mris_label_area
     mris_label_calc
     mris_label_mode
-    mris_longitudinal_surfaces
     mris_make_average_surface
     mris_make_face_parcellation
-    mris_make_map_surfaces
     mris_make_template
     mris_map_cuts
-    mris_merge_parcellations
     mris_mesh_subdivide
     mris_morph_stats
     mris_ms_refine
-    mris_ms_surface_CNR
     mris_multiscale_stats
     mris_niters2fwhm
     mris_parcellate_connectivity
@@ -624,35 +554,24 @@ if(NOT MINIMAL)
     mris_segment_vals
     mris_segmentation_stats
     mris_shrinkwrap
-    mris_simulate_atrophy
     mris_smooth_intracortical
     mris_spherical_average
-    mris_surface_change
     mris_surface_to_vol_distances
-    mris_svm_classify
-    mris_svm_train
     mris_talairach
     mris_thickness_comparison
     mris_transform
     mris_translate_annotation
     mris_transmantle_dysplasia_paths
-    mris_twoclass
     mris_volume
-    mris_w_to_curv
     mris_warp
     mris_watershed
     mrisp_write
     nmovie_qt
     oct_register_mosaic
-    oct_train
     optseq2
     qdecproject
     qdec_glmfit
-    rbftest
-    regdat2xfm
-    repair_siemens_file
     resurf
-    spherical_stats
     spline3
     stat_normalize
     stim_polar
@@ -661,7 +580,6 @@ if(NOT MINIMAL)
     test_makevol
     ThalamicNuclei
     trc
-    tridec
   )
 endif()
 
