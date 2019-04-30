@@ -6,7 +6,7 @@
 
 
 template< typename TValueType ,class TMesh >
-void LabelPerPointVariableLengthVector<TValueType,TMesh>::SetCell(MeshPointerType mesh, int cellId)
+void LabelPerPointVariableLengthVector<TValueType,TMesh>::SetCell( MeshPointerType mesh,  int cellId) 
 {
 	int pointBegin =0;
 	int pointEnd= mesh->GetNumberOfPoints();
@@ -76,6 +76,7 @@ void LabelPerPointVariableLengthVector<TValueType,TMesh>
 			std::cout <<  this->m_labels[i][j] << " ";
 	}
 	std::cout << std::endl;
+
 }
 
 
