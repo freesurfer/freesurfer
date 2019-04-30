@@ -150,7 +150,6 @@ int main(int argc, char *argv[])
 				}
 			}
 			float dist= clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId);		
-			std::cout << " dist "<< dist << " " << stdCluster << std::endl;
 			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<stdCluster))
 			{	
 
@@ -185,6 +184,9 @@ int main(int argc, char *argv[])
 
 				}
 				om->SetCell (cellIndices, line);
+				ColorMeshType::CellPixelType cellData;
+				input->GetCellData(cellId, &cellData);
+				om->SetCellData(cellIndices, cellData) ;
 				cellIndices++;
 			}
 
