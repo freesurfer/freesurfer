@@ -2759,8 +2759,10 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
     MRIcopyPulseParameters(vol, out);
   }
   
-  // Compute vbminput-to-vol vox2vox
-  MATRIX *vox2ras;  // for vbm input
+  // Compute vbminput-to-vol vox2vox. Note: SPM assumes the CRS of the
+  // vbm input is is 1-based. Everything else, including the LTA, is
+  // 0-based.
+  MATRIX *vox2ras1;  // for vbm input
   MATRIX *Vsrc;
   if(srclta){
     if(srclta->type != LINEAR_VOX_TO_VOX){
@@ -2769,25 +2771,25 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
     }
     // If a srclta is specified, then the vol is not the same geom as
     // the vbm input. srclta must map between the vol and the vbm
-    // input space. Set the vbm input vox2ras from the approp vol geom
+    // input space. Set the vbm input vox2ras1 from the approp vol geom
     if(LTAmriIsSource(srclta, vol)){
-      vox2ras = vg_i_to_r(&(srclta->xforms[0].dst));
+      vox2ras1 = VGgetVoxelToRasXform(&(srclta->xforms[0].dst),NULL,1); // spm crs base=1
       printf("MRIapplySpmWarp(): inverting Source LTA\n");
       Vsrc = MatrixInverse(srclta->xforms[0].m_L,NULL);
       ncols = srclta->xforms[0].dst.width;
     }
     else {
       Vsrc = MatrixCopy(srclta->xforms[0].m_L,NULL);
-      vox2ras = vg_i_to_r(&(srclta->xforms[0].src));
+      vox2ras1 = VGgetVoxelToRasXform(&(srclta->xforms[0].src),NULL,1); // spm crs base=1
       ncols = srclta->xforms[0].src.width;
     }
   }
   else {
-    vox2ras = MRIxfmCRS2XYZ(vol, 1); // spm crs base=1
+    vox2ras1 = MRIxfmCRS2XYZ(vol, 1); // spm crs base=1
     Vsrc = MatrixIdentity(4,NULL);
     ncols = vol->width;
   }
-  MATRIX *ras2vox = MatrixInverse(vox2ras,NULL);
+  MATRIX *ras2vox1 = MatrixInverse(vox2ras1,NULL);
 
   if(LRRev){
     // This is the matrix that realizes the left-right pixel reversal
@@ -2809,8 +2811,8 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
 	// Get the RAS in the vbm input space
 	for(k=0; k<3; k++) vbmiRAS->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
 	// Get the 1-based CRS in the vbm-input space (usually a conformed space)
-	CRS = MatrixMultiplyD(ras2vox,vbmiRAS,CRS);
-	// Subtract 1 to make 0-based (could do this in ras2vox)
+	CRS = MatrixMultiplyD(ras2vox1,vbmiRAS,CRS);
+	// Subtract 1 to make 0-based (could do this in ras2vox1)
 	CRS->rptr[1][1] -= 1;
 	CRS->rptr[2][1] -= 1;
 	CRS->rptr[3][1] -= 1;
@@ -2818,7 +2820,7 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
 	if(LRRev) CRS = MatrixMultiplyD(Q,CRS,CRS);
 	if(srclta != NULL){
 	  // Now compute the CRS in the vol space
-	  // Could be combined with ras2vox if the conversion from 1-to-0-based
+	  // Could be combined with ras2vox1 if the conversion from 1-to-0-based
 	  // is figured out.
 	  CRS = MatrixMultiplyD(Vsrc,CRS,CRS);
 	}
@@ -2835,8 +2837,8 @@ MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MR
       }
     }
   }
-  MatrixFree(&vox2ras);
-  MatrixFree(&ras2vox);
+  MatrixFree(&vox2ras1);
+  MatrixFree(&ras2vox1);
   MatrixFree(&vbmiRAS);
   MatrixFree(&CRS);
   MatrixFree(&Vsrc);
