@@ -4226,20 +4226,26 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   then.reset();
 
   if (mri_aseg)  {
-    // Set the aseg to 0 if T1*1.1 > T2
+    // Set the aseg to 0 if T1*1.1 > T2 (1.1 = hidden parameter)
     int x, y, z, label ;
     double T1, T2 ;
     mri_aseg = MRIcopy(mri_aseg, NULL) ;  // so it can be modified
     if (contrast_type == CONTRAST_T2){
-      for (x = 0 ; x < mri_aseg->width ; x++)
-	for (y = 0 ; y < mri_aseg->height ; y++)
+      int nreset = 0;
+      for (x = 0 ; x < mri_aseg->width ; x++){
+	for (y = 0 ; y < mri_aseg->height ; y++){
 	  for (z = 0 ; z < mri_aseg->depth ; z++){
 	    label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
 	    T1 = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
 	    T2 = MRIgetVoxVal(mri_T2, x, y, z, 0) ;
-	    if (IS_CORTEX(label) && 1.1*T1 > T2)
+	    if (IS_CORTEX(label) && 1.1*T1 > T2){
 	      MRIsetVoxVal(mri_aseg, x, y, z, 0, 0) ;
+	      nreset ++;
+	    }
 	  }
+	}
+      }
+      printf("Changed %d aseg cortex voxels to 0\n",nreset);
     }
     // I think these are volumes where the voxel value indicates the signed
     // distance from the voxel to the surface
@@ -4348,14 +4354,15 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     hwms = HISTOsmooth(hwm, NULL, 4) ;
     HISTOrobustGaussianFit(hwms, .2, &mean_wm, &sigma_wm) ;
 
+    MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+    near_cerebellum = (MRIcountValInNbhd(mri_aseg, 7, xv, yv,  zv, Left_Cerebellum_Cortex) > 0);
+    near_cerebellum = near_cerebellum || (MRIcountValInNbhd(mri_aseg, 7, xv, yv,  zv, Right_Cerebellum_Cortex) > 0) ;
+
     // one of the primary uses of the T2 deformation is to find the thin line of dark (flair)/bright (T2)
     // voxels that mark the boundary of the cortex and the cerebellum. These get partial volumed and setting
     // a global threshold causes the surfaces to settle too far in over much of the brain.
     // instead in regions that are close to cerebellum, make the thresholds less conservative
     // DNG: this appears to only apply to FLAIR
-    MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
-    near_cerebellum = (MRIcountValInNbhd(mri_aseg, 7, xv, yv,  zv, Left_Cerebellum_Cortex) > 0);
-    near_cerebellum = near_cerebellum || (MRIcountValInNbhd(mri_aseg, 7, xv, yv,  zv, Right_Cerebellum_Cortex) > 0) ;
     if (contrast_type == CONTRAST_FLAIR)
     {
       int bin, peak ; 
@@ -4430,7 +4437,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       // The inside "min" is defined as the histo bin where the
       // frequency is min_inside_peak_pct * the freq at the peak * 10.
       // This will likely just be the peak.
-//      thresh *= 10 ;  // for T2 there shouldn't be any dark stuff - it is dura
+      // thresh *= 10 ;  // for T2 there shouldn't be any dark stuff - it is dura
       thresh = hs->counts[peak] * left_inside_peak_pct ;
       for (bin = peak - 1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
