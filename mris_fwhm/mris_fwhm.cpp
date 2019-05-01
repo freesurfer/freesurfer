@@ -198,6 +198,7 @@ int DoSqr = 0; // take square of input before smoothing
 
 char *ar1fname = NULL;
 char *arNfname = NULL;
+char *fwhmmapname = NULL;
 
 int FixGroupAreaTest(MRIS *surf, char *outfile);
 char *GroupAreaTestFile = NULL;
@@ -388,6 +389,12 @@ int main(int argc, char *argv[]) {
   printf("Computing spatial AR1 \n");
   ar1 = MRISar1(surf, InVals, mask, NULL);
   if(ar1fname)  MRIwrite(ar1,ar1fname);
+  if(fwhmmapname){
+    printf("Computing map of FWHM\n");
+    MRI *fwhmmap = MRISfwhmFromAR1Map(surf, mask, ar1);
+    MRIwrite(fwhmmap,fwhmmapname);
+    MRIfree(&fwhmmap);
+  }
   if(arNfname)  {
     MRI *arN;
     printf("Computing ARN over %d hops\n",arNHops);
@@ -604,6 +611,12 @@ static int parse_commandline(int argc, char **argv) {
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--fwhm-map")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      fwhmmapname = pargv[0];
+      nargsused = 1;
+    }
+
     else if (!strcasecmp(option, "--niters")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&niters);
@@ -715,6 +728,7 @@ static void print_usage(void) {
   printf("   --dat datfile (only contains fwhm)\n");
   printf("   --ar1dat ar1datfile (contains ar1mean ar1std)\n");
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
+  printf("   --fwhm-map fwhmmap : save vertex-wise spatial FWHM as an overlay\n");
   printf("   --prune - remove any voxel that is zero in any subject (after any inversion)\n");
   printf("   --no-prune - do not prune (default)\n");
   printf("   --out-mask outmask : save final mask\n");

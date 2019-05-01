@@ -583,6 +583,7 @@ char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int eresSave=0;
+int SaveFWHMMap=0;
 int eresSCMSave=0;
 int condSave=0;
 
@@ -1915,6 +1916,13 @@ int main(int argc, char **argv) {
       eresgstd = eresfwhm/sqrt(log(256.0));
       printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
              ar1mn,ar1std,eresgstd,eresfwhm);
+      if(SaveFWHMMap){
+	printf("Computing map of FWHM\n");
+	MRI *fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
+	sprintf(tmpstr,"%s/fwhm.%s",GLMDir,format);
+	MRIwrite(fwhmmap,tmpstr);
+	MRIfree(&fwhmmap);
+      }
       MRIfree(&ar1);
     } else {
       printf("Computing spatial AR1 in volume.\n");
@@ -2368,6 +2376,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
+    else if (!strcasecmp(option, "--save-fwhm-map")) {SaveFWHMMap=1;ComputeFWHM = 1;}
     else if (!strcasecmp(option, "--eres-scm")) eresSCMSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
@@ -2940,6 +2949,7 @@ printf("   --rm-spatial-mean : subtract the (masked) mean from each frame\n");
 printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
 printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
+printf("   --save-fwhm-map : save voxel-wise map of FWHM estimates\n");
 printf("   --y-out y.out.mgh : save input after any pre-processing\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
