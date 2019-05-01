@@ -149,6 +149,8 @@ protected slots:
 
   void OnCheckBoxSetAutoMid(bool b);
 
+  void UpdateOpacity(double val);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();

@@ -272,6 +272,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   m_curCTAB = NULL;
   LayerPropertyMRI* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity(double)), Qt::UniqueConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
   connect( ui->checkBoxShowContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsContour(bool)) );
@@ -584,8 +585,9 @@ void PanelVolume::DoUpdateWidgets()
     ui->spinBoxVectorSkip->setValue(layer->GetProperty()->GetVectorSkip());
   }
 
+  bool bDisplayRGB = (layer && layer->GetProperty()->GetDisplayRGB());
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector()
-                         && !layer->GetProperty()->GetDisplayTensor() && !layer->GetProperty()->GetDisplayRGB());
+                         && !layer->GetProperty()->GetDisplayTensor() && !bDisplayRGB);
 
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
@@ -601,13 +603,20 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
     ShowWidgets( m_widgetlistGenericColorMap, (bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
         nColorMap != LayerPropertyMRI::DirectionCoded) ||
-                 (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayRGB()) );
+                 (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !bDisplayRGB) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
     ShowWidgets( m_widgetlistFrame, layer &&
                  !layer->IsTypeOf( "DTI" ) &&
                  layer->GetNumberOfFrames() > 1 && !layer->GetCorrelationSurface() && layer->GetDataType() != MRI_RGB);
+    if (bDisplayRGB)
+    {
+      ui->sliderOpacity->show();
+      ui->labelOpacity->show();
+      ui->doubleSpinBoxOpacity->show();
+      ui->checkBoxSmooth->show();
+    }
     ui->labelCorrelationSurface->setVisible(layer && layer->GetNumberOfFrames() > 1 && ui->comboBoxCorrelationSurface->count() > 1);
     ui->comboBoxCorrelationSurface->setVisible(ui->labelCorrelationSurface->isVisible());
 
@@ -694,6 +703,14 @@ void PanelVolume::DoUpdateWidgets()
   ui->checkBoxUpsampleContour->hide();
 
   BlockAllSignals( false );
+}
+
+void PanelVolume::UpdateOpacity(double val)
+{
+  BlockAllSignals(true);
+  ui->sliderOpacity->setValue( (int)( val * 100 ) );
+  ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, val );
+  BlockAllSignals(false);
 }
 
 void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )

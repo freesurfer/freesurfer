@@ -298,7 +298,7 @@ char *fgetl(char *s, int n, FILE *fp)
  */
 int IntSqrt(int n)
 {
-  register int approx, prev;
+  int approx, prev;
 
   if (n == 0) return 0;
 
@@ -1731,7 +1731,7 @@ float fastApproxAtan2f(float y, float x) {
     } else {
         r = halfPi - fastApproxAtan2fWkr(ax,ay);
     }
-    if (ax == x && ay == y) r =     r; else
+    if (ax == x && ay == y)          ; else
     if (ax == x && ay != y) r =    -r; else
     if (ax != x && ay == y) r =  Pi-r; else
     if (ax != x && ay != y) r = -Pi+r;

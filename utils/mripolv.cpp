@@ -1196,7 +1196,7 @@ MRI *MRIcentralPlaneOfLeastVarianceNormalMarked(MRI *mri_src, MRI *mri_mask, MRI
 }
 static int compare_sort_farray(const void *pc1, const void *pc2)
 {
-  register float c1, c2;
+  float c1, c2;
 
   c1 = *(float *)pc1;
   c2 = *(float *)pc2;
@@ -1218,7 +1218,7 @@ static int compare_sort_farray(const void *pc1, const void *pc2)
 ------------------------------------------------------*/
 static int compare_sort_array(const void *pc1, const void *pc2)
 {
-  register BUFTYPE c1, c2;
+  BUFTYPE c1, c2;
 
   c1 = *(BUFTYPE *)pc1;
   c2 = *(BUFTYPE *)pc2;

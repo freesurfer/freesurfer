@@ -321,7 +321,7 @@ main(int argc, char *argv[])
     }
     if (T2_mask_fname)
     {
-      MRI *mri_T2, *mri_aparc_aseg ;
+      MRI *mri_T2, *mri_aparc_aseg = nullptr;
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)
@@ -1531,8 +1531,7 @@ main(int argc, char *argv[])
     }
   }
 
-  if (handle_expanded_ventricles && 0)  // one more less-restrictive morph
-  {
+  if (0 && handle_expanded_ventricles) {  // one more less-restrictive morph
     GCA_MORPH_PARMS old_parms ;
     int               start_t ;
 

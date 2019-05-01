@@ -1540,10 +1540,10 @@ int main(int argc, char *argv[])
 
       if(flair_or_T2_name) {
         // Note: l_intensity is turned off at the end
-        MRI  *mri_flair = NULL ;
-        LABEL             **labels ;
-        int               nlabels ;
-        char             fname[STRLEN] ;
+        MRI  *mri_flair = nullptr;
+        LABEL **labels = nullptr;
+        int nlabels = 0;
+        char fname[STRLEN] ;
 
         strcpy(fname, flair_or_T2_name) ;
         if (MGZ) strcat(fname, ".mgz");

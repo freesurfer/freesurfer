@@ -1163,7 +1163,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   int scalar_type = rasImage->GetScalarType();
   int* dim = rasImage->GetDimensions();
   int nNumberOfFrames = rasImage->GetNumberOfScalarComponents();
-  if ( mri->nframes > 1 )
+  if ( true ) // mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
     for ( int j = 0; j < mri->height; j++ )
@@ -1209,12 +1209,13 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   }
   else
   {
+    size_t bytes_per_slice = mri->bytes_per_vox * mri->height * mri->depth;
     global_progress_range[1] = nstart+(nend-nstart)/3;
     for ( int k = 0; k < mri->depth; k++ )
     {
       void* ptr = rasImage->GetScalarPointer( 0, 0, k );
       BUFTYPE* buf = &MRIseq_vox( mri, 0, 0, k, 0);
-      memcpy( buf, ptr, mri->bytes_per_slice );
+      memcpy( buf, ptr, bytes_per_slice );
 
       if ( mri->depth >= 5 && k%(mri->depth/5) == 0 )
       {
@@ -1252,6 +1253,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
     }
     MRIcopyHeader( m_MRI, m_MRITemp );
     MRIvol2Vol( mri, m_MRITemp, vox2vox, m_nInterpolationMethod, 0 );
+
     MRIfree( &mri );
   }
   else

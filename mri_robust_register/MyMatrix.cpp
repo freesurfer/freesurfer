@@ -748,7 +748,7 @@ vnl_matrix < vcl_complex < double > > & TS)
   work.data_block(),// WORK
   &lwork,// LWORK 
   &info);
-  delete(selecti);
+  delete[] selecti;
   TS.inplace_transpose();// switch back ..
   US.inplace_transpose();// from fortran ordering
   //cout << " info: " << info << endl;
@@ -1338,7 +1338,7 @@ vnl_matrix<double> MyMatrix::MatrixSqrt(const vnl_matrix<double>& A)
         //cout << " upper triangular ! " << endl;
 
         vnl_matrix < vcl_complex < double > > R(n,n,0.0);
-        vcl_complex < double > s;
+        // vcl_complex < double > s;
         for (int j= 0; j< n; j++)// column
         {
           R[j][j] = sqrt(T[j][j]);

@@ -462,7 +462,7 @@ float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize)
 static int compare_sort_array(const void *pc1, const void *pc2);
 static int compare_sort_array(const void *pc1, const void *pc2)
 {
-  register float c1, c2;
+  float c1, c2;
 
   c1 = *(float *)pc1;
   c2 = *(float *)pc2;

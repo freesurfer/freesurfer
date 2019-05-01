@@ -108,7 +108,7 @@ CoreVolume::CoreVolume(py::array array) {
   } else if (py::isinstance<py::array_t<short>>(array)) {
     type = MRI_SHORT;
   } else {
-    throw py::value_error("unknown array dtype " + array.dtype().kind());
+    throw py::value_error("unknown array data type");
   }
 
   // allocate and set the mri

@@ -152,6 +152,12 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
     return;
   }
 
+  if (strg == "abort")
+  {
+    MainWindow::GetMainWindow()->AbortScripts();
+    return;
+  }
+
   if (strg[strg.size()-1] == '&')
   {
     strg.resize(strg.size()-1);
@@ -177,6 +183,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
       MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
     else
       MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
+
     if ( MainWindow::GetMainWindow()->IsBusy())
     {
       AppendErrorString("Still busy. Command is added to queue and will be executed later.\n");

@@ -3695,7 +3695,7 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
   return (NO_ERROR);
 }
 
-int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z)
+int MRISvertexCoord2XYZ_float(VERTEX const *v, int which, float *x, float *y, float *z)
 {
   switch (which) {
     case ORIGINAL_VERTICES:
@@ -3765,7 +3765,8 @@ int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z
   }
   return (NO_ERROR);
 }
-int MRISvertexCoord2XYZ_double(VERTEX *v, int which, double *x, double *y, double *z)
+
+int MRISvertexCoord2XYZ_double(VERTEX const *v, int which, double *x, double *y, double *z)
 {
   switch (which) {
     default:
@@ -7312,7 +7313,7 @@ static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -7351,7 +7352,7 @@ static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -7390,7 +7391,7 @@ static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[])
   int n0, n1;
   FACE *f;
   float v0[3], v1[3];
-  register VERTEX *v, *vn0, *vn1;
+  VERTEX *v, *vn0, *vn1;
 
   n0 = (n == 0) ? VERTICES_PER_FACE - 1 : n - 1;
   n1 = (n == VERTICES_PER_FACE - 1) ? 0 : n + 1;
@@ -10135,8 +10136,8 @@ int MRISaverageGradients(MRIS *mris, int num_avgs)
     // - only the new algorithm
     // - both algorithms, and compare them
     
-    static const int doNew = 1;
-    static const int doOld = 0;
+    static int doNew = 1;
+    static int doOld = 0;
     
     if (doOld && doNew && num_avgs > 10) {
         fprintf(stdout, "%s:%d reducing num_avgs:%d to 10\n", __FILE__, __LINE__, num_avgs);
@@ -10408,7 +10409,7 @@ int MRISaverageGradients(MRIS *mris, int num_avgs)
       }  // end of one of the num_avgs iterations
 
     }  // if (doOld) 
-    
+
     if (doOld && doNew) {
       fprintf(stdout, "%s:%d comparing old and new algorithms\n", __FILE__, __LINE__);
       int errors = 0;

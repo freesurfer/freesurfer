@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 from dipy.data import fetch_taiwan_ntu_dsi, read_taiwan_ntu_dsi, get_sphere
 from dipy.reconst.gqi import GeneralizedQSamplingModel
@@ -14,6 +16,7 @@ import dipy.reconst.dki as dki
 from dipy.io.streamline import save_trk
 from dipy.io.image import save_nifti
 from scipy.ndimage.filters import gaussian_filter
+import freesurfer as fs
 
 def tractography(fdwi, fbval, fbvec, subject_folder):
 	img = nib.load(fdwi)
@@ -77,3 +80,17 @@ def getMaps(fdwi, fbval, fbvec, subject_folder):
 	save_nifti(subject_folder+'/dki_MK.nii.gz', MK, img.affine)
 	save_nifti(subject_folder+'/dki_AK.nii.gz', AK, img.affine)
 	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)
+
+
+parser = fs.ArgParser()
+# Required
+parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
+parser.add_argument('-d','--dwi', metavar='file',required=True,  help='Diffusion MRI image.')
+parser.add_argument('-b','--bval', metavar='file', required=True, help='bvalue file.')
+parser.add_argument('-v','--bvec', metavar='file', required=True, help='bvectors file')
+parser.add_argument('-s','--subject_folder', required=True, help='subject folder')
+args = parser.parse_args()
+
+eval(args.function)(args.dwi, args.bval, args.bvec, args.subject_folder)
+
+

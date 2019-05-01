@@ -514,6 +514,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(ui->actionNextLabelPoint, SIGNAL(triggered()), ui->widgetAllLayers->GetPanel("MRI"), SLOT(OnGoToNextPoint()));
   addAction(ui->actionCycleOverlay);
   connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
+
+  addAction(ui->actionViewLayerInfo);
+  connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
 }
 
 MainWindow::~MainWindow()
@@ -1958,8 +1961,15 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     {
       args.removeFirst();
     }
-    args.prepend("freeview");
-    ParseCommand(args.join(" "));
+    if (!args.isEmpty() && args.first().at(0) == '-')
+    {
+      args.prepend("freeview");
+      ParseCommand(args.join(" "));
+    }
+    else
+    {
+      AddScript(args);
+    }
   }
 }
 
@@ -2352,7 +2362,15 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   if (sa.size() > 2)
   {
     strg = sa[2];
-    if ( strg == "heatscale" )
+    bool bOK;
+    strg.toDouble((&bOK));
+    int nStart = 3;
+    if (bOK)
+    {
+      nColorMapScale = nColorMap;
+      nStart = 2;
+    }
+    else if ( strg == "heatscale" )
     {
       nColorMapScale = LayerPropertyMRI::Heat;
     }
@@ -2365,7 +2383,7 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
       nColorMapScale = LayerPropertyMRI::LUT;
     }
 
-    for ( int i = 3; i < sa.size(); i++ )
+    for ( int i = nStart; i < sa.size(); i++ )
     {
       bool bOK;
       double dValue = sa[i].toDouble(&bOK);
@@ -2429,12 +2447,15 @@ void MainWindow::CommandLockLayer( const QStringList& cmd )
 
 void MainWindow::CommandShowLayer( const QStringList& cmd )
 {
-  if ( cmd.size() > 2 && ( cmd[2] == "0" || cmd[2].toLower() == "false" ) )
+  if ( cmd.size() > 2 )
   {
     LayerCollection* lc = GetLayerCollection( cmd[1] );
     if ( lc && !lc->IsEmpty() )
     {
-      lc->GetActiveLayer()->SetVisible( false );
+      if ( cmd[2] == "1" || cmd[2].toLower() == "true" )
+        lc->GetActiveLayer()->SetVisible(true);
+      else if (cmd[2] == "0" || cmd[2].toLower() == "false" )
+        lc->GetActiveLayer()->SetVisible(false);
     }
   }
 }
@@ -2639,18 +2660,49 @@ void MainWindow::CommandSetLUT( const QStringList& sa )
 
 void MainWindow::CommandSetOpacity( const QStringList& sa )
 {
-  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
-  if ( mri )
+  QString val_strg = (sa.size()>2?sa[2]:sa[1]);
+  bool bOK;
+  double dValue = val_strg.toDouble(&bOK);
+  if ( !bOK )
   {
-    bool bOK;
-    double dValue = sa[1].toDouble(&bOK);
-    if ( bOK )
+    cerr << "Opacity value is not valid.\n";
+    return;
+  }
+  if (sa.size() > 2)
+  {
+    LayerCollection* lc = NULL;
+    QString type = sa[1].toLower();
+    if (type == "mri")
+    {
+      lc = GetLayerCollection("MRI");
+      if (lc && lc->GetActiveLayer())
+        ((LayerMRI*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
+    else if (type == "surface")
+    {
+      lc = GetLayerCollection("Surface");
+      if (lc && lc->GetActiveLayer())
+        ((LayerSurface*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
+    else if (type == "roi")
+    {
+      lc = GetLayerCollection("ROI");
+      if (lc && lc->GetActiveLayer())
+        ((LayerROI*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
+    else if (type == "pointset")
+    {
+      lc = GetLayerCollection("PointSet");
+      if (lc && lc->GetActiveLayer())
+        ((LayerPointSet*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
+  }
+  else
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
     {
       mri->GetProperty()->SetOpacity( dValue );
-    }
-    else
-    {
-      cerr << "Opacity value is not valid.\n";
     }
   }
 }
@@ -7912,8 +7964,13 @@ void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
 
   if (lc)
   {
-    int nId = cmd[2].toInt();
-    Layer* layer = lc->GetLayerById(nId);
+    bool bOK = false;
+    int nId = cmd[2].toInt(&bOK);
+    Layer* layer = NULL;
+    if (bOK)
+      layer = lc->GetLayerById(nId);
+    else
+      layer = lc->GetLayerByName(cmd[2]);
     if (layer)
       lc->SetActiveLayer(layer);
     if (cmd.size() >= 4)
@@ -8413,4 +8470,17 @@ Layer* MainWindow::FindSupplementLayer(const QString &name)
 void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
 {
   m_wndTimeCourse->SetCurrentFrame(nFrame);
+}
+
+void MainWindow::OnViewLayerInfo()
+{
+  LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
+  if (lc)
+  {
+    Layer* layer = lc->GetActiveLayer();
+    if (layer)
+    {
+      qDebug() << layer->GetName() << layer->GetEndType() << layer->GetID();
+    }
+  }
 }

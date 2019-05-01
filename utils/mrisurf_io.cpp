@@ -6024,7 +6024,15 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   fscanf(fp, "\n");
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
-  nfaces = freadInt(fp);
+  nfaces    = freadInt(fp);
+  
+  if (nvertices < 0 || nfaces < 0) {
+    fflush(stdout);
+    fflush(stderr);
+    fprintf(stderr, "%s:%d %s freadInt returned nvertices:%d \n", __FILE__,__LINE__,fname,nvertices);
+    fprintf(stderr, "%s:%d %s freadInt returned nfaces:%d \n", __FILE__,__LINE__,fname,nfaces);
+    exit(1);
+  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
