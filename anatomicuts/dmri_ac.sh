@@ -66,12 +66,12 @@ function tractography()
 	echo "tractography"
 	subject=$1
 	echo ${subject}
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/GQI/\'
+	fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+	fbval=${DMRI_DIR}/${subject}/dmri/bvals
+	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+	output=${DMRI_DIR}/${subject}/dmri/GQI/
 
-	mkdir -p ${DMRI_DIR}/${subject}/GQI/
+	mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
 	diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
 
@@ -80,17 +80,24 @@ function getMaps()
 {
 	echo "getMaps"
 	subject=$1
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/DKI/\'
+	if [[  ${2} == "DTI"  ]] || [[  ${2} == "DKI" ]] ; then
 
-	mkdir -p ${DMRI_DIR}/${subject}/DKI/
+		model=$2 #DTI or DKI
+		fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+		fbval=${DMRI_DIR}/${subject}/dmri/bvals
+		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+		output=${DMRI_DIR}/${subject}/dmri/$model
+
+		mkdir -p ${DMRI_DIR}/${subject}/dmri/$model
 	
-	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+		#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+		#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
 	
-	diffusionUtils -f getMaps -d $fdwi -b $fbval -v $fbvec -s $output
+		diffusionUtils -f getMaps$model -d $fdwi -b $fbval -v $fbvec -s $output
+	else
+		echo "missing argument: dmri_ac.sh  getMaps SUBJECT_ID modelfit"
+		echo "modelfit: DTI, DKI"
+	fi
 
 }
 function call()
