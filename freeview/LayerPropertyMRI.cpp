@@ -51,7 +51,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   mColorMapType( LayerPropertyMRI::Grayscale ),
   mResliceInterpolation( 0 ),
   mTextureSmoothing( 0 ),
-  mbClearZero( false ),
+  mbClearBackground( false ),
   mMinVoxelValue( 0 ),
   mMaxVoxelValue( 0 ),
   mMinVisibleValue( 0 ),
@@ -154,7 +154,8 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   mbReverseHeatScale      =   p->mbReverseHeatScale;
   mbShowPositiveHeatScaleValues =  p->mbShowPositiveHeatScaleValues;
   mbShowNegativeHeatScaleValues =  p->mbShowNegativeHeatScaleValues;
-  mbClearZero             =   p->mbClearZero;
+  mbClearBackground             =   p->mbClearBackground;
+  mClearBackgroundValue   =   p->mClearBackgroundValue;
   mMinGenericThreshold    =   p->mMinGenericThreshold;
   mMaxGenericThreshold    =   p->mMaxGenericThreshold;
   m_bDisplayVector        =   p->m_bDisplayVector;
@@ -258,7 +259,12 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 
   if (map.contains("ClearBackground"))
   {
-    mbClearZero = map["ClearBackground"].toBool();
+    mbClearBackground = map["ClearBackground"].toBool();
+  }
+
+  if (map.contains("ClearBackgroundValue"))
+  {
+    mClearBackgroundValue = map["ClearBackgroundValue"].toDouble();
   }
 
   if (m_bRememberFrameSettings && mri->GetNumberOfFrames() > 1)
@@ -336,7 +342,8 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["MaxContourThreshold"] = mMaxContourThreshold;
   map["RememberFrameSettings"] = m_bRememberFrameSettings;
   map["FrameSettings"] = m_frameSettings;
-  map["ClearBackground"] = mbClearZero;
+  map["ClearBackground"] = mbClearBackground;
+  map["ClearBackgroundValue"] = mClearBackgroundValue;
   map["UsePercentile"] = m_bUsePercentile;
   map["AutoAdjustFrameLevel"] = m_bAutoAdjustFrameLevel;
   return map;
@@ -631,19 +638,29 @@ void LayerPropertyMRI::OnColorMapChanged ()
     // Build our lookup table.
     assert( mGrayScaleTable.GetPointer() );
     mGrayScaleTable->RemoveAllPoints();
-    mGrayScaleTable->AddRGBAPoint( mMinVisibleValue - tiny_fraction, 0, 0, 0, 0 );
-    if ( mbClearZero )
+    if ( mbClearBackground )
     {
-      mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow - tiny_fraction, 0, 0, 0, 0 );
-      mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow,    0, 0, 0, 1 );
+      if (mClearBackgroundValue < MinGrayscaleWindow)
+      {
+        mGrayScaleTable->AddRGBAPoint( mClearBackgroundValue, 0, 0, 0, 0 );
+        mGrayScaleTable->AddRGBAPoint( mClearBackgroundValue + tiny_fraction, 0, 0, 0, 1 );
+        mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow,    0, 0, 0, 1 );
+      }
+      else
+      {
+        mGrayScaleTable->AddRGBAPoint( mClearBackgroundValue, 0, 0, 0, 0 );
+        double val = (mClearBackgroundValue-mMinGrayscaleWindow) /
+            (mMaxGrayscaleWindow == mMinGrayscaleWindow ? 1:(mMaxGrayscaleWindow - mMinGrayscaleWindow));
+        mGrayScaleTable->AddRGBAPoint( mClearBackgroundValue + tiny_fraction, val, val, val, 1 );
+      }
     }
     else
     {
+      mGrayScaleTable->AddRGBAPoint( mMinVisibleValue - tiny_fraction, 0, 0, 0, 0 );
       mGrayScaleTable->AddRGBAPoint( mMinVisibleValue,       0, 0, 0, 1 );
       mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow,
                                      0, 0, 0, 1 );
     }
-    mGrayScaleTable->AddRGBAPoint( MinGrayscaleWindow,    0, 0, 0, 1 );
     mGrayScaleTable->AddRGBAPoint( MaxGrayscaleWindow,    1, 1, 1, 1 );
     mGrayScaleTable->AddRGBAPoint( mMaxVisibleValue,       1, 1, 1, 1 );
 //    mGrayScaleTable->AddRGBAPoint( mMaxVisibleValue + tiny_fraction, 1, 1, 1, 0 );
@@ -997,6 +1014,8 @@ void LayerPropertyMRI::SetMinMaxGrayscaleWindow ( double iMin, double iMax )
       mMinGrayscaleWindow = iMin;
       mMaxGrayscaleWindow = iMax;
     }
+    if (!mbClearBackground)
+      mClearBackgroundValue = mMinGrayscaleWindow;
     this->OnColorMapChanged();
     emit WindowLevelChanged();
   }
@@ -1024,6 +1043,8 @@ void LayerPropertyMRI::SetMinGrayscaleWindow ( double iMin )
     {
       mMinGrayscaleWindow = iMin;
     }
+    if (!mbClearBackground)
+      mClearBackgroundValue = mMinGrayscaleWindow;
     this->OnColorMapChanged();
     emit WindowLevelChanged();
   }
@@ -1318,17 +1339,26 @@ void LayerPropertyMRI::SetOpacity( double opacity )
   }
 }
 
-bool LayerPropertyMRI::GetClearZero()
+bool LayerPropertyMRI::GetClearBackground()
 {
-  return mbClearZero;
+  return mbClearBackground;
 }
 
-void LayerPropertyMRI::SetClearZero( bool bClear )
+void LayerPropertyMRI::SetClearBackground( bool bClear )
 {
-  if ( mbClearZero != bClear )
+  if ( mbClearBackground != bClear )
   {
-    mbClearZero = bClear;
+    mbClearBackground = bClear;
     this->OnColorMapChanged();
+  }
+}
+
+void LayerPropertyMRI::SetClearBackgroundValue(double val)
+{
+  if (mClearBackgroundValue != val)
+  {
+    mClearBackgroundValue = val;
+    OnColorMapChanged();
   }
 }
 
@@ -1498,6 +1528,7 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGenericThreshold = mMaxGrayscaleWindow;
   mMinContourThreshold = mHeatScaleMidThreshold;
   mMaxContourThreshold = mMaxGrayscaleWindow;
+  mClearBackgroundValue = mMinGrayscaleWindow;
 }
 
 void LayerPropertyMRI::ResetWindowLevel()

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>326</width>
+    <width>341</width>
     <height>1499</height>
    </rect>
   </property>
@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-265</y>
-     <width>312</width>
-     <height>1784</height>
+     <y>-281</y>
+     <width>327</width>
+     <height>1788</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -569,6 +569,42 @@ of each frame</string>
            <string>Reset</string>
           </property>
          </widget>
+        </item>
+        <item row="4" column="2">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLineEdit" name="lineEditClearBackgroundValue">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_6">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>
@@ -1646,8 +1682,8 @@ of each frame</string>
    <slot>OnComboColorMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>408</y>
+     <x>325</x>
+     <y>392</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1679,7 +1715,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>145</x>
-     <y>840</y>
+     <y>828</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1694,8 +1730,8 @@ of each frame</string>
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>322</y>
+     <x>258</x>
+     <y>306</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1710,8 +1746,8 @@ of each frame</string>
    <slot>OnSliderWindow(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>489</y>
+     <x>243</x>
+     <y>473</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1726,8 +1762,8 @@ of each frame</string>
    <slot>OnSliderLevel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>519</y>
+     <x>243</x>
+     <y>503</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1742,8 +1778,8 @@ of each frame</string>
    <slot>OnSliderMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>549</y>
+     <x>243</x>
+     <y>533</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1758,8 +1794,8 @@ of each frame</string>
    <slot>OnSliderMid(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>579</y>
+     <x>243</x>
+     <y>563</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1774,8 +1810,8 @@ of each frame</string>
    <slot>OnSliderMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>609</y>
+     <x>243</x>
+     <y>593</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1790,8 +1826,8 @@ of each frame</string>
    <slot>OnSliderOffset(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>639</y>
+     <x>243</x>
+     <y>623</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1806,8 +1842,8 @@ of each frame</string>
    <slot>OnLineEditWindow(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>493</y>
+     <x>324</x>
+     <y>477</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1822,8 +1858,8 @@ of each frame</string>
    <slot>OnLineEditLevel(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>523</y>
+     <x>324</x>
+     <y>507</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1838,8 +1874,8 @@ of each frame</string>
    <slot>OnLineEditMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>553</y>
+     <x>324</x>
+     <y>537</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1854,8 +1890,8 @@ of each frame</string>
    <slot>OnLineEditMid(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>583</y>
+     <x>324</x>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1870,8 +1906,8 @@ of each frame</string>
    <slot>OnLineEditMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>613</y>
+     <x>324</x>
+     <y>597</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1886,8 +1922,8 @@ of each frame</string>
    <slot>OnLineEditOffset(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>643</y>
+     <x>324</x>
+     <y>627</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1902,8 +1938,8 @@ of each frame</string>
    <slot>OnComboLookupTable(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>436</y>
+     <x>325</x>
+     <y>420</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1934,8 +1970,8 @@ of each frame</string>
    <slot>OnSliderContourMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1297</y>
+     <x>258</x>
+     <y>1279</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1950,8 +1986,8 @@ of each frame</string>
    <slot>OnSliderContourSmooth(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1388</y>
+     <x>258</x>
+     <y>1364</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1982,8 +2018,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1297</y>
+     <x>258</x>
+     <y>1279</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1998,8 +2034,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1388</y>
+     <x>258</x>
+     <y>1364</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2046,8 +2082,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>1392</y>
+     <x>324</x>
+     <y>1360</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -2063,7 +2099,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>194</x>
-     <y>1482</y>
+     <y>1439</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2210,7 +2246,7 @@ of each frame</string>
      <y>1225</y>
     </hint>
     <hint type="destinationlabel">
-     <x>-122</x>
+     <x>0</x>
      <y>1195</y>
     </hint>
    </hints>
@@ -2222,11 +2258,11 @@ of each frame</string>
    <slot>OnComboMask(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>267</y>
+     <x>325</x>
+     <y>251</y>
     </hint>
     <hint type="destinationlabel">
-     <x>396</x>
+     <x>340</x>
      <y>306</y>
     </hint>
    </hints>
@@ -2238,11 +2274,11 @@ of each frame</string>
    <slot>OnComboCorrelationSurface(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>-125</y>
+     <x>325</x>
+     <y>-163</y>
     </hint>
     <hint type="destinationlabel">
-     <x>507</x>
+     <x>340</x>
      <y>232</y>
     </hint>
    </hints>
@@ -2255,10 +2291,10 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>671</y>
+     <y>655</y>
     </hint>
     <hint type="destinationlabel">
-     <x>461</x>
+     <x>340</x>
      <y>821</y>
     </hint>
    </hints>
@@ -2270,11 +2306,11 @@ of each frame</string>
    <slot>OnLineEditVectorDisplayScale(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>155</y>
+     <x>324</x>
+     <y>139</y>
     </hint>
     <hint type="destinationlabel">
-     <x>394</x>
+     <x>340</x>
      <y>455</y>
     </hint>
    </hints>
@@ -2287,11 +2323,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>725</y>
+     <y>709</y>
     </hint>
     <hint type="destinationlabel">
      <x>23</x>
-     <y>584</y>
+     <y>568</y>
     </hint>
    </hints>
   </connection>
@@ -2303,11 +2339,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>725</y>
+     <y>709</y>
     </hint>
     <hint type="destinationlabel">
-     <x>228</x>
-     <y>579</y>
+     <x>243</x>
+     <y>563</y>
     </hint>
    </hints>
   </connection>
@@ -2319,11 +2355,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>725</y>
+     <y>709</y>
     </hint>
     <hint type="destinationlabel">
-     <x>309</x>
-     <y>583</y>
+     <x>324</x>
+     <y>567</y>
     </hint>
    </hints>
   </connection>
@@ -2338,7 +2374,7 @@ of each frame</string>
      <y>880</y>
     </hint>
     <hint type="destinationlabel">
-     <x>510</x>
+     <x>340</x>
      <y>1083</y>
     </hint>
    </hints>
@@ -2354,7 +2390,7 @@ of each frame</string>
      <y>852</y>
     </hint>
     <hint type="destinationlabel">
-     <x>615</x>
+     <x>340</x>
      <y>995</y>
     </hint>
    </hints>
@@ -2370,7 +2406,7 @@ of each frame</string>
      <y>880</y>
     </hint>
     <hint type="destinationlabel">
-     <x>597</x>
+     <x>340</x>
      <y>1073</y>
     </hint>
    </hints>
@@ -2382,11 +2418,11 @@ of each frame</string>
    <slot>OnLineEditMaskThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>296</y>
+     <x>324</x>
+     <y>280</y>
     </hint>
     <hint type="destinationlabel">
-     <x>385</x>
+     <x>340</x>
      <y>447</y>
     </hint>
    </hints>
@@ -2398,11 +2434,11 @@ of each frame</string>
    <slot>OnLineEditVectorLineWidth(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>127</y>
+     <x>324</x>
+     <y>111</y>
     </hint>
     <hint type="destinationlabel">
-     <x>438</x>
+     <x>340</x>
      <y>378</y>
     </hint>
    </hints>
@@ -2414,11 +2450,11 @@ of each frame</string>
    <slot>OnCheckVoxelizedContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>289</x>
-     <y>1238</y>
+     <x>324</x>
+     <y>1215</y>
     </hint>
     <hint type="destinationlabel">
-     <x>568</x>
+     <x>340</x>
      <y>1318</y>
     </hint>
    </hints>
@@ -2430,8 +2466,8 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>274</x>
-     <y>1236</y>
+     <x>324</x>
+     <y>1215</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -2446,12 +2482,12 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>278</x>
-     <y>1240</y>
+     <x>324</x>
+     <y>1215</y>
     </hint>
     <hint type="destinationlabel">
-     <x>195</x>
-     <y>1388</y>
+     <x>258</x>
+     <y>1364</y>
     </hint>
    </hints>
   </connection>
@@ -2462,12 +2498,28 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>1239</y>
+     <x>324</x>
+     <y>1215</y>
     </hint>
     <hint type="destinationlabel">
-     <x>303</x>
-     <y>1384</y>
+     <x>324</x>
+     <y>1360</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxClearBackground</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditClearBackgroundValue</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>196</x>
+     <y>751</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>272</x>
+     <y>753</y>
     </hint>
    </hints>
   </connection>
