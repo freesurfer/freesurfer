@@ -192,7 +192,12 @@ public:
   void SetShowNegativeHeatScaleValues ( bool ib );
   bool GetShowNegativeHeatScaleValues ();
 
-  bool GetClearZero();
+  bool GetClearBackground();
+
+  double GetClearBackgroundValue()
+  {
+    return mClearBackgroundValue;
+  }
 
   // void EditorChangedHeatScale ();
 
@@ -403,7 +408,8 @@ public slots:
   void SetShowAsContour( bool bContour );
   void SetShowAsLabelContour(bool bLabelContour);
   void SetShowVoxelizedContour(bool bVoxelize);
-  void SetClearZero( bool bClear );
+  void SetClearBackground( bool bClear );
+  void SetClearBackgroundValue( double val );
   void SetResliceInterpolation ( int iMode );
   void SetWindow( double iWindow );
   void SetLevel ( double iLevel );
@@ -495,9 +501,10 @@ private:
   int     mResliceInterpolation;
   int     mTextureSmoothing;
 
-  bool    mbClearZero;
+  bool    mbClearBackground;
   double  mMinVoxelValue, mMaxVoxelValue;
   double  mMinVisibleValue, mMaxVisibleValue;
+  double  mClearBackgroundValue;
 
   // For grayscale drawing.
   double  mMinGrayscaleWindow, mMaxGrayscaleWindow;

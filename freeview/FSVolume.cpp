@@ -1253,7 +1253,6 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
     }
     MRIcopyHeader( m_MRI, m_MRITemp );
     MRIvol2Vol( mri, m_MRITemp, vox2vox, m_nInterpolationMethod, 0 );
-
     MRIfree( &mri );
   }
   else
