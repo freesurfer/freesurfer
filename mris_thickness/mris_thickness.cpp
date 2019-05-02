@@ -204,7 +204,7 @@ main(int argc, char *argv[]) {
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     mri_laplace = MRISsolveLaplaceEquation(mris, NULL, laplace_res) ;
-//    MRISmeasureLaplaceStreamlines(mris, mri_laplace, NULL, NULL) ;
+    MRISmeasureLaplaceStreamlines(mris, mri_laplace, NULL, NULL) ;
   }
   else if (fmin_thick)
   {
