@@ -4226,10 +4226,12 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   then.reset();
 
   if (mri_aseg)  {
-    // Set the aseg to 0 if T1*1.1 > T2 (1.1 = hidden parameter)
+    // Set the aseg to 0 in cortex if T1*1.1 > T2 (1.1 = hidden parameter)
+    // This probably to label vessels i cortex. These are probably labelled
+    // as GM on the T1, but one expects them to be much darker on T2.
     int x, y, z, label ;
     double T1, T2 ;
-    mri_aseg = MRIcopy(mri_aseg, NULL) ;  // so it can be modified
+    mri_aseg = MRIcopy(mri_aseg, NULL) ;  // so it can be modified (does this get freed?)
     if (contrast_type == CONTRAST_T2){
       int nreset = 0;
       for (x = 0 ; x < mri_aseg->width ; x++){
@@ -4260,6 +4262,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
 
   // Create a distance volume at twice the size. This can be quite big
+  // The value at a voxel is the distance from the voxel to the surface
   printf("Creating distance volumes t=%g\n", then.minutes()); fflush(stdout);
   mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
   mri_filled = MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30/mri_T2->xsize)) ; 
@@ -4270,7 +4273,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   MRIfree(&mri_filled) ;
 
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
-  MRISaverageVertexPositions(mris, 2) ;
+  MRISaverageVertexPositions(mris, 2) ; // smooth pial surface?
   MRIScomputeMetricProperties(mris) ;
   mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
   mri_filled_pial = MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30/mri_T2->xsize)) ; 
@@ -4542,10 +4545,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       MRISsurfaceRASToVoxelCached(mris, mri_dist_white, xs, ys, zs, &xvf, &yvf, &zvf);
       MRIsampleVolume(mri_dist_white, xvf, yvf, zvf, &dist_to_white) ;
 
-      if (dist_to_white <= 0) // signed distance?
+      // signed distance. May have projected too far out and are now in WM
+      if (dist_to_white <= 0.0) 
         break ;
 
-      if (dist_to_white <= 1)
+      if (dist_to_white <= 1.0)
 	continue ;  // too close to wm, avoid partial voluming
 
       if (val < min_gray_inside && (val > nint(min_gray_outside*.75)) && !outside_of_white)
