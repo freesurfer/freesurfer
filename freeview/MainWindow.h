@@ -285,6 +285,11 @@ public slots:
 
   void OnStereoRender(bool bOn);
 
+  void AbortScripts()
+  {
+    ClearScripts();
+  }
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -551,6 +556,8 @@ protected slots:
   void OnUnloadVolumeTransform();
 
   void SetCurrentTimeCourseFrame(int nFrame);
+
+  void OnViewLayerInfo();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

@@ -43,7 +43,7 @@ DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
 #ifdef Q_OS_MAC
   ui->checkBoxAutoTrim->hide();
 #endif
-  qDebug() << m_strLastDir;
+//  qDebug() << m_strLastDir;
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()

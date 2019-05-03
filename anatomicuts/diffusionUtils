@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 from dipy.data import fetch_taiwan_ntu_dsi, read_taiwan_ntu_dsi, get_sphere
 from dipy.reconst.gqi import GeneralizedQSamplingModel
@@ -11,9 +13,11 @@ from dipy.tracking.utils import random_seeds_from_mask
 from nibabel.streamlines import Tractogram
 from dipy.tracking.streamline import Streamlines
 import dipy.reconst.dki as dki
+import dipy.reconst.dti as dti
 from dipy.io.streamline import save_trk
 from dipy.io.image import save_nifti
 from scipy.ndimage.filters import gaussian_filter
+import freesurfer as fs
 
 def tractography(fdwi, fbval, fbvec, subject_folder):
 	img = nib.load(fdwi)
@@ -32,6 +36,10 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 	gqpeak_values = gqpeaks.peak_values
 	gqpeak_indices = gqpeaks.peak_indices
 	GFA = gqpeaks.gfa
+	FA = gqpeaks.fa
+	MD = gqpeaks.md
+	AD = gqpeaks.ad
+	RD = gqpeaks.rd
 
 	gqpeaks = peaks_from_model(model=gqmodel, data=data,sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask, return_odf=True, normalize_peaks=True)
 
@@ -45,7 +53,35 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 
 	#cmc classifier or act, but you need pv.
 
-def getMaps(fdwi, fbval, fbvec, subject_folder):
+def getMapsDTI(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	fwhm=1.25
+	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+	data_smooth = np.zeros(data.shape)
+	for v in range(data.shape[-1]):
+	    data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
+
+
+	tenmodel = dti.TensorModel(gtab)
+	dtifit = tenmodel.fit(data_smooth, mask=mask)
+
+	
+	FA = dtifit.fa
+	MD = dtifit.md
+	AD = dtifit.ad
+	RD = dtifit.rd
+
+	save_nifti(subject_folder+'/dti_FA.nii.gz', FA, img.affine)
+	save_nifti(subject_folder+'/dti_MD.nii.gz', MD, img.affine)
+	save_nifti(subject_folder+'/dti_RD.nii.gz', RD, img.affine)
+	save_nifti(subject_folder+'/dti_AD.nii.gz', AD, img.affine)
+
+def getMapsDKI(fdwi, fbval, fbvec, subject_folder):
 	img = nib.load(fdwi)
 	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
 	gtab = gradient_table(bvals, bvecs)
@@ -77,3 +113,17 @@ def getMaps(fdwi, fbval, fbvec, subject_folder):
 	save_nifti(subject_folder+'/dki_MK.nii.gz', MK, img.affine)
 	save_nifti(subject_folder+'/dki_AK.nii.gz', AK, img.affine)
 	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)
+
+
+parser = fs.ArgParser()
+# Required
+parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
+parser.add_argument('-d','--dwi', metavar='file',required=True,  help='Diffusion MRI image.')
+parser.add_argument('-b','--bval', metavar='file', required=True, help='bvalue file.')
+parser.add_argument('-v','--bvec', metavar='file', required=True, help='bvectors file')
+parser.add_argument('-s','--subject_folder', required=True, help='subject folder')
+args = parser.parse_args()
+
+eval(args.function)(args.dwi, args.bval, args.bvec, args.subject_folder)
+
+

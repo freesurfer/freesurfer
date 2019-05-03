@@ -12,7 +12,8 @@ from setuptools import setup, find_packages, Distribution
 packages = [
     'freesurfer',
     'freesurfer.gems',
-    'freesurfer.samseg'
+    'freesurfer.samseg',
+    'freesurfer.deeplearn'
 ]
 
 # get required dependencies from requirements.txt

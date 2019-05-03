@@ -194,11 +194,8 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   if(NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
     if(${VTK_MAJOR_VERSION} STREQUAL 5)
       include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK5)
-      set(SOURCES ${SOURCES}
-        QVTK5/QVTKWidget.cxx
-        QVTK5/QVTKPaintEngine.cxx
-      )
-    else()
+      set(SOURCES ${SOURCES} QVTK5/QVTKWidget.cxx QVTK5/QVTKPaintEngine.cxx)
+    elseif(APPLE)
       include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK8)
       set(SOURCES ${SOURCES}
         QVTK8/QVTKWidget.cxx

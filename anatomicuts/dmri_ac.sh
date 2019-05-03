@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
-#this step is into tracula preproc
-targetSubject="6002_16_01192018"
 
-#SUBJECTS_DIR=/space/snoke/1/public/vivros/data/recons/
-#DMRI_DIR=/space/snoke/1/public/vivros/data/tracula/jones_900/
-#ODMRI_DIR=/space/snoke/1/public/vivros/viv/
+#Required SUBJECTS_DIR with Freesurfer subjects directory.
+#DMRI_DIR dmri_preproc directory if it is different from the SUBJECTS_DIR
+#ODMRI_DIR AnatomiCuts output directory if different to SUBJECTS_DIR
+
+#targetSubject target subject to find AnatomiCuts correspondences
+
 if [[ ! ${SUBJECTS_DIR} ]]; then
 	echo "ERROR: SUBJECTS_DIR not set!" 
 	exit 1
 fi
 
 if [[ ! ${DMRI_DIR} ]]; then
+	echo "hola"
 	DMRI_DIR=${SUBJECTS_DIR}
 fi
 
@@ -19,6 +21,9 @@ if [[ ! ${ODMRI_DIR} ]]; then
 	ODMRI_DIR=${SUBJECTS_DIR}
 fi
 
+echo ${SUBJECTS_DIR}
+echo ${DMRI_DIR}
+echo ${ODMRI_DIR}
 
 clusters=(200 150 100 50)
 #code=/space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
@@ -27,7 +32,7 @@ anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
-ac_output=/space/snoke/1/public/vivros/AnatomiCuts_l35/
+ac_output=${ODMRI} 
 
 function preprocessDWI()
 {
@@ -60,30 +65,39 @@ function tractography()
 {
 	echo "tractography"
 	subject=$1
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/GQI/\'
+	echo ${subject}
+	fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+	fbval=${DMRI_DIR}/${subject}/dmri/bvals
+	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+	output=${DMRI_DIR}/${subject}/dmri/GQI/
 
-	mkdir -p ${DMRI_DIR}/${subject}/GQI/
+	mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
+	diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
 
 }
 function getMaps()
 {
 	echo "getMaps"
 	subject=$1
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/DKI/\'
+	if [[  ${2} == "DTI"  ]] || [[  ${2} == "DKI" ]] ; then
 
-	mkdir -p ${DMRI_DIR}/${subject}/DKI/
+		model=$2 #DTI or DKI
+		fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+		fbval=${DMRI_DIR}/${subject}/dmri/bvals
+		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+		output=${DMRI_DIR}/${subject}/dmri/$model
+
+		mkdir -p ${DMRI_DIR}/${subject}/dmri/$model
 	
-	cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+		#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+		#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	
+		diffusionUtils -f getMaps$model -d $fdwi -b $fbval -v $fbvec -s $output
+	else
+		echo "missing argument: dmri_ac.sh  getMaps SUBJECT_ID modelfit"
+		echo "modelfit: DTI, DKI"
+	fi
 
 }
 function call()

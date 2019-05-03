@@ -73,12 +73,18 @@ public:
     return m_nNumberOfSides;
   }
 
+  double GetOpacity()
+  {
+    return m_dOpacity;
+  }
+
 signals:
   void ColorCodeChanged(int);
   void DirectionSchemeChanged(int);
   void DirectionMappingChanged(int);
   void SolidColorChanged(const QColor& c);
   void RenderRepChanged();
+  void OpacityChanged(double);
 
 public slots:
   void SetColorCode(int nCode);
@@ -88,6 +94,7 @@ public slots:
   void SetRenderRep(int nVal);
   void SetTubeRadius(double dVal);
   void SetNumberOfSides(int nVal);
+  void SetOpacity(double val);
 
 private:
   int     m_nColorCode;
@@ -96,6 +103,7 @@ private:
   int     m_nRenderRep;
   double  m_dTubeRadius;
   int     m_nNumberOfSides;
+  double  m_dOpacity;
   QColor  m_color;
 };
 

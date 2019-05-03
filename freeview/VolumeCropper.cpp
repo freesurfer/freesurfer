@@ -121,6 +121,21 @@ VolumeCropper::VolumeCropper( QObject* parent ) :
   m_clipper = vtkSmartPointer<vtkClipPolyData>::New();
   m_clipper->SetClipFunction( m_box );
   m_clipper->InsideOutOn();
+
+#if VTK_MAJOR_VERSION > 5
+  m_actorBox->ForceOpaqueOn();
+  m_actorFrame->ForceOpaqueOn();
+  m_actorFrame2D->ForceOpaqueOn();
+  m_actorActivePlane->ForceOpaqueOn();
+  for (int i = 0; i < 3; i++)
+  {
+    m_actorActivePlane2D[i]->ForceOpaqueOn();
+  }
+  for (int i = 0; i < 6; i++)
+  {
+    m_actorSphere[i]->ForceOpaqueOn();
+  }
+#endif
 }
 
 VolumeCropper::~VolumeCropper()
@@ -147,13 +162,6 @@ void VolumeCropper::Append2DProps( vtkRenderer* renderer, int n )
   renderer->AddViewProp( m_actorBox2D );
   renderer->AddViewProp( m_actorFrame2D );
   renderer->AddViewProp( m_actorActivePlane2D[n] );
-  /*
-  for ( int i = 0; i < 6; i++ )
-  {
-    if ( i != n*2 && i != (n*2+1) )
-      renderer->AddViewProp( m_actorSphere[i] );
-  }
-  */
 }
 
 void VolumeCropper::SetVolume( LayerMRI* mri)
