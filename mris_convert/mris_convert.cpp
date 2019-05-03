@@ -128,6 +128,7 @@ static int cras_add = 0;
 static int cras_subtract = 0;
 static int ToScanner = 0;
 static int ToTkr = 0;
+int WriteArea = 0;
 
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
@@ -140,7 +141,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   char **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
        *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int ac, nargs,nthvtx,n ;
+  int ac, nargs,nthvtx,n;
   FILE *fp=NULL;
   char *in2_fname=NULL;
   MRI_SURFACE *mris2=NULL;
@@ -676,6 +677,22 @@ get_option(int argc, char *argv[])
     annot_file_flag = 1;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "-area")) {
+    // This little bit of code is self-contained, run like
+    // mris_convert --area surface area.mgz
+    MRIS *surf = MRISread(argv[2]);
+    if(surf==NULL) exit(1);
+    MRI *SrcVals = MRIcopyMRIS(NULL, surf, 0, "area");
+    if(surf->group_avg_surface_area > 0) {
+      double val = surf->group_avg_surface_area / surf->total_area;
+      printf("group surface, scaling area by %g\n",val);
+      MRIscalarMul(SrcVals,SrcVals,val);
+    }
+    printf("Writing vertex area to %s\n",argv[3]);
+    int err = MRIwrite(SrcVals,argv[3]);
+    MRIfree(&SrcVals); MRISfree(&surf);
+    exit(err);
+  }
   else if (!stricmp(option, "-volume")){
     // This little bit of code is self-contained, run like
     // mris_convert --volume subject hemi outcurv
@@ -869,7 +886,8 @@ print_help(void)
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
-  printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed\n") ;
+  printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
+  printf( "  --area surface area.mgz : compute vertex-wise area (no other args needed); rescales group if needed\n") ;
   printf( "  Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability\n") ;
   printf( "    Use --to-tkr and --to-scanner instead\n") ;
   printf( "  --cras_add : shift center to scanner coordinate center (was --cras_correction, which still works)\n") ;
