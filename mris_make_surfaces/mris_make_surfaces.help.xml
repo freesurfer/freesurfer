@@ -122,6 +122,8 @@
       <explanation>Save white surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
       <argument>-sigma-pial sigmapialfile </argument>
       <explanation>Save pial surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-output suffix </argument>
+      <explanation>Append suffix to all outputs (prevents over-writing)</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
