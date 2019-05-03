@@ -10,6 +10,7 @@ enable_language(C CXX Fortran)
 # a few build options
 option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
+option(BUILD_ATTIC "Build subdirs moved to ./freesurfer/attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 
@@ -592,3 +593,109 @@ endif()
 if(TKTOOLS_MODULE)
   add_subdirectory(tktools)
 endif()
+
+# 5/2019 - The attic subdirectories were previously listed above to be built by default under
+# ./freesurfer. But because the code is old/seldom used - or never built - these subdirs have been
+# moved to ./freesurfer/attic (attic is an old CVS term).  They are no longer built and installed by 
+# default, but can be built by adding -DBUILD_ATTIC:BOOL=ON to the cmake command line.
+#
+# To see the complete log history of any file in under ./attic prior to its move there, add the
+# --follow option to the git log command, e.g., cd attic/mri_mosaic and do "git log --follow mri_mosaic.cpp"
+
+if(BUILD_ATTIC)
+  add_subdirectories(
+    attic/check_siemens_dir
+    attic/connectgraph
+    attic/dmri_tensoreig
+    attic/histo_fix_topology
+    attic/histo_segment
+    attic/label_area
+    attic/label_border
+    attic/mri_apply_inu_correction
+    attic/mri_aseg_edit_reclassify
+    attic/mri_aseg_edit_train
+    attic/mri_auto_fill
+    attic/mri_bc_sc_bias_correct
+    attic/mri_build_priors
+    attic/mri_cht2p
+    attic/mri_classify
+    attic/mri_compute_structure_transforms
+    attic/mri_concatenate_gcam
+    attic/mri_convert_mdh
+    attic/mri_divide_segmentation
+    attic/mri_elastic_energy
+    attic/mri_estimate_tissue_parms
+    attic/mri_extract_conditions
+    attic/mri_fcili
+    attic/mri_gcab_train
+    attic/mri_gdfglm
+    attic/mri_histo_normalize
+    attic/mri_ibmc
+    attic/mri_interpolate
+    attic/mri_jacobian
+    attic/mri_label_accuracy
+    attic/mri_make_bem_surfaces
+    attic/mri_make_density_map
+    attic/mri_make_labels
+    attic/mri_make_register
+    attic/mri_make_template
+    attic/mri_mosaic
+    attic/mri_ms_EM
+    attic/mri_ms_EM_with_atlas
+    attic/mri_ms_LDA
+    attic/mri_multiscale_segment
+    attic/mri_multispectral_segment
+    attic/mri_parselabel
+    attic/mri_partial_ribbon
+    attic/mri_register
+    attic/mri_rf_long_label
+    attic/mri_segment_tumor
+    attic/mri_segment_wm_damage
+    attic/mri_simulate_atrophy
+    attic/mri_threshold
+    attic/mri_train_autoencoder
+    attic/mri_transform_to_COR
+    attic/mri_update_gca
+    attic/mri_vol2roi
+    attic/mri_wmfilter
+    attic/mri_xcorr
+    attic/mris_add_template
+    attic/mris_aseg_distance
+    attic/mris_average_parcellation
+    attic/mris_classify_thickness
+    attic/mris_compute_optimal_kernel
+    attic/mris_compute_overlap
+    attic/mris_density
+    attic/mris_distance_transform
+    attic/mris_fbirn_annot
+    attic/mris_glm
+    attic/mris_interpolate_warp
+    attic/mris_longitudinal_surfaces
+    attic/mris_make_map_surfaces
+    attic/mris_merge_parcellations
+    attic/mris_ms_surface_CNR
+    attic/mris_simulate_atrophy
+    attic/mris_surface_change
+    attic/mris_svm_classify
+    attic/mris_svm_train
+    attic/mris_twoclass
+    attic/mris_w_to_curv
+    attic/oct_train
+    attic/rbftest
+    attic/regdat2xfm
+    attic/repair_siemens_file
+    attic/spherical_stats
+    attic/tridec
+  )
+endif()
+
+# These never built, i.e. have no CMakeLists.txt, so they are not listed above in attic list
+#
+# attic/mri_cc_ma_fill
+# attic/mri_cc_medial_axis
+# attic/mri_extract_ma_intensity
+# attic/mri_map_atrophy
+# attic/mris_curvature_vectors
+# attic/mris_pval_fill
+# attic/mris_spherical_wavelets
+
