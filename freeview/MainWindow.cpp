@@ -7967,6 +7967,8 @@ void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
     lc = GetLayerCollection("PointSet");
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -8006,7 +8008,9 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
   else if (type == "roi")
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
-    lc = GetLayerCollection("PointSet");
+    lc = GetLayerCollection("PointSet");  
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -8032,6 +8036,8 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
         OnCloseROI(layers);
       else if (type == "pointset")
         OnClosePointSet(layers);
+      else if (type == "tract")
+        OnCloseTrack();
     }
   }
 }
