@@ -2696,6 +2696,12 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
       if (lc && lc->GetActiveLayer())
         ((LayerPointSet*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
     }
+    else if (type == "tract")
+    {
+      lc = GetLayerCollection("Tract");
+      if (lc && lc->GetActiveLayer())
+        ((LayerTrack*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
   }
   else
   {

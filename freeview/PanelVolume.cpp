@@ -637,9 +637,9 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxDisplayRGB->setVisible(layer && layer->GetNumberOfFrames() == 3);
     ui->checkBoxDisplayRGB->setChecked(layer && layer->GetProperty()->GetDisplayRGB());
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
-    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && !layer->GetProperty()->GetDisplayRGB() );
+    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && layer && !layer->GetProperty()->GetDisplayRGB() );
 
-    ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
+    ui->checkBoxShowContour->setVisible( bNormalDisplay && layer && !layer->GetProperty()->GetShowProjectionMap() );
     ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
     {

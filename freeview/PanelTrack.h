@@ -45,6 +45,10 @@ protected:
   void DoIdle();
   virtual void ConnectLayer( Layer* layer );
 
+protected slots:
+  void OnSliderOpacity(int);
+  void OnLineEditOpacity(const QString&);
+
 private:
   Ui::PanelTrack *ui;
 

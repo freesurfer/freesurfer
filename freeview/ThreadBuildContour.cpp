@@ -89,6 +89,9 @@ void ThreadBuildContour::run()
       if (!map.contains(i))
       {
         vtkActor* actor = vtkActor::New();
+#if VTK_MAJOR_VERSION > 5
+        actor->ForceOpaqueOn();
+#endif
         actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
         actor->GetMapper()->ScalarVisibilityOn();
         MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour, m_mri->GetProperty()->GetShowVoxelizedContour());
