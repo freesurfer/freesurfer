@@ -24,7 +24,7 @@
 
 <help>
 	<name>mri_segstats</name>
-	<synopsis>mri_segstats --seg segvol --annot  subject hemi parc --slabel subject hemi label --sum file</synopsis>
+	<synopsis>mri_segstats --seg segvol --annot  subject hemi parc --slabel subject hemi label --o file</synopsis>
 	<description>Calculates measures and stats derived from brain segmentation data. </description>
   <arguments>
     <positional>
@@ -63,7 +63,9 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
       <argument>--label-thresh threshold</argument>
       <explanation>Select only those label points that have a stat value greater than threshold</explanation>
-      <argument>--sum file</argument>
+      <argument>--seg-from-input</argument>
+      <explanation>Create a "segmentation" of all ones based on the size of the input. Use this when you just want to compute stats across all input voxels.</explanation>
+      <argument>--o file (can also use --sum)</argument>
       <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
     </required-flagged>
     <optional-flagged>
