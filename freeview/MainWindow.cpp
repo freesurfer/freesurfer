@@ -2696,6 +2696,12 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
       if (lc && lc->GetActiveLayer())
         ((LayerPointSet*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
     }
+    else if (type == "tract")
+    {
+      lc = GetLayerCollection("Tract");
+      if (lc && lc->GetActiveLayer())
+        ((LayerTrack*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
   }
   else
   {
@@ -7961,6 +7967,8 @@ void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
     lc = GetLayerCollection("PointSet");
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -8000,7 +8008,9 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
   else if (type == "roi")
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
-    lc = GetLayerCollection("PointSet");
+    lc = GetLayerCollection("PointSet");  
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -8026,6 +8036,8 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
         OnCloseROI(layers);
       else if (type == "pointset")
         OnClosePointSet(layers);
+      else if (type == "tract")
+        OnCloseTrack();
     }
   }
 }
