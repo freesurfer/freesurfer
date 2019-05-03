@@ -677,6 +677,17 @@ get_option(int argc, char *argv[])
     annot_file_flag = 1;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "-label2mask")) {
+    MRIS *surf = MRISread(argv[2]);
+    if(surf==NULL) exit(1);
+    LABEL *srclabel = LabelRead(NULL, argv[3]);
+    if(srclabel==NULL) exit(1);
+    MRI *outmask = MRISlabel2Mask(surf,srclabel,NULL);
+    if(outmask==NULL) exit(1);
+    int err = MRIwrite(outmask,argv[4]);
+    MRIfree(&outmask); MRISfree(&surf); LabelFree(&srclabel) ;
+    exit(err);
+  }
   else if (!stricmp(option, "-area")) {
     // This little bit of code is self-contained, run like
     // mris_convert --area surface area.mgz
@@ -888,6 +899,7 @@ print_help(void)
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
   printf( "  --area surface area.mgz : compute vertex-wise area (no other args needed); rescales group if needed\n") ;
+  printf( "  --label2mask surface label mask.mgz : convert a surface-based label to a binary mask (no other args needed)\n") ;
   printf( "  Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability\n") ;
   printf( "    Use --to-tkr and --to-scanner instead\n") ;
   printf( "  --cras_add : shift center to scanner coordinate center (was --cras_correction, which still works)\n") ;
