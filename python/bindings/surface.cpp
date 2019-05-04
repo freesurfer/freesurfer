@@ -113,12 +113,7 @@ bool CoreSurface::isSelfIntersecting() {
   Wrapper for MRISfillInterior. Returns a binary numpy array.
 */
 py::array CoreSurface::fillInterior() {
-  // allocate the destination volume
-  MRI *mri = MRIallocChunk(256, 256, 256, MRI_INT, 1);
-  MRISfillInterior(m_mris, 1, mri);
-  // copy the mri buffer into a numpy array
-  py::array array = makeArray(mri);
-  // remember to free the mri before returning
-  MRIfree(&mri);
-  return array;
+  MRI mri = MRI({256, 256, 256}, MRI_INT);
+  MRISfillInterior(m_mris, 1, &mri);
+  return PyVolume::copyImage(&mri);
 }
