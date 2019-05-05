@@ -135,7 +135,7 @@ typedef const float * ptr_to_const_float;
 
 // Some trivial math functions needed lots
 //
-#ifdef __GNUC__
+#if GCC_VERSION >= 50000
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 static bool isnan   (long double v) { return std::isnan(v);    }
