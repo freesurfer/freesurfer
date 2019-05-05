@@ -90,10 +90,12 @@ STRIP;
 
 #include "transform.h" // TRANSFORM, LTA
 
-typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
-typedef char    MRIS_subject_name_t[STRLEN] ;
-typedef char    MRIS_fname_t[STRLEN] ;
 
+typedef FixedSizeArray<char   *,MAX_CMDS> MRIS_cmdlines_t;
+typedef FixedSizeArray<char    ,STRLEN>   MRIS_subject_name_t;
+typedef FixedSizeArray<char    ,STRLEN>   MRIS_fname_t;
+    //
+    // C arrays can not be returned as function results, but there can
 
 enum MRIS_Status_DistanceFormula {
   MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
@@ -128,27 +130,31 @@ bool areCompatible(MRIS_Status s1, MRIS_Status s2);
 void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
 #define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
 
+typedef int*                    pSeveralInt;
+typedef uchar*                  pSeveralUchar;
+typedef float*                  pSeveralFloat;
+typedef void*                   p_void;
+typedef void**                  p_p_void;
 
-#include "mrisurf_traditional.h"
+typedef DMATRIX*                PDMATRIX;
+typedef MATRIX*                 PMATRIX;
+typedef LTA*                    PLTA;
+typedef COLOR_TABLE*            PCOLOR_TABLE;
 
+typedef MRI*                    PMRI;
+typedef MRI_EDGE*               pSeveralMRI_EDGE;
+typedef MRIS_AREA_LABEL*        PMRIS_AREA_LABEL;
+typedef VERTEX *                PVERTEX;
+typedef FixedSizeArray<PDMATRIX,3> A3PDMATRIX;
 
-static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
-  switch (i) {
-  case 1: return &v->vnum;
-  case 2: return &v->v2num;
-  case 3: return &v->v3num;
-  default: cheapAssert(false); return NULL;
-  }    
-}
-static short VERTEXvnum(VERTEX_TOPOLOGY const * v, int i) {
-  switch (i) {
-  case 1: return v->vnum;
-  case 2: return v->v2num;
-  case 3: return v->v3num;
-  default: cheapAssert(false); return 0;
-  }    
-}
+typedef STRIP*                  pSeveralSTRIP;
+typedef VERTEX *                pSeveralVERTEX;
+typedef VERTEX_TOPOLOGY *       pSeveralVERTEX_TOPOLOGY;
+typedef FACE *                  pSeveralFACE;
+typedef FaceNormCacheEntry*     pSeveralFaceNormCacheEntry;
+typedef FaceNormDeferredEntry*  pSeveralFaceNormDeferredEntry;
 
+ 
 typedef const MRIS MRIS_const;
     // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept easily.
 
@@ -2363,26 +2369,6 @@ void MRISremoveRipped(MRIS *mris);
 bool mrisAnyVertexOfFaceMarked(MRIS *mris, int fno);
 
 
-// Static function implementations
-//
-static int mrisVertexNeighborIndex(MRIS const *mris, int vno1, int vno2) {
-  cheapAssert(0 <= vno1 && vno1 < mris->nvertices);
-  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno1];
-  if (!vt->v) return -1;    // happens in invalid surfaces 
-  int n;
-  for (n = 0; n < vt->vnum; n++) {
-    if (vt->v[n] == vno2) return n;
-  }
-  return -1;
-}
-
-
-static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, int const vno2)
-{
-  return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
-}
-
-
 // Vals
 //
 void MRISsetOriginalXYZfromXYZ(MRIS *mris);
@@ -2412,3 +2398,70 @@ int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double ds
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
 MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
   
+
+
+#if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
+#define CONST_EXCEPT_MRISURF_TOPOLOGY 
+#else
+#define CONST_EXCEPT_MRISURF_TOPOLOGY const
+#endif
+
+#if defined(COMPILING_MRISURF_METRIC_PROPERTIES) || defined(COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND)
+#define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES 
+#else
+#define CONST_EXCEPT_MRISURF_METRIC_PROPERTIES const
+#endif
+    //
+    // Used to find and control where various fields are written
+
+
+struct face_topology_type_ {    // not used much yet
+  vertices_per_face_t v;        // and being overtaken by events...
+};
+
+
+#if 0
+#include "mrisurf_FACE_VERTEX_MRI_traditional.h"
+#else
+#include "mrisurf_FACE_VERTEX_MRI_generated.h"
+#include "mrisurf_SurfaceFromMRIS_generated.h"
+#endif
+
+
+// Static function implementations
+//
+static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
+  switch (i) {
+  case 1: return &v->vnum;
+  case 2: return &v->v2num;
+  case 3: return &v->v3num;
+  default: cheapAssert(false); return NULL;
+  }    
+}
+static short VERTEXvnum(VERTEX_TOPOLOGY const * v, int i) {
+  switch (i) {
+  case 1: return v->vnum;
+  case 2: return v->v2num;
+  case 3: return v->v3num;
+  default: cheapAssert(false); return 0;
+  }    
+}
+
+static int mrisVertexNeighborIndex(MRIS const *mris, int vno1, int vno2) {
+  cheapAssert(0 <= vno1 && vno1 < mris->nvertices);
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno1];
+  if (!vt->v) return -1;    // happens in invalid surfaces 
+  int n;
+  for (n = 0; n < vt->vnum; n++) {
+    if (vt->v[n] == vno2) return n;
+  }
+  return -1;
+}
+
+
+static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, int const vno2)
+{
+  return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
+}
+
+

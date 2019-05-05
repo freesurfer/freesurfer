@@ -13010,7 +13010,7 @@ int mrisCheckSurface(MRIS *mris)
         printf("mrisCheckSurface: %s: face[%d].v[%d] = %d, "
                   "but face %d not in vertex %d "
                   "face list\n",
-                  mris->fname,
+                  mris->fname.data(),
                   fno,
                   m,
                   f->v[m],

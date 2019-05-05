@@ -258,7 +258,7 @@ bool LayerSurface::CreateFromMRIS(void *mris_ptr)
   {
     return false;
   }
-  SetFileName(mris->fname);
+  SetFileName(mris->fname.data());
   InitializeData();
   return true;
 }

@@ -2578,7 +2578,7 @@ int MRISwriteAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -2611,7 +2611,7 @@ int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteNormalsAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -3245,7 +3245,7 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
   fprintf(fp,
           "#!ascii version of patch %s. "
           "The 1st index is not a vertex number\n",
-          mris->fname);
+          mris->fname.data());
   fprintf(fp, "%d %d\n", nvertices, nfaces);
   fprintf(stdout, "nvertices=%d (valid=%d) nfaces=%d\n", nvertices, MRISvalidVertices(mris), nfaces);
 
