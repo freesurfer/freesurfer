@@ -20,8 +20,8 @@ except ImportError:
               'one used to compile the bindings library')
     raise
 
+from .bindings import Volume
 from .surface import *
-from .volume import *
 
 from .geometry import *
 from ._surface import *

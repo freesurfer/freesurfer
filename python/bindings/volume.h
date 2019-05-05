@@ -2,47 +2,40 @@
 #define VOLUME_H
 
 #include "numpy.h"
-
-// utils
 #include "mri.h"
+#include "log.h"
 
 
 void bindVolume(py::module &m);
-py::array makeArray(MRI *mri, bool copybuffer = true);
 
 
-class CoreVolume {
+/**
+  MRI subclass to allow interaction between c++ and python.
+*/
+class PyVolume : public MRI
+{
 public:
-  CoreVolume(MRI *mri);
-  CoreVolume(const std::string &filename);
-  CoreVolume(py::array array);
-  ~CoreVolume();
+  PyVolume(py::array& array);
+  PyVolume(const std::string& filename) : MRI(filename) {};
+  ~PyVolume();
 
-  // mri pointer getter/setter
-  void setMRI(MRI *mri);
-  MRI* getMRI() { return m_mri; };
+  static py::array copyImage(MRI *mri);
+  py::array copyImage() { return copyImage(this); };
 
-  // filesystem IO
-  void read(const std::string &filename);
-  void write(const std::string &filename);
+  void setImage(const py::array& array);
+  py::array getImage();
 
-  // image array getter/setter
-  py::array getImage() { return imagebuffer; };
-  void setImage(py::array_t<float, py::array::f_style | py::array::forcecast> array);
-
-  template<class T>
-  void setBufferData(const float *data) {
-    T *buff = (T *)m_mri->chunk;
-    const float *ptr = data;
-    const int count = MRInvox(m_mri);
-    for (unsigned int i = 0; i < count ; i++, ptr++, buff++) {
-      *buff = (T)*ptr;
-    }
+  template <class T>
+  void setBufferData(py::array_t<T, py::array::f_style | py::array::forcecast> array) {
+    MRI::Shape inshape = MRI::Shape(array.request().shape);
+    if (inshape != shape) logFatal(1) << "array " << shapeString(inshape) << " does not match volume shape " << shapeString(shape);
+    T *dst = (T *)chunk;
+    const T *src = array.data(0);
+    for (unsigned int i = 0; i < vox_total ; i++, dst++, src++) *dst = *src;
   }
 
 private:
-  py::array imagebuffer;
-  MRI *m_mri = nullptr;
+  py::array buffer_array;
 };
 
 #endif
