@@ -544,6 +544,69 @@ int MRIScomputeEulerNumber(MRIS *mris, int *pnvertices, int *pnfaces, int *pnedg
 }
 
 
+/**
+  Computes the euler number for the neighborhood (of size nlinks) surrounding a given vertex.
+*/
+int MRIScomputeNeighborhoodEulerNumber(MRIS *mris, int vno, int nlinks)
+{
+  // find vertices neighboring the center vertex
+  int vertices[MAX_NEIGHBORS], hops[MAX_NEIGHBORS];
+  int nfound = MRISfindNeighborsAtVertex(mris, vno, nlinks, MAX_NEIGHBORS, vertices, hops);
+
+  // make sure to include the center vertex in the list
+  vertices[nfound] = vno;
+  nfound++;
+
+  std::vector<bool> valid_vertices(mris->nvertices, false);  // masks away vertices not in the neighborhood
+  std::vector<bool> visited_faces(mris->nvertices, false);   // keeps track of the faces inspected
+
+  // validate and count vertices
+  int nvertices = 0;
+  for (int n = 0; n < nfound; n++) {
+    int vno = vertices[n];
+    if (mris->vertices[vno].ripflag) continue;
+    valid_vertices[vno] = true;
+    nvertices++;
+  }
+
+  // count valid faces and edges
+  int nfaces = 0;
+  int nedges = 0;
+  for (int n = 0; n < nfound; n++) {
+    int vno = vertices[n];
+    if (!valid_vertices[vno]) continue;
+    VERTEX_TOPOLOGY *vt = &mris->vertices_topology[vno];
+
+    // count faces
+    for (int i = 0; i < vt->num; i++) {
+      int fno = vt->f[i];
+
+      // make sure we haven't already checked this face
+      if (visited_faces[fno]) continue;
+      visited_faces[fno] = true;
+
+      // make sure the actual face is valid
+      FACE *face = &mris->faces[fno];
+      if (face->ripflag) continue;
+
+      // make sure the vertices attached to this face are also valid
+      if (!valid_vertices[face->v[0]]) continue;
+      if (!valid_vertices[face->v[1]]) continue;
+      if (!valid_vertices[face->v[2]]) continue;
+      nfaces++;
+    }
+
+    // count edges
+    for (int i = 0; i < vt->vnum; i++) {
+      int nbr = vt->v[i];
+      if ((nbr > vno) && valid_vertices[nbr]) nedges++;
+    }
+  }
+
+  return nvertices - nedges + nfaces;
+}
+
+
 int MRIStopologicalDefectIndex(MRIS *mris)
 {
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;

@@ -1419,8 +1419,9 @@ int          MRISflattenPatch(MRI_SURFACE *mris) ;
 int          MRISflattenPatchRandomly(MRI_SURFACE *mris) ;
 int          MRIScomputeMeanCurvature(MRI_SURFACE *mris) ;
 
-int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
-                                    int *pnfaces, int *pnedges) ;
+int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int *pnedges);
+int          MRIScomputeNeighborhoodEulerNumber(MRIS *mris, int vno, int nlinks);
+
 int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,
                                           float curv_thresh);
