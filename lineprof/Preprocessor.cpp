@@ -1,6 +1,6 @@
 
 // STL
-#include <cmath>
+#include <math.h>
 
 // ITK
 #define export // obsolete feature "export template" used in these header files
