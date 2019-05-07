@@ -1064,7 +1064,7 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
         {
           m_labelActors[n] = m_labelActorsTemp[n];
 #if VTK_MAJOR_VERSION > 5
-          m_labelActors[n]->ForceOpaqueOn();
+          m_labelActors[n]->ForceTranslucentOn();
 #endif
           m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
         }

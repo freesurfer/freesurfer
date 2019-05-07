@@ -860,7 +860,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       if ( nValid )
       {
         CTABcopyName( ct, i, name, 1000 );
-        ColorTableItem* item = new ColorTableItem( ui->treeWidgetColorTable );
+        ColorTableItem* item = new ColorTableItem(ui->treeWidgetColorTable);
         if (ColorTableItem::SortType == ColorTableItem::ST_VALUE)
           item->setText( 0, QString("%1 %2").arg(i).arg(name) );
         else
@@ -882,10 +882,6 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
           else
             bHasUnselected = true;
         }
-        if (m_bShowExistingLabelsOnly && !labels.isEmpty())
-        {
-          item->setHidden(!labels.contains(i));
-        }
         if ( i == nValue )
         {
           nSel = nValidCount;
@@ -903,6 +899,15 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       ui->checkBoxSelectAllLabels->setCheckState(Qt::PartiallyChecked);
     else
       ui->checkBoxSelectAllLabels->setCheckState(Qt::Unchecked);
+
+    if (!labels.isEmpty() && m_bShowExistingLabelsOnly)
+    {
+      for (int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++)
+      {
+        QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
+        item->setHidden(!labels.contains(item->data(0, Qt::UserRole+1).toInt()));
+      }
+    }
   }
 }
 
