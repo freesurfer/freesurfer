@@ -6512,3 +6512,107 @@ MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
   MRIScomputeMetricProperties(mris) ;
   return(mri) ;
 }
+
+
+int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
+{
+  FACE *face = &(surf->faces[faceno]);
+  int n,m,vno1,vno2;
+  VERTEX *v1,*v2;
+  double cx=0,cy=0,cz=0;
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Face %d\n",faceno);
+  fprintf(fp,"plot3(");
+  for(n=0; n<3; n++){
+    m = n + 1;
+    if(m>2) m = 0;
+    vno1 = face->v[n];
+    vno2 = face->v[m];
+    v1 = &(surf->vertices[vno1]);
+    v2 = &(surf->vertices[vno2]);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c' ",
+	    v1->x,v2->x,v1->y,v2->y,v1->z,v2->z,color);
+    if(n!=2) fprintf(fp,",");
+    cx += v1->x;
+    cy += v1->y;
+    cz += v1->z;
+  }
+  cx /= 3;
+  cy /= 3;
+  cz /= 3;
+  fprintf(fp,");\n");
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'F%d');\n",cx,cy,cz,faceno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    float snorm[3];
+    mrisNormalFace(surf, faceno, 0, snorm);
+    //printf("%g %g %g\n",snorm[0],snorm[1],snorm[2]);
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*',",cx,cy,cz,color);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c'",
+	    cx,cx+NormLen*snorm[0],cy,cy+NormLen*snorm[1],cz,cz+NormLen*snorm[2],
+	    normcolor);
+    fprintf(fp,");\n");
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen)
+{
+  VERTEX *v = &(surf->vertices[vno]);
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Vertex %d\n",vno);
+  fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*')\n",v->x,v->y,v->z,color);
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'V%d');\n",v->x,v->y,v->z,vno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c')\n",
+	    v->x,v->x+NormLen*v->nx, v->y,v->y+NormLen*v->ny, v->z,v->z+NormLen*v->nz, normcolor);
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen)
+{
+
+  int nthhop, nnbrs, nthnbr, nbrvtxno, faceno,nthface;
+  SURFHOPLIST *shl;
+  shl = SetSurfHopList(cvno, surf, nhops);
+
+  for(nthhop = 0; nthhop < nhops; nthhop++) {
+    nnbrs = shl->nperhop[nthhop];
+    // loop through the neighbors nthhop links away
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+      nbrvtxno = shl->vtxlist[nthhop][nthnbr];
+      fprintf(fp,"hold on;\n");
+      MatlabPlotVertex(fp, surf, nbrvtxno, 'g', NormLen);
+      if(nthhop >= nhops-1) continue;
+      VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[nbrvtxno]);
+      for(nthface=0; nthface <  vt->num; nthface++){
+	faceno = vt->f[nthface];
+	fprintf(fp,"hold on;\n");
+	MatlabPlotFace(fp, surf, faceno, 'b', NormLen);
+	//fprintf(stderr,"%2d %3d %d %6d %6d\n",nthhop,nthnbr,nthface,nbrvtxno,faceno);
+      }
+
+    } /* end loop over hop neighborhood */
+  }   /* end loop over hop */
+
+  // Have to do this at the end
+  fprintf(fp,"hold on;\n");
+  MatlabPlotVertex(fp, surf, cvno, 'r', NormLen);
+  fprintf(fp,"title('Vertex %d');\n",cvno);
+  fprintf(fp,"hold off;\n");
+
+  SurfHopListFree(&shl);
+  return(0);
+}
