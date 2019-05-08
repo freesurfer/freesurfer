@@ -41,7 +41,7 @@ if(ITK_FOUND AND VTK_FOUND)
   #install(TARGETS sigmoidFit DESTINATION bin)
 
 
-  add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
-  target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  install(TARGETS sigmoidFit DESTINATION bin)
+#  add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
+ # target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  #install(TARGETS sigmoidFit DESTINATION bin)
 endif()
