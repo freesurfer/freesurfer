@@ -2372,34 +2372,6 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
     {
       for ( int nX = 0; nX < zX; nX++ )
       {
-        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
-        {
-          switch ( mri->type )
-          {
-          case MRI_UCHAR:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_INT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_LONG:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_FLOAT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_SHORT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          default:
-            break;
-          }
-        }
         if (mri->type == MRI_RGB)
         {
           int val = MRIIseq_vox(mri, nX, nY, nZ, 0);
@@ -2407,6 +2379,37 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
           scalars->SetComponent( nTuple, 1, (val >> 8) & 0x00ff);
           scalars->SetComponent( nTuple, 2, (val >> 16) & 0x00ff);
           scalars->SetComponent( nTuple, 3, 255);
+        }
+        else
+        {
+          for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+          {
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              scalars->SetComponent( nTuple, nFrame,
+                                     MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
+              break;
+            case MRI_INT:
+              scalars->SetComponent( nTuple, nFrame,
+                                     MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
+              break;
+            case MRI_LONG:
+              scalars->SetComponent( nTuple, nFrame,
+                                     MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
+              break;
+            case MRI_FLOAT:
+              scalars->SetComponent( nTuple, nFrame,
+                                     MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
+              break;
+            case MRI_SHORT:
+              scalars->SetComponent( nTuple, nFrame,
+                                     MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
+              break;
+            default:
+              break;
+            }
+          }
         }
         nTuple++;
       }

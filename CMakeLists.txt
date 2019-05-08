@@ -699,3 +699,10 @@ endif()
 # attic/mris_pval_fill
 # attic/mris_spherical_wavelets
 
+# This subdirectory does the install step to add a script named after
+# binaries in the attic when BUILD_ATTIC is false (the default). The
+# script is a placeholder to notify the user the command is no longer
+# built (and echoes that). If this is the last subdir added, then this
+# should be the last step in the install pass.
+add_subdirectory(${CMAKE_SOURCE_DIR}/attic/ATTIC_POSTINSTALL)
+
