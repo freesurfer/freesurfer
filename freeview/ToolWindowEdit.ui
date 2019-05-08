@@ -1288,10 +1288,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_autoseg.png</normaloff>:/resource/icons/voxel_draw_autoseg.png</iconset>
    </property>
    <property name="text">
-    <string>Geodesic Segmentation</string>
+    <string>Geodesic Matting</string>
    </property>
    <property name="toolTip">
-    <string>Geodesic Segmentation</string>
+    <string>Geodesic Matting</string>
    </property>
   </action>
  </widget>

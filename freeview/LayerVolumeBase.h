@@ -66,7 +66,7 @@ public:
   void Paste( int nPlane );
   bool CopyStructure( int nPlane, double* ras );
 
-  virtual void SaveForUndo( int nPlane = -1 );
+  virtual void SaveForUndo( int nPlane = -1, bool bAllFrames = false );
 
   double GetFillValue();
 

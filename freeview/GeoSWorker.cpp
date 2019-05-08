@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QFile>
 #include "vtkImageGaussianSmooth.h"
+#include "vtkImageExtractComponents.h"
 #include <QElapsedTimer>
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
@@ -119,11 +120,41 @@ void GeoSWorker::DoCompute()
   voi->SetInputConnection(cast->GetOutputPort());
   voi->SetVOI(bound);
   voi->Update();
+  vtkSmartPointer<vtkImageData> src_image = m_mri->GetImageData();
+  vtkSmartPointer<vtkImageData> grayscale = src_image;
+  if (m_mri->GetDataType() == MRI_RGB)
+  {
+    grayscale = vtkSmartPointer<vtkImageData>::New();
+    grayscale->SetSpacing(src_image->GetSpacing());
+    grayscale->SetOrigin(src_image->GetOrigin());
+    grayscale->SetDimensions(src_image->GetDimensions());
+#if VTK_MAJOR_VERSION > 5
+    grayscale->AllocateScalars(VTK_INT, 1);
+#else
+    grayscale->SetScalarTypeToInt();
+    grayscale->AllocateScalars();
+#endif
+    unsigned char* in_ptr = (unsigned char*)src_image->GetScalarPointer();
+    int* out_ptr = (int*)grayscale->GetScalarPointer();
+    int* dim = src_image->GetDimensions();
+    qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
+    for (qlonglong i = 0; i < nSize; i++)
+    {
+      unsigned char* ptr = in_ptr + i*4;
+      out_ptr[i] = ((int)ptr[0]) + ptr[1] + ptr[2];
+    }
+
+//    vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+//    extract->SetInputData(src_image);
+//    extract->SetComponents(0);
+//    extract->Update();
+//    grayscale = extract->GetOutput();
+  }
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
 #if VTK_MAJOR_VERSION > 5
-  cast2->SetInputData(m_mri->GetImageData());
+    cast2->SetInputData(grayscale);
 #else
-  cast2->SetInput(m_mri->GetImageData());
+    cast2->SetInput(grayscale);
 #endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();

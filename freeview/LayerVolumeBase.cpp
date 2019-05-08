@@ -1066,7 +1066,7 @@ void LayerVolumeBase::Redo()
   }
 }
 
-void LayerVolumeBase::SaveForUndo( int nPlane )
+void LayerVolumeBase::SaveForUndo( int nPlane, bool bAllFrames )
 {
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
@@ -1083,7 +1083,7 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
   }
 
   UndoRedoBufferItem item;
-  SaveBufferItem( item, nPlane, nSlice, GetActiveFrame() );
+  SaveBufferItem( item, nPlane, nSlice, bAllFrames? -1 : GetActiveFrame() );
   m_bufferUndo.push_back( item );
 
   // clear redo buffer
@@ -1201,13 +1201,13 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
   {
     int nDim[3];
     m_imageData->GetDimensions( nDim );
-    long long nSize = ((long long)nDim[0])*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    long long nSize = ((long long)nDim[0])*nDim[1]*nDim[2]*m_imageData->GetScalarSize()*(nFrame >= 0 ? 1 : m_imageData->GetNumberOfScalarComponents());
     QFile file(this->GenerateCacheFileName());
     if (!file.open(QIODevice::WriteOnly))
     {
       return;
     }
-    file.write((char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame, nSize);
+    file.write((char*)m_imageData->GetScalarPointer() + (nFrame >= 0 ? nSize*nFrame : 0), nSize);
     file.close();
     item.cache_filename = file.fileName();
     if (this->IsTypeOf("MRI"))
@@ -1262,8 +1262,8 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
     }
     int nDim[3];
     m_imageData->GetDimensions( nDim );
-    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
-    char* p = (char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame;
+    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize()*(item.frame >= 0 ? 1 : m_imageData->GetNumberOfScalarComponents());;
+    char* p = (char*)m_imageData->GetScalarPointer() + (item.frame >= 0 ? nSize*item.frame : 0);
     file.read(p, nSize);
     file.close();
     if (this->IsTypeOf("MRI"))

@@ -92,7 +92,7 @@ bool VolumeFilter::Update()
 
   if (m_volumeInput == m_volumeOutput)
   {
-    m_volumeInput->SaveForUndo(-1);
+    m_volumeInput->SaveForUndo(-1, -1);
   }
 
   if ( Execute() )
