@@ -72,6 +72,7 @@ class ClusterTools:	public LightObject //<TColorMesh, TColorMesh>
 
 		void GetPolyDatas(std::vector<std::string> files, std::vector<vtkSmartPointer<vtkPolyData>>* polydatas, ImagePointer image);
 		std::vector<ColorMeshPointer>* FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> p , int i);
+		std::vector<ColorMeshPointer>* PolydataToMesh(std::vector<vtkSmartPointer<vtkPolyData>> p );
 		std::vector<HistogramMeshPointer>* ColorMeshToHistogramMesh(std::vector<ColorMeshPointer> basicMeshes, ImagePointer segmentation, bool removeInterHemispheric);
 		void  SetDirectionalNeighbors(std::vector<HistogramMeshPointer>* meshes, ImagePointer segmentation, std::vector<itk::Vector<float>> direcciones, bool symmetry);
 	
