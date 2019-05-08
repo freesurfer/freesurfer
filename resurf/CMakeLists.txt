@@ -18,9 +18,6 @@ if(ITK_FOUND AND VTK_FOUND)
  file(GLOB ALGLIB_SRC
     /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp
 )
-  file(GLOB FREEVIEW_SRC
-    ${CMAKE_SOURCE_DIR}/freeview/FSVolume.cpp
-)
 
 
     add_executable(mris_multimodal mris_multimodal.cxx)
@@ -35,11 +32,11 @@ if(ITK_FOUND AND VTK_FOUND)
   target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
-  add_executable(mris_image2vtk mris_image2vtk.cxx  ${FREEVIEW_SRC}) # Code/vtkNIFTIImageReader.cxx)
-  target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} ${QT_LIBRARIES})
+  add_executable(mris_image2vtk mris_image2vtk.cxx  ) # Code/vtkNIFTIImageReader.cxx)
+  target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
   install(TARGETS mris_image2vtk DESTINATION bin)
   
   add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
-  target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} ${QTLibraries})
+  target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS sigmoidFit DESTINATION bin)
 endif()
