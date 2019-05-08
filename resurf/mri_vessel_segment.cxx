@@ -17,12 +17,18 @@ int main(int narg, char * arg[])
 
 	const char *imageNameT1= cl.follow ("", "-t1");
 	const char *imageNameT2 = cl.follow ("", "-t2");
-	const char *imageNameAseg = cl.follow ("", "-aseg");
 	const char *outputName = cl.follow ("", "-o");
+	
+	MRI* imageAseg = NULL;
+	if(cl.search("-aseg"))
+	{
+		const char *imageNameAseg = cl.follow ("", "-aseg");
+ 		imageAseg =  MRIread(imageNameAseg) ;
+	}
+	
 	
  	MRI *imageT1 =  MRIread(imageNameT1) ;
  	MRI *imageT2 =  MRIread(imageNameT2) ;
- 	MRI *imageAseg =  MRIread(imageNameAseg) ;
  	MRI *output =  MRIcopy(imageT1, NULL) ;
 
 
@@ -32,7 +38,7 @@ int main(int narg, char * arg[])
 		{
 			for (int z = 0 ; z < imageT1->depth ; z++)
 			{
-			        int label = MRIgetVoxVal(imageAseg, x, y, z, 0) ;
+			        int label =(imageAseg)? MRIgetVoxVal(imageAseg, x, y, z, 0) :0;
 				float T1 = MRIgetVoxVal(imageT1, x, y, z, 0) ;
 				float T2 = MRIgetVoxVal(imageT2, x, y, z, 0) ;
 				if ( IS_CORTEX(label) &&  1.1*T1 > T2)
@@ -50,6 +56,7 @@ int main(int narg, char * arg[])
 	MRIwrite(output,outputName) ;
  	MRIfree(&imageT1);	
  	MRIfree(&imageT2);	
- 	MRIfree(&imageAseg);	
+ 	if(imageAseg)
+		MRIfree(&imageAseg);	
  	MRIfree(&output);	
 }
