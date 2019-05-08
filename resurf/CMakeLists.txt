@@ -36,6 +36,11 @@ if(ITK_FOUND AND VTK_FOUND)
   target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
   install(TARGETS mris_image2vtk DESTINATION bin)
   
+  #add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
+  #target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  #install(TARGETS sigmoidFit DESTINATION bin)
+
+
   add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
   target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS sigmoidFit DESTINATION bin)
