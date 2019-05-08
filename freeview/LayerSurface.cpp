@@ -158,6 +158,14 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
   if (m_volumeRef)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
+
+#if VTK_MAJOR_VERSION > 5
+  m_mainActor->ForceOpaqueOn();
+  m_wireframeActor->ForceOpaqueOn();
+  m_vectorActor->ForceOpaqueOn();
+  for (int i = 0; i < 3; i++)
+    m_vectorActor2D[i]->ForceOpaqueOn();
+#endif
 }
 
 LayerSurface::~LayerSurface()
@@ -904,7 +912,7 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   {
     if (bSliceVisibility[i])
     {
-      renderer->AddViewProp( m_sliceActor3D[i] );
+    //  renderer->AddViewProp( m_sliceActor3D[i] );
     }
   }
 

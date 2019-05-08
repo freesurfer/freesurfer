@@ -1247,6 +1247,37 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   return (niters);
 }
 
+/*!
+  \fn MRI *MRISfwhmFromAR1Map(MRIS *surf, MRI *mask, MRI *ar1map)
+  \brief Computes FWHM for each vertex
+ */
+MRI *MRISfwhmFromAR1Map(MRIS *surf, MRI *mask, MRI *ar1map)
+{
+  double ar1, fwhm, gstd, InterVertexDistAvg;
+  MRIScomputeMetricProperties(surf);
+
+  InterVertexDistAvg = surf->avg_vertex_dist;
+  if (surf->group_avg_surface_area > 0)
+    InterVertexDistAvg *= sqrt(surf->group_avg_surface_area / surf->total_area);
+
+  MRI *fwhmmap = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+  MRIcopyHeader(ar1map,fwhmmap);
+  MRIcopyPulseParameters(ar1map,fwhmmap);
+
+  int n;
+  for(n=0; n < surf->nvertices; n++){
+    if(mask && MRIgetVoxVal(mask,n,0,0,0)<0.5) continue;
+    ar1 = MRIgetVoxVal(ar1map,n,0,0,0);
+    // Cant just call MRISfwhmFromAR1() because it runs compute metric properties
+    if(ar1 <= 0.0) continue;
+    gstd = InterVertexDistAvg / sqrt(-4 * log(ar1));
+    fwhm = gstd * sqrt(log(256.0));
+    MRIsetVoxVal(fwhmmap,n,0,0,0,fwhm);
+  }
+  return(fwhmmap);
+}
+
+
 /*----------------------------------------------------------------------
   MRISfwhm() - estimates fwhm from global ar1 mean
   ----------------------------------------------------------------------*/

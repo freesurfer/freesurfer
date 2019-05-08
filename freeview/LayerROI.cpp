@@ -68,6 +68,10 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     m_sliceActor3D[i] = vtkImageActor::New();
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
+#if VTK_MAJOR_VERSION > 5
+    m_sliceActor2D[i]->ForceOpaqueOn();
+    m_sliceActor3D[i]->ForceOpaqueOn();
+#endif
   }
 
   mProperty = new LayerPropertyROI( this );

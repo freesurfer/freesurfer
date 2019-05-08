@@ -146,6 +146,9 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     m_sliceActor2D[i]->ForceOpaqueOn();
     m_sliceActor3D[i]->ForceOpaqueOn();
     m_projectionMapActor[i]->ForceOpaqueOn();
+    m_glyphActor2D[i]->ForceOpaqueOn();
+    m_glyphActor3D[i]->ForceOpaqueOn();
+    m_vectorDotActor2D[i]->ForceOpaqueOn();
 #endif
   }
   
@@ -153,6 +156,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 #if VTK_MAJOR_VERSION > 5
   mapper->SetInputData( vtkSmartPointer<vtkPolyData>::New() );
+  m_actorContour->ForceOpaqueOn();
 #else
   mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
 #endif
@@ -1059,6 +1063,9 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
         foreach (int n, labels)
         {
           m_labelActors[n] = m_labelActorsTemp[n];
+#if VTK_MAJOR_VERSION > 5
+          m_labelActors[n]->ForceTranslucentOn();
+#endif
           m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
         }
         OnLabelContourChanged();

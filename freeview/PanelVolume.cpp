@@ -295,7 +295,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(OnLineEditBrushValue()));
-  connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
+  connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearBackground(bool)) );
+  connect( ui->lineEditClearBackgroundValue, SIGNAL(textChanged(QString)), this, SLOT(OnLineEditClearBackgroundValue(QString)));
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
   connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
   connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );
@@ -358,7 +359,8 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxPercentile->setVisible(layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT && layer->HasValidHistogram());
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
-    ui->checkBoxClearBackground->setChecked( layer->GetProperty()->GetClearZero() );
+    ui->checkBoxClearBackground->setChecked( layer->GetProperty()->GetClearBackground() );
+    ChangeLineEditNumber(ui->lineEditClearBackgroundValue, layer->GetProperty()->GetClearBackgroundValue());
     if ( layer->IsTypeOf( "DTI" ) )
     {
       ui->lineEditFileName->setText(MyUtils::Win32PathProof(((LayerDTI*)layer)->GetVectorFileName()) );
@@ -610,6 +612,7 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistFrame, layer &&
                  !layer->IsTypeOf( "DTI" ) &&
                  layer->GetNumberOfFrames() > 1 && !layer->GetCorrelationSurface() && layer->GetDataType() != MRI_RGB);
+    ui->lineEditClearBackgroundValue->setVisible(layer && ui->checkBoxClearBackground->isVisible() && ui->checkBoxClearBackground->isChecked());
     if (bDisplayRGB)
     {
       ui->sliderOpacity->show();
@@ -634,9 +637,9 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxDisplayRGB->setVisible(layer && layer->GetNumberOfFrames() == 3);
     ui->checkBoxDisplayRGB->setChecked(layer && layer->GetProperty()->GetDisplayRGB());
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
-    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && !layer->GetProperty()->GetDisplayRGB() );
+    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && layer && !layer->GetProperty()->GetDisplayRGB() );
 
-    ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
+    ui->checkBoxShowContour->setVisible( bNormalDisplay && layer && !layer->GetProperty()->GetShowProjectionMap() );
     ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
     {
@@ -857,7 +860,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       if ( nValid )
       {
         CTABcopyName( ct, i, name, 1000 );
-        ColorTableItem* item = new ColorTableItem( ui->treeWidgetColorTable );
+        ColorTableItem* item = new ColorTableItem(ui->treeWidgetColorTable);
         if (ColorTableItem::SortType == ColorTableItem::ST_VALUE)
           item->setText( 0, QString("%1 %2").arg(i).arg(name) );
         else
@@ -879,10 +882,6 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
           else
             bHasUnselected = true;
         }
-        if (m_bShowExistingLabelsOnly && !labels.isEmpty())
-        {
-          item->setHidden(!labels.contains(i));
-        }
         if ( i == nValue )
         {
           nSel = nValidCount;
@@ -900,6 +899,15 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       ui->checkBoxSelectAllLabels->setCheckState(Qt::PartiallyChecked);
     else
       ui->checkBoxSelectAllLabels->setCheckState(Qt::Unchecked);
+
+    if (!labels.isEmpty() && m_bShowExistingLabelsOnly)
+    {
+      for (int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++)
+      {
+        QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
+        item->setHidden(!labels.contains(item->data(0, Qt::UserRole+1).toInt()));
+      }
+    }
   }
 }
 
@@ -1914,5 +1922,19 @@ void PanelVolume::OnCheckVoxelizedContour(bool bVoxelize)
   foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->SetShowVoxelizedContour(bVoxelize);
+  }
+}
+
+void PanelVolume::OnLineEditClearBackgroundValue(const QString &text)
+{
+  bool ok;
+  double val = text.toDouble(&ok);
+  if (ok)
+  {
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      layer->GetProperty()->SetClearBackgroundValue(val);
+    }
   }
 }

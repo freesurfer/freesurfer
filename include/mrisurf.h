@@ -2229,6 +2229,7 @@ int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) ;
 int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1);
+MRI *MRISfwhmFromAR1Map(MRIS *surf, MRI *mask, MRI *ar1map);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
 int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris,
@@ -2917,4 +2918,7 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
 MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
+int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen);
+int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen);
+int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen);
   

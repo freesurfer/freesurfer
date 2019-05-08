@@ -7,7 +7,8 @@
 #
 # sratio
 #
-# Script to computed a voxel-wise signed ratio. Uses fslmaths.
+# Script to computed a voxel-wise signed ratio. 
+# Used to use fslmaths, but does not anymore
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
@@ -115,49 +116,63 @@ endif
 
 # A > B
 set AgtB = $tmpdir/AgtB.nii
-set cmd = (fscalc.fsl $A -sub $B $AgtB)
+set cmd = (fscalc $A -sub $B -o $AgtB)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # B > A (A < B)
 set BgtA = $tmpdir/BgtA.nii
-set cmd = (fscalc.fsl $B -sub $A $BgtA)
+set cmd = (fscalc $B -sub $A -o $BgtA)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # A/B
 set AdivB = $tmpdir/AdivB.nii
-set cmd = (fscalc.fsl $A -div $B $AdivB)
+set cmd = (fscalc $A -div $B -o $AdivB)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # -B/A
 set BdivA = $tmpdir/BdivA.nii
-set cmd = (fscalc.fsl $B -div $A -mul -1 $BdivA) # signed by -1
+set cmd = (fscalc $B -div $A -mul -1 -o $BdivA) # signed by -1
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# A > B mask
+set AgtBmask = $tmpdir/AgtB.mask.nii
+set cmd = (mri_binarize --i $AgtB --min 0 --o $AgtBmask)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Anum = A/B where A > B
 set Anum = $tmpdir/Anum.nii
-set cmd = (fscalc.fsl $AdivB -mas $AgtB $Anum)
+set cmd = (fscalc $AdivB -mul $AgtBmask -o $Anum)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# B > A mask
+set BgtAmask = $tmpdir/BgtA.mask.nii
+set cmd = (mri_binarize --i $BgtA --min 0 --o $BgtAmask)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Bnum = -B/A where  B > A
 set Bnum = $tmpdir/Bnum.nii
-set cmd = (fscalc.fsl $BdivA -mas $BgtA $Bnum)
+set cmd = (fscalc $BdivA -mul $BgtAmask -o $Bnum)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Now just add Anum and Bnum
 set sAdivBtmp = $tmpdir/sAdivB.nii
-set cmd = (fscalc.fsl $Anum -add $Bnum $sAdivBtmp)
+set cmd = (fscalc $Anum -add $Bnum -o $sAdivBtmp)
 echo $cmd
 $cmd
 if($status) exit 1;

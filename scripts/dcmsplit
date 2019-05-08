@@ -220,9 +220,15 @@ while( $#argv != 0 )
     case "--seriesno":
       set dcmtag = (20 11) # Series Number
       breaksw
+
+    case "--studyDes": 
+      set dcmtag =  (0008 1030) # Study Description
+      breaksw
+
     case "--series+":
       set UseSeriesNo = 1;
       breaksw
+
     case "--t":
       if($#argv < 2) goto arg2err;
       set dcmtag = ($argv[1] $argv[2]); shift;shift;
@@ -324,6 +330,7 @@ usage_exit:
   echo "  --seriesno : split by series number"
   echo "  --series+ : split by series number and either name or uid"
   echo "  --t group element : split by given dicom tag"
+  echo "  --studyDes : split by Study Description"
   echo ""
 
   if(! $PrintHelp) exit 1;
