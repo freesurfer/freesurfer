@@ -146,8 +146,8 @@ vtkSmartPointer<vtkImageData> CreateImage( MRI* rasMRI )
     imageData->AllocateScalars(VTK_SHORT, zFrames);
     break;
   default:
-    return false;
-  }
+	;  
+}
 #else
   imageData->SetNumberOfScalarComponents(zFrames);
   switch ( rasMRI->type )
@@ -169,8 +169,8 @@ vtkSmartPointer<vtkImageData> CreateImage( MRI* rasMRI )
     imageData->SetScalarTypeToShort();
     break;
   default:
-    return false;
-  }
+	;  
+}
   imageData->AllocateScalars();
 #endif
 
