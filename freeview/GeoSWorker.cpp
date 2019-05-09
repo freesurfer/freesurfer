@@ -228,7 +228,8 @@ void GeoSWorker::DoCompute()
   unsigned char* seeds_out = new unsigned char[vol_size];
   QElapsedTimer timer;
   timer.start();
-  bool bSuccess = m_geos->ComputeWithBinning(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  double scale[3] = {1,1,1};
+  bool bSuccess = m_geos->ComputeWithBinning(dim_new, scale, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
     void* p = m_seg->GetImageData()->GetScalarPointer();
