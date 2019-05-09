@@ -63,7 +63,7 @@
 #define DEFAULT_BACK_LIGHT  0.2
 
 #if VTK_MAJOR_VERSION > 5
-GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKOpenGLWidget(parent, f)
+GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKOpenGLNativeWidget(parent, f)
 #else
 GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKWidget(parent, f)
 #endif
@@ -215,11 +215,11 @@ void GenericRenderView::RefreshAllActors(bool bForScreenshot)
   emit ActorsUpdated();
 }
 
-// avoid sending key event to QVTKOpenGLWidget because of a bug in QVTKInteractor
+// avoid sending key event to QVTKOpenGLNativeWidget because of a bug in QVTKInteractor
 void GenericRenderView::keyPressEvent(QKeyEvent* event)
 {
   QWidget::keyPressEvent(event);
-  //  QVTKOpenGLWidget::keyPressEvent(event);
+  //  QVTKOpenGLNativeWidget::keyPressEvent(event);
 }
 
 vtkCamera* GenericRenderView::GetCamera()
@@ -254,7 +254,7 @@ void GenericRenderView::SetBackgroundColor(const QColor& qc)
 void GenericRenderView::wheelEvent(QWheelEvent* event)
 {
 #if VTK_MAJOR_VERSION > 5
-  QVTKOpenGLWidget::wheelEvent(event);
+  QVTKOpenGLNativeWidget::wheelEvent(event);
 #else
   QVTKWidget::wheelEvent(event);
 #endif
@@ -265,7 +265,7 @@ void GenericRenderView::mousePressEvent(QMouseEvent* event)
 {
   ptOld = event->pos();
 #if VTK_MAJOR_VERSION > 5
-  QVTKOpenGLWidget::mousePressEvent(event);
+  QVTKOpenGLNativeWidget::mousePressEvent(event);
 #else
   QVTKWidget::mousePressEvent(event);
 #endif
@@ -278,7 +278,7 @@ void GenericRenderView::mouseReleaseEvent(QMouseEvent* event)
     emit MouseReleasedWithoutMove(event);
   }
 #if VTK_MAJOR_VERSION > 5
-  QVTKOpenGLWidget::mouseReleaseEvent(event);
+  QVTKOpenGLNativeWidget::mouseReleaseEvent(event);
 #else
   QVTKWidget::mouseReleaseEvent(event);
 #endif
