@@ -655,6 +655,7 @@ char *subject=NULL, *hemi=NULL, *simbase=NULL;
 MRI_SURFACE *surf=NULL;
 int nsim,nthsim;
 double csize;
+MRI *fwhmmap = NULL;
 
 VOLCLUSTER **VolClustList;
 
@@ -672,6 +673,7 @@ int weightinv=0, weightsqrt=0;
 
 int OneSamplePerm=0;
 int OneSampleGroupMean=0;
+int PermNonStatCor = 0;
 Timer mytimer;
 int ReallyUseAverage7 = 0;
 int logflag = 0; // natural log
@@ -1725,6 +1727,14 @@ int main(int argc, char **argv) {
 	else {
           if(!DoSim) printf("Starting fit and test\n");
           MRIglmFitAndTest(mriglm);
+	  // If using permutation with non-stationary correction, compute fwhmmap here
+	  if(!strcmp(csd->simtype,"perm") && PermNonStatCor) {
+	    if(ar1)     MRIfree(&ar1);
+	    if(fwhmmap) MRIfree(&fwhmmap);
+	    ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
+	    fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
+	    // MRISsmoothMRI(surf, fwhmmap, SmthLevel, mriglm->mask, fwhmmap)
+	  }
         }
       }
 
@@ -1809,7 +1819,7 @@ int main(int argc, char **argv) {
 	      if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
 					       mytimer.seconds());
 	      SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
-						    0,&nClusters,NULL);
+						    0,&nClusters,NULL,fwhmmap);
 	      csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	    } 
 	    else {
@@ -1877,6 +1887,7 @@ int main(int argc, char **argv) {
 	} // sign list
       } // thresh list
       //MRIfree(&sig);
+
     }// simulation loop
     if(SimDoneFile){
       fp = fopen(SimDoneFile,"w");
@@ -1918,7 +1929,7 @@ int main(int argc, char **argv) {
              ar1mn,ar1std,eresgstd,eresfwhm);
       if(SaveFWHMMap){
 	printf("Computing map of FWHM\n");
-	MRI *fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
+	fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
 	sprintf(tmpstr,"%s/fwhm.%s",GLMDir,format);
 	MRIwrite(fwhmmap,tmpstr);
 	MRIfree(&fwhmmap);
@@ -2390,6 +2401,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--osgm"))   {OneSampleGroupMean = 1; DoPCC = 0;}
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
+    else if (!strcasecmp(option, "--perm-nonstatcor")) PermNonStatCor = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;

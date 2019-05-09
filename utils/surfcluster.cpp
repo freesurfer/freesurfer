@@ -59,8 +59,8 @@ const char *sculstSrcVersion(void) { return ("$Id: surfcluster.c,v 1.36 2016/11/
    element of the MRI_SURF structure. If a vertex meets the cluster
    criteria, then undefval is set to the cluster number.
    ------------------------------------------------------------ */
-SCS *sclustMapSurfClusters(
-    MRI_SURFACE *Surf, float thmin, float thmax, int thsign, float minarea, int *nClusters, MATRIX *XFM)
+SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax, int thsign, 
+			   float minarea, int *nClusters, MATRIX *XFM, MRI *fwhmmap)
 {
   SCS *scs, *scs_sorted;
   int vtx, vtx_inrange, vtx_clustno, CurrentClusterNo;
@@ -97,7 +97,7 @@ SCS *sclustMapSurfClusters(
   if (*nClusters == 0) return (NULL);
 
   /* Get a summary of the clusters */
-  scs = SurfClusterSummary(Surf, XFM, nClusters);
+  scs = SurfClusterSummary(Surf, XFM, nClusters, fwhmmap);
 
   /* Sort the clusters by descending maxval */
   scs_sorted = SortSurfClusterSum(scs, *nClusters);
@@ -389,10 +389,10 @@ float sclustCountClusters(MRI_SURFACE *Surf)
 }
 
 /*----------------------------------------------------------------
-  SurfClusterSummaryFast() - gives identical results as
-    SurfClusterSummary() but much, much faster.
+  SurfClusterSummary() - (was "Fast") gives identical results as
+    SurfClusterSummaryOld() but much, much faster.
   ----------------------------------------------------------------*/
-SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
+SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters, MRI *fwhmmap)
 {
   int n, vtx, clusterno;
   SURFCLUSTERSUM *scs;
@@ -400,9 +400,26 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   float vtxarea, vtxval;
   int msecTime;
   double *weightvtx, *weightarea;  // to be consistent with orig code
+  double fwhm;
   VERTEX *v;
+  int ClusterUseAvgVertexArea=0;
+  double avgvertexarea = 0, fwhmmean2 = 0;
 
-  if (Gdiag_no > 0) printf("SurfClusterSummaryFast()\n");
+  if(Surf->group_avg_vtxarea_loaded)
+    avgvertexarea = Surf->group_avg_surface_area/Surf->nvertices;
+  else
+    avgvertexarea = Surf->total_area/Surf->nvertices;
+
+  if(getenv("FS_CLUSTER_USE_AVG_VERTEX_AREA") != NULL){
+    // When setenv FS_CLUSTER_USE_AVG_VERTEX_AREA 1, this computes the cluster
+    // size as the vertex count * average area rather than the sum of the 
+    // of each vertex area
+    sscanf(getenv("FS_CLUSTER_USE_AVG_VERTEX_AREA"),"%d",&ClusterUseAvgVertexArea);
+  }
+  if(Gdiag_no > 0){
+    printf("ClusterUseAvgVertexArea = %d, avgvertexarea = %g\n",ClusterUseAvgVertexArea,avgvertexarea);
+    fflush(stdout);
+  }
 
   Timer mytimer;
 
@@ -416,6 +433,21 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   scs = (SCS *)calloc(*nClusters, sizeof(SCS));
   weightvtx = (double *)calloc(*nClusters, sizeof(double));
   weightarea = (double *)calloc(*nClusters, sizeof(double));
+
+  if(fwhmmap){
+    double fwhmsum=0, fwhmmean;
+    int nhits=0;
+    for (vtx = 0; vtx < Surf->nvertices; vtx++) {
+      fwhm = MRIgetVoxVal(fwhmmap,vtx,0,0,0);
+      if(fwhm > 0){
+	fwhmsum += fwhm;
+	nhits ++;
+      }
+    }
+    fwhmmean = fwhmsum/nhits;
+    if(Gdiag_no > 0) printf("fwhm mean = %g\n",fwhmmean);
+    fwhmmean2 = (fwhmmean*fwhmmean);
+  }
 
   for (vtx = 0; vtx < Surf->nvertices; vtx++) {
     v = &(Surf->vertices[vtx]);
@@ -437,10 +469,25 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
       scs[n].cz = 0.0;
     }
 
-    if (!Surf->group_avg_vtxarea_loaded)
-      vtxarea = v->area;
-    else
-      vtxarea = v->group_avg_area;
+    if(ClusterUseAvgVertexArea == 0){
+      if (!Surf->group_avg_vtxarea_loaded)
+	vtxarea = v->area;
+      else
+	vtxarea = v->group_avg_area;
+    }
+    else vtxarea = avgvertexarea; // effectively measure cluster size as vertex count
+
+    // Convert to resels
+    if(fwhmmap){
+      fwhm = MRIgetVoxVal(fwhmmap,vtx,0,0,0);
+      if(fwhm == 0) fwhm = 1.0; // invalid, not sure what to do 
+      // Using fwhmmean2 here just provides a rescaling so that the
+      // final cluster areas are reasonable. This might have a mild
+      // effect on the distribution of cluster sizes when performing
+      // non-stationary perm
+      vtxarea *= (fwhmmean2)/(fwhm*fwhm);
+    }
+
     scs[n].area += vtxarea;
 
     if (fabs(vtxval) > fabs(scs[n].maxval)) {
@@ -494,7 +541,7 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
 }
 
 /*----------------------------------------------------------------*/
-SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
+SCS *SurfClusterSummaryOld(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
 {
   int n;
   SURFCLUSTERSUM *scs;
@@ -507,7 +554,7 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   UFSS = getenv("USE_FAST_SURF_SMOOTHER");
   if (!UFSS) UFSS = "1";
   if (strcmp(UFSS, "0")) {
-    scs = SurfClusterSummaryFast(Surf, T, nClusters);
+    scs = SurfClusterSummary(Surf, T, nClusters, NULL);
     return (scs);
   }
   if (Gdiag_no > 0) printf("SurfClusterSummary()\n");
