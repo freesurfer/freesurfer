@@ -82,34 +82,48 @@ int main(int argc, char *argv[])
 	}
 
 	std::vector<std::string> outputFiles;
-	for(std::string outputName = cl.follow("",2,"-o","-O"); access(outputName.c_str(),0)==0; outputName = std::string(cl.next("")))
+	for(std::string outputName = std::string(cl.follow("",2,"-o","-O")); outputName.size()>4; outputName = std::string(cl.next("")))
 	{
 		outputFiles.push_back(outputName);
+		std::cout << outputName << std::endl;
 	}
 	std::vector<ColorMeshType::Pointer>* meshes;
 	std::vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
-	
+
+	std::vector<HistogramMeshType::Pointer>* histoMeshes;
 	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask) ;
-	meshes = clusterTools->FixSampleClusters(polydatas, 20);
-	std::vector<HistogramMeshType::Pointer>* histoMeshes = clusterTools->ColorMeshToHistogramMesh(*meshes, mask, false);
+	bool clean = cl.search("-c");
+	if( clean)
+	{	
+		meshes = clusterTools->FixSampleClusters(polydatas, 20);
+		histoMeshes = clusterTools->ColorMeshToHistogramMesh(*meshes, mask, false);
 	
-	clusterTools->SetDirectionalNeighbors(histoMeshes,  mask, *clusterTools->GetDirections(DirectionsType::ALL), false);
+		clusterTools->SetDirectionalNeighbors(histoMeshes,  mask, *clusterTools->GetDirections(DirectionsType::ALL), false);
 
-
-	std::cout << polydatas.size() <<  " " << meshes->size() << std::endl;
+	
+		std::cout << polydatas.size() <<  " " << meshes->size() << std::endl;
+	}
+	else
+	{
+		meshes = clusterTools->PolydataToMesh(polydatas);
+	}
 		
 	for(int i=0; i<meshes->size(); i++)
 	{ 
 		ColorMeshType::Pointer input = (*meshes)[i];
 		int offset =(subSample>0)? input->GetNumberOfCells()/subSample:1;
 
-		std::cout << (*meshes)[i]->GetNumberOfCells() << " " <<(*histoMeshes)[i]->GetNumberOfCells() << std::endl;
-		int averageId = clusterTools->GetAverageStreamline((*meshes)[i]);	
-		float stdCluster =  clusterTools->GetStandardDeviation((*histoMeshes)[i],averageId)*cleaningThreshold;
-
+		int averageId =0;
+		float stdCluster=0;
+		if ( clean)
+		{ 
+			std::cout << (*meshes)[i]->GetNumberOfCells() << " " <<(*histoMeshes)[i]->GetNumberOfCells() << std::endl;
+			int averageId = clusterTools->GetAverageStreamline((*meshes)[i]);	
+			float stdCluster =  clusterTools->GetStandardDeviation((*histoMeshes)[i],averageId)*cleaningThreshold;
+		}
 
 		std::set<int> unfilteredIds;
 
@@ -149,8 +163,9 @@ int main(int argc, char *argv[])
 					}		
 				}
 			}
-			float dist= clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId);		
-			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<stdCluster))
+
+			float dist= clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;		
+			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<=stdCluster))
 			{	
 
 				unfilteredIds.insert(cellId);

@@ -300,6 +300,22 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::SaveMesh(typename TColorM
 
 }
 
+template <class TColorMesh, class TImage, class THistogramMesh>
+std::vector<typename TColorMesh::Pointer>* ClusterTools<TColorMesh, TImage, THistogramMesh>::PolydataToMesh(std::vector<vtkSmartPointer<vtkPolyData>> polydatas)
+{
+	std::vector<typename ColorMeshType::Pointer>* meshes = new std::vector<typename ColorMeshType::Pointer>();
+	for (unsigned int i=0;i<polydatas.size(); i++)
+	{
+		typename MeshConverterType::Pointer converter = MeshConverterType::New();
+		converter->SetVTKPolyData ( polydatas[i] );
+		converter->GenerateData2();
+
+		typename ColorMeshType::Pointer mesh =  converter->GetOutput();
+		meshes->push_back(mesh);	
+	}
+	return meshes;
+}
+
 
 template <class TColorMesh, class TImage, class THistogramMesh>
 std::vector<typename TColorMesh::Pointer>* ClusterTools<TColorMesh, TImage, THistogramMesh>::FixSampleClusters(std::vector<vtkSmartPointer<vtkPolyData>> polydatas, int numberOfPoints)
