@@ -6590,6 +6590,8 @@ void MainWindow::OnCropVolume()
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
   SetMode( RenderView::IM_VolumeCrop );
+  for (int i = 0; i < 4; i++)
+    m_views[i]->ResetCameraClippingRange();
 }
 
 void MainWindow::OnThresholdVolume()
