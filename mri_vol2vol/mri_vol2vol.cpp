@@ -35,6 +35,8 @@ mri_vol2vol
   --targ targvol      : output template (or input with --inv)
   --o    outvol       : output volume
   --disp dispvol      : displacement volume
+  --downsample N      : downsample input volume (do not include a targ or regsitration)
+                        sets --fill-average, --fill-upsample 2, and --regheader
 
   --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
   --lta  register.lta : Linear Transform Array (usually only 1 transform)
@@ -619,6 +621,7 @@ int FillUpsample=2;
 MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
 int DoMultiply=0;
 double MultiplyVal=0;
+int DownSample = 0; // upsample source
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -749,6 +752,24 @@ int main(int argc, char **argv) {
        targ = MRIclone(mov,targ);
        MRIcopyVolGeomToMRI(targ,&lta->xforms[0].dst); 
        usedltageom = 1;
+    }
+    else {
+      // Downsample
+      targ = MRIallocHeader(mov->width,mov->height,mov->depth,MRI_FLOAT,mov->nframes);
+      MRIcopyHeader(mov, targ);
+      MRIcopyPulseParameters(mov, targ);
+      targ->width  = ceil( mov->width  / DownSample);
+      targ->height = ceil( mov->height / DownSample);
+      targ->depth  = ceil( mov->depth  / DownSample);
+      targ->xsize *= DownSample;
+      targ->ysize *= DownSample;
+      targ->zsize *= DownSample;
+      targ->xstart = -targ->xsize*targ->width / 2;
+      targ->xend   =  targ->xsize*targ->width / 2;
+      targ->ystart = -targ->ysize*targ->height/ 2;
+      targ->yend   =  targ->ysize*targ->height/ 2;
+      targ->zstart = -targ->zsize*targ->depth / 2;
+      targ->zend   =  targ->zsize*targ->depth / 2;
     }
     if (targ == NULL) exit(1);
     in = mov;
@@ -1197,6 +1218,15 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&FillUpsample);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--downsample")){
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&DownSample);
+      DoFill = 1;
+      DoFillConserve = 1;
+      FillUpsample = 2;
+      regheader = 1;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -1555,6 +1585,8 @@ printf("  --mov  movvol       : input (or output template with --inv)\n");
 printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
+printf("  --downsample N      : downsample input volume (do not include a targ or regsitration)\n");
+printf("                        sets --fill-average, --fill-upsample 2, and --regheader\n");
 printf("\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
 printf("  --lta  register.lta : Linear Transform Array (usually only 1 transform)\n");
@@ -1624,9 +1656,6 @@ printf("\n");
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
-printf("\n");
-printf("\n");
-printf("\n");
 printf("\n");
 }
 /* --------------------------------------------- */
@@ -2003,7 +2032,12 @@ static void check_options(void) {
     }
   }
 
-  if (targvolfile == NULL){
+  if (targvolfile != NULL && DownSample){
+    printf("ERROR: cannot spec target file and downsample.\n");
+    exit(1);
+  }
+
+  if (targvolfile == NULL && DownSample==0){
     printf("ERROR: No target volume supplied.\n");
     exit(1);
   }
@@ -2074,7 +2108,7 @@ static void check_options(void) {
     MRIfree(&mritrgtmp);
   }
 
-  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) ) {
+  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) && !DownSample) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }
