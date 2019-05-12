@@ -36,8 +36,9 @@ mri_vol2vol
   --o    outvol       : output volume
   --disp dispvol      : displacement volume
 
-  --lta  register.lta : Linear Transform Array (usually only 1 transform)
   --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
+  --lta  register.lta : Linear Transform Array (usually only 1 transform)
+  --lta-inv  register.lta : LTA, invert (may not be the same as --lta --inv with --fstal)
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
   --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
@@ -50,6 +51,12 @@ mri_vol2vol
   --talres resolution : set voxel size 1mm or 2mm (def is 1)
   --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
+  --m3z morph    : non-linear morph encoded in the m3z format
+  --noDefM3zPath : flag indicating that the code should not be looking for 
+       the non-linear m3z morph in the default location (subj/mri/transforms), but should use 
+       the morph name as is
+  --inv-morph    : compute and use the inverse of the m3z morph
+
   --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz 
   --crop scale        : crop and change voxel size
   --slice-crop sS sE  : crop output slices to be within sS and sE
@@ -59,11 +66,28 @@ mri_vol2vol
   --trilin            : trilinear interpolation (default)
   --nearest           : nearest neighbor interpolation
   --cubic             : cubic B-Spline interpolation
-  --interp interptype : interpolation trilin or nearest (def is trilin)
+  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)
+  --fill-average      : compute mean of all source voxels in a given target voxel
+  --fill-conserve     : compute sum  of all source voxels in a given target voxel
+  --fill-upsample USF : source upsampling factor for --fill-xxx (default is 2)
+
+  --mul mulval   : multiply output by mulval
 
   --precision precisionid : output precision (def is float)
   --keep-precision  : set output precision to that of input
   --kernel            : save the trilinear interpolation kernel instead
+
+  --gcam mov srclta gcam dstlta vsm interp out
+     srclta, gcam, or vsm can be set to 0 to indicate identity
+     direction is automatically determined from srclta and dstlta
+     interp 0=nearest, 1=trilin, 5=cubicbspline
+
+  --spm-warp mov movlta warp interp output
+     mov is the input to be mapped 
+     movlta maps mov to the vbm input space (use 0 to ignore)
+       if movlta=0, then input is anything that shares a RAS space with the VBM input
+     warp is typically y_rinput.nii
+     interp 0=nearest, 1=trilin
 
   --no-resample : do not resample, just change vox2ras matrix
 
@@ -72,15 +96,16 @@ mri_vol2vol
   --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
-  --soap ctl_point_vol niter : run soap bubble smoothing on input volume using ctl_point_vol>0
   --synth : replace input with white gaussian noise
   --seed seed : seed for synth (def is to set from time of day)
 
-  --no-save-reg : do not write out output volume registration matrix
+  --save-reg : write out output volume registration matrix
 
   --help : go ahead, make my day
   --debug
   --version
+
+
 
 ENDUSAGE ---------------------------------------------------------------
 */
@@ -1547,7 +1572,9 @@ printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
 printf("\n");
 printf("  --m3z morph    : non-linear morph encoded in the m3z format\n");
-printf("  --noDefM3zPath : flag indicating that the code should not be looking for the non-linear m3z morph in the default location (subj/mri/transforms), but should use the morph name as is\n");
+printf("  --noDefM3zPath : flag indicating that the code should not be looking for \n");
+printf("       the non-linear m3z morph in the default location (subj/mri/transforms), but should use \n");
+printf("       the morph name as is\n");
 printf("  --inv-morph    : compute and use the inverse of the m3z morph\n");
 printf("\n");
 printf("  --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz \n");
@@ -1560,21 +1587,27 @@ printf("  --trilin            : trilinear interpolation (default)\n");
 printf("  --nearest           : nearest neighbor interpolation\n");
 printf("  --cubic             : cubic B-Spline interpolation\n");
 printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
-printf("   --mul mulval   : multiply output by mulval\n");
+printf("  --fill-average      : compute mean of all source voxels in a given target voxel\n");
+printf("  --fill-conserve     : compute sum  of all source voxels in a given target voxel\n");
+printf("  --fill-upsample USF : source upsampling factor for --fill-xxx (default is 2)\n");
+printf("\n");
+printf("  --mul mulval   : multiply output by mulval\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
-printf("     interp %d=nearest, %d=trilin, %d=cubicbspline\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR,SAMPLE_CUBIC_BSPLINE);
+printf("     interp 0=nearest, 1=trilin, 5=cubicbspline\n");
+printf("\n");
 printf("  --spm-warp mov movlta warp interp output\n");
 printf("     mov is the input to be mapped \n");
 printf("     movlta maps mov to the vbm input space (use 0 to ignore)\n");
 printf("       if movlta=0, then input is anything that shares a RAS space with the VBM input\n");
 printf("     warp is typically y_rinput.nii\n");
-printf("     interp %d=nearest, %d=trilin\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR);
+printf("     interp 0=nearest, 1=trilin\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
@@ -1591,6 +1624,9 @@ printf("\n");
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
+printf("\n");
+printf("\n");
+printf("\n");
 printf("\n");
 }
 /* --------------------------------------------- */
