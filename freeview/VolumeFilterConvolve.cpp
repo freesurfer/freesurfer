@@ -30,7 +30,7 @@
 #include <vtkImageMedian3D.h>
 #include "ProgressCallback.h"
 #include <vtkImageGaussianSmooth.h>
-
+#include <QDebug>
 #include "utils.h"
 
 
@@ -42,7 +42,7 @@ VolumeFilterConvolve::VolumeFilterConvolve( LayerMRI* input, LayerMRI* output, Q
 
 bool VolumeFilterConvolve::Execute()
 {
-  if (m_volumeInput->GetDataType() == MRI_RGB)
+  if (true) // m_volumeInput->GetDataType() == MRI_RGB)
   {
     TriggerFakeProgress(100);
     vtkSmartPointer<vtkImageGaussianSmooth> filter = vtkSmartPointer<vtkImageGaussianSmooth>::New();

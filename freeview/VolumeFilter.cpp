@@ -251,7 +251,8 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
 void VolumeFilter::TriggerFakeProgress(int interval)
 {
   m_nTimerCount = 0;
-  m_timerProgress->start(interval);
+  m_timerProgress->setInterval(interval);
+  QTimer::singleShot(0, m_timerProgress, SLOT(start()));
 }
 
 void VolumeFilter::OnTimeout()
