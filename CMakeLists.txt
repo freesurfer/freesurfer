@@ -456,6 +456,7 @@ if(NOT MINIMAL)
     mri_head
     mri_hires_register
     mri_histo_eq
+    mri_jacobian
     mri_joint_density
     mri_label_histo
     mri_label_vals
@@ -507,6 +508,7 @@ if(NOT MINIMAL)
     mris_ca_train
     mris_compute_acorr
     mris_compute_lgi
+    mris_compute_overlap
     mris_compute_parc_overlap
     mris_compute_volume_fractions
     mris_congeal
@@ -515,6 +517,7 @@ if(NOT MINIMAL)
     mris_deform
     mris_distance_map
     mris_distance_to_label
+    mris_distance_transform
     mris_entropy
     mris_errors
     mris_expand
@@ -525,6 +528,7 @@ if(NOT MINIMAL)
     mris_fwhm
     mris_hausdorff_dist
     mris_init_global_tractography
+    mris_interpolate_warp
     mris_label_area
     mris_label_calc
     mris_label_mode
@@ -532,6 +536,7 @@ if(NOT MINIMAL)
     mris_make_face_parcellation
     mris_make_template
     mris_map_cuts
+    mris_merge_parcellations
     mris_mesh_subdivide
     mris_morph_stats
     mris_ms_refine
@@ -555,6 +560,7 @@ if(NOT MINIMAL)
     mris_segment_vals
     mris_segmentation_stats
     mris_shrinkwrap
+    mris_simulate_atrophy
     mris_smooth_intracortical
     mris_spherical_average
     mris_surface_to_vol_distances
@@ -581,8 +587,12 @@ if(NOT MINIMAL)
     test_makevol
     ThalamicNuclei
     trc
+    tridec
   )
 endif()
+
+# No CMakeLists.txt in subdirs
+# mris_spherical_wavelets
 
 # infant freesurfer
 if(INFANT_MODULE)
@@ -632,7 +642,6 @@ if(BUILD_ATTIC)
     attic/mri_histo_normalize
     attic/mri_ibmc
     attic/mri_interpolate
-    attic/mri_jacobian
     attic/mri_label_accuracy
     attic/mri_make_bem_surfaces
     attic/mri_make_density_map
@@ -664,17 +673,12 @@ if(BUILD_ATTIC)
     attic/mris_average_parcellation
     attic/mris_classify_thickness
     attic/mris_compute_optimal_kernel
-    attic/mris_compute_overlap
     attic/mris_density
-    attic/mris_distance_transform
     attic/mris_fbirn_annot
     attic/mris_glm
-    attic/mris_interpolate_warp
     attic/mris_longitudinal_surfaces
     attic/mris_make_map_surfaces
-    attic/mris_merge_parcellations
     attic/mris_ms_surface_CNR
-    attic/mris_simulate_atrophy
     attic/mris_surface_change
     attic/mris_svm_classify
     attic/mris_svm_train
@@ -685,7 +689,6 @@ if(BUILD_ATTIC)
     attic/regdat2xfm
     attic/repair_siemens_file
     attic/spherical_stats
-    attic/tridec
   )
 endif()
 
@@ -697,7 +700,6 @@ endif()
 # attic/mri_map_atrophy
 # attic/mris_curvature_vectors
 # attic/mris_pval_fill
-# attic/mris_spherical_wavelets
 
 # This subdirectory does the install step to add a script named after
 # binaries in the attic when BUILD_ATTIC is false (the default). The
