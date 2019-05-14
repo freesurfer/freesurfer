@@ -1224,7 +1224,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&DownSample[1]);
       sscanf(pargv[2],"%d",&DownSample[2]);
       DoFill = 1;
-      DoFillConserve = 1;
+      DoFillConserve = 0;
       FillUpsample = 2;
       regheader = 1;
       nargsused = 3;
