@@ -258,11 +258,10 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<
 			reader->SetFileName ( files[i].c_str());
 #if VTK_MAJOR_VERSION > 5
 			reader->Update();
-			polydatas.push_back(reader->GetOutputPort());
 #else
 			reader->GetOutput()->Update();
-			polydatas->push_back(reader->GetOutput());
 #endif
+			polydatas->push_back(reader->GetOutput());
 		}
 
 	}
