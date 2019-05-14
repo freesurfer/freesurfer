@@ -27,7 +27,6 @@
 /*-----------------------------------------------------
   INCLUDE FILES
   -------------------------------------------------------*/
-#define USE_ELECTRIC_FENCE 1
 #define _MRIIO_SRC
 
 #include <ctype.h>
@@ -11043,7 +11042,6 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
     exec_progress_callback(slice, depth, 0, 1);
   }
 
-  MRIinitHeader(mri);
   free(buf);
   return (mri);
 }

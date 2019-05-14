@@ -4,18 +4,23 @@ if(ITK_FOUND AND VTK_FOUND)
 
   include(${ITK_USE_FILE})
 
-  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-unused-variable -Wno-unused-local-typedefs)
-
+  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-unused-variable -Wno-unused-local-typedefs -Wno-reorder)
   include_directories(
     ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/Code
     ${CMAKE_SOURCE_DIR}/anatomicuts/Code
+    ${CMAKE_SOURCE_DIR}/freeview
     SYSTEM
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
-  )
-  
-  add_executable(mris_multimodal mris_multimodal.cxx)
+    /space/erebus/2/users/vsiless/code/commong/alglib/src
+ )
+ file(GLOB ALGLIB_SRC
+    /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp
+)
+
+
+    add_executable(mris_multimodal mris_multimodal.cxx)
   target_link_libraries(mris_multimodal utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal DESTINATION bin)
   
@@ -27,8 +32,16 @@ if(ITK_FOUND AND VTK_FOUND)
   target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
-  #add_executable(mris_image2vtk mris_image2vtk.cxx)
-  #target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
-  #install(TARGETS mris_image2vtk DESTINATION bin)
+  add_executable(mris_image2vtk mris_image2vtk.cxx  ) # Code/vtkNIFTIImageReader.cxx)
+  target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
+  install(TARGETS mris_image2vtk DESTINATION bin)
   
+  #add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
+  #target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  #install(TARGETS sigmoidFit DESTINATION bin)
+
+
+  add_executable(mri_vessel_segment mri_vessel_segment.cxx)
+  target_link_libraries(mri_vessel_segment utils ) # ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mri_vessel_segment DESTINATION bin)
 endif()

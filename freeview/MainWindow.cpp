@@ -2362,7 +2362,15 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   if (sa.size() > 2)
   {
     strg = sa[2];
-    if ( strg == "heatscale" )
+    bool bOK;
+    strg.toDouble((&bOK));
+    int nStart = 3;
+    if (bOK)
+    {
+      nColorMapScale = nColorMap;
+      nStart = 2;
+    }
+    else if ( strg == "heatscale" )
     {
       nColorMapScale = LayerPropertyMRI::Heat;
     }
@@ -2375,7 +2383,7 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
       nColorMapScale = LayerPropertyMRI::LUT;
     }
 
-    for ( int i = 3; i < sa.size(); i++ )
+    for ( int i = nStart; i < sa.size(); i++ )
     {
       bool bOK;
       double dValue = sa[i].toDouble(&bOK);
@@ -2687,6 +2695,12 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
       lc = GetLayerCollection("PointSet");
       if (lc && lc->GetActiveLayer())
         ((LayerPointSet*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
+    }
+    else if (type == "tract")
+    {
+      lc = GetLayerCollection("Tract");
+      if (lc && lc->GetActiveLayer())
+        ((LayerTrack*)lc->GetActiveLayer())->GetProperty()->SetOpacity(dValue);
     }
   }
   else
@@ -6576,6 +6590,8 @@ void MainWindow::OnCropVolume()
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
   SetMode( RenderView::IM_VolumeCrop );
+  for (int i = 0; i < 4; i++)
+    m_views[i]->ResetCameraClippingRange();
 }
 
 void MainWindow::OnThresholdVolume()
@@ -7953,6 +7969,8 @@ void MainWindow::CommandSetActiveLayer(const QStringList &cmd)
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
     lc = GetLayerCollection("PointSet");
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -7992,7 +8010,9 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
   else if (type == "roi")
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
-    lc = GetLayerCollection("PointSet");
+    lc = GetLayerCollection("PointSet");  
+  else if (type == "tract")
+    lc = GetLayerCollection("Tract");
 
   if (lc)
   {
@@ -8018,6 +8038,8 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
         OnCloseROI(layers);
       else if (type == "pointset")
         OnClosePointSet(layers);
+      else if (type == "tract")
+        OnCloseTrack();
     }
   }
 }

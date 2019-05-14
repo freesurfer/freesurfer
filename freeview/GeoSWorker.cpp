@@ -12,7 +12,9 @@
 #include <QDebug>
 #include <QFile>
 #include "vtkImageGaussianSmooth.h"
+#include "vtkImageExtractComponents.h"
 #include <QElapsedTimer>
+#include "LayerPropertyMRI.h"
 
 GeoSWorker::GeoSWorker(QObject *parent) : QObject(parent)
 {
@@ -119,11 +121,83 @@ void GeoSWorker::DoCompute()
   voi->SetInputConnection(cast->GetOutputPort());
   voi->SetVOI(bound);
   voi->Update();
+  vtkSmartPointer<vtkImageData> src_image = m_mri->GetImageData();
+  vtkSmartPointer<vtkImageData> grayscale = src_image;
+  if (m_mri->GetDataType() == MRI_RGB || (m_mri->GetNumberOfFrames() == 3 && m_mri->GetProperty()->GetDisplayRGB()))
+  {
+    grayscale = vtkSmartPointer<vtkImageData>::New();
+    grayscale->SetSpacing(src_image->GetSpacing());
+    grayscale->SetOrigin(src_image->GetOrigin());
+    grayscale->SetDimensions(src_image->GetDimensions());
+#if VTK_MAJOR_VERSION > 5
+    grayscale->AllocateScalars(VTK_DOUBLE, 1);
+#else
+    grayscale->SetScalarTypeToDouble();
+    grayscale->AllocateScalars();
+#endif
+    if (m_mri->GetDataType() == MRI_RGB)
+    {
+        unsigned char* in_ptr = (unsigned char*)src_image->GetScalarPointer();
+        double* out_ptr = (double*)grayscale->GetScalarPointer();
+        int* dim = src_image->GetDimensions();
+        qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
+        for (qlonglong i = 0; i < nSize; i++)
+        {
+          unsigned char* ptr = in_ptr + i*4;
+          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+        }
+    }
+    else
+    {
+        void* in_ptr = src_image->GetScalarPointer();
+        double* out_ptr = (double*)grayscale->GetScalarPointer();
+        int* dim = src_image->GetDimensions();
+        qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
+        switch (src_image->GetScalarType())
+        {
+        case VTK_UNSIGNED_CHAR:
+            for (qlonglong i = 0; i < nSize; i++)
+            {
+              unsigned char* ptr = (unsigned char*)in_ptr + i*3;
+              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+            }
+            break;
+        case VTK_INT:
+            for (qlonglong i = 0; i < nSize; i++)
+            {
+              int* ptr = (int*)in_ptr + i*3;
+              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+            }
+            break;
+        case VTK_SHORT:
+            for (qlonglong i = 0; i < nSize; i++)
+            {
+              short* ptr = (short*)in_ptr + i*3;
+              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+            }
+            break;
+        case VTK_FLOAT:
+            for (qlonglong i = 0; i < nSize; i++)
+            {
+              float* ptr = (float*)in_ptr + i*3;
+              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+            }
+            break;
+        case VTK_DOUBLE:
+            for (qlonglong i = 0; i < nSize; i++)
+            {
+              double* ptr = (double*)in_ptr + i*3;
+              out_ptr[i] = ptr[0] + ptr[1] + ptr[2];
+            }
+            break;
+        }
+    }
+  }
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
 #if VTK_MAJOR_VERSION > 5
-  cast2->SetInputData(m_mri->GetImageData());
+    cast2->SetInputData(grayscale);
 #else
-  cast2->SetInput(m_mri->GetImageData());
+    cast2->SetInput(grayscale);
 #endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();
@@ -154,7 +228,8 @@ void GeoSWorker::DoCompute()
   unsigned char* seeds_out = new unsigned char[vol_size];
   QElapsedTimer timer;
   timer.start();
-  bool bSuccess = m_geos->ComputeWithBinning(dim_new, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  double scale[3] = {1,1,1};
+  bool bSuccess = m_geos->ComputeWithBinning(dim_new, scale, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
   if (bSuccess)
   {
     void* p = m_seg->GetImageData()->GetScalarPointer();

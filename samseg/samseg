@@ -167,11 +167,21 @@ date | tee -a $LF
 
 # ========================================================
 
-# refine the segmentation:
-set cmd = (mri_refine_seg --debug -i $outdir/crispSegmentation.nii -o $outdir/crispSegmentation.nii)
+# Create an xfm as well
+set lta = $outdir/samseg.talairach.lta
+set xfm = $outdir/samseg.talairach.xfm
+set cmd = (lta_convert --inlta $lta --outmni $xfm)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
+
+# refine the segmentation:
+if(! $regonly) then
+  set cmd = (mri_refine_seg --debug -i $outdir/crispSegmentation.nii -o $outdir/crispSegmentation.nii)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 # ========================================================
 # Compute dice:

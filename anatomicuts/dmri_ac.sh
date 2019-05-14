@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
-#this step is into tracula preproc
-targetSubject="6002_16_01192018"
 
-#SUBJECTS_DIR=/space/snoke/1/public/vivros/data/recons/
-#DMRI_DIR=/space/snoke/1/public/vivros/data/tracula/jones_900/
-#ODMRI_DIR=/space/snoke/1/public/vivros/viv/
+#Required SUBJECTS_DIR with Freesurfer subjects directory.
+#DMRI_DIR dmri_preproc directory if it is different from the SUBJECTS_DIR
+#ODMRI_DIR AnatomiCuts output directory if different to SUBJECTS_DIR
+
+#targetSubject target subject to find AnatomiCuts correspondences
+
 if [[ ! ${SUBJECTS_DIR} ]]; then
 	echo "ERROR: SUBJECTS_DIR not set!" 
 	exit 1
 fi
 
 if [[ ! ${DMRI_DIR} ]]; then
+	echo "hola"
 	DMRI_DIR=${SUBJECTS_DIR}
 fi
 
@@ -19,15 +21,41 @@ if [[ ! ${ODMRI_DIR} ]]; then
 	ODMRI_DIR=${SUBJECTS_DIR}
 fi
 
+echo ${SUBJECTS_DIR}
+echo ${DMRI_DIR}
+echo ${ODMRI_DIR}
 
 clusters=(200 150 100 50)
-#code=/space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
+code=${FREESURFER_HOME}/bin/
 filtershortFibers=${code}streamlineFilter
 anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
-ac_output=${ODMRI} #/space/snoke/1/public/vivros/AnatomiCuts_l35/
+ac_output=${ODMRI} 
+
+function forAll()
+{
+ 	function=$1 #i.e. tractography
+	cluster_call="  $3 $4 $5 $6 $7 $8 $9" #"pbsubmit -n 1 -c " 
+	
+	cd ${SUBJECTS_DIR}                                                
+	for s in */;       
+	do                                                                                                                                                                         
+
+		subject=${s//[\/]/}                                                                                                                                                 
+		echo ${s}
+
+		string="bash ${0} $1 ${subject} $2"                                                                                                                   
+		echo ${string}
+ 		if [[ -z ${cluster_call} ]];
+		then
+			${string}
+		else
+			${cluster_call} "${string}"
+		fi
+	done      
+}
 
 function preprocessDWI()
 {
@@ -60,46 +88,40 @@ function tractography()
 {
 	echo "tractography"
 	subject=$1
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/GQI/\'
+	echo ${subject}
+	fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+	fbval=${DMRI_DIR}/${subject}/dmri/bvals
+	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+	output=${DMRI_DIR}/${subject}/dmri/GQI/
 
-	mkdir -p ${DMRI_DIR}/${subject}/GQI/
+	mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
-	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.tractography($fdwi, $fbval, $fbvec,$output) " 
-	diffusionUtils tractography $fdwi $fbval $fbvec $output
+	diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
 
 }
 function getMaps()
 {
 	echo "getMaps"
 	subject=$1
-	fdwi=\'${DMRI_DIR}/${subject}/dmri/data.nii.gz\'
-	fbval=\'${DMRI_DIR}/${subject}/dmri/data.bvals\'
-	fbvec=\'${DMRI_DIR}/${subject}/dmri/data.bvecs\'
-	output=\'${DMRI_DIR}/${subject}/DKI/\'
+	if [[  ${2} == "DTI"  ]] || [[  ${2} == "DKI" ]] ; then
 
-	mkdir -p ${DMRI_DIR}/${subject}/DKI/
-	
-	#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
-	#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
-	
-	diffusionUtils getMaps $fdwi $fbval $fbvec $output
+		model=$2 #DTI or DKI
+		fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+		fbval=${DMRI_DIR}/${subject}/dmri/bvals
+		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+		output=${DMRI_DIR}/${subject}/dmri/$model
 
-}
-function call()
-{
-	#export SUBJECTS_DIR=${subjects_dir}
-	echo "call"
- 	cd ${SUBJECTS_DIR}                                                
-	for s in 6*/;       
-	do                                                                                                                                                                           
-		subject=${s//[\/]/}                                                                                                                                                 
-		#pbsubmit -q max500 -n 1 -c "bash ${0} $1 ${subject}"                                                                                                                    
-		pbsubmit -n 1 -c "bash ${0} $1 ${subject}"                                                                                                                    
-	done      
+		mkdir -p ${DMRI_DIR}/${subject}/dmri/$model
+	
+		#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
+		#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
+	
+		diffusionUtils -f getMaps$model -d $fdwi -b $fbval -v $fbvec -s $output
+	else
+		echo "missing argument: dmri_ac.sh  getMaps SUBJECT_ID modelfit"
+		echo "modelfit: DTI, DKI"
+	fi
+
 }
 function anat2dwi()
 {
@@ -119,10 +141,13 @@ function filterStreamlines()
 {
 	echo "filterStreamlines"
     subject=$1
-    lenght=$2 
-    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -nu -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
-    ${string}
-
+    lenght=$2
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
+	else
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+	fi
 } 
 #function PreAC()
 #{
@@ -138,7 +163,13 @@ function anatomiCuts()
     lenght=$2
     mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/
     #rm -R ${output}/*
-    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	else
+	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	fi
+
     ${string}
 
 }
@@ -146,11 +177,20 @@ function anatomiCuts()
 function Hungarian()
 {
 	subject=$1
-	
+	targetSubject=$2	
 	for c in ${clusters[@]};
 	do	
-		si=${diffusion}/${targetSubject}/wm2009parc2dwi.nii.gz
-		sj=${diffusion}/${subject}/wm2009parc2dwi.nii.gz
+
+		
+
+		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+		then
+			si=${diffusion}/${targetSubject}/wm2009parc2dwi.nii.gz
+			sj=${diffusion}/${subject}/wm2009parc2dwi.nii.gz
+		else
+			si=${diffusion}/${targetSubject}/wmparc2dwi.nii.gz
+			sj=${diffusion}/${subject}/wmparc2dwi.nii.gz
+		fi
 		
 		ci=${ac_output}/${targetSubject}
 		cj=${ac_output}/${subject}

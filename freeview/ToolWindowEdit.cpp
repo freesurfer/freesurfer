@@ -152,7 +152,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->labelTipsGeoS
                    << ui->widgetBusyIndicator
                    << ui->checkBoxApplySmoothing
-                   << ui->lineEditSmoothingStd;
+                   << ui->lineEditSmoothingStd
+                   << ui->pushButtonAbort;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
