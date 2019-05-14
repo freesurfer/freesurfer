@@ -3,7 +3,7 @@ import tempfile
 import numpy as np
 import nibabel as nib
 
-from . import error, run
+from . import error, run, Volume
 
 
 class Freeview:
@@ -43,7 +43,7 @@ class Freeview:
         self._tempdir = None
         self.items = {'volumes': [], 'surfaces': []}
 
-    def vol(self, volume, affine=np.eye(4), name=None, colormap=None, opacity=None, opts=''):
+    def vol(self, volume, affine=None, name=None, colormap=None, opacity=None, opts=''):
         '''Adds a new volume to the freeview command. If the volume provided is not a
         filepath, then the input will be saved as a volume in a temporary directory. 
 
@@ -138,9 +138,15 @@ class Freeview:
             nib.save(volume, volume.get_filename())
             filename = volume.get_filename()
         elif isinstance(volume, np.ndarray):
+            # int64 MRI IO isn't very stable, so convert to int32 for now
+            if volume.dtype == 'int64':
+                volume = volume.astype('int32')
             # input is a nifty array
-            filename = self._validName(os.path.join(self._makeTempDir(), name + '.nii.gz'))
-            nib.save(nib.Nifti1Image(volume, affine), filename)
+            filename = self._validName(os.path.join(self._makeTempDir(), name + '.mgz'))
+            vol = Volume(volume)
+            if affine:
+                vol.affine = affine
+            vol.write(filename)
         else:
             error('invalid freeview volume argument type %s' % type(volume))
             return None
@@ -168,7 +174,8 @@ class Freeview:
 
 def fv(*args, **kwargs):
     '''Freeview wrapper to quickly load an arbitray number of volumes. Inputs can be
-    existing volume filenames, numpy arrays, or nibabel images.
+    existing volume filenames or numpy arrays. Use the `Freeview` class directly for a
+    more specific configuration.
 
     Args:
         background: Run freeview as a background process. Defaults to True.
