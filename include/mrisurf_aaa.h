@@ -70,14 +70,14 @@ typedef struct VERTEX_TOPOLOGY      VERTEX_TOPOLOGY;
   the vertices in the face structure are arranged in
   counter-clockwise fashion when viewed from the outside.
 */
-typedef int   vertices_per_face_t[VERTICES_PER_FACE];
-typedef float angles_per_triangle_t[ANGLES_PER_TRIANGLE];
+typedef FixedSizeArray<int,   VERTICES_PER_FACE>   vertices_per_face_t;
+typedef FixedSizeArray<float, ANGLES_PER_TRIANGLE> angles_per_triangle_t;
 
-static void copyAnglesPerTriangle(angles_per_triangle_t dst, angles_per_triangle_t const src) {
-  memcpy(dst,src,sizeof(angles_per_triangle_t));
+static void copyAnglesPerTriangle(angles_per_triangle_t& dst, angles_per_triangle_t const & src) {
+  dst = src;
 }
-static int cmpAnglesPerTriangle(angles_per_triangle_t dst, angles_per_triangle_t const src) {
-  return memcmp(dst,src,sizeof(angles_per_triangle_t));
+static int cmpAnglesPerTriangle(angles_per_triangle_t const & dst, angles_per_triangle_t const & src) {
+  return memcmp(&dst,&src,sizeof(src));
 }
 
 typedef struct MRIS_XYZ {

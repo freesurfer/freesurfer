@@ -1,6 +1,6 @@
 
 // STL includes
-#include <cmath>
+#include <math.h>
 #include <fstream>
 #include <iostream>
 

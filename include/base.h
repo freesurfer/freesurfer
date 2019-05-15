@@ -130,6 +130,8 @@ typedef unsigned char unsigned_char;
 #endif
 
 typedef const float * ptr_to_const_float;
+
+
 // Some trivial math functions needed lots
 //
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -141,3 +143,20 @@ static double squared(double x) { return x*x; }
 typedef struct FloatXYZ {
     float x,y,z;
 } FloatXYZ;
+
+
+
+template <typename T, size_t SIZE>
+struct FixedSizeArray {
+    T&         operator[](size_t i)         { return v[i]; }
+    T const&   operator[](size_t i)   const { return v[i]; }
+    
+    operator T       *()                    { return v;    }
+    operator T const *()              const { return v;    }
+    
+    T       * data()                        { return v;    }
+    T const * data()                  const { return v;    }
+    
+private:
+    T v[SIZE];
+};

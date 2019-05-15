@@ -1,4 +1,4 @@
-#include <cmath>
+#include <math.h>
 
 #include <vtkPolyData.h>
 #include <vtkPoints.h>
