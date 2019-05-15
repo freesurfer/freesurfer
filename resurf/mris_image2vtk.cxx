@@ -63,118 +63,119 @@
 #include "vtkImageContinuousDilate3D.h"
 #include "vtkPolyDataToImageStencil.h"
 #include "vtkImageStencil.h"
+#include "vtkVoxelContoursToSurfaceFilter.h"
 
 vtkSmartPointer<vtkImageData> CreateImage( MRI* rasMRI )
 {
-  // first copy mri data to image
-  vtkDataArray *scalars = NULL;
-  vtkUnsignedCharArray  *ucharScalars = NULL;
-  vtkIntArray           *intScalars = NULL;
-  vtkShortArray         *shortScalars = NULL;
-  vtkLongArray          *longScalars = NULL;
-  vtkFloatArray         *floatScalars = NULL;
-  vtkIdType cValues;
+	// first copy mri data to image
+	vtkDataArray *scalars = NULL;
+	vtkUnsignedCharArray  *ucharScalars = NULL;
+	vtkIntArray           *intScalars = NULL;
+	vtkShortArray         *shortScalars = NULL;
+	vtkLongArray          *longScalars = NULL;
+	vtkFloatArray         *floatScalars = NULL;
+	vtkIdType cValues;
 
-  vtkIdType zX = rasMRI->width;
-  vtkIdType zY = rasMRI->height;
-  vtkIdType zZ = rasMRI->depth;
-  vtkIdType zFrames = rasMRI->nframes;
+	vtkIdType zX = rasMRI->width;
+	vtkIdType zY = rasMRI->height;
+	vtkIdType zZ = rasMRI->depth;
+	vtkIdType zFrames = rasMRI->nframes;
 
-  vtkSmartPointer<vtkImageData> imageData =vtkSmartPointer<vtkImageData>::New();
+	vtkSmartPointer<vtkImageData> imageData =vtkSmartPointer<vtkImageData>::New();
 
-  // This object's output space is in voxel coordinates.
+	// This object's output space is in voxel coordinates.
 	std::cout << zX<< zY<<zZ << std::endl;
-  imageData->SetDimensions( zX, zY, zZ );
+	imageData->SetDimensions( zX, zY, zZ );
 
-  double origin[3] = {0,0,0};
-/*  if ( m_bResampleToRAS && !m_volumeRef )
-  {
-    float bounds[6];
-    GetBounds( bounds );
-    origin[0] = bounds[0];
-    origin[1] = bounds[2];
-    origin[2] = bounds[4];
-  }
-  else if ( m_volumeRef )
-  {
-   double ras[3], cindex[3];
+	double origin[3] = {0,0,0};
+	/*  if ( m_bResampleToRAS && !m_volumeRef )
+	    {
+	    float bounds[6];
+	    GetBounds( bounds );
+	    origin[0] = bounds[0];
+	    origin[1] = bounds[2];
+	    origin[2] = bounds[4];
+	    }
+	    else if ( m_volumeRef )
+	    {
+	    double ras[3], cindex[3];
 
-    ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
-    ::MRIworldToVoxel( m_volumeRef->m_MRITarget, ras[0], ras[1], ras[2], &cindex[0], &cindex[1], &cindex[2] );
+	    ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
+	    ::MRIworldToVoxel( m_volumeRef->m_MRITarget, ras[0], ras[1], ras[2], &cindex[0], &cindex[1], &cindex[2] );
 
-    m_volumeRef->GetImageOutput()->GetOrigin( origin );
-    for ( int i = 0; i < 3; i++ )
-    {
-      if ( fabs(cindex[i]-nint(cindex[i])) < 1e-4 )
-      {
-        cindex[i] = nint(cindex[i]);
-      }
-    }
+	    m_volumeRef->GetImageOutput()->GetOrigin( origin );
+	    for ( int i = 0; i < 3; i++ )
+	    {
+	    if ( fabs(cindex[i]-nint(cindex[i])) < 1e-4 )
+	    {
+	    cindex[i] = nint(cindex[i]);
+	    }
+	    }
 
-    origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
-    origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
-    origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
+	    origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
+	    origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
+	    origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
 
-  //}*/
+	//}*/
 
-  imageData->SetSpacing( rasMRI->xsize*1000, rasMRI->ysize*1000, rasMRI->zsize *1000);
-  imageData->SetOrigin( origin[0], origin[1], origin[2] );
-  //  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
-  imageData->SetDimensions(zX, zY, zZ);
-  if (rasMRI->type == MRI_RGB)
-    zFrames = 4;
+	imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize);
+	imageData->SetOrigin( origin[0], origin[1], origin[2] );
+	//  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
+	imageData->SetDimensions(zX, zY, zZ);
+	if (rasMRI->type == MRI_RGB)
+		zFrames = 4;
 
-  // create the scalars for all of the images. set the element size
-  // for the data we will read.
+	// create the scalars for all of the images. set the element size
+	// for the data we will read.
 #if VTK_MAJOR_VERSION > 5
-  switch ( rasMRI->type )
-  {
-  case MRI_UCHAR:
-  case MRI_RGB:
-    imageData->AllocateScalars(VTK_UNSIGNED_CHAR, zFrames);
-    break;
-  case MRI_INT:
-    imageData->AllocateScalars(VTK_INT, zFrames);
-    break;
-  case MRI_LONG:
-    imageData->AllocateScalars(VTK_LONG, zFrames);
-    break;
-  case MRI_FLOAT:
-    imageData->AllocateScalars(VTK_FLOAT, zFrames);
-    break;
-  case MRI_SHORT:
-    imageData->AllocateScalars(VTK_SHORT, zFrames);
-    break;
-  default:
-	;  
-}
+	switch ( rasMRI->type )
+	{
+		case MRI_UCHAR:
+		case MRI_RGB:
+			imageData->AllocateScalars(VTK_UNSIGNED_CHAR, zFrames);
+			break;
+		case MRI_INT:
+			imageData->AllocateScalars(VTK_INT, zFrames);
+			break;
+		case MRI_LONG:
+			imageData->AllocateScalars(VTK_LONG, zFrames);
+			break;
+		case MRI_FLOAT:
+			imageData->AllocateScalars(VTK_FLOAT, zFrames);
+			break;
+		case MRI_SHORT:
+			imageData->AllocateScalars(VTK_SHORT, zFrames);
+			break;
+		default:
+			;  
+	}
 #else
-  imageData->SetNumberOfScalarComponents(zFrames);
-  switch ( rasMRI->type )
-  {
-  case MRI_UCHAR:
-  case MRI_RGB:
-    imageData->SetScalarTypeToUnsignedChar();
-    break;
-  case MRI_INT:
-    imageData->SetScalarTypeToInt();
-    break;
-  case MRI_LONG:
-    imageData->SetScalarTypeToLong();
-    break;
-  case MRI_FLOAT:
-    imageData->SetScalarTypeToFloat();
-    break;
-  case MRI_SHORT:
-    imageData->SetScalarTypeToShort();
-    break;
-  default:
-	;  
-}
-  imageData->AllocateScalars();
+	imageData->SetNumberOfScalarComponents(zFrames);
+	switch ( rasMRI->type )
+	{
+		case MRI_UCHAR:
+		case MRI_RGB:
+			imageData->SetScalarTypeToUnsignedChar();
+			break;
+		case MRI_INT:
+			imageData->SetScalarTypeToInt();
+			break;
+		case MRI_LONG:
+			imageData->SetScalarTypeToLong();
+			break;
+		case MRI_FLOAT:
+			imageData->SetScalarTypeToFloat();
+			break;
+		case MRI_SHORT:
+			imageData->SetScalarTypeToShort();
+			break;
+		default:
+			;  
+	}
+	imageData->AllocateScalars();
 #endif
 
-  return imageData;
+	return imageData;
 }
 void CopyMRIDataToImage( MRI* mri, vtkImageData* image )
 {
@@ -196,7 +197,7 @@ void CopyMRIDataToImage( MRI* mri, vtkImageData* image )
 				{
 					//int hola = mri->slices[nZ+(nFrame)*mri->depth][nY][nX];
 					//scalars->SetComponent( nTuple, nFrame,hola);
-			
+
 					switch ( mri->type )
 					{
 						case MRI_UCHAR:
@@ -252,7 +253,7 @@ int main( int argc, char* argv[] )
 	const char * inputFileName = argv[1];
 	const char * outputFileName = argv[2];
 
- 	MRI *imageFS =  MRIread(inputFileName) ;
+	MRI *imageFS =  MRIread(inputFileName) ;
 	vtkSmartPointer<vtkImageData> vtkImage = CreateImage(imageFS);
 	CopyMRIDataToImage(imageFS, vtkImage);	
 
@@ -267,8 +268,12 @@ int main( int argc, char* argv[] )
 	//reader->Update();
 
 	vtkSmartPointer<vtkImageDilateErode3D> dilateErode =
-	vtkSmartPointer<vtkImageDilateErode3D>::New();
+		vtkSmartPointer<vtkImageDilateErode3D>::New();
+#if VTK_MAJOR_VERSION <= 5	
 	dilateErode->SetInput(vtkImage);
+#else
+	dilateErode->SetInputData(vtkImage);
+	#endif
 	dilateErode->SetDilateValue(label);
 	dilateErode->SetErodeValue(label);
 	dilateErode->SetKernelSize(5, 5, 5);
@@ -276,7 +281,11 @@ int main( int argc, char* argv[] )
 	dilateErode->Update();
 
 	vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 	threshold->SetInput( dilateErode->GetOutput());
+	#else
+	threshold->SetInputData( dilateErode->GetOutput());
+	#endif
 	threshold->ThresholdBetween( label-0.5, label+0.5 );
 	threshold->ReplaceOutOn();
 	threshold->SetOutValue( 0 );
@@ -320,7 +329,11 @@ int main( int argc, char* argv[] )
 		
 		vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
 		contour->ComputeGradientsOn();
+	#if VTK_MAJOR_VERSION <= 5	
 		contour->SetInput( vtkImage);
+	#else
+		contour->SetInputData( vtkImage);
+	#endif
 		
 		//contour->SetValue(0, (i==0)?label-1:1);	
 		contour->SetValue(0, label);	
@@ -342,13 +355,21 @@ int main( int argc, char* argv[] )
 		   isosurface->Update();
 		   vtkSurface = isosurface->GetOutput();*/
 		vtkSmartPointer<vtkFillHolesFilter> fillHoles =	vtkSmartPointer<vtkFillHolesFilter>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 		fillHoles->SetInput(vtkSurface);
+	#else
+		fillHoles->SetInputData(vtkSurface);
+	#endif
 		fillHoles->SetHoleSize(10000000000.0);
 		fillHoles->Update();
 		vtkSurface = fillHoles->GetOutput();
 
 		vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 		decimate->SetInput(vtkSurface);
+	#else
+		decimate->SetInputData(vtkSurface);
+	#endif
 		//decimate->SetPreserveTopology(true);
 		//decimate->SplittingOff();
 		decimate->BoundaryVertexDeletionOn();
@@ -360,7 +381,11 @@ int main( int argc, char* argv[] )
 		vtkSurface = decimate->GetOutput();
 
 		vtkSmartPointer<vtkTriangleFilter> stripper =		vtkSmartPointer<vtkTriangleFilter>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 		stripper->SetInput( vtkSurface );
+	#else
+		stripper->SetInputData( vtkSurface );
+	#endif
 		stripper->PassVertsOff();
 		stripper->PassLinesOff();
 
@@ -390,9 +415,24 @@ int main( int argc, char* argv[] )
 		smoother->Update();
 		vtkSurface = smoother->GetOutput();
 
+		/*vtkSmartPointer<vtkVoxelContoursToSurfaceFilter> contoursToSurface = vtkSmartPointer<vtkVoxelContoursToSurfaceFilter>::New();
+#if VTK_MAJOR_VERSION <= 5
+		contoursToSurface->SetInput(vtkSurface );
+#else
+		contoursToSurface->SetInputData( vtkSurface );
+#endif
+		contoursToSurface->Update();
+
+		vtkSurface =  contoursToSurface->GetOutput();
+		*/
+
 		// polygonal data --> image stencil:
 		vtkSmartPointer<vtkPolyDataToImageStencil> pol2stenc =	vtkSmartPointer<vtkPolyDataToImageStencil>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 		pol2stenc->SetInput(vtkSurface);
+	#else
+		pol2stenc->SetInputData(vtkSurface);
+	#endif
 		pol2stenc->SetOutputOrigin(vtkImage->GetOrigin());
 		pol2stenc->SetOutputSpacing(vtkImage->GetSpacing());
 		pol2stenc->SetOutputWholeExtent(vtkImage->GetExtent());
@@ -400,12 +440,29 @@ int main( int argc, char* argv[] )
 
 		// cut the corresponding white image and set the background:
 		vtkSmartPointer<vtkImageStencil> imgstenc = vtkSmartPointer<vtkImageStencil>::New();
+	#if VTK_MAJOR_VERSION <= 5	
 		imgstenc->SetInput(vtkImage);
-		imgstenc->SetStencil(pol2stenc->GetOutput());
+	imgstenc->SetStencil(pol2stenc->GetOutput());
+	#else
+		imgstenc->SetInputData(vtkImage);
+	imgstenc->SetStencilConnection(pol2stenc->GetOutputPort());
+	#endif
 		imgstenc->ReverseStencilOff();
 		imgstenc->SetBackgroundValue(0);
 		imgstenc->Update();
 		vtkImage =  imgstenc->GetOutput();
+		
+		vtkSmartPointer<vtkImageGaussianSmooth> gaussianSmoothFilter =    vtkSmartPointer<vtkImageGaussianSmooth>::New();
+	#if VTK_MAJOR_VERSION <= 5	
+		gaussianSmoothFilter->SetInput(vtkImage);
+	#else
+		gaussianSmoothFilter->SetInputData(vtkImage);
+	#endif
+		gaussianSmoothFilter->SetRadiusFactors(.2,.2,.2);
+		gaussianSmoothFilter->Update();
+		vtkImage = gaussianSmoothFilter->GetOutput();
+
+
 	}
 
 
@@ -501,9 +558,9 @@ int main( int argc, char* argv[] )
 		
 		// MRIvoxelToSurfaceRAS( imageFS,point[0], point[1], point[2], &point2[0], &point2[1], &point2[2] );
 
-		surf->vertices[i].x = (- point2[0]+7.42)/1000;
-		surf->vertices[i].z = (- point2[1]+7.5)/1000;
-		surf->vertices[i].y = (point2[2]-11.5133)/1000;
+		surf->vertices[i].x = (- point2[0])+7.42;
+		surf->vertices[i].z = (- point2[1])+7.5;
+		surf->vertices[i].y = (point2[2])-11.5133;
 		//face = &surf->faces[i];	
 	}
 
@@ -534,90 +591,3 @@ int main( int argc, char* argv[] )
 
 return EXIT_SUCCESS;
 }
-	// Write file
-/*	vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
-	writer->SetFileName(outputFileName);
-	writer->SetInputConnection(conn->GetOutputPort());
-	writer->Write();
-*/
-/*	vtkSmartPointer<vtkWindowedSincPolyDataFilter> smoother = vtkSmartPointer<vtkWindowedSincPolyDataFilter>::New();
-	smoother->SetInputConnection( stripper->GetOutputPort() );
-	smoother->SetNumberOfIterations(500) ; 
-//	smoother->FeatureEdgeSmoothingOn();
-//	smoother->SetEdgeAngle(30);
-	smoother->Update();
-*/
-//using ReaderType = itk::ImageFileReader< ImageType >;
-//ReaderType::Pointer reader = ReaderType::New();
-//reader->SetFileName( inputFileName );
-
-/*	typedef itk::SmoothingRecursiveGaussianImageFilter<
-	ImageType, ImageType >  SmoothingFilterType;
-
-	SmoothingFilterType::Pointer smoothingRecursiveGaussianImageFilter = SmoothingFilterType::New();
-	smoothingRecursiveGaussianImageFilter->SetInput(reader->GetOutput());
-	smoothingRecursiveGaussianImageFilter->SetSigma(atoi(argv[6]));
-	smoothingRecursiveGaussianImageFilter->Update();
-
-*/
-/*using FilterType2 = itk::ImageToVTKImageFilter< ImageType >;
-  FilterType2::Pointer filter2 = FilterType2::New();
-  filter2->SetInput( smoothingRecursiveGaussianImageFilter->GetOutput() );
-//filter2->SetInput( reader->GetOutput() );
-
-filter2->Update();
-vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
-resampler->SetAxisMagnificationFactor(0, 2.0);
-resampler->SetAxisMagnificationFactor(1, 2.0);
-resampler->SetAxisMagnificationFactor(2, 2.0);
-resampler->SetInput(filter2->GetOutput());
-resampler->Update();
-
-std::cout << atoi(argv[6]) << std::endl;
-
-
-vtkSmartPointer<vtkImageGaussianSmooth> gaussianSmoothFilter = 
-vtkSmartPointer<vtkImageGaussianSmooth>::New();
-gaussianSmoothFilter->SetInputConnection(resampler->GetOutputPort());
-gaussianSmoothFilter->SetRadiusFactors(std::stof(argv[6]), std::stof(argv[6]));
-gaussianSmoothFilter->Update();
-*/
-
-/*
-//Get the contour of the PolyData
-vtkSmartPointer<vtkContourFilter> contour =
-vtkSmartPointer<vtkContourFilter>::New();
-contour->SetInput(threshold->GetOutput());
-contour->ComputeScalarsOff();
-contour->SetValue(0,0.5);
-//    
-//    //Mesh the largest contour
-vtkSmartPointer<vtkPolyDataConnectivityFilter> connectivityFilter =
-vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
-connectivityFilter->SetInput(contour->GetOutput());
-connectivityFilter->SetExtractionModeToLargestRegion();
-connectivityFilter->Update();
-//        
-//Export vtk Data to ITK
-vtkImageExport* exportdata = vtkImageExport::New();
-exportdata->SetInput(connectivityFilter->GetOutput());
-//            
-const unsigned int Dimension = 3;
-typedef float PixelType;
-typedef itk::Mesh< PixelType, Dimension > MeshType;
-typedef itk::ImageFileWriter<MeshType> WriteMeshType;
-typedef itk::VTKImageImport<MeshType> importMeshType;
-//                
-WriteMeshType::Pointer WMeshType = WriteMeshType::New();
-importMeshType::Pointer IMeshType = importMeshType::New();
-exportdata->SetOutput(IMeshType);
-IMeshType->Update();
-WMeshType->SetInput(IMeshType->GetOutput());
-*/
-//typename Surface::Pointer mesh = Self::New();
-/*	   vtkSmartPointer<vtkFillHolesFilter> fillHolesFilter =
-	   vtkSmartPointer<vtkFillHolesFilter>::New();
-	   fillHolesFilter->SetInputData(input);
-	   fillHolesFilter->SetHoleSize(1000.0);
-	   */
-
