@@ -151,7 +151,7 @@ public:
         myCalculator->SetBoundaryCondition(kvl::AtlasMeshPositionCostAndGradientCalculator::SLIDING);
         // Retrieve transform if provided
         TransformType::ConstPointer constTransform = static_cast<const TransformType*>(transform.m_transform.GetPointer());
-        if (constTransform.GetPointer()) calculator->SetMeshToImageTransform( constTransform );
+        if (constTransform.GetPointer()) myCalculator->SetMeshToImageTransform( constTransform );
         // Apply positions and Ks
         kvl::AtlasMeshCollection::Pointer meshCollectionPtr = meshCollection.GetMeshCollection();
         std::vector<double> Ks = {K0};
