@@ -133,6 +133,11 @@ public:
     return m_bFocalPointAtCursor;
   }
 
+  bool GetShowAxes()
+  {
+    return m_bShowAxes;
+  }
+
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
@@ -165,6 +170,8 @@ public slots:
   void Elevation(double degrees);
   void UpdateScalarBar();
   void SetFocalPointAtCursor(bool b);
+  void UpdateAxesActor();
+  void SetShowAxes(bool b);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );

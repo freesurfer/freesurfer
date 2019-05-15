@@ -153,7 +153,9 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->widgetBusyIndicator
                    << ui->checkBoxApplySmoothing
                    << ui->lineEditSmoothingStd
-                   << ui->pushButtonAbort;
+                   << ui->pushButtonAbort
+                   << ui->checkBoxGeoSegOverwrite
+                   << ui->labelGeoMessage;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -309,6 +311,8 @@ void ToolWindowEdit::OnIdle()
   ui->labelGeoWsize->hide();
   ui->lineEditGeoLambda->hide();
   ui->spinBoxGeoWsize->hide();
+
+  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -606,7 +610,8 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       double std = 0;
       if (ui->checkBoxApplySmoothing->isChecked())
         std = ui->lineEditSmoothingStd->text().toDouble(&ok);
-      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0, NULL);
+      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0,
+                                     ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")));
       connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnGeoSegFinished(double)), Qt::UniqueConnection);
       connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
       ui->pushButtonGeoGo->setEnabled(false);
@@ -626,6 +631,7 @@ void ToolWindowEdit::OnButtonGeoSegAbort()
   LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
   if (mri_fill)
     mri_fill->GeodesicSegmentationAbort();
+  ui->labelGeoMessage->clear();
 }
 
 void ToolWindowEdit::OnGeoSegFinished(double time_in_secs)
@@ -658,6 +664,7 @@ void ToolWindowEdit::OnButtonGeoSegApply()
     connect(mri, SIGNAL(GeodesicSegmentationApplied()), SLOT(OnButtonGeoSegClearFilling()), Qt::UniqueConnection);
     mri->GeodesicSegmentationApply(mri_fill);
   }
+  ui->labelGeoMessage->clear();
 }
 
 void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)

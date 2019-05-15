@@ -409,6 +409,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   }
   connect(m_layerCollections["MRI"], SIGNAL(LayerTransformed()),
       m_views[3], SLOT(UpdateBounds()));
+  connect(m_layerCollections["Surface"], SIGNAL(ActiveLayerChanged(Layer*)),
+      m_views[3], SLOT(UpdateAxesActor()));
 
   QActionGroup* actionGroupMode = new QActionGroup( this );
   actionGroupMode->addAction( ui->actionNavigate );

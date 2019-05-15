@@ -2973,3 +2973,8 @@ bool LayerSurface::LoadParameterization(const QString &filename)
   else
     return false;
 }
+
+vtkActor* LayerSurface::GetMainActor()
+{
+  return m_mainActor;
+}
