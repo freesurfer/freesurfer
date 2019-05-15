@@ -480,12 +480,13 @@ def getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
     threshold = ( numberOfContrasts - 1 ) + eps
     hyperVariancesNumberOfMeasurements[ hyperVariancesNumberOfMeasurements < threshold ] = threshold
 
-    print( 'hyperMeans: ', hyperMeans )
-    print( 'hyperMeansNumberOfMeasurements: ', hyperMeansNumberOfMeasurements )
-    print( 'hyperVariances: ', hyperVariances )
-    print( 'hyperVariancesNumberOfMeasurements: ', hyperVariancesNumberOfMeasurements )
-    print( 'hyperMixtureWeights: ', hyperMixtureWeights )
-    print( 'hyperMixtureWeightsNumberOfMeasurements: ', hyperMixtureWeightsNumberOfMeasurements )
+    if False:
+        print( 'hyperMeans: ', hyperMeans )
+        print( 'hyperMeansNumberOfMeasurements: ', hyperMeansNumberOfMeasurements )
+        print( 'hyperVariances: ', hyperVariances )
+        print( 'hyperVariancesNumberOfMeasurements: ', hyperVariancesNumberOfMeasurements )
+        print( 'hyperMixtureWeights: ', hyperMixtureWeights )
+        print( 'hyperMixtureWeightsNumberOfMeasurements: ', hyperMixtureWeightsNumberOfMeasurements )
 
 
     #
