@@ -1,15 +1,15 @@
+import os
+import math
 import numpy as np
 import matplotlib.pyplot as plt
-from freesurfer.samseg import Specification
 import freesurfer as fs
 import freesurfer.gems as gems
 from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
-import os
 from freesurfer.samseg.figures import initVisualizer
-import math
-from freesurfer.samseg.utilities import requireNumpyArray
+from freesurfer.samseg.utilities import requireNumpyArray, Specification
 from freesurfer.samseg.bias_correction import projectKroneckerProductBasisFunctions, backprojectKroneckerProductBasisFunctions, \
     computePrecisionOfKroneckerProductBasisFunctions
+from freesurfer.samseg.register_atlas import registerAtlas
 import logging
 
 
@@ -1380,4 +1380,636 @@ def samsegment( imageFileNames, atlasDir, transformedTemplateFileName, savePath,
 
 
     return modelSpecifications.FreeSurferLabels, modelSpecifications.names, volumesInCubicMm, optimizationSummary
+
+
+
+def generateSubjectSpecificTemplate( imageFileNamesList, savePath ):
+
+    sstDir = os.path.join( savePath, 'sst' )
+    os.makedirs( sstDir, exist_ok=True )
+
+    sstFileNames = []
+    for contrastNumber, contrastImageFileNames in enumerate( zip( *imageFileNamesList ) ):
+      
+        # Read in the various time point images, and compute the average
+        numberOfTimepoints = len( contrastImageFileNames )
+        image0 = gems.KvlImage( contrastImageFileNames[ 0 ] )
+        imageBuffer = image0.getImageBuffer().copy()
+        for timepointNumber in range( 1, numberOfTimepoints ):
+            imageBuffer += gems.KvlImage( contrastImageFileNames[ timepointNumber ] ).getImageBuffer()
+        imageBuffer /= numberOfTimepoints
+
+        # Create an ITK image and write to disk
+        sst = gems.KvlImage( requireNumpyArray( imageBuffer ) )
+        sstFilename = os.path.join( sstDir, 'contrast' + str( contrastNumber ) + '_sst.mgz' )
+        sst.write( sstFilename, image0.transform_matrix )
+
+        #
+        sstFileNames.append( sstFilename )
+
+    #
+    return sstFileNames
+  
+  
+
+
+def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
+                            userModelSpecifications={}, userOptimizationOptions={},
+                            visualizer=None, saveHistory=False, 
+                            targetIntensity=None, targetSearchStrings=None,
+                            numberOfIterations=10,
+                            strengthOfLatentGMMHyperprior=1.0,
+                            strengthOfLatentDeformationHyperprior=1.0, 
+                            saveSSTResults=True,
+                            updateLatentMeans=True,
+                            updateLatentVariances=True,
+                            updateLatentMixtureWeights=True,
+                            updateLatentDeformation=True,
+                            initializeLatentDeformationToZero=False
+                          ):
+
+    """
+    Longitudinal version of samsegment  
+
+    The idea is based on the generative model in the paper 
+    
+      Iglesias, Juan Eugenio, et al. 
+      Bayesian longitudinal segmentation of hippocampal substructures in brain MRI using subject-specific atlases.
+      Neuroimage 141 (2016): 542-555,
+
+    in which a subject-specific atlas is obtained by generating a random warp from the usual population atlas, and
+    subsequently each time point is again randomly warped from this subject-specific atlas. The intermediate 
+    subject-specific atlas is effectively a latent variable in the model, and it's function is to encourage the 
+    various time points to have atlas warps that are similar between themselves, without having to define a priori 
+    what these warps should be similar to. In the implementation provided here, the stiffness of the first warp 
+    (denoted by K0, as in the paper) is taken as the stiffness used in ordinary samseg, and the stiffness of the 
+    second warp (denoted by K1) is controlled by the setting
+    
+      strengthOfLatentDeformationHyperprior
+    
+    so that K1 = strengthOfLatentDeformationHyperprior * K0. In the Iglesias paper, the setting 
+    
+      strengthOfLatentDeformationHyperprior = 1.0
+      
+    was used.  
+    
+    The overall idea is extended here by adding also latent variables encouraging corresponding Gaussian mixture 
+    models across time points to be similar across time -- again without having to define a priori what exactly 
+    they should look like. For given values of these latent variables, they effectively act has hyperparameters 
+    on the mixture model parameters, the strength of which is controlled through the setting
+    
+      strengthOfLatentGMMHyperprior
+      
+    which weighs the relative strength of this hyperprior relative to the relevant (expected) data term in the 
+    estimation procedures of the mixture model parameters at each time point. This aspect can be switched off by 
+    setting 
+    
+      strengthOfLatentGMMHyperprior = 0.0
+    
+    NOTE: The general longitudinal pipeline in FreeSurfer 6.0 is described in the paper
+    
+      Reuter, Martin, et al. 
+      Within-subject template estimation for unbiased longitudinal image analysis.
+      Neuroimage 61.4 (2012): 1402-1418,
+      
+    which is based on the idea of retaining some temporal consistency by simply initializing the model fitting 
+    procedure across all time points in exactly the same way. This is achieved by first creating a subject-specific 
+    template that is subsequently analyzed and the result of which is then used as a (very good) initialization 
+    in each time point. This behavior can be mimicked by setting
+    
+      initializeLatentDeformationToZero = True
+      numberOfIterations = 1
+      strengthOfLatentGMMHyperprior = 0.0
+      strengthOfLatentDeformationHyperprior = 1.0
+      
+    in the implementation provided here.   
+    """
+
+
+    # Get full model specifications and optimization options (using default unless overridden by user) 
+    modelSpecifications = getModelSpecifications( atlasDir, userModelSpecifications )
+    optimizationOptions = getOptimizationOptions( atlasDir, userOptimizationOptions )
+        
+    #
+    modelSpecifications = Specification( modelSpecifications )
+
+    # Setup a null visualizer if necessary
+    if visualizer is None: visualizer = initVisualizer( False, False )
+
+
+
+
+  
+    # =======================================================================================
+    #
+    # Construction and affine registration of subject-specific template (sst)
+    #
+    # =======================================================================================
+  
+    # Create the output folder
+    os.makedirs( savePath, exist_ok=True )
+
+    # Generate the subject specific template (sst)
+    sstFileNames = generateSubjectSpecificTemplate( imageFileNamesList, savePath )
+
+    # Affine atlas registration to sst
+    templateFileName = os.path.join( atlasDir, 'template.nii' )
+    affineRegistrationMeshCollectionFileName = os.path.join( atlasDir, 'atlasForAffineRegistration.txt.gz' )
+
+    worldToWorldTransformMatrix, transformedTemplateFileName, _ \
+        = registerAtlas( sstFileNames[ 0 ], affineRegistrationMeshCollectionFileName, templateFileName, savePath, 
+                        visualizer=visualizer )
+
+
+
+    # =======================================================================================
+    #
+    # Preprocessing (reading and masking of data)
+    #
+    # =======================================================================================
+
+    sstImageBuffers, transform, voxelSpacing, cropping = readCroppedImages( sstFileNames, transformedTemplateFileName )
+
+    imageBuffersList = []
+    for imageFileNames in imageFileNamesList:
+        imageBuffers, _, _, _ = readCroppedImages( imageFileNames, transformedTemplateFileName )
+        imageBuffersList.append( imageBuffers )
+
+
+    # Put everything in a big 4-D matrix to derive one consistent mask across all time points
+    numberOfTimepoints = len( imageFileNamesList )
+    imageSize = sstImageBuffers.shape[ :3 ]
+    numberOfContrasts = sstImageBuffers.shape[ -1 ]
+    combinedImageBuffers = np.zeros( imageSize + ( numberOfContrasts * ( 1 + numberOfTimepoints ), ) )
+    combinedImageBuffers[ ..., 0:numberOfContrasts ] = sstImageBuffers
+    for timepointNumber in range( numberOfTimepoints ):
+        combinedImageBuffers[ ..., ( timepointNumber + 1 ) * numberOfContrasts : 
+                                  ( timepointNumber + 2 ) * numberOfContrasts ] = imageBuffersList[ timepointNumber ]
+
+    combinedImageBuffers, mask = maskOutBackground( combinedImageBuffers, modelSpecifications.atlasFileName, transform,
+                                                    modelSpecifications.brainMaskingSmoothingSigma, 
+                                                    modelSpecifications.brainMaskingThreshold )
+    combinedImageBuffers = logTransform( combinedImageBuffers, mask )
+
+
+    # Retrieve the masked sst and time points
+    sstImageBuffers = combinedImageBuffers[ ..., 0:numberOfContrasts ]
+    for timepointNumber in range( numberOfTimepoints ):
+        imageBuffersList[ timepointNumber ] = combinedImageBuffers[ ..., ( timepointNumber + 1 ) * numberOfContrasts : 
+                                                                        ( timepointNumber + 2 ) * numberOfContrasts ]
+
+    visualizer.show( images=sstImageBuffers, title='sst' )
+    for timepointNumber in range( numberOfTimepoints ):
+        visualizer.show( images=imageBuffersList[ timepointNumber ], title='time point ' + str( timepointNumber ) )
+
+
+    biasFieldBasisFunctions = getBiasFieldBasisFunctions( sstImageBuffers.shape[ 0:3 ], 
+                                                          modelSpecifications.biasFieldSmoothingKernelSize / voxelSpacing )
+
+
+
+    # =======================================================================================
+    #
+    # Parameter estimation for SST
+    #
+    # =======================================================================================
+    numberOfGaussiansPerClass = [ param.numberOfComponents for param in modelSpecifications.sharedGMMParameters ]
+    classFractions, _ = gems.kvlGetMergingFractionsTable( modelSpecifications.names, modelSpecifications.sharedGMMParameters )
+
+    # 
+    sstMeans, sstVariances, sstMixtureWeights, sstBiasFieldCoefficients, \
+      sstDeformation, sstDeformationAtlasFileName, sstOptimizationSummary, sstOptimizationHistory = \
+            estimateModelParameters( sstImageBuffers, mask, biasFieldBasisFunctions, transform, voxelSpacing,
+                                    modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
+                                    classFractions, numberOfGaussiansPerClass, optimizationOptions,  
+                                    saveHistory=saveHistory, visualizer=visualizer )
+
+    if saveHistory:
+        history = { 
+                  "sstMeans": sstMeans,
+                  "sstVariances": sstVariances,
+                  "sstMixtureWeights": sstMixtureWeights,
+                  "sstBiasFieldCoefficients": sstBiasFieldCoefficients,
+                  "sstDeformation": sstDeformation,
+                  "sstDeformationAtlasFileName": sstDeformationAtlasFileName,
+                  "sstOptimizationSummary": sstOptimizationSummary,
+                  "sstOptimizationHistory": sstOptimizationHistory
+                  }
+
+
+    if saveSSTResults:
+        sstPosteriors, sstBiasFields, _ = segment( sstImageBuffers, 
+                                                  mask, transform, biasFieldBasisFunctions,
+                                                  modelSpecifications.atlasFileName, 
+                                                  sstDeformation, 
+                                                  sstDeformationAtlasFileName,
+                                                  sstMeans, 
+                                                  sstVariances, 
+                                                  sstMixtureWeights,
+                                                  sstBiasFieldCoefficients, 
+                                                  numberOfGaussiansPerClass, classFractions )
+
+        #
+        sstDir, _ = os.path.split( sstFileNames[ 0 ] )
+
+        #
+        sstVolumesInCubicMm = writeResults( sstFileNames, 
+                                            sstDir, sstImageBuffers, 
+                                            mask, sstBiasFields, sstPosteriors, 
+                                            modelSpecifications.FreeSurferLabels, cropping,
+                                            targetIntensity, targetSearchStrings, modelSpecifications.names )
+
+        #
+        if saveHistory:
+            history[ "sstVolumesInCubicMm" ] = sstVolumesInCubicMm
+
+
+
+
+    # =======================================================================================
+    #
+    # Iterative parameter vs. latent variables estimation, using SST result for initialization
+    # and/or anchoring of hyperprior strength
+    #
+    # =======================================================================================
+
+    # Initialization of the time-specific model parameters
+    timepointMeans, timepointVariances, timepointMixtureWeights, timepointBiasFieldCoefficients, \
+        timepointDeformations, timepointDeformationAtlasFileNames = \
+        [ sstMeans ] * numberOfTimepoints, [ sstVariances ] * numberOfTimepoints, [ sstMixtureWeights ] * numberOfTimepoints, \
+        [ None ] * numberOfTimepoints, [ None ] * numberOfTimepoints, [ None ] * numberOfTimepoints
+
+
+
+    # Initialization of the latent variables, acting as hyperparameters when viewed from the model parameters' perspective
+    latentDeformation = sstDeformation.copy()
+    latentDeformationAtlasFileName = sstDeformationAtlasFileName
+    latentMeans = sstMeans.copy()
+    latentVariances = sstVariances.copy()
+    latentMixtureWeights = sstMixtureWeights.copy()
+
+    if initializeLatentDeformationToZero:
+        timepointDeformations, timepointDeformationAtlasFileNames = \
+            [ latentDeformation ] * numberOfTimepoints, [ latentDeformationAtlasFileName ] * numberOfTimepoints
+        latentDeformation[ : ] = 0
+
+
+
+    # Strength of the hyperprior (i.e., how much the latent variables controll the conditional posterior of the parameters) 
+    # is user-controlled. 
+    # 
+    # For the GMM part, I'm using the *average* number of voxels assigned to the components in each mixture (class) of the 
+    # SST segmentation, so that all the components in each mixture are well-regualized (and tiny components don't get to do
+    # whatever they want)
+    K0 = modelSpecifications.K # Stiffness population -> latent position
+    K1 = strengthOfLatentDeformationHyperprior * K0 # Stiffness latent position -> each time point
+    sstEstimatedNumberOfVoxelsPerGaussian = np.sum( sstOptimizationHistory[ -1 ][ 'posteriorsAtEnd' ], axis=0 ) * \
+                                              np.prod( sstOptimizationHistory[ -1 ][ 'downSamplingFactors' ] )
+    numberOfClasses = len( numberOfGaussiansPerClass )
+    numberOfGaussians = sum( numberOfGaussiansPerClass )
+    latentMeansNumberOfMeasurements = np.zeros( numberOfGaussians ) 
+    latentVariancesNumberOfMeasurements = np.zeros( numberOfGaussians )
+    latentMixtureWeightsNumberOfMeasurements = np.zeros( numberOfClasses )
+    for classNumber in range( numberOfClasses ):
+        #
+        numberOfComponents = numberOfGaussiansPerClass[ classNumber ]
+        gaussianNumbers = np.array( np.sum( numberOfGaussiansPerClass[ :classNumber ] ) + \
+                                    np.array( range( numberOfComponents ) ), dtype=np.uint32 )
+        sstEstimatedNumberOfVoxelsInClass = \
+            np.sum( sstEstimatedNumberOfVoxelsPerGaussian[ gaussianNumbers ] )
+
+        latentMixtureWeightsNumberOfMeasurements[ classNumber ] = strengthOfLatentGMMHyperprior * sstEstimatedNumberOfVoxelsInClass
+      
+        averageSizeOfComponents = sstEstimatedNumberOfVoxelsInClass / numberOfComponents
+        latentMeansNumberOfMeasurements[ gaussianNumbers ] = strengthOfLatentGMMHyperprior * averageSizeOfComponents
+        latentVariancesNumberOfMeasurements[ gaussianNumbers ] = strengthOfLatentGMMHyperprior * averageSizeOfComponents
+
+
+    # Estimating the mode of the latentVariance posterior distribution (which is Wishart) requires a stringent condition 
+    # on latentVariancesNumberOfMeasurements so that the mode is actually defined
+    threshold = ( numberOfContrasts + 1 ) + 1e-6
+    latentVariancesNumberOfMeasurements[ latentVariancesNumberOfMeasurements < threshold ] = threshold
+
+
+    # Loop over all iterations
+    historyOfTotalCost, historyOfTotalTimepointCost, historyOfLatentAtlasCost = [], [], []
+    progressPlot = None
+    iterationNumber = 0
+    if saveHistory:
+        history = { **history, 
+                    **{
+                      "timepointMeansEvolution": [],
+                      "timepointVariancesEvolution": [],
+                      "timepointMixtureWeightsEvolution": [],
+                      "timepointBiasFieldCoefficientsEvolution": [],
+                      "timepointDeformationsEvolution": [],
+                      "timepointDeformationAtlasFileNamesEvolution": [],
+                      "latentMeansEvolution": [],
+                      "latentVariancesEvolution": [],
+                      "latentMixtureWeightsEvolution": [],
+                      "latentDeformationEvolution": [],
+                      "latentDeformationAtlasFileNameEvolution": []
+                      }
+                  } 
+        
+    while True:
+
+        # =======================================================================================
+        #
+        # Update parameters for each time point using the current latent variable estimates
+        #
+        # =======================================================================================
+
+        # Create a new atlas that will be the basis to deform the individual time points from
+        latentAtlasFileName = os.path.join( savePath, 'latentAtlas_iteration' + str( iterationNumber ) )
+        saveDeformedAtlas( latentDeformationAtlasFileName, latentAtlasFileName, latentDeformation, True )
+
+        # Only use the last resolution level, and with the newly created atlas as atlas
+        timepointOptimizationOptions = optimizationOptions.copy()
+        timepointOptimizationOptions[ 'multiResolutionSpecification' ] = [ timepointOptimizationOptions[ 'multiResolutionSpecification' ][-1] ]
+        timepointOptimizationOptions[ 'multiResolutionSpecification' ][ 0 ][ 'atlasFileName' ] = latentAtlasFileName
+        print( timepointOptimizationOptions )
+
+        # Loop over all time points
+        totalTimepointCost = 0
+        for timepointNumber in range( numberOfTimepoints ):
+            # 
+            timepointMeans[ timepointNumber ], timepointVariances[ timepointNumber ], timepointMixtureWeights[ timepointNumber ], \
+                timepointBiasFieldCoefficients[ timepointNumber ], \
+                timepointDeformations[ timepointNumber ], timepointDeformationAtlasFileNames[ timepointNumber ], \
+                optimizationSummary, optimizationHistory = \
+                    estimateModelParameters( imageBuffersList[ timepointNumber ], mask, biasFieldBasisFunctions, transform, voxelSpacing,
+                                              modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
+                                              classFractions, numberOfGaussiansPerClass, timepointOptimizationOptions,  
+                                              saveHistory=saveHistory, visualizer=visualizer,
+                                              initialMeans=timepointMeans[ timepointNumber ], 
+                                              initialVariances=timepointVariances[ timepointNumber ], 
+                                              initialMixtureWeights=timepointMixtureWeights[ timepointNumber ],
+                                              initialBiasFieldCoefficients=timepointBiasFieldCoefficients[ timepointNumber ],
+                                              initialDeformation=timepointDeformations[ timepointNumber ], 
+                                              initialDeformationAtlasFileName=timepointDeformationAtlasFileNames[ timepointNumber ],
+                                              hyperMeans=latentMeans, 
+                                              hyperMeansNumberOfMeasurements=latentMeansNumberOfMeasurements, 
+                                              hyperVariances=latentVariances,
+                                              hyperVariancesNumberOfMeasurements=latentVariancesNumberOfMeasurements,
+                                              hyperMixtureWeights=latentMixtureWeights, 
+                                              hyperMixtureWeightsNumberOfMeasurements=latentMixtureWeightsNumberOfMeasurements 
+                                            )
+              
+            totalTimepointCost += optimizationHistory[ -1 ][ 'historyOfCost' ][ -1 ]
+
+            print( '=================================' )
+            print( '\n' )
+            print( 'timepointNumber: ', timepointNumber )
+            print( 'perVoxelCost: ', optimizationSummary[-1][ 'perVoxelCost' ] )
+            print( '\n' )
+            print( '=================================' )
+
+            # End loop over time points
+            
+            
+
+
+        # =======================================================================================
+        #
+        # Check for convergence. 
+        # =======================================================================================
+
+        # In order to also measure the deformation from the population atlas -> latent position,
+        # create:
+        #   (1) a mesh collection with as reference position the population reference position, and as positions 
+        #       the currently estimated time point positions. 
+        #   (2) a mesh with the current latent position 
+        # Note that in (1) we don't need those time positions now, but these will come in handy very soon to 
+        # optimize the latent position
+        # 
+        # The parameter estimation happens in a (potentially) downsampled image grid, so it's import to work in the same space 
+        # when measuring and updating the latentDeformation
+        transformUsedForEstimation = gems.KvlTransform( requireNumpyArray( sstOptimizationHistory[ -1 ][ 'downSampledTransformMatrix' ] ) )
+        mesh_collection = gems.KvlMeshCollection()
+        mesh_collection.read( latentDeformationAtlasFileName )
+        mesh_collection.transform( transformUsedForEstimation )
+        referencePosition = mesh_collection.reference_position
+        timepointPositions = []
+        for timepointNumber in range( numberOfTimepoints ):
+            positionInTemplateSpace = mapPositionsFromSubjectToTemplateSpace( referencePosition, transformUsedForEstimation ) + \
+                                        latentDeformation + timepointDeformations[ timepointNumber ]
+            timepointPositions.append( mapPositionsFromTemplateToSubjectSpace( positionInTemplateSpace, transformUsedForEstimation ) )
+        mesh_collection.set_positions( referencePosition, timepointPositions )
+
+        # Read mesh in sst warp
+        mesh = getMesh( latentAtlasFileName, transformUsedForEstimation )
+        
+        # 
+        calculator = gems.KvlCostAndGradientCalculator( mesh_collection, K0, 0.0, transformUsedForEstimation )
+        latentAtlasCost, _ = calculator.evaluate_mesh_position( mesh )
+    
+        #
+        totalCost = totalTimepointCost + latentAtlasCost
+        print( '*' * 100 + '\n' )
+        print( 'iterationNumber: ', iterationNumber )
+        print( 'totalCost: ', totalCost )
+        print( '   latentAtlasCost: ', latentAtlasCost )
+        print( '   totalTimepointCost: ', totalTimepointCost )
+        print( '*' * 100 + '\n' )
+        historyOfTotalCost.append( totalCost ) 
+        historyOfTotalTimepointCost.append( totalTimepointCost )
+        historyOfLatentAtlasCost.append( latentAtlasCost )
+        
+        if hasattr( visualizer, 'show_flag' ):
+            plt.ion()
+            if progressPlot is None:
+                progressPlot = plt.subplot()
+            progressPlot.clear()
+            progressPlot.plot( historyOfTotalCost, color='k' )
+            progressPlot.plot( historyOfTotalTimepointCost, linestyle='-.', color='b' )
+            progressPlot.plot( historyOfLatentAtlasCost, linestyle='-.', color='r'  )
+            progressPlot.grid()
+            progressPlot.legend( [ 'total', 'timepoints', 'latent atlas deformation' ] )
+            plt.draw()
+
+        if saveHistory:
+            history[ "timepointMeansEvolution" ].append( timepointMeans )
+            history[ "timepointVariancesEvolution" ].append( timepointVariances )
+            history[ "timepointMixtureWeightsEvolution" ].append( timepointMixtureWeights )
+            history[ "timepointBiasFieldCoefficientsEvolution" ].append( timepointBiasFieldCoefficients )
+            history[ "timepointDeformationsEvolution" ].append( timepointDeformations )
+            history[ "timepointDeformationAtlasFileNamesEvolution" ].append( timepointDeformationAtlasFileNames )
+            history[ "latentMeansEvolution" ].append( latentMeans )
+            history[ "latentVariancesEvolution" ].append( latentVariances )
+            history[ "latentMixtureWeightsEvolution" ].append( latentMixtureWeights )
+            history[ "latentDeformationEvolution" ].append( latentDeformation )
+            history[ "latentDeformationAtlasFileNameEvolution" ].append( latentDeformationAtlasFileName )
+
+        if iterationNumber >= ( numberOfIterations-1 ):
+            print( 'Stopping' )
+            break
+
+            
+
+        # =======================================================================================
+        #
+        # Update the latent variables based on the current parameter estimates
+        #
+        # =======================================================================================
+
+        # Update the latentDeformation
+        if updateLatentDeformation:
+            # Set up calculator
+            calculator = gems.KvlCostAndGradientCalculator( mesh_collection, K0, K1, transformUsedForEstimation )
+
+            # Get optimizer and plug calculator in it
+            optimizerType = 'L-BFGS'
+            optimizationParameters = {
+                'Verbose': optimizationOptions[ 'verbose' ],
+                'MaximalDeformationStopCriterion': optimizationOptions[ 'maximalDeformationStopCriterion' ],
+                'LineSearchMaximalDeformationIntervalStopCriterion': optimizationOptions[ 'lineSearchMaximalDeformationIntervalStopCriterion' ],
+                'MaximumNumberOfIterations': optimizationOptions[ 'maximumNumberOfDeformationIterations' ],
+                'BFGS-MaximumMemoryLength': optimizationOptions[ 'BFGSMaximumMemoryLength' ]
+            }
+            optimizer = gems.KvlOptimizer( optimizerType, mesh, calculator, optimizationParameters )
+
+
+
+            # Run deformation optimization
+            historyOfDeformationCost = []
+            historyOfMaximalDeformation = []
+            nodePositionsBeforeDeformation = mesh.points
+            while True:
+                minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
+                print( "maximalDeformation=%.4f minLogLikelihood=%.4f" % ( maximalDeformation, minLogLikelihoodTimesDeformationPrior ) )
+                historyOfDeformationCost.append( minLogLikelihoodTimesDeformationPrior )
+                historyOfMaximalDeformation.append( maximalDeformation )
+                if maximalDeformation == 0:
+                    break
+                
+            nodePositionsAfterDeformation = mesh.points
+            maximalDeformationApplied = np.sqrt(
+                np.max( np.sum( ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation) ** 2, 1 ) ) )
+
+
+            # 
+            nodePositionsBeforeDeformation = mapPositionsFromSubjectToTemplateSpace( nodePositionsBeforeDeformation, transformUsedForEstimation )
+            nodePositionsAfterDeformation = mapPositionsFromSubjectToTemplateSpace( nodePositionsAfterDeformation, transformUsedForEstimation )
+            estimatedUpdate = nodePositionsAfterDeformation - nodePositionsBeforeDeformation
+            latentDeformation += estimatedUpdate
+
+
+        # Update latentMeans
+        if updateLatentMeans:
+            numberOfGaussians =  np.sum( numberOfGaussiansPerClass )
+            numberOfContrasts = latentMeans.shape[ -1 ]
+            for gaussianNumber in range( numberOfGaussians ):
+                # Set up linear system
+                lhs = np.zeros( ( numberOfContrasts, numberOfContrasts ) )
+                rhs = np.zeros( ( numberOfContrasts, 1 ) )
+                for timepointNumber in range( numberOfTimepoints ):
+                    mean = np.expand_dims( timepointMeans[ timepointNumber ][ gaussianNumber ], 1 )
+                    variance = timepointVariances[ timepointNumber ][ gaussianNumber ]
+                    
+                    lhs += np.linalg.inv( variance )
+                    rhs += np.linalg.solve( variance, mean )
+                
+                # Solve linear system
+                latentMean = np.linalg.solve( lhs, rhs )
+                latentMeans[ gaussianNumber, : ] = latentMean.T
+
+
+        # Update latentVariances
+        if updateLatentVariances:
+            numberOfGaussians =  np.sum( numberOfGaussiansPerClass )
+            numberOfContrasts = latentMeans.shape[ -1 ]
+            for gaussianNumber in range( numberOfGaussians ):
+                # Precision is essentially averaged 
+                averagePrecision = np.zeros( ( numberOfContrasts, numberOfContrasts ) )
+                for timepointNumber in range( numberOfTimepoints ):
+                    variance = timepointVariances[ timepointNumber ][ gaussianNumber ]
+                    
+                    averagePrecision += np.linalg.inv( variance )
+                averagePrecision /= numberOfTimepoints
+                
+                latentVarianceNumberOfMeasurements = latentVariancesNumberOfMeasurements[ gaussianNumber ]
+                latentVariance = np.linalg.inv( averagePrecision ) * \
+                                ( latentVarianceNumberOfMeasurements - numberOfContrasts - 1 ) / latentVarianceNumberOfMeasurements
+                latentVariances[ gaussianNumber ] = latentVariance
+
+          
+        # Update latentMixtureWeights
+        if updateLatentMixtureWeights:
+            numberOfClasses = len( numberOfGaussiansPerClass )
+            for classNumber in range( numberOfClasses ):
+                numberOfComponents = numberOfGaussiansPerClass[ classNumber ]
+                averageInLogDomain = np.zeros( numberOfComponents )
+                for componentNumber in range( numberOfComponents ):
+                    gaussianNumber = sum( numberOfGaussiansPerClass[ :classNumber ] ) + componentNumber
+                    for timepointNumber in range( numberOfTimepoints ):
+                        mixtureWeight = timepointMixtureWeights[ timepointNumber ][ gaussianNumber ]
+                        averageInLogDomain[ componentNumber ] += np.log( mixtureWeight + eps )
+                    averageInLogDomain[ componentNumber ] /= numberOfTimepoints
+                
+                # Solution is normalized version
+                solution = np.exp( averageInLogDomain )
+                solution /= np.sum( solution + eps )
+                
+                #
+                for componentNumber in range( numberOfComponents ):
+                    gaussianNumber = sum( numberOfGaussiansPerClass[ :classNumber ] ) + componentNumber
+                    latentMixtureWeights[ gaussianNumber ] = solution[ componentNumber ]
+
+          
+        iterationNumber += 1
+        # End loop over parameter and latent variable estimation iterations
+
+
+
+    # =======================================================================================
+    #
+    # Using estimated parameters, segment and write out results for each time point
+    #
+    # =======================================================================================
+    timepointVolumesInCubicMm = []
+    for timepointNumber in range( numberOfTimepoints ): 
+        #
+        posteriors, biasFields, nodePositions = segment( imageBuffersList[ timepointNumber ], 
+                                                        mask, transform, biasFieldBasisFunctions,
+                                                        modelSpecifications.atlasFileName, 
+                                                        latentDeformation + timepointDeformations[ timepointNumber ], 
+                                                        latentDeformationAtlasFileName,
+                                                        timepointMeans[ timepointNumber ], 
+                                                        timepointVariances[ timepointNumber ], 
+                                                        timepointMixtureWeights[ timepointNumber ],
+                                                        timepointBiasFieldCoefficients[ timepointNumber ], 
+                                                        numberOfGaussiansPerClass, classFractions )
+
+        #
+        timepointDir = os.path.join( savePath, 'timepoint' + str( timepointNumber ) )
+        os.makedirs( timepointDir, exist_ok=True )
+        
+        #
+        volumesInCubicMm = writeResults( imageFileNamesList[ timepointNumber ], 
+                                        timepointDir, imageBuffersList[ timepointNumber ], 
+                                        mask, biasFields, posteriors, 
+                                        modelSpecifications.FreeSurferLabels, cropping,
+                                        targetIntensity, targetSearchStrings, modelSpecifications.names )
+
+        timepointVolumesInCubicMm.append( volumesInCubicMm )
+
+
+
+    #
+    optimizationSummary = { "historyOfTotalCost": historyOfTotalCost, 
+                            "historyOfTotalTimepointCost": historyOfTotalTimepointCost, 
+                            "historyOfLatentAtlasCost": historyOfLatentAtlasCost }
+
+    if saveHistory:
+        history[ "labels" ] = modelSpecifications.FreeSurferLabels
+        history[ "names"] = modelSpecifications.names
+        history[ "timepointVolumesInCubicMm"] = timepointVolumesInCubicMm
+        history[ "optimizationSummary"] = optimizationSummary
+        with open( os.path.join( savePath, 'historyLongitudinal.p' ), 'wb' ) as file:
+            pickle.dump( history, file, protocol=pickle.HIGHEST_PROTOCOL )
+
+    return modelSpecifications.FreeSurferLabels, modelSpecifications.names, timepointVolumesInCubicMm, optimizationSummary
+
+
 
