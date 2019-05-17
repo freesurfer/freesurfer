@@ -33,9 +33,10 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
             divergence = np.max(np.absolute(deltaReferencePosition))
             if divergence < 1e-2:
                 # The reference meshes seem to be the same - therefore simply copy the deformation
-                return sourceReferencePosition + sourceDeformation - targetReferencePosition, 0.0, 0.0
+                return sourceDeformation, 0.0, 0.0
         else:
-            return sourceDeformation, 0.0, 0.0
+            return sourceReferencePosition + sourceDeformation - targetReferencePosition, 0.0, 0.0
+          
           
     imageSize = [int(1 + dim) for dim in np.max(sourceReferencePosition, axis=0)]
     # Rasterize the deformation by abusing alpha drawer
