@@ -1232,7 +1232,8 @@ def saveDeformedAtlas( originalAtlasFileName, deformedAtlasFileName, arg, applyA
 
 
 
-def samsegment( imageFileNames, atlasDir, transformedTemplateFileName, savePath,
+def samsegment( imageFileNames, atlasDir, savePath,
+                transformedTemplateFileName=None, 
                 userModelSpecifications={}, userOptimizationOptions={},
                 visualizer=None, saveHistory=False, saveMesh=False,
                 targetIntensity=None, targetSearchStrings=None ):
@@ -1258,6 +1259,26 @@ def samsegment( imageFileNames, atlasDir, transformedTemplateFileName, savePath,
 
     # Setup a null visualizer if necessary
     if visualizer is None: visualizer = initVisualizer( False, False )
+
+    # Make sure we can write in the target/results directory
+    os.makedirs( savePath, exist_ok=True )
+
+
+    # =======================================================================================
+    #
+    # Perform affine registration if needed
+    #
+    # =======================================================================================
+    if transformedTemplateFileName is None:
+        templateFileName = os.path.join( atlasDir, 'template.nii' )
+        affineRegistrationMeshCollectionFileName = os.path.join( atlasDir, 'atlasForAffineRegistration.txt.gz' )
+        _, transformedTemplateFileName, _ = registerAtlas( imageFileNames[ 0 ],
+                                                           affineRegistrationMeshCollectionFileName,
+                                                           templateFileName,
+                                                           savePath,
+                                                           visualizer=visualizer )
+
+
 
 
     # =======================================================================================
@@ -1496,6 +1517,8 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
     # Setup a null visualizer if necessary
     if visualizer is None: visualizer = initVisualizer( False, False )
 
+    # Make sure we can write in the target/results directory
+    os.makedirs( savePath, exist_ok=True )
 
 
 

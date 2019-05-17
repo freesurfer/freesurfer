@@ -78,15 +78,14 @@ if args.reg_mat:
 else:
     worldToWorldTransformMatrix = None
 
-worldToWorldTransformMatrix, transformedTemplateFileName, optimizationSummary = registerAtlas(
-    args.inputFileNames[0],
-    affineRegistrationMeshCollectionFileName,
-    templateFileName,
-    args.outputDirectory,
-    visualizer,
-    worldToWorldTransformMatrix,
-    args.init_lta
-)
+_, transformedTemplateFileName, optimizationSummary = registerAtlas( args.inputFileNames[0],
+                                                                     affineRegistrationMeshCollectionFileName,
+                                                                     templateFileName,
+                                                                     args.outputDirectory,
+                                                                     visualizer,
+                                                                     worldToWorldTransformMatrix,
+                                                                     args.init_lta
+                                                                   )
 
 # Save a summary of the optimization process
 with open( costfile, "a") as file:
@@ -117,7 +116,8 @@ if args.options:
 fs.printPeakMemory('run_samseg running samsegment')
 
 labels, names, volumes, optimizationSummary = \
-    samsegment( args.inputFileNames, atlasDir, transformedTemplateFileName, args.outputDirectory,
+    samsegment( args.inputFileNames, atlasDir, args.outputDirectory,
+                transformedTemplateFileName=transformedTemplateFileName, 
                 userModelSpecifications=userModelSpecifications, 
                 userOptimizationOptions=userOptimizationOptions,
                 visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
