@@ -26,7 +26,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <cmath>
+#include <math.h>
 #include <iostream>
 
 #include "error.h"

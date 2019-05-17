@@ -337,7 +337,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
 
   UpdateSmoothedNormals();
 
-  QFileInfo fi(m_MRIS->fname);
+  QFileInfo fi(m_MRIS->fname.data());
   if (QFileInfo(fi.absoluteDir(), fi.completeBaseName() + ".curv").exists())
     LoadCurvature();
 

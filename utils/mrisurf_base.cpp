@@ -291,14 +291,15 @@ static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldSize, 
   if (*pcCap < neededCapacity) {
   
     void** p_storage = doOrig ? &mris->dist_orig_storage[vno] : &mris->dist_storage[vno];
-    *p_storage = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+    float* alloced = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+    *p_storage = (void*)alloced;
 
     if (!*pc) {
       char const flag = (char)(1)<<doOrig;
       mris->dist_alloced_flags |= flag;
     }
     
-    *(float**)pc    = (float *)*p_storage;
+    *(float**)pc    = alloced;
     *(int   *)pcCap = neededCapacity;
   }
   

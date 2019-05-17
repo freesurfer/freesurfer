@@ -195,6 +195,7 @@ void PanelPointSet::DoUpdateWidgets()
     bShowSpline = layer->GetProperty()->GetShowSpline();
     ui->checkBoxShowSpline->setChecked( bShowSpline );
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
+    ui->labelEndPointDistance->setText(QString("%1 mm").arg(layer->GetEndPointDistance(), 0, 'f', 3));
   }
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
