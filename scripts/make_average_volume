@@ -317,6 +317,11 @@ while( $#argv != 0 )
       breaksw
 
     case "--fsgd":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
       if ( $#argv == 0) goto arg1err;
       set fsgdf = $argv[1]; shift;
       if(! -e $fsgdf) then
@@ -325,6 +330,21 @@ while( $#argv != 0 )
       endif
       set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
       set SUBJECTS = ($sl);
+      breaksw
+
+    case "--f":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1moreerr;
+      set fname = $argv[1]; shift;
+      if(! -e $fname) then
+        echo "ERROR: cannot find $fname"
+        exit 1;
+      endif
+      set SUBJECTS = ($SUBJECTS `cat $fname`)
       breaksw
 
     case "--out":
