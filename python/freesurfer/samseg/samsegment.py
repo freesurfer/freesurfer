@@ -1582,7 +1582,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             estimateModelParameters( sstImageBuffers, mask, biasFieldBasisFunctions, transform, voxelSpacing,
                                     modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
                                     classFractions, numberOfGaussiansPerClass, optimizationOptions,  
-                                    saveHistory=saveHistory, visualizer=visualizer )
+                                    saveHistory=True, visualizer=visualizer )
 
     if saveHistory:
         history = { 
