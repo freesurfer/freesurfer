@@ -17,21 +17,27 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     sourceReferenceMesh = sourceMeshCollection.reference_mesh
     sourceReferencePosition = sourceReferenceMesh.points
     sourceNumberOfNodes = sourceReferencePosition.shape[0]
-    identityTransform = KvlTransform(np.identity(4))
+    #identityTransform = KvlTransform(np.identity(4))
     targetMeshCollection = KvlMeshCollection()
     targetMeshCollection.read(targetMeshCollectionFileName)
-    targetMeshCollection.transform(identityTransform)
+    #targetMeshCollection.transform(identityTransform)
     targetMeshCollection.k = K
     targetReferenceMesh = targetMeshCollection.reference_mesh
     targetReferencePosition = targetReferenceMesh.points
     targetNumberOfNodes = targetReferencePosition.shape[0]
+    
     # In the special case of identical mesh connectivity, no need to do any optimization
     if targetNumberOfNodes == sourceNumberOfNodes:
-        deltaReferencePosition = sourceReferencePosition - targetReferencePosition
-        divergence = np.max(np.absolute(deltaReferencePosition))
-        if divergence < 1e-2:
-            # The reference meshes seem to be the same - therefore simply copy the deformation
-            return sourceDeformation, 0.0, 0.0
+        if False:
+            deltaReferencePosition = sourceReferencePosition - targetReferencePosition
+            divergence = np.max(np.absolute(deltaReferencePosition))
+            if divergence < 1e-2:
+                # The reference meshes seem to be the same - therefore simply copy the deformation
+                return sourceDeformation, 0.0, 0.0
+        else:
+            return sourceReferencePosition + sourceDeformation - targetReferencePosition, 0.0, 0.0
+          
+          
     imageSize = [int(1 + dim) for dim in np.max(sourceReferencePosition, axis=0)]
     # Rasterize the deformation by abusing alpha drawer
     deformation = np.copy(sourceDeformation)

@@ -218,14 +218,27 @@ void KvlMeshCollection::SetReferencePosition(const py::array_t<double> &source) 
 }
 
 void KvlMeshCollection::SetPositions(const py::array_t<double> &reference, const std::vector<py::array_t<double>> &positions) {
+
   // set the reference position
   SetReferencePosition(reference);
+  std::cout << "positions.size(): " << positions.size() << std::endl;
   // set the additional positions
   std::vector<kvl::AtlasMeshCollection::PointsContainerType::Pointer>  pointsVector;
   for (auto &pos : positions) {
-    PointSetPointer points;
-    CopyNumpyToPointSet(points, pos);
-    pointsVector.push_back(points);
+    // Create a new Points container
+    typedef kvl::AtlasMesh::PointsContainer  PointsContainerType;
+    PointsContainerType::Pointer  target = PointsContainerType::New();
+    PointsContainerType::ConstPointer  sourcePosition = meshCollection->GetReferencePosition();
+    PointsContainerType::ConstIterator  sourceIt = sourcePosition->Begin();
+    while ( sourceIt != sourcePosition->End() )
+      {
+      // insert source coords for this point into target
+      target->InsertElement( sourceIt.Index(), sourceIt.Value() );
+      ++sourceIt;
+      }
+
+    CopyNumpyToPointSet( target.GetPointer(), pos);
+    pointsVector.push_back( target );
   }
   meshCollection->SetPositions(pointsVector);
 }
