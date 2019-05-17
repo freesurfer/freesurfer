@@ -39,7 +39,6 @@ def view(actors, background=(1, 1, 1)):
 
     renderWindow = vtk.vtkRenderWindow()
     renderWindow.AddRenderer(renderer)
-    renderWindow.Render()
     renderWindow.SetWindowName('FreeSurfer Viewer')
     size = np.array(renderWindow.GetScreenSize()) * 0.75
     renderWindow.SetSize(size.astype('int'))
@@ -48,6 +47,8 @@ def view(actors, background=(1, 1, 1)):
     renderWindowInteractor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
     renderWindowInteractor.SetRenderWindow(renderWindow)
     renderWindowInteractor.Initialize()
+
+    renderWindow.Render()
     renderWindowInteractor.Start()
 
 
