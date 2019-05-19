@@ -8189,8 +8189,13 @@ double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   freeAndNULL(vertexRipflags);  
 
+  if (getenv("DISTANCE_ERROR_NEW_BEHAVIOR") != nullptr) {
+    // this is the correct way of doing things (because MRISComputeDistanceTerm does this normalization) 
+    sse_dist /= mris->avg_nbrs;
+  }
+
   /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
-  return (sse_dist);
+  return sse_dist;
 }
 
 int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring)

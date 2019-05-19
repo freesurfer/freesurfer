@@ -13,6 +13,7 @@ option(BUILD_GUIS "Build GUI tools" ON)
 option(BUILD_ATTIC "Build subdirs moved to ./freesurfer/attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
+option(PROFILING "Complile binaries for profiling with gprof" OFF)
 
 if(NOT APPLE)
   # linux-only build options
@@ -266,6 +267,11 @@ else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STRIP_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+if(PROFILING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 endif()
 
 # check for clock_gettime on mac

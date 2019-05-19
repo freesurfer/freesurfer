@@ -167,33 +167,8 @@ AtlasMeshPositionCostAndGradientCalculator
   this->PostProcessCostAndGradient( mesh );
   
   // Take care of the desired boundary conditions
-  switch( m_BoundaryCondition ) 
-    {
-    case SLIDING: 
-      {
-      //std::cout << "SLIDING" << std::endl;
-      this->ImposeSlidingBoundaryConditions( mesh );      
-      break;
-      } 
-    case AFFINE: 
-      {
-      //std::cout << "AFFINE" << std::endl;
-      this->ImposeAffineBoundaryConditions( mesh );  
-      break;
-      } 
-    case TRANSLATION: 
-      {
-      //std::cout << "TRANSLATION" << std::endl;
-      this->ImposeTranslationBoundaryConditions( mesh );  
-      break;
-      } 
-    default:
-      {
-      //std::cout << "NONE" << std::endl;
-      break;
-      }
-    }
-
+  this->ImposeBoundaryCondition( mesh );
+  
 #if KVL_ENABLE_TIME_PROBE  
   clock.Stop();
   std::cout << "Time taken by boundary condition imposition: " << clock.GetMean() << std::endl;
@@ -647,6 +622,45 @@ AtlasMeshPositionCostAndGradientCalculator
 }  
 
 
+
+//
+//
+//
+void
+AtlasMeshPositionCostAndGradientCalculator
+::ImposeBoundaryCondition( const AtlasMesh* mesh )
+{
+
+  switch( m_BoundaryCondition ) 
+    {
+    case SLIDING: 
+      {
+      //std::cout << "SLIDING" << std::endl;
+      this->ImposeSlidingBoundaryConditions( mesh );      
+      break;
+      } 
+    case AFFINE: 
+      {
+      //std::cout << "AFFINE" << std::endl;
+      this->ImposeAffineBoundaryConditions( mesh );  
+      break;
+      } 
+    case TRANSLATION: 
+      {
+      //std::cout << "TRANSLATION" << std::endl;
+      this->ImposeTranslationBoundaryConditions( mesh );  
+      break;
+      } 
+    default:
+      {
+      //std::cout << "NONE" << std::endl;
+      break;
+      }
+    }
+    
+}
+
+    
 //
 //
 //
