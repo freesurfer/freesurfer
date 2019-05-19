@@ -7456,32 +7456,8 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
     }
   }
 
-<<<<<<< HEAD
   fflush(fp);
   return (NO_ERROR);
-=======
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-    if (trial == 0) {
-        sse_dist_trial0 = sse_dist;
-    } else { 
-        if (sse_dist_trial0 != sse_dist) {
-            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
-               sse_dist_trial0, sse_dist, sse_dist_trial0-sse_dist);
-        }
-    }
-  } // trial
-#endif
-
-  freeAndNULL(vertexRipflags);  
-
-  if (getenv("DISTANCE_ERROR_NEW_BEHAVIOR") != nullptr) {
-    // this is the correct way of doing things (because MRISComputeDistanceTerm does this normalization) 
-    sse_dist /= mris->avg_nbrs;
-  }
-
-  /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
-  return sse_dist;
->>>>>>> dev
 }
 
 
