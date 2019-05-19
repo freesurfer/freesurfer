@@ -1075,24 +1075,31 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--min-dist")) {
-      if(nargc < 3) CMDargNErr(option,3);
+      if(nargc < 4) CMDargNErr(option,4);
       surf1 = MRISread(pargv[0]);
       if(surf1==NULL) exit(1);
       surf2 = MRISread(pargv[1]);
       if(surf2==NULL) exit(1);
       // mindist will be on surf2
-      //MRISdistanceBetweenSurfacesExact(surf1, surf2);
-      //MRI *mindist = MRIcopyMRIS(NULL, surf1, 0, "curv");
-      MRI *mindist = MRISminDist(surf1, surf2);
+      int UseExact;
+      sscanf(pargv[2],"%d",&UseExact);
+      printf("Use Exact = %d\n",UseExact);
+      MRI *mindist;
+      if(UseExact){
+	MRISdistanceBetweenSurfacesExact(surf2, surf1);
+	mindist = MRIcopyMRIS(NULL, surf2, 0, "curv");
+      }
+      else 
+	mindist = MRISminDist(surf1, surf2);
       if(mindist==NULL) exit(1);
-      printf("Writing mindist to %s\n",pargv[2]);
-      MRIwrite(mindist,pargv[2]);
+      printf("Writing mindist to %s\n",pargv[3]);
+      MRIwrite(mindist,pargv[3]);
       MRISfree(&surf1);
       MRISfree(&surf2);
       MRIfree(&mindist);
       printf("mris_diff done\n");
       exit(0);
-      nargsused = 3;
+      nargsused = 4;
     } 
     else {
       if (surf1path == NULL) {

@@ -26,7 +26,7 @@
                     INCLUDE FILES
 -------------------------------------------------------*/
 #include <fcntl.h>
-#include <cmath>
+#include <math.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>

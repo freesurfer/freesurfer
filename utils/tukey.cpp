@@ -24,14 +24,14 @@
  */
 
 #include <stdlib.h>
-#include <cmath>
+#include <math.h>
 
 #include "tukey.h"
 
 
 double tukey_biweight(double residual, double C)
 {
-  if (std::abs(residual) > C) {
+  if (abs(residual) > C) {
     return (C * C / 2);
   } else {
     double p = residual / C;

@@ -775,6 +775,12 @@ int MRISregister(MRI_SURFACE *mris,
   mrisLogIntegrationParms(stdout, mris, parms);
   printf("--------------------\n");
 
+  // ATH: this is an ugly hack to restore the old (and incorrect) computation of the distance
+  // term, which had previously used an incorrect value for avg_nbrs
+  MRISresetNeighborhoodSize(mris, 3);
+  float incorrect_avg_nbrs = mris->avg_nbrs;
+  MRISresetNeighborhoodSize(mris, 1);
+
   INTEGRATION_PARMS_copy(&saved_parms, parms);
 
   if (IS_QUADRANGULAR(mris)) {
@@ -873,6 +879,9 @@ int MRISregister(MRI_SURFACE *mris,
       MRIScomputeMetricProperties(mris);
     }
     MRISstoreMeanCurvature(mris);  // store current curv target in H
+
+    // ATH: see above explanation for incorrect_avg_nbrs
+    if (getenv("MRIS_REGISTER_NEW_BEHAVIOR") == nullptr) mris->avg_nbrs = incorrect_avg_nbrs;
 
     if (Gdiag & DIAG_SHOW) {
       if (curvature_names[sno]) {
@@ -2400,14 +2409,14 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
   parms->l_dist = 0.1f; /* was 0.001 */
   parms->l_angle = ANGLE_AREA_SCALE * parms->l_nlarea;
   parms->niterations = niter;
-#if 1
-  parms->tol = 1e-2; /* try and remove as much negative stuff as possible */
-#else
-  parms->tol = 1e-1; /* try and remove as much negative stuff as possible */
-#endif
-  mrisStoreVtotalInV3num(mris); /* hack to speed up neg. area removal */
-  MRISresetNeighborhoodSize(mris, 1);
+  parms->tol = 1e-2; // try and remove as much negative stuff as possible
+
+  // ATH: this is a pretty ugly hack that's caused much despair, it should really be cleaned up
+  mrisStoreVtotalInV3num(mris); // hack to speed up neg. area removal
   fprintf(stdout, "removing remaining folds...\n");
+  float incorrect_avg_nbrs = mris->avg_nbrs;
+  MRISresetNeighborhoodSize(mris, 1);
+  if (getenv("MRIS_SPHERE_NEW_BEHAVIOR") == nullptr) mris->avg_nbrs = incorrect_avg_nbrs;
   mrisRemoveNegativeArea(mris, parms, base_averages > 32 ? 32 : base_averages, MAX_NEG_AREA_PCT, 2);
   MRISresetNeighborhoodSize(mris, 3);
 

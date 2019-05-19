@@ -36,12 +36,12 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 	gqpeak_values = gqpeaks.peak_values
 	gqpeak_indices = gqpeaks.peak_indices
 	GFA = gqpeaks.gfa
-	FA = gqpeaks.fa
-	MD = gqpeaks.md
-	AD = gqpeaks.ad
-	RD = gqpeaks.rd
+	#FA = gqpeaks.fa
+	#MD = gqpeaks.md
+	#AD = gqpeaks.ad
+	#RD = gqpeaks.rd
 
-	gqpeaks = peaks_from_model(model=gqmodel, data=data,sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask, return_odf=True, normalize_peaks=True)
+	#gqpeaks = peaks_from_model(model=gqmodel, data=data,sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask, return_odf=True, normalize_peaks=True)
 
 	tissue_classifier = ThresholdTissueClassifier(GFA, 0.01)
 	seeds = random_seeds_from_mask(GFA > 0.01, seeds_count=1)

@@ -26,7 +26,7 @@
 #include "vtkVersion.h"
 
 #if VTK_MAJOR_VERSION > 5
-#include "QVTKOpenGLWidget.h"
+#include "QVTKOpenGLNativeWidget.h"
 #else
 #include "QVTKWidget.h"
 #endif
@@ -52,7 +52,7 @@ typedef QPair<QString, double> CameraOperation;
 typedef QList<CameraOperation> CameraOperations;
 
 #if VTK_MAJOR_VERSION > 5
-class GenericRenderView : public QVTKOpenGLWidget
+class GenericRenderView : public QVTKOpenGLNativeWidget
 #else
 class GenericRenderView : public QVTKWidget
 #endif

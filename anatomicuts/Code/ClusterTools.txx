@@ -258,11 +258,10 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::GetPolyDatas(std::vector<
 			reader->SetFileName ( files[i].c_str());
 #if VTK_MAJOR_VERSION > 5
 			reader->Update();
-			polydatas.push_back(reader->GetOutputPort());
 #else
 			reader->GetOutput()->Update();
-			polydatas->push_back(reader->GetOutput());
 #endif
+			polydatas->push_back(reader->GetOutput());
 		}
 
 	}
@@ -298,6 +297,22 @@ void ClusterTools<TColorMesh, TImage, THistogramMesh>::SaveMesh(typename TColorM
 	}
 
 
+}
+
+template <class TColorMesh, class TImage, class THistogramMesh>
+std::vector<typename TColorMesh::Pointer>* ClusterTools<TColorMesh, TImage, THistogramMesh>::PolydataToMesh(std::vector<vtkSmartPointer<vtkPolyData>> polydatas)
+{
+	std::vector<typename ColorMeshType::Pointer>* meshes = new std::vector<typename ColorMeshType::Pointer>();
+	for (unsigned int i=0;i<polydatas.size(); i++)
+	{
+		typename MeshConverterType::Pointer converter = MeshConverterType::New();
+		converter->SetVTKPolyData ( polydatas[i] );
+		converter->GenerateData2();
+
+		typename ColorMeshType::Pointer mesh =  converter->GetOutput();
+		meshes->push_back(mesh);	
+	}
+	return meshes;
 }
 
 

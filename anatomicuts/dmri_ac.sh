@@ -26,13 +26,36 @@ echo ${DMRI_DIR}
 echo ${ODMRI_DIR}
 
 clusters=(200 150 100 50)
-#code=/space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
+code=${FREESURFER_HOME}/bin/
 filtershortFibers=${code}streamlineFilter
 anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
 ac_output=${ODMRI} 
+
+function forAll()
+{
+ 	function=$1 #i.e. tractography
+	cluster_call="  $3 $4 $5 $6 $7 $8 $9" #"pbsubmit -n 1 -c " 
+	
+	cd ${SUBJECTS_DIR}                                                
+	for s in */;       
+	do                                                                                                                                                                         
+
+		subject=${s//[\/]/}                                                                                                                                                 
+		echo ${s}
+
+		string="bash ${0} $1 ${subject} $2"                                                                                                                   
+		echo ${string}
+ 		if [[ -z ${cluster_call} ]];
+		then
+			${string}
+		else
+			${cluster_call} "${string}"
+		fi
+	done      
+}
 
 function preprocessDWI()
 {
@@ -100,18 +123,6 @@ function getMaps()
 	fi
 
 }
-function call()
-{
-	#export SUBJECTS_DIR=${subjects_dir}
-	echo "call"
- 	cd ${SUBJECTS_DIR}                                                
-	for s in 6*/;       
-	do                                                                                                                                                                           
-		subject=${s//[\/]/}                                                                                                                                                 
-		#pbsubmit -q max500 -n 1 -c "bash ${0} $1 ${subject}"                                                                                                                    
-		pbsubmit -n 1 -c "bash ${0} $1 ${subject}"                                                                                                                    
-	done      
-}
 function anat2dwi()
 {
 	echo "anat2dwi"
@@ -130,10 +141,13 @@ function filterStreamlines()
 {
 	echo "filterStreamlines"
     subject=$1
-    lenght=$2 
-    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -nu -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
-    ${string}
-
+    lenght=$2
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
+	else
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+	fi
 } 
 #function PreAC()
 #{
@@ -149,7 +163,13 @@ function anatomiCuts()
     lenght=$2
     mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/
     #rm -R ${output}/*
-    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	else
+	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/"
+	fi
+
     ${string}
 
 }
@@ -157,11 +177,20 @@ function anatomiCuts()
 function Hungarian()
 {
 	subject=$1
-	
+	targetSubject=$2	
 	for c in ${clusters[@]};
 	do	
-		si=${diffusion}/${targetSubject}/wm2009parc2dwi.nii.gz
-		sj=${diffusion}/${subject}/wm2009parc2dwi.nii.gz
+
+		
+
+		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+		then
+			si=${diffusion}/${targetSubject}/wm2009parc2dwi.nii.gz
+			sj=${diffusion}/${subject}/wm2009parc2dwi.nii.gz
+		else
+			si=${diffusion}/${targetSubject}/wmparc2dwi.nii.gz
+			sj=${diffusion}/${subject}/wmparc2dwi.nii.gz
+		fi
 		
 		ci=${ac_output}/${targetSubject}
 		cj=${ac_output}/${subject}

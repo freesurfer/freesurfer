@@ -51,6 +51,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QJsonDocument>
+#include "MyUtils.h"
 
 #define NUM_OF_SIDES  10  // must be even number!
 
@@ -920,4 +921,14 @@ bool LayerPointSet::GetCentroidPosition(double *pos)
 bool LayerPointSet::IsEnhanced()
 {
   return !m_mapEnhancedData.isEmpty();
+}
+
+double LayerPointSet::GetEndPointDistance()
+{
+  double val = 0;
+  if (m_points.size() > 1)
+  {
+    val = MyUtils::GetDistance<double>(m_points.first().pt, m_points.last().pt);
+  }
+  return val;
 }

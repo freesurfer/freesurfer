@@ -442,5 +442,5 @@ private:
   vtkNIFTIImageHeader(const vtkNIFTIImageHeader&) = delete;
   void operator=(const vtkNIFTIImageHeader&) = delete;
 };
-#include "vtkNIFTIImageHeader.cxx"
+//#include "vtkNIFTIImageHeader.cxx"
 #endif // vtkNIFTIImageHeader_h

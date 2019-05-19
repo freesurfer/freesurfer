@@ -409,6 +409,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   }
   connect(m_layerCollections["MRI"], SIGNAL(LayerTransformed()),
       m_views[3], SLOT(UpdateBounds()));
+  connect(m_layerCollections["Surface"], SIGNAL(ActiveLayerChanged(Layer*)),
+      m_views[3], SLOT(UpdateAxesActor()));
 
   QActionGroup* actionGroupMode = new QActionGroup( this );
   actionGroupMode->addAction( ui->actionNavigate );
@@ -6590,6 +6592,8 @@ void MainWindow::OnCropVolume()
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
   SetMode( RenderView::IM_VolumeCrop );
+  for (int i = 0; i < 4; i++)
+    m_views[i]->ResetCameraClippingRange();
 }
 
 void MainWindow::OnThresholdVolume()

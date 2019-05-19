@@ -5,9 +5,9 @@
 #include "mri.h"
 #include "log.h"
 
-
 void bindVolume(py::module &m);
 
+typedef py::array_t<float, py::array::f_style | py::array::forcecast> affinematrix;
 
 /**
   MRI subclass to allow interaction between c++ and python.
@@ -16,6 +16,7 @@ class PyVolume : public MRI
 {
 public:
   PyVolume(py::array& array);
+  PyVolume(py::array& array, affinematrix& affine);
   PyVolume(const std::string& filename) : MRI(filename) {};
   ~PyVolume();
 
@@ -24,6 +25,9 @@ public:
 
   void setImage(const py::array& array);
   py::array getImage();
+
+  void setAffine(const affinematrix& array);
+  affinematrix getAffine();
 
   template <class T>
   void setBufferData(py::array_t<T, py::array::f_style | py::array::forcecast> array) {

@@ -213,23 +213,16 @@
           <property name="bottomMargin">
            <number>5</number>
           </property>
-          <item row="1" column="6">
-           <widget class="QLabel" name="labelGeoOpacity">
-            <property name="text">
-             <string>Opacity</string>
+          <item row="1" column="7" colspan="2">
+           <widget class="QSlider" name="sliderGeoOpacity">
+            <property name="maximum">
+             <number>100</number>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            <property name="value">
+             <number>100</number>
             </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="labelGeoOutsideColor">
-            <property name="text">
-             <string>Outside color</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
@@ -246,29 +239,69 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="7">
-           <widget class="QtColorPicker" name="colorPickerGeoFill" native="true"/>
-          </item>
-          <item row="1" column="7" colspan="2">
-           <widget class="QSlider" name="sliderGeoOpacity">
-            <property name="maximum">
-             <number>100</number>
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelGeoInsideColor">
+            <property name="text">
+             <string>Inside color</string>
             </property>
-            <property name="value">
-             <number>100</number>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
+          <item row="0" column="4" rowspan="2">
+           <widget class="QPushButton" name="pushButtonGeoUndo">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Undo</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="6">
+           <widget class="QLabel" name="labelGeoOpacity">
+            <property name="text">
+             <string>Opacity</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
           </item>
           <item row="0" column="6">
            <widget class="QLabel" name="labelGeoFillColor">
             <property name="text">
              <string>Fill color</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="7">
+           <widget class="QtColorPicker" name="colorPickerGeoFill" native="true"/>
+          </item>
+          <item row="0" column="3" rowspan="2">
+           <widget class="QPushButton" name="pushButtonGeoClear">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelGeoOutsideColor">
+            <property name="text">
+             <string>Outside color</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -288,44 +321,11 @@
             </property>
            </spacer>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="labelGeoInsideColor">
-            <property name="text">
-             <string>Inside color</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-           </widget>
+          <item row="1" column="2">
+           <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
           </item>
           <item row="0" column="2">
            <widget class="QtColorPicker" name="colorPickerGeoInside" native="true"/>
-          </item>
-          <item row="0" column="4" rowspan="2">
-           <widget class="QPushButton" name="pushButtonGeoUndo">
-            <property name="maximumSize">
-             <size>
-              <width>50</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Undo</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3" rowspan="2">
-           <widget class="QPushButton" name="pushButtonGeoClear">
-            <property name="maximumSize">
-             <size>
-              <width>50</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Clear</string>
-            </property>
-           </widget>
           </item>
          </layout>
         </widget>
@@ -487,30 +487,8 @@
        <item row="12" column="0" colspan="7">
         <layout class="QHBoxLayout" name="horizontalLayout_7">
          <property name="bottomMargin">
-          <number>5</number>
+          <number>0</number>
          </property>
-         <item>
-          <widget class="QLabel" name="labelGeoMessage">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>1</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-           <property name="scaledContents">
-            <bool>true</bool>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-           <property name="wordWrap">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
          <item>
           <widget class="BusyIndicator" name="widgetBusyIndicator" native="true">
            <property name="minimumSize">
@@ -518,6 +496,16 @@
              <width>10</width>
              <height>0</height>
             </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxGeoSegOverwrite">
+           <property name="layoutDirection">
+            <enum>Qt::LeftToRight</enum>
+           </property>
+           <property name="text">
+            <string>Overwrite existing labels</string>
            </property>
           </widget>
          </item>
@@ -655,6 +643,54 @@
           </widget>
          </item>
         </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QWidget" name="widgetEmpty" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>2</width>
+           <height>2</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>2</width>
+           <height>2</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelGeoMessage">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font-size:10px;</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>true</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+         </property>
+         <property name="wordWrap">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -1288,10 +1324,10 @@ Shift + Left button to erase.
      <normaloff>:/resource/icons/voxel_draw_autoseg.png</normaloff>:/resource/icons/voxel_draw_autoseg.png</iconset>
    </property>
    <property name="text">
-    <string>Geodesic Segmentation</string>
+    <string>Geodesic Matting</string>
    </property>
    <property name="toolTip">
-    <string>Geodesic Segmentation</string>
+    <string>Geodesic Matting</string>
    </property>
   </action>
  </widget>

@@ -1064,7 +1064,7 @@ void LayerMRI::OnContourThreadFinished(int thread_id)
         {
           m_labelActors[n] = m_labelActorsTemp[n];
 #if VTK_MAJOR_VERSION > 5
-          m_labelActors[n]->ForceOpaqueOn();
+          m_labelActors[n]->ForceTranslucentOn();
 #endif
           m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
         }
@@ -3950,7 +3950,7 @@ bool LayerMRI::GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, d
     connect(m_geos, SIGNAL(Progress(double)), this, SIGNAL(GeodesicSegmentationProgress(double)));
   }
 
-  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist, smoothing);
+  m_geos->Compute((LayerMRI*)m_propertyBrush->GetReferenceLayer(), this, seeds, (int)max_dist, smoothing, mask);
   return true;
 }
 

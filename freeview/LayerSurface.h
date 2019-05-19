@@ -441,6 +441,8 @@ public slots:
     return m_marks;
   }
 
+  vtkActor* GetMainActor();
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );

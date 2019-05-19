@@ -5864,7 +5864,7 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
   double pv1[3], pf1[3], pf2[3], pf3[3];
   VERTEX *v1, *v2;
 
-  mht = MHTcreateVertexTable_Resolution(surf1, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(surf2, CURRENT_VERTICES, 10);
 
   for (vno1 = 0; vno1 < surf1->nvertices; vno1++) {
     v1 = &surf1->vertices[vno1];
@@ -5889,7 +5889,7 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
       d = MinDistToTriangleBF(pf1,pf2,pf3,pv1,dL);
       if(d<dmin) dmin = d;
     }
-    if(vno1 == Gdiag_no || vno2 == Gdiag_no) printf("%6d %6d  %6.4f %6.4f\n",vno1,vno2,dminv,dmin);
+    //if(vno1 == Gdiag_no || vno2 == Gdiag_no) printf("%6d %6d  %6.4f %6.4f\n",vno1,vno2,dminv,dmin);
 
     v1->curv = dmin;
   }
@@ -12484,7 +12484,7 @@ int mrisCheckSurface(MRIS *mris)
         printf("mrisCheckSurface: %s: face[%d].v[%d] = %d, "
                   "but face %d not in vertex %d "
                   "face list\n",
-                  mris->fname,
+                  mris->fname.data(),
                   fno,
                   m,
                   f->v[m],

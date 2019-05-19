@@ -26,7 +26,6 @@
                     INCLUDE FILES
 -------------------------------------------------------*/
 #include <math.h>
-#include <cmath>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -4240,7 +4239,7 @@ MRI *MRInxcorrWindow(MRI *mri_ref, MRI *mri_in, MRI *mri_dst, int window_size)
               in = *pin;
               ref = *pref;
 
-              norm += std::abs((float)in * (float)ref);
+              norm += fabs((float)in * (float)ref);
               dst += (float)in * (float)ref;
             }
           }

@@ -170,6 +170,8 @@ int BonferroniMax = 0;
 int ReportCentroid = 0;
 int sig2pmax = 0; // convert max value from -log10(p) to p
 
+MRI *fwhmmap=NULL; // map of vertex-wise FWHM for non-stationary correction
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char fname[2000];
@@ -431,7 +433,7 @@ int main(int argc, char **argv) {
   printf("thmin=%f (%f), thmax=%f (%g), thsignid=%d, minarea=%lf\n",
          thmin,thminadj,thmax,thmaxadj,thsignid,minarea);
   scs = sclustMapSurfClusters(srcsurf,thminadj,thmaxadj,thsignid,
-                              minarea,&NClusters,XFM);
+                              minarea,&NClusters,XFM, fwhmmap);
   printf("Found %d clusters\n",NClusters);
   cmaxsize = sclustMaxClusterArea(scs, NClusters);
   printf("Max cluster size %lf\n",cmaxsize);
@@ -968,11 +970,25 @@ static int parse_commandline(int argc, char **argv) {
       subjectsdir = pargv[0];
       FSENVsetSUBJECTS_DIR(subjectsdir);
       nargsused = 1;
-    } else if (!strcmp(option, "--fwhm")) {
+    } 
+    else if (!strcmp(option, "--fwhm")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
-    } else if (!strcmp(option, "--fwhmdat")) {
+    } 
+    else if (!strcmp(option, "--fwhm-map")) {
+      if (nargc < 1) argnerr(option,1);
+      fwhmmap = MRIread(pargv[0]);
+      if(fwhmmap==NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--use-avg-vertex-area")) {
+      setenv("FS_CLUSTER_USE_AVG_VERTEX_AREA","1",1);
+    } 
+    else if (!strcmp(option, "--no-use-avg-vertex-area")) {
+      setenv("FS_CLUSTER_USE_AVG_VERTEX_AREA","0",1);
+    } 
+    else if (!strcmp(option, "--fwhmdat")) {
       if(nargc < 1) argnerr(option,1);
       fp = fopen(pargv[0],"r");
       if(fp == NULL){
