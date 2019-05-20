@@ -440,7 +440,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
       }
     }
   }
-  vs[nPlane] = 1.0;
+//  vs[nPlane] = 1.0;
 
   *count_out = cnt;
   *area_out = cnt*vs[0]*vs[1]*vs[2];

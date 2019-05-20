@@ -19,6 +19,7 @@ def registerAtlas(
         visualizer=None,
         worldToWorldTransformMatrix=None,
         initLTAFile=None,
+        K=None
     ):
 
     # ------ Setup ------
@@ -30,7 +31,6 @@ def registerAtlas(
     templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
     basepath, templateFileNameExtension = os.path.splitext(templateFileName)
     templateFileNameBase = os.path.basename(basepath)
-    costs = []
 
     # Setup null visualization if necessary
     if visualizer is None: visualizer = initVisualizer(False, False)
@@ -51,7 +51,8 @@ def registerAtlas(
         # First, we'll hard-code some parameters:
         targetDownsampledVoxelSpacing = 3.0
         # Mesh stiffness K (i.e., measures an average per voxel), so that this needs to be scaled down by the number of voxels that are covered
-        K = 1e-7
+        if K is None:
+            K = 1e-7
         maximalDeformationStopCriterion = 0.005
         lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion  # Doesn't seem to matter very much
 
@@ -158,14 +159,8 @@ def registerAtlas(
         numberOfIterations = 0
         minLogLikelihoodTimesPriors = []
         maximalDeformations = []
-        gradients = []
         visualizer.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
         while True:
-            cost, gradient = calculator.evaluate_mesh_position_c(mesh)
-            print('cost = %f' % cost)
-            costs.append(cost)
-            gradients.append(gradient)
-
             minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_atlas()
             minLogLikelihoodTimesPriors.append(minLogLikelihoodTimesPrior)
             maximalDeformations.append(maximalDeformation)
@@ -188,17 +183,13 @@ def registerAtlas(
         imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix
         worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv(templateImageToWorldTransformMatrix)
 
-        # Log the final cost
-        with open(os.path.join(savePath, 'cost.txt'), "a") as file:
-            file.write("templateRegistration %d %f\n" % (len(costs), costs[-1]))
 
     # ------ Save Registration Results ------
 
     # Save the image-to-image and the world-to-world affine registration matrices
     scipy.io.savemat(os.path.join(savePath, templateFileNameBase + '_coregistrationMatrices.mat'),
                      {'imageToImageTransformMatrix': imageToImageTransformMatrix,
-                      'worldToWorldTransformMatrix': worldToWorldTransformMatrix,
-                      'costs': costs})
+                      'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 
     # Compute and save the talairach.xfm
     lta = computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix)
@@ -211,7 +202,11 @@ def registerAtlas(
     transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
     template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
 
-    return worldToWorldTransformMatrix, transformedTemplateFileName
+    # Return
+    optimizationSummary = { 'numberOfIterations': len( minLogLikelihoodTimesPriors ),
+                            'cost': minLogLikelihoodTimesPriors[ -1 ] }
+    return worldToWorldTransformMatrix, transformedTemplateFileName, optimizationSummary
+
 
 
 def computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix):

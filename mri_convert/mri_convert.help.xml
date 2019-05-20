@@ -119,6 +119,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>TI in msec (note upper case flag)</explanation>
       <argument>-flip_angle flip angle </argument>
       <explanation>angle in radians </explanation>
+      <argument>--ctab ColorTableFile </argument>
+      <explanation>Imbed color table into output </explanation>
       <argument>--autoalign mtxfile </argument>
       <explanation>text file with autoalign matrix </explanation>
       <argument>-oval  val</argument>

@@ -4,6 +4,9 @@ import re
 import platform
 import datetime as dt
 import subprocess as sp
+import numpy as np
+
+from .colors import get_cmap
 
 
 def run(command, silent=False, background=False, executable='/bin/bash'):
@@ -133,3 +136,30 @@ class Timer:
 
     def mark(self, message):
         print('%s: %s' % (message, str(self.elapsed)))
+
+
+class LookupTable:
+    def __init__(self):
+        self._colors = {}
+        self._names = {}
+
+    def add(self, i, name, color):
+        self._colors[i] = color
+        self._names[i] = name
+
+    def color(self, i):
+        return self._colors.get(i, np.array([255, 255, 255], dtype='int'))
+
+    def name(self, i):
+        return self._names.get(i, '')
+
+    @staticmethod
+    def from_list(labels, cmap='pastel'):
+        unique = np.unique(labels)
+        colors = get_cmap(cmap).list(len(unique))
+        lut = LookupTable()
+        for i, label in enumerate(unique):
+            lut.add(label, '', colors[i])
+        return lut
+
+

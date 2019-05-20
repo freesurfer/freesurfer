@@ -11,51 +11,49 @@ def meshValidityTest(alphas, name):
         raise ValueError(message)
 
 
-def kvlMergeAlphas(alphas, names, mergeOptions, FreeSurferLabels=None, colors=None):
+def kvlGetMergingFractionsTable( names, mergeOptions ):
+    '''Computes a numerOfClasses x numberOfStructures matrix where each column indicates the fractions 
+    of the various classes (super-structures) in the corresponding structure. So each column sums to 1.'''
+
+    #
+    numberOfClasses = len( mergeOptions )
+
+    fractionsTable = np.zeros( ( numberOfClasses, len( names ) ) )
+    mergedNames = [];
+    for classNumber, mergeOption in enumerate( mergeOptions ):
+        mergedNames.append( mergeOption.mergedName.strip() )
+        for searchString in mergeOption.searchStrings:
+            for structureNumber, name in enumerate( names ):
+                if searchString in name:
+                    fractionsTable[ classNumber, structureNumber ] = 1.0
+
+    if not fractionsTable.any( axis=0 ).all():
+        raise ValueError( 'some structures are not associated with any super-structures' )
+
+    fractionsTable = fractionsTable / np.sum(fractionsTable, 0)
+
+    # Print out merge info
+    for classNumber in range( numberOfClasses ):
+        print( mergedNames[ classNumber ] )
+        for structureNumber in range( len( names ) ):
+            percentage = int( fractionsTable[ classNumber, structureNumber ] * 100 )
+            if percentage > 0:
+                print( '    %s (%d%%)' % ( names[ structureNumber ].ljust( len( max( names, key=len ) ) ), percentage ) )
+
+    return fractionsTable, mergedNames
+
+
+def kvlMergeAlphas( alphas, fractionsTable ):
     '''Creates a 'mergedAlphas' matrix where one or more columns of the 'alphas'
     matrix have been "merged" (i.e., added together).'''
 
-    alpha_count, label_count = alphas.shape
-    if FreeSurferLabels is None:
-        FreeSurferLabels = [math.nan] * label_count
-    if colors is None:
-        colors = [[math.nan] * 4] * label_count
+    # Make sure we're dealing with a valid mesh
+    meshValidityTest( alphas, 'alphas' )
+
+    # Do the actual merging
+    mergedAlphas = np.dot( alphas, fractionsTable.T )
 
     # Make sure we're dealing with a valid mesh
-    meshValidityTest(alphas, 'alphas')
+    meshValidityTest( mergedAlphas, 'mergedAlphas' )
 
-    numberOfClasses = len(mergeOptions)
-
-    translationTable = np.zeros((numberOfClasses, len(names)))
-    mergedNames = [];
-    for classNumber, mergeOption in enumerate(mergeOptions):
-        mergedNames.append(mergeOption.mergedName.strip())
-        for searchString in mergeOption.searchStrings:
-            for structureNumber, name in enumerate(names):
-                if searchString in name:
-                    translationTable[classNumber, structureNumber] = 1.0
-
-    if not translationTable.any():
-        raise ValueError('some structures are not associated with any super-structures')
-
-    translationTable = translationTable / np.sum(translationTable, 0)
-
-    mergedAlphas = np.dot(alphas, translationTable.T)
-    meshValidityTest(mergedAlphas, 'mergedAlphas')
-
-    mergedFreeSurferLabels = -(np.arange(numberOfClasses) + 1)
-
-    mergedColors = []
-    for n in range(numberOfClasses):
-        hue = n / numberOfClasses
-        mergedColors.append([255 * component for component in colorsys.hsv_to_rgb(hue, 1, 1)] + [255])
-
-    # Print out merge info
-    for classNumber in range(numberOfClasses):
-        print(mergedNames[classNumber])
-        for structureNumber in range(len(names)):
-            percentage = int(translationTable[classNumber, structureNumber] * 100)
-            if percentage > 0:
-                print('    %s (%d%%)' % (names[structureNumber].ljust(len(max(names, key=len))), percentage))
-
-    return mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, translationTable
+    return mergedAlphas

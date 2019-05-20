@@ -68,6 +68,7 @@
 #include "Interactor3DPathEdit.h"
 #include <QElapsedTimer>
 #include "vtkInteractorStyleMyTrackballCamera.h"
+#include <vtkCubeAxesActor.h>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -85,7 +86,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   GetRenderer()->SetOcclusionRatio(0);
 
   m_bShowSliceFrames = true;
-  m_bShowAxes = true;
+  m_bShowAxes = false;
   m_bShowCursor = true;
   m_bFocalPointAtCursor = false;
   for ( int i = 0; i < 3; i++ )
@@ -404,8 +405,8 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
     }
   }
 
-  //  if (m_bShowAxes)
-  //    m_renderer->AddViewProp(m_actorAxesActor);
+  if (m_bShowAxes)
+    m_renderer->AddViewProp(m_actorAxesActor);
 
   //    mainwnd->GetConnectivityData()->AppendProps( m_renderer );
   mainwnd->GetVolumeCropper()->Append3DProps( m_renderer );
@@ -1150,23 +1151,20 @@ bool RenderView3D::UpdateBounds()
 {
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   double bounds[6] = { 1000000, -1000000, 1000000, -1000000, 1000000, -1000000 };
-  for ( int n = 0; n < 1; n++ )
+  LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
   {
-    LayerCollection* lc = mainwnd->GetLayerCollection( (n == 0 ? "MRI" : "Surface") );
-    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+    double bd[6];
+    lc->GetLayer( i )->GetDisplayBounds( bd );
+    for ( int j = 0; j < 3; j++ )
     {
-      double bd[6];
-      lc->GetLayer( i )->GetDisplayBounds( bd );
-      for ( int j = 0; j < 3; j++ )
+      if ( bounds[j*2] > bd[j*2] )
       {
-        if ( bounds[j*2] > bd[j*2] )
-        {
-          bounds[j*2] = bd[j*2];
-        }
-        if ( bounds[j*2+1] < bd[j*2+1] )
-        {
-          bounds[j*2+1] = bd[j*2+1];
-        }
+        bounds[j*2] = bd[j*2];
+      }
+      if ( bounds[j*2+1] < bd[j*2+1] )
+      {
+        bounds[j*2+1] = bd[j*2+1];
       }
     }
   }
@@ -1189,12 +1187,28 @@ bool RenderView3D::UpdateBounds()
   if (dMaxLength > 0)
     m_cursor3D->RebuildActor(dMaxLength/256);
 
-  // update axis
-  m_actorAxesActor->SetBounds(m_dBounds);
-
   return true;
 }
 
+void RenderView3D::UpdateAxesActor()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if (surf && surf->IsVisible())
+  {
+    vtkActor* prop = surf->GetMainActor();
+    double bounds[6];
+    prop->GetBounds(bounds);
+    m_actorAxesActor->SetXAxisRange(0, bounds[1]-bounds[0]);
+    m_actorAxesActor->SetYAxisRange(0, bounds[3]-bounds[2]);
+    m_actorAxesActor->SetZAxisRange(0, bounds[5]-bounds[4]);
+    m_actorAxesActor->SetBounds(bounds);
+    m_actorAxesActor->VisibilityOn();
+  }
+  else
+  {
+    m_actorAxesActor->VisibilityOff();
+  }
+}
 
 bool RenderView3D::PickCroppingBound( int nX, int nY )
 {
@@ -1391,6 +1405,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   {
     menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
   }
+
   if (!layers.isEmpty())
   {
     QMenu* menu2 = menu->addMenu("Show Color Bar");
@@ -1406,6 +1421,12 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+
+    QAction* act = new QAction("Show 3D Scale", this);
+    act->setCheckable(true);
+    act->setChecked(GetShowAxes());
+    connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
+    menu->addAction(act);
   }
   LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
   if (mri && mri->GetProperty()->GetShowAsContour())
@@ -1587,3 +1608,8 @@ void RenderView3D::SetFocalPointAtCursor(bool b)
   m_interactorStyle->SetRotateByPoint(b, b?m_cursor3D->GetPosition():NULL);
 }
 
+void RenderView3D::SetShowAxes(bool b)
+{
+  m_bShowAxes = b;
+  RefreshAllActors();
+}

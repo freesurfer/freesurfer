@@ -23,7 +23,7 @@
  *
  */
 
-#include <cmath>
+#include <math.h>
 
 #include "LineProf.h"
 

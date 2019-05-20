@@ -34,12 +34,13 @@ GeoSWorker::~GeoSWorker()
   m_geos->deleteLater();
 }
 
-void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing)
+void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing, LayerMRI* mask)
 {
   m_mri = mri;
   m_seg = seg;
   m_seeds = seeds;
   m_dSmoothing = smoothing;
+  m_mask = mask;
   if (max_distance > 0)
     m_nMaxDistance = max_distance;
   emit ComputeTriggered();
@@ -235,26 +236,43 @@ void GeoSWorker::DoCompute()
     void* p = m_seg->GetImageData()->GetScalarPointer();
     int nDataType = m_seg->GetImageData()->GetScalarType();
     double fillValue = m_seg->GetFillValue();
+    float* mask_ptr = NULL;
+    if (m_mask)
+    {
+      cast = vtkSmartPointer<vtkImageCast>::New();
+    #if VTK_MAJOR_VERSION > 5
+      cast->SetInputData(m_mask->GetImageData());
+    #else
+      cast->SetInput(m_mask->GetImageData());
+    #endif
+      cast->SetOutputScalarTypeToFloat();
+      cast->Update();
+      vtkImageData* mask_image = cast->GetOutput();
+      mask_ptr = (float*)mask_image->GetScalarPointer();
+    }
     for (size_t n = 0; n < vol_size; n++)
     {
       if (seeds_out[n] > 0)
       {
         size_t i = (n%dim_new[0]), j = ((n/dim_new[0])%dim_new[1]), k = n/(dim_new[0]*dim_new[1]);
         i = (i+bound[0]) + (j+bound[2])*dim[0] + (k+bound[4])*dim[0]*dim[1];
-        switch (nDataType)
+        if (!mask_ptr || mask_ptr[i] == 0)
         {
-        case VTK_INT:
-          ((int*)p)[i] = (int)fillValue;
-          break;
-        case VTK_UNSIGNED_CHAR:
-          ((unsigned char*)p)[i] = (unsigned char)fillValue;
-          break;
-        case VTK_FLOAT:
-          ((float*)p)[i] = (float)fillValue;
-          break;
-        case VTK_DOUBLE:
-          ((double*)p)[i] = (double)fillValue;
-          break;
+          switch (nDataType)
+          {
+          case VTK_INT:
+            ((int*)p)[i] = (int)fillValue;
+            break;
+          case VTK_UNSIGNED_CHAR:
+            ((unsigned char*)p)[i] = (unsigned char)fillValue;
+            break;
+          case VTK_FLOAT:
+            ((float*)p)[i] = (float)fillValue;
+            break;
+          case VTK_DOUBLE:
+            ((double*)p)[i] = (double)fillValue;
+            break;
+          }
         }
       }
     }

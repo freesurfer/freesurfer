@@ -1,4 +1,4 @@
-#include <cmath>
+#include <math.h>
 #include <fstream>
 #include <iostream>
 #include <stdlib.h> // exit
@@ -59,7 +59,7 @@ inv_transform(float* t,
                - t[3] * ( t[1]*t[8] - t[2]*t[7] )
                + t[6] * ( t[1]*t[5] - t[2]*t[4] );
 
-  if ( std::abs(fdet) < 1.0e-5 )
+  if ( fabs(fdet) < 1.0e-5 )
   {
     std::cerr << " inv_transform -> null det \n";
     exit(1);

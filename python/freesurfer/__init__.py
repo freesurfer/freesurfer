@@ -20,8 +20,8 @@ except ImportError:
               'one used to compile the bindings library')
     raise
 
-from .bindings import Volume
-from .surface import *
+from .bindings import Volume, Surface
+from .bindings import read_annotation
 
 from .geometry import *
 from ._surface import *

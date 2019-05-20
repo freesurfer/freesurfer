@@ -68,6 +68,7 @@ int ncutends = 0, cutends_flag = 0;
 int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
 int SplitFrames=0;
+COLOR_TABLE *ctab = NULL;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -787,6 +788,18 @@ int main(int argc, char *argv[])
                in_k_directions[2]);
       }
       in_k_direction_flag = TRUE;
+    }
+
+    else if(strcmp(argv[i], "--ctab") == 0)
+    {
+      char ctabfile[STRLEN];
+      get_string(argc, argv, &i, ctabfile);
+      ctab = CTABreadASCII(ctabfile);
+      if (ctab == NULL){
+	printf("ERROR: reading %s\n",ctabfile);
+	exit(1);
+      }
+      printf("Imbedding color table %s into output volume\n",ctabfile);
     }
 
     else if(strcmp(argv[i], "--in_orientation") == 0)
@@ -3435,6 +3448,9 @@ int main(int argc, char *argv[])
   {
     mri->AutoAlign = AutoAlign ;
   }
+
+  if(ctab != NULL)
+    mri->ct = ctab;
 
   /*------ Finally, write the output -----*/
   

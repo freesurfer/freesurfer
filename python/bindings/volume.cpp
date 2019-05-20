@@ -13,6 +13,7 @@ void bindVolume(py::module &m)
     .def(py::init<const std::string&>())
     .def("write", &PyVolume::write)
     .def_property("image", &PyVolume::getImage, &PyVolume::setImage)
+    .def_property("affine", &PyVolume::getAffine, &PyVolume::setAffine)
   ;
 }
 
@@ -61,12 +62,21 @@ static py::dtype pytype(const MRI* mri)
 
 
 /**
-  Constructs an MRI instance from a 3D or 4D numpy array.
+  Constructs an MRI instance from a 3/4D numpy array.
 */
 PyVolume::PyVolume(py::array& array) : MRI(array.request().shape, voltype(array))
 {
   setImage(array);
-}
+};
+
+
+/**
+  Constructs an MRI instance from a 3/4D numpy array and an affine matrix.
+*/
+PyVolume::PyVolume(py::array& array, affinematrix& affine) : PyVolume(array)
+{
+  setAffine(affine);
+};
 
 
 PyVolume::~PyVolume()
@@ -107,7 +117,8 @@ py::array PyVolume::getImage()
   Sets the MRI image buffer from a numpy array. The input array must match the shape of the
   underlying data, but if the MRI has only 1 frame, then a 3D input is also allowed.
 */
-void PyVolume::setImage(const py::array& array) {
+void PyVolume::setImage(const py::array& array)
+{
   switch (type) {
     case MRI_UCHAR:
       setBufferData<unsigned char>(array); break;
@@ -122,4 +133,55 @@ void PyVolume::setImage(const py::array& array) {
     default:
       throw py::value_error("unknown MRI data type");
   }
+}
+
+
+/**
+  Gets the volume's affine vox->ras matrix.
+*/
+affinematrix PyVolume::getAffine()
+{
+  return affinematrix({4, 4}, fstrides({4, 4}, sizeof(float)), i_to_r__->mat);  
+}
+
+
+/**
+  Sets the volume's affine vox->ras matrix.
+*/
+void PyVolume::setAffine(const affinematrix& array)
+{
+  const float *ptr = array.data(0);
+  double xr = ptr[0];
+  double xa = ptr[1];
+  double xs = ptr[2];
+
+  double yr = ptr[4];
+  double ya = ptr[5];
+  double ys = ptr[6];
+
+  double zr = ptr[8];
+  double za = ptr[9];
+  double zs = ptr[10];
+
+  double pr = ptr[12];
+  double pa = ptr[13];
+  double ps = ptr[14];
+
+  double sizex = std::sqrt(xr * xr + xa * xa + xs * xs);
+  double sizey = std::sqrt(yr * yr + ya * ya + ys * ys);
+  double sizez = std::sqrt(zr * zr + za * za + zs * zs);
+
+  x_r = xr / sizex;
+  x_a = xa / sizex;
+  x_s = xs / sizex;
+
+  y_r = yr / sizey;
+  y_a = ya / sizey;
+  y_s = ys / sizey;
+
+  z_r = zr / sizez;
+  z_a = za / sizez;
+  z_s = zs / sizez;
+
+  MRIp0ToCRAS(this, pr, pa, ps);
 }
