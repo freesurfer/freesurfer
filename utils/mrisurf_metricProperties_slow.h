@@ -730,3 +730,279 @@ static void MRIScomputeMetricPropertiesWkr(MRIS *mris)
     mris->total_area = M_PI * mris->radius * mris->radius * 4.0;
   }
 }
+
+float mrisSampleMinimizationEnergy(
+    MRIS *mris, int vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
+  VERTEX const * const v = &mris->vertices[vno];
+  
+  float xw, yw, zw, dx, dy, dz, thick_sq, xp, yp, zp;
+
+  project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
+  MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw);
+  MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp);
+
+  dx = xp - xw;
+  dy = yp - yw;
+  dz = zp - zw;
+  thick_sq = dx * dx + dy * dy + dz * dz;
+
+  return (thick_sq);
+}
+
+float mrisSampleNormalEnergy(
+    MRIS *mris, int vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
+  VERTEX const * const v = &mris->vertices[vno];
+  
+  float dx, dy, dz, len, xw, yw, zw, xp, yp, zp, pnx, pny, pnz;
+  double sse;
+
+  if (v - mris->vertices == Gdiag_no) DiagBreak();
+
+  project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
+  MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw);
+  MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp);
+
+  dx = xp - xw;
+  dy = yp - yw;
+  dz = zp - zw;
+  len = sqrt(dx * dx + dy * dy + dz * dz);
+  if (len < 0.01)  // can't reliably estimate normal. Probably not in cortex
+  {
+    return (0.0);
+  }
+  dx /= len;
+  dy /= len;
+  dz /= len;
+  len = dx * v->wnx + dy * v->wny + dz * v->wnz;  // dot product
+  len = 1 - len;
+  sse = sqrt(len * len);
+  //  sse = SQR(dx-v->wnx) + SQR(dy-v->wny) + SQR(dz-v->wnz) ;
+
+  MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, cx, cy, cz, PIAL_NORMALS, &pnx, &pny, &pnz);
+  len = sqrt(pnx * pnx + pny * pny + pnz * pnz);
+  if (len < 0.01)  // can't reliably estimate normal. Probably not in cortex
+    return (0.0);
+  pnx /= len;
+  pny /= len;
+  pnz /= len;
+  len = dx * pnx + dy * pny + dz * pnz;  // dot product
+  len = 1 - len;
+  sse += sqrt(len * len);
+  //  sse += SQR(dx-pnx) + SQR(dy-pny) + SQR(dz-pnz) ;
+
+  if (!devFinite(sse)) DiagBreak();
+
+  return (sse);
+}
+
+float mrisSampleSpringEnergy(
+    MRIS *mris, int const vno, float cx, float cy, float cz, INTEGRATION_PARMS *parms)
+{
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
+
+  float xn, yn, zn, xp, yp, zp, xc, yc, zc;
+  double sse, fdist, vdist = mris->avg_vertex_dist;
+  int n, num, fno;
+
+  FACE *face;
+  MHT *mht = (MHT *)(parms->mht);
+
+  if (vdist == 0.0) vdist = 1.0;
+
+  project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
+  if (v - mris->vertices == Gdiag_no) DiagBreak();
+
+  MHTfindClosestFaceGeneric(mht, mris, cx, cy, cz, 4, 4, 1, &face, &fno, &fdist);
+  if (fno < 0) MHTfindClosestFaceGeneric(mht, mris, cx, cy, cz, 1000, -1, -1, &face, &fno, &fdist);
+  MRISsampleFaceCoords(mris, fno, cx, cy, cz, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
+
+  xc = yc = zc = 0;
+  for (num = n = 0; n < vt->vnum; n++) {
+    VERTEX const * const vn = &mris->vertices[vt->v[n]];
+    if (vn->ripflag) continue;
+    MRISsampleFaceCoords(mris, vn->fno, vn->x, vn->y, vn->z, PIAL_VERTICES, CANONICAL_VERTICES, &xn, &yn, &zn);
+    xc += xn;
+    yc += yn;
+    zc += zn;
+    num++;
+  }
+  if (num > 0) {
+    xc /= num;
+    yc /= num;
+    zc /= num;
+  }
+
+  sse = (SQR(xc - xp) + SQR(yc - yp) + SQR(zc - zp)) / vdist;
+
+  if (!devFinite(sse)) DiagBreak();
+
+  return (sse);
+}
+
+
+float mrisSampleParallelEnergyAtVertex(MRIS *mris, int const vno, INTEGRATION_PARMS *parms)
+{
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
+  float xw, yw, zw, xp, yp, zp, dx, dy, dz, dxn, dyn, dzn, len, dxn_total, dyn_total, dzn_total;
+  int n, num;
+  double sse;
+
+  MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw);
+  MRISsampleFaceCoords(mris, v->fno, v->x, v->y, v->z, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
+
+  dx = xp - xw;
+  dy = yp - yw;
+  dz = zp - zw;
+  len = sqrt(dx * dx + dy * dy + dz * dz);
+  if (FZERO(len)) return (0.0);
+
+  dx /= len;
+  dy /= len;
+  dz /= len;
+
+  // compute average of neighboring vectors connecting white and pial surface, store it in d[xyz]n_total
+  dxn_total = dyn_total = dzn_total = 0.0;
+  for (num = 0, sse = 0.0, n = 0; n < vt->vnum; n++) {
+    VERTEX * const vn = &mris->vertices[vt->v[n]];
+    if (vn->ripflag) continue;
+
+    MRISvertexCoord2XYZ_float(vn, WHITE_VERTICES, &xw, &yw, &zw);
+    if (vn->fno >= 0) {
+      MRISsampleFaceCoords(mris, vn->fno, vn->x, vn->y, vn->z, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
+    }
+    else {
+      MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, vn->x, vn->y, vn->z, PIAL_VERTICES, &xp, &yp, &zp);
+    }
+
+    dxn = xp - xw;
+    dyn = yp - yw;
+    dzn = zp - zw;
+    len = sqrt(dxn * dxn + dyn * dyn + dzn * dzn);
+    if (FZERO(len)) continue;
+
+    dxn /= len;
+    dyn /= len;
+    dzn /= len;
+
+    dxn_total += dxn;
+    dyn_total += dyn;
+    dzn_total += dzn;
+#if 0
+    sse += SQR(dxn-dx) + SQR(dyn-dy) + SQR(dzn-dz) ;
+#else
+    len = dx * dxn + dy * dyn + dz * dzn;  // dot product
+    len = 1 - len;
+    sse += sqrt(len * len);
+#endif
+
+    num++;
+  }
+
+#if 0
+  len = sqrt(dxn_total*dxn_total + dyn_total*dyn_total + dzn_total*dzn_total) ;
+  if (len > 0)
+  {
+    dxn_total /= len ; dyn_total /= len ; dzn_total /= len ;
+    sse = SQR(dxn_total-dx) + SQR(dyn_total-dy) + SQR(dzn_total-dz) ;
+    //    sse /= num ;
+  }
+#else
+  if (num > 0) sse /= num;
+#endif
+
+  return (sse);
+}
+
+float mrisSampleParallelEnergy(
+    MRIS *mris, int const vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
+  int fno = 0, old_fno, num;
+  double sse, fdist;
+  FACE *face;
+  float x, y, z;
+  MHT *mht = (MHT *)(parms->mht);
+  int n;
+
+  project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
+  x = v->x;
+  y = v->y;
+  z = v->z;          // store old coordinates
+  old_fno = v->fno;  // store old face
+  MHTfindClosestFaceGeneric(mht, mris, cx, cy, cz, 4, 4, 1, &face, &fno, &fdist);
+  if (fno < 0) {
+    MHTfindClosestFaceGeneric(mht, mris, cx, cy, cz, 1000, -1, -1, &face, &fno, &fdist);
+  }
+  v->fno = fno;
+
+  v->x = cx;
+  v->y = cy;
+  v->z = cz;  // change coords to here and compute effects on sse
+  sse = mrisSampleParallelEnergyAtVertex(mris, vno, parms);
+#if 1
+  for (num = 1, n = 0; n < vt->vnum; n++) {
+    int const vnno = vt->v[n];
+    VERTEX *vn;
+    vn = &mris->vertices[vnno];
+    if (vn->ripflag) continue;
+
+    sse += mrisSampleParallelEnergyAtVertex(mris, vnno, parms);
+    num++;
+  }
+#else
+  num = 1;
+#endif
+  v->x = x;
+  v->y = y;
+  v->z = z;          // restore old coordinates
+  v->fno = old_fno;  // restore old face
+  sse /= (num);
+  return (sse);
+}
+
+int MRISsampleFaceCoordsCanonical(
+    MHT *mht, MRIS *mris, float x, float y, float z, int which, float *px, float *py, float *pz)
+{
+  float xv, yv, zv;
+  double lambda[3], fdist, norm;
+  int n, ret = NO_ERROR, fno;
+  FACE *face;
+  VERTEX *v;
+
+  norm = sqrt(x * x + y * y + z * z);
+  if (!FEQUAL(norm, mris->radius))  // project point onto sphere
+  {
+    DiagBreak();
+    project_point_onto_sphere(x, y, z, mris->radius, &x, &y, &z);
+  }
+
+  xv = yv = zv = 0.0;  // to get rid of mac warnings
+  MHTfindClosestFaceGeneric(mht, mris, x, y, z, 8, 8, 1, &face, &fno, &fdist);
+  if (fno < 0) {
+    DiagBreak();
+    MHTfindClosestFaceGeneric(mht, mris, x, y, z, 1000, -1, -1, &face, &fno, &fdist);
+    lambda[0] = lambda[1] = lambda[2] = 1.0 / 3.0;
+  }
+  else {
+    ret = face_barycentric_coords(mris, fno, CANONICAL_VERTICES, x, y, z, &lambda[0], &lambda[1], &lambda[2]);
+  }
+
+  *px = *py = *pz = 0;
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    v = &mris->vertices[face->v[n]];
+    MRISvertexCoord2XYZ_float(v, which, &xv, &yv, &zv);
+    *px += lambda[n] * xv;
+    *py += lambda[n] * yv;
+    *pz += lambda[n] * zv;
+  }
+
+  return (ret);
+}
+

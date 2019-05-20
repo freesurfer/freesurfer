@@ -304,7 +304,6 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
               MRISPfunctionVal_radiusR(
                   parms->mrisp_template, 
                   fvsForAlphas,             // output values
-                  mris,
                   mris->radius, betaGammaRotated_xv[vi], betaGammaRotated_yv[vi], betaGammaRotated_zv[vi], 
                   parms->frame_no, true,
                   alphasForAlphas, ajsSize, // input requests
@@ -339,7 +338,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
                   MRISPfunctionValResultForAlpha targetAndStd;
                   MRISPfunctionVal_radiusR(
-                      parms->mrisp_template, &targetAndStd, mris, 
+                      parms->mrisp_template, &targetAndStd,
                       mris->radius, x, y, z, 
                       parms->frame_no, true,
                       &alpha, 1,

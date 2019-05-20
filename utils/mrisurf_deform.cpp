@@ -19,6 +19,8 @@
  *
  */
 #include "mrisurf_deform.h"
+#include "mrisurf_project.h"
+#include "mrisurf_sseTerms.h"
 #include "mrisurf_io.h"
 
 
@@ -80,80 +82,55 @@ int MRISremoveTopologicalDefects(MRI_SURFACE *mris, float curv_thresh)
   return (NO_ERROR);
 }
 
-
-/* project onto the sphere of radius DEFAULT_RADIUS */
-static void sphericalProjection(float xs, float ys, float zs, float *xd, float *yd, float *zd)
+int MRISsmoothOnSphere(MRIS *mris, int niters)
 {
-  double dist, lambda;
+  int n, p;
+  float x, y, z;
 
-  dist = sqrt(SQR(xs) + SQR(ys) + SQR(zs));
-  lambda = DEFAULT_RADIUS / dist;
+  while (niters--) {
+    for (n = 0; n < mris->nvertices; n++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+      VERTEX                * const v  = &mris->vertices         [n];
 
-  /* making sure things are stable : double projection */
-  *xd = xs * lambda;
-  *yd = ys * lambda;
-  *zd = zs * lambda;
+      x = y = z = 0.0f;
 
-  xs = *xd;
-  ys = *yd;
-  zs = *zd;
-  dist = sqrt(SQR(xs) + SQR(ys) + SQR(zs));
-  lambda = DEFAULT_RADIUS / dist;
-
-  *xd = xs * lambda;
-  *yd = ys * lambda;
-  *zd = zs * lambda;
-}
-
-
-static int mrisSphericalProjection(MRIS *mris)
-{
-  int n;
-  VERTEX *v;
-  //    fprintf(stderr,"spherical projection\n");
-  for (n = 0; n < mris->nvertices; n++) {
-    v = &mris->vertices[n];
-    if (v->ripflag) {
-      continue;
+      for (p = 0; p < vt->vnum; p++) {
+        VERTEX * const vp = &mris->vertices[vt->v[p]];
+        x += vp->x;
+        y += vp->y;
+        z += vp->z;
+      }
+      if (vt->vnum == 0) {
+        v->tx = v->x;
+        v->ty = v->y;
+        v->tz = v->z;
+        DiagBreak();
+      }
+      else {
+        v->tx = x / vt->vnum;
+        v->ty = y / vt->vnum;
+        v->tz = z / vt->vnum;
+      }
+      if (!isfinite(v->tx)) {
+        DiagBreak();
+      }
     }
 
-    /*
-      if(n == 88 )
-      fprintf(stderr,"bf sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 89 )
-      fprintf(stderr,"bf sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 209 )
-      fprintf(stderr,"bf sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-    */
-
-    sphericalProjection(v->x, v->y, v->z, &v->x, &v->y, &v->z);
-    v->cx = v->x;
-    v->cy = v->y;
-    v->cz = v->z;
-
-    /*
-      if(n == 88 )
-      fprintf(stderr,"af sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 89 )
-      fprintf(stderr,"af sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 209 )
-      fprintf(stderr,"af sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-
-      sphericalProjection(v->x,v->y,v->z,&v->x,&v->y,&v->z);
-
-      if(n == 88 )
-      fprintf(stderr,"af 2 sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 89 )
-      fprintf(stderr,"af 2 sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-      if(n == 209 )
-      fprintf(stderr,"af 2 sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
-    */
+    for (n = 0; n < mris->nvertices; n++) {
+      VERTEX * const v  = &mris->vertices[n];
+      mrisSphericalProjectXYZ(v->tx, v->ty, v->tz, &v->x, &v->y, &v->z);
+      if (!isfinite(v->x)) {
+        DiagBreak();
+      }
+    }
   }
+
   return NO_ERROR;
 }
 
-static int mris_project_point_into_face(
-    MRI_SURFACE *mris, FACE *face, int which, double x, double y, double z, double *px, double *py, double *pz)
+
+static void mris_project_point_into_face(
+  MRIS *mris, FACE *face, int which, double x, double y, double z, double *px, double *py, double *pz)
 {
   double point[3], V0[3], V1[3], V2[3], proj[3];
 
@@ -214,12 +191,9 @@ static int mris_project_point_into_face(
   *px = proj[0];
   *py = proj[1];
   *pz = proj[2];
-
-  return (NO_ERROR);
 }
 
-
-static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
+static void mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
 {
   int vno, fno;
   double px, py, pz, fdist;
@@ -305,18 +279,9 @@ static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
       DiagBreak();
     }
   }
-
-  return (NO_ERROR);
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int mrisProjectSurface(MRI_SURFACE *mris)
 {
   /*  MRISupdateSurface(mris) ;*/
@@ -349,88 +314,6 @@ int mrisProjectSurface(MRI_SURFACE *mris)
     default:
       break;
   }
-  return (NO_ERROR);
-}
-
-
-int MRISsmoothOnSphere(MRIS *mris, int niters)
-{
-  int n, p;
-  float x, y, z;
-
-  while (niters--) {
-    for (n = 0; n < mris->nvertices; n++) {
-      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
-      VERTEX                * const v  = &mris->vertices         [n];
-
-      x = y = z = 0.0f;
-
-      for (p = 0; p < vt->vnum; p++) {
-        VERTEX * const vp = &mris->vertices[vt->v[p]];
-        x += vp->x;
-        y += vp->y;
-        z += vp->z;
-      }
-      if (vt->vnum == 0) {
-        v->tx = v->x;
-        v->ty = v->y;
-        v->tz = v->z;
-        DiagBreak();
-      }
-      else {
-        v->tx = x / vt->vnum;
-        v->ty = y / vt->vnum;
-        v->tz = z / vt->vnum;
-      }
-      if (!isfinite(v->tx)) {
-        DiagBreak();
-      }
-    }
-
-    for (n = 0; n < mris->nvertices; n++) {
-      VERTEX * const v  = &mris->vertices[n];
-      sphericalProjection(v->tx, v->ty, v->tz, &v->x, &v->y, &v->z);
-      if (!isfinite(v->x)) {
-        DiagBreak();
-      }
-    }
-  }
-
-  return NO_ERROR;
-}
-
-
-static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)
-{
-  int vno;
-
-  ROMP_PF_begin
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental)
-#endif
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    ROMP_PFLB_begin 
-    
-    int fno;
-    VERTEX *v;
-    double fdist;
-    FACE *face;
-
-    v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-
-    if (vno == Gdiag_no) DiagBreak();
-
-    project_point_onto_sphere(v->x, v->y, v->z, mris->radius, &v->x, &v->y, &v->z);
-    MHTfindClosestFaceGeneric(mht, mris, v->x, v->y, v->z, 8, 8, 1, &face, &fno, &fdist);
-    if (fno < 0) MHTfindClosestFaceGeneric(mht, mris, v->x, v->y, v->z, 1000, -1, -1, &face, &fno, &fdist);
-
-    v->fno = fno;
-    
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-  
   return (NO_ERROR);
 }
 
@@ -2565,133 +2448,6 @@ int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_
 }
 
 
-double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno)
-{
-  INTEGRATION_PARMS parms;
-  float error;
-
-  if (!mrisp_template) {
-    return (0.0);
-  }
-
-  memset(&parms, 0, sizeof(parms));
-  parms.mrisp_template = mrisp_template;
-  parms.l_corr = 1.0f;
-  parms.frame_no = fno;
-  error = mrisComputeCorrelationError(mris, &parms, 1);
-  return (sqrt(error / (double)MRISvalidVertices(mris)));
-}
-
-double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds) {
-    return mrisComputeCorrelationErrorTraceable(mris, parms, use_stds, false);
-}
-
-double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds, bool trace)
-{
-  float l_corr;
-
-  l_corr = parms->l_corr + parms->l_pcorr; /* only one will be nonzero */
-  if (FZERO(l_corr)) {
-    return (0.0);
-  }
-
-  double sse = 0.0;
-  
-#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
-
-  #define ROMP_VARIABLE       vno
-  #define ROMP_LO             0
-  #define ROMP_HI             mris->nvertices
-    
-  #define ROMP_SUMREDUCTION0  sse
-    
-  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
-    
-#ifdef ROMP_SUPPORT_ENABLED
-  const int romp_for_line = __LINE__;
-#endif
-  #include "romp_for_begin.h"
-  ROMP_for_begin
-    
-    #define sse  ROMP_PARTIALSUM(0)
-    
-#else
-  int vno;
-
-  ROMP_PF_begin         // Important during mris_register
- 
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
-#endif
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    ROMP_PFLB_begin
-
-#endif
-    
-    bool const vertexTrace = trace && (vno == 0);
-    
-    VERTEX *v = &mris->vertices[vno];
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-    if (v->ripflag) {
-      ROMP_PF_continue;
-    }
-
-    double src, target, delta, std;
-    float x, y, z;
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-#if 0
-    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0, vertexTrace) ;
-#else
-    src = v->curv;
-#endif
-    target = MRISPfunctionValTraceable(parms->mrisp_template, mris, x, y, z, parms->frame_no, vertexTrace);
-#define DEFAULT_STD 4.0f
-#define DISABLE_STDS 0
-#if DISABLE_STDS
-    std = 1.0f;
-#else
-    std = MRISPfunctionValTraceable(parms->mrisp_template, mris, x, y, z, parms->frame_no + 1, vertexTrace);
-    std = sqrt(std);
-    if (FZERO(std)) {
-      std = DEFAULT_STD /*FSMALL*/;
-    }
-    if (!use_stds) {
-      std = 1.0f;
-    }
-#endif
-    delta = (src - target) / std;
-    if (!isfinite(target) || !isfinite(delta)) {
-      DiagBreak();
-    }
-    if (parms->geometry_error) {
-      parms->geometry_error[vno] = (delta * delta);
-    }
-    if (parms->abs_norm) {
-      sse += fabs(delta);
-    }
-    else {
-      sse += delta * delta;
-    }
-#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
-
-    #undef sse
-  #include "romp_for_end.h"
-
-#else
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-#endif
-
-  return (sse);
-}
-
 double mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds)
 {
   double src, target, sse, delta, std;
@@ -2890,8 +2646,8 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #else
     src = v->curv;
 #endif
-    target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no);
-    std = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no + 1);
+    target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
+    std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
     std = sqrt(std);
     if (FZERO(std)) {
       std = DEFAULT_STD /*FSMALL*/;
@@ -2932,10 +2688,10 @@ int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
     /* compute target term */
-    up1 = MRISPfunctionVal(parms->mrisp_template, mris, x + ux, y + uy, z + uz, fno);
-    um1 = MRISPfunctionVal(parms->mrisp_template, mris, x - ux, y - uy, z - uz, fno);
-    vp1 = MRISPfunctionVal(parms->mrisp_template, mris, x + vx, y + vy, z + vz, fno);
-    vm1 = MRISPfunctionVal(parms->mrisp_template, mris, x - vx, y - vy, z - vz, fno);
+    up1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + ux, y + uy, z + uz, fno);
+    um1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - ux, y - uy, z - uz, fno);
+    vp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + vx, y + vy, z + vz, fno);
+    vm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - vx, y - vy, z - vz, fno);
     du = (up1 - um1) / (2 * d_dist);
     dv = (vp1 - vm1) / (2 * d_dist);
     v->dx -= coef * (du * e1x + dv * e2x);
@@ -3255,8 +3011,8 @@ int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #else
     src = v->curv;
 #endif
-    target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no);
-    std = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no + 1);
+    target = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no);
+    std    = MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z, parms->frame_no + 1);
     std = sqrt(std);
     if (FZERO(std)) {
       std = DEFAULT_STD /*FSMALL*/;
@@ -3278,24 +3034,24 @@ int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     dx = y * D_ANGLE;
     dy = -x * D_ANGLE;
     dz = 0;
-    am1 = MRISPfunctionVal(parms->mrisp_template, mris, x - dx, y - dy, z - dz, 0);
-    ap1 = MRISPfunctionVal(parms->mrisp_template, mris, x + dx, y + dy, z + dz, 0);
+    am1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    ap1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
     da = (ap1 - am1) / (2 * D_ANGLE);
 
     /* compute beta term - differential rotation around y axis */
     dx = -z * D_ANGLE;
     dy = 0;
     dz = x * D_ANGLE;
-    bm1 = MRISPfunctionVal(parms->mrisp_template, mris, x - dx, y - dy, z - dz, 0);
-    bp1 = MRISPfunctionVal(parms->mrisp_template, mris, x + dx, y + dy, z + dz, 0);
+    bm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    bp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
     db = (bp1 - bm1) / (2 * D_ANGLE);
 
     /* compute gamma term - differential rotation around x axis */
     dx = 0;
     dy = -z * D_ANGLE;
     dz = y * D_ANGLE;
-    gm1 = MRISPfunctionVal(parms->mrisp_template, mris, x - dx, y - dy, z - dz, 0);
-    gp1 = MRISPfunctionVal(parms->mrisp_template, mris, x + dx, y + dy, z + dz, 0);
+    gm1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x - dx, y - dy, z - dz, 0);
+    gp1 = MRISPfunctionVal(parms->mrisp_template, mris->radius, x + dx, y + dy, z + dz, 0);
     dg = (gp1 - gm1) / (2 * D_ANGLE);
 
     mris->gamma -= coef * dg; /* around x-axis */
@@ -4105,77 +3861,7 @@ int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms)
-{
-  int vno, max_vno;
-  double sse_tparallel, max_inc;
-  static int cno = 0;
-  static double last_sse[MAXVERTICES];
-
-  if (FZERO(l_thick_parallel)) {
-    return (0.0);
-  }
-  if (cno == 0) {
-    memset(last_sse, 0, sizeof(last_sse));
-  }
-  cno++;
-
-  mrisAssignFaces(mris, (MHT *)(parms->mht), CANONICAL_VERTICES);  // don't look it up every time
-
-  max_inc = 0;
-  max_vno = 0;
-  sse_tparallel = 0.0;
-  ROMP_PF_begin
-  // ifdef HAVE_OPENMP
-  // pragma omp parallel for if_ROMP(experimental) reduction(+:sse_tparallel)
-  // endif
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    ROMP_PFLB_begin
-    
-    
-    double sse;
-
-    VERTEX * const v = &mris->vertices[vno];
-    if (v->ripflag) continue;
-    if (vno == Gdiag_no) DiagBreak();
-
-    sse = mrisSampleParallelEnergy(mris, vno, parms, v->x, v->y, v->z);
-    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no)) DiagBreak();
-
-    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1)) {
-      if (sse - last_sse[vno] > max_inc) {
-        max_inc = sse - last_sse[vno];
-        max_vno = vno;
-      }
-      DiagBreak();
-    }
-
-    if (vno < MAXVERTICES) last_sse[vno] = sse;
-    sse_tparallel += sse;
-    if (vno == Gdiag_no) {
-      printf("E_parallel: vno = %d, E = %f\n", vno, sse);
-    }
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-  
-  sse_tparallel /= 2;
-  return (sse_tparallel);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
                                                  double l_ashburner_triangle,
                                                  INTEGRATION_PARMS *parms)
@@ -4239,10 +3925,9 @@ int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, 
     
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm, dx, dy, dz, E0, E1;
-    VERTEX *v;
     double d_dist = D_DIST * mris->avg_vertex_dist;
 
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) ROMP_PF_continue;
 
     if (vno == Gdiag_no) DiagBreak();
@@ -4258,10 +3943,10 @@ int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, 
       sample the coordinate functions along the tangent plane axes and
       compute the derivates using them.
     */
-    e1p = mrisSampleMinimizationEnergy(mris, v, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
-    e1m = mrisSampleMinimizationEnergy(mris, v, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
-    e2p = mrisSampleMinimizationEnergy(mris, v, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
-    e2m = mrisSampleMinimizationEnergy(mris, v, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
+    e1p = mrisSampleMinimizationEnergy(mris, vno, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
+    e1m = mrisSampleMinimizationEnergy(mris, vno, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
+    e2p = mrisSampleMinimizationEnergy(mris, vno, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
+    e2m = mrisSampleMinimizationEnergy(mris, vno, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
     dE_de1 = (e1p - e1m) / (2 * d_dist);
     dE_de2 = (e2p - e2m) / (2 * d_dist);
 
@@ -4274,9 +3959,9 @@ int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, 
     dx = -l_thick_min * (dE_de1 * e1x + dE_de2 * e2x);
     dy = -l_thick_min * (dE_de1 * e1y + dE_de2 * e2y);
     dz = -l_thick_min * (dE_de1 * e1z + dE_de2 * e2z);
-    E0 = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z);
+    E0 = mrisSampleMinimizationEnergy(mris, vno, parms, v->x, v->y, v->z);
     E1 = mrisSampleMinimizationEnergy(
-        mris, v, parms, v->x + parms->dt * dx, v->y + parms->dt * dy, v->z + parms->dt * dz);
+        mris, vno, parms, v->x + parms->dt * dx, v->y + parms->dt * dy, v->z + parms->dt * dz);
 
     if (E1 > E0) {
       double E2;
@@ -4286,7 +3971,7 @@ int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, 
         DiagBreak();
       }
       E2 = mrisSampleMinimizationEnergy(
-          mris, v, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
+          mris, vno, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
       if (E2 < E0) {
         dx *= -1;
         dy *= -1;
@@ -4455,10 +4140,9 @@ int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INT
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
     float E0, E1, dx, dy, dz;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm;
-    VERTEX *v;
     double d_dist = D_DIST * mris->avg_vertex_dist;
 
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
 
     if (v->ripflag) continue;
@@ -4473,10 +4157,10 @@ int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INT
       sample the coordinate functions along the tangent plane axes and
       compute the derivates using them.
     */
-    e1p = mrisSampleNormalEnergy(mris, v, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
-    e1m = mrisSampleNormalEnergy(mris, v, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
-    e2p = mrisSampleNormalEnergy(mris, v, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
-    e2m = mrisSampleNormalEnergy(mris, v, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
+    e1p = mrisSampleNormalEnergy(mris, vno, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
+    e1m = mrisSampleNormalEnergy(mris, vno, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
+    e2p = mrisSampleNormalEnergy(mris, vno, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
+    e2m = mrisSampleNormalEnergy(mris, vno, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
     dE_de1 = (e1p - e1m) / (2 * d_dist);
     dE_de2 = (e2p - e2m) / (2 * d_dist);
     norm = sqrt(dE_de1 * dE_de1 + dE_de2 * dE_de2);
@@ -4491,15 +4175,15 @@ int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INT
     cx = v->x + parms->dt * dx;
     cy = v->y + parms->dt * dy;
     cz = v->z + parms->dt * dz;
-    E0 = mrisSampleNormalEnergy(mris, v, parms, v->x, v->y, v->z);
-    E1 = mrisSampleNormalEnergy(mris, v, parms, cx, cy, cz);
+    E0 = mrisSampleNormalEnergy(mris, vno, parms, v->x, v->y, v->z);
+    E1 = mrisSampleNormalEnergy(mris, vno, parms, cx, cy, cz);
     if (E1 > E0) {
       double E2;
       if (vno == Gdiag_no) {
         DiagBreak();
       }
       DiagBreak();
-      E2 = mrisSampleNormalEnergy(mris, v, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
+      E2 = mrisSampleNormalEnergy(mris, vno, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
       if (E2 < E0) {
         dx *= -1;
         dy *= -1;
@@ -4906,64 +4590,6 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
   return (l_repulse * sse_repulse);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-
-double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse)
-{
-  int vno, n;
-  double sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist, cdx, cdy, cdz;
-
-  if (FZERO(l_repulse))
-    return (0.0);
-
-  for (sse_repulse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-
-    if (v->ripflag) 
-      continue;
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-    for(v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      if (!vn->ripflag) {
-        dx = x - vn->x;
-        dy = y - vn->y;
-        dz = z - vn->z;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        cdx = vn->cx - v->cx;
-        cdy = vn->cy - v->cy;
-        cdz = vn->cz - v->cz;
-        canon_dist = sqrt(cdx * cdx + cdy * cdy + cdz * cdz) + REPULSE_E;
-        dist /= canon_dist;
-        dist += REPULSE_E;
-#if 0
-        v_sse += REPULSE_K / (dist*dist*dist*dist) ;
-#else
-        v_sse += REPULSE_K / (dist * dist);
-#endif
-      }
-    }
-    sse_repulse += v_sse;
-  }
-  return (l_repulse * sse_repulse);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms)
 {
   int vno, n, num;
@@ -5252,43 +4878,6 @@ int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-double mrisComputeSpringEnergy(MRI_SURFACE *mris)
-{
-  int vno, n;
-  double area_scale, sse_spring, v_sse;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-
-    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      v_sse += (v->dist[n] * v->dist[n]);
-    }
-    sse_spring += area_scale * v_sse;
-  }
-  return (sse_spring);
-}
 
 /*-----------------------------------------------------
   Parameters:
@@ -6520,134 +6109,6 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
-{
-  double area_scale;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  double sse;
-
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-  int trial; 
-  double sse_trial0;
-  for (trial = 0; trial < 2; trial++) {
-#endif
-
-  sse = 0;
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
-  #define ROMP_VARIABLE       fno
-  #define ROMP_LO             0
-  #define ROMP_HI             mris->nfaces
-    
-  #define ROMP_SUMREDUCTION0  sse
-    
-  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
-    
-#ifdef ROMP_SUPPORT_ENABLED
-  const int romp_for_line = __LINE__;
-#endif
-  #include "romp_for_begin.h"
-  ROMP_for_begin
-    
-    #define sse  ROMP_PARTIALSUM(0)
-
-#else
-  int fno;
-  
-  ROMP_PF_begin     // mris_register
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-  #pragma omp parallel for if(trial==0) reduction(+ : sse)
-#else
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
-#endif
-#endif
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    ROMP_PFLB_begin
-
-#endif
-    
-    double error, ratio;
-    FACE *face;
-
-    face = &mris->faces[fno];
-    if (face->ripflag) {
-      ROMP_PF_continue;
-    }
-#define SCALE_NONLINEAR_AREA 0
-#if SCALE_NONLINEAR_AREA
-    if (!FZERO(face->orig_area)) {
-      ratio = area_scale * face->area / face->orig_area;
-    }
-    else {
-      ratio = 0.0f;
-    }
-#else
-    ratio = area_scale * face->area;
-#endif
-    if (ratio > MAX_NEG_RATIO) {
-      ratio = MAX_NEG_RATIO;
-    }
-    else if (ratio < -MAX_NEG_RATIO) {
-      ratio = -MAX_NEG_RATIO;
-    }
-#if 0
-    error = (1.0 / NEG_AREA_K) * log(1.0+exp(-NEG_AREA_K*ratio)) ;
-#else
-    error = (log(1.0 + exp(NEG_AREA_K * ratio)) / NEG_AREA_K) - ratio;
-#endif
-
-    sse += error;
-    if (!isfinite(sse) || !isfinite(error)) {
-      ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n", fno);
-    }
-    
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
-
-    #undef sse
-  #include "romp_for_end.h"
-#else
-  
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-#endif
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-    if (trial == 0) {
-        sse_trial0 = sse;
-    } else { 
-        if (sse_trial0 != sse) {
-            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
-               sse_trial0, sse, sse_trial0-sse);
-        }
-    }
-  } // trial
-#endif
-
-  return (sse);
-}
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris)
 {
   int vno, n, nvertices, max_v, max_n;
@@ -7757,7 +7218,7 @@ int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   ------------------------------------------------------*/
 #include "mrisurf_deform_computeSSE.h"
 
-double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse)
+double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
 {
   double sse;
 
@@ -7817,6 +7278,7 @@ double mrisComputeError(MRI_SURFACE *mris,
   }
 
   sse_corr = mrisComputeCorrelationError(mris, parms, 1);
+  
   if (!DZERO(parms->l_dist)) {
     sse_dist = mrisComputeDistanceError(mris, parms);
   }
@@ -7998,205 +7460,6 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
   return (NO_ERROR);
 }
 
-
-double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
-{
-  if (!(mris->dist_alloced_flags & 1)) {
-    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
-    case LogicProblemResponse_old: 
-      break;
-    case LogicProblemResponse_fix:
-      mrisComputeVertexDistances(mris);
-    }
-  }
-  if (!(mris->dist_alloced_flags & 2)) {
-    switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceTerm","should have computed dist_origs already")) {
-    case LogicProblemResponse_old: 
-      break;
-    case LogicProblemResponse_fix:
-      mrisComputeOriginalVertexDistances(mris);
-    }
-  }
-
-  if (false) {
-    fprintf(stdout, "%s:%d calling mrisCheckDistOrig\n", __FILE__, __LINE__);
-    if (!mrisCheckDistOrig(mris)) 
-      fprintf(stdout, "  failed mrisCheckDistOrig\n");
-  }
-  
-  int max_v, max_n, err_cnt, max_errs;
-  volatile int count_dist_orig_zeros = 0;
-  double dist_scale, sse_dist, max_del;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-  else
-    dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
-                                                   : sqrt(mris->orig_area / mris->total_area);
-#else
-  dist_scale = 1.0;
-#endif
-  max_del = -1.0;
-  max_v = max_n = -1;
-
-  err_cnt = 0;
-  max_errs = 100;
-
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-  int trial;
-  double sse_dist_trial0;
-  for (trial = 0; trial < 2; trial++) {
-#endif
-
-  sse_dist = 0.0;
-  
-  int const acceptableNumberOfZeros = 
-    ( mris->status == MRIS_PARAMETERIZED_SPHERE
-    ||mris->status == MRIS_SPHERE)
-    ? mris->nvertices * mris->avg_nbrs * 0.01       // only the direction from 000 has to match
-    : mris->nvertices * mris->avg_nbrs * 0.001;     // xyz has to match
-
-  const char* vertexRipflags = MRISexportVertexRipflags(mris);  
-    // since we have to read them a lot, get them into 100KB in the L2 cache
-    // rather than reading them in 6.4MB of cache lines
-  
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
-
-  #define ROMP_VARIABLE       vno 
-  #define ROMP_LO             0
-  #define ROMP_HI             mris->nvertices
-    
-  #define ROMP_SUMREDUCTION0  sse_dist
-    
-  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
-    
-#ifdef ROMP_SUPPORT_ENABLED
-  const int romp_for_line = __LINE__;
-#endif
-  #include "romp_for_begin.h"
-  ROMP_for_begin
-    
-    #define sse_dist ROMP_PARTIALSUM(0)
-    
-#else
-  int vno;
-  
-  ROMP_PF_begin         // mris_register
-
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist)
-#else
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist)
-#endif
-#endif
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    ROMP_PFLB_begin
-
-#endif    
-
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) ROMP_PF_continue;
-
-    if (vno == Gdiag_no) DiagBreak();
-
-#if NO_NEG_DISTANCE_TERM
-    if (v->neg) ROMP_PF_continue;
-#endif
-
-    double v_sse = 0.0;
-
-    int n;
-    for (n = 0; n < vt->vtotal; n++) {
-      int const vn_vno = vt->v[n];
-      if (vertexRipflags[vn_vno]) continue;
-      
-#if NO_NEG_DISTANCE_TERM
-      if (mris->vertices[vn_vno].neg) continue;
-
-#endif
-      float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
-      
-      if (dist_orig_n >= UNFOUND_DIST) continue;
-
-      if (DZERO(dist_orig_n) && (count_dist_orig_zeros++ > acceptableNumberOfZeros)) {
-        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!, count_dist_orig_zeros:%d\n", vno, n, dist_orig_n, count_dist_orig_zeros);
-        fflush(stderr);
-        DiagBreak();
-        if (++err_cnt > max_errs) {
-          fprintf(stderr, ">>> dump of head zeroes \n");
-          int dump_vno,dump_n,dump_count_dist_orig_zeros = 0;
-          for (dump_vno = 0; dump_vno < mris->nvertices; dump_vno++) {
-            VERTEX_TOPOLOGY const * const dump_vt = &mris->vertices_topology[dump_vno];
-            VERTEX          const * const dump_v  = &mris->vertices         [dump_vno];
-            if (dump_v->ripflag) continue;
-            for (dump_n = 0; dump_n < dump_vt->vtotal; dump_n++) {
-              int const dump_vn_vno = dump_vt->v[n];
-              if (vertexRipflags[dump_vn_vno]) continue;
-              float const dump_dist_orig_n = !dump_v->dist_orig ? 0.0 : dump_v->dist_orig[n];
-              if (!DZERO(dump_dist_orig_n)) continue;
-              dump_count_dist_orig_zeros++;
-              fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!, count_dist_orig_zeros:%d\n", dump_vno, dump_n, dump_dist_orig_n, dump_count_dist_orig_zeros);
-              if (dump_count_dist_orig_zeros > 30) goto dump_done;
-            }
-          }
-          dump_done:;
-          ErrorExit(ERROR_BADLOOP, "mrisComputeDistanceError: Too many errors!\n");
-        }
-      }
-
-      double delta = dist_scale * v->dist[n] - dist_orig_n;
-      if (parms->vsmoothness)
-        v_sse += (1.0 - parms->vsmoothness[vno]) * (delta * delta);
-      else
-        v_sse += delta * delta;
-
-      if (!isfinite(delta) || !isfinite(v_sse)) DiagBreak();
-    }
-    if (v_sse > 10000) DiagBreak();
-
-    if (parms->dist_error) parms->dist_error[vno] = v_sse;
-
-    sse_dist += v_sse;
-    if (!isfinite(sse_dist) || !isfinite(v_sse)) DiagBreak();
-    
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
-    #undef sse_dist 
-  #include "romp_for_end.h"
-#else
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-#endif
-
-#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-    if (trial == 0) {
-        sse_dist_trial0 = sse_dist;
-    } else { 
-        if (sse_dist_trial0 != sse_dist) {
-            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
-               sse_dist_trial0, sse_dist, sse_dist_trial0-sse_dist);
-        }
-    }
-  } // trial
-#endif
-
-  freeAndNULL(vertexRipflags);  
-
-  if (getenv("DISTANCE_ERROR_NEW_BEHAVIOR") != nullptr) {
-    // this is the correct way of doing things (because MRISComputeDistanceTerm does this normalization) 
-    sse_dist /= mris->avg_nbrs;
-  }
-
-  /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
-  return sse_dist;
-}
 
 int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
@@ -8461,14 +7724,14 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
     step = 0;
     /* preserve triangle area */
     for (n = 0; n < vt->num && step < last_step; n++) {
-      sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
+      mrisSphericalProjectXYZ(x, y, z, &v->x, &v->y, &v->z);
       orig_area = mrisComputeArea(mris, vt->f[n], (int)vt->n[n]);
       if (orig_area <= 0) {
         continue;
       }
       while (step < last_step) {
         eps = epsilon[step];
-        sphericalProjection(x + eps * dx, y + eps * dy, z + eps * dz, &v->x, &v->y, &v->z);
+        mrisSphericalProjectXYZ(x + eps * dx, y + eps * dy, z + eps * dz, &v->x, &v->y, &v->z);
         area = mrisComputeArea(mris, vt->f[n], (int)vt->n[n]);
         if (area > 0) {
           break; /* we can stop here */
@@ -8478,7 +7741,7 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
     }
 
     eps = epsilon[step];
-    sphericalProjection(x + eps * dx, y + eps * dy, z + eps * dz, &v->x, &v->y, &v->z);
+    mrisSphericalProjectXYZ(x + eps * dx, y + eps * dy, z + eps * dz, &v->x, &v->y, &v->z);
   }
 
   neg_area = 0.0;
@@ -8504,7 +7767,7 @@ int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt)
   return mrisApplyGradientPositiveAreaPreserving(mris, dt);
 }
 
-int MRISapplyGradient(MRI_SURFACE *mris, double dt)
+int MRISapplyGradient(MRIS* mris, double dt)
 {
   int vno, nvertices;
 
@@ -8718,7 +7981,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         step = 0;
         /* preserve triangle area */
         for (n = 0; n < vt->num && step < last_step; n++) {
-          sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
+          mrisSphericalProjectXYZ(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
@@ -8759,7 +8022,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
           }
           while (step < last_step) {
-            sphericalProjection(
+            mrisSphericalProjectXYZ(
                 x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
             v->cx = v->x;
             v->cy = v->y;
@@ -8782,7 +8045,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           fprintf(stderr, ".");
         }
 #endif
-        sphericalProjection(
+        mrisSphericalProjectXYZ(
             x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
         v->cx = v->x;
         v->cy = v->y;
@@ -8800,7 +8063,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             continue;
           }
           /* test : could be removed */
-          sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
+          mrisSphericalProjectXYZ(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
@@ -8841,7 +8104,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           }
           /* end of test */
           while (step < last_step) {
-            sphericalProjection(
+            mrisSphericalProjectXYZ(
                 x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
             v->cx = v->x;
             v->cy = v->y;
@@ -8870,7 +8133,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           }
           e1.vno1 = vno;
           e1.vno2 = vt->v[n];
-          sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
+          mrisSphericalProjectXYZ(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
@@ -8907,7 +8170,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         while (step < last_step) {
           intersect = 0;
           /* new coordinates */
-          sphericalProjection(
+          mrisSphericalProjectXYZ(
               x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
@@ -8947,7 +8210,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           fprintf(stderr, ":");
         }
 #endif
-        sphericalProjection(
+        mrisSphericalProjectXYZ(
             x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
         v->cx = v->x;
         v->cy = v->y;
@@ -8972,7 +8235,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           }
           e1.vno1 = vno;
           e1.vno2 = vt->v[n];
-          sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
+          mrisSphericalProjectXYZ(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
@@ -8996,7 +8259,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         while (step < last_step) {
           intersect = 0;
           /* new coordinates */
-          sphericalProjection(
+          mrisSphericalProjectXYZ(
               x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
@@ -9036,7 +8299,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           fprintf(stderr, ",");
         }
 #endif
-        sphericalProjection(
+        mrisSphericalProjectXYZ(
             x + epsilon[step] * dx, y + epsilon[step] * dy, z + epsilon[step] * dz, &v->x, &v->y, &v->z);
         v->cx = v->x;
         v->cy = v->y;
@@ -12179,355 +11442,6 @@ MRIS *MRISsortVertices(MRIS *mris0)
   return(mris);
 }
 
-
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Perform a projection onto a cylinder moving each
-  point on the cortical surface to the closest cylindrical
-  coordinate.
-  ------------------------------------------------------*/
-int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
-{
-  VERTEX *v;
-  int k;
-  float x, y, z, x2, z2, dx, dz;
-  float d;
-
-  MRIScenter(mris, mris);
-
-  for (k = 0; k < mris->nvertices; k++) {
-    v = &mris->vertices[k];
-    x = v->x;
-    y = v->y;
-    z = v->z;
-
-    x2 = x * x;
-    z2 = z * z;
-
-    d = (-1.0 + (float)radius / sqrt(x2 + z2));
-    if (!isfinite(d)) {
-      ErrorPrintf(ERROR_BADPARM, "point (%2.2f,%2.2f,%2.2f) cannot be projected on cylinder", x, y, z);
-    }
-    dx = d * x;
-    dz = d * z;
-    v->x = x + dx;
-    v->z = z + dz;
-
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
-      DiagBreak();
-    }
-  }
-  MRISupdateSurface(mris);
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Perform a projection onto an sphere moving each
-  point on the cortical surface to the closest spherical
-  coordinate.
-  ------------------------------------------------------*/
-MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
-{
-  VERTEX *v;
-  int vno;
-  double x, y, z, d, dx, dy, dz, dist, total_dist, x2, y2, z2;
-
-  if (FZERO(r)) {
-    r = DEFAULT_RADIUS;
-  }
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  if ((mris_dst->status != MRIS_SPHERE) && (mris_dst->status != MRIS_PARAMETERIZED_SPHERE)) {
-    MRIScenter(mris_dst, mris_dst);
-  }
-
-  mris_dst->radius = r;
-
-  MRISfreeDistsButNotOrig(mris_dst);
-  
-  for (total_dist = vno = 0; vno < mris_dst->nvertices; vno++) {
-    v = &mris_dst->vertices[vno];
-    if (v->ripflag) /* shouldn't happen */
-    {
-      continue;
-    }
-    if (false && vno == 118009) {
-      DiagBreak();
-    }
-    x = (double)v->x;
-    y = (double)v->y;
-    z = (double)v->z;
-
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    dist = sqrt(x2 + y2 + z2);
-    if (FZERO(dist)) {
-      d = 0;
-    }
-    else {
-      d = 1 - r / dist;
-    }
-    dx = d * x;
-    dy = d * y;
-    dz = d * z;
-    v->x = x - dx;
-    v->y = y - dy;
-    v->z = z - dz;
-
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
-      DiagBreak();
-    }
-
-    /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
-    {
-      dist = sqrt((double)(dx * dx + dy * dy + dz * dz));
-      total_dist += dist;
-    }
-#if 1
-    x = (double)v->x;
-    y = (double)v->y;
-    z = (double)v->z;
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    dist = sqrt(x2 + y2 + z2);
-#endif
-  }
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "sphere_project: total dist = %f\n", total_dist);
-  }
-  MRISupdateEllipsoidSurface(mris_dst);
-  mris_dst->status = mris_src->status == MRIS_PARAMETERIZED_SPHERE ? MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE;
-  return (mris_dst);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Perform a projection onto an ellipsoid moving each
-  point on the cortical surface to the closest ellipsoidal
-  coordinate.
-  ------------------------------------------------------*/
-extern double sqrt(double);
-
-MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c)
-{
-  VERTEX *v;
-  int k;
-  float x, y, z, x2, y2, z2, dx, dy, dz, a2, b2, c2, a4, b4, c4, a6, b6, c6;
-  float f, g, h, d, dist, avgdist = 0.0f;
-
-  if (FZERO(a)) {
-    a = DEFAULT_A;
-    b = DEFAULT_B;
-    c = DEFAULT_C;
-  }
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  MRIScenter(mris_dst, mris_dst);
-
-  mris_dst->a = a;
-  mris_dst->b = b;
-  mris_dst->c = c;
-
-  /*  printf("ellipsoid_project(%f,%f,%f)\n",a,b,c);*/
-  a2 = a * a;
-  b2 = b * b;
-  c2 = c * c;
-  a4 = a2 * a2;
-  b4 = b2 * b2;
-  c4 = c2 * c2;
-  a6 = a2 * a4;
-  b6 = b2 * b4;
-  c6 = c2 * c4;
-
-#if 0
-  /* rescale brain so that it is contained within the ellipsoid */
-  xscale = mris_dst->xhi / a ;
-  yscale = mris_dst->yhi / b ;
-  zscale = mris_dst->zhi / c ;
-  if ((xscale > yscale) && (xscale > zscale))
-  {
-    scale = 1.0f / xscale ;
-  }
-  else if (yscale > zscale)
-  {
-    scale = 1.0f / yscale ;
-  }
-  else
-  {
-    scale = 1.0f / zscale ;
-  }
-
-  MRISscaleBrain(mris_dst, mris_dst, scale) ;
-#endif
-
-  for (k = 0; k < mris_dst->nvertices; k++) {
-    v = &mris_dst->vertices[k];
-    /*
-      printf("%6d: before: %6.2f\n",k,SQR(v->x/a)+SQR(v->y/b)+SQR(v->z/c));
-    */
-    x = v->x;
-    y = v->y;
-    z = v->z;
-#if 0
-    if ((fabs(x) > a) || (fabs(y) > b) || (fabs(z) > c))
-    {
-      return(MRISradialProjectOntoEllipsoid(mris_src, mris_dst, a, b, c)) ;
-    }
-#endif
-
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    f = x2 / a6 + y2 / b6 + z2 / c6;
-    g = 2 * (x2 / a4 + y2 / b4 + z2 / c4);
-    h = x2 / a2 + y2 / b2 + z2 / c2 - 1;
-    d = (-g + (float)sqrt((double)(g * g - 4 * f * h))) / (2 * f);
-    if (!isfinite(d)) {
-      ErrorPrintf(ERROR_BADPARM,
-                  "point (%2.2f,%2.2f,%2.2f) cannot be projected on ell "
-                  "(%2.0f,%2.0f,%2.0f...\n",
-                  x,
-                  y,
-                  z,
-                  a,
-                  b,
-                  c);
-
-      return (MRISradialProjectOntoEllipsoid(mris_src, mris_dst, a, b, c));
-    }
-    dx = d * x / a2;
-    dy = d * y / b2;
-    dz = d * z / c2;
-    v->x = x + dx;
-    v->y = y + dy;
-    v->z = z + dz;
-
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
-      DiagBreak();
-    }
-
-    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
-      dist = (float)sqrt((double)(dx * dx + dy * dy + dz * dz));
-      avgdist += dist;
-    }
-    /*
-      printf("%6d: after: %6.2f\n",k,SQR(v->x/a)+SQR(v->y/b)+SQR(v->z/c));
-    */
-  }
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-    fprintf(stdout, "ellipsoid_project: avgdist = %f\n", avgdist / mris_dst->nvertices);
-  MRISupdateEllipsoidSurface(mris_dst);
-  if (FZERO(a - b) && FZERO(b - c)) {
-    mris_dst->status = MRIS_SPHERE;
-  }
-  else {
-    mris_dst->status = MRIS_ELLIPSOID;
-  }
-  return (mris_dst);
-}
-
-/*
-  this one projects along the line from the origin to the ellipsoidal
-  surface - not orthographic unless the ellipsoid is a sphere.
-*/
-MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c)
-{
-  int vno;
-  VERTEX *vsrc, *vdst;
-  float x0, y0, z0, x1, y1, z1, denom, asq_bsq, asq_csq, bsq_csq, x1sq, y1sq, z1sq, abc;
-
-  if (FZERO(a)) {
-    a = DEFAULT_A;
-    b = DEFAULT_B;
-    c = DEFAULT_C;
-  }
-
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  x0 = mris_dst->xctr;
-  y0 = mris_dst->yctr;
-  z0 = mris_dst->zctr;
-  asq_bsq = a * a * b * b;
-  bsq_csq = b * b * c * c;
-  asq_csq = a * a * c * c;
-  abc = a * b * c;
-
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
-    vsrc = &mris_src->vertices[vno];
-    vdst = &mris_dst->vertices[vno];
-    x1 = (vsrc->x - x0);
-    y1 = (vsrc->y - y0);
-    z1 = (vsrc->z - z0);
-    x1sq = x1 * x1;
-    y1sq = y1 * y1;
-    z1sq = z1 * z1;
-
-    /* right out of mathematica (almost) */
-    denom = sqrt(bsq_csq * x1sq + asq_csq * y1sq + asq_bsq * z1sq);
-
-    vdst->x = abc * x1 / denom /* + x0 */;
-    vdst->y = abc * y1 / denom /* + y0 */;
-    vdst->z = abc * z1 / denom /* + z0 */;
-  }
-
-  x0 = y0 = z0 = 0; /* set center of ellipsoid at origin */
-#if 0
-  if (mris_dst->v_temporal_pole)
-  {
-    mris_dst->v_temporal_pole->x = x0 ;
-    mris_dst->v_temporal_pole->y = y0 ;
-    mris_dst->v_temporal_pole->z = -c+z0 ;
-    mris_dst->v_temporal_pole->tethered = TETHERED_TEMPORAL_POLE ;
-  }
-  if (mris_dst->v_frontal_pole)
-  {
-    mris_dst->v_frontal_pole->x = x0 ;
-    mris_dst->v_frontal_pole->y = b+y0 ;
-    mris_dst->v_frontal_pole->z = z0 ;
-    mris_dst->v_frontal_pole->tethered = TETHERED_FRONTAL_POLE ;
-  }
-  if (mris_dst->v_occipital_pole)
-  {
-    mris_dst->v_occipital_pole->x = x0 ;
-    mris_dst->v_occipital_pole->y = -b+y0 ;
-    mris_dst->v_occipital_pole->z = z0 ;
-    mris_dst->v_occipital_pole->tethered = TETHERED_OCCIPITAL_POLE ;
-  }
-#endif
-
-  MRISupdateEllipsoidSurface(mris_dst);
-  if (FZERO(a - b) && FZERO(b - c)) {
-    mris_dst->status = MRIS_SPHERE;
-  }
-  else {
-    mris_dst->status = MRIS_ELLIPSOID;
-  }
-  return (mris_dst);
-}
 
 
 int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
