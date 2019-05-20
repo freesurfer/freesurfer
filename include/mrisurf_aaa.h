@@ -55,6 +55,46 @@
     //
     // This is used in a repeatable arbitrary true false selector based on the resulting int being EVEN or ODD
 
+typedef FixedSizeArray<char   *,MAX_CMDS> MRIS_cmdlines_t;
+typedef FixedSizeArray<char    ,STRLEN>   MRIS_subject_name_t;
+typedef FixedSizeArray<char    ,STRLEN>   MRIS_fname_t;
+    //
+    // C arrays can not be returned as function results, but there can
+
+
+enum MRIS_Status_DistanceFormula {
+  MRIS_Status_DistanceFormula_0,    // see utils/mrisComputeVertexDistancesWkr_extracted.h
+  MRIS_Status_DistanceFormula_1
+};
+
+enum MRIS_Status {
+#define MRIS_Status_ELTS \
+  ELT(MRIS_SURFACE              ,0) SEP \
+  ELT(MRIS_PATCH                ,0) SEP \
+  ELT(MRIS_PLANE                ,0) SEP \
+  ELT(MRIS_ELLIPSOID            ,0) SEP \
+  ELT(MRIS_SPHERE               ,1) SEP \
+  ELT(MRIS_PARAMETERIZED_SPHERE ,1) SEP \
+  ELT(MRIS_RIGID_BODY           ,0) SEP \
+  ELT(MRIS_SPHERICAL_PATCH      ,0) SEP \
+  ELT(MRIS_UNORIENTED_SPHERE    ,0) SEP \
+  ELT(MRIS_PIAL_SURFACE         ,0)     \
+  // end of macro
+#define SEP ,
+#define ELT(E,D) E
+  MRIS_Status_ELTS,
+  MRIS_Status__end, 
+  MRIS_CUT = MRIS_PATCH
+#undef ELT
+#undef SEP
+};
+
+const char* MRIS_Status_text(MRIS_Status s1);
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1);
+bool areCompatible(MRIS_Status s1, MRIS_Status s2);
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line);
+#define checkOrigXYZCompatible(S1,S2) checkOrigXYZCompatibleWkr((S1),(S2),__FILE__,__LINE__);
+
 
 typedef struct _mht                 MRIS_HASH_TABLE, MHT ;
 typedef struct LABEL_VERTEX         LABEL_VERTEX,    LV  ;
@@ -89,6 +129,90 @@ typedef struct {
     unsigned long hash;
 } MRIS_HASH;
 
+
+typedef struct _area_label
+{
+  char     name[STRLEN] ;     /* name of region */
+  float    cx ;               /* centroid x */
+  float    cy ;               /* centroid y */
+  float    cz ;               /* centroid z */
+  int      label ;            /* an identifier (used as an index) */
+}
+MRIS_AREA_LABEL ;
+
+typedef struct FaceNormCacheEntry {
+    // inputs
+        // may have to capture them if the inputs change
+    // flag saying the calculation has been deferred
+    // may be better to store these separately...
+    // value
+        float nx,ny,nz,orig_area;
+} FaceNormCacheEntry;
+
+typedef struct FaceNormDeferredEntry {
+    char deferred;
+} FaceNormDeferredEntry;
+
+// the face norm elements have moved into the FaceNormalCacheEntry
+/*  ELTT(float,nx) SEP    \
+    ELTT(float,ny) SEP    \
+    ELTT(float,nz) SEP    \
+    ELTT(float,orig_area) SEP    \
+*/
+
+typedef struct edge_type_
+{
+  int edgeno; // this face no
+  int vtxno[4]; // vertex numbers of 2 ends + 2 opposites
+  int faceno[2]; // two adjacent faces
+  unsigned char corner[4][2]; // corner[nthvtx][faceno]
+  double len; // length of the edge
+  double dot; // dot product of the adjacent face normals
+  double angle; // angle (deg) of the adjacent face normals
+  double J; // Angle Cost of this edge
+  DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
+} MRI_EDGE;
+
+
+#include "colortab.h" // 'COLOR_TABLE'
+
+#define VERTEX_SULCAL  0x00000001L
+
+typedef struct
+{
+  int nvertices;
+  unsigned int *vertex_indices;
+}
+STRIP;
+
+#include "transform.h" // TRANSFORM, LTA
+
+
+typedef int*                    pSeveralInt;
+typedef uchar*                  pSeveralUchar;
+typedef float*                  pSeveralFloat;
+typedef void*                   p_void;
+typedef void**                  p_p_void;
+
+typedef DMATRIX*                PDMATRIX;
+typedef MATRIX*                 PMATRIX;
+typedef LTA*                    PLTA;
+typedef COLOR_TABLE*            PCOLOR_TABLE;
+
+typedef MRI*                    PMRI;
+typedef MRI_EDGE*               pSeveralMRI_EDGE;
+typedef MRIS_AREA_LABEL*        PMRIS_AREA_LABEL;
+typedef VERTEX *                PVERTEX;
+typedef FixedSizeArray<PDMATRIX,3> A3PDMATRIX;
+
+typedef STRIP*                  pSeveralSTRIP;
+typedef VERTEX *                pSeveralVERTEX;
+typedef VERTEX_TOPOLOGY *       pSeveralVERTEX_TOPOLOGY;
+typedef FACE *                  pSeveralFACE;
+typedef FaceNormCacheEntry*     pSeveralFaceNormCacheEntry;
+typedef FaceNormDeferredEntry*  pSeveralFaceNormDeferredEntry;
+
+ 
 
 // MRIS supplies a rich world, but in a format that causes lots of memory traffic
 //

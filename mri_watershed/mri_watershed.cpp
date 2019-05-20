@@ -7766,10 +7766,10 @@ mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     src = v->curv ;
 
     target =
-      MRISPfunctionVal(parms->mrisp_template, mris, x, y, z,
+      MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z,
                        parms->frame_no) ;
 
-    std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,
+    std = MRISPfunctionVal(parms->mrisp_template,mris->radius,x,y,z,
                            parms->frame_no+1);
     std = sqrt(std) ;
 
