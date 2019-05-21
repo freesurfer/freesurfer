@@ -143,11 +143,12 @@ popd
 set vbase = `fname2stem $input`
 set vbase = `basename $vbase`
 set bc = $samsegdir/$vbase"_biasCorrected".nii
+set segvol = `find "$samsegdir" -iname "*crispSegmentation.nii" -print`
 
 # Need to rescale bias corrected such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
-set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 2 41 --erode 2 --o $wm)
+set cmd = (mri_binarize --i $segvol --match 2 41 --erode 2 --o $wm)
 echo $cmd | tee -a $LF
 fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -171,7 +172,7 @@ if($status) goto error_exit;
 # Remove extracerebral stuff
 # Could just use aseg created above
 set mask = $tmpdir/mask.mgh
-set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 0 165 258 259 --inv --o $mask)
+set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
 echo $cmd | tee -a $LF
 fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
