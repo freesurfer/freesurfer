@@ -36,7 +36,7 @@ class LayerMRI;
 class LayerSurface;
 class SurfaceOverlay;
 class FlowLayout;
-class TimeCourseData;
+struct TimeCourseData;
 
 class ClickableLabel : public QLabel
 {
