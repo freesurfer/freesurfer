@@ -178,7 +178,8 @@ SOURCES += \
     QVTKWidget/QVTKPaintEngine.cxx \
     BusyIndicator.cpp \
     vtkInteractorStyleMyTrackballCamera.cxx \
-    FlowLayout.cpp
+    FlowLayout.cpp \
+    WindowLayerInfo.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -345,7 +346,8 @@ HEADERS  += \
     BusyIndicator.h \
     QVTKWidget/QVTKPaintEngine.h \
     vtkInteractorStyleMyTrackballCamera.h \
-    FlowLayout.h
+    FlowLayout.h \
+    WindowLayerInfo.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -398,7 +400,8 @@ FORMS    += MainWindow.ui \
     DialogAddPointSetStat.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
-    DialogSurfaceLabelOperations.ui
+    DialogSurfaceLabelOperations.ui \
+    WindowLayerInfo.ui
 
 RESOURCES += \
     freeview.qrc

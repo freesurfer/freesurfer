@@ -65,6 +65,7 @@ class DialogSetCamera;
 class DialogThresholdVolume;
 class DialogVolumeSegmentation;
 class BinaryTreeView;
+class WindowLayerInfo;
 
 #define MAX_RECENT_FILES    10
 
@@ -559,6 +560,8 @@ protected slots:
 
   void OnViewLayerInfo();
 
+  void UpdateLayerInfo(Layer* layer);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -621,10 +624,8 @@ private:
   DialogPreferences*    m_dlgPreferences;
   DialogRepositionSurface*  m_dlgRepositionSurface;
   DialogSmoothSurface*  m_dlgSmoothSurface;
-  WindowQuickReference* m_wndQuickRef;
   FloatingStatusBar*    m_statusBar;
   TermWidget*           m_term;
-  WindowTimeCourse*     m_wndTimeCourse;
   WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
   DialogLineProfile*    m_dlgLineProfile;
@@ -632,6 +633,9 @@ private:
   DialogThresholdVolume* m_dlgThresholdVolume;
   DialogVolumeSegmentation* m_dlgVolumeSegmentation;
   BinaryTreeView*       m_wndTractCluster;
+  WindowQuickReference* m_wndQuickRef;
+  WindowTimeCourse*     m_wndTimeCourse;
+  WindowLayerInfo*      m_wndLayerInfo;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

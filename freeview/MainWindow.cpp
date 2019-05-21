@@ -115,6 +115,7 @@
 #include "SurfaceAnnotation.h"
 #include "Annotation2D.h"
 #include "PanelLayer.h"
+#include "WindowLayerInfo.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -246,6 +247,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_wndQuickRef = new WindowQuickReference(this);
   m_wndQuickRef->hide();
+
+  m_wndLayerInfo = new WindowLayerInfo(this);
+  m_wndLayerInfo->hide();
 
   m_dlgWriteMovieFrames = new DialogWriteMovieFrames(this);
   m_dlgWriteMovieFrames->hide();
@@ -411,6 +415,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       m_views[3], SLOT(UpdateBounds()));
   connect(m_layerCollections["Surface"], SIGNAL(ActiveLayerChanged(Layer*)),
       m_views[3], SLOT(UpdateAxesActor()));
+  connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)),
+      this, SLOT(UpdateLayerInfo(Layer*)), Qt::QueuedConnection);
+  connect(m_layerCollections["Surface"], SIGNAL(ActiveLayerChanged(Layer*)),
+      this, SLOT(UpdateLayerInfo(Layer*)), Qt::QueuedConnection);
 
   QActionGroup* actionGroupMode = new QActionGroup( this );
   actionGroupMode->addAction( ui->actionNavigate );
@@ -8490,13 +8498,18 @@ void MainWindow::SetCurrentTimeCourseFrame(int nFrame)
 
 void MainWindow::OnViewLayerInfo()
 {
-  LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
-  if (lc)
+  QString type = GetCurrentLayerType();
+  Layer* layer = GetActiveLayer(type);
+  if (layer)
   {
-    Layer* layer = lc->GetActiveLayer();
-    if (layer)
-    {
-      qDebug() << layer->GetName() << layer->GetEndType() << layer->GetID();
-    }
+    m_wndLayerInfo->UpdateInfo(layer);
+    m_wndLayerInfo->show();
+    m_wndLayerInfo->raise();
   }
+}
+
+void MainWindow::UpdateLayerInfo(Layer* layer)
+{
+  if (layer && m_wndLayerInfo->isVisible())
+    m_wndLayerInfo->UpdateInfo(layer);
 }

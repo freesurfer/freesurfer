@@ -189,6 +189,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     BusyIndicator.cpp
     vtkInteractorStyleMyTrackballCamera.cxx
     FlowLayout.cpp
+    WindowLayerInfo.cpp
     freeview.qrc
   )
 
