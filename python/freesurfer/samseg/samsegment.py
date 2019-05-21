@@ -11,6 +11,7 @@ from freesurfer.samseg.bias_correction import projectKroneckerProductBasisFuncti
     computePrecisionOfKroneckerProductBasisFunctions
 from freesurfer.samseg.register_atlas import registerAtlas
 import logging
+import pickle
 
 
 #eps = np.spacing(1)
