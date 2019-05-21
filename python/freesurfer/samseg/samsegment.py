@@ -1,7 +1,6 @@
 import os
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 import freesurfer as fs
 import freesurfer.gems as gems
 from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
@@ -18,7 +17,6 @@ eps = np.finfo( float ).eps
 
 
 def showImage( data ):
-    #
     range = ( data.min(), data.max() )
 
     Nx = data.shape[0]
@@ -35,6 +33,7 @@ def showImage( data ):
 
     patchedSlices = np.block( [ [ xySlice, xzSlice], [ yzSlice.T, np.zeros( ( Nz, Nz ) ) + range[ 0 ] ] ] )
 
+    import matplotlib.pyplot as plt   # avoid importing matplotlib by default
     plt.imshow( patchedSlices.T, cmap=plt.cm.gray, vmin=range[ 0 ], vmax=range[ 1 ] )
     #plt.gray()
     #plt.imshow( patchedSlices.T, vmin=range[ 0 ], vmax=range[ 1 ] )
@@ -1316,6 +1315,8 @@ def samsegment( imageFileNames, atlasDir, savePath,
                         names=modelSpecifications.names, legend_width=350 )
         visualizer.show( images=imageBuffers, window_id='samsegment images', 
                         title='Samsegment Masked and Log-Transformed Contrasts' )
+
+        import matplotlib.pyplot as plt   # avoid importing matplotlib by default
         plt.ion()
         f = plt.figure( 'Bias field basis functions' )
         for dimensionNumber in range(3):
@@ -1840,6 +1841,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
         historyOfLatentAtlasCost.append( latentAtlasCost )
         
         if hasattr( visualizer, 'show_flag' ):
+            import matplotlib.pyplot as plt   # avoid importing matplotlib by default
             plt.ion()
             if progressPlot is None:
                 progressPlot = plt.subplot()
