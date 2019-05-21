@@ -3,7 +3,7 @@ import tempfile
 import numpy as np
 import nibabel as nib
 
-from . import error, run, Volume
+from . import error, run, Volume, collectOutput
 
 
 class Freeview:
@@ -110,7 +110,8 @@ class Freeview:
         vgl = all([os.path.exists(path) for path in ('/etc/opt/VirtualGL/vgl_xauth_key', '/usr/pubsw/bin/vglrun')])
         local = any([os.environ.get('DISPLAY', '').endswith(string) for string in (':0', ':0.0')])
         if vgl and not local:
-            cmd = '/usr/pubsw/bin/vglrun ' + cmd
+            if not 'NV-GLX' in collectOutput('xdpyinfo')[0]:
+                cmd = '/usr/pubsw/bin/vglrun ' + cmd
 
         if self.items['volumes']:
             cmd += ' -v ' + ' '.join(self.items['volumes'])
