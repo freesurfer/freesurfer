@@ -38,7 +38,7 @@
 #include "ProgressCallback.h"
 #include "LayerMRI.h"
 #include "MyUtils.h"
-
+#include <QDateTime>
 
 
 #include "utils.h"
@@ -66,6 +66,8 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   m_fCorrelationDataBuffer(NULL)
 {
   InitializeData();
+
+  m_nID = QDateTime::currentMSecsSinceEpoch();
 
   m_property =  new SurfaceOverlayProperty( this );
   connect( m_property, SIGNAL(ColorMapChanged()), surf, SLOT(UpdateOverlay()), Qt::UniqueConnection);

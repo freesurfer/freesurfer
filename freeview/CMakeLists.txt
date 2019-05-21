@@ -188,6 +188,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     geos/kde.cpp
     BusyIndicator.cpp
     vtkInteractorStyleMyTrackballCamera.cxx
+    FlowLayout.cpp
     freeview.qrc
   )
 

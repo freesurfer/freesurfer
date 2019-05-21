@@ -177,7 +177,8 @@ SOURCES += \
     QVTKWidget/QVTKWidget.cxx \
     QVTKWidget/QVTKPaintEngine.cxx \
     BusyIndicator.cpp \
-    vtkInteractorStyleMyTrackballCamera.cxx
+    vtkInteractorStyleMyTrackballCamera.cxx \
+    FlowLayout.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -343,7 +344,8 @@ HEADERS  += \
     QVTKWidget/QVTKWidget.h \
     BusyIndicator.h \
     QVTKWidget/QVTKPaintEngine.h \
-    vtkInteractorStyleMyTrackballCamera.h
+    vtkInteractorStyleMyTrackballCamera.h \
+    FlowLayout.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
