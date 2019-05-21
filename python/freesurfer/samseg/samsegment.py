@@ -1401,6 +1401,10 @@ def samsegment( imageFileNames, atlasDir, savePath,
         history['imageBuffers'] = imageBuffers
         history['mask'] = mask
         history[ 'historyWithinEachMultiResolutionLevel' ] = optimizationHistory
+        history[ "labels" ] = modelSpecifications.FreeSurferLabels
+        history[ "names"] = modelSpecifications.names
+        history[ "volumesInCubicMm"] = volumesInCubicMm
+        history[ "optimizationSummary"] = optimizationSummary
         with open( os.path.join( savePath, 'history.p' ), 'wb' ) as file:
             pickle.dump( history, file, protocol=pickle.HIGHEST_PROTOCOL )
 
