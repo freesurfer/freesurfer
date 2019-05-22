@@ -54,7 +54,11 @@ SurfaceROI::SurfaceROI( LayerSurface* owner ) :
 {
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
-  m_actorOutline->GetProperty()->SetLineWidth( 4 );
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
+  m_actorOutline->GetProperty()->SetLineWidth(4*ratio);
 
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_mris = owner;

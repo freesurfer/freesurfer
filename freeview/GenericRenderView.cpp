@@ -77,6 +77,7 @@ GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKW
 #if VTK_MAJOR_VERSION > 5
   vtkSmartPointer<vtkGenericOpenGLRenderWindow> renWin = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
   SetRenderWindow(renWin);
+  setEnableHiDPI(true);
 #else
   vtkRenderWindow* renWin = GetRenderWindow();
 #endif

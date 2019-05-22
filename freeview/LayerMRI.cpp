@@ -115,6 +115,10 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_strTypeNames.push_back( "MRI" );
   m_sPrimaryType = "MRI";
   
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
     // m_nSliceNumber[i] = 0;
@@ -138,7 +142,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     m_vectorDotActor2D[i] = vtkActor::New();
     m_vectorDotActor2D[i]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
     m_vectorDotActor2D[i]->SetProperty( m_vectorDotActor2D[i]->MakeProperty() );
-    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(3);
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(3*ratio);
     m_vectorDotActor2D[i]->GetProperty()->SetInterpolationToFlat();
     m_projectionMapActor[i] = vtkImageActor::New();
     m_projectionMapActor[i]->VisibilityOff();
@@ -1646,10 +1650,14 @@ void LayerMRI::TargetIndexToOriginalIndex(const int *n_in, int *n_out)
 
 void LayerMRI::UpdateVectorLineWidth(double val)
 {
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
-    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val);
-    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3));
+    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val*ratio);
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3)*ratio);
   }
   if (GetProperty()->GetVectorRepresentation() != LayerPropertyMRI::VR_Bar)
   {
@@ -1665,10 +1673,14 @@ void LayerMRI::UpdateVectorActor()
 {
   this->blockSignals( true );
   double val = GetProperty()->GetVectorLineWidth();
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
-    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val);
-    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3));
+    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val*ratio);
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3)*ratio);
   }
   for ( int i = 0; i < 3; i++ )
   {

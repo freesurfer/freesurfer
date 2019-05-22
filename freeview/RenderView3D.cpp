@@ -460,7 +460,15 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
     }
 
     double pos[3];
-    picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+    posY = this->rect().height() - posY;
+  #if VTK_MAJOR_VERSION > 5
+    if (devicePixelRatio() > 1)
+    {
+        posX *= devicePixelRatio();
+        posY *= devicePixelRatio();
+    }
+  #endif
+    picker->Pick( posX, posY, 0, GetRenderer() );
     picker->GetPickPosition( pos );
 
     vtkProp* prop = picker->GetViewProp();
@@ -535,7 +543,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
         picker->DeletePickList( m_actorSliceBoundingBox[i] );
       }
 
-      picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+      picker->Pick( posX, posY, 0, GetRenderer() );
       picker->GetPickPosition( pos );
       prop = picker->GetViewProp();
 
@@ -705,6 +713,7 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     return -1;
   }
 
+  posY = this->rect().height() - posY;
   int nvo = -1;
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
   if ( picker )
@@ -727,7 +736,14 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     }
 
     double pos[3];
-    picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+  #if VTK_MAJOR_VERSION > 5
+    if (devicePixelRatio() > 1)
+    {
+        posX *= devicePixelRatio();
+        posY *= devicePixelRatio();
+    }
+  #endif
+    picker->Pick( posX, posY, 0, GetRenderer() );
     picker->GetPickPosition( pos );
 
     vtkProp* prop = picker->GetViewProp();
@@ -766,14 +782,18 @@ void RenderView3D::HighlightSliceFrame( int n )
   }
 
   double colors[][3] = { { 1, 0.1, 0.1}, { 0.1, 1, 0.1 }, { 0.1, 0.1, 1 } };
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
-    m_actorSliceFrames[i]->GetProperty()->SetLineWidth( 2 );
+    m_actorSliceFrames[i]->GetProperty()->SetLineWidth( 2*ratio );
     m_actorSliceFrames[i]->GetProperty()->SetColor( colors[i] );
   }
   if ( n >= 0 && n <= 2 )
   {
-    m_actorSliceFrames[n]->GetProperty()->SetLineWidth( 4 );
+    m_actorSliceFrames[n]->GetProperty()->SetLineWidth( 4*ratio );
     m_actorSliceFrames[n]->GetProperty()->SetColor( 1, 1, 1 );
   }
   m_nSliceHighlighted = n;
@@ -987,7 +1007,15 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
       prop = props->GetNextProp();
     }
   }
-  picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+  posY = this->rect().height() - posY;
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
+  }
+#endif
+  picker->Pick( posX, posY, 0, GetRenderer() );
   if ( pos_out )
   {
     picker->GetPickPosition( pos_out );

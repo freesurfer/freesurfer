@@ -595,7 +595,7 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
     menu->addAction(act);
-    act = new QAction("MaskOverlay", this);
+    act = new QAction("Mask Overlay", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
     menu->addAction(act);
     menu->addSeparator();
