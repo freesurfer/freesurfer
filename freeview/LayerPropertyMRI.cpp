@@ -1874,7 +1874,7 @@ void LayerPropertyMRI::SetSelectLabel(int nVal, bool bSelected)
   else if (!bSelected)
     m_listVisibleLabels.removeOne(nVal);
   UpdateLUTTable();
-  this->OnColorMapChanged();
+//  this->OnColorMapChanged();
   emit LabelContourChanged(nVal);
 }
 
