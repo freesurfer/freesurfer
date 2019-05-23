@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>341</width>
+    <width>360</width>
     <height>1770</height>
    </rect>
   </property>
@@ -27,8 +27,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>341</width>
-     <height>1770</height>
+     <width>346</width>
+     <height>1815</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -89,7 +89,7 @@
     <item>
      <layout class="QGridLayout" name="gridLayout_2">
       <property name="verticalSpacing">
-       <number>5</number>
+       <number>6</number>
       </property>
       <item row="14" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -742,6 +742,9 @@ of each frame</string>
       </item>
       <item row="20" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <property name="spacing">
+         <number>6</number>
+        </property>
         <item>
          <widget class="QSlider" name="sliderWindow">
           <property name="maximum">
