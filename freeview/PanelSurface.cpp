@@ -50,6 +50,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui(new Ui::PanelSurface)
 {
   ui->setupUi(this);
+#ifdef Q_OS_MAC
+  ui->pushButtonNewLabel->setMaximumWidth(55);
+  ui->pushButtonDeleteLabel->setMaximumWidth(62);
+  ui->pushButtonLoadLabel->setMaximumWidth(55);
+  ui->pushButtonSaveLabel->setMaximumWidth(55);
+#endif
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);

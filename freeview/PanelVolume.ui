@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>341</width>
-    <height>1499</height>
+    <height>1770</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-281</y>
-     <width>327</width>
-     <height>1788</height>
+     <y>0</y>
+     <width>341</width>
+     <height>1770</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -1271,56 +1271,6 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="labelContourColor">
-        <property name="text">
-         <string>Surface color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelContourSpaceHolder">
-        <property name="styleSheet">
-         <string notr="true">color:rgba(0,0,0,0)</string>
-        </property>
-        <property name="text">
-         <string>Smooth iterations</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
-        <item>
-         <widget class="QSlider" name="sliderContourThresholdLow">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditContourThresholdLow">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
       <item row="4" column="0">
        <widget class="QLabel" name="labelContourThresholdHigh">
         <property name="text">
@@ -1328,13 +1278,6 @@ of each frame</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <widget class="QCheckBox" name="checkBoxUseColorMap">
-        <property name="text">
-         <string>Use color map</string>
         </property>
        </widget>
       </item>
@@ -1371,6 +1314,24 @@ of each frame</string>
         </item>
        </layout>
       </item>
+      <item row="2" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <item>
+         <widget class="QCheckBox" name="checkBoxShowLabelContour">
+          <property name="text">
+           <string>Label volume</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxVoxelizedContour">
+          <property name="text">
+           <string>Voxelize</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
       <item row="4" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_13">
         <item>
@@ -1401,7 +1362,64 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="11" column="1">
+      <item row="3" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <item>
+         <widget class="QSlider" name="sliderContourThresholdLow">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditContourThresholdLow">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelContourThresholdLow">
+        <property name="text">
+         <string>Low threshold</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelContourSpaceHolder">
+        <property name="styleSheet">
+         <string notr="true">color:rgba(0,0,0,0)</string>
+        </property>
+        <property name="text">
+         <string>Smooth iterations</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="QCheckBox" name="checkBoxUseColorMap">
+        <property name="text">
+         <string>Use color map</string>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_16">
         <item>
          <widget class="QPushButton" name="pushButtonContourSave">
@@ -1425,36 +1443,18 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="2" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_8">
-        <item>
-         <widget class="QCheckBox" name="checkBoxShowLabelContour">
-          <property name="text">
-           <string>Label volume</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBoxVoxelizedContour">
-          <property name="text">
-           <string>Voxelize</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+      <item row="8" column="1">
+       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
       </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelContourThresholdLow">
+      <item row="8" column="0">
+       <widget class="QLabel" name="labelContourColor">
         <property name="text">
-         <string>Low threshold</string>
+         <string>Surface color</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
-      </item>
-      <item row="8" column="1">
-       <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
       </item>
       <item row="5" column="1">
        <widget class="QCheckBox" name="checkBoxUpsampleContour">
