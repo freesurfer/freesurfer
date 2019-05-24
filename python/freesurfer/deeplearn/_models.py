@@ -8,6 +8,7 @@ from keras.layers import *
 from keras.losses import mse
 from keras.utils.training_utils import multi_gpu_model
 from ._utility import dice_coef_loss2, grad_loss
+import pdb as gdb
 
 K.set_image_data_format('channels_last')
 
@@ -220,7 +221,7 @@ def vae(input_shape, num_filters, num_poolings, latent_dim, initial_learning_rat
 
 def unet(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_size=None, n_labels=0,
                loss='mean_squared_error', initial_learning_rate=0.00001, deconvolution=False, num_gpus=1,
-               num_outputs=1,GPnet=None,pooling='max', collapse_dim=None):
+               num_outputs=1,GPnet=None,pooling='max', collapse_dim=None, batch_norm = True):
     if n_labels > 0:
         is_seg_network = True
     else:
@@ -247,7 +248,7 @@ def unet(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_s
     input_img_ax = Input(shape=input_shape, name='input_ax')
     conv_ax = build_oriented_unet(input_img_ax, input_shape=input_shape, num_filters=num_filters,
                                      unet_depth=unet_depth, layer_prefix='',
-                                     downsize_filters_factor=downsize_filters_factor,
+                                     downsize_filters_factor=downsize_filters_factor,batch_norm=batch_norm,
                                      pool_size=pool_size, n_labels=n_labels, num_outputs=num_outputs,GPnet=GPnet, pooling=pooling,collapse_dim=collapse_dim)
     (model_ax, parallel_model_ax) = build_compile_model(input_img_ax, input_shape, conv_ax, n_labels,
                                                         loss, num_gpus, initial_learning_rate)
@@ -257,7 +258,7 @@ def unet(input_shape, num_filters, unet_depth, downsize_filters_factor=1, pool_s
 def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer_prefix='',
                         downsize_filters_factor=1,
                         pool_size=None, n_labels=0, num_outputs=1, num_gpus=1, GPnet=None,pooling='max',
-                        collapse_dim=None):
+                        collapse_dim=None, batch_norm=True):
     """
     Args:
         input_img_ax: input layer
@@ -322,7 +323,8 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
                 conv1x1 = ConvL(int(num_filters * (2 ** 5)), onexone_filter_shape, padding='same', dilation_rate=1,
                                 name='2a' + str(0))(
                     input_layer)
-                conv1x1 = BatchNormalization()(conv1x1)
+                if batch_norm == True:
+                    conv1x1 = BatchNormalization()(conv1x1)
                 conv1x1 = Activation('relu')(conv1x1)
                 prev = conv1x1
             else:
@@ -334,11 +336,13 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
                      activation='relu', padding='same', kernel_initializer="he_normal",
                      name=('conv3D_D_1_%d' % (i) + layer_prefix))(prev)
-        conv = BatchNormalization(name=('bnorm_D_1_%d' % (i) + layer_prefix))(conv)
+        if batch_norm == True:
+            conv = BatchNormalization(name=('bnorm_D_1_%d' % (i) + layer_prefix))(conv)
         conv = ConvL(int(num_filters * (2 ** i) / downsize_filters_factor), filter_shape,
                      activation='relu', padding='same', kernel_initializer="he_normal",
                      name=('conv3D_D_2_%d' % (i) + layer_prefix))(conv)
-        conv = BatchNormalization(name=('bnorm_D_2_%d' % (i) + layer_prefix))(conv)
+        if batch_norm == True:
+            conv = BatchNormalization(name=('bnorm_D_2_%d' % (i) + layer_prefix))(conv)
         if i < (unet_depth - 1):
             pools.append(
                 PoolingL(pool_size, name=('pool_D_%d' % (i) + layer_prefix), data_format='channels_last')(conv))
@@ -353,11 +357,15 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
                      kernel_initializer="he_normal",
                      name=('conv3D_U_1_%d' % (level) + layer_prefix))(up)
-        conv = BatchNormalization(name=('bnorm_U_1_%d' % (level) + layer_prefix))(conv)
+        if batch_norm == True:
+            conv = BatchNormalization(name=('bnorm_U_1_%d' % (level) + layer_prefix))(conv)
         conv = ConvL(num_filters * (2 ** level), filter_shape, padding="same", activation="relu",
                      kernel_initializer="he_normal",
                      name=('conv3D_U_2_%d' % (level) + layer_prefix))(conv)
-        convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level) + layer_prefix))(conv))
+        if batch_norm == True:
+            convs.append(BatchNormalization(name=('bnorm_U_2_%d' % (level) + layer_prefix))(conv))
+        else:
+            convs.append(conv)
 
         # conv = ZeroPadding3D(padding=(1, 1, 1))(convs[-1])
         # conv = Conv3D(num_filters * 2, (3, 3, 3), padding="valid", activation="relu", kernel_initializer="he_normal")(conv)
@@ -386,17 +394,21 @@ def build_oriented_unet(input_layer, input_shape, num_filters, unet_depth, layer
 
         
     print('is_seg_network' + str(is_seg_network))
+    use_bias = True
     if is_seg_network == False:
-        upL = ConvL(1, out_filter_shape, activation='linear', name='final_conv_3d' + layer_prefix)(upL)
+        conv = ConvL(1, out_filter_shape, activation='linear', name='final_conv_3d' + layer_prefix)(upL)
     else:
         print('segmentation network')
         if n_labels > 1:
-            conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d' + layer_prefix)(upL)
+            if (num_outputs > 1):
+                ishape = K.int_shape(upL)+tuple([1])
+                reL = ConvL(num_outputs*n_labels, out_filter_shape, activation='softmax', name='final_conv_3d' + layer_prefix)(upL)
+                conv = Reshape((ishape[1], ishape[2], ishape[3], num_outputs,n_labels))(reL)
+            else:
+                conv = ConvL(n_labels, out_filter_shape, activation='softmax', name='final_conv_3d' + layer_prefix)(upL)
         else:
             if (GPnet != None):
                 use_bias = False
-            else:
-                use_bias = True
 
             conv = ConvL(1, out_filter_shape, activation='sigmoid', name='final_conv_3d' + layer_prefix,use_bias=use_bias)(upL)
 
@@ -560,10 +572,13 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         pool_shape = (2, 2, 2)
         UpSamplingL = UpSampling3D
         filter_shape = (3, 3, 3)
+        onexone_filter_shape = (1, 1, 1)
         out_filter_shape = (1, 1, 1)
     elif dim == 2:
+        out_filter_shape = (1)
         ConvL = Conv1D
         MaxPoolingL = MaxPooling1D
+        onexone_filter_shape = (1, 1)
         AvgPoolingL = AveragePooling1D
         pool_shape = (2)
         UpSamplingL = UpSampling1D
@@ -584,9 +599,10 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
     input_shape_append = tuple(input_shape_list)
     print(input_shape_append)
     model = Sequential()
+    use_bias = True
 
     # if very high number of channels, use a 1x1 filter to reduce the dimensionality
-    if num_channels > 100:
+    if num_channels > 100 and 0:
         model.add(ConvL(int(unet_num_filters * (2 ** 0)), onexone_filter_shape, padding='same', dilation_rate=1,
                         name='2a' + str(0)))
         model.add(BatchNormalization())
