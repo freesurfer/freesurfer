@@ -1774,7 +1774,7 @@ get_option(int argc, char *argv[])
     do_secondpass_renorm = 1 ;
     printf("performing 2nd-pass renormalization...\n") ;
   }
-  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
+  else if (!stricmp(option, "RENORM_MAP") || !stricmp(option, "RENORMALIZE_MAP"))
   {
     renormalize = 1 ;
     printf("renormalizing GCA to MAP estimate of means\n") ;
@@ -2004,7 +2004,7 @@ get_option(int argc, char *argv[])
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
-  else if (!stricmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;
