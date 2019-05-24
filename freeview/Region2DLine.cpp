@@ -44,7 +44,11 @@ Region2DLine::Region2DLine( RenderView2D* view ) :
 {
   m_actorLine = vtkSmartPointer<vtkActor2D>::New();
   m_actorLine->GetProperty()->SetOpacity( 0.75 );
-  m_actorLine->GetProperty()->SetLineWidth( 3 );
+  double line_w = 3;
+#if VTK_MAJOR_VERSION > 5
+  line_w *= view->devicePixelRatio();
+#endif
+  m_actorLine->GetProperty()->SetLineWidth( line_w );
   //  m_actorLine->VisibilityOff();
 
   Highlight( true );
@@ -97,7 +101,6 @@ void Region2DLine::Update()
   }
 
   double pt1[3], pt2[3], pt3[3];
-
   m_view->WorldToViewport( m_dPt1[0], m_dPt1[1], m_dPt1[2], pt1[0], pt1[1], pt1[2] );
   m_view->WorldToViewport( m_dPt2[0], m_dPt2[1], m_dPt2[2], pt2[0], pt2[1], pt2[2] );
   for ( int i = 0; i < 3; i++ )

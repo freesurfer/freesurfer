@@ -87,7 +87,11 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
   // scale actors
   m_actorScaleLine = vtkSmartPointer<vtkActor2D>::New();
   m_actorScaleLine->SetMapper( vtkSmartPointer<vtkPolyDataMapper2D>::New() );
-  m_actorScaleLine->GetProperty()->SetLineWidth( 1 );
+  int line_w = 1;
+#if VTK_MAJOR_VERSION > 5
+  line_w = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
+  m_actorScaleLine->GetProperty()->SetLineWidth( line_w );
   m_actorScaleLine->GetPositionCoordinate()->
       SetCoordinateSystemToNormalizedViewport();
   m_actorScaleLine->SetPosition( 0.05, 0.05 );

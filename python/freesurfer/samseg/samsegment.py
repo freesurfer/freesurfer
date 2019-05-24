@@ -1,7 +1,6 @@
 import os
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 import freesurfer as fs
 import freesurfer.gems as gems
 from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
@@ -11,6 +10,7 @@ from freesurfer.samseg.bias_correction import projectKroneckerProductBasisFuncti
     computePrecisionOfKroneckerProductBasisFunctions
 from freesurfer.samseg.register_atlas import registerAtlas
 import logging
+import pickle
 
 
 #eps = np.spacing(1)
@@ -18,7 +18,6 @@ eps = np.finfo( float ).eps
 
 
 def showImage( data ):
-    #
     range = ( data.min(), data.max() )
 
     Nx = data.shape[0]
@@ -35,6 +34,7 @@ def showImage( data ):
 
     patchedSlices = np.block( [ [ xySlice, xzSlice], [ yzSlice.T, np.zeros( ( Nz, Nz ) ) + range[ 0 ] ] ] )
 
+    import matplotlib.pyplot as plt   # avoid importing matplotlib by default
     plt.imshow( patchedSlices.T, cmap=plt.cm.gray, vmin=range[ 0 ], vmax=range[ 1 ] )
     #plt.gray()
     #plt.imshow( patchedSlices.T, vmin=range[ 0 ], vmax=range[ 1 ] )
@@ -837,7 +837,10 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                              hyperMeans=None, hyperMeansNumberOfMeasurements=None, 
                              hyperVariances=None, hyperVariancesNumberOfMeasurements=None,
                              hyperMixtureWeights=None, hyperMixtureWeightsNumberOfMeasurements=None, 
-                             saveHistory=False, visualizer=None ):
+                             saveHistory=False, visualizer=None,
+                             skipGMMParameterEstimationInFirstIteration=False,
+                             skipBiasFieldParameterEstimationInFirstIteration=True
+                             ):
 
     #  
     logger = logging.getLogger(__name__)
@@ -995,19 +998,21 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                 # M-step: update the model parameters based on the current posterior
                 #
                 # First the mixture model parameters
-                means, variances, mixtureWeights = fitGMMParameters( downSampledData, downSampledGaussianPosteriors, 
-                                                                     numberOfGaussiansPerClass,             
-                                                                     useDiagonalCovarianceMatrices,
-                                                                     downSampledHyperMeans,
-                                                                     downSampledHyperMeansNumberOfMeasurements,
-                                                                     downSampledHyperVariances,
-                                                                     downSampledHyperVariancesNumberOfMeasurements,
-                                                                     downSampledHyperMixtureWeights,
-                                                                     downSampledHyperMixtureWeightsNumberOfMeasurements )
+                if not( ( iterationNumber == 0 ) and skipGMMParameterEstimationInFirstIteration ):
+                    means, variances, mixtureWeights = fitGMMParameters( downSampledData, downSampledGaussianPosteriors, 
+                                                                        numberOfGaussiansPerClass,             
+                                                                        useDiagonalCovarianceMatrices,
+                                                                        downSampledHyperMeans,
+                                                                        downSampledHyperMeansNumberOfMeasurements,
+                                                                        downSampledHyperVariances,
+                                                                        downSampledHyperVariancesNumberOfMeasurements,
+                                                                        downSampledHyperMixtureWeights,
+                                                                        downSampledHyperMixtureWeightsNumberOfMeasurements )
                  
                     
                 # Now update the parameters of the bias field model.
-                if ( estimateBiasField and ( iterationNumber > 0 ) ):
+                if ( estimateBiasField and 
+                     not ( ( iterationNumber == 0 ) and skipBiasFieldParameterEstimationInFirstIteration ) ):
                     biasFieldCoefficients = fitBiasFieldParameters( downSampledImageBuffers, 
                                                                     downSampledGaussianPosteriors, means, variances,
                                                                     downSampledBiasFieldBasisFunctions, 
@@ -1316,6 +1321,8 @@ def samsegment( imageFileNames, atlasDir, savePath,
                         names=modelSpecifications.names, legend_width=350 )
         visualizer.show( images=imageBuffers, window_id='samsegment images', 
                         title='Samsegment Masked and Log-Transformed Contrasts' )
+
+        import matplotlib.pyplot as plt   # avoid importing matplotlib by default
         plt.ion()
         f = plt.figure( 'Bias field basis functions' )
         for dimensionNumber in range(3):
@@ -1396,6 +1403,10 @@ def samsegment( imageFileNames, atlasDir, savePath,
         history['imageBuffers'] = imageBuffers
         history['mask'] = mask
         history[ 'historyWithinEachMultiResolutionLevel' ] = optimizationHistory
+        history[ "labels" ] = modelSpecifications.FreeSurferLabels
+        history[ "names"] = modelSpecifications.names
+        history[ "volumesInCubicMm"] = volumesInCubicMm
+        history[ "optimizationSummary"] = optimizationSummary
         with open( os.path.join( savePath, 'history.p' ), 'wb' ) as file:
             pickle.dump( history, file, protocol=pickle.HIGHEST_PROTOCOL )
 
@@ -1607,6 +1618,34 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                                     classFractions, numberOfGaussiansPerClass, optimizationOptions,  
                                     saveHistory=True, visualizer=visualizer )
 
+    if hasattr( visualizer, 'show_flag' ):
+        plt.ion()    
+        sstBiasFields = getBiasFields( sstBiasFieldCoefficients, biasFieldBasisFunctions,  mask )
+        sstData = sstImageBuffers[ mask, : ] - sstBiasFields[ mask, : ]
+        axsList = []
+        for contrastNumber in range( numberOfContrasts ):
+            f = plt.figure()
+            numberOfAxes = 2 + numberOfTimepoints
+            numberOfRows = np.int( np.ceil( np.sqrt( numberOfAxes ) ) )
+            numberOfColumns = np.int( np.ceil( numberOfAxes / numberOfRows ) )
+            axs = f.subplots( numberOfRows, numberOfColumns, sharex=True )
+            ax = axs.ravel()[ 0 ]
+            _, bins, _ = ax.hist( sstImageBuffers[ mask, contrastNumber ], 100  )
+            ax.grid()
+            ax.set_title( 'sst before bias field correction' )
+            ax = axs.ravel()[ 1 ]
+            ax.hist( sstData[ :, contrastNumber ], bins )
+            ax.grid()
+            ax.set_title( 'sst after bias field correction' )
+            for timepointNumber in range( numberOfTimepoints ):
+                ax = axs.ravel()[ 2 + timepointNumber ]
+                ax.hist( imageBuffersList[ timepointNumber ][ mask, contrastNumber ], bins )
+                ax.grid()
+                ax.set_title( 'time point ' + str( timepointNumber ) )
+            axsList.append( axs )
+        plt.draw()
+
+
     if saveHistory:
         history = { 
                   "sstMeans": sstMeans,
@@ -1776,7 +1815,9 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                                               hyperVariances=latentVariances,
                                               hyperVariancesNumberOfMeasurements=latentVariancesNumberOfMeasurements,
                                               hyperMixtureWeights=latentMixtureWeights, 
-                                              hyperMixtureWeightsNumberOfMeasurements=latentMixtureWeightsNumberOfMeasurements 
+                                              hyperMixtureWeightsNumberOfMeasurements=latentMixtureWeightsNumberOfMeasurements,
+                                              skipBiasFieldParameterEstimationInFirstIteration=False,
+                                              skipGMMParameterEstimationInFirstIteration=( iterationNumber == 0 )
                                             )
               
             totalTimepointCost += optimizationHistory[ -1 ][ 'historyOfCost' ][ -1 ]
@@ -1787,6 +1828,19 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             print( 'perVoxelCost: ', optimizationSummary[-1][ 'perVoxelCost' ] )
             print( '\n' )
             print( '=================================' )
+            if hasattr( visualizer, 'show_flag' ):
+                plt.ion()    
+                timepointBiasFields = getBiasFields( timepointBiasFieldCoefficients[ timepointNumber ], 
+                                                     biasFieldBasisFunctions,  mask )
+                timepointData = imageBuffersList[ timepointNumber ][ mask, : ] - timepointBiasFields[ mask, : ]
+                for contrastNumber in range( numberOfContrasts ):
+                    axs = axsList[ contrastNumber ]
+                    ax = axs.ravel()[ 2 + timepointNumber ]
+                    ax.clear()
+                    ax.hist( timepointData[ :, contrastNumber ], bins )
+                    ax.grid()
+                    ax.set_title( 'time point ' + str( timepointNumber ) )
+                plt.draw()
 
             # End loop over time points
             
@@ -1840,8 +1894,10 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
         historyOfLatentAtlasCost.append( latentAtlasCost )
         
         if hasattr( visualizer, 'show_flag' ):
+            import matplotlib.pyplot as plt   # avoid importing matplotlib by default
             plt.ion()
             if progressPlot is None:
+                plt.figure()
                 progressPlot = plt.subplot()
             progressPlot.clear()
             progressPlot.plot( historyOfTotalCost, color='k' )

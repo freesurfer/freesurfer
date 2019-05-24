@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-# tkmeditfv
+# tkregisterfv
 
 set VERSION = '$Id: tkregisterfv,v 1.9 2016/03/16 21:34:54 greve Exp $';
 
@@ -27,6 +27,7 @@ set movvol2 = ();
 set reg2 = ()
 set movvol3 = ();
 set reg3 = ()
+set UseVGLRun = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -113,7 +114,13 @@ else
 endif
 echo "cd `pwd`"
 echo $cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  echo "Using VGL"
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 
 #========================================================
 
@@ -319,6 +326,11 @@ while( $#argv != 0 )
       if($Plane == cor) set Plane = coronal
       if($Plane == sag) set Plane = sagittal
       if($Plane == ax)  set Plane = axial
+      breaksw
+
+    case "--vgl":
+    case "-vgl":
+      set UseVGLRun = 1;
       breaksw
 
     case "--no-config"

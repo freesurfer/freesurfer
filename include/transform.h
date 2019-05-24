@@ -278,5 +278,7 @@ int LTAmriIsSource(const LTA *lta, const MRI *mri);
 int LTAmriIsTarget(const LTA *lta, const MRI *mri);
 LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type);
 double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius);
+int LTAinversionNeeded(const MRI *src, const MRI *dst, const LTA *lta);
+int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta);
 
 #endif

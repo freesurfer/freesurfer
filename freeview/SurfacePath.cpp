@@ -32,8 +32,12 @@ SurfacePath::SurfacePath( LayerSurface* owner ) :
 {
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
-  m_actorOutline->GetProperty()->SetLineWidth( 4 );
-  m_actorOutline->GetProperty()->SetPointSize(8);
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
+  m_actorOutline->GetProperty()->SetLineWidth(4*ratio);
+  m_actorOutline->GetProperty()->SetPointSize(8*ratio);
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_mris = owner;
   m_actorOutline->SetPosition(m_mris->GetProperty()->GetPosition());

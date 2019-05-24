@@ -175,6 +175,15 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   //    menu->addSeparator();
   //  }
 
+  if (type == "MRI" || type == "Surface")
+  {
+    if (type == "MRI")
+      wnd->ui->actionViewLayerInfo->setText("View Volume Info...");
+    else if (type == "Surface")
+      wnd->ui->actionViewLayerInfo->setText("View Surface Info...");
+    menu->addAction(wnd->ui->actionViewLayerInfo);
+    menu->addSeparator();
+  }
   if (type == "MRI" || type.isEmpty())
   {
     menu->addAction(wnd->ui->actionNewVolume);
