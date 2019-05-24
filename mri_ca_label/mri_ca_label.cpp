@@ -1823,7 +1823,7 @@ get_option(int argc, char *argv[])
     printf("reading template for histogram equalization from %s\n",
            heq_fname) ;
   }
-  else if (!stricmp(option, "RENORM"))
+  else if (!strcmp(option, "RENORM") || !strcmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

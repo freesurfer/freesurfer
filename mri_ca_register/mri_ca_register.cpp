@@ -1774,7 +1774,7 @@ get_option(int argc, char *argv[])
     do_secondpass_renorm = 1 ;
     printf("performing 2nd-pass renormalization...\n") ;
   }
-  else if (!stricmp(option, "renormalize"))
+  else if (!strcmp(option, "RENORM") || !strcmp(option, "RENORMALIZE"))
   {
     renormalize = 1 ;
     printf("renormalizing GCA to MAP estimate of means\n") ;
