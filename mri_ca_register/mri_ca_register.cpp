@@ -1391,6 +1391,11 @@ main(int argc, char *argv[])
   {
     GCA_MORPH_PARMS old_parms ;
     int               start_t ;
+    TRANSFORM  _transform, *transform = &_transform ;
+
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    TransformInvert(transform, mri_inputs) ;
 
     memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
     parms.l_log_likelihood = .05 ;
@@ -1534,6 +1539,11 @@ main(int argc, char *argv[])
   if (0 && handle_expanded_ventricles) {  // one more less-restrictive morph
     GCA_MORPH_PARMS old_parms ;
     int               start_t ;
+    TRANSFORM  _transform, *transform = &_transform ;
+
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    TransformInvert(transform, mri_inputs) ;
 
     printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
     printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
