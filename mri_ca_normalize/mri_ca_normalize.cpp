@@ -890,7 +890,7 @@ get_option(int argc, char *argv[])
     printf("writing  transformed normalization control points to %s...\n",
            normalized_transformed_sample_fname) ;
   }
-  else if (!strcmp(option, "RENORM") || !strcmp(option, "RENORMALIZE"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

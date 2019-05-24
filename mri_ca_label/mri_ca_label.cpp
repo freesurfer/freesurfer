@@ -1823,7 +1823,7 @@ get_option(int argc, char *argv[])
     printf("reading template for histogram equalization from %s\n",
            heq_fname) ;
   }
-  else if (!strcmp(option, "RENORM") || !strcmp(option, "RENORMALIZE"))
+  else if (!strcmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;
@@ -1854,7 +1854,7 @@ get_option(int argc, char *argv[])
     printf("using FLASH forward model and tissue parms in %s to predict"
            " intensity values...\n", tissue_parms_fname) ;
   }
-  else if (!stricmp(option, "renormalize"))
+  else if (!stricmp(option, "renormalize_iter"))
   {
     renormalize_wsize = atoi(argv[2]) ;
     renormalize_iter = atoi(argv[3]) ;
