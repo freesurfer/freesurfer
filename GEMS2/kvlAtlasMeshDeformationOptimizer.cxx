@@ -117,7 +117,19 @@ AtlasMeshDeformationOptimizer
 
     
   // Try to make one successful move
-  const double  maximalDeformation = this->FindAndOptimizeNewSearchDirection();
+  double maximalDeformation = 0.0;
+  try
+    {
+    maximalDeformation = this->FindAndOptimizeNewSearchDirection();
+    }
+  catch( itk::ExceptionObject& err )
+    {
+    std::cout << "Something wrong with finding and/or optimizing the search direction -- giving up" << std::endl; 
+    std::cout << "(" << err << ")" << std::endl;  
+    this->InvokeEvent( DeformationEndEvent() );
+    return 0.0;  
+    }
+    
   m_Mesh->SetPoints( m_Position );
   if ( !( m_IterationNumber % m_IterationEventResolution ) )
     {
