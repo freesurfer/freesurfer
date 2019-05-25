@@ -1,5 +1,12 @@
 // Test functions
 //
+MHT_VIRTUAL int MHT_FUNCTION(checkFace)     (MHT_THIS_PARAMETER MHT_MRIS_PARAMETER int fno1)
+#ifndef MHT_TRADITIONAL_IMPL
+    ;
+#else
+{ return mht->checkFace(mris,fno1); }
+#endif
+
 MHT_VIRTUAL int MHT_FUNCTION(checkFaces)    (MHT_THIS_PARAMETER MHT_MRIS_PARAMETER_NOCOMMA) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
@@ -33,7 +40,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE::createFaceTable(mris); }
+{ return MRIS_HASH_TABLE_IMPL::createFaceTable(mris); }
 #endif
 
 
@@ -44,7 +51,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable_Resolution)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE::createFaceTable_Resolution(mris,which,res); }
+{ return MRIS_HASH_TABLE_IMPL::createFaceTable_Resolution(mris,which,res); }
 #endif
 
 
@@ -54,7 +61,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE::createVertexTable(mris,which); }
+{ return MRIS_HASH_TABLE_IMPL::createVertexTable(mris,which); }
 #endif
 
                                     
@@ -65,14 +72,14 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable_Resolution)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE::createVertexTable_Resolution(mris,which,res); }
+{ return MRIS_HASH_TABLE_IMPL::createVertexTable_Resolution(mris,which,res); }
 #endif
 
 MHT_STATIC_MEMBER void MHT_FUNCTION(free)(MRIS_HASH_TABLE**mht)
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ MRIS_HASH_TABLE::free(mht); }
+{ MRIS_HASH_TABLE_IMPL::free(mht); }
 #endif
 
 int MHT_FUNCTION(which)(MHT_THIS_PARAMETER_NOCOMMA)     // Whether uses the ORIGINAL, CANONICAL, CURRENT, ... ###xyz values
@@ -265,7 +272,7 @@ MHT_STATIC_MEMBER int MHT_FUNCTION(BruteForceClosestFace)(MHT_MRIS_PARAMETER
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE::BruteForceClosestFace(mris,x,y,z,which,dmin); }
+{ return MRIS_HASH_TABLE_IMPL::BruteForceClosestFace(mris,x,y,z,which,dmin); }
 #endif
 
 #endif

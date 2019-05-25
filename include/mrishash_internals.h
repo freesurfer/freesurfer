@@ -44,7 +44,7 @@ typedef struct
 typedef struct MRIS_HASH_BUCKET
 {
 #ifdef HAVE_OPENMP
-    omp_lock_t     bucket_lock;
+    omp_lock_t     mutable bucket_lock;
 #endif
     MRIS_HASH_BIN  * const bins ;
     int              const max_bins ;
@@ -105,7 +105,7 @@ struct _mht
     int                nbuckets ;                             // Total # of buckets
 
 #ifdef HAVE_OPENMP
-    omp_lock_t         buckets_lock;
+    omp_lock_t mutable buckets_lock;
 #endif
     MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
     int                which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.

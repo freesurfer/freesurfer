@@ -645,10 +645,10 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     MRIS_HASH_TABLE_IMPL(MRIS const * mris) : MRIS_HASH_TABLE(mris) {}
     ~MRIS_HASH_TABLE_IMPL();
 
-    double WORLD_TO_VOLUME(double x) { return (x+FIELD_OF_VIEW/2)/vres; }
-    int    WORLD_TO_VOXEL (double x) { return int(WORLD_TO_VOLUME(x));  }
+    double WORLD_TO_VOLUME(double x) const { return (x+FIELD_OF_VIEW/2)/vres; }
+    int    WORLD_TO_VOXEL (double x) const { return int(WORLD_TO_VOLUME(x));  }
     
-    void mhtFindCommonSanityCheck(MRIS const *mris);
+    void mhtFindCommonSanityCheck(MRIS const *mris) const;
 
     void mhtStoreFaceCentroids       (MRIS const *mris, int which);
 
@@ -689,8 +689,6 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     int mhtBruteForceClosestVertex(
         MRIS const *mris, float x, float y, float z, int which, float *dmin);
 
-    int checkFace(MRIS const *mris, int fno1);
- 
     int mhtfindClosestVertexGenericInBucket(
                                         MRIS const *mris,
                                         //---------- inputs --------------
@@ -756,7 +754,20 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
                               double *pface_distance);
 
     FACE const * MHTfindClosestFaceToVertex(MRIS const *mris, VERTEX const *v);
-                                                                                                  
+
+    int MHTfindClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist);
+
+    VERTEX * MHTfindClosestVertexInTable(
+        MRIS const *mris, float x, float y, float z, int do_global_search);                                                                                      
+    void  lockBuckets() const;
+    void  unlockBuckets() const;
+    
+    MHBT* acqBucket       (float x, float y, float z) const;
+    MHBT* acqBucket       (int xv, int yv, int zv) const;
+    MHBT* acqBucketAtVoxIx(int xv, int yv, int zv) const;
+    MHBT* makeAndAcqBucket(int xv, int yv, int zv);
+    bool  existsBuckets2  (int xv, int yv) const;
+    
 #define MHT_ONLY_VIRTUAL
 #define MHT_VIRTUAL                 virtual
 #define MHT_ABSTRACT                
@@ -853,16 +864,14 @@ void MRIS_HASH_TABLE::free(MRIS_HASH_TABLE **pmht)
 }
 
 
-static void lockBuckets(const MRIS_HASH_TABLE *mhtc) {
+void MRIS_HASH_TABLE_IMPL::lockBuckets() const {
 #ifdef HAVE_OPENMP
-    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
-    if (parallelLevel) omp_set_lock(&mht->buckets_lock); else checkThread0();
+    if (parallelLevel) omp_set_lock(&buckets_lock); else checkThread0();
 #endif
 }
-static void unlockBuckets(const MRIS_HASH_TABLE *mhtc) {
+void MRIS_HASH_TABLE_IMPL::unlockBuckets() const {
 #ifdef HAVE_OPENMP
-    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
-    if (parallelLevel) omp_unset_lock(&mht->buckets_lock); else checkThread0();
+    if (parallelLevel) omp_unset_lock(&buckets_lock); else checkThread0();
 #endif
 }
 
@@ -880,33 +889,33 @@ static void unlockBucket(const MHBT *bucketc) {
 }
 
 
-static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv) 
+MHBT* MRIS_HASH_TABLE_IMPL::makeAndAcqBucket(int xv, int yv, int zv) 
 {
   //-----------------------------------------------
   // Allocate space if needed
   //-----------------------------------------------
   // 1. Allocate a 1-D array at buckets_mustUseAcqRel[xv][yv]
   
-  lockBuckets(mht);
+  lockBuckets();
   
-  if (!mht->buckets_mustUseAcqRel[xv][yv]) {
-    mht->buckets_mustUseAcqRel[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
-    if (!mht->buckets_mustUseAcqRel[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
+  if (!buckets_mustUseAcqRel[xv][yv]) {
+    buckets_mustUseAcqRel[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
+    if (!buckets_mustUseAcqRel[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
   }
   
   // 2. Allocate a bucket at buckets_mustUseAcqRel[xv][yv][zv]
-  MHBT *bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+  MHBT *bucket = buckets_mustUseAcqRel[xv][yv][zv];
   
   
   if (!bucket) {
-    mht->buckets_mustUseAcqRel[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
+    buckets_mustUseAcqRel[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
     if (!bucket) ErrorExit(ERROR_NOMEMORY, "%s couldn't allocate bucket.\n", __MYFUNCTION__);
 #ifdef HAVE_OPENMP
     omp_init_lock(&bucket->bucket_lock);
 #endif
   }
   
-  unlockBuckets(mht);
+  unlockBuckets();
   
   lockBucket(bucket);
   
@@ -919,25 +928,42 @@ static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
   return bucket;
 }
 
-static MHBT *acqBucket(MRIS_HASH_TABLE const *mht, int xv, int yv, int zv)
+
+MHBT * MRIS_HASH_TABLE_IMPL::acqBucket(float x, float y, float z) const
+{
+  int xv = WORLD_TO_VOXEL(x);
+  int yv = WORLD_TO_VOXEL(y);
+  int zv = WORLD_TO_VOXEL(z);
+
+  return acqBucket(xv, yv, zv);
+}
+
+
+MHBT * MRIS_HASH_TABLE_IMPL::acqBucketAtVoxIx(int xv, int yv, int zv) const
+{
+  return acqBucket(xv, yv, zv);
+}
+
+
+MHBT* MRIS_HASH_TABLE_IMPL::acqBucket(int xv, int yv, int zv) const
 {
   if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE || xv < 0 || yv < 0 || zv < 0) return (NULL);
-  if (!mht) return (NULL);
 
-  lockBuckets(mht);
+  lockBuckets();
 
-  MHBT * bucket = NULL;
-  if (mht->buckets_mustUseAcqRel[xv][yv]) 
-      bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+  MHBT* bucket = NULL;
+  if (buckets_mustUseAcqRel[xv][yv]) 
+      bucket = buckets_mustUseAcqRel[xv][yv][zv];
 
-  unlockBuckets(mht);
+  unlockBuckets();
   
   // returns with the bucket, if any, locked
   //  
   if (bucket) lockBucket(bucket);
   
-  return (bucket);
+  return bucket;
 }
+
 
 
 static void relBucketC(MHBT const ** bucket)
@@ -958,12 +984,12 @@ static void relBucket(MHBT ** bucket)
 void MHTrelBucket (MHBT       ** bucket) { relBucket (bucket); }
 void MHTrelBucketC(MHBT const ** bucket) { relBucketC(bucket); }
 
-static bool existsBuckets2(MRIS_HASH_TABLE const *mht, int xv, int yv)
+
+bool MRIS_HASH_TABLE_IMPL::existsBuckets2(int xv, int yv) const
 {
     bool result = false;
     if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || xv < 0 || yv < 0) goto Done;
-    if (!mht) goto Done;
-    if (!mht->buckets_mustUseAcqRel[xv][yv]) goto Done;
+    if (!buckets_mustUseAcqRel[xv][yv]) goto Done;
     result = true;
 Done:
     return result;
@@ -1022,10 +1048,10 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
             int n = 0;
             for (int xv = 0; xv < TABLE_SIZE; xv++) {
                 for (int yv = 0; yv < TABLE_SIZE; yv++) {
-                    if (!existsBuckets2(mht,xv,yv)) continue;
+                    if (!mht->existsBuckets2(xv,yv)) continue;
                     for (int zv = 0; zv < TABLE_SIZE; zv++) {
 
-                        MHBT* bucket = acqBucket(mht,xv,yv,zv);
+                        MHBT* bucket = mht->acqBucket(xv,yv,zv);
                         if (!bucket) continue;
 
                         if (pass == 0) {
@@ -1180,9 +1206,9 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS const *mris,
     mx = -1;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
-        if (!existsBuckets2(mht,xv,yv)) continue;
+        if (!mht->existsBuckets2(xv,yv)) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          MHBT const *bucket = acqBucket(mht,xv,yv,zv);
+          MHBT const * bucket = mht->acqBucket(xv,yv,zv);
           if (!bucket) continue;
           if (bucket->nused) {
             mean += bucket->nused;
@@ -1197,9 +1223,9 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS const *mris,
     var = 0.0;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
-        if (!existsBuckets2(mht,xv,yv)) continue;
+        if (!mht->existsBuckets2(xv,yv)) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          MHBT const *bucket = acqBucket(mht,xv,yv,zv);
+          MHBT const *bucket = mht->acqBucket(xv,yv,zv);
           if (!bucket) continue;
           if (bucket->nused) {
             v = mean - bucket->nused;
@@ -1225,17 +1251,12 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS const *mris,
   -------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::mhtAddFaceOrVertexAtVoxIx(int xv, int yv, int zv, int forvnum)
 {
-  if (xv < 0) xv = 0;
-  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
-  if (yv < 0) yv = 0;
-  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
-  if (zv < 0) zv = 0;
-  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
-
-  // [GW] (removed xv,yv,zv check here, as it's impossible to trigger)
+  if (xv < 0) xv = 0; if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
+  if (yv < 0) yv = 0; if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
+  if (zv < 0) zv = 0; if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
   {
-    MHBT *bucket = makeAndAcqBucket(this, xv, yv, zv);
+    MHBT *bucket = makeAndAcqBucket(xv, yv, zv);
 
     //-------------------------------------------------------------
     // If this forvnum already is listed in this bucket then
@@ -1289,9 +1310,9 @@ int MRIS_HASH_TABLE_IMPL::mhtRemoveFaceOrVertexAtVoxIx(int xv, int yv, int zv, i
   if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
   if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
-  if (!existsBuckets2(this,xv,yv)) return (NO_ERROR);  // no bucket at such coordinates
+  if (!existsBuckets2(xv,yv)) return (NO_ERROR);  // no bucket at such coordinates
   
-  MHBT *bucket = acqBucket(this,xv,yv,zv);
+  MHBT *bucket = acqBucket(xv,yv,zv);
   if (!bucket) return (NO_ERROR);  // no bucket at such coordinates
 
   MHB *bin = bucket->bins;
@@ -1687,9 +1708,9 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesFaceVoxelListIntersect(
     // succeed, given that the same info was just used to put xv,yv,zv
     // into voxlist as was used to put faces into mht buckets.
     //----------------------------------------------------------
-    if (!existsBuckets2(this,xv,yv)) return (0);
+    if (!existsBuckets2(xv,yv)) return (0);
 
-    MHBT *bucket = acqBucket(this,xv,yv,zv);
+    MHBT *bucket = acqBucket(xv,yv,zv);
     if (!bucket) continue;
 
     MHB *bin = bucket->bins;
@@ -1769,7 +1790,7 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesFaceVoxelListIntersect(
   // intersection test
   // Notes:
   // 1. Code up to v1.27 used CURRENT_VERTICES, which meant that using this
-  // code with an mht that was created with MHTcreateFaceTable_Resolution and some
+  // code with an mht that was created with createFaceTable_Resolution and some
   // other value for "which" would lead to incorrect results.
   // Code below instead calls mhtVertex2array3_double, and selects vertex
   // set based on mht->which_vertices
@@ -1850,9 +1871,9 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
     // Get corresponding bucket from mht, if any.
     // There might not be...
     //----------------------------------------------------------
-    if (!existsBuckets2(this,xv,yv)) continue;
+    if (!existsBuckets2(xv,yv)) continue;
     
-    MHBT const * bucket = acqBucket(this,xv,yv,zv);
+    MHBT const * bucket = acqBucket(xv,yv,zv);
     if (!bucket) continue;
 
     // Consider all the faces that intersect this voxel
@@ -1899,7 +1920,7 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
   //
   // Notes:
   // 1. Code up to v1.27 used CURRENT_VERTICES, which meant that using this
-  // code with an mht that was created with MHTcreateFaceTable_Resolution and some
+  // code with an mht that was created with createFaceTable_Resolution and some
   // other value for "which" would lead to incorrect results.
   // Code below instead calls mhtVertex2array3_double, and selects vertex
   // set based on mht->which_vertices
@@ -1959,7 +1980,7 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
 // Find nearest vertex/vertices (Uses MHT initialized with VERTICES)
 //
 
-void MRIS_HASH_TABLE_IMPL::mhtFindCommonSanityCheck(MRIS const *mris)
+void MRIS_HASH_TABLE_IMPL::mhtFindCommonSanityCheck(MRIS const *mris) const
 {
   if (this->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
   if (fno_usage != MHTFNO_VERTEX) {
@@ -2018,7 +2039,7 @@ int MRIS_HASH_TABLE_IMPL::mhtfindClosestVertexGenericInBucket(
   FindBucketsChecked_Count++;
 
   MHB *bin;
-  MHBT* bucket = MHTacqBucketAtVoxIx(this, xv, yv, zv);
+  MHBT* bucket = acqBucketAtVoxIx(xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
@@ -2084,7 +2105,7 @@ int MRIS_HASH_TABLE_IMPL::mhtfindClosestFaceCentroidGenericInBucket(
   FindBucketsChecked_Count++;
 
   MHB *bin;
-  MHBT *bucket = MHTacqBucketAtVoxIx(this, xv, yv, zv);
+  MHBT *bucket = acqBucketAtVoxIx(xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
@@ -2842,10 +2863,6 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexSet(MRIS const *mris, VERTEX 
   return vtx;
 }
 
-#if 0
-
-
-
 /*--------------------------------------------------------------------
   MHTfindClosestVertexNo()
   Returns vertex number and distance from vertex v to closest vertex
@@ -2856,24 +2873,23 @@ int MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexNo(MRIS const *mris, VERTEX const 
   //------------------------------------------------------
   double x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck(mht, mris);
+  mhtFindCommonSanityCheck(mris);
 
   //---------------------------------
   // Generic find
   //---------------------------------
-  mhtVertex2xyz_double(v, mht->which_vertices, &x, &y, &z);
+  mhtVertex2xyz_double(v, which_vertices, &x, &y, &z);
   
-  return MHTfindClosestVertexNoXYZ(mht, mris, (float)x, (float)y, (float)z, min_dist);
+  return findClosestVertexNoXYZ(mris, (float)x, (float)y, (float)z, min_dist);
 }
 
-int MHTfindClosestVertexNoXYZ(MRIS_HASH_TABLE *mht, 
+int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
                                MRIS const *mris, 
                                float x, float y, float z, 
                                float *min_dist) {
   double min_dist_dbl;
   int vtxnum, rslt;
-  rslt = MHTfindClosestVertexGeneric(mht,
-                                     mris,
+  rslt = MHTfindClosestVertexGeneric(mris,
                                      x,
                                      y,
                                      z,
@@ -2892,7 +2908,7 @@ int MHTfindClosestVertexNoXYZ(MRIS_HASH_TABLE *mht,
   //----------------------------------------------------------
   if (-1 == rslt) {
     // brf - should always find one that is closest
-    rslt = mhtBruteForceClosestVertex(mris, x, y, z, mht->which_vertices, min_dist);
+    rslt = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, min_dist);
   }
   return vtxnum;
 }
@@ -2901,20 +2917,19 @@ int MHTfindClosestVertexNoXYZ(MRIS_HASH_TABLE *mht,
   MHTfindClosestVertexInTable
   Returns vertex from mris & mht that's closest to provided coordinates.
   ---------------------------------------------------------------*/
-VERTEX *MHTfindClosestVertexInTable(
-    MRIS_HASH_TABLE *mht, MRIS const *mris, float x, float y, float z, int do_global_search)
+VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexInTable(
+    MRIS const *mris, float x, float y, float z, int do_global_search)
 {
   //------------------------------------------------------
   int i;
 
-  mhtFindCommonSanityCheck(mht, mris);
+  mhtFindCommonSanityCheck(mris);
 
   //---------------------------------
   // Generic find
   //---------------------------------
   VERTEX *vtx;
-  MHTfindClosestVertexGeneric(mht,
-                              mris,
+  MHTfindClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2926,8 +2941,7 @@ VERTEX *MHTfindClosestVertexInTable(
   if (!vtx && do_global_search)  // do more local search first
   {
     for (i = 2; i <= 4; i++) {
-      MHTfindClosestVertexGeneric(mht,
-                                  mris,
+      MHTfindClosestVertexGeneric(mris,
                                   x,
                                   y,
                                   z,
@@ -2941,7 +2955,7 @@ VERTEX *MHTfindClosestVertexInTable(
     }
     if (!vtx)  // did not find a vertex, so use brute-force (BRF)
     {
-      int vnum = mhtBruteForceClosestVertex(mris, x, y, z, mht->which_vertices, NULL);
+      int vnum = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, NULL);
       vtx = &mris->vertices[vnum];
     }
   }
@@ -2961,7 +2975,7 @@ VERTEX *MHTfindClosestVertexInTable(
   in all the FS source code, so I'm not bothering to implement its
   functionality in the generic Find function, however it would be easy to do.
   ------------------------------------------------------------*/
-int *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRIS const *mris, int vno, float max_dist, int *pvnum)
+int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS const *mris, int vno, float max_dist, int *pvnum)
 {
   //------------------------------------------------------
   ErrorExit(ERROR_UNSUPPORTED, "%s: not implemented.\n", __MYFUNCTION__);
@@ -3092,33 +3106,15 @@ int mhtBruteForceClosestFace(MRIS const *mris,
   return (min_fno);
 }
 
-static void mhtFaceCentroid2xyz_float(
-    MHT const *mht, int fno, 
+
+void MRIS_HASH_TABLE_IMPL::mhtFaceCentroid2xyz_float(
+    int fno, 
     float *px, float *py, float *pz)
 {
-  MHT_FACE const* face = &mht->f[fno];
+  MHT_FACE const* face = &f[fno];
   *px = face->cx;
   *py = face->cy;
   *pz = face->cz;
-}
-
-/*-----------------------------------------------------------------*/
-MHBT *MHTacqBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
-{
-  //-------------------------------------------------------------------
-  int xv, yv, zv;
-
-  xv = WORLD_TO_VOXEL(mht, x);
-  yv = WORLD_TO_VOXEL(mht, y);
-  zv = WORLD_TO_VOXEL(mht, z);
-
-  return acqBucket(mht, xv, yv, zv);
-}
-
-/*-----------------------------------------------------------------*/
-MHBT *MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
-{
-  return acqBucket(mht, xv, yv, zv);
 }
 
 //=================================================================
@@ -3130,47 +3126,44 @@ MHBT *MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
 
   Basically a copy of mrisurf IsMRISselfIntersecting();
   -------------------------------------------------------*/
-int MHTtestIsMRISselfIntersecting(MRIS const *mris, float res)
-//--------------------------------------------------------
+int MRIS_HASH_TABLE::testIsMRISselfIntersecting(MRIS const *mris, float res)
 {
-  int fno, rslt;
-
-  rslt = 0;
-
-  MRIS_HASH_TABLE * mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, res);
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    if (MHTdoesFaceIntersect(mht, mris, fno)) {
-      rslt = 1;
-      goto done;
+    MRIS_HASH_TABLE * mht = createFaceTable_Resolution(mris, CURRENT_VERTICES, res);
+    int rslt = 0;
+    for (int fno = 0; fno < mris->nfaces; fno++) {
+        if (mht->doesFaceIntersect(mris, fno)) {
+            rslt = 1;
+            goto done;
+        }
     }
-  }
 done:
-  MHTfree(&mht);
-  return rslt;
+    MHTfree(&mht);
+    return rslt;
 }
+
 
 /*--------------------------------------------------------
   MHTcheckFaces
   Unchanged from mrishash.c 1.27
   -------------------------------------------------------*/
-int MHTcheckFaces(MRIS_HASH_TABLE *mht, MRIS const *mris)
+int MRIS_HASH_TABLE_IMPL::checkFaces(MRIS const *mris)
 //--------------------------------------------------------
 {
   static int ncalls = 0;
 
   if (ncalls++ >= 0) {
 #if 0
-    checkFace(mht, mris, 144) ;
-    checkFace(mht, mris, 185) ;
-    checkFace(mht, mris, 16960) ;
-    checkFace(mht, mris, 18168) ;
-    checkFace(mht, mris, 39705) ;
-    checkFace(mht, mris, 32319) ;
-    checkAllVertexFaces(mht, mris, 15300) ;
-    checkAllVertexFaces(mht, mris, 4303) ;
-    checkAllVertexFaces(mht, mris, 35701) ;
-    checkAllVertexFaces(mht, mris, 4632) ;
-    checkAllVertexFaces(mht, mris, 1573) ;
+    checkFace(mris, 144) ;
+    checkFace(mris, 185) ;
+    checkFace(mris, 16960) ;
+    checkFace(mris, 18168) ;
+    checkFace(mris, 39705) ;
+    checkFace(mris, 32319) ;
+    checkAllVertexFaces(mris, 15300) ;
+    checkAllVertexFaces(mris, 4303) ;
+    checkAllVertexFaces(mris, 35701) ;
+    checkAllVertexFaces(mris, 4632) ;
+    checkAllVertexFaces(mris, 1573) ;
 #endif
   }
   return (NO_ERROR);
@@ -3181,22 +3174,19 @@ int MHTcheckFaces(MRIS_HASH_TABLE *mht, MRIS const *mris)
   Unchanged from mrishash.c 1.27
   However, subsidiary checkFace is disabled
   ------------------------------------------------------*/
-int MHTcheckSurface(MRIS_HASH_TABLE *mht, MRIS const *mris)
+int MRIS_HASH_TABLE_IMPL::checkSurface( MRIS const *mris)
 //--------------------------------------------------------
 {
-  int fno, alloced = 0;
+    auto mht = createFaceTable(mris);
 
-  if (!mht) {
-    mht = MHTcreateFaceTable(mris);
-    alloced = 1;
-  }
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    if (!(fno % (mris->nfaces / 10))) DiagHeartbeat((float)fno / (float)mris->nfaces);
-
-    checkFace(mht, mris, fno);
-  }
-  if (alloced) MHTfree(&mht);
-  return (NO_ERROR);
+    for (int fno = 0; fno < mris->nfaces; fno++) {
+        if (!(fno % (mris->nfaces / 10))) DiagHeartbeat((float)fno / (float)mris->nfaces);
+        mht->checkFace(mris, fno);
+    }
+  
+    MHTfree(&mht);
+  
+    return (NO_ERROR);
 }
 
 /*-----------------------------------------------------
@@ -3211,7 +3201,7 @@ int MHTcheckSurface(MRIS_HASH_TABLE *mht, MRIS const *mris)
   and it calls
   local functions that I've refactored away.
   ------------------------------------------------------*/
-static int checkFace(MRIS_HASH_TABLE *mht, MRIS const *mris, int fno1)
+int MRIS_HASH_TABLE_IMPL::checkFace(MRIS const *mris, int fno1)
 //--------------------------------------------------------
 {
 #if 0
@@ -3294,14 +3284,14 @@ static int checkFace(MRIS_HASH_TABLE *mht, MRIS const *mris, int fno1)
   return (NO_ERROR);
 }
 
-VERTEX *MHTfindClosestVertexSetInDirection(
-    MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX const *v, int which, double nx, double ny, double nz)
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSetInDirection(
+    MRIS const *mris, VERTEX const *v, int which, double nx, double ny, double nz)
 {
   VERTEX *v_closest, *vn;
   double dx, dy, dz, dot, dist, min_dist;
   int vno;
 
-  v_closest = MHTfindClosestVertexSet(mht, mris, v, which);
+  v_closest = MHTfindClosestVertexSet(mris, v, which);
 
   if (v_closest) {
     switch (which) {
@@ -3390,15 +3380,15 @@ static void mhtComputeFaceCentroid(
   *pz = zt;
 }
 
-static void mhtStoreFaceCentroids(MHT* mht, MRIS const *mris, int which)
+void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(MRIS const *mris, int which)
 {
-  if (mris != mht->mris || mht->nfaces || mht->f) {
+  if (mris != this->mris || nfaces || f) {
     fprintf(stderr, "%s:%d wrong initial state\n", __FILE__, __LINE__);
     exit(1);
   }
 
-  mht->nfaces = mris->nfaces;
-  mht->f = (MHT_FACE*)calloc(mht->nfaces, sizeof(MHT_FACE));
+  nfaces = mris->nfaces;
+  f = (MHT_FACE*)calloc(nfaces, sizeof(MHT_FACE));
   
   int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -3406,14 +3396,13 @@ static void mhtStoreFaceCentroids(MHT* mht, MRIS const *mris, int which)
     float xt,yt,zt;
     mhtComputeFaceCentroid(mris, which, fno, &xt, &yt, &zt);
     
-    MHT_FACE *face = &mht->f[fno];
+    MHT_FACE *face = &f[fno];
     face->cx = xt;
     face->cy = yt;
     face->cz = zt;
   }
 }
 
-#endif
 
 #define MHT_TRADITIONAL_IMPL
 #define MHT_VIRTUAL
