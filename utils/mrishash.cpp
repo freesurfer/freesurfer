@@ -644,6 +644,9 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
 
     MRIS_HASH_TABLE_IMPL(MRIS const * mris) : MRIS_HASH_TABLE(mris) {}
     ~MRIS_HASH_TABLE_IMPL();
+
+    double WORLD_TO_VOLUME(double x) { return (x+FIELD_OF_VIEW/2)/vres; }
+    int    WORLD_TO_VOXEL (double x) { return int(WORLD_TO_VOLUME(x));  }
     
     void mhtFindCommonSanityCheck(MRIS const *mris);
 
@@ -687,7 +690,73 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
         MRIS const *mris, float x, float y, float z, int which, float *dmin);
 
     int checkFace(MRIS const *mris, int fno1);
-    
+ 
+    int mhtfindClosestVertexGenericInBucket(
+                                        MRIS const *mris,
+                                        //---------- inputs --------------
+                                        int xv,
+                                        int yv,
+                                        int zv,
+                                        double probex,
+                                        double probey,
+                                        double probez,
+                                        //---------- in/outs -------------
+                                        VERTEX **MinDistVtx,
+                                        int *MinDistVtxNum,
+                                        double *MinDistSq);
+
+    int mhtfindClosestFaceCentroidGenericInBucket(
+                                              MRIS const *mris,
+                                              //---------- inputs --------------
+                                              int xv,
+                                              int yv,
+                                              int zv,
+                                              double probex,
+                                              double probey,
+                                              double probez,
+                                              int project_into_face,
+                                              //---------- in/outs -------------
+                                              FACE **MinDistFace,
+                                              int *MinDistFaceNum,
+                                              double *MinDistSq);
+
+    int MHTfindClosestVertexGeneric(
+                                MRIS const *mris,
+                                //---------- inputs --------------
+                                double probex,
+                                double probey,
+                                double probez,
+                                // How far to search: set one or both
+                                double in_max_distance_mm, /* Use large number
+                                                              to ignore */
+                                int in_max_mhts,           /* Use -1 to ignore */
+                                //---------- outputs -------------
+                                VERTEX **pvtx,
+                                int *vtxnum,
+                                double *vtx_distance);
+ 
+    VERTEX * MHTfindClosestVertex(MRIS const *mris, VERTEX const *v);
+
+    VERTEX * MHTfindClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored);
+
+    int MHTfindClosestFaceGeneric(
+                              MRIS const *mris,
+                              //---------- inputs --------------
+                              double probex,
+                              double probey,
+                              double probez,
+                              // How far to search: set one or both
+                              double in_max_distance_mm, /* Use large number
+                                                            to ignore */
+                              int in_max_mhts,           /* Use -1 to ignore */
+                              int project_into_face,
+                              //---------- outputs -------------
+                              FACE **pface,
+                              int *pfno,
+                              double *pface_distance);
+
+    FACE const * MHTfindClosestFaceToVertex(MRIS const *mris, VERTEX const *v);
+                                                                                                  
 #define MHT_ONLY_VIRTUAL
 #define MHT_VIRTUAL                 virtual
 #define MHT_ABSTRACT                
@@ -1200,9 +1269,9 @@ int MRIS_HASH_TABLE_IMPL::mhtAddFaceOrVertexAtVoxIx(int xv, int yv, int zv, int 
 int MRIS_HASH_TABLE_IMPL::mhtAddFaceOrVertexAtCoords(float x, float y, float z, int forvnum)
 {
   int xv, yv, zv;
-  xv = WORLD_TO_VOXEL(this, x);
-  yv = WORLD_TO_VOXEL(this, y);
-  zv = WORLD_TO_VOXEL(this, z);
+  xv = WORLD_TO_VOXEL( x);
+  yv = WORLD_TO_VOXEL( y);
+  zv = WORLD_TO_VOXEL( z);
 
   return mhtAddFaceOrVertexAtVoxIx(xv, yv, zv, forvnum);
 }
@@ -1915,8 +1984,6 @@ void MHTfindReportCounts(int *BucketsChecked, int *BucketsPresent, int *VtxNumBy
 
 
 
-#if 0
-
 /*----------------------------------------------------------------
   mhtfindClosestVertexGenericInBucket
 
@@ -1925,7 +1992,7 @@ void MHTfindReportCounts(int *BucketsChecked, int *BucketsPresent, int *VtxNumBy
   mht->which_vertices. Search for [2007-07-27 GW]
 
   -----------------------------------------------------------------*/
-int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
+int MRIS_HASH_TABLE_IMPL::mhtfindClosestVertexGenericInBucket(
                                         MRIS const *mris,
                                         //---------- inputs --------------
                                         int xv,
@@ -1951,7 +2018,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   FindBucketsChecked_Count++;
 
   MHB *bin;
-  MHBT* bucket = MHTacqBucketAtVoxIx(mht, xv, yv, zv);
+  MHBT* bucket = MHTacqBucketAtVoxIx(this, xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
@@ -1975,7 +2042,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
     //      + SQR(AVtx->z - probez) ;
 
     //----- New [2007-07-27 GW] -----
-    mhtVertex2xyz_float(AVtx, mht->which_vertices, &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
+    mhtVertex2xyz_float(AVtx, which_vertices, &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
 
     ADistSq = SQR(tryx - probex) + SQR(tryy - probey) + SQR(tryz - probez);
     //----- end new -----
@@ -1997,7 +2064,7 @@ done:
 
   find the face whose centroid is closest to the specified coordinate
   -----------------------------------------------------------------*/
-int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
+int MRIS_HASH_TABLE_IMPL::mhtfindClosestFaceCentroidGenericInBucket(
                                               MRIS const *mris,
                                               //---------- inputs --------------
                                               int xv,
@@ -2017,7 +2084,7 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
   FindBucketsChecked_Count++;
 
   MHB *bin;
-  MHBT *bucket = MHTacqBucketAtVoxIx(mht, xv, yv, zv);
+  MHBT *bucket = MHTacqBucketAtVoxIx(this, xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
@@ -2035,12 +2102,12 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
 
     FACE* face = &mris->faces[fno];
     float tryx = 0.0, tryy = 0.0, tryz = 0.0;
-    mhtFaceCentroid2xyz_float(mht, fno, &tryx, &tryy, &tryz);
+    mhtFaceCentroid2xyz_float(fno, &tryx, &tryy, &tryz);
 
     double lambda[3];
     if (project_into_face > 0 &&
         face_barycentric_coords(
-            mris, fno, mht->which_vertices, probex, probey, probez, &lambda[0], &lambda[1], &lambda[2]) < 0)
+            mris, fno, which_vertices, probex, probey, probez, &lambda[0], &lambda[1], &lambda[2]) < 0)
       continue;
     
     double ADistSq = SQR(tryx - probex) + SQR(tryy - probey) + SQR(tryz - probez);
@@ -2099,7 +2166,7 @@ done:
  -----------------------------------------------------------------
 */
 
-int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
+int MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexGeneric(
                                 MRIS const *mris,
                                 //---------- inputs --------------
                                 double probex,
@@ -2131,8 +2198,8 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   unsigned char central27[3][3][3];  // Indexes 0..2 stand for -1..+1
   //----------------------------------
 
-  mhtFindCommonSanityCheck(mht, mris);
-  mhtres = mht->vres;
+  mhtFindCommonSanityCheck(mris);
+  mhtres = vres;
 
   //--------------------------------------------------
   // Initialize instrumentation
@@ -2183,9 +2250,9 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   //--------------------------------------------------
   // Translate probe point to voxel-space coord and indexes
   //--------------------------------------------------
-  probex_vol = WORLD_TO_VOLUME(mht, probex);
-  probey_vol = WORLD_TO_VOLUME(mht, probey);
-  probez_vol = WORLD_TO_VOLUME(mht, probez);
+  probex_vol = WORLD_TO_VOLUME( probex);
+  probey_vol = WORLD_TO_VOLUME( probey);
+  probez_vol = WORLD_TO_VOLUME( probez);
 
   // (Note: In following (int) truncs toward zero, but that's OK because
   // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
@@ -2226,8 +2293,7 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
       for (zvi = 0; zvi <= 1; zvi++) {
         zv = zvi + near8offsetz;
 
-        mhtfindClosestVertexGenericInBucket(mht,
-                                            mris,
+        mhtfindClosestVertexGenericInBucket(mris,
                                             probex_vox + xv,
                                             probey_vox + yv,
                                             probez_vox + zv,
@@ -2268,8 +2334,7 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
       for (zv = -1; zv <= 1; zv++) {
         if (!central27[xv + 1][yv + 1][zv + 1])  // skip ones already done
         {
-          mhtfindClosestVertexGenericInBucket(mht,
-                                              mris,
+          mhtfindClosestVertexGenericInBucket(mris,
                                               probex_vox + xv,
                                               probey_vox + yv,
                                               probez_vox + zv,
@@ -2318,8 +2383,7 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
       for (yv = -RVox; yv <= RVox; yv++) {
         isWall = ((xv == -RVox) || (xv == RVox)) || ((yv == -RVox) || (yv == RVox));
         for (zv = -RVox; zv <= RVox; zv = isWall ? zv + 1 : zv + WallJump) {
-          mhtfindClosestVertexGenericInBucket(mht,
-                                              mris,
+          mhtfindClosestVertexGenericInBucket(mris,
                                               probex_vox + xv,
                                               probey_vox + yv,
                                               probez_vox + zv,
@@ -2401,7 +2465,7 @@ done:
  -----------------------------------------------------------------
 */
 
-int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
+int MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceGeneric(
                               MRIS const *mris,
                               //---------- inputs --------------
                               double probex,
@@ -2435,7 +2499,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
   //----------------------------------
 
   //  mhtFindCommonSanityCheck(mht, mris);
-  mhtres = mht->vres;
+  mhtres = vres;
 
   //--------------------------------------------------
   // Initialize instrumentation
@@ -2489,9 +2553,9 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
   //--------------------------------------------------
   // Translate probe point to voxel-space coord and indexes
   //--------------------------------------------------
-  probex_vol = WORLD_TO_VOLUME(mht, probex);
-  probey_vol = WORLD_TO_VOLUME(mht, probey);
-  probez_vol = WORLD_TO_VOLUME(mht, probez);
+  probex_vol = WORLD_TO_VOLUME( probex);
+  probey_vol = WORLD_TO_VOLUME( probey);
+  probez_vol = WORLD_TO_VOLUME( probez);
 
   // (Note: In following (int) truncs toward zero, but that's OK because
   // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
@@ -2526,8 +2590,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
       for (zvi = 0; zvi <= 1; zvi++) {
         zv = zvi + near8offsetz;
 
-        mhtfindClosestFaceCentroidGenericInBucket(mht,
-                                                  mris,
+        mhtfindClosestFaceCentroidGenericInBucket(mris,
                                                   probex_vox + xv,
                                                   probey_vox + yv,
                                                   probez_vox + zv,
@@ -2569,8 +2632,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
       for (zv = -1; zv <= 1; zv++) {
         if (!central27[xv + 1][yv + 1][zv + 1])  // skip ones already done
         {
-          mhtfindClosestFaceCentroidGenericInBucket(mht,
-                                                    mris,
+          mhtfindClosestFaceCentroidGenericInBucket(mris,
                                                     probex_vox + xv,
                                                     probey_vox + yv,
                                                     probez_vox + zv,
@@ -2620,8 +2682,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
       for (yv = -RVox; yv <= RVox; yv++) {
         isWall = ((xv == -RVox) || (xv == RVox)) || ((yv == -RVox) || (yv == RVox));
         for (zv = -RVox; zv <= RVox; zv = isWall ? zv + 1 : zv + WallJump) {
-          mhtfindClosestFaceCentroidGenericInBucket(mht,
-                                                    mris,
+          mhtfindClosestFaceCentroidGenericInBucket(mris,
                                                     probex_vox + xv,
                                                     probey_vox + yv,
                                                     probez_vox + zv,
@@ -2665,21 +2726,20 @@ done:
   MHTfindClosestVertex
   Returns VERTEX const *, closest vertex to v in mris & mht (or NULL).
   -----------------------------------------------------------------*/
-VERTEX *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX const *v)
+VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertex(MRIS const *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck(mht, mris);
+  mhtFindCommonSanityCheck(mris);
 
   //---------------------------------
   // Generic find
   //---------------------------------
-  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+  mhtVertex2xyz_float(v, which_vertices, &x, &y, &z);
 
   VERTEX *vtx;
-  MHTfindClosestVertexGeneric(mht,
-                              mris,
+  MHTfindClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2696,21 +2756,20 @@ VERTEX *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX cons
   MHTfindClosestFaceToVertex
   Returns index of face whose centroid is closest to the specified vertex
   -----------------------------------------------------------------*/
-FACE const *MHTfindClosestFaceToVertex(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX const *v)
+FACE const * MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceToVertex(MRIS const *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck(mht, mris);
+  mhtFindCommonSanityCheck( mris);
 
   //---------------------------------
   // Generic find
   //---------------------------------
-  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+  mhtVertex2xyz_float(v, which_vertices, &x, &y, &z);
 
   FACE *face;
-  MHTfindClosestFaceGeneric(mht,
-                            mris,
+  MHTfindClosestFaceGeneric(mris,
                             x,
                             y,
                             z,
@@ -2748,7 +2807,7 @@ FACE const *MHTfindClosestFaceToVertex(MRIS_HASH_TABLE *mht, MRIS const *mris, V
   marked [GW 2007-07-25]
 
   -----------------------------------------------------------------------*/
-VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX const *v, int which_ignored)
+VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
@@ -2756,16 +2815,15 @@ VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX c
   //---------------------------------
   // Sanity checks
   //---------------------------------
-  mhtFindCommonSanityCheck(mht, mris);
+  mhtFindCommonSanityCheck(mris);
 
-  if (mht->which_vertices != which_ignored)
+  if (which_vertices != which_ignored)
     ErrorExit(ERROR_BADPARM, "%s called with mismatched 'which' parameter\n", __MYFUNCTION__);
 
-  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+  mhtVertex2xyz_float(v, which_vertices, &x, &y, &z);
 
   VERTEX *vtx = NULL;
-  MHTfindClosestVertexGeneric(mht,
-                              mris,
+  MHTfindClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2777,19 +2835,23 @@ VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX c
 
   if (!vtx)  // did not find a vertex, so use brute-force
   {
-    int vnum = mhtBruteForceClosestVertex(mris, x, y, z, mht->which_vertices, NULL);
+    int vnum = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, NULL);
     vtx = &mris->vertices[vnum];
   }
 
   return vtx;
 }
 
+#if 0
+
+
+
 /*--------------------------------------------------------------------
   MHTfindClosestVertexNo()
   Returns vertex number and distance from vertex v to closest vertex
   in mris & mht.
   --------------------------------------------------------------------*/
-int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRIS const *mris, VERTEX const *v, float *min_dist)
+int MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist)
 {
   //------------------------------------------------------
   double x = 0.0, y = 0.0, z = 0.0;

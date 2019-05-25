@@ -78,11 +78,6 @@ typedef struct MRIS_HASH_BUCKET
 //#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 #define TABLE_SIZE     2000
 
-#define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
-#define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))
-#define VOXEL_TO_WORLD(mht,x)    ((((x)*(mht)->vres)-FIELD_OF_VIEW/2))
-
-
 typedef enum {
     MHTFNO_FACE   = 0,
     MHTFNO_VERTEX = 1
