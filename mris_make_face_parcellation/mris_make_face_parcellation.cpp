@@ -412,7 +412,7 @@ main(int argc, char *argv[]) {
                                 &face, &fno, &fdist) ;
       if (fno < 0)
       {
-        fno = mhtBruteForceClosestFace(mris_ico, v->x, v->y, v->z, 
+        fno = MHTBruteForceClosestFace(mris_ico, v->x, v->y, v->z, 
                                        CURRENT_VERTICES, NULL);    
         if (fno  < 0)
         {

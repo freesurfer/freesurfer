@@ -641,6 +641,8 @@ _mht::~_mht()
 
 
 struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
+    virtual MRIS_HASH_TABLE_IMPL*       toMRIS_HASH_TABLE_IMPL_Wkr()       { return this; }
+    virtual MRIS_HASH_TABLE_IMPL const* toMRIS_HASH_TABLE_IMPL_Wkr() const { return this; }
 
     MRIS_HASH_TABLE_IMPL(MRIS const * mris) : MRIS_HASH_TABLE(mris) {}
     ~MRIS_HASH_TABLE_IMPL();
@@ -718,47 +720,6 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
                                               int *MinDistFaceNum,
                                               double *MinDistSq);
 
-    int MHTfindClosestVertexGeneric(
-                                MRIS const *mris,
-                                //---------- inputs --------------
-                                double probex,
-                                double probey,
-                                double probez,
-                                // How far to search: set one or both
-                                double in_max_distance_mm, /* Use large number
-                                                              to ignore */
-                                int in_max_mhts,           /* Use -1 to ignore */
-                                //---------- outputs -------------
-                                VERTEX **pvtx,
-                                int *vtxnum,
-                                double *vtx_distance);
- 
-    VERTEX * MHTfindClosestVertex(MRIS const *mris, VERTEX const *v);
-
-    VERTEX * MHTfindClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored);
-
-    int MHTfindClosestFaceGeneric(
-                              MRIS const *mris,
-                              //---------- inputs --------------
-                              double probex,
-                              double probey,
-                              double probez,
-                              // How far to search: set one or both
-                              double in_max_distance_mm, /* Use large number
-                                                            to ignore */
-                              int in_max_mhts,           /* Use -1 to ignore */
-                              int project_into_face,
-                              //---------- outputs -------------
-                              FACE **pface,
-                              int *pfno,
-                              double *pface_distance);
-
-    FACE const * MHTfindClosestFaceToVertex(MRIS const *mris, VERTEX const *v);
-
-    int MHTfindClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist);
-
-    VERTEX * MHTfindClosestVertexInTable(
-        MRIS const *mris, float x, float y, float z, int do_global_search);                                                                                      
     void  lockBuckets() const;
     void  unlockBuckets() const;
     
@@ -979,6 +940,16 @@ static void relBucket(MHBT ** bucket)
   MHBT const * bucketC = *bucket;
   *bucket = NULL;
   relBucketC(&bucketC);
+}
+
+MHBT * MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int  xv, int   yv, int   zv)
+{
+    return mht->toMRIS_HASH_TABLE_IMPL()->acqBucketAtVoxIx(xv, yv, zv);
+}
+
+MHBT * MHTacqBucket(MRIS_HASH_TABLE *mht, float x, float y,  float z)
+{
+    return mht->toMRIS_HASH_TABLE_IMPL()->acqBucket(x, y, z);
 }
 
 void MHTrelBucket (MHBT       ** bucket) { relBucket (bucket); }
@@ -2187,7 +2158,7 @@ done:
  -----------------------------------------------------------------
 */
 
-int MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexGeneric(
+int MRIS_HASH_TABLE_IMPL::findClosestVertexGeneric(
                                 MRIS const *mris,
                                 //---------- inputs --------------
                                 double probex,
@@ -2486,7 +2457,7 @@ done:
  -----------------------------------------------------------------
 */
 
-int MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceGeneric(
+int MRIS_HASH_TABLE_IMPL::findClosestFaceGeneric(
                               MRIS const *mris,
                               //---------- inputs --------------
                               double probex,
@@ -2747,7 +2718,7 @@ done:
   MHTfindClosestVertex
   Returns VERTEX const *, closest vertex to v in mris & mht (or NULL).
   -----------------------------------------------------------------*/
-VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertex(MRIS const *mris, VERTEX const *v)
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertex(MRIS const *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
@@ -2760,7 +2731,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertex(MRIS const *mris, VERTEX con
   mhtVertex2xyz_float(v, which_vertices, &x, &y, &z);
 
   VERTEX *vtx;
-  MHTfindClosestVertexGeneric(mris,
+  findClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2773,11 +2744,12 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertex(MRIS const *mris, VERTEX con
   return vtx;
 }
 
+#if 0
 /*----------------------------------------------------------------
-  MHTfindClosestFaceToVertex
+  findClosestFaceToVertex
   Returns index of face whose centroid is closest to the specified vertex
   -----------------------------------------------------------------*/
-FACE const * MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceToVertex(MRIS const *mris, VERTEX const *v)
+FACE const * MRIS_HASH_TABLE_IMPL::findClosestFaceToVertex(MRIS const *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
@@ -2803,9 +2775,10 @@ FACE const * MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceToVertex(MRIS const *mris, 
 
   return face;
 }
+#endif
 
 /*---------------------------------------------------------------------
-  MHTfindClosestVertexSet.
+  findClosestVertexSet
 
   updated by BRF 6/10/2016. I don't think this is called anywhere so I'm going
   to revert to the indended usage and have it use the vertex locations specified
@@ -2828,7 +2801,7 @@ FACE const * MRIS_HASH_TABLE_IMPL::MHTfindClosestFaceToVertex(MRIS const *mris, 
   marked [GW 2007-07-25]
 
   -----------------------------------------------------------------------*/
-VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored)
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
@@ -2844,7 +2817,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexSet(MRIS const *mris, VERTEX 
   mhtVertex2xyz_float(v, which_vertices, &x, &y, &z);
 
   VERTEX *vtx = NULL;
-  MHTfindClosestVertexGeneric(mris,
+  findClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2868,7 +2841,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexSet(MRIS const *mris, VERTEX 
   Returns vertex number and distance from vertex v to closest vertex
   in mris & mht.
   --------------------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist)
+int MRIS_HASH_TABLE_IMPL::findClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist)
 {
   //------------------------------------------------------
   double x = 0.0, y = 0.0, z = 0.0;
@@ -2889,7 +2862,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
                                float *min_dist) {
   double min_dist_dbl;
   int vtxnum, rslt;
-  rslt = MHTfindClosestVertexGeneric(mris,
+  rslt = findClosestVertexGeneric(mris,
                                      x,
                                      y,
                                      z,
@@ -2917,7 +2890,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
   MHTfindClosestVertexInTable
   Returns vertex from mris & mht that's closest to provided coordinates.
   ---------------------------------------------------------------*/
-VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexInTable(
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexInTable(
     MRIS const *mris, float x, float y, float z, int do_global_search)
 {
   //------------------------------------------------------
@@ -2929,7 +2902,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexInTable(
   // Generic find
   //---------------------------------
   VERTEX *vtx;
-  MHTfindClosestVertexGeneric(mris,
+  findClosestVertexGeneric(mris,
                               x,
                               y,
                               z,
@@ -2941,7 +2914,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::MHTfindClosestVertexInTable(
   if (!vtx && do_global_search)  // do more local search first
   {
     for (i = 2; i <= 4; i++) {
-      MHTfindClosestVertexGeneric(mris,
+      findClosestVertexGeneric(mris,
                                   x,
                                   y,
                                   z,
@@ -2989,7 +2962,7 @@ int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS const *mris, int v
   useful as a fallback for other functions. (As of 2007-07-30,
   it's being introduced only to MHTfindClosestVertexSet so far.)
   ------------------------------------------------------------*/
-int mhtBruteForceClosestVertex(MRIS const *mris,
+int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(MRIS const *mris,
                                float x,
                                float y,
                                float z,
@@ -3069,12 +3042,12 @@ int mhtBruteForceClosestVertex(MRIS const *mris,
   return (min_v);
 }
 /*------------------------------------------------------------
-  mhtBruteForceClosestFace
+  BruteForceClosestFace
   Finds closest vertex by exhaustive search of surface. This is
   useful as a fallback for other functions. (As of 2007-07-30,
   it's being introduced only to MHTfindClosestVertexSet so far.)
   ------------------------------------------------------------*/
-int mhtBruteForceClosestFace(MRIS const *mris,
+int MRIS_HASH_TABLE::BruteForceClosestFace(MRIS const *mris,
                              float x,
                              float y,
                              float z,
@@ -3291,7 +3264,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSetInDirection(
   double dx, dy, dz, dot, dist, min_dist;
   int vno;
 
-  v_closest = MHTfindClosestVertexSet(mris, v, which);
+  v_closest = findClosestVertexSet(mris, v, which);
 
   if (v_closest) {
     switch (which) {
@@ -3416,3 +3389,6 @@ void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(MRIS const *mris, int which)
 #define MHT_MRIS_PARAMETER  MHT_MRIS_PARAMETER_NOCOMMA ,
 #define MHT_THIS_PARAMETER  MHT_THIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"
+
+
+

@@ -117,9 +117,13 @@ struct _mht
     virtual ~_mht();
 };
 
-
+struct MRIS_HASH_TABLE_IMPL;
 struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...
-
+    MRIS_HASH_TABLE_IMPL               * toMRIS_HASH_TABLE_IMPL    ()       { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
+    MRIS_HASH_TABLE_IMPL         const * toMRIS_HASH_TABLE_IMPL    () const { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
+    virtual MRIS_HASH_TABLE_IMPL       * toMRIS_HASH_TABLE_IMPL_Wkr()       { return nullptr; }
+    virtual MRIS_HASH_TABLE_IMPL const * toMRIS_HASH_TABLE_IMPL_Wkr() const { return nullptr; }
+    
     MRIS_HASH_TABLE(MRIS const * mris) : _mht(mris) {}
 
   // Implement the traditional functions as virtual or static member functions
