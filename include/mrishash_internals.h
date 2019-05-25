@@ -27,29 +27,30 @@
  */
 
 
-#ifndef MRISHASH_INTERNALS_ONCE_H
-#define MRISHASH_INTERNALS_ONCE_H
+#pragma once
 
 #include "mrishash.h"
 #include "romp_support.h"
 
-//--------------------------
-typedef struct
-{
-  int     fno ;
-} MRIS_HASH_BIN, MHB ;
 
 //--------------------------
 typedef struct
 {
+    int fno ;
+} MRIS_HASH_BIN, MHB ;
+
+
+//--------------------------
+typedef struct MRIS_HASH_BUCKET
+{
 #ifdef HAVE_OPENMP
-  omp_lock_t     bucket_lock;
+    omp_lock_t     bucket_lock;
 #endif
-  MRIS_HASH_BIN  * const bins ;
-  int              const max_bins ;
-  int                    nused ;
-  int                    size, ysize, zsize ;
-} MRIS_HASH_BUCKET, MHBT ;
+    MRIS_HASH_BIN  * const bins ;
+    int              const max_bins ;
+    int                    nused ;
+    int                    size, ysize, zsize ;
+} MHBT ;
 
 
 //-----------------------------------------------------------
@@ -94,27 +95,53 @@ typedef struct mht_face_t {
 } MHT_FACE;
 
 
-struct _mht 
-{
-  MRI_SURFACE const *mris ;                                             //
-  float              vres ;                                             // Resolution of discretization
-  MHTFNO_t           fno_usage;                                         // To enforce consistent use of fno:  face number or vertex number
-  int                nbuckets ;                                         // Total # of buckets
-
-#ifdef HAVE_OPENMP
-  omp_lock_t         buckets_lock;
-#endif
-  MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
-  int                which_vertices ;                                   // ORIGINAL, CANONICAL, CURRENT
-
-  int                nfaces;
-  MHT_FACE*          f;
-} ;
-
-
 MHBT * MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int  xv, int   yv, int   zv);
 MHBT * MHTacqBucket       (MRIS_HASH_TABLE *mht, float x, float y,  float z );
 
 void MHTrelBucket(MHBT**);
 void MHTrelBucketC(MHBT const **);
+
+
+struct _mht 
+{
+    MRIS const *       const mris ;                            //
+    float              vres ;                                 // Resolution of discretization
+    MHTFNO_t           fno_usage;                             // To enforce consistent use of fno:  face number or vertex number
+    int                nbuckets ;                             // Total # of buckets
+
+#ifdef HAVE_OPENMP
+    omp_lock_t         buckets_lock;
 #endif
+    MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
+    int                which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.
+
+    int                nfaces;
+    MHT_FACE*          f;
+
+    _mht(MRIS const * mris);
+    virtual ~_mht();
+};
+
+
+struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...
+
+    MRIS_HASH_TABLE(MRIS const * mris) : _mht(mris) {}
+
+  // Implement the traditional functions as virtual or static member functions
+  // so they will all be appropriately changed once this
+  // becomes a template class
+  //
+#define MHT_VIRTUAL                 virtual
+#define MHT_ABSTRACT                = 0
+#define MHT_STATIC_MEMBER           static
+#define MHT_FUNCTION(NAME)          NAME
+#define MHT_FUNCTION(NAME)          NAME
+#define MHT_CONST_THIS_PARAMETER
+#define MHT_CONST_THIS              const
+#define MHT_THIS_PARAMETER_NOCOMMA
+#define MHT_THIS_PARAMETER
+#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS const   *mris
+#define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
+#include "mrishash_traditional_functions.h"
+
+} ;
