@@ -509,7 +509,7 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     }
     else /* in canonical coordinate system - find closest vertex */
     {
-      vno = MHTfindVnoOfClosestVertexInTable(mht, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
+      vno = MHTfindVnoOfClosestVertexInTable(mht, mris, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
       if (vno < 0) {
         continue;
       }

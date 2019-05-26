@@ -462,7 +462,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
     int const vno =
       (direction < 0) ? (mris->nvertices - i - 1) : (i);
       
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     
     if (v->ripflag) continue;
@@ -484,7 +484,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
     /* erase the faces this vertex is part of */
 
     if (mht) {
-      MHTremoveAllFaces(mht, mris, vt);
+      MHTremoveAllFaces(mht, mris, vno);
       mrisLimitGradientDistance(mris, mht, vno);
     }
     
@@ -493,7 +493,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
       v->y + v->ody,
       v->z + v->odz);
     
-    if (mht) MHTaddAllFaces(mht, mris, vt);
+    if (mht) MHTaddAllFaces(mht, mris, vno);
   }
 
   direction *= -1;

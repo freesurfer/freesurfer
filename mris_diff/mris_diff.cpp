@@ -1281,13 +1281,13 @@ MRI *MRISminDist(MRIS *srcsurf, MRIS *trgsurf)
   for(tvtx = 0; tvtx < trgsurf->nvertices; tvtx++) {
     // Compute the source vertex that corresponds to this target vertex
     vtrg = &(trgsurf->vertices[tvtx]);
-    svtx = MHTfindClosestVertexNo(srchash, srcsurf, vtrg, &dmin);
+    svtx = MHTfindClosestVertexNo2(srchash, srcsurf, trgsurf,vtrg, &dmin);
     MRIsetVoxVal(mindist,tvtx,0,0,0,dmin);
   }
   // Go through the reverse loop
   for(svtx = 0; svtx < srcsurf->nvertices; svtx++) {
     vsrc = &(srcsurf->vertices[svtx]);
-    tvtx = MHTfindClosestVertexNo(trghash, trgsurf, vsrc, &dmin);
+    tvtx = MHTfindClosestVertexNo2(trghash, trgsurf, srcsurf, vsrc, &dmin);
     if(dmin > MRIgetVoxVal(mindist,tvtx,0,0,0)) MRIsetVoxVal(mindist,tvtx,0,0,0,dmin);
   }
   MHTfree(&srchash);

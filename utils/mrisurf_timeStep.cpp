@@ -326,7 +326,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
       DiagBreak();
   }
 
-  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
   VERTEX                * const v  = &mris->vertices         [vno];
 
   /* erase the faces this vertex is part of */
@@ -334,7 +334,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
   // This will be a challenge to parallelize
   //
   if (mht) {
-    MHTremoveAllFaces(mht, mris, vt);
+    MHTremoveAllFaces(mht, mris, vno);
   }
 
   bool canMove = true;
@@ -364,7 +364,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
   }
 
   if (mht) {
-    MHTaddAllFaces(mht, mris, vt);
+    MHTaddAllFaces(mht, mris, vno);
   }
 
   return canMove;

@@ -309,7 +309,7 @@ update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms,
       fflush(stdout) ;
     }
 
-    vno = MHTfindClosestVertexNo(mht, mris, &mris_avg->vertices[vno_avg], &min_dist) ;
+    vno = MHTfindClosestVertexNo2(mht, mris, mris_avg, &mris_avg->vertices[vno_avg], &min_dist) ;
     if (vno < 0)
       continue ;
     v1 = &mris->vertices[vno] ;

@@ -1698,7 +1698,7 @@ int FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3], float* oDist
   float distance;
   int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
   int nClosestVertex =
-      MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
+      MHTfindClosestVertexNoXYZ( m_HashTable[nSurface], m_MRIS, v.x,v.y,v.z, &distance );
 
   if ( -1 == nClosestVertex )
   {
@@ -1722,7 +1722,7 @@ int FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3], double* oDi
   v.z = static_cast<float>(iSurfaceRAS[2]);
   float distance;
   int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
-  int nClosestVertex = MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
+  int nClosestVertex = MHTfindClosestVertexNoXYZ( m_HashTable[nSurface], m_MRIS, v.x,v.y,v.z, &distance );
   if ( -1 == nClosestVertex )
   {
     // cerr << "No vertices found.";

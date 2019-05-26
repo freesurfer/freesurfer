@@ -93,20 +93,20 @@ int MHT_FUNCTION(which)(MHT_THIS_PARAMETER_NOCOMMA)     // Whether uses the ORIG
 #endif  // non virtual
 
 
-// Add/remove the faces of which vertex V is a part
+// Add/remove the faces of which vertex vno is a part
 //
-MHT_VIRTUAL int  MHT_FUNCTION(addAllFaces)   (MHT_THIS_PARAMETER MHT_MRIS_PARAMETER  VERTEX_TOPOLOGY const *v) MHT_ABSTRACT
+MHT_VIRTUAL int  MHT_FUNCTION(addAllFaces)   (MHT_THIS_PARAMETER MHT_MRIS_PARAMETER int vno) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->addAllFaces(mris, v); }
+{ return mht->addAllFaces(mris, vno); }
 #endif
 
-MHT_VIRTUAL int  MHT_FUNCTION(removeAllFaces)(MHT_THIS_PARAMETER MHT_MRIS_PARAMETER  VERTEX_TOPOLOGY const *v) MHT_ABSTRACT
+MHT_VIRTUAL int  MHT_FUNCTION(removeAllFaces)(MHT_THIS_PARAMETER MHT_MRIS_PARAMETER int vno) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->removeAllFaces(mris, v); }
+{ return mht->removeAllFaces(mris, vno); }
 #endif
 
 
@@ -173,20 +173,6 @@ MHT_VIRTUAL int     MHT_FUNCTION(findClosestSetVertexNo)(MHT_THIS_PARAMETER
 #endif
 
 
-
-#if 0 // unused
-MHT_VIRTUAL int     MHT_FUNCTION(findClosestSetVertexNoInDirection)(MHT_THIS_PARAMETER
-                                MHT_MRIS_PARAMETER  
-                                float x, float y, float z, 
-                                double nx, double ny, double nz) MHT_ABSTRACT
-#ifndef MHT_TRADITIONAL_IMPL
-    ;
-#else
-{ return mht->findClosestSetVertexNoInDirection(mris,x,y,z,nx,ny,nz); }
-#endif
-
-#endif
-
                                             
 MHT_VIRTUAL int    *MHT_FUNCTION(getAllVerticesWithinDistance)(MHT_THIS_PARAMETER
                                 MHT_MRIS_PARAMETER 
@@ -206,14 +192,14 @@ MHT_VIRTUAL int MHT_FUNCTION(findVnoOfClosestVertexInTable)(MHT_THIS_PARAMETER
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findVnoOfClosestVertexInTable(x,y,z,do_global_search); }
+{ return mht->findVnoOfClosestVertexInTable(mris,x,y,z,do_global_search); }
 #endif
 
 
 
 // utilities for finding closest face
 //
-MHT_VIRTUAL int MHT_FUNCTION(findClosestFaceGeneric)(MHT_THIS_PARAMETER
+MHT_VIRTUAL void MHT_FUNCTION(findClosestFaceNoGeneric)(MHT_THIS_PARAMETER
                               MHT_MRIS_PARAMETER 
                               //---------- inputs --------------
                               double probex, double probey, double probez,
@@ -224,17 +210,15 @@ MHT_VIRTUAL int MHT_FUNCTION(findClosestFaceGeneric)(MHT_THIS_PARAMETER
                               // only faces that projection is interior to (Use -1 to ignore )
                               int    project_into_face, 
                               //---------- outputs -------------
-                              FACE **pface, 
                               int *pfno, 
                               double *pface_distance) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findClosestFaceGeneric(mris,probex, probey, probez,
+{ mht->findClosestFaceNoGeneric(mris,probex, probey, probez,
                               in_max_distance_mm,
                               in_max_mhts,
                               project_into_face,
-                              pface, 
                               pfno, 
                               pface_distance); }
 #endif

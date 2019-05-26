@@ -67,7 +67,7 @@ void MHT_maybeParallel_end();
 #include "mrishash_traditional_functions.h"
 
 
-// These are variants on ones used in existing code
+// These are variants of the above, used in existing code
 //
 int MHTfindClosestVertexNo2(
         MRIS_HASH_TABLE *mht,   // the result will be a vno in the mris used to create this
@@ -89,14 +89,24 @@ VERTEX* MHTfindClosestVertexSet2(
         MRIS *mris_for_vno,
         VERTEX const *v);
 
-#if 0 // unused
+VERTEX* MHTfindClosestVertexInTable(
+        MRIS_HASH_TABLE *mht,
+        MRIS *mris,
+        float x, float y, float z, int do_global_search);
         
-VERTEX* MHTfindClosestVertexSetInDirection2(
-        MRIS_HASH_TABLE *mht, 
+void MHTfindClosestFaceGeneric(
+        MRIS_HASH_TABLE *mht,
         MRIS *mris, 
-        MRIS *mris_for_v,       // this may not be the one for mht nor the one for the result
-        VERTEX const *v, 
-        int which,
-        double nx, double ny, double nz);
-                                     
-#endif                               
+        //---------- inputs --------------
+        double probex, double probey, double probez,
+        // How far to search: set one or both
+        double in_max_distance_mm, /* Use large number 
+                                    to ignore */
+        int    in_max_mhts,  /* Use -1 to ignore */
+        // only faces that projection is interior to (Use -1 to ignore )
+        int    project_into_face, 
+        //---------- outputs -------------
+        FACE **pface, 
+        int *pfno, 
+        double *pface_distance);
+                            
