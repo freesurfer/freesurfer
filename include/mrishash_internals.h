@@ -99,7 +99,6 @@ void MHTrelBucketC(MHBT const **);
 
 struct _mht 
 {
-    MRIS const *       const mris ;                            //
     float              vres ;                                 // Resolution of discretization
     MHTFNO_t           fno_usage;                             // To enforce consistent use of fno:  face number or vertex number
     int                nbuckets ;                             // Total # of buckets
@@ -113,7 +112,7 @@ struct _mht
     int                nfaces;
     MHT_FACE*          f;
 
-    _mht(MRIS const * mris);
+    _mht();
     virtual ~_mht();
 };
 
@@ -124,8 +123,6 @@ struct MRIS_HASH_TABLE : public _mht {                      // Later we may make
     virtual MRIS_HASH_TABLE_IMPL       * toMRIS_HASH_TABLE_IMPL_Wkr()       { return nullptr; }
     virtual MRIS_HASH_TABLE_IMPL const * toMRIS_HASH_TABLE_IMPL_Wkr() const { return nullptr; }
     
-    MRIS_HASH_TABLE(MRIS const * mris) : _mht(mris) {}
-
   // Implement the traditional functions as virtual or static member functions
   // so they will all be appropriately changed once this
   // becomes a template class
@@ -139,7 +136,7 @@ struct MRIS_HASH_TABLE : public _mht {                      // Later we may make
 #define MHT_CONST_THIS              const
 #define MHT_THIS_PARAMETER_NOCOMMA
 #define MHT_THIS_PARAMETER
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS const   *mris
+#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
 #define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"
 

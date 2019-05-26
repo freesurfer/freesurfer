@@ -7,20 +7,20 @@ namespace SurfaceFromMRIS {
 
 
     namespace Existence {
-    Face::Face (                                                                  ) {}
-    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}      
-    Face::Face ( TopologyM::Face const & src                ) : MRIS_Elt(src) {}      
-    Face::Face ( Topology::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionM::Face const & src             ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPosition::Face const & src              ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}      
-    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}      
-    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}      
+    Face::Face (                                                                 ) {}
+    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}     
+    Face::Face ( TopologyM::Face const & src                ) : MRIS_Elt(src) {}     
+    Face::Face ( Topology::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionM::Face const & src             ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPosition::Face const & src              ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}     
+    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}     
+    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}     
 
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -43,20 +43,20 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                                              ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( TopologyM::Vertex const & src                ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Topology::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionM::Vertex const & src             ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPosition::Vertex const & src              ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                                              ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( TopologyM::Vertex const & src                ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Topology::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionM::Vertex const & src             ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPosition::Vertex const & src              ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}     
 
     char Vertex::ripflag() const {  //  vertex no longer exists - placed last to load the next vertex into cache
         return mris->vertices[idx].ripflag;
@@ -67,21 +67,48 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                                               ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx                        ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}      
-    Surface::Surface ( TopologyM::Surface const & src                ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Topology::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionM::Surface const & src             ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPosition::Surface const & src              ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}      
+    Surface::Surface (                                               ) {}                   
+    Surface::Surface ( MRIS* mris                                    ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}   
+    Surface::Surface ( TopologyM::Surface const & src                ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Topology::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionM::Surface const & src             ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPosition::Surface const & src              ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}   
 
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -94,24 +121,87 @@ namespace SurfaceFromMRIS {
     int Surface::patch() const {  //  if a patch of the surface
         return mris->patch;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
 
 
     } // namespace Existence
 
 
     namespace Topology {
-    Face::Face (                                            ) {}                      
-    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionM::Face const & src             ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPosition::Face const & src              ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}      
-    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}      
-    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}      
+    Face::Face (                                            ) {}                     
+    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionM::Face const & src             ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPosition::Face const & src              ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}     
+    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}     
+    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -137,18 +227,18 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                                              ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionM::Vertex const & src             ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPosition::Vertex const & src              ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                                              ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionM::Vertex const & src             ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPosition::Vertex const & src              ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -204,19 +294,88 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                                               ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx                        ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionM::Surface const & src             ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPosition::Surface const & src              ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}      
+    Surface::Surface (                                               ) {}                   
+    Surface::Surface ( MRIS* mris                                    ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionM::Surface const & src             ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPosition::Surface const & src              ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -229,22 +388,85 @@ namespace SurfaceFromMRIS {
     int Surface::patch() const {  //  if a patch of the surface
         return mris->patch;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
 
 
     } // namespace Topology
 
 
     namespace XYZPosition {
-    Face::Face (                                            ) {}                      
-    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}      
-    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}      
-    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}      
-    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}      
+    Face::Face (                                            ) {}                     
+    Face::Face ( MRIS* mris, size_t idx                     ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src                           ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequencesM::Face const & src ) : MRIS_Elt(src) {}     
+    Face::Face ( XYZPositionConsequences::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( DistortM::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( Distort::Face const & src                  ) : MRIS_Elt(src) {}     
+    Face::Face ( AnalysisM::Face const & src                ) : MRIS_Elt(src) {}     
+    Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -270,16 +492,16 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                                              ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                                              ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx                       ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src                           ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequencesM::Vertex const & src ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( XYZPositionConsequences::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( DistortM::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Distort::Vertex const & src                  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AnalysisM::Vertex const & src                ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Analysis::Vertex const & src                 ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src                     ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -317,6 +539,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -325,6 +559,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::cx() const {
         return mris->vertices[idx].cx;
@@ -362,17 +605,86 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                                               ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx                        ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}      
-    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}      
+    Surface::Surface (                                               ) {}                   
+    Surface::Surface ( MRIS* mris                                    ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src                           ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequencesM::Surface const & src ) : MRIS_Elt(src) {}   
+    Surface::Surface ( XYZPositionConsequences::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( DistortM::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Distort::Surface const & src                  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AnalysisM::Surface const & src                ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Analysis::Surface const & src                 ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src                     ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -409,6 +721,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_vp(p_void to) {  //  for misc. use
         mris->vp = to;
@@ -440,14 +815,14 @@ namespace SurfaceFromMRIS {
 
 
     namespace XYZPositionConsequences {
-    Face::Face (                             ) {}                      
-    Face::Face ( MRIS* mris, size_t idx      ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src            ) : MRIS_Elt(src) {}      
-    Face::Face ( DistortM::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( Distort::Face const & src   ) : MRIS_Elt(src) {}      
-    Face::Face ( AnalysisM::Face const & src ) : MRIS_Elt(src) {}      
-    Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}      
+    Face::Face (                             ) {}                     
+    Face::Face ( MRIS* mris, size_t idx      ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src            ) : MRIS_Elt(src) {}     
+    Face::Face ( DistortM::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( Distort::Face const & src   ) : MRIS_Elt(src) {}     
+    Face::Face ( AnalysisM::Face const & src ) : MRIS_Elt(src) {}     
+    Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -491,14 +866,14 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                               ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx        ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src            ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( DistortM::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Distort::Vertex const & src   ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AnalysisM::Vertex const & src ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Analysis::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src      ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                               ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx        ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src            ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( DistortM::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Distort::Vertex const & src   ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AnalysisM::Vertex const & src ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Analysis::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src      ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -536,6 +911,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -544,6 +931,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -602,15 +998,57 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                                ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx         ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src            ) : MRIS_Elt(src) {}      
-    Surface::Surface ( DistortM::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Distort::Surface const & src   ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AnalysisM::Surface const & src ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Analysis::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src      ) : MRIS_Elt(src) {}      
+    Surface::Surface (                                ) {}                   
+    Surface::Surface ( MRIS* mris                     ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src            ) : MRIS_Elt(src) {}   
+    Surface::Surface ( DistortM::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Distort::Surface const & src   ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AnalysisM::Surface const & src ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Analysis::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src      ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -650,14 +1088,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -691,6 +1129,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -749,6 +1214,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -789,14 +1317,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -867,12 +1395,12 @@ namespace SurfaceFromMRIS {
 
 
     namespace Distort {
-    Face::Face (                             ) {}                      
-    Face::Face ( MRIS* mris, size_t idx      ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src            ) : MRIS_Elt(src) {}      
-    Face::Face ( AnalysisM::Face const & src ) : MRIS_Elt(src) {}      
-    Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}      
+    Face::Face (                             ) {}                     
+    Face::Face ( MRIS* mris, size_t idx      ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src            ) : MRIS_Elt(src) {}     
+    Face::Face ( AnalysisM::Face const & src ) : MRIS_Elt(src) {}     
+    Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -916,12 +1444,12 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                               ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx        ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src            ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AnalysisM::Vertex const & src ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( Analysis::Vertex const & src  ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src      ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                               ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx        ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src            ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AnalysisM::Vertex const & src ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( Analysis::Vertex const & src  ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src      ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -959,6 +1487,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -967,6 +1507,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -1613,13 +2162,55 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                                ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx         ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src            ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AnalysisM::Surface const & src ) : MRIS_Elt(src) {}      
-    Surface::Surface ( Analysis::Surface const & src  ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src      ) : MRIS_Elt(src) {}      
+    Surface::Surface (                                ) {}                   
+    Surface::Surface ( MRIS* mris                     ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src            ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AnalysisM::Surface const & src ) : MRIS_Elt(src) {}   
+    Surface::Surface ( Analysis::Surface const & src  ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src      ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -1659,14 +2250,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -1700,6 +2291,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -1758,6 +2376,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -1798,14 +2479,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -1876,10 +2557,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace Analysis {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -1923,10 +2604,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -1964,6 +2645,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -1972,6 +2665,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -2618,11 +3320,53 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -2662,14 +3406,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -2703,6 +3447,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -2761,6 +3532,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -2801,14 +3635,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -2879,10 +3713,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace ExistenceM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -2905,10 +3739,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     char Vertex::ripflag() const {  //  vertex no longer exists - placed last to load the next vertex into cache
         return mris->vertices[idx].ripflag;
@@ -2919,11 +3753,38 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -2935,6 +3796,69 @@ namespace SurfaceFromMRIS {
     }
     int Surface::patch() const {  //  if a patch of the surface
         return mris->patch;
+    }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
     }
     
     void Surface::set_fname(MRIS_fname_t to) {  //  file it was originally loaded from
@@ -2955,10 +3879,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace TopologyM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -2987,10 +3911,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -3073,11 +3997,80 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -3090,16 +4083,79 @@ namespace SurfaceFromMRIS {
     int Surface::patch() const {  //  if a patch of the surface
         return mris->patch;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
 
 
     } // namespace TopologyM
 
 
     namespace XYZPositionM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -3125,10 +4181,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -3166,6 +4222,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -3174,6 +4242,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::cx() const {
         return mris->vertices[idx].cx;
@@ -3220,11 +4297,80 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
+    }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
     }
@@ -3261,6 +4407,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_vp(p_void to) {  //  for misc. use
         mris->vp = to;
@@ -3292,10 +4501,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace XYZPositionConsequencesM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -3351,10 +4560,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -3392,6 +4601,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -3400,6 +4621,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -3461,11 +4691,53 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -3505,14 +4777,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -3546,6 +4818,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -3604,6 +4903,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -3644,14 +5006,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -3737,10 +5099,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace DistortM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -3784,10 +5146,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -3825,6 +5187,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -3833,6 +5207,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -4479,11 +5862,53 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -4523,14 +5948,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -4564,6 +5989,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -4622,6 +6074,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -4662,14 +6177,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -4740,10 +6255,10 @@ namespace SurfaceFromMRIS {
 
 
     namespace AnalysisM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
-    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
+    Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -4787,10 +6302,10 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                          ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}      
-    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                          ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx   ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src       ) : MRIS_Elt(src) {}     
+    Vertex::Vertex ( AllM::Vertex const & src ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -4828,6 +6343,18 @@ namespace SurfaceFromMRIS {
     uchar Vertex::num() const {  //  number of neighboring faces                              
         return mris->vertices_topology[idx].num;
     }
+    float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+        return mris->vertices[idx].dist[i];
+    }
+    float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
+        return mris->vertices[idx].dist_orig[i];
+    }
+    int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_capacity;
+    }
+    int Vertex::dist_orig_capacity() const {  //  -- should contain at least vtx_vtotal elements   
+        return mris->vertices[idx].dist_orig_capacity;
+    }
     float Vertex::x() const {  //  current coordinates	
         return mris->vertices[idx].x;
     }
@@ -4836,6 +6363,15 @@ namespace SurfaceFromMRIS {
     }
     float Vertex::z() const {
         return mris->vertices[idx].z;
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return mris->vertices[idx].origx;
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return mris->vertices[idx].origy;
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return mris->vertices[idx].origz;
     }
     float Vertex::nx() const {
         return mris->vertices[idx].nx;
@@ -5482,11 +7018,53 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                           ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx    ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}      
-    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}      
+    Surface::Surface (                           ) {}                   
+    Surface::Surface ( MRIS* mris                ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src       ) : MRIS_Elt(src) {}   
+    Surface::Surface ( AllM::Surface const & src ) : MRIS_Elt(src) {}   
 
+    int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
+        return mris->nverticesFrozen;
+    }
+    int Surface::nvertices() const {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nvertices;
+    }
+    int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        return mris->nfaces;
+    }
+    bool Surface::faceAttachmentDeferred() const {  //  defer connecting faces to vertices for performance reasons
+        return mris->faceAttachmentDeferred;
+    }
+    int Surface::nedges() const {  //  # of edges on surface
+        return mris->nedges;
+    }
+    int Surface::nstrips() const {
+        return mris->nstrips;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
+    }
+    p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
+        return mris->dist_storage;
+    }
+    p_p_void Surface::dist_orig_storage() const {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
+        return mris->dist_orig_storage;
+    }
+    int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
+        return mris->tempsAssigned;
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
+    }
+    MRI_EDGE Surface::edges(size_t i) const {
+        return mris->edges[i];
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return mris->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return mris->faceNormDeferredEntries[i];
+    }
     STRIP Surface::strips(size_t i) const {
         return mris->strips[i];
     }
@@ -5526,14 +7104,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -5567,6 +7145,33 @@ namespace SurfaceFromMRIS {
     }
     int Surface::hemisphere() const {  //  which hemisphere
         return mris->hemisphere;
+    }
+    int Surface::initialized() const {
+        return mris->initialized;
+    }
+    PLTA Surface::lta() const {
+        return mris->lta;
+    }
+    PMATRIX Surface::SRASToTalSRAS_() const {
+        return mris->SRASToTalSRAS_;
+    }
+    PMATRIX Surface::TalSRASToSRAS_() const {
+        return mris->TalSRASToSRAS_;
+    }
+    int Surface::free_transform() const {
+        return mris->free_transform;
+    }
+    double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
+        return mris->radius;
+    }
+    float Surface::a() const {
+        return mris->a;
+    }
+    float Surface::b() const {
+        return mris->b;
+    }
+    float Surface::c() const {  //  ellipsoid parameters
+        return mris->c;
     }
     MRIS_fname_t Surface::fname() const {  //  file it was originally loaded from
         return mris->fname;
@@ -5625,6 +7230,69 @@ namespace SurfaceFromMRIS {
     int Surface::type() const {  //  what type of surface was this initially
         return mris->type;
     }
+    int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
+        return mris->max_vertices;
+    }
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
+        return mris->max_faces;
+    }
+    MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
+        return mris->subject_name;
+    }
+    float Surface::canon_area() const {
+        return mris->canon_area;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return mris->noscale;
+    }
+    float Surface::dx2(size_t i) const {  //  an extra set of gradient (not always alloced)
+        return mris->dx2[i];
+    }
+    float Surface::dy2(size_t i) const {
+        return mris->dy2[i];
+    }
+    float Surface::dz2(size_t i) const {
+        return mris->dz2[i];
+    }
+    PCOLOR_TABLE Surface::ct() const {
+        return mris->ct;
+    }
+    int Surface::useRealRAS() const {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        return mris->useRealRAS;
+    }
+    VOL_GEOM Surface::vg() const {  //  volume info from which this surface is created. valid iff vg.valid = 1
+        return mris->vg;
+    }
+    MRIS_cmdlines_t Surface::cmdlines() const {
+        return mris->cmdlines;
+    }
+    int Surface::ncmds() const {
+        return mris->ncmds;
+    }
+    float Surface::group_avg_surface_area() const {  //  average of total surface area for group
+        return mris->group_avg_surface_area;
+    }
+    int Surface::group_avg_vtxarea_loaded() const {  //  average vertex area for group at each vertex
+        return mris->group_avg_vtxarea_loaded;
+    }
+    int Surface::triangle_links_removed() const {  //  for quad surfaces
+        return mris->triangle_links_removed;
+    }
+    p_void Surface::user_parms() const {  //  for whatever the user wants to hang here
+        return mris->user_parms;
+    }
+    PMATRIX Surface::m_sras2vox() const {  //  for converting surface ras to voxel
+        return mris->m_sras2vox;
+    }
+    PMRI Surface::mri_sras2vox() const {  //  volume that the above matrix is for
+        return mris->mri_sras2vox;
+    }
+    p_void Surface::mht() const {
+        return mris->mht;
+    }
+    p_void Surface::temps() const {
+        return mris->temps;
+    }
     
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
@@ -5665,14 +7333,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -5743,9 +7411,9 @@ namespace SurfaceFromMRIS {
 
 
     namespace AllM {
-    Face::Face (                        ) {}                      
-    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}      
+    Face::Face (                        ) {}                     
+    Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
 
     vertices_per_face_t Face::v() const {
         return mris->faces[idx].v;
@@ -5804,9 +7472,9 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Vertex::Vertex (                        ) {}                      
-    Vertex::Vertex ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Vertex::Vertex ( Vertex const & src     ) : MRIS_Elt(src) {}      
+    Vertex::Vertex (                        ) {}                     
+    Vertex::Vertex ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
+    Vertex::Vertex ( Vertex const & src     ) : MRIS_Elt(src) {}     
 
     Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
         return Face(mris,mris->vertices_topology[idx].f[i]);
@@ -6229,18 +7897,6 @@ namespace SurfaceFromMRIS {
     void Vertex::set_num(uchar to) {  //  number of neighboring faces                              
         mris->vertices_topology[idx].num = to;
     }
-    void Vertex::set_dist(size_t i, float to) {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
-        mris->vertices[idx].dist[i] = to;
-    }
-    void Vertex::set_dist_orig(size_t i, float to) {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        mris->vertices[idx].dist_orig[i] = to;
-    }
-    void Vertex::set_dist_capacity(int to) {  //  -- should contain at least vtx_vtotal elements   
-        mris->vertices[idx].dist_capacity = to;
-    }
-    void Vertex::set_dist_orig_capacity(int to) {  //  -- should contain at least vtx_vtotal elements   
-        mris->vertices[idx].dist_orig_capacity = to;
-    }
     void Vertex::set_x(float to) {  //  current coordinates	
         mris->vertices[idx].x = to;
     }
@@ -6249,15 +7905,6 @@ namespace SurfaceFromMRIS {
     }
     void Vertex::set_z(float to) {
         mris->vertices[idx].z = to;
-    }
-    void Vertex::set_origx(float to) {  //  original coordinates, see also MRIS::origxyz_status
-        mris->vertices[idx].origx = to;
-    }
-    void Vertex::set_origy(float to) {  //  use MRISsetOriginalXYZ(, 
-        mris->vertices[idx].origy = to;
-    }
-    void Vertex::set_origz(float to) {  //  or MRISsetOriginalXYZfromXYZ to set
-        mris->vertices[idx].origz = to;
     }
     void Vertex::set_nx(float to) {
         mris->vertices[idx].nx = to;
@@ -6579,9 +8226,9 @@ namespace SurfaceFromMRIS {
     }
 
 
-    Surface::Surface (                        ) {}                      
-    Surface::Surface ( MRIS* mris, size_t idx ) : MRIS_Elt(mris, idx) {}
-    Surface::Surface ( Surface const & src    ) : MRIS_Elt(src) {}      
+    Surface::Surface (                     ) {}                   
+    Surface::Surface ( MRIS* mris          ) : MRIS_Elt(mris,0) {}
+    Surface::Surface ( Surface const & src ) : MRIS_Elt(src) {}   
 
     int Surface::nverticesFrozen() const {  //  # of vertices on surface is frozen
         return mris->nverticesFrozen;
@@ -6601,11 +8248,8 @@ namespace SurfaceFromMRIS {
     int Surface::nstrips() const {
         return mris->nstrips;
     }
-    VERTEX_TOPOLOGY Surface::vertices_topology(size_t i) const {
-        return mris->vertices_topology[i];
-    }
-    VERTEX Surface::vertices(size_t i) const {
-        return mris->vertices[i];
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(mris,idx);;
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -6616,8 +8260,8 @@ namespace SurfaceFromMRIS {
     int Surface::tempsAssigned() const {  //  State of various temp fields that can be borrowed if not already in use
         return mris->tempsAssigned;
     }
-    FACE Surface::faces(size_t i) const {
-        return mris->faces[i];
+    Face Surface::faces(size_t i) const {
+        return Face(mris,idx);;
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -6667,14 +8311,14 @@ namespace SurfaceFromMRIS {
     float Surface::z0() const {
         return mris->z0;
     }
-    PVERTEX Surface::v_temporal_pole() const {
-        return mris->v_temporal_pole;
+    Vertex Surface::v_temporal_pole() const {
+        return Vertex(mris,mris->v_temporal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_frontal_pole() const {
-        return mris->v_frontal_pole;
+    Vertex Surface::v_frontal_pole() const {
+        return Vertex(mris,mris->v_frontal_pole - mris->vertices);
     }
-    PVERTEX Surface::v_occipital_pole() const {
-        return mris->v_occipital_pole;
+    Vertex Surface::v_occipital_pole() const {
+        return Vertex(mris,mris->v_occipital_pole - mris->vertices);
     }
     float Surface::max_curv() const {
         return mris->max_curv;
@@ -6769,30 +8413,6 @@ namespace SurfaceFromMRIS {
     PMRIS_AREA_LABEL Surface::labels() const {  //  nlabels of these (may be null)
         return mris->labels;
     }
-    char Surface::nsize() const {  //  size of neighborhoods or -1
-        return mris->nsize;
-    }
-    uchar Surface::vtotalsMightBeTooBig() const {  //  MRISsampleDistances sets this
-        return mris->vtotalsMightBeTooBig;
-    }
-    short Surface::nsizeMaxClock() const {  //  changed whenever an edge is added or removed, which invalidates the vertex v#num values
-        return mris->nsizeMaxClock;
-    }
-    char Surface::max_nsize() const {  //  max the neighborhood size has been set to (typically 3)
-        return mris->max_nsize;
-    }
-    char Surface::dist_nsize() const {  //  max mrisComputeVertexDistances has computed distances out to
-        return mris->dist_nsize;
-    }
-    char Surface::dist_orig_nsize() const {  //  max mrisComputeOriginalVertexDistances has computed distances out to
-        return mris->dist_orig_nsize;
-    }
-    char Surface::dist_alloced_flags() const {  //  two flags, set when any dist(1) or dist_orig(2) allocated
-        return mris->dist_alloced_flags;
-    }
-    float Surface::avg_nbrs() const {  //  mean # of vertex neighbors
-        return mris->avg_nbrs;
-    }
     p_void Surface::vp() const {  //  for misc. use
         return mris->vp;
     }
@@ -6820,7 +8440,7 @@ namespace SurfaceFromMRIS {
     int Surface::max_vertices() const {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
         return mris->max_vertices;
     }
-    int Surface::max_faces() const {  //  may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces
+    int Surface::max_faces() const {  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
         return mris->max_faces;
     }
     MRIS_subject_name_t Surface::subject_name() const {  //  name of the subject
@@ -6881,51 +8501,6 @@ namespace SurfaceFromMRIS {
         return mris->temps;
     }
     
-    void Surface::set_nverticesFrozen(int to) {  //  # of vertices on surface is frozen
-        mris->nverticesFrozen = to;
-    }
-    void Surface::set_nvertices(int to) {  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
-        mris->nvertices = to;
-    }
-    void Surface::set_nfaces(int to) {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
-        mris->nfaces = to;
-    }
-    void Surface::set_faceAttachmentDeferred(bool to) {  //  defer connecting faces to vertices for performance reasons
-        mris->faceAttachmentDeferred = to;
-    }
-    void Surface::set_nedges(int to) {  //  # of edges on surface
-        mris->nedges = to;
-    }
-    void Surface::set_nstrips(int to) {
-        mris->nstrips = to;
-    }
-    void Surface::set_vertices_topology(size_t i, VERTEX_TOPOLOGY to) {
-        mris->vertices_topology[i] = to;
-    }
-    void Surface::set_vertices(size_t i, VERTEX to) {
-        mris->vertices[i] = to;
-    }
-    void Surface::set_dist_storage(p_p_void to) {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
-        mris->dist_storage = to;
-    }
-    void Surface::set_dist_orig_storage(p_p_void to) {  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
-        mris->dist_orig_storage = to;
-    }
-    void Surface::set_tempsAssigned(int to) {  //  State of various temp fields that can be borrowed if not already in use
-        mris->tempsAssigned = to;
-    }
-    void Surface::set_faces(size_t i, FACE to) {
-        mris->faces[i] = to;
-    }
-    void Surface::set_edges(size_t i, MRI_EDGE to) {
-        mris->edges[i] = to;
-    }
-    void Surface::set_faceNormCacheEntries(size_t i, FaceNormCacheEntry to) {
-        mris->faceNormCacheEntries[i] = to;
-    }
-    void Surface::set_faceNormDeferredEntries(size_t i, FaceNormDeferredEntry to) {
-        mris->faceNormDeferredEntries[i] = to;
-    }
     void Surface::set_strips(size_t i, STRIP to) {
         mris->strips[i] = to;
     }
@@ -6965,14 +8540,14 @@ namespace SurfaceFromMRIS {
     void Surface::set_z0(float to) {
         mris->z0 = to;
     }
-    void Surface::set_v_temporal_pole(PVERTEX to) {
-        mris->v_temporal_pole = to;
+    void Surface::set_v_temporal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_temporal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_frontal_pole(PVERTEX to) {
-        mris->v_frontal_pole = to;
+    void Surface::set_v_frontal_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_frontal_pole = mris->vertices + to.idx;
     }
-    void Surface::set_v_occipital_pole(PVERTEX to) {
-        mris->v_occipital_pole = to;
+    void Surface::set_v_occipital_pole(Vertex to) {
+        cheapAssert(mris == to.mris); mris->v_occipital_pole = mris->vertices + to.idx;
     }
     void Surface::set_max_curv(float to) {
         mris->max_curv = to;
@@ -7007,33 +8582,6 @@ namespace SurfaceFromMRIS {
     void Surface::set_hemisphere(int to) {  //  which hemisphere
         mris->hemisphere = to;
     }
-    void Surface::set_initialized(int to) {
-        mris->initialized = to;
-    }
-    void Surface::set_lta(PLTA to) {
-        mris->lta = to;
-    }
-    void Surface::set_SRASToTalSRAS_(PMATRIX to) {
-        mris->SRASToTalSRAS_ = to;
-    }
-    void Surface::set_TalSRASToSRAS_(PMATRIX to) {
-        mris->TalSRASToSRAS_ = to;
-    }
-    void Surface::set_free_transform(int to) {
-        mris->free_transform = to;
-    }
-    void Surface::set_radius(double to) {  //  radius (if status==MRIS_SPHERE)
-        mris->radius = to;
-    }
-    void Surface::set_a(float to) {
-        mris->a = to;
-    }
-    void Surface::set_b(float to) {
-        mris->b = to;
-    }
-    void Surface::set_c(float to) {  //  ellipsoid parameters
-        mris->c = to;
-    }
     void Surface::set_fname(MRIS_fname_t to) {  //  file it was originally loaded from
         mris->fname = to;
     }
@@ -7067,30 +8615,6 @@ namespace SurfaceFromMRIS {
     void Surface::set_labels(PMRIS_AREA_LABEL to) {  //  nlabels of these (may be null)
         mris->labels = to;
     }
-    void Surface::set_nsize(char to) {  //  size of neighborhoods or -1
-        mris->nsize = to;
-    }
-    void Surface::set_vtotalsMightBeTooBig(uchar to) {  //  MRISsampleDistances sets this
-        mris->vtotalsMightBeTooBig = to;
-    }
-    void Surface::set_nsizeMaxClock(short to) {  //  changed whenever an edge is added or removed, which invalidates the vertex v#num values
-        mris->nsizeMaxClock = to;
-    }
-    void Surface::set_max_nsize(char to) {  //  max the neighborhood size has been set to (typically 3)
-        mris->max_nsize = to;
-    }
-    void Surface::set_dist_nsize(char to) {  //  max mrisComputeVertexDistances has computed distances out to
-        mris->dist_nsize = to;
-    }
-    void Surface::set_dist_orig_nsize(char to) {  //  max mrisComputeOriginalVertexDistances has computed distances out to
-        mris->dist_orig_nsize = to;
-    }
-    void Surface::set_dist_alloced_flags(char to) {  //  two flags, set when any dist(1) or dist_orig(2) allocated
-        mris->dist_alloced_flags = to;
-    }
-    void Surface::set_avg_nbrs(float to) {  //  mean # of vertex neighbors
-        mris->avg_nbrs = to;
-    }
     void Surface::set_vp(p_void to) {  //  for misc. use
         mris->vp = to;
     }
@@ -7114,69 +8638,6 @@ namespace SurfaceFromMRIS {
     }
     void Surface::set_type(int to) {  //  what type of surface was this initially
         mris->type = to;
-    }
-    void Surface::set_max_vertices(int to) {  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
-        mris->max_vertices = to;
-    }
-    void Surface::set_max_faces(int to) {  //  may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces
-        mris->max_faces = to;
-    }
-    void Surface::set_subject_name(MRIS_subject_name_t to) {  //  name of the subject
-        mris->subject_name = to;
-    }
-    void Surface::set_canon_area(float to) {
-        mris->canon_area = to;
-    }
-    void Surface::set_noscale(int to) {  //  don't scale by surface area if true
-        mris->noscale = to;
-    }
-    void Surface::set_dx2(size_t i, float to) {  //  an extra set of gradient (not always alloced)
-        mris->dx2[i] = to;
-    }
-    void Surface::set_dy2(size_t i, float to) {
-        mris->dy2[i] = to;
-    }
-    void Surface::set_dz2(size_t i, float to) {
-        mris->dz2[i] = to;
-    }
-    void Surface::set_ct(PCOLOR_TABLE to) {
-        mris->ct = to;
-    }
-    void Surface::set_useRealRAS(int to) {  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
-        mris->useRealRAS = to;
-    }
-    void Surface::set_vg(VOL_GEOM to) {  //  volume info from which this surface is created. valid iff vg.valid = 1
-        mris->vg = to;
-    }
-    void Surface::set_cmdlines(MRIS_cmdlines_t to) {
-        mris->cmdlines = to;
-    }
-    void Surface::set_ncmds(int to) {
-        mris->ncmds = to;
-    }
-    void Surface::set_group_avg_surface_area(float to) {  //  average of total surface area for group
-        mris->group_avg_surface_area = to;
-    }
-    void Surface::set_group_avg_vtxarea_loaded(int to) {  //  average vertex area for group at each vertex
-        mris->group_avg_vtxarea_loaded = to;
-    }
-    void Surface::set_triangle_links_removed(int to) {  //  for quad surfaces
-        mris->triangle_links_removed = to;
-    }
-    void Surface::set_user_parms(p_void to) {  //  for whatever the user wants to hang here
-        mris->user_parms = to;
-    }
-    void Surface::set_m_sras2vox(PMATRIX to) {  //  for converting surface ras to voxel
-        mris->m_sras2vox = to;
-    }
-    void Surface::set_mri_sras2vox(PMRI to) {  //  volume that the above matrix is for
-        mris->mri_sras2vox = to;
-    }
-    void Surface::set_mht(p_void to) {
-        mris->mht = to;
-    }
-    void Surface::set_temps(p_void to) {
-        mris->temps = to;
     }
 
 

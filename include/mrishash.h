@@ -61,7 +61,7 @@ void MHT_maybeParallel_end();
 #define MHT_CONST_THIS_PARAMETER    MRIS_HASH_TABLE const *mht,
 #define MHT_CONST_THIS              
 #define MHT_THIS_PARAMETER_NOCOMMA  MRIS_HASH_TABLE *mht 
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS const   *mris
+#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
 #define MHT_MRIS_PARAMETER  MHT_MRIS_PARAMETER_NOCOMMA ,
 #define MHT_THIS_PARAMETER  MHT_THIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"

@@ -1,4 +1,6 @@
 // Compile with     g++ -std=c++11 Generator.cpp
+// Run with         rm tmp/* ; ./a.out ./tmp/
+// Merge with       bcompare ./tmp ../include
 //
 #include <iostream>
 #include <iomanip>
@@ -11,6 +13,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <assert.h>
 
 static std::ostream& indent(std::ostream & os, size_t depth) {
 	for (size_t i = 0; i < depth; i++) os << "    ";
@@ -121,6 +124,7 @@ namespace Generator {
 		return s;
 	}
 
+	string createFilesWithin;
 
 #define PHASES \
 	ELT(ExistenceM 				, Existence					) SEP \
@@ -187,12 +191,14 @@ namespace Generator {
 		Type*		const type;
 		Id			const id;
 		string      const comment;
+        Phase::T    const firstReadingPhase;
 		Phase::T	const firstWritingPhase;
 		Phase::T	const lastWritingPhase;
-		Dmbr(Clss* c, Type* t, Id i, Phase::T w             , string const & com = "") : clss(c), type(t), id(i), firstWritingPhase(w), lastWritingPhase(w ), comment(com) {}
-		Dmbr(Clss* c, Type* t, Id i, Phase::T w, Phase::T we, string const & com = "") : clss(c), type(t), id(i), firstWritingPhase(w), lastWritingPhase(we), comment(com) {}
+		Dmbr(Clss* c, Type* t, Id i,              Phase::T wb             , string const & com = "") : clss(c), type(t), id(i), firstReadingPhase(wb), firstWritingPhase(wb), lastWritingPhase(wb), comment(com) {}
+		Dmbr(Clss* c, Type* t, Id i,              Phase::T wb, Phase::T we, string const & com = "") : clss(c), type(t), id(i), firstReadingPhase(wb), firstWritingPhase(wb), lastWritingPhase(we), comment(com) {}
+		Dmbr(Clss* c, Type* t, Id i, Phase::T rb, Phase::T wb, Phase::T we, string const & com = "") : clss(c), type(t), id(i), firstReadingPhase(rb), firstWritingPhase(wb), lastWritingPhase(we), comment(com) {}
 
-		bool isOnlyComGeneral() const { return !type && commentNature==ComGeneral; }
+		bool isGeneralComment() const { return !type && commentNature==ComGeneral; }
 
 		Dmbr* setCommentNature(CommentNature to) { commentNature = to;     return this; }
 		Dmbr* setNoHash()		  { nohash = true;     return this; }
@@ -208,6 +214,7 @@ namespace Generator {
 		Fmbr(Clss* c, Type* rt, Id i, Phase::T w, bool isWriter = false) : clss(c), retType(retType), id(i), args(newClss("<args>")), isWriter(isWriter) {}
 	};
 
+	Phase::T phaseRbegin = Phase::end;
 	Phase::T phaseWbegin = Phase::end;
 	Phase::T phaseWend   = Phase::end;
 
@@ -219,12 +226,13 @@ namespace Generator {
 		vector<Dmbr*> dmbr;
 		vector<Fmbr*> fmbr;
 
-		Dmbr* addDmbrCom(string const & com)				  { return addDmbr(nullptr, "", Phase::end, Phase::end, com); }
+		Dmbr* addDmbrCom(string const & com)				  { return addDmbr(nullptr, "", Phase::end, Phase::end, Phase::end, com); }
 		Dmbr* addDmbrList(string const & com)				  { return addDmbrCom(com)->setCommentNature(ComList); }
 		Dmbr* addDmbrListSublist(string const & com)		  { return addDmbrCom(com)->setCommentNature(ComListSublist); }
-		Dmbr* addDmbr(Type* t, Id i, string const & com = "") { return addDmbr(t, i, phaseWbegin, phaseWend, com); }
-		Dmbr* addDmbr(Type* t, Id i, Phase::T wb, Phase::T we, string const & com = "") { 
-			auto res = new Dmbr(this, t, i, wb, we, com); 
+		Dmbr* addDmbr(Type* t, Id i, string const & com = "") { return addDmbr(t, i, phaseRbegin, phaseWbegin, phaseWend, com); }
+		Dmbr* addDmbr(Type* t, Id i, Phase::T rb, Phase::T wb, Phase::T we, string const & com = "") {
+            if (rb == Phase::end && wb != Phase::end) rb = wb;
+			auto res = new Dmbr(this, t, i, rb, wb, we, com); 
 			dmbr.push_back(res);
 			dmbrMap.insert(make_pair(id,res));
 			return res; 
@@ -273,7 +281,6 @@ namespace Generator {
 
 	struct Generate_Base {
 		ostream & tos() { return *os.back(); }
-		string const os_root_fnm;
 		Built const & built;
 		size_t depth;
 		ostream& indent() {
@@ -281,8 +288,7 @@ namespace Generator {
 		}
 		Generate_Base(
 			ostream & init_os, 
-			string os_root_fnm,
-			Built const & built) : os(), os_root_fnm(os_root_fnm), built(built), depth(0) {
+			Built const & built) : os(), built(built), depth(0) {
 			os.push_back(&init_os);
 			tos() << endl;
 			indent() << "// GENERATED SOURCE - DO NOT DIRECTLY EDIT" << endl;
@@ -362,7 +368,7 @@ namespace Generator {
 
 			for (auto & d : c.dmbr) {
 
-				if (d->isOnlyComGeneral()) continue;
+				if (d->isGeneralComment()) continue;
 
 				if (eltEmitted ) { tos() << " SEP";		eltEmitted  = false; }
 				if (endlPending) { tos() << " \\" << endl; endlPending = false; }
@@ -391,8 +397,7 @@ namespace Generator {
 
 		Generate_mris(
 			ostream & os, 
-			string const os_root_fnm,
-			Built const & built) : Generate_Base(os, os_root_fnm, built)
+			Built const & built) : Generate_Base(os, built)
 		{
 			for (auto & cp : built) generateClass(*cp);
 			for (auto & cp : built) generateMacros(*cp);
@@ -447,11 +452,15 @@ namespace Generator {
 			} else if (c.id == "Face") {
 
 			} else if (c.id == "Surface") {
-			
+			    if (d.id == "vertices") return "Vertex";
+			    if (d.id == "faces")    return "Face";
 			}
 
 			if (tr) return tr->target->id;
 
+            if (t->id == "PVERTEX") return "Vertex";
+            if (t->id == "PFACE")   return "Face";
+            
 			return t->id;
 		}
 
@@ -481,7 +490,7 @@ namespace Generator {
 					for (auto & dp : c.dmbr) {
 						auto const & d = *dp;
 
-						if (d.isOnlyComGeneral()) {
+						if (d.isGeneralComment()) {
 							if (toGenerate_SurfaceFromMRIS_spec()) {
 								deferredComGeneral.push_back(dp);
 							}
@@ -490,17 +499,26 @@ namespace Generator {
 
 						if (!d.type) continue;
 					
-						if (p != Phase::AllM) {
-							if ((         p < d.firstWritingPhase) 
-							||  (write && p > d.lastWritingPhase)) {
+                        bool canRead  = (d.firstReadingPhase <= p);
+                        bool canWrite = (d.firstWritingPhase <= p && p <= d.lastWritingPhase);
+						if (p == Phase::AllM) canWrite = (d.firstWritingPhase != Phase::end);
+                            
+						if ((!write && !canRead)
+						||  ( write && !canWrite)
+                           ) {
 
-								// Throw away general comments that precede variables that are thrown away.
-								//
-								deferredComGeneral.clear();
-								continue;
-							}
+							// Throw away general comments that precede variables that are thrown away.
+							//
+							deferredComGeneral.clear();
+
+                            // Skip this one
+							continue;
 						}
 
+                        if (c.id == "Surface") {
+                            if (d.id == "vertices_topology") continue;
+                        }
+                        
 						for (auto deferred : deferredComGeneral) {
 							cols << ignoreWidth << "// " << deferred->comment << endR;
 						}
@@ -574,7 +592,7 @@ namespace Generator {
 		virtual void generateNamespaceMacros(Phase::T p) {
 		}
 
-		void generateNamespace() {
+		void generateNamespace(string const & parent) {
 			indent() << "namespace SurfaceFromMRIS {" << endl;
 			depth++;
 
@@ -587,9 +605,9 @@ namespace Generator {
 
 					ofstream *child_os = nullptr;
 					if (toGenerate_SurfaceFromMRIS_spec()) {
-						auto child_fnm = this->os_root_fnm + "_" + pns + ".h";
+						auto child_fnm = parent + "_" + pns + ".h";
 						indent() << "#include \"" + child_fnm + "\"" << endl;
-						child_os = new ofstream(child_fnm);
+						child_os = new ofstream(createFilesWithin + child_fnm);
 						os_push(child_os);
 					} else {
 						tos() << endl << endl;
@@ -613,7 +631,7 @@ namespace Generator {
 				indent() << "MRIS* mris; size_t idx; " << endl;
 				indent() << "MRIS_Elt() : mris(nullptr), idx(0) {}" << endl;
 				indent() << "MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}" << endl;
-				indent() << "MRIS_Elt(MRIS_Elt const & src) : mris(src.mris), idx(src.idx) {}" << endl;
+				indent() << "MRIS_Elt(MRIS_Elt const & src) : mris(src.mris) {}" << endl;
 				tos() << endl;
 				for (auto p = Phase::T(); p < Phase::end; p = Phase::T(p + 1)) {
 					for (auto & cp : built) {
@@ -628,7 +646,7 @@ namespace Generator {
 			indent() << "} // namespace SurfaceFromMRIS" << endl;
 		}
 
-		Generate_abstract_Base(ostream & os, string os_root_fnm, Built const & built) : Generate_Base(os, os_root_fnm, built)
+		Generate_abstract_Base(ostream & os, Built const & built) : Generate_Base(os, built)
 		{
 		}
 	};
@@ -638,10 +656,10 @@ namespace Generator {
 
 		Generate_SurfaceFromMRIS_inco(
 			ostream & os,
-			string const os_root_fnm, 
-			Built const & built) : Generate_abstract_Base(os, os_root_fnm, built)
+            string const & parent,
+			Built const & built) : Generate_abstract_Base(os, built)
 		{
-			generateNamespace();
+			generateNamespace(parent);
 		}
 
 		virtual void generateNamespaceMacros(Phase::T p) {
@@ -661,9 +679,12 @@ namespace Generator {
 	struct Generate_SurfaceFromMRIS_spec : public Generate_abstract_Base {
 		virtual Generate_SurfaceFromMRIS_spec* toGenerate_SurfaceFromMRIS_spec() { return this; }
 
-		Generate_SurfaceFromMRIS_spec(ostream & os, string os_root_fnm, Built const & built) : Generate_abstract_Base(os, os_root_fnm, built)
+		Generate_SurfaceFromMRIS_spec(
+            ostream & os,
+            string const & parent,
+            Built const & built) : Generate_abstract_Base(os, built)
 		{
-			generateNamespace();
+			generateNamespace(parent);
 		}
 
 		virtual string classPrefix(Clss & c) {
@@ -671,13 +692,15 @@ namespace Generator {
 		}
 
 		virtual void beginClass(Phase::T p, Clss & c) {
+            bool isSurface = (c.id == "Surface");
+
 			indent() << "struct " << c.id << " : public " << baseClass(p,c) << " {" << endl;
 			depth++;
 
 			ColumnedOutput::T cols;
 			cols << "inline " << c.id << endC << "(" << endC << "" << endC << ");" << endR;
 			cols << "inline " << c.id << endC << "(" << endC << "" << c.id << " const & src" << endC << ");" << endR;
-			cols << "inline " << c.id << endC << "(" << endC << "MRIS* mris, size_t idx" << endC << ");" << endR;
+			cols << "inline " << c.id << endC << "(" << endC << "MRIS* mris" << (isSurface?"":", size_t idx") << endC << ");" << endR;
 
 			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
 
@@ -703,8 +726,11 @@ namespace Generator {
 	struct Generate_SurfaceFromMRIS_impl : public Generate_abstract_Base {
 		virtual Generate_SurfaceFromMRIS_impl* toGenerate_SurfaceFromMRIS_impl() { return this; }
 
-		Generate_SurfaceFromMRIS_impl(ostream & os, string os_root_fnm, Built const & built) : Generate_abstract_Base(os, os_root_fnm, built) {
-			generateNamespace();
+		Generate_SurfaceFromMRIS_impl(
+            ostream & os, 
+            string const & parent,
+            Built const & built) : Generate_abstract_Base(os, built) {
+			generateNamespace(parent);
 		}
 
 		virtual string classPrefix(Clss & c) {
@@ -713,9 +739,12 @@ namespace Generator {
 
 		virtual void beginClass(Phase::T p, Clss & c) {
 			ColumnedOutput::T cols;
+            
+            bool isSurface = (c.id == "Surface");
 
 			cols << classPrefix(c) << c.id << endC << "(" << endC << "" << endC << ") {}" << endR;
-			cols << classPrefix(c) << c.id << endC << "(" << endC << "MRIS* mris, size_t idx" << endC << ") : " << baseClass(p, c) << "(mris, idx) {}" << endR;
+			cols << classPrefix(c) << c.id << endC << "(" << endC << "MRIS* mris" << (isSurface?"":", size_t idx") << endC 
+                << ") : " << baseClass(p, c) << "(mris," << (isSurface  ? "0" : "idx" ) << ") {}" << endR;
 			cols << classPrefix(c) << c.id << endC << "(" << endC << "" << c.id << " const & src" << endC << ") : " << baseClass(p, c) << "(src) {}" << endR;
 
 			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
@@ -759,6 +788,27 @@ namespace Generator {
 					else {
 						cols << "cheapAssert(mris == to.mris); " << raw << " = to.idx";
 					}
+				} else if (c.id == "Surface" && (d.id == "v_temporal_pole" || d.id == "v_frontal_pole" || d.id == "v_occipital_pole" )) {
+					if (!write) {
+						cols << "return Vertex(mris," << raw << " - mris->vertices)";
+					}
+					else {
+						cols << "cheapAssert(mris == to.mris); " << raw << " = mris->vertices + to.idx";
+					}
+				} else if (c.id == "Surface" && d.id == "vertices" ) {
+					if (!write) {
+						cols << "return Vertex(mris,idx);";
+					}
+					else {
+						assert(false);
+					}
+				} else if (c.id == "Surface" && d.id == "faces" ) {
+					if (!write) {
+						cols << "return Face(mris,idx);";
+					}
+					else {
+						assert(false);
+					}
 				} else {
 					string cvtPrefix = "", cvtFromPrefix = "";
 					string cvtSuffix = "", cvtFromSuffix = "";
@@ -776,37 +826,34 @@ namespace Generator {
 		}
 	};
 
-	void generate(string const & dirPath, Built const & built) {
+	void generate(Built const & built) {
 		if (true) {
-			string const os_root_fnm = dirPath + "/" + "mrisurf_FACE_VERTEX_MRI_traditional";
-			ofstream os(os_root_fnm + ".h");
-			Generate_mris(os, os_root_fnm, built);
+			ofstream os(createFilesWithin + "mrisurf_FACE_VERTEX_MRI_traditional.h");
+			Generate_mris(os, built);
 		}
 		if (true) {
-			string const os_root_fnm = dirPath + "/" + "mrisurf_SurfaceFromMRIS_generated";
-			ofstream os(os_root_fnm + ".h");
+			string const root_fnm = "mrisurf_SurfaceFromMRIS_generated";
+			ofstream os(createFilesWithin + root_fnm + ".h");
 
-			auto fnm_inco = "mrisurf_SurfaceFromMRIS_generated_prefix";
-			string const os_root_fnm_inco = dirPath + "/" + fnm_inco;
+			auto fnm_inco = root_fnm + "_prefix";
 			os << "#include \"./" << fnm_inco << ".h\"" << endl;
 			{
-				ofstream os_inco(os_root_fnm_inco + ".h");
-				Generate_SurfaceFromMRIS_inco(os_inco, os_root_fnm_inco, built);
+				ofstream os_inco(createFilesWithin + fnm_inco + ".h");
+				Generate_SurfaceFromMRIS_inco(os_inco, fnm_inco, built);
 			}
 
 			{
-				Generate_SurfaceFromMRIS_spec(os, os_root_fnm, built);
+				Generate_SurfaceFromMRIS_spec(os, root_fnm, built);
 			}
 
-			auto fnm_impl = "mrisurf_SurfaceFromMRIS_generated_suffix";
-			string const os_root_fnm_impl = dirPath + "/" + fnm_impl;
+			auto fnm_impl = root_fnm + "_suffix";
 			os << "#include \"./" << fnm_impl << ".h\"" << endl;
 			{
-				ofstream os_impl(os_root_fnm_impl + ".h");
-				Generate_SurfaceFromMRIS_impl(os_impl, os_root_fnm_impl, built);
+				ofstream os_impl(createFilesWithin + fnm_impl + ".h");
+				Generate_SurfaceFromMRIS_impl(os_impl, fnm_impl, built);
 			}
 		}
-		system("dir");
+		system(("dir " + createFilesWithin).c_str());
 	}
 }
 
@@ -818,7 +865,8 @@ int main(int argc, const char* *argv)
 
 	// Walk the data structure to output the sources needed for a variety of different purposes
 	//
-	Generator::generate(".", clssVec);
+    Generator::createFilesWithin = (argc > 1) ? argv[1] : "./tmp";
+	Generator::generate(clssVec);
 
 	// Done
 	return 0;
@@ -868,6 +916,7 @@ namespace Generator {
 		auto t_PMATRIX					= new PointerType("PMATRIX",			t_MATRIX);
 		auto t_PDMATRIX					= new PointerType("PDMATRIX",			t_DMATRIX);
 		auto t_PVERTEX					= new PointerType("PVERTEX",			t_VERTEX);
+		auto t_PFACE					= new PointerType("PFACE",  			t_FACE);
 		auto t_PLTA						= new PointerType("PLTA",				t_LTA);
 		auto t_PMRIS_AREA_LABEL			= new PointerType("PMRIS_AREA_LABEL",	t_MRIS_AREA_LABEL);
 		auto t_PCOLOR_TABLE				= new PointerType("PCOLOR_TABLE",		t_COLOR_TABLE);
@@ -890,34 +939,34 @@ namespace Generator {
 		auto sur = new Clss("Surface");
 
 		currentMrisVector = "faces";
-		phaseWbegin = phaseWend = Phase::TopologyM;
+		phaseRbegin = phaseWbegin = phaseWend = Phase::TopologyM;
 
 		fac->addDmbrList("LIST_OF_FACE_ELTS");
 
 		fac->addDmbr(t_vertices_per_face_t, "v");
 
-		phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
+		phaseRbegin = phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
 
 		fac->addDmbr(t_float, "area");
 		fac->addDmbr(t_angles_per_triangle_t, "angle");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 
 		fac->addDmbr(t_angles_per_triangle_t, "orig_angle");
 
-		phaseWbegin = Phase::ExistenceM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::ExistenceM; phaseWend = Phase::end;
 
 		fac->addDmbr(t_char, "ripflag");
 		fac->addDmbr(t_char, "oripflag");
 		fac->addDmbr(t_int, "marked");
 
-		phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
+		phaseRbegin = phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
 
 		fac->addDmbr(t_PDMATRIX, "norm");
 		fac->addDmbr(t_A3PDMATRIX, "gradNorm")->setNoHash();
 
 		currentMrisVector = "vertices_topology";
-		phaseWbegin = Phase::TopologyM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::TopologyM; phaseWend = Phase::end;
 
 		// vtx->dmbr();
 		//	LIST_OF_VERTEX_TOPOLOGY_ELTS
@@ -931,7 +980,7 @@ namespace Generator {
 		vtx->addDmbr(t_PR_uchar,	"n"            	    , "array[v->num] the face.v[*] index for this vertex        ");
 		vtx->addDmbr(t_PR_int,		"e"                 , "edge state for neighboring vertices                      ");
 
-		phaseWbegin = Phase::TopologyM; phaseWend = Phase::TopologyM;
+		phaseRbegin = phaseWbegin = Phase::TopologyM; phaseWend = Phase::TopologyM;
 
 	auto vtx_v =
 		vtx->addDmbr(t_PR_int,		"v"                 , "array[v->vtotal or more] of vno, head sorted by hops     ");
@@ -940,8 +989,8 @@ namespace Generator {
 													    
 		vtx->addDmbr(t_short,		"v2num"             , "number of 1, or 2-hop neighbors                          ");
 		vtx->addDmbr(t_short,		"v3num"             , "number of 1,2,or 3-hop neighbors                         ");
-		auto vtx_vtotal =
-			vtx->addDmbr(t_short,	"vtotal"            , "total # of neighbors. copy of vnum.nsizeCur              ");
+	auto vtx_vtotal =
+		vtx->addDmbr(t_short,	    "vtotal"            , "total # of neighbors. copy of vnum.nsizeCur              ");
 													    
 		vtx->addDmbr(t_short,		"nsizeMaxClock"     , "copy of mris->nsizeMaxClock when v#num                   ")
 			->setNoHash();							    
@@ -955,7 +1004,8 @@ namespace Generator {
 		vtx_v->setPRSize(vtx_vtotal);
 
 		currentMrisVector = "vertices";
-		phaseWbegin = Phase::end; phaseWend = Phase::end;
+	
+    phaseRbegin = Phase::XYZPositionM; phaseWbegin = Phase::end; phaseWend = Phase::end;
 
 		vtx->addDmbrList("LIST_OF_VERTEX_ELTS_1");
 
@@ -970,28 +1020,28 @@ namespace Generator {
 		vtx_dist->setPRSize     (vtx_vtotal);
 		vtx_dist_orig->setPRSize(vtx_vtotal);
 
-		phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::XYZPositionM;
+		phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::XYZPositionM;
 
 		vtx->addDmbrCom("");
 		vtx->addDmbr(t_float,		"x"					, "current coordinates	");
 		vtx->addDmbr(t_float,		"y"					, "use MRISsetXYZ() to set");
 		vtx->addDmbr(t_float,		"z"					);
 
-		phaseWbegin = Phase::end; phaseWend = Phase::end;
+		phaseRbegin = Phase::XYZPositionM; phaseWbegin = Phase::end; phaseWend = Phase::end;
 
 		vtx->addDmbrCom("");
 		vtx->addDmbr(t_float,		"origx"				, "original coordinates, see also MRIS::origxyz_status");
 		vtx->addDmbr(t_float,		"origy"				, "use MRISsetOriginalXYZ(, ");
 		vtx->addDmbr(t_float,		"origz"				, "or MRISsetOriginalXYZfromXYZ to set");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 
 		vtx->addDmbrCom("");
 		vtx->addDmbr(t_float,		"nx");
 		vtx->addDmbr(t_float,		"ny");
 		vtx->addDmbr(t_float,		"nz", "curr normal");
 
-		phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
 
 		vtx->addDmbr(t_float,		"pnx");
 		vtx->addDmbr(t_float,		"pny");
@@ -1018,13 +1068,13 @@ namespace Generator {
 		vtx->addDmbr(t_float,		"val", "scalar data value (file: rh.val, sig2-rh.w)");
 		vtx->addDmbr(t_float,		"imag_val", "imaginary part of complex data value");
 
-		phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
 
 		vtx->addDmbr(t_float,		"cx");
 		vtx->addDmbr(t_float,		"cy"); 
 		vtx->addDmbr(t_float,		"cz", "coordinates in canonical coordinate system");
 
-		phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
+		phaseRbegin = phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
 
 		vtx->addDmbr(t_float,		"tx");
 		vtx->addDmbr(t_float,		"ty"); 
@@ -1087,23 +1137,23 @@ namespace Generator {
         vtx->addDmbr(t_float,		"fsmask",				"significance mask (file: rh.fm) ");
         vtx->addDmbr(t_float,		"d",					"for distance calculations ");
 
-	  vtx->addDmbrList("LIST_OF_VERTEX_ELTS_5");	
+	    vtx->addDmbrList("LIST_OF_VERTEX_ELTS_5");	
 
         vtx->addDmbr(t_int,			"annotation",			"area label (defunct--now from label file name!) ");
         vtx->addDmbr(t_char,		"oripflag");
         vtx->addDmbr(t_char,		"origripflag",			"cuts flags ");
 
-	  vtx->addDmbrList("LIST_OF_VERTEX_ELTS_7");
+	    vtx->addDmbrList("LIST_OF_VERTEX_ELTS_7");
 
 	    vtx->addDmbr(t_pVoid,		"vp",					"to store user's information ")->setNoHash();
         vtx->addDmbr(t_float,		"theta");
         vtx->addDmbr(t_float,		"phi",					"parameterization ");
 		
-	phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
+	phaseRbegin = phaseWbegin = phaseWend = Phase::XYZPositionConsequencesM;
 		
 		vtx->addDmbr(t_float,		"area");
 
-	phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
 
 		vtx->addDmbr(t_float,		"origarea");
         vtx->addDmbr(t_float,		"group_avg_area");
@@ -1123,7 +1173,7 @@ namespace Generator {
         vtx->addDmbr(t_char,		"neg",					"1 if the normal vector is inverted ");
         vtx->addDmbr(t_char,		"border",				"flag ");
 
-	phaseWbegin = Phase::ExistenceM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::ExistenceM; phaseWend = Phase::end;
 
 		vtx->addDmbr(t_char,		"ripflag",				"vertex no longer exists - placed last to load the next vertex into cache");
 
@@ -1140,30 +1190,31 @@ namespace Generator {
 
 		sur->addDmbrList("LIST_OF_MRIS_ELTS_1");
 
-		phaseWbegin = phaseWend = Phase::end;
+	phaseRbegin = Phase::TopologyM; phaseWbegin = phaseWend = Phase::end;
+    
 		sur->addDmbrCom("Fields being maintained by specialist functions");
-		sur->addDmbr(t_int,							"nverticesFrozen",	"# of vertices on surface is frozen");
-		sur->addDmbr(t_int,							"nvertices",		"# of vertices on surface, change by calling MRISreallocVerticesAndFaces et al");
-		sur->addDmbr(t_int,							"nfaces",		"# of faces on surface, change by calling MRISreallocVerticesAndFaces et al");
+		sur->addDmbr(t_int,							"nverticesFrozen",	        "# of vertices on surface is frozen");
+		sur->addDmbr(t_int,							"nvertices",		        "# of vertices on surface, change by calling MRISreallocVerticesAndFaces et al");
+		sur->addDmbr(t_int,							"nfaces",		            "# of faces on surface, change by calling MRISreallocVerticesAndFaces et al");
 		sur->addDmbr(t_bool,						"faceAttachmentDeferred",	"defer connecting faces to vertices for performance reasons");
-		sur->addDmbr(t_int,							"nedges",		"# of edges on surface");
+		sur->addDmbr(t_int,							"nedges",		            "# of edges on surface");
 		sur->addDmbr(t_int,							"nstrips");
 		sur->addDmbr(t_PR_VERTEX_TOPOLOGY,			"vertices_topology");
 		sur->addDmbr(t_PR_VERTEX,					"vertices");
-		sur->addDmbr(t_ppVoid,						"dist_storage",			"the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored");
+		sur->addDmbr(t_ppVoid,						"dist_storage",			    "the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored");
 		sur->addDmbr(t_ppVoid,						"dist_orig_storage",		"the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored");
-		sur->addDmbr(t_int,							"tempsAssigned",	"State of various temp fields that can be borrowed if not already in use");
+		sur->addDmbr(t_int,							"tempsAssigned",	        "State of various temp fields that can be borrowed if not already in use");
 
-		phaseWbegin = phaseWend = Phase::end;
+	phaseRbegin = Phase::TopologyM; phaseWbegin = phaseWend = Phase::end;
 		sur->addDmbr(t_PR_FACE,						"faces");
 		sur->addDmbr(t_PR_MRI_EDGE,					"edges");
 		sur->addDmbr(t_PR_FaceNormCacheEntry,		"faceNormCacheEntries");
 		sur->addDmbr(t_PR_FaceNormDeferredEntry,	"faceNormDeferredEntries");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 		sur->addDmbr(t_PR_STRIP,					"strips");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 		sur->addDmbr(t_float,						"xctr");
 		sur->addDmbr(t_float,						"yctr");
 		sur->addDmbr(t_float,						"zctr");
@@ -1184,18 +1235,18 @@ namespace Generator {
 		sur->addDmbr(t_float,						"total_area");
 		sur->addDmbr(t_double,						"avg_vertex_area");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::XYZPositionConsequencesM;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::XYZPositionConsequencesM;
 		sur->addDmbr(t_double,						"avg_vertex_dist",			"set by MRIScomputeAvgInterVertexDist");
 		sur->addDmbr(t_double,						"std_vertex_dist");
 		sur->addDmbr(t_float,						"orig_area");
 		sur->addDmbr(t_float,						"neg_area");
 		sur->addDmbr(t_float,						"neg_orig_area",			"amount of original surface in folds");
 		
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 		sur->addDmbr(t_int,							"zeros");
 		sur->addDmbr(t_int,							"hemisphere",			"which hemisphere");
 		
-		phaseWbegin = Phase::end; phaseWend = Phase::end;
+	phaseRbegin = Phase::ExistenceM; phaseWbegin = Phase::end; phaseWend = Phase::end;
 		sur->addDmbr(t_int,							"initialized");
 
 		sur->addDmbrList("LIST_OF_MRIS_ELTS_3");
@@ -1209,26 +1260,26 @@ namespace Generator {
 		sur->addDmbr(t_float,						"b");
 		sur->addDmbr(t_float,						"c",					"ellipsoid parameters");
 
-		phaseWbegin = Phase::ExistenceM; phaseWend = Phase::ExistenceM;
+	phaseRbegin = phaseWbegin = Phase::ExistenceM; phaseWend = Phase::ExistenceM;
 		sur->addDmbr(t_MRIS_fname_t,				"fname",				"file it was originally loaded from");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 		sur->addDmbr(t_float,						"Hmin",					"min mean curvature");
 		sur->addDmbr(t_float,						"Hmax",					"max mean curvature");
 		sur->addDmbr(t_float,						"Kmin",					"min Gaussian curvature");
 		sur->addDmbr(t_float,						"Kmax",					"max Gaussian curvature");
 		sur->addDmbr(t_double,						"Ktotal",				"total Gaussian curvature");
 
-		phaseWbegin = Phase::ExistenceM; phaseWend = Phase::ExistenceM;
+	phaseRbegin = phaseWbegin = Phase::ExistenceM; phaseWend = Phase::ExistenceM;
 		sur->addDmbr(t_MRIS_Status,					"status",				"type of surface (e.g. sphere,"" plane)");
 		sur->addDmbr(t_MRIS_Status,					"origxyz_status",		"type of surface (e.g. sphere, plane) that this origxyz were obtained from");
 		sur->addDmbr(t_int,							"patch",				"if a patch of the surface");
 
-		phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 		sur->addDmbr(t_int,							"nlabels");
 		sur->addDmbr(t_PMRIS_AREA_LABEL,			"labels",				"nlabels of these (may be null)");
 		
-		phaseWbegin = Phase::end; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::end; phaseWend = Phase::end;
 		sur->addDmbr(t_char,						"nsize",				"size of neighborhoods or -1");
 		sur->addDmbr(t_uchar,						"vtotalsMightBeTooBig", "MRISsampleDistances sets this");
 		sur->addDmbr(t_short,						"nsizeMaxClock",		"changed whenever an edge is added or removed, which invalidates the vertex v#num values")->setNoHash();
@@ -1238,7 +1289,7 @@ namespace Generator {
 		sur->addDmbr(t_char,						"dist_alloced_flags",	"two flags, set when any dist(1) or dist_orig(2) allocated");
 		sur->addDmbr(t_float,						"avg_nbrs",				"mean # of vertex neighbors");
 
-		phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
+	phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
 		sur->addDmbr(t_pVoid,						"vp",					"for misc. use");
 		sur->addDmbr(t_float,						"alpha",				"rotation around z-axis");
 		sur->addDmbr(t_float,						"beta",					"rotation around y-axis");
@@ -1248,9 +1299,9 @@ namespace Generator {
 		sur->addDmbr(t_float,						"dg",					"old deltas");
 		sur->addDmbr(t_int,							"type",					"what type of surface was this initially");
 
-		phaseWbegin = Phase::end; phaseWend = Phase::end;
+	phaseRbegin = Phase::ExistenceM; phaseWbegin = Phase::end; phaseWend = Phase::end;
 		sur->addDmbr(t_int,							"max_vertices",			"may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces");
-		sur->addDmbr(t_int,							"max_faces",			"may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces");
+		sur->addDmbr(t_int,							"max_faces",			"may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces");
 
 		sur->addDmbr(t_MRIS_subject_name_t,			"subject_name",			"name of the subject");
 		sur->addDmbr(t_float,						"canon_area");

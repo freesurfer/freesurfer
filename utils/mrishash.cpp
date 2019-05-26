@@ -50,6 +50,7 @@
 
 #include "mrishash_internals.h"
 
+using namespace SurfaceFromMRIS::Analysis;
 
 
 //==================================================================
@@ -166,11 +167,11 @@ static void checkThread0()
 
 // Utilities that do not require a MRIS_HASH_TABLE
 //
-static void mhtComputeFaceCentroid      (MRIS const *mris, int which, int fno, float *x, float *y, float *z);
-static void mhtVertex2xyz_float         (VERTEX const *vtx, int which, float  *x, float  *y, float  *z);
-static void mhtVertex2xyz_double        (VERTEX const *vtx, int which, double *x, double *y, double *z);
-static void mhtVertex2Ptxyz_double      (VERTEX const *vtx, int which, Ptdbl_t *pt);
-static void mhtVertex2array3_double     (VERTEX const *vtx, int which, double  *array3);
+static void mhtComputeFaceCentroid      (Surface const surface, int which, int fno, float *x, float *y, float *z);
+static void mhtVertex2xyz_float         (Vertex  const vtx,     int which, float  *x, float  *y, float  *z);
+static void mhtVertex2xyz_double        (Vertex  const vtx,     int which, double *x, double *y, double *z);
+static void mhtVertex2Ptxyz_double      (Vertex  const vtx,     int which, Ptdbl_t *pt);
+static void mhtVertex2array3_double     (Vertex  const vtx,     int which, double  *array3);
 
 static void mhtVoxelList_Init           (VOXEL_LISTgw *voxlist);
 static void mhtVoxelList_SampleTriangle (float mhtres, Ptdbl_t const *vpt0, Ptdbl_t const *vpt1, Ptdbl_t const *vpt2, VOXEL_LISTgw *voxlist);
@@ -180,194 +181,183 @@ static void mhtVoxelList_AddPath        (VOXEL_LISTgw *voxlist, VOXEL_COORD oldv
 
 
 //---------------------------------------------
-static void mhtVertex2xyz_float(VERTEX const *vtx, int which, float *x, float *y, float *z)
+static void mhtVertex2xyz_float(Vertex  const vtx, int which, float *x, float *y, float *z)
 {
   //---------------------------------------------
-  if (!vtx) return;
-
   switch (which) {
     case ORIGINAL_VERTICES:
-      *x = vtx->origx;
-      *y = vtx->origy;
-      *z = vtx->origz;
+      *x = vtx.origx();
+      *y = vtx.origy();
+      *z = vtx.origz();
       break;
     case GOOD_VERTICES:
       break;
     case TMP_VERTICES:
       break;
     case CANONICAL_VERTICES:
-      *x = vtx->cx;
-      *y = vtx->cy;
-      *z = vtx->cz;
+      *x = vtx.cx();
+      *y = vtx.cy();
+      *z = vtx.cz();
       break;
     case CURRENT_VERTICES:
-      *x = vtx->x;
-      *y = vtx->y;
-      *z = vtx->z;
+      *x = vtx.x();
+      *y = vtx.y();
+      *z = vtx.z();
       break;
     case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
-      *x = vtx->fx;
-      *y = vtx->fy;
+      *x = vtx.fx();
+      *y = vtx.fy();
       *z = 0;
       break;
     case PIAL_VERTICES:
-      *x = vtx->pialx;
-      *y = vtx->pialy;
-      *z = vtx->pialz;
+      *x = vtx.pialx();
+      *y = vtx.pialy();
+      *z = vtx.pialz();
       break;
     case TMP2_VERTICES:
       break;
     case WHITE_VERTICES:
-      *x = vtx->whitex;
-      *y = vtx->whitey;
-      *z = vtx->whitez;
+      *x = vtx.whitex();
+      *y = vtx.whitey();
+      *z = vtx.whitez();
       break;
   }
   return;
 }
 //---------------------------------------------
-static void mhtVertex2xyz_double(VERTEX const *vtx, int which, double *x, double *y, double *z)
+static void mhtVertex2xyz_double(Vertex  const vtx, int which, double *x, double *y, double *z)
 {
-  //---------------------------------------------
-  if (!vtx) return;
-
   switch (which) {
     case ORIGINAL_VERTICES:
-      *x = vtx->origx;
-      *y = vtx->origy;
-      *z = vtx->origz;
+      *x = vtx.origx();
+      *y = vtx.origy();
+      *z = vtx.origz();
       break;
     case GOOD_VERTICES:
       break;
     case TMP_VERTICES:
       break;
     case CANONICAL_VERTICES:
-      *x = vtx->cx;
-      *y = vtx->cy;
-      *z = vtx->cz;
+      *x = vtx.cx();
+      *y = vtx.cy();
+      *z = vtx.cz();
       break;
     case CURRENT_VERTICES:
-      *x = vtx->x;
-      *y = vtx->y;
-      *z = vtx->z;
+      *x = vtx.x();
+      *y = vtx.y();
+      *z = vtx.z();
       break;
     case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
-      *x = vtx->fx;
-      *y = vtx->fy;
+      *x = vtx.fx();
+      *y = vtx.fy();
       *z = 0;
       break;
     case PIAL_VERTICES:
-      *x = vtx->pialx;
-      *y = vtx->pialy;
-      *z = vtx->pialz;
+      *x = vtx.pialx();
+      *y = vtx.pialy();
+      *z = vtx.pialz();
       break;
     case TMP2_VERTICES:
       break;
     case WHITE_VERTICES:
-      *x = vtx->whitex;
-      *y = vtx->whitey;
-      *z = vtx->whitez;
+      *x = vtx.whitex();
+      *y = vtx.whitey();
+      *z = vtx.whitez();
       break;
   }
   return;
 }
-//---------------------------------------------
-static void mhtVertex2Ptxyz_double(VERTEX const *vtx, int which, Ptdbl_t *pt)
-{
-  //---------------------------------------------
-  if ((!vtx) || (!pt)) return;
 
+static void mhtVertex2Ptxyz_double(Vertex  const vtx, int which, Ptdbl_t *pt)
+{
   switch (which) {
     case ORIGINAL_VERTICES:
-      pt->x = vtx->origx;
-      pt->y = vtx->origy;
-      pt->z = vtx->origz;
+      pt->x = vtx.origx();
+      pt->y = vtx.origy();
+      pt->z = vtx.origz();
       break;
     case GOOD_VERTICES:
       break;
     case TMP_VERTICES:
       break;
     case CANONICAL_VERTICES:
-      pt->x = vtx->cx;
-      pt->y = vtx->cy;
-      pt->z = vtx->cz;
+      pt->x = vtx.cx();
+      pt->y = vtx.cy();
+      pt->z = vtx.cz();
       break;
     case CURRENT_VERTICES:
-      pt->x = vtx->x;
-      pt->y = vtx->y;
-      pt->z = vtx->z;
+      pt->x = vtx.x();
+      pt->y = vtx.y();
+      pt->z = vtx.z();
       break;
     case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
-      pt->x = vtx->fx;
-      pt->y = vtx->fy;
+      pt->x = vtx.fx();
+      pt->y = vtx.fy();
       pt->z = 0;
       break;
     case PIAL_VERTICES:
-      pt->x = vtx->pialx;
-      pt->y = vtx->pialy;
-      pt->z = vtx->pialz;
+      pt->x = vtx.pialx();
+      pt->y = vtx.pialy();
+      pt->z = vtx.pialz();
       break;
     case TMP2_VERTICES:
       break;
     case WHITE_VERTICES:
-      pt->x = vtx->whitex;
-      pt->y = vtx->whitey;
-      pt->z = vtx->whitez;
+      pt->x = vtx.whitex();
+      pt->y = vtx.whitey();
+      pt->z = vtx.whitez();
       break;
   }
   return;
 }
 
-//---------------------------------------------
-static void mhtVertex2array3_double(VERTEX const *vtx, int which, double *array3)
-{
-  //---------------------------------------------
-  if (!vtx) return;
 
+static void mhtVertex2array3_double(Vertex  const vtx, int which, double *array3)
+{
   switch (which) {
     case ORIGINAL_VERTICES:
-      array3[0] = vtx->origx;
-      array3[1] = vtx->origy;
-      array3[2] = vtx->origz;
+      array3[0] = vtx.origx();
+      array3[1] = vtx.origy();
+      array3[2] = vtx.origz();
       break;
     case GOOD_VERTICES:
       break;
     case TMP_VERTICES:
       break;
     case CANONICAL_VERTICES:
-      array3[0] = vtx->cx;
-      array3[1] = vtx->cy;
-      array3[2] = vtx->cz;
+      array3[0] = vtx.cx();
+      array3[1] = vtx.cy();
+      array3[2] = vtx.cz();
       break;
     case CURRENT_VERTICES:
-      array3[0] = vtx->x;
-      array3[1] = vtx->y;
-      array3[2] = vtx->z;
+      array3[0] = vtx.x();
+      array3[1] = vtx.y();
+      array3[2] = vtx.z();
       break;
     case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
-      array3[0] = vtx->fx;
-      array3[1] = vtx->fy;
+      array3[0] = vtx.fx();
+      array3[1] = vtx.fy();
       array3[2] = 0;
       break;
     case PIAL_VERTICES:
-      array3[0] = vtx->pialx;
-      array3[1] = vtx->pialy;
-      array3[2] = vtx->pialz;
+      array3[0] = vtx.pialx();
+      array3[1] = vtx.pialy();
+      array3[2] = vtx.pialz();
       break;
     case TMP2_VERTICES:
       break;
     case WHITE_VERTICES:
-      array3[0] = vtx->whitex;
-      array3[1] = vtx->whitey;
-      array3[2] = vtx->whitez;
+      array3[0] = vtx.whitex();
+      array3[1] = vtx.whitey();
+      array3[2] = vtx.whitez();
       break;
   }
   return;
@@ -623,8 +613,8 @@ static void mhtVoxelList_SampleTriangle(
 //
 #define MHT_MAX_TOUCHING_FACES 10000
 
-_mht::_mht(MRIS const * mris) 
-  : mris(mris), vres(0), nbuckets(0), which_vertices(0), nfaces(0), f(nullptr) 
+_mht::_mht() 
+  : vres(0), nbuckets(0), which_vertices(0), nfaces(0), f(nullptr) 
 {
     bzero(&buckets_mustUseAcqRel, sizeof(buckets_mustUseAcqRel));
 #ifdef HAVE_OPENMP
@@ -641,18 +631,21 @@ _mht::~_mht()
 
 
 struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
+    SurfaceFromMRIS::XYZPositionConsequences::Surface surface;
+
     virtual MRIS_HASH_TABLE_IMPL*       toMRIS_HASH_TABLE_IMPL_Wkr()       { return this; }
     virtual MRIS_HASH_TABLE_IMPL const* toMRIS_HASH_TABLE_IMPL_Wkr() const { return this; }
 
-    MRIS_HASH_TABLE_IMPL(MRIS const * mris) : MRIS_HASH_TABLE(mris) {}
+    MRIS_HASH_TABLE_IMPL(MRIS * mris) : surface(mris) {}
     ~MRIS_HASH_TABLE_IMPL();
 
     double WORLD_TO_VOLUME(double x) const { return (x+FIELD_OF_VIEW/2)/vres; }
     int    WORLD_TO_VOXEL (double x) const { return int(WORLD_TO_VOLUME(x));  }
     
-    void mhtFindCommonSanityCheck(MRIS const *mris) const;
+    void checkConstructedWithFaces(MRIS *mris) const;
+    void checkConstructedWithVertices(MRIS *mris) const;
 
-    void mhtStoreFaceCentroids       (MRIS const *mris, int which);
+    void mhtStoreFaceCentroids       (MRIS *mris, int which);
 
     void mhtFaceCentroid2xyz_float   (int fno, float *x, float *y, float *z);
         // Centroids are computed once and stored in the MHT_FACE
@@ -661,7 +654,7 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     int mhtAddFaceOrVertexAtCoords   (float x, float y, float z, int forvnum);
     int mhtAddFaceOrVertexAtVoxIx    (int xv, int yv, int zv, int forvnum);
     int mhtRemoveFaceOrVertexAtVoxIx (int xv, int yv, int zv, int forvnum);
-    int mhtFaceToMHT                 (MRIS const *mris, int fno, int on);
+    int mhtFaceToMHT                 (MRIS *mris, int fno, int on);
     int mhtDoesTriangleVoxelListIntersect(
                                       MHT_TRIANGLE const    * const triangle, 
                                       VOXEL_LISTgw const    * const voxlistForTriangle,
@@ -675,8 +668,8 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
                                       int * const fnoList,
                                       int   const trace) const;
 
-    int MHTdoesFaceIntersect_old     (MRIS const *mris, int fno, int const trace) const;
-    int MHTdoesFaceIntersect_new     (MRIS const *mris, int fno, int const trace) const;
+    int MHTdoesFaceIntersect_old     (MRIS *mris, int fno, int const trace) const;
+    int MHTdoesFaceIntersect_new     (MRIS *mris, int fno, int const trace) const;
     
     int MHTdoesTriangleIntersect     (MHT_TRIANGLE const    * const triangle,
                                       int                     const nFaceToIgnore,
@@ -686,13 +679,13 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
 	
         // DELETE THIS
     int mhtDoesFaceVoxelListIntersect(
-	MRIS const *mris, VOXEL_LISTgw *voxlist, int fno, int const trace) const;
+	MRIS *mris, VOXEL_LISTgw *voxlist, int fno, int const trace) const;
 
     int mhtBruteForceClosestVertex(
-        MRIS const *mris, float x, float y, float z, int which, float *dmin);
+        MRIS *mris, float x, float y, float z, int which, float *dmin);
 
     int mhtfindClosestVertexGenericInBucket(
-                                        MRIS const *mris,
+                                        MRIS *mris,
                                         //---------- inputs --------------
                                         int xv,
                                         int yv,
@@ -706,7 +699,7 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
                                         double *MinDistSq);
 
     int mhtfindClosestFaceCentroidGenericInBucket(
-                                              MRIS const *mris,
+                                              MRIS *mris,
                                               //---------- inputs --------------
                                               int xv,
                                               int yv,
@@ -739,7 +732,7 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
 #define MHT_CONST_THIS              const
 #define MHT_THIS_PARAMETER_NOCOMMA
 #define MHT_THIS_PARAMETER
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS const   *mris
+#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
 #define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"
 #undef MHT_ONLY_VIRTUAL
@@ -783,7 +776,7 @@ static void freeBins(MHBT* bucket) {
 
 // Primitives that have to be correct...
 //
-static MRIS_HASH_TABLE_IMPL* newMHT(MRIS const *mris)
+static MRIS_HASH_TABLE_IMPL* newMHT(MRIS *mris)
 {
     auto mht = new MRIS_HASH_TABLE_IMPL(mris);
     if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
@@ -974,16 +967,34 @@ int MRIS_HASH_TABLE::which() {
 }
 
 
-//  Constructors for MRIS_HASH_TABLE that deal with faces
-//  These should have been a different type...
+//  Constructors for MRIS_HASH_TABLE that deal with faces are different to those for vertices
+//  They should have been a different type...
 //
-MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable(MRIS const* mris)
+void MRIS_HASH_TABLE_IMPL::checkConstructedWithVertices(MRIS *mris) const
+{
+    if (!(surface == Surface(mris))) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
+    if (fno_usage != MHTFNO_VERTEX) {
+        ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
+    }
+}
+
+void MRIS_HASH_TABLE_IMPL::checkConstructedWithFaces(MRIS *mris) const
+{
+    if (surface != Surface(mris)) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
+    if (fno_usage != MHTFNO_FACE) {
+        ErrorExit(ERROR_BADPARM, "%s: MRIS_HASH_TABLE_IMPL not initialized for faces\n", __MYFUNCTION__);
+    }
+}
+
+//  Constructors for MRIS_HASH_TABLE that deal with faces
+//
+MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable(MRIS* mris)
 {
     return createFaceTable_Resolution(mris, CURRENT_VERTICES, VOXEL_RES);
 }
 
 MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
-    MRIS const* mris, 
+    MRIS *      mris, 
     int         which, 
     float       res)
 {
@@ -1057,11 +1068,9 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
 //  Appends to mht all faces in mris of which VERTEX const v is a part.
 //  Returns: NO_ERROR unless mht was initialized with vertices rather than faces.
 //
-int MRIS_HASH_TABLE_IMPL::addAllFaces(MRIS const* mris, VERTEX_TOPOLOGY const *v)
+int MRIS_HASH_TABLE_IMPL::addAllFaces(MRIS* mris, VERTEX_TOPOLOGY const *v)
 {
-    if (fno_usage != MHTFNO_FACE) {
-        ErrorExit(ERROR_BADPARM, "%s: MRIS_HASH_TABLE_IMPL not initialized for faces\n", __MYFUNCTION__);
-    }
+    checkConstructedWithFaces(mris);
 
     for (int fi = 0; fi < v->num; fi++) mhtFaceToMHT(mris, v->f[fi], 1);
     return (NO_ERROR);
@@ -1071,7 +1080,7 @@ int MRIS_HASH_TABLE_IMPL::addAllFaces(MRIS const* mris, VERTEX_TOPOLOGY const *v
 //  Appends to mht all faces in mris of which VERTEX const v is a part.
 //  Returns: NO_ERROR unless mht was initialized with vertices rather than faces.
 //
-int MRIS_HASH_TABLE_IMPL::removeAllFaces(MRIS const *mris, VERTEX_TOPOLOGY const *v)
+int MRIS_HASH_TABLE_IMPL::removeAllFaces(MRIS *mris, VERTEX_TOPOLOGY const *v)
 {
     if (fno_usage != MHTFNO_FACE) {
         ErrorExit(ERROR_BADPARM, "%s: mht not initialized for faces\n", __MYFUNCTION__);
@@ -1085,7 +1094,7 @@ int MRIS_HASH_TABLE_IMPL::removeAllFaces(MRIS const *mris, VERTEX_TOPOLOGY const
 //  Adds face fno to mht. 
 //  Calls mhtVoxelList_SampleTriangle to get a list of MHT Voxels (buckets) in which to list fno.
 //
-int MRIS_HASH_TABLE_IMPL::mhtFaceToMHT(MRIS const *mris, int fno, int on)
+int MRIS_HASH_TABLE_IMPL::mhtFaceToMHT(MRIS *mris, int fno, int on)
 {
     FACE const* face = &mris->faces[fno];
     if (face->v[0] == Gdiag_no || face->v[1] == Gdiag_no || face->v[2] == Gdiag_no) DiagBreak();
@@ -1128,12 +1137,12 @@ int MRIS_HASH_TABLE_IMPL::mhtFaceToMHT(MRIS const *mris, int fno, int on)
 //=============================================================================
 // MRIS_HASH_TABLE_IMPL that stores Vertex Numbers
 
-MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable(MRIS const *mris, int which)
+MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable(MRIS *mris, int which)
 {
     return createVertexTable_Resolution(mris, which, VOXEL_RES);
 }
 
-MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS const *mris, int which, float res)
+MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS *mris, int which, float res)
 {
   //-----------------------------
   // Allocation and initialization
@@ -1320,7 +1329,7 @@ int MRIS_HASH_TABLE_IMPL::mhtRemoveFaceOrVertexAtVoxIx(int xv, int yv, int zv, i
   1. MUST be used with mht prepared for CURRENT_VERTICES
   ------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::isVectorFilled(
-    MRIS const     * const mris, 
+    MRIS * const mris, 
     int   const vtxno, 
     float const dx, 
     float const dy, 
@@ -1333,11 +1342,7 @@ int MRIS_HASH_TABLE_IMPL::isVectorFilled(
   //----------------------------------------------------
   // Sanity check
   //----------------------------------------------------
-  if (this->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is wrong\n", __MYFUNCTION__);
-
-  if (fno_usage != MHTFNO_FACE) {
-             ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
-  }
+  checkConstructedWithFaces(mris);
 
   // This code moves x,y,z regardless of 'which'
   // and that only makes sense if 'which' is CURRENT_VERTICES
@@ -1433,7 +1438,7 @@ int MRIS_HASH_TABLE_IMPL::isVectorFilled(
   which was previously hashed into mht using MHTcreateFaceTablexxx
   Returns 1 for "yes -- intersection detected", else NO_ERROR.
   -------------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_old(MRIS const *mris, int fno, int const trace) const
+int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_old(MRIS *mris, int fno, int const trace) const
 {
   //------------------------------------------------------------
   VERTEX const *v0, *v1, *v2;
@@ -1446,10 +1451,7 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_old(MRIS const *mris, int fno, in
   //----------------------------------------------------
   // Sanity check
   //----------------------------------------------------
-  if (this->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
-  if (fno_usage != MHTFNO_FACE) {
-    ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
-  }
+  checkConstructedWithFaces(mris);
 
   //--------------------------------
   // Create a voxlist for face fno
@@ -1480,12 +1482,9 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_old(MRIS const *mris, int fno, in
 }
 
 
-int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_new(MRIS const * const mris, int const fno, int const trace) const
+int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_new(MRIS * const mris, int const fno, int const trace) const
 {
-  if (this->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
-  if (fno_usage != MHTFNO_FACE) {
-    ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
-  }
+  checkConstructedWithFaces(mris);
   
   if (fno == Gdiag_no) DiagBreak();
 
@@ -1516,7 +1515,7 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_new(MRIS const * const mris, int 
 }
 
 
-int MRIS_HASH_TABLE_IMPL::doesFaceIntersect(MRIS const *mris, int fno) {
+int MRIS_HASH_TABLE_IMPL::doesFaceIntersect(MRIS *mris, int fno) {
     static const bool do_old = false;
     static const bool do_new = true;
     static int count;
@@ -1541,7 +1540,7 @@ int MRIS_HASH_TABLE_IMPL::MHTexpandToTouchingFaces(
     // Puts fno in the list, and all the faces that (by intersection rules) are touching fno
     // Returns the length of the list
 {
-  FACE const * const face = &mris->faces[fno];
+  Face const face = surface.faces(fno);
 
   int size = 0;
   if (size == fnoListCapacity) { fprintf(stderr, "%s:%d exceeded fnoListCapacity\n",__FILE__,__LINE__); exit (1); }
@@ -1549,24 +1548,21 @@ int MRIS_HASH_TABLE_IMPL::MHTexpandToTouchingFaces(
 
   // Consider each vertex of the face
   //
-  int vi;
-  for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
-    int const vno = face->v[vi];
-    VERTEX_TOPOLOGY const * const vertex = &mris->vertices_topology[vno];
+  for (int vi = 0; vi < VERTICES_PER_FACE; vi++) {
+    Vertex const vertex = face.v()[vi];
 
     #if VERTICES_PER_FACE != 3
     #error assumes 3 vertices per face
     #endif
-    int const vno_prev = (0  < vi                 ) ? face->v[vi-1] : face->v[2];
-    int const vno_next = (vi < VERTICES_PER_FACE-1) ? face->v[vi+1] : face->v[0];
+    int const vno_prev = (0  < vi                 ) ? face.v()[vi-1] : face.v()[2];
+    int const vno_next = (vi < VERTICES_PER_FACE-1) ? face.v()[vi+1] : face.v()[0];
 
     // Consider each other face that this is a vertex of
     //
-    int fi;
-    for (fi = 0; fi < vertex->num; fi++) {
-      int const fno2 = vertex->f[fi];
+    for (int fi = 0; fi < vertex.num(); fi++) {
+      Face const face2 = vertex.f(fi);
+      int const fno2 = face2.idx;
       if (fno2 == fno) continue;
-      FACE const * const face2 = &mris->faces[fno2];
 
       // Is this face already known to touch?
       //
@@ -1585,7 +1581,7 @@ int MRIS_HASH_TABLE_IMPL::MHTexpandToTouchingFaces(
         //
         int vi2;
         for (vi2 = 0; vi2 < VERTICES_PER_FACE; vi2++) {
-          int const vno2 = face2->v[vi2];
+          int const vno2 = face2.v()[vi2];
           if (vno2 == vno_prev || vno2 == vno_next) goto touches;
         } 
       }
@@ -1636,10 +1632,10 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesTriangleIntersect(
   analyzed into voxlist.
   ------------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::mhtDoesFaceVoxelListIntersect(
-    MRIS     const * const mris, 
-    VOXEL_LISTgw          * const voxlist, 
-    int                     const fno, 
-    int                     const trace) const
+    MRIS         * const mris, 
+    VOXEL_LISTgw * const voxlist, 
+    int            const fno, 
+    int            const trace) const
 //------------------------------------------------------------------
 {
   int xv, yv, zv, intersect, voxnum;
@@ -1908,7 +1904,7 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
   int fli;
   for (fli = 0; fli < facelistSize; fli++) {
     int const fno = facelist[fli];
-    FACE const * const face = &mris->faces[fno];
+    auto face = surfaces->faces(fno);
     
     int const vno0 = face->v[0];
     int const vno1 = face->v[1];
@@ -1951,14 +1947,6 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
 // Find nearest vertex/vertices (Uses MHT initialized with VERTICES)
 //
 
-void MRIS_HASH_TABLE_IMPL::mhtFindCommonSanityCheck(MRIS const *mris) const
-{
-  if (this->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
-  if (fno_usage != MHTFNO_VERTEX) {
-    ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
-  }
-}
-
 //------------------------------------------
 // Simple instrumentation
 //------------------------------------------
@@ -1985,7 +1973,7 @@ void MHTfindReportCounts(int *BucketsChecked, int *BucketsPresent, int *VtxNumBy
 
   -----------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::mhtfindClosestVertexGenericInBucket(
-                                        MRIS const *mris,
+                                        MRIS *mris,
                                         //---------- inputs --------------
                                         int xv,
                                         int yv,
@@ -2057,7 +2045,7 @@ done:
   find the face whose centroid is closest to the specified coordinate
   -----------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::mhtfindClosestFaceCentroidGenericInBucket(
-                                              MRIS const *mris,
+                                              MRIS *mris,
                                               //---------- inputs --------------
                                               int xv,
                                               int yv,
@@ -2159,7 +2147,7 @@ done:
 */
 
 int MRIS_HASH_TABLE_IMPL::findClosestVertexGeneric(
-                                MRIS const *mris,
+                                MRIS *mris,
                                 //---------- inputs --------------
                                 double probex,
                                 double probey,
@@ -2190,7 +2178,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexGeneric(
   unsigned char central27[3][3][3];  // Indexes 0..2 stand for -1..+1
   //----------------------------------
 
-  mhtFindCommonSanityCheck(mris);
+  checkConstructedWithVertices(mris);
   mhtres = vres;
 
   //--------------------------------------------------
@@ -2458,7 +2446,7 @@ done:
 */
 
 int MRIS_HASH_TABLE_IMPL::findClosestFaceGeneric(
-                              MRIS const *mris,
+                              MRIS *mris,
                               //---------- inputs --------------
                               double probex,
                               double probey,
@@ -2490,7 +2478,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestFaceGeneric(
   unsigned char central27[3][3][3];  // Indexes 0..2 stand for -1..+1
   //----------------------------------
 
-  //  mhtFindCommonSanityCheck(mht, mris);
+  //  checkConstructedWithVertices(mht, mris);
   mhtres = vres;
 
   //--------------------------------------------------
@@ -2718,12 +2706,12 @@ done:
   MHTfindClosestVertex
   Returns VERTEX const *, closest vertex to v in mris & mht (or NULL).
   -----------------------------------------------------------------*/
-VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertex(MRIS const *mris, VERTEX const *v)
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertex(MRIS *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck(mris);
+  checkConstructedWithVertices(mris);
 
   //---------------------------------
   // Generic find
@@ -2749,12 +2737,12 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertex(MRIS const *mris, VERTEX const 
   findClosestFaceToVertex
   Returns index of face whose centroid is closest to the specified vertex
   -----------------------------------------------------------------*/
-FACE const * MRIS_HASH_TABLE_IMPL::findClosestFaceToVertex(MRIS const *mris, VERTEX const *v)
+FACE const * MRIS_HASH_TABLE_IMPL::findClosestFaceToVertex(MRIS *mris, VERTEX const *v)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck( mris);
+  checkConstructedWithVertices( mris);
 
   //---------------------------------
   // Generic find
@@ -2801,7 +2789,7 @@ FACE const * MRIS_HASH_TABLE_IMPL::findClosestFaceToVertex(MRIS const *mris, VER
   marked [GW 2007-07-25]
 
   -----------------------------------------------------------------------*/
-VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSet(MRIS const *mris, VERTEX const *v, int which_ignored)
+VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSet(MRIS *mris, VERTEX const *v, int which_ignored)
 {
   //------------------------------------------------------
   float x = 0.0, y = 0.0, z = 0.0;
@@ -2809,7 +2797,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSet(MRIS const *mris, VERTEX con
   //---------------------------------
   // Sanity checks
   //---------------------------------
-  mhtFindCommonSanityCheck(mris);
+  checkConstructedWithVertices(mris);
 
   if (which_vertices != which_ignored)
     ErrorExit(ERROR_BADPARM, "%s called with mismatched 'which' parameter\n", __MYFUNCTION__);
@@ -2841,12 +2829,12 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSet(MRIS const *mris, VERTEX con
   Returns vertex number and distance from vertex v to closest vertex
   in mris & mht.
   --------------------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::findClosestVertexNo(MRIS const *mris, VERTEX const *v, float *min_dist)
+int MRIS_HASH_TABLE_IMPL::findClosestVertexNo(MRIS *mris, VERTEX const *v, float *min_dist)
 {
   //------------------------------------------------------
   double x = 0.0, y = 0.0, z = 0.0;
 
-  mhtFindCommonSanityCheck(mris);
+  checkConstructedWithVertices(mris);
 
   //---------------------------------
   // Generic find
@@ -2857,7 +2845,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNo(MRIS const *mris, VERTEX const *v,
 }
 
 int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
-                               MRIS const *mris, 
+                               MRIS *mris, 
                                float x, float y, float z, 
                                float *min_dist) {
   double min_dist_dbl;
@@ -2891,12 +2879,12 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
   Returns vertex from mris & mht that's closest to provided coordinates.
   ---------------------------------------------------------------*/
 VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexInTable(
-    MRIS const *mris, float x, float y, float z, int do_global_search)
+    MRIS *mris, float x, float y, float z, int do_global_search)
 {
   //------------------------------------------------------
   int i;
 
-  mhtFindCommonSanityCheck(mris);
+  checkConstructedWithVertices(mris);
 
   //---------------------------------
   // Generic find
@@ -2948,7 +2936,7 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexInTable(
   in all the FS source code, so I'm not bothering to implement its
   functionality in the generic Find function, however it would be easy to do.
   ------------------------------------------------------------*/
-int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS const *mris, int vno, float max_dist, int *pvnum)
+int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS *mris, int vno, float max_dist, int *pvnum)
 {
   //------------------------------------------------------
   ErrorExit(ERROR_UNSUPPORTED, "%s: not implemented.\n", __MYFUNCTION__);
@@ -2962,7 +2950,7 @@ int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS const *mris, int v
   useful as a fallback for other functions. (As of 2007-07-30,
   it's being introduced only to MHTfindClosestVertexSet so far.)
   ------------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(MRIS const *mris,
+int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(MRIS *mris,
                                float x,
                                float y,
                                float z,
@@ -3047,7 +3035,7 @@ int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(MRIS const *mris,
   useful as a fallback for other functions. (As of 2007-07-30,
   it's being introduced only to MHTfindClosestVertexSet so far.)
   ------------------------------------------------------------*/
-int MRIS_HASH_TABLE::BruteForceClosestFace(MRIS const *mris,
+int MRIS_HASH_TABLE::BruteForceClosestFace(MRIS *mris,
                              float x,
                              float y,
                              float z,
@@ -3099,7 +3087,7 @@ void MRIS_HASH_TABLE_IMPL::mhtFaceCentroid2xyz_float(
 
   Basically a copy of mrisurf IsMRISselfIntersecting();
   -------------------------------------------------------*/
-int MRIS_HASH_TABLE::testIsMRISselfIntersecting(MRIS const *mris, float res)
+int MRIS_HASH_TABLE::testIsMRISselfIntersecting(MRIS *mris, float res)
 {
     MRIS_HASH_TABLE * mht = createFaceTable_Resolution(mris, CURRENT_VERTICES, res);
     int rslt = 0;
@@ -3119,7 +3107,7 @@ done:
   MHTcheckFaces
   Unchanged from mrishash.c 1.27
   -------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkFaces(MRIS const *mris)
+int MRIS_HASH_TABLE_IMPL::checkFaces(MRIS *mris)
 //--------------------------------------------------------
 {
   static int ncalls = 0;
@@ -3147,7 +3135,7 @@ int MRIS_HASH_TABLE_IMPL::checkFaces(MRIS const *mris)
   Unchanged from mrishash.c 1.27
   However, subsidiary checkFace is disabled
   ------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkSurface( MRIS const *mris)
+int MRIS_HASH_TABLE_IMPL::checkSurface( MRIS *mris)
 //--------------------------------------------------------
 {
     auto mht = createFaceTable(mris);
@@ -3174,7 +3162,7 @@ int MRIS_HASH_TABLE_IMPL::checkSurface( MRIS const *mris)
   and it calls
   local functions that I've refactored away.
   ------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkFace(MRIS const *mris, int fno1)
+int MRIS_HASH_TABLE_IMPL::checkFace(MRIS *mris, int fno1)
 //--------------------------------------------------------
 {
 #if 0
@@ -3258,7 +3246,7 @@ int MRIS_HASH_TABLE_IMPL::checkFace(MRIS const *mris, int fno1)
 }
 
 VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSetInDirection(
-    MRIS const *mris, VERTEX const *v, int which, double nx, double ny, double nz)
+    MRIS *mris, VERTEX const *v, int which, double nx, double ny, double nz)
 {
   VERTEX *v_closest, *vn;
   double dx, dy, dz, dot, dist, min_dist;
@@ -3327,14 +3315,14 @@ VERTEX * MRIS_HASH_TABLE_IMPL::findClosestVertexSetInDirection(
 }
 
 static void mhtComputeFaceCentroid(
-    MRIS const *mris, int which, int fno,
+    Surface const surface, int which, int fno,
     float *px, float *py, float* pz) 
 {
+    Face face = surface.faces(fno);
+   
   float xt, yt, zt;
   xt = yt = zt = 0.0;
     
-  FACE const * face = &mris->faces[fno];
-   
   int n;
   for (n = 0; n < VERTICES_PER_FACE; n++) {
     float x = 0, y = 0, z = 0;
@@ -3353,9 +3341,12 @@ static void mhtComputeFaceCentroid(
   *pz = zt;
 }
 
-void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(MRIS const *mris, int which)
+
+void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(MRIS *mris, int which)
 {
-  if (mris != this->mris || nfaces || f) {
+  checkConstructedWithFaces(mris);
+  
+  if (nfaces || f) {
     fprintf(stderr, "%s:%d wrong initial state\n", __FILE__, __LINE__);
     exit(1);
   }
@@ -3385,7 +3376,7 @@ void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(MRIS const *mris, int which)
 #define MHT_CONST_THIS_PARAMETER    MRIS_HASH_TABLE const *mht,
 #define MHT_CONST_THIS              
 #define MHT_THIS_PARAMETER_NOCOMMA  MRIS_HASH_TABLE *mht 
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS const   *mris
+#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
 #define MHT_MRIS_PARAMETER  MHT_MRIS_PARAMETER_NOCOMMA ,
 #define MHT_THIS_PARAMETER  MHT_THIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"

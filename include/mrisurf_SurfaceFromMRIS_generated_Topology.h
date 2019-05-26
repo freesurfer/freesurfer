@@ -64,7 +64,7 @@
     struct Surface : public MRIS_Elt {
         inline Surface (                                               );
         inline Surface ( Surface const & src                           );
-        inline Surface ( MRIS* mris, size_t idx                        );
+        inline Surface ( MRIS* mris                                    );
         inline Surface ( XYZPositionM::Surface const & src             );
         inline Surface ( XYZPosition::Surface const & src              );
         inline Surface ( XYZPositionConsequencesM::Surface const & src );
@@ -75,10 +75,55 @@
         inline Surface ( Analysis::Surface const & src                 );
         inline Surface ( AllM::Surface const & src                     );
 
-        inline MRIS_fname_t fname          (   ) const ;  //  file it was originally loaded from                                       
-        inline MRIS_Status  status         (   ) const ;  //  type of surface (e.g. sphere, plane)                                     
-        inline MRIS_Status  origxyz_status (   ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
-        inline int          patch          (   ) const ;  //  if a patch of the surface                                                
+        // Fields being maintained by specialist functions
+        inline int                   nverticesFrozen          (           ) const ;  //  # of vertices on surface is frozen                                                                                     
+        inline int                   nvertices                (           ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al                                          
+        inline int                   nfaces                   (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al                                             
+        inline bool                  faceAttachmentDeferred   (           ) const ;  //  defer connecting faces to vertices for performance reasons                                                             
+        inline int                   nedges                   (           ) const ;  //  # of edges on surface                                                                                                  
+        inline int                   nstrips                  (           ) const ;                                                                                                                             
+        inline Vertex                vertices                 ( size_t i  ) const ;                                                                                                                             
+        inline p_p_void              dist_storage             (           ) const ;  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored                          
+        inline p_p_void              dist_orig_storage        (           ) const ;  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored                     
+        inline int                   tempsAssigned            (           ) const ;  //  State of various temp fields that can be borrowed if not already in use                                                
+        inline Face                  faces                    ( size_t i  ) const ;                                                                                                                             
+        inline MRI_EDGE              edges                    ( size_t i  ) const ;                                                                                                                             
+        inline FaceNormCacheEntry    faceNormCacheEntries     ( size_t i  ) const ;                                                                                                                             
+        inline FaceNormDeferredEntry faceNormDeferredEntries  ( size_t i  ) const ;                                                                                                                             
+        inline int                   initialized              (           ) const ;                                                                                                                             
+        inline PLTA                  lta                      (           ) const ;                                                                                                                             
+        inline PMATRIX               SRASToTalSRAS_           (           ) const ;                                                                                                                             
+        inline PMATRIX               TalSRASToSRAS_           (           ) const ;                                                                                                                             
+        inline int                   free_transform           (           ) const ;                                                                                                                             
+        inline double                radius                   (           ) const ;  //  radius (if status==MRIS_SPHERE)                                                                                        
+        inline float                 a                        (           ) const ;                                                                                                                             
+        inline float                 b                        (           ) const ;                                                                                                                             
+        inline float                 c                        (           ) const ;  //  ellipsoid parameters                                                                                                   
+        inline MRIS_fname_t          fname                    (           ) const ;  //  file it was originally loaded from                                                                                     
+        inline MRIS_Status           status                   (           ) const ;  //  type of surface (e.g. sphere, plane)                                                                                   
+        inline MRIS_Status           origxyz_status           (           ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from                                              
+        inline int                   patch                    (           ) const ;  //  if a patch of the surface                                                                                              
+        inline int                   max_vertices             (           ) const ;  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces                                               
+        inline int                   max_faces                (           ) const ;  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces                                               
+        inline MRIS_subject_name_t   subject_name             (           ) const ;  //  name of the subject                                                                                                    
+        inline float                 canon_area               (           ) const ;                                                                                                                             
+        inline int                   noscale                  (           ) const ;  //  don't scale by surface area if true                                                                                    
+        inline float                 dx2                      ( size_t i  ) const ;  //  an extra set of gradient (not always alloced)                                                                          
+        inline float                 dy2                      ( size_t i  ) const ;                                                                                                                             
+        inline float                 dz2                      ( size_t i  ) const ;                                                                                                                             
+        inline PCOLOR_TABLE          ct                       (           ) const ;                                                                                                                             
+        inline int                   useRealRAS               (           ) const ;  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
+        inline VOL_GEOM              vg                       (           ) const ;  //  volume info from which this surface is created. valid iff vg.valid = 1                                                 
+        inline MRIS_cmdlines_t       cmdlines                 (           ) const ;                                                                                                                             
+        inline int                   ncmds                    (           ) const ;                                                                                                                             
+        inline float                 group_avg_surface_area   (           ) const ;  //  average of total surface area for group                                                                                
+        inline int                   group_avg_vtxarea_loaded (           ) const ;  //  average vertex area for group at each vertex                                                                           
+        inline int                   triangle_links_removed   (           ) const ;  //  for quad surfaces                                                                                                      
+        inline p_void                user_parms               (           ) const ;  //  for whatever the user wants to hang here                                                                               
+        inline PMATRIX               m_sras2vox               (           ) const ;  //  for converting surface ras to voxel                                                                                    
+        inline PMRI                  mri_sras2vox             (           ) const ;  //  volume that the above matrix is for                                                                                    
+        inline p_void                mht                      (           ) const ;                                                                                                                             
+        inline p_void                temps                    (           ) const ;                                                                                                                             
     };
 
     } // namespace Topology
