@@ -789,7 +789,7 @@ def writeImage( fileName, buffer, cropping, example ):
   gems.KvlImage( requireNumpyArray( uncroppedBuffer ) ).write( fileName, example.transform_matrix )
 
 
-def initializeGMMParameters( data, classPriors, numberOfGaussiansPerClass, useDiagonalCovarianceMatrices ):
+def initializeGMMParameters( data, classPriors, numberOfGaussiansPerClass, useDiagonalCovarianceMatrices=True ):
   
     #
     numberOfClasses = len( numberOfGaussiansPerClass )
