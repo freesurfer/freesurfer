@@ -65,3 +65,38 @@ void MHT_maybeParallel_end();
 #define MHT_MRIS_PARAMETER  MHT_MRIS_PARAMETER_NOCOMMA ,
 #define MHT_THIS_PARAMETER  MHT_THIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"
+
+
+// These are variants on ones used in existing code
+//
+int MHTfindClosestVertexNo2(
+        MRIS_HASH_TABLE *mht,   // the result will be a vno in the mris used to create this
+        MRIS *mris,             // this mris should be the one used to create the mht
+        MRIS *mris_for_vno,     // this may not be the one for mht nor the one for the result
+        VERTEX const *v,        // but this is looked up in it 
+        float *pmin_dist);
+
+VERTEX* MHTfindClosestVertex2(
+        MRIS_HASH_TABLE *mht, 
+        MRIS *mris, 
+        MRIS *mris_for_v,       // this may not be the one for mht nor the one for the result
+        VERTEX const *v,        // but this is looked up in it
+        float *pmin_dist );
+
+VERTEX* MHTfindClosestVertexSet2(
+        MRIS_HASH_TABLE *mht,
+        MRIS *mris,
+        MRIS *mris_for_vno,
+        VERTEX const *v);
+
+#if 0 // unused
+        
+VERTEX* MHTfindClosestVertexSetInDirection2(
+        MRIS_HASH_TABLE *mht, 
+        MRIS *mris, 
+        MRIS *mris_for_v,       // this may not be the one for mht nor the one for the result
+        VERTEX const *v, 
+        int which,
+        double nx, double ny, double nz);
+                                     
+#endif                               

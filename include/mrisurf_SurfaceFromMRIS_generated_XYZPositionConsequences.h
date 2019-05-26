@@ -1,23 +1,24 @@
     namespace XYZPositionConsequences {
     struct Face : public MRIS_Elt {
-        inline Face (                             );
-        inline Face ( Face const & src            );
-        inline Face ( MRIS* mris, size_t idx      );
-        inline Face ( DistortM::Face const & src  );
-        inline Face ( Distort::Face const & src   );
-        inline Face ( AnalysisM::Face const & src );
-        inline Face ( Analysis::Face const & src  );
-        inline Face ( AllM::Face const & src      );
+        inline Face                        (                             );
+        inline Face (                        Face const & src            );
+        inline Face (                        MRIS* mris, size_t idx      );
+        inline Face (                        DistortM::Face const & src  );
+        inline Face (                        Distort::Face const & src   );
+        inline Face (                        AnalysisM::Face const & src );
+        inline Face (                        Analysis::Face const & src  );
+        inline Face (                        AllM::Face const & src      );
+        int fno     () const { return idx; }
 
-        inline vertices_per_face_t   v          (   ) const ;
-        inline float                 area       (   ) const ;
-        inline angles_per_triangle_t angle      (   ) const ;
-        inline angles_per_triangle_t orig_angle (   ) const ;
-        inline char                  ripflag    (   ) const ;
-        inline char                  oripflag   (   ) const ;
-        inline int                   marked     (   ) const ;
-        inline PDMATRIX              norm       (   ) const ;
-        inline A3PDMATRIX            gradNorm   (   ) const ;
+        inline Vertex                v          ( size_t i  ) const ;
+        inline float                 area       (           ) const ;
+        inline angles_per_triangle_t angle      (           ) const ;
+        inline angles_per_triangle_t orig_angle (           ) const ;
+        inline char                  ripflag    (           ) const ;
+        inline char                  oripflag   (           ) const ;
+        inline int                   marked     (           ) const ;
+        inline PDMATRIX              norm       (           ) const ;
+        inline A3PDMATRIX            gradNorm   (           ) const ;
                    
         inline void set_orig_angle (  angles_per_triangle_t to ) ;
         inline void set_ripflag    (                   char to ) ;
@@ -26,14 +27,15 @@
     };
 
     struct Vertex : public MRIS_Elt {
-        inline Vertex (                               );
-        inline Vertex ( Vertex const & src            );
-        inline Vertex ( MRIS* mris, size_t idx        );
-        inline Vertex ( DistortM::Vertex const & src  );
-        inline Vertex ( Distort::Vertex const & src   );
-        inline Vertex ( AnalysisM::Vertex const & src );
-        inline Vertex ( Analysis::Vertex const & src  );
-        inline Vertex ( AllM::Vertex const & src      );
+        inline Vertex (                                                      );
+        inline Vertex (                        Vertex const & src            );
+        inline Vertex (                        MRIS* mris, size_t idx        );
+        inline Vertex (                        DistortM::Vertex const & src  );
+        inline Vertex (                        Distort::Vertex const & src   );
+        inline Vertex (                        AnalysisM::Vertex const & src );
+        inline Vertex (                        Analysis::Vertex const & src  );
+        inline Vertex (                        AllM::Vertex const & src      );
+        int vno       () const { return idx; }
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use

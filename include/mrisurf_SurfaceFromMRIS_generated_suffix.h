@@ -203,8 +203,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -326,7 +326,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -338,7 +338,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -468,8 +468,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Analysis::Face const & src                 ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src                     ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -635,7 +635,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -647,7 +647,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -824,8 +824,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -1026,7 +1026,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -1038,7 +1038,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -1402,8 +1402,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Analysis::Face const & src  ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src      ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -2188,7 +2188,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -2200,7 +2200,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -2562,8 +2562,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -3344,7 +3344,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -3356,7 +3356,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -3884,8 +3884,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -3897,8 +3897,8 @@ namespace SurfaceFromMRIS {
         return mris->faces[idx].marked;
     }
     
-    void Face::set_v(vertices_per_face_t to) {
-        mris->faces[idx].v = to;
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(mris == to.mris); mris->faces[idx].v[i] = to.idx;
     }
     void Face::set_ripflag(char to) {
         mris->faces[idx].ripflag = to;
@@ -4021,7 +4021,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4033,7 +4033,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -4157,8 +4157,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     char Face::ripflag() const {
         return mris->faces[idx].ripflag;
@@ -4321,7 +4321,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4333,7 +4333,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -4506,8 +4506,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -4715,7 +4715,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4727,7 +4727,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -5104,8 +5104,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -5886,7 +5886,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -5898,7 +5898,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -6260,8 +6260,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
     Face::Face ( AllM::Face const & src ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -7042,7 +7042,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -7054,7 +7054,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -7415,8 +7415,8 @@ namespace SurfaceFromMRIS {
     Face::Face ( MRIS* mris, size_t idx ) : MRIS_Elt(mris,idx) {}
     Face::Face ( Face const & src       ) : MRIS_Elt(src) {}     
 
-    vertices_per_face_t Face::v() const {
-        return mris->faces[idx].v;
+    Vertex Face::v(size_t i) const {
+        return Vertex(mris,mris->faces[idx].v[i]);
     }
     float Face::area() const {
         return mris->faces[idx].area;
@@ -7443,8 +7443,8 @@ namespace SurfaceFromMRIS {
         return mris->faces[idx].gradNorm;
     }
     
-    void Face::set_v(vertices_per_face_t to) {
-        mris->faces[idx].v = to;
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(mris == to.mris); mris->faces[idx].v[i] = to.idx;
     }
     void Face::set_area(float to) {
         mris->faces[idx].area = to;
@@ -8249,7 +8249,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);;
+        return Vertex(mris,idx);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -8261,7 +8261,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);;
+        return Face(mris,idx);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];

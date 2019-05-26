@@ -1,20 +1,21 @@
     namespace XYZPosition {
     struct Face : public MRIS_Elt {
-        inline Face (                                            );
-        inline Face ( Face const & src                           );
-        inline Face ( MRIS* mris, size_t idx                     );
-        inline Face ( XYZPositionConsequencesM::Face const & src );
-        inline Face ( XYZPositionConsequences::Face const & src  );
-        inline Face ( DistortM::Face const & src                 );
-        inline Face ( Distort::Face const & src                  );
-        inline Face ( AnalysisM::Face const & src                );
-        inline Face ( Analysis::Face const & src                 );
-        inline Face ( AllM::Face const & src                     );
+        inline Face                        (                                            );
+        inline Face (                        Face const & src                           );
+        inline Face (                        MRIS* mris, size_t idx                     );
+        inline Face (                        XYZPositionConsequencesM::Face const & src );
+        inline Face (                        XYZPositionConsequences::Face const & src  );
+        inline Face (                        DistortM::Face const & src                 );
+        inline Face (                        Distort::Face const & src                  );
+        inline Face (                        AnalysisM::Face const & src                );
+        inline Face (                        Analysis::Face const & src                 );
+        inline Face (                        AllM::Face const & src                     );
+        int fno     () const { return idx; }
 
-        inline vertices_per_face_t v        (   ) const ;
-        inline char                ripflag  (   ) const ;
-        inline char                oripflag (   ) const ;
-        inline int                 marked   (   ) const ;
+        inline Vertex v        ( size_t i  ) const ;
+        inline char   ripflag  (           ) const ;
+        inline char   oripflag (           ) const ;
+        inline int    marked   (           ) const ;
                    
         inline void set_ripflag  (  char to ) ;
         inline void set_oripflag (  char to ) ;
@@ -22,16 +23,17 @@
     };
 
     struct Vertex : public MRIS_Elt {
-        inline Vertex (                                              );
-        inline Vertex ( Vertex const & src                           );
-        inline Vertex ( MRIS* mris, size_t idx                       );
-        inline Vertex ( XYZPositionConsequencesM::Vertex const & src );
-        inline Vertex ( XYZPositionConsequences::Vertex const & src  );
-        inline Vertex ( DistortM::Vertex const & src                 );
-        inline Vertex ( Distort::Vertex const & src                  );
-        inline Vertex ( AnalysisM::Vertex const & src                );
-        inline Vertex ( Analysis::Vertex const & src                 );
-        inline Vertex ( AllM::Vertex const & src                     );
+        inline Vertex (                                                                     );
+        inline Vertex (                        Vertex const & src                           );
+        inline Vertex (                        MRIS* mris, size_t idx                       );
+        inline Vertex (                        XYZPositionConsequencesM::Vertex const & src );
+        inline Vertex (                        XYZPositionConsequences::Vertex const & src  );
+        inline Vertex (                        DistortM::Vertex const & src                 );
+        inline Vertex (                        Distort::Vertex const & src                  );
+        inline Vertex (                        AnalysisM::Vertex const & src                );
+        inline Vertex (                        Analysis::Vertex const & src                 );
+        inline Vertex (                        AllM::Vertex const & src                     );
+        int vno       () const { return idx; }
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use

@@ -233,7 +233,7 @@ static bool mrisLimitGradientDistance(
 
   if (!mrisRemoveNeighborGradientComponent(mris, vno, ctx)) return false;
   
-  if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+  if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
     v->odx = v->ody = v->odz = 0.0;
     if (vno == Gdiag_no) printf("(%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz);
     v->cropped++;

@@ -941,7 +941,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
         kT = kS + 1;
         v = &(SurfReg[kT]->vertices[tvtxN]);
         /* find closest source vertex */
-        if(UseHash) svtx = MHTfindClosestVertexNo(Hash[kS], SurfReg[kS], v, &dmin);
+        if(UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
 	if(!UseHash || svtx < 0){
 	  if(svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
 	  svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -978,7 +978,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
       // printf("%5d %5d %d %d %d\n",tvtx,tvtxN,n,kS,kT);
       v = &(SurfReg[kT]->vertices[tvtxN]);
       /* find closest source vertex */
-      if (UseHash) svtx = MHTfindClosestVertexNo(Hash[kS], SurfReg[kS], v, &dmin);
+      if (UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
       if (!UseHash || svtx < 0) {
         if (svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
         svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -1019,7 +1019,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
         // printf("%5d %5d %d %d %d\n",svtx,svtxN,n,kS,kT);
         v = &(SurfReg[kS]->vertices[svtxN]);
         /* find closest target vertex */
-        if (UseHash) tvtx = MHTfindClosestVertexNo(Hash[kT], SurfReg[kT], v, &dmin);
+        if (UseHash) tvtx = MHTfindClosestVertexNo2(Hash[kT], SurfReg[kT], SurfReg[kS], v, &dmin);
         if (!UseHash || tvtx < 0) {
           if (tvtx < 0) printf("Source vertex %d of pair %d unmapped in hash, using brute force\n", svtxN, n);
           tvtx = MRISfindClosestVertex(SurfReg[kT], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -1173,7 +1173,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
 
@@ -1220,7 +1220,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
         /* find closest target vertex */
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash)
-          tvtx = MHTfindClosestVertexNo(TrgHash, TrgSurfReg, v, &dmin);
+          tvtx = MHTfindClosestVertexNo2(TrgHash, TrgSurfReg, SrcSurfReg, v, &dmin);
         else
           tvtx = MRISfindClosestVertex(TrgSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
         /* Hash table failed, so use brute force */
@@ -1336,7 +1336,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
     /* hash table failed, so use brute force */
@@ -1355,7 +1355,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
     /* hash table failed, so use bruce force */
@@ -1388,7 +1388,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
         /* find closest target vertex */
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash)
-          tvtx = MHTfindClosestVertexNo(TrgHash, TrgSurfReg, v, &dmin);
+          tvtx = MHTfindClosestVertexNo2(TrgHash, TrgSurfReg, SrcSurfReg, v, &dmin);
         else
           tvtx = MRISfindClosestVertex(TrgSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
         /* Hash table failed, so use brute force */

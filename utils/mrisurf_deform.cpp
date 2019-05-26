@@ -6728,7 +6728,8 @@ double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *p
 
           // update distance with continuum measure
           MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-          MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &v, &vno, &vdist);
+          MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &vdist);
+          v = (vno < 0) ? nullptr : &mris->vertices[vno];
           if (v != NULL)  // compute distance from surface in normal direction
           {
             double dx, dy, dz;
@@ -7014,11 +7015,11 @@ int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         // add this voxel to the list of voxels of the vertex it is closest to
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-        VERTEX * v;
-        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &v, &vno, &dist);
-        if (v == NULL) continue;
+        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &dist);
+        if (vno < 0) continue;
         if (FZERO(val) && dist > 1) continue;
         if (vno == Gdiag_no) DiagBreak();
+        VERTEX * v = &mris->vertices[vno];
         v->marked++;
         VLSTadd(vl[vno], x, y, z, xs, ys, zs);
         if (x == Gx && y == Gy && z == Gz) {
@@ -8451,9 +8452,9 @@ int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         // add this voxel to the list of voxels of the vertex it is closest to
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-        VERTEX * v;
-        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &v, &vno, &dist);
-        if (v == NULL) continue;
+        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &dist);
+        if (vno < 0) continue;
+        VERTEX * v = &mris->vertices[vno];
         if (vno == Gdiag_no) DiagBreak();
         v->marked++;
         VLSTadd(vl[vno], x, y, z, xs, ys, zs);
@@ -9953,7 +9954,8 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     if (v->ripflag) {
       continue;
     }
-    vdst = MHTfindClosestVertex(mht, mris_total, v);
+    float min_dist;
+    vdst = MHTfindClosestVertex2(mht, mris_total, mris_src, v, &min_dist);
     if (!vdst) {
       ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno);
       continue;
@@ -10037,7 +10039,8 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
       }
       mht_src = MHTcreateVertexTable_Resolution(mris_src, CURRENT_VERTICES, 2 * max_len);
     }
-    v = MHTfindClosestVertex(mht_src, mris_src, vdst);
+    float min_dist;
+    v = MHTfindClosestVertex2(mht_src, mris_src, mris_total, vdst, &min_dist);
     if (!v) {
       ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map dst vno %d", vno);
       continue;
@@ -10107,7 +10110,8 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     if (vdst->ripflag) {
       continue;
     }
-    VERTEX const * const v = MHTfindClosestVertex(mht_src, mris_src, vdst);
+    float min_dist;
+    VERTEX const * const v = MHTfindClosestVertex2(mht_src, mris_src, mris_dst, vdst, &min_dist);
     if (!v) {
       ErrorPrintf(ERROR_BADPARM, "MRISsphericalCopy: cannot map dst vno %d", vno);
       continue;

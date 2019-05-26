@@ -122,12 +122,12 @@ MHT_VIRTUAL int MHT_FUNCTION(doesFaceIntersect)(MHT_THIS_PARAMETER MHT_MRIS_PARA
 
 
 
-MHT_VIRTUAL int MHT_FUNCTION(isVectorFilled)(MHT_CONST_THIS_PARAMETER  MHT_MRIS_PARAMETER int vno, 
+MHT_VIRTUAL int MHT_FUNCTION(isVectorFilled)(MHT_CONST_THIS_PARAMETER  int vno, 
                                                 float dx, float dy, float dz) MHT_CONST_THIS MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->isVectorFilled(mris,vno,dx,dy,dz); }
+{ return mht->isVectorFilled(vno,dx,dy,dz); }
 #endif
 
 
@@ -138,7 +138,6 @@ MHT_VIRTUAL int MHT_FUNCTION(findClosestVertexGeneric)(MHT_THIS_PARAMETER
                                 double probex, double probey, double probez,
                                 double in_max_distance_mm, 
                                 int in_max_halfmhts,
-                                VERTEX **pvtx, 
                                 int *vtxnum, 
                                 double *vtx_distance) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
@@ -147,33 +146,11 @@ MHT_VIRTUAL int MHT_FUNCTION(findClosestVertexGeneric)(MHT_THIS_PARAMETER
 { return mht->findClosestVertexGeneric(mris, probex, probey, probez,
                                 in_max_distance_mm, 
                                 in_max_halfmhts,
-                                pvtx, 
                                 vtxnum, 
                                 vtx_distance); }
 #endif
 
 
-MHT_VIRTUAL VERTEX *MHT_FUNCTION(findClosestVertex)  (MHT_THIS_PARAMETER
-                               MHT_MRIS_PARAMETER  
-                               VERTEX const *v) MHT_ABSTRACT
-#ifndef MHT_TRADITIONAL_IMPL
-    ;
-#else
-{ return mht->findClosestVertex(mris, v); }
-#endif
-
-                               
-MHT_VIRTUAL int     MHT_FUNCTION(findClosestVertexNo)(MHT_THIS_PARAMETER
-                               MHT_MRIS_PARAMETER  
-                               VERTEX const *v, 
-                               float *min_dist) MHT_ABSTRACT
-#ifndef MHT_TRADITIONAL_IMPL
-    ;
-#else
-{ return mht->findClosestVertexNo(mris, v, min_dist); }
-#endif
-
-                               
 MHT_VIRTUAL int     MHT_FUNCTION(findClosestVertexNoXYZ)(MHT_THIS_PARAMETER
                                MHT_MRIS_PARAMETER  
                                float x, float y, float z, 
@@ -186,34 +163,36 @@ MHT_VIRTUAL int     MHT_FUNCTION(findClosestVertexNoXYZ)(MHT_THIS_PARAMETER
 
 
                              
-MHT_VIRTUAL VERTEX *MHT_FUNCTION(findClosestVertexSet)(MHT_THIS_PARAMETER
+MHT_VIRTUAL int     MHT_FUNCTION(findClosestSetVertexNo)(MHT_THIS_PARAMETER
                                 MHT_MRIS_PARAMETER  
-                                VERTEX const *v, 
-                                int which) MHT_ABSTRACT
+                                float x, float y, float z) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findClosestVertexSet(mris,v,which); }
+{ return mht->findClosestSetVertexNo(mris,x,y,z); }
 #endif
 
-                                
-MHT_VIRTUAL VERTEX * MHT_FUNCTION(findClosestVertexSetInDirection)(MHT_THIS_PARAMETER
-                                            MHT_MRIS_PARAMETER  
-                                            VERTEX const *v, 
-                                            int which,
-                                            double nx, double ny, double nz) MHT_ABSTRACT
+
+
+#if 0 // unused
+MHT_VIRTUAL int     MHT_FUNCTION(findClosestSetVertexNoInDirection)(MHT_THIS_PARAMETER
+                                MHT_MRIS_PARAMETER  
+                                float x, float y, float z, 
+                                double nx, double ny, double nz) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findClosestVertexSetInDirection(mris,v,which,nx,ny,nz); }
+{ return mht->findClosestSetVertexNoInDirection(mris,x,y,z,nx,ny,nz); }
+#endif
+
 #endif
 
                                             
 MHT_VIRTUAL int    *MHT_FUNCTION(getAllVerticesWithinDistance)(MHT_THIS_PARAMETER
-                                        MHT_MRIS_PARAMETER 
-                                        int vno, 
-                                        float max_dist, 
-                                        int *pvnum) MHT_ABSTRACT
+                                MHT_MRIS_PARAMETER 
+                                int vno, 
+                                float max_dist, 
+                                int *pvnum) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
@@ -221,13 +200,13 @@ MHT_VIRTUAL int    *MHT_FUNCTION(getAllVerticesWithinDistance)(MHT_THIS_PARAMETE
 #endif
 
                                         
-MHT_VIRTUAL VERTEX *MHT_FUNCTION(findClosestVertexInTable)(MHT_THIS_PARAMETER
-                                    MHT_MRIS_PARAMETER 
-                                    float x, float y, float z, int do_global_search) MHT_ABSTRACT
+MHT_VIRTUAL int MHT_FUNCTION(findVnoOfClosestVertexInTable)(MHT_THIS_PARAMETER
+                                MHT_MRIS_PARAMETER
+                                float x, float y, float z, int do_global_search) MHT_ABSTRACT
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findClosestVertexInTable(mris,x,y,z,do_global_search); }
+{ return mht->findVnoOfClosestVertexInTable(x,y,z,do_global_search); }
 #endif
 
 

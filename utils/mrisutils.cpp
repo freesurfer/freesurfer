@@ -435,14 +435,12 @@ static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
 {
-  VERTEX *v;
-
-  v = &mris->vertices[vno];
+  VERTEX *v = &mris->vertices[vno];
 
   mrisRemoveNeighborGradientComponent(mris, vno);
-  if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+  if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
     mrisRemoveNormalGradientComponent(mris, vno);
-    if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+    if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
       v->odx = v->ody = v->odz = 0.0;
       return (NO_ERROR);
     }

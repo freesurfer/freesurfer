@@ -326,7 +326,13 @@ int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX const *v)
 {
   int vdstno;
   float dmin;
-  vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin);
+  vdstno =
+    MHTfindClosestVertexNo2(
+        gcsa->mht_priors, 
+        gcsa->mris_priors, // used to build gcsa->mht_priors,
+        gcsa->mris_priors, // must contain v
+        v,
+        &dmin);
   return (vdstno);
 }
 

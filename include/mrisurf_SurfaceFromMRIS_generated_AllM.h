@@ -1,34 +1,36 @@
     namespace AllM {
     struct Face : public MRIS_Elt {
-        inline Face (                        );
-        inline Face ( Face const & src       );
-        inline Face ( MRIS* mris, size_t idx );
+        inline Face                        (                        );
+        inline Face (                        Face const & src       );
+        inline Face (                        MRIS* mris, size_t idx );
+        int fno     () const { return idx; }
 
-        inline vertices_per_face_t   v          (   ) const ;
-        inline float                 area       (   ) const ;
-        inline angles_per_triangle_t angle      (   ) const ;
-        inline angles_per_triangle_t orig_angle (   ) const ;
-        inline char                  ripflag    (   ) const ;
-        inline char                  oripflag   (   ) const ;
-        inline int                   marked     (   ) const ;
-        inline PDMATRIX              norm       (   ) const ;
-        inline A3PDMATRIX            gradNorm   (   ) const ;
+        inline Vertex                v          ( size_t i  ) const ;
+        inline float                 area       (           ) const ;
+        inline angles_per_triangle_t angle      (           ) const ;
+        inline angles_per_triangle_t orig_angle (           ) const ;
+        inline char                  ripflag    (           ) const ;
+        inline char                  oripflag   (           ) const ;
+        inline int                   marked     (           ) const ;
+        inline PDMATRIX              norm       (           ) const ;
+        inline A3PDMATRIX            gradNorm   (           ) const ;
                    
-        inline void set_v          (    vertices_per_face_t to ) ;
-        inline void set_area       (                  float to ) ;
-        inline void set_angle      (  angles_per_triangle_t to ) ;
-        inline void set_orig_angle (  angles_per_triangle_t to ) ;
-        inline void set_ripflag    (                   char to ) ;
-        inline void set_oripflag   (                   char to ) ;
-        inline void set_marked     (                    int to ) ;
-        inline void set_norm       (               PDMATRIX to ) ;
-        inline void set_gradNorm   (             A3PDMATRIX to ) ;
+        inline void set_v          ( size_t i,                Vertex to ) ;
+        inline void set_area       (                           float to ) ;
+        inline void set_angle      (           angles_per_triangle_t to ) ;
+        inline void set_orig_angle (           angles_per_triangle_t to ) ;
+        inline void set_ripflag    (                            char to ) ;
+        inline void set_oripflag   (                            char to ) ;
+        inline void set_marked     (                             int to ) ;
+        inline void set_norm       (                        PDMATRIX to ) ;
+        inline void set_gradNorm   (                      A3PDMATRIX to ) ;
     };
 
     struct Vertex : public MRIS_Elt {
-        inline Vertex (                        );
-        inline Vertex ( Vertex const & src     );
-        inline Vertex ( MRIS* mris, size_t idx );
+        inline Vertex (                                               );
+        inline Vertex (                        Vertex const & src     );
+        inline Vertex (                        MRIS* mris, size_t idx );
+        int vno       () const { return idx; }
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use

@@ -1,9 +1,10 @@
     namespace ExistenceM {
     struct Face : public MRIS_Elt {
-        inline Face (                        );
-        inline Face ( Face const & src       );
-        inline Face ( MRIS* mris, size_t idx );
-        inline Face ( AllM::Face const & src );
+        inline Face                        (                        );
+        inline Face (                        Face const & src       );
+        inline Face (                        MRIS* mris, size_t idx );
+        inline Face (                        AllM::Face const & src );
+        int fno     () const { return idx; }
 
         inline char ripflag  (   ) const ;
         inline char oripflag (   ) const ;
@@ -15,10 +16,11 @@
     };
 
     struct Vertex : public MRIS_Elt {
-        inline Vertex (                          );
-        inline Vertex ( Vertex const & src       );
-        inline Vertex ( MRIS* mris, size_t idx   );
-        inline Vertex ( AllM::Vertex const & src );
+        inline Vertex (                                                 );
+        inline Vertex (                        Vertex const & src       );
+        inline Vertex (                        MRIS* mris, size_t idx   );
+        inline Vertex (                        AllM::Vertex const & src );
+        int vno       () const { return idx; }
 
         inline char ripflag (   ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
                    

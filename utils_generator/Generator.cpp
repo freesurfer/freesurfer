@@ -450,6 +450,7 @@ namespace Generator {
 				if (d.id == "v") return "Vertex";
 
 			} else if (c.id == "Face") {
+				if (d.id == "v") return "Vertex";
 
 			} else if (c.id == "Surface") {
 			    if (d.id == "vertices") return "Vertex";
@@ -551,11 +552,12 @@ namespace Generator {
 						cols << "(";
 						maybeEndC(false);
 						bool needsSep = false;
-						if (t->toPointerToRepeatedType()) {
+                        bool indexingAVector = (c.id=="Face" && d.id=="v");
+						if (t->toPointerToRepeatedType() || indexingAVector) {
 							cols << "size_t i";
 							needsSep = true;
 						} 
-						if (write && tr) {
+						if (write && (tr || indexingAVector)) {
 							cols << ",";
 							needsSep = true;
 						}
@@ -626,7 +628,12 @@ namespace Generator {
 			}
 
 			if (toGenerate_SurfaceFromMRIS_inco()) {
-				indent() << "struct MRIS_Elt { protected: " << endl;
+				indent() << "struct MRIS_Elt { " << endl;
+                depth++;
+                indent() << "bool operator==(MRIS_Elt const & rhs) const { return mris == rhs.mris && idx == rhs.idx; }" << endl;
+                indent() << "bool operator!=(MRIS_Elt const & rhs) const { return mris != rhs.mris || idx != rhs.idx; }" << endl;
+                depth--;
+                indent() << "protected: " << endl;
 				depth++;
 				indent() << "MRIS* mris; size_t idx; " << endl;
 				indent() << "MRIS_Elt() : mris(nullptr), idx(0) {}" << endl;
@@ -698,8 +705,8 @@ namespace Generator {
 			depth++;
 
 			ColumnedOutput::T cols;
-			cols << "inline " << c.id << endC << "(" << endC << "" << endC << ");" << endR;
-			cols << "inline " << c.id << endC << "(" << endC << "" << c.id << " const & src" << endC << ");" << endR;
+			cols << "inline " << c.id << endC << "(" << endC << ""                                            << endC << ");" << endR;
+			cols << "inline " << c.id << endC << "(" << endC << "" << c.id << " const & src"                  << endC << ");" << endR;
 			cols << "inline " << c.id << endC << "(" << endC << "MRIS* mris" << (isSurface?"":", size_t idx") << endC << ");" << endR;
 
 			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
@@ -711,6 +718,14 @@ namespace Generator {
 					<< "(" << endC << pnsLater << "::" << c.id << " const & src" << endC << ");" 
 					<< endR;
 			}
+            
+            if (c.id == "Face") {
+                cols << "int fno"     << endC << "() const { return idx; }" << endR;
+            }
+            if (c.id == "Vertex") {
+                cols << "int vno"     << endC << "() const { return idx; }" << endR;
+            }
+            
 			cols.append(tos(), depth);
 			tos() << endl;
 		}
@@ -775,7 +790,13 @@ namespace Generator {
 				raw += d.id;
 				if (tr) raw += "[i]";
 
-				if (c.id == "Vertex" && d.id == "f") {
+				if (c.id == "Face" && d.id == "v") {
+					if (!write) {
+						cols << "return Vertex(mris,mris->faces[idx].v[i])";
+					} else {
+						cols << "cheapAssert(mris == to.mris); mris->faces[idx].v[i] = to.idx";
+					}
+				} else if (c.id == "Vertex" && d.id == "f") {
 					if (!write) {
 						cols << "return Face(mris," << raw << ")";
 					} else {
@@ -797,14 +818,14 @@ namespace Generator {
 					}
 				} else if (c.id == "Surface" && d.id == "vertices" ) {
 					if (!write) {
-						cols << "return Vertex(mris,idx);";
+						cols << "return Vertex(mris,idx)";
 					}
 					else {
 						assert(false);
 					}
 				} else if (c.id == "Surface" && d.id == "faces" ) {
 					if (!write) {
-						cols << "return Face(mris,idx);";
+						cols << "return Face(mris,idx)";
 					}
 					else {
 						assert(false);

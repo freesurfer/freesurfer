@@ -35,7 +35,7 @@ MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src
   for (vno_dst = 0; vno_dst < mris_dst->nvertices; vno_dst++) {
     if (vno_dst == Gdiag_no) DiagBreak();
     vdst = &mris_dst->vertices[vno_dst];
-    vsrc = MHTfindClosestVertexSet(mht, mris_src, vdst, CANONICAL_VERTICES);
+    vsrc = MHTfindClosestVertexSet2(mht, mris_src, mris_dst, vdst);
     if (vsrc == NULL) ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst);
     vno_src = vsrc - &mris_src->vertices[0];
     if (vno_src == Gdiag_no || vno_dst == Gdiag_no) {
