@@ -326,7 +326,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -338,7 +338,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -635,7 +635,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -647,7 +647,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -1026,7 +1026,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -1038,7 +1038,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -2188,7 +2188,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -2200,7 +2200,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -3344,7 +3344,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -3356,7 +3356,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -4021,7 +4021,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4033,7 +4033,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -4321,7 +4321,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4333,7 +4333,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -4715,7 +4715,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -4727,7 +4727,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -5886,7 +5886,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -5898,7 +5898,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -7042,7 +7042,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -7054,7 +7054,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];
@@ -8249,7 +8249,7 @@ namespace SurfaceFromMRIS {
         return mris->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(mris,idx);
+        return Vertex(mris,i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return mris->dist_storage;
@@ -8261,7 +8261,7 @@ namespace SurfaceFromMRIS {
         return mris->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(mris,idx);
+        return Face(mris,i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return mris->edges[i];

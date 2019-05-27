@@ -1,5 +1,5 @@
 // Compile with     g++ -std=c++11 Generator.cpp
-// Run with         rm tmp/* ; ./a.out ./tmp/
+// Run with         rm -rf tmp ; mkdir tmp ; ./a.out ./tmp/
 // Merge with       bcompare ./tmp ../include
 //
 #include <iostream>
@@ -638,7 +638,7 @@ namespace Generator {
 				indent() << "MRIS* mris; size_t idx; " << endl;
 				indent() << "MRIS_Elt() : mris(nullptr), idx(0) {}" << endl;
 				indent() << "MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}" << endl;
-				indent() << "MRIS_Elt(MRIS_Elt const & src) : mris(src.mris) {}" << endl;
+				indent() << "MRIS_Elt(MRIS_Elt const & src) : mris(src.mris), idx(src.idx) {}" << endl;
 				tos() << endl;
 				for (auto p = Phase::T(); p < Phase::end; p = Phase::T(p + 1)) {
 					for (auto & cp : built) {
@@ -818,14 +818,14 @@ namespace Generator {
 					}
 				} else if (c.id == "Surface" && d.id == "vertices" ) {
 					if (!write) {
-						cols << "return Vertex(mris,idx)";
+						cols << "return Vertex(mris,i)";
 					}
 					else {
 						assert(false);
 					}
 				} else if (c.id == "Surface" && d.id == "faces" ) {
 					if (!write) {
-						cols << "return Face(mris,idx)";
+						cols << "return Face(mris,i)";
 					}
 					else {
 						assert(false);

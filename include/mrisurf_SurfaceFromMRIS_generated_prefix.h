@@ -102,7 +102,7 @@ namespace SurfaceFromMRIS {
         MRIS* mris; size_t idx; 
         MRIS_Elt() : mris(nullptr), idx(0) {}
         MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}
-        MRIS_Elt(MRIS_Elt const & src) : mris(src.mris) {}
+        MRIS_Elt(MRIS_Elt const & src) : mris(src.mris), idx(src.idx) {}
 
         friend struct SurfaceFromMRIS::ExistenceM::Face;
         friend struct SurfaceFromMRIS::ExistenceM::Vertex;
