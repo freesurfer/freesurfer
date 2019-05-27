@@ -99,25 +99,29 @@ void MHTrelBucketC(MHBT const **);
 
 struct _mht 
 {
-    float              vres ;                                 // Resolution of discretization
-    MHTFNO_t           fno_usage;                             // To enforce consistent use of fno:  face number or vertex number
-    int                nbuckets ;                             // Total # of buckets
+    MHTFNO_t const      fno_usage;                      // To enforce consistent use of fno:  face number or vertex number
+    float    const      vres ;                          // Resolution of discretization
+    int      const      which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.
+
+    _mht(MHTFNO_t fno_usage, float vres, int which_vertices);
+    virtual ~_mht();
 
 #ifdef HAVE_OPENMP
     omp_lock_t mutable buckets_lock;
 #endif
+    int                 nbuckets ;                      // Total # of buckets
     MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
-    int                which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.
 
     int                nfaces;
     MHT_FACE*          f;
 
-    _mht();
-    virtual ~_mht();
 };
 
 struct MRIS_HASH_TABLE_IMPL;
 struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...
+
+    MRIS_HASH_TABLE(MHTFNO_t fno_usage, float vres, int which_vertices) : _mht(fno_usage, vres, which_vertices) {}
+    
     MRIS_HASH_TABLE_IMPL               * toMRIS_HASH_TABLE_IMPL    ()       { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
     MRIS_HASH_TABLE_IMPL         const * toMRIS_HASH_TABLE_IMPL    () const { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
     virtual MRIS_HASH_TABLE_IMPL       * toMRIS_HASH_TABLE_IMPL_Wkr()       { return nullptr; }

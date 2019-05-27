@@ -613,8 +613,8 @@ static void mhtVoxelList_SampleTriangle(
 //
 #define MHT_MAX_TOUCHING_FACES 10000
 
-_mht::_mht() 
-  : vres(0), nbuckets(0), which_vertices(0), nfaces(0), f(nullptr) 
+_mht::_mht(MHTFNO_t fno_usage, float vres, int which_vertices) 
+  : fno_usage(fno_usage), vres(vres), which_vertices(which_vertices), nbuckets(0), nfaces(0), f(nullptr) 
 {
     bzero(&buckets_mustUseAcqRel, sizeof(buckets_mustUseAcqRel));
 #ifdef HAVE_OPENMP
@@ -631,12 +631,30 @@ _mht::~_mht()
 
 
 struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
+
     Surface surface;
 
     virtual MRIS_HASH_TABLE_IMPL*       toMRIS_HASH_TABLE_IMPL_Wkr()       { return this; }
     virtual MRIS_HASH_TABLE_IMPL const* toMRIS_HASH_TABLE_IMPL_Wkr() const { return this; }
 
-    MRIS_HASH_TABLE_IMPL(MRIS * mris) : surface(mris) {}
+    MRIS_HASH_TABLE_IMPL(MHTFNO_t fno_usage, float vres, MRIS * mris, int which_vertices) 
+      : MRIS_HASH_TABLE(fno_usage, vres, which_vertices), surface(mris) 
+    {
+        nfaces = surface.nfaces();
+        f      = (MHT_FACE*)calloc(nfaces, sizeof(MHT_FACE));
+
+        for (int fno = 0; fno < nfaces; fno++) {
+
+            float xt,yt,zt;
+            mhtComputeFaceCentroid(surface, which_vertices, fno, &xt, &yt, &zt);
+
+            MHT_FACE* face = &f[fno];
+            face->cx = xt;
+            face->cy = yt;
+            face->cz = zt;
+        }
+      }
+
     ~MRIS_HASH_TABLE_IMPL();
 
     double WORLD_TO_VOLUME(double x) const { return (x+FIELD_OF_VIEW/2)/vres; }
@@ -646,8 +664,6 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     void checkConstructedWithVertices() const;
     void checkConstructedWithFaces   (MRIS *mris) const;
     void checkConstructedWithVertices(MRIS *mris) const;
-
-    void mhtStoreFaceCentroids       (int which);
 
     void mhtFaceCentroid2xyz_float   (int fno, float *x, float *y, float *z);
         // Centroids are computed once and stored in the MHT_FACE
@@ -770,10 +786,11 @@ static void freeBins(MHBT* bucket) {
 
 // Primitives that have to be correct...
 //
-static MRIS_HASH_TABLE_IMPL* newMHT(MRIS *mris)
+static MRIS_HASH_TABLE_IMPL* newMHT(MHTFNO_t fno_usage, float vres, int which_vertices, MRIS *mris)
 {
-    auto mht = new MRIS_HASH_TABLE_IMPL(mris);
+    auto mht = new MRIS_HASH_TABLE_IMPL(fno_usage, vres, mris, which_vertices);
     if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
+
     return mht;
 }
 
@@ -1006,16 +1023,10 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
     ncalls++;
 
     Surface surface(mris);
-    auto mht = newMHT(mris);
+    auto mht = newMHT(MHTFNO_FACE, res, which, mris);
   
-    mht->mhtStoreFaceCentroids(which);
-
     // Capture data from caller and surface
     //    
-    mht->vres           = res;
-    mht->which_vertices = which;
-    mht->fno_usage      = MHTFNO_FACE;
-
     for (int fno = 0; fno < surface.nfaces(); fno++) {
         auto f = surface.faces(fno);
         if (f.ripflag()) continue;
@@ -1147,13 +1158,8 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS *mris, int w
     ncalls++;
     
     Surface surface(mris);
-    auto mht = newMHT(mris);
+    auto mht = newMHT(MHTFNO_VERTEX, res, which, mris);
         
-    mht->mhtStoreFaceCentroids(which);
-    mht->vres = res;
-    mht->which_vertices = which;
-    mht->fno_usage = MHTFNO_VERTEX;
-
     for (int vno = 0; vno < surface.nvertices(); vno++) {
         auto v = surface.vertices(vno);
         if (v.ripflag()) continue;
@@ -2564,30 +2570,6 @@ static void mhtComputeFaceCentroid(
     *px = xt;
     *py = yt;
     *pz = zt;
-}
-
-
-void MRIS_HASH_TABLE_IMPL::mhtStoreFaceCentroids(int which)
-{
-  checkConstructedWithFaces();
-  if (nfaces || f) {
-    fprintf(stderr, "%s:%d wrong initial state\n", __FILE__, __LINE__);
-    exit(1);
-  }
-
-  nfaces = surface.nfaces();
-  f      = (MHT_FACE*)calloc(nfaces, sizeof(MHT_FACE));
-  
-  for (int fno = 0; fno < nfaces; fno++) {
-    
-    float xt,yt,zt;
-    mhtComputeFaceCentroid(surface, which, fno, &xt, &yt, &zt);
-    
-    MHT_FACE* face = &f[fno];
-    face->cx = xt;
-    face->cy = yt;
-    face->cz = zt;
-  }
 }
 
 
