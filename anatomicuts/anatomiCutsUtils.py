@@ -106,7 +106,7 @@ def readTree(numNodes, histogramFile,header=True):
             
     return nodes_childs, whos_dad
 
-def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, delimiter=",", groupA=[0], groupB=[1]):
+def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, delimiter=",", groupA=[0], groupB=[1], ac_folder="dmri.ac/45"):
 	#with open(groups_classification) as f:
 	#	groups_cat = dict(filter(None, csv.reader(f, delimiter=',')))
 
@@ -115,9 +115,9 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 	significant_childs=set()	
 	for c_i, clusterNum in enumerate(clustersToAnalyze):
 		
-		childs, dads = readTree(clusterNum, f"{subjects_dir}/{target_subject}/HierarchicalHistory.csv")
+		childs, dads = readTree(clusterNum, f"{subjects_dir}/{target_subject}/{ac_folder}/HierarchicalHistory.csv")
 		#print(childs, dads)
-		order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
+		order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/{ac_folder}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
 		#print(order_nodes["Cluster"][0])
 		ys=[]
 		for a in headers:
@@ -130,7 +130,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 		
 		for s in groups_cat.keys():
 			subject=glob.glob(f'{subjects_dir}/{s}*')[0].split("/")[-1]
-			measures=f"{subjects_dir}/{subject}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+			measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
 
 			data = pd.read_csv(measures,delimiter=",", header=0, names=headers, usecols=cols)
 			#print(measures)
@@ -195,7 +195,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, delimiter=",", groups=[[1],[2],[3]]):
 	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	clusterNum=200
-	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
+	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/dmri.ac/45/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
 	measures=[]
 	for g in groups:
 		measures.append([])
@@ -210,23 +210,24 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 	
 	for s in groups_cat.keys():
 		subject=glob.glob(f'{subjects_dir}/{s}*')[0].split("/")[-1]
-		measuresFile=f"{subjects_dir}/{subject}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
-
-		data = pd.read_csv(measuresFile,delimiter=",", header=0, names=headers, usecols=cols)
-		#print(measures)
-		if len(data[headers[0]])>= clusterNum:
-			val  = [ i for i in range(len(groups))  if int(groups_cat[s]) in groups[i]]
-			if len(val)>0:
-				group=val[0]
-				for i,h in enumerate(headers):
-					for j in range(clusterNum):
+		measuresFile=f"{subjects_dir}/{subject}/dmri.ac/45/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+		try:
+			data = pd.read_csv(measuresFile,delimiter=",", header=0, names=headers, usecols=cols)
+			#print(measures)
+			if len(data[headers[0]])>= clusterNum:
+				val  = [ i for i in range(len(groups))  if int(groups_cat[s]) in groups[i]]
+				if len(val)>0:
+					group=val[0]
+					for i,h in enumerate(headers):
+						for j in range(clusterNum):
 							measures[group][i][j].append(data[h][j])
-
+		except:
+			print (measuresFile)
 	for i in clustersToAnalyze:
 		plt.figure()
 		for gi, g in enumerate( groups):
 			plt.violinplot(measures[gi][0][i], [gi],  showmeans=True )
-		plt.savefig("/space/snoke/1/public/vivros/data/tracula/jones_900/average/dmri.ac/GA/"+headers[0]+"_"+str(i)+".png")		
+		plt.savefig(f"{subjects_dir}/average/dmri.ac/"+str(i)+"_"+headers[0]+".png")		
 	#plt.show()
 
 #groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1], clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
@@ -235,7 +236,6 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 #groupAnalysis(headers=["meanAD"],cols=[14], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1],clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
 
 
-print ("group2")
 
 cta=[200]
 """
@@ -270,8 +270,26 @@ plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/
 indeces = indeces +groupAnalysis(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
 plotAverageMeasures(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 """
-indeces=[41,10]
+ts="BAKP64e_nrecon-trio3_vb17"
+#classFile="/space/snoke/1/public/vivros/labels.csv"
+classFile="/autofs/space/snoke_001/public/vivros/hd_tracula/labels.csv"
+folder="/autofs/space/snoke_001/public/vivros/hd_tracula/"
+cta=[200]
 
+indices = groupAnalysis(headers=["meanFA"],cols=[2], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=cta,target_subject=ts,subjects_dir=folder, delimiter=" ", groupA=[8], groupB=[6])
+indices = indices + groupAnalysis(headers=["meanMD"],cols=[6], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=cta,target_subject=ts,subjects_dir=folder, delimiter=" ", groupA=[8], groupB=[6])
+indices = indices + groupAnalysis(headers=["meanRD"],cols=[10], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=cta,target_subject=ts,subjects_dir=folder, delimiter=" ", groupA=[8], groupB=[6])
+indices = indices + groupAnalysis(headers=["meanAD"],cols=[14], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=cta,target_subject=ts,subjects_dir=folder, delimiter=" ", groupA=[8], groupB=[6])
+
+
+plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
+plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
+plotAverageMeasures(headers=["meanRD"],cols=[10], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
+plotAverageMeasures(headers=["meanAD"],cols=[14], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
+
+#print(indices)
+#indeces=[41,10]
+"""
 plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 plotAverageMeasures(headers=["meanAD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
@@ -279,3 +297,5 @@ plotAverageMeasures(headers=["meanRD"],cols=[14], groups_classification="/space/
 plotAverageMeasures(headers=["meanAK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 plotAverageMeasures(headers=["meanMK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+"""
+
