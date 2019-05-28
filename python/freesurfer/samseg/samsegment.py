@@ -388,8 +388,7 @@ def getGaussianPosteriors( data, classPriors, means, variances, mixtureWeights, 
     return gaussianPosteriors, minLogLikelihood
   
   
-def getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGaussiansPerClass, fractionsTable ):
-
+def getLikelihoods( data, means, variances, mixtureWeights, numberOfGaussiansPerClass, fractionsTable ):
     #
     numberOfClasses = len( numberOfGaussiansPerClass )
     numberOfGaussians = sum( numberOfGaussiansPerClass )
@@ -398,7 +397,7 @@ def getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGauss
     numberOfStructures = fractionsTable.shape[1]
 
     #   
-    posteriors = np.zeros_like( priors, dtype=np.float64 )
+    likelihoods = np.zeros( ( numberOfVoxels, numberOfStructures ), dtype=np.float64 )
     for classNumber in range( numberOfClasses ):
       
         # Compute likelihood for this class
@@ -418,10 +417,17 @@ def getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGauss
             fraction = fractionsTable[ classNumber, structureNumber ]
             if fraction < 1e-10: 
                 continue
-            posteriors[ :, structureNumber ] += classLikelihoods * fraction
-        
-    # Weight against prior and normalize
-    posteriors *= priors
+            likelihoods[ :, structureNumber ] += classLikelihoods * fraction
+  
+    #
+    return likelihoods
+  
+  
+def getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGaussiansPerClass, fractionsTable ):
+
+    # Weight likelihood against prior and normalize
+    posteriors = getLikelihoods( data, means, variances, mixtureWeights, 
+                                 numberOfGaussiansPerClass, fractionsTable ) * priors
     normalizer = np.sum( posteriors, axis=1 ) + eps
     posteriors = posteriors / np.expand_dims( normalizer, 1 )
 
@@ -431,12 +437,11 @@ def getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGauss
   
   
 
-def getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
-                             hyperMeans=None, hyperMeansNumberOfMeasurements=None, 
-                             hyperVariances=None, hyperVariancesNumberOfMeasurements=None,
-                             hyperMixtureWeights=None, hyperMixtureWeightsNumberOfMeasurements=None,
-                             downSamplingFactors=None
-                           ):
+def getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
+                            hyperMeans=None, hyperMeansNumberOfMeasurements=None, 
+                            hyperVariances=None, hyperVariancesNumberOfMeasurements=None,
+                            hyperMixtureWeights=None, hyperMixtureWeightsNumberOfMeasurements=None,
+                          ):
   
     #
     numberOfClasses = len( numberOfGaussiansPerClass )
@@ -469,13 +474,6 @@ def getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
     else:
         hyperMixtureWeightsNumberOfMeasurements = hyperMixtureWeightsNumberOfMeasurements.copy()
 
-    # Downsample the strength of the hyperprior if needed
-    if downSamplingFactors is not None:
-        # Force copy
-        hyperMeansNumberOfMeasurements /= np.prod( downSamplingFactors )
-        hyperVariancesNumberOfMeasurements /= np.prod( downSamplingFactors )
-        hyperMixtureWeightsNumberOfMeasurements /= np.prod( downSamplingFactors )
-
     # Make sure the inverse-Wishart is normalizable (flat or peaked around hyperVariances)
     threshold = ( numberOfContrasts - 1 ) + eps
     hyperVariancesNumberOfMeasurements[ hyperVariancesNumberOfMeasurements < threshold ] = threshold
@@ -495,6 +493,22 @@ def getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
            hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements
 
 
+def getDownsampledHyperparameters( hyperMeans, hyperMeansNumberOfMeasurements, 
+                                   hyperVariances, hyperVariancesNumberOfMeasurements,
+                                   hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements,
+                                   downSamplingFactors ):
+  
+    return hyperMeans, \
+           hyperMeansNumberOfMeasurements / np.prod( downSamplingFactors ) \
+              if hyperMeansNumberOfMeasurements is not None else None, \
+           hyperVariances, \
+           hyperVariancesNumberOfMeasurements / np.prod( downSamplingFactors ) \
+              if hyperVariancesNumberOfMeasurements is not None else None, \
+           hyperMixtureWeights, \
+           hyperMixtureWeightsNumberOfMeasurements  / np.prod( downSamplingFactors ) \
+              if hyperMixtureWeightsNumberOfMeasurements is not None else None
+
+
 
 def fitGMMParameters( data, gaussianPosteriors, numberOfGaussiansPerClass, useDiagonalCovarianceMatrices,
                       hyperMeans=None, hyperMeansNumberOfMeasurements=None, 
@@ -511,7 +525,7 @@ def fitGMMParameters( data, gaussianPosteriors, numberOfGaussiansPerClass, useDi
     hyperMeans, hyperMeansNumberOfMeasurements, \
            hyperVariances, hyperVariancesNumberOfMeasurements, \
            hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements = \
-               getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
+               getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
                                         hyperMeans, hyperMeansNumberOfMeasurements, 
                                         hyperVariances, hyperVariancesNumberOfMeasurements,
                                         hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements )
@@ -573,7 +587,7 @@ def evaluateMinLogPriorOfGMMParameters( means, variances, mixtureWeights,
     hyperMeans, hyperMeansNumberOfMeasurements, \
            hyperVariances, hyperVariancesNumberOfMeasurements, \
            hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements = \
-               getValidHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
+               getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
                                         hyperMeans, hyperMeansNumberOfMeasurements, 
                                         hyperVariances, hyperVariancesNumberOfMeasurements,
                                         hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements )
@@ -775,7 +789,7 @@ def writeImage( fileName, buffer, cropping, example ):
   gems.KvlImage( requireNumpyArray( uncroppedBuffer ) ).write( fileName, example.transform_matrix )
 
 
-def initializeGMMParameters( data, classPriors, numberOfGaussiansPerClass, useDiagonalCovarianceMatrices ):
+def initializeGMMParameters( data, classPriors, numberOfGaussiansPerClass, useDiagonalCovarianceMatrices=True ):
   
     #
     numberOfClasses = len( numberOfGaussiansPerClass )
@@ -839,7 +853,8 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                              hyperMixtureWeights=None, hyperMixtureWeightsNumberOfMeasurements=None, 
                              saveHistory=False, visualizer=None,
                              skipGMMParameterEstimationInFirstIteration=False,
-                             skipBiasFieldParameterEstimationInFirstIteration=True
+                             skipBiasFieldParameterEstimationInFirstIteration=True,
+                             hyperpriorPlugin=None
                              ):
 
     #  
@@ -897,11 +912,10 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
         downSampledHyperMeans, downSampledHyperMeansNumberOfMeasurements, \
             downSampledHyperVariances, downSampledHyperVariancesNumberOfMeasurements, \
             downSampledHyperMixtureWeights, downSampledHyperMixtureWeightsNumberOfMeasurements = \
-            getValidHyperparameters( numberOfGaussiansPerClass, downSampledImageBuffers.shape[ -1 ],
-                                     hyperMeans, hyperMeansNumberOfMeasurements, 
-                                     hyperVariances, hyperVariancesNumberOfMeasurements,
-                                     hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements,
-                                     downSamplingFactors )
+            getDownsampledHyperparameters( hyperMeans, hyperMeansNumberOfMeasurements, 
+                                           hyperVariances, hyperVariancesNumberOfMeasurements,
+                                           hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements,
+                                           downSamplingFactors )
         
         
         # Save initial position at the start of this multi-resolution level
@@ -943,6 +957,24 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                 means, variances, mixtureWeights = initializeGMMParameters( downSampledImageBuffers[ downSampledMask, : ], 
                                                                             downSampledClassPriors, numberOfGaussiansPerClass, 
                                                                             useDiagonalCovarianceMatrices )
+                
+                if hyperpriorPlugin is not None:
+                    #
+                    hyperMeans, hyperMeansNumberOfMeasurements, \
+                        hyperVariances, hyperVariancesNumberOfMeasurements, \
+                        hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements \
+                        = hyperpriorPlugin( downSampledImageBuffers[ downSampledMask, : ],
+                                            downSampledClassPriors, numberOfGaussiansPerClass, 
+                                            voxelSpacing )
+                    
+                    downSampledHyperMeans, downSampledHyperMeansNumberOfMeasurements, \
+                            downSampledHyperVariances, downSampledHyperVariancesNumberOfMeasurements, \
+                            downSampledHyperMixtureWeights, downSampledHyperMixtureWeightsNumberOfMeasurements = \
+                            getDownsampledHyperparameters( hyperMeans, hyperMeansNumberOfMeasurements, 
+                                                           hyperVariances, hyperVariancesNumberOfMeasurements,
+                                                           hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements,
+                                                           downSamplingFactors )
+                
             if biasFieldCoefficients is None:
                 numberOfBasisFunctions = [ functions.shape[1] for functions in downSampledBiasFieldBasisFunctions ]
                 numberOfContrasts = downSampledImageBuffers.shape[-1]
@@ -1127,7 +1159,10 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
 def segment( imageBuffers, mask, transform, biasFieldBasisFunctions,
              atlasFileName, deformation, deformationAtlasFileName,
              means, variances, mixtureWeights, biasFieldCoefficients,
-             numberOfGaussiansPerClass, classFractions ):
+             numberOfGaussiansPerClass, classFractions,
+             posteriorPlugin=None,
+             posteriorPluginDictionary=None
+           ):
     #
     fs.printPeakMemory( 'samsegment starting segmentation' )
 
@@ -1144,8 +1179,13 @@ def segment( imageBuffers, mask, transform, biasFieldBasisFunctions,
     data = imageBuffers[ mask, : ] - biasFields[ mask, : ]
 
     # Compute the posterior distribution of the various structures
-    posteriors = getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGaussiansPerClass, classFractions )
-
+    if posteriorPlugin is None:
+        posteriors = getPosteriors( data, priors, means, variances, mixtureWeights, numberOfGaussiansPerClass, classFractions )
+    else:
+        posteriors = posteriorPlugin( data, priors, means, variances, mixtureWeights, 
+                                      numberOfGaussiansPerClass, classFractions,
+                                      posteriorPluginDictionary )
+        
     #
     estimatedNodePositions = mapPositionsFromSubjectToTemplateSpace( mesh.points, transform )
 
@@ -1176,10 +1216,35 @@ def scaleBiasFields( biasFields, imageBuffers, mask, posteriors, targetIntensity
   
 
 def writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
-                  targetIntensity=None, targetSearchStrings=None, names=None ):
+                  targetIntensity=None, targetSearchStrings=None, names=None,
+                  threshold=None, thresholdSearchString=None
+                  ):
 
     # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
-    structureNumbers = np.array( np.argmax( posteriors, 1 ), dtype=np.uint32 )
+    if threshold is not None:
+        # Figure out the structure number of the special snowflake structure
+        for structureNumber, name in enumerate( names ):
+            if thresholdSearchString in name:
+                thresholdStructureNumber = structureNumber
+                break
+    
+        # Threshold
+        print( 'thresholding posterior of ', names[ thresholdStructureNumber ], 'with threshold:', threshold )
+        tmp = posteriors[ :, thresholdStructureNumber ].copy()
+        posteriors[ :, thresholdStructureNumber ] = posteriors[ :, thresholdStructureNumber ] > threshold
+        
+        # Majority voting
+        structureNumbers = np.array( np.argmax( posteriors, 1 ), dtype=np.uint32 )
+
+        # Undo thresholding in posteriors
+        posteriors[ :, thresholdStructureNumber ] = tmp
+        
+    else:
+        # Majority voting
+        structureNumbers = np.array( np.argmax( posteriors, 1 ), dtype=np.uint32 )
+    
+    
+    
     freeSurferSegmentation = np.zeros( imageBuffers.shape[ 0:3 ], dtype=np.uint16 )
     FreeSurferLabels = np.array( FreeSurferLabels, dtype=np.uint16 )
     freeSurferSegmentation[ mask ] = FreeSurferLabels[ structureNumbers ]
@@ -1241,7 +1306,12 @@ def samsegment( imageFileNames, atlasDir, savePath,
                 transformedTemplateFileName=None, 
                 userModelSpecifications={}, userOptimizationOptions={},
                 visualizer=None, saveHistory=False, saveMesh=False,
-                targetIntensity=None, targetSearchStrings=None ):
+                targetIntensity=None, targetSearchStrings=None,
+                hyperpriorPlugin=None,
+                posteriorPlugin=None,
+                posteriorPluginVariables=None,
+                threshold=None, thresholdSearchString=None
+                ):
 
     # Get full model specifications and optimization options (using default unless overridden by user) 
     modelSpecifications = getModelSpecifications( atlasDir, userModelSpecifications )
@@ -1354,13 +1424,14 @@ def samsegment( imageFileNames, atlasDir, savePath,
     classFractions, _ = gems.kvlGetMergingFractionsTable( modelSpecifications.names, modelSpecifications.sharedGMMParameters )
 
 
-    # 
     means, variances, mixtureWeights, biasFieldCoefficients, \
-      deformation, deformationAtlasFileName, optimizationSummary, optimizationHistory = \
+    deformation, deformationAtlasFileName, optimizationSummary, optimizationHistory = \
             estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transform, voxelSpacing,
                                     modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
                                     classFractions, numberOfGaussiansPerClass, optimizationOptions,
-                                    saveHistory=saveHistory, visualizer=visualizer )
+                                    saveHistory=saveHistory, visualizer=visualizer,
+                                    hyperpriorPlugin=hyperpriorPlugin
+                                    )
 
 
     # =======================================================================================
@@ -1371,15 +1442,26 @@ def samsegment( imageFileNames, atlasDir, savePath,
 
     # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
     # with all the original labels (instead of the reduced "super"-structure labels we created)
+    posteriorPluginDictionary = {}
+    if posteriorPluginVariables is not None:
+        for variableName in posteriorPluginVariables: 
+            posteriorPluginDictionary[ variableName ] = eval( variableName )
     posteriors, biasFields, nodePositions = segment( imageBuffers, mask, transform, biasFieldBasisFunctions,
-                                                    modelSpecifications.atlasFileName, deformation, deformationAtlasFileName,
-                                                    means, variances, mixtureWeights, biasFieldCoefficients,
-                                                    numberOfGaussiansPerClass, classFractions )
+                                                     modelSpecifications.atlasFileName, deformation, deformationAtlasFileName,
+                                                     means, variances, mixtureWeights, biasFieldCoefficients,
+                                                     numberOfGaussiansPerClass, classFractions,
+                                                     posteriorPlugin,
+                                                     posteriorPluginDictionary 
+                                                    )
+      
+      
 
     # Write out segmentation and bias field corrected volumes
-    volumesInCubicMm = writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, 
-                                    modelSpecifications.FreeSurferLabels, cropping,
-                                    targetIntensity, targetSearchStrings, modelSpecifications.names )
+    volumesInCubicMm = writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields,
+                                     posteriors, modelSpecifications.FreeSurferLabels, cropping,
+                                     targetIntensity, targetSearchStrings, modelSpecifications.names,
+                                     threshold, thresholdSearchString
+                                     )
 
 
     # Save the final mesh collection
