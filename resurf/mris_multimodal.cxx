@@ -10,7 +10,6 @@
 #include <string>
 #include "colortab.h"
 #include "fsenv.h"
-#include "fsSurfaceOptimizationFilter.h"
 #include "itkVTKPolyDataWriter.h"
 #include "itkSmoothingQuadEdgeMeshFilter.h"
 #include "vtkCellData.h"
@@ -104,7 +103,7 @@ int main(int narg, char*  arg[])
 	constexpr unsigned int Dimension = 3;
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
-	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
+//	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
 
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -210,7 +209,7 @@ int main(int narg, char*  arg[])
 			double* point2 = surfVTK->GetPoint( iD);
 			float distance =  vtkMath::Distance2BetweenPoints(point,point2);
 		//	std::cout << point [0] << " " << point2[0]<< " " <<distance << std::endl;
-			if( distance > 0.05)
+			//if( distance > 0.01)
 			{
 				points->InsertPoint(i,point[0], point[1], point[2]);
 			}
@@ -239,7 +238,7 @@ int main(int narg, char*  arg[])
 		//	std::cout << point[0] <<  " " << point2[0] << distance << std::endl;	
 			//if (distance <2)
 			{
-				surf->vertices[i].curv=distance;;
+				surf->vertices[i].curv=distance;
 			}
 	
 		}
@@ -247,12 +246,12 @@ int main(int narg, char*  arg[])
 		fout.open(csvFilename, ios::out | ios::app); 
 
 
-		MRISwriteCurvature(surf,overlayFilename) ;
-		COLOR_TABLE *ct;
-		int annot;
+		//MRISwriteCurvature(surf,overlayFilename) ;
+		//COLOR_TABLE *ct;
+		//int annot;
 
-		ct = CTABalloc(100);
-		surf->ct = ct;
+		//ct = CTABalloc(100);
+		//surf->ct = ct;
 		for(int i=0; i<surfVTK->GetNumberOfPoints();i++)
 		{	
 			double* point = surfVTK->GetPoint( i);
@@ -265,15 +264,15 @@ int main(int narg, char*  arg[])
 		//	std::cout << point[0] <<  " " << point2[0] << distance << std::endl;	
 			//if (distance <2)
 			{
-				CTABannotationAtIndex(surf->ct, int(distance*10),  &annot);
-				surf->vertices[i].annotation=annot;
+				//CTABannotationAtIndex(surf->ct, int(distance*10),  &annot);
+				//surf->vertices[i].annotation=annot;
 
 				fout << i <<  ", "<< distance <<  "\n"; 
 
 			}
 	
 		}
-		MRISwriteAnnotation(surf,annotationFilename) ;
+		//MRISwriteAnnotation(surf,annotationFilename) ;
 		fout.close();
 	}
 	if( cl.search("--curvature"))
@@ -315,14 +314,14 @@ int main(int narg, char*  arg[])
 
 
 		
-		COLOR_TABLE *ct;
-		int annot;
+		//COLOR_TABLE *ct;
+		//int annot;
 
-		double scalarRange[2];
-    		polydata->GetScalarRange(scalarRange);
-		std::cout << scalarRange[1] << " ," <<scalarRange[0] <<std::endl;
-		ct = CTABalloc(100);
-		surf->ct = ct;
+		//double scalarRange[2];
+    		//polydata->GetScalarRange(scalarRange);
+		//std::cout << scalarRange[1] << " ," <<scalarRange[0] <<std::endl;
+		//ct = CTABalloc(100);
+		//surf->ct = ct;
 		
 
 		for(int i=0;i<polydata->GetNumberOfPoints();i++)
@@ -330,12 +329,12 @@ int main(int narg, char*  arg[])
 				
   			double* curvs = dynamic_cast<vtkDataArray*>(polydata->GetPointData()->GetArray("PCACurvature"))->GetTuple3(i);
 			//double curv = std::max(std::max( curvs[0] , curvs[1]),  curvs[2])*100;
-			double curv =  curvs[0]*50+ curvs[1]*50; //,  curvs[2])*100;
-			CTABannotationAtIndex(surf->ct,curv,  &annot);
-			surf->vertices[i].annotation=annot;
+			double curv =  curvs[0]*.5+ curvs[1]*.5; //,  curvs[2])*100;
+			//CTABannotationAtIndex(surf->ct,curv,  &annot);
+			//surf->vertices[i].annotation=annot;
 			fout << i <<  ", "<< curv <<  "\n"; 
 		}	
-		MRISwriteAnnotation(surf,annotationFilename) ;
+		//MRISwriteAnnotation(surf,annotationFilename) ;
 
 		fout.close();
 	}

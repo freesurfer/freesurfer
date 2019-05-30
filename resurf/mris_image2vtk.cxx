@@ -88,35 +88,6 @@ vtkSmartPointer<vtkImageData> CreateImage( MRI* rasMRI )
 	imageData->SetDimensions( zX, zY, zZ );
 
 	double origin[3] = {0,0,0};
-	/*  if ( m_bResampleToRAS && !m_volumeRef )
-	    {
-	    float bounds[6];
-	    GetBounds( bounds );
-	    origin[0] = bounds[0];
-	    origin[1] = bounds[2];
-	    origin[2] = bounds[4];
-	    }
-	    else if ( m_volumeRef )
-	    {
-	    double ras[3], cindex[3];
-
-	    ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
-	    ::MRIworldToVoxel( m_volumeRef->m_MRITarget, ras[0], ras[1], ras[2], &cindex[0], &cindex[1], &cindex[2] );
-
-	    m_volumeRef->GetImageOutput()->GetOrigin( origin );
-	    for ( int i = 0; i < 3; i++ )
-	    {
-	    if ( fabs(cindex[i]-nint(cindex[i])) < 1e-4 )
-	    {
-	    cindex[i] = nint(cindex[i]);
-	    }
-	    }
-
-	    origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
-	    origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
-	    origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
-
-	//}*/
 
 	imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize);
 	imageData->SetOrigin( rasMRI->xstart, rasMRI->ystart, rasMRI->zstart );

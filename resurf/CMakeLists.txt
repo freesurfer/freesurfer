@@ -42,6 +42,11 @@ if(ITK_FOUND AND VTK_FOUND)
 
 
   add_executable(mri_vessel_segment mri_vessel_segment.cxx)
-  target_link_libraries(mri_vessel_segment utils ) # ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mri_vessel_segment utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mri_vessel_segment DESTINATION bin)
+
+  add_executable(mris_multimodal_surface_placement mris_multimodal_surface_placement.cxx)
+  target_link_libraries(mris_multimodal_surface_placement utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_multimodal_surface_placement DESTINATION bin)
+
 endif()
