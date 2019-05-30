@@ -44,6 +44,7 @@ public:
   double          m_dXOffset;
   double          m_dXInterval;
   qint64          m_nId;
+  QString         m_strName;
 
   bool            m_bShow;
   QColor          m_color;
@@ -65,6 +66,8 @@ public:
   void mousePressEvent(QMouseEvent *e);
   void mouseMoveEvent(QMouseEvent *e);
   void keyPressEvent(QKeyEvent *e);
+  void enterEvent(QEvent* e);
+  void leaveEvent(QEvent* e);
 
   void GetPlotRange(double* range)
   {
@@ -108,6 +111,8 @@ private:
   QColor          m_colorBackground;
   QColor          m_colorForeground;
   bool            m_bDarkMode;
+
+  bool            m_bShowCursorInfo;
 };
 
 #endif // WIDGETTIMECOURSEPLOT_H
