@@ -9784,7 +9784,7 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
 {
   int OutOfBounds;
   int width, height, depth;
-  int ix_low, iy_low, iz_low, ix, iy, iz;
+  int ix_low, iy_low, iz_low, ix, iy, iz, nvals;
   double val, xx, yy, zz, fx, fy, fz, vv[4][4][4];
 
   if (FEQUAL((int)x, x) && FEQUAL((int)y, y) && FEQUAL((int)z, z))
@@ -9850,6 +9850,8 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
           break;
         case MRI_FLOAT:
           vv[ix][iy][iz] = (double)MRIFvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
+	  if (!devFinite(vv[ix][iy][iz]))
+	    DiagBreak() ;
           break;
         case MRI_SHORT:
           vv[ix][iy][iz] = (double)MRISvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
@@ -9870,6 +9872,7 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
 
   val = 0;
 
+#if 0
   for (iz = 0; iz <= 3; iz++) {
     fz = MRIcubicCoeff(zz, iz);
     for (iy = 0; iy <= 3; iy++) {
@@ -9880,8 +9883,23 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
       }
     }
   }
-
   *pval = val / 8.;
+#else
+  nvals = 0 ;
+  for (iz = MAX(0, 1 - iz_low); iz < MIN(4, depth + 1 - iz_low); iz++) {
+    fz = MRIcubicCoeff(zz, iz);
+    for (iy = MAX(0, 1 - iy_low); iy < MIN(4, height + 1 - iy_low); iy++) {
+      fy = MRIcubicCoeff(yy, iy);
+      for (ix = MAX(0, 1 - ix_low); ix < MIN(4, width + 1 - ix_low); ix++) {
+        fx = MRIcubicCoeff(xx, ix);
+        val += (double)(vv[ix][iy][iz] * fx * fy * fz);
+	nvals++ ;
+      }
+    }
+  }
+  *pval = val / nvals;
+#endif
+
 
   return (NO_ERROR);
 }
