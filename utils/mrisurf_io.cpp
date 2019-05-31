@@ -5964,7 +5964,7 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
                  "mrisReadTriangleFile opened %s okay but surface doesn't match %s.  nvertices:%d != "
                  "mris->nvertices:%d || nfaces:%d != mris->nfaces:%d\n",
                  fname,
-                 mris->fname,
+                 mris->fname ? mris->fname : "NULL",
                  nvertices,
                  mris->nvertices,
                  nfaces,

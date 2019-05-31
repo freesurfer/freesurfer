@@ -58,6 +58,16 @@
 #include "tukey.h"
 #include "mrisegment.h"
 
+static int check_finite(double val)
+{
+  if (!devFinite(val))
+  {
+    DiagBreak() ;
+    return(0) ;
+  }
+  return(1) ;
+}
+
 //E/ Maybe should update these three to not demand MRI_SHORT -
 // but they're never called.
 MRI *MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
@@ -665,7 +675,7 @@ main(int argc, char *argv[])
       for (j=0; j<nvolumes; j++)
       {
         printf("estimating rigid alignment for FLASH volume "
-               "#%d...\n", j+1) ;
+               "#%d of %d\n", j+1, nvolumes) ;
         estimate_rigid_regmatrix(mri_flash_synth[j],mri_flash[j],
                                  M_reg[j], mri_mask);
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -1450,12 +1460,15 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           {
             MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
           }
+	  check_finite(val) ;
 	  if (!devFinite(val))
 	    DiagBreak() ;
           ImageValues[j] = val;
           ss += mri->dof*val*val;
+	  check_finite(ss) ;
         }
         norm = sqrt(ss);
+	check_finite(norm) ;
         if (norm>0)
           for (j = 0 ; j < nvolumes ; j++)
           {
@@ -1503,6 +1516,12 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           PD = (double)(0x7fff-1) ;
         }
 #endif
+	if (devFinite(PD) == 0 || devFinite(norm) == 0 || FZERO(SignalTableNorm[best_indx]) || PD > 1e7)
+	{
+	  printf("PD at (%d, %d, %d) = %f (%f / %f at index %d\n",
+		 x,y,z,PD, norm, SignalTableNorm[best_indx], best_indx) ;
+	  DiagBreak();
+	}
         MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
         if (mri_flash_synth)
         {
@@ -1547,6 +1566,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
 	if (!devFinite(total_sse))
 	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
+	check_finite(sqrt(sse)) ;
         if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
         {
           DiagBreak() ;
@@ -1566,6 +1586,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
     MatrixFree(&ras2vox[j]) ;
   }
   total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth)) ;
+  check_finite(total_sse) ;
   return(total_sse) ;
 }
 
@@ -1644,6 +1665,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
           ss += mri->dof*val*val;
         }
         inorm = sqrt(ss);
+	check_finite(ss) ;
         if (inorm>0)
           for (j = 0 ; j < nvolumes ; j++)
           {
@@ -1697,6 +1719,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
                 ss += mri->dof*val*val;
               }
               norm = SignalTableNorm[indx] = sqrt(ss);
+	      check_finite(norm) ;
               if (norm>0)
                 for (j = 0 ; j < nvolumes ; j++)
                 {
@@ -1751,6 +1774,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
 	if (!devFinite(total_sse))
 	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse/(double)nvolumes));
+	check_finite(sqrt(sse/(double)nvolumes)) ;
         if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
         {
           DiagBreak() ;
@@ -1758,6 +1782,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
       }
   }
   total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth*(double)nvolumes)) ;
+  check_finite(total_sse) ;
   MatrixFree(&m_vox2vox) ;
   VectorFree(&v1) ;
   VectorFree(&v2) ;
@@ -1812,6 +1837,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
       ss += val*val;
     }
     norm = SignalTableNorm[i] = sqrt(ss);
+    check_finite(norm) ;
     if (norm>0)
       for (j = 0 ; j < nvolumes ; j++)
       {
@@ -1847,6 +1873,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
           ss += val*val;
         }
         norm = SignalTableNorm[i] = sqrt(ss);
+	check_finite(norm) ;
         if (norm>0)
           for (j = 0 ; j < nvolumes ; j++)
           {
@@ -1884,6 +1911,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
       ss += val*val;
     }
     norm = sqrt(ss);
+    check_finite(norm) ;
     if (norm>0)
       for (j = 0 ; j < nvolumes ; j++)
       {
@@ -1951,12 +1979,14 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
     }
     total_sse += sse ;
     MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
+    check_finite(sqrt(sse)) ;
     if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
     {
       DiagBreak() ;
     }
   }
   total_sse = sqrt(total_sse / (double)(area->n_points*nvolumes)) ;
+  check_finite(total_sse) ;
   return(total_sse) ;
 }
 #endif
@@ -2023,6 +2053,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
         ss += val*val;
       }
       norm = SignalTableNorm[i][j] = sqrt(ss);
+      check_finite(norm) ;
       if (norm>0)
         for (k = 0 ; k < nvolumes ; k++)
         {
@@ -2077,6 +2108,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
           DiagBreak() ;
         }
         norm = sqrt(ss);
+	check_finite(norm) ;
         if (FZERO(norm))
         {
           continue ;  /* no real data */
@@ -2199,6 +2231,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
             last_sse = sse+1 ;  /* first time */
           }
           MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
+	  check_finite(sqrt(sse)) ;
           if (sse > last_sse)  /* revert to old values */
           {
             T1 = last_T1 ;
@@ -2231,6 +2264,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
         total_sse += sse ;
       }
   total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth)) ;
+  check_finite(total_sse) ;
   for (i = 0 ; i < nvalues ; i++)
   {
     for (j = 0 ; j < nvalues ; j++)
@@ -2588,6 +2622,7 @@ MRIssqrt(MRI *mri_src, MRI *mri_dst)
           pdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
           for (x = 0 ; x < width ; x++)
           {
+	    check_finite(sqrt(*psrc)) ;
             *pdst++ = sqrt(*psrc++) ;
           }
           break ;
@@ -3278,6 +3313,8 @@ estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash,
 #if NORM_VALUES
         Inorm = sqrt(Inorm) ;
         Snorm = sqrt(Snorm) ;
+	check_finite(Inorm) ;
+	check_finite(Snorm) ;
         if (FZERO(Inorm))
         {
           Inorm = 1  ;
@@ -3507,6 +3544,8 @@ compute_fa_rms(double T1_wm, double PD_wm, MRI **mri_flash, int nvolumes,
 #if NORM_VALUES
     Snorm = sqrt(Snorm) ;
     Inorm = sqrt(Inorm)  ;
+    check_finite(Inorm) ;
+    check_finite(Snorm) ;
     if (FZERO(Snorm))
     {
       Snorm =  1 ;
@@ -3526,6 +3565,7 @@ compute_fa_rms(double T1_wm, double PD_wm, MRI **mri_flash, int nvolumes,
       rms += (sval-val)*(sval-val);
     }
   }
+  check_finite(sqrt(rms/(double)(faf_label->n_points*nvolumes))) ;
 
   return(sqrt(rms/(double)(faf_label->n_points*nvolumes))) ;
 }

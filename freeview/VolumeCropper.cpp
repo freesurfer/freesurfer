@@ -53,10 +53,16 @@ VolumeCropper::VolumeCropper( QObject* parent ) :
   m_actorBox->GetProperty()->SetColor( 1, 1, 0 );
   m_actorBox->PickableOff();
 
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  QWidget* w = qobject_cast<QWidget*>(parent);
+  if (w)
+    ratio = w->devicePixelRatio();
+#endif
   m_actorFrame = vtkSmartPointer<vtkActor>::New();
   m_actorFrame->VisibilityOff();
   m_actorFrame->GetProperty()->SetColor( 1, 1, 0 );
-  m_actorFrame->GetProperty()->SetLineWidth( 2 );
+  m_actorFrame->GetProperty()->SetLineWidth( 2*ratio );
   m_actorFrame->GetProperty()->SetRepresentationToWireframe();
   m_actorFrame->GetProperty()->SetDiffuse( 0.0 );
   m_actorFrame->GetProperty()->SetAmbient( 1.0 );
@@ -86,7 +92,7 @@ VolumeCropper::VolumeCropper( QObject* parent ) :
     m_actorActivePlane2D[i] = vtkSmartPointer<vtkActor>::New();
     m_actorActivePlane2D[i]->VisibilityOff();
     m_actorActivePlane2D[i]->GetProperty()->SetColor( 1, 0, 0 );
-    m_actorActivePlane2D[i]->GetProperty()->SetLineWidth( 2 );
+    m_actorActivePlane2D[i]->GetProperty()->SetLineWidth( 2*ratio );
     m_actorActivePlane2D[i]->GetProperty()->SetRepresentationToWireframe();
     m_actorActivePlane2D[i]->GetProperty()->SetDiffuse( 0.0 );
     m_actorActivePlane2D[i]->GetProperty()->SetAmbient( 1.0 );

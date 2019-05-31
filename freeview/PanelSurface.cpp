@@ -50,6 +50,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui(new Ui::PanelSurface)
 {
   ui->setupUi(this);
+#ifdef Q_OS_MAC
+  ui->pushButtonNewLabel->setMaximumWidth(55);
+  ui->pushButtonDeleteLabel->setMaximumWidth(62);
+  ui->pushButtonLoadLabel->setMaximumWidth(55);
+  ui->pushButtonSaveLabel->setMaximumWidth(55);
+#endif
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
@@ -595,7 +601,7 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
     menu->addAction(act);
-    act = new QAction("MaskOverlay", this);
+    act = new QAction("Mask Overlay", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
     menu->addAction(act);
     menu->addSeparator();

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # fsl_sub_mgh
 # (This script was modified from FSL's fsl_sub by Anastasia Yendiki)

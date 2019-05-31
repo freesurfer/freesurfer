@@ -53,14 +53,18 @@
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   QObject( owner )
 {
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
   m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
   m_actorMesh->GetProperty()->SetRepresentationToWireframe();
-  m_actorMesh->GetProperty()->SetLineWidth( 2 );
+  m_actorMesh->GetProperty()->SetLineWidth( 2*ratio );
 
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
-  m_actorOutline->GetProperty()->SetLineWidth( 3 );
+  m_actorOutline->GetProperty()->SetLineWidth( 3*ratio );
 
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
