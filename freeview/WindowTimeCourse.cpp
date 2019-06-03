@@ -1,14 +1,14 @@
 /**
- * @file  WindowTimeCourse.cpp
- * @brief Tool window to display time course data
+ * @file  WidgetTimeCoursePlot.cpp
+ * @brief Widget drawing time course plot
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/29 18:10:42 $
- *    $Revision: 1.6 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,350 +22,414 @@
  *
  */
 
-#include "WindowTimeCourse.h"
-#include "ui_WindowTimeCourse.h"
-#include "MainWindow.h"
-#include "LayerMRI.h"
-#include "LayerCollection.h"
-#include "FSVolume.h"
-#include "LayerSurface.h"
-#include "SurfaceOverlay.h"
-#include "SurfaceOverlayProperty.h"
-#include "FSSurface.h"
-#include <QSettings>
+
+#include "WidgetTimeCoursePlot.h"
+#include <QPainter>
+#include <QMouseEvent>
 #include <QDebug>
-#include "FlowLayout.h"
-#include <QColorDialog>
-#include <QPointer>
+#include "MyUtils.h"
 
-ClickableLabel::ClickableLabel(QWidget* parent, Qt::WindowFlags f)
-    : QLabel(parent)
+WidgetTimeCoursePlot::WidgetTimeCoursePlot(QWidget *parent) :
+  QWidget(parent), m_bAutoScale(true), m_nCurrentFrame(0), m_dMinPlot(0), m_dMaxPlot(1),
+  m_bShowFrameNumber(false), m_bShowCursorInfo(false)
+{
+  setFocusPolicy(Qt::StrongFocus);
+  SetDarkMode(true);
+}
+
+WidgetTimeCoursePlot::~WidgetTimeCoursePlot()
 {
 }
 
-ClickableLabel::~ClickableLabel() {}
-
-void ClickableLabel::mousePressEvent(QMouseEvent* event)
+void WidgetTimeCoursePlot::SetDarkMode(bool bDark)
 {
-    emit clicked();
+  m_bDarkMode = bDark;
+  m_colorBackground = bDark?Qt::black:Qt::white;
+  m_colorForeground = bDark?QColor(255,255,255):QColor(30,30,30);
 }
 
-WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
-  QWidget(parent),
-  ui(new Ui::WindowTimeCourse),
-  lastMRI(NULL),
-  lastSurface(NULL),
-  lastOverlay(NULL)
+void WidgetTimeCoursePlot::Clear()
 {
-  ui->setupUi(this);
-  this->setWindowFlags(Qt::Tool);
-  this->setWindowTitle("Time Course");
-  ui->widgetPlot->SetDarkMode(true);
-  layoutLegend = new FlowLayout;
-  ui->widgetLegend->setLayout(layoutLegend);
-
-  connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)), Qt::QueuedConnection);
-  connect(ui->widgetPlot, SIGNAL(PlotRangeChanged()), this, SLOT(UpdateScaleInfo()), Qt::QueuedConnection);
-
-  QSettings s;
-  QVariant v = s.value("WindowTimeCourse/Geomerty");
-  if (v.isValid())
-    this->restoreGeometry(v.toByteArray());
-  ui->checkBoxAutoScale->setChecked(s.value("WindowTimeCourse/AutoScale", true).toBool());
-  if (!ui->checkBoxAutoScale->isChecked())
-    ui->checkBoxMaxScale->setChecked(true);
-  ui->lineEditScale->setEnabled(false);
+  m_data.clear();
+  update();
 }
 
-WindowTimeCourse::~WindowTimeCourse()
+void WidgetTimeCoursePlot::AddTimeCourseData(const TimeCourseData &data)
 {
-  QSettings s;
-  s.setValue("WindowTimeCourse/Geomerty", this->saveGeometry());
-  s.setValue("WindowTimeCourse/AutoScale", ui->checkBoxAutoScale->isChecked());
-  delete ui;
+  m_data << data;
+  if (m_data.size() == 1) // first one
+  {
+    m_nFrames = 0;
+    m_dMin = m_dMax = m_dLocalMin = m_dLocalMax = data.m_points.first();
+  }
+
+  if (data.m_points.size() > m_nFrames)
+    m_nFrames = data.m_points.size();
+  if (m_dMin > data.m_dMin)
+    m_dMin = data.m_dMin;
+  if (m_dMax < data.m_dMax)
+    m_dMax = data.m_dMax;
+
+  for (int i = 0; i < data.m_points.size(); i++)
+  {
+    if (m_dLocalMin > data.m_points[i])
+      m_dLocalMin = data.m_points[i];
+    else if (m_dLocalMax < data.m_points[i])
+      m_dLocalMax = data.m_points[i];
+  }
+
+  if (m_dMax <= m_dMin)
+    m_dMax = m_dMin+1;
+
+  if (m_dLocalMax <= m_dLocalMin)
+    m_dLocalMax = m_dLocalMin+1;
+
+  if (m_nCurrentFrame >= data.m_points.size())
+    m_nCurrentFrame = 0;
+
+  if (m_dMinPlot == 0 && m_dMaxPlot == 1)
+  {
+    m_dMinPlot = m_dMin;
+    m_dMaxPlot = m_dMax;
+  }
+
+  update();
 }
 
-void WindowTimeCourse::showEvent(QShowEvent *e)
+void WidgetTimeCoursePlot::SetDataVisible(qint64 nId, bool bShow)
+{
+  for (int i = 0; i < m_data.size(); i++)
+  {
+    if (m_data[i].m_nId == nId)
+    {
+      m_data[i].m_bShow = bShow;
+      update();
+      break;
+    }
+  }
+}
+
+void WidgetTimeCoursePlot::SetDataColor(qint64 nId, const QColor& color)
+{
+  for (int i = 0; i < m_data.size(); i++)
+  {
+    if (m_data[i].m_nId == nId)
+    {
+      m_data[i].m_color = color;
+      update();
+      break;
+    }
+  }
+}
+
+
+void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 {
   Q_UNUSED(e);
-  UpdateData(true);
-}
+  QPainter p(this);
+  QRectF rc_plot = rect();
+  p.fillRect(rect(), m_colorBackground);
+  int nMargin = 10;
+  rc_plot.adjust(nMargin, nMargin, -nMargin, -nMargin);
+  rc_plot.adjust(15, 18, -25, -30);
 
-void WindowTimeCourse::UpdateUI()
-{
-}
-
-void WindowTimeCourse::Clear()
-{
-  ui->widgetPlot->Clear();
-  QLayoutItem* item;
-  while ( ( item = layoutLegend->takeAt( 0 ) ) != NULL )
+  if (m_data.isEmpty())
   {
-    delete item->widget();
-    delete item;
-  }
-}
-
-void WindowTimeCourse::UpdateData(bool bForce)
-{
-  if (!isVisible() && !bForce)
     return;
+  }
 
-  QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
-  QList<QColor> colors;
-  colors << Qt::yellow << Qt::cyan << Qt::red << Qt::magenta;
-  Clear();
-  if (type == "MRI")
+  QFont fnt = font();
+  fnt.setPixelSize(11);
+  int nTextLen = qMax(QFontMetrics(fnt).width(QString::number(m_dMax)),
+                      QFontMetrics(fnt).width(QString::number(m_dMin)));
+  rc_plot.adjust(nTextLen+6, 0, 0, 0);
+  p.fillRect(rc_plot.adjusted(-1, -1, 1, 1), m_colorBackground);
+
+  double dMin = m_dMinPlot, dMax = m_dMaxPlot;
+  if (m_bAutoScale)
   {
-    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-    for (int nl = layers.size()-1; nl >= 0; nl--)
+    dMin = m_dLocalMin;
+    dMax = m_dLocalMax;
+    dMax += (dMax-dMin)/4;
+    double old_min = dMin;
+    dMin -= (dMax-dMin)/4;
+    if (dMin < 0 && old_min >= 0)
+      dMin = 0;
+  }
+  if (dMin == dMax)
+    dMax += 1;
+
+  p.setRenderHint(QPainter::Antialiasing);
+  // draw rect
+  p.setPen(QPen(m_colorForeground, 1));
+  p.setBrush(Qt::NoBrush);
+  p.drawRect(rc_plot);
+
+  // draw plots
+  double dSpacing = rc_plot.width() / (m_nFrames-1);
+  p.save();
+  for (int n = 0; n < m_data.size(); n++)
+  {
+    TimeCourseData& td = m_data[n];
+    if (td.m_bShow)
     {
-      LayerMRI* layer = qobject_cast<LayerMRI*>(layers[nl]);
-      if (layer && layer->GetNumberOfFrames() > 1)
+      QPointF* pts = new QPointF[td.m_points.size()];
+      for (int i = 0; i < td.m_points.size(); i++)
       {
-        double ras[3];
-        int n[3];
-        MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
-        layer->RemapPositionToRealRAS(ras, ras);
-        layer->RASToOriginalIndex(ras, n);
-        QList<double> data;
-        for (int i = 0; i < layer->GetNumberOfFrames(); i++)
-          data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
-        FSVolume* vol = layer->GetSourceVolume();
-        double val_min = vol->GetMinValue(), val_max = vol->GetFullMaxValue();
-        QVariantMap info = layer->GetTimeSeriesInfo();
-        TimeCourseData td;
-        td.m_points = data;
-        td.m_dMin = val_min;
-        td.m_dMax = val_max;
-        if (!layer->property("legend_color").value<QColor>().isValid())
-          layer->setProperty("legend_color", colors[(layers.size()-1-nl)%colors.size()]);
-        td.m_color = layer->property("legend_color").value<QColor>();
-        td.m_strXUnit = info["unit"].toString();
-        td.m_dXInterval = info["tr"].toDouble();
-        td.m_dXOffset = info["offset"].toDouble();
-        td.m_nId = layer->GetID();
-        if (layer->property("timecourse_visible").isValid())
-          td.m_bShow = layer->property("timecourse_visible").toBool();
-        ui->widgetPlot->AddTimeCourseData(td);
-        ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
-
-        connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
-                this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
-
-        QWidget* w = MakeLegendWidget(layer, td, layer->GetName());
-        layoutLegend->addWidget(w);
+        pts[i] = QPointF(rc_plot.left() + dSpacing*i,
+                         rc_plot.bottom() - (td.m_points[i]-dMin)/(dMax-dMin)*rc_plot.height());
       }
-      //  setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
+      p.setPen(QPen(QBrush(td.m_color), 2));
+      p.setClipRect(rc_plot);
+      p.drawPolyline(pts, td.m_points.size());
+      delete[] pts;
     }
   }
-  else if (type == "Surface")
-  {
-    LayerSurface* surf = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (surf)
-    {
-      Clear();
-      double pos[3];
-      MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
-      int nVert = -1;
-      if (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
-        nVert = surf->GetCurrentVertex();
-      else
-        nVert = surf->GetVertexIndexAtTarget(pos, NULL);
-      if (nVert < 0)
-        return;
+  p.restore();
 
-      QList<SurfaceOverlay*> overlays = surf->GetOverlays();
-      for (int no = 0; no < overlays.size(); no++)
+  // draw cursor
+  p.setPen(QPen(QColor(255,255,255), 1));
+  int cx = rc_plot.left()+dSpacing*m_nCurrentFrame;
+  p.drawLine(cx, rc_plot.top(), cx, rc_plot.bottom());
+  p.setClipping(false);
+
+  // draw Y metrics
+  p.setFont(fnt);
+  double nMetricInterval = 30;
+  double dMetricStep =  (dMax - dMin) / (rc_plot.height() / nMetricInterval);
+  dMetricStep = MyUtils::RoundToGrid( dMetricStep );
+  double dMetricPos = (int)(dMin/dMetricStep)*dMetricStep;
+  double y = rc_plot.bottom()-(dMetricPos-dMin)/(dMax-dMin)*rc_plot.height();
+  while (y > rc_plot.top())
+  {
+    if (y <= rc_plot.bottom())
+    {
+      QString strg = QString::number(dMetricPos);
+      p.drawText(QRectF(rect().left(), y-10, rc_plot.left()-rect().left()-6, 20),
+                 Qt::AlignVCenter | Qt::AlignRight, strg);
+      p.drawLine(QPointF(rc_plot.left(), y), QPointF(rc_plot.left()-2, y));
+    }
+    dMetricPos += dMetricStep;
+    y = rc_plot.bottom()-(dMetricPos-dMin)/(dMax-dMin)*rc_plot.height();
+  }
+
+  p.save();
+  p.translate(0, rc_plot.top()+rc_plot.height()/2);
+  p.rotate(-90);
+  p.drawText(QRect(-100, 0, 200, 20), Qt::AlignCenter, "Signal Intensity");
+  p.restore();
+
+  // draw X metrics
+  nMetricInterval = 50;
+  dMetricStep =  (m_nFrames-1) / (rc_plot.width() / nMetricInterval);
+  dMetricStep = MyUtils::RoundToGrid( dMetricStep );
+  dMetricPos = 0;
+  double dScale = 1;
+  int nPrecise = 0;
+  double x = rc_plot.left();
+  TimeCourseData& td = m_data[0];
+  QString strXUnit = td.m_strXUnit;
+  if (!m_bShowFrameNumber)
+  {
+    double np = log10(qAbs(td.m_dXInterval*dMetricStep));
+    if (np > 3 || np < -3)
+    {
+      np = ((int)np);
+      dScale = pow(10, -np);
+      strXUnit = QString("10^%1 %2").arg(np).arg(td.m_strXUnit);
+      nPrecise = 2;
+    }
+    else if (np < 2 && qAbs(td.m_dXInterval*dMetricStep) < 10)
+      nPrecise = 2;
+
+    dMetricStep = (m_nFrames-1) * qAbs(td.m_dXInterval) / rc_plot.width() * nMetricInterval;
+    dMetricStep = MyUtils::RoundToGrid(dMetricStep)/qAbs(td.m_dXInterval);
+    double dval = td.m_dXOffset/qAbs(td.m_dXInterval*dMetricStep) + 1;
+    if (td.m_dXInterval > 0)
+      dval = ((int)dval) + 1 - dval;
+    else
+      dval = dval - ((int)dval);
+    dMetricPos = dval*dMetricStep - dMetricStep;
+    while (dMetricPos < -dMetricStep/10)
+      dMetricPos += dMetricStep;
+    x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_nFrames-1);
+  }
+  while (x <= rc_plot.right()+dMetricStep/10)
+  {
+    QString strg;
+    if (m_bShowFrameNumber)
+      strg = QString::number(dMetricPos);
+    else
+      strg = QString::number((td.m_dXOffset+td.m_dXInterval*dMetricPos)*dScale, 'f', nPrecise);
+    p.drawText(QRectF(x-100, rc_plot.bottom()+5, 200, 20),
+               Qt::AlignTop | Qt::AlignHCenter, strg);
+    if (x-1 >= rc_plot.left() && x-1 <= rc_plot.right())
+      p.drawLine(QPointF(x-1, rc_plot.bottom()), QPointF(x-1, rc_plot.bottom()+2));
+
+    dMetricPos += dMetricStep;
+    x = rc_plot.left() + dMetricPos*rc_plot.width()/(m_nFrames-1);
+  }
+
+  QRectF rc = rect();
+  // draw current x value
+  QString x_strg = QString("Frame #%1").arg(m_nCurrentFrame);
+  if (!strXUnit.isEmpty())
+    x_strg += QString(" / %1 (%2)").arg((td.m_dXOffset+m_nCurrentFrame*td.m_dXInterval)*dScale).arg(strXUnit);
+  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, x_strg);
+
+  // draw current y values
+  if (m_bShowCursorInfo)
+  {
+    int nMaxNameWidth = 0, nMaxValueWidth = 0;
+    QFontMetrics fmt(p.font());
+    int nVisibleLines = 0;
+    for (int n = 0; n < m_data.size(); n++)
+    {
+      TimeCourseData& td = m_data[n];
+      if (td.m_bShow)
       {
-        if (overlays[no]->GetNumberOfFrames() <= 1)
+        int nLen = fmt.width(td.m_strName);
+        if (nLen > nMaxNameWidth)
+          nMaxNameWidth = nLen;
+        if (m_nCurrentFrame < td.m_points.size())
         {
-          overlays.removeAt(no);
-          no--;
+          nLen = fmt.width(QString::number(td.m_points[m_nCurrentFrame]));
+          if (nLen > nMaxValueWidth)
+            nMaxValueWidth = nLen;
+        }
+        nVisibleLines++;
+      }
+    }
+    if (nMaxValueWidth > 0)
+    {
+      int nMarginH = 17, nMarginV = 15;
+      int nSpacingH = 9, nSpacingV = 5;
+      QRectF rc_frame(0, 0, nMarginH*2 + nSpacingH + nMaxValueWidth + nMaxNameWidth,
+               nMarginV*2 + (nVisibleLines-1)*nSpacingV + nVisibleLines*fmt.height());
+      rc_frame.moveTopRight(rc_plot.topRight() + QPointF(-15, 15));
+      p.setPen(QPen(m_colorForeground, 1));
+      p.setBrush(m_colorBackground);
+      p.drawRect(rc_frame);
+      int offset_y = nMarginV;
+      for (int n = 0; n < m_data.size(); n++)
+      {
+        TimeCourseData& td = m_data[n];
+        if (td.m_bShow)
+        {
+          p.setPen(QPen(td.m_color));
+          QRectF rc(0, 0, nMaxNameWidth, fmt.height());
+          rc.moveTopLeft(rc_frame.topLeft() + QPointF(nMarginH, offset_y));
+          p.drawText(rc, Qt::AlignRight, td.m_strName+" :");
+          if (m_nCurrentFrame < td.m_points.size())
+          {
+            rc.setWidth(nMaxValueWidth);
+            rc.moveRight(rc_frame.right()-nMarginH);
+            p.drawText(rc, Qt::AlignLeft, QString::number(td.m_points[m_nCurrentFrame]));
+          }
+          offset_y += fmt.height() + nSpacingV;
         }
       }
-
-      for (int no = 0; no < overlays.size(); no++)
-      {
-        SurfaceOverlay* overlay = overlays[no];
-        int nFrames = overlay->GetNumberOfFrames();
-        float* buffer = new float[nFrames];
-        double range[2];
-        overlay->GetDataAtVertex(nVert, buffer);
-        overlay->GetRawRange(range);
-        QList<double> data;
-        for (int i = 0; i < nFrames; i++)
-          data << buffer[i];
-        delete[] buffer;
-        TimeCourseData td;
-        td.m_points = data;
-        td.m_dMin = range[0];
-        td.m_dMax = range[1];
-        if (!overlay->property("legend_color").value<QColor>().isValid())
-          overlay->setProperty("legend_color", colors[(overlays.size()-1-no)%colors.size()]);
-        if (overlay->property("timecourse_visible").isValid())
-          td.m_bShow = overlay->property("timecourse_visible").toBool();
-        td.m_color = overlay->property("legend_color").value<QColor>();
-        td.m_nId = overlay->GetID();
-        ui->widgetPlot->AddTimeCourseData(td);
-        ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
-
-        QWidget* w = MakeLegendWidget(overlay, td, overlay->GetName());
-        layoutLegend->addWidget(w);
-      }
-      //  setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
     }
+  }
+
+  m_rectPlot = rc_plot;
+  if (m_dMinPlot != dMin || m_dMaxPlot != dMax)
+  {
+    m_dMinPlot = dMin;
+    m_dMaxPlot = dMax;
+    emit PlotRangeChanged();
   }
 }
 
-QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& td, const QString& text)
+void WidgetTimeCoursePlot::SetCurrentFrame(int frame)
 {
-  QWidget* w = new QWidget(this);
-  QHBoxLayout* hbox = new QHBoxLayout;
-  w->setLayout(hbox);
-  QCheckBox* checkbox = new QCheckBox();
-  checkbox->setChecked(td.m_bShow);
-  checkbox->setProperty("data_id", td.m_nId);
-  checkbox->setProperty("data_obj", qVariantFromValue(obj));
-  connect(checkbox, SIGNAL(toggled(bool)), SLOT(OnCheckBoxShowData(bool)));
-  checkbox->setCursor(Qt::PointingHandCursor);
-  hbox->addWidget(checkbox);
-  ClickableLabel* label = new ClickableLabel();
-  label->setText(text);
-  label->setProperty("data_id", td.m_nId);
-  hbox->addWidget(label);
-  label->setStyleSheet(QString("color:rgb(%1,%2,%3)")
-                          .arg(td.m_color.red()).arg(td.m_color.green()).arg(td.m_color.blue()));
-  label->setProperty("data_obj", qVariantFromValue(obj));
-  label->setCursor(Qt::PointingHandCursor);
-  connect(label, SIGNAL(clicked()), SLOT(OnLegendLabelClicked()));
-
-  return w;
+  m_nCurrentFrame = frame;
+  update();
 }
 
-void WindowTimeCourse::OnFrameChanged(int frame)
+void WidgetTimeCoursePlot::SetAutoScale(bool bAutoScale)
 {
-  QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
-  if (type != "MRI" && type != "Surface")
-    type = "MRI";
-  if (type == "MRI")
+  m_bAutoScale = bAutoScale;
+  update();
+}
+
+void WidgetTimeCoursePlot::mousePressEvent(QMouseEvent *e)
+{
+  if (e->button() == Qt::LeftButton && m_rectPlot.contains(e->pos()))
   {
-    LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
-    if (layer && frame != layer->GetActiveFrame() && frame < layer->GetNumberOfFrames())
+    double dSpacing = m_rectPlot.width() / (m_nFrames-1);
+    int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);
+    if (n >= 0 && n < m_nFrames)
     {
-      layer->SetActiveFrame(frame);
+      m_nCurrentFrame = n;
+      update();
+      emit FrameChanged(n);
     }
   }
-  else
+}
+
+void WidgetTimeCoursePlot::mouseMoveEvent(QMouseEvent *e)
+{
+  m_bShowCursorInfo = true;
+  if (e->buttons() & Qt::LeftButton && m_rectPlot.contains(e->pos()))
   {
-    emit OverlayFrameChanged(frame);
-  }
-}
-
-void WindowTimeCourse::SetCurrentFrame(int n)
-{
-  ui->widgetPlot->SetCurrentFrame(n);
-}
-
-void WindowTimeCourse::OnLayerCorrelationSurfaceChanged()
-{
-  LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
-  if (layer && layer->GetCorrelationSurface())
-  {
-    hide();
-  }
-}
-
-void WindowTimeCourse::UpdateScaleInfo()
-{
-  double range[2];
-  ui->widgetPlot->GetPlotRange(range);
-  ui->lineEditScale->blockSignals(true);
-  ui->lineEditScale->setText(QString("%1, %2").arg(range[0]).arg(range[1]));
-  ui->lineEditScale->blockSignals(false);
-}
-
-void WindowTimeCourse::OnCheckAutoScale(bool bChecked)
-{
-  ui->widgetPlot->SetAutoScale(bChecked);
-  if (bChecked)
-  {
-    ui->checkBoxMaxScale->setChecked(false);
-    ui->lineEditScale->setEnabled(false);
-  }
-  else if (!ui->checkBoxMaxScale->isChecked())
-    ui->lineEditScale->setEnabled(true);
-}
-
-void WindowTimeCourse::OnCheckMaxScale(bool bChecked)
-{
-  if (bChecked)
-  {
-    ui->widgetPlot->ResetPlotRange();
-    ui->checkBoxAutoScale->setChecked(false);
-    ui->lineEditScale->setEnabled(false);
-  }
-  else if (!ui->checkBoxAutoScale->isChecked())
-    ui->lineEditScale->setEnabled(true);
-}
-
-void WindowTimeCourse::OnLineEditScaleReturnPressed()
-{
-  QStringList list = ui->lineEditScale->text().trimmed().split(",", QString::SkipEmptyParts);
-  if (list.size() != 2)
-    list = ui->lineEditScale->text().trimmed().split(" ", QString::SkipEmptyParts);
-  if (list.size() != 2)
-    return;
-
-  bool bOK;
-  double range[2];
-  range[0] = list[0].trimmed().toDouble(&bOK);
-  if (!bOK)
-    return;
-  range[1] = list[1].trimmed().toDouble(&bOK);
-  if (!bOK)
-    return;
-
-  if (range[1] <= range[0])
-    range[1] = range[0]+1;
-  ui->widgetPlot->SetPlotRange(range);
-}
-
-void WindowTimeCourse::OnComboSecondPlot(int nSel)
-{
-  UpdateData();
-}
-
-void WindowTimeCourse::OnCheckShowFrameNumber(bool b)
-{
-  ui->widgetPlot->SetShowFrameNumber(b);
-}
-
-void WindowTimeCourse::OnCheckBoxShowData(bool bShow)
-{
-  QCheckBox* cb = qobject_cast<QCheckBox*>(sender());
-  if (cb)
-  {
-    ui->widgetPlot->SetDataVisible(cb->property("data_id").toLongLong(), bShow);
-    QObject* obj = cb->property("data_obj").value<QObject*>();
-    if (obj)
-      obj->setProperty("timecourse_visible", bShow);
-  }
-}
-
-void WindowTimeCourse::OnLegendLabelClicked()
-{
-  QPointer<QLabel> l = qobject_cast<QLabel*>(sender());
-  if (l)
-  {
-    QObject* obj = l->property("data_obj").value<QObject*>();
-    QColor c = QColorDialog::getColor(obj?obj->property("legend_color").value<QColor>():Qt::white, this);
-    if (c.isValid() && l)
+    double dSpacing = m_rectPlot.width() / (m_nFrames-1);
+    int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);
+    if (n >= 0 && n < m_nFrames)
     {
-      l->setStyleSheet(QString("color:rgb(%1,%2,%3)")
-                              .arg(c.red()).arg(c.green()).arg(c.blue()));
-      obj->setProperty("legend_color", c);
-      ui->widgetPlot->SetDataColor(l->property("data_id").toLongLong(), c);
+      m_nCurrentFrame = n;
+      update();
+      emit FrameChanged(n);
     }
   }
+}
+
+void WidgetTimeCoursePlot::enterEvent(QEvent *e)
+{
+  m_bShowCursorInfo = true;
+  update();
+}
+
+void WidgetTimeCoursePlot::leaveEvent(QEvent *e)
+{
+  m_bShowCursorInfo = false;
+  update();
+}
+
+void WidgetTimeCoursePlot::keyPressEvent(QKeyEvent *e)
+{
+  if (e->key() == Qt::Key_Left)
+  {
+    if (m_nCurrentFrame > 0)
+    {
+      m_nCurrentFrame--;
+      update();
+      emit FrameChanged(m_nCurrentFrame);
+    }
+  }
+  else if (e->key() == Qt::Key_Right)
+  {
+    if (m_nCurrentFrame < m_nFrames-1)
+    {
+      m_nCurrentFrame++;
+      update();
+      emit FrameChanged(m_nCurrentFrame);
+    }
+  }
+  QWidget::keyPressEvent(e);
+}
+
+void WidgetTimeCoursePlot::SetPlotRange(double *range_in)
+{
+  m_dMinPlot = range_in[0];
+  m_dMaxPlot = range_in[1];
+  update();
+}
+
+void WidgetTimeCoursePlot::ResetPlotRange()
+{
+  m_dMinPlot = m_dMin;
+  m_dMaxPlot = m_dMax;
+  update();
+  emit PlotRangeChanged();
 }
