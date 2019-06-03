@@ -37,7 +37,6 @@
 #include <string>
 #include "colortab.h"
 #include "fsenv.h"
-#include "fsSurfaceOptimizationFilter.h"
 #include "itkVTKPolyDataWriter.h"
 #include <vnl/vnl_cross.h>
 #include <cmath>

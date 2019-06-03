@@ -90,7 +90,7 @@ signals:
   void OverlayFrameChanged(int frame);
 
 private:
-  QWidget* MakeLegendWidget(QObject* obj, const TimeCourseData& td, const QString& text);
+  QWidget* MakeLegendWidget(QObject* obj, const TimeCourseData& td);
 
   Ui::WindowTimeCourse *ui;
   LayerMRI*     lastMRI;

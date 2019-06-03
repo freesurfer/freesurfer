@@ -26,12 +26,12 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 	data = img.get_data()
 
 	gqmodel = GeneralizedQSamplingModel(gtab, method='gqi2', sampling_length=.5)
-	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	maskdata, mask = median_otsu(data, 2, 1) #, False,vol_idx=range(10, 35), dilate=5)
 	gqfit = gqmodel.fit(data, mask=mask)
 	sphere = get_sphere('symmetric724')
 
 	ODF = gqfit.odf(sphere)
-	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask,  return_odf=False,  normalize_peaks=True)
+	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.8, min_separation_angle=35, mask=mask,  return_odf=False,  normalize_peaks=True)
 
 	gqpeak_values = gqpeaks.peak_values
 	gqpeak_indices = gqpeaks.peak_indices
@@ -43,8 +43,8 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 
 	#gqpeaks = peaks_from_model(model=gqmodel, data=data,sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask, return_odf=True, normalize_peaks=True)
 
-	tissue_classifier = ThresholdTissueClassifier(GFA, 0.01)
-	seeds = random_seeds_from_mask(GFA > 0.01, seeds_count=1)
+	tissue_classifier = ThresholdTissueClassifier(GFA, 0.005)
+	seeds = random_seeds_from_mask(GFA > 0.005, seeds_count=3)
 	streamline_generator = LocalTracking(gqpeaks, tissue_classifier, seeds, affine=np.eye(4), step_size=0.5)
 	streamlines = Streamlines(streamline_generator)
 
