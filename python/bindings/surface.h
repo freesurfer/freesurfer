@@ -10,19 +10,16 @@ class PySurface : public MRIS
 public:
   PySurface(const std::string &filename);
 
-  // mris pointer getter/setter
-  void setMRIS(MRIS *mris);
-
   // filesystem IO
   void write(const std::string &filename);
 
   // vertices getter/setter
   py::array_t<float> getVertices();
-  void setVertices(py::array_t<float, py::array::c_style | py::array::forcecast>);
+  void setVertices(py::array_t<float, py::array::c_style | py::array::forcecast> array);
 
   // faces getter/setter
   py::array_t<int> getFaces();
-  void setFaces(py::array_t<int, py::array::c_style | py::array::forcecast>);
+  void setFaces(py::array_t<int, py::array::c_style | py::array::forcecast> array);
 
   // wrapped utilities
   bool isSelfIntersecting();
@@ -39,8 +36,8 @@ inline void bindSurface(py::module &m)
     .def("write", &PySurface::write)
     .def("isSelfIntersecting", &PySurface::isSelfIntersecting)
     .def("fillInterior", &PySurface::fillInterior)
-    .def_property_readonly("vertices", &PySurface::getVertices)
-    .def_property_readonly("faces", &PySurface::getFaces)
+    .def_property("vertices", &PySurface::getVertices, &PySurface::setVertices)
+    .def_property("faces", &PySurface::getFaces, &PySurface::setFaces)
     ;
 
   m.def("read_annotation", &readAnnotation);

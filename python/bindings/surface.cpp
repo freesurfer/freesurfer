@@ -46,6 +46,21 @@ py::array_t<float> PySurface::getVertices()
 
 
 /*
+  Sets the underlying vertex data from an N x 3 numpy array.
+*/
+void PySurface::setVertices(py::array_t<float, py::array::c_style | py::array::forcecast> array)
+{
+  if (array.request().shape != std::vector<ssize_t>({nvertices, 3})) logFatal(1) << "vertex array shape must be (" << nvertices << ", 3)";
+  const float *src = array.data(0);
+  for (int v = 0 ; v < nvertices ; v++) {
+    vertices[v].x = *src++;
+    vertices[v].y = *src++;
+    vertices[v].z = *src++;
+  }
+}
+
+
+/*
   Returns the underlying face data as an N x 3 numpy array.
 */
 py::array_t<int> PySurface::getFaces()
@@ -59,6 +74,22 @@ py::array_t<int> PySurface::getFaces()
   }
   return makeArray({nfaces, 3}, MemoryOrder::C, buffer);
 }
+
+
+/*
+  Sets the underlying face data from an N x 3 numpy array.
+*/
+void PySurface::setFaces(py::array_t<int, py::array::c_style | py::array::forcecast> array)
+{
+  if (array.request().shape != std::vector<ssize_t>({nfaces, 3})) logFatal(1) << "vertex array shape must be (" << nfaces << ", 3)";
+  const int *src = array.data(0);
+  for (int f = 0 ; f < nfaces ; f++) {
+    faces[f].v[0] = *src++;
+    faces[f].v[1] = *src++;
+    faces[f].v[2] = *src++;
+  }
+}
+
 
 
 /*
