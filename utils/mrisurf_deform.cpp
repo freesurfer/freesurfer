@@ -4547,7 +4547,7 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
     MHB *bin;
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
 
-      bool const debugBin = debugNonDeterminism && (0 <= hash_count && hash_count < hash_limit_max));
+      bool const debugBin = debugNonDeterminism && (0 <= hash_count && hash_count < hash_limit_max);
       if (debugBin) {
         fprintf(stdout, "%s:%d sse_repulse bin->fno:%d\n",__FILE__,__LINE__,bin->fno);
       }
@@ -4602,7 +4602,7 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
       printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno, min_d, v_sse);
     }
     
-    if (debugNonDeterminism && (hash_count < hash_limit_max) {
+    if (debugNonDeterminism && (hash_count < hash_limit_max)) {
       hash = fnv_add(hash, (unsigned char*)&sse_repulse, sizeof(sse_repulse));
       if (++hash_count >= hash_limit) {
         hash_limit += 1;
