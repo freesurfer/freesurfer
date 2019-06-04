@@ -187,7 +187,7 @@ bool FSSurface::MRISRead( const QString& filename,
   }
   else
   {
-    if (!sphere_filename.isEmpty() && QFile::exists(sphere_filename))
+    if (!sphere_filename.isEmpty())
       MRISreadCanonicalCoordinates(m_MRIS, qPrintable(sphere_filename));
     return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
   }
