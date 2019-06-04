@@ -324,6 +324,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
           {
             rc.setWidth(nMaxValueWidth);
             rc.moveRight(rc_frame.right()-nMarginH-3);
+            p.setPen(m_colorForeground);
             p.drawText(rc, Qt::AlignLeft, QString::number(td.m_points[m_nCurrentFrame]));
           }
           offset_y += fmt.height() + nSpacingV;
