@@ -58,10 +58,12 @@ MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src
     if (vsrc == NULL) ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst);
     vno_src = vsrc - &mris_src->vertices[0];
     
-    hash = fnv_add(hash, (unsigned char*)&vno_src, sizeof(vno_src));
-    if (hash_count++ >= hash_limit) {
+    if (debugNonDeterminism) {
+      hash = fnv_add(hash, (unsigned char*)&vno_src, sizeof(vno_src));
+      if (hash_count++ >= hash_limit) {
         hash_limit *= 2;
         fprintf(stdout, "%s:%d MHTfindClosestVertexSet returns hash:%ld\n",__FILE__,__LINE__,hash);
+      }
     }
     
     if (vno_src == Gdiag_no || vno_dst == Gdiag_no) {
@@ -70,7 +72,9 @@ MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src
     }
     MRIsetVoxVal(mri_dst_features, vno_dst, 0, 0, 0, MRIgetVoxVal(mri_src_features, vno_src, 0, 0, 0));
   }
-  fprintf(stdout, "%s:%d MHTfindClosestVertexSet returns hash:%ld\n",__FILE__,__LINE__,hash);
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d MHTfindClosestVertexSet returns hash:%ld\n",__FILE__,__LINE__,hash);
+  }
   MHTfree(&mht);
   return (mri_dst_features);
 }
@@ -718,12 +722,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       // in as a ratio, so the number of verts divides out. 
       sse = MRIScomputeSSE(mris, parms);
 
-      hash = fnv_add(hash, (unsigned char*)&sse, sizeof(sse));
-      if (++hash_count >= hash_limit) {
-        hash_limit *= 2;
-        fprintf(stdout, "%s:%d sse hash_count:%ld hash:%ld\n",__FILE__,__LINE__,hash_count,hash);
+      if (debugNonDeterminism) {
+        hash = fnv_add(hash, (unsigned char*)&sse, sizeof(sse));
+        if (++hash_count >= hash_limit) {
+          hash_limit *= 2;
+          fprintf(stdout, "%s:%d sse hash_count:%ld hash:%ld\n",__FILE__,__LINE__,hash_count,hash);
+        }
       }
-
+      
       done = 1; // assume done with this step unless there is an increase in RMS (below)
 
       // This next section is doing a couple of things:

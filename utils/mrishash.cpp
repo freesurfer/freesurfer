@@ -2578,7 +2578,7 @@ int MHTfindClosestVertexNo2(
     float *pmin_dist)
 {
     int vno = v - mris_for_v->vertices;
-    (0 <= vno && vno < mris_for_v->nvertices);
+    cheapAssert(0 <= vno && vno < mris_for_v->nvertices);
     Surface surface(mris_for_v);
     float x,y,z;
     mhtVertex2xyz_float(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
