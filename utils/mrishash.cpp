@@ -190,10 +190,6 @@ static void mhtVertex2xyz_float(Vertex  const vtx, int which, float *x, float *y
       *y = vtx.origy();
       *z = vtx.origz();
       break;
-    case GOOD_VERTICES:
-      break;
-    case TMP_VERTICES:
-      break;
     case CANONICAL_VERTICES:
       *x = vtx.cx();
       *y = vtx.cy();
@@ -203,8 +199,6 @@ static void mhtVertex2xyz_float(Vertex  const vtx, int which, float *x, float *y
       *x = vtx.x();
       *y = vtx.y();
       *z = vtx.z();
-      break;
-    case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
       *x = vtx.fx();
@@ -216,13 +210,14 @@ static void mhtVertex2xyz_float(Vertex  const vtx, int which, float *x, float *y
       *y = vtx.pialy();
       *z = vtx.pialz();
       break;
-    case TMP2_VERTICES:
-      break;
     case WHITE_VERTICES:
       *x = vtx.whitex();
       *y = vtx.whitey();
       *z = vtx.whitez();
       break;
+    default:
+      cheapAssert(false);
+      *x = *y = *z = 0.0f;
   }
   return;
 }
@@ -235,10 +230,6 @@ static void mhtVertex2xyz_double(Vertex  const vtx, int which, double *x, double
       *y = vtx.origy();
       *z = vtx.origz();
       break;
-    case GOOD_VERTICES:
-      break;
-    case TMP_VERTICES:
-      break;
     case CANONICAL_VERTICES:
       *x = vtx.cx();
       *y = vtx.cy();
@@ -248,8 +239,6 @@ static void mhtVertex2xyz_double(Vertex  const vtx, int which, double *x, double
       *x = vtx.x();
       *y = vtx.y();
       *z = vtx.z();
-      break;
-    case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
       *x = vtx.fx();
@@ -261,13 +250,14 @@ static void mhtVertex2xyz_double(Vertex  const vtx, int which, double *x, double
       *y = vtx.pialy();
       *z = vtx.pialz();
       break;
-    case TMP2_VERTICES:
-      break;
     case WHITE_VERTICES:
       *x = vtx.whitex();
       *y = vtx.whitey();
       *z = vtx.whitez();
       break;
+    default:
+      cheapAssert(false);
+      *x = *y = *z = 0.0f;
   }
   return;
 }
@@ -280,10 +270,6 @@ static void mhtVertex2Ptxyz_double(Vertex  const vtx, int which, Ptdbl_t *pt)
       pt->y = vtx.origy();
       pt->z = vtx.origz();
       break;
-    case GOOD_VERTICES:
-      break;
-    case TMP_VERTICES:
-      break;
     case CANONICAL_VERTICES:
       pt->x = vtx.cx();
       pt->y = vtx.cy();
@@ -293,8 +279,6 @@ static void mhtVertex2Ptxyz_double(Vertex  const vtx, int which, Ptdbl_t *pt)
       pt->x = vtx.x();
       pt->y = vtx.y();
       pt->z = vtx.z();
-      break;
-    case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
       pt->x = vtx.fx();
@@ -306,13 +290,14 @@ static void mhtVertex2Ptxyz_double(Vertex  const vtx, int which, Ptdbl_t *pt)
       pt->y = vtx.pialy();
       pt->z = vtx.pialz();
       break;
-    case TMP2_VERTICES:
-      break;
     case WHITE_VERTICES:
       pt->x = vtx.whitex();
       pt->y = vtx.whitey();
       pt->z = vtx.whitez();
       break;
+    default:
+      cheapAssert(false);
+      pt->x = pt->y = pt->z = 0.0f;
   }
   return;
 }
@@ -326,10 +311,6 @@ static void mhtVertex2array3_double(Vertex  const vtx, int which, double *array3
       array3[1] = vtx.origy();
       array3[2] = vtx.origz();
       break;
-    case GOOD_VERTICES:
-      break;
-    case TMP_VERTICES:
-      break;
     case CANONICAL_VERTICES:
       array3[0] = vtx.cx();
       array3[1] = vtx.cy();
@@ -339,8 +320,6 @@ static void mhtVertex2array3_double(Vertex  const vtx, int which, double *array3
       array3[0] = vtx.x();
       array3[1] = vtx.y();
       array3[2] = vtx.z();
-      break;
-    case INFLATED_VERTICES:
       break;
     case FLATTENED_VERTICES:
       array3[0] = vtx.fx();
@@ -352,13 +331,14 @@ static void mhtVertex2array3_double(Vertex  const vtx, int which, double *array3
       array3[1] = vtx.pialy();
       array3[2] = vtx.pialz();
       break;
-    case TMP2_VERTICES:
-      break;
     case WHITE_VERTICES:
       array3[0] = vtx.whitex();
       array3[1] = vtx.whitey();
       array3[2] = vtx.whitez();
       break;
+    default:
+      cheapAssert(false);
+      array3[0] = array3[1] = array3[2] = 0.0f;
   }
   return;
 }
@@ -659,6 +639,8 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
 
     double WORLD_TO_VOLUME(double x) const { return (x+FIELD_OF_VIEW/2)/vres; }
     int    WORLD_TO_VOXEL (double x) const { return int(WORLD_TO_VOLUME(x));  }
+    float  WORLD_TO_VOLUME(float  x) const { return (x+FIELD_OF_VIEW/2)/vres; }
+    int    WORLD_TO_VOXEL (float  x) const { return int(WORLD_TO_VOLUME(x));  }
     
     void checkConstructedWithFaces   () const;
     void checkConstructedWithVertices() const;
@@ -2596,7 +2578,7 @@ int MHTfindClosestVertexNo2(
     float *pmin_dist)
 {
     int vno = v - mris_for_v->vertices;
-    cheapAssert(0 <= vno && vno < mris_for_v->nvertices);
+    (0 <= vno && vno < mris_for_v->nvertices);
     Surface surface(mris_for_v);
     float x,y,z;
     mhtVertex2xyz_float(surface.vertices(vno), mht->which_vertices, &x, &y, &z);

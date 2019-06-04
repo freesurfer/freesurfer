@@ -23,6 +23,21 @@
 #include "mrisurf_timeStep.h"
 #include "region.h"
 
+static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
+{
+    fprintf(file, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f", n+1, dt, (float)sse, (float)rms);
+    if (last_rms >= 0.0) fprintf(file, " (%2.3f%%)", 100 * (last_rms - rms) / last_rms);
+    fprintf(file, "  %s:%d\n", __FILE__, line);
+    fflush(file);
+}
+
+static void showDtSSeRms(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
+{
+  if (Gdiag & DIAG_SHOW)  showDtSSeRmsWkr(stdout, n, dt, sse, rms, last_rms, line);
+  if (Gdiag & DIAG_WRITE) showDtSSeRmsWkr(file,   n, dt, sse, rms, last_rms, line);
+}
+
+
 MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features)
 {
   int vno_src, vno_dst;
@@ -32,18 +47,30 @@ MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src
   MHT *mht = MHTcreateVertexTable(mris_src, CANONICAL_VERTICES);
 
   if (mri_dst_features == NULL) mri_dst_features = MRIalloc(mris_dst->nvertices, 1, 1, MRI_FLOAT);
+
+  size_t hash_count = 0, hash_limit = 1;  
+  auto hash = fnv_init();
+
   for (vno_dst = 0; vno_dst < mris_dst->nvertices; vno_dst++) {
     if (vno_dst == Gdiag_no) DiagBreak();
     vdst = &mris_dst->vertices[vno_dst];
     vsrc = MHTfindClosestVertexSet2(mht, mris_src, mris_dst, vdst);
     if (vsrc == NULL) ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst);
     vno_src = vsrc - &mris_src->vertices[0];
+    
+    hash = fnv_add(hash, (unsigned char*)&vno_src, sizeof(vno_src));
+    if (hash_count++ >= hash_limit) {
+        hash_limit *= 2;
+        fprintf(stdout, "%s:%d MHTfindClosestVertexSet returns hash:%ld\n",__FILE__,__LINE__,hash);
+    }
+    
     if (vno_src == Gdiag_no || vno_dst == Gdiag_no) {
       printf("v %d --> v %d\n", vno_src, vno_dst);
       DiagBreak();
     }
     MRIsetVoxVal(mri_dst_features, vno_dst, 0, 0, 0, MRIgetVoxVal(mri_src_features, vno_src, 0, 0, 0));
   }
+  fprintf(stdout, "%s:%d MHTfindClosestVertexSet returns hash:%ld\n",__FILE__,__LINE__,hash);
   MHTfree(&mht);
   return (mri_dst_features);
 }
@@ -521,12 +548,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     last_rms = rms = (*gMRISexternalRMS)(mris, parms);
   }
   
-  if (Gdiag & DIAG_SHOW) fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f\n", 0, 0.0f, (float)sse, (float)rms);
-
-  if (Gdiag & DIAG_WRITE) {
-    fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f\n", 0, 0.0f, (float)sse, (float)rms);
-    fflush(parms->fp);
-  }
+  showDtSSeRms(parms->fp, -1, 0.0, sse, rms, -1.0, __LINE__);
 
   // Loop over iterations ==========================================
   // It may not reach the total number of iterations because, on each
@@ -607,6 +629,10 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     // decrease of in RMS. Some terms (eg, curv and nspring) don't
     // even have functions that compute the SSE. Annectotally, the
     // intensity SSE is an order of mag > than the other SSEs.
+
+    size_t hash_count = 0, hash_limit = 1;  
+    auto hash = fnv_init();
+
     do { // do loops alway execute at least once
       // save vertex positions in case we have to reject this step
       MRISsaveVertexPositions(mris, TMP2_VERTICES);
@@ -684,13 +710,19 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         mris_print_hash(stdout, mris, "Input to MRIScomputeSSE ", "\n");
       }
 
-      // Comute SSE. This differs from RMS in that RMS may only have a
+      // Compute SSE. This differs from RMS in that RMS may only have a
       // contribution from intensity where as SSE has a contribution
       // from any component with a non-zero weight, and the components
       // are weighted. The SSE is summed over the number of vertices
       // which makes it resolution dependent. However, it is evaluated
       // in as a ratio, so the number of verts divides out. 
       sse = MRIScomputeSSE(mris, parms);
+
+      hash = fnv_add(hash, (unsigned char*)&sse, sizeof(sse));
+      if (++hash_count >= hash_limit) {
+        hash_limit *= 2;
+        fprintf(stdout, "%s:%d sse hash_count:%ld hash:%ld\n",__FILE__,__LINE__,hash_count,hash);
+      }
 
       done = 1; // assume done with this step unless there is an increase in RMS (below)
 
@@ -746,17 +778,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 
     mrisTrackTotalDistanceNew(mris); /* computes signed deformation amount */
 
-    if (Gdiag & DIAG_SHOW){
-      printf("%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-	     n + 1, (float)delta_t,(float)sse,(float)rms,100 * (last_rms - rms) / last_rms);
-      fflush(stdout);
-    }
-
-    if (Gdiag & DIAG_WRITE) {
-      fprintf(parms->fp,"%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-              n + 1,(float)delta_t,(float)sse, (float)rms,100 * (last_rms - rms) / last_rms);
-      fflush(parms->fp);
-    }
+    showDtSSeRms(parms->fp, n, delta_t, sse, rms, last_rms, __LINE__);
 
     if ((parms->write_iterations > 0) && !((n + 1) % write_iterations) && (Gdiag & DIAG_WRITE)) {
       mrisWriteSnapshot(mris, parms, n + 1);
@@ -873,14 +895,10 @@ int MRISpositionSurface_mef(
   last_sse = sse = mrisComputeSSE_MEF(mris, parms, mri_30, mri_5, weight30, weight5, mht_v_orig);
   // this computation results were never used
 
-  if (Gdiag & DIAG_SHOW) fprintf(stdout, "%3.3d: dt: %2.4f, rms=%2.2f\n", 0, 0.0f, (float)rms);
-
-  if (Gdiag & DIAG_WRITE) {
-    fprintf(parms->fp, "%3.3d: dt: %2.4f, rms=%2.2f\n", 0, 0.0f, (float)rms);
-    fflush(parms->fp);
-  }
-
   dt = parms->dt;
+
+  showDtSSeRms(parms->fp, 0, dt, sse, rms, last_rms, __LINE__);
+
   l_intensity = parms->l_intensity;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
     if (!FZERO(parms->l_repulse)) {
@@ -963,12 +981,8 @@ int MRISpositionSurface_mef(
                                         deformation amount */
     parms->rms = rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5);
     //  sse = MRIScomputeSSE(mris, parms) ;
-    if (Gdiag & DIAG_SHOW) fprintf(stdout, "%3.3d: dt: %2.4f, rms=%2.2f\n", n + 1, (float)delta_t, (float)rms);
-
-    if (Gdiag & DIAG_WRITE) {
-      fprintf(parms->fp, "%3.3d: dt: %2.4f, rms=%2.2f\n", n + 1, (float)delta_t, (float)rms);
-      fflush(parms->fp);
-    }
+    
+    showDtSSeRms(parms->fp, n, delta_t, sse, rms, last_rms, __LINE__);
 
     if ((parms->write_iterations > 0) && !((n + 1) % write_iterations) && (Gdiag & DIAG_WRITE)) {
       mrisWriteSnapshot(mris, parms, n + 1);

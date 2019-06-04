@@ -4523,6 +4523,9 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
   }
+  
+  long hash_count = -32768-11000-8192-1101-105, hash_limit = 1, hash_limit_max = 10;  
+  auto hash = fnv_init();
 
   min_d = 1000.0;
   min_vno = 0;
@@ -4544,6 +4547,11 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
     MHB *bin;
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
 
+      bool debugBin = (0 <= hash_count && hash_count < hash_limit_max);
+      if (debugBin) {
+        fprintf(stdout, "%s:%d sse_repulse bin->fno:%d\n",__FILE__,__LINE__,bin->fno);
+      }
+
       /* don't be repelled by myself */
       if (bin->fno == vno)
         continue; 
@@ -4554,15 +4562,22 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
           break;
         }
       }
-      if (n < vt->vtotal) 
+      if (n < vt->vtotal) {
+        if (debugBin) {
+          fprintf(stdout, "%s:%d sse_repulse bin->fno:%d n:%d is nbr\n",__FILE__,__LINE__,bin->fno,n);
+        }
         continue;
-
+      }
+      
       VERTEX const * const vn = &mris->vertices[bin->fno];
       if (!vn->ripflag) {
         dx = vn->x - x;
         dy = vn->y - y;
         dz = vn->z - z;
         dist = sqrt(dx * dx + dy * dy + dz * dz) + REPULSE_E;
+        if (debugBin) {
+          fprintf(stdout, "%s:%d sse_repulse bin->fno:%d n:%d dist:%f \n",__FILE__,__LINE__,bin->fno,n,dist);
+        }
 
         if (vno == Gdiag_no) {
           if (dist - REPULSE_E < min_d) {
@@ -4575,6 +4590,9 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
         dist *= dist; /* dist^6 */
 	// dist = pow(dist,6.0); 
         v_sse += REPULSE_K / dist;
+        if (debugBin) {
+          fprintf(stdout, "%s:%d sse_repulse bin->fno:%d n:%d adding:%f\n",__FILE__,__LINE__,bin->fno,n,REPULSE_K/dist);
+        }
       }
     } // loop over bucket
 
@@ -4584,8 +4602,18 @@ double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht,
       printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno, min_d, v_sse);
     }
     
+    if (hash_count < hash_limit_max) {
+      hash = fnv_add(hash, (unsigned char*)&sse_repulse, sizeof(sse_repulse));
+      if (++hash_count >= hash_limit) {
+        hash_limit += 1;
+        fprintf(stdout, "%s:%d sse_repulse hash_count:%ld hash:%ld\n",__FILE__,__LINE__,hash_count,hash);
+      }
+    }
+    
     MHTrelBucket(&bucket);
   }
+
+  fprintf(stdout, "%s:%d sse_repulse hash_count:%ld hash:%ld\n",__FILE__,__LINE__,hash_count,hash);
 
   return (l_repulse * sse_repulse);
 }

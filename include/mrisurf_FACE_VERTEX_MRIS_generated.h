@@ -426,8 +426,8 @@ struct MRIS {
     ELTT(int,nstrips)  SEP \
     ELTP(VERTEX_TOPOLOGY,vertices_topology)  SEP \
     ELTP(VERTEX,vertices)  SEP \
-    ELTT(p_p_void,dist_storage)  SEP \
-    ELTT(p_p_void,dist_orig_storage)  SEP \
+    ELTX(p_p_void,dist_storage)  SEP \
+    ELTX(p_p_void,dist_orig_storage)  SEP \
     ELTT(int,tempsAssigned)  SEP \
     ELTP(FACE,faces)  SEP \
     ELTP(MRI_EDGE,edges)  SEP \
@@ -491,7 +491,7 @@ struct MRIS {
     ELTT(char,dist_orig_nsize)  SEP \
     ELTT(char,dist_alloced_flags)  SEP \
     ELTT(float,avg_nbrs)  SEP \
-    ELTT(p_void,vp)  SEP \
+    ELTX(p_void,vp)  SEP \
     ELTT(float,alpha)  SEP \
     ELTT(float,beta)  SEP \
     ELTT(float,gamma)  SEP \
@@ -515,7 +515,7 @@ struct MRIS {
     ELTT(float,group_avg_surface_area)  SEP \
     ELTT(int,group_avg_vtxarea_loaded)  SEP \
     ELTT(int,triangle_links_removed)  SEP \
-    ELTT(p_void,user_parms)  SEP \
+    ELTX(p_void,user_parms)  SEP \
     ELTP(MATRIX,m_sras2vox)  SEP \
     ELTP(MRI,mri_sras2vox)  SEP \
     ELTT(p_void,mht)  SEP \
