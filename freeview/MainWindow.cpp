@@ -844,6 +844,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
+  if (parser->Found( "no-auto-load"))
+  {
+    m_defaultSettings["no_autoload"] = true;
+  }
   if ( parser->Found( "viewport", &sa ) )
   {
     this->AddScript( QStringList("setviewport") << sa[0]);
@@ -3107,7 +3111,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
-  bool bNoAutoLoad = false;
+  bool bNoAutoLoad = m_defaultSettings["no_autoload"].toBool();
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
