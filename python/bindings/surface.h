@@ -3,6 +3,7 @@
 
 #include "numpy.h"
 #include "mrisurf.h"
+#include "volume.h"
 
 
 class PySurface : public MRIS
@@ -21,12 +22,16 @@ public:
   py::array_t<int> getFaces();
   void setFaces(py::array_t<int, py::array::c_style | py::array::forcecast> array);
 
+  // geometry
+  void copyGeometry(PyVolume *vol) { MRIScopyVolGeomFromMRI(this, vol); }
+  void copyGeometry(PySurface *surf) { copyVolGeom(&surf->vg, &this->vg); }
+
   // wrapped utilities
   bool isSelfIntersecting();
   pybind11::array fillInterior();
 };
 
-py::array_t<int> readAnnotation(const std::string& filename);
+py::array_t<int> readAnnotation(const std::string &filename);
 
 inline void bindSurface(py::module &m)
 {
@@ -36,6 +41,8 @@ inline void bindSurface(py::module &m)
     .def("write", &PySurface::write)
     .def("isSelfIntersecting", &PySurface::isSelfIntersecting)
     .def("fillInterior", &PySurface::fillInterior)
+    .def("copy_geometry", (void (PySurface::*)(PyVolume*)) &PySurface::copyGeometry)
+    .def("copy_geometry", (void (PySurface::*)(PySurface*)) &PySurface::copyGeometry)
     .def_property("vertices", &PySurface::getVertices, &PySurface::setVertices)
     .def_property("faces", &PySurface::getFaces, &PySurface::setFaces)
     ;
