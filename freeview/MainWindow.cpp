@@ -844,6 +844,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
+  if (parser->Found( "no-auto-load"))
+  {
+    m_defaultSettings["no_autoload"] = true;
+  }
   if ( parser->Found( "viewport", &sa ) )
   {
     this->AddScript( QStringList("setviewport") << sa[0]);
@@ -3107,6 +3111,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
+  bool bNoAutoLoad = m_defaultSettings["no_autoload"].toBool();
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -3192,6 +3197,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if ( subOption == "hide_in_3d")
         {
           m_scripts.insert( 0, QStringList("hidesurfacein3d") << subArgu);
+        }
+        else if ( subOption == "no_auto_load" || subOption == "no_autoload")
+        {
+          bNoAutoLoad = true;
         }
         else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
         {
@@ -3421,6 +3430,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
+  if (bNoAutoLoad)
+    sup_options["no_autoload"] = true;
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
@@ -5723,15 +5734,22 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     fullpath = filename;
   }
   QStringList sup_files = sup_files_in;
-  if (fi.fileName().contains("inflated.nofix"))
+  if (sup_options.value("no_autoload").toBool())
   {
-    if (!sup_files.contains("orig.nofix"))
-      sup_files << "orig.nofix";
+    layer->SetSphereFileName("");
   }
-  else if (fi.fileName().contains("inflated"))
+  else
   {
-    if (!sup_files.contains("white"))
-      sup_files << "white";
+    if (fi.fileName().contains("inflated.nofix"))
+    {
+      if (!sup_files.contains("orig.nofix"))
+        sup_files << "orig.nofix";
+    }
+    else if (fi.fileName().contains("inflated"))
+    {
+      if (!sup_files.contains("white"))
+        sup_files << "white";
+    }
   }
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );

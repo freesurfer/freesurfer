@@ -3906,6 +3906,7 @@ void LayerMRI::OnLabelContourChanged(int n)
   {
     m_labelActors[i]->SetVisibility(labels.contains(i)?1:0);
   }
+  emit ActorUpdated();
 }
 
 void LayerMRI::RebuildContour()

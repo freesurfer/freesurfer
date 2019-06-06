@@ -10,7 +10,6 @@
 #include <string>
 #include "colortab.h"
 #include "fsenv.h"
-#include "fsSurfaceOptimizationFilter.h"
 #include "itkVTKPolyDataWriter.h"
 #include "itkSmoothingQuadEdgeMeshFilter.h"
 #include "vtkCellData.h"
@@ -104,19 +103,21 @@ int main(int narg, char*  arg[])
 	constexpr unsigned int Dimension = 3;
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
-	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
+//	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
 
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
 	{
 		std::cout<<"Usage: " << std::endl;
-		std::cout<< arg[0] << " -i surface -t surface -o surface -fillHoles --curvature --thickness -a anotationOutput -vtk "  << std::endl;   
+		std::cout<< arg[0] << " -i surface -t surface -o surface -fillHoles --curvature --thickness -a anotationOutput -v overlayOutput -c output.csv -vtk "  << std::endl;   
 		return -1;
 	}
 	const char *inSurfFilename= cl.follow ("", "-i");
 	const char *targSurfFilename= cl.follow ("", "-t");
 	const char *outSurfFilename = cl.follow ("", "-o");
 	const char *annotationFilename = cl.follow("","-a");
+	const char *overlayFilename = cl.follow("","-v");
+	const char *csvFilename = cl.follow("","-c");
 
 	MRI_SURFACE *surf;
 	surf = MRISread(inSurfFilename);
@@ -207,8 +208,8 @@ int main(int narg, char*  arg[])
 			vtkIdType iD = surfTree->FindClosestPoint(point);
 			double* point2 = surfVTK->GetPoint( iD);
 			float distance =  vtkMath::Distance2BetweenPoints(point,point2);
-			std::cout << point [0] << " " << point2[0]<< " " <<distance << std::endl;
-			if( distance > 0.05)
+		//	std::cout << point [0] << " " << point2[0]<< " " <<distance << std::endl;
+			//if( distance > 0.01)
 			{
 				points->InsertPoint(i,point[0], point[1], point[2]);
 			}
@@ -223,11 +224,8 @@ int main(int narg, char*  arg[])
 //		kDTree->SetPoints(points);
 		kDTree->BuildLocator();
 
-		COLOR_TABLE *ct;
-		int annot;
-
-		ct = CTABalloc(100);
-		surf->ct = ct;
+		//		polydata->GetCellData()->GetScalars();
+		//surf = VTKToSurf(polydata);
 		for(int i=0; i<surfVTK->GetNumberOfPoints();i++)
 		{	
 			double* point = surfVTK->GetPoint( i);
@@ -237,90 +235,52 @@ int main(int narg, char*  arg[])
 			float distance =  vtkMath::Distance2BetweenPoints(point,point2);
 			//kDTree->GetDataSet()->GetPoint(iD, closestPoint);
 
-			std::cout << point[0] <<  " " << point2[0] << distance << std::endl;	
-			if (distance <2)
+		//	std::cout << point[0] <<  " " << point2[0] << distance << std::endl;	
+			//if (distance <2)
 			{
-				CTABannotationAtIndex(surf->ct, int(distance*10),  &annot);
-				surf->vertices[i].annotation=annot;
+				surf->vertices[i].curv=distance;
 			}
 	
 		}
-		MRISwriteAnnotation(surf,annotationFilename) ;
-
-	}
-	/*if( cl.search("--turvatures"))
-	{
-
-		vtkSmartPointer<vtkPolyData> surfVTK =  FSToVTK(surf);
-
-		vtkSmartPointer<vtkKdTreePointLocator> surfTree =	vtkSmartPointer<vtkKdTreePointLocator>::New();
-		surfTree->SetDataSet(surfVTK);
-		surfTree->BuildLocator();
+		fstream fout; 
+		fout.open(csvFilename, ios::out | ios::app); 
 
 
-		double *a[3], a0[3], a1[3], a2[3], xp[3];
-		a[0] = a0; a[1] = a1; a[2] = a2;
+		//MRISwriteCurvature(surf,overlayFilename) ;
+		//COLOR_TABLE *ct;
+		//int annot;
 
+		//ct = CTABalloc(100);
+		//surf->ct = ct;
 		for(int i=0; i<surfVTK->GetNumberOfPoints();i++)
 		{	
 			double* point = surfVTK->GetPoint( i);
-	
-      			vtkIdList*& pIds;
-			surfTree->FindClosestNPoints(20, point, pIds);
-			int numPts = pIds->GetNumberOfIds();
-
-			// First step: compute the mean position of the neighborhood.
-			double mean[3];
-			mean[0] = mean[1] = mean[2] = 0.0;
-			for (int sample=0; sample<numPts; ++sample)
-			{
-				double* point2 = surfVTK->GetPoint( sample);
-				for(int j=0;j<3;j++)
-					mean[j] += sample[j];
-			}
-			for(int j=0;j<3;j++)
-				mean[j] /= numPts;
-
-			// Now compute the covariance matrix
-			a0[0] = a1[0] = a2[0] = 0.0;
-			a0[1] = a1[1] = a2[1] = 0.0;
-			a0[2] = a1[2] = a2[2] = 0.0;
-			for (int sample=0; sample < numPts; ++sample )
-			{
-				double* point2 = surfVTK->GetPoint( sample);
-				for(int j=0;j<3;j++)
-					xp[j] = sample[j] - mean[j];
-				for (i=0; i < 3; i++)
-				{
-					a0[i] += xp[0] * xp[i];
-					a1[i] += xp[1] * xp[i];
-					a2[i] += xp[2] * xp[i];
-				}
-			}
-			for (i=0; i < 3; i++)
-			{
-				a0[i] /= numPts;
-				a1[i] /= numPts;
-				a2[i] /= numPts;
-			}
-
-			// Next extract the eigenvectors and values
-			vtkMath::Jacobi(a,eVal,v);
-
-			// Finally compute the curvatures
-			double den = eVal[0] + eVal[1] + eVal[2];
-			c[0] = (eVal[0] - eVal[1]) / den;
-			c[1] = 2.0*(eVal[1] - eVal[2]) / den;
-			c[3] = 3.0*eVal[2] / den;
-
+			vtkIdType iD = kDTree->FindClosestPoint(point);
 			
+			double* point2 = targetVTK->GetPoint( iD);
+			float distance =  vtkMath::Distance2BetweenPoints(point,point2);
+			//kDTree->GetDataSet()->GetPoint(iD, closestPoint);
 
-	}*/
+		//	std::cout << point[0] <<  " " << point2[0] << distance << std::endl;	
+			//if (distance <2)
+			{
+				//CTABannotationAtIndex(surf->ct, int(distance*10),  &annot);
+				//surf->vertices[i].annotation=annot;
+
+				fout << i <<  ", "<< distance <<  "\n"; 
+
+			}
+	
+		}
+		//MRISwriteAnnotation(surf,annotationFilename) ;
+		fout.close();
+	}
 	if( cl.search("--curvature"))
 	{
 		#if VTK_MAJOR_VERSION <= 5	
 		vtkSmartPointer<vtkCurvatures> curvature=   vtkSmartPointer<vtkCurvatures>::New();
 		curvature->SetInput(FSToVTK(surf));
+		curvature->SetCurvatureTypeToGaussian();
 		#else
 		vtkSmartPointer<vtkPCACurvatureEstimation> curvature =   vtkPCACurvatureEstimation::New();
 		curvature->SetSampleSize(500);
@@ -330,21 +290,38 @@ int main(int narg, char*  arg[])
 		//curvature->SetCurvatureTypeToMinimum();
 		//curvature->SetCurvatureTypeToMaximum();
 		//curvature->SetCurvatureTypeToMean();
-		//curvature->SetCurvatureTypeToGaussian();
 		curvature->Update();
 		vtkSmartPointer<vtkPolyData> polydata =curvature->GetOutput();
 
 		//		polydata->GetCellData()->GetScalars();
 		//surf = VTKToSurf(polydata);
-		
-		COLOR_TABLE *ct;
-		int annot;
 
-		double scalarRange[2];
-    		polydata->GetScalarRange(scalarRange);
-		std::cout << scalarRange[1] << " ," <<scalarRange[0] <<std::endl;
-		ct = CTABalloc(100);
-		surf->ct = ct;
+		for(int i=0;i<polydata->GetNumberOfPoints();i++)
+		{	
+			double curv =0;
+		#if VTK_MAJOR_VERSION <= 5	
+			curv= 	polydata->GetPointData()->GetScalars()->GetTuple(i)[0];
+		#else  			
+			double* curvs = dynamic_cast<vtkDataArray*>(polydata->GetPointData()->GetArray("PCACurvature"))->GetTuple3(i);
+			curv =  curvs[0]*50+ curvs[1]*50; //,  curvs[2])*100;
+		#endif
+			surf->vertices[i].curv= curv;
+		}	
+		MRISwriteCurvature(surf,overlayFilename) ;
+	
+		fstream fout; 
+		fout.open(csvFilename, ios::out | ios::app); 
+
+
+		
+		//COLOR_TABLE *ct;
+		//int annot;
+
+		//double scalarRange[2];
+    		//polydata->GetScalarRange(scalarRange);
+		//std::cout << scalarRange[1] << " ," <<scalarRange[0] <<std::endl;
+		//ct = CTABalloc(100);
+		//surf->ct = ct;
 		
 
 		for(int i=0;i<polydata->GetNumberOfPoints();i++)
@@ -352,11 +329,14 @@ int main(int narg, char*  arg[])
 				
   			double* curvs = dynamic_cast<vtkDataArray*>(polydata->GetPointData()->GetArray("PCACurvature"))->GetTuple3(i);
 			//double curv = std::max(std::max( curvs[0] , curvs[1]),  curvs[2])*100;
-			double curv =  curvs[0]*50+ curvs[1]*50; //,  curvs[2])*100;
-			CTABannotationAtIndex(surf->ct,curv,  &annot);
-			surf->vertices[i].annotation=annot;
+			double curv =  curvs[0]*.5+ curvs[1]*.5; //,  curvs[2])*100;
+			//CTABannotationAtIndex(surf->ct,curv,  &annot);
+			//surf->vertices[i].annotation=annot;
+			fout << i <<  ", "<< curv <<  "\n"; 
 		}	
-		MRISwriteAnnotation(surf,annotationFilename) ;
+		//MRISwriteAnnotation(surf,annotationFilename) ;
+
+		fout.close();
 	}
 	if (cl.search("-vtk") )
 	{
@@ -480,4 +460,72 @@ int main(int narg, char*  arg[])
 		polydata->GetCellData()->SetScalars(colors);
 
 
- */
+ */	/*if( cl.search("--turvatures"))
+	{
+
+		vtkSmartPointer<vtkPolyData> surfVTK =  FSToVTK(surf);
+
+		vtkSmartPointer<vtkKdTreePointLocator> surfTree =	vtkSmartPointer<vtkKdTreePointLocator>::New();
+		surfTree->SetDataSet(surfVTK);
+		surfTree->BuildLocator();
+
+
+		double *a[3], a0[3], a1[3], a2[3], xp[3];
+		a[0] = a0; a[1] = a1; a[2] = a2;
+
+		for(int i=0; i<surfVTK->GetNumberOfPoints();i++)
+		{	
+			double* point = surfVTK->GetPoint( i);
+	
+      			vtkIdList*& pIds;
+			surfTree->FindClosestNPoints(20, point, pIds);
+			int numPts = pIds->GetNumberOfIds();
+
+			// First step: compute the mean position of the neighborhood.
+			double mean[3];
+			mean[0] = mean[1] = mean[2] = 0.0;
+			for (int sample=0; sample<numPts; ++sample)
+			{
+				double* point2 = surfVTK->GetPoint( sample);
+				for(int j=0;j<3;j++)
+					mean[j] += sample[j];
+			}
+			for(int j=0;j<3;j++)
+				mean[j] /= numPts;
+
+			// Now compute the covariance matrix
+			a0[0] = a1[0] = a2[0] = 0.0;
+			a0[1] = a1[1] = a2[1] = 0.0;
+			a0[2] = a1[2] = a2[2] = 0.0;
+			for (int sample=0; sample < numPts; ++sample )
+			{
+				double* point2 = surfVTK->GetPoint( sample);
+				for(int j=0;j<3;j++)
+					xp[j] = sample[j] - mean[j];
+				for (i=0; i < 3; i++)
+				{
+					a0[i] += xp[0] * xp[i];
+					a1[i] += xp[1] * xp[i];
+					a2[i] += xp[2] * xp[i];
+				}
+			}
+			for (i=0; i < 3; i++)
+			{
+				a0[i] /= numPts;
+				a1[i] /= numPts;
+				a2[i] /= numPts;
+			}
+
+			// Next extract the eigenvectors and values
+			vtkMath::Jacobi(a,eVal,v);
+
+			// Finally compute the curvatures
+			double den = eVal[0] + eVal[1] + eVal[2];
+			c[0] = (eVal[0] - eVal[1]) / den;
+			c[1] = 2.0*(eVal[1] - eVal[2]) / den;
+			c[3] = 3.0*eVal[2] / den;
+
+			
+
+	}*/
+

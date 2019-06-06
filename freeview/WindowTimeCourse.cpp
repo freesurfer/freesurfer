@@ -145,6 +145,7 @@ void WindowTimeCourse::UpdateData(bool bForce)
         td.m_dXInterval = info["tr"].toDouble();
         td.m_dXOffset = info["offset"].toDouble();
         td.m_nId = layer->GetID();
+        td.m_strName = layer->GetName();
         if (layer->property("timecourse_visible").isValid())
           td.m_bShow = layer->property("timecourse_visible").toBool();
         ui->widgetPlot->AddTimeCourseData(td);
@@ -153,7 +154,7 @@ void WindowTimeCourse::UpdateData(bool bForce)
         connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
                 this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
 
-        QWidget* w = MakeLegendWidget(layer, td, layer->GetName());
+        QWidget* w = MakeLegendWidget(layer, td);
         layoutLegend->addWidget(w);
       }
       //  setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
@@ -207,10 +208,11 @@ void WindowTimeCourse::UpdateData(bool bForce)
           td.m_bShow = overlay->property("timecourse_visible").toBool();
         td.m_color = overlay->property("legend_color").value<QColor>();
         td.m_nId = overlay->GetID();
+        td.m_strName = overlay->GetName();
         ui->widgetPlot->AddTimeCourseData(td);
         ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
 
-        QWidget* w = MakeLegendWidget(overlay, td, overlay->GetName());
+        QWidget* w = MakeLegendWidget(overlay, td);
         layoutLegend->addWidget(w);
       }
       //  setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
@@ -218,7 +220,7 @@ void WindowTimeCourse::UpdateData(bool bForce)
   }
 }
 
-QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& td, const QString& text)
+QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& td)
 {
   QWidget* w = new QWidget(this);
   QHBoxLayout* hbox = new QHBoxLayout;
@@ -231,7 +233,7 @@ QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& 
   checkbox->setCursor(Qt::PointingHandCursor);
   hbox->addWidget(checkbox);
   ClickableLabel* label = new ClickableLabel();
-  label->setText(text);
+  label->setText(td.m_strName);
   label->setProperty("data_id", td.m_nId);
   hbox->addWidget(label);
   label->setStyleSheet(QString("color:rgb(%1,%2,%3)")

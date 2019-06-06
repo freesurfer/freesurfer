@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "nocursor", "nocursor", "", "Hide the cursor." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-frames", "hide-3d-frames", "", "Hide slice frames in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "no-auto-load", "no-auto-load", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),

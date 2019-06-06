@@ -1935,7 +1935,7 @@ get_option(int argc, char *argv[])
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
-  else if (!strcmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

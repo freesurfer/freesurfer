@@ -29,11 +29,26 @@
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="margin">
+    <property name="spacing">
+     <number>6</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
      <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
+      <property name="verticalSpacing">
+       <number>6</number>
+      </property>
       <item row="0" column="0">
        <widget class="QLabel" name="labelFileName">
         <property name="text">
@@ -295,6 +310,9 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
+      <property name="verticalSpacing">
+       <number>5</number>
+      </property>
       <item row="0" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
