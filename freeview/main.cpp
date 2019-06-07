@@ -339,5 +339,8 @@ int main(int argc, char *argv[])
   int ret = app.exec();
 
   LineProf::FinalizePetsc();
+  if (w.HadError())
+    ret = 1;
+
   return ret;
 }

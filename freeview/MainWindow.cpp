@@ -134,7 +134,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bScriptRunning(false),
   m_bProcessing(false),
   m_bSplinePicking(true),
-  m_cmdParser(cmdParser)
+  m_cmdParser(cmdParser),
+  m_bHadError(false)
 {
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );

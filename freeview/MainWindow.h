@@ -87,6 +87,16 @@ public:
 
   static MainWindow* GetMainWindow();
 
+  bool HadError()
+  {
+    return m_bHadError;
+  }
+
+  void SetHadError(bool b)
+  {
+    m_bHadError = b;
+  }
+
   BrushProperty* GetBrushProperty()
   {
     return m_propertyBrush;
@@ -650,6 +660,8 @@ private:
 
   bool                  m_bVerbose;
   bool                  m_bContinue;
+
+  bool                  m_bHadError;
 };
 
 #endif // MAINWINDOW_H
