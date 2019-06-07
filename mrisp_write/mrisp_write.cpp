@@ -126,7 +126,8 @@ main(int argc, char *argv[])
   if (coords >= 0)
   {
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    MRISreadVertexPositions(mris, in_overlay) ;
+    if (MRISreadVertexPositions(mris, in_overlay) != NO_ERROR)
+      ErrorExit(Gerror, NULL) ;
     MRISsaveVertexPositions(mris, coords) ;
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     mrisp = MRIScoordsToParameterization(mris, NULL, scale, coords) ;

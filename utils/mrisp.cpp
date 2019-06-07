@@ -1316,6 +1316,16 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
             du * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, 2);
 
     switch (which_vertices) {
+      case WHITE_VERTICES:
+	vertex->whitex = origx ;
+	vertex->whitey = origx ;
+	vertex->whitez = origx ;
+        break;
+      case CURRENT_VERTICES:
+	vertex->x = origx ;
+	vertex->y = origx ;
+	vertex->z = origx ;
+        break;
       case ORIGINAL_VERTICES:
         MRISsetOriginalXYZ(mris, vno, origx, origy, origz);
         break;
