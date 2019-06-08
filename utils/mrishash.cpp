@@ -1054,8 +1054,11 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
             else
                 var /= (n - 1);
         }
-    
-        fprintf(stderr, "%s buckets: ncalls:%d mean = %2.1f +- %2.2f, max_nused = %d\n", __MYFUNCTION__, ncalls, mean, sqrt(var), max_nused);
+
+        if (0) {
+            fprintf(stderr, "%s buckets: ncalls:%d mean = %2.1f +- %2.2f, max_nused = %d\n", 
+                __MYFUNCTION__, ncalls, mean, sqrt(var), max_nused);
+        }
     }
 
     return mht;

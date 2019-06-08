@@ -27,7 +27,7 @@ static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms
 {
     fprintf(file, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f", n+1, dt, (float)sse, (float)rms);
     if (last_rms >= 0.0) fprintf(file, " (%2.3f%%)", 100 * (last_rms - rms) / last_rms);
-    fprintf(file, "  %s:%d\n", __FILE__, line);
+    fprintf(file, "\n");
     fflush(file);
 }
 
