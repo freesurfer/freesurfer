@@ -1012,7 +1012,6 @@ MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int
     total_d = distances[u][v];
     if ((total_d > 10000.0) || (vertex->curv > 1000.0)) DiagBreak();
     switch (which_vertices) {
-      default:
       case ORIGINAL_VERTICES:
         x = vertex->origx;
         y = vertex->origy;
@@ -1028,6 +1027,13 @@ MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int
         y = vertex->pialy;
         z = vertex->pialz;
         break;
+      case WHITE_VERTICES:
+        x = vertex->whitex;
+        y = vertex->whitey;
+        z = vertex->whitez;
+        break;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRIScoordsToParameterization: unsupported vertex set %d", which_vertices) ;
     }
     if (total_d > 0.0) {
       *IMAGEFseq_pix(mrisp->Ip, u, v, 0) += x / total_d;
@@ -1318,13 +1324,13 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
     switch (which_vertices) {
       case WHITE_VERTICES:
 	vertex->whitex = origx ;
-	vertex->whitey = origx ;
-	vertex->whitez = origx ;
+	vertex->whitey = origy ;
+	vertex->whitez = origz ;
         break;
       case CURRENT_VERTICES:
 	vertex->x = origx ;
-	vertex->y = origx ;
-	vertex->z = origx ;
+	vertex->y = origy ;
+	vertex->z = origz ;
         break;
       case ORIGINAL_VERTICES:
         MRISsetOriginalXYZ(mris, vno, origx, origy, origz);
