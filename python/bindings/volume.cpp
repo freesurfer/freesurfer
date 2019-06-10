@@ -184,11 +184,3 @@ affinematrix PyVolume::computeVox2Surf()
   MatrixFree(&vox2surf);
   return pymat;
 }
-
-
-PyVolume* PyVolume::crop(const std::vector<Slice>& cropping)
-{
-  if (cropping.size() != 3) logFatal(1) << "crop slicing must be 3-dimensional";
-  return new PyVolume(MRIcrop(m_mri, cropping[0].start(), cropping[1].start(), cropping[2].start(),
-                                     cropping[0].stop()-1, cropping[1].stop()-1, cropping[2].stop()-1));
-}

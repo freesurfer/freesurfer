@@ -12,16 +12,6 @@
 typedef py::array_t<float, py::array::f_style | py::array::forcecast> affinematrix;
 
 
-class Slice : public py::slice
-{
-public:
-  PYBIND11_OBJECT_DEFAULT(Slice, py::slice, PySlice_Check)
-  int start() const { ssize_t start, stop, step; PySlice_Unpack((PYBIND11_SLICE_OBJECT *) m_ptr, &start, &stop, &step); return start; }
-  int stop()  const { ssize_t start, stop, step; PySlice_Unpack((PYBIND11_SLICE_OBJECT *) m_ptr, &start, &stop, &step); return stop; }
-  int step()  const { ssize_t start, stop, step; PySlice_Unpack((PYBIND11_SLICE_OBJECT *) m_ptr, &start, &stop, &step); return step; }
-};
-
-
 /**
   MRI subclass to allow interaction between c++ and python.
 */
@@ -57,8 +47,6 @@ public:
     for (unsigned int i = 0; i < m_mri->vox_total ; i++, dst++, src++) *dst = *src;
   }
 
-  PyVolume* crop(const std::vector<Slice>& cropping);
-
 private:
   py::array buffer_array;
   MRI* m_mri;
@@ -71,7 +59,6 @@ inline void bindVolume(py::module &m)
     .def(py::init<py::array&>())
     .def(py::init<const std::string&>())
     .def("write", &PyVolume::write)
-    .def("crop", &PyVolume::crop)
     .def("_compute_vox2surf", &PyVolume::computeVox2Surf)
     .def_property("image", &PyVolume::getImage, &PyVolume::setImage)
     .def_property("affine", &PyVolume::getAffine, &PyVolume::setAffine)
