@@ -122,8 +122,8 @@ struct MRIS_HASH_TABLE : public _mht {                      // Later we may make
 
     MRIS_HASH_TABLE(MHTFNO_t fno_usage, float vres, int which_vertices) : _mht(fno_usage, vres, which_vertices) {}
     
-    MRIS_HASH_TABLE_IMPL               * toMRIS_HASH_TABLE_IMPL    ()       { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
-    MRIS_HASH_TABLE_IMPL         const * toMRIS_HASH_TABLE_IMPL    () const { return this ? toMRIS_HASH_TABLE_IMPL_Wkr() : nullptr; }
+    MRIS_HASH_TABLE_IMPL               * toMRIS_HASH_TABLE_IMPL    ()       { return toMRIS_HASH_TABLE_IMPL_Wkr(); }
+    MRIS_HASH_TABLE_IMPL         const * toMRIS_HASH_TABLE_IMPL    () const { return toMRIS_HASH_TABLE_IMPL_Wkr(); }
     virtual MRIS_HASH_TABLE_IMPL       * toMRIS_HASH_TABLE_IMPL_Wkr()       { return nullptr; }
     virtual MRIS_HASH_TABLE_IMPL const * toMRIS_HASH_TABLE_IMPL_Wkr() const { return nullptr; }
     
