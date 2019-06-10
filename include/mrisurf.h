@@ -942,6 +942,7 @@ MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                            float scale, int which_vertices) ;
 MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices);
+int MRIScoordsFromParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, int which_vertices);
 
 
 float         MRISPsample(MRI_SP *mrisp, float x, float y, float z, int fno) ;

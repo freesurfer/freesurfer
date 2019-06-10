@@ -895,6 +895,36 @@ MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRIS *mris,int fno)
   return (mris);
 }
 
+int
+MRIScoordsFromParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, int which_vertices)
+{
+  float    *curvs ;
+  int      vno ;
+
+  if (which_vertices != WHITE_VERTICES)
+    ErrorExit(ERROR_UNSUPPORTED, "MRIScoordsToParameterizationBarycentric: unsupported which_vertices %d", which_vertices) ;
+
+  curvs = (float *)calloc(mris->nvertices, sizeof(float));
+  if (curvs == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRIScoordsToParameterizationBarycentric: could not allocate %d-len curvature vector", mris->nvertices) ;
+
+  MRISextractCurvatureVector(mris, curvs) ;
+  MRISfromParameterizationBarycentric(mrisp, mris, 0) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitex = mris->vertices[vno].curv ;
+  MRISfromParameterization(mrisp, mris, 1) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitey = mris->vertices[vno].curv ;
+  MRISfromParameterization(mrisp, mris, 2) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitez = mris->vertices[vno].curv ;
+  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+  MRISimportCurvatureVector(mris, curvs) ;
+  free(curvs) ;
+  return(NO_ERROR) ;
+}
+
+
 static double UF = 254.8, VF = 409.5;
 
 MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int which_vertices)
