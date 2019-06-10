@@ -194,7 +194,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
       v.y = m_label->lv[i].y;
       v.z = m_label->lv[i].z;
       float dmin;
-      int vtxno = MHTfindClosestVertexNo(hash, mris, &v, &dmin);
+      int vtxno = MHTfindClosestVertexNoXYZ(hash, mris, v.x,v.y,v.z, &dmin);
       if (vtxno >= 0)
         m_label->lv[i].vno = vtxno;
     }

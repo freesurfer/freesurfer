@@ -1,34 +1,36 @@
     namespace AllM {
     struct Face : public MRIS_Elt {
-        inline Face (                        );
-        inline Face ( Face const & src       );
-        inline Face ( MRIS* mris, size_t idx );
+        inline Face                        (                        );
+        inline Face (                        Face const & src       );
+        inline Face (                        MRIS* mris, size_t idx );
+        int fno     () const { return idx; }
 
-        inline vertices_per_face_t   v          (   ) const ;
-        inline float                 area       (   ) const ;
-        inline angles_per_triangle_t angle      (   ) const ;
-        inline angles_per_triangle_t orig_angle (   ) const ;
-        inline char                  ripflag    (   ) const ;
-        inline char                  oripflag   (   ) const ;
-        inline int                   marked     (   ) const ;
-        inline PDMATRIX              norm       (   ) const ;
-        inline A3PDMATRIX            gradNorm   (   ) const ;
+        inline Vertex                v          ( size_t i  ) const ;
+        inline float                 area       (           ) const ;
+        inline angles_per_triangle_t angle      (           ) const ;
+        inline angles_per_triangle_t orig_angle (           ) const ;
+        inline char                  ripflag    (           ) const ;
+        inline char                  oripflag   (           ) const ;
+        inline int                   marked     (           ) const ;
+        inline PDMATRIX              norm       (           ) const ;
+        inline A3PDMATRIX            gradNorm   (           ) const ;
                    
-        inline void set_v          (    vertices_per_face_t to ) ;
-        inline void set_area       (                  float to ) ;
-        inline void set_angle      (  angles_per_triangle_t to ) ;
-        inline void set_orig_angle (  angles_per_triangle_t to ) ;
-        inline void set_ripflag    (                   char to ) ;
-        inline void set_oripflag   (                   char to ) ;
-        inline void set_marked     (                    int to ) ;
-        inline void set_norm       (               PDMATRIX to ) ;
-        inline void set_gradNorm   (             A3PDMATRIX to ) ;
+        inline void set_v          ( size_t i,                Vertex to ) ;
+        inline void set_area       (                           float to ) ;
+        inline void set_angle      (           angles_per_triangle_t to ) ;
+        inline void set_orig_angle (           angles_per_triangle_t to ) ;
+        inline void set_ripflag    (                            char to ) ;
+        inline void set_oripflag   (                            char to ) ;
+        inline void set_marked     (                             int to ) ;
+        inline void set_norm       (                        PDMATRIX to ) ;
+        inline void set_gradNorm   (                      A3PDMATRIX to ) ;
     };
 
     struct Vertex : public MRIS_Elt {
-        inline Vertex (                        );
-        inline Vertex ( Vertex const & src     );
-        inline Vertex ( MRIS* mris, size_t idx );
+        inline Vertex (                                               );
+        inline Vertex (                        Vertex const & src     );
+        inline Vertex (                        MRIS* mris, size_t idx );
+        int vno       () const { return idx; }
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
@@ -170,147 +172,138 @@
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
                    
-        inline void set_f                  ( size_t i,   Face to )    ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-        inline void set_n                  ( size_t i, size_t to )    ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        inline void set_e                  ( size_t i,    int to )                     ;  //  edge state for neighboring vertices                      
-        inline void set_v                  ( size_t i, Vertex to ) ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-        inline void set_vnum               (            short to )                     ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        inline void set_v2num              (            short to )                     ;  //  number of 1, or 2-hop neighbors                          
-        inline void set_v3num              (            short to )                     ;  //  number of 1,2,or 3-hop neighbors                         
-        inline void set_vtotal             (            short to )                     ;  //  total # of neighbors. copy of vnum.nsizeCur              
-        inline void set_nsizeMaxClock      (            short to )                     ;  //  copy of mris->nsizeMaxClock when v#num                   
-        inline void set_nsizeMax           (            uchar to )                     ;  //  the max nsize that was used to fill in vnum etc          
-        inline void set_nsizeCur           (            uchar to )                     ;  //  index of the current v#num in vtotal                     
-        inline void set_num                (            uchar to )                     ;  //  number of neighboring faces                              
-        // managed by MRISfreeDists[_orig] and MRISmakeDists[_orig]
-        inline void set_dist               ( size_t i,  float to )         ;  // size() is vtotal.    distance to neighboring vertices based on  xyz   
-        inline void set_dist_orig          ( size_t i,  float to )         ;  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        inline void set_dist_capacity      (              int to )                             ;  //  -- should contain at least vtx_vtotal elements   
-        inline void set_dist_orig_capacity (              int to )                             ;  //  -- should contain at least vtx_vtotal elements   
+        inline void set_f              ( size_t i,   Face to )    ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        inline void set_n              ( size_t i, size_t to )    ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+        inline void set_e              ( size_t i,    int to )                     ;  //  edge state for neighboring vertices                      
+        inline void set_v              ( size_t i, Vertex to ) ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
+        inline void set_vnum           (            short to )                     ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+        inline void set_v2num          (            short to )                     ;  //  number of 1, or 2-hop neighbors                          
+        inline void set_v3num          (            short to )                     ;  //  number of 1,2,or 3-hop neighbors                         
+        inline void set_vtotal         (            short to )                     ;  //  total # of neighbors. copy of vnum.nsizeCur              
+        inline void set_nsizeMaxClock  (            short to )                     ;  //  copy of mris->nsizeMaxClock when v#num                   
+        inline void set_nsizeMax       (            uchar to )                     ;  //  the max nsize that was used to fill in vnum etc          
+        inline void set_nsizeCur       (            uchar to )                     ;  //  index of the current v#num in vtotal                     
+        inline void set_num            (            uchar to )                     ;  //  number of neighboring faces                              
         //         
-        inline void set_x                  (            float to )                                                          ;  //  current coordinates	
-        inline void set_y                  (            float to )                                                       ;  //  use MRISsetXYZ() to set
-        inline void set_z                  (            float to )                                                                                    ;
+        inline void set_x              (            float to )                                                          ;  //  current coordinates	
+        inline void set_y              (            float to )                                                       ;  //  use MRISsetXYZ() to set
+        inline void set_z              (            float to )                                                                                    ;
         //         
-        inline void set_origx              (            float to )                           ;  //  original coordinates, see also MRIS::origxyz_status
-        inline void set_origy              (            float to )                                                     ;  //  use MRISsetOriginalXYZ(, 
-        inline void set_origz              (            float to )                                           ;  //  or MRISsetOriginalXYZfromXYZ to set
+        inline void set_nx             (            float to )                                                                                    ;
+        inline void set_ny             (            float to )                                                                                    ;
+        inline void set_nz             (            float to )                                                                   ;  //  curr normal
+        inline void set_pnx            (            float to )                                                                                    ;
+        inline void set_pny            (            float to )                                                                                    ;
+        inline void set_pnz            (            float to )                                                                   ;  //  pial normal
         //         
-        inline void set_nx                 (            float to )                                                                                    ;
-        inline void set_ny                 (            float to )                                                                                    ;
-        inline void set_nz                 (            float to )                                                                   ;  //  curr normal
-        inline void set_pnx                (            float to )                                                                                    ;
-        inline void set_pny                (            float to )                                                                                    ;
-        inline void set_pnz                (            float to )                                                                   ;  //  pial normal
+        inline void set_wnx            (            float to )                                                                                    ;
+        inline void set_wny            (            float to )                                                                                    ;
+        inline void set_wnz            (            float to )                                                                  ;  //  white normal
+        inline void set_onx            (            float to )                                                                                    ;
+        inline void set_ony            (            float to )                                                                                    ;
+        inline void set_onz            (            float to )                                                               ;  //  original normal
+        inline void set_dx             (            float to )                                                                                    ;
+        inline void set_dy             (            float to )                                                                                    ;
+        inline void set_dz             (            float to )                                                    ;  //  current change in position
+        inline void set_odx            (            float to )                                                                                    ;
+        inline void set_ody            (            float to )                                                                                    ;
+        inline void set_odz            (            float to )                                       ;  //  last change of position (for momentum, 
+        inline void set_tdx            (            float to )                                                                                    ;
+        inline void set_tdy            (            float to )                                                                                    ;
+        inline void set_tdz            (            float to )                                      ;  //  temporary storage for averaging gradient
+        inline void set_curv           (            float to )                                                                ;  //  curr curvature
+        inline void set_curvbak        (            float to )                                                                                    ;
+        inline void set_val            (            float to )                                   ;  //  scalar data value (file: rh.val, sig2-rh.w)
+        inline void set_imag_val       (            float to )                                          ;  //  imaginary part of complex data value
+        inline void set_cx             (            float to )                                                                                    ;
+        inline void set_cy             (            float to )                                                                                    ;
+        inline void set_cz             (            float to )                                    ;  //  coordinates in canonical coordinate system
+        inline void set_tx             (            float to )                                                                                    ;
+        inline void set_ty             (            float to )                                                                                    ;
+        inline void set_tz             (            float to )                                                        ;  //  tmp coordinate storage
+        inline void set_tx2            (            float to )                                                                                    ;
+        inline void set_ty2            (            float to )                                                                                    ;
+        inline void set_tz2            (            float to )                                                        ;  //  tmp coordinate storage
+        inline void set_targx          (            float to )                                                                                    ;
+        inline void set_targy          (            float to )                                                                                    ;
+        inline void set_targz          (            float to )                                                            ;  //  target coordinates
+        inline void set_pialx          (            float to )                                                                                    ;
+        inline void set_pialy          (            float to )                                                                                    ;
+        inline void set_pialz          (            float to )                                                      ;  //  pial surface coordinates
+        inline void set_whitex         (            float to )                                                                                    ;
+        inline void set_whitey         (            float to )                                                                                    ;
+        inline void set_whitez         (            float to )                                                     ;  //  white surface coordinates
+        inline void set_l4x            (            float to )                                                                                    ;
+        inline void set_l4y            (            float to )                                                                                    ;
+        inline void set_l4z            (            float to )                                                   ;  //  layerIV surface coordinates
+        inline void set_infx           (            float to )                                                                                    ;
+        inline void set_infy           (            float to )                                                                                    ;
+        inline void set_infz           (            float to )                                                          ;  //  inflated coordinates
+        inline void set_fx             (            float to )                                                                                    ;
+        inline void set_fy             (            float to )                                                                                    ;
+        inline void set_fz             (            float to )                                                         ;  //  flattened coordinates
+        inline void set_px             (              int to )                                                                                    ;
+        inline void set_qx             (              int to )                                                                                    ;
+        inline void set_py             (              int to )                                                                                    ;
+        inline void set_qy             (              int to )                                                                                    ;
+        inline void set_pz             (              int to )                                                                                    ;
+        inline void set_qz             (              int to )                                   ;  //  rational coordinates for exact calculations
+        inline void set_e1x            (            float to )                                                                                    ;
+        inline void set_e1y            (            float to )                                                                                    ;
+        inline void set_e1z            (            float to )                                  ;  //  1st basis vector for the local tangent plane
+        inline void set_e2x            (            float to )                                                                                    ;
+        inline void set_e2y            (            float to )                                                                                    ;
+        inline void set_e2z            (            float to )                                  ;  //  2nd basis vector for the local tangent plane
+        inline void set_pe1x           (            float to )                                                                                    ;
+        inline void set_pe1y           (            float to )                                                                                    ;
+        inline void set_pe1z           (            float to )                                  ;  //  1st basis vector for the local tangent plane
+        inline void set_pe2x           (            float to )                                                                                    ;
+        inline void set_pe2y           (            float to )                                                                                    ;
+        inline void set_pe2z           (            float to )                                  ;  //  2nd basis vector for the local tangent plane
+        inline void set_nc             (            float to )                                                      ;  //  curr length normal comp 
+        inline void set_val2           (            float to )                                    ;  //  complex comp data value (file: sig3-rh.w) 
+        inline void set_valbak         (            float to )                                                            ;  //  scalar data stack 
+        inline void set_val2bak        (            float to )                                                      ;  //  complex comp data stack 
+        inline void set_stat           (            float to )                                                                    ;  //  statistic 
         //         
-        inline void set_wnx                (            float to )                                                                                    ;
-        inline void set_wny                (            float to )                                                                                    ;
-        inline void set_wnz                (            float to )                                                                  ;  //  white normal
-        inline void set_onx                (            float to )                                                                                    ;
-        inline void set_ony                (            float to )                                                                                    ;
-        inline void set_onz                (            float to )                                                               ;  //  original normal
-        inline void set_dx                 (            float to )                                                                                    ;
-        inline void set_dy                 (            float to )                                                                                    ;
-        inline void set_dz                 (            float to )                                                    ;  //  current change in position
-        inline void set_odx                (            float to )                                                                                    ;
-        inline void set_ody                (            float to )                                                                                    ;
-        inline void set_odz                (            float to )                                       ;  //  last change of position (for momentum, 
-        inline void set_tdx                (            float to )                                                                                    ;
-        inline void set_tdy                (            float to )                                                                                    ;
-        inline void set_tdz                (            float to )                                      ;  //  temporary storage for averaging gradient
-        inline void set_curv               (            float to )                                                                ;  //  curr curvature
-        inline void set_curvbak            (            float to )                                                                                    ;
-        inline void set_val                (            float to )                                   ;  //  scalar data value (file: rh.val, sig2-rh.w)
-        inline void set_imag_val           (            float to )                                          ;  //  imaginary part of complex data value
-        inline void set_cx                 (            float to )                                                                                    ;
-        inline void set_cy                 (            float to )                                                                                    ;
-        inline void set_cz                 (            float to )                                    ;  //  coordinates in canonical coordinate system
-        inline void set_tx                 (            float to )                                                                                    ;
-        inline void set_ty                 (            float to )                                                                                    ;
-        inline void set_tz                 (            float to )                                                        ;  //  tmp coordinate storage
-        inline void set_tx2                (            float to )                                                                                    ;
-        inline void set_ty2                (            float to )                                                                                    ;
-        inline void set_tz2                (            float to )                                                        ;  //  tmp coordinate storage
-        inline void set_targx              (            float to )                                                                                    ;
-        inline void set_targy              (            float to )                                                                                    ;
-        inline void set_targz              (            float to )                                                            ;  //  target coordinates
-        inline void set_pialx              (            float to )                                                                                    ;
-        inline void set_pialy              (            float to )                                                                                    ;
-        inline void set_pialz              (            float to )                                                      ;  //  pial surface coordinates
-        inline void set_whitex             (            float to )                                                                                    ;
-        inline void set_whitey             (            float to )                                                                                    ;
-        inline void set_whitez             (            float to )                                                     ;  //  white surface coordinates
-        inline void set_l4x                (            float to )                                                                                    ;
-        inline void set_l4y                (            float to )                                                                                    ;
-        inline void set_l4z                (            float to )                                                   ;  //  layerIV surface coordinates
-        inline void set_infx               (            float to )                                                                                    ;
-        inline void set_infy               (            float to )                                                                                    ;
-        inline void set_infz               (            float to )                                                          ;  //  inflated coordinates
-        inline void set_fx                 (            float to )                                                                                    ;
-        inline void set_fy                 (            float to )                                                                                    ;
-        inline void set_fz                 (            float to )                                                         ;  //  flattened coordinates
-        inline void set_px                 (              int to )                                                                                    ;
-        inline void set_qx                 (              int to )                                                                                    ;
-        inline void set_py                 (              int to )                                                                                    ;
-        inline void set_qy                 (              int to )                                                                                    ;
-        inline void set_pz                 (              int to )                                                                                    ;
-        inline void set_qz                 (              int to )                                   ;  //  rational coordinates for exact calculations
-        inline void set_e1x                (            float to )                                                                                    ;
-        inline void set_e1y                (            float to )                                                                                    ;
-        inline void set_e1z                (            float to )                                  ;  //  1st basis vector for the local tangent plane
-        inline void set_e2x                (            float to )                                                                                    ;
-        inline void set_e2y                (            float to )                                                                                    ;
-        inline void set_e2z                (            float to )                                  ;  //  2nd basis vector for the local tangent plane
-        inline void set_pe1x               (            float to )                                                                                    ;
-        inline void set_pe1y               (            float to )                                                                                    ;
-        inline void set_pe1z               (            float to )                                  ;  //  1st basis vector for the local tangent plane
-        inline void set_pe2x               (            float to )                                                                                    ;
-        inline void set_pe2y               (            float to )                                                                                    ;
-        inline void set_pe2z               (            float to )                                  ;  //  2nd basis vector for the local tangent plane
-        inline void set_nc                 (            float to )                                                      ;  //  curr length normal comp 
-        inline void set_val2               (            float to )                                    ;  //  complex comp data value (file: sig3-rh.w) 
-        inline void set_valbak             (            float to )                                                            ;  //  scalar data stack 
-        inline void set_val2bak            (            float to )                                                      ;  //  complex comp data stack 
-        inline void set_stat               (            float to )                                                                    ;  //  statistic 
+        inline void set_undefval       (              int to )                                                          ;  //  [previously dist=0] 
+        inline void set_old_undefval   (              int to )                                                        ;  //  for smooth_val_sparse 
+        inline void set_fixedval       (              int to )                                                           ;  //  [previously val=0] 
         //         
-        inline void set_undefval           (              int to )                                                          ;  //  [previously dist=0] 
-        inline void set_old_undefval       (              int to )                                                        ;  //  for smooth_val_sparse 
-        inline void set_fixedval           (              int to )                                                           ;  //  [previously val=0] 
-        //         
-        inline void set_fieldsign          (            float to )                                 ;  //  fieldsign--final: -1, "0", "1" (file: rh.fs) 
-        inline void set_fsmask             (            float to )                                              ;  //  significance mask (file: rh.fm) 
-        inline void set_d                  (            float to )                                                    ;  //  for distance calculations 
-        inline void set_annotation         (              int to )                              ;  //  area label (defunct--now from label file name!) 
-        inline void set_oripflag           (             char to )                                                                                    ;
-        inline void set_origripflag        (             char to )                                                                   ;  //  cuts flags 
-        inline void set_vp                 (           p_void to )                                                  ;  //  to store user's information 
-        inline void set_theta              (            float to )                                                                                    ;
-        inline void set_phi                (            float to )                                                             ;  //  parameterization 
-        inline void set_area               (            float to )                                                                                    ;
-        inline void set_origarea           (            float to )                                                                                    ;
-        inline void set_group_avg_area     (            float to )                                                                                    ;
-        inline void set_K                  (            float to )                                                           ;  //  Gaussian curvature 
-        inline void set_H                  (            float to )                                                               ;  //  mean curvature 
-        inline void set_k1                 (            float to )                                                                                    ;
-        inline void set_k2                 (            float to )                                                     ;  //  the principal curvatures 
-        inline void set_mean               (            float to )                                                                                    ;
-        inline void set_mean_imag          (            float to )                                          ;  //  imaginary part of complex statistic 
-        inline void set_std_error          (            float to )                                                                                    ;
-        inline void set_flags              (             uint to )                                                                                    ;
-        inline void set_fno                (              int to )                                                  ;  //  face that this vertex is in 
-        inline void set_cropped            (              int to )                                                                                    ;
-        inline void set_marked             (            short to )                                                        ;  //  for a variety of uses 
-        inline void set_marked2            (            short to )                                                                                    ;
-        inline void set_marked3            (            short to )                                                                                    ;
-        inline void set_neg                (             char to )                                           ;  //  1 if the normal vector is inverted 
-        inline void set_border             (             char to )                                                                         ;  //  flag 
-        inline void set_ripflag            (             char to )      ;  //  vertex no longer exists - placed last to load the next vertex into cache
+        inline void set_fieldsign      (            float to )                                 ;  //  fieldsign--final: -1, "0", "1" (file: rh.fs) 
+        inline void set_fsmask         (            float to )                                              ;  //  significance mask (file: rh.fm) 
+        inline void set_d              (            float to )                                                    ;  //  for distance calculations 
+        inline void set_annotation     (              int to )                              ;  //  area label (defunct--now from label file name!) 
+        inline void set_oripflag       (             char to )                                                                                    ;
+        inline void set_origripflag    (             char to )                                                                   ;  //  cuts flags 
+        inline void set_vp             (           p_void to )                                                  ;  //  to store user's information 
+        inline void set_theta          (            float to )                                                                                    ;
+        inline void set_phi            (            float to )                                                             ;  //  parameterization 
+        inline void set_area           (            float to )                                                                                    ;
+        inline void set_origarea       (            float to )                                                                                    ;
+        inline void set_group_avg_area (            float to )                                                                                    ;
+        inline void set_K              (            float to )                                                           ;  //  Gaussian curvature 
+        inline void set_H              (            float to )                                                               ;  //  mean curvature 
+        inline void set_k1             (            float to )                                                                                    ;
+        inline void set_k2             (            float to )                                                     ;  //  the principal curvatures 
+        inline void set_mean           (            float to )                                                                                    ;
+        inline void set_mean_imag      (            float to )                                          ;  //  imaginary part of complex statistic 
+        inline void set_std_error      (            float to )                                                                                    ;
+        inline void set_flags          (             uint to )                                                                                    ;
+        inline void set_fno            (              int to )                                                  ;  //  face that this vertex is in 
+        inline void set_cropped        (              int to )                                                                                    ;
+        inline void set_marked         (            short to )                                                        ;  //  for a variety of uses 
+        inline void set_marked2        (            short to )                                                                                    ;
+        inline void set_marked3        (            short to )                                                                                    ;
+        inline void set_neg            (             char to )                                           ;  //  1 if the normal vector is inverted 
+        inline void set_border         (             char to )                                                                         ;  //  flag 
+        inline void set_ripflag        (             char to )      ;  //  vertex no longer exists - placed last to load the next vertex into cache
     };
 
     struct Surface : public MRIS_Elt {
-        inline Surface (                        );
-        inline Surface ( Surface const & src    );
-        inline Surface ( MRIS* mris, size_t idx );
+        inline Surface (                     );
+        inline Surface ( Surface const & src );
+        inline Surface ( MRIS* mris          );
 
         // Fields being maintained by specialist functions
         inline int                   nverticesFrozen          (           ) const ;  //  # of vertices on surface is frozen                                                                                     
@@ -319,12 +312,11 @@
         inline bool                  faceAttachmentDeferred   (           ) const ;  //  defer connecting faces to vertices for performance reasons                                                             
         inline int                   nedges                   (           ) const ;  //  # of edges on surface                                                                                                  
         inline int                   nstrips                  (           ) const ;                                                                                                                             
-        inline VERTEX_TOPOLOGY       vertices_topology        ( size_t i  ) const ;                                                                                                                             
-        inline VERTEX                vertices                 ( size_t i  ) const ;                                                                                                                             
+        inline Vertex                vertices                 ( size_t i  ) const ;                                                                                                                             
         inline p_p_void              dist_storage             (           ) const ;  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored                          
         inline p_p_void              dist_orig_storage        (           ) const ;  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored                     
         inline int                   tempsAssigned            (           ) const ;  //  State of various temp fields that can be borrowed if not already in use                                                
-        inline FACE                  faces                    ( size_t i  ) const ;                                                                                                                             
+        inline Face                  faces                    ( size_t i  ) const ;                                                                                                                             
         inline MRI_EDGE              edges                    ( size_t i  ) const ;                                                                                                                             
         inline FaceNormCacheEntry    faceNormCacheEntries     ( size_t i  ) const ;                                                                                                                             
         inline FaceNormDeferredEntry faceNormDeferredEntries  ( size_t i  ) const ;                                                                                                                             
@@ -341,9 +333,9 @@
         inline float                 x0                       (           ) const ;  //  center of spherical expansion                                                                                          
         inline float                 y0                       (           ) const ;                                                                                                                             
         inline float                 z0                       (           ) const ;                                                                                                                             
-        inline PVERTEX               v_temporal_pole          (           ) const ;                                                                                                                             
-        inline PVERTEX               v_frontal_pole           (           ) const ;                                                                                                                             
-        inline PVERTEX               v_occipital_pole         (           ) const ;                                                                                                                             
+        inline Vertex                v_temporal_pole          (           ) const ;                                                                                                                             
+        inline Vertex                v_frontal_pole           (           ) const ;                                                                                                                             
+        inline Vertex                v_occipital_pole         (           ) const ;                                                                                                                             
         inline float                 max_curv                 (           ) const ;                                                                                                                             
         inline float                 min_curv                 (           ) const ;                                                                                                                             
         inline float                 total_area               (           ) const ;                                                                                                                             
@@ -375,14 +367,6 @@
         inline int                   patch                    (           ) const ;  //  if a patch of the surface                                                                                              
         inline int                   nlabels                  (           ) const ;                                                                                                                             
         inline PMRIS_AREA_LABEL      labels                   (           ) const ;  //  nlabels of these (may be null)                                                                                         
-        inline char                  nsize                    (           ) const ;  //  size of neighborhoods or -1                                                                                            
-        inline uchar                 vtotalsMightBeTooBig     (           ) const ;  //  MRISsampleDistances sets this                                                                                          
-        inline short                 nsizeMaxClock            (           ) const ;  //  changed whenever an edge is added or removed, which invalidates the vertex v#num values                                
-        inline char                  max_nsize                (           ) const ;  //  max the neighborhood size has been set to (typically 3)                                                                
-        inline char                  dist_nsize               (           ) const ;  //  max mrisComputeVertexDistances has computed distances out to                                                           
-        inline char                  dist_orig_nsize          (           ) const ;  //  max mrisComputeOriginalVertexDistances has computed distances out to                                                   
-        inline char                  dist_alloced_flags       (           ) const ;  //  two flags, set when any dist(1) or dist_orig(2) allocated                                                              
-        inline float                 avg_nbrs                 (           ) const ;  //  mean # of vertex neighbors                                                                                             
         inline p_void                vp                       (           ) const ;  //  for misc. use                                                                                                          
         inline float                 alpha                    (           ) const ;  //  rotation around z-axis                                                                                                 
         inline float                 beta                     (           ) const ;  //  rotation around y-axis                                                                                                 
@@ -392,7 +376,7 @@
         inline float                 dg                       (           ) const ;  //  old deltas                                                                                                             
         inline int                   type                     (           ) const ;  //  what type of surface was this initially                                                                                
         inline int                   max_vertices             (           ) const ;  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces                                               
-        inline int                   max_faces                (           ) const ;  //  may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces                                                  
+        inline int                   max_faces                (           ) const ;  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces                                               
         inline MRIS_subject_name_t   subject_name             (           ) const ;  //  name of the subject                                                                                                    
         inline float                 canon_area               (           ) const ;                                                                                                                             
         inline int                   noscale                  (           ) const ;  //  don't scale by surface area if true                                                                                    
@@ -412,107 +396,53 @@
         inline PMRI                  mri_sras2vox             (           ) const ;  //  volume that the above matrix is for                                                                                    
         inline p_void                mht                      (           ) const ;                                                                                                                             
         inline p_void                temps                    (           ) const ;                                                                                                                             
-        // Fields being maintained by specialist functions
                    
-        inline void set_nverticesFrozen          (                             int to )                                                                                      ;  //  # of vertices on surface is frozen
-        inline void set_nvertices                (                             int to )                                           ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline void set_nfaces                   (                             int to )                                              ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline void set_faceAttachmentDeferred   (                            bool to )                                                              ;  //  defer connecting faces to vertices for performance reasons
-        inline void set_nedges                   (                             int to )                                                                                                   ;  //  # of edges on surface
-        inline void set_nstrips                  (                             int to )                                                                                                                              ;
-        inline void set_vertices_topology        ( size_t i,       VERTEX_TOPOLOGY to )                                                                                                                              ;
-        inline void set_vertices                 ( size_t i,                VERTEX to )                                                                                                                              ;
-        inline void set_dist_storage             (                        p_p_void to )                           ;  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
-        inline void set_dist_orig_storage        (                        p_p_void to )                      ;  //  the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored
-        inline void set_tempsAssigned            (                             int to )                                                 ;  //  State of various temp fields that can be borrowed if not already in use
-        inline void set_faces                    ( size_t i,                  FACE to )                                                                                                                              ;
-        inline void set_edges                    ( size_t i,              MRI_EDGE to )                                                                                                                              ;
-        inline void set_faceNormCacheEntries     ( size_t i,    FaceNormCacheEntry to )                                                                                                                              ;
-        inline void set_faceNormDeferredEntries  ( size_t i, FaceNormDeferredEntry to )                                                                                                                              ;
-        inline void set_strips                   ( size_t i,                 STRIP to )                                                                                                                              ;
-        inline void set_xctr                     (                           float to )                                                                                                                              ;
-        inline void set_yctr                     (                           float to )                                                                                                                              ;
-        inline void set_zctr                     (                           float to )                                                                                                                              ;
-        inline void set_xlo                      (                           float to )                                                                                                                              ;
-        inline void set_ylo                      (                           float to )                                                                                                                              ;
-        inline void set_zlo                      (                           float to )                                                                                                                              ;
-        inline void set_xhi                      (                           float to )                                                                                                                              ;
-        inline void set_yhi                      (                           float to )                                                                                                                              ;
-        inline void set_zhi                      (                           float to )                                                                                                                              ;
-        inline void set_x0                       (                           float to )                                                                                           ;  //  center of spherical expansion
-        inline void set_y0                       (                           float to )                                                                                                                              ;
-        inline void set_z0                       (                           float to )                                                                                                                              ;
-        inline void set_v_temporal_pole          (                         PVERTEX to )                                                                                                                              ;
-        inline void set_v_frontal_pole           (                         PVERTEX to )                                                                                                                              ;
-        inline void set_v_occipital_pole         (                         PVERTEX to )                                                                                                                              ;
-        inline void set_max_curv                 (                           float to )                                                                                                                              ;
-        inline void set_min_curv                 (                           float to )                                                                                                                              ;
-        inline void set_total_area               (                           float to )                                                                                                                              ;
-        inline void set_avg_vertex_area          (                          double to )                                                                                                                              ;
-        inline void set_avg_vertex_dist          (                          double to )                                                                                    ;  //  set by MRIScomputeAvgInterVertexDist
-        inline void set_std_vertex_dist          (                          double to )                                                                                                                              ;
-        inline void set_orig_area                (                           float to )                                                                                                                              ;
-        inline void set_neg_area                 (                           float to )                                                                                                                              ;
-        inline void set_neg_orig_area            (                           float to )                                                                                     ;  //  amount of original surface in folds
-        inline void set_zeros                    (                             int to )                                                                                                                              ;
-        inline void set_hemisphere               (                             int to )                                                                                                        ;  //  which hemisphere
-        inline void set_initialized              (                             int to )                                                                                                                              ;
-        inline void set_lta                      (                            PLTA to )                                                                                                                              ;
-        inline void set_SRASToTalSRAS_           (                         PMATRIX to )                                                                                                                              ;
-        inline void set_TalSRASToSRAS_           (                         PMATRIX to )                                                                                                                              ;
-        inline void set_free_transform           (                             int to )                                                                                                                              ;
-        inline void set_radius                   (                          double to )                                                                                         ;  //  radius (if status==MRIS_SPHERE)
-        inline void set_a                        (                           float to )                                                                                                                              ;
-        inline void set_b                        (                           float to )                                                                                                                              ;
-        inline void set_c                        (                           float to )                                                                                                    ;  //  ellipsoid parameters
-        inline void set_fname                    (                    MRIS_fname_t to )                                                                                      ;  //  file it was originally loaded from
-        inline void set_Hmin                     (                           float to )                                                                                                      ;  //  min mean curvature
-        inline void set_Hmax                     (                           float to )                                                                                                      ;  //  max mean curvature
-        inline void set_Kmin                     (                           float to )                                                                                                  ;  //  min Gaussian curvature
-        inline void set_Kmax                     (                           float to )                                                                                                  ;  //  max Gaussian curvature
-        inline void set_Ktotal                   (                          double to )                                                                                                ;  //  total Gaussian curvature
-        inline void set_status                   (                     MRIS_Status to )                                                                                    ;  //  type of surface (e.g. sphere, plane)
-        inline void set_origxyz_status           (                     MRIS_Status to )                                               ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
-        inline void set_patch                    (                             int to )                                                                                               ;  //  if a patch of the surface
-        inline void set_nlabels                  (                             int to )                                                                                                                              ;
-        inline void set_labels                   (                PMRIS_AREA_LABEL to )                                                                                          ;  //  nlabels of these (may be null)
-        inline void set_nsize                    (                            char to )                                                                                             ;  //  size of neighborhoods or -1
-        inline void set_vtotalsMightBeTooBig     (                           uchar to )                                                                                           ;  //  MRISsampleDistances sets this
-        inline void set_nsizeMaxClock            (                           short to )                                 ;  //  changed whenever an edge is added or removed, which invalidates the vertex v#num values
-        inline void set_max_nsize                (                            char to )                                                                 ;  //  max the neighborhood size has been set to (typically 3)
-        inline void set_dist_nsize               (                            char to )                                                            ;  //  max mrisComputeVertexDistances has computed distances out to
-        inline void set_dist_orig_nsize          (                            char to )                                                    ;  //  max mrisComputeOriginalVertexDistances has computed distances out to
-        inline void set_dist_alloced_flags       (                            char to )                                                               ;  //  two flags, set when any dist(1) or dist_orig(2) allocated
-        inline void set_avg_nbrs                 (                           float to )                                                                                              ;  //  mean # of vertex neighbors
-        inline void set_vp                       (                          p_void to )                                                                                                           ;  //  for misc. use
-        inline void set_alpha                    (                           float to )                                                                                                  ;  //  rotation around z-axis
-        inline void set_beta                     (                           float to )                                                                                                  ;  //  rotation around y-axis
-        inline void set_gamma                    (                           float to )                                                                                                  ;  //  rotation around x-axis
-        inline void set_da                       (                           float to )                                                                                                                              ;
-        inline void set_db                       (                           float to )                                                                                                                              ;
-        inline void set_dg                       (                           float to )                                                                                                              ;  //  old deltas
-        inline void set_type                     (                             int to )                                                                                 ;  //  what type of surface was this initially
-        inline void set_max_vertices             (                             int to )                                                ;  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
-        inline void set_max_faces                (                             int to )                                                   ;  //  may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces
-        inline void set_subject_name             (             MRIS_subject_name_t to )                                                                                                     ;  //  name of the subject
-        inline void set_canon_area               (                           float to )                                                                                                                              ;
-        inline void set_noscale                  (                             int to )                                                                                     ;  //  don't scale by surface area if true
-        inline void set_dx2                      ( size_t i,                 float to )                                                                           ;  //  an extra set of gradient (not always alloced)
-        inline void set_dy2                      ( size_t i,                 float to )                                                                                                                              ;
-        inline void set_dz2                      ( size_t i,                 float to )                                                                                                                              ;
-        inline void set_ct                       (                    PCOLOR_TABLE to )                                                                                                                              ;
-        inline void set_useRealRAS               (                             int to ) ;  //  if 0 (default), vertex position is a conformed volume RAS with c_(r,"a","s")=0.  else is a real RAS (volume stored RAS)
-        inline void set_vg                       (                        VOL_GEOM to )                                                  ;  //  volume info from which this surface is created. valid iff vg.valid = 1
-        inline void set_cmdlines                 (                 MRIS_cmdlines_t to )                                                                                                                              ;
-        inline void set_ncmds                    (                             int to )                                                                                                                              ;
-        inline void set_group_avg_surface_area   (                           float to )                                                                                 ;  //  average of total surface area for group
-        inline void set_group_avg_vtxarea_loaded (                             int to )                                                                            ;  //  average vertex area for group at each vertex
-        inline void set_triangle_links_removed   (                             int to )                                                                                                       ;  //  for quad surfaces
-        inline void set_user_parms               (                          p_void to )                                                                                ;  //  for whatever the user wants to hang here
-        inline void set_m_sras2vox               (                         PMATRIX to )                                                                                     ;  //  for converting surface ras to voxel
-        inline void set_mri_sras2vox             (                            PMRI to )                                                                                     ;  //  volume that the above matrix is for
-        inline void set_mht                      (                          p_void to )                                                                                                                              ;
-        inline void set_temps                    (                          p_void to )                                                                                                                              ;
+        inline void set_strips           ( size_t i,            STRIP to )                                                                                ;
+        inline void set_xctr             (                      float to )                                                                                ;
+        inline void set_yctr             (                      float to )                                                                                ;
+        inline void set_zctr             (                      float to )                                                                                ;
+        inline void set_xlo              (                      float to )                                                                                ;
+        inline void set_ylo              (                      float to )                                                                                ;
+        inline void set_zlo              (                      float to )                                                                                ;
+        inline void set_xhi              (                      float to )                                                                                ;
+        inline void set_yhi              (                      float to )                                                                                ;
+        inline void set_zhi              (                      float to )                                                                                ;
+        inline void set_x0               (                      float to )                                             ;  //  center of spherical expansion
+        inline void set_y0               (                      float to )                                                                                ;
+        inline void set_z0               (                      float to )                                                                                ;
+        inline void set_v_temporal_pole  (                     Vertex to )                                                                                ;
+        inline void set_v_frontal_pole   (                     Vertex to )                                                                                ;
+        inline void set_v_occipital_pole (                     Vertex to )                                                                                ;
+        inline void set_max_curv         (                      float to )                                                                                ;
+        inline void set_min_curv         (                      float to )                                                                                ;
+        inline void set_total_area       (                      float to )                                                                                ;
+        inline void set_avg_vertex_area  (                     double to )                                                                                ;
+        inline void set_avg_vertex_dist  (                     double to )                                      ;  //  set by MRIScomputeAvgInterVertexDist
+        inline void set_std_vertex_dist  (                     double to )                                                                                ;
+        inline void set_orig_area        (                      float to )                                                                                ;
+        inline void set_neg_area         (                      float to )                                                                                ;
+        inline void set_neg_orig_area    (                      float to )                                       ;  //  amount of original surface in folds
+        inline void set_zeros            (                        int to )                                                                                ;
+        inline void set_hemisphere       (                        int to )                                                          ;  //  which hemisphere
+        inline void set_fname            (               MRIS_fname_t to )                                        ;  //  file it was originally loaded from
+        inline void set_Hmin             (                      float to )                                                        ;  //  min mean curvature
+        inline void set_Hmax             (                      float to )                                                        ;  //  max mean curvature
+        inline void set_Kmin             (                      float to )                                                    ;  //  min Gaussian curvature
+        inline void set_Kmax             (                      float to )                                                    ;  //  max Gaussian curvature
+        inline void set_Ktotal           (                     double to )                                                  ;  //  total Gaussian curvature
+        inline void set_status           (                MRIS_Status to )                                      ;  //  type of surface (e.g. sphere, plane)
+        inline void set_origxyz_status   (                MRIS_Status to ) ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
+        inline void set_patch            (                        int to )                                                 ;  //  if a patch of the surface
+        inline void set_nlabels          (                        int to )                                                                                ;
+        inline void set_labels           (           PMRIS_AREA_LABEL to )                                            ;  //  nlabels of these (may be null)
+        inline void set_vp               (                     p_void to )                                                             ;  //  for misc. use
+        inline void set_alpha            (                      float to )                                                    ;  //  rotation around z-axis
+        inline void set_beta             (                      float to )                                                    ;  //  rotation around y-axis
+        inline void set_gamma            (                      float to )                                                    ;  //  rotation around x-axis
+        inline void set_da               (                      float to )                                                                                ;
+        inline void set_db               (                      float to )                                                                                ;
+        inline void set_dg               (                      float to )                                                                ;  //  old deltas
+        inline void set_type             (                        int to )                                   ;  //  what type of surface was this initially
     };
 
     } // namespace AllM

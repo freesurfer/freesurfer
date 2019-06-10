@@ -453,7 +453,7 @@ void mrisDumpVertex(FILE* file, MRIS const * mris, int vno) {
   int i;
   for (i = 0; i < vsize; i++) {
     fprintf(file, " [%d] v:%d dist:%f dist_orig:%f",
-      i, vt->v[i], v->dist[i], v->dist_orig[i]);
+      i, vt->v[i], v->dist ? v->dist[i] : -1.0f, v->dist_orig ? v->dist_orig[i] : -1.0f);
   } fprintf(file, "\n");
 
   for (i = 0; i < vt->num; i++) {

@@ -572,7 +572,8 @@ static void MRISMP_computeNormals(MRIS_MP* mris, bool check)
 
   if (debugNonDeterminism) {
     fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
-    // mris_print_hash(stdout, mris, "mris ", "\n");
+    // mris_print_hash(stdout, mris, "mris ", "");
+    fprintf(stdout, "\n");
   }
 
   int k;
@@ -840,7 +841,8 @@ static void MRISMP_computeAvgInterVertexDist(MRIS_MP *mris, double *StdDev)
 
   if (showHashs) {
     fprintf(stdout, "%s:%d MRISMP_computeAvgInterVertexDist starting ",__FILE__,__LINE__);
-    //mris_print_hash(stdout, mris, "mris ", "\n");
+    //mris_print_hash(stdout, mris, "mris ", "");
+    fprintf(stdout, "\n");
   }
   
   double Sum = 0, Sum2 = 0;
