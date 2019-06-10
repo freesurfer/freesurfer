@@ -895,7 +895,8 @@ compute_vertex_permutation(MRI_SURFACE *mris_mov, MRI_SURFACE *mris_fixed, MHT *
   for (vno = 0 ; vno < mris_mov->nvertices ; vno++)
   {
     v = &mris_mov->vertices[vno] ;
-    vfixed = MHTfindClosestVertex(mht, mris_fixed, v) ;
+    float min_dist;
+    vfixed = MHTfindClosestVertex2(mht, mris_fixed, mris_mov, v, &min_dist) ;
     vertices[vno] = vfixed - mris_fixed->vertices ;
     
   }    

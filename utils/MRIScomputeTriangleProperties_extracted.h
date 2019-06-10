@@ -67,8 +67,9 @@ int FUNCTION_NAME(MRIS *mris)
   if (debugNonDeterminism) {
     fprintf(stdout, "%s:%d %s stdout ",__FILE__,__LINE__, __MYFUNCTION__);
 #ifndef COMPILING_MRIS_MP
-    mris_print_hash(stdout, mris, "mris ", "\n");
+    mris_print_hash(stdout, mris, "mris ", "");
 #endif
+    fprintf(stdout, "\n");
   }
 
   #define ROMP_VARIABLE       fno
@@ -226,8 +227,9 @@ int FUNCTION_NAME(MRIS *mris)
   if (debugNonDeterminism) {
     fprintf(stdout, "%s:%d %s stdout ",__FILE__,__LINE__,__MYFUNCTION__);
 #ifndef COMPILING_MRIS_MP
-    mris_print_hash(stdout, mris, "mris ", "\n");
+    mris_print_hash(stdout, mris, "mris ", "");
 #endif
+    fprintf(stdout, "\n");
   }
 
 /* calculate the "area" of the vertices */

@@ -64,6 +64,8 @@ double MRIScomputeSSE(MRIS *mris, INTEGRATION_PARMS *parms) {
 
 double MRIScomputeSSE_new(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, bool debug)
 {
+  debug |= debugNonDeterminism;
+  
   bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
   double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
   double const l_curv_scaled    = (double)parms->l_curv * CURV_SCALE;
