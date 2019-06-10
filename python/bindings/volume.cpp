@@ -4,21 +4,6 @@
 
 
 /**
-  Binds the PyVolume class (renamed to Volume) in the python module.
-*/
-void bindVolume(py::module &m)
-{
-  py::class_<PyVolume>(m, "Volume")
-    .def(py::init<py::array&>())
-    .def(py::init<const std::string&>())
-    .def("write", &PyVolume::write)
-    .def_property("image", &PyVolume::getImage, &PyVolume::setImage)
-    .def_property("affine", &PyVolume::getAffine, &PyVolume::setAffine)
-  ;
-}
-
-
-/**
   Returns the associated MRI type of a numpy array.
 */
 static int voltype(const py::array& array)
@@ -64,8 +49,9 @@ static py::dtype pytype(const MRI* mri)
 /**
   Constructs an MRI instance from a 3/4D numpy array.
 */
-PyVolume::PyVolume(py::array& array) : MRI(array.request().shape, voltype(array))
+PyVolume::PyVolume(py::array& array)
 {
+  m_mri = new MRI(array.request().shape, voltype(array));
   setImage(array);
 };
 
@@ -83,7 +69,8 @@ PyVolume::~PyVolume()
 {
   // if python is handling the buffer memory, null the chunk pointer so that
   // the MRI destructor doesn't actually delete the image data
-  if (buffer_array.size() != 0) chunk = nullptr;
+  if (buffer_array.size() != 0) m_mri->chunk = nullptr;
+  delete m_mri;
 }
 
 
@@ -104,10 +91,10 @@ py::array PyVolume::getImage()
 {
   // create the python buffer array if it hasn't been initialized already
   if (buffer_array.size() == 0) {
-    if (!ischunked) logFatal(1) << "image is too large to fit into contiguous memory and cannot be supported by the python bindings";
+    if (!m_mri->ischunked) logFatal(1) << "image is too large to fit into contiguous memory and cannot be supported by the python bindings";
     // python will now manage the buffer memory deletion
-    py::capsule capsule(chunk, [](void *d) { if (d) free(d); } );
-    buffer_array = py::array(pytype(this), std::vector<ssize_t>(shape), fstrides(shape, bytes_per_vox), chunk, capsule);
+    py::capsule capsule(m_mri->chunk, [](void *d) { if (d) free(d); } );
+    buffer_array = py::array(pytype(m_mri), std::vector<ssize_t>(m_mri->shape), fstrides(m_mri->shape, m_mri->bytes_per_vox), m_mri->chunk, capsule);
   }
   return buffer_array;
 }
@@ -119,7 +106,7 @@ py::array PyVolume::getImage()
 */
 void PyVolume::setImage(const py::array& array)
 {
-  switch (type) {
+  switch (m_mri->type) {
     case MRI_UCHAR:
       setBufferData<unsigned char>(array); break;
     case MRI_INT:
@@ -141,7 +128,7 @@ void PyVolume::setImage(const py::array& array)
 */
 affinematrix PyVolume::getAffine()
 {
-  return affinematrix({4, 4}, fstrides({4, 4}, sizeof(float)), i_to_r__->mat);  
+  return affinematrix({4, 4}, fstrides({4, 4}, sizeof(float)), m_mri->i_to_r__->mat);
 }
 
 
@@ -171,17 +158,37 @@ void PyVolume::setAffine(const affinematrix& array)
   double sizey = std::sqrt(yr * yr + ya * ya + ys * ys);
   double sizez = std::sqrt(zr * zr + za * za + zs * zs);
 
-  x_r = xr / sizex;
-  x_a = xa / sizex;
-  x_s = xs / sizex;
+  m_mri->x_r = xr / sizex;
+  m_mri->x_a = xa / sizex;
+  m_mri->x_s = xs / sizex;
 
-  y_r = yr / sizey;
-  y_a = ya / sizey;
-  y_s = ys / sizey;
+  m_mri->y_r = yr / sizey;
+  m_mri->y_a = ya / sizey;
+  m_mri->y_s = ys / sizey;
 
-  z_r = zr / sizez;
-  z_a = za / sizez;
-  z_s = zs / sizez;
+  m_mri->z_r = zr / sizez;
+  m_mri->z_a = za / sizez;
+  m_mri->z_s = zs / sizez;
 
-  MRIp0ToCRAS(this, pr, pa, ps);
+  MRIp0ToCRAS(m_mri, pr, pa, ps);
+}
+
+
+/**
+  Computes the volume's vox->surf matrix.
+*/
+affinematrix PyVolume::computeVox2Surf()
+{
+  MATRIX *vox2surf = MRIxfmCRS2XYZtkreg(m_mri);
+  affinematrix pymat = affinematrix({4, 4}, cstrides({4, 4}, sizeof(float)), vox2surf->data);
+  MatrixFree(&vox2surf);
+  return pymat;
+}
+
+
+PyVolume* PyVolume::crop(const std::vector<Slice>& cropping)
+{
+  if (cropping.size() != 3) logFatal(1) << "crop slicing must be 3-dimensional";
+  return new PyVolume(MRIcrop(m_mri, cropping[0].start(), cropping[1].start(), cropping[2].start(),
+                                     cropping[0].stop()-1, cropping[1].stop()-1, cropping[2].stop()-1));
 }
