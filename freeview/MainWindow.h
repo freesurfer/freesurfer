@@ -334,6 +334,7 @@ protected:
   void LoadTrackFile            ( const QString& fn );
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void LoadSurfaceParameterization(const QString& filename);
+  void LoadSurfaceCoordsFromParameterization(const QString& filename);
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 
@@ -356,6 +357,7 @@ protected:
   void CommandLoadSurfaceAnnotation ( const QStringList& cmd );
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
+  void CommandLoadSurfaceCoordsFromParameterization ( const QStringList& cmd );
   void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
   void CommandLoadFCD           ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );

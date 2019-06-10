@@ -308,7 +308,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-//  if ( patch_filename.isEmpty() )
+  //  if ( patch_filename.isEmpty() )
   {
     if (sup_files.contains("white"))
       LoadSurface ( "white",    SurfaceWhite );
@@ -347,7 +347,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
 void FSSurface::UpdateHashTable(int nSet, int coord)
 {
   if (m_HashTable[nSet])
-   MHTfree( &m_HashTable[nSet] );
+    MHTfree( &m_HashTable[nSet] );
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
@@ -470,9 +470,9 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
     {
       // likely wrong overlay data
       printf("Number of vertices in overlay data (%d or %d) does not match with surface (%d).\n",
-	     mriheader->width*mriheader->height*mriheader->depth, 
-	     mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes,
-	     m_MRIS->nvertices);
+             mriheader->width*mriheader->height*mriheader->depth,
+             mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes,
+             m_MRIS->nvertices);
       return false;
     }
 
@@ -1023,7 +1023,7 @@ void FSSurface::UpdateVerticesAndNormals()
   m_polydata->GetPointData()->SetNormals( newNormals );
   m_polydataVertices->SetPoints( newPoints );
   m_polydataWireframes->SetPoints( newPoints );
-//  m_polydata->Update();
+  //  m_polydata->Update();
 
   // if vector data exist
   UpdateVectors();
@@ -1901,13 +1901,18 @@ void FSSurface::RemoveIntersections()
   PostEditProcess();
 }
 
-void FSSurface::PostEditProcess()
+void FSSurface::UpdateCoords()
 {
-  UpdateHashTable(m_nActiveSurface);
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
+}
+
+void FSSurface::PostEditProcess()
+{
+  UpdateHashTable(m_nActiveSurface);
+  UpdateCoords();
 }
 
 void FSSurface::RepositionVertex(int vno, double *coord)
@@ -2107,18 +2112,18 @@ QVector<int> FSSurface::FloodFillFromSeed(int seed_vno)
   int iter;
   int min_vno, max_vno, step_vno;
   int vno;
-//  int this_label = 0;
+  //  int this_label = 0;
   int neighbor_index;
   int neighbor_vno;
   VERTEX* v;
   VERTEX_TOPOLOGY* vt;
   VERTEX* neighbor_v;
-//  float fvalue = 0;
-//  float seed_curv = 0;
-//  float seed_fvalue = 0;
-//  int new_index;
-//  int num_labels_found, found_label_index;
-//  int skip;
+  //  float fvalue = 0;
+  //  float seed_curv = 0;
+  //  float seed_fvalue = 0;
+  //  int new_index;
+  //  int num_labels_found, found_label_index;
+  //  int skip;
   int count;
 
   QVector<int> filled_verts;
