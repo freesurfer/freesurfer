@@ -1,6 +1,7 @@
 #include "surface.h"
 #include "volume.h"
 #include "fio.h"
+#include "mri_circulars.h"
 
 
 // temporary utility for reading via constructor so that we don't
@@ -90,6 +91,32 @@ void PySurface::setFaces(py::array_t<int, py::array::c_style | py::array::forcec
   }
 }
 
+
+/*
+  Computes the surface's surf->vox matrix
+*/
+affinematrix PySurface::computeSurf2Vox(PyVolume& vol)
+{
+  MATRIX *sras2ras;
+  if (vg.valid) {
+    MRI *tmp = MRIallocHeader(vg.width, vg.height, vg.depth, MRI_UCHAR, 1);
+    MRIcopyVolGeomToMRI(tmp, &vg);
+    sras2ras = RASFromSurfaceRAS_(tmp);
+    MRIfree(&tmp);
+  } else {
+    // no valid geom - assume it came from the provided volume
+    sras2ras = RASFromSurfaceRAS_(vol);
+  }
+
+  MATRIX *ras2vox = MRIgetRasToVoxelXform(vol);
+  MATRIX *sras2vox = MatrixMultiply(ras2vox, sras2ras, NULL);
+
+  affinematrix pymat = affinematrix({4, 4}, cstrides({4, 4}, sizeof(float)), sras2vox->data);
+  MatrixFree(&ras2vox);
+  MatrixFree(&sras2vox);
+  MatrixFree(&sras2ras);
+  return pymat;
+}
 
 
 /*

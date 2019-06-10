@@ -6,6 +6,9 @@
 #include "volume.h"
 
 
+typedef py::array_t<float, py::array::f_style | py::array::forcecast> affinematrix;
+
+
 class PySurface : public MRIS
 {
 public:
@@ -23,8 +26,8 @@ public:
   void setFaces(py::array_t<int, py::array::c_style | py::array::forcecast> array);
 
   // geometry
-  void copyGeometry(PyVolume *vol) { MRIScopyVolGeomFromMRI(this, vol); }
   void copyGeometry(PySurface *surf) { copyVolGeom(&surf->vg, &this->vg); }
+  affinematrix computeSurf2Vox(PyVolume& vol);
 
   // wrapped utilities
   bool isSelfIntersecting();
@@ -39,9 +42,9 @@ inline void bindSurface(py::module &m)
   py::class_<PySurface>(m, "Surface")
     .def(py::init<const std::string &>())
     .def("write", &PySurface::write)
+    .def("_compute_surf2vox", &PySurface::computeSurf2Vox)
     .def("isSelfIntersecting", &PySurface::isSelfIntersecting)
     .def("fillInterior", &PySurface::fillInterior)
-    .def("copy_geometry", (void (PySurface::*)(PyVolume*)) &PySurface::copyGeometry)
     .def("copy_geometry", (void (PySurface::*)(PySurface*)) &PySurface::copyGeometry)
     .def_property("vertices", &PySurface::getVertices, &PySurface::setVertices)
     .def_property("faces", &PySurface::getFaces, &PySurface::setFaces)
