@@ -30,4 +30,6 @@ from .geometry import *
 from ._surface import *
 from ._normalize import *
 from .freeview import *
+from .mrisp import *
 from . import metrics
+
