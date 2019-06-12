@@ -31,7 +31,11 @@ public:
 
   // wrapped utilities
   bool isSelfIntersecting();
-  pybind11::array fillInterior();
+  py::array fillInterior();
+
+  // parameterization
+  py::array_t<float> parameterizeBarycentric(const py::array_t<float, py::array::forcecast>& array, float scale);
+  py::array_t<float> computeParameterizationMapBarycentric(const std::vector<int>& shape);
 };
 
 py::array_t<int> readAnnotation(const std::string &filename);
@@ -46,6 +50,8 @@ inline void bindSurface(py::module &m)
     .def("isSelfIntersecting", &PySurface::isSelfIntersecting)
     .def("fillInterior", &PySurface::fillInterior)
     .def("copy_geometry", (void (PySurface::*)(PySurface*)) &PySurface::copyGeometry)
+    .def("parameterize", &PySurface::parameterizeBarycentric)
+    .def("precompute_parameterization_map", &PySurface::computeParameterizationMapBarycentric)
     .def_property("vertices", &PySurface::getVertices, &PySurface::setVertices)
     .def_property("faces", &PySurface::getFaces, &PySurface::setFaces)
     ;
