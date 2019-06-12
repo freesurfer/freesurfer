@@ -6,14 +6,19 @@ import math
 from . import sample_patch
 
 def createFaceArrays(surf):
-    vfaces = [[]] * len(surf.vertices)
+#    vfaces = [[]] * len(surf.vertices)
+    nvertices = len(surf.vertices)
+    vfaces = []
+    for vno in range(nvertices):
+        vfaces.append([])
     for fno, face in enumerate(surf.faces):
         for vno in face:
             vfaces[vno].append(fno)
-            return vfaces
+    return vfaces
 
 def initSurface(surf):
-    surf.vfaces = createFaceArrays(surf)
+    if hasattr(surf,'vfaces') == False:
+        surf.vfaces = createFaceArrays(surf)
 
 def MRISP(scale, nfuncs):
     if scale == 0: scale = 1
@@ -24,10 +29,14 @@ def MRISP(scale, nfuncs):
 
 def averageRadius(surface):
 
+    if str(type(surface)) == "<class 'freesurfer.surface.Surface'>":
+        vertices = surface.vertices
+    else:
+        vertices = surface[0]
     xhi = yhi = zhi = -10000.0
     xlo = ylo = zlo =  10000.0
 
-    for (x, y, z) in surface[0]:
+    for (x, y, z) in vertices:
         if x > xhi: xhi = x
         if x < xlo: xlo = x
         if y > yhi: yhi = y
@@ -40,13 +49,13 @@ def averageRadius(surface):
     z0 = (zlo + zhi) / 2.0
 
     radius = 0.0
-    for (x, y, z) in surface[0]:
+    for (x, y, z) in vertices:
         dx = x - x0;
         dy = y - y0;
         dz = z - z0;
         radius += math.sqrt(dx**2 + dy**2 + dz**2)
 
-    radius /= len(surface[0])
+    radius /= len(vertices)
     return radius
 
 
@@ -186,10 +195,10 @@ def MRISsampleVertexPatch(mris, mri_normals, mri, vno, wsize):
 
 def computeFaceNormals(surf):
   
-  a = surf.vertices[surf.faces[:,1]] - surf.vertices[surf.faces[:,0]] ;
-  b = surf.vertices[surf.faces[:,2]] - surf.vertices[surf.faces[:,0]] ;
+  edges1 = surf.vertices[surf.faces[:,1]] - surf.vertices[surf.faces[:,0]] ;
+  edges2 = surf.vertices[surf.faces[:,2]] - surf.vertices[surf.faces[:,0]] ;
 
-  normals = np.cross(a,b)
+  normals = np.cross(edges1,edges2)
   ln = np.linalg.norm(normals,axis=1)
   ind = np.nonzero(ln == 0)
   ln[ind] = 1
@@ -197,16 +206,20 @@ def computeFaceNormals(surf):
   return(normals)
      
 def computeVertexNormals(surf):
+    if hasattr(surf,'vfaces') == False:
+        initSurface(surf)
     face_normals = computeFaceNormals(surf)
     nvertices = surf.vertices.shape[0]
     vertex_normals = np.zeros((nvertices, 3))
+    faces = surf.faces
     for vno in range(nvertices):
-        ind = np.nonzero(surf.faces == vno)
+        ind = surf.vfaces[vno]
         vertex_normals[vno,:] = face_normals[ind[0],:].mean(axis=0)
         norm = np.linalg.norm(vertex_normals[vno,:])
         if (abs(norm) < 1e-5):
             norm = 1
         vertex_normals[vno,:] /= norm
+    return vertex_normals
 
 def computeVoxelCoords(surf, vol):
     voxels = surf.surf2vox(vol).transform(surf.vertices)
