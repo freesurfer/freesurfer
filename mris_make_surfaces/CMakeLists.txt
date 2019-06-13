@@ -1,6 +1,9 @@
 project(mris_make_surfaces)
 
-include_directories(${FS_INCLUDE_DIRS})
+include_directories(
+	${FS_INCLUDE_DIRS}
+    	${CMAKE_SOURCE_DIR}/resurf/Code
+	)
 
 add_executable(mris_make_surfaces mris_make_surfaces.cpp)
 add_help(mris_make_surfaces mris_make_surfaces.help.xml)

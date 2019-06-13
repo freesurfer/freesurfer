@@ -36,7 +36,8 @@ TractsToImageBin=${code}trk_tools
 function forAll()
 {
  	function=$1 #i.e. tractography
-	cluster_call="  $4 $5 $6 $7 $8 $9" #"pbsubmit -n 1 -c " 
+	cluster_call=${6//_/ }
+	echo ${cluster_call}
 	
 	cd ${SUBJECTS_DIR}                                                
 	for s in */;       
@@ -45,7 +46,7 @@ function forAll()
 		subject=${s//[\/]/}                                                                                                                                                 
 		echo ${s}
 
-		string="bash ${0} $1 ${subject} $2 $3"                                                                                                                   
+		string="bash ${0} $1 ${subject} $2 $3 $4 $5"         
 		echo ${string}
  		if [[ -z ${cluster_call} ]];
 		then
@@ -88,14 +89,20 @@ function tractography()
 	echo "tractography"
 	subject=$1
 	echo ${subject}
-	fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
+	if [[ -e   ${DMRI_DIR}/${subject}/dmri/data.nii.gz ]] ;
+	then
+		fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+	else
+		fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
+	fi
 	fbval=${DMRI_DIR}/${subject}/dmri/bvals
 	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
 	output=${DMRI_DIR}/${subject}/dmri/GQI/
-
+	rm ${DMRI_DIR}/${subject}/dmri/GQI/*.trk
 	mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
-	${FREESURFER_HOME}/bin/diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
+	#${FREESURFER_HOME}/bin/
+	diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
 
 }
 function getMaps()
@@ -105,7 +112,12 @@ function getMaps()
 	if [[  ${2} == "DTI"  ]] || [[  ${2} == "DKI" ]] ; then
 
 		model=$2 #DTI or DKI
-		fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
+		if [[ -e   ${DMRI_DIR}/${subject}/dmri/data.nii.gz ]] ;
+		then
+			fdwi=${DMRI_DIR}/${subject}/dmri/data.nii.gz
+		else
+			fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
+		fi
 		fbval=${DMRI_DIR}/${subject}/dmri/bvals
 		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
 		output=${DMRI_DIR}/${subject}/dmri/$model
@@ -173,7 +185,9 @@ function anatomiCuts()
     subject=$1
     lenght=$2
     mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}
-    #rm -R ${output}/*
+    rm  ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/*.trk
+    rm  ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/*.vtk
+
 	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
 	then 
 	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}"
@@ -189,19 +203,35 @@ function runGA()
 	subject=$1
 	targetSubject=$2
 	lenght=$3
+	std=$4
+	bb=$5	
 
-	Hungarian ${subject} ${targetSubject} ${lenght}
-	Measures ${subject} ${targetSubject} ${lenght}
-	ToTarget ${subject} ${targetSubject} ${lenght}
+	Clean ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 }
 
+function Clean()
+{
+	subject=$1
+	targetSubject=$2	
+	lenght=$3
+	std=$4
+	mkdir ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}
 
+	${code}streamlineFilter -i ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/*trk -m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -d ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}/ -c ${std}
+
+        cp ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/HierarchicalHistory.csv ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}/
+}
 function Hungarian()
 {
 	subject=$1
 	targetSubject=$2	
 	lenght=$3
-	
+	std=$4
+	bb=$5
+
 	for c in ${clusters[@]};
 	do	
 		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
@@ -213,10 +243,10 @@ function Hungarian()
 			sj=${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
 		fi
 		
-		ci=${ODMRI_DIR}/${targetSubject}/dmri.ac/${lenght}
-		cj=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}
+		ci=${ODMRI_DIR}/${targetSubject}/dmri.ac/${lenght}/${std}
+		cj=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 		mkdir -p ${cj}/match/	
-		${HungarianBin} -s1 ${si} -s2 ${sj} -h1 ${ci}/ -h2 ${cj}/ -o ${cj}/match/${targetSubject}_${subject}_c${c}_hungarian.csv  -labels -hungarian -c ${c}
+		${HungarianBin} -s1 ${si} -s2 ${sj} -h1 ${ci}/ -h2 ${cj}/ -o ${cj}/match/${targetSubject}_${subject}_c${c}_hungarian.csv  -labels -hungarian -c ${c} ${bb}
 	done
 }
 function Measures()
@@ -224,8 +254,9 @@ function Measures()
 	subject=$1
 	targetSubject=$2	
 	lenght=$3
-	
-	anatomicuts=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}
+	std=$4
+
+	anatomicuts=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 	diff=${ODMRI_DIR}/${subject}/dmri/
 	for c in ${clusters[@]};
 	do
@@ -247,22 +278,27 @@ function ToTarget()
        	subject=$1
 	targetSubject=$2	
 	lenght=$3
-	
+	std=$4
+
         common="to${targetSubject}/"
-	wmIn=${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
-	wmOut=${DMRI_DIR}/${targetSubject}/dmri/wm2009parc2dwi.nii.gz
-	
-	mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${common}/
+
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+		wmIn=${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
+		wmOut=${DMRI_DIR}/${targetSubject}/dmri/wm2009parc2dwi.nii.gz
+	else
+		wmIn=${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+		wmOut=${DMRI_DIR}/${targetSubject}/dmri/wmparc2dwi.nii.gz
+	fi
+	mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
         
-	common_clustering=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${common}/
-        images_clustering=/${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/images/
+	common_clustering=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
+        images_clustering=/${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/images/
 
 	mkdir -p ${common_clustering}/trk
         mkdir -p ${common_clustering}/images
         mkdir ${images_clustering}
 	mkdir -p ${DMRI_DIR}/${subject}/dmri/${common}/
-        #flirt -in ${subjects_dir}/${subject}/mri/brain.nii.gz -ref ${subjects_dir}/${targetSubject}/mri/brain.nii.gz -omat ${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}.mat
-	#fnirt --in=${subjects_dir}/${subject}/mri/brain.nii.gz --ref=${subjects_dir}/${targetSubject}/mri/brain.nii.gz --aff=${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}.mat --iout=${diffusion_dir}/${subject}/dmri/${common}/brainTo${targetSubject}.nii.gz --fout=${diffusion_dir}/${subject}/dmri/${common}/brainTo${targetSubject}_field.nii.gz
         
 	fsl_reg ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz ${DMRI_DIR}/${targetSubject}/dmri/GQI/gfa_map.nii.gz ${DMRI_DIR}/${subject}/dmri/${common}/dwiTo${targetSubject} -e -FA 
 
@@ -270,22 +306,21 @@ function ToTarget()
 	#mri_cvs_register --mov ${subject} --template ${targetSubject}  --noaseg # --nointensity 
 	#mri_register   ${subjects_dir}/${subject}/mri/brain.nii.gz  ${subjects_dir}/${targetSubject}/mri/brain.nii.gz  ${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}.mm3z
 
-	cd ${DMRI_DIR}/${subject}/dmri.ac/${lenght}/
+	cd ${DMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
         for f in *trk 
         do
                 echo $f
-                if [ ! -f ${images_clustering}/${f%.trk}.nii.gz ]; then
-                        ${TractsToImageBin} -f ${f} -i ${wmIn} -e ${images_clustering}/${f%.trk}.nii.gz > /dev/null
-                fi
+                #if [ ! -f ${images_clustering}/${f%.trk}.nii.gz ]; then
+                        ${TractsToImageBin} -f ${f} -i ${wmIn} -e ${images_clustering}/${f%.trk}.nii.gz #> /dev/null
+                #fi
         
-                if [ ! -f  ${common_clustering}/images/${f%.trk}.nii.gz ]; then
+                #if [ ! -f  ${common_clustering}/images/${f%.trk}.nii.gz ]; then
 
                         dmri_trk2trk --in ${f} --out ${common_clustering}/trk/${f} --inref ${wmIn} --outref ${wmOut} --reg ${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}.mat  --regnl ${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}_warp.nii.gz #> /dev/null --reg ${diffusion_dir}/${subject}/dmri/${common}/dwiTo${targetSubject}.mat  
                         ${TractsToImageBin}  -f ${common_clustering}/trk/${f} -i ${wmOut} -e ${common_clustering}/images/${f%.trk}.nii.gz
-                fi
+                #fi
         done
         cp HierarchicalHistory.csv ${common_clustering}/trk/
-
 
 }
 
@@ -293,11 +328,12 @@ function average()
 {       
 	targetSubject=$1	
 	lenght=$2
+	std=$3
 
-	mkdir -p ${ODMRI_DIR}/average/dmri.ac/images
+	mkdir -p ${ODMRI_DIR}/average/dmri.ac/${lenght}_${std}/images
         correspondences="["
         imagesFolder="["
-        outputFolder="\\\"${ODMRI_DIR}/average/dmri.ac/images/\\\""
+        outputFolder="\\\"${ODMRI_DIR}/average/dmri.ac/${lenght}_${std}/images/\\\""
         s2=${targetSubject}
 
         cd ${ODMRI_DIR}
@@ -310,8 +346,8 @@ function average()
                                 correspondences=${correspondences}","
                                 imagesFolder=${imagesFolder}","
                         fi
-                        correspondences=${correspondences}"\\\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/match/${s2}_${s}_c200_hungarian.csv\\\""   
-                        imagesFolder=${imagesFolder}"\\\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/to${targetSubject}/images/\\\""
+                        correspondences=${correspondences}"\\\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/match/${s2}_${s}_c200_hungarian.csv\\\""   
+                        imagesFolder=${imagesFolder}"\\\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/to${targetSubject}/images/\\\""
                 fi
         done    
         correspondences=${correspondences}"]"
@@ -324,7 +360,7 @@ function average()
         mkdir -p ${outputFolder}
         #correspondences, imagesFolder, outputFolder,  clusterIndeces   
         cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
-        pbsubmit -n 1 -q max500 -c "python3 -c \"import anatomiCutsUtils;  anatomiCutsUtils.averageCorrespondingClusters($correspondences, $imagesFolder, $outputFolder,$clusterIndeces) \" "
+        pbsubmit -n 1 -c "python3 -c \"import anatomiCutsUtils;  anatomiCutsUtils.averageCorrespondingClusters($correspondences, $imagesFolder, $outputFolder,$clusterIndeces) \" "
         #python3 -c "import anatomiCutsUtils;  anatomiCutsUtils.averageCorrespondingClusters(${correspondences}, ${imagesFolder}, ${outputFolder},${clusterIndeces}) "
         
 }
