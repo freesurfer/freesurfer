@@ -794,10 +794,6 @@ MRIS_HASH_TABLE_IMPL::~MRIS_HASH_TABLE_IMPL()
             ::free(buckets_mustUseAcqRel[xv][yv]);
         }
     }
-
-#ifdef HAVE_OPENMP
-    omp_destroy_lock(&buckets_lock);
-#endif
 }
 
 

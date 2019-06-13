@@ -2,7 +2,7 @@
 #include "volume.h"
 #include "fio.h"
 #include "mri_circulars.h"
-
+#include "diag.h"
 
 // temporary utility for reading via constructor so that we don't
 // have to make a base-class MRIS constructor (for now)
@@ -168,4 +168,79 @@ py::array_t<int> readAnnotation(const std::string& filename)
 
   fclose(fp);
   return py::array_t<int>(nvertices, labels);
+}
+
+
+py::array_t<float> PySurface::parameterizeBarycentric(const py::array_t<float, py::array::forcecast>& overlay, float scale)
+{
+  MRISsaveVertexPositions(this, CANONICAL_VERTICES);
+  MRI_SP *mrisp = MRIStoParameterizationBarycentric(this, nullptr, overlay.data(0), scale, 0);
+  // convert to array
+  int udim = U_DIM(mrisp);
+  int vdim = V_DIM(mrisp);
+  float *const buffer = new float[udim * vdim];
+  float *ptr = buffer;
+  for (int u = 0; u < udim; u++) {
+  for (int v = 0; v < vdim; v++) {
+      *ptr++ = *IMAGEFseq_pix(mrisp->Ip, u, v, 0);
+  }
+  }
+  MRISPfree(&mrisp);
+  return makeArray({udim, vdim}, MemoryOrder::C, buffer);
+}
+
+
+py::array_t<float> PySurface::computeParameterizationMapBarycentric(const std::vector<int>& shape)
+{
+  float *buffer = new float[nvertices * 4 * 3];
+  float *ptr = buffer;
+
+  int udim = shape[0];
+  int vdim = shape[1];
+
+  float radius = MRISaverageRadius(this);
+  for (int vno = 0; vno < nvertices; vno++) {
+
+    VERTEX *vertex = &vertices[vno];
+    float x = vertex->x;
+    float y = vertex->y;
+    float z = vertex->z;
+
+    float theta = atan2(y/radius, x/radius);
+    if (theta < 0.0f) theta = 2 * M_PI + theta;  // make it 0 -> 2PI
+
+    float d = radius * radius - z * z;
+    if (d < 0.0) d = 0.0;
+
+    float phi = atan2(sqrt(d), z);
+    if (phi < RADIANS(1)) DiagBreak();
+    if (phi > M_PI) DiagBreak();
+
+    float uf = udim * phi / PHI_MAX;
+    float vf = vdim * theta / THETA_MAX;
+    int u0 = floor(uf);
+    int v0 = floor(vf);
+    int u1 = ceil(uf);
+    int v1 = ceil(vf);
+    float du = uf - (float)u0;
+    float dv = vf - (float)v0;
+
+    // enforce spherical topology
+    if (u0 < 0) u0 = -u0;
+    if (u0 >= udim) u0 = udim - (u0 - udim + 1);
+    if (u1 < 0) u1 = -u1;
+    if (u1 >= udim) u1 = udim - (u1 - udim + 1);
+    if (v0 < 0) v0 += vdim;
+    if (v0 >= vdim) v0 -= vdim;
+    if (v1 < 0) v1 += vdim;
+    if (v1 >= vdim) v1 -= vdim;
+
+    // make bilinear interpolation map
+    *ptr++ = du * dv                   ; *ptr++ = u1; *ptr++ = v1;
+    *ptr++ = (1.0f - du) * dv          ; *ptr++ = u0; *ptr++ = v1;
+    *ptr++ = (1.0f - du) * (1.0f - dv) ; *ptr++ = u0; *ptr++ = v0;
+    *ptr++ = du * (1.0f - dv)          ; *ptr++ = u1; *ptr++ = v0;
+  }
+
+  return makeArray({nvertices, 4, 3}, MemoryOrder::C, buffer);
 }
