@@ -46,6 +46,8 @@
     <optional-flagged>
       <argument>-SDIR &lt;subjects_dir&gt;</argument>
       <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
+      <argument>-coords &lt;which_vertices&gt;</argument>
+      <explanation>Treat overlay as a surface and write it into a 3 frame parameterization</explanation>
       <argument>-A &lt;navgs&gt;</argument>
       <explanation>Average curvature patterns navgs times</explanation>
       <argument>-CORR &lt;label_file_name&gt;</argument>

@@ -5758,7 +5758,8 @@ int MRISmeasureDistanceBetweenSurfaces(MRIS *mris, MRIS *mris2, int signed_dist)
     if (v1->ripflag) {
       continue;
     }
-    v2 = MHTfindClosestVertex(mht, mris2, v1);
+    float min_dist;
+    v2 = MHTfindClosestVertex2(mht, mris2, mris, v1, &min_dist);
     if (v2 == NULL) {
       v1->curv = MAX_DIST;
       continue;
@@ -5874,7 +5875,7 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
     StuffVertexCoords(surf1, vno1, pv1);
 
     // Get the closest vertex in surf2
-    vno2 = MHTfindClosestVertexNo(mht, surf2, v1, &dminv);
+    vno2 = MHTfindClosestVertexNo2(mht, surf2, surf1, v1, &dminv);
     v2 = &surf2->vertices[vno2];    
     vt2 = &surf2->vertices_topology[vno2];
 

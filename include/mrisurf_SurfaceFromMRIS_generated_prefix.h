@@ -95,7 +95,10 @@ namespace SurfaceFromMRIS {
         struct Vertex;
         struct Surface;
     } // namespace AllM
-    struct MRIS_Elt { protected: 
+    struct MRIS_Elt { 
+        bool operator==(MRIS_Elt const & rhs) const { return mris == rhs.mris && idx == rhs.idx; }
+        bool operator!=(MRIS_Elt const & rhs) const { return mris != rhs.mris || idx != rhs.idx; }
+    protected: 
         MRIS* mris; size_t idx; 
         MRIS_Elt() : mris(nullptr), idx(0) {}
         MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}

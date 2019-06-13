@@ -288,7 +288,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       TimeCourseData& td = m_data[n];
       if (td.m_bShow)
       {
-        int nLen = fmt.width(td.m_strName);
+        int nLen = fmt.width(td.m_strName+" :");
         if (nLen > nMaxNameWidth)
           nMaxNameWidth = nLen;
         if (m_nCurrentFrame < td.m_points.size())
@@ -323,7 +323,8 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
           if (m_nCurrentFrame < td.m_points.size())
           {
             rc.setWidth(nMaxValueWidth);
-            rc.moveRight(rc_frame.right()-nMarginH);
+            rc.moveRight(rc_frame.right()-nMarginH-3);
+            p.setPen(m_colorForeground);
             p.drawText(rc, Qt::AlignLeft, QString::number(td.m_points[m_nCurrentFrame]));
           }
           offset_y += fmt.height() + nSpacingV;

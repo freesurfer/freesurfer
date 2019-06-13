@@ -924,10 +924,9 @@ double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               float desired_radius,
                               float x, float y, float z, int fno) ;
                               
-MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp,
-						float scale, int fno) ;
-MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris,
-						  int fno) ;
+MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno) ;
+MRI_SP       *MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, const float *overlay, float scale, int frameno);
+MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) ;
 
 MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                      float scale, int fno) ;
@@ -2313,13 +2312,59 @@ struct face_topology_type_ {    // not used much yet
   vertices_per_face_t v;        // and being overtaken by events...
 };
 
+//  The types needed to store and describe the various properties of the mesh
+//  that are independent of the representation of the mesh are found in
+//  mrisurf_aaa.h
+//
+//  We have several ways to code against our triangular mesh, so that we can
+//  support several representations and restricted access to the properties.
+//
+//  Abstractly, each of these representations defines a Surface as a set of 
+//  Faces and Vertices, each with a set of properties that can be read and
+//  perhaps written.
+//
+//  The traditional way is to have the code fully understand the representation
+//  so the code says
+//      MRIS*   mris;
+//      VERTEX* v = &mris->vertices[vno];
+//      if (v->ripflag) ...
+//  but this style has three problems
+//      1) The data is not stored in a memory-traffic efficient manner
+//      2) The code has to know the data structures
+//      3) The code has access to all the data members at all times,
+//              rather than having read and write access only to those
+//              fields that it should currently have access to
+//
+//  This is mrisurf_FACE_VERTEX_MRIS*.h
 
-#if 0
-#include "mrisurf_FACE_VERTEX_MRI_traditional.h"
-#else
-#include "mrisurf_FACE_VERTEX_MRI_generated.h"
+#include "mrisurf_FACE_VERTEX_MRIS_generated.h"
+
+//  To provide restricted access to these structures, using code that
+//  can be redirected to other representations, we have a set of namespaces
+//  which each define Surface, Vertex, and Face classes, and which provide
+//  member functions to get and set the various properties of those
+//  entities regardless of how they are represented.  These classes are
+//  effectively pointers rather than structs - Vertex replaces VERTEX*.
+//
+//  After the includes in the .cpp file, specify the namespace that describes
+//  what it is allowed to access
+//
+//      using namespace SurfaceFromMRIS::Topology;
+//  
+//  The Surface Face Vertex classes replace the traditional pointers,
+//  so you write
+//
+//      Vertex v2 = v1.v(3);
+//      if (v2.ripflag()) continue;
+//      v2.set_marked(true);
+//
+//  instead of the traditional
+//
+//      VERTEX* v2 = &mris->vertices[v1->v[3]];
+//      if (v2->ripflag) continue;
+//      v2->marked = true;
+//
 #include "mrisurf_SurfaceFromMRIS_generated.h"
-#endif
 
 
 // Static function implementations

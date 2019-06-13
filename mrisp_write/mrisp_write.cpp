@@ -58,6 +58,7 @@ const char *Progname ;
 static MRI_SURFACE *mris_contra = NULL ;
 static MRI *mri_contra_overlay = NULL ;
 
+static int coords = -1 ;
 static int compute_corr = 0 ;
 static int spherical_corr = 0 ;
 static char *clabel_fname = NULL;  // contra hemi label
@@ -122,6 +123,18 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, in_surf) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
+  if (coords >= 0)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    if (MRISreadVertexPositions(mris, in_overlay) != NO_ERROR)
+      ErrorExit(Gerror, NULL) ;
+    MRISsaveVertexPositions(mris, coords) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    mrisp = MRIScoordsToParameterization(mris, NULL, scale, coords) ;
+    printf("writing coordinate parameterization to %s\n", out_fname);
+    MRISPwrite(mrisp,out_fname) ;
+    exit(0) ;
+  }
   file_type = mri_identify(in_overlay);
   if (file_type == MRI_MGH_FILE || file_type == NIFTI1_FILE || file_type == NII_FILE)
   {
@@ -353,6 +366,17 @@ get_option(int argc, char *argv[])
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
+  }
+  else if (!stricmp(option, "COORDS"))
+  {
+    if (!stricmp(argv[2], "white"))
+      coords = WHITE_VERTICES ;
+    else if (!stricmp(argv[2], "pial"))
+      coords = PIAL_VERTICES ;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "Unknown coords value %s", argv[2]) ;
+    nargs = 1 ;
+    printf("writing coords %s (%d) into parameterizaton\n", argv[2], coords) ;
   }
   else if (!stricmp(option, "DEBUG_VOXEL"))
   {

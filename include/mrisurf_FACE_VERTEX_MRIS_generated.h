@@ -27,9 +27,9 @@ struct VERTEX_TOPOLOGY {
     short         v3num         ;  //  number of 1,2,or 3-hop neighbors                         
     short         vtotal        ;  //  total # of neighbors. copy of vnum.nsizeCur              
     short         nsizeMaxClock ;  //  copy of mris->nsizeMaxClock when v#num                   
-    uchar         nsizeMax      ;  //  the max nsize that was used to fill in vnum etc          
-    uchar         nsizeCur      ;  //  index of the current v#num in vtotal                     
-    uchar         num           ;  //  number of neighboring faces                              
+    unsigned char nsizeMax      ;  //  the max nsize that was used to fill in vnum etc          
+    unsigned char nsizeCur      ;  //  index of the current v#num in vtotal                     
+    unsigned char num           ;  //  number of neighboring faces                              
 };		// VERTEX_TOPOLOGY
 
 struct vertex_type_ {
@@ -141,7 +141,7 @@ struct vertex_type_ {
     float         mean               ;
     float         mean_imag          ;  //  imaginary part of complex statistic 
     float         std_error          ;
-    uint          flags              ;
+    unsigned int  flags              ;
     int           fno                ;  //  face that this vertex is in 
     int           cropped            ;
     short         marked             ;  //  for a variety of uses 
@@ -217,7 +217,7 @@ struct MRIS {
     int                           nlabels                  ;
     PMRIS_AREA_LABEL              labels                   ;  //  nlabels of these (may be null)
     char                          nsize                    ;  //  size of neighborhoods or -1
-    uchar                         vtotalsMightBeTooBig     ;  //  MRISsampleDistances sets this
+    unsigned char                 vtotalsMightBeTooBig     ;  //  MRISsampleDistances sets this
     short                         nsizeMaxClock            ;  //  changed whenever an edge is added or removed, which invalidates the vertex v#num values
     char                          max_nsize                ;  //  max the neighborhood size has been set to (typically 3)
     char                          dist_nsize               ;  //  max mrisComputeVertexDistances has computed distances out to
@@ -269,7 +269,7 @@ struct MRIS {
 
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
     ELTP(int,f)  SEP \
-    ELTP(uchar,n)  SEP \
+    ELTP(unsigned char,n)  SEP \
     ELTP(int,e)  SEP \
     ELTP(int,v)  SEP \
     ELTT(short,vnum)  SEP \
@@ -277,9 +277,9 @@ struct MRIS {
     ELTT(short,v3num)  SEP \
     ELTT(short,vtotal)  SEP \
     ELTX(short,nsizeMaxClock)  SEP \
-    ELTT(uchar,nsizeMax)  SEP \
-    ELTT(uchar,nsizeCur)  SEP \
-    ELTT(uchar,num)  SEP \
+    ELTT(unsigned char,nsizeMax)  SEP \
+    ELTT(unsigned char,nsizeCur)  SEP \
+    ELTT(unsigned char,num)  SEP \
 // end of macro
 
 #define LIST_OF_VERTEX_ELTS_1 \
@@ -399,7 +399,7 @@ struct MRIS {
     ELTT(float,mean)  SEP \
     ELTT(float,mean_imag)  SEP \
     ELTT(float,std_error)  SEP \
-    ELTT(uint,flags)  SEP \
+    ELTT(unsigned int,flags)  SEP \
     ELTT(int,fno)  SEP \
     ELTT(int,cropped)  SEP \
     ELTT(short,marked)  SEP \
@@ -426,8 +426,8 @@ struct MRIS {
     ELTT(int,nstrips)  SEP \
     ELTP(VERTEX_TOPOLOGY,vertices_topology)  SEP \
     ELTP(VERTEX,vertices)  SEP \
-    ELTT(p_p_void,dist_storage)  SEP \
-    ELTT(p_p_void,dist_orig_storage)  SEP \
+    ELTX(p_p_void,dist_storage)  SEP \
+    ELTX(p_p_void,dist_orig_storage)  SEP \
     ELTT(int,tempsAssigned)  SEP \
     ELTP(FACE,faces)  SEP \
     ELTP(MRI_EDGE,edges)  SEP \
@@ -484,14 +484,14 @@ struct MRIS {
     ELTT(int,nlabels)  SEP \
     ELTP(MRIS_AREA_LABEL,labels)  SEP \
     ELTT(char,nsize)  SEP \
-    ELTT(uchar,vtotalsMightBeTooBig)  SEP \
+    ELTT(unsigned char,vtotalsMightBeTooBig)  SEP \
     ELTX(short,nsizeMaxClock)  SEP \
     ELTT(char,max_nsize)  SEP \
     ELTT(char,dist_nsize)  SEP \
     ELTT(char,dist_orig_nsize)  SEP \
     ELTT(char,dist_alloced_flags)  SEP \
     ELTT(float,avg_nbrs)  SEP \
-    ELTT(p_void,vp)  SEP \
+    ELTX(p_void,vp)  SEP \
     ELTT(float,alpha)  SEP \
     ELTT(float,beta)  SEP \
     ELTT(float,gamma)  SEP \
@@ -515,7 +515,7 @@ struct MRIS {
     ELTT(float,group_avg_surface_area)  SEP \
     ELTT(int,group_avg_vtxarea_loaded)  SEP \
     ELTT(int,triangle_links_removed)  SEP \
-    ELTT(p_void,user_parms)  SEP \
+    ELTX(p_void,user_parms)  SEP \
     ELTP(MATRIX,m_sras2vox)  SEP \
     ELTP(MRI,mri_sras2vox)  SEP \
     ELTT(p_void,mht)  SEP \

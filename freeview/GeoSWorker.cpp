@@ -34,7 +34,7 @@ GeoSWorker::~GeoSWorker()
   m_geos->deleteLater();
 }
 
-void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing, LayerMRI* mask)
+void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing, LayerMRI* mask, double fill_val)
 {
   m_mri = mri;
   m_seg = seg;
@@ -43,6 +43,7 @@ void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_
   m_mask = mask;
   if (max_distance > 0)
     m_nMaxDistance = max_distance;
+  m_dFillValue = fill_val;
   emit ComputeTriggered();
 }
 
@@ -124,6 +125,7 @@ void GeoSWorker::DoCompute()
   voi->Update();
   vtkSmartPointer<vtkImageData> src_image = m_mri->GetImageData();
   vtkSmartPointer<vtkImageData> grayscale = src_image;
+  // deal with RGB images
   if (m_mri->GetDataType() == MRI_RGB || (m_mri->GetNumberOfFrames() == 3 && m_mri->GetProperty()->GetDisplayRGB()))
   {
     grayscale = vtkSmartPointer<vtkImageData>::New();
@@ -138,67 +140,67 @@ void GeoSWorker::DoCompute()
 #endif
     if (m_mri->GetDataType() == MRI_RGB)
     {
-        unsigned char* in_ptr = (unsigned char*)src_image->GetScalarPointer();
-        double* out_ptr = (double*)grayscale->GetScalarPointer();
-        int* dim = src_image->GetDimensions();
-        qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
-        for (qlonglong i = 0; i < nSize; i++)
-        {
-          unsigned char* ptr = in_ptr + i*4;
-          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
-        }
+      unsigned char* in_ptr = (unsigned char*)src_image->GetScalarPointer();
+      double* out_ptr = (double*)grayscale->GetScalarPointer();
+      int* dim = src_image->GetDimensions();
+      qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
+      for (qlonglong i = 0; i < nSize; i++)
+      {
+        unsigned char* ptr = in_ptr + i*4;
+        out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+      }
     }
     else
     {
-        void* in_ptr = src_image->GetScalarPointer();
-        double* out_ptr = (double*)grayscale->GetScalarPointer();
-        int* dim = src_image->GetDimensions();
-        qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
-        switch (src_image->GetScalarType())
+      void* in_ptr = src_image->GetScalarPointer();
+      double* out_ptr = (double*)grayscale->GetScalarPointer();
+      int* dim = src_image->GetDimensions();
+      qlonglong nSize = ((qlonglong)dim[0])*dim[1]*dim[2];
+      switch (src_image->GetScalarType())
+      {
+      case VTK_UNSIGNED_CHAR:
+        for (qlonglong i = 0; i < nSize; i++)
         {
-        case VTK_UNSIGNED_CHAR:
-            for (qlonglong i = 0; i < nSize; i++)
-            {
-              unsigned char* ptr = (unsigned char*)in_ptr + i*3;
-              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
-            }
-            break;
-        case VTK_INT:
-            for (qlonglong i = 0; i < nSize; i++)
-            {
-              int* ptr = (int*)in_ptr + i*3;
-              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
-            }
-            break;
-        case VTK_SHORT:
-            for (qlonglong i = 0; i < nSize; i++)
-            {
-              short* ptr = (short*)in_ptr + i*3;
-              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
-            }
-            break;
-        case VTK_FLOAT:
-            for (qlonglong i = 0; i < nSize; i++)
-            {
-              float* ptr = (float*)in_ptr + i*3;
-              out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
-            }
-            break;
-        case VTK_DOUBLE:
-            for (qlonglong i = 0; i < nSize; i++)
-            {
-              double* ptr = (double*)in_ptr + i*3;
-              out_ptr[i] = ptr[0] + ptr[1] + ptr[2];
-            }
-            break;
+          unsigned char* ptr = (unsigned char*)in_ptr + i*3;
+          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
         }
+        break;
+      case VTK_INT:
+        for (qlonglong i = 0; i < nSize; i++)
+        {
+          int* ptr = (int*)in_ptr + i*3;
+          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+        }
+        break;
+      case VTK_SHORT:
+        for (qlonglong i = 0; i < nSize; i++)
+        {
+          short* ptr = (short*)in_ptr + i*3;
+          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+        }
+        break;
+      case VTK_FLOAT:
+        for (qlonglong i = 0; i < nSize; i++)
+        {
+          float* ptr = (float*)in_ptr + i*3;
+          out_ptr[i] = ((double)ptr[0]) + ptr[1] + ptr[2];
+        }
+        break;
+      case VTK_DOUBLE:
+        for (qlonglong i = 0; i < nSize; i++)
+        {
+          double* ptr = (double*)in_ptr + i*3;
+          out_ptr[i] = ptr[0] + ptr[1] + ptr[2];
+        }
+        break;
+      }
     }
   }
   vtkSmartPointer<vtkImageCast> cast2 = vtkSmartPointer<vtkImageCast>::New();
 #if VTK_MAJOR_VERSION > 5
-    cast2->SetInputData(grayscale);
+  cast2->SetInputData(grayscale);
 #else
-    cast2->SetInput(grayscale);
+  cast2->SetInput(grayscale);
 #endif
   cast2->SetOutputScalarTypeToDouble();
   vtkSmartPointer<vtkExtractVOI> voi2 = vtkSmartPointer<vtkExtractVOI>::New();
@@ -229,27 +231,47 @@ void GeoSWorker::DoCompute()
   unsigned char* seeds_out = new unsigned char[vol_size];
   QElapsedTimer timer;
   timer.start();
+  unsigned char* seed_ptr = (unsigned char*)seeds->GetScalarPointer();
+
+  float* mask_ptr = NULL;
+  if (m_mask)
+  {
+    cast = vtkSmartPointer<vtkImageCast>::New();
+#if VTK_MAJOR_VERSION > 5
+    cast->SetInputData(m_mask->GetImageData());
+#else
+    cast->SetInput(m_mask->GetImageData());
+#endif
+    cast->SetOutputScalarTypeToFloat();
+    cast->Update();
+    vtkImageData* mask_image = cast->GetOutput();
+    mask_ptr = (float*)mask_image->GetScalarPointer();
+    for (int i = 0; i < dim_new[0]; i++)
+    {
+      for (int j = 0; j < dim_new[1]; j++)
+      {
+        for (int k = 0; k < dim_new[2]; k++)
+        {
+          size_t n_voi = k*dim_new[1]*dim_new[0] + j*dim_new[0] + i;
+          size_t n = (k+bound[4])*dim[1]*dim[0] + (j+bound[2])*dim[0] + i+bound[0];
+          if (mask_ptr[n] != 0)
+          {
+            if (mask_ptr[n] == m_dFillValue)
+              seed_ptr[n_voi] = 1;
+            else
+              seed_ptr[n_voi] = 2;
+          }
+        }
+      }
+    }
+  }
   double scale[3] = {1,1,1};
-  bool bSuccess = m_geos->ComputeWithBinning(dim_new, scale, (double*)mri->GetScalarPointer(), mri_range, (unsigned char*)seeds->GetScalarPointer(), label_list, seeds_out);
+  bool bSuccess = m_geos->ComputeWithBinning(dim_new, scale, (double*)mri->GetScalarPointer(), mri_range, seed_ptr, label_list, seeds_out);
   if (bSuccess)
   {
     void* p = m_seg->GetImageData()->GetScalarPointer();
     int nDataType = m_seg->GetImageData()->GetScalarType();
     double fillValue = m_seg->GetFillValue();
-    float* mask_ptr = NULL;
-    if (m_mask)
-    {
-      cast = vtkSmartPointer<vtkImageCast>::New();
-    #if VTK_MAJOR_VERSION > 5
-      cast->SetInputData(m_mask->GetImageData());
-    #else
-      cast->SetInput(m_mask->GetImageData());
-    #endif
-      cast->SetOutputScalarTypeToFloat();
-      cast->Update();
-      vtkImageData* mask_image = cast->GetOutput();
-      mask_ptr = (float*)mask_image->GetScalarPointer();
-    }
     for (size_t n = 0; n < vol_size; n++)
     {
       if (seeds_out[n] > 0)

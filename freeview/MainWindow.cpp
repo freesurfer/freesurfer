@@ -134,7 +134,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bScriptRunning(false),
   m_bProcessing(false),
   m_bSplinePicking(true),
-  m_cmdParser(cmdParser)
+  m_cmdParser(cmdParser),
+  m_bHadError(false)
 {
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
@@ -843,6 +844,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if (parser->Found( "smoothed" ) )
   {
     m_defaultSettings["Smoothed"] = true;
+  }
+  if (parser->Found( "no-auto-load"))
+  {
+    m_defaultSettings["no_autoload"] = true;
   }
   if ( parser->Found( "viewport", &sa ) )
   {
@@ -1852,6 +1857,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfaceannotationoutline" )
   {
     CommandSetSurfaceAnnotationOutline( sa );
+  }
+  else if ( cmd == "loadsurfaceparameterization")
+  {
+    CommandLoadSurfaceCoordsFromParameterization( sa );
   }
   else if ( cmd == "setlayername" )
   {
@@ -3107,6 +3116,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
+  bool bNoAutoLoad = m_defaultSettings["no_autoload"].toBool();
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -3193,6 +3203,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("hidesurfacein3d") << subArgu);
         }
+        else if ( subOption == "no_auto_load" || subOption == "no_autoload")
+        {
+          bNoAutoLoad = true;
+        }
         else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
         {
           m_scripts.insert( 0, QStringList("setsurfacevertexcolor") << subArgu );
@@ -3246,6 +3260,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_smooth_steps.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaysmooth") << overlay_smooth_steps);
+        }
+        else if ( subOption == "mrisps" )
+        {
+          m_scripts.insert( 0, QStringList("loadsurfaceparameterization") << subArgu );
         }
         else if ( subOption == "annot" || subOption == "annotation" || subOption == "aparc" )
         {
@@ -3421,6 +3439,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
+  if (bNoAutoLoad)
+    sup_options["no_autoload"] = true;
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
@@ -4020,6 +4040,11 @@ void MainWindow::CommandLoadSurfaceLabel( const QStringList& cmd )
 void MainWindow::CommandLoadSurfaceSpline(const QStringList &cmd)
 {
   LoadSurfaceSplineFile( cmd[1]);
+}
+
+void MainWindow::CommandLoadSurfaceCoordsFromParameterization(const QStringList &cmd)
+{
+  LoadSurfaceCoordsFromParameterization(cmd[1]);
 }
 
 void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
@@ -5723,15 +5748,22 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     fullpath = filename;
   }
   QStringList sup_files = sup_files_in;
-  if (fi.fileName().contains("inflated.nofix"))
+  if (sup_options.value("no_autoload").toBool())
   {
-    if (!sup_files.contains("orig.nofix"))
-      sup_files << "orig.nofix";
+    layer->SetSphereFileName("");
   }
-  else if (fi.fileName().contains("inflated"))
+  else
   {
-    if (!sup_files.contains("white"))
-      sup_files << "white";
+    if (fi.fileName().contains("inflated.nofix"))
+    {
+      if (!sup_files.contains("orig.nofix"))
+        sup_files << "orig.nofix";
+    }
+    else if (fi.fileName().contains("inflated"))
+    {
+      if (!sup_files.contains("white"))
+        sup_files << "white";
+    }
   }
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
@@ -8512,4 +8544,13 @@ void MainWindow::UpdateLayerInfo(Layer* layer)
 {
   if (layer && m_wndLayerInfo->isVisible())
     m_wndLayerInfo->UpdateInfo(layer);
+}
+
+void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename )
+{
+  LayerSurface* layer = ( LayerSurface* )GetActiveLayer("Surface");
+  if ( layer && !layer->LoadCoordsFromParameterization(filename))
+  {
+    QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
+  }
 }

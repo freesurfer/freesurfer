@@ -76,12 +76,8 @@ TermWidget::TermWidget(QWidget *parent) :
   QSettings settings;
   this->restoreGeometry(settings.value("/CommandConsole/Geometry").toByteArray());
 
-//#ifdef DEVELOPMENT
-//  SetRedirectStdOutput(false); // for debugging
-//#else
-//#endif
   SetRedirectStdOutput(true);
-//  SetDuplicateStdOutput(true);
+  SetDuplicateStdOutput(true);
 
   Known_Shell_Cmds << "ls" << "pwd" << "cd" << "cp" << "dir" << "copy";
 
@@ -268,6 +264,7 @@ void TermWidget::OnTimeOut()
     {
       m_bufferStdErr.clear();
     }
+    MainWindow::GetMainWindow()->SetHadError(true);
   }
 }
 
