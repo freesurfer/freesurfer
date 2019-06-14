@@ -113,6 +113,7 @@ install(PROGRAMS
   labels_disjoint
   labels_intersect
   labels_union
+  listsubj
   long_create_base_sigma
   long_create_orig
   long_mris_slopes
