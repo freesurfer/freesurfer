@@ -282,9 +282,9 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
         v->cz = locations[2][vno];
         break;
       case TMP2_VERTICES:
-        v->tx2 = locations[0][vno];
-        v->ty2 = locations[1][vno];
-        v->tz2 = locations[2][vno];
+        v->t2x = locations[0][vno];
+        v->t2y = locations[1][vno];
+        v->t2z = locations[2][vno];
         break;
       case TMP_VERTICES:
         v->tx = locations[0][vno];
@@ -1973,9 +1973,9 @@ int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
         locations[2][vno] = v->origz;
         break;
       case TMP2_VERTICES:
-        locations[0][vno] = v->tx2;
-        locations[1][vno] = v->ty2;
-        locations[2][vno] = v->tz2;
+        locations[0][vno] = v->t2x;
+        locations[1][vno] = v->t2y;
+        locations[2][vno] = v->t2z;
         break;
       case TMP_VERTICES:
         locations[0][vno] = v->tx;
@@ -3187,9 +3187,9 @@ int MRISsaveVertexPositions(MRIS *mris, int which)
           v->cz = v->z;
           break;
         case TMP2_VERTICES:
-          v->tx2 = v->x;
-          v->ty2 = v->y;
-          v->tz2 = v->z;
+          v->t2x = v->x;
+          v->t2y = v->y;
+          v->t2z = v->z;
           break;
         case TMP_VERTICES:
           v->tx = v->x;
@@ -3275,9 +3275,9 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
         v->z = v->origz;
         break;
       case TMP2_VERTICES:
-        v->x = v->tx2;
-        v->y = v->ty2;
-        v->z = v->tz2;
+        v->x = v->t2x;
+        v->y = v->t2y;
+        v->z = v->t2z;
         break;
       default:
       case TMP_VERTICES:
@@ -3325,9 +3325,9 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
           v->cz = v->origz;
           break;
         case TMP2_VERTICES:
-          v->cx = v->tx2;
-          v->cy = v->ty2;
-          v->cz = v->tz2;
+          v->cx = v->t2x;
+          v->cy = v->t2y;
+          v->cz = v->t2z;
           break;
         default:
         case TMP_VERTICES:
@@ -3358,9 +3358,9 @@ int MRISsaveNormals(MRIS *mris, int which)
         v->tz = v->nz;
         break;
       case TMP2_VERTICES:
-        v->tx2 = v->nx;
-        v->ty2 = v->ny;
-        v->tz2 = v->nz;
+        v->t2x = v->nx;
+        v->t2y = v->ny;
+        v->t2z = v->nz;
         break;
       case PIAL_VERTICES:
         v->pnx = v->nx;
@@ -3400,9 +3400,9 @@ int MRISrestoreNormals(MRIS *mris, int which)
         v->nz = v->tz;
         break;
       case TMP2_VERTICES:
-        v->nx = v->tx2;
-        v->ny = v->ty2;
-        v->nz = v->tz2;
+        v->nx = v->t2x;
+        v->ny = v->t2y;
+        v->nz = v->t2z;
         break;
       case PIAL_VERTICES:
         v->nx = v->pnx;
@@ -3693,129 +3693,41 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
 
 int MRISvertexCoord2XYZ_float(VERTEX const * const v, int const which, float * const x, float * const y, float * const z)
 {
+#define CASE(WHICH, FIELD) \
+  case WHICH: \
+    cheapAssert(sizeof(*x) == sizeof(v->FIELD##x)); \
+    *x = v->FIELD##x;  *y = v->FIELD##y;  *z = v->FIELD##z; \
+    break;
+        
   switch (which) {
-    case ORIGINAL_VERTICES:
-      *x = v->origx;
-      *y = v->origy;
-      *z = v->origz;
-      break;
-    case TMP_VERTICES:
-      *x = v->tx;
-      *y = v->ty;
-      *z = v->tz;
-      break;
-    case CANONICAL_VERTICES:
-      *x = v->cx;
-      *y = v->cy;
-      *z = v->cz;
-      break;
-    case CURRENT_VERTICES:
-      *x = v->x;
-      *y = v->y;
-      *z = v->z;
-      break;
-    case INFLATED_VERTICES:
-      *x = v->infx;
-      *y = v->infy;
-      *z = v->infz;
-      break;
-    case PIAL_VERTICES:
-      *x = v->pialx;
-      *y = v->pialy;
-      *z = v->pialz;
-      break;
-    case TMP2_VERTICES:
-      *x = v->tx2;
-      *y = v->ty2;
-      *z = v->tz2;
-      break;
-    case FLATTENED_VERTICES:
-      *x = v->fx;
-      *y = v->fy;
-      *z = v->fz;
-      break;
-    case WHITE_VERTICES:
-      *x = v->whitex;
-      *y = v->whitey;
-      *z = v->whitez;
-      break;
-    case VERTEX_NORMALS:
-      *x = v->nx;
-      *y = v->ny;
-      *z = v->nz;
-      break;
-    case PIAL_NORMALS:
-      *x = v->pnx;
-      *y = v->pny;
-      *z = v->pnz;
-      break;
-    case WHITE_NORMALS:
-      *x = v->wnx;
-      *y = v->wny;
-      *z = v->wnz;
-      break;
+    CASE(ORIGINAL_VERTICES,orig)
+    CASE(TMP_VERTICES,t)
+    CASE(CANONICAL_VERTICES,c)
+    CASE(CURRENT_VERTICES,)
+    CASE(INFLATED_VERTICES,inf)
+    CASE(PIAL_VERTICES,pial)
+    CASE(TMP2_VERTICES,t2)   
+    CASE(FLATTENED_VERTICES,f)
+    CASE(WHITE_VERTICES,white)
+    CASE(VERTEX_NORMALS,n)
+    CASE(PIAL_NORMALS,pn)
+    CASE(WHITE_NORMALS,wn)
     default:
-    case GOOD_VERTICES:
       ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_float: unsupported which %d", which);
       break;
   }
+
+#undef CASE
+  
   return (NO_ERROR);
 }
 
 int MRISvertexCoord2XYZ_double(VERTEX const * const v, int const which, double * const x, double * const y, double * const z)
 {
-  switch (which) {
-    default:
-    case GOOD_VERTICES:
-      ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_double: unsupported which %d", which);
-      break;
-    case ORIGINAL_VERTICES:
-      *x = (double)v->origx;
-      *y = (double)v->origy;
-      *z = (double)v->origz;
-      break;
-    case TMP_VERTICES:
-      *x = (double)v->tx;
-      *y = (double)v->ty;
-      *z = (double)v->tz;
-      break;
-    case CANONICAL_VERTICES:
-      *x = (double)v->cx;
-      *y = (double)v->cy;
-      *z = (double)v->cz;
-      break;
-    case CURRENT_VERTICES:
-      *x = (double)v->x;
-      *y = (double)v->y;
-      *z = (double)v->z;
-      break;
-    case INFLATED_VERTICES:
-      *x = (double)v->infx;
-      *y = (double)v->infy;
-      *z = (double)v->infz;
-      break;
-    case PIAL_VERTICES:
-      *x = (double)v->pialx;
-      *y = (double)v->pialy;
-      *z = (double)v->pialz;
-      break;
-    case TMP2_VERTICES:
-      *x = (double)v->tx2;
-      *y = (double)v->ty2;
-      *z = (double)v->tz2;
-      break;
-    case FLATTENED_VERTICES:
-      *x = (double)v->fx;
-      *y = (double)v->fy;
-      *z = (double)v->fz;
-      break;
-    case WHITE_VERTICES:
-      *x = (double)v->whitex;
-      *y = (double)v->whitey;
-      *z = (double)v->whitez;
-      break;
-  }
-  return (NO_ERROR);
+    float fx,fy,fz;
+    auto result = MRISvertexCoord2XYZ_float(v, which, &fx, &fy, &fz);
+    *x = fx; *y = fy; *z = fz;
+    return result;
 }
 
 #define VERTEX_DIF(leg, v0, v1) leg[0] = v1->x - v0->x, leg[1] = v1->y - v0->y, leg[2] = v1->z - v0->z;

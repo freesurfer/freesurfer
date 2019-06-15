@@ -50,8 +50,9 @@
 
 #include "mrishash_internals.h"
 
-using namespace SurfaceFromMRIS::Analysis;
-
+//using namespace SurfaceFromMRIS::Analysis;
+using namespace SurfaceFromMRIS::XYZPositionConsequences;
+//using namespace SurfaceFromMRISPV::XYZPositionConsequences;
 
 //==================================================================
 // Local macros
@@ -168,10 +169,9 @@ static void checkThread0()
 // Utilities that do not require a MRIS_HASH_TABLE
 //
 static void mhtComputeFaceCentroid      (Surface const surface, int which, int fno, float *x, float *y, float *z);
-static void mhtVertex2xyz_float         (Vertex  const vtx,     int which, float  *x, float  *y, float  *z);
-static void mhtVertex2xyz_double        (Vertex  const vtx,     int which, double *x, double *y, double *z);
-static void mhtVertex2Ptxyz_double      (Vertex  const vtx,     int which, Ptdbl_t *pt);
-static void mhtVertex2array3_double     (Vertex  const vtx,     int which, double  *array3);
+static void mhtVertex2xyz               (Vertex  const vtx,     int which, float  *x, float  *y, float  *z);
+static void mhtVertex2xyz               (Vertex  const vtx,     int which, Ptdbl_t *pt);
+static void mhtVertex2xyz               (Vertex  const vtx,     int which, double  *array3);
 
 static void mhtVoxelList_Init           (VOXEL_LISTgw *voxlist);
 static void mhtVoxelList_SampleTriangle (float mhtres, Ptdbl_t const *vpt0, Ptdbl_t const *vpt1, Ptdbl_t const *vpt2, VOXEL_LISTgw *voxlist);
@@ -181,167 +181,29 @@ static void mhtVoxelList_AddPath        (VOXEL_LISTgw *voxlist, VOXEL_COORD oldv
 
 
 //---------------------------------------------
-static void mhtVertex2xyz_float(Vertex  const vtx, int which, float *x, float *y, float *z)
+static void mhtVertex2xyz(Vertex  const vtx, int which, float *x, float *y, float *z)
 {
-  //---------------------------------------------
-  switch (which) {
-    case ORIGINAL_VERTICES:
-      *x = vtx.origx();
-      *y = vtx.origy();
-      *z = vtx.origz();
-      break;
-    case CANONICAL_VERTICES:
-      *x = vtx.cx();
-      *y = vtx.cy();
-      *z = vtx.cz();
-      break;
-    case CURRENT_VERTICES:
-      *x = vtx.x();
-      *y = vtx.y();
-      *z = vtx.z();
-      break;
-    case FLATTENED_VERTICES:
-      *x = vtx.fx();
-      *y = vtx.fy();
-      *z = 0;
-      break;
-    case PIAL_VERTICES:
-      *x = vtx.pialx();
-      *y = vtx.pialy();
-      *z = vtx.pialz();
-      break;
-    case WHITE_VERTICES:
-      *x = vtx.whitex();
-      *y = vtx.whitey();
-      *z = vtx.whitez();
-      break;
-    default:
-      cheapAssert(false);
-      *x = *y = *z = 0.0f;
-  }
-  return;
-}
-//---------------------------------------------
-static void mhtVertex2xyz_double(Vertex  const vtx, int which, double *x, double *y, double *z)
-{
-  switch (which) {
-    case ORIGINAL_VERTICES:
-      *x = vtx.origx();
-      *y = vtx.origy();
-      *z = vtx.origz();
-      break;
-    case CANONICAL_VERTICES:
-      *x = vtx.cx();
-      *y = vtx.cy();
-      *z = vtx.cz();
-      break;
-    case CURRENT_VERTICES:
-      *x = vtx.x();
-      *y = vtx.y();
-      *z = vtx.z();
-      break;
-    case FLATTENED_VERTICES:
-      *x = vtx.fx();
-      *y = vtx.fy();
-      *z = 0;
-      break;
-    case PIAL_VERTICES:
-      *x = vtx.pialx();
-      *y = vtx.pialy();
-      *z = vtx.pialz();
-      break;
-    case WHITE_VERTICES:
-      *x = vtx.whitex();
-      *y = vtx.whitey();
-      *z = vtx.whitez();
-      break;
-    default:
-      cheapAssert(false);
-      *x = *y = *z = 0.0f;
-  }
-  return;
+  vtx.which_coords(which, x, y, z);
 }
 
-static void mhtVertex2Ptxyz_double(Vertex  const vtx, int which, Ptdbl_t *pt)
+static void mhtVertex2xyz(Vertex  const vtx, int which, Ptdbl_t *pt)
 {
-  switch (which) {
-    case ORIGINAL_VERTICES:
-      pt->x = vtx.origx();
-      pt->y = vtx.origy();
-      pt->z = vtx.origz();
-      break;
-    case CANONICAL_VERTICES:
-      pt->x = vtx.cx();
-      pt->y = vtx.cy();
-      pt->z = vtx.cz();
-      break;
-    case CURRENT_VERTICES:
-      pt->x = vtx.x();
-      pt->y = vtx.y();
-      pt->z = vtx.z();
-      break;
-    case FLATTENED_VERTICES:
-      pt->x = vtx.fx();
-      pt->y = vtx.fy();
-      pt->z = 0;
-      break;
-    case PIAL_VERTICES:
-      pt->x = vtx.pialx();
-      pt->y = vtx.pialy();
-      pt->z = vtx.pialz();
-      break;
-    case WHITE_VERTICES:
-      pt->x = vtx.whitex();
-      pt->y = vtx.whitey();
-      pt->z = vtx.whitez();
-      break;
-    default:
-      cheapAssert(false);
-      pt->x = pt->y = pt->z = 0.0f;
-  }
-  return;
+  float x,y,z;
+  vtx.which_coords(which, &x, &y, &z);
+  pt->x = x;
+  pt->y = y;
+  pt->z = z;
 }
 
-
-static void mhtVertex2array3_double(Vertex  const vtx, int which, double *array3)
+static void mhtVertex2xyz(Vertex  const vtx, int which, double *array3)
 {
-  switch (which) {
-    case ORIGINAL_VERTICES:
-      array3[0] = vtx.origx();
-      array3[1] = vtx.origy();
-      array3[2] = vtx.origz();
-      break;
-    case CANONICAL_VERTICES:
-      array3[0] = vtx.cx();
-      array3[1] = vtx.cy();
-      array3[2] = vtx.cz();
-      break;
-    case CURRENT_VERTICES:
-      array3[0] = vtx.x();
-      array3[1] = vtx.y();
-      array3[2] = vtx.z();
-      break;
-    case FLATTENED_VERTICES:
-      array3[0] = vtx.fx();
-      array3[1] = vtx.fy();
-      array3[2] = 0;
-      break;
-    case PIAL_VERTICES:
-      array3[0] = vtx.pialx();
-      array3[1] = vtx.pialy();
-      array3[2] = vtx.pialz();
-      break;
-    case WHITE_VERTICES:
-      array3[0] = vtx.whitex();
-      array3[1] = vtx.whitey();
-      array3[2] = vtx.whitez();
-      break;
-    default:
-      cheapAssert(false);
-      array3[0] = array3[1] = array3[2] = 0.0f;
-  }
-  return;
+  float x,y,z;
+  vtx.which_coords(which, &x, &y, &z);
+  array3[0] = x;
+  array3[1] = y;
+  array3[2] = z;
 }
+
 
 static void mhtVoxelList_Init(VOXEL_LISTgw *voxlist)
 {
@@ -617,8 +479,8 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     virtual MRIS_HASH_TABLE_IMPL*       toMRIS_HASH_TABLE_IMPL_Wkr()       { return this; }
     virtual MRIS_HASH_TABLE_IMPL const* toMRIS_HASH_TABLE_IMPL_Wkr() const { return this; }
 
-    MRIS_HASH_TABLE_IMPL(MHTFNO_t fno_usage, float vres, MRIS * mris, int which_vertices) 
-      : MRIS_HASH_TABLE(fno_usage, vres, which_vertices), surface(mris) 
+    MRIS_HASH_TABLE_IMPL(MHTFNO_t fno_usage, float vres, Surface surface, int which_vertices) 
+      : MRIS_HASH_TABLE(fno_usage, vres, which_vertices), surface(surface) 
     {
         nfaces = surface.nfaces();
         f      = (MHT_FACE*)calloc(nfaces, sizeof(MHT_FACE));
@@ -644,8 +506,8 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE {
     
     void checkConstructedWithFaces   () const;
     void checkConstructedWithVertices() const;
-    void checkConstructedWithFaces   (MRIS *mris) const;
-    void checkConstructedWithVertices(MRIS *mris) const;
+    void checkConstructedWithFaces   (Surface surface) const;
+    void checkConstructedWithVertices(Surface surface) const;
 
     void mhtFaceCentroid2xyz_float   (int fno, float *x, float *y, float *z);
         // Centroids are computed once and stored in the MHT_FACE
@@ -766,11 +628,11 @@ static void freeBins(MHBT* bucket) {
 
 
 
-// Primitives that have to be correct...
+// Primitives that manage storage and threading
 //
-static MRIS_HASH_TABLE_IMPL* newMHT(MHTFNO_t fno_usage, float vres, int which_vertices, MRIS *mris)
+static MRIS_HASH_TABLE_IMPL* newMHT(MHTFNO_t fno_usage, float vres, int which_vertices, Surface surface)
 {
-    auto mht = new MRIS_HASH_TABLE_IMPL(fno_usage, vres, mris, which_vertices);
+    auto mht = new MRIS_HASH_TABLE_IMPL(fno_usage, vres, surface, which_vertices);
     if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
 
     return mht;
@@ -794,6 +656,10 @@ MRIS_HASH_TABLE_IMPL::~MRIS_HASH_TABLE_IMPL()
             ::free(buckets_mustUseAcqRel[xv][yv]);
         }
     }
+
+#ifdef HAVE_OPENMP
+    omp_destroy_lock(&buckets_lock);
+#endif
 }
 
 
@@ -973,15 +839,15 @@ void MRIS_HASH_TABLE_IMPL::checkConstructedWithFaces() const
     }
 }
 
-void MRIS_HASH_TABLE_IMPL::checkConstructedWithVertices(MRIS *mris) const
+void MRIS_HASH_TABLE_IMPL::checkConstructedWithVertices(Surface surface) const
 {
-    if (!(surface == Surface(mris))) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
+    if (this->surface != surface) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
     checkConstructedWithVertices();
 }
 
-void MRIS_HASH_TABLE_IMPL::checkConstructedWithFaces(MRIS *mris) const
+void MRIS_HASH_TABLE_IMPL::checkConstructedWithFaces(Surface surface) const
 {
-    if (surface != Surface(mris)) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
+    if (this->surface != surface) ErrorExit(ERROR_BADPARM, "%s: mris is bad\n", __MYFUNCTION__);
     checkConstructedWithFaces();
 }
 
@@ -1001,7 +867,7 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
     ncalls++;
 
     Surface surface(mris);
-    auto mht = newMHT(MHTFNO_FACE, res, which, mris);
+    auto mht = newMHT(MHTFNO_FACE, res, which, surface);
   
     // Capture data from caller and surface
     //    
@@ -1095,9 +961,9 @@ int MRIS_HASH_TABLE_IMPL::mhtFaceToMHT(Face const face, bool const on)
     Vertex const v2 = face.v(2);
 
     Ptdbl_t vpt0, vpt1, vpt2;
-    mhtVertex2Ptxyz_double(v0, which_vertices, &vpt0);
-    mhtVertex2Ptxyz_double(v1, which_vertices, &vpt1);
-    mhtVertex2Ptxyz_double(v2, which_vertices, &vpt2);
+    mhtVertex2xyz(v0, which_vertices, &vpt0);
+    mhtVertex2xyz(v1, which_vertices, &vpt1);
+    mhtVertex2xyz(v2, which_vertices, &vpt2);
 
     if (Gx >= 0) {
         double dist0 = sqrt(SQR(vpt0.x - Gx) + SQR(vpt0.y - Gy) + SQR(vpt0.z - Gz));
@@ -1145,7 +1011,7 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createVertexTable_Resolution(MRIS *mris, int w
         auto v = surface.vertices(vno);
         if (v.ripflag()) continue;
         float x, y, z;
-        mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+        mhtVertex2xyz(v, mht->which_vertices, &x, &y, &z);
         mht->mhtAddFaceOrVertexAtCoords(x, y, z, vno);
     }
 
@@ -1319,7 +1185,7 @@ int MRIS_HASH_TABLE_IMPL::isVectorFilled(
             if (corner.vno() == vtxno) {
                 point->x = moved_x; point->y = moved_y; point->z = moved_z;
             } else {
-                mhtVertex2Ptxyz_double(corner, which_vertices, point);
+                mhtVertex2xyz(corner, which_vertices, point);
                 if (trace) {
                     fprintf(stderr, "corner:%d vertex:%d stays at (%g,%g,%g)\n",
                         corneri, corner.vno(), point->x, point->y, point->z);
@@ -1354,7 +1220,7 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_new(int const fno, int const trac
 
     MHT_TRIANGLE triangle;
     for (int corneri = 0; corneri < 3; corneri++) {
-        mhtVertex2Ptxyz_double(face.v(corneri), which_vertices, &triangle.corners[corneri]);
+        mhtVertex2xyz(face.v(corneri), which_vertices, &triangle.corners[corneri]);
     }
 
     int touchingFnos[MHT_MAX_TOUCHING_FACES];
@@ -1526,9 +1392,9 @@ int MRIS_HASH_TABLE_IMPL::mhtDoesTriangleVoxelListIntersect(
     Face const face = surface.faces(facelist[fli]);
     
     double u0[3], u1[3], u2[3];   
-    mhtVertex2array3_double(face.v(0), which_vertices, u0);
-    mhtVertex2array3_double(face.v(1), which_vertices, u1);
-    mhtVertex2array3_double(face.v(2), which_vertices, u2);
+    mhtVertex2xyz(face.v(0), which_vertices, u0);
+    mhtVertex2xyz(face.v(1), which_vertices, u1);
+    mhtVertex2xyz(face.v(2), which_vertices, u2);
 
     int const intersect = tri_tri_intersect(v0, v1, v2, u0, u1, u2);
     
@@ -1589,7 +1455,7 @@ void MRIS_HASH_TABLE_IMPL::mhtfindClosestVertexGenericInBucket(
         if (AVtx.ripflag()) continue ;
 
         float tryx, tryy, tryz;
-        mhtVertex2xyz_float(AVtx, which_vertices, &tryx, &tryy, &tryz);
+        mhtVertex2xyz(AVtx, which_vertices, &tryx, &tryy, &tryz);
 
         double ADistSq = SQR(tryx - probex) + SQR(tryy - probey) + SQR(tryz - probez);
 
@@ -2379,7 +2245,7 @@ int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(
         if (vtx.ripflag()) continue;
             
         float tryx, tryy, tryz;
-        mhtVertex2xyz_float(vtx, which, &tryx, &tryy, &tryz);
+        mhtVertex2xyz(vtx, which, &tryx, &tryy, &tryz);
 
         float dx  = tryx - x, dy = tryy - y, dz = tryz - z;
         float dsq = dx * dx + dy * dy + dz * dz;  // squared distance is fine for detecting min
@@ -2538,7 +2404,7 @@ static void mhtComputeFaceCentroid(
     
     for (int n = 0; n < VERTICES_PER_FACE; n++) {
         float x = 0, y = 0, z = 0;
-        mhtVertex2xyz_float(face.v(n), which, &x, &y, &z);
+        mhtVertex2xyz(face.v(n), which, &x, &y, &z);
         xt += x;
         yt += y;
         zt += z;
@@ -2580,7 +2446,7 @@ int MHTfindClosestVertexNo2(
     cheapAssert(0 <= vno && vno < mris_for_v->nvertices);
     Surface surface(mris_for_v);
     float x,y,z;
-    mhtVertex2xyz_float(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
+    mhtVertex2xyz(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
     return mht->findClosestVertexNoXYZ(mris, x,y,z, pmin_dist);
 }
 
@@ -2606,7 +2472,7 @@ VERTEX* MHTfindClosestVertexSet2(
     cheapAssert(0 <= vno && vno < mris_for_v->nvertices);
     Surface surface(mris_for_v);
     float x,y,z;
-    mhtVertex2xyz_float(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
+    mhtVertex2xyz(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
     int closest_vno =  mht->findClosestSetVertexNo(mris, x,y,z);
     return (closest_vno < 0) ? nullptr : &mris->vertices[closest_vno];
 }

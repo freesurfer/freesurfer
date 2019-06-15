@@ -82,10 +82,16 @@ namespace ColumnedOutput {
 			for (auto const & r : grid) {
 				indent(os,depth);
 				auto sep = "";
-				for (size_t ci = 0; ci < r.size(); ci++) {
+                
+                auto r_size = r.size();
+                while (r_size && (r[r_size-1].s.find_first_not_of(" \t") == string::npos)) r_size--;   // avoid trailing blanks
+                                
+				for (size_t ci = 0; ci < r_size; ci++) {
 					os << sep;
-					if (ci < colSizes.size() && colSizes[ci] > 0) 
-						os << setw(colSizes[ci]);
+                    if (ci+1 < r_size || r[ci].justify == Just_right) {
+					    if (ci < colSizes.size() && colSizes[ci] > 0)
+						    os << setw(colSizes[ci]);
+                    }
 					switch (r[ci].justify) {
 					case Just_left:  os << left;  break;
 					case Just_right: os << right; break;
@@ -183,6 +189,7 @@ namespace Generator {
 		const char *  mrisVector;
 		CommentNature commentNature;
 		bool  nohash;
+        string which;
 		Dmbr* repeatedSize;	// type must be a PointerToRepeatedType type, this is the element that gives the number of repeats
 		DmbrModifiable() : mrisVector(currentMrisVector), commentNature(ComGeneral), nohash(false), repeatedSize(nullptr) {}
 	};
@@ -203,6 +210,7 @@ namespace Generator {
 		Dmbr* setCommentNature(CommentNature to) { commentNature = to;     return this; }
 		Dmbr* setNoHash()		  { nohash = true;     return this; }
 		Dmbr* setPRSize(Dmbr* to) { repeatedSize = to; return this; }
+        Dmbr* setWhich(string const & to) { which = to; return this; }
 	};
 
 	struct Fmbr {
@@ -294,13 +302,18 @@ namespace Generator {
 			indent() << "// GENERATED SOURCE - DO NOT DIRECTLY EDIT" << endl;
 			indent() << "// " << endl;
 			indent() << "// =======================================" << endl;
-                        indent() << "#define SEPARATE_VERTEX_TOPOLOGY" << endl;
-
 		}
 		void os_push(ostream * new_tos) { os.push_back(new_tos); }
 		void os_pop() { os.pop_back(); }
 	private:
 		vector<ostream *> os;
+	};
+
+	// Generate the various representations
+	//
+	struct IsImplementedSupplier {
+		// Representations may only supply some of the properties
+		virtual bool isImplemented(Clss const & c, Dmbr const & d) { return true; }
 	};
 
 	struct Generate_mris : public Generate_Base {
@@ -399,14 +412,168 @@ namespace Generator {
 			ostream & os, 
 			Built const & built) : Generate_Base(os, built)
 		{
+			indent() << "#define SEPARATE_VERTEX_TOPOLOGY" << endl;
 			for (auto & cp : built) generateClass(*cp);
 			for (auto & cp : built) generateMacros(*cp);
 		}
 	};
 
+
+	struct Mrispv_implemented_properties : public IsImplementedSupplier {
+		set<string> implemented_names;
+		Mrispv_implemented_properties() {
+			static const char* implemented_properties[] = {
+				// in			for the metric properties calculations
+				"status",
+				"origxyz_status",
+				"nvertices",
+				"nfaces",
+				"nsize",
+				"radius",
+				// in out		for the metric properties calculations
+				"dist_nsize",
+				// out			for the metric properties calculations
+				"xlo",
+				"xhi",
+				"ylo",
+				"yhi",
+				"zlo",
+				"zhi",
+				"xctr",
+				"yctr",
+				"zctr",
+				"total_area",
+				"avg_vertex_area",
+				"avg_vertex_dist",
+				"std_vertex_dist",
+				"neg_orig_area",
+				"neg_area",
+				// in			for the metric properties calculations
+				"v_ripflag",
+				// in out		for the metric properties calculations
+				"v_dist_capacity",
+				"v_border",
+				"v_x",
+				"v_y",
+				"v_z",
+				"v_origarea",
+				// out			for the metric properties calculations
+				"v_area",
+				"v_nx",
+				"v_ny",
+				"v_nz",
+				"v_neg",
+				"v_dist",
+				// in			for the metric properties calculations 
+				"f_ripflag",
+				"f_norm_orig_area",
+				// in out		for the metric properties calculations
+				// out			for the metric properties calculations
+				"f_area",
+				"f_normSet",
+				"f_norm",
+				"f_angle",
+				nullptr };
+
+			for (auto i = implemented_properties; *i; i++) {
+				implemented_names.insert(*i);
+			}
+
+			// "v_VSize",
+			// 	ELT(const, VERTEX_TOPOLOGY const *, vertices_topology) \
+			// 	ELTX(const, FACE_TOPOLOGY   const *, faces_topology)
+		}
+
+		struct ImplementedProperty {
+			bool   isImplemented, isVector;
+			string name;
+		};
+
+		ImplementedProperty property(Clss const & c, Dmbr const & d) {
+			string vectorPrefix;
+			if (c.id == "Vertex")  vectorPrefix = "v_";		else
+			if (c.id == "Face")    vectorPrefix = "f_";		else
+			if (c.id == "Surface") vectorPrefix = "";		else
+									assert(false);
+
+			ImplementedProperty ip;
+			ip.isImplemented = false;
+			ip.isVector = vectorPrefix.size() > 0;
+			ip.name = vectorPrefix + d.id;
+
+			ip.isImplemented = (implemented_names.find(ip.name) != implemented_names.end());
+
+			return ip;
+		}
+
+		virtual bool isImplemented(Clss const & c, Dmbr const & d) {
+			return property(c, d).isImplemented;
+		}
+	} mrispv_implemented_properties;
+
+
+	struct Generate_mrispv : public Generate_Base {
+
+		void generateClass(Clss & c) {
+			ColumnedOutput::T cols;
+
+			for (auto & d : c.dmbr) {
+
+				if (!d->type && d->commentNature != ComGeneral) continue;
+
+				const char * comment = "//";
+				if (d->type) {
+
+					auto property = mrispv_implemented_properties.property(c, *d);
+					if (!property.isImplemented) continue;
+
+					cols << d->type->id << endC;
+					if (property.isVector) cols << "*" << endC;
+					cols << Just_left << property.name << endC << ";";
+					comment = "  //";
+					if (d->repeatedSize) {
+						cols << ignoreWidth << comment << " size() is " << d->repeatedSize->id;
+						comment = ".  ";
+					}
+				}
+
+				if (d->comment.size()) cols << ignoreWidth << comment << "  " << d->comment;
+				cols << endR;
+			}
+
+			cols.append(tos(), depth);
+		}
+
+		void generateMacros(Clss & c) {
+		}
+
+		Generate_mrispv(
+			ostream & os,
+			Built const & built) : Generate_Base(os, built)
+		{
+
+			indent() << "struct MRISPV {" << endl;
+			depth++;
+			for (auto & cp : built) generateClass(*cp);
+			depth--;
+			indent() << "};" << endl;
+
+			for (auto & cp : built) generateMacros(*cp);
+		}
+	};
+
+	// Generating the various Surface Vector Face accessors
+	//
+	struct Generate_abstract_spec_Base;
+    struct Generate_abstract_inco_Base;
+
 	struct Generate_SurfaceFromMRIS_inco;
 	struct Generate_SurfaceFromMRIS_spec;
 	struct Generate_SurfaceFromMRIS_impl;
+
+	struct Generate_SurfaceFromMRISPV_inco;
+	struct Generate_SurfaceFromMRISPV_spec;
+	struct Generate_SurfaceFromMRISPV_impl;
 
 	struct Generate_abstract_Base : public Generate_Base {
 
@@ -414,22 +581,37 @@ namespace Generator {
 			return "SurfaceFromMRIS_" + Phase::namespaceName(p);
 		}
 
-		virtual Generate_SurfaceFromMRIS_inco* toGenerate_SurfaceFromMRIS_inco() { return nullptr; }
-		virtual Generate_SurfaceFromMRIS_spec* toGenerate_SurfaceFromMRIS_spec() { return nullptr; }
-		virtual Generate_SurfaceFromMRIS_impl* toGenerate_SurfaceFromMRIS_impl() { return nullptr; }
+		virtual Generate_abstract_spec_Base*	 toGenerate_abstract_spec_Base    () { return nullptr; }
+		virtual Generate_abstract_inco_Base*	 toGenerate_abstract_inco_Base    () { return nullptr; }
+
+		virtual Generate_SurfaceFromMRIS_spec*   toGenerate_SurfaceFromMRIS_spec  () { return nullptr; }
+		virtual Generate_SurfaceFromMRIS_impl*   toGenerate_SurfaceFromMRIS_impl  () { return nullptr; }
+		virtual Generate_SurfaceFromMRIS_inco*   toGenerate_SurfaceFromMRIS_inco  () { return nullptr; }
+
+		virtual Generate_SurfaceFromMRISPV_spec* toGenerate_SurfaceFromMRISPV_spec() { return nullptr; }
+		virtual Generate_SurfaceFromMRISPV_impl* toGenerate_SurfaceFromMRISPV_impl() { return nullptr; }
+		virtual Generate_SurfaceFromMRISPV_inco* toGenerate_SurfaceFromMRISPV_inco() { return nullptr; }
 
 		virtual string classPrefix(Clss & c) = 0;
 		virtual void   beginClass (Phase::T p, Clss & c) = 0;
 		virtual void   endClass	  (Phase::T p, Clss & c) = 0;
 
+		struct IsImplemented {
+			IsImplementedSupplier* supplier;
+			IsImplemented() : supplier(nullptr) {}
+		} isImplementedSupplier;
+		bool isImplemented(Clss const & c, Dmbr const & d) const {
+			return isImplementedSupplier.supplier->isImplemented(c, d);
+		}
+
 		string baseClass(Phase::T p, Clss& c) {
 #if 1
-			return "MRIS_Elt";
+			return "Repr_Elt";
 #else
 			string result;
 			auto const enhances = Phase::enhances[p];
 			if (enhances == Phase::end) {
-				result = "MRIS_Elt";
+				result = "Repr_Elt";
 			}
 			else {
 				result = Phase::namespaceName(enhances);
@@ -478,12 +660,12 @@ namespace Generator {
 					typedef void indent;
 
 					auto maybeEndC = [&](bool needsSep = true) {
-						if (toGenerate_SurfaceFromMRIS_spec()) cols << endC; 
+						if (toGenerate_abstract_spec_Base()) cols << endC; 
 						else if (needsSep) cols << " ";
 					};
 
 					auto maybeJust = [&](Justify j) {
-						return toGenerate_SurfaceFromMRIS_spec() ? j : Just_none;
+						return toGenerate_abstract_spec_Base() ? j : Just_none;
 					};
 					
 					vector<Dmbr*> deferredComGeneral;
@@ -492,14 +674,16 @@ namespace Generator {
 						auto const & d = *dp;
 
 						if (d.isGeneralComment()) {
-							if (toGenerate_SurfaceFromMRIS_spec()) {
+							if (toGenerate_abstract_spec_Base()) {
 								deferredComGeneral.push_back(dp);
 							}
 							continue;
 						}
 
 						if (!d.type) continue;
-					
+
+						if (!isImplemented(c, d)) continue;
+
                         bool canRead  = (d.firstReadingPhase <= p);
                         bool canWrite = (d.firstWritingPhase <= p && p <= d.lastWritingPhase);
 						if (p == Phase::AllM) canWrite = (d.firstWritingPhase != Phase::end);
@@ -533,7 +717,7 @@ namespace Generator {
 						auto tr  = t->toPointerToRepeatedType();
 						auto rti = retTypeId(c, d);
 
-						if (toGenerate_SurfaceFromMRIS_spec()) 
+						if (toGenerate_abstract_spec_Base()) 
 							cols << "inline ";
 						else
 							cols << ignoreWidth;
@@ -579,24 +763,48 @@ namespace Generator {
 						generateMoreLines(cols,c,d,write);
 					}
 
+                    if (!write && c.id == "Vertex") {
+						if (toGenerate_abstract_spec_Base()) 
+							cols << "inline ";
+						else
+							cols << ignoreWidth;
+                        cols << "void";
+                        maybeEndC();
+                        cols << classPrefix(c) << maybeJust(Just_left) << "which_coords";
+                        maybeEndC(false); 
+                        cols << ignoreWidth
+                             << "(int which, float *x, float *y, float *z) const";
+                        maybeEndC();
+                        generate_which_coords(p, c, cols, write);
+                        cols << endR;
+                    }                    
 				} cols.append(tos(),depth);
 			}
 			endClass(p, c);
 		}
 
-		virtual void generateBeforeComment(ColumnedOutput::T& cols, Dmbr const & d, bool const write) {
+        virtual void generateBeforeComment(ColumnedOutput::T& cols, bool const write) {
 			cols << ";";
+        }
+        
+		virtual void generateBeforeComment(ColumnedOutput::T& cols, Dmbr const & d, bool const write) {
+		    generateBeforeComment(cols, write);
 		}
 
 		virtual void generateMoreLines(ColumnedOutput::T& cols, Clss const & c, Dmbr const & d, bool const write) {
 		}
 
+        virtual void generate_which_coords(Phase::T p, Clss & c, ColumnedOutput::T& cols, bool const write) {
+			generateBeforeComment(cols, write);
+        }
+
 		virtual void generateNamespaceMacros(Phase::T p) {
 		}
 
-		void generateNamespace(string const & parent) {
-			indent() << "namespace SurfaceFromMRIS {" << endl;
+		void generateNamespace(string const & parent, string const & name, string const & representation) {
+			indent() << "namespace " << name << " {" << endl;
 			depth++;
+			indent() << "typedef " << representation << " Representation;" << endl;
 
 			for (int doModifiers = 0; doModifiers < 2; doModifiers++) {
 				for (auto p = Phase::T(); p < Phase::end; p = Phase::T(p + 1)) {
@@ -606,7 +814,7 @@ namespace Generator {
 					if (!isModifier != !doModifiers) continue;
 
 					ofstream *child_os = nullptr;
-					if (toGenerate_SurfaceFromMRIS_spec()) {
+					if (toGenerate_abstract_spec_Base()) {
 						auto child_fnm = parent + "_" + pns + ".h";
 						indent() << "#include \"" + child_fnm + "\"" << endl;
 						child_os = new ofstream(createFilesWithin + child_fnm);
@@ -627,22 +835,23 @@ namespace Generator {
 				}
 			}
 
-			if (toGenerate_SurfaceFromMRIS_inco()) {
-				indent() << "struct MRIS_Elt { " << endl;
+			if (toGenerate_abstract_inco_Base()) {
+                                indent() << endl;
+				indent() << "struct Repr_Elt { " << endl;
                 depth++;
-                indent() << "bool operator==(MRIS_Elt const & rhs) const { return mris == rhs.mris && idx == rhs.idx; }" << endl;
-                indent() << "bool operator!=(MRIS_Elt const & rhs) const { return mris != rhs.mris || idx != rhs.idx; }" << endl;
+                indent() << "bool operator==(Repr_Elt const & rhs) const { return repr == rhs.repr && idx == rhs.idx; }" << endl;
+                indent() << "bool operator!=(Repr_Elt const & rhs) const { return repr != rhs.repr || idx != rhs.idx; }" << endl;
                 depth--;
                 indent() << "protected: " << endl;
 				depth++;
-				indent() << "MRIS* mris; size_t idx; " << endl;
-				indent() << "MRIS_Elt() : mris(nullptr), idx(0) {}" << endl;
-				indent() << "MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}" << endl;
-				indent() << "MRIS_Elt(MRIS_Elt const & src) : mris(src.mris), idx(src.idx) {}" << endl;
+				indent() << "Representation* repr; size_t idx; " << endl;
+				indent() << "Repr_Elt() : repr(nullptr), idx(0) {}" << endl;
+				indent() << "Repr_Elt(Representation* repr, size_t idx) : repr(repr), idx(idx) {}" << endl;
+				indent() << "Repr_Elt(Repr_Elt const & src) : repr(src.repr), idx(src.idx) {}" << endl;
 				tos() << endl;
 				for (auto p = Phase::T(); p < Phase::end; p = Phase::T(p + 1)) {
 					for (auto & cp : built) {
-						indent() << "friend struct SurfaceFromMRIS::" << Phase::namespaceName(p) << "::" << cp->id << ";" << endl;
+						indent() << "friend struct " << name << "::" << Phase::namespaceName(p) << "::" << cp->id << ";" << endl;
 					}
 				}
 				depth--;
@@ -650,7 +859,7 @@ namespace Generator {
 			}
 
 			depth--;
-			indent() << "} // namespace SurfaceFromMRIS" << endl;
+			indent() << "} // " << name << endl;
 		}
 
 		Generate_abstract_Base(ostream & os, Built const & built) : Generate_Base(os, built)
@@ -658,15 +867,14 @@ namespace Generator {
 		}
 	};
 
-	struct Generate_SurfaceFromMRIS_inco : public Generate_abstract_Base {
-		virtual Generate_SurfaceFromMRIS_inco* toGenerate_SurfaceFromMRIS_inco() { return this; }
+	struct Generate_abstract_inco_Base : public Generate_abstract_Base {
+        virtual Generate_abstract_inco_Base*	 toGenerate_abstract_inco_Base    () { return this; }
 
-		Generate_SurfaceFromMRIS_inco(
+		Generate_abstract_inco_Base(
 			ostream & os,
             string const & parent,
 			Built const & built) : Generate_abstract_Base(os, built)
 		{
-			generateNamespace(parent);
 		}
 
 		virtual void generateNamespaceMacros(Phase::T p) {
@@ -683,15 +891,15 @@ namespace Generator {
 		}
 	};
 
-	struct Generate_SurfaceFromMRIS_spec : public Generate_abstract_Base {
-		virtual Generate_SurfaceFromMRIS_spec* toGenerate_SurfaceFromMRIS_spec() { return this; }
+	struct Generate_abstract_spec_Base : public Generate_abstract_Base {
 
-		Generate_SurfaceFromMRIS_spec(
+		virtual Generate_abstract_spec_Base* toGenerate_abstract_spec_Base() { return this; }
+
+		Generate_abstract_spec_Base(
             ostream & os,
             string const & parent,
             Built const & built) : Generate_abstract_Base(os, built)
 		{
-			generateNamespace(parent);
 		}
 
 		virtual string classPrefix(Clss & c) {
@@ -707,7 +915,7 @@ namespace Generator {
 			ColumnedOutput::T cols;
 			cols << "inline " << c.id << endC << "(" << endC << ""                                            << endC << ");" << endR;
 			cols << "inline " << c.id << endC << "(" << endC << "" << c.id << " const & src"                  << endC << ");" << endR;
-			cols << "inline " << c.id << endC << "(" << endC << "MRIS* mris" << (isSurface?"":", size_t idx") << endC << ");" << endR;
+			cols << "inline " << c.id << endC << "(" << endC << "Representation* representation" << (isSurface?"":", size_t idx") << endC << ");" << endR;
 
 			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
 
@@ -738,14 +946,12 @@ namespace Generator {
 
 	};
 
-	struct Generate_SurfaceFromMRIS_impl : public Generate_abstract_Base {
-		virtual Generate_SurfaceFromMRIS_impl* toGenerate_SurfaceFromMRIS_impl() { return this; }
+	struct Generate_abstract_impl_Base : public Generate_abstract_Base {
 
-		Generate_SurfaceFromMRIS_impl(
+		Generate_abstract_impl_Base(
             ostream & os, 
             string const & parent,
             Built const & built) : Generate_abstract_Base(os, built) {
-			generateNamespace(parent);
 		}
 
 		virtual string classPrefix(Clss & c) {
@@ -758,8 +964,8 @@ namespace Generator {
             bool isSurface = (c.id == "Surface");
 
 			cols << classPrefix(c) << c.id << endC << "(" << endC << "" << endC << ") {}" << endR;
-			cols << classPrefix(c) << c.id << endC << "(" << endC << "MRIS* mris" << (isSurface?"":", size_t idx") << endC 
-                << ") : " << baseClass(p, c) << "(mris," << (isSurface  ? "0" : "idx" ) << ") {}" << endR;
+			cols << classPrefix(c) << c.id << endC << "(" << endC << "Representation* representation" << (isSurface?"":", size_t idx") << endC 
+                << ") : " << baseClass(p, c) << "(representation," << (isSurface  ? "0" : "idx" ) << ") {}" << endR;
 			cols << classPrefix(c) << c.id << endC << "(" << endC << "" << c.id << " const & src" << endC << ") : " << baseClass(p, c) << "(src) {}" << endR;
 
 			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
@@ -780,78 +986,301 @@ namespace Generator {
 			cols << "{";
 		}
 
+	};
+
+
+	// SurfaceFromMRIS
+	//
+	struct Generate_SurfaceFromMRIS_IsImplemented : public IsImplementedSupplier {
+	} generate_SurfaceFromMRIS_IsImplemented;
+
+	struct Generate_SurfaceFromMRIS_inco : public Generate_abstract_inco_Base {
+		virtual Generate_SurfaceFromMRIS_inco* toGenerate_SurfaceFromMRIS_inco() { return this; }
+		Generate_SurfaceFromMRIS_inco(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_inco_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &generate_SurfaceFromMRIS_IsImplemented;
+			generateNamespace(parent, "SurfaceFromMRIS", "MRIS");
+		}
+	};
+
+	struct Generate_SurfaceFromMRIS_spec : public Generate_abstract_spec_Base {
+		virtual Generate_SurfaceFromMRIS_spec* toGenerate_SurfaceFromMRIS_spec() { return this; }
+
+		Generate_SurfaceFromMRIS_spec(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_spec_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &generate_SurfaceFromMRIS_IsImplemented;
+			generateNamespace(parent, "SurfaceFromMRIS", "MRIS");
+		}
+
+	};
+
+	struct Generate_SurfaceFromMRIS_impl : public Generate_abstract_impl_Base {
+		virtual Generate_SurfaceFromMRIS_impl* toGenerate_SurfaceFromMRIS_impl() { return this; }
+
+		Generate_SurfaceFromMRIS_impl(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_impl_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &generate_SurfaceFromMRIS_IsImplemented;
+			generateNamespace(parent, "SurfaceFromMRIS", "MRIS");
+		}
+
 		virtual void generateMoreLines(ColumnedOutput::T& cols, Clss const & c, Dmbr const & d, bool const write) {
 			auto t = d.type;
 			auto tr = t->toPointerToRepeatedType();
 			cols << ignoreWidth << Just_left << "    ";
 
-				string raw = "mris->";
-				if (d.mrisVector) raw += d.mrisVector, raw += "[idx].";
-				raw += d.id;
-				if (tr) raw += "[i]";
+			string raw = "repr->";
+			if (d.mrisVector) raw += d.mrisVector, raw += "[idx].";
+			raw += d.id;
+			if (tr) raw += "[i]";
 
-				if (c.id == "Face" && d.id == "v") {
-					if (!write) {
-						cols << "return Vertex(mris,mris->faces[idx].v[i])";
-					} else {
-						cols << "cheapAssert(mris == to.mris); mris->faces[idx].v[i] = to.idx";
-					}
-				} else if (c.id == "Vertex" && d.id == "f") {
-					if (!write) {
-						cols << "return Face(mris," << raw << ")";
-					} else {
-						cols << "cheapAssert(mris == to.mris); " << raw << " = to.idx";
-					}
-				} else if (c.id == "Vertex" && d.id == "v") {
-					if (!write) {
-						cols << "return Vertex(mris," << raw << ")";
-					}
-					else {
-						cols << "cheapAssert(mris == to.mris); " << raw << " = to.idx";
-					}
-				} else if (c.id == "Surface" && (d.id == "v_temporal_pole" || d.id == "v_frontal_pole" || d.id == "v_occipital_pole" )) {
-					if (!write) {
-						cols << "return Vertex(mris," << raw << " - mris->vertices)";
-					}
-					else {
-						cols << "cheapAssert(mris == to.mris); " << raw << " = mris->vertices + to.idx";
-					}
-				} else if (c.id == "Surface" && d.id == "vertices" ) {
-					if (!write) {
-						cols << "return Vertex(mris,i)";
-					}
-					else {
-						assert(false);
-					}
-				} else if (c.id == "Surface" && d.id == "faces" ) {
-					if (!write) {
-						cols << "return Face(mris,i)";
-					}
-					else {
-						assert(false);
-					}
-				} else {
-					string cvtPrefix = "", cvtFromPrefix = "";
-					string cvtSuffix = "", cvtFromSuffix = "";
-					if (c.id == "Vertex" && d.id == "n") {
-						cvtPrefix = "size_t("; cvtFromPrefix = tr->target->id + "(";
-						cvtSuffix = cvtFromSuffix = ")";
-					}
-
-					if (!write) cols << "return " << cvtPrefix;
-					cols << raw;
-					if (write) cols << " = " << cvtFromPrefix << "to" << cvtFromSuffix; else cols << cvtSuffix;
+			if (c.id == "Face" && d.id == "v") {
+				if (!write) {
+					cols << "return Vertex(repr,repr->faces[idx].v[i])";
 				}
-				cols << ";" << endR;
+				else {
+					cols << "cheapAssert(repr == to.repr); repr->faces[idx].v[i] = to.idx";
+				}
+			}
+			else if (c.id == "Vertex" && d.id == "f") {
+				if (!write) {
+					cols << "return Face(repr," << raw << ")";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = to.idx";
+				}
+			}
+			else if (c.id == "Vertex" && d.id == "v") {
+				if (!write) {
+					cols << "return Vertex(repr," << raw << ")";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = to.idx";
+				}
+			}
+			else if (c.id == "Surface" && (d.id == "v_temporal_pole" || d.id == "v_frontal_pole" || d.id == "v_occipital_pole")) {
+				if (!write) {
+					cols << "return Vertex(repr," << raw << " - repr->vertices)";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = repr->vertices + to.idx";
+				}
+			}
+			else if (c.id == "Surface" && d.id == "vertices") {
+				if (!write) {
+					cols << "return Vertex(repr,i)";
+				}
+				else {
+					assert(false);
+				}
+			}
+			else if (c.id == "Surface" && d.id == "faces") {
+				if (!write) {
+					cols << "return Face(repr,i)";
+				}
+				else {
+					assert(false);
+				}
+			}
+			else {
+				string cvtPrefix = "", cvtFromPrefix = "";
+				string cvtSuffix = "", cvtFromSuffix = "";
+				if (c.id == "Vertex" && d.id == "n") {
+					cvtPrefix = "size_t("; cvtFromPrefix = tr->target->id + "(";
+					cvtSuffix = cvtFromSuffix = ")";
+				}
+
+				if (!write) cols << "return " << cvtPrefix;
+				cols << raw;
+				if (write) cols << " = " << cvtFromPrefix << "to" << cvtFromSuffix; else cols << cvtSuffix;
+			}
+			cols << ";" << endR;
 			cols << ignoreWidth << Just_left << "}" << endR;
+		}
+
+        virtual void generate_which_coords(Phase::T p, Clss & c, ColumnedOutput::T& cols, bool const write) {
+			cols << ignoreWidth << Just_left << "{" << endR;
+            cols << ignoreWidth << Just_left << "    " << endC;
+			cols << "MRISvertexCoord2XYZ_float(&repr->vertices[idx], which, x, y, z);" << endR;
+            cols << ignoreWidth << Just_left << "}" << endR;
+        }
+	};
+
+	// SurfaceFromMRISPV
+	//
+	struct Generate_SurfaceFromMRISPV_inco : public Generate_abstract_inco_Base {
+		virtual Generate_SurfaceFromMRISPV_inco* toGenerate_SurfaceFromMRISPV_inco() { return this; }
+		Generate_SurfaceFromMRISPV_inco(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_inco_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &mrispv_implemented_properties;
+			generateNamespace(parent, "SurfaceFromMRISPV", "MRISPV");
 		}
 	};
 
+	struct Generate_SurfaceFromMRISPV_spec : public Generate_abstract_spec_Base {
+		virtual Generate_SurfaceFromMRISPV_spec* toGenerate_SurfaceFromMRISPV_spec() { return this; }
+
+		Generate_SurfaceFromMRISPV_spec(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_spec_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &mrispv_implemented_properties;
+			generateNamespace(parent, "SurfaceFromMRISPV", "MRISPV");
+		}
+
+	};
+
+	struct Generate_SurfaceFromMRISPV_impl : public Generate_abstract_impl_Base {
+		virtual Generate_SurfaceFromMRISPV_impl* toGenerate_SurfaceFromMRISPV_impl() { return this; }
+
+		Generate_SurfaceFromMRISPV_impl(
+			ostream & os,
+			string const & parent,
+			Built const & built) : Generate_abstract_impl_Base(os, parent, built)
+		{
+			isImplementedSupplier.supplier = &mrispv_implemented_properties;
+			generateNamespace(parent, "SurfaceFromMRISPV", "MRISPV");
+		}
+
+		virtual void generateMoreLines(ColumnedOutput::T& cols, Clss const & c, Dmbr const & d, bool const write) {
+			auto implemented = mrispv_implemented_properties.property(c, d);
+
+			auto t = d.type;
+			auto tr = t->toPointerToRepeatedType();
+			cols << ignoreWidth << Just_left << "    ";
+
+			string raw = "repr->" + implemented.name;
+			if (implemented.isVector) raw += "[idx]";
+
+			if (tr) raw += "[i]";
+
+			if (c.id == "Face" && d.id == "v") {
+				if (!write) {
+					cols << "return Vertex(repr,repr->faces[idx].v[i])";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); repr->faces[idx].v[i] = to.idx";
+				}
+			}
+			else if (c.id == "Vertex" && d.id == "f") {
+				if (!write) {
+					cols << "return Face(repr," << raw << ")";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = to.idx";
+				}
+			}
+			else if (c.id == "Vertex" && d.id == "v") {
+				if (!write) {
+					cols << "return Vertex(repr," << raw << ")";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = to.idx";
+				}
+			}
+			else if (c.id == "Surface" && (d.id == "v_temporal_pole" || d.id == "v_frontal_pole" || d.id == "v_occipital_pole")) {
+				if (!write) {
+					cols << "return Vertex(repr," << raw << " - repr->vertices)";
+				}
+				else {
+					cols << "cheapAssert(repr == to.repr); " << raw << " = repr->vertices + to.idx";
+				}
+			}
+			else if (c.id == "Surface" && d.id == "vertices") {
+				if (!write) {
+					cols << "return Vertex(repr,i)";
+				}
+				else {
+					assert(false);
+				}
+			}
+			else if (c.id == "Surface" && d.id == "faces") {
+				if (!write) {
+					cols << "return Face(repr,i)";
+				}
+				else {
+					assert(false);
+				}
+			}
+			else {
+				string cvtPrefix = "", cvtFromPrefix = "";
+				string cvtSuffix = "", cvtFromSuffix = "";
+				if (c.id == "Vertex" && d.id == "n") {
+					cvtPrefix = "size_t("; cvtFromPrefix = tr->target->id + "(";
+					cvtSuffix = cvtFromSuffix = ")";
+				}
+
+				if (!write) cols << "return " << cvtPrefix;
+				cols << raw;
+				if (write) cols << " = " << cvtFromPrefix << "to" << cvtFromSuffix; else cols << cvtSuffix;
+			}
+			cols << ";" << endR;
+			cols << ignoreWidth << Just_left << "}" << endR;
+		}
+        
+        virtual void generate_which_coords(Phase::T p, Clss & c, ColumnedOutput::T& cols, bool const write) {
+			cols << ignoreWidth << Just_left << "{" << endR;
+            cols << ignoreWidth << Just_left << "    " << endR;
+			// cols << "repr->vertexCoord2XYZ(idx, which, x, y, z);" << endR;
+            
+cols << "#define CASE(WHICH, FIELD) \\" << endR;
+cols << "  case WHICH: \\" << endR;
+cols << "    *x = this->FIELD##x();  *y = this->FIELD##y();  *z = this->FIELD##z(); \\" << endR;
+cols << "    break;" << endR;
+cols << "" << endR;
+cols << "  switch (which) {" << endR;
+
+            for (auto & dp : c.dmbr) {
+                auto const & d = *dp;
+                if (d.which == "") continue;
+                if (!isImplemented(c, d)) continue;  
+                bool canRead  = (d.firstReadingPhase <= p);
+                if (!canRead) continue;
+                assert(d.type->id == "float");
+cols << ("    CASE("+d.which+","+d.id.substr(0,d.id.size()-1)+")") << endR;
+            }
+            
+cols << "    default:" << endR;
+cols << "      ErrorExit(ERROR_UNSUPPORTED, \"which_coords: unsupported which %d\", which);" << endR;
+cols << "      break;" << endR;
+cols << "  }" << endR;
+cols << "" << endR;
+cols << "#undef CASE" << endR;
+            
+            
+            cols << ignoreWidth << Just_left << "}" << endR;
+        }
+	};
+
+	// Generate
+	//
 	void generate(Built const & built) {
+		
+		// Generate the various representations
+		//
 		if (true) {
-			ofstream os(createFilesWithin + "mrisurf_FACE_VERTEX_MRI_traditional.h");
+			ofstream os(createFilesWithin + "mrisurf_FACE_VERTEX_MRIS_generated.h");
 			Generate_mris(os, built);
 		}
+		if (true) {
+			ofstream os(createFilesWithin + "mrisurf_MRIS_PropertiesInVectors.h");
+			Generate_mrispv(os, built);
+		}
+
+		// Generate the Surface Vector Face accessors to the various representations
+		//
 		if (true) {
 			string const root_fnm = "mrisurf_SurfaceFromMRIS_generated";
 			ofstream os(createFilesWithin + root_fnm + ".h");
@@ -874,7 +1303,33 @@ namespace Generator {
 				Generate_SurfaceFromMRIS_impl(os_impl, fnm_impl, built);
 			}
 		}
-		system(("dir " + createFilesWithin).c_str());
+
+		if (true) {
+			string const root_fnm = "mrisurf_SurfaceFromMRISPV_generated";
+			ofstream os(createFilesWithin + root_fnm + ".h");
+
+			auto fnm_inco = root_fnm + "_prefix";
+			os << "#include \"./" << fnm_inco << ".h\"" << endl;
+			{
+				ofstream os_inco(createFilesWithin + fnm_inco + ".h");
+				Generate_SurfaceFromMRISPV_inco(os_inco, fnm_inco, built);
+			}
+
+			{
+				Generate_SurfaceFromMRISPV_spec(os, root_fnm, built);
+			}
+
+			auto fnm_impl = root_fnm + "_suffix";
+			os << "#include \"./" << fnm_impl << ".h\"" << endl;
+			{
+				ofstream os_impl(createFilesWithin + fnm_impl + ".h");
+				Generate_SurfaceFromMRISPV_impl(os_impl, fnm_impl, built);
+			}
+		}
+
+		auto cmd = "dir " + createFilesWithin;
+		cout << cmd << endl;
+		system(cmd.c_str());
 	}
 }
 
@@ -1044,32 +1499,32 @@ namespace Generator {
 		phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::XYZPositionM;
 
 		vtx->addDmbrCom("");
-		vtx->addDmbr(t_float,		"x"					, "current coordinates	");
+		vtx->addDmbr(t_float,		"x"					, "current coordinates	")->setWhich("CURRENT_VERTICES");
 		vtx->addDmbr(t_float,		"y"					, "use MRISsetXYZ() to set");
 		vtx->addDmbr(t_float,		"z"					);
 
 		phaseRbegin = Phase::XYZPositionM; phaseWbegin = Phase::end; phaseWend = Phase::end;
 
 		vtx->addDmbrCom("");
-		vtx->addDmbr(t_float,		"origx"				, "original coordinates, see also MRIS::origxyz_status");
+		vtx->addDmbr(t_float,		"origx"				, "original coordinates, see also MRIS::origxyz_status")->setWhich("ORIGINAL_VERTICES");
 		vtx->addDmbr(t_float,		"origy"				, "use MRISsetOriginalXYZ(, ");
 		vtx->addDmbr(t_float,		"origz"				, "or MRISsetOriginalXYZfromXYZ to set");
 
 		phaseRbegin = phaseWbegin = Phase::XYZPositionConsequencesM; phaseWend = Phase::end;
 
 		vtx->addDmbrCom("");
-		vtx->addDmbr(t_float,		"nx");
+		vtx->addDmbr(t_float,		"nx")->setWhich("VERTEX_NORMALS");
 		vtx->addDmbr(t_float,		"ny");
 		vtx->addDmbr(t_float,		"nz", "curr normal");
 
 		phaseRbegin = phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
 
-		vtx->addDmbr(t_float,		"pnx");
+		vtx->addDmbr(t_float,		"pnx")->setWhich("PIAL_NORMALS");
 		vtx->addDmbr(t_float,		"pny");
 		vtx->addDmbr(t_float,		"pnz", "pial normal");
 
 		vtx->addDmbrCom("");
-		vtx->addDmbr(t_float,		"wnx"); 
+		vtx->addDmbr(t_float,		"wnx")->setWhich("WHITE_NORMALS"); 
 		vtx->addDmbr(t_float,		"wny"); 
 		vtx->addDmbr(t_float,		"wnz", "white normal");
 		vtx->addDmbr(t_float,		"onx"); 
@@ -1091,34 +1546,34 @@ namespace Generator {
 
 		phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
 
-		vtx->addDmbr(t_float,		"cx");
+		vtx->addDmbr(t_float,		"cx")->setWhich("CANONICAL_VERTICES");
 		vtx->addDmbr(t_float,		"cy"); 
 		vtx->addDmbr(t_float,		"cz", "coordinates in canonical coordinate system");
 
 		phaseRbegin = phaseWbegin = Phase::DistortM; phaseWend = Phase::end;
 
-		vtx->addDmbr(t_float,		"tx");
+		vtx->addDmbr(t_float,		"tx")->setWhich("TMP_VERTICES");
 		vtx->addDmbr(t_float,		"ty"); 
 		vtx->addDmbr(t_float,		"tz", "tmp coordinate storage");
-		vtx->addDmbr(t_float,		"tx2"); 
-		vtx->addDmbr(t_float,		"ty2"); 
-		vtx->addDmbr(t_float,		"tz2", "tmp coordinate storage");
+		vtx->addDmbr(t_float,		"t2x")->setWhich("TMP2_VERTICES"); 
+		vtx->addDmbr(t_float,		"t2y"); 
+		vtx->addDmbr(t_float,		"t2z", "another tmp coordinate storage");
 		vtx->addDmbr(t_float,		"targx"); 
 		vtx->addDmbr(t_float,		"targy"); 
 		vtx->addDmbr(t_float,		"targz", "target coordinates");
-		vtx->addDmbr(t_float,		"pialx"); 
+		vtx->addDmbr(t_float,		"pialx")->setWhich("PIAL_VERTICES"); 
 		vtx->addDmbr(t_float,		"pialy"); 
 		vtx->addDmbr(t_float,		"pialz", "pial surface coordinates");
-		vtx->addDmbr(t_float,		"whitex"); 
+		vtx->addDmbr(t_float,		"whitex")->setWhich("WHITE_VERTICES"); 
 		vtx->addDmbr(t_float,		"whitey"); 
 		vtx->addDmbr(t_float,		"whitez", "white surface coordinates");
 		vtx->addDmbr(t_float,		"l4x"); 
 		vtx->addDmbr(t_float,		"l4y"); 
 		vtx->addDmbr(t_float,		"l4z", "layerIV surface coordinates");
-		vtx->addDmbr(t_float,		"infx"); 
+		vtx->addDmbr(t_float,		"infx")->setWhich("INFLATED_VERTICES"); 
 		vtx->addDmbr(t_float,		"infy"); 
 		vtx->addDmbr(t_float,		"infz", "inflated coordinates");
-		vtx->addDmbr(t_float,		"fx"); 
+		vtx->addDmbr(t_float,		"fx")->setWhich("FLATTENED_VERTICES"); 
 		vtx->addDmbr(t_float,		"fy"); 
 		vtx->addDmbr(t_float,		"fz", "flattened coordinates");
 		vtx->addDmbr(t_int,			"px"); 
@@ -1222,8 +1677,8 @@ namespace Generator {
 		sur->addDmbr(t_int,							"nstrips");
 		sur->addDmbr(t_PR_VERTEX_TOPOLOGY,			"vertices_topology");
 		sur->addDmbr(t_PR_VERTEX,					"vertices");
-		sur->addDmbr(t_ppVoid,						"dist_storage",			    "the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored");
-		sur->addDmbr(t_ppVoid,						"dist_orig_storage",		"the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored");
+		sur->addDmbr(t_ppVoid,						"dist_storage",			    "the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored")->setNoHash();
+		sur->addDmbr(t_ppVoid,						"dist_orig_storage",		"the malloced/realloced vertex dist_orig fields, so those fields can be quickly nulled and restored")->setNoHash();
 		sur->addDmbr(t_int,							"tempsAssigned",	        "State of various temp fields that can be borrowed if not already in use");
 
 	phaseRbegin = Phase::TopologyM; phaseWbegin = phaseWend = Phase::end;
@@ -1311,7 +1766,7 @@ namespace Generator {
 		sur->addDmbr(t_float,						"avg_nbrs",				"mean # of vertex neighbors");
 
 	phaseRbegin = phaseWbegin = Phase::XYZPositionM; phaseWend = Phase::end;
-		sur->addDmbr(t_pVoid,						"vp",					"for misc. use");
+		sur->addDmbr(t_pVoid,						"vp",					"for misc. use")->setNoHash();
 		sur->addDmbr(t_float,						"alpha",				"rotation around z-axis");
 		sur->addDmbr(t_float,						"beta",					"rotation around y-axis");
 		sur->addDmbr(t_float,						"gamma",				"rotation around x-axis");
@@ -1339,11 +1794,11 @@ namespace Generator {
 		sur->addDmbr(t_float,						"group_avg_surface_area",		"average of total surface area for group");
 		sur->addDmbr(t_int,							"group_avg_vtxarea_loaded",		"average vertex area for group at each vertex");
 		sur->addDmbr(t_int,							"triangle_links_removed",		"for quad surfaces");
-		sur->addDmbr(t_pVoid,						"user_parms",					"for whatever the user wants to hang here");
+		sur->addDmbr(t_pVoid,						"user_parms",					"for whatever the user wants to hang here")->setNoHash();
 		sur->addDmbr(t_PMATRIX,						"m_sras2vox",					"for converting surface ras to voxel");
 		sur->addDmbr(t_PMRI,						"mri_sras2vox",					"volume that the above matrix is for");
-		sur->addDmbr(t_pVoid,						"mht");
-		sur->addDmbr(t_pVoid,						"temps");
+		sur->addDmbr(t_pVoid,						"mht")->setNoHash();
+		sur->addDmbr(t_pVoid,						"temps")->setNoHash();
 
 		sur->addDmbrList("LIST_OF_MRIS_ELTS");
 		sur->addDmbrListSublist("LIST_OF_MRIS_ELTS_1");

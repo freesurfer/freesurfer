@@ -556,16 +556,16 @@ int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
     z = v->z;
 
     n = 0;
-    vx = v->x - v->tx2;
-    vy = v->y - v->ty2;
-    vz = v->z - v->tz2;
+    vx = v->x - v->t2x;
+    vy = v->y - v->t2y;
+    vz = v->z - v->t2z;
     dx = dy = dz = 0.0f;
     for (m = 0; m < vt->vnum; m++) {
       VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
-        vnx = vn->x - vn->tx2;
-        vny = vn->y - vn->ty2;
-        vnz = vn->z - vn->tz2;
+        vnx = vn->x - vn->t2x;
+        vny = vn->y - vn->t2y;
+        vnz = vn->z - vn->t2z;
         dx += (vnx - vx);
         dy += (vny - vy);
         dz += (vnz - vz);
@@ -4944,14 +4944,14 @@ double mrisComputeLaplacianEnergy(MRI_SURFACE *mris)
       continue;
     }
 
-    vx = v->x - v->tx2;
-    vy = v->y - v->ty2;
-    vz = v->z - v->tz2;
+    vx = v->x - v->t2x;
+    vy = v->y - v->t2y;
+    vz = v->z - v->t2z;
     for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      vnx = vn->x - vn->tx2;
-      vny = vn->y - vn->ty2;
-      vnz = vn->z - vn->tz2;
+      vnx = vn->x - vn->t2x;
+      vny = vn->y - vn->t2y;
+      vnz = vn->z - vn->t2z;
       dx = vnx - vx;
       dy = vny - vy;
       dz = vnz - vz;

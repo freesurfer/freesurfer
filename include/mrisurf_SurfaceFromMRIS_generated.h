@@ -3,8 +3,8 @@
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
-#define SEPARATE_VERTEX_TOPOLOGY
 namespace SurfaceFromMRIS {
+    typedef MRIS Representation;
     #include "mrisurf_SurfaceFromMRIS_generated_Existence.h"
     #include "mrisurf_SurfaceFromMRIS_generated_Topology.h"
     #include "mrisurf_SurfaceFromMRIS_generated_XYZPosition.h"
@@ -18,5 +18,5 @@ namespace SurfaceFromMRIS {
     #include "mrisurf_SurfaceFromMRIS_generated_DistortM.h"
     #include "mrisurf_SurfaceFromMRIS_generated_AnalysisM.h"
     #include "mrisurf_SurfaceFromMRIS_generated_AllM.h"
-} // namespace SurfaceFromMRIS
+} // SurfaceFromMRIS
 #include "./mrisurf_SurfaceFromMRIS_generated_suffix.h"
