@@ -1967,6 +1967,15 @@ int MRISwriteCoordsToIco(MRI_SURFACE *mris,
 int MRISvertexCoord2XYZ (VERTEX const * v, int which, float  *x, float  *y, float  *z);
 int MRISvertexCoord2XYZ (VERTEX const * v, int which, double *x, double *y, double *z);
 
+int face_barycentric_coords(
+  double V0[3], double V1[3], double V2[3],
+  double  cx,
+  double  cy,
+  double  cz,
+  double *pl1,
+  double *pl2,
+  double *pl3);
+
 int face_barycentric_coords(MRIS const * mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 

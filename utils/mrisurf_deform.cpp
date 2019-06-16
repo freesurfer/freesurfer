@@ -6758,7 +6758,7 @@ double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *p
 
           // update distance with continuum measure
           MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-          MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &vdist);
+          MHTfindClosestVertexGeneric(mht, xs, ys, zs, 10, 4, &vno, &vdist);
           v = (vno < 0) ? nullptr : &mris->vertices[vno];
           if (v != NULL)  // compute distance from surface in normal direction
           {
@@ -7045,7 +7045,7 @@ int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         // add this voxel to the list of voxels of the vertex it is closest to
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &dist);
+        MHTfindClosestVertexGeneric(mht, xs, ys, zs, 10, 4, &vno, &dist);
         if (vno < 0) continue;
         if (FZERO(val) && dist > 1) continue;
         if (vno == Gdiag_no) DiagBreak();
@@ -8482,7 +8482,7 @@ int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         // add this voxel to the list of voxels of the vertex it is closest to
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs);
-        MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 4, &vno, &dist);
+        MHTfindClosestVertexGeneric(mht, xs, ys, zs, 10, 4, &vno, &dist);
         if (vno < 0) continue;
         VERTEX * v = &mris->vertices[vno];
         if (vno == Gdiag_no) DiagBreak();

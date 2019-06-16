@@ -134,7 +134,6 @@ MHT_VIRTUAL int MHT_FUNCTION(isVectorFilled)(MHT_CONST_THIS_PARAMETER  int vno,
 // Find nearest vertex/vertices (Uses MHT_FUNCTION() initialized with VERTICES)
 //
 MHT_VIRTUAL int MHT_FUNCTION(findClosestVertexGeneric)(MHT_THIS_PARAMETER
-                                MHT_MRIS_PARAMETER 
                                 double probex, double probey, double probez,
                                 double in_max_distance_mm, 
                                 int in_max_halfmhts,
@@ -143,7 +142,8 @@ MHT_VIRTUAL int MHT_FUNCTION(findClosestVertexGeneric)(MHT_THIS_PARAMETER
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return mht->findClosestVertexGeneric(mris, probex, probey, probez,
+{ return mht->findClosestVertexGeneric(
+                                probex, probey, probez,
                                 in_max_distance_mm, 
                                 in_max_halfmhts,
                                 vtxnum, 

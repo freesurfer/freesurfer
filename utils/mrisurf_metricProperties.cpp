@@ -15,6 +15,7 @@
  *
  */
 #include "mrisurf_metricProperties.h"
+#include "face_barycentric_coords.h"
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -4344,70 +4345,19 @@ int IsMRISselfIntersecting(MRIS *mris)
 }
 
 
-int face_barycentric_coords(MRIS const *mris,
-                            int fno,
-                            int which_vertices,
-                            double cx,
-                            double cy,
-                            double cz,
-                            double *pl1,
-                            double *pl2,
-                            double *pl3)
+int face_barycentric_coords(
+  double V0[3], double V1[3], double V2[3],
+  double  cx,
+  double  cy,
+  double  cz,
+  double *pl1,
+  double *pl2,
+  double *pl3)
 {
+  double point[3], proj[3], detT;
   double l1, l2, l3, x, y, x1, x2, x3, y1, y2, y3, e1[3], e2[3];
-  FACE const *face = &mris->faces[fno];
-  double V0[3], V1[3], V2[3], point[3], proj[3], detT;
+  
   int ret = 0;
-
-  switch (which_vertices) {
-    default:
-      ErrorExit(ERROR_BADPARM, "face_barycentric_coords: which %d not supported", which_vertices);
-      break;
-    case FLATTENED_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].fx;
-      V0[1] = mris->vertices[face->v[0]].fy;
-      V0[2] = mris->vertices[face->v[0]].fz;
-      V1[0] = mris->vertices[face->v[1]].fx;
-      V1[1] = mris->vertices[face->v[1]].fy;
-      V1[2] = mris->vertices[face->v[1]].fz;
-      V2[0] = mris->vertices[face->v[2]].fx;
-      V2[1] = mris->vertices[face->v[2]].fy;
-      V2[2] = mris->vertices[face->v[2]].fz;
-      break;
-    case CURRENT_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].x;
-      V0[1] = mris->vertices[face->v[0]].y;
-      V0[2] = mris->vertices[face->v[0]].z;
-      V1[0] = mris->vertices[face->v[1]].x;
-      V1[1] = mris->vertices[face->v[1]].y;
-      V1[2] = mris->vertices[face->v[1]].z;
-      V2[0] = mris->vertices[face->v[2]].x;
-      V2[1] = mris->vertices[face->v[2]].y;
-      V2[2] = mris->vertices[face->v[2]].z;
-      break;
-    case PIAL_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].pialx;
-      V0[1] = mris->vertices[face->v[0]].pialy;
-      V0[2] = mris->vertices[face->v[0]].pialz;
-      V1[0] = mris->vertices[face->v[1]].pialx;
-      V1[1] = mris->vertices[face->v[1]].pialy;
-      V1[2] = mris->vertices[face->v[1]].pialz;
-      V2[0] = mris->vertices[face->v[2]].pialx;
-      V2[1] = mris->vertices[face->v[2]].pialy;
-      V2[2] = mris->vertices[face->v[2]].pialz;
-      break;
-    case CANONICAL_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].cx;
-      V0[1] = mris->vertices[face->v[0]].cy;
-      V0[2] = mris->vertices[face->v[0]].cz;
-      V1[0] = mris->vertices[face->v[1]].cx;
-      V1[1] = mris->vertices[face->v[1]].cy;
-      V1[2] = mris->vertices[face->v[1]].cz;
-      V2[0] = mris->vertices[face->v[2]].cx;
-      V2[1] = mris->vertices[face->v[2]].cy;
-      V2[2] = mris->vertices[face->v[2]].cz;
-      break;
-  }
   point[0] = cx;
   point[1] = cy;
   point[2] = cz;
@@ -4430,7 +4380,6 @@ int face_barycentric_coords(MRIS const *mris,
     if (pl1) {
       *pl1 = *pl2 = *pl3 = 1 / 3;
     }
-    DiagBreak();
     return (-2);
   }
 
@@ -4461,6 +4410,21 @@ int face_barycentric_coords(MRIS const *mris,
     }
   }
   return (ret);
+}
+
+
+int face_barycentric_coords(MRIS const *mris,
+                            int fno,
+                            int which_vertices,
+                            double cx,
+                            double cy,
+                            double cz,
+                            double *pl1,
+                            double *pl2,
+                            double *pl3)
+{
+  auto surface = SurfaceFromMRIS::Analysis::Surface(const_cast<MRIS*>(mris));
+  return face_barycentric_coords_template(surface, fno, which_vertices,cx,cy,cz,pl1,pl2,pl3);   
 }
 
 int MRISsampleFaceCoords(MRIS *mris,
