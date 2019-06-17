@@ -1916,7 +1916,7 @@ void MRIS_HASH_TABLE_IMPL::findClosestFaceNoGeneric(
   unsigned char central27[3][3][3];  // Indexes 0..2 stand for -1..+1
   //----------------------------------
 
-  checkConstructedWithVerticesAndSurface(mris);
+  checkConstructedWithFacesAndSurface(mris);    // seen to fail when VerticesAndSurface
   mhtres = vres;
 
   //--------------------------------------------------
