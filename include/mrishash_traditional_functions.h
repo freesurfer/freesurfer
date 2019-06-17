@@ -142,7 +142,7 @@ MHT_STATIC_MEMBER int MHT_FUNCTION(BruteForceClosestFace)(MHT_MRIS_PARAMETER
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE_IMPL::BruteForceClosestFace(mris,x,y,z,which,dmin); }
+{ return MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::BruteForceClosestFace(mris,x,y,z,which,dmin); }
 #endif
 
 
@@ -161,7 +161,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE_IMPL::createFaceTable(mris); }
+{ return MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::createFaceTable(mris); }
 #endif
 
 
@@ -172,7 +172,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable_Resolution)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE_IMPL::createFaceTable_Resolution(mris,which,res); }
+{ return MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::createFaceTable_Resolution(mris,which,res); }
 #endif
 
 
@@ -182,7 +182,7 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE_IMPL::createVertexTable(mris,which); }
+{ return MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::createVertexTable(mris,which); }
 #endif
 
                                     
@@ -193,14 +193,14 @@ MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable_Resolution)(
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ return MRIS_HASH_TABLE_IMPL::createVertexTable_Resolution(mris,which,res); }
+{ return MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::createVertexTable_Resolution(mris,which,res); }
 #endif
 
 MHT_STATIC_MEMBER void MHT_FUNCTION(free)(MRIS_HASH_TABLE**mht)
 #ifndef MHT_TRADITIONAL_IMPL
     ;
 #else
-{ MRIS_HASH_TABLE_IMPL::free(mht); }
+{ MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::free(mht); }
 #endif
 
 int MHT_FUNCTION(which)(MHT_THIS_PARAMETER_NOCOMMA)     // Whether uses the ORIGINAL, CANONICAL, CURRENT, ... ###xyz values

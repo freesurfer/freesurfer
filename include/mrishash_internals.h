@@ -118,7 +118,6 @@ struct _mht
 };
 
 struct MRIS_HASH_TABLE_NoSurface;
-struct MRIS_HASH_TABLE_IMPL;
 struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...
 
     MRIS_HASH_TABLE(MHTFNO_t fno_usage, float vres, int which_vertices) : _mht(fno_usage, vres, which_vertices) {}
