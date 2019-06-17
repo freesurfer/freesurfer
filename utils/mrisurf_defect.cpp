@@ -9413,7 +9413,6 @@ MRI_SURFACE *MRIScorrectTopology(
     MRISsaveVertexPositions(mris_corrected, TMP_VERTICES);
     MRISrestoreVertexPositions(mris_corrected, ORIG_VERTICES);
     mht = MHTcreateFaceTable(mris_corrected);
-    mht->checkSurface(mris_corrected);
     MHTfree(&mht);
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES);
   }

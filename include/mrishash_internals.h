@@ -132,6 +132,22 @@ struct MRIS_HASH_TABLE : public _mht {                      // Later we may make
   // so they will all be appropriately changed once this
   // becomes a template class
   //
+#define MHT_ONLY_VIRTUAL
+#define MHT_VIRTUAL                 virtual
+#define MHT_ABSTRACT                = 0
+#define MHT_STATIC_MEMBER           static
+#define MHT_FUNCTION(NAME)          NAME
+#define MHT_FUNCTION(NAME)          NAME
+#define MHT_CONST_THIS_PARAMETER
+#define MHT_CONST_THIS              const
+#define MHT_THIS_PARAMETER_NOCOMMA
+#define MHT_THIS_PARAMETER
+#define MHT_MRIS_PARAMETER_NOCOMMA
+#define MHT_MRIS_PARAMETER
+#include "mrishash_traditional_functions.h"
+#undef MHT_ONLY_VIRTUAL
+
+#define MHT_ONLY_STATIC
 #define MHT_VIRTUAL                 virtual
 #define MHT_ABSTRACT                = 0
 #define MHT_STATIC_MEMBER           static
@@ -144,5 +160,6 @@ struct MRIS_HASH_TABLE : public _mht {                      // Later we may make
 #define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
 #define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
 #include "mrishash_traditional_functions.h"
+#undef MHT_ONLY_STATIC
 
 } ;

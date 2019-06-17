@@ -908,8 +908,7 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE_NoSurface {
                                       int                     const trace) const;
 
 	
-    int mhtBruteForceClosestVertex(
-        MRIS *mris, float x, float y, float z, int which, float *dmin);
+    int mhtBruteForceClosestVertex(float x, float y, float z, int which, float *dmin);
 
     void mhtfindClosestVertexGenericInBucket(
                                         //---------- inputs --------------
@@ -946,8 +945,8 @@ struct MRIS_HASH_TABLE_IMPL : public MRIS_HASH_TABLE_NoSurface {
 #define MHT_CONST_THIS              const
 #define MHT_THIS_PARAMETER_NOCOMMA
 #define MHT_THIS_PARAMETER
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
-#define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
+#define MHT_MRIS_PARAMETER_NOCOMMA
+#define MHT_MRIS_PARAMETER
 #include "mrishash_traditional_functions.h"
 #undef MHT_ONLY_VIRTUAL
 
@@ -1060,18 +1059,16 @@ MRIS_HASH_TABLE* MRIS_HASH_TABLE::createFaceTable_Resolution(
 //  Appends or removes all faces of the vertex.
 //  Returns: NO_ERROR
 //
-int MRIS_HASH_TABLE_IMPL::addAllFaces(MRIS* mris, int vno)
+int MRIS_HASH_TABLE_IMPL::addAllFaces(int vno)
 {
-    checkConstructedWithFacesAndSurface(mris);
     Vertex v = surface.vertices(vno);
     for (int fi = 0; fi < v.num(); fi++) mhtFaceToMHT(v.f(fi), true);
     return (NO_ERROR);
 }
 
 
-int MRIS_HASH_TABLE_IMPL::removeAllFaces(MRIS *mris, int vno)
+int MRIS_HASH_TABLE_IMPL::removeAllFaces(int vno)
 {
-    checkConstructedWithFacesAndSurface(mris);
     Vertex v = surface.vertices(vno);
     for (int fi = 0; fi < v.num(); fi++) mhtFaceToMHT(v.f(fi), false);
     return (NO_ERROR);
@@ -1275,7 +1272,7 @@ int MRIS_HASH_TABLE_IMPL::MHTdoesFaceIntersect_new(int const fno, int const trac
 }
 
 
-int MRIS_HASH_TABLE_IMPL::doesFaceIntersect(MRIS *mris, int fno) {
+int MRIS_HASH_TABLE_IMPL::doesFaceIntersect(int fno) {
     return MHTdoesFaceIntersect_new(fno, false);
 }
 
@@ -1886,7 +1883,6 @@ done:
 */
 
 void MRIS_HASH_TABLE_IMPL::findClosestFaceNoGeneric(
-    MRIS *mris,
     //---------- inputs --------------
     double probex,
     double probey,
@@ -1916,7 +1912,6 @@ void MRIS_HASH_TABLE_IMPL::findClosestFaceNoGeneric(
   unsigned char central27[3][3][3];  // Indexes 0..2 stand for -1..+1
   //----------------------------------
 
-  checkConstructedWithFacesAndSurface(mris);    // seen to fail when VerticesAndSurface
   mhtres = vres;
 
   //--------------------------------------------------
@@ -2136,10 +2131,8 @@ done:
   Returns vertex in mht and mris that is closest to which-selected ###xyz.
 
   -----------------------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::findClosestSetVertexNo(MRIS *mris, float x, float y, float z)
+int MRIS_HASH_TABLE_IMPL::findClosestSetVertexNo(float x, float y, float z)
 {
-  checkConstructedWithVerticesAndSurface(mris);
-
   int vno;
   findClosestVertexGeneric(   x,
                               y,
@@ -2150,7 +2143,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestSetVertexNo(MRIS *mris, float x, float y, f
                               NULL);
 
   if (vno < 0) {  // did not find a vertex, so use brute-force
-    vno = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, NULL);
+    vno = mhtBruteForceClosestVertex(x, y, z, which_vertices, NULL);
   }
 
   return vno;
@@ -2163,11 +2156,8 @@ int MRIS_HASH_TABLE_IMPL::findClosestSetVertexNo(MRIS *mris, float x, float y, f
   in mris & mht.
   --------------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
-                               MRIS *mris, 
                                float x, float y, float z, 
                                float *min_dist) {
-
-  checkConstructedWithVerticesAndSurface(mris);
 
   double min_dist_dbl;
   int vno, rslt;
@@ -2188,7 +2178,7 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
   //----------------------------------------------------------
   if (-1 == rslt) {
     // brf - should always find one that is closest
-    vno = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, min_dist);
+    vno = mhtBruteForceClosestVertex(x, y, z, which_vertices, min_dist);
   }
 
   return vno;
@@ -2199,10 +2189,8 @@ int MRIS_HASH_TABLE_IMPL::findClosestVertexNoXYZ(
   Returns vertex from mris & mht that's closest to provided coordinates.
   ---------------------------------------------------------------*/
 int MRIS_HASH_TABLE_IMPL::findVnoOfClosestVertexInTable(
-    MRIS *mris, float x, float y, float z, int do_global_search)
+    float x, float y, float z, int do_global_search)
 {
-  checkConstructedWithVerticesAndSurface(mris);
-
   int vno;
   findClosestVertexGeneric(   x,
                               y,
@@ -2226,7 +2214,7 @@ int MRIS_HASH_TABLE_IMPL::findVnoOfClosestVertexInTable(
     }
 
     if (vno < 0) { // did not find a vertex, so use brute-force (BRF)
-      vno = mhtBruteForceClosestVertex(mris, x, y, z, which_vertices, NULL);
+      vno = mhtBruteForceClosestVertex(x, y, z, which_vertices, NULL);
     }
   }
 
@@ -2234,35 +2222,13 @@ int MRIS_HASH_TABLE_IMPL::findVnoOfClosestVertexInTable(
 }
 
 #define MAX_VERTICES 50000
-/*------------------------------------------------------------
-  MHTgetAllVerticesWithinDistance
-  Returns a list of vertex numbers from mris & mht that are within
-  max_dist of vertex vno.
-
-  Allocates separate list pvnum which must be freed by caller.
-
-  As of 2007-03-20, there don't appear to be any callers of this function
-  in all the FS source code, so I'm not bothering to implement its
-  functionality in the generic Find function, however it would be easy to do.
-  ------------------------------------------------------------*/
-int * MRIS_HASH_TABLE_IMPL::getAllVerticesWithinDistance(MRIS *mris, int vno, float max_dist, int *pvnum)
-{
-  //------------------------------------------------------
-  ErrorExit(ERROR_UNSUPPORTED, "%s: not implemented.\n", __MYFUNCTION__);
-
-  return NULL;
-}
-
 int MRIS_HASH_TABLE_IMPL::mhtBruteForceClosestVertex(
-    MRIS *  mris,
     float   x,
     float   y,
     float   z,
     int     which,  // which surface within mris to search
     float * dmin)
 {
-    checkConstructedWithVerticesAndSurface(mris);
-    
     int   min_vno = -1;
     float min_dsq = 1e8;
 
@@ -2333,7 +2299,7 @@ int MRIS_HASH_TABLE::testIsMRISselfIntersecting(MRIS *mris, float res)
     MRIS_HASH_TABLE * mht = createFaceTable_Resolution(mris, CURRENT_VERTICES, res);
     int rslt = 0;
     for (int fno = 0; fno < mris->nfaces; fno++) {
-        if (mht->doesFaceIntersect(mris, fno)) {
+        if (mht->doesFaceIntersect(fno)) {
             rslt = 1;
             goto done;
         }
@@ -2343,71 +2309,6 @@ done:
     return rslt;
 }
 
-
-/*--------------------------------------------------------
-  MHTcheckFaces
-  Unchanged from mrishash.c 1.27
-  -------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkFaces(MRIS *mris)
-//--------------------------------------------------------
-{
-  static int ncalls = 0;
-
-  if (ncalls++ >= 0) {
-#if 0
-    checkFace(mris, 144) ;
-    checkFace(mris, 185) ;
-    checkFace(mris, 16960) ;
-    checkFace(mris, 18168) ;
-    checkFace(mris, 39705) ;
-    checkFace(mris, 32319) ;
-    checkAllVertexFaces(mris, 15300) ;
-    checkAllVertexFaces(mris, 4303) ;
-    checkAllVertexFaces(mris, 35701) ;
-    checkAllVertexFaces(mris, 4632) ;
-    checkAllVertexFaces(mris, 1573) ;
-#endif
-  }
-  return (NO_ERROR);
-}
-
-/*-----------------------------------------------------
-  MHTcheckSurface
-  Unchanged from mrishash.c 1.27
-  However, subsidiary checkFace is disabled
-  ------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkSurface( MRIS *mris)
-//--------------------------------------------------------
-{
-    auto mht = createFaceTable(mris);
-
-    for (int fno = 0; fno < mris->nfaces; fno++) {
-        if (!(fno % (mris->nfaces / 10))) DiagHeartbeat((float)fno / (float)mris->nfaces);
-        mht->checkFace(mris, fno);
-    }
-  
-    MHTfree(&mht);
-  
-    return (NO_ERROR);
-}
-
-
-/*-----------------------------------------------------
-  checkFace
-  Conducts a brute-force test of self-intersection relative to
-  the one provided face.
-  I think the intent here was to conduct brute-force intersections test,
-  and if diag flags set, compare that to MHT results.
-  However, the only output produced is printed or to file, this
-  func doesn't return result of intersection test.
-  I have disabled this whole routine because it doesn't look useful,
-  and it calls
-  local functions that I've refactored away.
-  ------------------------------------------------------*/
-int MRIS_HASH_TABLE_IMPL::checkFace(MRIS *mris, int fno1)
-{
-  return (NO_ERROR);
-}
 
 
 static void mhtComputeFaceCentroid(
@@ -2463,7 +2364,7 @@ int MHTfindClosestVertexNo2(
     Surface surface(mris_for_v);
     float x,y,z;
     mhtVertex2xyz(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
-    return mht->findClosestVertexNoXYZ(mris, x,y,z, pmin_dist);
+    return mht->findClosestVertexNoXYZ(x,y,z, pmin_dist);
 }
 
 VERTEX * MHTfindClosestVertex2(
@@ -2489,7 +2390,7 @@ VERTEX* MHTfindClosestVertexSet2(
     Surface surface(mris_for_v);
     float x,y,z;
     mhtVertex2xyz(surface.vertices(vno), mht->which_vertices, &x, &y, &z);
-    int closest_vno =  mht->findClosestSetVertexNo(mris, x,y,z);
+    int closest_vno =  mht->findClosestSetVertexNo(x,y,z);
     return (closest_vno < 0) ? nullptr : &mris->vertices[closest_vno];
 }
 
@@ -2499,7 +2400,7 @@ VERTEX* MHTfindClosestVertexInTable(
     MRIS *mris,
     float x, float y, float z, int do_global_search)
 {
-    int closest_vno =  mht->findVnoOfClosestVertexInTable(mris, x, y, z, do_global_search);
+    int closest_vno =  mht->findVnoOfClosestVertexInTable(x, y, z, do_global_search);
     return (closest_vno < 0) ? nullptr : &mris->vertices[closest_vno];
 }
 
@@ -2519,6 +2420,7 @@ void MHTfindClosestFaceGeneric(
     int *pfno, 
     double *pface_distance)
 {
-    mht->findClosestFaceNoGeneric(mris, probex,probey,probez, in_max_distance_mm,in_max_mhts,project_into_face,pfno,pface_distance);
+    //checkConstructedWithFacesAndSurface(mris);    // seen to fail when VerticesAndSurface
+    mht->findClosestFaceNoGeneric(probex,probey,probez, in_max_distance_mm,in_max_mhts,project_into_face,pfno,pface_distance);
     *pface = (*pfno < 0) ? nullptr : &mris->faces[*pfno];
 }

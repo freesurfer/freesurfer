@@ -665,9 +665,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       if (gMRISexternalTimestep) {
         (*gMRISexternalTimestep)(mris, parms);
       }
-      if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-        mht->checkFaces(mris);
-      }
 
       MRIScomputeMetricProperties(mris);
 
@@ -943,9 +940,6 @@ int MRISpositionSurface_mef(
     do {
       MRISsaveVertexPositions(mris, WHITE_VERTICES);
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt, mht, max_mm);
-      if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-        mht->checkFaces(mris);
-      }
       MRIScomputeMetricProperties(mris);
       rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5);
       sse = mrisComputeSSE_MEF(mris, parms, mri_30, mri_5, weight30, weight5, mht_v_orig);
