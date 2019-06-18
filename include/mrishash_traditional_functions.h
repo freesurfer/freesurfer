@@ -54,26 +54,6 @@ MHT_STATIC_MEMBER int MHT_FUNCTION(BruteForceClosestFace)(MHT_MRIS_PARAMETER
 MHT_STATIC_MEMBER int MHT_FUNCTION(testIsMRISselfIntersecting)(MHT_MRIS_PARAMETER  float res);
 
 
-// Construction and destruction
-// Given that the mris is stored in the MHT_FUNCTION(), it is very unclear why the following functions require it to be passed in again!
-//
-MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable)(
-    MHT_MRIS_PARAMETER_NOCOMMA);
-
-MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createFaceTable_Resolution)(
-    MHT_MRIS_PARAMETER  
-    int   which, 
-    float res);
-    
-MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable)(
-    MHT_MRIS_PARAMETER  
-    int which);
-                                    
-MHT_STATIC_MEMBER MRIS_HASH_TABLE* MHT_FUNCTION(createVertexTable_Resolution)(
-    MHT_MRIS_PARAMETER 
-    int which,
-    float res);
-    
 #endif  // non virtual
 
 

@@ -113,6 +113,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -135,6 +138,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Analysis::Vertex const & src                 ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                     ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     char Vertex::ripflag() const {  //  vertex no longer exists - placed last to load the next vertex into cache
         return repr->v_ripflag[idx];
     }
@@ -154,6 +163,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
@@ -177,6 +189,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
@@ -204,6 +222,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -224,6 +245,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Analysis::Vertex const & src                 ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                     ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -259,6 +286,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
@@ -280,6 +310,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
@@ -305,6 +341,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -332,6 +371,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Analysis::Vertex const & src               ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -380,6 +425,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -408,6 +456,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -510,6 +564,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -535,6 +592,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Analysis::Vertex const & src               ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -592,6 +655,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -627,6 +693,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -727,6 +799,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -750,6 +825,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -807,6 +888,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -840,6 +924,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1010,10 +1100,16 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
     
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(repr == to.repr); repr->f_v[idx][i] = to.idx;
+    }
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
@@ -1024,6 +1120,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     char Vertex::ripflag() const {  //  vertex no longer exists - placed last to load the next vertex into cache
         return repr->v_ripflag[idx];
     }
@@ -1043,6 +1145,12 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
+    void Vertex::set_num(uchar to) {  //  number of neighboring faces                              
+        repr->v_num[idx] = to;
+    }
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
@@ -1058,6 +1166,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
@@ -1079,6 +1193,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -1093,6 +1210,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -1128,6 +1251,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_x(float to) {  //  current coordinates	
         repr->v_x[idx] = to;
     }
@@ -1153,6 +1279,12 @@ namespace SurfaceFromMRISPV {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -1173,6 +1305,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1205,6 +1340,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -1253,6 +1394,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -1280,6 +1424,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1392,6 +1542,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1415,6 +1568,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -1472,6 +1631,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -1505,6 +1667,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1605,6 +1773,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1628,6 +1799,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
     Vertex::Vertex ( AllM::Vertex const & src                   ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -1685,6 +1862,9 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
     void Vertex::set_nx(float to) {
         repr->v_nx[idx] = to;
     }
@@ -1718,6 +1898,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1817,6 +2003,9 @@ namespace SurfaceFromMRISPV {
     Face::Face ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1830,6 +2019,9 @@ namespace SurfaceFromMRISPV {
         return repr->f_norm[idx];
     }
     
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(repr == to.repr); repr->f_v[idx][i] = to.idx;
+    }
     void Face::set_area(float to) {
         repr->f_area[idx] = to;
     }
@@ -1848,6 +2040,12 @@ namespace SurfaceFromMRISPV {
     Vertex::Vertex ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
     Vertex::Vertex ( Vertex const & src                         ) : Repr_Elt(src) {}
 
+    Face Vertex::f(size_t i) const {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        return Face(repr,repr->v_f[idx][i]);
+    }
+    uchar Vertex::num() const {  //  number of neighboring faces                              
+        return repr->v_num[idx];
+    }
     float Vertex::dist(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on  xyz   
         return repr->v_dist[idx][i];
     }
@@ -1905,6 +2103,12 @@ namespace SurfaceFromMRISPV {
     #undef CASE
     }
     
+    void Vertex::set_f(size_t i, Face to) {  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        cheapAssert(repr == to.repr); repr->v_f[idx][i] = to.idx;
+    }
+    void Vertex::set_num(uchar to) {  //  number of neighboring faces                              
+        repr->v_num[idx] = to;
+    }
     void Vertex::set_x(float to) {  //  current coordinates	
         repr->v_x[idx] = to;
     }
@@ -1949,6 +2153,12 @@ namespace SurfaceFromMRISPV {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr,i);
+    }
+    Face Surface::faces(size_t i) const {
+        return Face(repr,i);
     }
     float Surface::xctr() const {
         return repr->xctr;

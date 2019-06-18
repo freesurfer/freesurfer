@@ -1224,7 +1224,7 @@ int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht, double
     return (NO_ERROR);
   }
 
-  step = mht->vres / 2;
+  step = mht->vres() / 2;
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)

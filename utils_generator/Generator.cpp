@@ -20,6 +20,8 @@ static std::ostream& indent(std::ostream & os, size_t depth) {
 	return os;
 }
 
+void bpt() {}
+
 namespace ColumnedOutput {
 
 	using namespace std;
@@ -426,8 +428,8 @@ namespace Generator {
 				// in			for the metric properties calculations
 				"status",
 				"origxyz_status",
-				"nvertices",
-				"nfaces",
+				"nvertices",    "vertices",
+				"nfaces",       "faces",
 				"nsize",
 				"radius",
 				// in out		for the metric properties calculations
@@ -450,6 +452,8 @@ namespace Generator {
 				"neg_area",
 				// in			for the metric properties calculations
 				"v_ripflag",
+                "v_num",
+                "v_f",
 				// in out		for the metric properties calculations
 				"v_dist_capacity",
 				"v_border",
@@ -466,6 +470,7 @@ namespace Generator {
 				"v_dist",
 				// in			for the metric properties calculations 
 				"f_ripflag",
+                "f_v",
 				"f_norm_orig_area",
 				// in out		for the metric properties calculations
 				// out			for the metric properties calculations
@@ -679,6 +684,8 @@ namespace Generator {
 							}
 							continue;
 						}
+
+                        if (c.id == "Surface" && d.id == "vertices") bpt();
 
 						if (!d.type) continue;
 
@@ -1075,6 +1082,7 @@ namespace Generator {
 				}
 			}
 			else if (c.id == "Surface" && d.id == "vertices") {
+                bpt();
 				if (!write) {
 					cols << "return Vertex(repr,i)";
 				}
@@ -1168,10 +1176,10 @@ namespace Generator {
 
 			if (c.id == "Face" && d.id == "v") {
 				if (!write) {
-					cols << "return Vertex(repr,repr->faces[idx].v[i])";
+					cols << "return Vertex(repr," << raw << "[i]" << ")";
 				}
 				else {
-					cols << "cheapAssert(repr == to.repr); repr->faces[idx].v[i] = to.idx";
+					cols << "cheapAssert(repr == to.repr); " << raw << "[i]" << " = to.idx";
 				}
 			}
 			else if (c.id == "Vertex" && d.id == "f") {
@@ -1199,6 +1207,7 @@ namespace Generator {
 				}
 			}
 			else if (c.id == "Surface" && d.id == "vertices") {
+                bpt();
 				if (!write) {
 					cols << "return Vertex(repr,i)";
 				}
@@ -1284,7 +1293,8 @@ cols << "#undef CASE" << endR;
 		if (true) {
 			string const root_fnm = "mrisurf_SurfaceFromMRIS_generated";
 			ofstream os(createFilesWithin + root_fnm + ".h");
-
+            os << "#pragma once" << endl;
+            
 			auto fnm_inco = root_fnm + "_prefix";
 			os << "#include \"./" << fnm_inco << ".h\"" << endl;
 			{
@@ -1307,6 +1317,7 @@ cols << "#undef CASE" << endR;
 		if (true) {
 			string const root_fnm = "mrisurf_SurfaceFromMRISPV_generated";
 			ofstream os(createFilesWithin + root_fnm + ".h");
+            os << "#pragma once" << endl;
 
 			auto fnm_inco = root_fnm + "_prefix";
 			os << "#include \"./" << fnm_inco << ".h\"" << endl;

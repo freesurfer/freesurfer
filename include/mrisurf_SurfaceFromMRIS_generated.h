@@ -1,3 +1,4 @@
+#pragma once
 #include "./mrisurf_SurfaceFromMRIS_generated_prefix.h"
 
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT

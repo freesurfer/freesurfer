@@ -78,11 +78,6 @@ typedef struct MRIS_HASH_BUCKET
 //#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 #define TABLE_SIZE     2000
 
-typedef enum {
-    MHTFNO_FACE   = 0,
-    MHTFNO_VERTEX = 1
-} MHTFNO_t;
-
 
 typedef struct mht_face_t {
     // for per-vertex information that should not be stored in the MRIS FACE
@@ -97,71 +92,3 @@ void MHTrelBucket(MHBT**);
 void MHTrelBucketC(MHBT const **);
 
 
-struct _mht {
-    MHTFNO_t const      fno_usage;                      // To enforce consistent use of fno:  face number or vertex number
-    float    const      vres ;                          // Resolution of discretization
-    int      const      which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.
-
-    _mht(MHTFNO_t fno_usage, float vres, int which_vertices);
-    virtual ~_mht();
-
-#ifdef HAVE_OPENMP
-    omp_lock_t mutable buckets_lock;
-#endif
-    int                 nbuckets ;                      // Total # of buckets
-    MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
-
-    int                nfaces;
-    MHT_FACE*          f;
-
-    int which() const { return which_vertices; }
-};
-
-
-
-
-struct MRIS_HASH_TABLE_NoSurface;
-struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...
-
-    MRIS_HASH_TABLE(MHTFNO_t fno_usage, float vres, int which_vertices) : _mht(fno_usage, vres, which_vertices) {}
-    
-    MRIS_HASH_TABLE_NoSurface               * toMRIS_HASH_TABLE_NoSurface    ()       { return this ? toMRIS_HASH_TABLE_NoSurface_Wkr() : nullptr; }
-    MRIS_HASH_TABLE_NoSurface         const * toMRIS_HASH_TABLE_NoSurface    () const { return this ? toMRIS_HASH_TABLE_NoSurface_Wkr() : nullptr; }
-    virtual MRIS_HASH_TABLE_NoSurface       * toMRIS_HASH_TABLE_NoSurface_Wkr()       { return nullptr; }
-    virtual MRIS_HASH_TABLE_NoSurface const * toMRIS_HASH_TABLE_NoSurface_Wkr() const { return nullptr; }
-
-  // Implement the traditional functions as virtual or static member functions
-  // so they will all be appropriately changed once this
-  // becomes a template class
-  //
-#define MHT_ONLY_VIRTUAL
-#define MHT_VIRTUAL                 virtual
-#define MHT_ABSTRACT                = 0
-#define MHT_STATIC_MEMBER           static
-#define MHT_FUNCTION(NAME)          NAME
-#define MHT_FUNCTION(NAME)          NAME
-#define MHT_CONST_THIS_PARAMETER
-#define MHT_CONST_THIS              const
-#define MHT_THIS_PARAMETER_NOCOMMA
-#define MHT_THIS_PARAMETER
-#define MHT_MRIS_PARAMETER_NOCOMMA
-#define MHT_MRIS_PARAMETER
-#include "mrishash_traditional_functions.h"
-#undef MHT_ONLY_VIRTUAL
-
-#define MHT_ONLY_STATIC
-#define MHT_VIRTUAL                 virtual
-#define MHT_ABSTRACT                = 0
-#define MHT_STATIC_MEMBER           static
-#define MHT_FUNCTION(NAME)          NAME
-#define MHT_FUNCTION(NAME)          NAME
-#define MHT_CONST_THIS_PARAMETER
-#define MHT_CONST_THIS              const
-#define MHT_THIS_PARAMETER_NOCOMMA
-#define MHT_THIS_PARAMETER
-#define MHT_MRIS_PARAMETER_NOCOMMA  MRIS *mris
-#define MHT_MRIS_PARAMETER          MHT_MRIS_PARAMETER_NOCOMMA ,
-#include "mrishash_traditional_functions.h"
-#undef MHT_ONLY_STATIC
-
-} ;
