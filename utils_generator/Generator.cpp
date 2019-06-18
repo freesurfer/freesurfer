@@ -1,6 +1,6 @@
 // Compile with     g++ -std=c++11 Generator.cpp
 // Run with         rm -rf tmp ; mkdir tmp ; ./a.out ./tmp/
-// Merge with       bcompare ./tmp ../include
+// Merge with       bcompare ./tmp ../include &
 //
 #include <iostream>
 #include <iomanip>
@@ -1262,6 +1262,7 @@ cols << ("    CASE("+d.which+","+d.id.substr(0,d.id.size()-1)+")") << endR;
             }
             
 cols << "    default:" << endR;
+cols << "      *x = *y = *z = 0.0;" << endR;
 cols << "      ErrorExit(ERROR_UNSUPPORTED, \"which_coords: unsupported which %d\", which);" << endR;
 cols << "      break;" << endR;
 cols << "  }" << endR;

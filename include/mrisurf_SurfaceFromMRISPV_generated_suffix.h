@@ -58,6 +58,7 @@ namespace SurfaceFromMRISPV {
     
       switch (which) {
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -156,6 +157,7 @@ namespace SurfaceFromMRISPV {
     
       switch (which) {
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -279,6 +281,7 @@ namespace SurfaceFromMRISPV {
       switch (which) {
         CASE(CURRENT_VERTICES,)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -418,6 +421,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -648,6 +652,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -881,6 +886,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1056,6 +1062,7 @@ namespace SurfaceFromMRISPV {
     
       switch (which) {
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1138,6 +1145,7 @@ namespace SurfaceFromMRISPV {
     
       switch (which) {
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1244,6 +1252,7 @@ namespace SurfaceFromMRISPV {
       switch (which) {
         CASE(CURRENT_VERTICES,)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1387,6 +1396,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1624,6 +1634,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -1855,6 +1866,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
@@ -2096,6 +2108,7 @@ namespace SurfaceFromMRISPV {
         CASE(CURRENT_VERTICES,)
         CASE(VERTEX_NORMALS,n)
         default:
+          *x = *y = *z = 0.0;
           ErrorExit(ERROR_UNSUPPORTED, "which_coords: unsupported which %d", which);
           break;
       }
