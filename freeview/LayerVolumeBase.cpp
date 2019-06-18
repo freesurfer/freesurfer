@@ -54,6 +54,8 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
   m_livewire = new LivewireTool();
   m_imageData = NULL;
   m_imageDataRef = NULL;
+  m_shiftBackgroundData = NULL;
+  m_shiftForegroundData = NULL;
   connect(m_propertyBrush, SIGNAL(FillValueChanged(double)), this, SLOT(SetFillValue(double)));
   if (GetEndType() != "ROI")
     connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
@@ -1357,4 +1359,106 @@ void LayerVolumeBase::ClearVoxels()
   int* dim = m_imageData->GetDimensions();
   memset(m_imageData->GetScalarPointer(), 0, ((size_t)dim[0])*dim[1]*dim[2]*m_imageData->GetScalarSize());
   m_imageData->Modified();
+}
+
+void LayerVolumeBase::ShiftVoxelsByRAS(double* ras, int nPlane)
+{
+  int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+  {
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
+
+  ShiftVoxels(n, nPlane);
+}
+
+void LayerVolumeBase::ShiftVoxels(int *nOffset, int nPlane)
+{
+  int nDim[3], nStart[3] = { 0, 0, 0 };
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  m_imageData->GetDimensions( nDim );
+  nDim[nPlane] = 1;
+  nStart[nPlane] = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_size = m_imageData->GetScalarSize();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
+  int nFrame = m_nActiveFrame;
+  int nOrigDim[3];
+  m_imageData->GetDimensions( nOrigDim );
+  for ( size_t i = nStart[0]; i < (size_t)nStart[0] + nDim[0]; i++ )
+  {
+    for ( size_t j = nStart[1]; j < (size_t)nStart[1] + nDim[1]; j++ )
+    {
+      for ( size_t k = nStart[2]; k < (size_t)nStart[2] + nDim[2]; k++ )
+      {
+        int ii = i-nStart[0]-nOffset[0];
+        int jj = j-nStart[1]-nOffset[1];
+        int kk = k-nStart[2]-nOffset[2];
+        double val = 0;
+        if (ii >= 0 && ii < nDim[0] && jj >= 0 && jj < nDim[1] && kk >= 0 && kk < nDim[2])
+          val = MyVTKUtils::GetImageDataComponent(m_shiftForegroundData, nDim, 1, ii, jj, kk, 0, scalar_type);
+        if (val > 0)
+          MyVTKUtils::SetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, nFrame, scalar_type, m_fFillValue);
+        else
+          memcpy( ptr + ((k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * n_frames + nFrame) * scalar_size,
+            m_shiftBackgroundData + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
+            scalar_size );
+      }
+    }
+  }
+  SetModified();
+  emit ActorUpdated();
+}
+
+void LayerVolumeBase::PrepareShifting(int nPlane)
+{
+  delete[] m_shiftBackgroundData;
+  delete[] m_shiftForegroundData;
+  int nDim[3], nStart[3] = { 0, 0, 0 };
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  m_imageData->GetDimensions( nDim );
+  nDim[nPlane] = 1;
+  nStart[nPlane] = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_size = m_imageData->GetScalarSize();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
+  int nFrame = m_nActiveFrame;
+  size_t nsize = ((size_t)nDim[0])*nDim[1]*nDim[2]*scalar_size;
+  m_shiftBackgroundData = new char[nsize];
+  m_shiftForegroundData = new char[nsize];
+  memset(m_shiftBackgroundData, 0, nsize);
+  memset(m_shiftForegroundData, 0, nsize);
+  int nOrigDim[3];
+  m_imageData->GetDimensions( nOrigDim );
+  for ( size_t i = nStart[0]; i < (size_t)nStart[0] + nDim[0]; i++ )
+  {
+    for ( size_t j = nStart[1]; j < (size_t)nStart[1] + nDim[1]; j++ )
+    {
+      for ( size_t k = nStart[2]; k < (size_t)nStart[2] + nDim[2]; k++ )
+      {
+        double val = MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, nFrame, scalar_type);
+        if ( val == m_fFillValue )
+        {
+          MyVTKUtils::SetImageDataComponent(m_shiftForegroundData, nDim, 1, i-nStart[0], j-nStart[1], k-nStart[2], 0, scalar_type, 1);
+        }
+        else
+        {
+          memcpy( m_shiftBackgroundData + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
+              ptr + ((k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * n_frames + nFrame) * scalar_size,
+              scalar_size );
+        }
+      }
+    }
+  }
+}
+
+void LayerVolumeBase::DoneShifting()
+{
+
 }

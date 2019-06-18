@@ -55,6 +55,7 @@
      <addaction name="actionLiveWire"/>
      <addaction name="actionContour"/>
      <addaction name="separator"/>
+     <addaction name="actionShift"/>
      <addaction name="actionClone"/>
      <addaction name="actionReplaceLabel"/>
     </widget>
@@ -1328,6 +1329,21 @@ Shift + Left button to erase.
    </property>
    <property name="toolTip">
     <string>Geodesic Matting</string>
+   </property>
+  </action>
+  <action name="actionShift">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_move.png</normaloff>:/resource/icons/voxel_draw_move.png</iconset>
+   </property>
+   <property name="text">
+    <string>Move Label</string>
+   </property>
+   <property name="toolTip">
+    <string>Move Label</string>
    </property>
   </action>
  </widget>

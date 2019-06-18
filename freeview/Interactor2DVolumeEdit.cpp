@@ -244,6 +244,12 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           m_bEditing = true;
           mri->CloneVoxelByRAS( ras, view->GetViewPlane() );
         }
+        else if ( m_nAction == EM_Shift)
+        {
+          mri->SaveForUndo(view->GetViewPlane());
+          m_bEditing = true;
+          mri->PrepareShifting(view->GetViewPlane());
+        }
         else if ( m_nAction == EM_Fill )
         {
           mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
@@ -509,6 +515,16 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
       view->RequestRedraw();
     }
+    else if (m_nAction == EM_Shift)
+    {
+      double ras1[3], ras2[3];
+      view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
+      view->MousePositionToRAS( posX, posY, ras2 );
+      for (int i = 0; i < 3; i++)
+        ras1[i] = ras2[i] - ras1[i];
+      foreach (LayerVolumeBase* mri, mriLayers)
+        mri->ShiftVoxelsByRAS(ras1, view->GetViewPlane());
+    }
     else if ( m_nAction == EM_Contour )
     {
       LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetReferenceLayer();
@@ -542,8 +558,11 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       view->RequestRedraw();
     }
 
-    m_nMousePosX = posX;
-    m_nMousePosY = posY;
+    if (m_nAction != EM_Shift)
+    {
+      m_nMousePosX = posX;
+      m_nMousePosY = posY;
+    }
 
     return false;
   }
@@ -649,6 +668,9 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
           break;
         case EM_Contour:
           wnd->setCursor( CursorFactory::CursorContour );
+          break;
+        case EM_Shift:
+          wnd->setCursor( Qt::OpenHandCursor );
           break;
         }
       }
