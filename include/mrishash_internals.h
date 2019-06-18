@@ -97,8 +97,7 @@ void MHTrelBucket(MHBT**);
 void MHTrelBucketC(MHBT const **);
 
 
-struct _mht 
-{
+struct _mht {
     MHTFNO_t const      fno_usage;                      // To enforce consistent use of fno:  face number or vertex number
     float    const      vres ;                          // Resolution of discretization
     int      const      which_vertices ;                       // ORIGINAL, CANONICAL, CURRENT, etc.
@@ -115,7 +114,11 @@ struct _mht
     int                nfaces;
     MHT_FACE*          f;
 
+    int which() const { return which_vertices; }
 };
+
+
+
 
 struct MRIS_HASH_TABLE_NoSurface;
 struct MRIS_HASH_TABLE : public _mht {                      // Later we may make this private inheritance...

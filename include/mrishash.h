@@ -51,6 +51,8 @@ void MHTfindReportCounts(int * BucketsChecked,
 void MHT_maybeParallel_begin();     // Note: Can be nested!
 void MHT_maybeParallel_end();
 
+int  MHTwhich(MRIS_HASH_TABLE const * mht);
+void MHTfree(MRIS_HASH_TABLE**mht);
 
 // Support multiple representations
 //
