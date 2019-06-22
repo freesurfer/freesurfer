@@ -21,8 +21,8 @@ TrkVTKPolyDataFilter<TImage>::TrkVTKPolyDataFilter()
 {
 	m_vtk = vtkPolyData::New();
 	//this->SetNumberOfInputs (1);
-	unsigned char color[3] = {219,112,147};
-	this->m_color =  color;
+	//unsigned char color[3] = {219,112,147};
+	this->m_color =  nullptr;
 	this->m_refHeader = 0;
 }
 
@@ -118,7 +118,7 @@ void TrkVTKPolyDataFilter<TImage>::TrkToVTK()
 		}
 
 		m_vtk->InsertNextCell (VTK_POLY_LINE, npts, ids);
-		if ( this->m_color != NULL)
+		if ( this->m_color != nullptr)
 		{
 			allColors->InsertNextTuple3 ( this->m_color[0], this->m_color[1], this->m_color[2] );
 		}
@@ -126,7 +126,10 @@ void TrkVTKPolyDataFilter<TImage>::TrkToVTK()
 	}
 
 	m_vtk->SetPoints ( points );
-	m_vtk->GetCellData()->SetScalars ( allColors );
+	if(allColors->GetSize()>0)
+	{	
+		m_vtk->GetCellData()->SetScalars ( allColors );
+	}
 	points->Delete();
 
 }
@@ -175,11 +178,14 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 		//trkwriter.Initialize(outputName.c_str(), m_refHeader);
 		trkheadout = *this->m_refHeader;
 	}
-	trkheadout.reserved[0] = 'C';
-	for (int i=1;i<4;i++)
+	if( this->m_color != nullptr ) 
 	{
-		trkheadout.reserved[i] = this->m_color[i-1] ;
-		//std::cout << this->m_color[i-1] << std::endl;
+		trkheadout.reserved[0] = 'C';
+		for (int i=1;i<4;i++)
+		{
+			trkheadout.reserved[i] = this->m_color[i-1] ;
+			//std::c	out << this->m_color[i-1] << std::endl;
+		}
 	}
 	/*float hola[4][4]; //= new float[4][4]();
 

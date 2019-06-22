@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	bool filterUShape =cl.search("-nu");
 	bool maskFibers  =cl.search("-m");
 	float cleaningThreshold = cl.follow(0.0,2,"-c","-C");
-
+	std::cout << " clean " << cleaningThreshold << std::endl;
 	ImageType::Pointer refImage;
 	ImageType::Pointer mask;
 
@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 		std::cout << outputName << std::endl;
 	}
 	std::vector<ColorMeshType::Pointer>* meshes;
+	std::vector<ColorMeshType::Pointer>* fixMeshes;
 	std::vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
@@ -95,16 +96,18 @@ int main(int argc, char *argv[])
 
 	std::vector<HistogramMeshType::Pointer>* histoMeshes;
 	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask) ;
-	bool clean = cl.search("-c");
+	bool clean =(cleaningThreshold>0)?true:false; 
+	std::cout << " clean " << clean << std::endl;
 	if( clean)
 	{	
-		meshes = clusterTools->FixSampleClusters(polydatas, 20);
-		histoMeshes = clusterTools->ColorMeshToHistogramMesh(*meshes, mask, false);
+		meshes = clusterTools->PolydataToMesh(polydatas);
+		fixMeshes = clusterTools->FixSampleClusters(polydatas, 20);
+		histoMeshes = clusterTools->ColorMeshToHistogramMesh(*fixMeshes, mask, false);
 	
 		clusterTools->SetDirectionalNeighbors(histoMeshes,  mask, *clusterTools->GetDirections(DirectionsType::ALL), false);
 
 	
-		std::cout << polydatas.size() <<  " " << meshes->size() << std::endl;
+		std::cout << polydatas.size() <<  " " << fixMeshes->size() << std::endl;
 	}
 	else
 	{
@@ -119,10 +122,11 @@ int main(int argc, char *argv[])
 		int averageId =0;
 		float stdCluster=0;
 		if ( clean)
-		{ 
-			std::cout << (*meshes)[i]->GetNumberOfCells() << " " <<(*histoMeshes)[i]->GetNumberOfCells() << std::endl;
-			int averageId = clusterTools->GetAverageStreamline((*meshes)[i]);	
-			float stdCluster =  clusterTools->GetStandardDeviation((*histoMeshes)[i],averageId)*cleaningThreshold;
+		{
+			std::cout << "hola "<< std::endl; 
+			int averageId = clusterTools->GetAverageStreamline((*fixMeshes)[i]);	
+			stdCluster =  clusterTools->GetStandardDeviation((*histoMeshes)[i],averageId)*cleaningThreshold;
+			std::cout << (*fixMeshes)[i]->GetNumberOfCells() << " " <<(*histoMeshes)[i]->GetNumberOfCells() << " " << stdCluster << " " <<cleaningThreshold << std::endl;
 		}
 
 		std::set<int> unfilteredIds;
@@ -164,7 +168,8 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			float dist= clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;		
+			float dist= clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;	
+//			std::cout << dist << " " << stdCluster << std::endl;	
 			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<=stdCluster))
 			{	
 

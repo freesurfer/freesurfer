@@ -1688,19 +1688,22 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
                                   double *pnx, double *pny, double *pnz) ;
 
 #define MRISgetCoords(v,c,vx,vy,vz) \
+ MRISvertexCoord2XYZ_float(v,c,vx,vy,vz)
+#if 0 
  switch(c) { \
    case ORIGINAL_VERTICES:  (*vx) = (v)->origx;  (*vy) = (v)->origy;  (*vz) = (v)->origz; break; \
    case TMP_VERTICES:       (*vx) = (v)->tx;     (*vy) = (v)->ty;     (*vz) = (v)->tz; break; \
    case CANONICAL_VERTICES: (*vx) = (v)->cx;     (*vy) = (v)->cy;     (*vz) = (v)->cz; break; \
    case CURRENT_VERTICES:   (*vx) = (v)->x;      (*vy) = (v)->y;      (*vz) = (v)->z; break; \
-   case TARGET_VERTICES:   (*vx) = (v)->targx;   (*vy) = (v)->targy;  (*vz) = (v)->targz; break; \
+   case TARGET_VERTICES:    (*vx) = (v)->targx;  (*vy) = (v)->targy;  (*vz) = (v)->targz; break; \
    case INFLATED_VERTICES:  (*vx) = (v)->infx;   (*vy) = (v)->infy;   (*vz) = (v)->infz; break; \
    case FLATTENED_VERTICES: (*vx) = (v)->fx;     (*vy) = (v)->fy;     (*vz) = (v)->fz; break; \
    case PIAL_VERTICES:      (*vx) = (v)->pialx;  (*vy) = (v)->pialy;  (*vz) = (v)->pialz; break; \
-   case TMP2_VERTICES:      (*vx) = (v)->tx2;    (*vy) = (v)->ty2;    (*vz) = (v)->tz2; break; \
+   case TMP2_VERTICES:      (*vx) = (v)->t2x;    (*vy) = (v)->t2y;    (*vz) = (v)->t2z; break; \
    case WHITE_VERTICES:     (*vx) = (v)->whitex; (*vy) = (v)->whitey; (*vz) = (v)->whitez; break; \
    default: break; \
  }
+#endif
 
 int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)  ;
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
@@ -1959,13 +1962,21 @@ int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris,
 int MRISwriteCoordsToIco(MRI_SURFACE *mris,
                          MRI_SURFACE *mris_ico,
                          int which_vertices);
-                         
-int MRISvertexCoord2XYZ_float (VERTEX const * v,
-                               int which,
-                               float  *x, float  *y, float  *z);
-int MRISvertexCoord2XYZ_double (VERTEX const * v,
-                               int which,
-                               double  *x, double  *y, double  *z);
+                  
+#define MRISvertexCoord2XYZ_float  MRISvertexCoord2XYZ
+#define MRISvertexCoord2XYZ_double MRISvertexCoord2XYZ
+int MRISvertexCoord2XYZ (VERTEX const * v, int which, float  *x, float  *y, float  *z);
+int MRISvertexCoord2XYZ (VERTEX const * v, int which, double *x, double *y, double *z);
+
+int face_barycentric_coords(
+  double V0[3], double V1[3], double V2[3],
+  double  cx,
+  double  cy,
+  double  cz,
+  double *pl1,
+  double *pl2,
+  double *pl3);
+
 int face_barycentric_coords(MRIS const * mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
@@ -2337,6 +2348,8 @@ struct face_topology_type_ {    // not used much yet
 //              fields that it should currently have access to
 //
 //  This is mrisurf_FACE_VERTEX_MRIS*.h
+//
+//  Most of the code uses this representation directly
 
 #include "mrisurf_FACE_VERTEX_MRIS_generated.h"
 
@@ -2366,6 +2379,30 @@ struct face_topology_type_ {    // not used much yet
 //      v2->marked = true;
 //
 #include "mrisurf_SurfaceFromMRIS_generated.h"
+
+
+// An alternative representation has the various fields of the VERTEX and FACE above
+// spread out into one array per field.
+//
+// This representation exploits the two facts that (a) we almost never want to
+// deal with all the fields of a VERTEX as a whole, and (b) that we tend to use
+// the vertices and faces with nearby indexs are about the same time, so that
+// the cachelines brought into and written out of the cache will now be fully
+// used.
+//
+// Almost none of the code uses this representation directly,
+// but obviously the constructors and destructors must.
+//
+//  class MRISPV is the MRIS with its Properties stored in Vectors
+//
+#include "mrisurf_MRIS_PropertiesInVectors.h"
+
+// Similar Surface Face Vertex classes and namespaces are generated to access
+// this representation, so that template classes and functions can be created
+// which can be instantiated to get high speed access to this representation
+// also, yet having common source.
+//
+#include "mrisurf_SurfaceFromMRISPV_generated.h"
 
 
 // Static function implementations
