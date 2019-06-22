@@ -4799,7 +4799,7 @@ int MRISrigidBodyAlignGlobal(
                 vertex0->x,vertex0->y,vertex0->z); 
             }
             
-            double sse = mrisComputeCorrelationErrorTraceable(mris, parms, 1, trace);
+            double sse = mrisComputeCorrelationError(mris, parms, 1);
             if (trace) fprintf(stdout, "%s:%d sse:%g\n", __FILE__, __LINE__, sse);
             
             MRISrestoreVertexPositions(mris, TMP_VERTICES);
