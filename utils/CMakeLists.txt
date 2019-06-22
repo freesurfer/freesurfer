@@ -140,6 +140,7 @@ add_library(utils STATIC
   MRISrigidBodyAlignGlobal.cpp
   mrisurf.cpp
   mrisurf_base.cpp
+  mrisurf_compute_dxyz.cpp
   mrisurf_defect.cpp
   mrisurf_deform.cpp
   mrisurf_integrate.cpp

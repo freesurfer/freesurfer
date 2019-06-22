@@ -20,7 +20,10 @@
  *
  */
 #include "mrisurf_mri.h"
+
 #include "mrisurf_timeStep.h"
+#include "mrisurf_sseTerms.h"
+#include "mrisurf_compute_dxyz.h"
 #include "region.h"
 
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
