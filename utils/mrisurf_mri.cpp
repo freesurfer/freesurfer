@@ -20,7 +20,10 @@
  *
  */
 #include "mrisurf_mri.h"
+
 #include "mrisurf_timeStep.h"
+#include "mrisurf_sseTerms.h"
+#include "mrisurf_compute_dxyz.h"
 #include "region.h"
 
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
@@ -537,7 +540,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   }
   else if (!FZERO(parms->l_location)) {
     // Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
-    last_rms = rms = mrisRmsDistanceError(mris);
+    last_rms = rms = mrisComputeRmsDistanceError(mris);
   }
   else {
     // Intensity RMS (see more notes below)
@@ -691,7 +694,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       }
       else if (!FZERO(parms->l_location)) {
 	// Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
-        rms = mrisRmsDistanceError(mris);
+        rms = mrisComputeRmsDistanceError(mris);
       }
       else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
         rms = (*gMRISexternalRMS)(mris, parms);
