@@ -367,8 +367,8 @@ bool LayerMRI::LoadVolumeFromFile()
   GetProperty()->SetVolumeSource( m_volumeSource );
   GetProperty()->RestoreSettings( m_sFilename );
 
-//  int* dim = m_imageData->GetDimensions();
-//  qDebug() << dim[0] << dim[1] << dim[2];
+  //  int* dim = m_imageData->GetDimensions();
+  //  qDebug() << dim[0] << dim[1] << dim[2];
   
   if (m_nGotoLabelOrientation >= 0)
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
@@ -931,9 +931,9 @@ void LayerMRI::InitializeActors()
     
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
     mResample[i] = vtkSmartPointer<vtkImageReslice>::New();
-//    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-//    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-//    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+    //    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+    //    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+    //    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
     mResample[i]->SetInterpolationModeToNearestNeighbor();
     
     // Set ourselves up.
@@ -1470,7 +1470,7 @@ std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<doubl
 
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
 {
-  QList<double> list; 
+  QList<double> list;
   for (int frame = 0; frame < GetNumberOfFrames(); frame++)
     list << m_volumeSource->GetVoxelValue( i, j, k, frame );
   return list;
@@ -1733,6 +1733,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   
   int nCnt = 0;
   bool bNormalizeVector = GetProperty()->GetNormalizeVector();
+  int nFrames = GetNumberOfFrames();
+  if (nFrames == 6)
+    bNormalizeVector = false;
   double scale_overall = GetProperty()->GetVectorScale();
   int nVectorRep = GetProperty()->GetVectorRepresentation();
   if ( nVectorRep == LayerPropertyMRI::VR_Bar )
@@ -1783,8 +1786,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   
   unsigned char c[4] = { 0, 0, 0, 255 };
   double scale = scale_overall;
-//  if (!bNormalizeVector)
-    scale *= GetProperty()->GetVectorDisplayScale();
+  //  if (!bNormalizeVector)
+  scale *= GetProperty()->GetVectorDisplayScale();
   scale_overall = scale;
   
   char* ptr = (char*)imagedata->GetScalarPointer();
@@ -1811,13 +1814,19 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[2]; j+=nSkip )
       {
-        double v[3];
+        double v[3], v2[3] = {0};
         double pt[3];
-        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, n[0], i, j, 0, scalar_type );
-        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, n[0], i, j, 1, scalar_type );
-        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, n[0], i, j, 2, scalar_type );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, n[0], i, j, 0, scale_scalar_type ) * scale_overall;
+        if (nFrames == 6)
+        {
+          v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 3, scalar_type );
+          v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 4, scalar_type );
+          v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 5, scalar_type );
+        }
         
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
@@ -1827,19 +1836,25 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])
+            {
               v[k] = -v[k];
+              v2[k] = -v2[k];
+            }
           }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];
+            v2[0] = -v2[0];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Y )
           {
             v[1] = -v[1];
+            v2[1] = -v2[1];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Z )
           {
             v[2] = -v[2];
+            v2[2] = -v2[2];
           }
           
           pt[0] = orig[0] + voxel_size[0] * n[0];
@@ -1849,9 +1864,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           points->InsertNextPoint( pt[0] + scale * v[0],
               pt[1] + scale * v[1],
               pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0],
-              pt[1] - scale * v[1],
-              pt[2] - scale * v[2] );
+          if (nFrames == 6)
+          {
+            points->InsertNextPoint( pt[0] + scale * v2[0],
+                pt[1] + scale * v2[1],
+                pt[2] + scale * v2[2] );
+          }
+          else
+          {
+            points->InsertNextPoint( pt[0] - scale * v[0],
+                pt[1] - scale * v[1],
+                pt[2] - scale * v[2] );
+          }
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
           
@@ -1883,14 +1907,19 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[2]; j+=nSkip )
       {
-        double v[3];
+        double v[3], v2[3] = {0};
         double pt[3];
-        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, n[1], j, 0, scalar_type );
-        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, n[1], j, 1, scalar_type );
-        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, n[1], j, 2, scalar_type );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, n[1], j, 0, scale_scalar_type ) * scale_overall;
-        
+        if (nFrames == 6)
+        {
+          v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 3, scalar_type );
+          v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 4, scalar_type );
+          v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 5, scalar_type );
+        }
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
           if (bNormalizeVector)
@@ -1899,19 +1928,25 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])
+            {
               v[k] = -v[k];
+              v2[k] = -v2[k];
+            }
           }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];
+            v2[0] = -v2[0];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Y )
           {
             v[1] = -v[1];
+            v2[1] = -v2[1];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Z )
           {
             v[2] = -v[2];
+            v2[2] = -v2[2];
           }
           
           pt[0] = orig[0] + voxel_size[0] * i;
@@ -1921,9 +1956,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           points->InsertNextPoint( pt[0] + scale * v[0],
               pt[1] + scale * v[1],
               pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0],
-              pt[1] - scale * v[1],
-              pt[2] - scale * v[2] );
+          if (nFrames == 6)
+          {
+            points->InsertNextPoint( pt[0] + scale * v2[0],
+                pt[1] + scale * v2[1],
+                pt[2] + scale * v2[2] );
+          }
+          else
+          {
+            points->InsertNextPoint( pt[0] - scale * v[0],
+                pt[1] - scale * v[1],
+                pt[2] - scale * v[2] );
+          }
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
           
@@ -1955,14 +1999,19 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[1]; j+=nSkip )
       {
-        double v[3];
+        double v[3], v2[3] = {0};
         double pt[3];
-        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, j, n[2], 0, scalar_type );
-        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, j, n[2], 1, scalar_type );
-        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, 3, i, j, n[2], 2, scalar_type );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, j, n[2], 0, scale_scalar_type) * scale_overall;
-        
+        if (nFrames == 6)
+        {
+          v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 3, scalar_type );
+          v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 4, scalar_type );
+          v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 5, scalar_type );
+        }
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
           if (bNormalizeVector)
@@ -1971,19 +2020,25 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])
+            {
               v[k] = -v[k];
+              v2[k] = -v2[k];
+            }
           }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];
+            v2[0] = -v2[0];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Y )
           {
             v[1] = -v[1];
+            v2[1] = -v2[1];
           }
           else if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_Z )
           {
             v[2] = -v[2];
+            v2[2] = -v2[2];
           }
           
           pt[0] = orig[0] + voxel_size[0] * i;
@@ -1993,9 +2048,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           points->InsertNextPoint( pt[0] + scale * v[0],
               pt[1] + scale * v[1],
               pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0],
-              pt[1] - scale * v[1],
-              pt[2] - scale * v[2] );
+          if (nFrames == 6)
+          {
+            points->InsertNextPoint( pt[0] + scale * v2[0],
+                pt[1] + scale * v2[1],
+                pt[2] + scale * v2[2] );
+          }
+          else
+          {
+            points->InsertNextPoint( pt[0] - scale * v[0],
+                pt[1] - scale * v[1],
+                pt[2] - scale * v[2] );
+          }
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
           
@@ -2270,7 +2334,7 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
         vtkSmartPointer<vtkTransformPolyDataFilter>::New();
     filter->SetTransform( tr );
 #if VTK_MAJOR_VERSION > 5
-    filter->SetInputData( sourcepolydata );   
+    filter->SetInputData( sourcepolydata );
     a->AddInputData( filter->GetOutput() );
 #else
     filter->SetInput( sourcepolydata );
@@ -2648,9 +2712,9 @@ void LayerMRI::UpdateLabelOutline()
     double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
     {
-//      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
-//      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
-//      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+      //      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+      //      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+      //      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
       double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
       mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
       mResample[i]->SetOutputSpacing(vsize[0]/IMAGE_RESAMPLE_FACTOR, vsize[1]/IMAGE_RESAMPLE_FACTOR, vsize[2]/IMAGE_RESAMPLE_FACTOR);
@@ -2717,9 +2781,9 @@ void LayerMRI::UpdateUpSampleMethod()
       mColorMap[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       if ( !GetProperty()->GetShowLabelOutline() )
       {
-//        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
-//        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
-//        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
+        //        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
+        //        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
+        //        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
       }
     }
   }
@@ -3559,8 +3623,8 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
 #else
     resampler->SetInput(mask);
 #endif
-//    for (int i = 0; i < 3; i++)
-//      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+    //    for (int i = 0; i < 3; i++)
+    //      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
     resampler->SetOutputSpacing(s1);
     resampler->SetInterpolationModeToNearestNeighbor();
     threshold->ThresholdByUpper(m_dMaskThreshold);

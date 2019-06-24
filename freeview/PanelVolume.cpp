@@ -630,7 +630,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->spinBoxFrame->setEnabled( layer &&
                                   !layer->GetProperty()->GetDisplayVector() &&
                                   !layer->GetProperty()->GetDisplayTensor() );
-    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
+    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6) );
     ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
     ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
     ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
@@ -1596,7 +1596,7 @@ void PanelVolume::OnCheckBoxSetDisplayVector(bool b)
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
   foreach (LayerMRI* layer, layers)
   {
-    if (layer->GetNumberOfFrames() == 3 || layer->GetEndType() == "DTI")
+    if (layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6 || layer->GetEndType() == "DTI")
       layer->GetProperty()->SetDisplayVector(b);
   }
 }
