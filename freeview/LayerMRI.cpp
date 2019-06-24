@@ -87,7 +87,7 @@
 #include "GeoSWorker.h"
 #include "BrushProperty.h"
 #include "vtkImageResliceMapper.h"
-
+#include "vtkSTLWriter.h"
 
 
 #include "utils.h"
@@ -3270,13 +3270,23 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   filter->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorContour->GetMapper())->GetInput() );
 #endif
   filter->Update();
-  vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
+  vtkWriter* writer;
+  QFileInfo fi(fn);
+  if (fi.suffix().toLower() == "stl")
+  {
+    writer = vtkSTLWriter::New();
+    vtkSTLWriter::SafeDownCast(writer)->SetFileName(fn.toLatin1().constData());
+  }
+  else
+  {
+    writer = vtkPolyDataWriter::New();
+    vtkPolyDataWriter::SafeDownCast(writer)->SetFileName(fn.toLatin1().constData());
+  }
 #if VTK_MAJOR_VERSION > 5
   writer->SetInputData( filter->GetOutput() );
 #else
   writer->SetInput( filter->GetOutput() );
 #endif
-  writer->SetFileName( fn.toLatin1().constData() );
   bool ret = writer->Write();
   writer->Delete();
   return ret;

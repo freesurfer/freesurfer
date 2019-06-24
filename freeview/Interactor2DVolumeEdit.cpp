@@ -70,10 +70,10 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-//  if ( !view->hasFocus() )
-//  {
-//    return Interactor2D::ProcessMouseDownEvent( event, renderview );
-//  }
+  //  if ( !view->hasFocus() )
+  //  {
+  //    return Interactor2D::ProcessMouseDownEvent( event, renderview );
+  //  }
 
   PreprocessMouseEvent(event);
 
@@ -97,7 +97,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         layer_draw = new LayerMRI(mri);
         if ( !layer_draw->Create( mri, false, MRI_UCHAR) )
         {
-        //  QMessageBox::warning( this, "Error", "Can not create drawing layer." );
+          //  QMessageBox::warning( this, "Error", "Can not create drawing layer." );
           delete layer_draw;
           return false;
         }
@@ -113,7 +113,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         LayerMRI* layer_fill = new LayerMRI(mri);
         if ( !layer_fill->Create( mri, false, MRI_UCHAR) )
         {
-        //  QMessageBox::warning( this, "Error", "Can not create drawing layer." );
+          //  QMessageBox::warning( this, "Error", "Can not create drawing layer." );
           delete layer_fill;
           return false;
         }
@@ -125,7 +125,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         layer_fill->SetName( "GEOS_FILL" );
         layer_fill->SetFillValue(1);
         if (map.contains("Opacity"))
-        layer_fill->GetProperty()->SetOpacity(map.value("Opacity").toDouble());
+          layer_fill->GetProperty()->SetOpacity(map.value("Opacity").toDouble());
 
         lc->AddLayer(layer_fill);
         lc->AddLayer(layer_draw);
@@ -407,8 +407,8 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
 
   UpdateCursor( event, renderview );
 
-//  if (m_nAction == EM_GeoSeg)
-//    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SupplementLayerChanged()));
+  //  if (m_nAction == EM_GeoSeg)
+  //    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SupplementLayerChanged()));
 
   if ( m_bEditing )
   {
@@ -593,6 +593,54 @@ bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* 
   {
     m_bColorPicking = false;
     return false;
+  }
+
+  if ((event->modifiers() & Qt::ShiftModifier) && m_nAction == EM_Shift )
+  {
+    int nKeyCode = event->key();
+    int n[3] = {0, 0, 0};
+    int nx = 0, ny = 1;
+    int nPlane = view->GetViewPlane();
+    int nx_sign = -1;
+    switch (nPlane)
+    {
+    case 0:
+      nx = 1;
+      ny = 2;
+      nx_sign = 1;
+      break;
+    case 1:
+      nx = 0;
+      ny = 2;
+      break;
+    default:
+      break;
+    }
+    if ( nKeyCode == Qt::Key_Up )
+    {
+      n[ny]+=1;
+    }
+    else if ( nKeyCode == Qt::Key_Down )
+    {
+      n[ny]-=1;
+    }
+    else if ( nKeyCode == Qt::Key_Left )
+    {
+      n[nx]-=nx_sign;
+    }
+    else if ( nKeyCode == Qt::Key_Right )
+    {
+      n[nx]+=nx_sign;
+    }
+    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
+    LayerVolumeBase* mri = qobject_cast<LayerVolumeBase*>(lc->GetActiveLayer());
+    if (mri)
+    {
+      mri->SaveForUndo(nPlane);
+      mri->PrepareShifting(nPlane);
+      mri->ShiftVoxels(n, nPlane);
+      return false;
+    }
   }
 
   if ( !m_bEditing )

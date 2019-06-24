@@ -1409,12 +1409,19 @@ void PanelVolume::OnContourSave()
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
+    QString selectedFilter;
     QString fn = QFileDialog::getSaveFileName( this,
                                                "Save iso-surface",
-                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
-                                               "VTK files (*.vtk);;All files (*)");
+                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
+                                               "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
     if ( !fn.isEmpty() )
     {
+      QString selected_suffix = selectedFilter.left(3).toLower();
+      if (selected_suffix == "all")
+        selected_suffix = "vtk";
+      QFileInfo fi(fn);
+      if (fi.suffix().toLower() != selected_suffix)
+        fn += "." + selected_suffix;
       if ( !layer->SaveContourToFile( fn ) )
       {
         QMessageBox::warning(this, "Error", "Can not save surface to file.");
