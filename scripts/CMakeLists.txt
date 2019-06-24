@@ -1,6 +1,7 @@
 install(PROGRAMS
   annot2std
   aparc2feat
+  aparc_stats_aseg
   aparcstats2table
   aparcstatsdiff
   apas2aseg
