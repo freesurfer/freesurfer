@@ -1,12 +1,39 @@
+import os
 import pdb as gdb
 import nibabel as nib
-from nibabel import processing as nip
 import numpy as np
-import keras, os
-from numpy import random
-import numpy.linalg as npl
 import freesurfer as fs
-from keras.utils.np_utils import to_categorical   
+import keras
+import tensorflow as tf
+
+
+def configure(gpu=0):
+    os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
+    config = tf.ConfigProto()
+    if gpu >= 0:
+        config.allow_soft_placement = True
+        config.gpu_options.allow_growth = True
+    keras.backend.tensorflow_backend.set_session(tf.Session(config=config))
+
+
+class LoopingIterator:
+    def __init__(self, iterable):
+        self.source = iterable
+        self.iterator = iter(self.source)
+
+    def __next__(self):
+        try:
+            return next(self.iterator)
+        except StopIteration:
+            self.iterator = iter(self.source)
+            return next(self.iterator)
+
+
+def pickle_generator(filenames):
+    filenames = LoopingIterator(filenames)
+    while True:
+        yield fs.read_pickle(next(filenames))
 
 
 def segment_image2D(net, im_intensity, wsize, box, nlabels=3,batch_size=256,stride=4):
@@ -111,26 +138,26 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
 
     while 1:
         if (Gx == None):
-            x = random.randint(0, width) +whalf
-            y = random.randint(0, height)+whalf
-            z = random.randint(0, depth) +whalf
+            x = np.random.randint(0, width) +whalf
+            y = np.random.randint(0, height)+whalf
+            z = np.random.randint(0, depth) +whalf
         else:
             x = Gx + whalf
             y = Gy + whalf
             z = Gz + whalf
 
         if 0:
-            x = random.randint(180, 224) +whalf
+            x = np.random.randint(180, 224) +whalf
             y = 69+whalf
-            z = random.randint(218, 281) +whalf
+            z = np.random.randint(218, 281) +whalf
 
-        iaug = random.rand()*iaug_scale + iaug_min
+        iaug = np.random.rand()*iaug_scale + iaug_min
         intensity_patch[:,:,:,0] = train_oct[x-whalf:x+whalf,y-whalf:y+whalf,z-whalf:z+whalf]*iaug
         if (unknown_whalf is not None) and (train_labels[x-unknown_whalf:x+unknown_whalf,y-unknown_whalf:y+unknown_whalf,z-unknown_whalf:z+unknown_whalf].max() < 1):
             continue  # region of all unknown near central voxel
 
         if augment_permute == True:
-            permuted_axes = random.permutation((0, 1, 2))
+            permuted_axes = np.random.permutation((0, 1, 2))
             intensity_patch[:,:,:,0] = np.transpose(intensity_patch[:,:,:,0],permuted_axes)
         batch_intensity[found,:] = np.reshape(intensity_patch, batch_intensity[found,:].shape)
         if (use_class_net == True):
@@ -140,7 +167,7 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
             label_patch[:,:,:,0] = train_labels[x-whalf:x+whalf,y-whalf:y+whalf,z-whalf:z+whalf]
             if (augment_permute == True):
                 label_patch[:,:,:,0] = np.transpose(label_patch[:,:,:,0], permuted_axes)
-            batch_labels[found,:] = to_categorical(label_patch, num_classes=n_labels) 
+            batch_labels[found,:] = keras.utils.np_utils.to_categorical(label_patch, num_classes=n_labels) 
             
         found = found+1
 
@@ -171,7 +198,7 @@ class WeightsSaver(Callback):
 
 def MRIStoVoxel(mris, mri):
     vox2ras = mri.get_header().get_vox2ras_tkr()
-    ras2vox = npl.inv(vox2ras)
+    ras2vox = np.linalg.inv(vox2ras)
     v = np.ones((4,1))
     for vno in range(len(mris[0])):
         v[:3,:] = np.reshape(mris[0][vno], v[0:3,:].shape)
@@ -185,7 +212,7 @@ def MRISnormalsToVoxel(mris, mri_normals, mri):
     if (len(mris) == 2):
         mris = mris[0]
     vox2ras = mri.get_header().get_vox2ras_tkr()
-    ras2vox = npl.inv(vox2ras)
+    ras2vox = np.linalg.inv(vox2ras)
     v = np.ones((4,1))
     normals = mri_normals + mris
     for vno in range(normals.shape[0]):

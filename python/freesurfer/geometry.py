@@ -1,4 +1,61 @@
 import numpy as np
+import scipy.ndimage
+
+
+def slicing(start, stop):
+    '''
+    Creates an N-dimensional slicing from start and stop coordinates.
+    '''
+    return tuple([slice(int(x), int(y)) for x, y in zip(start, stop)])
+
+
+def slicing_shape(slices):
+    '''
+    Array shape defined by a slicing.
+    '''
+    return tuple([slc.stop - slc.start for slc in slices])
+
+
+def slicing_origin(slices):
+    '''
+    Origin (start indices) of a slicing.
+    '''
+    return tuple([slc.start for slc in slices])
+
+
+def bbox(mask):
+    '''
+    Bounding box around an object in a binary image.
+    '''
+    return scipy.ndimage.find_objects(mask)[0]
+
+
+def cmass(image):
+    '''
+    Center of mass of an image.
+    '''
+    return scipy.ndimage.center_of_mass(image)
+
+
+def conform(image, shape):
+    '''
+    Conforms an image to a particular shape. Dimensions will be expanded or cropped
+    around the center of the image.
+    '''
+    diff = (np.array(shape) - image.shape) / 2
+
+    # crop if necessary
+    masked = np.abs(diff * (diff < 0))
+    offset = np.floor(masked).astype(int)
+    conformed = image[slicing(offset, image.shape - np.ceil(masked))]
+
+    # pad if necessary
+    masked = diff * (diff > 0)
+    padding = np.vstack((np.floor(masked), np.ceil(masked))).T.astype(int)
+    conformed = np.pad(conformed, padding, 'constant')
+
+    return conformed, np.floor(masked).astype(int) - offset
+
 
 
 def bbox2_3D(img):
