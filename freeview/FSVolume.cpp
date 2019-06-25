@@ -2391,7 +2391,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
           ptr[nTuple*4] = (val & 0x00ff);
           ptr[nTuple*4+1] = ((val >> 8) & 0x00ff);
           ptr[nTuple*4+2] = ((val >> 16) & 0x00ff);
-          ptr[nTuple*4+3] = 255;
+          ptr[nTuple*4+3] = (char)255;
         }
         else
         {

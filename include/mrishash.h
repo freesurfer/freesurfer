@@ -53,8 +53,8 @@ struct MRIS_HASH_TABLE {
     MRIS_HASH_TABLE(MHTFNO_t fno_usage, float vres, int which_vertices) : m_fno_usage(fno_usage), m_vres(vres), m_which_vertices(which_vertices) {}
     virtual ~MRIS_HASH_TABLE() {}
     
-    MRIS_HASH_TABLE_NoSurface               * toMRIS_HASH_TABLE_NoSurface    ()       { return this ? toMRIS_HASH_TABLE_NoSurface_Wkr() : nullptr; }
-    MRIS_HASH_TABLE_NoSurface         const * toMRIS_HASH_TABLE_NoSurface    () const { return this ? toMRIS_HASH_TABLE_NoSurface_Wkr() : nullptr; }
+    MRIS_HASH_TABLE_NoSurface               * toMRIS_HASH_TABLE_NoSurface    ()       { return toMRIS_HASH_TABLE_NoSurface_Wkr(); }
+    MRIS_HASH_TABLE_NoSurface         const * toMRIS_HASH_TABLE_NoSurface    () const { return toMRIS_HASH_TABLE_NoSurface_Wkr(); }
     virtual MRIS_HASH_TABLE_NoSurface       * toMRIS_HASH_TABLE_NoSurface_Wkr()       { return nullptr; }
     virtual MRIS_HASH_TABLE_NoSurface const * toMRIS_HASH_TABLE_NoSurface_Wkr() const { return nullptr; }
 
