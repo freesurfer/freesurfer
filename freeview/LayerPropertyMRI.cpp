@@ -99,7 +99,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nProjectionMapType(0),
   m_bDisplayRGB(false),
   m_dVectorLineWidth(1),
-  m_nVectorSkip(0)
+  m_nVectorSkip(0),
+  m_dVectorNormThreshold(0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -166,6 +167,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
   m_bRememberFrameSettings = p->m_bRememberFrameSettings;
   m_dVectorLineWidth      =   p->m_dVectorLineWidth;
+  m_dVectorNormThreshold  =   p->m_dVectorNormThreshold;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
 
@@ -799,6 +801,12 @@ void LayerPropertyMRI::SetNormalizeVector(bool b)
 void LayerPropertyMRI::SetVectorDisplayScale(double val)
 {
   m_dVectorDisplayScale = val;
+  emit DisplayModeChanged();
+}
+
+void LayerPropertyMRI::SetVectorNormThreshold(double dVal)
+{
+  m_dVectorNormThreshold = dVal;
   emit DisplayModeChanged();
 }
 

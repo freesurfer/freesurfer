@@ -171,7 +171,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->labelVectorLineWidth
                      << ui->lineEditVectorLineWidth
                      << ui->labelVectorSkip
-                     << ui->spinBoxVectorSkip;
+                     << ui->spinBoxVectorSkip
+                     << ui->labelVectorNormThreshold
+                     << ui->lineEditVectorNormThreshold;
   //    << ui->labelMask
   //    << ui->comboBoxMask;
 
@@ -516,6 +518,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxNormalizeVectors->setChecked(layer->GetProperty()->GetNormalizeVector());
     ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
     ChangeLineEditNumber( ui->lineEditVectorLineWidth, layer->GetProperty()->GetVectorLineWidth());
+    ChangeLineEditNumber( ui->lineEditVectorNormThreshold, layer->GetProperty()->GetVectorNormThreshold());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
 
@@ -1626,6 +1629,20 @@ void PanelVolume::OnCheckBoxSetNormalizeVector(bool b)
   foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->SetNormalizeVector(b);
+  }
+}
+
+void PanelVolume::OnLineEditVectorNormThreshold(const QString &strg)
+{
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (ok)
+  {
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      layer->GetProperty()->SetVectorNormThreshold(val);
+    }
   }
 }
 

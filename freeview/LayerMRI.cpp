@@ -1806,6 +1806,16 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   m_glyphActor2D[nPlane]->SetPosition(actor_pos);
   m_vectorDotActor2D[nPlane]->SetPosition(actor_pos);
   int nSkip = GetProperty()->GetVectorSkip()+1;
+  char* mask_ptr = NULL;
+  int mask_scalar_type;
+  int mask_frames;
+  if (m_layerMask)
+  {
+    mask_ptr = (char*)m_layerMask->GetImageData()->GetScalarPointer();
+    mask_scalar_type = m_layerMask->GetImageData()->GetScalarType();
+    mask_frames = m_layerMask->GetNumberOfFrames();
+  }
+  double dNormTh = GetProperty()->GetVectorNormThreshold();
   switch ( nPlane )
   {
   case 0:
@@ -1813,7 +1823,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[2]; j+=nSkip )
       {
-        double v[3], v2[3] = {0};
+        double v[3], v2[3] = {0}, vn[3];
+        double* vp = v;
         double pt[3];
         v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 0, scalar_type );
         v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 1, scalar_type );
@@ -1825,7 +1836,14 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 3, scalar_type );
           v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 4, scalar_type );
           v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 5, scalar_type );
+
+          vn[0] = v2[0] - v[0];
+          vn[1] = v2[1] - v[1];
+          vn[2] = v2[2] - v[2];
+          vp = vn;
         }
+        if (vtkMath::Norm(vp) < dNormTh)
+          continue;
         
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
@@ -1906,7 +1924,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[2]; j+=nSkip )
       {
-        double v[3], v2[3] = {0};
+        if (mask_ptr && MyVTKUtils::GetImageDataComponent(mask_ptr, dim, mask_frames, i, n[1], j, 0, mask_scalar_type) < m_dMaskThreshold)
+          continue;
+        double v[3], v2[3] = {0}, vn[3];
+        double* vp = v;
         double pt[3];
         v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 0, scalar_type );
         v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 1, scalar_type );
@@ -1918,7 +1939,15 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 3, scalar_type );
           v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 4, scalar_type );
           v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 5, scalar_type );
+
+          vn[0] = v2[0] - v[0];
+          vn[1] = v2[1] - v[1];
+          vn[2] = v2[2] - v[2];
+          vp = vn;
         }
+        if (vtkMath::Norm(vp) < dNormTh)
+          continue;
+
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
           if (bNormalizeVector)
@@ -1998,7 +2027,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[1]; j+=nSkip )
       {
-        double v[3], v2[3] = {0};
+        if (mask_ptr && MyVTKUtils::GetImageDataComponent(mask_ptr, dim, mask_frames, i, j, n[2], 0, mask_scalar_type) < m_dMaskThreshold)
+          continue;
+        double v[3], v2[3] = {0}, vn[3];
+        double* vp = v;
         double pt[3];
         v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 0, scalar_type );
         v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 1, scalar_type );
@@ -2010,7 +2042,15 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 3, scalar_type );
           v2[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 4, scalar_type );
           v2[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 5, scalar_type );
+
+          vn[0] = v2[0] - v[0];
+          vn[1] = v2[1] - v[1];
+          vn[2] = v2[2] - v[2];
+          vp = vn;
         }
+        if (vtkMath::Norm(vp) < dNormTh)
+          continue;
+
         if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
           if (bNormalizeVector)
