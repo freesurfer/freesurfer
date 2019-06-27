@@ -1816,6 +1816,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     mask_frames = m_layerMask->GetNumberOfFrames();
   }
   double dNormTh = GetProperty()->GetVectorNormThreshold();
+  if (nFrames == 6)
+    scale *= 2;
   switch ( nPlane )
   {
   case 0:

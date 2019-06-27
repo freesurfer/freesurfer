@@ -1415,7 +1415,7 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
 
   double voxel_size[3];
   source->GetImageOutput()->GetSpacing(voxel_size);
-  m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 1.0;
+  m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 2.0;
 
   // Init our color scale values.
   UpdateMinMaxValues();
