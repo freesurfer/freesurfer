@@ -2081,7 +2081,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       vector_render = "line",
       tensor_display = "no",
       tensor_render = "boxoid",
-      vector_width = "1";
+      vector_width = "1",
+      vector_norm_th = "0";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
@@ -2134,6 +2135,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         if ( vector_width.isEmpty() )
         {
           cerr << "Missing vector width argument.\n";
+        }
+      }
+      else if ( subOption == "vector_norm_threshold")
+      {
+        vector_norm_th = subArgu;
+        if ( vector_norm_th.isEmpty() )
+        {
+          cerr << "Missing vector norm threshold argument.\n";
         }
       }
       else if ( subOption == "vector_skip" )
@@ -2322,7 +2331,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
                                                             vector_display <<
                                                             vector_render <<
                                                             vector_inversion <<
-                                                            vector_width << "new";
+                                                            vector_width <<
+                                                            vector_norm_th << "new";
     m_scripts.insert( 0, script );
   }
 
@@ -2518,7 +2528,6 @@ void MainWindow::CommandSetRgb(const QStringList &cmd)
   }
 }
 
-
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
   if ( cmd[1].toLower() == "yes" || cmd[1].toLower() == "true" || cmd[1] == "1" )
@@ -2578,7 +2587,17 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
           cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
         }
 
-        if (val == 1 && cmd.size() > 5)
+        val = cmd[5].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorNormThreshold(val);
+        }
+        else
+        {
+          cerr << "Unknown vector norm threshold value '" << cmd[5].toLatin1().constData() << "'.\n";
+        }
+
+        if (val == 1 && cmd.size() > 6)
         {
           QList<Layer*> list = GetLayers("MRI");
           foreach (Layer* layer, list)
