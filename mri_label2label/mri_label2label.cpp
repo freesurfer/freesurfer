@@ -547,7 +547,7 @@ int main(int argc, char **argv) {
 
       /* closest target vertex number */
       if (usehash) {
-        trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
+        trgvtxno = MHTfindClosestVertexNo2(TrgHash,TrgSurfReg,SrcSurfReg,srcvtx,&dmin);
         if (trgvtxno < 0) {
           printf("ERROR: trgvtxno = %d < 0\n",trgvtxno);
           printf("srcvtxno = %d, dmin = %g\n",srcvtxno,dmin);
@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
 
         /* Find number of closest source vertex */
         if (usehash) {
-          srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,
+          srcvtxno = MHTfindClosestVertexNo2(SrcHash,SrcSurfReg,TrgSurfReg,
                                             trgregvtx,&dmin);
           if (srcvtxno < 0) {
             printf("ERROR: srcvtxno = %d < 0\n",srcvtxno);

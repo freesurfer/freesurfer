@@ -18,6 +18,9 @@
  *
  */
 #include "mrisurf_timeStep.h"
+
+#include "mrisurf_sseTerms.h"
+#include "mrisurf_compute_dxyz.h"
 #include "mrinorm.h"
 
 int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL;
@@ -233,7 +236,7 @@ static bool mrisLimitGradientDistance(
 
   if (!mrisRemoveNeighborGradientComponent(mris, vno, ctx)) return false;
   
-  if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+  if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
     v->odx = v->ody = v->odz = 0.0;
     if (vno == Gdiag_no) printf("(%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz);
     v->cropped++;
@@ -326,7 +329,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
       DiagBreak();
   }
 
-  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
   VERTEX                * const v  = &mris->vertices         [vno];
 
   /* erase the faces this vertex is part of */
@@ -334,7 +337,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
   // This will be a challenge to parallelize
   //
   if (mht) {
-    MHTremoveAllFaces(mht, mris, vt);
+    MHTremoveAllFaces(mht, mris, vno);
   }
 
   bool canMove = true;
@@ -364,7 +367,7 @@ static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // retur
   }
 
   if (mht) {
-    MHTaddAllFaces(mht, mris, vt);
+    MHTaddAllFaces(mht, mris, vno);
   }
 
   return canMove;

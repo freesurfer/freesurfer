@@ -174,6 +174,7 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
   r_to_i__ = extract_r_to_i(this);
 
   // file metadata
+  fname[0] = 0;
   subject_name[0] = '\0';
   path_to_t1[0] = '\0';
   fname_format[0] = '\0';

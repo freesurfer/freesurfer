@@ -20,11 +20,16 @@ except ImportError:
               'one used to compile the bindings library')
     raise
 
-from .bindings import Volume, Surface
+from .transform import LinearTransform
+
+from .surface import Surface
+from .volume import Volume
 from .bindings import read_annotation
 
 from .geometry import *
 from ._surface import *
 from ._normalize import *
 from .freeview import *
+from .mrisp import *
 from . import metrics
+

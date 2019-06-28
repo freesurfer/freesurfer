@@ -47,7 +47,6 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
   int x, y, z, vno;
   double xs, ys, zs, dist;
   MRIS_HASH_TABLE *mht;
-  VERTEX *v;
 
   /* preparing the output */
   printf("preparing the output\n");
@@ -83,18 +82,13 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
           /* change of coordinates from image to surface domain */
           MRIvoxelToSurfaceRAS(mri_shell, x, y, z, &xs, &ys, &zs);
           /* find the closest vertex to the point */
-          MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 2, &v, &vno, &dist);
+          MHTfindClosestVertexGeneric(mht, xs, ys, zs, 10, 2, &vno, &dist);
           /* creating the oct tree voxel structure */
           vox[0] = xs - vsize[0] / 2.0;
           vox[1] = ys - vsize[1] / 2.0;
           vox[2] = zs - vsize[2] / 2.0;
           V = octTreeVoxelCreate(vox, vsize);
           /* compute the volume fraction of this voxel */
-    	  if (1) {  // HACK check the vno is correct
-	    int const correct_vno = v - mris->vertices;
-            if (correct_vno < 0 || correct_vno >= mris->nvertices || vno != correct_vno) 
-	      *(int*)(-1) = 0;   // must never happen
-          }
           frac = MRIcomputeVoxelFractions(V, vno, acc, 1, mris);
           MRIsetVoxVal(mri_fractions, x, y, z, 0, frac.frac);
         }

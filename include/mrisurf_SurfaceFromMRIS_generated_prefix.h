@@ -2,8 +2,8 @@
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
-#define SEPARATE_VERTEX_TOPOLOGY
 namespace SurfaceFromMRIS {
+    typedef MRIS Representation;
 
 
     namespace Existence {
@@ -95,11 +95,15 @@ namespace SurfaceFromMRIS {
         struct Vertex;
         struct Surface;
     } // namespace AllM
-    struct MRIS_Elt { protected: 
-        MRIS* mris; size_t idx; 
-        MRIS_Elt() : mris(nullptr), idx(0) {}
-        MRIS_Elt(MRIS* mris, size_t idx) : mris(mris), idx(idx) {}
-        MRIS_Elt(MRIS_Elt const & src) : mris(src.mris), idx(src.idx) {}
+    
+    struct Repr_Elt { 
+        bool operator==(Repr_Elt const & rhs) const { return repr == rhs.repr && idx == rhs.idx; }
+        bool operator!=(Repr_Elt const & rhs) const { return repr != rhs.repr || idx != rhs.idx; }
+    protected: 
+        Representation* repr; size_t idx; 
+        Repr_Elt() : repr(nullptr), idx(0) {}
+        Repr_Elt(Representation* repr, size_t idx) : repr(repr), idx(idx) {}
+        Repr_Elt(Repr_Elt const & src) : repr(src.repr), idx(src.idx) {}
 
         friend struct SurfaceFromMRIS::ExistenceM::Face;
         friend struct SurfaceFromMRIS::ExistenceM::Vertex;
@@ -141,4 +145,4 @@ namespace SurfaceFromMRIS {
         friend struct SurfaceFromMRIS::AllM::Vertex;
         friend struct SurfaceFromMRIS::AllM::Surface;
     };
-} // namespace SurfaceFromMRIS
+} // SurfaceFromMRIS

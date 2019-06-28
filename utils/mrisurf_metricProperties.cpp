@@ -15,6 +15,7 @@
  *
  */
 #include "mrisurf_metricProperties.h"
+#include "face_barycentric_coords.h"
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -282,9 +283,9 @@ int MRISimportVertexCoords(MRIS * const mris, float * locations[3], int const wh
         v->cz = locations[2][vno];
         break;
       case TMP2_VERTICES:
-        v->tx2 = locations[0][vno];
-        v->ty2 = locations[1][vno];
-        v->tz2 = locations[2][vno];
+        v->t2x = locations[0][vno];
+        v->t2y = locations[1][vno];
+        v->t2z = locations[2][vno];
         break;
       case TMP_VERTICES:
         v->tx = locations[0][vno];
@@ -1973,9 +1974,9 @@ int MRISextractVertexCoords(MRIS *mris, float *locations[3], int which)
         locations[2][vno] = v->origz;
         break;
       case TMP2_VERTICES:
-        locations[0][vno] = v->tx2;
-        locations[1][vno] = v->ty2;
-        locations[2][vno] = v->tz2;
+        locations[0][vno] = v->t2x;
+        locations[1][vno] = v->t2y;
+        locations[2][vno] = v->t2z;
         break;
       case TMP_VERTICES:
         locations[0][vno] = v->tx;
@@ -3187,9 +3188,9 @@ int MRISsaveVertexPositions(MRIS *mris, int which)
           v->cz = v->z;
           break;
         case TMP2_VERTICES:
-          v->tx2 = v->x;
-          v->ty2 = v->y;
-          v->tz2 = v->z;
+          v->t2x = v->x;
+          v->t2y = v->y;
+          v->t2z = v->z;
           break;
         case TMP_VERTICES:
           v->tx = v->x;
@@ -3275,9 +3276,9 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
         v->z = v->origz;
         break;
       case TMP2_VERTICES:
-        v->x = v->tx2;
-        v->y = v->ty2;
-        v->z = v->tz2;
+        v->x = v->t2x;
+        v->y = v->t2y;
+        v->z = v->t2z;
         break;
       default:
       case TMP_VERTICES:
@@ -3325,9 +3326,9 @@ int MRISrestoreVertexPositions(MRIS *mris, int which)
           v->cz = v->origz;
           break;
         case TMP2_VERTICES:
-          v->cx = v->tx2;
-          v->cy = v->ty2;
-          v->cz = v->tz2;
+          v->cx = v->t2x;
+          v->cy = v->t2y;
+          v->cz = v->t2z;
           break;
         default:
         case TMP_VERTICES:
@@ -3358,9 +3359,9 @@ int MRISsaveNormals(MRIS *mris, int which)
         v->tz = v->nz;
         break;
       case TMP2_VERTICES:
-        v->tx2 = v->nx;
-        v->ty2 = v->ny;
-        v->tz2 = v->nz;
+        v->t2x = v->nx;
+        v->t2y = v->ny;
+        v->t2z = v->nz;
         break;
       case PIAL_VERTICES:
         v->pnx = v->nx;
@@ -3400,9 +3401,9 @@ int MRISrestoreNormals(MRIS *mris, int which)
         v->nz = v->tz;
         break;
       case TMP2_VERTICES:
-        v->nx = v->tx2;
-        v->ny = v->ty2;
-        v->nz = v->tz2;
+        v->nx = v->t2x;
+        v->ny = v->t2y;
+        v->nz = v->t2z;
         break;
       case PIAL_VERTICES:
         v->nx = v->pnx;
@@ -3693,129 +3694,41 @@ int MRIScomputeCanonicalCoordinates(MRIS *mris)
 
 int MRISvertexCoord2XYZ_float(VERTEX const * const v, int const which, float * const x, float * const y, float * const z)
 {
+#define CASE(WHICH, FIELD) \
+  case WHICH: \
+    cheapAssert(sizeof(*x) == sizeof(v->FIELD##x)); \
+    *x = v->FIELD##x;  *y = v->FIELD##y;  *z = v->FIELD##z; \
+    break;
+        
   switch (which) {
-    case ORIGINAL_VERTICES:
-      *x = v->origx;
-      *y = v->origy;
-      *z = v->origz;
-      break;
-    case TMP_VERTICES:
-      *x = v->tx;
-      *y = v->ty;
-      *z = v->tz;
-      break;
-    case CANONICAL_VERTICES:
-      *x = v->cx;
-      *y = v->cy;
-      *z = v->cz;
-      break;
-    case CURRENT_VERTICES:
-      *x = v->x;
-      *y = v->y;
-      *z = v->z;
-      break;
-    case INFLATED_VERTICES:
-      *x = v->infx;
-      *y = v->infy;
-      *z = v->infz;
-      break;
-    case PIAL_VERTICES:
-      *x = v->pialx;
-      *y = v->pialy;
-      *z = v->pialz;
-      break;
-    case TMP2_VERTICES:
-      *x = v->tx2;
-      *y = v->ty2;
-      *z = v->tz2;
-      break;
-    case FLATTENED_VERTICES:
-      *x = v->fx;
-      *y = v->fy;
-      *z = v->fz;
-      break;
-    case WHITE_VERTICES:
-      *x = v->whitex;
-      *y = v->whitey;
-      *z = v->whitez;
-      break;
-    case VERTEX_NORMALS:
-      *x = v->nx;
-      *y = v->ny;
-      *z = v->nz;
-      break;
-    case PIAL_NORMALS:
-      *x = v->pnx;
-      *y = v->pny;
-      *z = v->pnz;
-      break;
-    case WHITE_NORMALS:
-      *x = v->wnx;
-      *y = v->wny;
-      *z = v->wnz;
-      break;
+    CASE(ORIGINAL_VERTICES,orig)
+    CASE(TMP_VERTICES,t)
+    CASE(CANONICAL_VERTICES,c)
+    CASE(CURRENT_VERTICES,)
+    CASE(INFLATED_VERTICES,inf)
+    CASE(PIAL_VERTICES,pial)
+    CASE(TMP2_VERTICES,t2)   
+    CASE(FLATTENED_VERTICES,f)
+    CASE(WHITE_VERTICES,white)
+    CASE(VERTEX_NORMALS,n)
+    CASE(PIAL_NORMALS,pn)
+    CASE(WHITE_NORMALS,wn)
     default:
-    case GOOD_VERTICES:
       ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_float: unsupported which %d", which);
       break;
   }
+
+#undef CASE
+  
   return (NO_ERROR);
 }
 
 int MRISvertexCoord2XYZ_double(VERTEX const * const v, int const which, double * const x, double * const y, double * const z)
 {
-  switch (which) {
-    default:
-    case GOOD_VERTICES:
-      ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_double: unsupported which %d", which);
-      break;
-    case ORIGINAL_VERTICES:
-      *x = (double)v->origx;
-      *y = (double)v->origy;
-      *z = (double)v->origz;
-      break;
-    case TMP_VERTICES:
-      *x = (double)v->tx;
-      *y = (double)v->ty;
-      *z = (double)v->tz;
-      break;
-    case CANONICAL_VERTICES:
-      *x = (double)v->cx;
-      *y = (double)v->cy;
-      *z = (double)v->cz;
-      break;
-    case CURRENT_VERTICES:
-      *x = (double)v->x;
-      *y = (double)v->y;
-      *z = (double)v->z;
-      break;
-    case INFLATED_VERTICES:
-      *x = (double)v->infx;
-      *y = (double)v->infy;
-      *z = (double)v->infz;
-      break;
-    case PIAL_VERTICES:
-      *x = (double)v->pialx;
-      *y = (double)v->pialy;
-      *z = (double)v->pialz;
-      break;
-    case TMP2_VERTICES:
-      *x = (double)v->tx2;
-      *y = (double)v->ty2;
-      *z = (double)v->tz2;
-      break;
-    case FLATTENED_VERTICES:
-      *x = (double)v->fx;
-      *y = (double)v->fy;
-      *z = (double)v->fz;
-      break;
-    case WHITE_VERTICES:
-      *x = (double)v->whitex;
-      *y = (double)v->whitey;
-      *z = (double)v->whitez;
-      break;
-  }
-  return (NO_ERROR);
+    float fx,fy,fz;
+    auto result = MRISvertexCoord2XYZ_float(v, which, &fx, &fy, &fz);
+    *x = fx; *y = fy; *z = fz;
+    return result;
 }
 
 #define VERTEX_DIF(leg, v0, v1) leg[0] = v1->x - v0->x, leg[1] = v1->y - v0->y, leg[2] = v1->z - v0->z;
@@ -4432,70 +4345,19 @@ int IsMRISselfIntersecting(MRIS *mris)
 }
 
 
-int face_barycentric_coords(MRIS const *mris,
-                            int fno,
-                            int which_vertices,
-                            double cx,
-                            double cy,
-                            double cz,
-                            double *pl1,
-                            double *pl2,
-                            double *pl3)
+int face_barycentric_coords(
+  double V0[3], double V1[3], double V2[3],
+  double  cx,
+  double  cy,
+  double  cz,
+  double *pl1,
+  double *pl2,
+  double *pl3)
 {
+  double point[3], proj[3], detT;
   double l1, l2, l3, x, y, x1, x2, x3, y1, y2, y3, e1[3], e2[3];
-  FACE const *face = &mris->faces[fno];
-  double V0[3], V1[3], V2[3], point[3], proj[3], detT;
+  
   int ret = 0;
-
-  switch (which_vertices) {
-    default:
-      ErrorExit(ERROR_BADPARM, "face_barycentric_coords: which %d not supported", which_vertices);
-      break;
-    case FLATTENED_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].fx;
-      V0[1] = mris->vertices[face->v[0]].fy;
-      V0[2] = mris->vertices[face->v[0]].fz;
-      V1[0] = mris->vertices[face->v[1]].fx;
-      V1[1] = mris->vertices[face->v[1]].fy;
-      V1[2] = mris->vertices[face->v[1]].fz;
-      V2[0] = mris->vertices[face->v[2]].fx;
-      V2[1] = mris->vertices[face->v[2]].fy;
-      V2[2] = mris->vertices[face->v[2]].fz;
-      break;
-    case CURRENT_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].x;
-      V0[1] = mris->vertices[face->v[0]].y;
-      V0[2] = mris->vertices[face->v[0]].z;
-      V1[0] = mris->vertices[face->v[1]].x;
-      V1[1] = mris->vertices[face->v[1]].y;
-      V1[2] = mris->vertices[face->v[1]].z;
-      V2[0] = mris->vertices[face->v[2]].x;
-      V2[1] = mris->vertices[face->v[2]].y;
-      V2[2] = mris->vertices[face->v[2]].z;
-      break;
-    case PIAL_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].pialx;
-      V0[1] = mris->vertices[face->v[0]].pialy;
-      V0[2] = mris->vertices[face->v[0]].pialz;
-      V1[0] = mris->vertices[face->v[1]].pialx;
-      V1[1] = mris->vertices[face->v[1]].pialy;
-      V1[2] = mris->vertices[face->v[1]].pialz;
-      V2[0] = mris->vertices[face->v[2]].pialx;
-      V2[1] = mris->vertices[face->v[2]].pialy;
-      V2[2] = mris->vertices[face->v[2]].pialz;
-      break;
-    case CANONICAL_VERTICES:
-      V0[0] = mris->vertices[face->v[0]].cx;
-      V0[1] = mris->vertices[face->v[0]].cy;
-      V0[2] = mris->vertices[face->v[0]].cz;
-      V1[0] = mris->vertices[face->v[1]].cx;
-      V1[1] = mris->vertices[face->v[1]].cy;
-      V1[2] = mris->vertices[face->v[1]].cz;
-      V2[0] = mris->vertices[face->v[2]].cx;
-      V2[1] = mris->vertices[face->v[2]].cy;
-      V2[2] = mris->vertices[face->v[2]].cz;
-      break;
-  }
   point[0] = cx;
   point[1] = cy;
   point[2] = cz;
@@ -4518,7 +4380,6 @@ int face_barycentric_coords(MRIS const *mris,
     if (pl1) {
       *pl1 = *pl2 = *pl3 = 1 / 3;
     }
-    DiagBreak();
     return (-2);
   }
 
@@ -4549,6 +4410,21 @@ int face_barycentric_coords(MRIS const *mris,
     }
   }
   return (ret);
+}
+
+
+int face_barycentric_coords(MRIS const *mris,
+                            int fno,
+                            int which_vertices,
+                            double cx,
+                            double cy,
+                            double cz,
+                            double *pl1,
+                            double *pl2,
+                            double *pl3)
+{
+  auto surface = SurfaceFromMRIS::Analysis::Surface(const_cast<MRIS*>(mris));
+  return face_barycentric_coords_template(surface, fno, which_vertices,cx,cy,cz,pl1,pl2,pl3);   
 }
 
 int MRISsampleFaceCoords(MRIS *mris,
@@ -5758,7 +5634,8 @@ int MRISmeasureDistanceBetweenSurfaces(MRIS *mris, MRIS *mris2, int signed_dist)
     if (v1->ripflag) {
       continue;
     }
-    v2 = MHTfindClosestVertex(mht, mris2, v1);
+    float min_dist;
+    v2 = MHTfindClosestVertex2(mht, mris2, mris, v1, &min_dist);
     if (v2 == NULL) {
       v1->curv = MAX_DIST;
       continue;
@@ -5874,7 +5751,7 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
     StuffVertexCoords(surf1, vno1, pv1);
 
     // Get the closest vertex in surf2
-    vno2 = MHTfindClosestVertexNo(mht, surf2, v1, &dminv);
+    vno2 = MHTfindClosestVertexNo2(mht, surf2, surf1, v1, &dminv);
     v2 = &surf2->vertices[vno2];    
     vt2 = &surf2->vertices_topology[vno2];
 

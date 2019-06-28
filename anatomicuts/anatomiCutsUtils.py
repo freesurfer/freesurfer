@@ -10,7 +10,7 @@ import glob
 import subprocess
 import pandas as pd
 from nipy.modalities.fmri.glm import GeneralLinearModel
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def getCorrespondingClusters(correspondance,order=True):
 		corr=dict()
@@ -270,7 +270,18 @@ plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/
 indeces = indeces +groupAnalysis(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
 plotAverageMeasures(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 """
-ts="BAKP64e_nrecon-trio3_vb17"
+#print(indices)
+#indeces=[41,10]
+"""
+plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanAD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanRD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanAK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+plotAverageMeasures(headers=["meanMK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+"""
+"""ts="BAKP64e_nrecon-trio3_vb17"
 #classFile="/space/snoke/1/public/vivros/labels.csv"
 classFile="/autofs/space/snoke_001/public/vivros/hd_tracula/labels.csv"
 folder="/autofs/space/snoke_001/public/vivros/hd_tracula/"
@@ -287,15 +298,5 @@ plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification=classFile
 plotAverageMeasures(headers=["meanRD"],cols=[10], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
 plotAverageMeasures(headers=["meanAD"],cols=[14], groups_classification=classFile, classification_columns=[0,1],clustersToAnalyze=indices,target_subject=ts,subjects_dir=folder, delimiter=" ", groups=[[8],[6]])
 
-#print(indices)
-#indeces=[41,10]
-"""
-plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanAD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanRD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanAK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanMK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
 """
 

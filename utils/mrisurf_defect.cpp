@@ -9141,16 +9141,16 @@ MRI_SURFACE *MRIScorrectTopology(
         /* save border positions */
         for (n = 0; n < defect->nborder; n++) {
           VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
-          vdst->tx2 = vdst->cx;
-          vdst->ty2 = vdst->cy;
-          vdst->tz2 = vdst->cz;
+          vdst->t2x = vdst->cx;
+          vdst->t2y = vdst->cy;
+          vdst->t2z = vdst->cz;
         }
         /* save inside positions */
         for (n = 0; n < defect->nvertices; n++) {
           VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
-          vdst->tx2 = vdst->cx;
-          vdst->ty2 = vdst->cy;
-          vdst->tz2 = vdst->cz;
+          vdst->t2x = vdst->cx;
+          vdst->t2y = vdst->cy;
+          vdst->t2z = vdst->cz;
         }
 
         /* generate different mappings (max 10) */
@@ -9273,16 +9273,16 @@ MRI_SURFACE *MRIScorrectTopology(
           /* restore border positions */
           for (n = 0; n < defect->nborder; n++) {
             VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
-            vdst->cx = vdst->tx2;
-            vdst->cy = vdst->ty2;
-            vdst->cz = vdst->tz2;
+            vdst->cx = vdst->t2x;
+            vdst->cy = vdst->t2y;
+            vdst->cz = vdst->t2z;
           }
           /* save inside positions */
           for (n = 0; n < defect->nvertices; n++) {
             VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
-            vdst->cx = vdst->tx2;
-            vdst->cy = vdst->ty2;
-            vdst->cz = vdst->tz2;
+            vdst->cx = vdst->t2x;
+            vdst->cy = vdst->t2y;
+            vdst->cz = vdst->t2z;
           }
           break;
 
@@ -9413,7 +9413,6 @@ MRI_SURFACE *MRIScorrectTopology(
     MRISsaveVertexPositions(mris_corrected, TMP_VERTICES);
     MRISrestoreVertexPositions(mris_corrected, ORIG_VERTICES);
     mht = MHTcreateFaceTable(mris_corrected);
-    MHTcheckSurface(mris_corrected, mht);
     MHTfree(&mht);
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES);
   }

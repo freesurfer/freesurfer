@@ -1169,7 +1169,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     if (Mesh1->vertices[index].border == 1) continue;
     if (Mesh1->vertices[index].marked != 1) continue;
     vertex = &Mesh1->vertices[index];
-    nnindex = MHTfindClosestVertexNo(SrcHash,Mesh2,vertex,&dmin);
+    nnindex = MHTfindClosestVertexNo2(SrcHash,Mesh2,Mesh1,vertex,&dmin);
 
     /* nnIndex gives the closest vertex on
        mris_template to the vertex #index of mris 
@@ -1393,7 +1393,7 @@ void FindClosest(MRI_SURFACE *TrueMesh,
     // this is a duplicate, lame, but....ugh, to get in and out of libraries...
     v = &(EstMesh->vertices[index]);
 
-    annIndex = MHTfindClosestVertexNo(SrcHash, TrueMesh,v,&dmin);
+    annIndex = MHTfindClosestVertexNo2(SrcHash, TrueMesh,EstMesh,v,&dmin);
 
     if (annIndex < 0)
     {

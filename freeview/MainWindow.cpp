@@ -134,7 +134,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bScriptRunning(false),
   m_bProcessing(false),
   m_bSplinePicking(true),
-  m_cmdParser(cmdParser)
+  m_cmdParser(cmdParser),
+  m_bHadError(false)
 {
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
@@ -1857,6 +1858,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceAnnotationOutline( sa );
   }
+  else if ( cmd == "loadsurfaceparameterization")
+  {
+    CommandLoadSurfaceCoordsFromParameterization( sa );
+  }
   else if ( cmd == "setlayername" )
   {
     CommandSetLayerName( sa );
@@ -2076,7 +2081,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       vector_render = "line",
       tensor_display = "no",
       tensor_render = "boxoid",
-      vector_width = "1";
+      vector_width = "1",
+      vector_norm_th = "0";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
@@ -2129,6 +2135,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         if ( vector_width.isEmpty() )
         {
           cerr << "Missing vector width argument.\n";
+        }
+      }
+      else if ( subOption == "vector_norm_threshold")
+      {
+        vector_norm_th = subArgu;
+        if ( vector_norm_th.isEmpty() )
+        {
+          cerr << "Missing vector norm threshold argument.\n";
         }
       }
       else if ( subOption == "vector_skip" )
@@ -2317,7 +2331,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
                                                             vector_display <<
                                                             vector_render <<
                                                             vector_inversion <<
-                                                            vector_width << "new";
+                                                            vector_width <<
+                                                            vector_norm_th << "new";
     m_scripts.insert( 0, script );
   }
 
@@ -2513,7 +2528,6 @@ void MainWindow::CommandSetRgb(const QStringList &cmd)
   }
 }
 
-
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
   if ( cmd[1].toLower() == "yes" || cmd[1].toLower() == "true" || cmd[1] == "1" )
@@ -2573,7 +2587,17 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
           cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
         }
 
-        if (val == 1 && cmd.size() > 5)
+        val = cmd[5].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorNormThreshold(val);
+        }
+        else
+        {
+          cerr << "Unknown vector norm threshold value '" << cmd[5].toLatin1().constData() << "'.\n";
+        }
+
+        if (val == 1 && cmd.size() > 6)
         {
           QList<Layer*> list = GetLayers("MRI");
           foreach (Layer* layer, list)
@@ -3255,6 +3279,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_smooth_steps.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaysmooth") << overlay_smooth_steps);
+        }
+        else if ( subOption == "mrisps" )
+        {
+          m_scripts.insert( 0, QStringList("loadsurfaceparameterization") << subArgu );
         }
         else if ( subOption == "annot" || subOption == "annotation" || subOption == "aparc" )
         {
@@ -4031,6 +4059,11 @@ void MainWindow::CommandLoadSurfaceLabel( const QStringList& cmd )
 void MainWindow::CommandLoadSurfaceSpline(const QStringList &cmd)
 {
   LoadSurfaceSplineFile( cmd[1]);
+}
+
+void MainWindow::CommandLoadSurfaceCoordsFromParameterization(const QStringList &cmd)
+{
+  LoadSurfaceCoordsFromParameterization(cmd[1]);
 }
 
 void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
@@ -8530,4 +8563,13 @@ void MainWindow::UpdateLayerInfo(Layer* layer)
 {
   if (layer && m_wndLayerInfo->isVisible())
     m_wndLayerInfo->UpdateInfo(layer);
+}
+
+void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename )
+{
+  LayerSurface* layer = ( LayerSurface* )GetActiveLayer("Surface");
+  if ( layer && !layer->LoadCoordsFromParameterization(filename))
+  {
+    QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
+  }
 }

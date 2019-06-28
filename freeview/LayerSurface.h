@@ -364,6 +364,8 @@ public:
 
   bool LoadParameterization(const QString& filename);
 
+  bool LoadCoordsFromParameterization(const QString &filename);
+
   void SetSphereFileName(const QString& fn)
   {
     m_sSphereFilename = fn;

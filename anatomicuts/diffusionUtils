@@ -31,7 +31,7 @@ def tractography(fdwi, fbval, fbvec, subject_folder):
 	sphere = get_sphere('symmetric724')
 
 	ODF = gqfit.odf(sphere)
-	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.8, min_separation_angle=35, mask=mask,  return_odf=False,  normalize_peaks=True)
+	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.5, min_separation_angle=25, mask=mask,  return_odf=False,  normalize_peaks=True)
 
 	gqpeak_values = gqpeaks.peak_values
 	gqpeak_indices = gqpeaks.peak_indices

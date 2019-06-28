@@ -75,9 +75,9 @@ struct vertex_type_ {
     float         tx                 ;
     float         ty                 ;
     float         tz                 ;  //  tmp coordinate storage
-    float         tx2                ;
-    float         ty2                ;
-    float         tz2                ;  //  tmp coordinate storage
+    float         t2x                ;
+    float         t2y                ;
+    float         t2z                ;  //  another tmp coordinate storage
     float         targx              ;
     float         targy              ;
     float         targz              ;  //  target coordinates
@@ -233,7 +233,7 @@ struct MRIS {
     float                         dg                       ;  //  old deltas
     int                           type                     ;  //  what type of surface was this initially
     int                           max_vertices             ;  //  may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces
-    int                           max_faces                ;  //  may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces
+    int                           max_faces                ;  //  may be bigger than nfaces,    set by calling MRISreallocVerticesAndFaces
     MRIS_subject_name_t           subject_name             ;  //  name of the subject
     float                         canon_area               ;
     int                           noscale                  ;  //  don't scale by surface area if true
@@ -324,9 +324,9 @@ struct MRIS {
     ELTT(float,tx)  SEP \
     ELTT(float,ty)  SEP \
     ELTT(float,tz)  SEP \
-    ELTT(float,tx2)  SEP \
-    ELTT(float,ty2)  SEP \
-    ELTT(float,tz2)  SEP \
+    ELTT(float,t2x)  SEP \
+    ELTT(float,t2y)  SEP \
+    ELTT(float,t2z)  SEP \
     ELTT(float,targx)  SEP \
     ELTT(float,targy)  SEP \
     ELTT(float,targz)  SEP \
@@ -426,8 +426,8 @@ struct MRIS {
     ELTT(int,nstrips)  SEP \
     ELTP(VERTEX_TOPOLOGY,vertices_topology)  SEP \
     ELTP(VERTEX,vertices)  SEP \
-    ELTT(p_p_void,dist_storage)  SEP \
-    ELTT(p_p_void,dist_orig_storage)  SEP \
+    ELTX(p_p_void,dist_storage)  SEP \
+    ELTX(p_p_void,dist_orig_storage)  SEP \
     ELTT(int,tempsAssigned)  SEP \
     ELTP(FACE,faces)  SEP \
     ELTP(MRI_EDGE,edges)  SEP \
@@ -491,7 +491,7 @@ struct MRIS {
     ELTT(char,dist_orig_nsize)  SEP \
     ELTT(char,dist_alloced_flags)  SEP \
     ELTT(float,avg_nbrs)  SEP \
-    ELTT(p_void,vp)  SEP \
+    ELTX(p_void,vp)  SEP \
     ELTT(float,alpha)  SEP \
     ELTT(float,beta)  SEP \
     ELTT(float,gamma)  SEP \
@@ -515,11 +515,11 @@ struct MRIS {
     ELTT(float,group_avg_surface_area)  SEP \
     ELTT(int,group_avg_vtxarea_loaded)  SEP \
     ELTT(int,triangle_links_removed)  SEP \
-    ELTT(p_void,user_parms)  SEP \
+    ELTX(p_void,user_parms)  SEP \
     ELTP(MATRIX,m_sras2vox)  SEP \
     ELTP(MRI,mri_sras2vox)  SEP \
-    ELTT(p_void,mht)  SEP \
-    ELTT(p_void,temps)  SEP \
+    ELTX(p_void,mht)  SEP \
+    ELTX(p_void,temps)  SEP \
 // end of macro
 
 #define LIST_OF_MRIS_ELTS \

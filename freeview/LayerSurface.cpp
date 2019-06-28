@@ -3000,6 +3000,25 @@ bool LayerSurface::LoadParameterization(const QString &filename)
     return false;
 }
 
+bool LayerSurface::LoadCoordsFromParameterization(const QString &filename)
+{
+  MRIS* mris = m_surfaceSource->GetMRIS();
+  MRI_SP* mrisp = ::MRISPread(filename.toLatin1().data());
+  if (mrisp)
+  {
+    ::MRIScoordsFromParameterization(mrisp, mris, IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+    m_surfaceSource->UpdateHashTable();
+    m_surfaceSource->UpdateCoords();
+    emit ActorUpdated();
+    return true;
+  }
+  else
+  {
+    cerr << "Failed to load " << qUtf8Printable(filename) << endl;
+    return false;
+  }
+}
+
 vtkActor* LayerSurface::GetMainActor()
 {
   return m_mainActor;

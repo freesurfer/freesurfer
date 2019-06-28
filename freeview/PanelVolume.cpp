@@ -171,7 +171,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->labelVectorLineWidth
                      << ui->lineEditVectorLineWidth
                      << ui->labelVectorSkip
-                     << ui->spinBoxVectorSkip;
+                     << ui->spinBoxVectorSkip
+                     << ui->labelVectorNormThreshold
+                     << ui->lineEditVectorNormThreshold;
   //    << ui->labelMask
   //    << ui->comboBoxMask;
 
@@ -516,6 +518,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxNormalizeVectors->setChecked(layer->GetProperty()->GetNormalizeVector());
     ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
     ChangeLineEditNumber( ui->lineEditVectorLineWidth, layer->GetProperty()->GetVectorLineWidth());
+    ChangeLineEditNumber( ui->lineEditVectorNormThreshold, layer->GetProperty()->GetVectorNormThreshold());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
 
@@ -630,7 +633,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->spinBoxFrame->setEnabled( layer &&
                                   !layer->GetProperty()->GetDisplayVector() &&
                                   !layer->GetProperty()->GetDisplayTensor() );
-    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
+    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6) );
     ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
     ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
     ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
@@ -1409,12 +1412,19 @@ void PanelVolume::OnContourSave()
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
+    QString selectedFilter;
     QString fn = QFileDialog::getSaveFileName( this,
                                                "Save iso-surface",
-                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
-                                               "VTK files (*.vtk);;All files (*)");
+                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
+                                               "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
     if ( !fn.isEmpty() )
     {
+      QString selected_suffix = selectedFilter.left(3).toLower();
+      if (selected_suffix == "all")
+        selected_suffix = "vtk";
+      QFileInfo fi(fn);
+      if (fi.suffix().toLower() != selected_suffix)
+        fn += "." + selected_suffix;
       if ( !layer->SaveContourToFile( fn ) )
       {
         QMessageBox::warning(this, "Error", "Can not save surface to file.");
@@ -1589,7 +1599,7 @@ void PanelVolume::OnCheckBoxSetDisplayVector(bool b)
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
   foreach (LayerMRI* layer, layers)
   {
-    if (layer->GetNumberOfFrames() == 3 || layer->GetEndType() == "DTI")
+    if (layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6 || layer->GetEndType() == "DTI")
       layer->GetProperty()->SetDisplayVector(b);
   }
 }
@@ -1619,6 +1629,20 @@ void PanelVolume::OnCheckBoxSetNormalizeVector(bool b)
   foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->SetNormalizeVector(b);
+  }
+}
+
+void PanelVolume::OnLineEditVectorNormThreshold(const QString &strg)
+{
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (ok)
+  {
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      layer->GetProperty()->SetVectorNormThreshold(val);
+    }
   }
 }
 

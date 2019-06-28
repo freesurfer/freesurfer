@@ -55,6 +55,7 @@
 #include "label.h"
 #include "voxlist.h"
 #include "fsinit.h"
+#include "mris_multimodal_refinement.h"
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -198,6 +199,7 @@ static char *dura_echo_name = NULL ;
 static char *T2_name = NULL ;
 static char *flair_or_T2_name = NULL ;
 static int nechos = 0 ;
+static bool followGradients = false ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
 
@@ -1635,7 +1637,15 @@ int main(int argc, char *argv[])
            nlabels,T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside, max_outward_dist);
 	printf("CPTL: inside_peak_pct=%g,%g outside_peak_pct=%g,%g , wm_weight=%g\n",
                Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, wm_weight);
-        compute_pial_target_locations(mris, mri_flair, labels, nlabels,
+	if ( followGradients)
+	{
+		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
+		refine->addImage(mri_T1_pial);
+		refine->addImage(mri_flair);
+		refine->refine(mris,0.01, 100);	
+	}
+	else
+	{        compute_pial_target_locations(mris, mri_flair, labels, nlabels,
 				      contrast_type, mri_aseg, 
 				      T2_min_inside, T2_max_inside, 
 				      T2_min_outside, T2_max_outside, 
@@ -1643,6 +1653,7 @@ int main(int argc, char *argv[])
 				      Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
 				      Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
 				      wm_weight, mri_T1_pial) ;
+	}
 	//	parms.l_location /= spring_scale ; 
 	GetMemUsage(memusage);  printf("Post Pial Targ Loc VmPeak %d\n",memusage[1]);fflush(stdout);
 
@@ -3164,7 +3175,11 @@ get_option(int argc, char *argv[])
   {
     MGZ = 1;
     printf("INFO: assuming MGZ format for volumes.\n");
-  }
+ } else if (!stricmp(option, "followgradients"))
+  {
+   	 followGradients= true;
+         printf("INFO: Following gradients to compute refine pial surface.\n");
+   }
   else switch (toupper(*option))
     {
     case 'D':
@@ -3246,7 +3261,6 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-
   return(nargs) ;
 }
 

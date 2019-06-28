@@ -416,6 +416,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetStandardDeviation(typ
 
 	typename MembershipFunctionType::Pointer function = MembershipFunctionType::New();	
 	function->SetMeanEuclidean(true);
+	//function->SetLabels(true);
 	typename HistogramMeshType::CellsContainer::ConstIterator cells =mesh->GetCells()->Begin();
 	int numberOfPoints= cells.Value()->GetNumberOfPoints();
 
@@ -428,6 +429,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetStandardDeviation(typ
 		mv.SetCell(mesh, j) ;
 		//std::cout << function->Evaluate(&mv, &average) << std::endl;
 		distance +=pow( 1.0/function->Evaluate(&mv,&average)-1,2);		
+		//distance +=pow( function->Evaluate(&mv,&average),2);		
 	}
 	return 	std::sqrt(distance/(mesh->GetNumberOfCells()-1));
 
@@ -437,7 +439,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetDistance(typename THi
 {	
 	typename MembershipFunctionType::Pointer function = MembershipFunctionType::New();	
 	function->SetMeanEuclidean(true);
-
+	//function->SetLabels(true);
 	typename HistogramMeshType::CellsContainer::ConstIterator cells = mesh->GetCells()->Begin();
 	int numberOfPoints= cells.Value()->GetNumberOfPoints();
 
@@ -447,6 +449,7 @@ float ClusterTools<TColorMesh, TImage, THistogramMesh>::GetDistance(typename THi
 	MeasurementVectorType mv(numberOfPoints*3);	      
 	mv.SetCell(mesh, cellId) ;
 	float distance =pow( 1.0/function->Evaluate(&mv,&average)-1,2);		
+	//float distance =pow( function->Evaluate(&mv,&average),2);		
 	return distance;
 }
 
