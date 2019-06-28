@@ -43,8 +43,8 @@
       <argument>--initk &lt;in.nii.gz&gt;</argument>
       <explanation>input ITK warp</explanation>
       <argument>--invox &lt;input nii/nii.gz/mgz&gt;</argument>
-      <explanation>input VoxelMorph warp (image file with displacements in image
-      space, source/target spaces have to be identical)</explanation>
+      <explanation>input file with same-geometry displacements in voxel space
+      </explanation>
       <intro>Exactly one output is required:</intro>
       <argument>--outm3z &lt;out.m3z&gt;</argument>
       <explanation>output warp (M3Z Freesurfer format)</explanation>
@@ -53,8 +53,8 @@
       <argument>--outitk &lt;out.nii.gz&gt;</argument>
       <explanation>output warp (ITK format in inverse LPS2LPS)</explanation>
       <argument>--outvox &lt;output nii/nii.gz/mgz&gt;</argument>
-      <explanation>output VoxelMorph warp (image file with displacements in
-      image space, source/target spaces have to be identical)</explanation>
+      <explanation>output file with same-geometry displacements in voxel space
+      </explanation>
     </required-flagged>
     <optional-flagged>
       <intro>While M3Z contains src geometry information, other file

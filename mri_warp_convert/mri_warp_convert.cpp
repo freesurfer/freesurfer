@@ -232,8 +232,7 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
 }
 
 GCAM* readVOX(const string& warp_file)
-// Read a VoxelMorph warp file containing displacement vectors in voxel space.
-// Source and target space have to be identical.
+// Read a warp file with same-geometry image-space displacements.
 {
 
   MRI* vox = MRIread(warp_file.c_str());
@@ -360,8 +359,7 @@ void writeITK(const string& fname, GCAM* gcam)
 }
 
 void writeVOX(const string& fname, GCAM* gcam)
-// Write a VoxelMorph warp file with displacement vectors in voxel space.
-// Source and target space have to be identical.
+// Write a warp file with same-geometry image-space displacements.
 {
   MATRIX* ref_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
   MRI* out = MRIallocSequence(gcam->atlas.width,
