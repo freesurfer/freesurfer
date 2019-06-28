@@ -27045,3 +27045,657 @@ void GCAinitLabelsFromMRI(GCA *gca, MRI *mri_labels)
         gcan->gcs = alloc_gcs(1, 0, 1);
       }
 }
+
+/*!
+\fn unsigned short *GCAmergeLabelLists(unsigned short *labels1, int nlabels1, unsigned short *labels2, int nlabels2, int *pnlist)
+\brief Merges two unsigned short integer lists into a single list. Good for working with GCA label lists.
+*/
+unsigned short *GCAmergeLabelLists(unsigned short *labels1, int nlabels1, unsigned short *labels2, int nlabels2, int *pnlist)
+{
+  int labellist[500],nlist,n,m,hit;
+  unsigned short *ulist;
+
+  // Count and make a list of the unique labels from both gcaps
+  nlist = 0;
+  for(n=0; n < nlabels1; n++){
+    hit = 0;
+    for(m=0; m < nlist; m++){
+      if(labels1[n] == labellist[m]){
+	hit = 1;
+	break;
+      }
+    }
+    if(!hit){
+      labellist[nlist] = labels1[n];
+      nlist++;
+    }
+  }
+  for(n=0; n < nlabels2; n++){
+    hit = 0;
+    for(m=0; m < nlist; m++){
+      if(labels2[n] == labellist[m]){
+	hit = 2;
+	break;
+      }
+    }
+    if(!hit){
+      labellist[nlist] = labels2[n];
+      nlist++;
+    }
+  }
+
+  *pnlist = nlist;
+  ulist = (unsigned short*)calloc(sizeof(unsigned short),nlist);
+  for(m=0; m < nlist; m++)
+    ulist[m] = labellist[m];
+
+  return(ulist);
+}
+
+/*!
+\fn GCA_PRIOR *GCAPcopy(GCA_PRIOR *gcap, int symmetrize, GCA_PRIOR *gcapcopy)
+\brief Make a copy of the GCA prior. If symmetrize, then the copy will have
+label codes set to the code of the contralateral structural.
+*/
+GCA_PRIOR *GCAPcopy(GCA_PRIOR *gcap, int symmetrize, GCA_PRIOR *gcapcopy)
+{
+  int n;
+
+  if(gcapcopy==NULL){
+    // Alloc the new gcap to hold the merged
+    gcapcopy = (GCA_PRIOR *) calloc(sizeof(GCA_PRIOR),1);
+  } 
+  else {
+    if(gcapcopy->labels) free(gcapcopy->labels);
+    if(gcapcopy->priors) free(gcapcopy->priors);
+  }
+  gcapcopy->nlabels = gcap->nlabels;
+  gcapcopy->labels = (unsigned short*)calloc(sizeof(unsigned short),gcap->nlabels);
+  gcapcopy->priors = (float*)calloc(sizeof(float),gcap->nlabels);
+
+  for(n=0; n < gcap->nlabels; n++){
+    if(symmetrize)
+      gcapcopy->labels[n] = MRIasegContraLatLabel(gcap->labels[n]);
+    else
+      gcapcopy->labels[n] = gcap->labels[n];
+    gcapcopy->priors[n] = gcap->priors[n];
+  }
+  return(gcapcopy);
+}
+
+int GCAPfree(GCA_PRIOR **pgcap)
+{
+  GCA_PRIOR *gcap = *pgcap;
+  free(gcap->labels);
+  free(gcap->priors);
+  free(*pgcap);
+  *pgcap = NULL;
+  return(0);
+}
+
+/*!
+\fn GCA_PRIOR *GCAPmerge(GCA_PRIOR *gcap1, GCA_PRIOR *gcap2, GCA_PRIOR *gcapm)
+\brief Merge two GCA priors to create a new prior.
+*/
+GCA_PRIOR *GCAPmerge(GCA_PRIOR *gcap1, GCA_PRIOR *gcap2, GCA_PRIOR *gcapm)
+{
+  int n,m,nlabels;
+
+  if(gcapm==NULL){
+    // Alloc the new gcap to hold the merged
+    gcapm = (GCA_PRIOR *) calloc(sizeof(GCA_PRIOR),1);
+  } 
+  else {
+    if(gcapm->labels) free(gcapm->labels);
+    if(gcapm->priors) free(gcapm->priors);
+  }
+
+  // Count and make a list of the unique labels from both gcaps
+  gcapm->labels =  GCAmergeLabelLists(gcap1->labels, gcap1->nlabels, gcap2->labels, gcap2->nlabels, &nlabels);
+  gcapm->priors = (float*)calloc(sizeof(float),nlabels);
+  gcapm->nlabels = nlabels;
+  gcapm->max_labels = gcapm->nlabels;
+  gcapm->total_training = gcap1->total_training;
+
+  // Assign the merged values. Divide by two to account for the merge
+  // and assure that the sum(priors)=1
+  for(m=0; m < gcapm->nlabels; m++){
+    for(n=0; n < gcap1->nlabels; n++){    
+      if(gcap1->labels[n] == gcapm->labels[m]){
+	gcapm->priors[m] += gcap1->priors[n]/2.0;
+	break;
+      }
+    }
+    for(n=0; n < gcap2->nlabels; n++){    
+      if(gcap2->labels[n] == gcapm->labels[m]){
+	gcapm->priors[m] += gcap2->priors[n]/2.0;
+	break;
+      }
+    }
+  }
+
+  return(gcapm);
+}
+
+int GCAPprint(FILE *fp, GCA_PRIOR *gcap)
+{
+  int n,contralabel;
+  fprintf(fp,"nlabels %d\n",gcap->nlabels);
+  fprintf(fp,"total_training %d\n",gcap->total_training);
+  fprintf(fp,"max_labels %d\n",gcap->max_labels);
+  for(n=0; n < gcap->nlabels; n++){
+    // labelcode priorprob (note: sum(priorprob) should = 1)
+    contralabel = MRIasegContraLatLabel(gcap->labels[n]);
+    fprintf(fp,"  %d/%d  %f\n",gcap->labels[n],contralabel,gcap->priors[n]);
+  }
+  fflush(fp);
+  return(0);
+}
+
+int GCANprint(FILE *fp, GCA_NODE *node, int ninputs)
+{
+  int n;
+  fprintf(fp,"nlabels %d\n",node->nlabels);
+  fprintf(fp,"total_training %d\n",node->total_training);
+  fprintf(fp,"max_labels %d\n",node->max_labels);
+  for(n=0; n < node->nlabels; n++){
+    printf("nthLabel=%d LabelCode=%d (contra=%d)==========\n",n,node->labels[n],MRIasegContraLatLabel(node->labels[n]));
+    GC1Dprint(fp, &(node->gcs[n]), ninputs);
+  }
+  return(0);
+}
+
+int GC1Dprint(FILE *fp, GC1D *gc1d, int ninputs)
+{
+  int r,c,v;
+  fprintf(fp,"n_just_priors %d\n",gc1d->n_just_priors);
+  fprintf(fp,"ntraining %d\n",gc1d->ntraining);
+  fprintf(fp,"regularized %d\n",gc1d->regularized);
+  v = 0;
+  for (r = 0; r < ninputs; r++) {
+    fprintf(fp,"  Mode %d   Mean %g  CoVar ",r,gc1d->means[r]);
+    for (c = r; c < ninputs; c++) {
+      fprintf(fp," %g ",gc1d->covars[v] );
+      v++;
+    }
+    fprintf(fp,"\n");
+  }
+
+  for(r=0; r < GIBBS_NEIGHBORS; r++){
+    fprintf(fp,"  Nbr %d  nlabels %2d ",r,gc1d->nlabels[r]);
+    for(c=0; c < gc1d->nlabels[r]; c++){
+      // Node: sum(gc1d->label_priors[r][c]) over c should = 1
+      fprintf(fp," (%d,%g) ",gc1d->labels[r][c],gc1d->label_priors[r][c]);
+    }
+    fprintf(fp," \n");
+  }
+  fflush(fp);
+  
+  return(0);
+}
+
+/*!
+\fn GC1D *GC1Dcopy(GC1D *gc, int ninputs, int symmetrize, GC1D *gccopy)
+\brief Makes a copy of the GC1D. If symmetrize=1, then the GC is 
+symmetrized along the way, meaning that labels are set to their
+contralateral counterparts, and the 1st and 2nd MRF/GIBBS neighbors
+are swapped. ninputs = gca->ninputs
+*/
+GC1D *GC1Dcopy(GC1D *gc, int ninputs, int symmetrize, GC1D *gccopy)
+{
+  int r,c,v,rr;
+
+  if(gccopy == NULL) {
+    gccopy = (GC1D*) calloc(sizeof(GC1D),1);
+  }
+  else {
+    // Free stuff if needed
+    if(gccopy->means)  free(gccopy->means);
+    if(gccopy->covars) free(gccopy->covars);
+    if(gccopy->nlabels) free(gccopy->nlabels);
+    if(gccopy->label_priors){
+      for(r=0; r < GIBBS_NEIGHBORS; r++){
+	if(gccopy->label_priors[r]) free(gccopy->label_priors[r]);
+      }
+      free(gccopy->label_priors);
+    }
+    if(gccopy->labels){
+      for(r=0; r < GIBBS_NEIGHBORS; r++){
+	if(gccopy->labels[r]) free(gccopy->labels[r]);
+      }
+      free(gccopy->labels);
+    }
+  }
+  gccopy->ntraining   = gc->ntraining;
+  gccopy->regularized = gc->regularized;
+  gccopy->n_just_priors = gc->n_just_priors;
+
+  // Copy means and covars 
+  gccopy->means  = (float*)calloc(sizeof(float),ninputs);
+  gccopy->covars = (float*)calloc(sizeof(float),(ninputs*ninputs-ninputs)/2+ninputs);
+  v = 0;
+  for (r = 0; r < ninputs; r++) {
+    gccopy->means[r] = gc->means[r];
+    for (c = r; c < ninputs; c++) {
+      gccopy->covars[r] = gc->covars[r];
+      v++;
+    }
+  }
+
+  // Copy MRF/Gibbs stuff. If GIBBS_NEIGHBORS != 6, then problems
+  gccopy->nlabels = (short*)calloc(sizeof(short),GIBBS_NEIGHBORS);
+  gccopy->labels = (unsigned short**)calloc(sizeof(unsigned short*),GIBBS_NEIGHBORS);
+  gccopy->label_priors = (float**)calloc(sizeof(float*),GIBBS_NEIGHBORS);
+
+  for(r=0; r < GIBBS_NEIGHBORS; r++){
+    rr = r;
+    if(symmetrize){
+      // When symmetrizing, the neighbor order reverses for the column face neighbors 
+      // It is assumed that the col nhbrs are the first two see xnbr_offset[] = {1, -1, 0, 0, 0, 0};
+      if(r == 0) rr = 1;
+      if(r == 1) rr = 0;
+    }
+    gccopy->nlabels[r] = gc->nlabels[rr];
+    gccopy->labels[r] = (unsigned short *)calloc(sizeof(unsigned short),gccopy->nlabels[r]);
+    for(c=0; c < gc->nlabels[rr]; c++){
+      if(symmetrize){
+	// When symmetrizing, the label has to be changed to the contra lateral 
+	gccopy->labels[r][c] = MRIasegContraLatLabel(gc->labels[rr][c]);
+      }
+      else{
+	gccopy->labels[r][c] = gc->labels[rr][c];
+      }
+    }
+
+    // Copy the probabilties. 
+    gccopy->label_priors[r] = (float *)calloc(sizeof(float),gccopy->nlabels[r]);
+    for(c=0; c < gccopy->nlabels[r]; c++){
+      gccopy->label_priors[r][c] = gc->label_priors[rr][c];
+    }
+  }
+
+  return(gccopy);
+}
+
+/*!
+\fn GC1D *GC1Dmerge(GC1D *gc1, GC1D *gc2, int ninputs, GC1D *gcm)
+\brief Merges two GC1D to create a new GC. ninputs = gca->ninputs
+*/
+GC1D *GC1Dmerge(GC1D *gc1, GC1D *gc2, int ninputs, GC1D *gcm)
+{
+  int r,c,v,nlabels,n;
+
+  if(gcm == NULL) gcm = (GC1D*) calloc(sizeof(GC1D),1);
+
+  gcm->ntraining = gc1->ntraining + gc2->ntraining; //??
+  gcm->regularized = gc1->regularized; // should check to make sure consistent
+  gcm->n_just_priors = gc1->n_just_priors; // ???
+
+  // Free stuff if needed
+  if(gcm->means)  free(gcm->means);
+  if(gcm->covars) free(gcm->covars);
+  if(gcm->nlabels) free(gcm->nlabels);
+  if(gcm->label_priors){
+    for(r=0; r < GIBBS_NEIGHBORS; r++){
+      if(gcm->label_priors[r]) free(gcm->label_priors[r]);
+    }
+    free(gcm->label_priors);
+  }
+  if(gcm->labels){
+    for(r=0; r < GIBBS_NEIGHBORS; r++){
+      if(gcm->labels[r]) free(gcm->labels[r]);
+    }
+    free(gcm->labels);
+  }
+
+  // Merge means and covars by averaging
+  gcm->means  = (float*)calloc(sizeof(float),ninputs);
+  gcm->covars = (float*)calloc(sizeof(float),(ninputs*ninputs-ninputs)/2+ninputs);
+  v = 0;
+  for (r = 0; r < ninputs; r++) {
+    gcm->means[r] = (gc1->means[r]+gc2->means[r])/2.0;
+    for (c = r; c < ninputs; c++) {
+      gcm->covars[r] = (gc1->covars[r]+gc2->covars[r])/2.0;
+      v++;
+    }
+  }
+
+  // Merge MRF/Gibbs stuff. If GIBBS_NEIGHBORS != 6 then problems
+  gcm->nlabels = (short*)calloc(sizeof(short),GIBBS_NEIGHBORS);
+  gcm->labels = (unsigned short**)calloc(sizeof(unsigned short*),GIBBS_NEIGHBORS);
+  gcm->label_priors = (float**)calloc(sizeof(float*),GIBBS_NEIGHBORS);
+
+  for(r=0; r < GIBBS_NEIGHBORS; r++){
+    // Merge the labels
+    gcm->labels[r] = GCAmergeLabelLists(gc1->labels[r], gc1->nlabels[r], gc2->labels[r], gc2->nlabels[r], &nlabels);
+    gcm->nlabels[r] = nlabels;
+    gcm->label_priors[r] = (float*)calloc(sizeof(float),nlabels);
+
+    // Merge the probabilties. Dividing by 2 assures that psum=1
+    for(c=0; c < gcm->nlabels[r]; c++){
+      for(n=0; n < gc1->nlabels[r]; n++){
+	if(gcm->labels[r][c] == gc1->labels[r][n]){
+	  gcm->label_priors[r][c] += gc1->label_priors[r][n]/2.0;
+	  break;
+	}
+      }
+      for(n=0; n < gc2->nlabels[r]; n++){
+	if(gcm->labels[r][c] == gc2->labels[r][n]){
+	  gcm->label_priors[r][c] += gc2->label_priors[r][n]/2.0;
+	  break;
+	}
+      }
+    }
+  }
+
+  return(gcm);
+}
+
+/*!
+\fn GCA_NODE *GCANmerge(GCA_NODE *node1, GCA_NODE *node2, int ninputs, int symmetrize, GCA_NODE *nodem)
+\brief Merges two nodes to create a new node. If symmetrize=1, then the second node is symmetrized
+*/
+GCA_NODE *GCANmerge(GCA_NODE *node1, GCA_NODE *node2, int ninputs, int symmetrize, GCA_NODE *nodem)
+{
+  int n, n1, n2, n1ok, n2ok;
+  unsigned short *node2labels;
+  GC1D *gc2;
+
+  if(symmetrize){
+    // Create a new array, convert the node2 labels to contralateral counterparts
+    node2labels = (unsigned short*)calloc(sizeof(unsigned short),node2->nlabels);
+    for(n=0; n < node2->nlabels; n++){
+      node2labels[n] = MRIasegContraLatLabel(node2->labels[n]);
+    }
+  }
+  else node2labels = node2->labels;
+
+  if(nodem==NULL){
+    // Alloc the merged load
+    nodem = (GCA_NODE*)calloc(sizeof(GCA_NODE),1);
+  } else {
+    if(nodem->labels) free(nodem->labels);
+    if(nodem->gcs) GC1Dfree(&nodem->gcs, ninputs);
+  }
+  // Get list of unique labels
+  nodem->labels = GCAmergeLabelLists(node1->labels, node1->nlabels, node2labels, node2->nlabels, &nodem->nlabels);
+  // Alloc the GC1D array, one for each label
+  nodem->gcs = (GC1D*)calloc(sizeof(GC1D),nodem->nlabels);
+
+  nodem->total_training = node1->total_training + node2->total_training;
+  nodem->max_labels = nodem->nlabels;
+
+  // Go through each label
+  for(n=0; n < nodem->nlabels; n++){
+    // Determine whether this label is represented in node1
+    n1ok = 0;
+    for(n1=0; n1 < node1->nlabels; n1++){
+      if(nodem->labels[n] == node1->labels[n1]){
+	n1ok = 1;
+	break;
+      }
+    }
+    // Determine whether this label is represented in node2
+    n2ok = 0;
+    for(n2=0; n2 < node2->nlabels; n2++){
+      if(nodem->labels[n] == node2labels[n2]) {
+	n2ok = 1;
+	break;
+      }
+    }
+    if(n1ok && n2ok){
+      if(symmetrize)
+	gc2 = GC1Dcopy(&node2->gcs[n2], ninputs, symmetrize, NULL);
+      else
+	gc2 = &node2->gcs[n2];
+      GC1Dmerge(&node1->gcs[n1], gc2, ninputs, &nodem->gcs[n]);
+      if(symmetrize) GC1Dfree(&gc2, ninputs);
+      continue;
+    }
+    if(n1ok){ // This label not reprsented in node2, just copy GC from node1
+      GC1Dcopy(&node1->gcs[n1], ninputs, 0, &nodem->gcs[n]);
+      continue;
+    }
+    if(n2ok){ // This label not reprsented in node1, just copy GC from node2, sym if needed
+      GC1Dcopy(&node2->gcs[n2], ninputs, symmetrize, &nodem->gcs[n]);
+      continue;
+    }
+  }
+
+  if(symmetrize) free(node2labels);
+
+  return(nodem);
+}
+
+int GC1Dfree(GC1D **pgc, int ninputs)
+{
+  GC1D *gc = *pgc;
+  int r;
+  free(gc->means);
+  free(gc->covars);
+  free(gc->nlabels);
+  for(r=0; r < GIBBS_NEIGHBORS; r++){
+    free(gc->labels[r]);
+    free(gc->label_priors[r]);
+  }
+  free(*pgc);
+  *pgc = NULL;
+  return(0);
+}
+
+/*!
+\fn GCA *GCAsymmetrize(GCA *gca)
+\brief Symmetrizes atlas by making sure that the statistics are symmetric. New
+statistics are computed effectively by averaging the non-flipped with the flipped.
+Takes into account the changing of segmentation labels to the corresponding 
+contralateral code.
+ */
+GCA *GCAsymmetrize(GCA *gca)
+{
+  GCA *gcasym;
+  GCA_NODE  *node,  *contranode, *symnode;
+  GCA_PRIOR *prior, *contraprior, *symprior;
+  int c,r,s,csym;
+
+  gcasym = GCAalloc(gca->ninputs, gca->prior_spacing, gca->node_spacing, 
+		    gca->width, gca->height, gca->depth, gca->flags) ;
+
+  printf("width %d\n",gca->width);
+  printf("node  dim %d\n",gca->node_width);
+  printf("prior dim %d\n",gca->prior_width);
+
+  gcasym->max_label = 0;
+  printf("Syming nodes\n");
+  for(c=0; c < gca->node_width; c++){
+    csym = gca->node_width - c - 1;
+    for(r=0; r < gca->node_height; r++){
+      for(s=0; s < gca->node_depth; s++){
+	node       = &(gca->nodes[c][r][s]);
+	contranode = &(gca->nodes[csym][r][s]);
+	symnode    = &(gcasym->nodes[c][r][s]);
+	GCANmerge(node, contranode, gca->ninputs, 1, symnode);
+	if(symnode->max_labels > gcasym->max_label) gcasym->max_label = symnode->max_labels;
+      } // s
+    } // r
+  } //c 
+
+  printf("Syming priors\n");
+  for(c=0; c < gca->prior_width; c++){
+    csym = gca->prior_width - c - 1;
+    for(r=0; r < gca->prior_height; r++){
+      for(s=0; s < gca->prior_depth; s++){
+	prior       = &(gca->priors[c][r][s]);
+	contraprior = GCAPcopy(&(gca->priors[csym][r][s]),1,NULL);
+	symprior    = &(gcasym->priors[c][r][s]);
+	GCAPmerge(prior, contraprior, symprior);
+	if(0 && (c==28 || csym==28) && r==51 && s==51){
+	  printf("prior %d/%d %d %d -------------------------------------\n",c,csym,r,s);
+	  GCAPprint(stdout, prior);
+	  printf("contra prior -------------------------------------\n");
+	  GCAPprint(stdout, contraprior);
+	  printf("sym prior -------------------------------------\n");
+	  GCAPprint(stdout, symprior);
+	}
+	GCAPfree(contraprior);
+	if(symprior->max_labels > gcasym->max_label) gcasym->max_label = symprior->max_labels;
+      } // s
+    } // r
+  } //c 
+
+  return(gcasym);
+}
+
+/*!
+\fn int GCAisNotSymmetric(GCA *gca)
+\brief Tests whether GCA is NOT symmetric. Returns 0 if it is symmetric.
+ */
+int GCAisNotSymmetric(GCA *gca)
+{
+  int n,m, c,r,s,csym, ok, k, kk, q,v ;
+  GCA_NODE  *node, *symnode;
+  GC1D *gcs, *symgcs;
+  GCA_PRIOR *prior, *symprior;
+  int labelcontra ;
+
+  printf("Testing whether GCA is symmetric\n");
+  printf("node  dim %d\n",gca->node_width);
+  printf("prior dim %d\n",gca->prior_width);
+
+  printf("Testing nodes\n");
+  for(c=1; c < gca->node_width; c++){
+    csym = gca->node_width - c - 1;
+    for(r=1; r < gca->node_height; r++){
+      for(s=1; s < gca->node_depth; s++){
+	node = &(gca->nodes[c][r][s]);
+	symnode = &(gca->nodes[csym][r][s]);
+
+	// Test that the number of labels are the symmetric at this node
+	if(node->nlabels != symnode->nlabels){
+	  printf("Node (%d/%d,%d,%d) not sym nlabels %d %d\n",c,csym,r,s,node->nlabels,symnode->nlabels);
+	  return(1);
+	}
+
+	for(n=0; n < node->nlabels; n++){
+	  // Test that label identity is symmetric. The order might not be the same
+	  ok = 0;
+	  for(m=0; m < symnode->nlabels; m++){
+	    labelcontra = MRIasegContraLatLabel(symnode->labels[m]);
+	    if(node->labels[n] == labelcontra){
+	      ok = 1;
+	      break;
+	    }
+	  }
+	  if(!ok){
+	    printf("Node (%d/%d,%d,%d) cannot find %dth label %d in contra\n",c,csym,r,s,n,node->labels[n]);
+	    return(2);
+	  }
+
+	  gcs = &node->gcs[n];
+	  symgcs = &symnode->gcs[m];
+
+	  // Test the means and covars
+	  v = 0;
+	  for(k = 0; k < gca->ninputs; k++){
+	    if(gcs->means[k] != symgcs->means[k]){
+	      printf("Node (%d/%d,%d,%d) not sym means %d   %lf %lf\n",c,csym,r,s,n,gcs->means[k],symgcs->means[k]);
+	      return(3);
+	    }
+	    for(m=k; m < gca->ninputs; m++){
+	      if(gcs->covars[v] != symgcs->covars[v]){
+		printf("Node (%d,%d,%d) not sym covars %d   %lf %lf\n",c,r,s,v,gcs->covars[v],symgcs->covars[v]);
+		return(4);
+	      }
+	      v++;
+	    } // m
+	  } // k
+
+	  // Test MRF neighbors
+	  for(k=0; k < GIBBS_NEIGHBORS; k++){
+	    kk = k;
+	    if(k==0) kk = 1;
+	    if(k==1) kk = 0;
+	    if(gcs->nlabels[k] != symgcs->nlabels[kk]){
+	      printf("Node (%d/%d,%d,%d), label %d, MRF nbr %d,  not sym in number of labels %d %d\n",
+		     c,csym,r,s,n,k,gcs->nlabels[k],symgcs->nlabels[kk]);
+	      return(20);
+	    }
+	    // Now go through each label of this neighbor to find a match
+	    ok = 0;
+	    for(m=0; m < gcs->nlabels[k]; m++){
+	      labelcontra = MRIasegContraLatLabel(gcs->labels[k][m]);
+	      for(q=0; q < symgcs->nlabels[kk]; q++){
+		if(symgcs->labels[kk][q] == labelcontra){
+		  ok = 1;
+		  break;
+		}
+	      }
+	      if(!ok){
+		printf("Node (%d/%d,%d,%d), label %d, MRF nbr %d, cannot find a match for label %d/%d\n",
+		       c,csym,r,s,n,k,gcs->labels[k][m],labelcontra);
+		printf("gca -------------------------------\n");
+		GC1Dprint(stdout,gcs,gca->ninputs);
+		printf("gca sym -------------------------------\n");
+		GC1Dprint(stdout,symgcs,gca->ninputs);
+		return(20);
+	      }
+	      // There is a match, check the prior probs
+	      if(gcs->label_priors[k][m] != symgcs->label_priors[kk][q]){
+		printf("Node (%d/%d,%d,%d), label %d, MRF nbr %d, probs dont match %f %f\n",
+		       c,csym,r,s,n,k,gcs->label_priors[k][m],symgcs->label_priors[kk][q]);
+		printf("gca -------------------------------\n");
+		GC1Dprint(stdout,gcs,gca->ninputs);
+		printf("gca sym -------------------------------\n");
+		GC1Dprint(stdout,symgcs,gca->ninputs);
+		return(21);
+	      }
+	    } // mth label of MRF neighbor
+	  } // kth MRF neighbor
+	} // nth label in the node
+      } // s
+    } // r
+  } //c 
+
+  printf("Testing priors\n");
+  for(c=1; c < gca->prior_width; c++){
+    csym = gca->prior_width - c - 1;
+    for(r=1; r < gca->prior_height; r++){
+      for(s=1; s < gca->prior_depth; s++){
+	prior = &(gca->priors[c][r][s]);
+	symprior = &(gca->priors[csym][r][s]);
+	// Test whether the number of labels at this point is symmetric
+	//if(prior->nlabels < 2 && symprior->nlabels < 2) continue;// not sure why this needed,edge
+	if(prior->nlabels != symprior->nlabels){
+	  printf("Prior ((%d,%d),%d,%d) not sym nlabels %d %d\n",c,csym,r,s,prior->nlabels,symprior->nlabels);
+	  return(11);
+	}
+	// Test whether each label exists in the symmetric location
+	for(n=0; n < prior->nlabels; n++){
+	  ok = 0;
+	  for(m=0; m < prior->nlabels; m++){
+	    labelcontra = MRIasegContraLatLabel(symprior->labels[m]);
+	    if(prior->labels[n] == labelcontra){
+	      ok = 1;
+	      break;
+	    }
+	  }
+	  if(! ok){
+	    printf("Prior (%d/%d,%d,%d) cannot find label %d in sym\n",c,csym,r,s,prior->labels[n]);
+	    for(m=0; m < prior->nlabels; m++) printf(" %d",prior->labels[m]);
+	    printf("\n");
+	    for(m=0; m < prior->nlabels; m++) printf(" %d",symprior->labels[m]);
+	    printf("\n");
+	    return(12);
+	  }
+	  // Test whether the probability of this label at this point is symmetric
+	  if(prior->priors[n] != symprior->priors[m]){
+	    printf("Prior (%d/%d,%d,%d) not sym pval n=%d m=%d   %lf %lf\n",
+		   c,csym,r,s,n,m,prior->priors[n],symprior->priors[n]);
+	    return(13);
+	  }
+	}
+      } // s
+    } // r
+  } //c 
+
+  return(0);
+}
