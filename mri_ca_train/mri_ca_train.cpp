@@ -107,6 +107,7 @@ static int do_sanity_check = 0;
 static int do_fix_badsubjs = 0;
 static int sanity_check_badsubj_count = 0;
 static int AllowMisMatch=0;
+int DoSym = 0;
 #ifdef _OPENMP
   int n_omp_threads;
 #endif
@@ -972,6 +973,18 @@ main(int argc, char *argv[])
     GCAmeanFilterConditionalDensities(gca, navgs) ;
   }
 
+  if(DoSym){
+    printf("Symmetrizing GCA\n");
+    GCA *gcatmp = GCAsymmetrize(gca);
+    GCAfree(&gca);
+    gca = gcatmp;
+    int err = GCAisNotSymmetric(gca);
+    if(err){
+      printf("Symmetrization failed %d\n",err);
+      exit(1);
+    }
+  }
+
   printf("writing trained GCA to %s...\n", out_fname) ;
   GCAcheck(gca) ;
   gca->ct = ctab ;  // read in with -ctab option
@@ -980,8 +993,8 @@ main(int argc, char *argv[])
     (ERROR_BADFILE, "%s: could not write gca to %s", Progname, out_fname) ;
 
   {
+    // Why is this here?
     MRI *mri ;
-
     mri = GCAbuildMostLikelyVolume(gca, NULL) ;
     MRIfree(&mri) ;
   }
@@ -1091,6 +1104,30 @@ get_option(int argc, char *argv[])
     wmsa_fname = argv[2] ;
     nargs = 1 ;
     printf("reading white matter signal abnormalities from %s\n", wmsa_fname) ;
+  }
+  else if (!stricmp(option, "SYM"))
+  {
+    // Make atlas symmetric prior to writing out
+    DoSym = 1;
+    nargs = 0 ;
+    printf("Creating symmetric atlas\n");
+  }
+  else if (!stricmp(option, "MAKESYM"))
+  {
+    // Read in a GCA and make it symmetric
+    GCA *gca;
+    gca = GCAread(argv[2]);
+    GCA *gcasym = GCAsymmetrize(gca);
+    GCAwrite(gcasym,argv[3]);
+    int err = GCAisNotSymmetric(gcasym);
+    exit(err);
+  }
+  else if (!stricmp(option, "CHECKSYM"))
+  {
+    // Read in a GCA and check whether it is symmetric
+    GCA *gca = GCAread(argv[2]);
+    int err = GCAisNotSymmetric(gca);
+    exit(err);
   }
   else if (!stricmp(option, "YGRAD"))
   {
@@ -1347,6 +1384,9 @@ usage_exit(int code)
    "\t-input name     - specifying training data "
    "(path relative to $subject/mri).\n"
    "                          can specify multiple inputs.  "
+   "\t -sym - symmetrize the atlas after creation"
+   "\t -makesym input.gca symmetrized.gca : symmetrize an already existing atlas "
+   "\t -checksym input.gca symmetrized.gca : check the symmetry of an already existing atlas"
    "If not specified, \"orig\" is used\n"
    "\t-check          - conduct sanity-check of labels for obvious edit errors"
    "\t-threads N : specify number of threads to use (also -nthreads)"
