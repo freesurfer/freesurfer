@@ -873,18 +873,6 @@ double       MRISmomentumTimeStep(MRI_SURFACE *mris,
                                   
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 
-typedef struct MRIScomputeSSE_asThoughGradientApplied_ctx MRIScomputeSSE_asThoughGradientApplied_ctx;
-void   MRIScomputeSSE_asThoughGradientApplied_ctx_free(MRIScomputeSSE_asThoughGradientApplied_ctx** ctx);
-
-double       MRIScomputeSSE_asThoughGradientApplied(
-                MRIS*              mris, 
-                double             delta_t, 
-                INTEGRATION_PARMS* parms,
-                MRIScomputeSSE_asThoughGradientApplied_ctx ** ctx);     
-                        // ctx  should be NULL on the first call,
-                        //      should be passed to MRIScomputeSSE_asThoughGradientApplied_ctx_free
-                        //          before any changes to the MRIS happen
-
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
 int          MRIScomputeSurfaceNormals(MRI_SURFACE *mris,
                                        int which,
