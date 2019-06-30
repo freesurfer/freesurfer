@@ -536,11 +536,8 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
                           float *dmin, int which_vertices);
-double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
-double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
-                              double *ext_sse) ;
-double       MRIScomputeCorrelationError(MRI_SURFACE *mris,
-    MRI_SP *mrisp_template, int fno) ;
+                              
+double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
 MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double nVFMultiplier) ;
