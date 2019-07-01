@@ -22,165 +22,6 @@
 #define DEFAULT_STD         mrisurf_sse_DEFAULT_STD
 
 
-int mrisCreateLikelihoodHistograms(MRIS* mris, INTEGRATION_PARMS *parms)
-{
-  int x, y, z, wlabel, plabel;
-  VECTOR *v_brain, *v_hires;
-  MATRIX *m_hires_to_brain;
-  MRI *mri_pial;
-  double xv, yv, zv, val, dist;
-
-  if (parms->mri_white == NULL)  // white isn't moving, so only have to do it once
-  {
-    parms->mri_white = MRIupsampleN(parms->mri_brain, NULL, 3);
-    MRISsaveVertexPositions(mris, TMP_VERTICES);
-    MRISrestoreVertexPositions(mris, WHITE_VERTICES);
-    MRISfillInterior(mris, parms->mri_white->xsize, parms->mri_white);
-    MRISrestoreVertexPositions(mris, TMP_VERTICES);
-  }
-  mri_pial = MRIclone(parms->mri_white, NULL);
-  MRISfillInterior(mris, mri_pial->xsize, mri_pial);
-  if (parms->mri_labels == NULL) {
-    parms->mri_labels = MRIclone(parms->mri_white, NULL);
-  }
-  parms->mri_dist = MRIdistanceTransform(mri_pial, parms->mri_dist, 1, 5 / mri_pial->xsize, DTRANS_MODE_SIGNED, NULL);
-
-  parms->h_wm = HISTOinit(parms->h_wm, 256, 0, 255);
-  parms->h_gm = HISTOinit(parms->h_gm, 256, 0, 255);
-  parms->h_nonbrain = HISTOinit(parms->h_nonbrain, 256, 0, 255);
-  m_hires_to_brain = MRIgetVoxelToVoxelXform(parms->mri_labels, parms->mri_brain);
-
-  v_brain = VectorAlloc(4, MATRIX_REAL);
-  v_hires = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(v_brain, 4) = VECTOR_ELT(v_hires, 4) = 1.0;
-  for (x = 0; x < mri_pial->width; x++) {
-    V3_X(v_hires) = x;
-    for (y = 0; y < mri_pial->height; y++) {
-      V3_Y(v_hires) = y;
-      for (z = 0; z < mri_pial->height; z++) {
-        V3_Z(v_hires) = z;
-        MatrixMultiply(m_hires_to_brain, v_hires, v_brain);
-        xv = V3_X(v_brain);
-        yv = V3_Y(v_brain);
-        zv = V3_Z(v_brain);
-        if (MRIindexNotInVolume(parms->mri_brain, xv, yv, zv)) {
-          val = 0;
-        }
-        else {
-          MRIsampleVolume(parms->mri_brain, xv, yv, zv, &val);
-        }
-
-        wlabel = MRIgetVoxVal(parms->mri_white, x, y, z, 0);
-        plabel = MRIgetVoxVal(mri_pial, x, y, z, 0);
-        dist = MRIgetVoxVal(parms->mri_dist, x, y, z, 0);
-        if (dist > 3) {
-          continue;  // don't consider the millions of voxels far from the surface
-        }
-
-        if (wlabel) {
-          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_WHITE_INTERIOR);
-          HISTOaddSample(parms->h_wm, val, 0, 255);
-        }
-        else if (plabel) {
-          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_PIAL_INTERIOR);
-          HISTOaddSample(parms->h_gm, val, 0, 255);
-        }
-        else {
-          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_NONBRAIN);
-          HISTOaddSample(parms->h_nonbrain, val, 0, 255);
-        }
-      }
-    }
-  }
-  HISTOmakePDF(parms->h_nonbrain, parms->h_nonbrain);
-  HISTOmakePDF(parms->h_wm, parms->h_wm);
-  HISTOmakePDF(parms->h_gm, parms->h_gm);
-  MatrixFree(&m_hires_to_brain);
-  MatrixFree(&v_brain);
-  MatrixFree(&v_hires);
-  MRIfree(&mri_pial);
-  return (NO_ERROR);
-}
-
-
-double vlst_loglikelihood(MRIS *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM *hin, HISTOGRAM *hout)
-{
-  double ll = 0.0, dot, dx, dy, dz, pval, dist, Ig, Ic, gm_frac, out_frac;
-  int i;
-  float val;
-  VERTEX *v;
-  double xs, ys, zs;
-
-  v = &mris->vertices[vno];
-  xs = v->x + displacement * v->nx;
-  ys = v->y + displacement * v->ny;
-  zs = v->z + displacement * v->nz;
-  for (i = 0; i < vl->nvox; i++) {
-    dx = vl->xd[i] - xs;
-    dy = vl->yd[i] - ys;
-    dz = vl->zd[i] - zs;
-    dist = sqrt(dx * dx + dy * dy + dz * dz);
-    dot = dx * v->nx + dy * v->ny + dz * v->nz;
-    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0);
-    if (dist < .5)  // distance to center<.5 --> distance to edge <1
-    {
-      if (dot > 0) {
-        out_frac = dist + .5;
-        gm_frac = 1 - out_frac;
-      }
-      else {
-        gm_frac = dist + .5;
-        out_frac = 1 - gm_frac;
-      }
-      for (pval = 0.0, Ig = 0; Ig <= 256; Ig++) {
-        Ic = (val - gm_frac * Ig) / out_frac;
-        pval += HISTOgetCount(hout, Ic) * HISTOgetCount(hin, Ig);
-      }
-    }
-    else if (dot > 0)  // outside surface
-      pval = HISTOgetCount(hout, val);
-    else  // inside the surface
-      pval = HISTOgetCount(hin, val);
-    if (DZERO(pval)) pval = 1e-10;
-    ll += -log(pval);
-  }
-
-  return (ll);
-}
-
-double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *h, FILE *fp)
-{
-  double ll = 0.0, dot, dx, dy, dz, pval, dist;
-  int i;
-  float val;
-  VERTEX *v;
-  double xs, ys, zs;
-
-  if (fp) fprintf(fp, "%f ", displacement);
-
-  v = &mris->vertices[vno];
-  xs = v->x + displacement * v->nx;
-  ys = v->y + displacement * v->ny;
-  zs = v->z + displacement * v->nz;
-  for (i = 0; i < vl->nvox; i++) {
-    dx = vl->xd[i] - xs;
-    dy = vl->yd[i] - ys;
-    dz = vl->zd[i] - zs;
-    dist = sqrt(dx * dx + dy * dy + dz * dz);
-    dot = dx * v->nx + dy * v->ny + dz * v->nz;
-    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0);
-    pval = HISTO2DgetCount(h, val, dot);
-    if (DZERO(pval)) pval = 1e-10;
-    if (fp) fprintf(fp, "%d %2.2f %2.2f ", (int)val, dot, -log(pval));
-    ll += -log(pval);
-  }
-
-  if (fp) fprintf(fp, "\n");
-  return (ll);
-}
-
-
-
 // The SSE terms are either computed by iterating over the vertices or the faces
 // Ideally there would be one pass over each, to 
 //      a) minimize the scanning logic
@@ -200,133 +41,253 @@ struct SseTermsBase {
 #endif
 };
 
+
+// This template is for all the terms that can be computed from any Surface
+//
 template <class Surface, class Face, class Vertex>
 struct SseTerms_Template : public SseTermsBase {
     Surface surface;
 #if METRIC_SCALE
     double const area_scale;
 #endif
-    SseTerms_Template(Surface surface) : surface(surface), area_scale(surface.patch() ? 1.0 : (surface.orig_area() / surface.total_area())) {}
+
+    int const vnoBegin;
+    int const vnoEnd;
+
+    SseTerms_Template(Surface surface, int selector) 
+      : surface(surface), 
+        area_scale(surface.patch() ? 1.0 : (surface.orig_area() / surface.total_area())),
+        vnoBegin(selector >= 0 ? selector   : 0),
+        vnoEnd  (selector >= 0 ? selector+1 : surface.nvertices())
+    {}
 
 
     //========================================
-    // Terms that iterate over all the vertices, and for each iterate over all their neighbours
+    // Energy terms that iterate over the vertices, but not their neighbours
     //
-    double RepulsiveRatioEnergy( double l_repulse, int vnoBegin, int vnoEnd)
+
+    //========================================
+    // Energy terms that iterate over the vertices, and for each iterate over all their neighbours
+    //
+    double RepulsiveRatioEnergy( double l_repulse)
     {
-      if (FZERO(l_repulse))
-        return (0.0);
+        if (FZERO(l_repulse))
+            return (0.0);
 
-      double sse_repulse = 0.0;
-      for (int vno = vnoBegin; vno < vnoEnd; vno++) {
-        auto const v = surface.vertices(vno);
-        if (v.ripflag()) continue;
+        double sse_repulse = 0.0;
+        for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+            auto const v = surface.vertices(vno);
+            if (v.ripflag()) continue;
 
-        double const x  = v.x(),  y  = v.y(),  z  = v.z();
-        double const cx = v.cx(), cy = v.cy(), cz = v.cz();
+            double const x  = v.x(),  y  = v.y(),  z  = v.z();
+            double const cx = v.cx(), cy = v.cy(), cz = v.cz();
 
-        double v_sse = 0.0;
-        for (int n = 0; n < v.vnum(); n++) {
-          auto const vn = v.v(n);
-          if (vn.ripflag()) continue;
+            double v_sse = 0.0;
+            for (int n = 0; n < v.vnum(); n++) {
+                auto const vn = v.v(n);
+                if (vn.ripflag()) continue;
 
-          double const  dx =  x - vn.x(),  dy  =  y - vn.y(),  dz  = z  - vn.z();
-          double const cdx = cx - vn.cx(), cdy = cy - vn.cy(), cdz = cz - vn.cz();
+                double const  dx =  x - vn.x(),  dy  =  y - vn.y(),  dz  = z  - vn.z();
+                double const cdx = cx - vn.cx(), cdy = cy - vn.cy(), cdz = cz - vn.cz();
 
-          double const dist       = sqrt(dx*dx   + dy*dy   + dz*dz);
-          double const canon_dist = sqrt(cdx*cdx + cdy*cdy + cdz*cdz) + REPULSE_E;
+                double const dist       = sqrt(dx*dx   + dy*dy   + dz*dz);
+                double const canon_dist = sqrt(cdx*cdx + cdy*cdy + cdz*cdz) + REPULSE_E;
 
-          double const adjusted_dist = dist/canon_dist + REPULSE_E;
-          v_sse += REPULSE_K / (adjusted_dist * adjusted_dist);
+                double const adjusted_dist = dist/canon_dist + REPULSE_E;
+                v_sse += REPULSE_K / (adjusted_dist * adjusted_dist);
+            }
+            sse_repulse += v_sse;
         }
-        sse_repulse += v_sse;
-      }
 
-      return (l_repulse * sse_repulse);
+        return l_repulse*sse_repulse;
     }
+    
+    double SpringEnergy()
+    {
+        double sse_spring = 0.0;
+        for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+            auto const v = surface.vertices(vno);
+            if (v.ripflag()) continue;
+            double v_sse = 0.0;
+            for (int n = 0; n < v.vnum(); n++) {
+                v_sse += square(v.dist(n));
+            }
+            sse_spring += area_scale * v_sse;
+        }
+        return sse_spring;
+    }
+
+    double LaplacianEnergy()
+    {
+        //  Note: this function assumes that the mris surface has the original
+        //  (i.e. after global rotational alignment)
+        //  spherical coordinates in the TMP2_VERTICES
+        //
+        double sse_lap = 0.0;
+        for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+            auto const v = surface.vertices(vno);
+            if (v.ripflag()) continue;
+
+            double const vx = v.x() - v.t2x(), vy = v.y() - v.t2y(), vz = v.z() - v.t2z();
+            double v_sse = 0.0; 
+            for (int n = 0; n < v.vnum(); n++) {
+                auto const vn = v.v(n);
+                double const vnx = vn.x() - vn.t2x(), vny = vn.y() - vn.t2y(), vnz = vn.z() - vn.t2z();
+                double const dx  = vnx - vx, dy = vny - vy, dz = vnz - vz;
+                double const error = square(dx) + square(dy) + square(dz);
+                v_sse += error;
+            }
+            sse_lap += area_scale * v_sse;
+        }
+
+        return sse_lap;
+    }
+
+    double TangentialSpringEnergy()
+    {
+        double sse_spring = 0.0;
+        for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+            auto const v = surface.vertices(vno);
+            if (v.ripflag()) continue;
+
+            float const x = v.x(), v_nx = v.nx();
+            float const y = v.y(), v_ny = v.ny();
+            float const z = v.z(), v_nz = v.nz();
+
+            double v_sse = 0.0;
+            for (int n = 0; n < v.vnum(); n++) {
+                auto const vn = v.v(n);
+                
+                float dx = vn.x() - x;
+                float dy = vn.y() - y;
+                float dz = vn.z() - z;
+                
+                float const nc = dx * v_nx + dy * v_ny + dz * v_nz;
+                dx -= nc * v_nx;
+                dy -= nc * v_ny;
+                dz -= nc * v_nz;
+                
+                float const dist_sq = square(dx) + square(dy) + square(dz);
+                
+                v_sse += dist_sq;
+            }
+            sse_spring += area_scale * v_sse;
+        }
+        return sse_spring;
+    }
+
+
+    //========================================
+    // Error terms that iterate over the vertices, but not their neighbours
+    //
+
+    //========================================
+    // Error terms that iterate over the vertices, and for each iterate over all their neighbours
+    //
 };
 
 
-typedef SurfaceFromMRIS::XYZPositionConsequences::Surface MRIS_Surface;
-typedef SurfaceFromMRIS::XYZPositionConsequences::Face    MRIS_Face;
-typedef SurfaceFromMRIS::XYZPositionConsequences::Vertex  MRIS_Vertex;
+typedef SurfaceFromMRIS::Distort::Surface MRIS_Surface;
+typedef SurfaceFromMRIS::Distort::Face    MRIS_Face;
+typedef SurfaceFromMRIS::Distort::Vertex  MRIS_Vertex;
 
 typedef SseTerms_Template<MRIS_Surface,MRIS_Face,MRIS_Vertex> SseTerms_Template_for_SurfaceFromMRIS;
 
 struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
     MRIS* const mris;
-    SseTerms(MRIS* const mris) : SseTerms_Template_for_SurfaceFromMRIS(MRIS_Surface(mris)), mris(mris) {}
+    SseTerms(MRIS* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS(MRIS_Surface(mris),selector), mris(mris) {}
     
     #define MRIS_PARAMETER          
     #define MRIS_PARAMETER_COMMA
-    #define DEFSEL
+    #define NOCOMMA_SELECTOR
+    #define COMMA_SELECTOR
     #define SEP 
     #define ELT(NAME, SIGNATURE, CALL)    double NAME SIGNATURE;
     LIST_OF_SSETERMS
     #undef ELT
     #undef SEP
-    #undef DEFSEL
+    #undef NOCOMMA_SELECTOR
+    #undef COMMA_SELECTOR
     #undef MRIS_PARAMETER_COMMA
     #undef MRIS_PARAMETER
 };
 
 
-//========================================
-// Terms that iterate over all the vertices, and for each iterate over all their neighbours
+//=============
+// Energy Terms
 //
-double SseTerms::RepulsiveRatioEnergy( double l_repulse, int selector)
+double SseTerms::RepulsiveRatioEnergy(double l_repulse)
 {
-  int vnoBegin = selector >= 0 ? selector   : 0;
-  int vnoEnd   = selector >= 0 ? selector+1 : mris->nvertices;
-  return SseTerms_Template_for_SurfaceFromMRIS::RepulsiveRatioEnergy(0,vnoBegin,vnoEnd);
+    return SseTerms_Template_for_SurfaceFromMRIS::RepulsiveRatioEnergy(l_repulse);
 }
 
-double SseTerms::SpringEnergy(int selector)
+double SseTerms::SpringEnergy()
 {
-  double sse_spring = 0.0;
-  for (int vno = 0; vno < mris->nvertices; vno++) {
+    return SseTerms_Template_for_SurfaceFromMRIS::SpringEnergy();
+}
+
+double SseTerms::LaplacianEnergy()
+{
+    return SseTerms_Template_for_SurfaceFromMRIS::LaplacianEnergy();
+}
+
+double SseTerms::TangentialSpringEnergy()
+{
+    return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
+}
+
+// Error terms
+//
+
+
+// Misc
+//
+double SseTerms::NonlinearDistanceSSE()
+{
+  int vno, n, nvertices, max_v, max_n;
+  double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
+
+#if METRIC_SCALE
+  if (mris->patch) {
+    dist_scale = 1.0;
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
+    dist_scale = sqrt(mris->orig_area / mris->total_area);
+  }
+  else
+    dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
+                                                   : sqrt(mris->orig_area / mris->total_area);
+#else
+  dist_scale = 1.0;
+#endif
+  max_del = -1.0;
+  max_v = max_n = -1;
+  for (sse_dist = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) continue;
-
-    double v_sse = 0.0;
-    for (int n = 0; n < vt->vnum; n++) {
-      v_sse += (v->dist[n] * v->dist[n]);
+    if (v->ripflag) {
+      continue;
     }
-    sse_spring += area_scale * v_sse;
-  }
-  
-  return (sse_spring);
-}
-
-
-double SseTerms::LaplacianEnergy(int selector)
-{
-  //  Note: this function assumes that the mris surface has the original
-  //  (i.e. after global rotational alignment)
-  //  spherical coordinates in the TMP2_VERTICES
-  //
-  double sse_lap = 0.0;
-  for (int vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) continue;
-
-    double const vx = v->x - v->t2x, vy = v->y - v->t2y, vz = v->z - v->t2z;
-    double v_sse = 0.0; 
-    for (int n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      double const vnx = vn->x - vn->t2x, vny = vn->y - vn->t2y, vnz = vn->z - vn->t2z;
-      double const dx  = vnx - vx, dy = vny - vy, dz = vnz - vz;
-      double const error = dx * dx + dy * dy + dz * dz;
-      v_sse += error;
+    nvertices++;
+    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
+      if (FZERO(v->dist_orig[n])) {
+        continue;
+      }
+      ratio = dist_scale * v->dist[n] / v->dist_orig[n];
+      delta = log(1 + exp(ratio));
+      v_sse += delta;
+      if (!isfinite(delta) || !isfinite(v_sse)) {
+        DiagBreak();
+      }
     }
-    sse_lap += area_scale * v_sse;
+    sse_dist += v_sse;
+    if (!isfinite(sse_dist) || !isfinite(v_sse)) {
+      DiagBreak();
+    }
   }
 
-  return (sse_lap);
+  return (sse_dist);
 }
-
 
 
 
@@ -339,7 +300,7 @@ double SseTerms::LaplacianEnergy(int selector)
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-double SseTerms::QuadraticCurvatureSSE( double l_curv, int selector)            // BEVIN mris_make_surfaces 3
+double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
 {
   if (FZERO(l_curv)) {
     return (NO_ERROR);
@@ -492,7 +453,7 @@ double SseTerms::QuadraticCurvatureSSE( double l_curv, int selector)            
 
   Description
   ------------------------------------------------------*/
-double SseTerms::NonlinearAreaSSE(int selector)
+double SseTerms::NonlinearAreaSSE()
 {
   double area_scale;
 
@@ -613,7 +574,7 @@ double SseTerms::NonlinearAreaSSE(int selector)
 }
 
 
-double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms, int selector)
+double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tmin;
@@ -665,7 +626,7 @@ double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PA
 }
 
 
-double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms, int selector)
+double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   double sse_tparallel, max_inc;
@@ -724,7 +685,7 @@ double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_P
 }
 
 
-double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms, int selector)
+double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
@@ -770,7 +731,7 @@ double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS 
   Description
   ------------------------------------------------------*/
 static double big_sse = 10.0;
-double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms, int selector)
+double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tnormal;
@@ -844,6 +805,8 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
   sse_tnormal /= 2;
   return (sse_tnormal);
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -851,7 +814,7 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
 
   Description
   ------------------------------------------------------*/
-double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms, int selector)
+double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_spring, sse;
@@ -918,7 +881,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
     REPULSE_E - sets minimum distance
     4 - scaling term
 */
-double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces, int selector)
+double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
@@ -1024,59 +987,8 @@ double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces, in
   return (l_repulse * sse_repulse);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-double SseTerms::TangentialSpringEnergy(int selector)
-{
-  int vno, n;
-  double area_scale, sse_spring, v_sse;
-  float dx, dy, dz, x, y, z, nc, dist_sq;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = FZERO(mris->total_area) ? 1.0 : mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-
-    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      dx = vn->x - x;
-      dy = vn->y - y;
-      dz = vn->z - z;
-      nc = dx * v->nx + dy * v->ny + dz * v->nz;
-      dx -= nc * v->nx;
-      dy -= nc * v->ny;
-      dz -= nc * v->nz;
-      dist_sq = dx * dx + dy * dy + dz * dz;
-      v_sse += dist_sq;
-    }
-    sse_spring += area_scale * v_sse;
-  }
-  return (sse_spring);
-}
-
-double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
@@ -1131,7 +1043,7 @@ double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms, int selector)
   return (sse_spring);
 }
 
-double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht, int selector)
+double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
 {
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
@@ -1210,57 +1122,10 @@ double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht, int selecto
   return (sse);
 }
 
-double SseTerms::NonlinearDistanceSSE(int selector)
-{
-  int vno, n, nvertices, max_v, max_n;
-  double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-  else
-    dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
-                                                   : sqrt(mris->orig_area / mris->total_area);
-#else
-  dist_scale = 1.0;
-#endif
-  max_del = -1.0;
-  max_v = max_n = -1;
-  for (sse_dist = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    nvertices++;
-    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
-      if (FZERO(v->dist_orig[n])) {
-        continue;
-      }
-      ratio = dist_scale * v->dist[n] / v->dist_orig[n];
-      delta = log(1 + exp(ratio));
-      v_sse += delta;
-      if (!isfinite(delta) || !isfinite(v_sse)) {
-        DiagBreak();
-      }
-    }
-    sse_dist += v_sse;
-    if (!isfinite(sse_dist) || !isfinite(v_sse)) {
-      DiagBreak();
-    }
-  }
-
-  return (sse_dist);
-}
-
 
 double SseTerms::AshburnerTriangleEnergy(
                                                  double l_ashburner_triangle,
-                                                 INTEGRATION_PARMS *parms, int selector)
+                                                 INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_ashburner;
@@ -1298,7 +1163,7 @@ double SseTerms::AshburnerTriangleEnergy(
   return (sse_ashburner);
 }
 
-double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 {
   double likelihood, entropy;
   int x, y, z, label;
@@ -1358,7 +1223,7 @@ double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms, int selector
 }
 
 
-double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox, int selector)
+double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   double sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval;
@@ -1483,7 +1348,7 @@ double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox, int
 }
 
 
-double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox, int selector)
+double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   MHT *mht;
@@ -1738,7 +1603,7 @@ double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_
 //===================================================================================================
 // Error functions
 //
-double SseTerms::DistanceError( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::DistanceError( INTEGRATION_PARMS *parms)
 {
   if (!(mris->dist_alloced_flags & 1)) {
     switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
@@ -1933,7 +1798,7 @@ double SseTerms::DistanceError( INTEGRATION_PARMS *parms, int selector)
 }
 
 
-double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno, int selector)
+double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno)
 {
   INTEGRATION_PARMS parms;
   float error;
@@ -1950,7 +1815,7 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
   return (sqrt(error / (double)MRISvalidVertices(mris)));
 }
 
-double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds, int selector)
+double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   float l_corr;
 
@@ -2064,7 +1929,7 @@ double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds, int s
    of vertices. Basically same computation as mrisRmsValError() but that func
    does normalize.
 */
-double SseTerms::IntensityError( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
 {
   int vno,nhits;
   VERTEX *v;
@@ -2094,7 +1959,7 @@ double SseTerms::IntensityError( INTEGRATION_PARMS *parms, int selector)
   \brief Computes the distance squared between v->{xyz} and v->targ{xyz} and sums up over
   all unripped vertices. See also mrisRmsDistanceError(mris).
   ------------------------------------------------------*/
-double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   VERTEX *v;
@@ -2142,7 +2007,7 @@ double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms, int selector)
 }
 
 
-double SseTerms::RmsDistanceError(int selector)
+double SseTerms::RmsDistanceError()
 {
   INTEGRATION_PARMS parms;
   double rms;
@@ -2154,7 +2019,7 @@ double SseTerms::RmsDistanceError(int selector)
 }
 
 
-double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
 {
   int vno;
   VERTEX *v;
@@ -2197,7 +2062,7 @@ double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms, int selector)
 
 
 
-double SseTerms::SphereError( double l_sphere, double r0, int selector)
+double SseTerms::SphereError( double l_sphere, double r0)
 {
   int vno;
   double sse, x0, y0, z0;
@@ -2256,7 +2121,7 @@ double SseTerms::SphereError( double l_sphere, double r0, int selector)
   return (sse);
 }
 
-double SseTerms::DuraError( INTEGRATION_PARMS *parms, int selector)
+double SseTerms::DuraError( INTEGRATION_PARMS *parms)
 {
   double dura_thresh = parms->dura_thresh, sse;
   MRI *mri_dura = parms->mri_dura;
@@ -2296,7 +2161,7 @@ double SseTerms::DuraError( INTEGRATION_PARMS *parms, int selector)
 }
 
 
-double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds, int selector)
+double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   double src, target, sse, delta, std;
   VERTEX *v;
@@ -2454,7 +2319,7 @@ double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds,
 }
 
 
-double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius, int selector)
+double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
 {
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz, sse, error, dist;
@@ -2502,7 +2367,7 @@ double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double ta
   return (sse);
 }
 
-double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap, int selector)
+double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 {
 #if 0
   static int iter = 100 ;
@@ -2535,8 +2400,7 @@ double SseTerms::Error(
                                float *pangle_rms,
                                float *pcurv_rms,
                                float *pdist_rms,
-                               float *pcorr_rms, 
-                               int selector)
+                               float *pcorr_rms)
 {
   double rms, sse_area, sse_angle, sse_curv, delta, area_scale, sse_dist, sse_corr;
   int ano, fno, ntriangles, total_neighbors;
@@ -2692,17 +2556,185 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 }
 
 
+//========================================
+// misc
+//
+int mrisCreateLikelihoodHistograms(MRIS* mris, INTEGRATION_PARMS *parms)
+{
+  // Hard to convert to Surface because of saving an restoring vertex positions, cloning, etc.
+  //
+  int x, y, z, wlabel, plabel;
+  VECTOR *v_brain, *v_hires;
+  MATRIX *m_hires_to_brain;
+  MRI *mri_pial;
+  double xv, yv, zv, val, dist;
+
+  if (parms->mri_white == NULL)  // white isn't moving, so only have to do it once
+  {
+    parms->mri_white = MRIupsampleN(parms->mri_brain, NULL, 3);
+    MRISsaveVertexPositions(mris, TMP_VERTICES);
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES);
+    MRISfillInterior(mris, parms->mri_white->xsize, parms->mri_white);
+    MRISrestoreVertexPositions(mris, TMP_VERTICES);
+  }
+  mri_pial = MRIclone(parms->mri_white, NULL);
+  MRISfillInterior(mris, mri_pial->xsize, mri_pial);
+  if (parms->mri_labels == NULL) {
+    parms->mri_labels = MRIclone(parms->mri_white, NULL);
+  }
+  parms->mri_dist = MRIdistanceTransform(mri_pial, parms->mri_dist, 1, 5 / mri_pial->xsize, DTRANS_MODE_SIGNED, NULL);
+
+  parms->h_wm = HISTOinit(parms->h_wm, 256, 0, 255);
+  parms->h_gm = HISTOinit(parms->h_gm, 256, 0, 255);
+  parms->h_nonbrain = HISTOinit(parms->h_nonbrain, 256, 0, 255);
+  m_hires_to_brain = MRIgetVoxelToVoxelXform(parms->mri_labels, parms->mri_brain);
+
+  v_brain = VectorAlloc(4, MATRIX_REAL);
+  v_hires = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(v_brain, 4) = VECTOR_ELT(v_hires, 4) = 1.0;
+  for (x = 0; x < mri_pial->width; x++) {
+    V3_X(v_hires) = x;
+    for (y = 0; y < mri_pial->height; y++) {
+      V3_Y(v_hires) = y;
+      for (z = 0; z < mri_pial->height; z++) {
+        V3_Z(v_hires) = z;
+        MatrixMultiply(m_hires_to_brain, v_hires, v_brain);
+        xv = V3_X(v_brain);
+        yv = V3_Y(v_brain);
+        zv = V3_Z(v_brain);
+        if (MRIindexNotInVolume(parms->mri_brain, xv, yv, zv)) {
+          val = 0;
+        }
+        else {
+          MRIsampleVolume(parms->mri_brain, xv, yv, zv, &val);
+        }
+
+        wlabel = MRIgetVoxVal(parms->mri_white, x, y, z, 0);
+        plabel = MRIgetVoxVal(mri_pial, x, y, z, 0);
+        dist = MRIgetVoxVal(parms->mri_dist, x, y, z, 0);
+        if (dist > 3) {
+          continue;  // don't consider the millions of voxels far from the surface
+        }
+
+        if (wlabel) {
+          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_WHITE_INTERIOR);
+          HISTOaddSample(parms->h_wm, val, 0, 255);
+        }
+        else if (plabel) {
+          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_PIAL_INTERIOR);
+          HISTOaddSample(parms->h_gm, val, 0, 255);
+        }
+        else {
+          MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_NONBRAIN);
+          HISTOaddSample(parms->h_nonbrain, val, 0, 255);
+        }
+      }
+    }
+  }
+  HISTOmakePDF(parms->h_nonbrain, parms->h_nonbrain);
+  HISTOmakePDF(parms->h_wm, parms->h_wm);
+  HISTOmakePDF(parms->h_gm, parms->h_gm);
+  MatrixFree(&m_hires_to_brain);
+  MatrixFree(&v_brain);
+  MatrixFree(&v_hires);
+  MRIfree(&mri_pial);
+  return (NO_ERROR);
+}
+
+
+double vlst_loglikelihood(MRIS *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM *hin, HISTOGRAM *hout)
+{
+  double ll = 0.0, dot, dx, dy, dz, pval, dist, Ig, Ic, gm_frac, out_frac;
+  int i;
+  float val;
+  VERTEX *v;
+  double xs, ys, zs;
+
+  v = &mris->vertices[vno];
+  xs = v->x + displacement * v->nx;
+  ys = v->y + displacement * v->ny;
+  zs = v->z + displacement * v->nz;
+  for (i = 0; i < vl->nvox; i++) {
+    dx = vl->xd[i] - xs;
+    dy = vl->yd[i] - ys;
+    dz = vl->zd[i] - zs;
+    dist = sqrt(dx * dx + dy * dy + dz * dz);
+    dot = dx * v->nx + dy * v->ny + dz * v->nz;
+    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0);
+    if (dist < .5)  // distance to center<.5 --> distance to edge <1
+    {
+      if (dot > 0) {
+        out_frac = dist + .5;
+        gm_frac = 1 - out_frac;
+      }
+      else {
+        gm_frac = dist + .5;
+        out_frac = 1 - gm_frac;
+      }
+      for (pval = 0.0, Ig = 0; Ig <= 256; Ig++) {
+        Ic = (val - gm_frac * Ig) / out_frac;
+        pval += HISTOgetCount(hout, Ic) * HISTOgetCount(hin, Ig);
+      }
+    }
+    else if (dot > 0)  // outside surface
+      pval = HISTOgetCount(hout, val);
+    else  // inside the surface
+      pval = HISTOgetCount(hin, val);
+    if (DZERO(pval)) pval = 1e-10;
+    ll += -log(pval);
+  }
+
+  return (ll);
+}
+
+
+double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *h, FILE *fp)
+{
+  double ll = 0.0, dot, dx, dy, dz, pval, dist;
+  int i;
+  float val;
+  VERTEX *v;
+  double xs, ys, zs;
+
+  if (fp) fprintf(fp, "%f ", displacement);
+
+  v = &mris->vertices[vno];
+  xs = v->x + displacement * v->nx;
+  ys = v->y + displacement * v->ny;
+  zs = v->z + displacement * v->nz;
+  for (i = 0; i < vl->nvox; i++) {
+    dx = vl->xd[i] - xs;
+    dy = vl->yd[i] - ys;
+    dz = vl->zd[i] - zs;
+    dist = sqrt(dx * dx + dy * dy + dz * dz);
+    dot = dx * v->nx + dy * v->ny + dz * v->nz;
+    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0);
+    pval = HISTO2DgetCount(h, val, dot);
+    if (DZERO(pval)) pval = 1e-10;
+    if (fp) fprintf(fp, "%d %2.2f %2.2f ", (int)val, dot, -log(pval));
+    ll += -log(pval);
+  }
+
+  if (fp) fprintf(fp, "\n");
+  return (ll);
+}
+
+
+
+
 // Generate all the jackets
 //
 #define MRIS_PARAMETER          MRIS* mris          
 #define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
-#define DEFSEL
+#define NOCOMMA_SELECTOR        int selector
+#define COMMA_SELECTOR          , NOCOMMA_SELECTOR
 #define SEP 
-#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms sseTerms(mris); return sseTerms.NAME CALL; }
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms sseTerms(mris,selector); return sseTerms.NAME CALL; }
 LIST_OF_SSETERMS
 #undef ELT
 #undef SEP
-#undef DEFSEL
+#undef COMMA_SELECTOR
+#undef NOCOMMA_SELECTOR
 #undef MRIS_PARAMETER_COMMA
 #undef MRIS_PARAMETER
 
