@@ -194,20 +194,144 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
 
 static bool const trace = false;
 
-struct SseTerms {
+struct SseTermsBase {
+#ifndef METRIC_SCALE
+    static double const area_scale = 1.0;
+#endif
+};
+
+template <class Surface, class Face, class Vertex>
+struct SseTerms_Template : public SseTermsBase {
+    Surface surface;
+#if METRIC_SCALE
+    double const area_scale;
+#endif
+    SseTerms_Template(Surface surface) : surface(surface), area_scale(surface.patch() ? 1.0 : (surface.orig_area() / surface.total_area())) {}
+
+
+    //========================================
+    // Terms that iterate over all the vertices, and for each iterate over all their neighbours
+    //
+    double RepulsiveRatioEnergy( double l_repulse, int vnoBegin, int vnoEnd)
+    {
+      if (FZERO(l_repulse))
+        return (0.0);
+
+      double sse_repulse = 0.0;
+      for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+        auto const v = surface.vertices(vno);
+        if (v.ripflag()) continue;
+
+        double const x  = v.x(),  y  = v.y(),  z  = v.z();
+        double const cx = v.cx(), cy = v.cy(), cz = v.cz();
+
+        double v_sse = 0.0;
+        for (int n = 0; n < v.vnum(); n++) {
+          auto const vn = v.v(n);
+          if (vn.ripflag()) continue;
+
+          double const  dx =  x - vn.x(),  dy  =  y - vn.y(),  dz  = z  - vn.z();
+          double const cdx = cx - vn.cx(), cdy = cy - vn.cy(), cdz = cz - vn.cz();
+
+          double const dist       = sqrt(dx*dx   + dy*dy   + dz*dz);
+          double const canon_dist = sqrt(cdx*cdx + cdy*cdy + cdz*cdz) + REPULSE_E;
+
+          double const adjusted_dist = dist/canon_dist + REPULSE_E;
+          v_sse += REPULSE_K / (adjusted_dist * adjusted_dist);
+        }
+        sse_repulse += v_sse;
+      }
+
+      return (l_repulse * sse_repulse);
+    }
+};
+
+
+typedef SurfaceFromMRIS::XYZPositionConsequences::Surface MRIS_Surface;
+typedef SurfaceFromMRIS::XYZPositionConsequences::Face    MRIS_Face;
+typedef SurfaceFromMRIS::XYZPositionConsequences::Vertex  MRIS_Vertex;
+
+typedef SseTerms_Template<MRIS_Surface,MRIS_Face,MRIS_Vertex> SseTerms_Template_for_SurfaceFromMRIS;
+
+struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
     MRIS* const mris;
-    SseTerms(MRIS* const mris) : mris(mris) {}
+    SseTerms(MRIS* const mris) : SseTerms_Template_for_SurfaceFromMRIS(MRIS_Surface(mris)), mris(mris) {}
     
     #define MRIS_PARAMETER          
-    #define MRIS_PARAMETER_COMMA    
+    #define MRIS_PARAMETER_COMMA
+    #define DEFSEL
     #define SEP 
     #define ELT(NAME, SIGNATURE, CALL)    double NAME SIGNATURE;
     LIST_OF_SSETERMS
     #undef ELT
     #undef SEP
+    #undef DEFSEL
     #undef MRIS_PARAMETER_COMMA
     #undef MRIS_PARAMETER
 };
+
+
+//========================================
+// Terms that iterate over all the vertices, and for each iterate over all their neighbours
+//
+double SseTerms::RepulsiveRatioEnergy( double l_repulse, int selector)
+{
+  int vnoBegin = selector >= 0 ? selector   : 0;
+  int vnoEnd   = selector >= 0 ? selector+1 : mris->nvertices;
+  return SseTerms_Template_for_SurfaceFromMRIS::RepulsiveRatioEnergy(0,vnoBegin,vnoEnd);
+}
+
+double SseTerms::SpringEnergy(int selector)
+{
+  double sse_spring = 0.0;
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) continue;
+
+    double v_sse = 0.0;
+    for (int n = 0; n < vt->vnum; n++) {
+      v_sse += (v->dist[n] * v->dist[n]);
+    }
+    sse_spring += area_scale * v_sse;
+  }
+  
+  return (sse_spring);
+}
+
+
+double SseTerms::LaplacianEnergy(int selector)
+{
+  //  Note: this function assumes that the mris surface has the original
+  //  (i.e. after global rotational alignment)
+  //  spherical coordinates in the TMP2_VERTICES
+  //
+  double sse_lap = 0.0;
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    if (v->ripflag) continue;
+
+    double const vx = v->x - v->t2x, vy = v->y - v->t2y, vz = v->z - v->t2z;
+    double v_sse = 0.0; 
+    for (int n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
+      double const vnx = vn->x - vn->t2x, vny = vn->y - vn->t2y, vnz = vn->z - vn->t2z;
+      double const dx  = vnx - vx, dy = vny - vy, dz = vnz - vz;
+      double const error = dx * dx + dy * dy + dz * dz;
+      v_sse += error;
+    }
+    sse_lap += area_scale * v_sse;
+  }
+
+  return (sse_lap);
+}
+
+
+
+
+//========================================
+// Ones that have not been tidied up yet
 
 
 /*-----------------------------------------------------
@@ -215,7 +339,7 @@ struct SseTerms {
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
+double SseTerms::QuadraticCurvatureSSE( double l_curv, int selector)            // BEVIN mris_make_surfaces 3
 {
   if (FZERO(l_curv)) {
     return (NO_ERROR);
@@ -368,7 +492,7 @@ double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_
 
   Description
   ------------------------------------------------------*/
-double SseTerms::NonlinearAreaSSE()
+double SseTerms::NonlinearAreaSSE(int selector)
 {
   double area_scale;
 
@@ -489,83 +613,7 @@ double SseTerms::NonlinearAreaSSE()
 }
 
 
-double SseTerms::RepulsiveRatioEnergy( double l_repulse)
-{
-  int vno, n;
-  double sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist, cdx, cdy, cdz;
-
-  if (FZERO(l_repulse))
-    return (0.0);
-
-  for (sse_repulse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-
-    if (v->ripflag) 
-      continue;
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-    for(v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      if (!vn->ripflag) {
-        dx = x - vn->x;
-        dy = y - vn->y;
-        dz = z - vn->z;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        cdx = vn->cx - v->cx;
-        cdy = vn->cy - v->cy;
-        cdz = vn->cz - v->cz;
-        canon_dist = sqrt(cdx * cdx + cdy * cdy + cdz * cdz) + REPULSE_E;
-        dist /= canon_dist;
-        dist += REPULSE_E;
-#if 0
-        v_sse += REPULSE_K / (dist*dist*dist*dist) ;
-#else
-        v_sse += REPULSE_K / (dist * dist);
-#endif
-      }
-    }
-    sse_repulse += v_sse;
-  }
-  return (l_repulse * sse_repulse);
-}
-
-
-double SseTerms::SpringEnergy()
-{
-  int vno, n;
-  double area_scale, sse_spring, v_sse;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-
-    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      v_sse += (v->dist[n] * v->dist[n]);
-    }
-    sse_spring += area_scale * v_sse;
-  }
-  return (sse_spring);
-}
-
-
-double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
+double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms, int selector)
 {
   int vno;
   double sse_tmin;
@@ -617,7 +665,7 @@ double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PA
 }
 
 
-double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
+double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms, int selector)
 {
   int vno, max_vno;
   double sse_tparallel, max_inc;
@@ -676,7 +724,7 @@ double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_P
 }
 
 
-double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
+double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms, int selector)
 {
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
@@ -722,7 +770,7 @@ double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS 
   Description
   ------------------------------------------------------*/
 static double big_sse = 10.0;
-double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
+double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms, int selector)
 {
   int vno;
   double sse_tnormal;
@@ -803,7 +851,7 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
 
   Description
   ------------------------------------------------------*/
-double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
+double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms, int selector)
 {
   int vno;
   double sse_spring, sse;
@@ -870,7 +918,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
     REPULSE_E - sets minimum distance
     4 - scaling term
 */
-double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
+double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces, int selector)
 {
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
@@ -982,62 +1030,8 @@ double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
   Returns value:
 
   Description
-
-
-  Note: this function assumes that the mris surface has the original
-  (i.e. after global rotational alignment)
-  spherical coordinates in the TMP2_VERTICES
   ------------------------------------------------------*/
-double SseTerms::LaplacianEnergy()
-{
-  int vno, n;
-  double area_scale, sse_lap, v_sse, dx, dy, dz, vx, vy, vz, vnx, vny, vnz, error;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  for (sse_lap = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-
-    vx = v->x - v->t2x;
-    vy = v->y - v->t2y;
-    vz = v->z - v->t2z;
-    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[n]];
-      vnx = vn->x - vn->t2x;
-      vny = vn->y - vn->t2y;
-      vnz = vn->z - vn->t2z;
-      dx = vnx - vx;
-      dy = vny - vy;
-      dz = vnz - vz;
-      error = dx * dx + dy * dy + dz * dz;
-      v_sse += error;
-    }
-    sse_lap += area_scale * v_sse;
-  }
-  return (sse_lap);
-}
-
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-double SseTerms::TangentialSpringEnergy()
+double SseTerms::TangentialSpringEnergy(int selector)
 {
   int vno, n;
   double area_scale, sse_spring, v_sse;
@@ -1082,7 +1076,7 @@ double SseTerms::TangentialSpringEnergy()
   return (sse_spring);
 }
 
-double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
+double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms, int selector)
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
@@ -1137,7 +1131,7 @@ double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
   return (sse_spring);
 }
 
-double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
+double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht, int selector)
 {
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
@@ -1216,7 +1210,7 @@ double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
   return (sse);
 }
 
-double SseTerms::NonlinearDistanceSSE()
+double SseTerms::NonlinearDistanceSSE(int selector)
 {
   int vno, n, nvertices, max_v, max_n;
   double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
@@ -1266,7 +1260,7 @@ double SseTerms::NonlinearDistanceSSE()
 
 double SseTerms::AshburnerTriangleEnergy(
                                                  double l_ashburner_triangle,
-                                                 INTEGRATION_PARMS *parms)
+                                                 INTEGRATION_PARMS *parms, int selector)
 {
   int vno;
   double sse_ashburner;
@@ -1304,7 +1298,7 @@ double SseTerms::AshburnerTriangleEnergy(
   return (sse_ashburner);
 }
 
-double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
+double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms, int selector)
 {
   double likelihood, entropy;
   int x, y, z, label;
@@ -1364,7 +1358,7 @@ double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox, int selector)
 {
   MRI *mri = parms->mri_brain;
   double sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval;
@@ -1489,7 +1483,7 @@ double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 }
 
 
-double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox, int selector)
 {
   MRI *mri = parms->mri_brain;
   MHT *mht;
@@ -1744,7 +1738,7 @@ double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_
 //===================================================================================================
 // Error functions
 //
-double SseTerms::DistanceError( INTEGRATION_PARMS *parms)
+double SseTerms::DistanceError( INTEGRATION_PARMS *parms, int selector)
 {
   if (!(mris->dist_alloced_flags & 1)) {
     switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
@@ -1939,7 +1933,7 @@ double SseTerms::DistanceError( INTEGRATION_PARMS *parms)
 }
 
 
-double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno)
+double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno, int selector)
 {
   INTEGRATION_PARMS parms;
   float error;
@@ -1956,7 +1950,7 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
   return (sqrt(error / (double)MRISvalidVertices(mris)));
 }
 
-double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds, int selector)
 {
   float l_corr;
 
@@ -2070,7 +2064,7 @@ double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
    of vertices. Basically same computation as mrisRmsValError() but that func
    does normalize.
 */
-double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
+double SseTerms::IntensityError( INTEGRATION_PARMS *parms, int selector)
 {
   int vno,nhits;
   VERTEX *v;
@@ -2100,7 +2094,7 @@ double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
   \brief Computes the distance squared between v->{xyz} and v->targ{xyz} and sums up over
   all unripped vertices. See also mrisRmsDistanceError(mris).
   ------------------------------------------------------*/
-double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
+double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms, int selector)
 {
   int vno, max_vno;
   VERTEX *v;
@@ -2148,7 +2142,7 @@ double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::RmsDistanceError()
+double SseTerms::RmsDistanceError(int selector)
 {
   INTEGRATION_PARMS parms;
   double rms;
@@ -2160,7 +2154,7 @@ double SseTerms::RmsDistanceError()
 }
 
 
-double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
+double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms, int selector)
 {
   int vno;
   VERTEX *v;
@@ -2203,7 +2197,7 @@ double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
 
 
 
-double SseTerms::SphereError( double l_sphere, double r0)
+double SseTerms::SphereError( double l_sphere, double r0, int selector)
 {
   int vno;
   double sse, x0, y0, z0;
@@ -2262,7 +2256,7 @@ double SseTerms::SphereError( double l_sphere, double r0)
   return (sse);
 }
 
-double SseTerms::DuraError( INTEGRATION_PARMS *parms)
+double SseTerms::DuraError( INTEGRATION_PARMS *parms, int selector)
 {
   double dura_thresh = parms->dura_thresh, sse;
   MRI *mri_dura = parms->mri_dura;
@@ -2302,7 +2296,7 @@ double SseTerms::DuraError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds, int selector)
 {
   double src, target, sse, delta, std;
   VERTEX *v;
@@ -2460,7 +2454,7 @@ double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 }
 
 
-double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
+double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius, int selector)
 {
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz, sse, error, dist;
@@ -2508,7 +2502,7 @@ double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double ta
   return (sse);
 }
 
-double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
+double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap, int selector)
 {
 #if 0
   static int iter = 100 ;
@@ -2535,84 +2529,14 @@ double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 
 
 
-int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
-{
-  int vno, n, nvertices;
-  double dist_scale, pct, dist, odist, mean, mean_error, smean, total_mean_error, total_mean;
-
-  MRIScomputeMetricProperties(mris);
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-
-  total_mean = total_mean_error = mean = 0.0;
-  for (pct = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX                * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      v->val = 0.0f;
-      continue;
-    }
-    for (smean = mean_error = mean = 0.0, n = 0; n < vt->vtotal; n++) {
-      nvertices++;
-      dist = dist_scale * v->dist[n];
-      odist = v->dist_orig[n];
-#if 0
-      mean += (dist - odist) * (dist - odist) ;
-#else
-      mean += odist;
-#endif
-      total_mean += odist;
-      smean += dist - odist;
-#define USE_FABS 1
-#if USE_FABS
-      mean_error += fabs(dist - odist);
-      total_mean_error += fabs(dist - odist);
-#else
-      mean_error += (dist - odist) * (dist - odist);
-      total_mean_error += (dist - odist) * (dist - odist);
-#endif
-      if (!FZERO(odist)) {
-        pct += fabs(dist - odist) / odist;
-      }
-    }
-    mean /= (double)vt->vtotal;
-#if USE_FABS
-    mean_error /= (double)vt->vtotal;
-#else
-    mean_error = sqrt(mean_error / (double)v->vtotal);
-#endif
-#if 0
-    if (smean < 0.0f)
-    {
-      mean_error *= -1.0f ;
-    }
-#endif
-    v->val = mean_error / mean;
-  }
-
-#if USE_FABS
-  total_mean_error /= (double)nvertices;
-#else
-  total_mean_error = sqrt(total_mean_error / (double)nvertices);
-#endif
-  total_mean /= (double)nvertices;
-  total_mean_error /= total_mean;
-  fprintf(stdout, "mean dist = %2.3f, rms error = %2.2f%%\n", total_mean, 100.0 * total_mean_error);
-  return (NO_ERROR);
-}
-
-
 double SseTerms::Error(
                                INTEGRATION_PARMS *parms,
                                float *parea_rms,
                                float *pangle_rms,
                                float *pcurv_rms,
                                float *pdist_rms,
-                               float *pcorr_rms)
+                               float *pcorr_rms, 
+                               int selector)
 {
   double rms, sse_area, sse_angle, sse_curv, delta, area_scale, sse_dist, sse_corr;
   int ano, fno, ntriangles, total_neighbors;
@@ -2697,15 +2621,89 @@ double SseTerms::Error(
   return (rms);
 }
 
+int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
+{
+  int vno, n, nvertices;
+  double dist_scale, pct, dist, odist, mean, mean_error, smean, total_mean_error, total_mean;
+
+  MRIScomputeMetricProperties(mris);
+  if (mris->patch) {
+    dist_scale = 1.0;
+  }
+  else {
+    dist_scale = sqrt(mris->orig_area / mris->total_area);
+  }
+
+  total_mean = total_mean_error = mean = 0.0;
+  for (pct = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    if (v->ripflag) {
+      v->val = 0.0f;
+      continue;
+    }
+    for (smean = mean_error = mean = 0.0, n = 0; n < vt->vtotal; n++) {
+      nvertices++;
+      dist = dist_scale * v->dist[n];
+      odist = v->dist_orig[n];
+#if 0
+      mean += (dist - odist) * (dist - odist) ;
+#else
+      mean += odist;
+#endif
+      total_mean += odist;
+      smean += dist - odist;
+#define USE_FABS 1
+#if USE_FABS
+      mean_error += fabs(dist - odist);
+      total_mean_error += fabs(dist - odist);
+#else
+      mean_error += (dist - odist) * (dist - odist);
+      total_mean_error += (dist - odist) * (dist - odist);
+#endif
+      if (!FZERO(odist)) {
+        pct += fabs(dist - odist) / odist;
+      }
+    }
+    mean /= (double)vt->vtotal;
+#if USE_FABS
+    mean_error /= (double)vt->vtotal;
+#else
+    mean_error = sqrt(mean_error / (double)v->vtotal);
+#endif
+#if 0
+    if (smean < 0.0f)
+    {
+      mean_error *= -1.0f ;
+    }
+#endif
+    v->val = mean_error / mean;
+  }
+
+#if USE_FABS
+  total_mean_error /= (double)nvertices;
+#else
+  total_mean_error = sqrt(total_mean_error / (double)nvertices);
+#endif
+  total_mean /= (double)nvertices;
+  total_mean_error /= total_mean;
+  fprintf(stdout, "mean dist = %2.3f, rms error = %2.2f%%\n", total_mean, 100.0 * total_mean_error);
+  return (NO_ERROR);
+}
+
 
 // Generate all the jackets
 //
 #define MRIS_PARAMETER          MRIS* mris          
 #define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
+#define DEFSEL
 #define SEP 
 #define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms sseTerms(mris); return sseTerms.NAME CALL; }
 LIST_OF_SSETERMS
 #undef ELT
 #undef SEP
+#undef DEFSEL
 #undef MRIS_PARAMETER_COMMA
 #undef MRIS_PARAMETER
+
+
