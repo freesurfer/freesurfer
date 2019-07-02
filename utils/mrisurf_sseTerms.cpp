@@ -38,6 +38,7 @@ static bool const trace = false;
 struct SseTermsBase {
 #ifndef METRIC_SCALE
     static double const area_scale = 1.0;
+    static double const dist_scale = 1.0;
 #endif
 };
 
@@ -49,16 +50,30 @@ struct SseTerms_Template : public SseTermsBase {
     Surface surface;
 #if METRIC_SCALE
     double const area_scale;
+    double const dist_scale;
 #endif
 
     int const vnoBegin;
     int const vnoEnd;
+    int const fnoBegin;
+    int const fnoEnd;
 
     SseTerms_Template(Surface surface, int selector) 
       : surface(surface), 
-        area_scale(surface.patch() ? 1.0 : (surface.orig_area() / surface.total_area())),
+#if METRIC_SCALE                                                         
+        area_scale((surface.patch())                               ? 1.0 :  // it is weird that this doesn't have all the alternatives the dist has
+                                                                         (surface.orig_area() / (surface.total_area()                     ))
+                  ),
+        dist_scale((surface.patch())                               ? 1.0 : 
+                   (surface.status() == MRIS_PARAMETERIZED_SPHERE) ? sqrt(surface.orig_area() / (surface.total_area()                     )) :
+                   (surface.neg_area() < surface.total_area())     ? sqrt(surface.orig_area() / (surface.total_area() - surface.neg_area())) :
+                                                                     sqrt(surface.orig_area() / (surface.total_area()                     ))
+                  ),
+#endif
         vnoBegin(selector >= 0 ? selector   : 0),
-        vnoEnd  (selector >= 0 ? selector+1 : surface.nvertices())
+        vnoEnd  (selector >= 0 ? selector+1 : surface.nvertices()),
+        fnoBegin(selector >= 0 ? selector   : 0),
+        fnoEnd  (selector >= 0 ? selector+1 : surface.nfaces())
     {}
 
 
@@ -67,7 +82,7 @@ struct SseTerms_Template : public SseTermsBase {
     //
 
     //========================================
-    // Energy terms that iterate over the vertices, and for each iterate over all their neighbours
+    // Energy terms that iterate over the vertices, and for each iterate over all their immediate (1-hop) neighbours
     //
     double RepulsiveRatioEnergy( double l_repulse)
     {
@@ -176,7 +191,6 @@ struct SseTerms_Template : public SseTermsBase {
         return sse_spring;
     }
 
-
     //========================================
     // Error terms that iterate over the vertices, but not their neighbours
     //
@@ -184,6 +198,68 @@ struct SseTerms_Template : public SseTermsBase {
     //========================================
     // Error terms that iterate over the vertices, and for each iterate over all their neighbours
     //
+    
+    //========================================
+    // misc
+    //
+    double NonlinearDistanceSSE()
+    {
+        double sse_dist = 0.0;
+
+        for (int vno = vnoBegin; vno < vnoEnd; vno++) {
+            auto const v = surface.vertices(vno);
+            if (v.ripflag()) continue;
+
+            double v_sse = 0.0;
+            for (int n = 0; n < v.vtotal(); n++) {                              // why is this vtotal and others are vnum?
+              if (FZERO(v.dist_orig(n))) continue;
+
+              double const ratio = dist_scale * v.dist(n) / v.dist_orig(n);
+              double const delta = log(1 + exp(ratio));
+              v_sse += delta;
+            }
+
+            sse_dist += v_sse;
+        }
+
+        return sse_dist;
+    }
+
+
+    double NonlinearAreaSSE()
+    {
+        double sse = 0.0;
+  
+        #define ROMP_VARIABLE       fno
+        #define ROMP_LO             fnoBegin
+        #define ROMP_HI             fnoEnd
+
+        #define ROMP_SUMREDUCTION0  sse
+
+        #define ROMP_FOR_LEVEL      ROMP_level_fast     // it is ROMP_level_assume_reproducible but that might change results
+
+#ifdef ROMP_SUPPORT_ENABLED
+        const int romp_for_line = __LINE__;
+#endif
+        #include "romp_for_begin.h"
+        ROMP_for_begin
+
+            #define sse  ROMP_PARTIALSUM(0)
+
+            auto const face = surface.faces(fno);
+            if (face.ripflag()) ROMP_PF_continue;
+
+            double const ratio = min(max(-MAX_NEG_RATIO, area_scale * face.area()), MAX_NEG_RATIO);
+            double const error = (log(1.0 + exp(NEG_AREA_K * ratio)) / NEG_AREA_K) - ratio;
+
+            sse += error;
+
+            #undef sse
+        #include "romp_for_end.h"
+
+        return sse;
+    }
+
 };
 
 
@@ -244,50 +320,14 @@ double SseTerms::TangentialSpringEnergy()
 //
 double SseTerms::NonlinearDistanceSSE()
 {
-  int vno, n, nvertices, max_v, max_n;
-  double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    dist_scale = 1.0;
-  }
-  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
-    dist_scale = sqrt(mris->orig_area / mris->total_area);
-  }
-  else
-    dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
-                                                   : sqrt(mris->orig_area / mris->total_area);
-#else
-  dist_scale = 1.0;
-#endif
-  max_del = -1.0;
-  max_v = max_n = -1;
-  for (sse_dist = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    nvertices++;
-    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
-      if (FZERO(v->dist_orig[n])) {
-        continue;
-      }
-      ratio = dist_scale * v->dist[n] / v->dist_orig[n];
-      delta = log(1 + exp(ratio));
-      v_sse += delta;
-      if (!isfinite(delta) || !isfinite(v_sse)) {
-        DiagBreak();
-      }
-    }
-    sse_dist += v_sse;
-    if (!isfinite(sse_dist) || !isfinite(v_sse)) {
-      DiagBreak();
-    }
-  }
-
-  return (sse_dist);
+    return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
 }
+
+double SseTerms::NonlinearAreaSSE()
+{
+    return SseTerms_Template_for_SurfaceFromMRIS::NonlinearAreaSSE();
+}
+
 
 
 
@@ -453,127 +493,6 @@ double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_
 
   Description
   ------------------------------------------------------*/
-double SseTerms::NonlinearAreaSSE()
-{
-  double area_scale;
-
-#if METRIC_SCALE
-  if (mris->patch) {
-    area_scale = 1.0;
-  }
-  else {
-    area_scale = mris->orig_area / mris->total_area;
-  }
-#else
-  area_scale = 1.0;
-#endif
-
-  double sse;
-
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-  int trial; 
-  double sse_trial0;
-  for (trial = 0; trial < 2; trial++) {
-#endif
-
-  sse = 0;
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
-  #define ROMP_VARIABLE       fno
-  #define ROMP_LO             0
-  #define ROMP_HI             mris->nfaces
-    
-  #define ROMP_SUMREDUCTION0  sse
-    
-  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
-    
-#ifdef ROMP_SUPPORT_ENABLED
-  const int romp_for_line = __LINE__;
-#endif
-  #include "romp_for_begin.h"
-  ROMP_for_begin
-    
-    #define sse  ROMP_PARTIALSUM(0)
-
-#else
-  int fno;
-  
-  ROMP_PF_begin     // mris_register
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-  #pragma omp parallel for if(trial==0) reduction(+ : sse)
-#else
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
-#endif
-#endif
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    ROMP_PFLB_begin
-
-#endif
-    
-    double error, ratio;
-    FACE *face;
-
-    face = &mris->faces[fno];
-    if (face->ripflag) {
-      ROMP_PF_continue;
-    }
-#define SCALE_NONLINEAR_AREA 0
-#if SCALE_NONLINEAR_AREA
-    if (!FZERO(face->orig_area)) {
-      ratio = area_scale * face->area / face->orig_area;
-    }
-    else {
-      ratio = 0.0f;
-    }
-#else
-    ratio = area_scale * face->area;
-#endif
-    if (ratio > MAX_NEG_RATIO) {
-      ratio = MAX_NEG_RATIO;
-    }
-    else if (ratio < -MAX_NEG_RATIO) {
-      ratio = -MAX_NEG_RATIO;
-    }
-#if 0
-    error = (1.0 / NEG_AREA_K) * log(1.0+exp(-NEG_AREA_K*ratio)) ;
-#else
-    error = (log(1.0 + exp(NEG_AREA_K * ratio)) / NEG_AREA_K) - ratio;
-#endif
-
-    sse += error;
-    if (!isfinite(sse) || !isfinite(error)) {
-      ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n", fno);
-    }
-    
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
-
-    #undef sse
-  #include "romp_for_end.h"
-#else
-  
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-#endif
-  
-#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-    if (trial == 0) {
-        sse_trial0 = sse;
-    } else { 
-        if (sse_trial0 != sse) {
-            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
-               sse_trial0, sse, sse_trial0-sse);
-        }
-    }
-  } // trial
-#endif
-
-  return (sse);
-}
-
-
 double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
 {
   int vno;
@@ -723,13 +642,6 @@ double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS 
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 static double big_sse = 10.0;
 double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
 {
@@ -807,13 +719,6 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
 {
   int vno;
@@ -1574,32 +1479,6 @@ double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 }
 
 
-/*-----------------------------------------------------
-  Description
-  MRIScomputeSSE and MRIScomputeSSEExternal
-  are used for the numerical integration.
-  As such, they represent the exact error function being minimized, as opposed to computeError above.
-  ------------------------------------------------------*/
-#include "mrisurf_deform_computeSSE.h"
-
-double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
-{
-  double sse;
-
-  if (gMRISexternalSSE) {
-    sse = (*gMRISexternalSSE)(mris, parms);
-  }
-  else {
-    sse = 0;
-  }
-  *ext_sse = sse;
-  sse = MRIScomputeSSE(mris, parms); /* throw out ext_sse
-                                        as it will be recomputed */
-
-  return (sse);
-}
-
-
 //===================================================================================================
 // Error functions
 //
@@ -1954,11 +1833,8 @@ double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
   //printf("mrisComputeIntensityError() %f %d\n",sse,nhits);
   return (sse);
 }
-/*! -----------------------------------------------------
-  \fn static double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
-  \brief Computes the distance squared between v->{xyz} and v->targ{xyz} and sums up over
-  all unripped vertices. See also mrisRmsDistanceError(mris).
-  ------------------------------------------------------*/
+
+
 double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
@@ -2717,6 +2593,357 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
 
   if (fp) fprintf(fp, "\n");
   return (ll);
+}
+
+
+//==================================================================================
+// MRIScomputeSSE and MRIScomputeSSEExternal are used for the numerical integration
+//
+// As such, they represent the exact error function being minimized, as opposed to computeError above.
+//
+// The performance critical ones are ...  
+//
+//      sse_area sse_neg_area       in this function                                here                iterates over faces computing face normals
+//      sse_nl_area                 mrisComputeNonlinearAreaSSE(mris)               mrisurf_deform.c    iterates over faces doing a simple calculation
+//      sse_dist                    mrisComputeNonlinearDistanceSSE(mris)           mrisurf_deform.c    iterates over vertices over their dist and dist_orig
+//      sse_corr                    mrisComputeCorrelationError(mris, parms, 1)     mrisurf_deform.c    iterates over vertices using xyz calling mrisp.c MRISPfunctionValTraceable
+//                                                                                                                          which does a lot more work than the others
+//
+// These are in the order the original code computed them, so that side effects are not reordered
+// In older code the ashburner_triangle is computed but not used , here it is not computed at all
+//
+#define COMPUTE_DISTANCE_ERROR mrisComputeDistanceError(mris, parms)
+
+#define SSE_TERMS \
+      ELT(sse_area                  , parms->l_parea,                            true,    computed_area                                                                   ) SEP \
+      ELT(sse_neg_area              , parms->l_area,                             true,    computed_neg_area                                                               ) SEP \
+      ELT(sse_repulse               , 1.0,                     (parms->l_repulse > 0),    mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, mht_f_current)) SEP \
+      ELT(sse_repulsive_ratio       , 1.0,                                       true,    mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio)                   ) SEP \
+      ELT(sse_tsmooth               , 1.0,                                       true,    mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth, parms)             ) SEP \
+      ELT(sse_thick_min             , parms->l_thick_min,                        true,    mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms)         ) SEP \
+      ELT(sse_ashburner_triangle    , parms->l_ashburner_triangle,               false,   mrisComputeAshburnerTriangleEnergy(mris, parms->l_ashburner_triangle, parms)    ) SEP \
+      ELT(sse_thick_parallel        , parms->l_thick_parallel,                   true,    mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms)        ) SEP \
+      ELT(sse_thick_normal          , parms->l_thick_normal,                     true,    mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms)            ) SEP \
+      ELT(sse_thick_spring          , parms->l_thick_spring,                     true,    mrisComputeThicknessSpringEnergy(mris, parms->l_thick_spring, parms)            ) SEP \
+      ELT(sse_nl_area               , parms->l_nlarea,        !FZERO(parms->l_nlarea),    mrisComputeNonlinearAreaSSE(mris)                                               ) SEP \
+      ELT(sse_nl_dist               , parms->l_nldist,        !DZERO(parms->l_nldist),    mrisComputeNonlinearDistanceSSE(mris)                                           ) SEP \
+      ELT(sse_dist                  , parms->l_dist,          !DZERO(parms->l_dist),      COMPUTE_DISTANCE_ERROR                                                          ) SEP \
+      ELT(sse_spring                , parms->l_spring,        !DZERO(parms->l_spring),    mrisComputeSpringEnergy(mris)                                                   ) SEP \
+      ELT(sse_lap                   , parms->l_lap,           !DZERO(parms->l_lap),       mrisComputeLaplacianEnergy(mris)                                                ) SEP \
+      ELT(sse_tspring               , parms->l_tspring,       !DZERO(parms->l_tspring),   mrisComputeTangentialSpringEnergy(mris)                                         ) SEP \
+      ELT(sse_nlspring              , parms->l_nlspring,      !DZERO(parms->l_nlspring),  mrisComputeNonlinearSpringEnergy(mris, parms)                                   ) SEP \
+      ELT(sse_curv                  , l_curv_scaled,          !DZERO(parms->l_curv),      mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv)                           ) SEP \
+      ELT(sse_corr                  , l_corr,                 !DZERO(l_corr),             mrisComputeCorrelationError(mris, parms, 1)                                     ) SEP \
+      ELT(sse_val                   , parms->l_intensity,     !DZERO(parms->l_intensity), mrisComputeIntensityError(mris, parms)                                          ) SEP \
+      ELT(sse_loc                   , parms->l_location,      !DZERO(parms->l_location),  mrisComputeTargetLocationError(mris, parms)                                     ) SEP \
+      ELT(sse_dura                  , parms->l_dura,          !DZERO(parms->l_dura),      mrisComputeDuraError(mris, parms)                                               ) SEP \
+      ELT(sse_histo                 , parms->l_histo,         !DZERO(parms->l_histo),     mrisComputeHistoNegativeLikelihood(mris, parms)                                 ) SEP \
+      ELT(sse_map                   , parms->l_map,           !DZERO(parms->l_map),       mrisComputeNegativeLogPosterior(mris, parms, NULL)                              ) SEP \
+      ELT(sse_map2d                 , parms->l_map2d,         !DZERO(parms->l_map2d),     mrisComputeNegativeLogPosterior2D(mris, parms, NULL)                            ) SEP \
+      ELT(sse_grad                  , parms->l_grad,          !DZERO(parms->l_grad),      mrisComputeIntensityGradientError(mris, parms)                                  ) SEP \
+      ELT(sse_sphere                , parms->l_sphere,        !DZERO(parms->l_sphere),    mrisComputeSphereError(mris, parms->l_sphere, parms->a)                         ) SEP \
+      ELT(sse_shrinkwrap            , parms->l_shrinkwrap,    !DZERO(parms->l_shrinkwrap),mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap)         ) SEP \
+      ELT(sse_expandwrap            , parms->l_expandwrap,    !DZERO(parms->l_expandwrap),mrisComputeExpandwrapError(mris, parms->mri_brain, parms->l_expandwrap, parms->target_radius)) SEP \
+      ELT(sse_vectorCorrelationError, 1.0,                    use_multiframes,            mrisComputeVectorCorrelationError(mris, parms, 1)                               )     \
+      // end of list
+
+#if defined(COMPILING_MRIS_MP)
+bool MRISMP_computeSSE_canDo(INTEGRATION_PARMS *parms)
+{
+  debug |= debugNonDeterminism;
+  
+  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
+  // double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
+
+  bool result = true;
+#define SEP
+#define ELTM(NAME,MULTIPLIER,COND,EXPR,EXPRM)
+#define ELT(NAME, MULTIPLIER, COND, EXPR) \
+  if (COND) { static bool reported = false; \
+    if (!reported) { reported = true; fprintf(stdout, "%s:%d can't do %s %s\n", __FILE__,__LINE__,#NAME,#EXPR); } \
+    result = false; \
+  }
+  SSE_TERMS
+  ELT(sse_init,1.0,gMRISexternalSSE,)
+#undef ELT
+#undef ELTM
+#undef SEP
+  return result;
+}
+#endif
+
+
+double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  bool const debug = debugNonDeterminism;
+  
+  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
+  double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
+  double const l_curv_scaled    = (double)parms->l_curv * CURV_SCALE;
+  double const area_scale =
+#if METRIC_SCALE
+    (mris->patch || mris->noscale) ? 1.0 : mris->orig_area / mris->total_area;
+#else
+    1.0;
+#endif
+
+  double relevant_angle = 0, computed_neg_area = 0, computed_area = 0;
+
+  if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
+
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+    int trial; 
+    double relevant_angle_trial0, computed_neg_area_trial0, computed_area_trial0;
+    for (trial = 0; trial < 2; trial++) {
+
+#endif
+
+    relevant_angle = 0; computed_neg_area = 0; computed_area = 0;
+
+#ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       fno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nfaces
+    
+  #define ROMP_SUMREDUCTION0  relevant_angle
+  #define ROMP_SUMREDUCTION1  computed_neg_area
+  #define ROMP_SUMREDUCTION2  computed_area
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+#ifdef ROMP_SUPPORT_ENABLED
+  const int romp_for_line = __LINE__;
+#endif
+  #include "romp_for_begin.h"
+  ROMP_for_begin
+    
+    #define relevant_angle    ROMP_PARTIALSUM(0)
+    #define computed_neg_area ROMP_PARTIALSUM(1)
+    #define computed_area     ROMP_PARTIALSUM(2)
+
+#else
+
+    int fno;
+    
+    ROMP_PF_begin       // mris_register
+
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+    #pragma omp parallel for if(trial==0) reduction(+ : relevant_angle, computed_neg_area, computed_area)
+#else
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(fast) reduction(+ : relevant_angle, computed_neg_area, computed_area)
+#endif
+#endif
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+
+#endif      
+      FACE const * const face = &mris->faces[fno];
+      if (face->ripflag) ROMP_PF_continue;
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+
+      {
+        double const delta = (double)(area_scale * face->area - fNorm->orig_area);
+#if ONLY_NEG_AREA_TERM
+        if (face->area < 0.0f) computed_neg_area += delta * delta;
+#endif
+        computed_area += delta * delta;
+      }
+      
+      int ano;
+      for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
+        double delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
+#if ONLY_NEG_AREA_TERM
+        if (face->angle[ano] >= 0.0f) delta = 0.0f;
+
+#endif
+        relevant_angle += delta * delta;
+      }
+      
+      if (!isfinite(computed_area) || !isfinite(relevant_angle)) {
+        ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n", fno);
+      }
+#ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
+
+    #undef relevant_angle
+    #undef computed_neg_area
+    #undef computed_area
+
+  #include "romp_for_end.h"
+
+#else
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+#endif
+    
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+
+    if (trial == 0) {
+       
+      relevant_angle_trial0 = relevant_angle;
+      computed_neg_area_trial0   = computed_neg_area;
+      computed_area_trial0       = computed_area;
+    } else { 
+      if (relevant_angle_trial0 != relevant_angle) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           relevant_angle_trial0, relevant_angle, relevant_angle_trial0-relevant_angle);
+      }
+      if (computed_neg_area_trial0 != computed_neg_area) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           computed_neg_area_trial0, computed_neg_area, computed_neg_area_trial0-computed_neg_area);
+      }
+      if (computed_area_trial0 != computed_area) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           computed_area_trial0, computed_area, computed_area_trial0-computed_area);
+      }
+    }
+    
+    } // trial
+#endif
+
+  }
+
+  MHT* mht_v_current = NULL;
+  MHT* mht_f_current = NULL;
+  if (!FZERO(parms->l_repulse)) {
+    double vmean, vsigma;
+    vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
+    mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, vmean);
+    mht_f_current = MHTcreateFaceTable_Resolution  (mris, CURRENT_VERTICES, vmean);
+  }
+
+
+#define SEP
+#define ELT(NAME, MULTIPLIER, COND, EXPR) double const NAME = (COND) ? (EXPR) : 0.0;
+    SSE_TERMS
+#undef ELT
+#undef SEP
+
+  if (parms->l_thick_spring > 0 || parms->l_thick_min > 0 || parms->l_thick_parallel > 0 /* && DIAG_VERBOSE_ON*/)
+    printf("min=%2.3f, parallel=%2.4f, normal=%2.4f, spring=%2.4f, ashburner=%2.3f, tsmooth=%2.3f\n",
+           sse_thick_min            / (float)mris->nvertices,
+           sse_thick_parallel       / (float)mris->nvertices,
+           sse_thick_normal         / (float)mris->nvertices,
+           sse_thick_spring         / (float)mris->nvertices,
+           sse_ashburner_triangle   / (float)mris->nvertices,
+           sse_tsmooth              / (float)mris->nvertices);
+           
+  double sse_init = 0;
+
+  if (gMRISexternalSSE) {
+    sse_init = (*gMRISexternalSSE)(mris, parms);
+  }
+  
+  double sse = sse_init +
+#define SEP +
+#define ELT(NAME, MULTIPLIER, COND, EXPR) (MULTIPLIER) * (NAME)
+    SSE_TERMS ;
+#undef ELT
+#undef SEP
+
+  if (debug) {
+    #define SEP
+    double sum = 0;
+    #define ELT(NAME, MULTIPLIER, COND, EXPR) fprintf(stdout, "new %s : %f \n", #NAME, (MULTIPLIER) * (NAME));  sum += (MULTIPLIER) * (NAME);
+    ELT(sse_init, 1, true, sse_init)
+    SSE_TERMS
+    fprintf(stdout, "new sum = %f \n", sum);
+    #undef ELT
+    #undef SEP
+  }
+  
+  // This code matches code Bevin added to the previous good code to compare old and new runs
+  //
+  static int logSSECount, logSSE;
+  if (!logSSECount) { logSSE = !!getenv("FREESURFER_logSSE"); }
+  logSSECount++;
+  
+  if (false || logSSE) {
+    fprintf(stdout, "logSSE:%d \n", logSSECount);
+    
+    if (parms->l_dist) {
+      bool dist_avail  = 
+#ifdef COMPILING_MRIS_MP
+        !!mris->v_dist[0];
+#else
+        !!(mris->dist_alloced_flags & 1);
+#endif
+      #define ELT(X) fprintf(stdout, " %s:%f\n", #X, (float)(X));
+      ELT(dist_avail)
+      if (dist_avail) {
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[0];
+        VERTEX          const * const v  = &mris->vertices         [0];
+        int n;
+        for (n = 0; n < vt->vtotal; n++) {
+          float const dist_n      = !v->dist      ? 0.0 : v->dist     [n];
+          float const dist_orig_n = !v->dist_orig ? 0.0 : v->dist_orig[n];
+          ELT(dist_n);
+          ELT(dist_orig_n);
+        }
+      }
+      ELT(mris->patch)
+      ELT(mris->status)
+      ELT(mris->orig_area)
+      ELT(mris->total_area)
+      ELT(mris->neg_area)
+#undef ELT
+    }
+
+#define SEP
+#define ELTM(NAME, MULTIPLIER, COND, EXPR, EXPRM) \
+    { double term = (MULTIPLIER) * (NAME); \
+      if (term != 0.0) { fprintf(stdout, "new %s : %f \n", #NAME, term);  } \
+    }
+
+#ifdef COMPILING_MRIS_MP
+#define ELT(NAME, MULTIPLIER, COND, EXPR)
+#else
+#define ELT(NAME, MULTIPLIER, COND, EXPR) ELTM(NAME, MULTIPLIER, NotUsed, NotUsed, NotUsed)
+#endif
+    ELT(sse_init, 1, true, sse_init)
+    SSE_TERMS
+    fprintf(stdout, "new sum = %f \n", sse);
+
+#undef ELT
+#undef ELTM
+#undef SEP
+  }
+  //
+  // end of Bevin added
+
+  if (mht_v_current) MHTfree(&mht_v_current);
+  if (mht_f_current) MHTfree(&mht_f_current);
+
+  if (!devFinite(sse)) {
+    DiagBreak();
+  }
+
+#undef COMPUTE_DISTANCE_ERROR
+
+  return sse;
+}
+
+#undef COMPUTE_DISTANCE_ERROR
+#undef SSE_TERMS
+
+
+double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
+{
+  double sse;
+
+  if (gMRISexternalSSE) {
+    sse = (*gMRISexternalSSE)(mris, parms);
+  }
+  else {
+    sse = 0;
+  }
+  *ext_sse = sse;
+  sse = MRIScomputeSSE(mris, parms); /* throw out ext_sse
+                                        as it will be recomputed */
+
+  return (sse);
 }
 
 

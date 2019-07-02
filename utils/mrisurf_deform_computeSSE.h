@@ -1,4 +1,4 @@
-// Do not include, intended only to be included into mrisurf_deform.c
+// Do not include, intended only to be included into mrisurf_sseTerms.c
 
 // These are in the order the original code computed them, so that side effects are not reordered
 // In older code the ashburner_triangle is computed but not used , here it is not computed at all
