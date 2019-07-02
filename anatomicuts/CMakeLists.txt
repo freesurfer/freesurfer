@@ -53,10 +53,15 @@ if(VTK_FOUND)
   target_link_libraries(dmri_saveHistograms ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_saveHistograms DESTINATION bin)
 
-#dmri_groupByEndpoints project
+#dmri_groupByEndpoints
   add_executable(dmri_groupByEndpoints dmri_groupByEndpoints.cxx ${TRACKIO}) 
   target_link_libraries(dmri_groupByEndpoints ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_groupByEndpoints DESTINATION bin)
+
+#dmri_extractSurfaceMeasurements
+  add_executable(dmri_extractSurfaceMeasurements dmri_extractSurfaceMeasurements.cxx ${TRACKIO}) 
+  target_link_libraries(dmri_extractSurfaceMeasurements ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_extractSurfaceMeasurements DESTINATION bin)
 
 else() 
 message("VTK not found")
