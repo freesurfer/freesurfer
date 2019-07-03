@@ -2130,22 +2130,6 @@ of each frame</string>
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonContourSave</sender>
-   <signal>clicked()</signal>
-   <receiver>PanelVolume</receiver>
-   <slot>OnContourSave()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>194</x>
-     <y>1730</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>325</x>
-     <y>1351</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>actionCopySetting</sender>
    <signal>triggered()</signal>
    <receiver>PanelVolume</receiver>
