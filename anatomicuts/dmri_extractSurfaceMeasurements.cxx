@@ -9,35 +9,49 @@
 
 #include <iostream>
 #include <fstream>
-//#include "GetPot.h"
+#include "GetPot.h"
 using namespace std;
 
 int main(int narg, char* arg[])
 {
+	GetPot num1(narg, const_cast<char**>(arg));
+	//GetPot num2(narg, const_cast<char**>(arg));
 	
+	// Checking for correct parameters
+	if ((num1.size() <= 6) or (num1.search(2, "--help", "-h")))
+	{
+		cout << "Usage: " << endl
+		     << arg[0] << " -s streamlineFile.trk"
+		     << " -f surfaceFile.orig -o output.csv"
+		     << endl;
+
+		return -1;
+	}
+
+	// Input Parsing
+	const char *stream  = num1.follow("input.trk", "-s");
+	const char *surface = num1.follow("lh.orig", "-f");
+	const char *output  = num1.follow("output.csv", "-o");
+
+	// TO DELETE
+	cout << stream << endl << surface << endl << output << endl;
+
+	// Opening output File
+	ofstream oFile;
+	oFile.open(output);
+
+	if (not oFile.is_open()) {
+		cerr << "Could not open output file" << endl;
+		return -1;
+	}
+
+	oFile.close();
+
 	return 0;
 }
 
 /*
  * 1) Why do you have GetPot cl2 when it is only used once (line 65)
- * 2) Remind me how everything is supposed to be split up (line 72-75)
- * 3) .h file possibly or just explain how follow, search, and the constructor
- *    works
- * 4) 
+ * 2) 
  */
 
-/*	//Input Parsing
-	GetPot num1(narg, const_cast<char**>(arg));
-	GetPot num2(narg, const_cast<char**>(arg));
-
-	if ((num1.size() <= 3) or (num1.search(2, "--help", "-h")))
-	{
-		cout << "Usage: " << endl
-		     << arg[0] << "-i anatomicutsFolder -n numClusters"
-		     << "-c correspondenceFile -m <numMeasures> <measure1Name>"
-		     << "<measure1> ... <measureName> <measureN> -o output"
-		     << endl;
-
-		return -1;
-	}
-*/
