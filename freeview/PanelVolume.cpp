@@ -315,6 +315,20 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
+
+  ui->colorLabelBrushValue->installEventFilter(this);
+}
+
+bool PanelVolume::eventFilter(QObject *watched, QEvent *event)
+{
+  if (watched == ui->colorLabelBrushValue && event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent* e = static_cast<QMouseEvent*>(event);
+    if (e->button() == Qt::LeftButton)
+      OnColorTableChangeColor();
+  }
+
+  return PanelLayer::eventFilter(watched, event);
 }
 
 void PanelVolume::DoIdle()
@@ -1936,6 +1950,9 @@ void PanelVolume::OnColorTableChangeColor()
       {
         layer->GetProperty()->UpdateLUTTable();
       }
+      pix = QPixmap(32,20);
+      pix.fill(color);
+      ui->colorLabelBrushValue->setPixmap( pix );
     }
   }
 }

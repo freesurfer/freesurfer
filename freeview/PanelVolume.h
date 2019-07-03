@@ -62,6 +62,8 @@ public:
   explicit PanelVolume(QWidget *parent = 0);
   ~PanelVolume();
 
+  bool eventFilter(QObject *watched, QEvent *event);
+
 protected slots:
   void OnCheckShowContour( bool bShow );
   void OnCheckShowLabelContour( bool bShow );
