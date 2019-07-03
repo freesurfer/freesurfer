@@ -3,7 +3,7 @@
  * August 2019
  * dmri_extractSurfaceMeasurements.cxx
  *
- *
+ * 
  *
  */
 
@@ -26,10 +26,8 @@ int main(int narg, char* arg[])
  * 4) 
  */
 
-
-
-	/*// Input Parsing
-	//GetPot num1(narg, const_cast<char**>(arg));
+/*	//Input Parsing
+	GetPot num1(narg, const_cast<char**>(arg));
 	GetPot num2(narg, const_cast<char**>(arg));
 
 	if ((num1.size() <= 3) or (num1.search(2, "--help", "-h")))
@@ -40,6 +38,6 @@ int main(int narg, char* arg[])
 		     << "<measure1> ... <measureName> <measureN> -o output"
 		     << endl;
 
-	//	return -1;
-	//}
+		return -1;
+	}
 */
