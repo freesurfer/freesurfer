@@ -93,7 +93,6 @@ protected slots:
   void OnSliderContourMax(int);
   void OnSliderContourSmooth(int);
   void OnContourValueChanged();
-  void OnContourSave();
   void OnCopySettings();
   void OnPasteSettings();
   void OnPasteSettingsToAll();

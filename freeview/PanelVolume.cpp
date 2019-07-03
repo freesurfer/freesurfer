@@ -101,6 +101,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   }
 
   connect(mainwnd, SIGNAL(NewVolumeCreated()), SLOT(ShowAllLabels()));
+  connect(ui->pushButtonContourSave, SIGNAL(clicked(bool)), mainwnd, SLOT(OnSaveIsoSurface()));
 
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionNewVolume);
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionLoadVolume);
@@ -1416,32 +1417,6 @@ void PanelVolume::OnContourValueChanged()
         {
           layer->GetProperty()->SetContourThreshold(fMin, fMax);
         }
-      }
-    }
-  }
-}
-
-void PanelVolume::OnContourSave()
-{
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
-  {
-    QString selectedFilter;
-    QString fn = QFileDialog::getSaveFileName( this,
-                                               "Save iso-surface",
-                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
-                                               "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
-    if ( !fn.isEmpty() )
-    {
-      QString selected_suffix = selectedFilter.left(3).toLower();
-      if (selected_suffix == "all")
-        selected_suffix = "vtk";
-      QFileInfo fi(fn);
-      if (fi.suffix().toLower() != selected_suffix)
-        fn += "." + selected_suffix;
-      if ( !layer->SaveContourToFile( fn ) )
-      {
-        QMessageBox::warning(this, "Error", "Can not save surface to file.");
       }
     }
   }
