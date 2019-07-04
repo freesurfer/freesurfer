@@ -37,6 +37,7 @@
 
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrisurf_sseTerms.h"
 #include "mrisurf_vals.h"
 
 #include "chklc.h"
@@ -248,7 +249,6 @@ MRI *MRISpeelVolume(MRIS *mris, MRI *mri_src, MRI *mri_dst, int type, unsigned c
 ///////////////////////////////////////////////////////////////////
 
 static MRI *mriIsolateLabel(MRI *mri_seg, int label, MRI_REGION *bbox);
-static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs);
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag);
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
 static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
@@ -259,75 +259,6 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
 
 
-static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
-{
-  if (num_avgs <= 0) return (NO_ERROR);
-
-  if (Gdiag_no >= 0) {
-    VERTEX const * const v = &mris->vertices[Gdiag_no];
-    fprintf(stdout, "before averaging dot = %2.2f ", v->dx * v->nx + v->dy * v->ny + v->dz * v->nz);
-  }
-
-  if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE) /* use convolution */
-  {
-    float const sigma = sqrt((float)num_avgs) / 4.0;
-    MRI_SP * mrisp      = MRISgradientToParameterization(mris, NULL, 1.0);
-    MRI_SP * mrisp_blur = MRISPblur(mrisp, NULL, sigma, -1);
-    MRISgradientFromParameterization(mrisp_blur, mris);
-    MRISPfree(&mrisp);
-    MRISPfree(&mrisp_blur);
-  }
-  else
-  {
-    int i;
-    for (i = 0; i < num_avgs; i++) {
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-        VERTEX*                       v  = &mris->vertices         [vno];
-        if (v->ripflag) continue;
-        float dx = v->dx;
-        float dy = v->dy;
-        float dz = v->dz;
-        int const * pnb = vt->v;
-        /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
-        int const vnum = vt->vnum;
-        int num = 1;
-	int vnb;
-        for (vnb = 0; vnb < vnum; vnb++) {
-          VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
-          if (vn->ripflag) continue;
-          float dot = vn->dx * v->dx + vn->dy * v->dy + vn->dz * v->dz;
-          if (dot < 0) continue; /* pointing in opposite directions */
-
-          num++;
-          dx += vn->dx;
-          dy += vn->dy;
-          dz += vn->dz;
-        }
-        v->tdx = dx / num;
-        v->tdy = dy / num;
-        v->tdz = dz / num;
-      }
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX * v = &mris->vertices[vno];
-        if (v->ripflag) continue;
-        v->dx = v->tdx;
-        v->dy = v->tdy;
-        v->dz = v->tdz;
-      }
-    }
-  }
-  
-  if (Gdiag_no >= 0) {
-    VERTEX const * const v = &mris->vertices[Gdiag_no];
-    float const dot = v->nx * v->dx + v->ny * v->dy + v->nz * v->dz;
-    fprintf(stdout, " after dot = %2.2f\n", dot);
-    if (fabs(dot) > 50) DiagBreak();
-  }
-  
-  return (NO_ERROR);
-}
 
 MRI_REGION *MRIlocateRegion(MRI *mri, int label)
 {

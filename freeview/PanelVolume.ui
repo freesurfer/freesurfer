@@ -26,7 +26,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-45</y>
+     <y>-73</y>
      <width>346</width>
      <height>1843</height>
     </rect>
@@ -381,6 +381,9 @@
             <width>40</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
           </property>
           <property name="text">
            <string/>
@@ -2123,22 +2126,6 @@ of each frame</string>
     <hint type="destinationlabel">
      <x>68</x>
      <y>1332</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonContourSave</sender>
-   <signal>clicked()</signal>
-   <receiver>PanelVolume</receiver>
-   <slot>OnContourSave()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>194</x>
-     <y>1730</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>325</x>
-     <y>1351</y>
     </hint>
    </hints>
   </connection>
