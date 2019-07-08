@@ -1357,153 +1357,134 @@ int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  File Format is:
-
-  name x y z
-  ------------------------------------------------------*/
-int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
+/**
+  Computes the normal spring term for a given vertex.
+*/
+inline void vertexComputeNormalSpringTerm(MRIS* mris, int vno, float* dx, float* dy, float* dz, double l_spring)
 {
-  int vno, n, m;
-  float sx, sy, sz, nx, ny, nz, nc, x, y, z;
+  VERTEX * const vertex = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
 
-  if (FZERO(l_spring)) {
-    return (NO_ERROR);
+  if (vertex->ripflag) return;
+
+  float x = vertex->x;
+  float y = vertex->y;
+  float z = vertex->z;
+
+  float sx = 0, sy = 0, sz = 0;
+
+  int n = 0;
+  for (int m = 0; m < vertext->vnum; m++) {
+    VERTEX const * const vn = &mris->vertices[vertext->v[m]];
+    if (!vn->ripflag) {
+      sx += vn->x - x;
+      sy += vn->y - y;
+      sz += vn->z - z;
+      n++;
+    }
   }
 
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
-    VERTEX                * const vertex  = &mris->vertices         [vno];
-    if (vertex->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
-    nx = vertex->nx;
-    ny = vertex->ny;
-    nz = vertex->nz;
-    x = vertex->x;
-    y = vertex->y;
-    z = vertex->z;
-
-    sx = sy = sz = 0.0;
-    n = 0;
-    for (m = 0; m < vertext->vnum; m++) {
-      VERTEX const * const vn = &mris->vertices[vertext->v[m]];
-      if (!vn->ripflag) {
-        sx += vn->x - x;
-        sy += vn->y - y;
-        sz += vn->z - z;
-        n++;
-      }
-    }
-    if (n > 0) {
-      sx = sx / n;
-      sy = sy / n;
-      sz = sz / n;
-    }
-    nc = sx * nx + sy * ny + sz * nz; /* projection onto normal */
-    sx = l_spring * nc * nx;          /* move in normal direction */
-    sy = l_spring * nc * ny;
-    sz = l_spring * nc * nz;
-
-    vertex->dx += sx;
-    vertex->dy += sy;
-    vertex->dz += sz;
-    if (vno == Gdiag_no) fprintf(stdout, "v %d spring normal term:  (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
+  if (n > 0) {
+    sx /= n;
+    sy /= n;
+    sz /= n;
   }
 
-  return (NO_ERROR);
+  float nx = vertex->nx;
+  float ny = vertex->ny;
+  float nz = vertex->nz;
+
+  // project onto normal
+  float nc = sx * nx + sy * ny + sz * nz;
+
+  // move in normal direction
+  *dx = l_spring * nc * nx;
+  *dy = l_spring * nc * ny;
+  *dz = l_spring * nc * nz;
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  File Format is:
-
-  name x y z
-  ------------------------------------------------------*/
-int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
+void mrisComputeNormalSpringTerm(MRIS *mris, double l_spring)
 {
-  int vno, n, m;
-  float sx, sy, sz, x, y, z, nc;
+  if (FZERO(l_spring)) return;
 
-  if (FZERO(l_spring)) {
-    return (NO_ERROR);
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+    float dx = 0, dy = 0, dz = 0;
+    vertexComputeNormalSpringTerm(mris, vno, &dx, &dy, &dz, l_spring);
+
+    VERTEX * const vertex = &mris->vertices[vno];
+    vertex->dx += dx;
+    vertex->dy += dy;
+    vertex->dz += dz;
   }
-
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX                * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
-    if (v->border && !v->neg) {
-      continue;
-    }
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-
-    sx = sy = sz = 0.0;
-    n = 0;
-    for (m = 0; m < vt->vnum; m++) {
-      VERTEX const * const vn = &mris->vertices[vt->v[m]];
-      if (!vn->ripflag) {
-        sx += vn->x - x;
-        sy += vn->y - y;
-        sz += vn->z - z;
-        n++;
-      }
-    }
-#if 0
-    n = 4 ;  /* avg # of nearest neighbors */
-#endif
-    if (n > 0) {
-      sx = sx / n;
-      sy = sy / n;
-      sz = sz / n;
-    }
-
-    nc = sx * v->nx + sy * v->ny + sz * v->nz; /* projection onto normal */
-    sx = l_spring * (sx - nc * v->nx);         /* remove  normal component
-                                                            and then scale */
-    sy = l_spring * (sy - nc * v->ny);
-    sz = l_spring * (sz - nc * v->nz);
-
-    v->dx += sx;
-    v->dy += sy;
-    v->dz += sz;
-    if (vno == Gdiag_no) printf("v %d spring tangent term: (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
-  }
-
-  return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
 
-  Description
-  File Format is:
+/**
+  Computes the tangential spring term for a given vertex.
+*/
+inline void vertexComputeTangentialSpringTerm(MRIS* mris, int vno, float* dx, float* dy, float* dz, double l_spring)
+{
+  VERTEX * const vertex = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
 
-  name x y z
-  ------------------------------------------------------*/
+  if (vertex->ripflag) return;
+  if (vertex->border && !vertex->neg) return;
+
+  float x = vertex->x;
+  float y = vertex->y;
+  float z = vertex->z;
+
+  float sx = 0, sy = 0, sz = 0;
+
+  int n = 0;
+  for (int m = 0; m < vertext->vnum; m++) {
+    VERTEX const * const vn = &mris->vertices[vertext->v[m]];
+    if (!vn->ripflag) {
+      sx += vn->x - x;
+      sy += vn->y - y;
+      sz += vn->z - z;
+      n++;
+    }
+  }
+
+  if (n > 0) {
+    sx /= n;
+    sy /= n;
+    sz /= n;
+  }
+
+  float nx = vertex->nx;
+  float ny = vertex->ny;
+  float nz = vertex->nz;
+
+  // project onto normal
+  float nc = sx * nx + sy * ny + sz * nz;
+
+  // remove normal component and scale
+  *dx = l_spring * (sx - nc * nx);
+  *dy = l_spring * (sy - nc * ny);
+  *dz = l_spring * (sz - nc * nz);
+}
+
+
+void mrisComputeTangentialSpringTerm(MRIS *mris, double l_spring)
+{
+  if (FZERO(l_spring)) return;
+
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+    float dx = 0, dy = 0, dz = 0;
+    vertexComputeTangentialSpringTerm(mris, vno, &dx, &dy, &dz, l_spring);
+
+    VERTEX * const vertex = &mris->vertices[vno];
+    vertex->dx += dx;
+    vertex->dy += dy;
+    vertex->dz += dz;
+  }
+}
+
+
 int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist)
 {
   int vno, m, n;
