@@ -67,7 +67,7 @@ void ThreadBuildContour::run()
     dTh2 = m_nSegValue + 0.5;
   }
 
-  vtkImageData* imagedata = m_mri->GetImageData();
+  vtkSmartPointer<vtkImageData> imagedata = m_mri->GetImageData();
   if (m_mri->GetNumberOfFrames() > 1)
   {
     vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
