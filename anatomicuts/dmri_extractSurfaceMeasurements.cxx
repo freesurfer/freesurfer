@@ -9,13 +9,16 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
+
+#include <vtkPolyData.h>
+#include "TrkVTKPolyDataFilter.txx"
 #include "GetPot.h"
 using namespace std;
 
 int main(int narg, char* arg[])
 {
 	GetPot num1(narg, const_cast<char**>(arg));
-	//GetPot num2(narg, const_cast<char**>(arg));
 	
 	// Checking for correct parameters
 	if ((num1.size() <= 6) or (num1.search(2, "--help", "-h")))
@@ -32,6 +35,13 @@ int main(int narg, char* arg[])
 	const char *stream  = num1.follow("input.trk", "-s");
 	const char *surface = num1.follow("lh.orig", "-f");
 	const char *output  = num1.follow("output.csv", "-o");
+
+	// Looping for multiple file input of a certain kind of file
+	/*vector<string> inputFiles;
+
+	for (string inputName = string(num1.follow("files for whatever", "-s")); access(inputName.c_str(),0) == 0; inputName = string(num1.next("")))
+		inputFiles.push_back(inputName);
+	*/
 
 	// TO DELETE
 	cout << stream << endl << surface << endl << output << endl;
