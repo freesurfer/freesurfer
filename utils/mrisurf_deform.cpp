@@ -923,7 +923,7 @@ int MRISapplyGradient(MRIS* mris, double dt)
 
 
 struct MRIScomputeSSE_asThoughGradientApplied_ctx::Impl {
-    // NYI
+  // NYI
 };
 
 
@@ -934,9 +934,24 @@ MRIScomputeSSE_asThoughGradientApplied_ctx::MRIScomputeSSE_asThoughGradientAppli
   
 MRIScomputeSSE_asThoughGradientApplied_ctx::~MRIScomputeSSE_asThoughGradientApplied_ctx() 
 {
-  delete _impl;
+  delete _impl; _impl = nullptr;
 }
 
+double MRIScomputeSSE_asThoughGradientApplied(
+  MRIS*              mris, 
+  double             delta_t, 
+  INTEGRATION_PARMS* parms,
+  MRIScomputeSSE_asThoughGradientApplied_ctx& ctx)
+{
+  MRISapplyGradient(mris, delta_t);
+  mrisProjectSurface(mris);
+  MRIScomputeMetricProperties(mris);
+  double sse = MRIScomputeSSE(mris, parms);
+
+  MRISrestoreOldPositions(mris);
+
+  return sse;
+}
 
 /*-----------------------------------------------------
   Parameters:
