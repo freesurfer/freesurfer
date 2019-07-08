@@ -36,6 +36,9 @@ int main(int narg, char* arg[])
 	// TO DELETE
 	cout << stream << endl << surface << endl << output << endl;
 
+	// Reading in TRK File
+	
+
 	// Opening output File
 	ofstream oFile;
 	oFile.open(output);
