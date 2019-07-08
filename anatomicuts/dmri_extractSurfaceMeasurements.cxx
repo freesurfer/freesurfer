@@ -32,8 +32,8 @@ int main(int narg, char* arg[])
 	}
 
 	// Input Parsing
-	const char *stream  = num1.follow("input.trk", "-s");
-	const char *surface = num1.follow("lh.orig", "-f");
+	const char *stream  = num1.follow("input.trk", "-i");
+	const char *surface = num1.follow("lh.orig", "-s"); 	// this is a surface
 	const char *output  = num1.follow("output.csv", "-o");
 
 	// Looping for multiple file input of a certain kind of file
@@ -64,7 +64,16 @@ int main(int narg, char* arg[])
 }
 
 /*
- * 1) Why do you have GetPot cl2 when it is only used once (line 65)
- * 2) 
+ * recieve a list of streamlines (TRK)
+ * connecting same structure
+ *
+ * checking endpoints for cortical thickness (there is a file that contains the info, but it is surface based)
+ *
+ * table
+ * streamline name, thickness of first point, thickness of second point, curvature of first point, curvature of second point (in same file as the thickness)
+ *
+ * 
+ *
+ *
  */
 

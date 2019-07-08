@@ -67,3 +67,15 @@ int main(int narg, char* arg[])
 	return 0; 	
 
 }
+
+/*
+ * Ushaped fibers go into a TRK file
+ * Check endpoints and put into same region TRK file
+ * If they connect two different structures, ignore
+ *
+ * First open/read files
+ * Then identify endpoints
+ * Then check if in same region
+ * if so, then output them to TRK file and into a folder
+ *
+ */
