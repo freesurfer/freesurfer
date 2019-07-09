@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstlib>
 
 #include <vtkPolyData.h>
 #include "TrkVTKPolyDataFilter.txx"
@@ -28,7 +29,7 @@ int main(int narg, char* arg[])
 		     << " -s surfaceFile.orig -o output.csv"
 		     << endl;
 
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	// Input Parsing
@@ -44,7 +45,7 @@ int main(int narg, char* arg[])
 
 
 	// TO DELETE
-	cout << stream << endl << surface << endl << output << endl;
+	cout << surface << endl << output << endl;
 
 	// Reading in TRK File
 	
