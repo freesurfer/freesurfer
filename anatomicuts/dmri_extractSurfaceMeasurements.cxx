@@ -155,6 +155,7 @@ int main(int narg, char* arg[])
 				input->GetPoint(*it,&pt);
 				lenghtSoFar += firstPt.EuclideanDistanceTo(pt);
 				input->GetPoint(*it,&firstPt);
+				cout << "Length of Stream: " << lenghtSoFar << endl;
 			}
 
 
