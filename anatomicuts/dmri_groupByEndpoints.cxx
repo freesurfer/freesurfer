@@ -10,6 +10,12 @@
 #include <string.h>
 #include <vector>
 
+#include <itkImage.h>
+#include <itkImageFileReader.h>
+#include <itkImageFileWriter.h>
+#include <itkPointSet.h>
+#include <itkImageRegionConstIterator.h>
+
 #include "itkMesh.h"
 #include <vtkPolyData.h>
 #include <vtkPolyDataReader.h>
@@ -52,7 +58,7 @@ int main(int narg, char* arg[])
 	}
 
 	//Take in information
-	const char *stream = c1.follow("string_file.trk", "-s"); 
+	const char *stream_lines = c1.follow("string_file.trk", "-s"); 
 	const char *image = c1.follow("image_file.nii.gz", "-i"); 
 	const char *output = c1.follow("output_directory", "-o"); 
 
@@ -62,7 +68,7 @@ int main(int narg, char* arg[])
 	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
 
 	//TO DELETE
-	cout << stream << endl << image << endl << output << endl; 
+	cout << stream_lines << endl << image << endl << output << endl; 
 
 	return 0; 	
 
