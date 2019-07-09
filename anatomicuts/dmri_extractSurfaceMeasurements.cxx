@@ -7,14 +7,30 @@
  *
  */
 
+//Libraries
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <cstdlib>
 
-#include <vtkPolyData.h>
-#include "TrkVTKPolyDataFilter.txx"
+// to use access
+/*#include <vtkPolyData.h>
+#include "TrkVTKPolyDataFilter.txx"*/
+
+// Input Splicing
 #include "GetPot.h"
+
+// Surface Reading
+#include "itkImage.h"
+#include <map>
+#include "itkDefaultStaticMeshTraits.h"
+#include "itkMesh.h"
+#include "itkTriangleCell.h"
+#include <set>
+#include "colortab.h"
+#include "fsenv.h"
+#include "mrisurf.h"
+
 using namespace std;
 
 int main(int narg, char* arg[])
@@ -32,14 +48,17 @@ int main(int narg, char* arg[])
 		return EXIT_FAILURE;
 	}
 
+	//
 	// Input Parsing
-	
+	//
+
 	// Looping for multiple file input of a certain kind of file
 	vector<string> inputFiles;
 	
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); inputName != "-s" and inputName != "-o"; inputName = string(num1.next("")))
 		inputFiles.push_back(inputName);
 
+	// Could not figure out how access() worked so I tried hardcoding it in
 	/*vector<string> inputFiles;
 	
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
@@ -58,10 +77,35 @@ int main(int narg, char* arg[])
 
 	cout << surface << endl << output << endl;
 
+	//
 	// Reading in TRK File
+	//
 	
 
-	// Opening output File
+
+
+	//
+	// Reading in surface File
+	//
+
+	MRI_SURFACE *surf;
+        //surf = MRISread(surface);
+	
+	/*for (unsigned i = 0; i < surf->nvertices; i++)
+	{
+		double x, y, z;
+		float pdx, pdy, pdz;
+
+		if (surf->vertices[j].x > 1)
+		{
+			MRISsurfaceRASTToVoxel(surf, images, surf->vertices[j].x, surf->vertices[j].y, surf->vertices[j].z, &x, &y, &z);
+			float magnitud = MRIvoxelGradient(images, (float) x, (float) y, (float) z, &pdx, &pdy, &pdz);
+	}*/
+
+	//
+	// Outputing to an extneral file
+	//
+
 	ofstream oFile;
 	oFile.open(output);
 
