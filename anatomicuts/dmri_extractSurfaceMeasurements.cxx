@@ -125,11 +125,9 @@ int main(int narg, char* arg[])
 
 	meshes = clusterTools->PolydataToMesh(polydatas);
 
-	/*for(int i = 0; i < meshes->size(); i++)
+	for(int i = 0; i < meshes->size(); i++)
 	{ 
 		ColorMeshType::Pointer input = (*meshes)[i];
-		// ** SUBSAMPLE NOT GIVEN AS PARAMETER
-		int offset = (subSample>0)? input->GetNumberOfCells() / subSample:1;
 
 		int averageId = 0;
 		float stdCluster = 0;
@@ -149,6 +147,7 @@ int main(int narg, char* arg[])
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
 			double lenghtSoFar = 0;
+			// iterates through the points in one stream line and computes the distance between each pairs of points
 			for(; it != inputCellIt.Value()->PointIdsEnd(); it++)
 			{
 				PointType pt;
@@ -156,33 +155,11 @@ int main(int narg, char* arg[])
 				input->GetPoint(*it,&pt);
 				lenghtSoFar += firstPt.EuclideanDistanceTo(pt);
 				input->GetPoint(*it,&firstPt);
-				// ** FILTERUSHAPE AND MASKFIBERS NOT GIVEN AS PARAMETER
-				if(filterUShape || maskFibers)
-				{
-					ImageType::IndexType  index;
-					float value = 0;
-					if(mask->TransformPhysicalPointToIndex(firstPt,index))
-					{
-						value= mask->GetPixel(index);
-						cout <<  value << endl;
-						if (val1 == 0 && value != 0)
-							val1 =value;
-
-						if(value != 0)
-							val2 = value;
-					}		
-				}
 			}
 
-			// ** CLEAN IS NOT IN THE SCOPE BECAUSE TOLD TO IGNORE	
-			float dist = clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;	
-			cout << dist << " " << stdCluster << endl;	
-			// ** MULTIPLE PARAMETERS ARE NOT GIVEN, SO COMPILATION ERRORS
-			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&(val1 != val2 || !filterUShape) && (val1 != 0 || !maskFibers) && (dist <= stdCluster))
-				unfilteredIds.insert(cellId);
 
 		}
-	}*/
+	}
 
 	//
 	// Reading in surface File
