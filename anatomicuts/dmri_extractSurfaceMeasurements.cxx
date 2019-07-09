@@ -13,12 +13,27 @@
 #include <string>
 #include <cstdlib>
 
-// to use access
-/*#include <vtkPolyData.h>
-#include "TrkVTKPolyDataFilter.txx"*/
-
 // Input Splicing
 #include "GetPot.h"
+
+// TRK Reading
+#include <vtkPolyData.h>
+#include <vtkPolyDataReader.h>
+#include <vtkPolyDataWriter.h>
+#include "itkPolylineCell.h"
+#include <vtkCellArray.h>
+#include <vtkPoints.h>
+#include <cmath>
+#include "itkArray.h"
+#include "itkPolylineCell.h"
+#include "GetPot.h"
+#include "TrkVTKPolyDataFilter.txx"
+#include "itkImage.h"
+#include "PolylineMeshToVTKPolyDataFilter.h"
+#include "LabelPerPointVariableLengthVector.h"
+#include "EuclideanMembershipFunction.h"
+#include "ClusterTools.h"
+#include "itkDefaultStaticMeshTraits.h"
 
 // Surface Reading
 #include "itkImage.h"
@@ -55,15 +70,9 @@ int main(int narg, char* arg[])
 	// Looping for multiple file input of a certain kind of file
 	vector<string> inputFiles;
 	
-	for (string inputName = string(num1.follow("", 2, "-i", "-I")); inputName != "-s" and inputName != "-o"; inputName = string(num1.next("")))
-		inputFiles.push_back(inputName);
-
-	// Could not figure out how access() worked so I tried hardcoding it in
-	/*vector<string> inputFiles;
-	
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
 		inputFiles.push_back(inputName);
-	*/
+	
 
 	const char *surface = num1.follow("lh.orig", "-s"); 	// this is a surface
 	const char *output  = num1.follow("output.csv", "-o");
@@ -80,27 +89,109 @@ int main(int narg, char* arg[])
 	//
 	// Reading in TRK File
 	//
+
+	enum {Dimension =3};
+	typedef int PixelType;
+	const unsigned int PointDimension = 3;
+	typedef std::vector<int> PointDataType;
+	const unsigned int MaxTopologicalDimension = 3;
+	typedef double CoordinateType;
+	typedef double InterpolationWeightType;
+	typedef itk::DefaultStaticMeshTraits<
+		PointDataType, PointDimension, MaxTopologicalDimension,
+		CoordinateType, InterpolationWeightType, PointDataType > MeshTraits;
+	typedef itk::Mesh< PixelType, PointDimension, MeshTraits > HistogramMeshType;
+
+	typedef itk::Image<float, 3> ImageType;
 	
+	typedef itk::Mesh< PixelType, PointDimension > ColorMeshType;
+	typedef ColorMeshType::PointType PointType;
+	typedef ColorMeshType::CellType CellType;
+	typedef itk::PolylineCell<CellType> PolylineCellType;
+	typedef ColorMeshType::CellAutoPointer CellAutoPointer;
 
+	ImageType::Pointer refImage;
+	ImageType::Pointer mask;	
 
+	vector<ColorMeshType::Pointer>* meshes;
+	vector<ColorMeshType::Pointer>* fixMeshes;
+	vector<vtkSmartPointer<vtkPolyData>> polydatas;
+
+	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
+	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
+
+	std::vector<HistogramMeshType::Pointer>* histoMeshes;
+	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask);
+
+	meshes = clusterTools->PolydataToMesh(polydatas);
+
+	/*for(int i = 0; i < meshes->size(); i++)
+	{ 
+		ColorMeshType::Pointer input = (*meshes)[i];
+		// ** SUBSAMPLE NOT GIVEN AS PARAMETER
+		int offset = (subSample>0)? input->GetNumberOfCells() / subSample:1;
+
+		int averageId = 0;
+		float stdCluster = 0;
+
+		set<int> unfilteredIds;
+
+		int pointIndices = 0;
+		int cellIndices  = 0;
+		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
+		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
+		{
+
+			PointType firstPt;
+			firstPt.Fill(0);
+			float val1 = 0, val2 = 0;
+
+			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+			input->GetPoint(*it,&firstPt);
+			double lenghtSoFar = 0;
+			for(; it != inputCellIt.Value()->PointIdsEnd(); it++)
+			{
+				PointType pt;
+				pt.Fill(0);
+				input->GetPoint(*it,&pt);
+				lenghtSoFar += firstPt.EuclideanDistanceTo(pt);
+				input->GetPoint(*it,&firstPt);
+				// ** FILTERUSHAPE AND MASKFIBERS NOT GIVEN AS PARAMETER
+				if(filterUShape || maskFibers)
+				{
+					ImageType::IndexType  index;
+					float value = 0;
+					if(mask->TransformPhysicalPointToIndex(firstPt,index))
+					{
+						value= mask->GetPixel(index);
+						cout <<  value << endl;
+						if (val1 == 0 && value != 0)
+							val1 =value;
+
+						if(value != 0)
+							val2 = value;
+					}		
+				}
+			}
+
+			// ** CLEAN IS NOT IN THE SCOPE BECAUSE TOLD TO IGNORE	
+			float dist = clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;	
+			cout << dist << " " << stdCluster << endl;	
+			// ** MULTIPLE PARAMETERS ARE NOT GIVEN, SO COMPILATION ERRORS
+			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&(val1 != val2 || !filterUShape) && (val1 != 0 || !maskFibers) && (dist <= stdCluster))
+				unfilteredIds.insert(cellId);
+
+		}
+	}*/
 
 	//
 	// Reading in surface File
 	//
 
 	MRI_SURFACE *surf;
-        //surf = MRISread(surface);
+        surf = MRISread(surface);
 	
-	/*for (unsigned i = 0; i < surf->nvertices; i++)
-	{
-		double x, y, z;
-		float pdx, pdy, pdz;
-
-		if (surf->vertices[j].x > 1)
-		{
-			MRISsurfaceRASTToVoxel(surf, images, surf->vertices[j].x, surf->vertices[j].y, surf->vertices[j].z, &x, &y, &z);
-			float magnitud = MRIvoxelGradient(images, (float) x, (float) y, (float) z, &pdx, &pdy, &pdz);
-	}*/
+	// TODO with VIV
 
 	//
 	// Outputing to an extneral file
@@ -130,3 +221,14 @@ int main(int narg, char* arg[])
  *
  */
 
+
+	/*for (unsigned i = 0; i < surf->nvertices; i++)
+	{
+		double x, y, z;
+		float pdx, pdy, pdz;
+
+		if (surf->vertices[j].x > 1)
+		{
+			MRISsurfaceRASTToVoxel(surf, images, surf->vertices[j].x, surf->vertices[j].y, surf->vertices[j].z, &x, &y, &z);
+			float magnitud = MRIvoxelGradient(images, (float) x, (float) y, (float) z, &pdx, &pdy, &pdz);
+	}*/
