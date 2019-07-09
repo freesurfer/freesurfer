@@ -40,13 +40,13 @@ int main(int narg, char* arg[])
 	GetPot c2(narg, const_cast<char**>(arg)); 
 
 	//Usage error
-	if (c1.size() == 1 || c1.search(2, "--help", "-h"))
+/*	if (c1.size() == 1 || c1.search(2, "--help", "-h"))
 	{
 		cout << "Usage: " << endl; 
 		cout << arg[0] << " -s streamlines -i imageFile -d outputDirectory" << endl;
 		return -1; 
 	}
-
+*/
 	//More variable definitions
 	enum {Dimension = 3};
 	typedef int                                                        PixelType;
@@ -69,7 +69,7 @@ int main(int narg, char* arg[])
 
 	ReaderType::Pointer reader = ReaderType::New(); 
 
-	const char* inputFilename = arg[4]; 
+	const char* inputFilename = arg[1]; //Test if image is being read 
 	reader->SetFileName(inputFilename); 
 
 	try
@@ -125,7 +125,7 @@ int main(int narg, char* arg[])
 	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
 
 	//TO DELETE
-	//cout << stream_lines << endl << image_file << endl << output << endl; 
+//	cout << stream_lines << endl << image_file << endl << output << endl; 
 
 	return 0; 	
 }
