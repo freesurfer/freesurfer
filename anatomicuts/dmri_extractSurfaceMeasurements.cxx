@@ -10,7 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cstlib>
+#include <cstdlib>
 
 #include <vtkPolyData.h>
 #include "TrkVTKPolyDataFilter.txx"
@@ -45,6 +45,11 @@ int main(int narg, char* arg[])
 
 
 	// TO DELETE
+	// Testing that files are saved and can be outputted
+	
+	for (int i = 0; i < inputFiles.size(); i++)
+		cout << inputFiles.at(i) << endl;
+
 	cout << surface << endl << output << endl;
 
 	// Reading in TRK File
