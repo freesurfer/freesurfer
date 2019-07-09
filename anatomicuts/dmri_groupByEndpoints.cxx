@@ -48,7 +48,7 @@ int main(int narg, char* arg[])
 	}
 */
 	//More variable definitions
-	enum {Dimension = 3};
+/*	enum {Dimension = 3};
 	typedef int                                                        PixelType;
 	const unsigned int PointDimension = 3;
 	typedef vector<int>                  PointDataType;
@@ -57,9 +57,9 @@ int main(int narg, char* arg[])
 	typedef ColorMeshType::PointType PointType;
 	typedef ColorMeshType::CellType        CellType;
 	typedef ColorMeshType::CellAutoPointer CellAutoPointer;
-
+*/
 	//Image variables
-	//Some variabel names are repeated but have _img added
+/*	//Some variabel names are repeated but have _img added
 	using PixelType_img = unsigned char; 
 	constexpr unsigned int Dimension_img = 2; 
 
@@ -82,47 +82,79 @@ int main(int narg, char* arg[])
 		cout << err << endl; 
 		return EXIT_FAILURE; 
 	}
+*/
+	//Extract pixels from image
+/*	using ImageType = Image<unsigned short, 3>; 
 
-	PointSetType::Pointer pointSet = PointSetType::New(); 
+	ImageType::Pointer image = ImageType::New(); 
 
-	using IteratorType = ImageRegionConstIterator<ImageType>; 
+	const ImageType::SizeType size = {{200, 200, 200}}; 
+	const ImageType::IndexType start = {{0, 0, 0}}; 
 
-	const ImageType* image = reader->GetOutput(); 
+	ImageType::RegionType region; 
+	region.SetSize(size); 
+	region.SetIndex(start); 
 
-	IteratorType it(image, image->GetBufferedRegion());
+	image->SetRegions(region); 
+	image->Allocate(true); 
 
-	it.GoToBegin(); 
+	const ImageType::IndexType pixelIndex = {{144, 168, 75}}; 
 
-	using PointType_img = PointSetType::PointType; 
-	PointType_img point; 
+	ImageType::PixelType pixelValue = image->GetPixel(pixelIndex); 
 
-	unsigned long pointId = 0; 
+	image->SetPixel(pixelIndex, pixelValue); 
+*/
 
+	using PixelType = short;
+	constexpr unsigned int Dimension = 3; 
+
+	using ImageType = Image<PixelType, Dimension>; 
+	using ReaderType = ImageFileReader<ImageType>; 
+
+	ReaderType::Pointer reader = ReaderType::New(); 
+
+	reader->SetFileName(arg[1]); 
+	reader->Update();
+
+	ImageType::Pointer inputImage = reader->GetOutput(); 
+
+	ImageType::IndexType index; 
+
+	index[0] = 144; 
+	index[1] = 168; 
+	index[2] = 75; 
+
+	const PixelType value = inputImage->GetPixel(index); 
+
+	cout << index << " = " << value << endl; 
+	
+/*
+	using WriterType = ImageFileWriter<ImageType>; 
+	WriterType::Pointer writer = WriterType::New(); 
+	writer->SetInput(image); 
+	writer->SetFileName(arg[1]); 
+
+	try
+	{
+		writer->Update(); 
+	}
+	catch (ExceptionObject & error)
+	{
+		cerr << "Error: " << error << endl; 
+		return EXIT_FAILURE; 
+	}
+
+	cout << pixelValue << endl; 
+*/
 	//Take in information
 	const char *stream_lines = c1.follow("string_file.trk", "-s"); 
 	const char *image_file = c1.follow("image_file.nii.gz", "-i"); 
 	const char *output = c1.follow("output_directory", "-o"); 
 
-	//Image processing function
-	while (!it.IsAtEnd()) 
-	{
-		//Convert the pixel position into a Point
-		image->TransformIndexToPhysicalPoint(it.GetIndex(), point); 
-		pointSet->SetPoint(pointId, point); 
-
-		//Transfer the pixel data to the value associated with the point
-		pointSet->SetPointData(pointId, it.Get()); 
-
-		++it; 
-		++pointId; 
-	}
-
-	cout << "Number of Points = " << pointSet->GetNumberOfPoints() << endl; 
-
 	//Declaration of vectors
-	vector<ColorMeshType::Pointer>* meshes; 
-	vector<ColorMeshType::Pointer>* fixMeshes; 
-	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
+//	vector<ColorMeshType::Pointer>* meshes; 
+//	vector<ColorMeshType::Pointer>* fixMeshes; 
+//	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
 
 	//TO DELETE
 //	cout << stream_lines << endl << image_file << endl << output << endl; 
