@@ -36,9 +36,15 @@ int main(int narg, char* arg[])
 	
 	// Looping for multiple file input of a certain kind of file
 	vector<string> inputFiles;
-
-	for (string inputName = string(num1.follow("input.trk", "-i")); access(inputName.c_str(),0) == 0; inputName = string(num1.next("")))
+	
+	for (string inputName = string(num1.follow("", 2, "-i", "-I")); inputName != "-s" and inputName != "-o"; inputName = string(num1.next("")))
 		inputFiles.push_back(inputName);
+
+	/*vector<string> inputFiles;
+	
+	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
+		inputFiles.push_back(inputName);
+	*/
 
 	const char *surface = num1.follow("lh.orig", "-s"); 	// this is a surface
 	const char *output  = num1.follow("output.csv", "-o");
@@ -66,7 +72,7 @@ int main(int narg, char* arg[])
 
 	oFile.close();
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 /*
