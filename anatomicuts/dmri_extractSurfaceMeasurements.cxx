@@ -26,7 +26,6 @@
 #include <cmath>
 #include "itkArray.h"
 #include "itkPolylineCell.h"
-#include "GetPot.h"
 #include "TrkVTKPolyDataFilter.txx"
 #include "itkImage.h"
 #include "PolylineMeshToVTKPolyDataFilter.h"
@@ -39,14 +38,40 @@
 #include "itkImage.h"
 #include <map>
 #include "itkDefaultStaticMeshTraits.h"
-#include "itkMesh.h"
+//#include "fsSurface.h"
 #include "itkTriangleCell.h"
 #include <set>
 #include "colortab.h"
 #include "fsenv.h"
+#include "itkVTKPolyDataWriter.h"
+#include "itkSmoothingQuadEdgeMeshFilter.h"
+#include "vtkCellData.h"
+#include "vtkPointData.h"
+	
+#include "vtkFillHolesFilter.h" 
+#include "vtkPolyDataNormals.h"
+#include "vtkCellArray.h"
+#include "vtkTriangle.h"
+#include "vtkDecimatePro.h"
+#include "vtkCleanPolyData.h"
+#include "vtkSmoothPolyDataFilter.h"
+#include "vtkTriangleFilter.h"
+
+#include "vtkDelaunay3D.h"
+#include "macros.h"
 #include "mrisurf.h"
+#include "mri.h"
+#include "vtkKdTreePointLocator.h"
+
+/*#if VTK_MAJOR_VERSION > 5	
+	#include "vtkPCACurvatureEstimation.h"
+#else
+	#include "vtkCurvatures.h"*/
 
 using namespace std;
+
+// HELPER FUNCTIONS
+vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf);
 
 int main(int narg, char* arg[])
 {
@@ -56,8 +81,7 @@ int main(int narg, char* arg[])
 	if ((num1.size() <= 6) or (num1.search(2, "--help", "-h")))
 	{
 		cout << "Usage: " << endl
-		     << arg[0] << " -i streamlineFile.trk"
-		     << " -s surfaceFile.orig -o output.csv"
+		     << arg[0] << " -i streamlineFile.trk -s surfaceFile.orig -t overlayFile.thickness -c overlayFile.curv -o output.csv"
 		     << endl;
 
 		return EXIT_FAILURE;
@@ -74,7 +98,9 @@ int main(int narg, char* arg[])
 		inputFiles.push_back(inputName);
 	
 
-	const char *surface = num1.follow("lh.orig", "-s"); 	// this is a surface
+	const char *surface = num1.follow("lh.orig", "-s");
+	const char *thick   = num1.follow("lh.thickness", "-t");
+	const char *curv    = num1.follow("lh.curv", "-c");
 	const char *output  = num1.follow("output.csv", "-o");
 
 
@@ -84,7 +110,7 @@ int main(int narg, char* arg[])
 	for (int i = 0; i < inputFiles.size(); i++)
 		cout << inputFiles.at(i) << endl;
 
-	cout << surface << endl << output << endl;
+	cout << surface << endl << thick << endl << curv << endl << output << endl;
 
 	//
 	// Reading in TRK File
@@ -155,8 +181,15 @@ int main(int narg, char* arg[])
 			// Finding the last point
 			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
 				input->GetPoint(*it, &lastPt);
-				
+			
+			input->GetPoint(*it, &lastPt);	
 			cout << "Last Point: " << lastPt << endl;
+			
+			// Gave the same First and Last point
+			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
+			input->GetPoint(*it2, &lastPt);
+
+			outFile << "Last Point: " << lastPt << endl;*/
 		}
 	}
 
@@ -184,6 +217,33 @@ int main(int narg, char* arg[])
 	oFile.close();
 
 	return EXIT_SUCCESS;
+}
+
+//
+// Converts a surface to a VTK
+//
+vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
+{
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
+	cout << points->GetNumberOfPoints() << endl;
+
+	for(int i = 0; i < surf->nvertices; i++)
+		points->InsertNextPoint(surf->vertices[i].x, surf->vertices[i].y, surf->vertices[i].z);
+
+	for( int i = 0; i < surf->nfaces; i++ ) {
+		vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
+		for(int j = 0;j < 3; j++)
+			triangle->GetPointIds()->SetId(j, surf->faces[i].v[j]);
+
+		triangles->InsertNextCell(triangle);
+	}	
+
+	vtkSmartPointer<vtkPolyData> vtkSurface = vtkSmartPointer<vtkPolyData>::New();
+	vtkSurface->SetPoints(points);
+	vtkSurface->SetPolys(triangles);
+
+	return vtkSurface;
 }
 
 /*
