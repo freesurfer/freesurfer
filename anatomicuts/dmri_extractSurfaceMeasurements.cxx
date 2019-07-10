@@ -125,6 +125,9 @@ int main(int narg, char* arg[])
 
 	meshes = clusterTools->PolydataToMesh(polydatas);
 
+	PointType first;
+	PointType last;
+
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
 		ColorMeshType::Pointer input = (*meshes)[i];
@@ -140,25 +143,20 @@ int main(int narg, char* arg[])
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
 
-			PointType firstPt;
+			PointType firstPt, lastPt;
 			firstPt.Fill(0);
-			float val1 = 0, val2 = 0;
+			lastPt.Fill(0);
 
+			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
-			double lenghtSoFar = 0;
-			// iterates through the points in one stream line and computes the distance between each pairs of points
-			for(; it != inputCellIt.Value()->PointIdsEnd(); it++)
-			{
-				PointType pt;
-				pt.Fill(0);
-				input->GetPoint(*it,&pt);
-				lenghtSoFar += firstPt.EuclideanDistanceTo(pt);
-				input->GetPoint(*it,&firstPt);
-				cout << "Length of Stream: " << lenghtSoFar << endl;
-			}
+			cout << "First Point: " << firstPt << endl;
 
-
+			// Finding the last point
+			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
+				input->GetPoint(*it, &lastPt);
+				
+			cout << "Last Point: " << lastPt << endl;
 		}
 	}
 
