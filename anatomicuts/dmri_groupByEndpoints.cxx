@@ -110,7 +110,7 @@ int main(int narg, char* arg[])
 
 			start = firstPt; 
 
-			cout << "First point: " << firstPt << endl; 
+//			cout << "First point: " << firstPt << endl; 
 
 			for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
 			{
@@ -138,23 +138,32 @@ int main(int narg, char* arg[])
 
 			ImageType::IndexType index1, index2; 
 
-			index1[0] = start[0]; 
-			index1[1] = start[1]; 
-			index1[2] = start[2]; 
-
-			//index2[0] = end[0]; 
-			//index2[1] = end[1]; 
-			//index2[2] = end[2]; 
-
-			cout << "First point: " << index1 << endl; 
-			//cout << "Last point: " << index2 << endl; 
+			float value1 = 0, value2 = 0; 
 			
-		//	const PixelType value1 = inputImage->GetPixel(index1); 
-			//const PixelType value2 = inputImage->GetPixel(index2); 
+			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
+			{
+				value1 = inputImage->GetPixel(index1); 
+				//cout << index1 << " = " << value1 << endl; 
+			}
 
-			//cout << index1 << " = " << value1 << endl; 
-			//cout << index2 << " = " << value2 << endl; 
+			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
+			{
+				value2 = inputImage->GetPixel(index2);
+				//cout << index2 << " = " << value2 << endl; 
+			}
+
+			if (value1 != 0 and value1 == value2)
+			{
+				cout << "Start and ends match: " << endl; 
+				cout << "First point: " << index1 << endl; 
+				cout << "Last point: " << index2 << endl; 
+				cout << index1 << " = " << value1 << endl; 
+				cout << index2 << " = " << value2 << endl;  
+			}
 		}
+
+		delete meshes;
+		delete histoMeshes;
 	}
 
 	//TO DELETE
@@ -221,5 +230,28 @@ int main(int narg, char* arg[])
 	ImageType::PixelType pixelValue = image->GetPixel(pixelIndex); 
 
 	image->SetPixel(pixelIndex, pixelValue); 
+*/
+/*
+			inputImage->TransformPhysicalPointToIndex(start, index1);	
+			inputImage->TransformPhysicalPointToIndex(end, index2); 
+ 
+			cout << "First point: " << index1 << endl; 
+			cout << "Last point: " << index2 << endl; 
+			
+			float value1 = inputImage->GetPixel(index1); 
+			float value2 = inputImage->GetPixel(index2); 
+			//const PixelType value1 = inputImage->GetPixel(index1); 
+			//const PixelType value2 = inputImage->GetPixel(index2); 
+
+			cout << index1 << " = " << value1 << endl; 
+			cout << index2 << " = " << value2 << endl; 
+ 	
+			if (value1 == value2)
+			{
+				cout << "First point: " << index1 << endl; 
+				cout << "Last point: " << index2 << endl; 
+				cout << index1 << " = " << value1 << endl; 
+				cout << index2 << " = " << value2 << endl; 
+			}		
 */
 
