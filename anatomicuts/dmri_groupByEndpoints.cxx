@@ -93,6 +93,7 @@ int main(int narg, char* arg[])
 
 	meshes = clusterTools->PolydataToMesh(polydatas); 
 
+	//Mesh is array of inputs, so for this, always cycles once
 	for (int i = 0; i < meshes->size(); i++) 
 	{
 		ColorMeshType::Pointer input = (*meshes)[i]; 
@@ -100,12 +101,16 @@ int main(int narg, char* arg[])
 		int pointIndices = 0; 
 		int cellIndices = 0; 
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
+		
 		cerr << "New mesh: " << endl; 
+		int stream_count = 0; 
+
+		//Cycles through each streamline
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
 			cerr << cellId << endl; 
 
-			PointType firstPt, start, end; 
+			PointType firstPt, start, second_check, end; 
 			firstPt.Fill(0); 
 
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
@@ -116,15 +121,24 @@ int main(int narg, char* arg[])
 
 //			cerr << "First point: " << firstPt << endl; 
 
-			for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
+			//Goes through each point in a streamline
+			//Converted given for loop into a while loop
+			while (it != inputCellIt.Value()->PointIdsEnd())
 			{
 				PointType pt; 
 				pt.Fill(0);
 				input->GetPoint(*it, &pt);
 				lengthSoFar += firstPt.EuclideanDistanceTo(pt); 
 				input->GetPoint(*it, &firstPt); 
-				end = pt; 	
-			} 
+
+				it++; 
+				
+				//Store second to last point in case endpoint gives value 0
+				if (it == inputCellIt.Value()->PointIdsEnd())
+					end = pt; 
+				else
+					second_check = pt; 
+			}  
 			
 			//Value of coordinates based on image
 			using PixelType = short;
@@ -149,13 +163,20 @@ int main(int narg, char* arg[])
 			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
 			{
 				value1 = inputImage->GetPixel(index1); 
-				//cerr << index1 << " = " << value1 << endl; 
+				cerr << index1 << " = " << value1 << endl; 
 			}
 
 			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
 			{
 				value2 = inputImage->GetPixel(index2);
-				//cerr << index2 << " = " << value2 << endl; 
+				
+				if (value2 == 0)
+				{
+					if (inputImage->TransformPhysicalPointToIndex(second_check, index2))
+						value2 = inputImage->GetPixel(index2);
+				}
+
+				cerr << index2 << " = " << value2 << endl; 
 			}
 
 			if (value1 != 0 and value1 == value2)
@@ -165,8 +186,26 @@ int main(int narg, char* arg[])
 				cout << "Last point: " << index2 << endl; 
 				cout << index1 << " = " << value1 << endl; 
 				cout << index2 << " = " << value2 << endl;  
+				stream_count++; 
 			}
+
+			//Output trk files
+			//
+			ColorMeshType::Pointer om = ColorMeshType::New(); 
+			om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
+
+			inputCellIt = input->GetCells()->Begin(); 
+			for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
+			{
+				
+			}	
 		}
+		//Store streamlines that lie in the same structure, then place into one trk file
+
+		cerr << "Total of " << stream_count << " streamlines" << endl; 
+
+	//Output files here?
+
 	}
 
 	delete meshes;
@@ -175,6 +214,8 @@ int main(int narg, char* arg[])
 }
 
 
+//Check points before endpoint if endpoint gives value zero
+//What if starts at 0?
 
 /*
  * Ushaped fibers go into a TRK file
