@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-73</y>
      <width>346</width>
-     <height>1815</height>
+     <height>1843</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -156,35 +156,51 @@
         <property name="spacing">
          <number>5</number>
         </property>
-        <item row="1" column="2">
-         <widget class="QLineEdit" name="lineEditVectorScale">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+        <item row="0" column="0">
+         <spacer name="horizontalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="maximumSize">
+          <property name="sizeType">
+           <enum>QSizePolicy::MinimumExpanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
            <size>
-            <width>75</width>
-            <height>16777215</height>
+            <width>14</width>
+            <height>0</height>
            </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="labelVectorSkip">
+          <property name="text">
+           <string>Skip</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
-         <widget class="QLineEdit" name="lineEditVectorLineWidth">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
+        <item row="3" column="2">
+         <widget class="QSpinBox" name="spinBoxVectorSkip">
           <property name="maximumSize">
            <size>
             <width>75</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="wrapping">
+           <bool>false</bool>
+          </property>
+          <property name="minimum">
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -204,21 +220,69 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <spacer name="horizontalSpacer_11">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+        <item row="0" column="2">
+         <widget class="QLineEdit" name="lineEditVectorLineWidth">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::MinimumExpanding</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
+          <property name="maximumSize">
            <size>
-            <width>14</width>
-            <height>0</height>
+            <width>75</width>
+            <height>16777215</height>
            </size>
           </property>
-         </spacer>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLineEdit" name="lineEditVectorNormThreshold">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="labelVectorNormThreshold">
+          <property name="text">
+           <string>Norm threshold</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QLineEdit" name="lineEditVectorScale">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
         </item>
         <item row="0" column="1">
          <widget class="QLabel" name="labelVectorLineWidth">
@@ -233,38 +297,6 @@
           </property>
           <property name="indent">
            <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="labelVectorSkip">
-          <property name="text">
-           <string>Skip</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="2">
-         <widget class="QSpinBox" name="spinBoxVectorSkip">
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="wrapping">
-           <bool>false</bool>
-          </property>
-          <property name="minimum">
-           <number>0</number>
           </property>
          </widget>
         </item>
@@ -349,6 +381,9 @@
             <width>40</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
           </property>
           <property name="text">
            <string/>
@@ -1670,7 +1705,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>149</x>
-     <y>1196</y>
+     <y>1476</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1685,8 +1720,8 @@ of each frame</string>
    <slot>OnComboColorMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>392</y>
+     <x>344</x>
+     <y>673</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1701,8 +1736,8 @@ of each frame</string>
    <slot>OnColorTableCurrentItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
-     <y>880</y>
+     <x>262</x>
+     <y>1159</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1718,7 +1753,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>145</x>
-     <y>828</y>
+     <y>1119</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1733,8 +1768,8 @@ of each frame</string>
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>306</y>
+     <x>277</x>
+     <y>584</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1749,8 +1784,8 @@ of each frame</string>
    <slot>OnSliderWindow(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>473</y>
+     <x>262</x>
+     <y>757</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1765,8 +1800,8 @@ of each frame</string>
    <slot>OnSliderLevel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>503</y>
+     <x>262</x>
+     <y>788</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1781,8 +1816,8 @@ of each frame</string>
    <slot>OnSliderMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>533</y>
+     <x>262</x>
+     <y>819</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1797,8 +1832,8 @@ of each frame</string>
    <slot>OnSliderMid(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>563</y>
+     <x>262</x>
+     <y>850</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1813,8 +1848,8 @@ of each frame</string>
    <slot>OnSliderMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>593</y>
+     <x>262</x>
+     <y>881</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1829,8 +1864,8 @@ of each frame</string>
    <slot>OnSliderOffset(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>623</y>
+     <x>262</x>
+     <y>912</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1845,8 +1880,8 @@ of each frame</string>
    <slot>OnLineEditWindow(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>477</y>
+     <x>343</x>
+     <y>761</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1861,8 +1896,8 @@ of each frame</string>
    <slot>OnLineEditLevel(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>507</y>
+     <x>343</x>
+     <y>792</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1877,8 +1912,8 @@ of each frame</string>
    <slot>OnLineEditMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>537</y>
+     <x>343</x>
+     <y>823</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1893,8 +1928,8 @@ of each frame</string>
    <slot>OnLineEditMid(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>567</y>
+     <x>343</x>
+     <y>854</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1909,8 +1944,8 @@ of each frame</string>
    <slot>OnLineEditMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>597</y>
+     <x>343</x>
+     <y>885</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1925,8 +1960,8 @@ of each frame</string>
    <slot>OnLineEditOffset(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>627</y>
+     <x>343</x>
+     <y>916</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1941,8 +1976,8 @@ of each frame</string>
    <slot>OnComboLookupTable(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>420</y>
+     <x>344</x>
+     <y>702</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1957,8 +1992,8 @@ of each frame</string>
    <slot>OnSliderContourMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1258</y>
+     <x>277</x>
+     <y>1539</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1973,8 +2008,8 @@ of each frame</string>
    <slot>OnSliderContourMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>1279</y>
+     <x>277</x>
+     <y>1570</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1989,8 +2024,8 @@ of each frame</string>
    <slot>OnSliderContourSmooth(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>1364</y>
+     <x>277</x>
+     <y>1655</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2005,8 +2040,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1258</y>
+     <x>277</x>
+     <y>1539</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2021,8 +2056,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>1279</y>
+     <x>277</x>
+     <y>1570</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2037,8 +2072,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>258</x>
-     <y>1364</y>
+     <x>277</x>
+     <y>1655</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2053,8 +2088,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>1254</y>
+     <x>343</x>
+     <y>1535</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2069,8 +2104,8 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>1285</y>
+     <x>343</x>
+     <y>1566</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -2085,28 +2120,12 @@ of each frame</string>
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>1360</y>
+     <x>343</x>
+     <y>1651</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
      <y>1332</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonContourSave</sender>
-   <signal>clicked()</signal>
-   <receiver>PanelVolume</receiver>
-   <slot>OnContourSave()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>194</x>
-     <y>1439</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>325</x>
-     <y>1351</y>
     </hint>
    </hints>
   </connection>
@@ -2165,8 +2184,8 @@ of each frame</string>
    <slot>OnSliderTrackVolumeMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1084</y>
+     <x>277</x>
+     <y>1363</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2181,8 +2200,8 @@ of each frame</string>
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>1080</y>
+     <x>343</x>
+     <y>1359</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2197,8 +2216,8 @@ of each frame</string>
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>1084</y>
+     <x>277</x>
+     <y>1363</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2213,8 +2232,8 @@ of each frame</string>
    <slot>UpdateTrackVolumeThreshold()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>72</x>
-     <y>880</y>
+     <x>71</x>
+     <y>1159</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2229,8 +2248,8 @@ of each frame</string>
    <slot>OnShowExistingLabelsOnly(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>852</y>
+     <x>344</x>
+     <y>1131</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2245,8 +2264,8 @@ of each frame</string>
    <slot>OnCheckShowLabelContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>1225</y>
+     <x>226</x>
+     <y>1506</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -2261,8 +2280,8 @@ of each frame</string>
    <slot>OnComboMask(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>251</y>
+     <x>344</x>
+     <y>527</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2277,8 +2296,8 @@ of each frame</string>
    <slot>OnComboCorrelationSurface(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>-163</y>
+     <x>344</x>
+     <y>74</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2294,7 +2313,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>655</y>
+     <y>945</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2309,8 +2328,8 @@ of each frame</string>
    <slot>OnLineEditVectorDisplayScale(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>139</y>
+     <x>343</x>
+     <y>384</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2326,11 +2345,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>709</y>
+     <y>999</y>
     </hint>
     <hint type="destinationlabel">
      <x>23</x>
-     <y>568</y>
+     <y>855</y>
     </hint>
    </hints>
   </connection>
@@ -2342,11 +2361,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>709</y>
+     <y>999</y>
     </hint>
     <hint type="destinationlabel">
-     <x>243</x>
-     <y>563</y>
+     <x>262</x>
+     <y>850</y>
     </hint>
    </hints>
   </connection>
@@ -2358,11 +2377,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>709</y>
+     <y>999</y>
     </hint>
     <hint type="destinationlabel">
-     <x>324</x>
-     <y>567</y>
+     <x>343</x>
+     <y>854</y>
     </hint>
    </hints>
   </connection>
@@ -2373,8 +2392,8 @@ of each frame</string>
    <slot>OnColorTableItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>134</x>
-     <y>880</y>
+     <x>133</x>
+     <y>1159</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2390,7 +2409,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>17</x>
-     <y>852</y>
+     <y>1131</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2405,8 +2424,8 @@ of each frame</string>
    <slot>OnColorTableItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>880</y>
+     <x>205</x>
+     <y>1159</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2421,8 +2440,8 @@ of each frame</string>
    <slot>OnLineEditMaskThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>280</y>
+     <x>343</x>
+     <y>557</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2437,8 +2456,8 @@ of each frame</string>
    <slot>OnLineEditVectorLineWidth(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>111</y>
+     <x>343</x>
+     <y>356</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2453,8 +2472,8 @@ of each frame</string>
    <slot>OnCheckVoxelizedContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>1215</y>
+     <x>343</x>
+     <y>1506</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2469,12 +2488,12 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>1215</y>
+     <x>343</x>
+     <y>1506</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
-     <y>1372</y>
+     <y>1650</y>
     </hint>
    </hints>
   </connection>
@@ -2485,12 +2504,12 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>1215</y>
+     <x>343</x>
+     <y>1506</y>
     </hint>
     <hint type="destinationlabel">
-     <x>258</x>
-     <y>1364</y>
+     <x>277</x>
+     <y>1655</y>
     </hint>
    </hints>
   </connection>
@@ -2501,12 +2520,12 @@ of each frame</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
-     <y>1215</y>
+     <x>343</x>
+     <y>1506</y>
     </hint>
     <hint type="destinationlabel">
-     <x>324</x>
-     <y>1360</y>
+     <x>343</x>
+     <y>1651</y>
     </hint>
    </hints>
   </connection>
@@ -2517,12 +2536,28 @@ of each frame</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>751</y>
+     <x>232</x>
+     <y>1055</y>
     </hint>
     <hint type="destinationlabel">
-     <x>272</x>
-     <y>753</y>
+     <x>299</x>
+     <y>1056</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditVectorNormThreshold</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnLineEditVectorNormThreshold(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>305</x>
+     <y>401</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>525</x>
+     <y>428</y>
     </hint>
    </hints>
   </connection>
@@ -2569,5 +2604,6 @@ of each frame</string>
   <slot>OnLineEditMaskThreshold(QString)</slot>
   <slot>OnLineEditVectorLineWidth(QString)</slot>
   <slot>OnCheckVoxelizedContour(bool)</slot>
+  <slot>OnLineEditVectorNormThreshold(QString)</slot>
  </slots>
 </ui>

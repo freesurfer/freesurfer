@@ -646,4 +646,19 @@ double gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI **seg, MRI *out);
 MRI *GCAsampleToVolWMSAprob(MRI *mri, GCA *gca, TRANSFORM *transform, MRI *out);
 
+GCA *GCAsymmetrize(GCA *gca);
+int GCAisNotSymmetric(GCA *gca);
+int GCAPprint(FILE *fp, GCA_PRIOR *gcap);
+unsigned short *GCAmergeLabelLists(unsigned short *labels1, int nlabels1, unsigned short *labels2, int nlabels2, int *pnlist);
+GCA_PRIOR *GCAPcopy(GCA_PRIOR *gcap, int symmetrize, GCA_PRIOR *gcapcopy);
+GCA_PRIOR *GCAPmerge(GCA_PRIOR *gcap1, GCA_PRIOR *gcap2, GCA_PRIOR *gcapm);
+int GCAPfree(GCA_PRIOR **pgcap);
+int GC1Dprint(FILE *fp, GC1D *gc1d, int ninputs);
+GC1D *GC1Dcopy(GC1D *gc, int ninputs, int symmetrize, GC1D *gccopy);
+GC1D *GC1Dmerge(GC1D *gc1, GC1D *gc2, int ninputs, GC1D *gcm);
+int GC1Dfree(GC1D **pgc, int ninputs);
+int GCANprint(FILE *fp, GCA_NODE *node, int ninputs);
+GCA_NODE *GCANmerge(GCA_NODE *node1, GCA_NODE *node2, int ninputs, int symmetrize, GCA_NODE *nodem);
+
+
 #endif

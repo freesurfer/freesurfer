@@ -99,7 +99,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nProjectionMapType(0),
   m_bDisplayRGB(false),
   m_dVectorLineWidth(1),
-  m_nVectorSkip(0)
+  m_nVectorSkip(0),
+  m_dVectorNormThreshold(0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -166,6 +167,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
   m_bRememberFrameSettings = p->m_bRememberFrameSettings;
   m_dVectorLineWidth      =   p->m_dVectorLineWidth;
+  m_dVectorNormThreshold  =   p->m_dVectorNormThreshold;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
 
@@ -802,6 +804,12 @@ void LayerPropertyMRI::SetVectorDisplayScale(double val)
   emit DisplayModeChanged();
 }
 
+void LayerPropertyMRI::SetVectorNormThreshold(double dVal)
+{
+  m_dVectorNormThreshold = dVal;
+  emit DisplayModeChanged();
+}
+
 void LayerPropertyMRI::SetVectorInversion( int nInversion )
 {
   if ( m_bDisplayVector )
@@ -1407,7 +1415,7 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
 
   double voxel_size[3];
   source->GetImageOutput()->GetSpacing(voxel_size);
-  m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 1.8;
+  m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 2.0;
 
   // Init our color scale values.
   UpdateMinMaxValues();

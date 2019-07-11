@@ -114,6 +114,7 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 
   if (!mris_dst) {
     mris_dst = MRISclone(mris_src);
+    mris_dst->status = mris_src->status;    // added this, think it right - Bevin
   }
 
   if ((mris_dst->status != MRIS_SPHERE) && (mris_dst->status != MRIS_PARAMETERIZED_SPHERE)) {

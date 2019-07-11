@@ -82,7 +82,7 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
           /* change of coordinates from image to surface domain */
           MRIvoxelToSurfaceRAS(mri_shell, x, y, z, &xs, &ys, &zs);
           /* find the closest vertex to the point */
-          MHTfindClosestVertexGeneric(mht, mris, xs, ys, zs, 10, 2, &vno, &dist);
+          MHTfindClosestVertexGeneric(mht, xs, ys, zs, 10, 2, &vno, &dist);
           /* creating the oct tree voxel structure */
           vox[0] = xs - vsize[0] / 2.0;
           vox[1] = ys - vsize[1] / 2.0;

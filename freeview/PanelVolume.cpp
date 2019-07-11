@@ -101,6 +101,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   }
 
   connect(mainwnd, SIGNAL(NewVolumeCreated()), SLOT(ShowAllLabels()));
+  connect(ui->pushButtonContourSave, SIGNAL(clicked(bool)), mainwnd, SLOT(OnSaveIsoSurface()));
 
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionNewVolume);
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionLoadVolume);
@@ -171,7 +172,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->labelVectorLineWidth
                      << ui->lineEditVectorLineWidth
                      << ui->labelVectorSkip
-                     << ui->spinBoxVectorSkip;
+                     << ui->spinBoxVectorSkip
+                     << ui->labelVectorNormThreshold
+                     << ui->lineEditVectorNormThreshold;
   //    << ui->labelMask
   //    << ui->comboBoxMask;
 
@@ -313,6 +316,20 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
+
+  ui->colorLabelBrushValue->installEventFilter(this);
+}
+
+bool PanelVolume::eventFilter(QObject *watched, QEvent *event)
+{
+  if (watched == ui->colorLabelBrushValue && event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent* e = static_cast<QMouseEvent*>(event);
+    if (e->button() == Qt::LeftButton)
+      OnColorTableChangeColor();
+  }
+
+  return PanelLayer::eventFilter(watched, event);
 }
 
 void PanelVolume::DoIdle()
@@ -516,6 +533,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxNormalizeVectors->setChecked(layer->GetProperty()->GetNormalizeVector());
     ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
     ChangeLineEditNumber( ui->lineEditVectorLineWidth, layer->GetProperty()->GetVectorLineWidth());
+    ChangeLineEditNumber( ui->lineEditVectorNormThreshold, layer->GetProperty()->GetVectorNormThreshold());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
 
@@ -630,7 +648,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->spinBoxFrame->setEnabled( layer &&
                                   !layer->GetProperty()->GetDisplayVector() &&
                                   !layer->GetProperty()->GetDisplayTensor() );
-    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
+    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6) );
     ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
     ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
     ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
@@ -1404,25 +1422,6 @@ void PanelVolume::OnContourValueChanged()
   }
 }
 
-void PanelVolume::OnContourSave()
-{
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
-  {
-    QString fn = QFileDialog::getSaveFileName( this,
-                                               "Save iso-surface",
-                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
-                                               "VTK files (*.vtk);;All files (*)");
-    if ( !fn.isEmpty() )
-    {
-      if ( !layer->SaveContourToFile( fn ) )
-      {
-        QMessageBox::warning(this, "Error", "Can not save surface to file.");
-      }
-    }
-  }
-}
-
 void PanelVolume::OnSliderTrackVolumeMin(int nval)
 {
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
@@ -1589,7 +1588,7 @@ void PanelVolume::OnCheckBoxSetDisplayVector(bool b)
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
   foreach (LayerMRI* layer, layers)
   {
-    if (layer->GetNumberOfFrames() == 3 || layer->GetEndType() == "DTI")
+    if (layer->GetNumberOfFrames() == 3 || layer->GetNumberOfFrames() == 6 || layer->GetEndType() == "DTI")
       layer->GetProperty()->SetDisplayVector(b);
   }
 }
@@ -1619,6 +1618,20 @@ void PanelVolume::OnCheckBoxSetNormalizeVector(bool b)
   foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->SetNormalizeVector(b);
+  }
+}
+
+void PanelVolume::OnLineEditVectorNormThreshold(const QString &strg)
+{
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (ok)
+  {
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      layer->GetProperty()->SetVectorNormThreshold(val);
+    }
   }
 }
 
@@ -1912,6 +1925,9 @@ void PanelVolume::OnColorTableChangeColor()
       {
         layer->GetProperty()->UpdateLUTTable();
       }
+      pix = QPixmap(32,20);
+      pix.fill(color);
+      ui->colorLabelBrushValue->setPixmap( pix );
     }
   }
 }

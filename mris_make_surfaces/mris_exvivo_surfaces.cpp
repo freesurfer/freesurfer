@@ -115,12 +115,6 @@ MRIScomputeBorderValues_T1_PIAL(MRI_SURFACE *mris,
                                 float max_thickness, FILE *log_fp, 
                                 int formalin, int first);
 
-// int MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, INTEGRATION_PARMS *parms, float weight30, float weight5);
-
-// static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5);
-
-// static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity, MRI *mri_30, MRI *mri_5, double sigma_global, float weight30, float weight5);
-
 static int  MRInormalizeMEF(MRI *mri, MRI *mri_em_seg);
 
 static LABEL *highres_label = NULL ;

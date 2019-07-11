@@ -55,6 +55,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionColorPicker );
   ag->addAction( ui->actionClone );
   ag->addAction( ui->actionAutoSeg);
+  ag->addAction( ui->actionShift );
   ag->setExclusive( true );
   ui->actionContour->setData( Interactor2DVoxelEdit::EM_Contour );
   ui->actionColorPicker->setData( Interactor2DVoxelEdit::EM_ColorPicker );
@@ -64,6 +65,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
   ui->actionAutoSeg->setData( Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->actionShift->setData( Interactor2DVolumeEdit::EM_Shift );
   ui->colorPickerGeoInside->setCurrentColor(Qt::green);
   ui->colorPickerGeoOutside->setCurrentColor(Qt::red);
   ui->colorPickerGeoFill->setCurrentColor(Qt::yellow);

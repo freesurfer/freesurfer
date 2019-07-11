@@ -1750,6 +1750,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayIsoSurface( sa );
   }
+  else if ( cmd == "saveisosurface")
+  {
+    OnSaveIsoSurface(sa.last());
+  }
   else if ( cmd == "setisosurfacecolor" )
   {
     CommandSetIsoSurfaceColor( sa );
@@ -2081,7 +2085,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       vector_render = "line",
       tensor_display = "no",
       tensor_render = "boxoid",
-      vector_width = "1";
+      vector_width = "1",
+      vector_norm_th = "0";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
@@ -2134,6 +2139,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         if ( vector_width.isEmpty() )
         {
           cerr << "Missing vector width argument.\n";
+        }
+      }
+      else if ( subOption == "vector_norm_threshold")
+      {
+        vector_norm_th = subArgu;
+        if ( vector_norm_th.isEmpty() )
+        {
+          cerr << "Missing vector norm threshold argument.\n";
         }
       }
       else if ( subOption == "vector_skip" )
@@ -2214,6 +2227,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           script << args[1];
         }
         m_scripts.insert( 0, script );
+      }
+      else if ( subOption == "isosurface_output")
+      {
+        m_scripts.insert(m_scripts.size()-1, (QStringList("saveisosurface") << subArgu));
       }
       else if ( subOption == "upsample_isosurface")
       {
@@ -2322,7 +2339,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
                                                             vector_display <<
                                                             vector_render <<
                                                             vector_inversion <<
-                                                            vector_width << "new";
+                                                            vector_width <<
+                                                            vector_norm_th << "new";
     m_scripts.insert( 0, script );
   }
 
@@ -2518,7 +2536,6 @@ void MainWindow::CommandSetRgb(const QStringList &cmd)
   }
 }
 
-
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
   if ( cmd[1].toLower() == "yes" || cmd[1].toLower() == "true" || cmd[1] == "1" )
@@ -2578,7 +2595,17 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
           cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
         }
 
-        if (val == 1 && cmd.size() > 5)
+        val = cmd[5].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorNormThreshold(val);
+        }
+        else
+        {
+          cerr << "Unknown vector norm threshold value '" << cmd[5].toLatin1().constData() << "'.\n";
+        }
+
+        if (val == 1 && cmd.size() > 6)
         {
           QList<Layer*> list = GetLayers("MRI");
           foreach (Layer* layer, list)
@@ -2781,6 +2808,8 @@ void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
         cerr << "Isosurface threshold value is not valid.\n";
       }
     }
+    connect(mri, SIGNAL(IsoSurfaceUpdating()), SLOT(SetProcessing()));
+    connect(mri, SIGNAL(IsoSurfaceUpdated()), SLOT(SetProcessingFinished()));
     mri->GetProperty()->SetShowAsContour( true );
   }
 }
@@ -7411,19 +7440,32 @@ void MainWindow::OnLineProfile()
   m_dlgLineProfile->show();
 }
 
-void MainWindow::OnSaveIsoSurface()
+void MainWindow::OnSaveIsoSurface(const QString& fn_in)
 {
-  QString fn = QFileDialog::getSaveFileName(this, "Save IsoSurface As",
-                                            m_strLastDir, "VTK files (*.vtk)");
-  if (fn.isEmpty())
+  LayerMRI* layer = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+  if (!layer)
     return;
 
-  LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
-  if (mri && mri->GetProperty()->GetShowAsContour())
+  QString fn = fn_in;
+  QString selectedFilter;
+  if (fn.isEmpty())
+    fn = QFileDialog::getSaveFileName( NULL,
+                                     "Save iso-surface",
+                                     MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
+                                     "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
+  else
+    selectedFilter = QFileInfo(fn).suffix();
+  if ( !fn.isEmpty() )
   {
-    if (!mri->SaveIsoSurface(fn))
+    QString selected_suffix = selectedFilter.left(3).toLower();
+    if (selected_suffix == "all")
+      selected_suffix = "vtk";
+    QFileInfo fi(fn);
+    if (fi.suffix().toLower() != selected_suffix)
+      fn += "." + selected_suffix;
+    if ( !layer->SaveContourToFile( fn ) )
     {
-      QMessageBox::warning(this, "Error", QString("Could not save iso surface to %1.").arg(fn));
+      QMessageBox::warning(this, "Error", "Can not save surface to file.");
     }
   }
 }
@@ -8052,7 +8094,7 @@ void MainWindow::CommandUnloadLayers(const QStringList &cmd)
   else if (type == "roi")
     lc = GetLayerCollection("ROI");
   else if (type == "pointset")
-    lc = GetLayerCollection("PointSet");  
+    lc = GetLayerCollection("PointSet");
   else if (type == "tract")
     lc = GetLayerCollection("Tract");
 

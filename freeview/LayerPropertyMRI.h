@@ -399,6 +399,11 @@ public:
     return m_nVectorSkip;
   }
 
+  double GetVectorNormThreshold()
+  {
+    return m_dVectorNormThreshold;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -458,6 +463,8 @@ public slots:
   void UpdateLUTTable();
 
   void SetCustomColors(const QMap<int, QColor>& colors);
+
+  void SetVectorNormThreshold(double dVal);
 
 signals:
   void ColorMapChanged();
@@ -544,6 +551,7 @@ private:
   bool    m_bNormalizeVector;
   double  m_dVectorDisplayScale;
   double  m_dVectorScale;
+  double  m_dVectorNormThreshold;
 
   bool    m_bDisplayRGB;
 

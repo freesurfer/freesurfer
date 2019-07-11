@@ -17,7 +17,9 @@
  *
  */
 #include "mrisurf_integrate.h"
+
 #include "mrisurf_sseTerms.h"
+#include "mrisurf_compute_dxyz.h"
 
 static int mrisIntegrationEpoch     (MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 static double mrisLineMinimize      (MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
@@ -1572,53 +1574,47 @@ int MRISvectorRegister(MRI_SURFACE *mris,
 #define MAX_ENTRIES 100
 static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  char fname[STRLEN];
   FILE *fp = NULL;
-  double starting_sse, sse, min_sse, max_dt, min_delta, max_delta, mag, grad, delta_t, min_dt, mean_delta;
-  float dx, dy, dz;
-  int vno, n;
-  VERTEX *vertex;
-  VECTOR *vY;
-  MATRIX *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT;
-  int i, N, mini;
-  double a, b, c, sse0, sse2, dt0, dt2, dt_in[MAX_ENTRIES], sse_out[MAX_ENTRIES];
-
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON) {
+    char fname[STRLEN];
     sprintf(fname, "%s%4.4d.dat", FileName(parms->base_name), parms->t + 1);
     fp = fopen(fname, "w");
   }
 
-  min_sse = starting_sse = MRIScomputeSSE(mris, parms);
-
   /* compute the magnitude of the gradient, and the max delta */
-  max_delta = grad = mean_delta = 0.0f;
-  for (n = vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+  double max_delta = 0.0, sum_squaredDelta = 0.0, sum_delta = 0.0;
+  int n = 0;
+  int vno;
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX const * const vertex = &mris->vertices[vno];
     if (vertex->ripflag) {
       continue;
     }
-    dx = vertex->dx;
-    dy = vertex->dy;
-    dz = vertex->dz;
-    mag = sqrt(dx * dx + dy * dy + dz * dz);
-    grad += dx * dx + dy * dy + dz * dz;
-    mean_delta += mag;
-#if 0
-    if (!FZERO(mag))
-#endif
+
+    float dx = vertex->dx;
+    float dy = vertex->dy;
+    float dz = vertex->dz;
+    double deltaSquared = dx * dx + dy * dy + dz * dz;
+    double delta        = sqrt(deltaSquared);
+    
+    sum_squaredDelta += deltaSquared;
+    sum_delta        += delta;
     n++;
-    if (mag > max_delta) {
-      max_delta = mag;
+
+    if (max_delta < delta) {
+      max_delta = delta;
     }
   }
-  mean_delta /= (float)n;
-  grad = sqrt(grad);
+  
+  double const grad = sqrt(sum_squaredDelta), mean_delta = sum_delta/((double)(n));
 
   if (FZERO(max_delta)) {
     return (0.0); /* at a local minimum */
   }
 
+
   /* limit the size of the largest time step */
+  double max_dt;
   switch (parms->projection) {
     case PROJECT_SPHERE:
     case PROJECT_ELLIPSOID:
@@ -1632,186 +1628,206 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       max_dt = MAX_PLANE_MM / max_delta;
       break;
   }
-  min_dt = MIN_MM / mean_delta;
+  double const min_dt = MIN_MM / mean_delta;
 
-  /* write out some data on supposed quadratic form */
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-    double delta;
-    float predicted_sse;
-    FILE *fp2;
+  double dt_in[MAX_ENTRIES], sse_out[MAX_ENTRIES];
+  int N = 0;
+  {
+    struct MRIScomputeSSE_asThoughGradientApplied_ctx sseCtx;
+        // This is NYI
+        
+    double const starting_sse = MRIScomputeSSE(mris, parms);
 
-    sprintf(fname, "nn%s%4.4d.dat", FileName(parms->base_name), parms->t + 1);
-    fp2 = fopen(fname, "w");
+    /* write out some data on supposed quadratic form */
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
 
-    delta = max_dt / 100.0;
-    for (delta_t = delta; delta_t <= max_dt; delta_t += delta) {
-      predicted_sse = starting_sse - grad * delta_t;
+      char fname[STRLEN];
+      sprintf(fname, "nn%s%4.4d.dat", FileName(parms->base_name), parms->t + 1);
+      FILE *fp2 = fopen(fname, "w");
+
+      double delta = max_dt / 100.0;
+      double delta_t;
+      for (delta_t = delta; delta_t <= max_dt; delta_t += delta) {
+        double predicted_sse = starting_sse - grad * delta_t;
+        MRISapplyGradient(mris, delta_t);
+        mrisProjectSurface(mris);
+        MRIScomputeMetricProperties(mris);
+
+        double sse;
+        sse = MRIScomputeSSE(mris, parms);
+        fprintf(fp2, "%f  %f  %f\n", delta_t, sse, predicted_sse);
+        mrisProjectSurface(mris);
+        sse = MRIScomputeSSE(mris, parms);
+        fprintf(fp, "%f  %f  %f\n", delta_t, sse, predicted_sse);
+        fflush(fp);
+        MRISrestoreOldPositions(mris);
+      }
+
+      fclose(fp2);
+    }
+
+
+    double min_sse   = starting_sse;
+    double min_delta = 0.0f; /* to get rid of compiler warning */
+
+    /* pick starting step size */
+    double delta_t;
+    for (delta_t = min_dt; delta_t < max_dt; delta_t *= 10.0) {
       MRISapplyGradient(mris, delta_t);
       mrisProjectSurface(mris);
       MRIScomputeMetricProperties(mris);
+      double sse = MRIScomputeSSE(mris, parms);
 
-      sse = MRIScomputeSSE(mris, parms);
-      fprintf(fp2, "%f  %f  %f\n", delta_t, sse, predicted_sse);
-      mrisProjectSurface(mris);
-      sse = MRIScomputeSSE(mris, parms);
-      fprintf(fp, "%f  %f  %f\n", delta_t, sse, predicted_sse);
-      fflush(fp);
+      if (sse <= min_sse) /* new minimum found */
+      {
+        min_sse   = sse;
+        min_delta = delta_t;
+      }
+
+      /* undo step */
       MRISrestoreOldPositions(mris);
     }
-  }
 
-  /* pick starting step size */
-  min_delta = 0.0f; /* to get rid of compiler warning */
-  for (delta_t = min_dt; delta_t < max_dt; delta_t *= 10.0) {
-    MRISapplyGradient(mris, delta_t);
-    mrisProjectSurface(mris);
-    MRIScomputeMetricProperties(mris);
-    sse = MRIScomputeSSE(mris, parms);
-
-    if (sse <= min_sse) /* new minimum found */
+    if (FZERO(min_delta)) /* dt=0 is min starting point, look mag smaller */
     {
-      min_sse = sse;
-      min_delta = delta_t;
+      min_delta = min_dt / 10.0; /* start at smallest step */
+      MRISapplyGradient(mris, min_delta);
+      mrisProjectSurface(mris);
+      MRIScomputeMetricProperties(mris);
+      min_sse = MRIScomputeSSE(mris, parms);
+      MRISrestoreOldPositions(mris);
     }
 
-    /* undo step */
-    MRISrestoreOldPositions(mris);
-  }
+    delta_t = min_delta;
 
-  if (FZERO(min_delta)) /* dt=0 is min starting point, look mag smaller */
-  {
-    min_delta = min_dt / 10.0; /* start at smallest step */
-    MRISapplyGradient(mris, min_delta);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stdout,
+              "grad=%2.3f, max_del=%2.3f, mean=%2.3f, max_dt=%2.1f, "
+              "starting dt=%2.3f, min_dt=%2.3f\n",
+              (float)grad,
+              (float)max_delta,
+              mean_delta,
+              (float)max_dt,
+              (float)delta_t,
+              min_dt);
+
+    /* fit a quadratic form to it, and predict location of minimum */
+    /* bracket the minimum by sampling on either side */
+    double const dt0 = min_delta - (min_delta / 2);
+    double const dt2 = min_delta + (min_delta / 2);
+    MRISapplyGradient(mris, dt0);
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
-    min_sse = MRIScomputeSSE(mris, parms);
+    double sse0 = MRIScomputeSSE(mris, parms);
     MRISrestoreOldPositions(mris);
-  }
 
-  delta_t = min_delta;
+    MRISapplyGradient(mris, dt2);
+    mrisProjectSurface(mris);
+    MRIScomputeMetricProperties(mris);
+    double sse2 = MRIScomputeSSE(mris, parms);
+    MRISrestoreOldPositions(mris);
 
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout,
-            "grad=%2.3f, max_del=%2.3f, mean=%2.3f, max_dt=%2.1f, "
-            "starting dt=%2.3f, min_dt=%2.3f\n",
-            (float)grad,
-            (float)max_delta,
-            mean_delta,
-            (float)max_dt,
-            (float)delta_t,
-            min_dt);
+    /* now fit a quadratic form to these values */
 
-  /* fit a quadratic form to it, and predict location of minimum */
-  /* bracket the minimum by sampling on either side */
-  N = 3;
-  dt0 = min_delta - (min_delta / 2);
-  dt2 = min_delta + (min_delta / 2);
-  MRISapplyGradient(mris, dt0);
-  mrisProjectSurface(mris);
-  MRIScomputeMetricProperties(mris);
-  sse0 = MRIScomputeSSE(mris, parms);
-  MRISrestoreOldPositions(mris);
+    N = 3;    // 3 entries in sse_out and dt_in so far
+    cheapAssert(N <= MAX_ENTRIES);
+    sse_out[0] = sse0;          dt_in[0] = dt0;
+    sse_out[1] = min_sse;       dt_in[1] = min_delta;
+    sse_out[2] = sse2;          dt_in[2] = dt2;
+    
+    MATRIX* mX = MatrixAlloc(N, 3, MATRIX_REAL);
+    VECTOR* vY = VectorAlloc(N, MATRIX_REAL);
 
-  MRISapplyGradient(mris, dt2);
-  mrisProjectSurface(mris);
-  MRIScomputeMetricProperties(mris);
-  sse2 = MRIScomputeSSE(mris, parms);
-  MRISrestoreOldPositions(mris);
+    for (int i = 1; i <= N; i++) {
+      *MATRIX_RELT(mX, i, 1) = dt_in[i - 1] * dt_in[i - 1];
+      *MATRIX_RELT(mX, i, 2) = 2 * dt_in[i - 1];
+      *MATRIX_RELT(mX, i, 3) = 1.0f;
 
-  /* now fit a quadratic form to these values */
-  sse_out[0] = sse0;
-  sse_out[1] = min_sse;
-  sse_out[2] = sse2;
-  dt_in[0] = dt0;
-  dt_in[1] = min_delta;
-  dt_in[2] = dt2;
-
-  mX = MatrixAlloc(N, 3, MATRIX_REAL);
-  vY = VectorAlloc(N, MATRIX_REAL);
-
-  for (i = 1; i <= N; i++) {
-    *MATRIX_RELT(mX, i, 1) = dt_in[i - 1] * dt_in[i - 1];
-    *MATRIX_RELT(mX, i, 2) = 2 * dt_in[i - 1];
-    *MATRIX_RELT(mX, i, 3) = 1.0f;
-
-    VECTOR_ELT(vY, i) = sse_out[i - 1];
-  }
-
-  m_xT = MatrixTranspose(mX, NULL);
-  m_xTx = MatrixMultiply(m_xT, mX, NULL);
-  m_xTx_inv = MatrixInverse(m_xTx, NULL);
-  if (m_xTx_inv) {
-    m_xTy = MatrixMultiply(m_xT, vY, NULL);
-    mP = MatrixMultiply(m_xTx_inv, m_xTy, NULL);
-    a = RVECTOR_ELT(mP, 1);
-    b = RVECTOR_ELT(mP, 2);
-    c = RVECTOR_ELT(mP, 3);
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stdout, "(a,b,c) = (%2.3f, %2.3f, %2.3f), predicted min at %2.3f\n", a, b, c, -b / a);
-    if (!isfinite(a)) {
-      DiagBreak();
+      VECTOR_ELT(vY, i) = sse_out[i - 1];
     }
-    MatrixFree(&mX);
-    MatrixFree(&mP);
-    VectorFree(&vY);
-    MatrixFree(&m_xT);
-    MatrixFree(&m_xTx);
-    MatrixFree(&m_xTx_inv);
-    MatrixFree(&m_xTy);
 
-    dt_in[N] = 0;
-    sse_out[N++] = starting_sse;
-    if (isfinite(a) && !FZERO(a)) {
-      float new_min_delta;
+    MATRIX* m_xT      = MatrixTranspose(mX,       NULL);
+    MATRIX* m_xTx     = MatrixMultiply (m_xT, mX, NULL);
+    MATRIX* m_xTx_inv = MatrixInverse  (m_xTx,    NULL);
 
-      new_min_delta = -b / a;
-      if (new_min_delta < 10.0f * min_delta && new_min_delta > min_delta / 10.0f) {
-        MRISapplyGradient(mris, new_min_delta);
-        mrisProjectSurface(mris);
-        MRIScomputeMetricProperties(mris);
-        sse = MRIScomputeSSE(mris, parms);
-        MRISrestoreOldPositions(mris);
-        dt_in[N] = new_min_delta;
-        sse_out[N++] = sse;
+    if (!m_xTx_inv) {
+      fprintf(stderr, "singular matrix in quadratic form\n");
+    } else {
+
+      MATRIX* m_xTy = MatrixMultiply(m_xT, vY, NULL);
+      MATRIX* mP    = MatrixMultiply(m_xTx_inv, m_xTy, NULL);
+
+      double a = RVECTOR_ELT(mP, 1);
+      double b = RVECTOR_ELT(mP, 2);
+      double c = RVECTOR_ELT(mP, 3);
+
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stdout, "(a,b,c) = (%2.3f, %2.3f, %2.3f), predicted min at %2.3f\n", a, b, c, -b / a);
+      if (!isfinite(a)) {
+        DiagBreak();
+      }
+
+      MatrixFree(&mP);
+      MatrixFree(&m_xTy);
+
+      dt_in  [N] = 0;
+      sse_out[N] = starting_sse;
+      N++;
+      cheapAssert(N <= MAX_ENTRIES);
+
+      if (isfinite(a) && !FZERO(a)) {
+        float new_min_delta = -b / a;
+
+        if (new_min_delta < 10.0f * min_delta && new_min_delta > min_delta / 10.0f) {
+          MRISapplyGradient(mris, new_min_delta);
+          mrisProjectSurface(mris);
+          MRIScomputeMetricProperties(mris);
+          double sse = MRIScomputeSSE(mris, parms);
+          MRISrestoreOldPositions(mris);
+          dt_in  [N] = new_min_delta;
+          sse_out[N] = sse;
+          N++;
+          cheapAssert(N <= MAX_ENTRIES);
+        }
       }
     }
-  }
-  else /* couldn't invert matrix */
-  {
-    fprintf(stderr, "singular matrix in quadratic form\n");
-    MatrixFree(&mX);
-    VectorFree(&vY);
-    MatrixFree(&m_xT);
+
+    if (m_xTx_inv) MatrixFree(&m_xTx_inv);
     MatrixFree(&m_xTx);
+    MatrixFree(&m_xT);
+    VectorFree(&vY);
+    MatrixFree(&mX);
   }
+
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "sses: %2.2f  ", sse_out[0]);
   }
-  mini = 0;
-  min_sse = sse_out[mini];
-  for (i = 1; i < N; i++) {
+
+  int    min_i = 0;
+  double min_sse = sse_out[min_i];
+  for (int i = 1; i < N; i++) {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
       fprintf(stdout, "%2.2f  ", sse_out[i]);
     }
-    if (sse_out[i] < min_sse) {
+    if (min_sse > sse_out[i]) {
       min_sse = sse_out[i];
-      mini = i;
+      min_i = i;
     }
   }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "min %d (%2.3f)\n", mini, dt_in[mini]);
+    fprintf(stdout, "min %d (%2.3f)\n", min_i, dt_in[min_i]);
   }
 
   if (mris->status == MRIS_PLANE)  // remove global translation component
   {
-    double dx, dy, dz;
-    int nv, vno;
-    VERTEX *v;
+    double dx = 0.0, dy = 0.0, dz = 0.0;
+    int nv = 0;
 
-    for (dx = dy = dz = 0.0, nv = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+    int vno;
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX const * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -1820,14 +1836,15 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       dz += v->dz;
       nv++;
     }
-    if (nv == 0) {
-      nv = 1;
-    }
+    
+    if (nv == 0) nv = 1;
+    
     dx /= nv;
     dy /= nv;
     dz /= nv;
+    
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX* const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -1838,18 +1855,19 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 
   if (mris->status == MRIS_SPHERICAL_PATCH && parms->flags & IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL) {
-    mrisApplyTopologyPreservingGradient(mris, dt_in[mini], 0);
+    mrisApplyTopologyPreservingGradient(mris, dt_in[min_i], 0);
   }
   else if (parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA) {
-    mrisApplyGradientPositiveAreaPreserving(mris, dt_in[mini]);
+    mrisApplyGradientPositiveAreaPreserving(mris, dt_in[min_i]);
   }
   else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA) {
-    mrisApplyGradientPositiveAreaMaximizing(mris, dt_in[mini]);
+    mrisApplyGradientPositiveAreaMaximizing(mris, dt_in[min_i]);
   }
   else {
-    MRISapplyGradient(mris, dt_in[mini]);
+    MRISapplyGradient(mris, dt_in[min_i]);
   }
-  return (dt_in[mini]);
+  
+  return (dt_in[min_i]);
 }
 
 /*-----------------------------------------------------

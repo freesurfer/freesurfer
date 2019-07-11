@@ -1,7 +1,9 @@
 import os
 import sys
 import re
+import shutil
 import platform
+import pickle
 import datetime as dt
 import subprocess as sp
 import numpy as np
@@ -122,6 +124,31 @@ def printPeakMemory(prefix=''):
         if prefix:
             prefix += ' '
         print('%sVmPeak: %d kB' % (prefix, peak))
+
+
+def clean_directory(path):
+    '''Removes the contents of a path and creates the directory if it does not exist).'''
+    os.makedirs(path, exist_ok=True)
+    shutil.rmtree(path)
+    os.makedirs(path)
+
+
+def readlines(filename):
+    '''Reads the lines of a text file in to a list.'''
+    with open(filename) as file:
+        content = file.read().splitlines()
+    return content
+
+
+def write_pickle(item, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(item, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def read_pickle(filename):
+    with open(filename, 'rb') as file:
+        item = pickle.load(file)
+    return item
 
 
 class Timer:

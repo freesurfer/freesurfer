@@ -144,7 +144,21 @@ main(int argc, char *argv[])
 
   if (coords >= 0)
   {
-    MRIScoordsFromParameterization(mrisp, mris, CURRENT_VERTICES) ;
+#if 1
+    MRIScoordsFromParameterizationBarycentric(mris, mrisp, coords) ;
+#else
+    int vno ;
+    MRISfromParameterization(mrisp, mris, 0) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitex = mris->vertices[vno].curv ;
+    MRISfromParameterization(mrisp, mris, 1) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitey = mris->vertices[vno].curv ;
+    MRISfromParameterization(mrisp, mris, 2) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitez = mris->vertices[vno].curv ;
+#endif
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
     printf("writing surface to %s\n", out_fname);
     MRISwrite(mris,out_fname) ;
     exit(0) ;

@@ -145,7 +145,6 @@ int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv
 #endif
 
 float  mrisSampleAshburnerTriangleEnergy    (MRIS * const mris, int const vno, INTEGRATION_PARMS * const parms, float cx, float cy, float cz);
-double mrisComputeThicknessSmoothnessEnergy (MRIS *mris, double l_tsmooth,  INTEGRATION_PARMS *parms);
 float  mrisSampleMinimizationEnergy         (MRIS *mris, int const vno,     INTEGRATION_PARMS *parms, float cx, float cy, float cz);
 float  mrisSampleParallelEnergyAtVertex     (MRIS *mris, int const vno,     INTEGRATION_PARMS *parms);
 float  mrisSampleParallelEnergy             (MRIS *mris, int const vno,     INTEGRATION_PARMS *parms, float cx, float cy, float cz);

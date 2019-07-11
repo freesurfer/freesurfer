@@ -718,6 +718,9 @@ int MRIasegContraLatLabel(int id)
   case Left_Thalamus:
     id2 = Right_Thalamus;
     break;
+  case 9: // Left_Thalamus-unused (backwards compat)
+    id2 = 48;
+    break;
   case Left_Caudate:
     id2 = Right_Caudate;
     break;
@@ -822,6 +825,9 @@ int MRIasegContraLatLabel(int id)
     break;
   case Right_Thalamus:
     id2 = Left_Thalamus;
+    break;
+  case 48: // Right_Thalamus-unused (backwards compat)
+    id2 = 9;
     break;
   case Right_Caudate:
     id2 = Left_Caudate;

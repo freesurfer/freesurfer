@@ -37,7 +37,7 @@
 using namespace std;
 
 namespace filetypes {
-enum FileType { UNKNOWN, M3Z, FSL, ITK };
+enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX };
 }
 
 struct Parameters
@@ -231,6 +231,44 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
   return gcam;
 }
 
+GCAM* readVOX(const string& warp_file)
+// Read a warp file with same-geometry image-space displacements.
+{
+
+  MRI* vox = MRIread(warp_file.c_str());
+  if (vox == NULL)
+  {
+    cerr << "ERROR: couldn't read input VOX warp from " << warp_file << endl;
+    return NULL;
+  }
+
+  GCA_MORPH* gcam = GCAMalloc(vox->width, vox->height, vox->depth) ;
+  GCAMinitVolGeom(gcam, vox, vox) ;
+  gcam->type = GCAM_VOX;
+
+  for(int s=0; s < vox->depth; s++)
+  {
+    for(int c=0; c < vox->width; c++)
+    {
+      for(int r=0; r < vox->height; r++)
+      {
+        GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
+        node->origx = c;
+        node->origy = r;
+        node->origz = s;
+        node->xn = c;
+        node->yn = r;
+        node->zn = s;
+        node->x = c + MRIgetVoxVal(vox, c, r, s, 0);
+        node->y = r + MRIgetVoxVal(vox, c, r, s, 1);
+        node->z = s + MRIgetVoxVal(vox, c, r, s, 2);
+      }
+    }
+  }
+  MRIfree(&vox);
+  return gcam;
+}
+
 void writeM3Z(const string& fname, const GCAM *gcam)
 // Write an m3z file. Just calls down to GCAMwrite
 {
@@ -284,15 +322,15 @@ void writeITK(const string& fname, GCAM* gcam)
       for (z = 0; z < itk->depth; z++) {
         VECTOR3_LOAD(orig_ind, x, y, z);
         MatrixMultiplyD(ref_vox2lps, orig_ind, orig_wld_lps);
-  		if (samesize) {
-			GCA_MORPH_NODE* node = &gcam->nodes[x][y][z];
-			xw = node->x;
-			yw = node->y;
-			zw = node->z;
-		}
-		else {
-		  GCAMsampleMorph(gcam, x, y, z, &xw, &yw, &zw);
-		}
+        if (samesize) {
+            GCA_MORPH_NODE* node = &gcam->nodes[x][y][z];
+            xw = node->x;
+            yw = node->y;
+            zw = node->z;
+        }
+        else {
+            GCAMsampleMorph(gcam, x, y, z, &xw, &yw, &zw);
+        }
         VECTOR3_LOAD(dest_ind, xw, yw, zw);
         MatrixMultiplyD(mov_vox2lps, dest_ind, dest_wld_lps);
 
@@ -318,6 +356,48 @@ void writeITK(const string& fname, GCAM* gcam)
   MatrixFree(&mov_vox2lps);
 
   return;
+}
+
+void writeVOX(const string& fname, GCAM* gcam)
+// Write a warp file with same-geometry image-space displacements.
+{
+  MATRIX* ref_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
+  MRI* out = MRIallocSequence(gcam->atlas.width,
+		  gcam->atlas.height,
+		  gcam->atlas.depth,
+		  MRI_FLOAT, 3);
+  MRIsetResolution(out,
+		  gcam->atlas.xsize,
+		  gcam->atlas.ysize,
+		  gcam->atlas.zsize);
+  MRIsetVox2RASFromMatrix(out, ref_vox2ras);
+  MRIcopyVolGeomToMRI(out, &gcam->atlas);
+
+  bool samesize = out->width==gcam->width && out->height==gcam->height
+      && out->depth==gcam->depth;
+  float x, y, z;
+  for (int c = 0; c < out->width; c++)
+    for (int r = 0; r < out->height; r++)
+      for (int s = 0; s < out->depth; s++) {
+  		if (samesize) {
+			GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
+			x = node->x;
+			y = node->y;
+			z = node->z;
+		}
+		else {
+		  GCAMsampleMorph(gcam, c, r, s, &x, &y, &z);
+		}
+        MRIsetVoxVal(out, c, r, s, 0, x-c);
+        MRIsetVoxVal(out, c, r, s, 1, y-r);
+        MRIsetVoxVal(out, c, r, s, 2, z-s);
+  }
+  if (MRIwrite(out, fname.c_str()) != 0)
+  {
+    cerr << "Error writing VOX warp to " << fname << endl;
+  }
+  MRIfree(&out);
+  MatrixFree(&ref_vox2ras);
 }
 
 int main(int argc, char *argv[])
@@ -355,6 +435,9 @@ int main(int argc, char *argv[])
     case filetypes::ITK:
       gcam = readITK(P.in_warp.c_str(),P.in_src_geom);
       break;
+    case filetypes::VOX:
+      gcam = readVOX(P.in_warp.c_str());
+      break;
     default:
       ErrorExit(ERROR_BADFILE, "%s: Unknown input type for %s",
                 Progname, P.in_warp.c_str());
@@ -375,6 +458,9 @@ int main(int argc, char *argv[])
       break;
     case filetypes::ITK:
       writeITK(P.out_warp.c_str(), gcam);
+      break;
+    case filetypes::VOX:
+      writeVOX(P.out_warp.c_str(), gcam);
       break;
     default:
       ErrorExit(ERROR_BADFILE, "%s: Unknown output type for %s",
@@ -460,6 +546,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--initk: " << P.in_warp << " input ITK warp." << endl;
   }
+  else if (!strcmp(option, "INVOX"))
+  {
+    if (have_input) {
+      cerr << endl << endl << "ERROR: Only one input warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_input = true;
+
+    P.in_warp = string(argv[1]);
+    P.in_type = filetypes::VOX;
+    nargs = 1;
+    cout << "--invox: " << P.in_warp << " input VOX warp." << endl;
+  }
   else if (!strcmp(option, "OUTM3Z") )
   {
     if (have_output) {
@@ -504,6 +605,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.out_type = filetypes::ITK;
     nargs = 1;
     cout << "--outitk: " << P.out_warp << " output ITK warp." << endl;
+  }
+  else if (!strcmp(option, "OUTVOX") )
+  {
+    if (have_output) {
+      cerr << endl << endl << "ERROR: Only one output warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_output = true;
+
+    P.out_warp = string(argv[1]);
+    P.out_type = filetypes::VOX;
+    nargs = 1;
+    cout << "--outvox: " << P.out_warp << " output VOX warp." << endl;
   }
   else if (!strcmp(option, "INSRCGEOM") )
   {

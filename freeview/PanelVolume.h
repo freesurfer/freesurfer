@@ -62,6 +62,8 @@ public:
   explicit PanelVolume(QWidget *parent = 0);
   ~PanelVolume();
 
+  bool eventFilter(QObject *watched, QEvent *event);
+
 protected slots:
   void OnCheckShowContour( bool bShow );
   void OnCheckShowLabelContour( bool bShow );
@@ -91,7 +93,6 @@ protected slots:
   void OnSliderContourMax(int);
   void OnSliderContourSmooth(int);
   void OnContourValueChanged();
-  void OnContourSave();
   void OnCopySettings();
   void OnPasteSettings();
   void OnPasteSettingsToAll();
@@ -120,6 +121,8 @@ protected slots:
   void OnLineEditVectorDisplayScale(const QString& strg);
 
   void OnLineEditVectorLineWidth(const QString& strg);
+
+  void OnLineEditVectorNormThreshold(const QString &strg);
 
   void OnLineEditProjectionMapRangeChanged();
 
