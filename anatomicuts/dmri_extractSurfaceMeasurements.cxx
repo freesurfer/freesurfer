@@ -5,6 +5,9 @@
  *
  * Takes in a cluster and outputs metrics, specifically thickness and curvature, based on the endpoints of the connections and outputs it to an external CSV file
  *
+ * export FREESURFER_HOME /home/fsuser2/alex_zsikla/install
+ * source /home/fsuser2/alex_zsikla/install/SetUpFreeSurfer.sh
+ *
  */
 
 //Libraries
@@ -154,9 +157,10 @@ int main(int narg, char* arg[])
 
 	meshes = clusterTools->PolydataToMesh(polydatas);
 
-	PointType first;
-	PointType last;
-
+	PointType firstPt, lastPt;
+	firstPt.Fill(0);
+	lastPt.Fill(0);
+	
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
 		ColorMeshType::Pointer input = (*meshes)[i];
@@ -171,28 +175,18 @@ int main(int narg, char* arg[])
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
-
-			PointType firstPt, lastPt;
-			firstPt.Fill(0);
-			lastPt.Fill(0);
-
 			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
-			//cout << "First Point: " << firstPt << endl;
 
 			// Finding the last point
 			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
 				input->GetPoint(*it, &lastPt);
 			
 			input->GetPoint(*it, &lastPt);	
-			//cout << "Last Point: " << lastPt << endl;
 			
-			// Gave the same First and Last point
-			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
-			input->GetPoint(*it2, &lastPt);
-
-			outFile << "Last Point: " << lastPt << endl;*/
+			//cout << "First Point: " << firstPt << endl;
+			//cout << "Last Point: " << lastPt << endl;
 		}
 	}
 
@@ -200,7 +194,6 @@ int main(int narg, char* arg[])
 	// Reading in Surface and find data values
 	//
 
-	//constexpr unsigned int Dimension = 3;
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
 
@@ -208,7 +201,7 @@ int main(int narg, char* arg[])
 	MRI_SURFACE *surf;
         surf = MRISread(surfaceFile);
 	
-	/*SurfType::Pointer surface =  SurfType::New();
+	SurfType::Pointer surface =  SurfType::New();
 	surface->Load(&*surf);
 	
 	surf = surface->GetFSSurface(&*surf);
@@ -220,8 +213,17 @@ int main(int narg, char* arg[])
 	surfTree->SetDataSet(surfVTK);
 	surfTree->BuildLocator();
 
-	cerr << "Does this run?" << endl;
-	vtkPoints* points = vtkPoints::New();
+	double array[3];
+	for (int i = 0; i < 3; i++)
+		array[i] = lastPt[i];
+
+	vtkIdType aux = surfTree->FindClosestPoint(array);	
+
+	cout << lastPt << endl;
+	cout << aux << endl;
+	
+	
+	/*vtkPoints* points = vtkPoints::New();
 	for (int i = 0; i < surfVTK->GetNumberOfPoints(); ++i)
 	{
 
@@ -229,7 +231,7 @@ int main(int narg, char* arg[])
 		vtkIdType iD = surfTree->FindClosestPoint(point);
 		double* point2 = surfVTK->GetPoint( iD);
 		float distance =  vtkMath::Distance2BetweenPoints(point,point2);
-		cerr << point [0] << " " << point2[0] << " " << distance << endl;
+		//cerr << point [0] << " " << point2[0] << " " << distance << endl;
 		
 		if( distance > 0.01)
 		{
@@ -319,3 +321,11 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 			MRISsurfaceRASTToVoxel(surf, images, surf->vertices[j].x, surf->vertices[j].y, surf->vertices[j].z, &x, &y, &z);
 			float magnitud = MRIvoxelGradient(images, (float) x, (float) y, (float) z, &pdx, &pdy, &pdz);
 	}*/
+
+//Code that did not do exactly what it had to
+			// Gave the same First and Last point
+			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
+			input->GetPoint(*it2, &lastPt);
+
+			outFile << "Last Point: " << lastPt << endl;*/
+
