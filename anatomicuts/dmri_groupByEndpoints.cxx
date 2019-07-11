@@ -25,6 +25,8 @@
 #include "GetPot.h"
 #include "TrkVTKPolyDataFilter.txx"
 #include "PolylineMeshToVTKPolyDataFilter.h"
+#include "LabelPerPointVariableLengthVector.h"
+#include "EuclideanMembershipFunction.h"
 #include "ClusterTools.h"
 #include "itkDefaultStaticMeshTraits.h"
 
@@ -81,7 +83,6 @@ int main(int narg, char* arg[])
 	ImageType::Pointer mask; 
 
 	vector<ColorMeshType::Pointer>* meshes; 
-	vector<ColorMeshType::Pointer>* fixMeshes; 
 	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
 
 	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType; 
@@ -99,8 +100,11 @@ int main(int narg, char* arg[])
 		int pointIndices = 0; 
 		int cellIndices = 0; 
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
+		cerr << "New mesh: " << endl; 
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
+			cerr << cellId << endl; 
+
 			PointType firstPt, start, end; 
 			firstPt.Fill(0); 
 
@@ -110,7 +114,7 @@ int main(int narg, char* arg[])
 
 			start = firstPt; 
 
-//			cout << "First point: " << firstPt << endl; 
+//			cerr << "First point: " << firstPt << endl; 
 
 			for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
 			{
@@ -131,7 +135,9 @@ int main(int narg, char* arg[])
 
 			ReaderType::Pointer reader = ReaderType::New(); 
 
-			reader->SetFileName(arg[4]); 
+			string image_file = arg[4]; 
+
+			reader->SetFileName(image_file); 
 			reader->Update();
 			
 			ImageType::Pointer inputImage = reader->GetOutput(); 
@@ -143,13 +149,13 @@ int main(int narg, char* arg[])
 			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
 			{
 				value1 = inputImage->GetPixel(index1); 
-				//cout << index1 << " = " << value1 << endl; 
+				//cerr << index1 << " = " << value1 << endl; 
 			}
 
 			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
 			{
 				value2 = inputImage->GetPixel(index2);
-				//cout << index2 << " = " << value2 << endl; 
+				//cerr << index2 << " = " << value2 << endl; 
 			}
 
 			if (value1 != 0 and value1 == value2)
@@ -161,13 +167,9 @@ int main(int narg, char* arg[])
 				cout << index2 << " = " << value2 << endl;  
 			}
 		}
-
-		delete meshes;
-		delete histoMeshes;
 	}
 
-	//TO DELETE
-//	cout << stream_lines << endl << image_file << endl << output << endl; 
+	delete meshes;
 
 	return 0; 	
 }
