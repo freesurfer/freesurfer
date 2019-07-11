@@ -38,7 +38,7 @@
 #include "itkImage.h"
 #include <map>
 #include "itkDefaultStaticMeshTraits.h"
-//#include "fsSurface.h"
+#include "fsSurface.h"
 #include "itkTriangleCell.h"
 #include <set>
 #include "colortab.h"
@@ -63,7 +63,7 @@
 #include "mri.h"
 #include "vtkKdTreePointLocator.h"
 
-#include "vtkPCACurvatureEstimation.h"
+//#include "vtkPCACurvatureEstimation.h"
 #include "vtkCurvatures.h"
 
 /*#if VTK_MAJOR_VERSION > 5	
@@ -101,10 +101,10 @@ int main(int narg, char* arg[])
 		inputFiles.push_back(inputName);
 	
 
-	const char *surface = num1.follow("lh.orig", "-s");
-	const char *thick   = num1.follow("lh.thickness", "-t");
-	const char *curv    = num1.follow("lh.curv", "-c");
-	const char *output  = num1.follow("output.csv", "-o");
+	const char *surfaceFile = num1.follow("lh.orig", "-s");
+	const char *thickFile   = num1.follow("lh.thickness", "-t");
+	const char *curvFile    = num1.follow("lh.curv", "-c");
+	const char *outputFile  = num1.follow("output.csv", "-o");
 
 
 	// TO DELETE
@@ -113,7 +113,7 @@ int main(int narg, char* arg[])
 	for (int i = 0; i < inputFiles.size(); i++)
 		cout << inputFiles.at(i) << endl;
 
-	cout << surface << endl << thick << endl << curv << endl << output << endl;
+	cout << surfaceFile << endl << thickFile << endl << curvFile << endl << outputFile << endl;
 
 	//
 	// Reading in TRK File
@@ -179,14 +179,14 @@ int main(int narg, char* arg[])
 			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
-			cout << "First Point: " << firstPt << endl;
+			//cout << "First Point: " << firstPt << endl;
 
 			// Finding the last point
 			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
 				input->GetPoint(*it, &lastPt);
 			
 			input->GetPoint(*it, &lastPt);	
-			cout << "Last Point: " << lastPt << endl;
+			//cout << "Last Point: " << lastPt << endl;
 			
 			// Gave the same First and Last point
 			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
@@ -200,23 +200,27 @@ int main(int narg, char* arg[])
 	// Reading in Surface and find data values
 	//
 
+	//constexpr unsigned int Dimension = 3;
+	typedef float CoordType;
+	typedef fs::Surface< CoordType, Dimension> SurfType;
+
 	//Reading in surface from file
 	MRI_SURFACE *surf;
-        surf = MRISread(surface);
-
-	SurfType::Pointer surface =  SurfType::New();
+        surf = MRISread(surfaceFile);
+	
+	/*SurfType::Pointer surface =  SurfType::New();
 	surface->Load(&*surf);
-
+	
 	surf = surface->GetFSSurface(&*surf);
-
+	
 	// Finding the Thickness
-
 	vtkSmartPointer<vtkPolyData> surfVTK = FSToVTK(surf);	
 	
 	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
 	surfTree->SetDataSet(surfVTK);
 	surfTree->BuildLocator();
 
+	cerr << "Does this run?" << endl;
 	vtkPoints* points = vtkPoints::New();
 	for (int i = 0; i < surfVTK->GetNumberOfPoints(); ++i)
 	{
@@ -225,13 +229,13 @@ int main(int narg, char* arg[])
 		vtkIdType iD = surfTree->FindClosestPoint(point);
 		double* point2 = surfVTK->GetPoint( iD);
 		float distance =  vtkMath::Distance2BetweenPoints(point,point2);
-		cout << point [0] << " " << point2[0] << " " << distance << endl;
+		cerr << point [0] << " " << point2[0] << " " << distance << endl;
 		
-		/*if( distance > 0.01)
+		if( distance > 0.01)
 		{
 			points->InsertPoint(i,point[0], point[1], point[2]);
-		}*/
-	}
+		}
+	}*/
 	
 	// Finding the Curvature
 	//TODO
@@ -243,7 +247,7 @@ int main(int narg, char* arg[])
 	//
 
 	ofstream oFile;
-	oFile.open(output);
+	oFile.open(outputFile);
 
 	if (not oFile.is_open()) {
 		cerr << "Could not open output file" << endl;
@@ -283,6 +287,17 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 }
 
 /*
+ * Things I Have Changed
+ * 1. Commented out some directories that were not recognized
+ * 2. Copied directories from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
+ * 3.
+ *
+ */
+
+
+/*
+ * Things to Do:
+ *
  * recieve a list of streamlines (TRK)
  * connecting same structure
  *
@@ -293,7 +308,7 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
  *
  */
 
-
+//Code for cycling through vertices
 	/*for (unsigned i = 0; i < surf->nvertices; i++)
 	{
 		double x, y, z;
