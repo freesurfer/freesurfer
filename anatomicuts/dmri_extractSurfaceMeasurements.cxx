@@ -63,6 +63,9 @@
 #include "mri.h"
 #include "vtkKdTreePointLocator.h"
 
+#include "vtkPCACurvatureEstimation.h"
+#include "vtkCurvatures.h"
+
 /*#if VTK_MAJOR_VERSION > 5	
 	#include "vtkPCACurvatureEstimation.h"
 #else
@@ -194,13 +197,46 @@ int main(int narg, char* arg[])
 	}
 
 	//
-	// Reading in surface File
+	// Reading in Surface and find data values
 	//
 
+	//Reading in surface from file
 	MRI_SURFACE *surf;
         surf = MRISread(surface);
+
+	SurfType::Pointer surface =  SurfType::New();
+	surface->Load(&*surf);
+
+	surf = surface->GetFSSurface(&*surf);
+
+	// Finding the Thickness
+
+	vtkSmartPointer<vtkPolyData> surfVTK = FSToVTK(surf);	
 	
-	// TODO with VIV
+	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
+	surfTree->SetDataSet(surfVTK);
+	surfTree->BuildLocator();
+
+	vtkPoints* points = vtkPoints::New();
+	for (int i = 0; i < surfVTK->GetNumberOfPoints(); ++i)
+	{
+
+		double* point = surfVTK->GetPoint(i);
+		vtkIdType iD = surfTree->FindClosestPoint(point);
+		double* point2 = surfVTK->GetPoint( iD);
+		float distance =  vtkMath::Distance2BetweenPoints(point,point2);
+		cout << point [0] << " " << point2[0] << " " << distance << endl;
+		
+		/*if( distance > 0.01)
+		{
+			points->InsertPoint(i,point[0], point[1], point[2]);
+		}*/
+	}
+	
+	// Finding the Curvature
+	//TODO
+
+
 
 	//
 	// Outputing to an extneral file
