@@ -36,7 +36,6 @@
 #include "LineProf.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "error.h"
 #include <fenv.h>
 #include <QFile>
 #include <QSurfaceFormat>
@@ -46,6 +45,7 @@
 #endif
 
 #include "fsinit.h"
+#include "log.h"
 #include "chklc.h"
 
 
@@ -108,16 +108,10 @@ void myMessageOutput(QtMsgType type, const char *msg)
 }
 #endif
 
-void my_error_exit(int ecode)
-{
-  if (ecode != 0)
-    throw (ecode);
-}
-
 int main(int argc, char *argv[])
 {
   Progname = argv[0];
-  ErrorSetExitFunc(my_error_exit);
+  throwExceptions(true);
 
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)

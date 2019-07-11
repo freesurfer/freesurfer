@@ -1,48 +1,12 @@
-#ifndef LOG_H
-#define LOG_H
+#pragma once
 
+#include <iostream>
 #include <sstream>
 
+#include "fsinit.h"
 
-/// \class StreamLogger
-///
-/// A stream-style logging object for printing status messages.
-///
-/// In general, this class shouldn't used directly. Status messages should
-/// be printed via the standard logging macros. For example:
-///
-///     logWarning << "exceeded standard iteration count";
-///     logError << "vertex has no neighbors";
-///     logFatal(1) << "could not find file";
 
-class StreamLogger {
-public:
-  enum MessageStatus {Warning, Error, Debug};
-
-  StreamLogger(MessageStatus status) : status(status), exitout(false) {};
-  StreamLogger(MessageStatus status, int exitcode) : status(status), retcode(exitcode), exitout(true) {};
-  ~StreamLogger();
-
-  template<typename T>
-  StreamLogger& operator << (const T& t) {
-    ss << t;
-    return *this;
-  }
-
-  // for std::endl
-  StreamLogger& operator << (std::ostream&(*f)(std::ostream&)) {
-    f(ss);
-    return *this;
-  }
-
-private:
-  MessageStatus status;
-  int retcode;
-  bool exitout;
-  std::ostringstream ss;
-};
-
-// terminal output colors 
+// terminal colors 
 namespace term {
   const char* black();
   const char* red();
@@ -51,21 +15,92 @@ namespace term {
   const char* blue();
   const char* purple();
   const char* cyan();
-  const char* light_gray();
   const char* white();
-  const char* light_red();
-  const char* dim();
-  // formating
   const char* bold();
+  const char* dim();
   const char* underline();
-  // reset
   const char* reset();
 }
 
-// macros for easy logging of standard message types
-#define logDebug      StreamLogger(StreamLogger::Debug)
-#define logWarning    StreamLogger(StreamLogger::Warning)
-#define logError      StreamLogger(StreamLogger::Error)
-#define logFatal(ret) StreamLogger(StreamLogger::Error, ret)
 
-#endif
+// global settings
+void throwExceptions(bool setting);
+void setErrorLog(const std::string& filename);
+
+
+namespace detail {
+
+  void writeToErrorLog(const std::string& message);
+  void errorExit(int code);
+
+  struct logger
+  {
+    template<typename T> logger& operator << (const T& t) { ss << t; return *this; }
+    logger& operator << (std::ostream&(*f)(std::ostream&)) { f(ss); return *this; }
+    std::ostringstream ss;
+  };
+
+}
+
+
+namespace fs {
+
+  struct fatal : public detail::logger
+  {
+    int ret;
+    fatal(int err) : ret(err) {}
+    ~fatal() {
+      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << std::endl;
+      detail::writeToErrorLog(this->ss.str());
+      detail::errorExit(this->ret);
+    }
+  };
+
+  struct error : public detail::logger
+  {
+    ~error() {
+      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << std::endl;
+      detail::writeToErrorLog(this->ss.str());
+    }
+  };
+
+  struct warning : public detail::logger
+  {
+    ~warning() { std::cerr << term::yellow() << "warning: " << term::reset() << this->ss.str() << std::endl;}
+  };
+
+  struct debug : public detail::logger
+  {
+    ~debug() { std::cerr << term::cyan() << "debug: " << term::reset() << this->ss.str() << std::endl; }
+  };
+
+}
+
+// temporary definitions
+#define logWarning    fs::warning()
+#define logFatal(ret) fs::fatal(ret)
+
+// old c-style error functions
+void    ErrorExit(int ecode, const char *fmt, ...);
+void    ErrorPrintf(int ecode, const char *fmt, ...);
+#define ErrorReturn(ret, args)  { ErrorPrintf args; return(ret); }
+#define ErrorInit(a, b, c) FSinit();
+
+// global error
+extern int Gerror;
+
+// error codes
+#define NO_ERROR              0
+#define ERROR_NONE            NO_ERROR
+#define ERROR_NO_FILE         -1
+#define ERROR_NOFILE          ERROR_NO_FILE
+#define ERROR_NO_MEMORY       -2
+#define ERROR_NOMEMORY        ERROR_NO_MEMORY
+#define ERROR_UNSUPPORTED     -3
+#define ERROR_BADPARM         -4
+#define ERROR_BAD_PARM        ERROR_BADPARM
+#define ERROR_BADFILE         -5
+#define ERROR_BAD_FILE        ERROR_BADFILE
+#define ERROR_SIZE            -6
+#define ERROR_BADLOOP         -7
+#define ERROR_OUT_OF_BOUNDS   -8

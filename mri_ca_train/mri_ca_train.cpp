@@ -111,8 +111,18 @@ static int AllowMisMatch=0;
   int n_omp_threads;
 #endif
 char *DoneFile = NULL;
-int WriteDoneFile(char *DoneFile, int code);
 char *cmdline, cwd[2000];
+
+
+static void writeDoneFile(char *DoneFile, int errorcode)
+{
+  if (DoneFile == NULL) return;
+  FILE *fp = fopen(DoneFile, "w");
+  if (fp == NULL) return;
+  fprintf(fp, "%d\n", errorcode);
+  fclose(fp);
+}
+
 
 int
 main(int argc, char *argv[])
@@ -161,7 +171,11 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-  SetErrorExitDoneFile(DoneFile);
+
+  // catch exceptions in order to write a done file
+  throwExceptions(true);
+  try {
+
   printf("\n");
   printf("setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
   printf("cd %s\n",cwd);
@@ -1024,17 +1038,20 @@ main(int argc, char *argv[])
 
   GCAfree(&gca) ;
   msec = start.milliseconds() ;
-  seconds = nint((float)msec/1000.0f) ;
+  seconds = nint((float)msec / 1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("classifier array training took %d minutes"
-         " and %d seconds.\n", minutes, seconds) ;
+  printf("classifier array training took %d minutes and %d seconds.\n", minutes, seconds) ;
   
-  ErrorWriteDoneFile(DoneFile, 0);
-  printf("mri_ca_train done\n");
+  } catch(...) {
+    writeDoneFile(DoneFile, 1);
+    printf("mri_ca_train failed\n");
+    exit(1);
+  }
 
-  exit(0) ;
-  return(0) ;
+  writeDoneFile(DoneFile, 0);
+  printf("mri_ca_train done\n");
+  return 0;
 }
 /*----------------------------------------------------------------------
             Parameters:
