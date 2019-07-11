@@ -1639,13 +1639,15 @@ int main(int argc, char *argv[])
                Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, wm_weight);
 	if ( followGradients)
 	{
+		std::cout << "HOLAAAAAAiAAAAAAAAAAAAAAAAAAAAAAAAAAA "<< std::endl;
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
-		refine->addImage(mri_T1_pial);
+		//refine->addImage(mri_T1_pial);
 		refine->addImage(mri_flair);
-		refine->refine(mris,0.01, 100);	
+		refine->getTarget(mris);	
 	}
 	else
-	{        compute_pial_target_locations(mris, mri_flair, labels, nlabels,
+	{
+		 compute_pial_target_locations(mris, mri_flair, labels, nlabels,
 				      contrast_type, mri_aseg, 
 				      T2_min_inside, T2_max_inside, 
 				      T2_min_outside, T2_max_outside, 
@@ -1745,6 +1747,7 @@ int main(int argc, char *argv[])
 
         if (0)
         {
+		std::cout << " nooooooooooooooooooooooooooooooooooooooooooooooooooo" <<std::endl;
           compute_pial_target_locations(mris, mri_T2,
                                         labels, nlabels,
                                         contrast_type, mri_aseg, T2_min_inside, T2_max_inside, 
