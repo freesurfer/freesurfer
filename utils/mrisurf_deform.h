@@ -82,3 +82,19 @@ int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float d
 
 bool   MRISMP_computeSSE_canDo(               INTEGRATION_PARMS *parms);
 double MRISMP_computeSSE      (MRIS_MP* mris, INTEGRATION_PARMS *parms);
+
+
+struct MRIScomputeSSE_asThoughGradientApplied_ctx {
+    MRIScomputeSSE_asThoughGradientApplied_ctx();
+    ~MRIScomputeSSE_asThoughGradientApplied_ctx();
+private:
+    struct Impl;
+    Impl* _impl;
+};
+
+double MRIScomputeSSE_asThoughGradientApplied(
+    MRIS*              mris, 
+    double             delta_t, 
+    INTEGRATION_PARMS* parms,
+    MRIScomputeSSE_asThoughGradientApplied_ctx& ctx);     
+

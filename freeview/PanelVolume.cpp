@@ -101,6 +101,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   }
 
   connect(mainwnd, SIGNAL(NewVolumeCreated()), SLOT(ShowAllLabels()));
+  connect(ui->pushButtonContourSave, SIGNAL(clicked(bool)), mainwnd, SLOT(OnSaveIsoSurface()));
 
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionNewVolume);
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionLoadVolume);
@@ -315,6 +316,20 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
+
+  ui->colorLabelBrushValue->installEventFilter(this);
+}
+
+bool PanelVolume::eventFilter(QObject *watched, QEvent *event)
+{
+  if (watched == ui->colorLabelBrushValue && event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent* e = static_cast<QMouseEvent*>(event);
+    if (e->button() == Qt::LeftButton)
+      OnColorTableChangeColor();
+  }
+
+  return PanelLayer::eventFilter(watched, event);
 }
 
 void PanelVolume::DoIdle()
@@ -1407,32 +1422,6 @@ void PanelVolume::OnContourValueChanged()
   }
 }
 
-void PanelVolume::OnContourSave()
-{
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
-  {
-    QString selectedFilter;
-    QString fn = QFileDialog::getSaveFileName( this,
-                                               "Save iso-surface",
-                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
-                                               "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
-    if ( !fn.isEmpty() )
-    {
-      QString selected_suffix = selectedFilter.left(3).toLower();
-      if (selected_suffix == "all")
-        selected_suffix = "vtk";
-      QFileInfo fi(fn);
-      if (fi.suffix().toLower() != selected_suffix)
-        fn += "." + selected_suffix;
-      if ( !layer->SaveContourToFile( fn ) )
-      {
-        QMessageBox::warning(this, "Error", "Can not save surface to file.");
-      }
-    }
-  }
-}
-
 void PanelVolume::OnSliderTrackVolumeMin(int nval)
 {
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
@@ -1936,6 +1925,9 @@ void PanelVolume::OnColorTableChangeColor()
       {
         layer->GetProperty()->UpdateLUTTable();
       }
+      pix = QPixmap(32,20);
+      pix.fill(color);
+      ui->colorLabelBrushValue->setPixmap( pix );
     }
   }
 }

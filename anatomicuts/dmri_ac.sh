@@ -41,10 +41,9 @@ function forAll()
 	
 	cd ${SUBJECTS_DIR}                                                
 	for s in */;       
-	do                                                                                                                                                                         
-
-		subject=${s//[\/]/}                                                                                                                                                 
-		echo ${s}
+	do
+		subject=${s//[\/]/}                                                                                                    
+		echo ${subject}
 
 		string="bash ${0} $1 ${subject} $2 $3 $4 $5"         
 		echo ${string}
@@ -88,6 +87,8 @@ function tractography()
 {
 	echo "tractography"
 	subject=$1
+	model2=$2
+	bb=$3
 	echo ${subject}
 	if [[ -e   ${DMRI_DIR}/${subject}/dmri/data.nii.gz ]] ;
 	then
@@ -95,16 +96,42 @@ function tractography()
 	else
 		fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
 	fi
-	fbval=${DMRI_DIR}/${subject}/dmri/bvals
-	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
-	output=${DMRI_DIR}/${subject}/dmri/GQI/
-	rm ${DMRI_DIR}/${subject}/dmri/GQI/*.trk
-	mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
+	if [[  ${2} == "GQI"  ]] ; then
+	
+		fbval=${DMRI_DIR}/${subject}/dmri/bvals
+		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+		output=${DMRI_DIR}/${subject}/dmri/GQI/
+		rm ${DMRI_DIR}/${subject}/dmri/GQI/*.trk
+		mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
-	#${FREESURFER_HOME}/bin/
-	diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
+		#${FREESURFER_HOME}/bin/
+		diffusionUtils -f tractographyCSA -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
+	else
 
+		mkdir  ${DMRI_DIR}/${subject}/dmri/FOD/
+		mrconvert ${fdwi} -fslgrad ${DMRI_DIR}/${subject}/dmri/bvecs ${DMRI_DIR}/${subject}/dmri/bvals ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif -force
+		
+		dwi2mask ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -force 
+		dwi2response tournier ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/response.txt -force 
+		dwi2fod csd ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/response.txt ${DMRI_DIR}/${subject}/dmri/FOD/fod.mif -mask ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -force
+		if [[  ${bb} == "-bb"  ]] ; then
+			tckgen  -algorithm  SD_Stream -rk4 -downsample 10 -angle 50 -maxlen 150 -minlen 20 -cutoff .12 -seed_image ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -mask ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -select 300000  ${DMRI_DIR}/${subject}/dmri/FOD/fod.mif ${DMRI_DIR}/${subject}/dmri/FOD/tracts.tck -force
+		else
+			tckgen  -algorithm  SD_Stream -rk4 -downsample 10 -angle 40 -maxlen 250 -minlen 20 -cutoff .2 -seed_image ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -mask ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -select 300000  ${DMRI_DIR}/${subject}/dmri/FOD/fod.mif ${DMRI_DIR}/${subject}/dmri/FOD/tracts.tck -force
+		fi
+		
+		#tckconvert ${DMRI_DIR}/${subject}/dmri/FOD/tracts.tck ${DMRI_DIR}/${subject}/dmri/FOD/tracks.vtk
+	#-m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+	
+		dwi2tensor  -mask ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/tensor.mif -force
+		tensor2metric -fa  ${DMRI_DIR}/${subject}/dmri/FOD/fa.mif ${DMRI_DIR}/${subject}/dmri/FOD/tensor.mif -force
+		mrconvert ${DMRI_DIR}/${subject}/dmri/FOD/fa.mif ${DMRI_DIR}/${subject}/dmri/FOD/fa.nii.gz -force
+
+		${FREESURFER_HOME}/bin/diffusionUtils -f TckToTrk -s ${DMRI_DIR}/${subject}/
+	fi
 }
+
+
 function getMaps()
 {
 	echo "getMaps"
@@ -152,30 +179,34 @@ function filterStreamlines()
 {
 	echo "filterStreamlines"
     subject=$1
-    lenght=$2
-	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	model2=$2
+    lenght=$3
+	if [[ -e   ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
 	then 
-	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines_l${lenght}.trk -min ${lenght} -max 200 -m ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
 	else
-	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l ${lenght} -m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+	    echo ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines_l${lenght}.trk -min ${lenght} -max 200 -m ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+	    ${filtershortFibers} -i  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines.trk -o  ${DMRI_DIR}/${subject}/dmri/$model2/streamlines_l${lenght}.trk -min ${lenght} -max 200 -m ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
 	fi
 } 
 function runAC()
 {
 	subject=$1
 	model=$2
-	lenght=$3
+	model2=$3
+	lenght=$4
+	bb=$5 
 
-	tractography $subject
-	
+	tractography $subject $model2 $bb
+
 	getMaps $subject DTI
 	if [[ ${model} == "DKI" ]] ; then
 		getMaps $1 DKI
 	fi
 	
-	anat2dwi $subject
-	filterStreamlines $subject $lenght
-	anatomiCuts $subject $lenght
+	anat2dwi $subject $model2
+	filterStreamlines $subject $model2 $lenght
+	anatomiCuts $subject $model2 $lenght
 
 }
 
@@ -183,22 +214,23 @@ function runAC()
 function anatomiCuts()
 {
     subject=$1
-    lenght=$2
+    model2=$2
+    lenght=$3
     mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}
     rm  ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/*.trk
     rm  ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/*.vtk
 
-	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	if [[ -e   ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
 	then 
-	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}"
+	    string="${anatomiCutsBin} -s ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz -f ${DMRI_DIR}/${subject}/dmri/$model2/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}"
 	else
-	    string="${anatomiCutsBin} -s ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -f ${SUBJECTS_DIR}/${subject}/dmri/GQI/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}"
+	    string="${anatomiCutsBin} -s ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -f ${DMRI_DIR}/${subject}/dmri/$model2/streamlines_l${lenght}.trk -l a -c 200 -n 10 -e 500 -labels -o ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}"
 	fi
 
     ${string}
 
 }
-function runGA()
+function preGA()
 {
 	subject=$1
 	targetSubject=$2
@@ -210,19 +242,32 @@ function runGA()
 	Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	
+}
+function GA()
+{
+	targetSubject=$1
+	lenght=$2
+	std=$3
+
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 2 -gb 1 -l ${lenght} -std ${std} 
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 2 -l ${lenght} -std ${std} 
+
 }
 
 function Clean()
 {
 	subject=$1
-	targetSubject=$2	
+	targetSubject=$2
 	lenght=$3
 	std=$4
-	mkdir ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}
 
-	${code}streamlineFilter -i ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/*trk -m ${SUBJECTS_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -d ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}/ -c ${std}
+	mkdir ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 
-        cp ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/HierarchicalHistory.csv ${SUBJECTS_DIR}/${subject}/dmri.ac/${lenght}/${std}/
+	${code}streamlineFilter -i ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/*trk -m ${ODMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz -d ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/ -c ${std}
+
+        cp ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/HierarchicalHistory.csv ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/
 }
 function Hungarian()
 {
@@ -234,7 +279,7 @@ function Hungarian()
 
 	for c in ${clusters[@]};
 	do	
-		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+		if [[ -e   ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
 		then
 			si=${DMRI_DIR}/${targetSubject}/dmri/wm2009parc2dwi.nii.gz
 			sj=${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz

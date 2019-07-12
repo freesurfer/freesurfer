@@ -509,7 +509,7 @@ protected slots:
   void OnSmoothSurface();
   void OnRemoveIntersectionsFromSurface();
   void OnShowLabelStats();
-  void OnSaveIsoSurface();
+  void OnSaveIsoSurface(const QString& fn = "");
   void OnPlot();
   void OnLineProfile();
   void OnCycleSurfaceLabel();
@@ -537,6 +537,11 @@ protected slots:
   void SetProcessing( bool bProcessing = true )
   {
     m_bProcessing = bProcessing;
+  }
+
+  void SetProcessingFinished()
+  {
+    SetProcessing(false);
   }
 
   void ReassureGeometry();
