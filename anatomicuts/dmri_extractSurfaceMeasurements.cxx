@@ -211,32 +211,29 @@ int main(int narg, char* arg[])
 		int pointIndices = 0;
 		int cellIndices  = 0;
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
-		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
+		for (; inputCellIt != input->GetCells()->End(); ++inputCellIt)
 		{
 			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
 
 			// Finding the last point
-			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
+			for (; it != inputCellIt.Value()->PointIdsEnd(); it++) 
 				input->GetPoint(*it, &lastPt);
 			
-			input->GetPoint(*it, &lastPt);
-
-			for (int j = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
 				firstPt_array[j] = firstPt[j];
 				lastPt_array[j]	 = lastPt[j];
 			}
 
 			double dist1 = 0, dist2 = 0;
-			vtkIdType aux1 = surfTree->FindClosestPointWithinRadius(3.5, firstPt_array, dist1);
-			vtkIdType aux2 = surfTree->FindClosestPointWithinRadius(3.5, lastPt_array, dist2);
+			vtkIdType ID1 = surfTree->FindClosestPointWithinRadius(20.0, firstPt_array, dist1);
+			vtkIdType ID2 = surfTree->FindClosestPointWithinRadius(20.0, lastPt_array, dist2);
 
-			cout << "Aux1: " << aux1 << " Aux2: " << aux2 << endl;
-			cout << "First Point: " << firstPt << " | [" << surf->vertices[aux1].x << ", " << surf->vertices[aux1].y << ", " << surf->vertices[aux1].z << "]" << endl;
-			cout << "Last Point:  " << lastPt << " | [" << surf->vertices[aux2].x << ", " << surf->vertices[aux2].y << ", " << surf->vertices[aux2].z << "]" << endl;
-			cout << "Curvature of First Point: " << surf->vertices[aux1].curv << endl;
-			cout << "Curvature of Last Point:  " << surf->vertices[aux2].curv << endl;
+			/*cout << "ID1: " << ID1 << " ID2: " << ID2 << endl;
+			cout << "First Point: " << firstPt << " | [" << surf->vertices[ID1].x << ", " << surf->vertices[ID1].y << ", " << surf->vertices[ID1].z << "]" << endl;
+			cout << "Last Point:  " << lastPt << " | [" << surf->vertices[ID2].x << ", " << surf->vertices[ID2].y << ", " << surf->vertices[ID2].z << "]" << endl;
+			cout << "Curvature of First Point: " << surf->vertices[ID1].curv << " Curvature of Last Point:  " << surf->vertices[ID2].curv << endl;*/
 		}
 	}
 		
