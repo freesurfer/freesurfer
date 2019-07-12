@@ -92,8 +92,8 @@ int main(int narg, char* arg[])
 	
 	//Take in input trk file
 	meshes = clusterTools->PolydataToMesh(polydatas); 
-	
-	ColorMeshType::Pointer input = (*meshes)[0]; 
+
+	ColorMeshType::Pointer input = (*meshes)[0];
 	int pointIndices = 0; 
 	int cellIndices = 0; 
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
@@ -211,6 +211,10 @@ int main(int narg, char* arg[])
 
 	sort(image_values.begin(), image_values.end()); 
 
+	//Find a way to change the order of the streamlines as well
+	//Keep them unorganized, check previous values if they've been used?
+
+
 	int compare = image_values[0]; 
 	filtered_values.push_back(image_values[0]); 
 	filtered_streamlines.push_back(streamlines[0]); 
@@ -227,24 +231,28 @@ int main(int narg, char* arg[])
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 	cerr << "Image values: "; 
-	for (int i = 0; i < image_values.size(); i++) 
+	for (int i = 0; i < filtered_values.size(); i++) 
 	{
-		cerr << image_values[i] << " "; 
+		cerr << filtered_values[i] << " "; 
 	}
 	cerr << endl; 
+
+	cerr << "Number of values: " << filtered_values.size() << endl; 
+	cerr << "Number of streamlines: " << filtered_streamlines.size() << endl; 
 
 	//Output files
 	ColorMeshType::Pointer om = ColorMeshType::New(); 
 	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
 
-	//inputCellIt = input->GetCells()->Begin(); 
-	for (int i = 0; i < filtered_streamlines.size(); i++)
+	//Needs to loop based on how many time each structure appears
+	for (int i = 0; i < streamlines.size(); i++)
+	//for (int i = streamlines.size() - 1; i > -1; i--)
 	{
 		CellAutoPointer line; 
 		line.TakeOwnership(new PolylineCellType); 
 		int k = 0; 
-		CellType::PointIdIterator it = filtered_streamlines[i].Value()->PointIdsBegin(); 
-		for (; it != filtered_streamlines[i].Value()->PointIdsEnd(); it++)
+		CellType::PointIdIterator it = streamlines[i].Value()->PointIdsBegin(); 
+		for (; it != streamlines[i].Value()->PointIdsEnd(); it++)
 		{
 			PointType pt; 
 			input->GetPoint(*it, &pt);
@@ -260,7 +268,7 @@ int main(int narg, char* arg[])
 		input->GetCellData(i, &cellData); 
 		om->SetCellData(cellIndices, cellData); 
 		cellIndices++; 	
-
+		
 		string outputName; 
 		string number = to_string(filtered_values[i]); 
 		//string filename = inputFiles[0].substr(inputFiles[0].find_last_of("/\\") + 1);
