@@ -5,6 +5,9 @@
  *
  * Takes in a cluster and outputs metrics, specifically thickness and curvature, based on the endpoints of the connections and outputs it to an external CSV file
  *
+ * export FREESURFER_HOME /home/fsuser2/alex_zsikla/install
+ * source /home/fsuser2/alex_zsikla/install/SetUpFreeSurfer.sh
+ *
  */
 
 //Libraries
@@ -90,10 +93,7 @@ int main(int narg, char* arg[])
 		return EXIT_FAILURE;
 	}
 
-	//
-	// Input Parsing
-	//
-
+	// INPUT PARSING
 	// Looping for multiple file input of a certain kind of file
 	vector<string> inputFiles;
 	
@@ -101,11 +101,10 @@ int main(int narg, char* arg[])
 		inputFiles.push_back(inputName);
 	
 
-	const char *surfaceFile = num1.follow("lh.orig", "-s");
-	const char *thickFile   = num1.follow("lh.thickness", "-t");
-	const char *curvFile    = num1.follow("lh.curv", "-c");
-	const char *outputFile  = num1.follow("output.csv", "-o");
-
+	const char *surfaceFile = num1.follow("surfacy", "-s");
+	const char *thickFile   = num1.follow("thicky", "-t");
+	const char *curvFile    = num1.follow("curvy", "-c");
+	const char *outputFile  = num1.follow("outputy", "-o");
 
 	// TO DELETE
 	// Testing that files are saved and can be outputted
@@ -113,12 +112,19 @@ int main(int narg, char* arg[])
 	for (int i = 0; i < inputFiles.size(); i++)
 		cout << inputFiles.at(i) << endl;
 
-	cout << surfaceFile << endl << thickFile << endl << curvFile << endl << outputFile << endl;
+	cout << "Surface: " << surfaceFile << endl << "Thickness: " << thickFile << endl << "Curvature: " << curvFile << endl << "Output: " << outputFile << endl;
+	
+	// Opening External File for Outputting
+	ofstream oFile;
+	oFile.open(outputFile);
 
-	//
-	// Reading in TRK File
-	//
-
+	if (not oFile.is_open()) {
+		cerr << "Could not open output file" << endl;
+		return -1;
+	}
+	
+	// Declaration of Variables for Program to Function
+	// TRK file Definitions
 	enum {Dimension =3};
 	typedef int PixelType;
 	const unsigned int PointDimension = 3;
@@ -138,7 +144,7 @@ int main(int narg, char* arg[])
 	typedef ColorMeshType::CellType CellType;
 	typedef itk::PolylineCell<CellType> PolylineCellType;
 	typedef ColorMeshType::CellAutoPointer CellAutoPointer;
-
+	
 	ImageType::Pointer refImage;
 	ImageType::Pointer mask;	
 
@@ -153,9 +159,45 @@ int main(int narg, char* arg[])
 	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask);
 
 	meshes = clusterTools->PolydataToMesh(polydatas);
+	
+	// Surface Defintions
+	typedef float CoordType;
+	typedef fs::Surface< CoordType, Dimension> SurfType;
 
-	PointType first;
-	PointType last;
+	//Reading in surface from file
+	MRI_SURFACE *surf;
+        surf = MRISread(surfaceFile);
+	
+	SurfType::Pointer surface =  SurfType::New();
+	surface->Load(&*surf);
+	
+	surf = surface->GetFSSurface(&*surf);
+	
+	// Curvature Defintions
+	vtkSmartPointer<vtkCurvatures> curvature = vtkSmartPointer<vtkCurvatures>::New();
+	curvature->SetInput(FSToVTK(surf));
+	curvature->SetCurvatureTypeToGaussian();
+	
+	curvature->Update();
+	vtkSmartPointer<vtkPolyData> polydata =curvature->GetOutput();	
+
+	// The first and last point of a stream
+	PointType firstPt, lastPt;
+	firstPt.Fill(0);
+	lastPt.Fill(0);
+
+	// Finding the Thickness
+	vtkSmartPointer<vtkPolyData> surfVTK = FSToVTK(surf);	
+	
+	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
+	surfTree->SetDataSet(surfVTK);
+	surfTree->BuildLocator();	
+
+	// Holding the coordinates of the points
+	double firstPt_array[3];
+	double lastPt_array[3];
+
+	MRISreadCurvature(surf, curvFile);
 
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
@@ -171,89 +213,33 @@ int main(int narg, char* arg[])
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 		{
-
-			PointType firstPt, lastPt;
-			firstPt.Fill(0);
-			lastPt.Fill(0);
-
 			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
-			//cout << "First Point: " << firstPt << endl;
 
 			// Finding the last point
 			for (; it != inputCellIt.Value()->PointIdsEnd();it++)
 				input->GetPoint(*it, &lastPt);
 			
-			input->GetPoint(*it, &lastPt);	
-			//cout << "Last Point: " << lastPt << endl;
-			
-			// Gave the same First and Last point
-			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
-			input->GetPoint(*it2, &lastPt);
+			input->GetPoint(*it, &lastPt);
 
-			outFile << "Last Point: " << lastPt << endl;*/
+			for (int j = 0; i < 3; i++) {
+				firstPt_array[j] = firstPt[j];
+				lastPt_array[j]	 = lastPt[j];
+			}
+
+			double dist1 = 0, dist2 = 0;
+			vtkIdType aux1 = surfTree->FindClosestPointWithinRadius(3.5, firstPt_array, dist1);
+			vtkIdType aux2 = surfTree->FindClosestPointWithinRadius(3.5, lastPt_array, dist2);
+
+			cout << "Aux1: " << aux1 << " Aux2: " << aux2 << endl;
+			cout << "First Point: " << firstPt << " | [" << surf->vertices[aux1].x << ", " << surf->vertices[aux1].y << ", " << surf->vertices[aux1].z << "]" << endl;
+			cout << "Last Point:  " << lastPt << " | [" << surf->vertices[aux2].x << ", " << surf->vertices[aux2].y << ", " << surf->vertices[aux2].z << "]" << endl;
+			cout << "Curvature of First Point: " << surf->vertices[aux1].curv << endl;
+			cout << "Curvature of Last Point:  " << surf->vertices[aux2].curv << endl;
 		}
 	}
-
-	//
-	// Reading in Surface and find data values
-	//
-
-	//constexpr unsigned int Dimension = 3;
-	typedef float CoordType;
-	typedef fs::Surface< CoordType, Dimension> SurfType;
-
-	//Reading in surface from file
-	MRI_SURFACE *surf;
-        surf = MRISread(surfaceFile);
-	
-	/*SurfType::Pointer surface =  SurfType::New();
-	surface->Load(&*surf);
-	
-	surf = surface->GetFSSurface(&*surf);
-	
-	// Finding the Thickness
-	vtkSmartPointer<vtkPolyData> surfVTK = FSToVTK(surf);	
-	
-	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
-	surfTree->SetDataSet(surfVTK);
-	surfTree->BuildLocator();
-
-	cerr << "Does this run?" << endl;
-	vtkPoints* points = vtkPoints::New();
-	for (int i = 0; i < surfVTK->GetNumberOfPoints(); ++i)
-	{
-
-		double* point = surfVTK->GetPoint(i);
-		vtkIdType iD = surfTree->FindClosestPoint(point);
-		double* point2 = surfVTK->GetPoint( iD);
-		float distance =  vtkMath::Distance2BetweenPoints(point,point2);
-		cerr << point [0] << " " << point2[0] << " " << distance << endl;
 		
-		if( distance > 0.01)
-		{
-			points->InsertPoint(i,point[0], point[1], point[2]);
-		}
-	}*/
-	
-	// Finding the Curvature
-	//TODO
-
-
-
-	//
-	// Outputing to an extneral file
-	//
-
-	ofstream oFile;
-	oFile.open(outputFile);
-
-	if (not oFile.is_open()) {
-		cerr << "Could not open output file" << endl;
-		return -1;
-	}
-
 	oFile.close();
 
 	return EXIT_SUCCESS;
@@ -319,3 +305,11 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 			MRISsurfaceRASTToVoxel(surf, images, surf->vertices[j].x, surf->vertices[j].y, surf->vertices[j].z, &x, &y, &z);
 			float magnitud = MRIvoxelGradient(images, (float) x, (float) y, (float) z, &pdx, &pdy, &pdz);
 	}*/
+
+//Code that did not do exactly what it had to
+			// Gave the same First and Last point
+			/*CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsEnd();
+			input->GetPoint(*it2, &lastPt);
+
+			outFile << "Last Point: " << lastPt << endl;*/
+
