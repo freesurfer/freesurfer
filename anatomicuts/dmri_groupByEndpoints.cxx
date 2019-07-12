@@ -8,6 +8,8 @@
 #include <fstream>
 #include <string>
 #include <string.h>
+#include <vector>
+#include <algorithm>
 
 #include <itkImage.h>
 #include <itkImageFileReader.h>
@@ -79,133 +81,195 @@ int main(int narg, char* arg[])
 	typedef itk::PolylineCell<CellType>                      PolylineCellType;
 	typedef ColorMeshType::CellAutoPointer CellAutoPointer;
 
-	ImageType::Pointer refImage;
-	ImageType::Pointer mask; 
-
 	vector<ColorMeshType::Pointer>* meshes; 
 	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
+	ImageType::Pointer inputImage;  
 
 	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType; 
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New(); 
 
-	vector<HistogramMeshType::Pointer>* histoMeshes; 
-	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask); 
-
+	clusterTools->GetPolyDatas(inputFiles, &polydatas, inputImage); 
+	
+	//Take in input trk file
 	meshes = clusterTools->PolydataToMesh(polydatas); 
+	
+	ColorMeshType::Pointer input = (*meshes)[0]; 
+	int pointIndices = 0; 
+	int cellIndices = 0; 
+	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
-	//Mesh is array of inputs, so for this, always cycles once
-	for (int i = 0; i < meshes->size(); i++) 
+	//Keep all the streamlines with the same start and end locations in a vector
+	vector<ColorMeshType::CellsContainer::Iterator> streamlines; 
+	//Store the values that the wanted streamlines lie within
+	vector<int> image_values; 
+
+	cerr << "New mesh: " << endl; 
+	int stream_count = 0; 
+
+	using ImageType = Image<PixelType, Dimension>; 
+	using ReaderType = ImageFileReader<ImageType>; 
+
+	ReaderType::Pointer reader = ReaderType::New(); 
+
+	reader->SetFileName(image_file); 
+	reader->Update();
+			
+	inputImage = reader->GetOutput(); 
+
+	ImageType::IndexType index1, index2; 
+
+	//Cycles through each streamline
+	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-		ColorMeshType::Pointer input = (*meshes)[i]; 
+		cerr << cellId << endl; 
 
-		int pointIndices = 0; 
-		int cellIndices = 0; 
-		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
-		
-		cerr << "New mesh: " << endl; 
-		int stream_count = 0; 
+		PointType firstPt, start, second_check, end; 
+		firstPt.Fill(0); 
 
-		//Cycles through each streamline
-		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
+		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
+		input->GetPoint(*it, &firstPt); 
+		double lengthSoFar = 0; 
+
+		start = firstPt; 
+
+		cerr << "First point: " << start << endl; 
+
+		//Goes through each point in a streamline
+		//Converted given for loop into a while loop
+		while (it != inputCellIt.Value()->PointIdsEnd())
 		{
-			cerr << cellId << endl; 
-
-			PointType firstPt, start, second_check, end; 
-			firstPt.Fill(0); 
-
-			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
+			PointType pt; 
+			pt.Fill(0);
+			input->GetPoint(*it, &pt);
+			lengthSoFar += firstPt.EuclideanDistanceTo(pt); 
 			input->GetPoint(*it, &firstPt); 
-			double lengthSoFar = 0; 
 
-			start = firstPt; 
-
-//			cerr << "First point: " << firstPt << endl; 
-
-			//Goes through each point in a streamline
-			//Converted given for loop into a while loop
-			while (it != inputCellIt.Value()->PointIdsEnd())
-			{
-				PointType pt; 
-				pt.Fill(0);
-				input->GetPoint(*it, &pt);
-				lengthSoFar += firstPt.EuclideanDistanceTo(pt); 
-				input->GetPoint(*it, &firstPt); 
-
-				it++; 
+			it++; 
 				
-				//Store second to last point in case endpoint gives value 0
-				if (it == inputCellIt.Value()->PointIdsEnd())
-					end = pt; 
-				else
-					second_check = pt; 
-			}  
+			//Store second to last point in case endpoint gives value 0
+			if (it == inputCellIt.Value()->PointIdsEnd())
+				end = pt; 
+			else
+				second_check = pt; 
+		}  
 			
-			//Value of coordinates based on image
-			using PixelType = short;
-			constexpr unsigned int Dimension = 3; 
-
-			using ImageType = Image<PixelType, Dimension>; 
-			using ReaderType = ImageFileReader<ImageType>; 
-
-			ReaderType::Pointer reader = ReaderType::New(); 
-
-			string image_file = arg[4]; 
-
-			reader->SetFileName(image_file); 
-			reader->Update();
-			
-			ImageType::Pointer inputImage = reader->GetOutput(); 
-
-			ImageType::IndexType index1, index2; 
-
-			float value1 = 0, value2 = 0; 
-			
-			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
-			{
-				value1 = inputImage->GetPixel(index1); 
-				cerr << index1 << " = " << value1 << endl; 
-			}
-
-			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
-			{
-				value2 = inputImage->GetPixel(index2);
-				
-				if (value2 == 0)
-				{
-					if (inputImage->TransformPhysicalPointToIndex(second_check, index2))
-						value2 = inputImage->GetPixel(index2);
-				}
-
-				cerr << index2 << " = " << value2 << endl; 
-			}
-
-			if (value1 != 0 and value1 == value2)
-			{
-				cout << "Start and ends match: " << endl; 
-				cout << "First point: " << index1 << endl; 
-				cout << "Last point: " << index2 << endl; 
-				cout << index1 << " = " << value1 << endl; 
-				cout << index2 << " = " << value2 << endl;  
-				stream_count++; 
-			}
-
-			//Output trk files
-			//
-			ColorMeshType::Pointer om = ColorMeshType::New(); 
-			om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
-
-			inputCellIt = input->GetCells()->Begin(); 
-			for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
-			{
-				
-			}	
+		//Value of coordinates based on image
+		float value1 = 0, value2 = 0; 
+	
+		if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
+		{
+			value1 = inputImage->GetPixel(index1); 
+			cerr << index1 << " = " << value1 << endl; 
 		}
-		//Store streamlines that lie in the same structure, then place into one trk file
 
-		cerr << "Total of " << stream_count << " streamlines" << endl; 
+		if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
+		{
+			value2 = inputImage->GetPixel(index2);
+			
+			if (value2 == 0)
+			{
+				if (inputImage->TransformPhysicalPointToIndex(second_check, index2))
+					value2 = inputImage->GetPixel(index2);
+			}
 
-	//Output files here?
+			cerr << index2 << " = " << value2 << endl; 
+		}
 
+		//Test trk file from output?		
+/*
+		index1[0] = start[0];
+		index1[1] = start[1];
+		index1[2] = start[2];
+		index2[0] = end[0];
+		index2[1] = end[1];
+		index2[2] = end[2];
+
+		cerr << index1[0] << " " << index2[0] << endl; 
+
+		value1 = inputImage->GetPixel(index1);
+		value2 = inputImage->GetPixel(index2); 
+*/
+
+		if (value1 != 0 and value1 == value2)
+		{
+			cout << "Start and ends match: " << endl; 
+			cout << "First point: " << index1 << endl; 
+			cout << "Last point: " << index2 << endl; 
+			cout << index1 << " = " << value1 << endl; 
+			cout << index2 << " = " << value2 << endl;  
+			stream_count++; 
+			streamlines.push_back(inputCellIt); 
+			image_values.push_back(value1); 
+		}	
+	}
+
+	//Store streamlines that lie in the same structure, then place into one trk file
+
+	//Get rid of duplicates
+	vector<ColorMeshType::CellsContainer::Iterator> filtered_streamlines; 	
+	vector<int> filtered_values; 
+
+	sort(image_values.begin(), image_values.end()); 
+
+	int compare = image_values[0]; 
+	filtered_values.push_back(image_values[0]); 
+	filtered_streamlines.push_back(streamlines[0]); 
+	for (int i = 1; i < image_values.size(); i++) 
+	{
+		if (image_values[i] != compare)
+		{
+			filtered_values.push_back(image_values[i]); 
+			filtered_streamlines.push_back(streamlines[i]); 
+			compare = image_values[i]; 
+		}
+	}
+
+
+	cerr << "Total of " << stream_count << " streamlines" << endl; 
+	cerr << "Image values: "; 
+	for (int i = 0; i < image_values.size(); i++) 
+	{
+		cerr << image_values[i] << " "; 
+	}
+	cerr << endl; 
+
+	//Output files
+	ColorMeshType::Pointer om = ColorMeshType::New(); 
+	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
+
+	//inputCellIt = input->GetCells()->Begin(); 
+	for (int i = 0; i < filtered_streamlines.size(); i++)
+	{
+		CellAutoPointer line; 
+		line.TakeOwnership(new PolylineCellType); 
+		int k = 0; 
+		CellType::PointIdIterator it = filtered_streamlines[i].Value()->PointIdsBegin(); 
+		for (; it != filtered_streamlines[i].Value()->PointIdsEnd(); it++)
+		{
+			PointType pt; 
+			input->GetPoint(*it, &pt);
+
+			om->SetPoint(pointIndices, pt); 
+			line->SetPointId(k, pointIndices); 
+
+			k++; 
+			pointIndices++; 
+		}	
+		om->SetCell(cellIndices, line); 
+		ColorMeshType::CellPixelType cellData; 
+		input->GetCellData(i, &cellData); 
+		om->SetCellData(cellIndices, cellData); 
+		cellIndices++; 	
+
+		string outputName; 
+		string number = to_string(filtered_values[i]); 
+		//string filename = inputFiles[0].substr(inputFiles[0].find_last_of("/\\") + 1);
+		string filename = number + ".trk"; 
+		outputName = string(output) + "/" + filename; 
+
+		cout << "Mesh name: " << outputName << endl; 
+
+		clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
 	}
 
 	delete meshes;
