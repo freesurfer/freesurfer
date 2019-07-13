@@ -3795,7 +3795,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
         VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
         v->num++;
-        v->vnum += 2;
+        addVnum(mris,face->v[fvno],2);
       }
     }
 
@@ -3804,7 +3804,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       v->v = (int *)calloc(v->vnum, sizeof(int));
       if (!v->v) ErrorExit(ERROR_NOMEMORY, "MRISreadSTLfile: could not allocate %dth vertex list.", vno);
-      v->vnum = 0;
+      clearVnum(mris,vno);
     }
 
     /* now build list of neighbors */
@@ -3830,7 +3830,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
             }
           }
           if (vn >= 0) {
-            v->v[v->vnum++] = vn;
+            v->v[vnumAdd(mris,face->v[fvno],1)] = vn;
           }
         }
       }

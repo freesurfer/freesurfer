@@ -22,7 +22,7 @@ struct VERTEX_TOPOLOGY {
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
     pSeveralInt   e             ;  //  edge state for neighboring vertices                      
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-    short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short const   vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
     short         v3num         ;  //  number of 1,2,or 3-hop neighbors                         
     short         vtotal        ;  //  total # of neighbors. copy of vnum.nsizeCur              
