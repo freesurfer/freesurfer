@@ -12,137 +12,11 @@
 // There is a lot of overlap between these two functions that needs to be rationalized
 
 
-// Just the information needed to compute the metric properties
-//
-typedef struct MRIS_MP {
-
-  // ATH - temporarily adding this constructor to avoid the 'uninitialized const member' errors in g++ > 4
-  MRIS_MP() :
-    status(MRIS_Status__end),
-    origxyz_status(MRIS_Status__end),
-    nvertices(0),
-    nfaces(0),
-    nsize(0),
-    radius(0),
-    vertices_topology(0),
-    faces_topology(0)
-    {};
-
-#define SEP
-#define ELTX(C,T,N) ELT(C,T,N)
-
-    MRIS* underlyingMRIS;  // allows access in a few rare cases where there is a real benefit 
-    
-  // MRIS
-  //
-  // In
-  //
-#define ELT(C,T,N) T C N;
-
-  #define MRIS_MP__LIST_MRIS_IN \
-    ELT(const,  MRIS_Status, status         ) SEP \
-    ELT(const,  MRIS_Status, origxyz_status ) SEP \
-    ELT(const,  int,         nvertices      ) SEP \
-    ELT(const,  int,         nfaces         ) SEP \
-    ELT(const,  int,         nsize          ) SEP \
-    ELT(const,  double,      radius         ) SEP \
-    ELT(const,  VERTEX_TOPOLOGY const *, vertices_topology) \
-    ELTX(const, FACE_TOPOLOGY   const *, faces_topology)
-
-    MRIS_MP__LIST_MRIS_IN
-    
-  // In out
-  #define MRIS_MP__LIST_MRIS_IN_OUT \
-    ELT(,       int,     dist_nsize  ) \
-
-    MRIS_MP__LIST_MRIS_IN_OUT
-  
-  // Out
-  #define MRIS_MP__LIST_MRIS_OUT \
-    ELT(,       float,   xlo        ) SEP   \
-    ELT(,       float,   xhi        ) SEP   \
-    ELT(,       float,   ylo        ) SEP   \
-    ELT(,       float,   yhi        ) SEP   \
-    ELT(,       float,   zlo        ) SEP   \
-    ELT(,       float,   zhi        ) SEP   \
-    ELT(,       float,   xctr       ) SEP   \
-    ELT(,       float,   yctr       ) SEP   \
-    ELT(,       float,   zctr       ) SEP   \
-    ELT(,       float,   total_area ) SEP   \
-    ELT(,       double,  avg_vertex_area ) SEP   \
-    ELTX(,      double,  avg_vertex_dist ) SEP   \
-    ELT(,       double,  std_vertex_dist ) SEP   \
-    ELT(,       float,   neg_orig_area   ) SEP   \
-    ELT(,       float,   neg_area        ) 
-
-    MRIS_MP__LIST_MRIS_OUT
-
-#undef ELT
-
-  // Vertices
-  //
-#define ELT(C,T,N) C T * v_##N;
-
-  // In
-  #define MRIS_MP__LIST_V_IN                \
-    ELT(const,  char,   ripflag     ) SEP   \
-    ELTX(const, int,    VSize       )
-    
-    MRIS_MP__LIST_V_IN
-
-  // In out
-  #define MRIS_MP__LIST_V_IN_OUT            \
-    ELTX(,      int,    dist_capacity) SEP  \
-    ELT(,       char,   border      ) SEP   \
-    ELT(,       float,  x           ) SEP   \
-    ELT(,       float,  y           ) SEP   \
-    ELT(,       float,  z           ) SEP   \
-    ELT(,       float,  origarea    ) 
-  
-    MRIS_MP__LIST_V_IN_OUT
-    
-  // Out
-  #define MRIS_MP__LIST_V_OUT               \
-    ELT(,       float,  area        ) SEP   \
-    ELT(,       float,  nx          ) SEP   \
-    ELT(,       float,  ny          ) SEP   \
-    ELT(,       float,  nz          ) SEP   \
-    ELTX(,      char,   neg         ) SEP   \
-    ELTX(,      float*, dist        )
-
-    MRIS_MP__LIST_V_OUT
-
-#undef ELT
-
-  // Faces
-  //
-#define ELT(C,T,N) C T * f_##N;
-  #define MRIS_MP__LIST_F_IN                                    \
-    ELT(const,  char,                   ripflag         ) SEP   \
-    ELTX(const, float,                  norm_orig_area  )
-    
-    MRIS_MP__LIST_F_IN
-
-  #define MRIS_MP__LIST_F_OUT                                   \
-    ELT(,       float,                  area            ) SEP   \
-    ELTX(,      char,                   normSet         ) SEP   \
-    ELTX(,      FloatXYZ,               norm            ) SEP   \
-    ELTX(,      angles_per_triangle_t,  angle)
-
-    MRIS_MP__LIST_F_OUT
-    
-#undef ELT
-
-#undef ELTX
-#undef SEP
-
-} MRIS_MP;
-
-static void MRISMP_ctr(MRIS_MP* mp) {
+void MRISMP_ctr(MRIS_MP* mp) {
   bzero(mp, sizeof(*mp));
 }
 
-static void MRISMP_dtr(MRIS_MP* mp) {
+void MRISMP_dtr(MRIS_MP* mp) {
   // Faces
   //
 #define SEP
@@ -183,7 +57,146 @@ static void MRISMP_dtr(MRIS_MP* mp) {
   bzero(mp, sizeof(*mp));
 }
 
-static void MRISMP_load(MRIS* mris, MRIS_MP* mp) {
+static void MRISMP_makeDist2(MRIS_MP* mp, int vno, int neededCapacity) {
+  int const vSize = mp->v_VSize[vno];
+
+  if (neededCapacity < vSize) neededCapacity = vSize;
+
+  if (neededCapacity <= mp->v_dist_capacity[vno]) {
+    mp->v_dist[vno] = mp->v_dist_buffer[vno];
+    return;
+  }
+  
+  if (!mp->v_dist_buffer) {
+    mp->v_dist_buffer = (float**)calloc(mp->nvertices,sizeof(float*));
+  }
+  
+  if (mp->v_dist_buffer[vno]) {
+    mp->v_dist[vno] = mp->v_dist_buffer[vno] = (float*)realloc(mp->v_dist_buffer[vno], neededCapacity*sizeof(float));
+  } else {
+    mp->v_dist[vno] = mp->v_dist_buffer[vno] = mrisStealDistStore(mp->underlyingMRIS, vno, neededCapacity);
+  }
+  
+  mp->v_dist_capacity[vno] = neededCapacity;
+}
+
+static void MRISMP_makeDist(MRIS_MP* mp, int vno) {
+  MRISMP_makeDist2(mp, vno, mp->v_dist_capacity[vno]);
+}
+
+void MRISMP_copy(MRIS_MP* dst, MRIS_MP* src, 
+  bool only_inputs,
+  bool no_need_to_copy_xyz) {    // NYI
+  
+  dst->underlyingMRIS = src->underlyingMRIS;
+
+  if (dst->in_src != src) {
+    if (dst->in_src) {
+      dst->in_src->in_ref_count--;              // no longer being referenced by dst
+      dst->in_src = NULL;
+    }
+    src->in_ref_count++;                        // stop src from destructing
+    dst->in_src = src;                          // remember so can decrement later
+  }
+
+  // MRIS
+  //
+#define SEP
+#define ELTX(C,T,N) ELT(C,T,N)
+#define ELT(C,T,N) *(T*)&(dst->N) = src->N;                   // support initializing the const members
+  MRIS_MP__LIST_MRIS_IN SEP MRIS_MP__LIST_MRIS_IN_OUT
+  if (!only_inputs) MRIS_MP__LIST_MRIS_OUT
+#undef ELT
+#undef ELTX
+#undef SEP
+
+  // Vertices
+  //
+#define SEP
+#define ELTX(C,T,N) ELT(C,T,N)
+#define ELT(C,T,N) dst->v_##N = src->v_##N;
+  MRIS_MP__LIST_V_IN 
+#undef ELT
+#undef ELTX
+#undef SEP
+
+#define SEP
+#define ELTX(C,T,N) ELT(C,T,N)
+#define ELT(C,T,N) T* v_##N = (T*)realloc((void*)dst->v_##N, dst->nvertices*sizeof(T)); dst->v_##N = v_##N;
+  MRIS_MP__LIST_V_IN_OUT SEP MRIS_MP__LIST_V_OUT
+#undef ELT
+#undef ELTX
+#undef SEP
+
+  if (dst->status != MRIS_PLANE) { freeAndNULL(dst->v_neg); v_neg = NULL; }
+
+  int vno;
+  for (vno = 0; vno < src->nvertices; vno++) {
+#define SEP
+#define ELTX(C,T,N) // these are the special cases dealt with here
+    v_dist         [vno] = NULL;                        // will make when needed
+#define ELT(C,T,N) v_##N[vno] = src->v_##N[vno];
+    if (!no_need_to_copy_xyz) { MRIS_MP__LIST_V_IN_OUT_XYZ }
+    MRIS_MP__LIST_V_IN_OUT_NOXYZ
+    if (!only_inputs) { 
+      if (v_neg) v_neg[vno] = src->v_neg[vno];
+      if (src->v_dist[vno]) {
+        MRISMP_makeDist2(dst, vno, src->v_dist_capacity[vno]);
+        memcpy(v_dist[vno], src->v_dist[vno], src->v_dist_capacity[vno]*sizeof(*v_dist[vno]));
+      }
+      MRIS_MP__LIST_V_OUT 
+    }
+#undef ELT
+#undef ELTX
+#undef SEP
+  }
+
+  // Faces
+  //
+#define SEP
+#define ELTX(C,T,N) ELT(C,T,N)
+#define ELT(C,T,N) T* f_##N = (T*)realloc((void*)dst->f_##N, dst->nfaces*sizeof(T)); dst->f_##N = f_##N;
+  MRIS_MP__LIST_F_OUT
+#undef ELT
+#undef ELTX
+#undef SEP
+
+#define SEP
+#define ELTX(C,T,N) ELT(C,T,N)
+#define ELT(C,T,N) dst->f_##N = src->f_##N;
+  MRIS_MP__LIST_F_IN 
+#undef ELT
+#undef ELTX
+#undef SEP
+
+#ifdef MRIS_MP__LIST_F_IN_OUT
+  move test inside the loop when there are MRIS_MP__LIST_F_OUT to process
+#endif
+  if (!only_inputs) {
+    int fno;
+    for (fno = 0; fno < dst->nfaces; fno++) {
+#define SEP
+#define ELTX(C,T,N) // these are the special cases dealt with here
+#define ELT(C,T,N) f_##N[fno] = src->f_##N[fno];
+      f_normSet[fno] = src->f_normSet[fno];
+      f_norm   [fno] = src->f_norm   [fno];
+      copyAnglesPerTriangle(f_angle[fno],src->f_angle[fno]); // not so special
+      MRIS_MP__LIST_F_OUT 
+#undef ELT
+#undef ELTX
+#undef SEP
+    }
+  }
+}
+
+
+void MRISMP_load(MRIS_MP* mp, MRIS* mris,
+  bool loadOutputs,
+  float * dx_or_NULL, float * dy_or_NULL, float * dz_or_NULL) {
+
+  cheapAssert(!dx_or_NULL == !dy_or_NULL);
+  cheapAssert(!dx_or_NULL == !dz_or_NULL);
+  
   MRISMP_dtr(mp);
   MRISMP_ctr(mp);
 
@@ -206,6 +219,10 @@ static void MRISMP_load(MRIS* mris, MRIS_MP* mp) {
 
 #define ELT(C,T,N) *(T*)&(mp->N) = mris->N;                   // support initializing the const members
   MRIS_MP__LIST_MRIS_IN SEP MRIS_MP__LIST_MRIS_IN_OUT
+  if (loadOutputs) {
+    ELT(,double,avg_vertex_dist)
+    MRIS_MP__LIST_MRIS_OUT
+  }
 #undef ELT
 #undef ELTX
 #undef SEP
@@ -215,7 +232,9 @@ static void MRISMP_load(MRIS* mris, MRIS_MP* mp) {
 #define SEP
 #define ELTX(C,T,N) ELT(C,T,N)
 #define ELT(C,T,N) T* v_##N = (T*)malloc(mris->nvertices*sizeof(T)); mp->v_##N = v_##N;
-  MRIS_MP__LIST_V_IN SEP MRIS_MP__LIST_V_IN_OUT SEP MRIS_MP__LIST_V_OUT
+  MRIS_MP__LIST_V_IN SEP 
+#define ELTX(C,T,N) ELT(C,T,N)
+  MRIS_MP__LIST_V_IN_OUT SEP MRIS_MP__LIST_V_OUT
 #undef ELT
 #undef ELTX
 #undef SEP
@@ -227,15 +246,31 @@ static void MRISMP_load(MRIS* mris, MRIS_MP* mp) {
     VERTEX const * const v = &mris->vertices[vno];
 #define SEP
 #define ELTX(C,T,N) // these are the special cases dealt with here
-    v_dist_capacity[vno] = v->dist_capacity;
+    v_dist_orig[vno]     = v->dist_orig;
     v_VSize[vno] = mrisVertexVSize(mris, vno);
-    if (v_neg) v_neg[vno] = v->neg;
-    v_dist[vno] = NULL;
+    v_dist [vno] = NULL;
+    v_dist_capacity[vno] = 0;
 #define ELT(C,T,N) v_##N[vno] = v->N;
     MRIS_MP__LIST_V_IN SEP MRIS_MP__LIST_V_IN_OUT
+    if (loadOutputs) {
+      if (v_neg) v_neg[vno] = v->neg;
+      MRIS_MP__LIST_V_OUT
+      MRISMP_makeDist2(mp, vno, v->dist_capacity);
+      memcpy(v_dist [vno], v->dist,  v_VSize[vno]*sizeof(*v_dist[vno]));
+    }
 #undef ELT
 #undef ELTX
 #undef SEP
+    if (!dx_or_NULL) continue;
+    if (v->ripflag) {
+      dx_or_NULL[vno] = 0.0f;
+      dy_or_NULL[vno] = 0.0f;
+      dz_or_NULL[vno] = 0.0f;
+    } else {
+      dx_or_NULL[vno] = v->dx;
+      dy_or_NULL[vno] = v->dy;
+      dz_or_NULL[vno] = v->dz;
+    }
   }
     
   // Faces
@@ -254,9 +289,27 @@ static void MRISMP_load(MRIS* mris, MRIS_MP* mp) {
     FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
 #define SEP
 #define ELTX(C,T,N) // these are the special cases dealt with here
-    f_norm_orig_area[fno] = fNorm->orig_area;
+    f_norm_orig_area [fno] = fNorm->orig_area;
+    copyAnglesPerTriangle(f_orig_angle[fno],f->orig_angle);
 #define ELT(C,T,N) f_##N[fno] = f->N;
     MRIS_MP__LIST_F_IN
+    f_normSet[fno] = false;
+    if (loadOutputs) {
+      MRIS_MP__LIST_F_OUT
+      DMATRIX* d = f->norm;
+      if (!d) {
+        f_norm[fno].x = 0.0;
+        f_norm[fno].y = 0.0;
+        f_norm[fno].z = 0.0;
+      } else {
+        cheapAssert(d->rows == 3);
+        cheapAssert(d->cols == 1);
+        f_norm[fno].x = d->rptr[0][0];
+        f_norm[fno].y = d->rptr[1][0];
+        f_norm[fno].z = d->rptr[2][0];
+      }
+      copyAnglesPerTriangle(f_angle[fno],f->angle);
+    }
 #undef ELT
 #undef ELTX
 #undef SEP
@@ -280,7 +333,7 @@ static void comparisonWkr(int vnoOrFno, double lhs, double rhs, const char* expr
   if (count == 1) fprintf(stdout, "b %s:%d  needed\n",__FILE__,__LINE__);
 }
 
-static void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
+void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
   int errorCount = 0;
   
   // MRIS
@@ -324,12 +377,10 @@ static void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
     if (mp->v_dist[vno]) {
       if (!check) {                                                         // this requires that the dist capacity match, not just the vtotal
         mrisSetDist(mris,vno,mp->v_dist[vno],mp->v_dist_capacity[vno]);     // why assign and free when you can just move?
-        mp->v_dist[vno] = NULL;
+        mp->v_dist[vno] = mp->v_dist_buffer[vno] = NULL;
+        mp->v_dist_capacity[vno] = 0;
       } else {
       
-        if (!check && !v->dist) 
-            MRISmakeDist(mris,vno);
-        
         float* const mp_dist = mp->v_dist[vno];
         float* const mris_dist = v->dist;
         
@@ -342,7 +393,6 @@ static void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
         }
       }
     }
-    comparison(vno,v->dist_capacity,mp->v_dist_capacity[vno])   // must be after MRISmakeDist or mrisSetDist
 #define ELT(C,T,N) comparison(vno,v->N,mp->v_##N[vno]);
     MRIS_MP__LIST_V_IN
 #undef ELT
@@ -364,6 +414,7 @@ static void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
 #define SEP
 #define ELTX(C,T,N) // these are the special cases dealt with here
     if (check) comparison(fno,fNorm->orig_area,mp->f_norm_orig_area[fno]) else setFaceOrigArea(mris, fno, mp->f_norm_orig_area[fno]);
+    if (check) comparison(fno,cmpAnglesPerTriangle(f->orig_angle,mp->f_orig_angle[fno]),0) else copyAnglesPerTriangle(f->orig_angle,mp->f_orig_angle[fno]);
     if (mp->f_normSet[fno]) { 
       FloatXYZ* fn = &mp->f_norm[fno]; 
       if (!check) {
@@ -388,13 +439,7 @@ static void MRISMP_unload(MRIS* mris, MRIS_MP* mp, bool check) {
 #undef comparison
 
 
-static void MRISMP_makeDist(MRIS_MP* mp, int vno) {
-  int capacity = mp->v_dist_capacity[vno];
-  int vSize    = mp->v_VSize[vno];
-  if (capacity < vSize) capacity = vSize;
-  mp->v_dist         [vno] = mrisStealDistStore(mp->underlyingMRIS, vno, capacity);
-  mp->v_dist_capacity[vno] = capacity;
-}
+
 
 //
 //

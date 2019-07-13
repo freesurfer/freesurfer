@@ -87,9 +87,8 @@ double MRISMP_computeSSE      (MRIS_MP* mris, INTEGRATION_PARMS *parms);
 struct MRIScomputeSSE_asThoughGradientApplied_ctx {
     MRIScomputeSSE_asThoughGradientApplied_ctx();
     ~MRIScomputeSSE_asThoughGradientApplied_ctx();
-private:
     struct Impl;
-    Impl* _impl;
+    Impl* const _impl;
 };
 
 double MRIScomputeSSE_asThoughGradientApplied(

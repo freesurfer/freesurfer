@@ -24,7 +24,7 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_compute_dxyz.h"
 #include "mrisurf_io.h"
-
+#include "mrisurf_MRIS_MP.h"
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 
@@ -289,6 +289,28 @@ static void mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
 }
 
 
+
+template <class Surface, class Face, class Vertex>
+class mrisSurfaceProjector {
+public:
+
+  bool canDo(int mris_status)
+  {
+    switch (mris_status) {
+    //case MRIS_PARAMETERIZED_SPHERE: return true;
+    //case MRIS_SPHERE:               return true;
+    default:;
+    }
+    static int shown = 0;
+    int shownMask = (1 << mris_status);
+    if (!(shown&shownMask)) { shown |= shownMask;
+      fprintf(stdout, "%s:%d need to process MRIS::status %d\n", __FILE__, __LINE__, mris_status);
+    }
+    return false;
+  }
+};
+
+
 int mrisProjectSurface(MRI_SURFACE *mris)
 {
   /*  MRISupdateSurface(mris) ;*/
@@ -308,17 +330,16 @@ int mrisProjectSurface(MRI_SURFACE *mris)
     case MRIS_ELLIPSOID:
       MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
       break;
-    //        case PROJECT_PLANE:
-    /*    mrisOrientPlane(mris) ;*/
-    //                break ;
+    //se PROJECT_PLANE:
+    //mrisOrientPlane(mris)
+    //break ;
     case MRIS_RIGID_BODY:
-      /*    MRISprojectOntoSphere(mris, mris, mris->radius) ;*/
-      mris->status = MRIS_RIGID_BODY;
       break;
     case MRIS_PIAL_SURFACE:
       mrisProjectOntoSurface(mris, PIAL_VERTICES);
       break;
     default:
+      cheapAssert(!"was just fall thru before - Bevin looking for cases");
       break;
   }
   return (NO_ERROR);
@@ -923,7 +944,27 @@ int MRISapplyGradient(MRIS* mris, double dt)
 
 
 struct MRIScomputeSSE_asThoughGradientApplied_ctx::Impl {
-  // NYI
+  Impl() : inited(false), dx(nullptr), dy(nullptr), dz(nullptr) {}
+  ~Impl() 
+  {
+    freeAndNULL(dx); freeAndNULL(dy); freeAndNULL(dz);
+  }
+  
+  bool inited;
+  MRIS_MP curr, orig;
+  float *dx, *dy, *dz;
+  
+  void init(MRIS* mris) {
+    cheapAssert(!inited);
+    
+    MRISMP_ctr(&orig);
+    MRISMP_ctr(&curr);
+
+    MRISmemalignNFloats(mris->nvertices, &dx, &dy, &dz);
+    MRISMP_load(&orig, mris, true, dx,dy,dz);               // needs to load the outputs because those are inputs to ProjectSurface
+      
+    inited = true;
+  }
 };
 
 
@@ -934,7 +975,7 @@ MRIScomputeSSE_asThoughGradientApplied_ctx::MRIScomputeSSE_asThoughGradientAppli
   
 MRIScomputeSSE_asThoughGradientApplied_ctx::~MRIScomputeSSE_asThoughGradientApplied_ctx() 
 {
-  delete _impl; _impl = nullptr;
+  delete _impl;
 }
 
 double MRIScomputeSSE_asThoughGradientApplied(
@@ -943,14 +984,53 @@ double MRIScomputeSSE_asThoughGradientApplied(
   INTEGRATION_PARMS* parms,
   MRIScomputeSSE_asThoughGradientApplied_ctx& ctx)
 {
-  MRISapplyGradient(mris, delta_t);
-  mrisProjectSurface(mris);
-  MRIScomputeMetricProperties(mris);
-  double sse = MRIScomputeSSE(mris, parms);
+  bool const canUseNewBehaviour = false; // TODO mrismp_ProjectSurface_canDo(mris->status) && MRISMP_computeSSE_canDo(parms);
 
-  MRISrestoreOldPositions(mris);
+  bool useOldBehaviour = !!getenv("FREESURFER_OLD_MRIScomputeSSE_asThoughGradientApplied");
+  bool useNewBehaviour = !!getenv("FREESURFER_NEW_MRIScomputeSSE_asThoughGradientApplied") || !useOldBehaviour;
 
-  return sse;
+  useNewBehaviour = false;
+  
+  if (!canUseNewBehaviour) {
+    useNewBehaviour = false;
+    useOldBehaviour = true;
+  }
+  
+  double new_result = 0.0;
+  if (useNewBehaviour) {
+    auto & ctxImpl = *ctx._impl;
+    
+    if (!ctxImpl.inited) ctxImpl.init(mris);
+    
+    MRISMP_copy(&ctxImpl.curr, &ctxImpl.orig, 
+      false,  // needs to copy the outputs because those are inputs to ProjectSurface
+      true);  // no need to copy v_x[*] etc. because they are obtained by the translate_along_vertex_dxdydxz below
+
+#if 1
+    cheapAssert(false); // TODO
+#else
+    MRISMP_translate_along_vertex_dxdydz(&ctxImpl.orig, &ctxImpl.curr, delta_t, ctxImpl.dx, ctxImpl.dy, ctxImpl.dz);
+    mrismp_ProjectSurface(&ctxImpl.curr);
+    MRISMP_computeMetricProperties(&ctxImpl.curr);
+    new_result = MRISMP_computeSSE(&ctxImpl.curr, parms);
+#endif
+  }
+
+  double old_result = 0.0;
+  if (useOldBehaviour) {
+    MRISapplyGradient(mris, delta_t);
+    mrisProjectSurface(mris);
+    MRIScomputeMetricProperties(mris);
+    old_result = MRIScomputeSSE(mris, parms);
+
+    MRISrestoreOldPositions(mris);
+  }
+  
+  if (useOldBehaviour && useNewBehaviour && (old_result != new_result)) {
+    cheapAssert(false);
+  }
+  
+  return useOldBehaviour ? old_result : new_result;
 }
 
 /*-----------------------------------------------------
@@ -1893,14 +1973,6 @@ double mrisComputeSSE_MEF(
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-
-  ------------------------------------------------------*/
 static float neg_area_ratios[] = {
     //    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-2, 5e-2,1e-1
     1e-6,
@@ -2051,13 +2123,6 @@ int mrisRemoveNegativeArea(
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISflattenPatchRandomly(MRI_SURFACE *mris)
 {
   float extent;
@@ -2082,13 +2147,7 @@ int MRISflattenPatchRandomly(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISflattenPatch(MRI_SURFACE *mris)
 {
   float x, y, z, d, d1, d2;
@@ -2255,13 +2314,7 @@ int MRISflattenPatch(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 #define EXPLODE_ITER 1
 int mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
 {
