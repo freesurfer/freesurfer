@@ -29,7 +29,8 @@ struct VERTEX_TOPOLOGY {
     short         nsizeMaxClock ;  //  copy of mris->nsizeMaxClock when v#num                   
     uchar         nsizeMax      ;  //  the max nsize that was used to fill in vnum etc          
     uchar         nsizeCur      ;  //  index of the current v#num in vtotal                     
-    uchar         num           ;  //  number of neighboring faces                              
+    uchar         num           ;  //  number of neighboring faces 
+    VERTEX_TOPOLOGY() : vnum(0) {}                             
 };		// VERTEX_TOPOLOGY
 
 struct vertex_type_ {
