@@ -37,6 +37,7 @@ set A = ();
 set B = ();
 set sAdivB = ();
 set DoAbs = 0;
+set MaskThresh = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -177,11 +178,29 @@ echo $cmd
 $cmd
 if($status) exit 1;
 
-# Convert to output
-set cmd = (mri_convert $sAdivBtmp $sAdivB)
-echo $cmd
-$cmd
-if($status) exit 1;
+if($#MaskThresh) then
+  # Mask and convert to output
+  set mask = $tmpdir/mask.nii
+  set cmd = (mri_concat --abs $A $B --max --o $mask)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  set cmd = (mri_binarize --i $mask --min $MaskThresh --o $mask)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  set cmd = (mri_mask $sAdivBtmp $mask $sAdivB)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+else
+  # Just convert to output
+  set cmd = (mri_convert $sAdivBtmp $sAdivB)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
+
 
 #========================================================
 
@@ -224,6 +243,11 @@ while( $#argv != 0 )
 
     case "--abs":
       set DoAbs = 1;
+      breaksw
+
+    case "--mask-thresh":
+      if($#argv < 1) goto arg1err;
+      set MaskThresh = $argv[1]; shift;
       breaksw
 
     case "--tmp":
@@ -309,6 +333,7 @@ usage_exit:
   echo "  A/B if A>B, -B/A if B>A"
   echo " Options:"
   echo "   --abs : compute absolute value of both A and B before sratio"
+  echo "   --mask-thresh thresh : theshold based on max(abs(A),abs(B))>thresh"
   echo ""
 
   if(! $PrintHelp) exit 1;

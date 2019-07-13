@@ -14,7 +14,12 @@ if(VTK_FOUND)
   include(${ITK_USE_FILE})  
   include(${VTK_USE_FILE})
 
-  add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs  -Wno-maybe-uninitialized )
+  if(NOT APPLE)
+    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs  -Wno-maybe-uninitialized )
+  else()
+    # Mac OS 10.13.6 native clang compiler does not support -Wno-maybe-uninitialized
+    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs )
+  endif()
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
@@ -64,4 +69,5 @@ install(PROGRAMS
 
 install_pyscript(
 	diffusionUtils
+	anatomiCutsUtils
 )
