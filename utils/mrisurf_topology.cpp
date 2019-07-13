@@ -391,7 +391,9 @@ static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2)
     v->v[vnumAdd(mris,vnoA,1)] = vnoB;
     v->vtotal = v->vnum; v->nsizeCur = v->nsizeMax = 1;
 
-    if (v->vnum > 10 || vnoA == 42318) {
+    static int maxVnum = 20;
+    if (maxVnum < v->vnum) {
+      maxVnum = v->vnum;
       fprintf(stdout, "vno:%d now has %d immediate neighbours  mrisurf_topology.cpp:%d\n", vnoA, v->vnum, __LINE__);
     }
   };
