@@ -339,7 +339,7 @@ int mrisProjectSurface(MRI_SURFACE *mris)
       mrisProjectOntoSurface(mris, PIAL_VERTICES);
       break;
     default:
-      cheapAssert(!"was just fall thru before - Bevin looking for cases");
+      // seen to happen     cheapAssert(!"was just fall thru before - Bevin looking for cases");
       break;
   }
   return (NO_ERROR);
