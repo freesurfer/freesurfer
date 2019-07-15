@@ -103,7 +103,6 @@ int main(int narg, char* arg[])
 	//Store the values that the wanted streamlines lie within
 	vector<int> image_values; 
 
-	cerr << "New mesh: " << endl; 
 	int stream_count = 0; 
 
 	using ImageType = Image<PixelType, Dimension>; 
@@ -175,21 +174,6 @@ int main(int narg, char* arg[])
 			cerr << index2 << " = " << value2 << endl; 
 		}
 
-		//Test trk file from output?		
-/*
-		index1[0] = start[0];
-		index1[1] = start[1];
-		index1[2] = start[2];
-		index2[0] = end[0];
-		index2[1] = end[1];
-		index2[2] = end[2];
-
-		cerr << index1[0] << " " << index2[0] << endl; 
-
-		value1 = inputImage->GetPixel(index1);
-		value2 = inputImage->GetPixel(index2); 
-*/
-
 		if (value1 != 0 and value1 == value2)
 		{
 			cout << "Start and ends match: " << endl; 
@@ -206,53 +190,70 @@ int main(int narg, char* arg[])
 	//Store streamlines that lie in the same structure, then place into one trk file
 
 	//Get rid of duplicates
-	vector<ColorMeshType::CellsContainer::Iterator> filtered_streamlines; 	
+	//vector<ColorMeshType::CellsContainer::Iterator> filtered_streamlines; 	
 	vector<int> filtered_values; 
 
-	sort(image_values.begin(), image_values.end()); 
+	//sort(image_values.begin(), image_values.end()); 
 
 	//Find a way to change the order of the streamlines as well
 	//Keep them unorganized, check previous values if they've been used?
 
 
-	int compare = image_values[0]; 
-	filtered_values.push_back(image_values[0]); 
-	filtered_streamlines.push_back(streamlines[0]); 
-	for (int i = 1; i < image_values.size(); i++) 
-	{
-		if (image_values[i] != compare)
-		{
-			filtered_values.push_back(image_values[i]); 
-			filtered_streamlines.push_back(streamlines[i]); 
-			compare = image_values[i]; 
-		}
-	}
-
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
-	cerr << "Image values: "; 
+
+/*	cerr << "Image values: "; 
 	for (int i = 0; i < filtered_values.size(); i++) 
 	{
 		cerr << filtered_values[i] << " "; 
 	}
 	cerr << endl; 
-
-	cerr << "Number of values: " << filtered_values.size() << endl; 
-	cerr << "Number of streamlines: " << filtered_streamlines.size() << endl; 
+*/
+	//cerr << "Number of values: " << filtered_values.size() << endl; 
+	//cerr << "Number of streamlines: " << filtered_streamlines.size() << endl; 
 
 	//Output files
 	ColorMeshType::Pointer om = ColorMeshType::New(); 
 	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
 
+	//How to make the loop iterate through the streamlines desired?
+
+	//int loop_breaker = 0; 
 	//Needs to loop based on how many time each structure appears
-	for (int i = 0; i < streamlines.size(); i++)
-	//for (int i = streamlines.size() - 1; i > -1; i--)
+	inputCellIt = input->GetCells()->Begin(); 
+	//for (int i = 0; i < streamlines.size(); i++)
+	//{
+	/*	cerr << "Running output loop" << endl; 
+
+		for (int j = 0; j < filtered_values.size(); j++)
+		{
+			if (image_values[i] == filtered_values[j])
+			{
+				loop_breaker = 1; 
+				break; 
+			}
+		}
+
+		if (loop_breaker != 0)
+		{
+			loop_breaker = 0; 
+			continue;
+		}
+	
+		filtered_values.push_back(image_values[i]); 
+	*/
+	int i = 0; 
+	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
+	if (streamlines[i] == inputCellIt)
+	{
+		cerr << i << endl; 
+
 		CellAutoPointer line; 
 		line.TakeOwnership(new PolylineCellType); 
 		int k = 0; 
-		CellType::PointIdIterator it = streamlines[i].Value()->PointIdsBegin(); 
-		for (; it != streamlines[i].Value()->PointIdsEnd(); it++)
+		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
+		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
 		{
 			PointType pt; 
 			input->GetPoint(*it, &pt);
@@ -265,12 +266,14 @@ int main(int narg, char* arg[])
 		}	
 		om->SetCell(cellIndices, line); 
 		ColorMeshType::CellPixelType cellData; 
-		input->GetCellData(i, &cellData); 
+		input->GetCellData(cellId, &cellData); 
 		om->SetCellData(cellIndices, cellData); 
 		cellIndices++; 	
-		
+
+		//How does one trk file hold multiple streamlines?
+
 		string outputName; 
-		string number = to_string(filtered_values[i]); 
+		string number = to_string(image_values[i]); 
 		//string filename = inputFiles[0].substr(inputFiles[0].find_last_of("/\\") + 1);
 		string filename = number + ".trk"; 
 		outputName = string(output) + "/" + filename; 
@@ -278,8 +281,12 @@ int main(int narg, char* arg[])
 		cout << "Mesh name: " << outputName << endl; 
 
 		clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
+	
+		i++;
 	}
-
+	}
+	//}
+ 
 	delete meshes;
 
 	return 0; 	
@@ -368,5 +375,36 @@ int main(int narg, char* arg[])
 				cout << index1 << " = " << value1 << endl; 
 				cout << index2 << " = " << value2 << endl; 
 			}		
+*/
+	//int compare = image_values[0]; 
+	//filtered_values.push_back(image_values[0]); 
+	//filtered_streamlines.push_back(streamlines[0]); 
+/*
+	for (int i = 1; i < image_values.size(); i++)
+	{
+		for (int j = 0; j < filtered_values.size(); j++)
+		{
+			if (image_values[i] == filtered_values[j])
+			{
+				break; 
+			}
+			if (j == filtered_values.size() - 1)
+			{
+				filtered_values.push_back(image_values[i]); 
+				filtered_streamlines.push_back(streamlines[i]);
+			}
+		}
+	}
+*/
+/*	
+	for (int i = 1; i < image_values.size(); i++) 
+	{
+		if (image_values[i] != compare)
+		{
+			filtered_values.push_back(image_values[i]); 
+			filtered_streamlines.push_back(streamlines[i]); 
+			compare = image_values[i]; 
+		}
+	}
 */
 
