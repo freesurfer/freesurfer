@@ -98,11 +98,6 @@ int main(int narg, char* arg[])
 	int cellIndices = 0; 
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
-	//Keep all the streamlines with the same start and end locations in a vector
-	vector<ColorMeshType::CellsContainer::Iterator> streamlines; 
-	//Store the values that the wanted streamlines lie within
-	vector<int> image_values; 
-
 	int stream_count = 0; 
 
 	using ImageType = Image<PixelType, Dimension>; 
@@ -116,6 +111,10 @@ int main(int narg, char* arg[])
 	inputImage = reader->GetOutput(); 
 
 	ImageType::IndexType index1, index2; 
+
+	//Output files
+	ColorMeshType::Pointer om = ColorMeshType::New(); 
+	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
 
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
@@ -182,18 +181,49 @@ int main(int narg, char* arg[])
 			cout << index1 << " = " << value1 << endl; 
 			cout << index2 << " = " << value2 << endl;  
 			stream_count++; 
-			streamlines.push_back(inputCellIt); 
-			image_values.push_back(value1); 
+			
+			CellAutoPointer line;
+			line.TakeOwnership ( new PolylineCellType);
+			int k=0;
+			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+			for( ; it!=inputCellIt.Value()->PointIdsEnd(); it++)
+			{
+				PointType pt;
+				input->GetPoint (*it, &pt);
+
+				om->SetPoint (pointIndices, pt);
+				line->SetPointId (k,pointIndices);
+
+				k++;
+				pointIndices++;
+
+			}
+			om->SetCell (cellIndices, line);
+			ColorMeshType::CellPixelType cellData;
+			input->GetCellData(cellId, &cellData);
+			om->SetCellData(cellIndices, cellData) ;
+			cellIndices++;
+
+			string outputName; 
+			string number = to_string(image_values[i]); 
+			string filename = number + ".trk"; 
+			outputName = string(output) + "/" + filename; 
+
+			cout << "Mesh name: " << outputName << endl; 
+
+			clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
+	
+
+			//Iterate thru the streamline again or take the .value() of the streamline
+			//which can have getcell() to get streamline later
+			//save id and label of the streamline to know what output it will go to
+
+			//streamlines.push_back(inputCellIt); 
+			//image_values.push_back(value1); 
 		}	
 	}
 
 	//Store streamlines that lie in the same structure, then place into one trk file
-
-	//Get rid of duplicates
-	//vector<ColorMeshType::CellsContainer::Iterator> filtered_streamlines; 	
-	vector<int> filtered_values; 
-
-	//sort(image_values.begin(), image_values.end()); 
 
 	//Find a way to change the order of the streamlines as well
 	//Keep them unorganized, check previous values if they've been used?
@@ -202,53 +232,14 @@ int main(int narg, char* arg[])
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
-/*	cerr << "Image values: "; 
-	for (int i = 0; i < filtered_values.size(); i++) 
-	{
-		cerr << filtered_values[i] << " "; 
-	}
-	cerr << endl; 
-*/
-	//cerr << "Number of values: " << filtered_values.size() << endl; 
-	//cerr << "Number of streamlines: " << filtered_streamlines.size() << endl; 
-
 	//Output files
-	ColorMeshType::Pointer om = ColorMeshType::New(); 
-	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
-
-	//How to make the loop iterate through the streamlines desired?
-
-	//int loop_breaker = 0; 
+	//ColorMeshType::Pointer om = ColorMeshType::New(); 
+	//om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
+/*
 	//Needs to loop based on how many time each structure appears
 	inputCellIt = input->GetCells()->Begin(); 
-	//for (int i = 0; i < streamlines.size(); i++)
-	//{
-	/*	cerr << "Running output loop" << endl; 
-
-		for (int j = 0; j < filtered_values.size(); j++)
-		{
-			if (image_values[i] == filtered_values[j])
-			{
-				loop_breaker = 1; 
-				break; 
-			}
-		}
-
-		if (loop_breaker != 0)
-		{
-			loop_breaker = 0; 
-			continue;
-		}
-	
-		filtered_values.push_back(image_values[i]); 
-	*/
-	int i = 0; 
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-	if (streamlines[i] == inputCellIt)
-	{
-		cerr << i << endl; 
-
 		CellAutoPointer line; 
 		line.TakeOwnership(new PolylineCellType); 
 		int k = 0; 
@@ -281,12 +272,8 @@ int main(int narg, char* arg[])
 		cout << "Mesh name: " << outputName << endl; 
 
 		clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
-	
-		i++;
 	}
-	}
-	//}
- 
+*/
 	delete meshes;
 
 	return 0; 	
