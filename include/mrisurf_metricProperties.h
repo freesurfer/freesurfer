@@ -20,6 +20,8 @@
 // The positions of the vertices and the immediate consequences of that 
 //
 #include "mrisurf_topology.h"
+#include "topo_parms.h"
+#include "realm.h"
 
 int  mrisCheckSurface( MRIS       * mris);
 bool mrisCheckDist    (MRIS const * mris);
@@ -74,12 +76,6 @@ extern double l_qcurv;
 extern double l_vol;
 extern double l_surf;
 extern double l_wm;
-
-#if SPHERE_INTERSECTION
-int containsAnotherVertexOnSphere(MRIS *mris, int vno0, int vno1, int vno2, int mode);
-#else
-int containsAnotherVertex(MRIS *mris, int vno0, int vno1, int vno2, double e0[3], double e1[3], double origin[3]);
-#endif
 
 void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], int verbose);
 
@@ -138,11 +134,6 @@ float mrisDefectFaceMRILogLikelihood(
 
 float mrisDefectVertexMRILogLikelihood(
     MRIS *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
-
-#if MATRIX_ALLOCATION
-extern MATRIX *VoxelFromSRASmatrix;
-int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv);
-#endif
 
 float  mrisSampleAshburnerTriangleEnergy    (MRIS * const mris, int const vno, INTEGRATION_PARMS * const parms, float cx, float cy, float cz);
 float  mrisSampleMinimizationEnergy         (MRIS *mris, int const vno,     INTEGRATION_PARMS *parms, float cx, float cy, float cz);

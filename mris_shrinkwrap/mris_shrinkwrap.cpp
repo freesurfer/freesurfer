@@ -30,19 +30,21 @@
 #include <ctype.h>
 
 #include "macros.h"
+
+#include "mri.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
+#include "mrisegment.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
+#include "icosahedron.h"
+
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
 #include "timer.h"
-#include "mrisurf.h"
-#include "mri.h"
-#include "macros.h"
-#include "mrimorph.h"
-#include "mrinorm.h"
 #include "version.h"
-#include "icosahedron.h"
 #include "cma.h"
-#include "mrisegment.h"
 
 static char vcid[] = 
 "$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $";

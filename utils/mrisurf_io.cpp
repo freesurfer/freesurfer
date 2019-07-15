@@ -21,6 +21,9 @@
 #include "mrisurf_io.h"
 #include "mrisp.h"
 
+#include "mrisurf_base.h"
+
+
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER (-3 & 0x00ffffff)

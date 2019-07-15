@@ -664,9 +664,6 @@ int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
 			      INTEGRATION_PARMS *parms) ;
 
-MRIS* MRISprojectOntoSphere   (MRIS* mris_src, MRIS* mris_dst, double r) ;
-MRIS* MRISprojectOntoEllipsoid(MRIS* mris_src, MRIS* mris_dst, float a, float b, float c) ;
-
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
                                       int nbrs_per_distance) ;
@@ -2115,7 +2112,6 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 
 // Neighbourhoods
 //
-#define MAX_NEIGHBORS (400)
 void mrisVertexReplacingNeighbors(MRIS * mris, int vno, int vnum);
 void mrisForgetNeighborhoods     (MRIS * mris);
 
@@ -2123,7 +2119,6 @@ int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 void MRISsetNeighborhoodSize        (MRIS *mris, int nsize) ;   // Doesn't compute distances if not already present
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;   // Always computes distances
 
-#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
     // sets vlist[*] to the neighboring vno
     // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist

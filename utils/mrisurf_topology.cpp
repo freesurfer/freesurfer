@@ -20,6 +20,8 @@
  
 #include "mrisurf_topology.h"
 
+#include "mrisurf_base.h"
+
 
 // MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
 //                   and with their partitioning into sets (ripped, marked, ...)

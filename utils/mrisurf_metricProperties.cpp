@@ -18,6 +18,9 @@
 #include "mrisurf_MRIS_MP.h"
 #include "face_barycentric_coords.h"
 
+#include "mrisurf_base.h"
+
+
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
    int lhs = *(int*)lhs_ptr;

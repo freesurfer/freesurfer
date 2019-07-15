@@ -22,7 +22,7 @@
 //  and using either the MRIS or another representation of the Surface Face Vertex information
 //
 #include "mrisurf_metricProperties.h"
-
+#include "voxlist.h"
 
 // misc
 //

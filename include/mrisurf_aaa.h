@@ -30,6 +30,8 @@
 #include "matrix.h"
 #include "dmatrix.h"
 
+#define MAX_NEIGHBORS (400)
+#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 
 #define MAX_SURFACES 20
 #define TALAIRACH_COORDS     0

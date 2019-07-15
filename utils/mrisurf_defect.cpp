@@ -21,6 +21,8 @@
  */
 #include "mrisurf_defect.h"
 
+#include "mrisurf_metricProperties.h"
+#include "mrisurf_base.h"
 
 //==================================================================
 // Utilities for editing a surface

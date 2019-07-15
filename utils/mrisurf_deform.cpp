@@ -26,6 +26,9 @@
 #include "mrisurf_io.h"
 #include "mrisurf_MRIS_MP.h"
 
+#include "mrisurf_base.h"
+
+
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 
 #define DISPLACEMENT_DELTA  mrisurf_sse_DISPLACEMENT_DELTA
@@ -290,12 +293,19 @@ static void mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
 
 
 
-template <class Surface, class Face, class Vertex>
+template <class MRIS_Representation>
 class mrisSurfaceProjector {
 public:
+  bool canDo(int mris_status);
+  void project(MRIS_Representation* representation);
+};
 
-  bool canDo(int mris_status)
-  {
+
+template<>
+class mrisSurfaceProjector<MRIS_MP> {
+public:
+  
+  bool canDo(int mris_status) { 
     switch (mris_status) {
     //case MRIS_PARAMETERIZED_SPHERE: return true;
     //case MRIS_SPHERE:               return true;
@@ -308,13 +318,25 @@ public:
     }
     return false;
   }
+  
+  void project(MRIS_MP* mris) {
+    switch (mris->status) {
+      case MRIS_SPHERE:   MRISprojectOntoSphere(mris, mris->radius);     break;
+      default: break;
+    }
+    cheapAssert(false);
+  }
+  
 };
 
 
-int mrisProjectSurface(MRI_SURFACE *mris)
-{
-  /*  MRISupdateSurface(mris) ;*/
-  switch (mris->status) {
+template<>
+class mrisSurfaceProjector<MRIS> {
+public:
+  bool canDo(int mris_status) { return true; }
+  void project(MRIS* mris)
+  {
+    switch (mris->status) {
     case MRIS_PLANE:
       MRISflattenPatch(mris);
       break;
@@ -322,10 +344,10 @@ int mrisProjectSurface(MRI_SURFACE *mris)
       mrisSphericalProjection(mris);
       break;
     case MRIS_PARAMETERIZED_SPHERE:
-      MRISprojectOntoSphere(mris, mris, mris->radius);
+      MRISprojectOntoSphere(mris, mris->radius);
       break;
     case MRIS_SPHERE:
-      MRISprojectOntoSphere(mris, mris, mris->radius);
+      MRISprojectOntoSphere(mris, mris->radius);
       break;
     case MRIS_ELLIPSOID:
       MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
@@ -341,12 +363,18 @@ int mrisProjectSurface(MRI_SURFACE *mris)
     default:
       // seen to happen     cheapAssert(!"was just fall thru before - Bevin looking for cases");
       break;
+    }
   }
+};
+
+int mrisProjectSurface(MRIS* mris) 
+{
+  mrisSurfaceProjector<MRIS>().project(mris);
   return (NO_ERROR);
 }
 
 
-int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spacing)
+int mrisComputePlaneTerm(MRIS* mris, double l_plane, double l_spacing)
 {
   int vno, n, vnum;
   MATRIX *M, *m_evectors;

@@ -15,6 +15,8 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_project.h"
 
+#include "mrisurf_base.h"
+
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 

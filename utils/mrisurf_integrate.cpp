@@ -21,6 +21,9 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_compute_dxyz.h"
 
+#include "mrisurf_base.h"
+
+
 static int mrisIntegrationEpoch     (MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 static double mrisLineMinimize      (MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
