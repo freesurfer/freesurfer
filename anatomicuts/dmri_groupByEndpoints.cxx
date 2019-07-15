@@ -62,9 +62,9 @@ int main(int narg, char* arg[])
 
 	//Variable definitions
 	enum {Dimension =3};
-	typedef float                                                        PixelType;
+	typedef float PixelType;
 	const unsigned int PointDimension = 3;
-	typedef std::vector<int>                  PointDataType;
+	typedef std::vector<int> PointDataType;
 	const unsigned int MaxTopologicalDimension = 3;
 	typedef double CoordinateType;
 	typedef double InterpolationWeightType;
