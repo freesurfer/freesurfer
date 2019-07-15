@@ -65,14 +65,7 @@
 #include "mrisurf.h"
 #include "mri.h"
 #include "vtkKdTreePointLocator.h"
-
-//#include "vtkPCACurvatureEstimation.h"
 #include "vtkCurvatures.h"
-
-/*#if VTK_MAJOR_VERSION > 5	
-	#include "vtkPCACurvatureEstimation.h"
-#else
-	#include "vtkCurvatures.h"*/
 
 using namespace std;
 
