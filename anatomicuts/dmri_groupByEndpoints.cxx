@@ -185,7 +185,7 @@ int main(int narg, char* arg[])
 			CellAutoPointer line;
 			line.TakeOwnership ( new PolylineCellType);
 			int k=0;
-			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+			it = inputCellIt.Value()->PointIdsBegin();
 			for( ; it!=inputCellIt.Value()->PointIdsEnd(); it++)
 			{
 				PointType pt;
@@ -205,7 +205,7 @@ int main(int narg, char* arg[])
 			cellIndices++;
 
 			string outputName; 
-			string number = to_string(image_values[i]); 
+			string number = to_string(value1); 
 			string filename = number + ".trk"; 
 			outputName = string(output) + "/" + filename; 
 
