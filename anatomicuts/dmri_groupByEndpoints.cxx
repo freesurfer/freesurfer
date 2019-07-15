@@ -121,14 +121,13 @@ int main(int narg, char* arg[])
 	{
 		cerr << cellId << endl; 
 
-		PointType firstPt, start, second_check, end; 
-		firstPt.Fill(0); 
+		//Don't need 2 first point variables because one was for distance
+		PointType start, second_check, end; 
+		start.Fill(0); 
 
+		//Make a variable to iterate thru one stream at a time
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
-		input->GetPoint(*it, &firstPt); 
-		double lengthSoFar = 0; 
-
-		start = firstPt; 
+		input->GetPoint(*it, &start); 
 
 		cerr << "First point: " << start << endl; 
 
@@ -139,8 +138,6 @@ int main(int narg, char* arg[])
 			PointType pt; 
 			pt.Fill(0);
 			input->GetPoint(*it, &pt);
-			lengthSoFar += firstPt.EuclideanDistanceTo(pt); 
-			input->GetPoint(*it, &firstPt); 
 
 			it++; 
 				
@@ -151,8 +148,8 @@ int main(int narg, char* arg[])
 				second_check = pt; 
 		}  
 			
-		//Value of coordinates based on image
-		float value1 = 0, value2 = 0; 
+		//Value of coordinates that associate to the regions of the brain from the given image
+		int value1 = 0, value2 = 0; 
 	
 		if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
 		{
@@ -229,51 +226,8 @@ int main(int narg, char* arg[])
 	//Keep them unorganized, check previous values if they've been used?
 
 
-
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
-	//Output files
-	//ColorMeshType::Pointer om = ColorMeshType::New(); 
-	//om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
-/*
-	//Needs to loop based on how many time each structure appears
-	inputCellIt = input->GetCells()->Begin(); 
-	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
-	{
-		CellAutoPointer line; 
-		line.TakeOwnership(new PolylineCellType); 
-		int k = 0; 
-		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
-		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
-		{
-			PointType pt; 
-			input->GetPoint(*it, &pt);
-
-			om->SetPoint(pointIndices, pt); 
-			line->SetPointId(k, pointIndices); 
-
-			k++; 
-			pointIndices++; 
-		}	
-		om->SetCell(cellIndices, line); 
-		ColorMeshType::CellPixelType cellData; 
-		input->GetCellData(cellId, &cellData); 
-		om->SetCellData(cellIndices, cellData); 
-		cellIndices++; 	
-
-		//How does one trk file hold multiple streamlines?
-
-		string outputName; 
-		string number = to_string(image_values[i]); 
-		//string filename = inputFiles[0].substr(inputFiles[0].find_last_of("/\\") + 1);
-		string filename = number + ".trk"; 
-		outputName = string(output) + "/" + filename; 
-
-		cout << "Mesh name: " << outputName << endl; 
-
-		clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
-	}
-*/
 	delete meshes;
 
 	return 0; 	
