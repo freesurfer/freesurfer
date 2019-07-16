@@ -259,13 +259,6 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 	return vtkSurface;
 }
 
-			/*cerr << "Vertex 1: " << ID1 << " Vertex 2: " << ID2 << endl
-			     << "First Point: " << firstPt << " | [" << surf->vertices[ID1].x << ", " << surf->vertices[ID1].y << ", " << surf->vertices[ID1].z << "]" << endl
-			     << "Last Point:  " << lastPt << " | [" << surf->vertices[ID2].x << ", " << surf->vertices[ID2].y << ", " << surf->vertices[ID2].z << "]" << endl
-			     << "Curvature of First Point: " << surf->vertices[ID1].curv << " Curvature of Last Point: " << surf->vertices[ID2].curv << endl
-			     << "Thickness of First Point: " << surf_t->vertices[ID1].curv << "Thickness of Last Point: " << surf_t->vertices[ID2].curv << endl;*/
-
-
 /*
  * Things I Have Changed
  * 1. Commented out some directories that were not recognized
