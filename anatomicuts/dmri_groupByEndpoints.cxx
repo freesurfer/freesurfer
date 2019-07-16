@@ -129,8 +129,6 @@ int main(int narg, char* arg[])
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-		cerr << cellId << endl; 
-
 		PointType start, end; 
 		start.Fill(0); 
 		val1 = 0, val2 = 0; 
@@ -187,6 +185,7 @@ int main(int narg, char* arg[])
 		
 		if (val1 != 0 and val1 == val2)
 		{
+			cout << cellId << endl; 
 			cout << "First point: " << start << endl; 
 			cout << "End point: " << end << endl; 
 			cout << "Start and ends match: " << endl; 
@@ -201,6 +200,8 @@ int main(int narg, char* arg[])
 		regions.push_back(val1); 
 		
 	}
+
+	//The x and y coordinates are turning into their opposites???
 
 	inputCellIt = input->GetCells()->Begin(); 
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
