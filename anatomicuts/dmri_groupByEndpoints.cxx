@@ -89,27 +89,37 @@ int main(int narg, char* arg[])
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New(); 
 
 	clusterTools->GetPolyDatas(inputFiles, &polydatas, inputImage); 
-	
-	//Take in input trk file
-	meshes = clusterTools->PolydataToMesh(polydatas); 
 
-	ColorMeshType::Pointer input = (*meshes)[0];
-	int pointIndices = 0; 
-	int cellIndices = 0; 
-	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
-
-	int stream_count = 0; 
-
-	using ImageType = Image<PixelType, Dimension>; 
+/*	using ImageType = Image<PixelType, Dimension>; 
 	using ReaderType = ImageFileReader<ImageType>; 
 
 	ReaderType::Pointer reader = ReaderType::New(); 
 
 	reader->SetFileName(image_file); 
 	reader->Update();
-			
+*/
+
+	typedef ImageFileReader<ImageType> ImageReaderType; 
+	ImageReaderType::Pointer reader = ImageReaderType::New(); 
+	reader->SetFileName(c1.next("")); 
+	reader->Update(); 	
 	inputImage = reader->GetOutput(); 
 
+	//Take in input trk file
+	meshes = clusterTools->PolydataToMesh(polydatas); 
+
+	ColorMeshType::Pointer input = (*meshes)[0];
+	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
+
+	set<int> filteredIds; 
+	vector<int> regions; 
+
+	int pointIndices = 0; 
+	int cellIndices = 0; 	
+	int val1, val2; 
+
+	//Variables for testing
+	int stream_count = 0; 
 	ImageType::IndexType index1, index2; 
 
 	//Output files
@@ -121,96 +131,116 @@ int main(int narg, char* arg[])
 	{
 		cerr << cellId << endl; 
 
-		//Don't need 2 first point variables because one was for distance
-		PointType start, second_check, end; 
+		PointType start, end; 
 		start.Fill(0); 
+		val1 = 0, val2 = 0; 
 
 		//Make a variable to iterate thru one stream at a time
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
 		input->GetPoint(*it, &start); 
 
-		cerr << "First point: " << start << endl; 
+		//cerr << "First point: " << start << endl; 
 
 		//Goes through each point in a streamline
 		//Converted given for loop into a while loop
-		while (it != inputCellIt.Value()->PointIdsEnd())
+		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
 		{
 			PointType pt; 
 			pt.Fill(0);
 			input->GetPoint(*it, &pt);
-
-			it++; 
-				
-			//Store second to last point in case endpoint gives value 0
-			if (it == inputCellIt.Value()->PointIdsEnd())
-				end = pt; 
-			else
-				second_check = pt; 
-		}  
-			
-		//Value of coordinates that associate to the regions of the brain from the given image
-		int value1 = 0, value2 = 0; 
 	
-		if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
-		{
-			value1 = inputImage->GetPixel(index1); 
-			cerr << index1 << " = " << value1 << endl; 
-		}
-
-		if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
-		{
-			value2 = inputImage->GetPixel(index2);
-			
-			if (value2 == 0)
+			ImageType::IndexType index; 
+			int value = 0; 
+			if (inputImage->TransformPhysicalPointToIndex(pt, index))
 			{
-				if (inputImage->TransformPhysicalPointToIndex(second_check, index2))
-					value2 = inputImage->GetPixel(index2);
+				value = inputImage->GetPixel(index); 
+				if (val1 == 0 and value != 0)
+				{
+					val1 = value; 
+					index1 = index; 
+				}
+				if (value != 0)
+				{
+					val2 = value; 
+					index2 = index;
+				        end = pt; 	
+				}
 			}
 
-			cerr << index2 << " = " << value2 << endl; 
-		}
+		/*
+			//Value of coordinates that associate to the regions of the brain from the given image
+			int region1 = 0, region2 = 0;
+	
+			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
+			{
+				region1 = inputImage->GetPixel(index1); 
+			//	cerr << index1 << " = " << value1 << endl; 
+			}
 
-		if (value1 != 0 and value1 == value2)
+			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
+			{
+				region2 = inputImage->GetPixel(index2);
+			//	cerr << index2 << " = " << value2 << endl; 
+			}
+	*/
+		}  	
+		
+		if (val1 != 0 and val1 == val2)
 		{
+			cout << "First point: " << start << endl; 
+			cout << "End point: " << end << endl; 
 			cout << "Start and ends match: " << endl; 
 			cout << "First point: " << index1 << endl; 
 			cout << "Last point: " << index2 << endl; 
-			cout << index1 << " = " << value1 << endl; 
-			cout << index2 << " = " << value2 << endl;  
-			stream_count++; 
-			
+			cout << index1 << " = " << val1 << endl; 
+			cout << index2 << " = " << val2 << endl;  
+			stream_count++;
+		        filteredIds.insert(cellId); 	
+		}
+		
+		regions.push_back(val1); 
+		
+	}
+
+	inputCellIt = input->GetCells()->Begin(); 
+	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
+	{
+		if (filteredIds.count(cellId) > 0)
+		{
 			CellAutoPointer line;
-			line.TakeOwnership ( new PolylineCellType);
-			int k=0;
-			it = inputCellIt.Value()->PointIdsBegin();
-			for( ; it!=inputCellIt.Value()->PointIdsEnd(); it++)
+			line.TakeOwnership (new PolylineCellType);
+			int k = 0;
+			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+			for( ; it != inputCellIt.Value()->PointIdsEnd(); it++)
 			{
 				PointType pt;
 				input->GetPoint (*it, &pt);
 
 				om->SetPoint (pointIndices, pt);
-				line->SetPointId (k,pointIndices);
+				//Sets the point indicated by pointIndices to index k
+				line->SetPointId (k, pointIndices);
 
 				k++;
 				pointIndices++;
 
 			}
-			om->SetCell (cellIndices, line);
+
+			//Cell is inserted into the mesh
+			om->SetCell(cellIndices, line);
 			ColorMeshType::CellPixelType cellData;
 			input->GetCellData(cellId, &cellData);
 			om->SetCellData(cellIndices, cellData) ;
 			cellIndices++;
 
 			string outputName; 
-			string number = to_string(value1); 
+			string number = to_string(regions[cellId]); 
 			string filename = number + ".trk"; 
 			outputName = string(output) + "/" + filename; 
 
 			cout << "Mesh name: " << outputName << endl; 
 
 			clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
-	
-
+		
 			//Iterate thru the streamline again or take the .value() of the streamline
 			//which can have getcell() to get streamline later
 			//save id and label of the streamline to know what output it will go to
@@ -232,6 +262,18 @@ int main(int narg, char* arg[])
 
 	return 0; 	
 }
+
+
+/* Questions:
+ * -What do val1 and val2 mean in the sample code?
+ * -Which coordinates correspond to the ones printed in the program from freeview?
+ * 
+ *
+ *
+ */
+
+
+
 
 
 //Check points before endpoint if endpoint gives value zero
