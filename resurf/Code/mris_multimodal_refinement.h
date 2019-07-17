@@ -3,19 +3,21 @@
 class MRIS_MultimodalRefinement {
 	public:
 		void refine(MRIS* surface, float lambda, int iterations);
-		void  getTarget(MRIS* surface);
+		void  getTarget(MRIS* surface, int vertexDebug);
 		std::vector<MRI*> images;
 		void addImage(MRI* image)
 		{
 			images.push_back(image);
 		}
+
+		int vertexDebug= -1;
+		float step=0.4;
+		int numberOfSteps =20;
+		double T2_max=180;
+		double T2_min=130;
 };
-void MRIS_MultimodalRefinement::getTarget(MRIS* surf)
+void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 {
-	double max_thickness =50 ;
-	float step=0.2; //images[0].xsize/2.0;
-	double T2_max=180;
-	double T2_min=130;
 	for (unsigned j=0;j<surf->nvertices;j++)
 	{
 		surf->vertices[j].targx = surf->vertices[j].x;
@@ -44,7 +46,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf)
 			ny =-d*ny;
 			nz =-d*nz;
 			//double mag,prev_mag, next_mag, val;
-			for(int t=0; t<max_thickness;t++)
+			for(int t=0; t<numberOfSteps;t++)
 			{
 
 				x=surf->vertices[j].x +nx*(t-1)*step;
@@ -77,7 +79,11 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf)
 
 					if(val<prev_val && prev_val > next_val)
 					{
-						t=max_thickness;
+						t=numberOfSteps;
+						if(vertexDebug==j)
+						{
+							std::cout << "Breaking due to intensity decreasing.  Max thickness: " << max_thickness << std::endl;
+						}
 						break;
 					}
 
@@ -95,7 +101,15 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf)
 						surf->vertices[j].targx =x ;
 						surf->vertices[j].targy = y;
 						surf->vertices[j].targz = z;
-						
+					
+						if(vertexDebug==j)
+						{
+							std::cout << "Found new maximum. coordinate: " << x << " " << y << " " << z << std::endl;
+							std::cout << "Intensity val, next, and previous" << val << " " <<next_val << " " <<prev_val<< std::endl;
+							std::cout << "Gradient mag, next, and previous" << mag << " " <<next_mag << " " <<prev_mag<< std::endl;
+
+				
+						}	
 						
 					}
 				}

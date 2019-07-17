@@ -57,14 +57,16 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -i surface -o surface -n -l gradientDescentlambda -k iterations -m numberOfImages image1 image2 image3"  << std::endl;   
+			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps -m numberOfImages image1 image2 image3"  << std::endl;   
 			return -1;
 		}
 		const char *inSurf= cl.follow ("", "-i");
 		const char *outSurf = cl.follow ("", "-o");
 		const char *outNormals = cl.follow ("", "-n");
-		float lambda= cl.follow (0.001, "-l");
-		int iterations = cl.follow (10, "-k");
+		const char *outValues= cl.follow ("", "-v");
+		int debugVertex= cl.follow (-1, "-d");
+		float step_size= cl.follow (.4, "-s");
+		int numberOfSteps= cl.follow (20, "-k");
 
 
 		MRI_SURFACE *surf;
@@ -85,42 +87,56 @@ int main(int narg, char*  arg[])
 			meh->addImage(imageFS);
 		}
 
-		meh->getTarget(surf);
+		meh->getTarget(surf, debugVertex);
 		
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();
 		int totalPoints=0;
   		vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
-		typedef itk::Image<float,3> ImageType;
+/*		typedef itk::Image<float,3> ImageType;
 		typedef itk::ImageFileReader<itk::Image<float,3>> ImageReaderType;
 		ImageReaderType::Pointer reader = ImageReaderType::New();
 		reader->SetFileName ( fileNames[0]);
 		reader->Update();
 	
 		ImageType::Pointer image = reader->GetOutput();
-
+*/
 		for (unsigned j=0;j<surf->nvertices;j++)
 		{
 			
-			double x,y,z, nx,ny,nz;
+			surf->vertices[j].x = surf->vertices[j].targx;
+			surf->vertices[j].y = surf->vertices[j].targy;
+			surf->vertices[j].z = surf->vertices[j].targz;
 
+		
+			double x,y,z, nx,ny,nz;
+		        float point[3]={0,0,0};
+			float normal[3]={0,0,0};
+			/*
 			MRISsurfaceRASToVoxel(surf, images[0], surf->vertices[j].x,surf->vertices[j].y,surf->vertices[j].z, &x,&y,&z);
 			MRISsurfaceRASToVoxel(surf, images[0], surf->vertices[j].nx,surf->vertices[j].ny,surf->vertices[j].nz, &nx,&ny,&nz);
-			//MRIsurfaceRASToVoxel(surf, surf->vertices[j].x,surf->vertices[j].y,surf->vertices[j].z, &x,&y,&z);
-			//MRIsurfaceRASToVoxel(surf, surf->vertices[j].nx,surf->vertices[j].ny,surf->vertices[j].nz, &nx,&ny,&nz);
 
 			ImageType::IndexType index;
 			index[0]=x;
 			index[1]=y;
 			index[2]=z;
 	
-			ImageType::PointType point, normal;
 			image->TransformIndexToPhysicalPoint(index, point);
 			index[0]=nx;
 			index[1]=ny;
 			index[2]=nz;
 	
 			image->TransformIndexToPhysicalPoint(index, normal);
+			*/
+
+			point[0]= surf->vertices[j].x;
+			point[1]= surf->vertices[j].y;
+			point[2]= surf->vertices[j].z;
+
+			normal[0]= surf->vertices[j].nx;
+			normal[1]= surf->vertices[j].ny;
+			normal[2]= surf->vertices[j].nz;
+
 			vtkIdType *ids = new vtkIdType [2];
 			points->InsertPoint (totalPoints,point[0],point[1],point[2]);
 			ids[0] = totalPoints;
@@ -141,11 +157,79 @@ int main(int narg, char*  arg[])
                  polyData->SetPoints(points);
                 polyData->SetLines(cells);
 
-			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> vtk2trk  = TrkVTKPolyDataFilter<ImageType>::New();
+		vtkSmartPointer<vtkPolyDataWriter> pdWriter =  vtkSmartPointer<vtkPolyDataWriter>::New();
+		pdWriter->SetInput(polyData);
+		pdWriter->SetFileName(outNormals);
+		pdWriter->Update();
+
+
+		vtkSmartPointer<vtkPoints> pointsValues= vtkPoints::New();
+  		vtkSmartPointer<vtkCellArray> cellsValues = vtkSmartPointer<vtkCellArray>::New();
+		totalPoints = 0;
+		int max_thickness = 10;
+		float step=0.2;
+		for (unsigned j=0;j<surf->nvertices;j++)
+		{
+			double x,y,z, nx,ny,nz;
+			double xv, yv, zv, xvp, yvp, zvp, xvn, yvn, zvn;
+		        float point[3]={0,0,0};
+			float normal[3]={0,0,0};
+	
+			vtkSmartPointer<vtkPolyLine> polyLine =    vtkSmartPointer<vtkPolyLine>::New();
+			vtkIdType *ids = new vtkIdType [21];
+			polyLine->GetPointIds()->SetNumberOfIds(21);
+
+			MRISsurfaceRASToVoxel(surf, images[0], surf->vertices[j].nx,surf->vertices[j].ny,surf->vertices[j].nz, &nx,&ny,&nz);
+			float dist = sqrt(nx*nx + ny*ny + nz*nz);
+			if( dist>0)
+			{
+				nx /= dist;
+				ny /= dist;
+				nz /= dist;
+			}	
+
+			double max_mag=0;
+			double max_val=0;
+			for (int d=-1; d<2;d+=2)
+			{
+				for(int t=-max_thickness, i=0; t<=max_thickness;t++,i++)
+				{
+					x=surf->vertices[j].x +nx*t*step;
+					y=surf->vertices[j].y +ny*t*step;
+					z=surf->vertices[j].z +nz*t*step;
+
+					MRISsurfaceRASToVoxel(surf, images[0], x,y,z, &xv,&yv,&zv);
+
+					double mag, val;
+
+					MRIsampleVolume(images[0], xv, yv, zv, &val);
+					MRIsampleVolumeDerivativeScale(images[0], xv, yv, zv, -nx, -ny, -nz, &mag, 1.0);   // expensive
+				//	std::cout << ((float)t)*step << " " << val << " " <<  mag << std::endl;
+					pointsValues->InsertPoint (totalPoints,((float)t)*step, val, mag);
+					ids[i] = totalPoints;
+					totalPoints++;
+
+					polyLine->GetPointIds()->SetId(i,ids[i]);
+					polyLine->GetPointIds()->SetId(i,ids[i]);
+					cellsValues->InsertNextCell(polyLine);
+				}
+			}
+		}
+                 vtkSmartPointer<vtkPolyData> polyDataValues  = vtkSmartPointer<vtkPolyData>::New();
+                 polyDataValues->SetPoints(pointsValues);
+                polyDataValues->SetLines(cellsValues);
+
+		vtkSmartPointer<vtkPolyDataWriter> pdWriterValues =  vtkSmartPointer<vtkPolyDataWriter>::New();
+		pdWriterValues->SetInput(polyDataValues);
+		pdWriterValues->SetFileName(outValues);
+		pdWriterValues->Update();
+
+
+/*			itk::SmartPointer<TrkVTKPolPyDataFilter<ImageType>> vtk2trk  = TrkVTKPolyDataFilter<ImageType>::New();
 		vtk2trk->SetReferenceImage(reader->GetOutput());		
 		vtk2trk->SetInput( polyData);
 		vtk2trk->VTKToTrk(outNormals);
-
+*/
 		MRISwrite(surf,outSurf);		
 		MRISfree(&surf);	
 
