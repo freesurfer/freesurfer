@@ -87,7 +87,7 @@ int main(int narg, char*  arg[])
 			meh->addImage(imageFS);
 		}
 
-		meh->getTarget(surf, debugVertex);
+		meh->getTarget(surf); //, debugVertex);
 		
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();

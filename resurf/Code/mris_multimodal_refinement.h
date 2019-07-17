@@ -3,7 +3,7 @@
 class MRIS_MultimodalRefinement {
 	public:
 		void refine(MRIS* surface, float lambda, int iterations);
-		void  getTarget(MRIS* surface, int vertexDebug);
+		void  getTarget(MRIS* surface);
 		std::vector<MRI*> images;
 		void addImage(MRI* image)
 		{
@@ -82,7 +82,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 						t=numberOfSteps;
 						if(vertexDebug==j)
 						{
-							std::cout << "Breaking due to intensity decreasing.  Max thickness: " << max_thickness << std::endl;
+							std::cout << "Breaking due to intensity decreasing.  Max thickness: " << numberOfSteps*step << std::endl;
 						}
 						break;
 					}
@@ -115,11 +115,6 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 				}
 			}
 		}
-		//surf->vertices[j].x = surf->vertices[j].targx;
-		//surf->vertices[j].y = surf->vertices[j].targy; // surf->vertices[j].y -ny*max_thickness*step+t*step*ny ;
-		//surf->vertices[j].z = surf->vertices[j].targz; //surf->vertices[j].z -nz*max_thickness*step+t*step*nz ;
-
-
 	}
 }
 
