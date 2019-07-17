@@ -41,7 +41,7 @@
 #include <QFile>
 #include <QSurfaceFormat>
 
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
 #include <QVTKOpenGLWidget.h>
 #endif
 
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
 #endif
 

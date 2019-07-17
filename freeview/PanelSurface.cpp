@@ -1399,12 +1399,17 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options)
     int vno = surf->GetLastMark();
     if (vno < 0)
       vno = surf->GetCurrentVertex();
-    if (vno < 0)
+    QVector<int> verts;
+    if (vno >= 0)
+      verts << vno;
+    if (options["UseAllPoints"].toBool())
+      verts = surf->GetAllMarks();
+    if (verts.size() == 0)
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(vno, options);
+      surf->FillPath(verts, options);
   }
 }
 
