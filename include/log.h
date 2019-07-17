@@ -50,7 +50,7 @@ namespace fs {
     int ret;
     fatal(int err) : ret(err) {}
     ~fatal() {
-      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << std::endl;
+      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << "\n";
       detail::writeToErrorLog(this->ss.str());
       detail::errorExit(this->ret);
     }
@@ -59,19 +59,19 @@ namespace fs {
   struct error : public detail::logger
   {
     ~error() {
-      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << std::endl;
+      std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << "\n";
       detail::writeToErrorLog(this->ss.str());
     }
   };
 
   struct warning : public detail::logger
   {
-    ~warning() { std::cerr << term::yellow() << "warning: " << term::reset() << this->ss.str() << std::endl;}
+    ~warning() { std::cerr << term::yellow() << "warning: " << term::reset() << this->ss.str() << "\n"; }
   };
 
   struct debug : public detail::logger
   {
-    ~debug() { std::cerr << term::cyan() << "debug: " << term::reset() << this->ss.str() << std::endl; }
+    ~debug() { std::cerr << term::cyan() << "debug: " << term::reset() << this->ss.str() << "\n"; }
   };
 
 }
