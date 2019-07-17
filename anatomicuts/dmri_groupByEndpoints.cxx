@@ -194,6 +194,13 @@ int main(int narg, char* arg[])
 			//map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.at(val1); 
 			ColorMeshType::Pointer target_mesh = sorted_meshes.at(val1); 
 
+
+			//INSERT THE CELLID OF WHAT IS ADDED TO THE MESH
+			//
+			//
+			//
+			//
+
 			CellAutoPointer line;
 			line.TakeOwnership (new PolylineCellType);
 			int k = 0;
