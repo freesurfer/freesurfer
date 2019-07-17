@@ -62,19 +62,19 @@
 #define DEFAULT_FILL_LIGHT  0.25
 #define DEFAULT_BACK_LIGHT  0.2
 
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
 GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKOpenGLNativeWidget(parent, f)
 #else
 GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKWidget(parent, f)
 #endif
 {
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   setAutoFillBackground(false);
   this->setAttribute(Qt::WA_NoBackground);
 #endif
 
   m_renderer = vtkRenderer::New();
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   vtkSmartPointer<vtkGenericOpenGLRenderWindow> renWin = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
   SetRenderWindow(renWin);
   setEnableHiDPI(true);
@@ -254,7 +254,7 @@ void GenericRenderView::SetBackgroundColor(const QColor& qc)
 
 void GenericRenderView::wheelEvent(QWheelEvent* event)
 {
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QVTKOpenGLNativeWidget::wheelEvent(event);
 #else
   QVTKWidget::wheelEvent(event);
@@ -265,7 +265,7 @@ void GenericRenderView::wheelEvent(QWheelEvent* event)
 void GenericRenderView::mousePressEvent(QMouseEvent* event)
 {
   ptOld = event->pos();
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QVTKOpenGLNativeWidget::mousePressEvent(event);
 #else
   QVTKWidget::mousePressEvent(event);
@@ -278,7 +278,7 @@ void GenericRenderView::mouseReleaseEvent(QMouseEvent* event)
   {
     emit MouseReleasedWithoutMove(event);
   }
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QVTKOpenGLNativeWidget::mouseReleaseEvent(event);
 #else
   QVTKWidget::mouseReleaseEvent(event);
