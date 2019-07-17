@@ -10,6 +10,7 @@
 #include <string.h>
 #include <vector>
 #include <algorithm>
+#include <map>
 
 #include <itkImage.h>
 #include <itkImageFileReader.h>
@@ -112,19 +113,25 @@ int main(int narg, char* arg[])
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
 	set<int> filteredIds; 
-	vector<int> regions; 
+	vector<int> regions;
+        vector<int> repeat_check;
+	bool not_repeat = true; 	
+
+//	vector<int> pointIndices; 
+//	vector<int> cellIndices; 
+//	int previous_point_count = 0; 
+//	int previous_cell_count = 0; 
 
 	int pointIndices = 0; 
 	int cellIndices = 0; 	
 	int val1, val2; 
 
+	//Map of the region values and their corresponding meshes
+	map<int, ColorMeshType::Pointer> sorted_meshes; 
+
 	//Variables for testing
 	int stream_count = 0; 
 	ImageType::IndexType index1, index2; 
-
-	//Output files
-	ColorMeshType::Pointer om = ColorMeshType::New(); 
-	om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
 
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
@@ -137,10 +144,7 @@ int main(int narg, char* arg[])
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
 		input->GetPoint(*it, &start); 
 
-		//cerr << "First point: " << start << endl; 
-
 		//Goes through each point in a streamline
-		//Converted given for loop into a while loop
 		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
 		{
 			PointType pt; 
@@ -149,6 +153,8 @@ int main(int narg, char* arg[])
 	
 			ImageType::IndexType index; 
 			int value = 0; 
+
+			//Find the first and last nonzero values
 			if (inputImage->TransformPhysicalPointToIndex(pt, index))
 			{
 				value = inputImage->GetPixel(index); 
@@ -165,49 +171,113 @@ int main(int narg, char* arg[])
 				}
 			}
 
-		/*
-			//Value of coordinates that associate to the regions of the brain from the given image
-			int region1 = 0, region2 = 0;
-	
-			if (inputImage->TransformPhysicalPointToIndex(start, index1)) 
-			{
-				region1 = inputImage->GetPixel(index1); 
-			//	cerr << index1 << " = " << value1 << endl; 
-			}
-
-			if (inputImage->TransformPhysicalPointToIndex(end, index2)) 
-			{
-				region2 = inputImage->GetPixel(index2);
-			//	cerr << index2 << " = " << value2 << endl; 
-			}
-	*/
 		}  	
 		
+		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
 			cout << cellId << endl; 
 			cout << "First point: " << start << endl; 
 			cout << "End point: " << end << endl; 
 			cout << "Start and ends match: " << endl; 
-			cout << "First point: " << index1 << endl; 
-			cout << "Last point: " << index2 << endl; 
 			cout << index1 << " = " << val1 << endl; 
 			cout << index2 << " = " << val2 << endl;  
 			stream_count++;
-		        filteredIds.insert(cellId); 	
+
+			if (sorted_meshes.count(val1) == 0)
+			{
+				ColorMeshType::Pointer om = ColorMeshType::New(); 
+				om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
+
+				sorted_meshes.insert(pair<int, ColorMeshType::Pointer> (val1, om)); 
+			} 
+			//map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.at(val1); 
+			ColorMeshType::Pointer target_mesh = sorted_meshes.at(val1); 
+
+			CellAutoPointer line;
+			line.TakeOwnership (new PolylineCellType);
+			int k = 0;
+			it = inputCellIt.Value()->PointIdsBegin();
+			for( ; it != inputCellIt.Value()->PointIdsEnd(); it++)
+			{
+				PointType pt;
+				input->GetPoint (*it, &pt);
+
+				target_mesh->SetPoint (pointIndices, pt);
+				//Sets the point indicated by pointIndices to index k
+				line->SetPointId (k, pointIndices);
+
+				k++;
+				pointIndices++;
+			}
+
+			//Cell is inserted into the mesh
+			//Assign lines of a specific region into that corresponding file?
+			target_mesh->SetCell(cellIndices, line);
+			ColorMeshType::CellPixelType cellData;
+			input->GetCellData(cellId, &cellData);
+			target_mesh->SetCellData(cellIndices, cellData) ;
+			cellIndices++;
 		}
-		
-		regions.push_back(val1); 
-		
 	}
+			
+			
+//		        filteredIds.insert(cellId); 	
+//		}
+		
+//		regions.push_back(val1); 
+		
+//	}
 
 	//The x and y coordinates are turning into their opposites???
 
-	inputCellIt = input->GetCells()->Begin(); 
+
+	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
+	{
+		string outputName; 
+		string number = to_string(iter->first); 
+		string filename = number + ".trk"; 
+		outputName = string(output) + "/" + filename; 
+
+		cout << "Mesh name: " << outputName << endl; 
+
+		//State for each unique trk file?
+		clusterTools->SaveMesh(iter->second, inputImage, outputName, inputFiles[0]);  
+	
+		cerr << "trk file made" << endl; 
+	}
+
+
+
+	//Make a separate function with om as an input????
+/*	inputCellIt = input->GetCells()->Begin(); 
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
+		//pointIndices.push_back(0); 
+		//cellIndices.push_back(0); 
+
+		//Checks for streamlines that start and end in a region already seen
+		for (int i = 0; i < repeat_check.size(); i++)
+		{
+			if (regions[cellId] == repeat_check[i])
+			{
+//				cerr << "Reject" << endl; 
+				not_repeat = false;
+				break; 
+			}
+		}
+
+		//Runs for every cell that applies, including repeats
 		if (filteredIds.count(cellId) > 0)
 		{
+			cerr << "Output start" << endl; 
+
+			//Should this be declared here? Or stay outside all the loops?
+			//Output files
+			
+			ColorMeshType::Pointer om = ColorMeshType::New(); 
+			om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
+
 			CellAutoPointer line;
 			line.TakeOwnership (new PolylineCellType);
 			int k = 0;
@@ -223,10 +293,12 @@ int main(int narg, char* arg[])
 
 				k++;
 				pointIndices++;
-
 			}
 
+			cerr << "Set points" << endl; 
+
 			//Cell is inserted into the mesh
+			//Assign lines of a specific region into that corresponding file?
 			om->SetCell(cellIndices, line);
 			ColorMeshType::CellPixelType cellData;
 			input->GetCellData(cellId, &cellData);
@@ -240,22 +312,27 @@ int main(int narg, char* arg[])
 
 			cout << "Mesh name: " << outputName << endl; 
 
-			clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]); 
-		
+			//State for each unique trk file?
+			clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]);  
+
+			repeat_check.push_back(regions[cellId]); 
+
 			//Iterate thru the streamline again or take the .value() of the streamline
 			//which can have getcell() to get streamline later
+
 			//save id and label of the streamline to know what output it will go to
 
-			//streamlines.push_back(inputCellIt); 
-			//image_values.push_back(value1); 
+			cerr << "Repeat loop" << endl; 
 		}	
+
+		not_repeat = true; 
 	}
 
 	//Store streamlines that lie in the same structure, then place into one trk file
 
 	//Find a way to change the order of the streamlines as well
 	//Keep them unorganized, check previous values if they've been used?
-
+*/
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
@@ -266,16 +343,13 @@ int main(int narg, char* arg[])
 
 
 /* Questions:
- * -What do val1 and val2 mean in the sample code?
- * -Which coordinates correspond to the ones printed in the program from freeview?
- * 
- *
- *
+ * -Need a new mesh type for each unique valued cell?
+ * -Check if the output file already exists?
+ * -For the output files, only all the streamlines of the first region are transferred over
+ * -The x and y coordinates become inverted? 
+ * -Sort so that the regions are ordered?
+ * -.Value() returns a memory address, even when dereferenced
  */
-
-
-
-
 
 //Check points before endpoint if endpoint gives value zero
 //What if starts at 0?
@@ -291,104 +365,3 @@ int main(int narg, char* arg[])
  * if so, then output them to TRK file and into a folder
  *
  */
-
-/*	//Some variabel names are repeated but have _img added
-	using PixelType_img = unsigned char; 
-	constexpr unsigned int Dimension_img = 2; 
-
-	using ImageType = Image<PixelType_img, Dimension_img>;
-	using PointSetType = PointSet<PixelType_img, Dimension_img>; 
-	using ReaderType = ImageFileReader<ImageType>; 
-
-	ReaderType::Pointer reader = ReaderType::New(); 
-
-	const char* inputFilename = arg[1]; //Test if image is being read 
-	reader->SetFileName(inputFilename); 
-
-	try
-	{
-		reader->Update(); 
-	}
-	catch(ExceptionObject &err)
-	{
-		cout << "ExceptionObject caught !" << endl; 
-		cout << err << endl; 
-		return EXIT_FAILURE; 
-	}
-*/
-	//Extract pixels from image
-/*	using ImageType = Image<unsigned short, 3>; 
-
-	ImageType::Pointer image = ImageType::New(); 
-
-	const ImageType::SizeType size = {{200, 200, 200}}; 
-	const ImageType::IndexType start = {{0, 0, 0}}; 
-
-	ImageType::RegionType region; 
-	region.SetSize(size); 
-	region.SetIndex(start); 
-
-	image->SetRegions(region); 
-	image->Allocate(true); 
-
-	const ImageType::IndexType pixelIndex = {{144, 168, 75}}; 
-
-	ImageType::PixelType pixelValue = image->GetPixel(pixelIndex); 
-
-	image->SetPixel(pixelIndex, pixelValue); 
-*/
-/*
-			inputImage->TransformPhysicalPointToIndex(start, index1);	
-			inputImage->TransformPhysicalPointToIndex(end, index2); 
- 
-			cout << "First point: " << index1 << endl; 
-			cout << "Last point: " << index2 << endl; 
-			
-			float value1 = inputImage->GetPixel(index1); 
-			float value2 = inputImage->GetPixel(index2); 
-			//const PixelType value1 = inputImage->GetPixel(index1); 
-			//const PixelType value2 = inputImage->GetPixel(index2); 
-
-			cout << index1 << " = " << value1 << endl; 
-			cout << index2 << " = " << value2 << endl; 
- 	
-			if (value1 == value2)
-			{
-				cout << "First point: " << index1 << endl; 
-				cout << "Last point: " << index2 << endl; 
-				cout << index1 << " = " << value1 << endl; 
-				cout << index2 << " = " << value2 << endl; 
-			}		
-*/
-	//int compare = image_values[0]; 
-	//filtered_values.push_back(image_values[0]); 
-	//filtered_streamlines.push_back(streamlines[0]); 
-/*
-	for (int i = 1; i < image_values.size(); i++)
-	{
-		for (int j = 0; j < filtered_values.size(); j++)
-		{
-			if (image_values[i] == filtered_values[j])
-			{
-				break; 
-			}
-			if (j == filtered_values.size() - 1)
-			{
-				filtered_values.push_back(image_values[i]); 
-				filtered_streamlines.push_back(streamlines[i]);
-			}
-		}
-	}
-*/
-/*	
-	for (int i = 1; i < image_values.size(); i++) 
-	{
-		if (image_values[i] != compare)
-		{
-			filtered_values.push_back(image_values[i]); 
-			filtered_streamlines.push_back(streamlines[i]); 
-			compare = image_values[i]; 
-		}
-	}
-*/
-
