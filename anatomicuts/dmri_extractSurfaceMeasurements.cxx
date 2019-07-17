@@ -263,6 +263,4 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
  * Things I Have Changed
  * 1. Commented out some directories that were not recognized
  * 2. Copied directories from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
- * 3.
- *
  */
