@@ -5,7 +5,7 @@
  *
  * Takes in a cluster and outputs metrics, specifically thickness and curvature, based on the endpoints of the connections and outputs it to an external CSV file
  *
- * export FREESURFER_HOME /home/fsuser2/alex_zsikla/install
+ * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
  * source $FREESURFER_HOME/SetUpFreeSurfer.sh
  *
  */
@@ -70,8 +70,7 @@
 using namespace std;
 
 // HELPER FUNCTIONS
-string cleanFile(string file);
-string makeCSV(string dir, string number);
+string makeCSV(string dir, string file);
 vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf);
 
 int main(int narg, char* arg[])
@@ -100,9 +99,11 @@ int main(int narg, char* arg[])
 	const char *thickFile   = num1.follow("rh.thickness", "-t");
 	const char *curvFile    = num1.follow("rh.curv", "-c");
 	const char *outputDir   = num1.follow("/home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK", "-o");
+	const char *FA_file;
 
-	if (num1.search("-fa"))
-		const char *FA_file = num1.follow("fa.nii.gz", "-fa");
+	bool FA = num1.search("-fa");
+	if (FA)
+		FA_file = num1.follow("fa.nii.gz", "-fa");
 
 	// TO DELETE
 	// Testing that files are saved and can be outputted
@@ -113,26 +114,8 @@ int main(int narg, char* arg[])
 
 	cerr << "Surface:    " << surfaceFile << endl << "Thickness:  " << thickFile << endl << "Curvature:  " << curvFile << endl << "Output:     " << outputDir << endl;
 
-
-	// Opening External File for Outputting
-	string outputFilename = cleanFile(inputFiles.at(0));
-	
-	ofstream oFile;
-	string aux = makeCSV(outputDir, outputFilename);
-	oFile.open(makeCSV(outputDir, outputFilename));
-
-	cerr << aux << endl;
-
-	if (not oFile.is_open()) {
-		cerr << "Could not open output file" << endl;
-		return -1;
-	}
-
-	// Adds option for finding FA values	
-	if (num1.search("-fa"))
-		oFile << "Streamline Name , Curv of Start Point , Curv of Last Point , Thickness of Start Point , Thickness of Last Point , meanFA , avgFA , stdFA" << endl;
-	else 
-		oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point" << endl;
+	if (FA)
+		cerr << "FA:         " << FA_file << endl;
 
 	// Declaration of Variables for Program to Function
 	// TRK file Definitions
@@ -201,20 +184,48 @@ int main(int narg, char* arg[])
 	surfTree->SetDataSet(surfVTK);
 	surfTree->BuildLocator();	
 
-	// Working with FA file
+	// Reading in FA file
+	/* TO BE USED WITH MULTIPLE FILES
+	vector<ImageType::Pointer> measures;
+	vector<string> measuresNames;*/	
+
+	float meanFA;	
+	ImageType::Pointer measures;
+	if (FA)
+	{
+		typedef itk::ImageFileReader<ImageType> ImageReaderType;
+		ImageReaderType::Pointer readerS = ImageReaderType::New();
+		readerS->SetFileName(FA_file);
+		readerS->Update();
+		measures = readerS->GetOutput();	
+	}
 	
-
-
-	PointType firstPt, lastPt;	// The first and last point of a stream
+	PointType firstPt, lastPt;	// The first and last point of a stream; temporary point
 	firstPt.Fill(0);
 	lastPt.Fill(0);
 
 	double firstPt_array[3];	// Holding the coordinates of the points
 	double lastPt_array[3];
 
+	ofstream oFile;
+
 	counter = 1;
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
+		// Opening output file with a different name for every TRK File
+		oFile.open(makeCSV(outputDir, inputFiles.at(i)));
+
+		if (not oFile.is_open()) {
+			cerr << "Could not open output file" << endl;
+			return -1;
+		}
+
+		// Adds option for finding FA values
+		if (num1.search("-fa"))
+			oFile << "Streamline Name , Curv of Start Point , Curv of Last Point , Thickness of Start Point , Thickness of Last Point , meanFA , avgFA , stdFA" << endl;
+		else 
+			oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point" << endl;
+		
 		ColorMeshType::Pointer input = (*meshes)[i];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
@@ -224,40 +235,60 @@ int main(int narg, char* arg[])
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
 
-			// Finding the last point
-			for (; it != inputCellIt.Value()->PointIdsEnd(); it++) 
+
+			ImageType::IndexType index;
+			if (measures->TransformPhysicalPointToIndex(firstPt, index))
+				meanFA += measures->GetPixel(index);
+
+
+			// Finding the last point and calculating FA values
+			int counter_FA = 1;
+			for (; it != inputCellIt.Value()->PointIdsEnd(); it++, counter_FA++){ 
 				input->GetPoint(*it, &lastPt);
+				
+				PointType temp;
+				temp.Fill(0);
+				
+				if (measures->TransformPhysicalPointToIndex(temp, index))
+					meanFA += measures->GetPixel(index);	
+			}
 			
+			// Copyings points to arrays
 			for (int j = 0; j < 3; j++) {
 				firstPt_array[j] = firstPt[j];
 				lastPt_array[j]	 = lastPt[j];
 			}
 
+			// Finding the vertice number and then output
 			vtkIdType ID1 = surfTree->FindClosestPoint(firstPt_array);
 			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);
 
-			//oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
-			//      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv << endl;
+			oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
+			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv << endl;
 		}
+
+		oFile.close();
 	}
 		
-	//oFile.close();
+	oFile.close();
 
 	return EXIT_SUCCESS;
 }
 
-string cleanFile(string file)
+/* Function: makeCSV
+ * Input: a directory and a file
+ * Returns: a string of a file within the directory
+ * Does: Takes in a target directory and returns the directory with the name
+ * 	 of the file
+ * NOTE: used in conjunction with the creating new CSV files and opening them
+ */
+string makeCSV(string dir, string file)
 {
 	int front = file.find_last_of("/");
-       	int back  = file.find_last_of(".");
+	int back  = file.find_last_of(".");	
 	
-	return file.substr(front + 1, back - front - 1);
-}
-
-string makeCSV(string dir, string number)
-{
 	dir.append("/");
-	dir.append(number);
+	dir.append(file.substr(front + 1, back - front - 1));
 	dir.append(".csv");
 
 	return dir;
@@ -304,11 +335,13 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
  * 4. Line 110 and 115: Why do you have two get lines that save to the same value?
  * 5. Line 140: What is the purpose of Avg Points?
  * 6. For my table, all I am doing is adding another column for FA values right? The program that I run on my computer automatically computes mean and std
+ * 
+ * 7. Line 79: Why don't you use the follow function?
  */
 
 /*
  * Things to Do
- * 1. Have a different CSV file for each TRK file
+ * 1. Have a different CSV file for each TRK file --> DONE
  * 2. Find meanFA, avgFA, and stdFA for every streamline and output that to the CSV file
  * 3. Find the mean, avg, and std for each of those columns (probably using python) and output it to the bottom
  * 4.
