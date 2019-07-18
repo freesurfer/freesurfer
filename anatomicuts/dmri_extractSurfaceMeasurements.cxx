@@ -8,6 +8,8 @@
  * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
  * source $FREESURFER_HOME/SetUpFreeSurfer.sh
  *
+ * ./dmri_extractSurfaceMeasurements -o /home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK -c /home/fsuser2/Desktop/test/surf/lh.curv -s /home/fsuser2/Desktop/test/surf/lh.orig -t /home/fsuser2/Desktop/test/surf/lh.thickness -fa /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk
+ *
  */
 
 //Libraries
@@ -70,6 +72,8 @@
 using namespace std;
 
 // HELPER FUNCTIONS
+float calculate_mean(vector<float> n);
+float calculate_stde(vector<float> n, float mean);
 string makeCSV(string dir, string file);
 vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf);
 
@@ -185,11 +189,6 @@ int main(int narg, char* arg[])
 	surfTree->BuildLocator();	
 
 	// Reading in FA file
-	/* TO BE USED WITH MULTIPLE FILES
-	vector<ImageType::Pointer> measures;
-	vector<string> measuresNames;*/	
-
-	float meanFA;	
 	ImageType::Pointer measures;
 	if (FA)
 	{
@@ -209,6 +208,7 @@ int main(int narg, char* arg[])
 
 	ofstream oFile;
 
+	// Cycling through the TRK files
 	counter = 1;
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
@@ -220,41 +220,40 @@ int main(int narg, char* arg[])
 			return -1;
 		}
 
-		// Adds option for finding FA values
+		// Adds the headers to the files and has option for finding FA values
 		if (num1.search("-fa"))
-			oFile << "Streamline Name , Curv of Start Point , Curv of Last Point , Thickness of Start Point , Thickness of Last Point , meanFA , avgFA , stdFA" << endl;
+			oFile << "Streamline Name , Curv of Start Point , Curv of Last Point , Thickness of Start Point , Thickness of Last Point , meanFA , stdeFA" << endl;
 		else 
 			oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point" << endl;
 		
 		ColorMeshType::Pointer input = (*meshes)[i];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
+		// Cycling through the streams
 		for (; inputCellIt != input->GetCells()->End(); ++inputCellIt, ++counter)
 		{
 			// Creating streamline variable and finding first point
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 			input->GetPoint(*it,&firstPt);
 
-
+			vector<float> FA_values;
 			ImageType::IndexType index;
-			if (measures->TransformPhysicalPointToIndex(firstPt, index))
-				meanFA += measures->GetPixel(index);
+			if (FA and measures->TransformPhysicalPointToIndex(firstPt, index))
+				FA_values.push_back(measures->GetPixel(index));
 
-
-			// Finding the last point and calculating FA values
-			int counter_FA = 1;
-			for (; it != inputCellIt.Value()->PointIdsEnd(); it++, counter_FA++){ 
+			// Cycling through the points in the stream
+			for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
+			{ 
 				input->GetPoint(*it, &lastPt);
-				
-				PointType temp;
-				temp.Fill(0);
-				
-				if (measures->TransformPhysicalPointToIndex(temp, index))
-					meanFA += measures->GetPixel(index);	
+
+				// If FA options is used, then add the FA values to the vector	
+				if (FA and measures->TransformPhysicalPointToIndex(lastPt, index))
+					FA_values.push_back(measures->GetPixel(index));	
 			}
 			
 			// Copyings points to arrays
-			for (int j = 0; j < 3; j++) {
+			for (int j = 0; j < 3; j++)
+		       	{
 				firstPt_array[j] = firstPt[j];
 				lastPt_array[j]	 = lastPt[j];
 			}
@@ -262,9 +261,17 @@ int main(int narg, char* arg[])
 			// Finding the vertice number and then output
 			vtkIdType ID1 = surfTree->FindClosestPoint(firstPt_array);
 			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);
+		
+			// Calculating the MeanFA and stdeFA
+			float meanFA = calculate_mean(FA_values);
+			float stdeFA = calculate_stde(FA_values, meanFA);
+
+			for (int k = 0; k < FA_values.size(); k++)
+				cerr << FA_values.at(k) << endl;
+
 
 			oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
-			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv << endl;
+			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv << "," << meanFA << "," << stdeFA << endl;
 		}
 
 		oFile.close();
@@ -292,6 +299,36 @@ string makeCSV(string dir, string file)
 	dir.append(".csv");
 
 	return dir;
+}
+
+/* Function: calculate_mean
+ * Input: a vector of all the FA values
+ * Return: the mean
+ * Does: takes all the values and calculates the mean
+ */
+float calculate_mean(vector<float> n)
+{
+	float mean = 0;
+
+	for (int i = 0; i < n.size(); i++)
+		mean += n.at(i);
+
+	return mean / n.size();
+}
+
+/* Function: calculate_stde
+ * Input: a vector of all the FA values and the mean
+ * Return: the standard deviation
+ * Does: takes all the values and calculates the standard deviation
+ */
+float calculate_stde(vector<float> n, float mean)
+{
+	float SD = 0;
+
+	for (int i = 0; i < n.size(); i++)
+		SD += pow(n.at(i) - mean, 2);
+
+	return sqrt(SD / n.size());
 }
 
 //
@@ -342,8 +379,11 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 /*
  * Things to Do
  * 1. Have a different CSV file for each TRK file --> DONE
- * 2. Find meanFA, avgFA, and stdFA for every streamline and output that to the CSV file
- * 3. Find the mean, avg, and std for each of those columns (probably using python) and output it to the bottom
- * 4.
+ * 2. Find meanFA, avgFA, and stdFA for every streamline and output that to the CSV file --> DONE
+ * 3. Find the mean, avg, and std for each of those columns (probably using python) and output it to the bottom --> TO BE DONE AT LATER DATE
+ * 
+ * 1. Have it to be able to take in multiple .nii.gz files (same way as the example)
+ * 2. Change the output so each column of mean and stde has the name of the file as well
+ * 3. Make sure the FA options is correctly being used throughout the code (using the boolean instead of always doing it)
  */
 
