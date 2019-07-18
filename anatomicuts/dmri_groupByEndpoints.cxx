@@ -99,7 +99,7 @@ int main(int narg, char* arg[])
 	reader->SetFileName(image_file); 
 	reader->Update();
 */
-
+	//Variable to read in the image file
 	typedef ImageFileReader<ImageType> ImageReaderType; 
 	ImageReaderType::Pointer reader = ImageReaderType::New(); 
 	reader->SetFileName(c1.next("")); 
@@ -108,26 +108,16 @@ int main(int narg, char* arg[])
 
 	//Take in input trk file
 	meshes = clusterTools->PolydataToMesh(polydatas); 
-
 	ColorMeshType::Pointer input = (*meshes)[0];
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
-	set<int> filteredIds; 
-	vector<int> regions;
-        vector<int> repeat_check;
-	bool not_repeat = true; 	
-
-//	vector<int> pointIndices; 
-//	vector<int> cellIndices; 
-//	int previous_point_count = 0; 
-//	int previous_cell_count = 0; 
-
-	int pointIndices = 0; 
-	int cellIndices = 0; 	
+	//Variables to hold the start and end values of a streamline
 	int val1, val2; 
 
 	//Map of the region values and their corresponding meshes
 	map<int, ColorMeshType::Pointer> sorted_meshes; 
+	map<int, int> pointIndices; 
+	map<int, int> cellIndices; 
 
 	//Variables for testing
 	int stream_count = 0; 
@@ -136,6 +126,8 @@ int main(int narg, char* arg[])
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
+		cerr << cellId << endl; 
+
 		PointType start, end; 
 		start.Fill(0); 
 		val1 = 0, val2 = 0; 
@@ -173,6 +165,9 @@ int main(int narg, char* arg[])
 
 		}  	
 		
+		cerr << "First point: " << start << endl; 
+		cerr << "Last point: " << end << endl; 
+
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
@@ -184,6 +179,7 @@ int main(int narg, char* arg[])
 			cout << index2 << " = " << val2 << endl;  
 			stream_count++;
 
+			//Obtain the mesh associated with the value
 			if (sorted_meshes.count(val1) == 0)
 			{
 				ColorMeshType::Pointer om = ColorMeshType::New(); 
@@ -191,155 +187,94 @@ int main(int narg, char* arg[])
 
 				sorted_meshes.insert(pair<int, ColorMeshType::Pointer> (val1, om)); 
 			} 
-			//map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.at(val1); 
-			ColorMeshType::Pointer target_mesh = sorted_meshes.at(val1); 
+			map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.find(val1); 
+			ColorMeshType::Pointer target_mesh = iter->second; 
 
+			if (pointIndices.count(val1) == 0)
+			{
+				pointIndices.insert(pair<int, int> (val1, 0)); 
+			}
 
-			//INSERT THE CELLID OF WHAT IS ADDED TO THE MESH
-			//
-			//
-			//
-			//
+			//INSERT THE CELLID OF WHAT IS ADDED TO THE MESH?
 
 			CellAutoPointer line;
 			line.TakeOwnership (new PolylineCellType);
 			int k = 0;
 			it = inputCellIt.Value()->PointIdsBegin();
+
+			//Copy over the points of the streamlines that are going to be outputted
 			for( ; it != inputCellIt.Value()->PointIdsEnd(); it++)
 			{
 				PointType pt;
 				input->GetPoint (*it, &pt);
 
-				target_mesh->SetPoint (pointIndices, pt);
+				//Shows correct original coordinates
+				//if (it == inputCellIt.Value()->PointIdsBegin())
+				//	cerr << pt << endl; 	
+
+				target_mesh->SetPoint (pointIndices.at(val1), pt);
+
 				//Sets the point indicated by pointIndices to index k
-				line->SetPointId (k, pointIndices);
+				line->SetPointId (k, pointIndices.at(val1));
 
 				k++;
-				pointIndices++;
+				pointIndices.at(val1)++;
+			}
+
+			//No inverted coordinates by this point?
+
+			if (cellIndices.count(val1) == 0)
+			{
+				cellIndices.insert(pair<int, int> (val1, 0)); 
 			}
 
 			//Cell is inserted into the mesh
-			//Assign lines of a specific region into that corresponding file?
-			target_mesh->SetCell(cellIndices, line);
+			target_mesh->SetCell(cellIndices.at(val1), line);
 			ColorMeshType::CellPixelType cellData;
 			input->GetCellData(cellId, &cellData);
-			target_mesh->SetCellData(cellIndices, cellData) ;
-			cellIndices++;
+			target_mesh->SetCellData(cellIndices.at(val1), cellData) ;
+			cellIndices.at(val1)++;
 		}
 	}
 			
-			
-//		        filteredIds.insert(cellId); 	
-//		}
-		
-//		regions.push_back(val1); 
-		
-//	}
-
 	//The x and y coordinates are turning into their opposites???
 
+	//Check that the starting points in the map are correct, which they are
+	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
+	{
+		ColorMeshType::Pointer meshh = iter->second; 
+		ColorMeshType::CellsContainer::Iterator test = meshh->GetCells()->Begin(); 
+	
+		for (; test != meshh->GetCells()->End(); test++)
+		{
+			cerr << iter->first << endl; 
 
+			PointType new_start; 
+			new_start.Fill(0);
+
+			CellType::PointIdIterator it = test.Value()->PointIdsBegin(); 
+			meshh->GetPoint(*it, &new_start); 
+			cerr << "Output's first point: " << new_start << endl; 
+		}
+	}
+
+	//Print out the output trk file for each mesh with a unique key
 	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
 	{
 		string outputName; 
+		
+		//Naming the trk file based on the index value of the start and end points
 		string number = to_string(iter->first); 
+		
 		string filename = number + ".trk"; 
 		outputName = string(output) + "/" + filename; 
 
 		cout << "Mesh name: " << outputName << endl; 
 
-		//State for each unique trk file?
 		clusterTools->SaveMesh(iter->second, inputImage, outputName, inputFiles[0]);  
 	
 		cerr << "trk file made" << endl; 
 	}
-
-
-
-	//Make a separate function with om as an input????
-/*	inputCellIt = input->GetCells()->Begin(); 
-	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
-	{
-		//pointIndices.push_back(0); 
-		//cellIndices.push_back(0); 
-
-		//Checks for streamlines that start and end in a region already seen
-		for (int i = 0; i < repeat_check.size(); i++)
-		{
-			if (regions[cellId] == repeat_check[i])
-			{
-//				cerr << "Reject" << endl; 
-				not_repeat = false;
-				break; 
-			}
-		}
-
-		//Runs for every cell that applies, including repeats
-		if (filteredIds.count(cellId) > 0)
-		{
-			cerr << "Output start" << endl; 
-
-			//Should this be declared here? Or stay outside all the loops?
-			//Output files
-			
-			ColorMeshType::Pointer om = ColorMeshType::New(); 
-			om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
-
-			CellAutoPointer line;
-			line.TakeOwnership (new PolylineCellType);
-			int k = 0;
-			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
-			for( ; it != inputCellIt.Value()->PointIdsEnd(); it++)
-			{
-				PointType pt;
-				input->GetPoint (*it, &pt);
-
-				om->SetPoint (pointIndices, pt);
-				//Sets the point indicated by pointIndices to index k
-				line->SetPointId (k, pointIndices);
-
-				k++;
-				pointIndices++;
-			}
-
-			cerr << "Set points" << endl; 
-
-			//Cell is inserted into the mesh
-			//Assign lines of a specific region into that corresponding file?
-			om->SetCell(cellIndices, line);
-			ColorMeshType::CellPixelType cellData;
-			input->GetCellData(cellId, &cellData);
-			om->SetCellData(cellIndices, cellData) ;
-			cellIndices++;
-
-			string outputName; 
-			string number = to_string(regions[cellId]); 
-			string filename = number + ".trk"; 
-			outputName = string(output) + "/" + filename; 
-
-			cout << "Mesh name: " << outputName << endl; 
-
-			//State for each unique trk file?
-			clusterTools->SaveMesh(om, inputImage, outputName, inputFiles[0]);  
-
-			repeat_check.push_back(regions[cellId]); 
-
-			//Iterate thru the streamline again or take the .value() of the streamline
-			//which can have getcell() to get streamline later
-
-			//save id and label of the streamline to know what output it will go to
-
-			cerr << "Repeat loop" << endl; 
-		}	
-
-		not_repeat = true; 
-	}
-
-	//Store streamlines that lie in the same structure, then place into one trk file
-
-	//Find a way to change the order of the streamlines as well
-	//Keep them unorganized, check previous values if they've been used?
-*/
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
@@ -350,12 +285,9 @@ int main(int narg, char* arg[])
 
 
 /* Questions:
- * -Need a new mesh type for each unique valued cell?
- * -Check if the output file already exists?
- * -For the output files, only all the streamlines of the first region are transferred over
  * -The x and y coordinates become inverted? 
- * -Sort so that the regions are ordered?
- * -.Value() returns a memory address, even when dereferenced
+ * -Need multiple trk files as inputs?
+ *
  */
 
 //Check points before endpoint if endpoint gives value zero
