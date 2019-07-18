@@ -312,6 +312,14 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
         connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
         menu->addAction(act);
       }
+
+      if (((LayerMRI*)layers[0])->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+      {
+          act = new QAction("Export label stats...", this);
+          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnExportLabelStats()));
+          menu->addSeparator();
+          menu->addAction(act);
+      }
     }
     else if (layers[0]->GetEndType() == "Surface")
     {

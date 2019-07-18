@@ -301,6 +301,8 @@ public slots:
     ClearScripts();
   }
 
+  void OnExportLabelStats();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);

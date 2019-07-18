@@ -8596,3 +8596,16 @@ void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename 
     QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
   }
 }
+
+void MainWindow::OnExportLabelStats()
+{
+   QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
+                                       AutoSelectLastDir( "mri" ),
+                                       "CSV files (*.csv)");
+   if (!fn.isEmpty() )
+   {
+       LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
+       if (!mri->ExportLabelStats(fn))
+           QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
+   }
+}
