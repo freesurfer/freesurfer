@@ -50,11 +50,9 @@ int main(int narg, char* arg[])
 
 	
 	//Take in information
-//	const char *stream_lines = c1.follow("string_file.trk", "-s"); 
 	const char *image_file = c1.follow("image_file.nii.gz", "-i"); 
 	const char *output = c1.follow("output_directory", "-d"); 
 
-	//Read in files
 	vector<string> inputFiles; 
 	for (string inputName = string(c1.follow("", 2, "-s", "-S")); access(inputName.c_str(), 0) == 0; inputName = string(c1.next("")))
 	{
@@ -126,7 +124,7 @@ int main(int narg, char* arg[])
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-		cerr << cellId << endl; 
+		//cerr << cellId << endl; 
 
 		PointType start, end; 
 		start.Fill(0); 
@@ -165,17 +163,17 @@ int main(int narg, char* arg[])
 
 		}  	
 		
-		cerr << "First point: " << start << endl; 
-		cerr << "Last point: " << end << endl; 
+		//cerr << "First point: " << start << endl; 
+		//cerr << "Last point: " << end << endl; 
 
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
 			cout << cellId << endl; 
-			cout << "First point: " << start << endl; 
-			cout << "End point: " << end << endl; 
+			cout << "First point: " << start << " "; 
+			cout << "End point: " << end << " "; 
 			cout << "Start and ends match: " << endl; 
-			cout << index1 << " = " << val1 << endl; 
+			cout << index1 << " = " << val1 << ", "; 
 			cout << index2 << " = " << val2 << endl;  
 			stream_count++;
 
@@ -247,14 +245,14 @@ int main(int narg, char* arg[])
 	
 		for (; test != meshh->GetCells()->End(); test++)
 		{
-			cerr << iter->first << endl; 
+	//		cerr << iter->first << " "; 
 
 			PointType new_start; 
 			new_start.Fill(0);
 
 			CellType::PointIdIterator it = test.Value()->PointIdsBegin(); 
 			meshh->GetPoint(*it, &new_start); 
-			cerr << "Output's first point: " << new_start << endl; 
+	//		cerr << "Output's first point: " << new_start << endl; 
 		}
 	}
 
@@ -269,16 +267,17 @@ int main(int narg, char* arg[])
 		string filename = number + ".trk"; 
 		outputName = string(output) + "/" + filename; 
 
-		cout << "Mesh name: " << outputName << endl; 
+		//cout << "Mesh name: " << outputName << endl; 
 
 		clusterTools->SaveMesh(iter->second, inputImage, outputName, inputFiles[0]);  
-	
-		cerr << "trk file made" << endl; 
 	}
 
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
 	delete meshes;
+	sorted_meshes.clear(); 
+	pointIndices.clear(); 
+	cellIndices.clear(); 
 
 	return 0; 	
 }
