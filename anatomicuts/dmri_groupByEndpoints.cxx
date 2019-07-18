@@ -272,6 +272,8 @@ int main(int narg, char* arg[])
 		clusterTools->SaveMesh(iter->second, inputImage, outputName, inputFiles[0]);  
 	}
 
+	//ADD COLORS TO CLUSTERS
+
 	cerr << "Total of " << stream_count << " streamlines" << endl; 
 
 	delete meshes;
