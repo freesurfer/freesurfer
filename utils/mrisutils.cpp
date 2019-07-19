@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "mrisutils.h"
+#include "surfgrad.h"
 
 #include "romp_support.h"
 
@@ -3335,4 +3336,90 @@ int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, 
   if(pv0 != NULL)     *pv0 = v0;
 
   return(eno);
+}
+
+
+/*!
+  \fn double *MRIStriangleAreaStats(MRIS *surf, double *stats)
+  \brief Computes stats (nfaces, mean, stddev, min, max) over
+  all faces that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. Runs MRIScomputeMetricProperties().
+ */
+double *MRIStriangleAreaStats(MRIS *surf, MRI *mask, double *stats)
+{
+  int fno, nfaces;
+  double *area;
+  MRIScomputeMetricProperties(surf);
+
+  area = (double*)calloc(sizeof(double),surf->nfaces);
+  nfaces = 0;
+  for(fno=0; fno < surf->nfaces; fno++){
+    FACE *f = &(surf->faces[fno]);
+    int nthv, skip;
+    skip = 0;
+    for(nthv = 0; nthv < 3; nthv++){
+      int vno = f->v[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    area[nfaces] = f->area;
+    nfaces ++;
+    //printf("%g\n",f->area);
+  }
+  stats = DListStats(area, nfaces, stats);
+  free(area);
+
+  return(stats);
+}
+/*!
+  \fn double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+  \brief Computes stats (nedges, mean, stddev, min, max) over
+  all edges that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. metricid: 0=length, 1=dot, 2=angle.
+  Will create the edge structure if not already there. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric(surf).
+ */
+double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+{
+  int edgeno, nedges, nthv;
+  MRI_EDGE *e;
+  double *metric;
+
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf);
+
+  metric = (double*)calloc(sizeof(double),surf->nedges);
+  nedges = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    int skip = 0;
+    for(nthv=0; nthv < 4; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    switch(metricid){
+    case 0: metric[nedges] = e->len; break;
+    case 1: metric[nedges] = e->dot; break;
+    case 2: metric[nedges] = e->angle; break;
+    default:
+      printf("ERROR: MRISedgeStats() metricid %d unrecognized\n",metricid);
+      return(NULL);
+    }
+    //printf("%lf\n",metric[nedges]);
+    nedges++;
+  }
+
+  stats = DListStats(metric, nedges, stats);
+  free(metric);
+  return(stats);
 }
