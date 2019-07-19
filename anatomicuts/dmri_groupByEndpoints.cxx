@@ -105,6 +105,7 @@ int main(int narg, char* arg[])
 	inputImage = reader->GetOutput(); 
 
 	//Take in input trk file
+	//Add a for loop 
 	meshes = clusterTools->PolydataToMesh(polydatas); 
 	ColorMeshType::Pointer input = (*meshes)[0];
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
@@ -112,7 +113,7 @@ int main(int narg, char* arg[])
 	//Variables to hold the start and end values of a streamline
 	int val1, val2; 
 
-	//Map of the region values and their corresponding meshes and other information
+	//Map of the region values to their corresponding meshes and other information
 	map<int, ColorMeshType::Pointer> sorted_meshes; 
 	map<int, int> pointIndices; 
 	map<int, int> cellIndices; 
@@ -171,8 +172,8 @@ int main(int narg, char* arg[])
 		{
 			cout << cellId << endl; 
 			cout << "First point: " << start << " "; 
-			cout << "End point: " << end << " "; 
-			cout << "Start and ends match: " << endl; 
+			cout << "End point: " << end << endl; 
+			cout << "Start and ends match: " << " "; 
 			cout << index1 << " = " << val1 << ", "; 
 			cout << index2 << " = " << val2 << endl;  
 			stream_count++;
@@ -251,7 +252,7 @@ int main(int narg, char* arg[])
 		}
 	}
 */
-	//Print out the output trk file for each mesh with a unique key
+	//Initiate the color table to give output meshes unique colors
 	int i;
 	int red, green, blue; 
 	color_triplet2 table[256] = {{0, 0, 0}}; 
@@ -277,6 +278,8 @@ int main(int narg, char* arg[])
 	table[255] = black; 
 
 	i = 0; 
+
+	//Print out the output trk file for each mesh with a unique key	
 	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
 	{
 		string outputName; 
@@ -303,7 +306,7 @@ int main(int narg, char* arg[])
 
 		SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New(); 
 		trkReader->SetInput(vtkConverter->GetOutputPolyData()); 
-		trkReader->SetReferenceImage(inputImage); 
+		//trkReader->SetReferenceImage(inputImage); 
 		trkReader->SetReferenceTrack(inputFiles[0]); 
 		trkReader->SetColor(color);
 		trkReader->VTKToTrk(outputName); 
