@@ -8,7 +8,7 @@
  * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
  * source $FREESURFER_HOME/SetUpFreeSurfer.sh
  *
- * ./dmri_extractSurfaceMeasurements -o /home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK -c /home/fsuser2/Desktop/test/surf/lh.curv -s /home/fsuser2/Desktop/test/surf/lh.orig -t /home/fsuser2/Desktop/test/surf/lh.thickness -fa /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk
+ * ./dmri_extractSurfaceMeasurements -o /home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK -c /home/fsuser2/Desktop/test/surf/lh.curv -s /home/fsuser2/Desktop/test/surf/lh.orig -t /home/fsuser2/Desktop/test/surf/lh.thickness -fa 2 FA /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz AD /home/fsuser2/Desktop/test/dsi_studio/ad.nii.gz -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk
  *
  */
 
@@ -86,40 +86,10 @@ int main(int narg, char* arg[])
 	{
 		cerr << "Usage: " << endl
 		     << arg[0] << " -i streamlineFile.trk -s surfaceFile.orig -t overlayFile.thickness -c overlayFile.curv -o outputDirectory"
-		     << endl << "OPTION: -fa FA_file.nii.gz" << endl;
+		     << endl << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
 
 		return EXIT_FAILURE;
 	}
-
-	// INPUT PARSING
-	// Looping for multiple file input of a certain kind of file
-	vector<string> inputFiles;
-	
-	int counter = 1;
-	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
-		inputFiles.push_back(inputName);
-
-	const char *surfaceFile = num1.follow("rh.orig", "-s");
-	const char *thickFile   = num1.follow("rh.thickness", "-t");
-	const char *curvFile    = num1.follow("rh.curv", "-c");
-	const char *outputDir   = num1.follow("/home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK", "-o");
-	const char *FA_file;
-
-	bool FA = num1.search("-fa");
-	if (FA)
-		FA_file = num1.follow("fa.nii.gz", "-fa");
-
-	// TO DELETE
-	// Testing that files are saved and can be outputted
-	
-	cerr << endl;
-	for (int i = 0; i < inputFiles.size(); i++)
-		cerr << "TRK File " << i + 1 << ": " << inputFiles.at(i) << endl;
-
-	cerr << "Surface:    " << surfaceFile << endl << "Thickness:  " << thickFile << endl << "Curvature:  " << curvFile << endl << "Output:     " << outputDir << endl;
-
-	if (FA)
-		cerr << "FA:         " << FA_file << endl;
 
 	// Declaration of Variables for Program to Function
 	// TRK file Definitions
@@ -148,6 +118,51 @@ int main(int narg, char* arg[])
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
 
+	// Input Parsing
+	vector<string> TRKFiles;	
+	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
+		TRKFiles.push_back(inputName);
+
+	const char *surfaceFile = num1.follow("rh.orig", "-s");
+	const char *thickFile   = num1.follow("rh.thickness", "-t");
+	const char *curvFile    = num1.follow("rh.curv", "-c");
+	const char *outputDir   = num1.follow("/home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK", "-o");
+	vector<ImageType::Pointer> volumes;
+	vector<string> image_fileNames;
+
+	// Reading in FA file
+	int numFiles = num1.follow(0, "-fa");
+	bool FA_FOUND = num1.search("-fa");
+	num1.next("");
+	if (FA_FOUND and numFiles > 0) 
+	{
+		for (int i = 0; i < numFiles; i++)
+		{
+			image_fileNames.push_back(string(num1.next("")));
+			const char *inFile = num1.next("");
+			typedef itk::ImageFileReader<ImageType> ImageReaderType;
+			ImageReaderType::Pointer readerS = ImageReaderType::New();
+			readerS->SetFileName(inFile);
+			readerS->Update();
+			ImageType::Pointer image  = readerS->GetOutput();
+			volumes.push_back(image);	
+		}
+	}
+
+	// Testing that files are saved and can be outputted
+	
+	cerr << endl;
+	for (int i = 0; i < TRKFiles.size(); i++)
+		cerr << "TRK File " << i + 1 << ": " << TRKFiles.at(i) << endl;
+
+	cerr << "Surface:    " << surfaceFile << endl << "Thickness:  " << thickFile << endl << "Curvature:  " << curvFile << endl << "Output:     " << outputDir << endl;
+
+	if (FA_FOUND)
+	{	
+		for (int i = 0; i < image_fileNames.size(); i++)
+			cerr << "Image " << i + 1 << ":    " << image_fileNames.at(i) << endl;	
+	}
+
 	// Variable Declaration
 	ImageType::Pointer mask;	
 
@@ -155,7 +170,7 @@ int main(int narg, char* arg[])
 	vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
-	clusterTools->GetPolyDatas(inputFiles, &polydatas, mask);
+	clusterTools->GetPolyDatas(TRKFiles, &polydatas, mask);
 	meshes = clusterTools->PolydataToMesh(polydatas);
 	
 	//Reading in surface from file
@@ -187,19 +202,8 @@ int main(int narg, char* arg[])
 	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
 	surfTree->SetDataSet(surfVTK);
 	surfTree->BuildLocator();	
-
-	// Reading in FA file
-	ImageType::Pointer measures;
-	if (FA)
-	{
-		typedef itk::ImageFileReader<ImageType> ImageReaderType;
-		ImageReaderType::Pointer readerS = ImageReaderType::New();
-		readerS->SetFileName(FA_file);
-		readerS->Update();
-		measures = readerS->GetOutput();	
-	}
 	
-	PointType firstPt, lastPt;	// The first and last point of a stream; temporary point
+	PointType firstPt, lastPt;	// The first and last point of a stream
 	firstPt.Fill(0);
 	lastPt.Fill(0);
 
@@ -209,48 +213,73 @@ int main(int narg, char* arg[])
 	ofstream oFile;
 
 	// Cycling through the TRK files
-	counter = 1;
+	int counter = 1;
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
 		// Opening output file with a different name for every TRK File
-		oFile.open(makeCSV(outputDir, inputFiles.at(i)));
+		oFile.open(makeCSV(outputDir, TRKFiles.at(i)));
 
-		if (not oFile.is_open()) {
+		if (not oFile.is_open()) 
+		{
 			cerr << "Could not open output file" << endl;
 			return -1;
 		}
 
 		// Adds the headers to the files and has option for finding FA values
-		if (num1.search("-fa"))
-			oFile << "Streamline Name , Curv of Start Point , Curv of Last Point , Thickness of Start Point , Thickness of Last Point , meanFA , stdeFA" << endl;
-		else 
-			oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point" << endl;
-		
+		oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point";
+		if (FA_FOUND)
+		{
+			for (int a = 0; a < image_fileNames.size(); a++)
+				oFile << ", meanFA_" << image_fileNames.at(a) << ", stdeFA_" << image_fileNames.at(a);
+		} 
+		oFile << endl;
+
 		ColorMeshType::Pointer input = (*meshes)[i];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
 		// Cycling through the streams
 		for (; inputCellIt != input->GetCells()->End(); ++inputCellIt, ++counter)
 		{
-			// Creating streamline variable and finding first point
-			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
-			input->GetPoint(*it,&firstPt);
+			vector<float> meanFA;
+			vector<float> stdeFA;
+		
+			// If there are image files, then find the mean and stde of FA	
+			if (FA_FOUND)
+			{
+				for (int p = 0; p < volumes.size(); p++)
+				{
+					// Creating streamline variable and finding first point
+					CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+					input->GetPoint(*it, &firstPt);
 
-			vector<float> FA_values;
-			ImageType::IndexType index;
-			if (FA and measures->TransformPhysicalPointToIndex(firstPt, index))
-				FA_values.push_back(measures->GetPixel(index));
+					vector<float> FA_values;
+					ImageType::IndexType index;
+					if (volumes.at(p)->TransformPhysicalPointToIndex(firstPt, index))
+						FA_values.push_back(volumes.at(p)->GetPixel(index));
+				
+					// Cycling through the points in the stream
+					for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
+					{	 
+						input->GetPoint(*it, &lastPt);
 
-			// Cycling through the points in the stream
-			for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
-			{ 
-				input->GetPoint(*it, &lastPt);
-
-				// If FA options is used, then add the FA values to the vector	
-				if (FA and measures->TransformPhysicalPointToIndex(lastPt, index))
-					FA_values.push_back(measures->GetPixel(index));	
-			}
+						// If FA options is used, then add the FA values to the vector	
+						if (volumes.at(p)->TransformPhysicalPointToIndex(lastPt, index))
+							FA_values.push_back(volumes.at(p)->GetPixel(index));	
+					}
 			
+					// Calculating the MeanFA and stdeFA
+					meanFA.push_back(calculate_mean(FA_values));
+					stdeFA.push_back(calculate_stde(FA_values, meanFA.at(p)));
+				}
+			// Otherwise find first and last point of a streamline
+			} else {
+				CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
+				input->GetPoint(*it, &firstPt);
+
+				for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
+					input->GetPoint(*it, &lastPt);
+			}
+
 			// Copyings points to arrays
 			for (int j = 0; j < 3; j++)
 		       	{
@@ -258,20 +287,20 @@ int main(int narg, char* arg[])
 				lastPt_array[j]	 = lastPt[j];
 			}
 
-			// Finding the vertice number and then output
+			// Finding the vertice number
 			vtkIdType ID1 = surfTree->FindClosestPoint(firstPt_array);
-			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);
-		
-			// Calculating the MeanFA and stdeFA
-			float meanFA = calculate_mean(FA_values);
-			float stdeFA = calculate_stde(FA_values, meanFA);
-
-			for (int k = 0; k < FA_values.size(); k++)
-				cerr << FA_values.at(k) << endl;
-
+			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);		
 
 			oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
-			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv << "," << meanFA << "," << stdeFA << endl;
+			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv;
+			
+			if (FA_FOUND)
+			{
+				for (int m = 0; m < stdeFA.size(); m++)
+					oFile << "," << meanFA.at(m) << "," << stdeFA.at(m);
+			}
+
+			oFile << endl;
 		}
 
 		oFile.close();
