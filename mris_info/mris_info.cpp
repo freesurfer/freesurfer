@@ -76,6 +76,12 @@ int rescale = 0;
 double scale=0;
 int diag_vno=-1;
 int vnox = -1;
+int DoAreaStats = 0;
+int DoEdgeStats = 0;
+int EdgeMetricId = 0;
+char *edgefile = NULL;
+MRI *mask=NULL;
+LABEL *label=NULL;
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -154,6 +160,42 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   MRIScomputeMetricProperties(mris) ;
+
+  if(label){
+    // Create a mask from the label
+    int n;
+    mask = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    for (n = 0; n < label->n_points; n++){
+      MRIsetVoxVal(mask,label->lv[n].vno,0,0,0, 1);
+    }
+  }
+
+  if(DoAreaStats){
+    double *stats = MRIStriangleAreaStats(mris, mask, NULL);
+    printf("%d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
+    free(stats);
+    exit(0);
+  }
+  if(DoEdgeStats){
+    if(EdgeMetricId >= 0){
+      double *stats = MRISedgeStats(mris, EdgeMetricId, mask, NULL);
+      printf("%d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
+      free(stats);
+    }
+    else {
+      int k;
+      for(k=0; k < 2; k++){
+	double *stats = MRISedgeStats(mris, k, mask, NULL);
+	printf("%d %d %g %g %g %g\n",k,(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
+	free(stats);
+      }
+    }
+    exit(0);
+  }
+  if(edgefile){
+    MRISedgeWrite(edgefile, mris);
+    exit(0);
+  }
 
   if (diag_vno >= 0)
   {
@@ -385,6 +427,41 @@ static int parse_commandline(int argc, char **argv) {
       vnox = atoi(pargv[0]);
       nargsused = 1;
     } 
+    else if ( !strcmp(option, "--area-stats") ) {
+      DoAreaStats = 1;
+    } 
+    else if ( !strcmp(option, "--edge-stats") ) {
+      if (nargc < 1) argnerr(option,1);
+      EdgeMetricId = atoi(pargv[0]);
+      DoEdgeStats = 1;
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--edge-file") ) {
+      if (nargc < 1) argnerr(option,1);
+      edgefile = pargv[0];
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--label") ) {
+      if(mask){
+	printf("ERROR: cannot spec --mask and  --label\n");
+	exit(1);
+      }
+      if (nargc < 1) argnerr(option,1);
+      label = LabelRead(NULL, pargv[0]);
+      if(label == NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--mask") ) {
+      // Only compute edge and area stats from vertices inside the mask
+      if(label){
+	printf("ERROR: cannot spec --mask and  --label\n");
+	exit(1);
+      }
+      if (nargc < 1) argnerr(option,1);
+      mask = MRIread(pargv[0]);
+      if(mask == NULL) exit(1);
+      nargsused = 1;
+    } 
     else if ( !strcmp(option, "--c") ) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
@@ -441,6 +518,12 @@ static void print_usage(void) {
   printf("                  same number of vertices as the surface, and\n");
   printf("                  exit with error if not. This is a QA check.\n");
   printf("                  Also, the colortable is dumped.\n");
+  printf("  --area-stats : compute stats on triangle area (n, mean, std, min, max)\n");
+  printf("  --edge-stats id : compute stats on edge metric (n, mean, std, min, max)\n");
+  printf("                    id=0=length, id=1=dot, id=2=angle, id<0= all\n");
+  printf("  --mask mask.mgz : only compute edge and area stats using vertices in mask\n");
+  printf("  --label labelfile : only compute edge and area stats using vertices in label\n");
+  printf("  --edge-file file : print edge info for all edges into file\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
