@@ -3423,3 +3423,40 @@ double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
   free(metric);
   return(stats);
 }
+/*!
+  \fn int MRISedgePrint(FILE *fp, MRIS *surf)
+  \brief Print edge metrics to a stream. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+ */
+int MRISedgePrint(FILE *fp, MRIS *surf)
+{
+  int edgeno;
+  MRI_EDGE *e;
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf);
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    fprintf(fp,"%6d %6d %6d %10.8f %10.8f %8.4f\n",edgeno,e->vtxno[0],e->vtxno[1],e->len,e->dot,e->angle);
+  }
+  fflush(fp);
+  return(0);
+}
+
+/*!
+  \fn int MRISedgeWrite(char *filename, MRIS *surf)
+  \brief Print edge metrics to a file. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+  via MRISedgePrint(). 
+ */
+int MRISedgeWrite(char *filename, MRIS *surf)
+{
+  FILE *fp;
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  fp = fopen(filename,"w");
+  if(fp == NULL) return(1);
+  MRISedgePrint(fp,surf);
+  return(0);
+}
+
