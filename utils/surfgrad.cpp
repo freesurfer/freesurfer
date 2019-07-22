@@ -660,11 +660,14 @@ int MRISedgeMetricEdge(MRIS *surf, int edgeno)
   for(nthface = 0; nthface < 2; nthface++){
     faceno = e->faceno[nthface];
     f0 = &(surf->faces[faceno]);
+    // Compute the normal to the face if it does not exist
     if(!f0->norm) MRISfaceNormalFace(surf, faceno, NULL, NULL);
   }
   f0 = &(surf->faces[e->faceno[0]]);
   f1 = &(surf->faces[e->faceno[1]]);
   e->dot = DVectorDot(f0->norm,f1->norm);
+  if(e->dot > 1.0)  e->dot = +1.0; // might be a slight overflow
+  if(e->dot < -1.0) e->dot = -1.0; // might be a slight overflow
   e->angle = acos(e->dot)*180/M_PI;
   return(0);
 }
@@ -1273,4 +1276,721 @@ double MRISedgeCost(MRIS *surf, DMATRIX *gradCost)
     DMatrixScalarMul(gradCost,1.0/surf->nedges,gradCost);
 
   return(cost);
+}
+
+/*!
+  \fn long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **pgradv0, DMATRIX **pgradv1)
+  \brief Compute the cost and cost gradient of the given edge assuming
+  its desired length is L0.  This is a spring cost with a
+  (potentially) non-zero resting length of L0. If *pgradv{0,1} is
+  non-NULL, then the gradient of the cost with respect to a change in
+  vertex{0,1} position is computed. *pgradvX should be a 3x1 DMATRIX.
+ */
+long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **pgradv0, DMATRIX **pgradv1)
+{
+  long double cost, dL, a;
+  MRI_EDGE *e;
+  VERTEX *v0, *v1;
+
+  e = &(surf->edges[edgeno]);
+
+  // diff between the actual and desired edge length
+  dL = e->len - L0; 
+  cost = dL*dL;
+  if(*pgradv0==NULL && *pgradv1==NULL) return(cost); // done
+
+  // Compute the gradient of the cost wrt the vertex position
+  a = 2.0*dL/e->len; // compute constant for speed
+
+  v0 = &(surf->vertices[e->vtxno[0]]);
+  v1 = &(surf->vertices[e->vtxno[1]]);
+
+  if(*pgradv0){
+    // change in the cost wrt a change in vertex0 position
+    (*pgradv0)->rptr[1][1] = a*(v0->x - v1->x);
+    (*pgradv0)->rptr[2][1] = a*(v0->y - v1->y);
+    (*pgradv0)->rptr[3][1] = a*(v0->z - v1->z);
+  }
+
+  if(*pgradv1){
+    // change in the cost wrt a change in vertex1 position
+    (*pgradv1)->rptr[1][1] = a*(v1->x - v0->x);
+    (*pgradv1)->rptr[2][1] = a*(v1->y - v0->y);
+    (*pgradv1)->rptr[3][1] = a*(v1->z - v0->z);
+  }
+
+  return(cost);
+}
+
+/*!
+  \fn double MRISedgeLengthCost(MRIS *surf, double L0, int DoGrad)
+  \brief Compute the total edge length cost over all edges assuming
+  the desired length of each edge is L0. This is a spring cost with a
+  (potentially) non-zero resting length of L0. If DoGrad==1, then the
+  gradient of the total cost wrt each vertex position is computed and
+  stored in v->t{xyz}. If weight>0, then the total cost and gradients
+  are multiplied by weight and the gradients are stored in
+  v->d{xyz}. The total cost and gradients are normalized by the number
+  of edges.
+*/
+double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
+{
+  int eno, vno, nhits;
+  long double totcost,ecost;
+  DMATRIX *gradv0=NULL, *gradv1=NULL;
+  MRI_EDGE *e;
+  VERTEX *v;
+  double *tx,*ty,*tz;
+
+  if(DoGrad){
+    gradv0 = DMatrixAlloc(3,1,MATRIX_REAL);
+    gradv1 = DMatrixAlloc(3,1,MATRIX_REAL);
+    tx = (double*)calloc(sizeof(double),surf->nvertices);
+    ty = (double*)calloc(sizeof(double),surf->nvertices);
+    tz = (double*)calloc(sizeof(double),surf->nvertices);
+  }
+
+  totcost = 0;
+  nhits = 0;
+  for(eno = 0; eno < surf->nedges; eno++){
+    e = &(surf->edges[eno]);
+    // Skip this edge if either vertex is ripped
+    v = &(surf->vertices[e->vtxno[0]]);
+    if (v->ripflag)  continue;
+    v = &(surf->vertices[e->vtxno[1]]);
+    if (v->ripflag)  continue;
+
+    nhits++;
+    ecost = MRISedgeLengthCostEdge(surf, eno, L0, &gradv0, &gradv1);
+    totcost += ecost;
+    if(!DoGrad) continue;
+    tx[e->vtxno[0]] += gradv0->rptr[1][1];
+    ty[e->vtxno[0]] += gradv0->rptr[2][1];
+    tz[e->vtxno[0]] += gradv0->rptr[3][1];
+    tx[e->vtxno[1]] += gradv1->rptr[1][1];
+    ty[e->vtxno[1]] += gradv1->rptr[2][1];
+    tz[e->vtxno[1]] += gradv1->rptr[3][1];
+  }
+  // normalize to the number of edges
+  totcost /= nhits;
+  if(weight > 0) totcost *= weight;
+
+  if(DoGrad){
+    double a = weight/nhits;
+    for(vno = 0; vno < surf->nvertices; vno++){
+      v = &(surf->vertices[vno]);
+      if (v->ripflag)  continue;
+      if(weight > 0.0){
+	// This is for when called from the surface placement optimizer
+	v->dx += -a*tx[vno];
+	v->dy += -a*ty[vno];
+	v->dz += -a*tz[vno];
+      }
+      else {
+	v->tx = tx[vno]/nhits;
+	v->ty = ty[vno]/nhits;
+	v->tz = tz[vno]/nhits;
+      }
+    }
+    DMatrixFree(&gradv0);
+    DMatrixFree(&gradv1);
+    free(tx);
+    free(ty);
+    free(tz);
+  }
+
+  return(totcost);
+}
+
+/*!
+  \fn int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
+  \brief Tests the theoretical gradient calculation by comparing it to
+  an emperical value esimated by changing a vertex position by delta,
+  recomputing the cost, and dividing the cost difference by
+  delta. This is done for x, y, and z. The angle between the
+  theoretical and emperical gradients are then computed.  An "error"
+  is generated when this angle is greather than delta. The number of
+  errors is returned.  At this point, I expect that differences
+  between the theoretical and emperical are due to errors in the
+  emperical.  In principle, one should be able to reduce these error
+  to arbitrary amounts by making delta very small, but there are
+  limits due to the floating point precision used in the surface
+  structure. In theory, this would only need to be rerun if the
+  underlying code is changed (ie, it should not matter what the
+  surface is). Modifies vertex t{xyz} (theoretical gradients), t2{xyz}
+  (emperical gradients), and val2bak (angle).
+ */
+int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
+{
+  int vno, k, nerrs, vmpeak0, vmpeak1;
+  long double cost0, cost, dcost[3], expdcost[3], d2sum, expd2sum;
+  double dot, angle, angleavg, anglemax, expdcostnorm[3], dcostnorm[3];
+  double x,y,z, meanlen;
+  VERTEX *v0;
+  int edgeno;
+
+  // Set up the surface
+  MRISedges(surf);
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf);
+
+  meanlen = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    meanlen += surf->edges[edgeno].len;
+  }
+  meanlen /= surf->nedges;
+
+  printf("Starting MRISedgeLengthCostTest()\n");
+  printf("delta = %g, thresh = %g, L0=%g\n",delta,thresh,L0);
+  printf("nvertices %d, nedges = %d, meanlen = %g\n",surf->nvertices,surf->nedges,meanlen);
+  if(L0 < 0){
+    printf("Setting L0 to mean length\n");
+    L0 = meanlen;
+  }
+
+  // Compute the cost with this configuration of vertices. Also
+  // compute the gradient at each vertex.
+  cost0 = MRISedgeLengthCost(surf, L0, 0, 1);
+  printf("cost0 = %Lf\n",cost0);
+
+  vmpeak0 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak0);
+
+  // Go thru each vertex
+  nerrs = 0;
+  anglemax = 0;
+  angleavg = 0;
+  for(vno = 0; vno < surf->nvertices; vno++){
+    v0 = &(surf->vertices[vno]);
+    // Expected (theoretical) gradient at this vertx
+    expdcost[0] = v0->tx;
+    expdcost[1] = v0->ty;
+    expdcost[2] = v0->tz;
+    // Get the original position so can restore
+    x = v0->x;
+    y = v0->y;
+    z = v0->z;
+    // perturb x, y, and z separately
+    expd2sum = 0;
+    d2sum = 0;
+    for(k=0; k < 3; k++){
+      if(k==0) v0->x += delta;
+      if(k==1) v0->y += delta;
+      if(k==2) v0->z += delta;
+      // This step is slow. Could just do the edges connected to this vertex, but
+      // probably should use the full function
+      MRISedgeMetric(surf);
+      // In theory, this could just be done just for the connected edges, but, again, 
+      // probably should use the full function
+      cost = MRISedgeLengthCost(surf, L0, 0, 0);
+      // Compute the emperical gradient
+      dcost[k] = (cost-cost0)/delta;
+      // Keep track of the sum^2 for dot product calc below
+      d2sum    += (dcost[k]*dcost[k]);
+      expd2sum += (expdcost[k]*expdcost[k]);
+      // restore for next cycle
+      v0->x = x;
+      v0->y = y;
+      v0->z = z;
+    } //k
+
+    // Store emperical gradient
+    v0->t2x = dcost[0];
+    v0->t2y = dcost[1];
+    v0->t2z = dcost[2];
+
+    // Compute the dot product between the theoretical and emperical gradients
+    dot = 0;
+    for(k=0; k < 3; k++){
+      expdcostnorm[k] = expdcost[k]/sqrt(expd2sum);
+      dcostnorm[k]    = dcost[k]/sqrt(d2sum);
+      dot += (expdcostnorm[k]*dcostnorm[k]);
+    }
+    if(dot > +1.0) dot = +1.0; // might be a slight overflow
+    if(dot < -1.0) dot = -1.0; // might be a slight overflow
+    // Now compute the angle (ideally, this would be 0)
+    angle = acos(dot)*180/M_PI;
+    v0->val2bak = angle;
+    angleavg += angle;
+    if(anglemax < angle) anglemax = angle;
+    if(angle>thresh){
+      nerrs++;
+      printf("%5d %4d  %6.4f %6.4f    ",nerrs,vno,angle,anglemax);
+      for(k=0; k < 3; k++) printf("%14.9Lf  %14.9Lf   ",expdcost[k],dcost[k]);
+      printf("\n");
+      fflush(stdout);
+    }
+  }
+  angleavg /= surf->nvertices;
+
+  vmpeak1 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak1);
+  if(vmpeak1 > vmpeak0)  printf("WARNING: there might be a memory leak\n");
+  else                   printf("No memory leak detected\n");
+
+  printf("error rate %g, anglemax = %g, angleavg = %g\n",
+	 (double)nerrs/(3.0*surf->nvertices),anglemax,angleavg);
+  fflush(stdout);
+  return(nerrs);
+}
+
+/*!
+  \fn int MRISedgeMetric(MRIS *surf)
+  \brief Computes the edge metric for all edges.
+ */
+int MRISedgeMetric(MRIS *surf)
+{
+  int edgeno;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    MRISedgeMetricEdge(surf, edgeno);
+  }
+  return(0);
+}
+
+/*!
+  \fn long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
+  \brief Computes the total angle cost of all non-ripped vertices. If
+  DoGrad=1, then computes the gradient of the cost with respect to
+  each vertex and saves in v->t{xyz}. If weight>0, then the cost and
+  gradients are multipled by weight, and the negative of the weighted
+  gradient is added to v->d{xyz} to make it compatible with the
+  surface placement optimization code.
+ */
+long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
+{
+  int eno, wrtvtxno, vno, skip, nhits;
+  long double totcost,ecost;
+  DMATRIX *gradv=NULL;
+  MRI_EDGE *e;
+  VERTEX *v;
+  double *tx,*ty,*tz;
+
+  if(DoGrad){
+    gradv = DMatrixAlloc(1,3,MATRIX_REAL); // row vector
+    tx = (double*)calloc(sizeof(double),surf->nvertices);
+    ty = (double*)calloc(sizeof(double),surf->nvertices);
+    tz = (double*)calloc(sizeof(double),surf->nvertices);
+  }
+
+  nhits = 0;
+  totcost = 0;
+  for(eno = 0; eno < surf->nedges; eno++){
+    e = &(surf->edges[eno]);
+
+    skip = 0;
+    for(wrtvtxno = 0; wrtvtxno < 4; wrtvtxno++){
+      v = &(surf->vertices[e->vtxno[wrtvtxno]]);
+      if (v->ripflag) {
+	skip = 1;
+	break;
+      }
+    }
+    if(skip) continue;
+    nhits ++;
+
+    for(wrtvtxno = 0; wrtvtxno < 4; wrtvtxno++){
+      ecost = MRISedgeAngleCostEdgeVertex(surf, eno, wrtvtxno, &gradv);
+      // same cost each time, only count cost once. 
+      if(wrtvtxno == 0) totcost += ecost; 
+      if(!DoGrad) continue;
+      // gradv is a row vector
+      tx[e->vtxno[wrtvtxno]] += gradv->rptr[1][1];
+      ty[e->vtxno[wrtvtxno]] += gradv->rptr[1][2];
+      tz[e->vtxno[wrtvtxno]] += gradv->rptr[1][3];
+    }
+  }
+
+  // normalize to the number of edges
+  totcost /= nhits;
+  if(weight > 0) totcost *= weight;
+
+  if(DoGrad){
+    // Stuff gradients a
+    double a = 1.0/nhits;
+    if(weight > 0) a = weight/nhits;
+    for(vno = 0; vno < surf->nvertices; vno++){
+      v = &(surf->vertices[vno]);
+      if (v->ripflag)  continue;
+      if(weight > 0.0){
+	// This is for when called from the surface placement optimizer
+	v->dx += -a*tx[vno];
+	v->dy += -a*ty[vno];
+	v->dz += -a*tz[vno];
+      }
+      else {
+	v->tx = a*tx[vno];
+	v->ty = a*ty[vno];
+	v->tz = a*tz[vno];
+      }
+    }
+    DMatrixFree(&gradv);
+    free(tx);
+    free(ty);
+    free(tz);
+  }
+
+  return(totcost);
+}
+
+int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double magthresh)
+{
+  int vno, k, nerrs, vmpeak0, vmpeak1;
+  long double cost0, cost, dcost[3], expdcost[3], d2sum, expd2sum;
+  double dot, angle, angleavg, anglemax, expdcostnorm[3], dcostnorm[3];
+  double x,y,z, meanlen;
+  VERTEX *v0;
+  int edgeno;
+  double expmag, empmag, magerr, magerrmax;
+
+  printf("Starting MRISedgeAngleCostTest()\n");
+
+  // Set up the surface
+  MRISedges(surf);
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf);
+  MRISfaceNormalGrad(surf, 0);
+  MRISedgeGradDot(surf);
+
+  meanlen = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    meanlen += surf->edges[edgeno].len;
+  }
+  meanlen /= surf->nedges;
+
+  printf("delta = %g, anglethresh = %g, magthresh = %g\n",delta,anglethresh,magthresh);
+  printf("nvertices %d, nedges = %d, meanlen = %g\n",surf->nvertices,surf->nedges,meanlen);
+
+  // Compute the cost with this configuration of vertices. Also
+  // compute the gradient at each vertex.
+  cost0 =  MRISedgeAngleCost(surf, 0, 1);
+  printf("cost0 = %Lf\n",cost0);
+
+  vmpeak0 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak0);
+
+  // Go thru each vertex
+  nerrs = 0;
+  magerrmax = 0;
+  anglemax = 0;
+  angleavg = 0;
+  for(vno = 0; vno < surf->nvertices; vno++){
+    v0 = &(surf->vertices[vno]);
+    // Expected (theoretical) gradient at this vertx
+    expdcost[0] = v0->tx;
+    expdcost[1] = v0->ty;
+    expdcost[2] = v0->tz;
+    // Get the original position so can restore
+    x = v0->x;
+    y = v0->y;
+    z = v0->z;
+    // perturb x, y, and z separately
+    expd2sum = 0;
+    d2sum = 0;
+    for(k=0; k < 3; k++){
+      if(k==0) v0->x += delta;
+      if(k==1) v0->y += delta;
+      if(k==2) v0->z += delta;
+      // This step is slow. Could just do the edges connected to this vertex, but
+      // probably should use the full function
+      MRIScomputeMetricProperties(surf);
+      MRISedgeMetric(surf);
+      MRISfaceNormalGrad(surf, 0);
+      MRISedgeGradDot(surf);
+      // In theory, this could just be done just for the connected edges, but, again, 
+      // probably should use the full function
+      cost = MRISedgeAngleCost(surf, 0, 0);
+      // Compute the emperical gradient
+      dcost[k] = (cost-cost0)/delta;
+      // Keep track of the sum^2 for dot product calc below
+      d2sum    += (dcost[k]*dcost[k]);
+      expd2sum += (expdcost[k]*expdcost[k]);
+      // restore for next cycle
+      v0->x = x;
+      v0->y = y;
+      v0->z = z;
+    } //k
+
+    // Store emperical gradient in vertex t2{xyz}
+    v0->t2x = dcost[0];
+    v0->t2y = dcost[1];
+    v0->t2z = dcost[2];
+
+    // Compute the gradient magnitude
+    expmag = sqrt(expd2sum); // expected  magnitude
+    empmag = sqrt(d2sum);    // emperical magnitude
+    magerr = fabs(expmag-empmag)/(expmag+FLT_MIN);
+    if(magerrmax < magerr) magerrmax = magerr;
+
+    // Compute the dot product between the theoretical and emperical gradients
+    dot = 0;
+    for(k=0; k < 3; k++){
+      expdcostnorm[k] = expdcost[k]/expmag;
+      dcostnorm[k]    = dcost[k]/empmag;
+      dot += (expdcostnorm[k]*dcostnorm[k]);
+    }
+    if(dot > +1.0) dot = +1.0; // might be a slight overflow
+    if(dot < -1.0) dot = -1.0; // might be a slight overflow
+    // Now compute the angle (ideally, this would be 0)
+    angle = 180*acos(dot)/M_PI;
+    v0->val2bak = angle;
+    angleavg += angle;
+    if(anglemax < angle) anglemax = angle;
+    if(angle>anglethresh || magerr > magthresh){
+      nerrs++;
+      printf("%5d %4d  %6.4f %6.4f   %8.8f %8.8f %8.8f ",nerrs,vno,angle,anglemax,expmag,empmag,magerr);
+      for(k=0; k < 3; k++) printf("%14.9Lf ",expdcost[k]);
+      printf("  ");
+      for(k=0; k < 3; k++) printf("%14.9Lf ",dcost[k]);
+      printf("\n");
+      fflush(stdout);
+    }
+    //printf("d2sum = %20.19Lf, expd2sum = %20.19Lf\n",d2sum,expd2sum);
+
+  } // loop over vertices
+  angleavg /= surf->nvertices;
+
+  vmpeak1 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak1);
+  if(vmpeak1 > vmpeak0)  printf("WARNING: there might be a memory leak\n");
+  else                   printf("No memory leak detected\n");
+
+  printf("error rate %g, anglemax = %g, angleavg = %g, magerrmax = %g\n",
+	 (double)nerrs/(3.0*surf->nvertices),anglemax,angleavg,magerrmax);
+  fflush(stdout);
+  return(nerrs);
+}
+
+
+/*!
+  \fn long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **pgradv0, DMATRIX **pgradv1)
+  \brief Compute the cost and cost gradient of the given edge assuming
+  its desired length is L0.  This is a spring cost with a
+  (potentially) non-zero resting length of L0. If *pgradv{0,1} is
+  non-NULL, then the gradient of the cost with respect to a change in
+  vertex{0,1} position is computed. *pgradvX should be a 3x1 DMATRIX.
+ */
+long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *dc)
+{
+  long double cost, dx, dy, dz;
+  VERTEX *v;
+
+  v = &(surf->vertices[vno]);
+  dx = v->targx - v->x;
+  dy = v->targy - v->y;
+  dz = v->targz - v->z;
+
+  cost = dx*dx + dy*dy + dz*dz;
+  if(dc==NULL) return(cost); // done
+
+  // change in the cost wrt a change in vertex position
+  dc[0] = -2*dx;
+  dc[1] = -2*dy;
+  dc[2] = -2*dz;
+
+  return(cost);
+}
+
+/*!
+  \fn double MRISedgeLengthCost(MRIS *surf, double L0, int DoGrad)
+  \brief Compute the total edge length cost over all edges assuming
+  the desired length of each edge is L0. This is a spring cost with a
+  (potentially) non-zero resting length of L0. If DoGrad==1, then the
+  gradient of the total cost wrt each vertex position is computed and
+  stored in v->t{xyz}. If weight>0, then the total cost and gradients
+  are multiplied by weight and the gradients are stored in
+  v->d{xyz}. The total cost and gradients are normalized by the number
+  of edges.
+*/
+long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
+{
+  int vno, nhits;
+  long double totcost,vcost;
+  double *tx,*ty,*tz;
+
+  if(DoGrad){
+    tx = (double*)calloc(sizeof(double),surf->nvertices);
+    ty = (double*)calloc(sizeof(double),surf->nvertices);
+    tz = (double*)calloc(sizeof(double),surf->nvertices);
+  }
+
+  totcost = 0;
+  nhits = 0;
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits, totcost)
+  #endif
+  for(vno = 0; vno < surf->nvertices; vno++){
+    ROMP_PFLB_begin
+    VERTEX  *v;
+    v = &(surf->vertices[vno]);
+    if (v->ripflag)  continue;
+    nhits++;
+    long double dc[3];
+    vcost = MRIStargetCostVertex(surf, vno, &dc[0]);
+    totcost += vcost;
+    if(!DoGrad) continue;
+    // This is thread safe
+    tx[vno] = dc[0];
+    ty[vno] = dc[1];
+    tz[vno] = dc[2];
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+  // normalize to the number of vertices
+  totcost /= nhits;
+  if(weight > 0) totcost *= weight;
+
+  if(! DoGrad) return(totcost);
+
+  double a;
+  if(weight > 0) a = weight/nhits;
+  else           a = 1.0/nhits;
+
+
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
+  #endif
+  for(vno = 0; vno < surf->nvertices; vno++){
+    ROMP_PFLB_begin
+    VERTEX *v;
+    v = &(surf->vertices[vno]);
+    if (v->ripflag)  continue;
+    if(weight > 0.0){
+      // This is for when called from the surface placement optimizer
+      v->dx += -a*tx[vno];
+      v->dy += -a*ty[vno];
+      v->dz += -a*tz[vno];
+    }
+    else {
+      v->tx = a*tx[vno];
+      v->ty = a*ty[vno];
+      v->tz = a*tz[vno];
+    }
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+
+  free(tx);
+  free(ty);
+  free(tz);
+
+  return(totcost);
+}
+
+int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh, const double magthresh)
+{
+  int vno, k, nerrs, vmpeak0, vmpeak1;
+  long double cost0, cost, dcost[3], expdcost[3], d2sum, expd2sum;
+  double dot, angle, angleavg, anglemax, expdcostnorm[3], dcostnorm[3];
+  double x,y,z;
+  VERTEX *v0;
+  double expmag, empmag, magerr, magerrmax;
+
+  printf("Starting MRIStargetCostTest()\n");
+
+  // Set up the surface
+  MRISedges(surf);
+  MRIScomputeMetricProperties(surf);
+  printf("delta = %g, anglethresh = %g, magthresh = %g\n",delta,anglethresh,magthresh);
+  printf("nvertices %d, \n",surf->nvertices);
+
+  // Compute the cost with this configuration of vertices. Also
+  // compute the gradient at each vertex.
+  Timer timer;
+  cost0 =  MRIStargetCost(surf, 0, 1);
+  printf("cost0 = %Lf\n",cost0);
+  printf("cost computation time %9.6f sec\n",timer.seconds());
+
+  vmpeak0 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak0);
+
+  // Go thru each vertex
+  nerrs = 0;
+  magerrmax = 0;
+  anglemax = 0;
+  angleavg = 0;
+  for(vno = 0; vno < surf->nvertices; vno++){
+    v0 = &(surf->vertices[vno]);
+    // Expected (theoretical) gradient at this vertx
+    expdcost[0] = v0->tx;
+    expdcost[1] = v0->ty;
+    expdcost[2] = v0->tz;
+    // Get the original position so can restore
+    x = v0->x;
+    y = v0->y;
+    z = v0->z;
+    // perturb x, y, and z separately
+    expd2sum = 0;
+    d2sum = 0;
+    for(k=0; k < 3; k++){
+      if(k==0) v0->x += delta;
+      if(k==1) v0->y += delta;
+      if(k==2) v0->z += delta;
+      // This step is slow. Could just do the edges connected to this vertex, but
+      // probably should use the full function
+      MRIScomputeMetricProperties(surf);
+      // In theory, this could just be done just for the connected edges, but, again, 
+      // probably should use the full function
+      cost = MRIStargetCost(surf, 0, 0);
+      // Compute the emperical gradient
+      dcost[k] = (cost-cost0)/delta;
+      // Keep track of the sum^2 for dot product calc below
+      d2sum    += (dcost[k]*dcost[k]);
+      expd2sum += (expdcost[k]*expdcost[k]);
+      // restore for next cycle
+      v0->x = x;
+      v0->y = y;
+      v0->z = z;
+    } //k
+
+    // Store emperical gradient in vertex t2{xyz}
+    v0->t2x = dcost[0];
+    v0->t2y = dcost[1];
+    v0->t2z = dcost[2];
+
+    // Compute the gradient magnitude
+    expmag = sqrt(expd2sum); // expected  magnitude
+    empmag = sqrt(d2sum);    // emperical magnitude
+    magerr = fabs(expmag-empmag)/(expmag+FLT_MIN);
+    if(magerrmax < magerr) magerrmax = magerr;
+
+    // Compute the dot product between the theoretical and emperical gradients
+    dot = 0;
+    for(k=0; k < 3; k++){
+      expdcostnorm[k] = expdcost[k]/expmag;
+      dcostnorm[k]    = dcost[k]/empmag;
+      dot += (expdcostnorm[k]*dcostnorm[k]);
+    }
+    if(dot > 1.0)  dot = +1.0; // might be a slight overflow
+    if(dot < -1.0) dot = -1.0; // might be a slight overflow
+    // Now compute the angle (ideally, this would be 0)
+    angle = 180*acos(dot)/M_PI;
+    v0->val2bak = angle;
+    angleavg += angle;
+    if(anglemax < angle) anglemax = angle;
+    if(angle>anglethresh || magerr > magthresh){
+      nerrs++;
+      printf("%5d %4d  %6.4f %6.4f   %8.8f %8.8f %8.8f ",nerrs,vno,angle,anglemax,expmag,empmag,magerr);
+      for(k=0; k < 3; k++) printf("%14.9Lf ",expdcost[k]);
+      printf("  ");
+      for(k=0; k < 3; k++) printf("%14.9Lf ",dcost[k]);
+      printf("\n");
+      fflush(stdout);
+    }
+    //printf("d2sum = %20.19Lf, expd2sum = %20.19Lf\n",d2sum,expd2sum);
+
+  } // loop over vertices
+  angleavg /= surf->nvertices;
+
+  vmpeak1 = GetVmPeak();
+  printf("#VMPC# VmPeak  %d\n",vmpeak1);
+  if(vmpeak1 > vmpeak0)  printf("WARNING: there might be a memory leak\n");
+  else                   printf("No memory leak detected\n");
+
+  printf("error rate %g, anglemax = %g, angleavg = %g, magerrmax = %g\n",
+	 (double)nerrs/(3.0*surf->nvertices),anglemax,angleavg,magerrmax);
+  printf("Test time %4.1f sec\n",timer.seconds());
+  fflush(stdout);
+  return(nerrs);
 }
