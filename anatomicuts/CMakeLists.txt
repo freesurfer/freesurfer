@@ -64,7 +64,7 @@ if(VTK_FOUND)
   install(TARGETS dmri_extractSurfaceMeasurements DESTINATION bin)
 
 #dmri_coloredFA
-add_executable(dmri_coloredFA dmri_coloredFA.cxx ${TRACKIO})
+  add_executable(dmri_coloredFA dmri_coloredFA.cxx ${TRACKIO})
   target_link_libraries(dmri_coloredFA utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_coloredFA DESTINATION bin)
 
