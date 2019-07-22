@@ -133,7 +133,19 @@ int main(int narg, char* arg[])
 
 		//Create an output file for each mesh
 		string outputName; 
-		string filename = inputFiles[i].substr(inputFiles[i].find_last_of("/\\" + 1)); 
+		string filename = inputFiles[i].substr(inputFiles[i].find_last_of("/\\" + 1));
+	        outputName = string(output) + "/" + filename;
+
+		typedef PolylineMeshToVTKPolyDataFilter<ColorMeshType> VTKConverterType;
+                typename VTKConverterType::Pointer vtkConverter = VTKConverterType::New();
+                vtkConverter->SetInput(input);
+                vtkConverter->Update();
+
+                SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New();
+                trkReader->SetInput(vtkConverter->GetOutputPolyData());
+                trkReader->SetReferenceTrack(inputFiles[i]);
+                trkReader->VTKToTrk(outputName);
+	
 	}
 
 
