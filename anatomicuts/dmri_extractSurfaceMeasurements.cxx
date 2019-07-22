@@ -3,7 +3,8 @@
  * August 2019
  * dmri_extractSurfaceMeasurements.cxx
  *
- * Takes in a cluster and outputs metrics, specifically thickness and curvature, based on the endpoints of the connections and outputs it to an external CSV file
+ * This program is designed to take in a surface, two overlay files, one or multiple volume files, one or multiple streamline files, and an output directory.
+ * Based on the streamlines, output metrics will be placed into a CSV file with the name of the original file and include metrics such as curvature, thickness, and FA values.
  *
  * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
  * source $FREESURFER_HOME/SetUpFreeSurfer.sh
@@ -93,10 +94,10 @@ int main(int narg, char* arg[])
 
 	// Declaration of Variables for Program to Function
 	// TRK file Definitions
-	enum {Dimension =3};
+	enum {Dimension = 3};
 	typedef int PixelType;
 	const unsigned int PointDimension = 3;
-	typedef std::vector<int> PointDataType;
+	typedef vector<int> PointDataType;
 	const unsigned int MaxTopologicalDimension = 3;
 	typedef double CoordinateType;
 	typedef double InterpolationWeightType;
@@ -149,8 +150,7 @@ int main(int narg, char* arg[])
 		}
 	}
 
-	// Testing that files are saved and can be outputted
-	
+	// Testing that files are saved and can be outputted	
 	cerr << endl;
 	for (int i = 0; i < TRKFiles.size(); i++)
 		cerr << "TRK File " << i + 1 << ": " << TRKFiles.at(i) << endl;
@@ -290,7 +290,8 @@ int main(int narg, char* arg[])
 			// Finding the vertice number
 			vtkIdType ID1 = surfTree->FindClosestPoint(firstPt_array);
 			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);		
-
+			
+			// Outputting values to the file
 			oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
 			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv;
 			
@@ -392,27 +393,3 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
  * 1. Commented out some directories that were not recognized
  * 2. Copied directories from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
  */
-
-/*
- * Questions about the FA File Reading Code
- * 1. Line 27: This definition has a conflict with a previous definition that is described above (MeshType vs ColorMeshType) --> I think they are just names so I don't think it would matter
- * 2. Line 32: This definition has a conflict with something that is already made inside of another .h file, should i just rename and continue?
- * 3. Line 74: Is this the file that I pass in (AKA fa.nii.gz)
- * 4. Line 110 and 115: Why do you have two get lines that save to the same value?
- * 5. Line 140: What is the purpose of Avg Points?
- * 6. For my table, all I am doing is adding another column for FA values right? The program that I run on my computer automatically computes mean and std
- * 
- * 7. Line 79: Why don't you use the follow function?
- */
-
-/*
- * Things to Do
- * 1. Have a different CSV file for each TRK file --> DONE
- * 2. Find meanFA, avgFA, and stdFA for every streamline and output that to the CSV file --> DONE
- * 3. Find the mean, avg, and std for each of those columns (probably using python) and output it to the bottom --> TO BE DONE AT LATER DATE
- * 
- * 1. Have it to be able to take in multiple .nii.gz files (same way as the example)
- * 2. Change the output so each column of mean and stde has the name of the file as well
- * 3. Make sure the FA options is correctly being used throughout the code (using the boolean instead of always doing it)
- */
-
