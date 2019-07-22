@@ -3,7 +3,7 @@
  * dmri_coloredFA.cxx
  * July 2019
  *
- * Find the FA values of all the points in a streamline and assign colors to them
+ * Find the FA values of all the points in a streamline and assign colors to them, outputting versions of the inputted files with colored streamlines. 
  *
  */ 
 
@@ -94,7 +94,9 @@ int main(int narg, char* arg[])
         //Variable to take in input trk file
         meshes = clusterTools->PolydataToMesh(polydatas);
 
-	for (int i = 0; i < meshes.size(); i++)
+	vector<float> FA_values; 
+
+	for (int i = 0; i < meshes->size(); i++)
 	{
 		ColorMeshType::Pointer input = (*meshes)[i];
       		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
@@ -102,6 +104,9 @@ int main(int narg, char* arg[])
 
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	  	{
+			PointType start, end;
+                	start.Fill(0);
+
 			CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
                		input->GetPoint(*it, &start);
 
@@ -118,10 +123,15 @@ int main(int narg, char* arg[])
                 	       	//Find the first and last nonzero values based on the transformation of the point
                         	if (inputImage->TransformPhysicalPointToIndex(pt, index))
 				{
-					FAvalue = inputImage->GetPixel(index);
+					FA_value.push_back(inputImage->GetPixel(index));
 				}
 			}
+
+			//<vtkFloatArray>?
 		}
+
+
+		//Create an output file for each mesh
 	}
 
 
