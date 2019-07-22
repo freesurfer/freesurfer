@@ -94,7 +94,7 @@ int main(int narg, char* arg[])
         //Variable to take in input trk file
         meshes = clusterTools->PolydataToMesh(polydatas);
 
-	vector<float> FA_values; 
+	vector<float> FA_value; 
 
 	for (int i = 0; i < meshes->size(); i++)
 	{
@@ -132,6 +132,8 @@ int main(int narg, char* arg[])
 
 
 		//Create an output file for each mesh
+		string outputName; 
+		string filename = inputFiles[i].substr(inputFiles[i].find_last_of("/\\" + 1)); 
 	}
 
 
