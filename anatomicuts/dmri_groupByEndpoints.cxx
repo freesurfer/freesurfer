@@ -83,20 +83,13 @@ int main(int narg, char* arg[])
 
 	clusterTools->GetPolyDatas(inputFiles, &polydatas, inputImage); 
 
+	//Create a color table
 	typedef struct {
 		unsigned char r;
 		unsigned char g;
 		unsigned char b;
 	} color_triplet2;
 
-/*	using ImageType = Image<PixelType, Dimension>; 
-	using ReaderType = ImageFileReader<ImageType>; 
-
-	ReaderType::Pointer reader = ReaderType::New(); 
-
-	reader->SetFileName(image_file); 
-	reader->Update();
-*/
 	//Variable to read in the image file
 	typedef ImageFileReader<ImageType> ImageReaderType; 
 	ImageReaderType::Pointer reader = ImageReaderType::New(); 
@@ -105,7 +98,6 @@ int main(int narg, char* arg[])
 	inputImage = reader->GetOutput(); 
 
 	//Take in input trk file
-	//Add a for loop 
 	meshes = clusterTools->PolydataToMesh(polydatas); 
 	ColorMeshType::Pointer input = (*meshes)[0];
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
@@ -115,7 +107,9 @@ int main(int narg, char* arg[])
 
 	//Map of the region values to their corresponding meshes and other information
 	map<int, ColorMeshType::Pointer> sorted_meshes; 
+	//Holds the number of points for each mesh
 	map<int, int> pointIndices; 
+	//Holds the number of streamlines for each mesh
 	map<int, int> cellIndices; 
 
 	//Variables for testing
@@ -125,8 +119,6 @@ int main(int narg, char* arg[])
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-		//cerr << cellId << endl; 
-
 		PointType start, end; 
 		start.Fill(0); 
 		val1 = 0, val2 = 0; 
@@ -145,7 +137,7 @@ int main(int narg, char* arg[])
 			ImageType::IndexType index; 
 			int value = 0; 
 
-			//Find the first and last nonzero values
+			//Find the first and last nonzero values based on the transformation of the point
 			if (inputImage->TransformPhysicalPointToIndex(pt, index))
 			{
 				value = inputImage->GetPixel(index); 
@@ -170,6 +162,7 @@ int main(int narg, char* arg[])
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
+			//Print text for testing purposes
 			cout << cellId << endl; 
 			cout << "First point: " << start << " "; 
 			cout << "End point: " << end << endl; 
@@ -197,6 +190,8 @@ int main(int narg, char* arg[])
 			//Allocates and can release the cell's memory 
 			CellAutoPointer line;
 			line.TakeOwnership (new PolylineCellType);
+			
+			//Holds an index number for each unique point per streamline
 			int k = 0;
 			it = inputCellIt.Value()->PointIdsBegin();
 
@@ -207,15 +202,11 @@ int main(int narg, char* arg[])
 				input->GetPoint (*it, &pt);
 
 				target_mesh->SetPoint (pointIndices.at(val1), pt);
-
-				//Sets the point indicated by pointIndices to index k
 				line->SetPointId (k, pointIndices.at(val1));
 
 				k++;
 				pointIndices.at(val1)++;
 			}
-
-			//No inverted coordinates by this point?
 
 			if (cellIndices.count(val1) == 0)
 			{
@@ -230,8 +221,6 @@ int main(int narg, char* arg[])
 			cellIndices.at(val1)++;
 		}
 	}
-			
-	//The x and y coordinates are turning into their opposites???
 /*
 	//Check that the starting points in the map are correct, which they are
 	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
@@ -291,14 +280,14 @@ int main(int narg, char* arg[])
 		outputName = string(output) + "/" + filename; 
 
 		//cout << "Mesh name: " << outputName << endl; 
-		
+
+		//Assign the unique color to each mesh		
 		int index = ((int)47.*((i % sorted_meshes.size()) % (150))) % 197 + 5; 
 		index = (int)(13 * (i % sorted_meshes.size())) % 150 + 65; 
 
 		unsigned char color[3] = {table[index].r, table[index].g, table[index].b};
 	
 		//Create the output trk
-//		clusterTools->SaveMesh(iter->second, inputImage, outputName, inputFiles[0]);  
 		typedef PolylineMeshToVTKPolyDataFilter<ColorMeshType> VTKConverterType;
 		typename VTKConverterType::Pointer vtkConverter = VTKConverterType::New(); 
 		vtkConverter->SetInput(iter->second);
@@ -306,7 +295,6 @@ int main(int narg, char* arg[])
 
 		SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New(); 
 		trkReader->SetInput(vtkConverter->GetOutputPolyData()); 
-		//trkReader->SetReferenceImage(inputImage); 
 		trkReader->SetReferenceTrack(inputFiles[0]); 
 		trkReader->SetColor(color);
 		trkReader->VTKToTrk(outputName); 
@@ -329,11 +317,7 @@ int main(int narg, char* arg[])
 /* Questions:
  * -The x and y coordinates become inverted? 
  * -Need multiple trk files as inputs?
- *
  */
-
-//Check points before endpoint if endpoint gives value zero
-//What if starts at 0?
 
 /*
  * Ushaped fibers go into a TRK file
@@ -344,5 +328,4 @@ int main(int narg, char* arg[])
  * Then identify endpoints
  * Then check if in same region
  * if so, then output them to TRK file and into a folder
- *
  */
