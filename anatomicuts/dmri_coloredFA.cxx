@@ -26,6 +26,20 @@
 #include "PolylineMeshToVTKPolyDataFilter.h"
 #include "ClusterTools.h"
 
+#include <vtkVersion.h>
+#include <vtkSmartPointer.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkVertexGlyphFilter.h>
+#include <vtkProperty.h>
+
+// For compatibility with new VTK generic data arrays
+#ifdef vtkGenericDataArray_h
+#define InsertNextTupleValue InsertNextTypedTuple
+#endif
+
 using namespace std; 
 
 int main(int narg, char* arg[])
@@ -76,8 +90,10 @@ int main(int narg, char* arg[])
         typedef ColorMeshType::CellAutoPointer CellAutoPointer;
 
         vector<ColorMeshType::Pointer>* meshes;
+	vector<ColorMeshType::Pointer>* colored_meshes; 
         vector<vtkSmartPointer<vtkPolyData>> polydatas;
-        ImageType::Pointer inputImage;
+        vector<vtkSmartPointer<vtkPolyData>> colored_polydatas;
+	ImageType::Pointer inputImage;
 
         typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
         ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
@@ -94,7 +110,22 @@ int main(int narg, char* arg[])
         //Variable to take in input trk file
         meshes = clusterTools->PolydataToMesh(polydatas);
 
+	//Values and color association
 	vector<float> FA_value; 
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New(); 
+	vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New(); 
+	vtkSmartPointer<vtkVertexGlyphFilter> vertexFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New(); 
+	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New(); 
+	vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New(); 
+
+			//Test colors
+			unsigned char red[3] = {255, 0, 0}; 
+			unsigned char green[3] = {0, 255, 0}; 
+			unsigned char blue[3] = {0, 0, 255}; 
+
+			colors->SetNumberOfComponents(3); 
+			colors->SetName("Colors"); 
+	
 
 	for (int i = 0; i < meshes->size(); i++)
 	{
@@ -118,30 +149,61 @@ int main(int narg, char* arg[])
         	                input->GetPoint(*it, &pt);
 
                 	        ImageType::IndexType index;
-                	        int FAvalue = 0;
+                	        //int FAvalue = 0;
 
                 	       	//Find the first and last nonzero values based on the transformation of the point
                         	if (inputImage->TransformPhysicalPointToIndex(pt, index))
 				{
 					FA_value.push_back(inputImage->GetPixel(index));
-				}
+					points->InsertNextPoint(index[0], index[1], index[2]); 
+					
+					//Test color
+					colors->InsertNextTupleValue(red); 
+				}	
 			}
 
-			//<vtkFloatArray>?
 		}
 
+			pointsPolyData->SetPoints(points); 
 
+			vertexFilter->SetInputConnection(pointsPolyData->GetProducerPort()); 
+			//Not a valid function?
+			//vertexFilter->SetInputData(pointsPolyData); 
+			vertexFilter->Update();
+
+			polydata->ShallowCopy(vertexFilter->GetOutput()); 	
+
+			polydata->GetPointData()->SetScalars(colors); 
+
+			colored_polydatas.push_back(polydata); 
+
+			//Not valid either
+			//typename MeshConverterType::Pointer converter = MeshConverterType::New(); 
+			//converter->SetVTKPolyData(polydata[i]); 
+			//converter->GenerateData2(); 
+
+			//typename ColorMeshType::Pointer outMesh = converter->GetOutput(); 
+
+			//<vtkFloatArray>?
+	}
+
+	//FIX OUTPUT SO THE MODIFIED MESHES ARE PRINTED
+	colored_meshes = clusterTools->PolydataToMesh(colored_polydatas);
+	for (int i = 0; i < colored_meshes.size(); i++)
+	{
 		//Create an output file for each mesh
-		string outputName; 
-		string filename = inputFiles[i].substr(inputFiles[i].find_last_of("/\\" + 1));
-	        outputName = string(output) + "/" + filename;
+		string outputName;
+		string filename = "streamlines.trk"; 
+		outputName = string(output) + "/" + filename;
+	
+		cerr << outputName << endl; 
 
 		typedef PolylineMeshToVTKPolyDataFilter<ColorMeshType> VTKConverterType;
-                typename VTKConverterType::Pointer vtkConverter = VTKConverterType::New();
-                vtkConverter->SetInput(input);
-                vtkConverter->Update();
-
-                SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New();
+		typename VTKConverterType::Pointer vtkConverter = VTKConverterType::New();
+		vtkConverter->SetInput(colored_meshes[i]);
+		vtkConverter->Update();
+                
+		SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New();
                 trkReader->SetInput(vtkConverter->GetOutputPolyData());
                 trkReader->SetReferenceTrack(inputFiles[i]);
                 trkReader->VTKToTrk(outputName);
