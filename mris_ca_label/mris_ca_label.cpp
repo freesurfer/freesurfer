@@ -68,6 +68,7 @@ static int nbrs = 2 ;
 static int filter = 10 ;
 static char *orig_name = "smoothwm" ;
 static MRI  *mri_aseg ;
+static char *surf_dir = "surf" ;
 
 #if 0
 static int normalize_flag = 0 ;
@@ -152,7 +153,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
               Progname, argv[4]) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,orig_name);
+  sprintf(fname, "%s/%s/%s/%s.%s", subjects_dir,subject_name,surf_dir,hemi,orig_name);
   if (DIAG_VERBOSE_ON)
   {
     printf("reading surface from %s...\n", fname) ;
@@ -434,6 +435,12 @@ get_option(int argc, char *argv[])
       ErrorExit(ERROR_BADFILE, "%s: could not open %s", Progname, argv[2]);
     }
     printf("using %s aseg volume to correct midline\n", argv[2]) ;
+  }
+  else if (!stricmp(option, "surf_dir"))
+  {
+    surf_dir = argv[2] ;
+    nargs = 1 ;
+    printf("using %s instead of surf for subdirectory search\n", argv[2]) ;
   }
   else if (!stricmp(option, "MINAREA"))
   {
