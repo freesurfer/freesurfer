@@ -38,7 +38,7 @@ int main(int narg, char* arg[])
 	if (c1.size() == 1 || c1.search(2, "--help", "-h"))
 	{
 		cout << "Usage: " << endl; 
-		cout << arg[0] << " -s streamlines -i imageFile -d outputDirectory" << endl;
+		cout << arg[0] << " -s streamlineFile -i imageFile -d outputDirectory" << endl;
 		return -1; 
 	}
 
@@ -163,13 +163,13 @@ int main(int narg, char* arg[])
 		if (val1 != 0 and val1 == val2)
 		{
 			//Print text for testing purposes
-			cout << cellId << endl; 
-			cout << "First point: " << start << " "; 
-			cout << "End point: " << end << endl; 
-			cout << "Start and ends match: " << " "; 
-			cout << index1 << " = " << val1 << ", "; 
-			cout << index2 << " = " << val2 << endl;  
-			stream_count++;
+			//cout << cellId << endl; 
+			//cout << "First point: " << start << " "; 
+			//cout << "End point: " << end << endl; 
+			//cout << "Start and ends match: " << " "; 
+			//cout << index1 << " = " << val1 << ", "; 
+			//cout << index2 << " = " << val2 << endl;  
+			//stream_count++;
 
 			//Obtain the mesh and related information associated with the value
 			if (sorted_meshes.count(val1) == 0)
@@ -302,7 +302,7 @@ int main(int narg, char* arg[])
 		i++;
 	}
 
-	cerr << "Total of " << stream_count << " streamlines" << endl; 
+	//cerr << "Total of " << stream_count << " streamlines" << endl; 
 
 	//Clear associated memory
 	delete meshes;
