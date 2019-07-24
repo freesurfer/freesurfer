@@ -86,8 +86,9 @@ int main(int narg, char* arg[])
 	if ((num1.size() <= 6) or (num1.search(2, "--help", "-h")))
 	{
 		cerr << "Usage: " << endl
-		     << arg[0] << " -i streamlineFile.trk -s surfaceFile.orig -t overlayFile.thickness -c overlayFile.curv -o outputDirectory"
-		     << endl << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
+		     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -tl overlayFile_lh.thickness -cl overlayFile_lh.curv" << endl
+		     << "-sr surfaceFile_rh.orig -tr overlayFile_rh.thickness -cr overlayFile_rh.curv -o outputDirectory"<< endl 
+		     << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
 
 		return EXIT_FAILURE;
 	}
@@ -124,17 +125,26 @@ int main(int narg, char* arg[])
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
 		TRKFiles.push_back(inputName);
 
-	const char *surfaceFile = num1.follow("rh.orig", "-s");
-	const char *thickFile   = num1.follow("rh.thickness", "-t");
-	const char *curvFile    = num1.follow("rh.curv", "-c");
-	const char *outputDir   = num1.follow("/home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK", "-o");
+	// Left Hemisphere
+	const char *surfaceFileL = num1.follow("lh.orig", "-sl");
+	const char *thickFileL   = num1.follow("lh.thickness", "-tl");
+	const char *curvFileL    = num1.follow("lh.curv", "-cl");
+	
+	// Right Hemisphere
+	const char *surfaceFileR = num1.follow("rh.orig", "-sr");
+	const char *thickFileR   = num1.follow("rh.thickness", "-tr");
+	const char *curvFileR    = num1.follow("rh.curv", "-cr");
+	
+	const char *outputDir    = num1.follow("measures", "-o");
+	
+	// Reading in FA file
 	vector<ImageType::Pointer> volumes;
 	vector<string> image_fileNames;
-
-	// Reading in FA file
+	
 	int numFiles = num1.follow(0, "-fa");
 	bool FA_FOUND = num1.search("-fa");
 	num1.next("");
+	
 	if (FA_FOUND and numFiles > 0) 
 	{
 		for (int i = 0; i < numFiles; i++)
@@ -155,7 +165,9 @@ int main(int narg, char* arg[])
 	for (int i = 0; i < TRKFiles.size(); i++)
 		cerr << "TRK File " << i + 1 << ": " << TRKFiles.at(i) << endl;
 
-	cerr << "Surface:    " << surfaceFile << endl << "Thickness:  " << thickFile << endl << "Curvature:  " << curvFile << endl << "Output:     " << outputDir << endl;
+	cerr << "Left Surface:     " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
+	     << "Right Surface:    " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Thickness: " << curvFileR << endl
+	     << "Output:     " << outputDir << endl;
 
 	if (FA_FOUND)
 	{	
@@ -174,35 +186,65 @@ int main(int narg, char* arg[])
 	meshes = clusterTools->PolydataToMesh(polydatas);
 	
 	//Reading in surface from file
-	//For Curvature
-	MRI_SURFACE *surf;
-        surf = MRISread(surfaceFile);
+	//For Left Curvature
+	MRI_SURFACE *surfCL;
+        surfCL = MRISread(surfaceFileL);
 	
-	SurfType::Pointer surface =  SurfType::New();
-	surface->Load(&*surf);
+	SurfType::Pointer surfaceCL = SurfType::New();
+	surfaceCL->Load(&*surfCL);
 	
-	surf = surface->GetFSSurface(&*surf);
+	surfCL = surfaceCL->GetFSSurface(&*surfCL);
 
-	MRISreadCurvature(surf, curvFile);	
+	MRISreadCurvature(surfCL, curvFileL);	
 
-	//For Thickness
-	MRI_SURFACE *surf_t;
-	surf_t = MRISread(surfaceFile);
+	//For Left Thickness
+	MRI_SURFACE *surfTL;
+	surfTL = MRISread(surfaceFileL);
 
-	SurfType::Pointer surface_t = SurfType::New();
-	surface_t->Load(&*surf_t);
+	SurfType::Pointer surfaceTL = SurfType::New();
+	surfaceTL->Load(&*surfTL);
 
-	surf_t = surface_t->GetFSSurface(&*surf_t);
+	surfTL = surfaceTL->GetFSSurface(&*surfTL);
 
-	MRISreadCurvature(surf_t, thickFile);
+	MRISreadCurvature(surfTL, thickFileL);
+
+	//For Right Curvature
+	MRI_SURFACE *surfCR;
+	surfCR = MRISread(surfaceFileR);
+
+	SurfType::Pointer surfaceCR = SurfType::New();
+	surfaceCR->Load(&*surfCR);
+
+	surfCR = surfaceCR->GetFSSurface(&*surfCR);
+
+	MRISreadCurvature(surfCR, curvFileR);
+
+	//For Right Thickness
+	MRI_SURFACE *surfTR;
+	surfTR = MRISread(surfaceFileR);
+
+	SurfType::Pointer surfaceTR = SurfType::New();
+	surfaceTR->Load(&*surfTR);
+
+	surfTR = surfaceTR->GetFSSurface(&*surfTR);
+
+	MRISreadCurvature(surfTR, curvFileR);
 
 	// Initializing the KdTree
-	vtkSmartPointer<vtkPolyData> surfVTK = FSToVTK(surf);
+	// LEFT
+	vtkSmartPointer<vtkPolyData> surfVTK_L = FSToVTK(surfCL);
 	
-	vtkSmartPointer<vtkKdTreePointLocator> surfTree = vtkSmartPointer<vtkKdTreePointLocator>::New();
-	surfTree->SetDataSet(surfVTK);
-	surfTree->BuildLocator();	
+	vtkSmartPointer<vtkKdTreePointLocator> surfTreeL = vtkSmartPointer<vtkKdTreePointLocator>::New();
+	surfTreeL->SetDataSet(surfVTK_L);
+	surfTreeL->BuildLocator();	
 	
+	// RIGHT
+	vtkSmartPointer<vtkPolyData> surfVTK_R = FSToVTK(surfCR);
+
+	vtkSmartPointer<vtkKdTreePointerLocator> surfTreeR = vtkSmartPointer<vtkKdTreePointerLocator>::New();
+	surfTreeR->SetDataSet(surfVTK_R);
+	surfTreeR->BuildLocator();	
+
 	PointType firstPt, lastPt;	// The first and last point of a stream
 	firstPt.Fill(0);
 	lastPt.Fill(0);
@@ -288,12 +330,48 @@ int main(int narg, char* arg[])
 			}
 
 			// Finding the vertice number
-			vtkIdType ID1 = surfTree->FindClosestPoint(firstPt_array);
-			vtkIdType ID2 = surfTree->FindClosestPoint(lastPt_array);		
+			double distL, distR;
+			vtkIdType Left_ID1  = surfTreeL->FindClosestPointWithinRadius(1000, firstPt_array, distL);
+			vtkIdType Right_ID1 = surfTreeR->FindClosestPointWithinRadius(1000, firstPt_array, distR);		
 			
+			vtkIdType ID1;
+			if (distL < distR)
+				ID1 = Left_ID1;
+			else
+				ID1 = Right_ID1;
+
+			vtkIdType Left_ID2  = surfTreeL->FindClosestPointWithinRadius(1000, lastPt_array, distL);
+			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(1000, lastPt_array, distR);		
+			
+			// Comparing the last points distance from the left hemisphere to right hemisphere
+			vtkIdType ID2;
+			if (distL < distR)
+				ID2 = Left_ID2;
+			else
+				ID2 = Right_ID2;
+
 			// Outputting values to the file
-			oFile << "StreamLine " << counter << "," << surf->vertices[ID1].curv << "," << surf->vertices[ID2].curv << ","
-			      << surf_t->vertices[ID1].curv << "," << surf_t->vertices[ID2].curv;
+			oFile << "StreamLine " << counter << ",";
+
+			if (ID1 = Left_ID1)
+				oFile << surfCL->vertices[ID1].curv << ",";
+			else
+				oFile << surfCR->vertices[ID1].curv << ",";
+
+			if (ID2 = Left_ID2)
+				oFile << surfCL->vertices[ID2].curv << ",";
+			else
+				oFile << surfCR->vertices[ID2].curv << ",";
+			      
+			if (ID1 = Left_ID1)
+				oFile << surfTL->vertices[ID1].curv << ","; 
+			else
+				oFile << surfTR->vertices[ID1].curv << ",";
+
+			if (ID2 = Left_ID2)
+				oFile << surfTL->vertices[ID2].curv << ",";
+			else
+				oFile << surfTR->vertices[ID2].curv;
 			
 			if (FA_FOUND)
 			{
