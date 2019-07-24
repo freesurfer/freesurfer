@@ -249,8 +249,6 @@ int main(int narg, char* arg[])
 		string filename = str + ".trk"; 
 		outputName = string(output) + "/" + filename; 
 
-		//cout << "Mesh name: " << outputName << endl; 
-
 		//Assign the unique color to each mesh		
 		int index = ((int)47.*((i % sorted_meshes.size()) % (150))) % 197 + 5; 
 		index = (int)(13 * (i % sorted_meshes.size())) % 150 + 65; 
