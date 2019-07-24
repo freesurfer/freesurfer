@@ -263,9 +263,11 @@ function Measures()
 		mkdir -p ${anatomicuts}/measures/
 
 		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/DKI/dki_RD.nii.gz ]] ;
-		then 
+		then 	
+			#DKI
 			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 7 FA ${diff}/DKI/dki_FA.nii   MD ${diff}/DKI/dki_MD.nii   RD ${diff}/DKI/dki_RD.nii   AD ${diff}/DKI/dki_AD.nii   MK ${diff}/DKI/dki_MK.nii   RK ${diff}/DKI/dki_RK.nii   AK ${diff}/DKI/dki_AK.nii   -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		else
+			#DTI
 			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 4 FA ${diff}/DTI/dti_FA.nii.gz   MD ${diff}/DTI/dti_MD.nii   RD ${diff}/DTI/dti_RD.nii   AD ${diff}/DTI/dti_AD.nii  -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		fi
 
