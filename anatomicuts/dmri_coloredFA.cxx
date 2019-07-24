@@ -90,9 +90,9 @@ int main(int narg, char* arg[])
         typedef ColorMeshType::CellAutoPointer CellAutoPointer;
 
         vector<ColorMeshType::Pointer>* meshes;
-	vector<ColorMeshType::Pointer>* colored_meshes; 
+	//vector<ColorMeshType::Pointer>* colored_meshes; 
         vector<vtkSmartPointer<vtkPolyData>> polydatas;
-        vector<vtkSmartPointer<vtkPolyData>> colored_polydatas;
+        //vector<vtkSmartPointer<vtkPolyData>> colored_polydatas;
 	ImageType::Pointer inputImage;
 
         typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType;
@@ -112,10 +112,8 @@ int main(int narg, char* arg[])
 
 	//Values and color association
 	vector<float> FA_value; 
-	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New(); 
-	vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New(); 
-	vtkSmartPointer<vtkVertexGlyphFilter> vertexFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New(); 
-	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New(); 
+	//vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New(); 
+	//vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New(); 
 	vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New(); 
 
 			//Test colors
@@ -132,6 +130,7 @@ int main(int narg, char* arg[])
 		ColorMeshType::Pointer input = (*meshes)[i];
       		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 
+		vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New(); 
 
 		for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	  	{
@@ -161,52 +160,54 @@ int main(int narg, char* arg[])
 					colors->InsertNextTupleValue(red); 
 				}	
 			}
-
 		}
 
-			pointsPolyData->SetPoints(points); 
+			//pointsPolyData->SetPoints(points); 
+			polydatas[i]->SetPoints(points); 
 
-			vertexFilter->SetInputConnection(pointsPolyData->GetProducerPort()); 
-			//Not a valid function?
-			//vertexFilter->SetInputData(pointsPolyData); 
-			vertexFilter->Update();
+			polydatas[i]->GetPointData()->SetScalars(colors); 
 
-			polydata->ShallowCopy(vertexFilter->GetOutput()); 	
+			//delete points;  
 
-			polydata->GetPointData()->SetScalars(colors); 
-
-			colored_polydatas.push_back(polydata); 
-
-			//Not valid either
-			//typename MeshConverterType::Pointer converter = MeshConverterType::New(); 
-			//converter->SetVTKPolyData(polydata[i]); 
-			//converter->GenerateData2(); 
-
-			//typename ColorMeshType::Pointer outMesh = converter->GetOutput(); 
+			//colored_polydatas.push_back(polydata); 
 
 			//<vtkFloatArray>?
 	}
 
 	//FIX OUTPUT SO THE MODIFIED MESHES ARE PRINTED
-	colored_meshes = clusterTools->PolydataToMesh(colored_polydatas);
-	for (int i = 0; i < colored_meshes.size(); i++)
+	//colored_meshes = clusterTools->PolydataToMesh(colored_polydatas);
+	for (int i = 0; i < polydatas.size(); i++)
 	{
 		//Create an output file for each mesh
-		string outputName;
-		string filename = "streamlines.trk"; 
-		outputName = string(output) + "/" + filename;
-	
+		string outputName = string(output) + "/"; 
+
+		//string fileName; 
+		int place; 
+		for (int j = 0; j < inputFiles[i].length(); j++)
+		{
+			if (inputFiles[i][j] == '/')
+			{
+				place = j; 
+			}
+		}
+
+		for (int j = place + 1; j < inputFiles[i].length(); j++)
+		{
+			outputName += inputFiles[i][j]; 
+		}
+
 		cerr << outputName << endl; 
 
 		typedef PolylineMeshToVTKPolyDataFilter<ColorMeshType> VTKConverterType;
-		typename VTKConverterType::Pointer vtkConverter = VTKConverterType::New();
-		vtkConverter->SetInput(colored_meshes[i]);
-		vtkConverter->Update();
                 
 		SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New();
-                trkReader->SetInput(vtkConverter->GetOutputPolyData());
+		
+		//Input is the polydata
+		trkReader->SetInput(polydatas[i]);
                 trkReader->SetReferenceTrack(inputFiles[i]);
+	        //Seg fault here	
                 trkReader->VTKToTrk(outputName);
+		cerr << "2" << endl; 
 	
 	}
 
