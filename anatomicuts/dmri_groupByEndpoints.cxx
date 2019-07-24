@@ -112,10 +112,6 @@ int main(int narg, char* arg[])
 	//Holds the number of streamlines for each mesh
 	map<int, int> cellIndices; 
 
-	//Variables for testing
-	int stream_count = 0; 
-	ImageType::IndexType index1, index2; 
-
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
@@ -144,33 +140,19 @@ int main(int narg, char* arg[])
 				if (val1 == 0 and value != 0)
 				{
 					val1 = value; 
-					index1 = index; 
 				}
 				if (value != 0)
 				{
 					val2 = value; 
-					index2 = index;
 				        end = pt; 	
 				}
 			}
 
 		}  	
 		
-		//cerr << "First point: " << start << endl; 
-		//cerr << "Last point: " << end << endl; 
-
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
-			//Print text for testing purposes
-			//cout << cellId << endl; 
-			//cout << "First point: " << start << " "; 
-			//cout << "End point: " << end << endl; 
-			//cout << "Start and ends match: " << " "; 
-			//cout << index1 << " = " << val1 << ", "; 
-			//cout << index2 << " = " << val2 << endl;  
-			//stream_count++;
-
 			//Obtain the mesh and related information associated with the value
 			if (sorted_meshes.count(val1) == 0)
 			{
@@ -221,26 +203,7 @@ int main(int narg, char* arg[])
 			cellIndices.at(val1)++;
 		}
 	}
-/*
-	//Check that the starting points in the map are correct, which they are
-	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
-	{
-		ColorMeshType::Pointer meshh = iter->second; 
-		ColorMeshType::CellsContainer::Iterator test = meshh->GetCells()->Begin(); 
-	
-		for (; test != meshh->GetCells()->End(); test++)
-		{
-	//		cerr << iter->first << " "; 
 
-			PointType new_start; 
-			new_start.Fill(0);
-
-			CellType::PointIdIterator it = test.Value()->PointIdsBegin(); 
-			meshh->GetPoint(*it, &new_start); 
-	//		cerr << "Output's first point: " << new_start << endl; 
-		}
-	}
-*/
 	//Initiate the color table to give output meshes unique colors
 	int i;
 	int red, green, blue; 
@@ -268,15 +231,22 @@ int main(int narg, char* arg[])
 
 	i = 0; 
 
+	//Code to help extract the name of the structure based on the value
+	COLOR_TABLE *ct = NULL; 
+	FSENV *fsenv = FSENVgetenv(); 
+	char tmpstr[2000]; 
+	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME); 
+	ct = CTABreadASCII(tmpstr); 
+
 	//Print out the output trk file for each mesh with a unique key	
 	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
 	{
 		string outputName; 
 		
-		//Naming the trk file based on the index value of the start and end points' corresponding region
-		string number = to_string(iter->first); 
+		//Name the output trk file based on the structure name associated with its value
+		string str = string(ct->entries[iter->first]->name); 
 		
-		string filename = number + ".trk"; 
+		string filename = str + ".trk"; 
 		outputName = string(output) + "/" + filename; 
 
 		//cout << "Mesh name: " << outputName << endl; 
@@ -301,8 +271,6 @@ int main(int narg, char* arg[])
 
 		i++;
 	}
-
-	//cerr << "Total of " << stream_count << " streamlines" << endl; 
 
 	//Clear associated memory
 	delete meshes;
@@ -329,3 +297,12 @@ int main(int narg, char* arg[])
  * Then check if in same region
  * if so, then output them to TRK file and into a folder
  */
+//Print text for testing purposes
+//cout << cellId << endl; 
+//cout << "First point: " << start << " "; 
+//cout << "End point: " << end << endl; 
+//cout << "Start and ends match: " << " "; 
+//cout << index1 << " = " << val1 << ", "; 
+//cout << index2 << " = " << val2 << endl;  
+
+
