@@ -78,18 +78,6 @@ int main(int narg, char* arg[])
 	vector<vtkSmartPointer<vtkPolyData>> polydatas; 
 	ImageType::Pointer inputImage;  
 
-	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType; 
-	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New(); 
-
-	clusterTools->GetPolyDatas(inputFiles, &polydatas, inputImage); 
-
-	//Create a color table
-	typedef struct {
-		unsigned char r;
-		unsigned char g;
-		unsigned char b;
-	} color_triplet2;
-
 	//Variable to read in the image file
 	typedef ImageFileReader<ImageType> ImageReaderType; 
 	ImageReaderType::Pointer reader = ImageReaderType::New(); 
@@ -97,13 +85,19 @@ int main(int narg, char* arg[])
 	reader->Update(); 	
 	inputImage = reader->GetOutput(); 
 
+	//Create polydata
+	typedef ClusterTools<ColorMeshType, ImageType, HistogramMeshType> ClusterToolsType; 
+	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New(); 
+
+	clusterTools->GetPolyDatas(inputFiles, &polydatas, inputImage); 
+
 	//Take in input trk file
 	meshes = clusterTools->PolydataToMesh(polydatas); 
 	ColorMeshType::Pointer input = (*meshes)[0];
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
 	//Variables to hold the start and end values of a streamline
-	int val1, val2; 
+	float val1, val2; 
 
 	//Map of the region values to their corresponding meshes and other information
 	map<int, ColorMeshType::Pointer> sorted_meshes; 
@@ -112,16 +106,24 @@ int main(int narg, char* arg[])
 	//Holds the number of streamlines for each mesh
 	map<int, int> cellIndices; 
 
+	//Create a color table
+	typedef struct {
+		unsigned char r;
+		unsigned char g;
+		unsigned char b;
+	} color_triplet2;
+
+
+	//Testing variables
+	ImageType::IndexType index1, index2; 
+
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
-		PointType start, end; 
-		start.Fill(0); 
 		val1 = 0, val2 = 0; 
 
 		//Make a variable to iterate thru one stream at a time
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
-		input->GetPoint(*it, &start); 
 
 		//Goes through each point in a streamline
 		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
@@ -131,7 +133,7 @@ int main(int narg, char* arg[])
 			input->GetPoint(*it, &pt);
 	
 			ImageType::IndexType index; 
-			int value = 0; 
+			float value = 0; 
 
 			//Find the first and last nonzero values based on the transformation of the point
 			if (inputImage->TransformPhysicalPointToIndex(pt, index))
@@ -144,7 +146,6 @@ int main(int narg, char* arg[])
 				if (value != 0)
 				{
 					val2 = value; 
-				        end = pt; 	
 				}
 			}
 
@@ -158,11 +159,10 @@ int main(int narg, char* arg[])
 			{
 				ColorMeshType::Pointer om = ColorMeshType::New(); 
 				om->SetCellsAllocationMethod(ColorMeshType::CellsAllocatedDynamicallyCellByCell); 
-
 				sorted_meshes.insert(pair<int, ColorMeshType::Pointer> (val1, om)); 
 			} 
 			map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.find(val1); 
-			ColorMeshType::Pointer target_mesh = iter->second; 
+			//ColorMeshType::Pointer target_mesh = iter->second; 
 
 			if (pointIndices.count(val1) == 0)
 			{
@@ -175,15 +175,15 @@ int main(int narg, char* arg[])
 			
 			//Holds an index number for each unique point per streamline
 			int k = 0;
-			it = inputCellIt.Value()->PointIdsBegin();
+			CellType::PointIdIterator it2 = inputCellIt.Value()->PointIdsBegin();
 
 			//Copy over the points of the streamlines that are going to be outputted
-			for( ; it != inputCellIt.Value()->PointIdsEnd(); it++)
+			for( ; it2 != inputCellIt.Value()->PointIdsEnd(); it2++)
 			{
 				PointType pt;
-				input->GetPoint (*it, &pt);
+				input->GetPoint (*it2, &pt);
 
-				target_mesh->SetPoint (pointIndices.at(val1), pt);
+				sorted_meshes.at(val1)->SetPoint (pointIndices.at(val1), pt);
 				line->SetPointId (k, pointIndices.at(val1));
 
 				k++;
@@ -196,10 +196,10 @@ int main(int narg, char* arg[])
 			}
 
 			//Cell is inserted into the mesh
-			target_mesh->SetCell(cellIndices.at(val1), line);
+			sorted_meshes.at(val1)->SetCell(cellIndices.at(val1), line);
 			ColorMeshType::CellPixelType cellData;
 			input->GetCellData(cellId, &cellData);
-			target_mesh->SetCellData(cellIndices.at(val1), cellData) ;
+			sorted_meshes.at(val1)->SetCellData(cellIndices.at(val1), cellData) ;
 			cellIndices.at(val1)++;
 		}
 	}
@@ -232,7 +232,7 @@ int main(int narg, char* arg[])
 	i = 0; 
 
 	//Code to help extract the name of the structure based on the value
-	COLOR_TABLE *ct = NULL; 
+	COLOR_TABLE *ct; 
 	FSENV *fsenv = FSENVgetenv(); 
 	char tmpstr[2000]; 
 	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME); 
@@ -264,6 +264,7 @@ int main(int narg, char* arg[])
 		SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader = TrkVTKPolyDataFilter<ImageType>::New(); 
 		trkReader->SetInput(vtkConverter->GetOutputPolyData()); 
 		trkReader->SetReferenceTrack(inputFiles[0]); 
+		trkReader->SetReferenceImage(inputImage); 
 		trkReader->SetColor(color);
 		trkReader->VTKToTrk(outputName); 
 
