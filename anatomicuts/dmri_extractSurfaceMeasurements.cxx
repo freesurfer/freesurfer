@@ -257,7 +257,6 @@ int main(int narg, char* arg[])
 	ofstream oFile;
 
 	// Cycling through the TRK files
-	int counter = 1;
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
 		// Opening output file with a different name for every TRK File
@@ -282,6 +281,7 @@ int main(int narg, char* arg[])
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
 		// Cycling through the streams
+		int counter = 1;
 		for (; inputCellIt != input->GetCells()->End(); ++inputCellIt, ++counter)
 		{
 			vector<float> meanFA;
