@@ -279,29 +279,3 @@ int main(int narg, char* arg[])
 
 	return 0; 	
 }
-
-
-/* Questions:
- * -The x and y coordinates become inverted? 
- * -Need multiple trk files as inputs?
- */
-
-/*
- * Ushaped fibers go into a TRK file
- * Check endpoints and put into same region TRK file
- * If they connect two different structures, ignore
- *
- * First open/read files
- * Then identify endpoints
- * Then check if in same region
- * if so, then output them to TRK file and into a folder
- */
-//Print text for testing purposes
-//cout << cellId << endl; 
-//cout << "First point: " << start << " "; 
-//cout << "End point: " << end << endl; 
-//cout << "Start and ends match: " << " "; 
-//cout << index1 << " = " << val1 << ", "; 
-//cout << index2 << " = " << val2 << endl;  
-
-
