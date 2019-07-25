@@ -9,7 +9,9 @@
  * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
  * source $FREESURFER_HOME/SetUpFreeSurfer.sh
  *
- * ./dmri_extractSurfaceMeasurements -o /home/fsuser2/alex_zsikla/freesurfer/anatomicuts/output_TRK -c /home/fsuser2/Desktop/test/surf/lh.curv -s /home/fsuser2/Desktop/test/surf/lh.orig -t /home/fsuser2/Desktop/test/surf/lh.thickness -fa 2 FA /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz AD /home/fsuser2/Desktop/test/dsi_studio/ad.nii.gz -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk
+ * ./dmri_extractSurfaceMeasurements -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100011.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100010.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111011111.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111011110.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101010101.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101010100.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000110.trk
+ *
+ * ./dmri_extractSurfaceMeasurements -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100011.trk -cl /home/fsuser2/Desktop/test/surf/lh.curv -sl /home/fsuser2/Desktop/test/surf/lh.orig -tl /home/fsuser2/Desktop/test/surf/lh.thickness -cr /home/fsuser2/Desktop/test/surf/rh.curv -sr /home/fsuser2/Desktop/test/surf/rh.orig -tr /home/fsuser2/Desktop/test/surf/rh.thickness -o /home/fsuser2/Desktop/Output_trk -fa 2 FA /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz AD /home/fsuser2/Desktop/test/dsi_studio/ad.nii.gz 
  *
  */
 
@@ -163,16 +165,16 @@ int main(int narg, char* arg[])
 	// Testing that files are saved and can be outputted	
 	cerr << endl;
 	for (int i = 0; i < TRKFiles.size(); i++)
-		cerr << "TRK File " << i + 1 << ": " << TRKFiles.at(i) << endl;
+		cerr << "TRK File " << i + 1 << ":      " << TRKFiles.at(i) << endl;
 
-	cerr << "Left Surface:     " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
-	     << "Right Surface:    " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Thickness: " << curvFileR << endl
-	     << "Output:     " << outputDir << endl;
+	cerr << "Left Surface:    " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
+	     << "Right Surface:   " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Thickness: " << curvFileR << endl
+	     << "Output:          " << outputDir << endl;
 
 	if (FA_FOUND)
 	{	
 		for (int i = 0; i < image_fileNames.size(); i++)
-			cerr << "Image " << i + 1 << ":    " << image_fileNames.at(i) << endl;	
+			cerr << "Image " << i + 1 << ":         " << image_fileNames.at(i) << endl;	
 	}
 
 	// Variable Declaration
@@ -228,7 +230,7 @@ int main(int narg, char* arg[])
 
 	surfTR = surfaceTR->GetFSSurface(&*surfTR);
 
-	MRISreadCurvature(surfTR, curvFileR);
+	MRISreadCurvature(surfTR, thickFileR);
 
 	// Initializing the KdTree
 	// LEFT
@@ -241,7 +243,7 @@ int main(int narg, char* arg[])
 	// RIGHT
 	vtkSmartPointer<vtkPolyData> surfVTK_R = FSToVTK(surfCR);
 
-	vtkSmartPointer<vtkKdTreePointerLocator> surfTreeR = vtkSmartPointer<vtkKdTreePointerLocator>::New();
+	vtkSmartPointer<vtkKdTreePointLocator> surfTreeR = vtkSmartPointer<vtkKdTreePointLocator>::New();
 	surfTreeR->SetDataSet(surfVTK_R);
 	surfTreeR->BuildLocator();	
 
@@ -353,23 +355,23 @@ int main(int narg, char* arg[])
 			// Outputting values to the file
 			oFile << "StreamLine " << counter << ",";
 
-			if (ID1 = Left_ID1)
+			if (ID1 == Left_ID1)
 				oFile << surfCL->vertices[ID1].curv << ",";
 			else
 				oFile << surfCR->vertices[ID1].curv << ",";
 
-			if (ID2 = Left_ID2)
+			if (ID2 == Left_ID2)
 				oFile << surfCL->vertices[ID2].curv << ",";
 			else
 				oFile << surfCR->vertices[ID2].curv << ",";
 			      
-			if (ID1 = Left_ID1)
+			if (ID1 == Left_ID1)
 				oFile << surfTL->vertices[ID1].curv << ","; 
 			else
 				oFile << surfTR->vertices[ID1].curv << ",";
 
-			if (ID2 = Left_ID2)
-				oFile << surfTL->vertices[ID2].curv << ",";
+			if (ID2 == Left_ID2)
+				oFile << surfTL->vertices[ID2].curv;
 			else
 				oFile << surfTR->vertices[ID2].curv;
 			
