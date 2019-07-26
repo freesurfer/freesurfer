@@ -3992,9 +3992,9 @@ namespace SurfaceFromMRIS {
     void Vertex::set_v(size_t i, Vertex to) {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         cheapAssert(repr == to.repr); repr->vertices_topology[idx].v[i] = to.idx;
     }
-    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        repr->vertices_topology[idx].vnum = to;
-    }
+    //void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    //    repr->vertices_topology[idx].vnum = to;
+    //}
     void Vertex::set_v2num(short to) {  //  number of 1, or 2-hop neighbors                          
         repr->vertices_topology[idx].v2num = to;
     }
@@ -7912,9 +7912,9 @@ namespace SurfaceFromMRIS {
     void Vertex::set_v(size_t i, Vertex to) {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         cheapAssert(repr == to.repr); repr->vertices_topology[idx].v[i] = to.idx;
     }
-    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        repr->vertices_topology[idx].vnum = to;
-    }
+    //void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    //    repr->vertices_topology[idx].vnum = to;
+    //}
     void Vertex::set_v2num(short to) {  //  number of 1, or 2-hop neighbors                          
         repr->vertices_topology[idx].v2num = to;
     }

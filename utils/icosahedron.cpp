@@ -1760,7 +1760,7 @@ static MRIS *ICOtoScaledMRIS(ICOSAHEDRON const * const ico, int max_vertices, in
       f->v[n] = ico->faces[fno].vno[n] - 1; /* make it zero-based */
       VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[f->v[n]];
       vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
+      vnumAdd(mris,f->v[n],2); /* will remove duplicates later */
     }
   }
 
@@ -1768,7 +1768,7 @@ static MRIS *ICOtoScaledMRIS(ICOSAHEDRON const * const ico, int max_vertices, in
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
     vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
     if (!vt->v) ErrorExit(ERROR_NOMEMORY, "ICread: could not allocate %dth vertex list.", vno);
-    vt->vnum = 0;
+    clearVnum(mris,vno);
   }
 
   /* now build list of neighbors */
@@ -1791,7 +1791,7 @@ static MRIS *ICOtoScaledMRIS(ICOSAHEDRON const * const ico, int max_vertices, in
             break;
           }
         }
-        if (vn >= 0) vt->v[vt->vnum++] = vn;
+        if (vn >= 0) vt->v[vnumAdd(mris,f->v[n],1)] = vn;
       }
     }
   }

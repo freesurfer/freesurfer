@@ -2916,9 +2916,10 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     }
 
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
     vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
@@ -3605,9 +3606,10 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       i++;
     }
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
 
     vdstt->nsizeMax = 1;
@@ -4506,7 +4508,7 @@ MRIS *MRISsortVertices(MRIS *mris0)
     vtxnew->x = vtxold->x;
     vtxnew->y = vtxold->y;
     vtxnew->z = vtxold->z;
-    vtxtnew->vnum = vtxtold->vnum; // number of neighboring vertices
+    modVnum(mris,nthvtx,vtxtold->vnum,true); // number of neighboring vertices
     // Now copy the neighbors
     if(vtxtnew->v) free(vtxtnew->v);
     vtxtnew->v = (int *)calloc(vtxtnew->vnum, sizeof(int));
