@@ -28,9 +28,13 @@ code_location="/space/vault/7/users/vsiless/alex/Code/freesurfer/anatomicuts"
 measures="$1/dmri.ac/ushape/measures"
 clusters="$1/dmri.ac/ushape/clusters"
 
+# Changing File
+cd $1/mri
+mri_convert wmparc.mgz wmparc.nii.gz
+
 #Running Andrew's Code
 cd $code_location
-./dmri_groupByEndpoints -s $1/dmri/FOD/streamlines.trk -i $1/dmri/wmparc2dwi.nii.gz -d $clusters
+./dmri_groupByEndpoints -s $1/dmri/FOD/streamlines2anat.trk -i $1/mri/wmparc.nii.gz -d $clusters
 
 #Running Alex's Code
 if [ "$2" == "DTI" ]; then
