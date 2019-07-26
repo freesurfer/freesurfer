@@ -50,6 +50,7 @@ fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 20))
 axes[0].violinplot(means,
                    showmeans=True, 
                    showmedians=False)
+
 # Box plot
 axes[1].boxplot(means)
 
@@ -58,7 +59,7 @@ for ax in axes:
     ax.yaxis.grid(True)
     ax.set_xticks([y + 1 for y in range(len(means))])
     ax.set_xlabel('Type of Value')
-    ax.set_ylabel('Observed values')
+    ax.set_ylabel('Observed Values')
     ax.set_title('Plots of All CSV Values')
 
 # Add x tick labels
