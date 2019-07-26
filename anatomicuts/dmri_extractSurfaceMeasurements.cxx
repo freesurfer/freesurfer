@@ -6,12 +6,7 @@
  * This program is designed to take in a surface, two overlay files, one or multiple volume files, one or multiple streamline files, and an output directory.
  * Based on the streamlines, output metrics will be placed into a CSV file with the name of the original file and include metrics such as curvature, thickness, and FA values.
  *
- * export FREESURFER_HOME=`readlink -f /home/fsuser2/alex_zsikla/install`
- * source $FREESURFER_HOME/SetUpFreeSurfer.sh
- *
- * ./dmri_extractSurfaceMeasurements -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100011.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100010.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111011111.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111011110.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101010101.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101010100.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000111.trk /home/fsuser2/Desktop/test/AnatomiCuts_long55/1101000110.trk
- *
- * ./dmri_extractSurfaceMeasurements -i /home/fsuser2/Desktop/test/AnatomiCuts_long55/1111100011.trk -cl /home/fsuser2/Desktop/test/surf/lh.curv -sl /home/fsuser2/Desktop/test/surf/lh.orig -tl /home/fsuser2/Desktop/test/surf/lh.thickness -cr /home/fsuser2/Desktop/test/surf/rh.curv -sr /home/fsuser2/Desktop/test/surf/rh.orig -tr /home/fsuser2/Desktop/test/surf/rh.thickness -o /home/fsuser2/Desktop/Output_trk -fa 2 FA /home/fsuser2/Desktop/test/dsi_studio/fa.nii.gz AD /home/fsuser2/Desktop/test/dsi_studio/ad.nii.gz 
+ * NOTE: Copied directory (fsSurface.h) from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
  *
  */
 
@@ -78,6 +73,7 @@ using namespace std;
 float calculate_mean(vector<float> n);
 float calculate_stde(vector<float> n, float mean);
 string makeCSV(string dir, string file);
+vtkIdType which_ID(double n1, double n2, vtkIdType ID1, vtkIdType ID2);
 vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf);
 
 int main(int narg, char* arg[])
@@ -85,7 +81,7 @@ int main(int narg, char* arg[])
 	GetPot num1(narg, const_cast<char**>(arg));
 	
 	// Checking for correct parameters
-	if ((num1.size() <= 6) or (num1.search(2, "--help", "-h")))
+	if ((num1.size() <= 8) or (num1.search(2, "--help", "-h")))
 	{
 		cerr << "Usage: " << endl
 		     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -tl overlayFile_lh.thickness -cl overlayFile_lh.curv" << endl
@@ -162,7 +158,7 @@ int main(int narg, char* arg[])
 		}
 	}
 
-	// Testing that files are saved and can be outputted	
+	//Outputting the Files to Ensure the correct files were input
 	cerr << endl;
 	for (int i = 0; i < TRKFiles.size(); i++)
 		cerr << "TRK File " << i + 1 << ":      " << TRKFiles.at(i) << endl;
@@ -177,7 +173,7 @@ int main(int narg, char* arg[])
 			cerr << "Image " << i + 1 << ":         " << image_fileNames.at(i) << endl;	
 	}
 
-	// Variable Declaration
+	// Loading the TRK files into a mesh
 	ImageType::Pointer mask;	
 
 	vector<ColorMeshType::Pointer>* meshes;
@@ -187,8 +183,8 @@ int main(int narg, char* arg[])
 	clusterTools->GetPolyDatas(TRKFiles, &polydatas, mask);
 	meshes = clusterTools->PolydataToMesh(polydatas);
 	
-	//Reading in surface from file
-	//For Left Curvature
+	//Loading the surface for each hemisphere and metric
+	//Left Curvature
 	MRI_SURFACE *surfCL;
         surfCL = MRISread(surfaceFileL);
 	
@@ -199,7 +195,7 @@ int main(int narg, char* arg[])
 
 	MRISreadCurvature(surfCL, curvFileL);	
 
-	//For Left Thickness
+	//Left Thickness
 	MRI_SURFACE *surfTL;
 	surfTL = MRISread(surfaceFileL);
 
@@ -210,7 +206,7 @@ int main(int narg, char* arg[])
 
 	MRISreadCurvature(surfTL, thickFileL);
 
-	//For Right Curvature
+	//Right Curvature
 	MRI_SURFACE *surfCR;
 	surfCR = MRISread(surfaceFileR);
 
@@ -221,7 +217,7 @@ int main(int narg, char* arg[])
 
 	MRISreadCurvature(surfCR, curvFileR);
 
-	//For Right Thickness
+	//Right Thickness
 	MRI_SURFACE *surfTR;
 	surfTR = MRISread(surfaceFileR);
 
@@ -232,7 +228,7 @@ int main(int narg, char* arg[])
 
 	MRISreadCurvature(surfTR, thickFileR);
 
-	// Initializing the KdTree
+	// Loading the surface into a KdTree - one for each hemisphere
 	// LEFT
 	vtkSmartPointer<vtkPolyData> surfVTK_L = FSToVTK(surfCL);
 	
@@ -247,11 +243,11 @@ int main(int narg, char* arg[])
 	surfTreeR->SetDataSet(surfVTK_R);
 	surfTreeR->BuildLocator();	
 
-	PointType firstPt, lastPt;	// The first and last point of a stream
+	// The first and last points in both PointType and an array
+	PointType firstPt, lastPt;
 	firstPt.Fill(0);
 	lastPt.Fill(0);
-
-	double firstPt_array[3];	// Holding the coordinates of the points
+	double firstPt_array[3];	
 	double lastPt_array[3];
 
 	ofstream oFile;
@@ -277,6 +273,7 @@ int main(int narg, char* arg[])
 		} 
 		oFile << endl;
 
+		// Initialization of a new stream for every TRK files
 		ColorMeshType::Pointer input = (*meshes)[i];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
@@ -296,6 +293,7 @@ int main(int narg, char* arg[])
 					CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 					input->GetPoint(*it, &firstPt);
 
+					// Getting the FA value at all points
 					vector<float> FA_values;
 					ImageType::IndexType index;
 					if (volumes.at(p)->TransformPhysicalPointToIndex(firstPt, index))
@@ -335,22 +333,11 @@ int main(int narg, char* arg[])
 			double distL, distR;
 			vtkIdType Left_ID1  = surfTreeL->FindClosestPointWithinRadius(1000, firstPt_array, distL);
 			vtkIdType Right_ID1 = surfTreeR->FindClosestPointWithinRadius(1000, firstPt_array, distR);		
-			
-			vtkIdType ID1;
-			if (distL < distR)
-				ID1 = Left_ID1;
-			else
-				ID1 = Right_ID1;
+			vtkIdType ID1 = which_ID(distL, distR, Left_ID1, Right_ID1);
 
 			vtkIdType Left_ID2  = surfTreeL->FindClosestPointWithinRadius(1000, lastPt_array, distL);
-			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(1000, lastPt_array, distR);		
-			
-			// Comparing the last points distance from the left hemisphere to right hemisphere
-			vtkIdType ID2;
-			if (distL < distR)
-				ID2 = Left_ID2;
-			else
-				ID2 = Right_ID2;
+			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(1000, lastPt_array, distR);			
+			vtkIdType ID2 = which_ID(distL, distR, Left_ID2, Right_ID2);
 
 			// Outputting values to the file
 			oFile << "StreamLine " << counter << ",";
@@ -441,6 +428,19 @@ float calculate_stde(vector<float> n, float mean)
 	return sqrt(SD / n.size());
 }
 
+/* Function: which_ID
+ * Input: the two distances and the two vertice IDs
+ * Return: whichever vertice is closer to the point
+ * Does: Compares the two distances and returns the vertice of the shorter distance
+ */
+vtkIdType which_ID(double n1, double n2, vtkIdType ID1, vtkIdType ID2)
+{
+	if (n1 < n2)
+		return ID1;
+
+	return ID2;	
+}
+
 //
 // Converts a surface to a VTK
 //
@@ -467,9 +467,3 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
 
 	return vtkSurface;
 }
-
-/*
- * Things I Have Changed
- * 1. Commented out some directories that were not recognized
- * 2. Copied directories from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
- */
