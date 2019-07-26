@@ -80,7 +80,8 @@ int main(int narg, char* arg[])
 	if ((gp.size() <= 3) or (gp.search(2, "--help", "-h")))
         {
                 cerr << "Usage: " << endl
-                     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig -o outputDirectory" << endl;
+                     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
+		     << "                       -ol left_overlayFile -or right_overlayFile -v volumeFile" << endl;
 
                 return EXIT_FAILURE;
         }
@@ -115,16 +116,32 @@ int main(int narg, char* arg[])
 	// Input Parsing
 	vector<string> TRKFile;
 	TRKFile.push_back(gp.follow("Could not find TRK file", "-i"));
-	const char *surfaceFileL  = gp.follow("Could not find Surface File", "-sl");
-	const char *surfaceFileR  = gp.follow("Could not find Surface File", "-sr");
-	string outputDir     = gp.follow("Could not find Output Directory", "-o");
+	const char *surfaceFileL = gp.follow("Could not find Surface File", "-sl");
+	const char *surfaceFileR = gp.follow("Could not find Surface File", "-sr");
+	const char *overlayFileL = gp.follow("Could not find Overlay File", "-ol");
+	const char *overlayFileR = gp.follow("Could not find Overlay File", "-or");
+	const char *volumeFile   = gp.follow("Could not find Image File",   "-v");
+
+
+	// Reading in the Image
+	// ITK Version
+	typedef itk::ImageFileReader<ImageType> ImageReaderType;
+	ImageReaderType::Pointer readerS = ImageReaderType::New();
+	readerS->SetFileName(volumeFile);
+	readerS->Update();
+	ImageType::Pointer volume = readerS->GetOutput();
+
+	// FS Version
+	MRI *image = MRIread(volumeFile);
 
 	//Outputting the Files to Ensure the correct files were input
 	cerr << endl 
 	     << "TRK File:           " << TRKFile.at(0) << endl 
-	     << "Left Surface File:  " << surfaceFileL << endl 
-	     << "Right Surface File: " << surfaceFileR << endl 
-	     << "Output Directory:   " << outputDir << endl;
+	     << "Left Surface File:  " << surfaceFileL  << endl 
+	     << "Left Overlay File:  " << overlayFileL  << endl
+	     << "Right Surface File: " << surfaceFileR  << endl 
+	     << "Right Overlay File: " << overlayFileR  << endl
+	     << "Volume File:        " << volumeFile    << endl;
 
 	// Loading the TRK files into a mesh
 	ImageType::Pointer mask;
@@ -151,7 +168,6 @@ int main(int narg, char* arg[])
         vtkSmartPointer<vtkKdTreePointLocator> surfTreeL = vtkSmartPointer<vtkKdTreePointLocator>::New();
         surfTreeL->SetDataSet(surfVTK_L);
         surfTreeL->BuildLocator();
-
 	
 	// Right Hemisphere
 	MRI_SURFACE *surfR;
@@ -183,9 +199,10 @@ int main(int narg, char* arg[])
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
                 input->GetPoint(*it, &point);
 
-		// Copying the point type into an array
-		for (int i = 0; i < 3; i++)
-			point_array[i] = point[i];
+		ImageType::IndexType index;
+		volume->TransformPhysicalPointToIndex(point, index);
+
+		MRIvoxelToSurfaceRAS(image, index[0], index[1], index[2], &point_array[0], &point_array[1], &point_array[2]);
 
 		// Finds closest point and sets value equal to ENDPOINT_VALUE
 		double distL, distR;
@@ -193,50 +210,41 @@ int main(int narg, char* arg[])
                 vtkIdType Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
                 vtkIdType ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
-		if (ID == Left_ID)
+		if (ID == Left_ID) {
 			surfL->vertices[ID].curv = ENDPOINT_VALUE;
-		else
+			cerr << "Left ID1: " << ID << endl;
+		} else {
 			surfR->vertices[ID].curv = ENDPOINT_VALUE;
+			cerr << "Right ID1: " << ID << endl;
+		}
 
 		// Finding last point in the stream
 		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
                 	input->GetPoint(*it, &point);
 
-		for (int j = 0; j < 3; j++)
-			point_array[j]  = point[j];
-	
+		volume->TransformPhysicalPointToIndex(point, index);
+
+		MRIvoxelToSurfaceRAS(image, index[0], index[1], index[2], &point_array[0], &point_array[1], &point_array[2]);
+
 		Left_ID  = surfTreeL->FindClosestPointWithinRadius(1000, point_array, distL);
                 Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
                 ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
-		if (ID == Left_ID)
+		if (ID == Left_ID){
 			surfL->vertices[ID].curv = ENDPOINT_VALUE;
-		else
+			cerr << "Left ID2: " << ID << endl;
+		} else {
 			surfR->vertices[ID].curv = ENDPOINT_VALUE;
+			cerr << "Right ID2: " << ID << endl;
+		}
+
+		cerr << endl;	
 	}
 
-	string temp = outputDir + "lh.orig";
-	const char *left  = temp.c_str();
-	temp = outputDir + "rh.orig";
-	const char *right = temp.c_str();
-
-	MRISwrite(surfL, left);
-	MRISwrite(surfR, right);
+	MRISwriteCurvature(surfL, overlayFileL);
+	MRISwriteCurvature(surfR, overlayFileR);
 
 	return 0;
-}
-
-/* Function: which_ID
- * Input: the two distances and the two vertice IDs
- * Return: whichever vertice is closer to the point
- * Does: Compares the two distances and returns the vertice of the shorter distance
- */
-vtkIdType which_ID(double n1, double n2, vtkIdType ID1, vtkIdType ID2)
-{
-        if (n1 < n2)
-                return ID1;
-
-        return ID2;
 }
 
 //
@@ -266,3 +274,15 @@ vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf)
         return vtkSurface;
 }
 
+/* Function: which_ID
+ * Input: the two distances and the two vertice IDs
+ * Return: whichever vertice is closer to the point
+ * Does: Compares the two distances and returns the vertice of the shorter distance
+ */
+vtkIdType which_ID(double n1, double n2, vtkIdType ID1, vtkIdType ID2)
+{
+        if (n1 < n2)
+                return ID1;
+
+        return ID2;
+}
