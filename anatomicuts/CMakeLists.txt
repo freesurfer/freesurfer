@@ -68,6 +68,12 @@ if(VTK_FOUND)
   target_link_libraries(dmri_coloredFA utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_coloredFA DESTINATION bin)
 
+#dmri_plots.py
+  add_executable(dmri_plots dmri_plots.py ${TRACKIO})
+  target_link_libraries(dmri_plots utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_plots DESTINATION bin)
+
+
 else() 
 message("VTK not found")
 endif()
