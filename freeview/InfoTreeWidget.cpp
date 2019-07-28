@@ -79,8 +79,21 @@ void InfoTreeWidget::OnMousePositionChanged()
 void InfoTreeWidget::showEvent(QShowEvent * e)
 {
   // hack to fix a qdesigner bug
-  headerItem()->setText(1,"");
+  headerItem()->setText(1, "");
   QTreeWidget::showEvent(e);
+}
+
+void InfoTreeWidget::ShowHeaderText()
+{
+  headerItem()->setText(1, "Hold Shift to update");
+  QFont fnt = headerItem()->font(1);
+  fnt.setPointSize(8);
+  headerItem()->setFont(1, fnt);
+}
+
+void InfoTreeWidget::ClearHeaderText()
+{
+  headerItem()->setText(1, "");
 }
 
 void InfoTreeWidget::UpdateAll()
@@ -169,7 +182,7 @@ void InfoTreeWidget::UpdateAll()
         valueStrg.resize(valueStrg.size()-1);
       if (valueStrg[valueStrg.size()-1] == '.')
         valueStrg.resize(valueStrg.size()-1);
-      if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
+      if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 6)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames((int)(fIndex[0]+0.5), (int)(fIndex[1]+0.5), (int)(fIndex[2]+0.5));
         if (layer->GetDataType() == MRI_RGB)
@@ -181,7 +194,11 @@ void InfoTreeWidget::UpdateAll()
         QStringList strgs;
         foreach (double value, values)
           strgs << QString("%1").arg(value);
-        valueStrg = strgs.join(", ");
+        valueStrg = strgs.join(" ");
+        if (values.size() == 6)
+        {
+          valueStrg = "("+strgs.mid(0, 3).join(" ") + ") (" + strgs.mid(3,3).join(" ")+")";
+        }
       }
       for (int j = 0; j < 3; j++)
         fIndex[j] = ((int)(fIndex[j]*100+0.5))/100.0;

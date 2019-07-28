@@ -22,7 +22,7 @@
 
 int mris_sort_compare_float(const void *pc1, const void *pc2)
 {
-  register float c1, c2;
+  float c1, c2;
 
   c1 = *(float *)pc1;
   c2 = *(float *)pc2;
@@ -36,6 +36,45 @@ int mris_sort_compare_float(const void *pc1, const void *pc2)
   }
 
   return (0);
+}
+
+
+const char* MRIS_Status_text(MRIS_Status s1)
+{
+    switch (s1) {
+#define SEP
+#define ELT(S,D) case S : return #S;
+    MRIS_Status_ELTS
+#undef ELT
+#undef SEP
+    default: cheapAssert(false); return "<Bad MRIS_Status>";
+    }
+}
+
+
+MRIS_Status_DistanceFormula MRIS_Status_distanceFormula(MRIS_Status s1)
+{
+    switch (s1) {
+#define SEP
+#define ELT(S,D) case S : return MRIS_Status_DistanceFormula_##D;
+    MRIS_Status_ELTS
+#undef ELT
+#undef SEP
+    default: cheapAssert(false); return MRIS_Status_DistanceFormula_0;
+    }
+}
+
+
+bool areCompatible(MRIS_Status s1, MRIS_Status s2)
+{
+  return MRIS_Status_distanceFormula(s1) == MRIS_Status_distanceFormula(s2);
+}
+
+
+void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line) {
+  if (areCompatible(s1,s2)) return;
+  fprintf(stderr, "%s:%d using incompatible %s %s\n", file, line, 
+    MRIS_Status_text(s1), MRIS_Status_text(s2));
 }
 
 
@@ -252,14 +291,15 @@ static void changeDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int oldSize, 
   if (*pcCap < neededCapacity) {
   
     void** p_storage = doOrig ? &mris->dist_orig_storage[vno] : &mris->dist_storage[vno];
-    *p_storage = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+    float* alloced = (float*)realloc(*p_storage, neededCapacity*sizeof(float));
+    *p_storage = (void*)alloced;
 
     if (!*pc) {
       char const flag = (char)(1)<<doOrig;
       mris->dist_alloced_flags |= flag;
     }
     
-    *(float**)pc    = (float *)*p_storage;
+    *(float**)pc    = alloced;
     *(int   *)pcCap = neededCapacity;
   }
   
@@ -413,7 +453,7 @@ void mrisDumpVertex(FILE* file, MRIS const * mris, int vno) {
   int i;
   for (i = 0; i < vsize; i++) {
     fprintf(file, " [%d] v:%d dist:%f dist_orig:%f",
-      i, vt->v[i], v->dist[i], v->dist_orig[i]);
+      i, vt->v[i], v->dist ? v->dist[i] : -1.0f, v->dist_orig ? v->dist_orig[i] : -1.0f);
   } fprintf(file, "\n");
 
   for (i = 0; i < vt->num; i++) {

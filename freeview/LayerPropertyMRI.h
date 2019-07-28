@@ -158,11 +158,11 @@ public:
   // These determine the heatscale color map. The threshold is mirrored:
   // -> cyan -> blue -> trans_blue -> clear -> trans_orange -> orange -> red ->
   // -> -max -> -mid ->    -min    ->   0   ->     min      ->   mid  -> max ->
-  void    SetHeatScaleMinThreshold ( double iValue );
+  void    SetHeatScaleMinThreshold ( double iValue, bool bMidToMin = false );
   double  GetHeatScaleMinThreshold ();
   void    SetHeatScaleMidThreshold ( double iValue );
   double  GetHeatScaleMidThreshold ();
-  void    SetHeatScaleMaxThreshold ( double iValue );
+  void    SetHeatScaleMaxThreshold ( double iValue, bool bMidToMin = false );
   double  GetHeatScaleMaxThreshold ();
   void    SetHeatScaleOffset ( double iValue );
   double  GetHeatScaleOffset ();
@@ -192,7 +192,12 @@ public:
   void SetShowNegativeHeatScaleValues ( bool ib );
   bool GetShowNegativeHeatScaleValues ();
 
-  bool GetClearZero();
+  bool GetClearBackground();
+
+  double GetClearBackgroundValue()
+  {
+    return mClearBackgroundValue;
+  }
 
   // void EditorChangedHeatScale ();
 
@@ -315,14 +320,14 @@ public:
     return this->m_bShowAsLabelContour;
   }
 
+  bool GetShowVoxelizedContour()
+  {
+    return m_bShowVoxelizedContour;
+  }
+
   bool GetContourUpsample()
   {
     return this->m_bContourUpsample;
-  }
-
-  QString GetLabelContourRange()
-  {
-    return m_sLabelContourRange;
   }
 
   double GetVectorScale()
@@ -394,6 +399,11 @@ public:
     return m_nVectorSkip;
   }
 
+  double GetVectorNormThreshold()
+  {
+    return m_dVectorNormThreshold;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -402,7 +412,9 @@ public slots:
   void SetTextureSmoothing ( int iSmooth );
   void SetShowAsContour( bool bContour );
   void SetShowAsLabelContour(bool bLabelContour);
-  void SetClearZero( bool bClear );
+  void SetShowVoxelizedContour(bool bVoxelize);
+  void SetClearBackground( bool bClear );
+  void SetClearBackgroundValue( double val );
   void SetResliceInterpolation ( int iMode );
   void SetWindow( double iWindow );
   void SetLevel ( double iLevel );
@@ -429,7 +441,6 @@ public slots:
 
   void SetRememberFrameSettings(bool bFlag);
 
-  void SetLabelContourRange(const QString& range_strg );
   void SetVectorScale(double dval);
 
   void SetUsePercentile(bool b)
@@ -438,7 +449,7 @@ public slots:
   }
 
   void SetAutoAdjustFrameLevel(bool b);
-  void SetHeatScaleAutoMid(bool bAutoMid);
+  void SetHeatScaleAutoMid(bool bAutoMid, bool bAutoMidToMin = false);
 
   void SetProjectionMapRange(int n, int start, int end);
   void SetSelectLabel(int nVal, bool bSelected);
@@ -453,6 +464,8 @@ public slots:
 
   void SetCustomColors(const QMap<int, QColor>& colors);
 
+  void SetVectorNormThreshold(double dVal);
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
@@ -464,6 +477,7 @@ signals:
   void ContourChanged();
   void ContourColorChanged();
   void ContourSmoothIterationChanged( int );
+  void ContourVoxelized(bool bVoxelize);
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
   void ProjectionMapChanged();
@@ -494,9 +508,10 @@ private:
   int     mResliceInterpolation;
   int     mTextureSmoothing;
 
-  bool    mbClearZero;
+  bool    mbClearBackground;
   double  mMinVoxelValue, mMaxVoxelValue;
   double  mMinVisibleValue, mMaxVisibleValue;
+  double  mClearBackgroundValue;
 
   // For grayscale drawing.
   double  mMinGrayscaleWindow, mMaxGrayscaleWindow;
@@ -536,6 +551,7 @@ private:
   bool    m_bNormalizeVector;
   double  m_dVectorDisplayScale;
   double  m_dVectorScale;
+  double  m_dVectorNormThreshold;
 
   bool    m_bDisplayRGB;
 
@@ -550,9 +566,9 @@ private:
   bool    m_bContourUpsample;
 
   bool    m_bShowAsLabelContour;
-  QString m_sLabelContourRange;
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
+  bool    m_bShowVoxelizedContour;
 
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;

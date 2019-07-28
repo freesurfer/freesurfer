@@ -1596,59 +1596,37 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol)
 */
 MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out)
 {
-  int c, r, s, f, n, ncols, nrows, nslices, nframes;
-  void *pmri1 = NULL, *pmri2 = NULL, *pout = NULL;
-  double v1 = 0, v2 = 0, v;
-  int sz1, sz2, szout;
+  int cols = mri1->width;
+  int rows = mri1->height;
+  int slices = mri1->depth;
+  int frames = mri1->nframes;
 
-  ncols = mri1->width;
-  nrows = mri1->height;
-  nslices = mri1->depth;
-  nframes = mri1->nframes;
-
-  if (out == NULL) {
-    out = MRIallocSequence(ncols, nrows, nslices, mri1->type, nframes);
-    if (out == NULL) {
+  if (!out) {
+    out = MRIallocSequence(cols, rows, slices, mri1->type, frames);
+    if (!out) {
       printf("ERROR: MRImax: could not alloc output\n");
-      return (NULL);
+      return nullptr;
     }
     MRIcopyHeader(mri1, out);  // ordinarily would need to change nframes
   }
-  if (out->width != ncols || out->height != nrows || out->depth != nslices || out->nframes != nframes) {
+
+  // check dimensions
+  if (out->width != cols || out->height != rows || out->depth != slices || out->nframes != frames) {
     printf("ERROR: MRImax: dimension mismatch\n");
-    return (NULL);
+    return nullptr;
   }
 
-  // Number of bytes in the mri data types
-  sz1 = MRIsizeof(mri1->type);
-  sz2 = MRIsizeof(mri2->type);
-  szout = MRIsizeof(out->type);
-
-  n = 0;
-  for (f = 0; f < nframes; f++) {
-    for (s = 0; s < nslices; s++) {
-      for (r = 0; r < nrows; r++) {
-        // Pointers to the start of the column
-        pmri1 = (void *)mri1->slices[n][r];
-        pmri2 = (void *)mri2->slices[n][r];
-        pout = (void *)out->slices[n][r];
-        for (c = 0; c < ncols; c++) {
-          v1 = MRIptr2dbl(pmri1, mri1->type);
-          v2 = MRIptr2dbl(pmri2, mri2->type);
-          if (v1 > v2)
-            v = v1;
-          else
-            v = v2;
-          MRIdbl2ptr(v, pout, out->type);
-
-          pmri1 += sz1;
-          pmri2 += sz2;
-          pout += szout;
-        }  // cols
-      }    // rows
-      n++;
-    }  // slices
-  }    // frames
+  for (unsigned int f = 0; f < frames; f++) {
+    for (unsigned int c = 0; c < cols; c++) {
+      for (unsigned int r = 0; r < rows; r++) {
+        for (unsigned int s = 0; s < slices; s++) {
+          double v1 = MRIgetVoxVal(mri1, c, r, s, f);
+          double v2 = MRIgetVoxVal(mri2, c, r, s, f);
+          MRIsetVoxVal(out, c, r, s, f, std::max(v1, v2));
+        }
+      }
+    }
+  }
 
   return (out);
 }
@@ -4366,6 +4344,7 @@ COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
     free(ct->entries[n]);
     ct->entries[n] = NULL;
   }
+  strcpy(ct->TissueTypeSchema,ct0->TissueTypeSchema);
 
   for (n = 0; n < nsegs; n++) {
     segid = segidlist[n];
@@ -4377,7 +4356,8 @@ COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
     memcpy(ct->entries[segid], ct0->entries[segid], sizeof(CTE));
   }
 
-  if (ct0->ctabTissueType) ct->ctabTissueType = CTABdeepCopy(ct0->ctabTissueType);
+  if(ct0->ctabTissueType) 
+    ct->ctabTissueType = CTABdeepCopy(ct0->ctabTissueType);
 
   free(segidlist);
   return (ct);
@@ -5477,3 +5457,290 @@ HISTOGRAM *HISTOseg(MRI *seg, int segid, MRI *vol, double bmin, double bmax, dou
   }
   return(h);
 }
+
+
+/*!
+  \fn int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
+  \brief Determines how the Euler Characteristic of a hypothetical
+  square (quad) mesh would change if the given voxel were to be turned
+  on (assuming the mesh was created with it off). The idea is that the
+  hypothetical quad mesh was tessellated on the given binary volume
+  (vol). If the mesh has no topological defects, then it should have
+  EC=2.  If the given voxel were to be added and the mesh regenerated,
+  the mesh's EC would change by the amount returned by this function
+  (computed without having to have ever generated a mesh). No bounds
+  checking is done on (c,r,s); since the nearest neighbors are
+  evaluated, (c,r,s) should be within [1:dimsize-2]. If mask is used,
+  it should be the same size as vol. No neighbors are considered if
+  they are ouside of the mask (this has not been tested). A voxel in
+  vol or mask is considered "set" if its value is greather than 0.5.
+  There is no check to determine whether the passed voxel is in the
+  mask.  See also QuadEulerCharChangeTest().
+*/
+int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s)
+{
+  int dc, dr, ds, dsum, nhits;
+  int deltaEC=0;
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	if(mask && MRIgetVoxVal(mask,c+dc,r+dr,s+ds,0) < 0.5) continue;
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum==1){ //face
+	  // look at single voxel that shares this face
+	  if(MRIgetVoxVal(vol,c+dc,r+dr,s+ds,0) > 0.5){
+	    // face is already part of the surface so will lose both.
+	    // -1 means dont add new face and remove the face that is there
+	    deltaEC--;
+	    continue;
+	  }
+	  // If it gets here, then the face can be added, which increases the EC by 1
+	  deltaEC++;
+	}
+	if(dsum==2){ //edge
+	  // Look at the three other voxels that share this edge
+	  // One of the voxels is always at +(dc,dr,ds)
+	  nhits = 0;
+	  if( MRIgetVoxVal(vol,c+dc,r+dr,s+ds,0) > 0.5 ) nhits++;
+	  // For the remaining two voxels ...
+	  if(dc==0){
+	    // One voxel is a +dr the other is at +ds
+	    if( MRIgetVoxVal(vol, c, r+dr, s,    0) > 0.5 ) nhits++;
+	    if( MRIgetVoxVal(vol, c, r   , s+ds, 0) > 0.5 ) nhits++;
+	  }
+	  if(dr==0){
+	    // One voxel is a +dc the other is at +ds
+	    if( MRIgetVoxVal(vol, c+dc, r, s,    0) > 0.5 ) nhits++;
+	    if( MRIgetVoxVal(vol, c,    r, s+ds, 0) > 0.5 ) nhits++;
+	  }
+	  if(ds==0){
+	    // One voxel is a +dc the other is at +dr
+	    if( MRIgetVoxVal(vol, c+dc, r,    s, 0)  > 0.5 ) nhits++;
+	    if( MRIgetVoxVal(vol, c,    r+dr, s, 0)  > 0.5 ) nhits++;
+	  }
+	  if(nhits == 0) {
+	    // No other voxels claims this edge, so, if this voxel is added
+	    // this edge causes the EC to decrease by 1
+	    deltaEC--;
+	  }
+	  if(nhits == 3) {	  
+	    // All 3 other voxels claim this edge. If the voxel is added,
+	    // then this edge will be lost, so EC increases by 1
+	    deltaEC++;
+	  }
+	}
+	if(dsum==3){ //corner
+	  // Look at the seven other voxels that share this corner
+	  nhits = 0;
+	  if( MRIgetVoxVal(vol, c,    r,    s+ds, 0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c,    r+dr, s,    0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c,    r+dr, s+ds, 0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c+dc, r,    s,    0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c+dc, r,    s+ds, 0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c+dc, r+dr, s,    0) > 0.5 ) nhits++;
+	  if( MRIgetVoxVal(vol, c+dc, r+dr, s+ds, 0) > 0.5 ) nhits++;
+	  if(nhits == 0) {
+	    // No other voxels claims this corner, so, if this voxel is added
+	    // this corner causes the EC to increase by 1
+	    deltaEC++;
+	  }
+	  if(nhits == 7) {	  
+	    // All 7 other voxels claim this corner. If the voxel is added,
+	    // then this corner will be lost, so EC decreases by 1
+	    deltaEC--;
+	  }
+
+	}
+	//printf("%2d %2d %2d   %d   %3d\n",dc,dr,ds,dsum,deltaEC);
+      }
+    }
+  }
+  return(deltaEC);
+}
+
+/*!
+  \fn int QuadEulerCharChangeTest(int ForceFail)
+  \brief Test for QuadEulerCharChange(). The test is done by creating
+  various configurations of on and off voxels inside of a 3x3x3
+  volume. In each configuration, the EC with and without the center
+  voxel set is known, so the change is known.  Each configuration is
+  tested by permuting the dimensions in various ways since the change
+  in EC should be invariant under these manipulations. There are a
+  possible 2^26 possible configurations. Not all are tested:). If
+  ForceFail is set to non-zero, then all tests will fail (but error
+  messages are still printed).
+ */
+
+int QuadEulerCharChangeTest(int ForceFail)
+{
+  MRI *mri;
+  int dc, dr, ds, dsum;
+  int err=0;
+  char testname[1000];
+
+  // Set up a simple 3x3x3 volume
+  mri = MRIalloc(3,3,3,MRI_INT);
+
+  // Set each corner voxel one-by-one, expect EC to increase by 1  in each case
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 3) continue;
+	MRIconst(3,3,3,1,0,mri); // set MRI to 0
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+	sprintf(testname,"single-corner %d %d %d\n",dc,dr,ds);
+	err = QuadEulerCharChangeCheckReorder(mri, testname, 1+ForceFail);
+      }
+    }
+  }
+
+  // Set all corner voxels.  In this case, 0 corners will be added, 6
+  // faces added, 12 edges added so one expects the EC to change by
+  // 0+6-12=-6
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 3) continue;
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+      }
+    }
+  }
+  err = QuadEulerCharChangeCheckReorder(mri, "all-corners", -6+ForceFail);
+
+  // Set each edge voxel one-by-one, expect EC to increase by 1 in each case
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 2) continue;
+	MRIconst(3,3,3,1,0,mri); // set MRI to 0
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+	sprintf(testname,"single-edge %d %d %d\n",dc,dr,ds);
+	err = QuadEulerCharChangeCheckReorder(mri, testname, 1+ForceFail);
+      }
+    }
+  }
+
+  // Set all edge voxels. No vertices and no edges are added, but 6 faces are added, so
+  // expect EC to change by 0+6-0=6. 
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 2) continue;
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+      }
+    }
+  }
+  err = QuadEulerCharChangeCheckReorder(mri, "all-edges", +6+ForceFail);
+
+  // Set each face voxel one-by-one, expect EC to not change
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 1) continue;
+	MRIconst(3,3,3,1,0,mri); // set MRI to 0
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+	sprintf(testname,"single-face %d %d %d\n",dc,dr,ds);
+	err = QuadEulerCharChangeCheckReorder(mri, testname, 0+ForceFail);
+      }
+    }
+  }
+
+  // Set each all face voxels. This configuration (before adding
+  // the center voxel) has an EC=+8. After adding the center, the
+  // EC should become +2, so expecting a drop of 6
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum != 1) continue;
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+      }
+    }
+  }
+  err = QuadEulerCharChangeCheckReorder(mri, "all-faces", -6+ForceFail);
+
+  // Set everything but the center voxel. In this configuration,
+  // the EC is (9*6+6)+(4*6+2*12+8+8)-(12*6+3*12+12)=+4. When
+  // adding the center, the EC changes to +2, so the change should
+  // be -2
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  for(dc = -1; dc <= 1; dc++){
+    for(dr = -1; dr <= 1; dr++){
+      for(ds = -1; ds <= 1; ds++){
+	dsum = fabs(dc) + fabs(dr) + fabs(ds);
+	if(dsum == 0) continue;
+	MRIsetVoxVal(mri,1+dc,1+dr,1+ds,0,1);
+      }
+    }
+  }
+  err = QuadEulerCharChangeCheckReorder(mri, "all", -2+ForceFail);
+
+  // Set a corner and its 3 face neighbors. EC=2 and the change
+  // should be 0.
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  MRIsetVoxVal(mri,0,0,0,0,1); // corner
+  MRIsetVoxVal(mri,0,0,1,0,1); // face neighbor of corner
+  MRIsetVoxVal(mri,0,1,0,0,1); // face neighbor of corner
+  MRIsetVoxVal(mri,0,1,1,0,1); // face neighbor of corner
+  err = QuadEulerCharChangeCheckReorder(mri, "cf3", 0+ForceFail);
+
+  // Set a corner, edge, and face neighbor that are 
+  // not neighbors to each other. EC=6. 
+  MRIconst(3,3,3,1,0,mri); // set MRI to 0
+  MRIsetVoxVal(mri,0,0,0,0,1); // corner
+  MRIsetVoxVal(mri,1,2,0,0,1); // edge
+  MRIsetVoxVal(mri,1,1,2,0,1); // face 
+  err = QuadEulerCharChangeCheckReorder(mri, "cef", -2+ForceFail);
+
+  MRIfree(&mri);
+  return(err);
+}
+
+/*!
+  \fn int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected)
+  \brief Runs QuadEulerCharChange() on the given 3x3x3 mri after
+  permuting the dimensions in several ways. It compares the change in
+  EC when setting the center voxel against the passed expected change.
+  If they dont agree, then it prints an error message and returns
+  non-zero.
+ */
+int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected)
+{
+  int dec,reorder,err;
+  MRI *mri2;
+  err=0;
+  for(reorder=1; reorder <= 7; reorder++){
+    switch(reorder){
+    case 1: mri2 = MRIreorder(mri, NULL, -1, +2, +3); break; // reverse x
+    case 2: mri2 = MRIreorder(mri, NULL, +1, -2, +3); break; // reverse y
+    case 3: mri2 = MRIreorder(mri, NULL, +1, +2, -3); break; // reverse z
+    case 4: mri2 = MRIreorder(mri, NULL, +2, +1, +3); break; // swap xy
+    case 5: mri2 = MRIreorder(mri, NULL, +3, +2, +1); break; // swap xz
+    case 6: mri2 = MRIreorder(mri, NULL, +1, +3, +2); break; // swap yz
+    case 7: mri2 = MRIreorder(mri, NULL, +3, +1, +2); break; // rotate xyz
+    default: 
+      printf("ERROR: QuadEulerCharChangeReorder(): reorder option %d\n",reorder);
+      return(-1);
+    }
+    // Determine the change in EC when setting the center voxel
+    dec = QuadEulerCharChange(mri2, NULL, 1, 1, 1); 
+    if(dec != decExpected) {
+      printf("ERROR: QuadEulerCharChangeReorder(): %s reorder=%d, dec=%d, expected %d\n",
+	     testname,reorder,dec,decExpected);
+      err=1;
+    }
+    MRIfree(&mri2);
+  }
+  return(err);
+}
+
+
+

@@ -25,7 +25,7 @@
 <help>
 	<name>mrisp_write</name>
 	<synopsis>mrisp_write [options] &lt;input_surface&gt; &lt;input overlay&gt; &lt;output name&gt;</synopsis>
-	<description>This program is useful for takaing a surface
+	<description>This program is useful for taking a surface
 	overlay on a sphere and writing in into spherical
 	coordinates. Typically ?h.sphere.reg would be the input (or
 	possibly ?h.sphere)
@@ -46,6 +46,8 @@
     <optional-flagged>
       <argument>-SDIR &lt;subjects_dir&gt;</argument>
       <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
+      <argument>-coords &lt;which_vertices&gt;</argument>
+      <explanation>Treat overlay as a surface and write it into a 3 frame parameterization</explanation>
       <argument>-A &lt;navgs&gt;</argument>
       <explanation>Average curvature patterns navgs times</explanation>
       <argument>-CORR &lt;label_file_name&gt;</argument>

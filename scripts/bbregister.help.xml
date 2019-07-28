@@ -43,26 +43,10 @@
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>
       <argument>--no-coreg-ref-mask</argument>
       <explanation>Do NOT use aparc+aseg.mgz as a reference mask. It will not attempt to use aparc+aseg if it is not there. </explanation>
-      <argument>--init-rr</argument>
-      <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
-      <argument>--init-fsl</argument>
-      <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
-      <argument>--init-spm</argument>
-      <explanation>Initialize using SPM spm_coreg (requires that SPM and matlab be installed).</explanation>
       <argument>--init-header</argument>
       <explanation>Assume that the geometry information in the cross-modal and anatomical are sufficient to get a close voxel-to-voxel registration. This usually is only the case if they were acquired in the same session.</explanation>
-      <argument>--init-best</argument>
-      <explanation> Initialize using fsl, spm (matlab), mri_coreg, header, and rr, and use the best one (ie, lowest BBR cost).</explanation>
-      <argument>--init-best-spm</argument>
-      <explanation> Include spm in the init-best list (matlab).</explanation>
-      <argument>--init-best-fsl</argument>
-      <explanation> Include fsl in the init-best list.</explanation>
-      <argument>--init-best-header</argument>
-      <explanation> Include header in the init-best list.</explanation>
-      <argument>--init-best-rr</argument>
-      <explanation> Include robust register NMI in the init-best list.</explanation>
       <argument>--init-reg initregfile</argument>
-      <explanation>Supply an initial registration matrix; can be LTA; cannot be part of 'best' list).</explanation>
+      <explanation>Supply an initial registration matrix; can be LTA.</explanation>
 
       <intro>Contrast Arguments (one required)</intro>
       <argument>--t1</argument>
@@ -156,12 +140,22 @@
       <explanation>save initial cost</explanation>
       <argument>--cost-fail costvalue</argument>
       <explanation>exit with error if the final cost exceeds costvalue </explanation>
+      <argument>--12, --9, --6</argument>
+      <explanation>Use 12 or 9 or 6 DOF (6 is default)</explanation>
+      <argument>--coreg-dof coregDOF</argument>
+      <explanation>Set dof to use for mri_coreg</explanation>
       <argument>--spm-nii</argument>
       <explanation>Use NIFTI format as input to SPM when using --init-spm (spmregister). Ordinarily, it uses ANALYZE images to be compatible with older versions of SPM, but this has caused some left-right reversals in SPM8.</explanation>
       <argument>--feat featdir</argument>
       <explanation>FSL FEAT directory. Sets mov to featdir/example_func, uses --init-fsl, --bold, sets reg to featdir/reg/freesurfer/anat2exf.register.dat. This replaces reg-feat2anat.</explanation>
       <argument>--fsl-bet-mov</argument>
       <explanation> When using FSL, apply BET to mov volume (turned by default).</explanation>
+      <argument>--init-rr</argument>
+      <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
+      <argument>--init-fsl</argument>
+      <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
+      <argument>--init-spm</argument>
+      <explanation>Initialize using SPM spm_coreg (requires that SPM and matlab be installed).</explanation>
       <argument>--tmp tmpdir</argument>
       <explanation>temporary dir (implies --nocleanup)</explanation>
       <argument>--nocleanup</argument>

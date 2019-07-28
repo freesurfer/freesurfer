@@ -145,5 +145,6 @@ MRI *MRIsegPVF2Seg(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct,
 int VOXsegPVF2Seg(float *segpvfvox, int *segidlist, int nsegs, COLOR_TABLE *ct);
 MRI *MRIsegPVF2TissueTypePVF(MRI *segpvf, int *segidlist, int nsegs, 
 			     COLOR_TABLE *ct, MRI *mask, MRI *pvf);
+MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out);
 
 #endif /* #ifndef RESAMPLE_H_INC */

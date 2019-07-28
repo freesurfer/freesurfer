@@ -26,6 +26,10 @@
 #ifndef MRI_H
 #define MRI_H
 
+#include <vector>
+#include <array>
+#include <string>
+
 #include "faster_variants.h"
 
 #include "minc.h"
@@ -34,8 +38,8 @@
 #include "dmatrix.h"
 #include "machine.h"
 #include "colortab.h"
-
 #include "affine.h"
+#include "fnvhash.h"
 
 #define BUFTYPE  unsigned char
 
@@ -141,7 +145,6 @@ typedef struct
 } MRI_FRAME ;
 
 
-
 typedef struct
 {
   int  x ;
@@ -153,142 +156,127 @@ typedef struct
 }
 MRI_REGION ;
 
-typedef char char_STR_LEN[STR_LEN];
-typedef char char_STRLEN[STRLEN];
-typedef char *cmdlines_t[MAX_CMDS] ;
-typedef BUFTYPE ***slices_t;
 
-typedef struct
+class MRI
 {
-#define LIST_OF_MRI_ELTS \
-  ELTT( int, width ) SEP    \
-  ELTT( int, height ) SEP    \
-  ELTT( int, depth ) SEP     /* # of slices */    \
-  ELTT( int, type ) SEP      /* data type for slices below */    \
-  ELTT( int, imnr0 ) SEP     /* starting image # */    \
-  ELTT( int, imnr1 ) SEP     /* ending image # */    \
-  ELTT( int, ptype ) SEP     /* not used */    \
-  ELTT( float, fov ) SEP    \
-  ELTT( float, thick ) SEP    \
-  ELTT( float, ps ) SEP    \
-  ELTT( float, location ) SEP  /* not used */    \
-  ELTT( float, xsize ) SEP     /* size of a voxel in the x direction */    \
-  ELTT( float, ysize ) SEP     /* size of a voxel in the y direction */    \
-  ELTT( float, zsize ) SEP     /* size of a voxel in the z direction */    \
-  ELTT( float, xstart ) SEP    /* start x (in xsize units) SEP */    \
-  ELTT( float, xend ) SEP      /* end x  (in xsize units) SEP */    \
-  ELTT( float, ystart ) SEP    /* start y   (in ysize units) SEP */    \
-  ELTT( float, yend ) SEP      /* end y (in ysize units) SEP */    \
-  ELTT( float, zstart ) SEP    /* start z */    \
-  ELTT( float, zend ) SEP      /* end z */    \
-  ELTT( float, tr ) SEP        /* time to recovery */    \
-  ELTT( float, te ) SEP        /* time to echo */    \
-  ELTT( float, ti ) SEP        /* time to inversion */    \
-  ELTT( char_STR_LEN, fname ) SEP    \
-    \
-  ELTT( float, x_r ) SEP    \
-  ELTT( float, x_a ) SEP    \
-  ELTT( float, x_s ) SEP        /* these are the RAS distances across the whole volume */    \
-    \
-  ELTT( float, y_r ) SEP    \
-  ELTT( float, y_a ) SEP    \
-  ELTT( float, y_s ) SEP        /* in x, y, and z */    \
-    \
-  ELTT( float, z_r ) SEP    \
-  ELTT( float, z_a ) SEP    \
-  ELTT( float, z_s ) SEP        /* c_r, c_a, and c_s are the center ras coordinates */    \
-    \
-  ELTT( float, c_r ) SEP    \
-  ELTT( float, c_a ) SEP    \
-  ELTT( float, c_s ) SEP        /* ras_good_flag tells if these coordinates are set */    \
-  ELTT( int, ras_good_flag ) SEP /* and accurate for the volume */    \
-    \
-  /*  for bshorts and bfloats */    \
-  ELTT( int, brightness ) SEP    \
-  ELTT( char_STRLEN, subject_name ) SEP    \
-  ELTP( MATRIX, register_mat ) SEP    \
-  ELTT( char_STRLEN, path_to_t1 ) SEP    \
-  ELTT( char_STRLEN, fname_format ) SEP    \
-    \
-  /* for gdf volumes */    \
-  ELTT( char_STRLEN, gdf_image_stem ) SEP    \
-    \
-  /*    \
-     each slice is an array of rows (mri->height of them) each of which is    \
-     mri->width long.    \
-  */    \
-  ELTX( slices_t, slices) SEP    \
-  ELTT( int, scale ) SEP    \
-  ELTT( char_STR_LEN, transform_fname ) SEP    \
-  ELTT( General_transform, transform ) SEP   /* the next two are from this struct */    \
-  ELTP( Transform, linear_transform ) SEP    \
-  ELTP( Transform, inverse_linear_transform ) SEP    \
-  ELTT( int, free_transform ) SEP   /* are we responsible for freeing it? */    \
-  ELTT( int, nframes ) SEP          /* # of concatenated images */    \
-    \
-  /* these are used to handle boundary conditions (arrays of indices) SEP */    \
-  ELTP( int, xi ) SEP    \
-  ELTP( int, yi ) SEP    \
-  ELTP( int, zi ) SEP    \
-  ELTT( int, yinvert ) SEP  /* for converting between MNC and coronal slices */    \
-  ELTT( MRI_REGION, roi ) SEP    \
-  ELTT( int, dof ) SEP    \
-  ELTT( double, mean ) SEP    \
-  ELTT( double, flip_angle ) SEP  /* in radians */    \
-  ELTT( float, FieldStrength ) SEP    \
-  ELTP( char, pedir ) SEP /* phase enc direction: ROW, COL, etc*/    \
-    \
-  ELTP( void, tag_data ) SEP /* saved tag data */    \
-  ELTT( int, tag_data_size ) SEP /* size of saved tag data */    \
-  ELTP( AffineMatrix, i_to_r__ ) SEP /* cache */    \
-  ELTP( MATRIX, r_to_i__ ) SEP    \
-    \
-  ELTX( cmdlines_t, cmdlines ) SEP    \
-  ELTT( int, ncmds ) SEP    \
-    \
-  ELTT( double, outside_val ) SEP /* 0 by default, but could be something else */    \
-    \
-  ELTP( MATRIX, AutoAlign ) SEP /* For Andre */    \
-  ELTP( MATRIX, bvals ) SEP    \
-  ELTP( MATRIX, bvecs ) SEP    \
-  ELTT( int, bvec_space ) SEP /* 0=unknown, 1=scanner, 2=voxel */    \
-    \
-  /* "Chunking" memory management. "Chunking" is where the entire 4D */   \
-  /* volume is allocated one big buffer. */   \
-  ELTT( int, ischunked ) SEP          /* 1 means alloc is one big chunk */    \
-  ELTP( void, chunk ) SEP              /* pointer to the one big chunk of buffer */    \
-  ELTT( size_t, bytes_per_vox ) SEP      /* # bytes per voxels */    \
-  ELTT( size_t, bytes_per_row ) SEP      /* # bytes per row */    \
-  ELTT( size_t, bytes_per_slice ) SEP    /* # bytes per slice */    \
-  ELTT( size_t, bytes_per_vol ) SEP      /* # bytes per volume/timepoint */    \
-  ELTT( size_t, bytes_total ) SEP        /* # total number of pixel bytes in the struct */    \
-  ELTP( COLOR_TABLE, ct ) SEP    \
-  ELTP( MRI_FRAME, frames )    \
+public:
 
-#define SEP ;
-#define ELTP(TARGET, MBR)   TARGET *MBR     // pointers 
-#define ELTT(TYPE,   MBR)   TYPE    MBR     // other members that should     be included in the hash
-#define ELTX(TYPE,   MBR)   TYPE    MBR     // other members that should NOT be included in the hash
-LIST_OF_MRI_ELTS ;
-#undef ELTX
-#undef ELTT
-#undef ELTP
-#undef SEP
+  class Shape
+  {
+  public:
+    Shape() {};
+    Shape(const std::vector<int>& shape);
+    Shape(const std::vector<ssize_t>& shape) : Shape(std::vector<int>(shape.begin(), shape.end())) {};
+    Shape(const std::initializer_list<int>& shape) : Shape(std::vector<int>(shape)) {}
+    ssize_t width, height, depth, nframes, size;
 
-}
-MRI_IMAGE, MRI ;
+    operator std::vector<ssize_t>() const { return {width, height, depth, nframes}; }
 
+    friend bool operator == (const Shape &l, const Shape &r) { return (std::vector<ssize_t>(l) == std::vector<ssize_t>(r)); }
+    friend bool operator != (const Shape &l, const Shape &r) { return !(l == r); }
+  };
 
-// Support for writing traces that can be compared across test runs to help find where differences got introduced  
-//
-typedef struct {
-    unsigned long hash;
-} MRI_HASH;
+  MRI(const Shape volshape, int dtype, bool alloc = true);
+  MRI(const std::string& filename);
+  ~MRI();
 
-void mri_hash_init (MRI_HASH* hash, MRI const * mri);
-void mri_hash_add  (MRI_HASH* hash, MRI const * mri);
-void mri_hash_print(MRI_HASH const* hash, FILE* file);
-void mri_print_hash(FILE* file, MRI const * mri, const char* prefix, const char* suffix);
+  void initIndices();
+  void write(const std::string& filename);
+  FnvHash hash();
+
+  // ---- image geometry ----
+  int width;        // number of columns
+  int height;       // number of rows
+  int depth;        // number of slices
+  int nframes;      // number of frames
+  Shape shape;      // volume shape
+  int imnr0;        // starting image number
+  int imnr1;        // ending image number
+  float xstart;     // starting x (in xsize units)
+  float ystart;     // starting y (in ysize units)
+  float zstart;     // starting z (in zsize units)
+  float xend;       // ending x (in xsize units)
+  float yend;       // ending y (in ysize units)
+  float zend;       // ending z (in zsize units)
+  float xsize = 1;  // size of a voxel in the x direction
+  float ysize = 1;  // size of a voxel in the y direction
+  float zsize = 1;  // size of a voxel in the z direction
+  float thick = 1;
+  int scale = 1;
+  float ps = 1;
+  float fov;
+
+  // ---- indices to handle boundary conditions ----
+  int *xi = nullptr;
+  int *yi = nullptr;
+  int *zi = nullptr;
+
+  // ---- RAS distances ----
+  float x_r = -1, x_a = 0, x_s =  0;
+  float y_r =  0, y_a = 0, y_s = -1;
+  float z_r =  0, z_a = 1, z_s =  0;
+  float c_r =  0, c_a = 0, c_s =  0;
+  int ras_good_flag = 0;  // indicates whether the RAS coordinates are accurate
+  
+  // ---- transforms ----
+  char transform_fname[STRLEN];
+  General_transform transform;
+  Transform *linear_transform = nullptr;
+  Transform *inverse_linear_transform = nullptr;
+  int free_transform = 0;
+  AffineMatrix *i_to_r__ = nullptr;  // cached i->r transform
+  MATRIX *r_to_i__ = nullptr;        // cached r->i transform
+  MATRIX *register_mat = nullptr;
+  MATRIX *AutoAlign = nullptr;       // for Andre
+
+  // ---- volume metadata ----
+  double outside_val = 0;
+  double mean;
+  int brightness = 1;
+  int yinvert = 1;              // for converting between MNC and coronal slices
+  int dof;
+  MRI_FRAME *frames = nullptr;
+  COLOR_TABLE *ct = nullptr;
+  MRI_REGION roi;
+
+  // ---- scan parameters ----
+  float tr = 0;                 // time to recovery
+  float te = 0;                 // time to echo
+  float ti = 0;                 // time to inversion
+  double flip_angle = 0;        // flip angle in radians
+  float FieldStrength = 0;      // field strength
+  char *pedir = nullptr;        // phase enc direction: ROW, COL, etc
+  float location = 0;           // NOT USED
+
+  // ---- DTI ----
+  int bvec_space = 0;           // 0: unknown, 1: scanner, 2: voxel
+  MATRIX *bvals = nullptr;
+  MATRIX *bvecs = nullptr;
+
+  // ---- file metadata ----
+  char fname[STRLEN];           // filename
+  char fname_format[STRLEN];    // file extension
+  char subject_name[STRLEN];    // fs subject name
+  char path_to_t1[STRLEN];      // NOT USED
+  char gdf_image_stem[STRLEN];
+  char *cmdlines[MAX_CMDS];     // command line provenance
+  int ncmds = 0;                // number of commands run previously
+  void *tag_data = nullptr;     // saved tag data
+  int tag_data_size = 0;        // size of tag data
+
+  // ---- image buffer ----
+  int type;                     // image data type
+  int ptype = 2;                // NOT USED
+  size_t bytes_per_vox = 0;     // bytes per voxel
+  size_t bytes_total = 0;       // total bytes in buffer
+  size_t vox_per_row = 0;       // number of voxels per volume row
+  size_t vox_per_slice = 0;     // number of voxels per volume slice
+  size_t vox_per_vol = 0;       // number of voxels per volume frame
+  size_t vox_total = 0;         // total number of voxels in the volume
+  int ischunked;                // indicates whether the buffer is chunked (contiguous)
+  BUFTYPE ***slices = nullptr;  // fallback non-contiguous storage for 3D-indexed image data
+  void *chunk = nullptr;        // default contiguous storage for image data
+};
 
 
 typedef struct
@@ -306,7 +294,6 @@ typedef struct
   MRI *dmin;  // Image of start distance (cut off)
   MRI *nd;    // Image of number of samples
 } MOTIONBLUR2D, MB2D;
-
 
 
 MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out);
@@ -414,15 +401,11 @@ int    MRIwriteInfo(MRI *mri,const char *fpref) ;
 
 /* memory allocation routines */
 int   MRIfree(MRI **pmri) ;
-int   MRIfreeFrames(MRI *mri, int start_frame) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
-int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
-MRI * MRIallocChunk(int width, int height, int depth, int type, int nframes);
-int   MRIchunk(MRI **pmri);
 
 
 /* correlation routines */
@@ -768,7 +751,6 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 /*
   MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 */
-int   MRIinitHeader(MRI *mri) ;
 int   MRIreInitCache(MRI *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */

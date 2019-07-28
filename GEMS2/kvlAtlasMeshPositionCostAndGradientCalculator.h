@@ -137,6 +137,9 @@ protected:
  
   //
   void ImposeTranslationBoundaryConditions( const AtlasMesh* mesh );
+  
+  // 
+  void ImposeBoundaryCondition( const AtlasMesh* mesh );
 
   //
   AtlasPositionGradientContainerType::Pointer  m_PositionGradient;

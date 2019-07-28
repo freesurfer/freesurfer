@@ -198,7 +198,6 @@ class MRIDeepNet(object):
                   add_modality_channel=False,
 
                   ):
-        print loss
         if loss == 'dice_coef_loss':
             model = load_model(model_filename, custom_objects={'dice_coef_loss': dice_coef_loss})
         elif loss == 'dice_coef_loss2':

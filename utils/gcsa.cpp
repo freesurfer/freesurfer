@@ -326,7 +326,13 @@ int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX const *v)
 {
   int vdstno;
   float dmin;
-  vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin);
+  vdstno =
+    MHTfindClosestVertexNo2(
+        gcsa->mht_priors, 
+        gcsa->mris_priors, // used to build gcsa->mht_priors,
+        gcsa->mris_priors, // must contain v
+        v,
+        &dmin);
   return (vdstno);
 }
 
@@ -729,7 +735,7 @@ GCSA *GCSAread(char *fname)
         // retains compatibility across platforms (hopefully!).
         // The symptom of this bug was that mris_anatomical_stats
         // would display '** annotate' instead of the proper name.
-        if ((tmp_ct->nentries > 0) && (tmp_ct->fname != NULL)) {
+        if ((tmp_ct->nentries > 0) && (strlen(tmp_ct->fname) != 0)) {
           gcsa->ct = tmp_ct;
         }
         break;

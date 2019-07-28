@@ -26,12 +26,12 @@
 #ifndef __GENERAL_H__
 #define __GENERAL_H__
 
-using namespace std;
-
 #include <string.h>
 #include "env.h"
 #include "c_SMessage.h"
 #include "pathconvert.h"
+
+using namespace std;
 
 #define PENV  str_env.
 

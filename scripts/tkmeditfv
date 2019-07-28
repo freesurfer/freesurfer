@@ -40,6 +40,7 @@ set CenterCursor = 0;
 set Zoom = ();
 set altargs = ()
 set UseVGLRun = 0
+set DoDefects = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -76,7 +77,8 @@ if(! $UseTkMedit) then
   ### FreeView ####----------------------------------------------
   set cmd = (freeview  -v $mainvol)
   if($#auxvol) set cmd = ($cmd -v $auxvol)
-  if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
+  if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut")
+  if($#segcolor) set cmd = ($cmd":lut=$segcolor")
   if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut")
   @ nth = 0;
   foreach v ($segvollist) 
@@ -215,8 +217,9 @@ while( $#argv != 0 )
 
     case "-defect":
     case "-defects":
+      set DoDefects = 1;
       set segvol0 = surface.defects.mgz
-      set segcolor = DefectLUT.txt;
+      set segcolor = (); # color table imbedded
       set surflist0 = ($surflist0 lh.orig.nofix)
       set surflist0 = ($surflist0 rh.orig.nofix)
       set surflist0 = ($surflist0 lh.orig)

@@ -355,7 +355,7 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   // Restore the topology
   //
   vt->nsizeMax = vs->nsizeMax;
-  vt->vnum     = vs->vnum;
+  modVnum(mris, vno, vs->vnum, true);
   vt->v2num    = vs->v2num;
   vt->v3num    = vs->v3num;
   MRIS_setNsizeCur(mris, vno, vs->nsizeCur);
@@ -6491,7 +6491,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
             sy += dy = vn->origy - y;
             sz += dz = vn->origz - z;
             sd += sqrt(dx * dx + dy * dy + dz * dz);
-            n++;
+            n++;  // ATH is this supposed to be incremented again?
           }
           // mean distance to the neighbors
           sx = sx / (float)n;
@@ -6643,7 +6643,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           sy += dy = vn->origy - y;
           sz += dz = vn->origz - z;
           sd += sqrt(dx * dx + dy * dy + dz * dz);
-          n++;
+          n++;  // ATH is this supposed to be incremented again?
         }
         // mean distance to the neighbors
         sx = sx / (float)n;
@@ -7122,10 +7122,14 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
           continue;
         }
 
-        // ath - temporarily removing (#626)
-        // if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
-        //  continue;
-        // }
+        if (!mrisCanAttachFaceToVertices(mris, vno, vn1, vn2)) {
+          static unsigned long count,limit = 1;
+          if (count++ >= limit) {
+            limit *= 2;
+            fprintf(stderr, "%s:%d suppressed badly attaching a face, count:%ld\n", __FILE__,__LINE__, count);
+          }
+          continue;
+        }
 
         /* add this new face to the defect faces */
         mrisAddFace(mris, vno, vn1, vn2);
@@ -7286,36 +7290,44 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 
 static void computeDefectVertexNormals(MRIS *mris, DP *dp)
 {
-  int n, m;
-  float nx, ny, nz, len;
-  TP *tp;
-
-  tp = &dp->tp;
+  TP* const tp = &dp->tp;
+  
   /* compute vertex normals only for modified vertices */
-  for (n = 0; n < tp->nvertices; n++) {
+  for (int n = 0; n < tp->nvertices; n++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[tp->vertices[n]];
     VERTEX                * const v  = &mris->vertices         [tp->vertices[n]];
 
     /* compute normal at vertex */
-    nx = ny = nz = 0.0f;
-    for (m = 0; m < vt->num; m++) {
+    float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+    for (int m = 0; m < vt->num; m++) {
       FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vt->f[m]);
       nx += fNorm->nx;
       ny += fNorm->ny;
       nz += fNorm->nz;
     }
+
     /* normalize */
-    len = sqrtf(nx * nx + ny * ny + nz * nz);
+    float len = sqrtf(nx * nx + ny * ny + nz * nz);     // this should have been double precision
+                                                        // but fixing might change results
+
     if (FZERO(len)) {
-      fprintf(WHICH_OUTPUT,
+
+      // BRB it is possible the patch doesn't attach any faces to a vertex
+      //
+      if (vt->num > 0) {
+        fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
               tp->vertices[n],
               (int)vt->num);  // TO BE CHECKED
-      if ((int)vt->num == 0) {
-        ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
       }
-      len = 1;
+
+      // if ((int)vt->num == 0) {
+      //  ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
+      // }
+      
+      len = 1.0f;
     }
+    
     v->nx = nx / len;
     v->ny = ny / len;
     v->nz = nz / len;
@@ -7380,9 +7392,9 @@ static void removeVertex(MRIS *mris, int vno)
 
   for (n = 0; n < vt->vnum; n++) {
     /* remove vno from the list of v->v[n] */
-    int const vno = vt->v[n];
-    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vno];
-    VERTEX          * const vn  = &mris->vertices         [vno];
+    int const vno2 = vt->v[n];
+    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vno2];
+    VERTEX          * const vn  = &mris->vertices         [vno2];
     oldlist = vnt->v;
     vnum = vnt->vnum - 1; /* the new # of neighbors */
     if (vnum) {
@@ -7399,10 +7411,10 @@ static void removeVertex(MRIS *mris, int vno)
       vnt->v = NULL;
     }
     
-    vnt->vnum     = vnum;
+    modVnum(mris,vno2,vnum,true);
     vnt->nsizeMax = 1;
     
-    MRIS_setNsizeCur(mris, vno, 1);
+    MRIS_setNsizeCur(mris, vno2, 1);
 
     /* check if the vertex became singled out */
     if (vnt->vnum == 0) {
@@ -7412,7 +7424,7 @@ static void removeVertex(MRIS *mris, int vno)
   
   v->marked = DISCARDED_VERTEX;
   freeAndNULL(vt->v);
-  vt->vnum = 0;
+  clearVnum(mris,vno);
   vt->v2num = 0;
   vt->v3num = 0;
   vt->vtotal = 0;
@@ -8627,7 +8639,7 @@ MRI_SURFACE *MRIScorrectTopology(
       FILE *fp;
       char fname[STRLEN];
 
-      sprintf(fname, "%s.%s.defect%d.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name, i);
+      sprintf(fname, "%s.%s.defect%d.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data(), i);
       fp = fopen(fname, "wb");
       fprintf(fp, "%d %2.3f\n", dl->defects[i].nvertices, dl->defects[i].area);
       for (n = 0; n < dl->defects[i].nvertices; n++) {
@@ -8654,7 +8666,7 @@ MRI_SURFACE *MRIScorrectTopology(
       }
       fclose(fp);
 
-      sprintf(fname, "%s.%s.defects.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name);
+      sprintf(fname, "%s.%s.defects.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
       fp = fopen(fname, "wb");
       for (total_defective_area = 0.0f, total_defective_vertices = i = 0; i < dl->ndefects; i++) {
         total_defective_vertices += dl->defects[i].nvertices;
@@ -8747,7 +8759,7 @@ MRI_SURFACE *MRIScorrectTopology(
   memset(face_trans,   -1, mris->nfaces       * sizeof(int));
   
   // create a new surface
-  MRI_SURFACE * mris_corrected = MRISoverAlloc(mris->nvertices + 10, 2 * mris->nfaces, kept_vertices, 2 * mris->nfaces);
+  MRIS * mris_corrected = MRISoverAlloc(mris->nvertices + 10, 2 * mris->nfaces, kept_vertices, 2 * mris->nfaces);
   
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
@@ -8755,7 +8767,9 @@ MRI_SURFACE *MRIScorrectTopology(
   copyVolGeom(&mris->vg, &mris_corrected->vg);
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
-  
+  mris_corrected->status         = mris->status;            // this should have been done
+  mris_corrected->origxyz_status = mris->origxyz_status;    // this is new 
+
 #if 0
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
 #endif
@@ -8877,7 +8891,8 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->K = v->K;
         vdst->k1 = v->k1;
         vdst->k2 = v->k2;
-        vdstt->num = vdstt->vnum = 0;
+        vdstt->num = 0;
+        clearVnum(mris_corrected,vno_dst);
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
@@ -8905,7 +8920,7 @@ MRI_SURFACE *MRIScorrectTopology(
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     FILE *fp;
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.vtrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name);
+    sprintf(fname, "%s.%s.vtrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
     fp = fopen(fname, "wb");
     if (!fp) {
       DiagBreak();
@@ -8915,7 +8930,7 @@ MRI_SURFACE *MRIScorrectTopology(
       fprintf(fp, "%6d --> %6d\n", vno, vertex_trans[vno]);
     }
     fclose(fp);
-    sprintf(fname, "%s.%s.ftrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name);
+    sprintf(fname, "%s.%s.ftrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
     fp = fopen(fname, "wb");
 
     for (vno = 0; vno < mris->nfaces; vno++) {
@@ -8956,9 +8971,10 @@ MRI_SURFACE *MRIScorrectTopology(
     }
 
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
 
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
@@ -9127,16 +9143,16 @@ MRI_SURFACE *MRIScorrectTopology(
         /* save border positions */
         for (n = 0; n < defect->nborder; n++) {
           VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
-          vdst->tx2 = vdst->cx;
-          vdst->ty2 = vdst->cy;
-          vdst->tz2 = vdst->cz;
+          vdst->t2x = vdst->cx;
+          vdst->t2y = vdst->cy;
+          vdst->t2z = vdst->cz;
         }
         /* save inside positions */
         for (n = 0; n < defect->nvertices; n++) {
           VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
-          vdst->tx2 = vdst->cx;
-          vdst->ty2 = vdst->cy;
-          vdst->tz2 = vdst->cz;
+          vdst->t2x = vdst->cx;
+          vdst->t2y = vdst->cy;
+          vdst->t2z = vdst->cz;
         }
 
         /* generate different mappings (max 10) */
@@ -9259,16 +9275,16 @@ MRI_SURFACE *MRIScorrectTopology(
           /* restore border positions */
           for (n = 0; n < defect->nborder; n++) {
             VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
-            vdst->cx = vdst->tx2;
-            vdst->cy = vdst->ty2;
-            vdst->cz = vdst->tz2;
+            vdst->cx = vdst->t2x;
+            vdst->cy = vdst->t2y;
+            vdst->cz = vdst->t2z;
           }
           /* save inside positions */
           for (n = 0; n < defect->nvertices; n++) {
             VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
-            vdst->cx = vdst->tx2;
-            vdst->cy = vdst->ty2;
-            vdst->cz = vdst->tz2;
+            vdst->cx = vdst->t2x;
+            vdst->cy = vdst->t2y;
+            vdst->cz = vdst->t2z;
           }
           break;
 
@@ -9399,7 +9415,6 @@ MRI_SURFACE *MRIScorrectTopology(
     MRISsaveVertexPositions(mris_corrected, TMP_VERTICES);
     MRISrestoreVertexPositions(mris_corrected, ORIG_VERTICES);
     mht = MHTcreateFaceTable(mris_corrected);
-    MHTcheckSurface(mris_corrected, mht);
     MHTfree(&mht);
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES);
   }
@@ -9644,7 +9659,7 @@ FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   if (!fdl->faces) ErrorExit(ERROR_NO_MEMORY, "MRISmarkAmbiguousFaces: could allocate face defect list");
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name);
+    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
     fp = fopen(fname, "w");
   }
 
@@ -9807,7 +9822,7 @@ DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_
 
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name);
+    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
     fp = fopen(fname, "a");
   }
 
@@ -12108,8 +12123,10 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
 
   /* allocate temporary surface */
   mris_dst = MRISalloc(nvertices, nfaces);
+  mris_dst->type   = MRIS_TRIANGULAR_SURFACE;
   mris_dst->status = MRIS_SPHERICAL_PATCH;
-  mris_dst->type = MRIS_TRIANGULAR_SURFACE;
+  mris_dst->origxyz_status = mris_src->origxyz_status;
+  
   mris_dst->radius = DEFAULT_RADIUS;
 
   /* copy faces */
@@ -12414,7 +12431,7 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
 
 static int compare_edge_length(const void *pe0, const void *pe1)
 {
-  register EDGE *e0, *e1;
+  EDGE *e0, *e1;
 
   e0 = (EDGE *)pe0;
   e1 = (EDGE *)pe1;
@@ -13595,7 +13612,10 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   if (nedges > 200000) {
 #if 1
-    printf("XL defect detected...\n");
+    printf("An extra large defect has been detected...\n");
+    printf("This often happens because cerebellum or dura has not been removed from wm.mgz.\n");
+    printf("This may cause recon-all to run very slowly or crash.\n");
+    printf("if so, see https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/TopologicalDefect_freeview\n");
     max_unchanged = MIN(max_unchanged, 1);
     max_patches = MAX(MIN(max_patches, 3), 1);
     max_edges = MIN(max_edges, 25);
@@ -13609,7 +13629,10 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 #endif
   }
   else if (nedges > 100000) {
-    printf("L defect detected...\n");
+    printf("A large defect has been detected...\n");
+    printf("This often happens because cerebellum or dura has not been removed from wm.mgz.\n");
+    printf("This may cause recon-all to run very slowly or crash.\n");
+    printf("if so, see https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/TopologicalDefect_freeview\n");
     max_unchanged = MIN(max_unchanged, 1);
     max_patches = MAX(MIN(max_patches, 10), 1);
     max_edges = MIN(max_edges, 100);
@@ -14011,7 +14034,7 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       if (i == 0 && Gdiag & 0x1000000) {
         int i;
         char fname[STRLEN];
-        sprintf(fname, "%s_defect%d_%03d", mris->fname, dno - 1, sno++);
+        sprintf(fname, "%s_defect%d_%03d", mris->fname.data(), dno - 1, sno++);
         dp = &dps[best_i];
         mrisRetessellateDefect(
             mris, mris_corrected, dp->defect, vertex_trans, dp->etable->edges, dp->nedges, dp->ordering, dp->etable);
@@ -17311,5 +17334,109 @@ static void mrisComputeSurfaceStatistics(
 
   /* free arrays */
   TPfree(&tp);
+}
+
+
+/*!
+  \fn int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol)
+  \brief Sample the defect numbers into the volume to create a
+  segmentation. Works by going through all the vertices and finding
+  the ones with non-zero defectno.  For each neighboring face, the
+  voxel above and below is set to defectno+offset. vol must already
+  exist and have the geometry of orig.mgz; it should be ready (eg,
+  zeroed) to be filled with the defectno. surf should be the
+  ?h.orig.nofix.  defects should be an MRI struct with each
+  voxel/vertex indicating the defectno (eg, ?h.defect_labels).  A
+  segmentation color table is imbedded in the vol.  It might be nice
+  to be able to dilate the defects.
+ */
+int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol)
+{
+  int n, defectno,defectnomax;
+  VERTEX *v, *vf;
+  double delta, projsign;
+  double x,y,z, c,r,s, cx,cy,cz;
+  int ic,ir,is,nthface,faceno,vno,k,m,oob;
+  float snorm[3];
+
+  delta = vol->xsize/5.0; // could be smarter
+
+  MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(vol, surf);
+
+  if(surf->nvertices != defects->width){
+    printf("ERROR: MRISdefectNo2Vol(): dimension mismatch surf=%d, defects=%d\n",
+	   surf->nvertices,defects->width);
+    fflush(stdout);
+    return(1);
+  }
+
+  // Get the maximum number of defects
+  defectnomax = 0;
+  for(n=0; n < surf->nvertices; n++){
+    defectno = MRIgetVoxVal(defects,n,0,0,0);
+    if(defectno > defectnomax) defectnomax = defectno;
+  }
+  int nentries = defectnomax+offset+2;
+  if(vol->ct != NULL) nentries = MAX(nentries,vol->ct->nentries);
+  COLOR_TABLE *ctab = CTABalloc(nentries);
+  CTABunique(ctab, 10);
+  for(n=0; n <= defectnomax; n++){
+    sprintf(ctab->entries[n+offset]->name,"Defect-%03d",n+offset);
+  }
+  if(vol->ct == NULL) {
+    vol->ct = ctab;
+  }
+  else {
+    CTABmerge(ctab,vol->ct);
+    CTABfree(&vol->ct);
+    vol->ct=ctab;
+  }
+
+  for(n=0; n < surf->nvertices; n++){
+    defectno = MRIgetVoxVal(defects,n,0,0,0);
+    if(defectno==0) continue; // This vertex is not part of a defect
+    v = &(surf->vertices[n]);
+    // Go through all the faces associated with this vertex
+    VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[n]);
+    for(nthface=0; nthface <  vt->num; nthface++){
+      faceno = vt->f[nthface];
+      // Compute the centroid of the face
+      FACE *face = &(surf->faces[faceno]);
+      cx = 0;
+      cy = 0;
+      cz = 0;
+      for(k=0; k<3; k++){
+	m = k + 1;
+	if(m>2) m = 0;
+	vno = face->v[k];
+	vf = &(surf->vertices[vno]);
+	cx += vf->x;
+	cy += vf->y;
+	cz += vf->z;
+      }
+      cx /= 3.0;
+      cy /= 3.0;
+      cz /= 3.0;
+      // Compute the normal of the face
+      mrisNormalFace(surf, faceno, 0, snorm);
+      // Sample the volume at a voxel just above and just below the face
+      for(projsign = -1; projsign <= +1; projsign+=2){
+	x = cx + (projsign*delta)*snorm[0];
+	y = cy + (projsign*delta)*snorm[1];
+	z = cz + (projsign*delta)*snorm[2];
+	MRIS_useRAS2VoxelMap(sras2v_map, vol, x, y, z, &c, &r, &s);
+	ic = nint(c);
+	ir = nint(r);
+	is = nint(s);
+	oob = MRIindexNotInVolume(vol,ic,ir,is);
+	if(oob) continue;
+	// Assign the voxel to the given vertex no
+	MRIsetVoxVal(vol,ic,ir,is,0,defectno+offset);
+      }
+    }
+  }
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
+
+  return(0);
 }
 

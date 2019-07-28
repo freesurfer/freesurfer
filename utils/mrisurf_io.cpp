@@ -1698,9 +1698,9 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_tab
   if (TAG_OLD_COLORTABLE == tag) {
     /* We have a color table, read it with CTABreadFromBinary. If it
     fails, it will print its own error message. */
-    fprintf(stderr, "reading colortable from annotation file...\n");
+    fprintf(stdout, "reading colortable from annotation file...\n");
     ctab = CTABreadFromBinary(fp);
-    if (NULL != ctab) fprintf(stderr, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
+    if (NULL != ctab) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
   }
 
   fclose(fp);
@@ -2465,15 +2465,13 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   ------------------------------------------------------*/
 int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
 {
-  int old_status;
-
   if (!sname) {
     sname = "smoothwm";
   }
 
   MRISsaveVertexPositions(mris, TMP_VERTICES);
 
-  old_status = mris->status;
+  auto const old_status = mris->status;
   mris->status = MRIS_PATCH; /* so no orientating will be done */
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadOriginalProperties: could not read surface file %s", sname));
@@ -2580,7 +2578,7 @@ int MRISwriteAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -2613,7 +2611,7 @@ int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteNormalsAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -3247,7 +3245,7 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
   fprintf(fp,
           "#!ascii version of patch %s. "
           "The 1st index is not a vertex number\n",
-          mris->fname);
+          mris->fname.data());
   fprintf(fp, "%d %d\n", nvertices, nfaces);
   fprintf(stdout, "nvertices=%d (valid=%d) nfaces=%d\n", nvertices, MRISvalidVertices(mris), nfaces);
 
@@ -3797,7 +3795,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
         VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
         v->num++;
-        v->vnum += 2;
+        addVnum(mris,face->v[fvno],2);
       }
     }
 
@@ -3806,7 +3804,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       v->v = (int *)calloc(v->vnum, sizeof(int));
       if (!v->v) ErrorExit(ERROR_NOMEMORY, "MRISreadSTLfile: could not allocate %dth vertex list.", vno);
-      v->vnum = 0;
+      clearVnum(mris,vno);
     }
 
     /* now build list of neighbors */
@@ -3832,7 +3830,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
             }
           }
           if (vn >= 0) {
-            v->v[v->vnum++] = vn;
+            v->v[vnumAdd(mris,face->v[fvno],1)] = vn;
           }
         }
       }
@@ -5825,33 +5823,29 @@ SMALL_SURFACE *MRISreadVerticesOnly(char *fname)
   ------------------------------------------------------*/
 int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
 {
-  int k, n;
-  FILE *fp;
-  const char *user, *time_str;
+  const char *user = getenv("USER");
+  if (!user)  user = getenv("LOGNAME");
+  if (!user)  user = "UNKNOWN";
 
-  user = getenv("USER");
-  if (!user) {
-    user = getenv("LOGNAME");
-  }
-  if (!user) {
-    user = "UNKNOWN";
-  }
-  time_str = currentDateTime().c_str();
+  auto cdt = currentDateTime();
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, time_str);
-  fp = fopen(fname, "w");
+    fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
+
+  FILE *fp = fopen(fname, "w");
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
+  
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n", user, time_str);
+  fprintf(fp, "created by %s on %s\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
-  for (k = 0; k < mris->nvertices; k++) {
+
+  for (int k = 0; k < mris->nvertices; k++) {
     fwriteFloat(mris->vertices[k].x, fp);
     fwriteFloat(mris->vertices[k].y, fp);
     fwriteFloat(mris->vertices[k].z, fp);
   }
-  for (k = 0; k < mris->nfaces; k++) {
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
+  for (int k = 0; k < mris->nfaces; k++) {
+    for (int n = 0; n < VERTICES_PER_FACE; n++) {
       fwriteInt(mris->faces[k].v[n], fp);
     }
   }
@@ -5872,13 +5866,13 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     TAGwriteEnd(fp, here);
   }
   {
-    int i;
-
-    for (i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
+    for (int i = 0; i < mris->ncmds; i++) TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i]) + 1);
   }
+  
   fclose(fp);
   return (NO_ERROR);
 }
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -5970,7 +5964,7 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
                  "mrisReadTriangleFile opened %s okay but surface doesn't match %s.  nvertices:%d != "
                  "mris->nvertices:%d || nfaces:%d != mris->nfaces:%d\n",
                  fname,
-                 mris->fname,
+                 mris->fname ? mris->fname : "NULL",
                  nvertices,
                  mris->nvertices,
                  nfaces,
@@ -6030,7 +6024,15 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   fscanf(fp, "\n");
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
-  nfaces = freadInt(fp);
+  nfaces    = freadInt(fp);
+  
+  if (nvertices < 0 || nfaces < 0) {
+    fflush(stdout);
+    fflush(stderr);
+    fprintf(stderr, "%s:%d %s freadInt returned nvertices:%d \n", __FILE__,__LINE__,fname,nvertices);
+    fprintf(stderr, "%s:%d %s freadInt returned nfaces:%d \n", __FILE__,__LINE__,fname,nfaces);
+    exit(1);
+  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
@@ -6509,4 +6511,108 @@ MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   return(mri) ;
+}
+
+
+int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
+{
+  FACE *face = &(surf->faces[faceno]);
+  int n,m,vno1,vno2;
+  VERTEX *v1,*v2;
+  double cx=0,cy=0,cz=0;
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Face %d\n",faceno);
+  fprintf(fp,"plot3(");
+  for(n=0; n<3; n++){
+    m = n + 1;
+    if(m>2) m = 0;
+    vno1 = face->v[n];
+    vno2 = face->v[m];
+    v1 = &(surf->vertices[vno1]);
+    v2 = &(surf->vertices[vno2]);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c' ",
+	    v1->x,v2->x,v1->y,v2->y,v1->z,v2->z,color);
+    if(n!=2) fprintf(fp,",");
+    cx += v1->x;
+    cy += v1->y;
+    cz += v1->z;
+  }
+  cx /= 3;
+  cy /= 3;
+  cz /= 3;
+  fprintf(fp,");\n");
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'F%d');\n",cx,cy,cz,faceno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    float snorm[3];
+    mrisNormalFace(surf, faceno, 0, snorm);
+    //printf("%g %g %g\n",snorm[0],snorm[1],snorm[2]);
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*',",cx,cy,cz,color);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c'",
+	    cx,cx+NormLen*snorm[0],cy,cy+NormLen*snorm[1],cz,cz+NormLen*snorm[2],
+	    normcolor);
+    fprintf(fp,");\n");
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen)
+{
+  VERTEX *v = &(surf->vertices[vno]);
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Vertex %d\n",vno);
+  fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*')\n",v->x,v->y,v->z,color);
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'V%d');\n",v->x,v->y,v->z,vno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c')\n",
+	    v->x,v->x+NormLen*v->nx, v->y,v->y+NormLen*v->ny, v->z,v->z+NormLen*v->nz, normcolor);
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen)
+{
+
+  int nthhop, nnbrs, nthnbr, nbrvtxno, faceno,nthface;
+  SURFHOPLIST *shl;
+  shl = SetSurfHopList(cvno, surf, nhops);
+
+  for(nthhop = 0; nthhop < nhops; nthhop++) {
+    nnbrs = shl->nperhop[nthhop];
+    // loop through the neighbors nthhop links away
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+      nbrvtxno = shl->vtxlist[nthhop][nthnbr];
+      fprintf(fp,"hold on;\n");
+      MatlabPlotVertex(fp, surf, nbrvtxno, 'g', NormLen);
+      if(nthhop >= nhops-1) continue;
+      VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[nbrvtxno]);
+      for(nthface=0; nthface <  vt->num; nthface++){
+	faceno = vt->f[nthface];
+	fprintf(fp,"hold on;\n");
+	MatlabPlotFace(fp, surf, faceno, 'b', NormLen);
+	//fprintf(stderr,"%2d %3d %d %6d %6d\n",nthhop,nthnbr,nthface,nbrvtxno,faceno);
+      }
+
+    } /* end loop over hop neighborhood */
+  }   /* end loop over hop */
+
+  // Have to do this at the end
+  fprintf(fp,"hold on;\n");
+  MatlabPlotVertex(fp, surf, cvno, 'r', NormLen);
+  fprintf(fp,"title('Vertex %d');\n",cvno);
+  fprintf(fp,"hold off;\n");
+
+  SurfHopListFree(&shl);
+  return(0);
 }

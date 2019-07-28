@@ -10,8 +10,10 @@ enable_language(C CXX Fortran)
 # a few build options
 option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
+option(BUILD_ATTIC "Build subdirs moved to ./freesurfer/attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
+option(PROFILING "Complile binaries for profiling with gprof" OFF)
 
 if(NOT APPLE)
   # linux-only build options
@@ -29,10 +31,6 @@ include(CheckFunctionExists)
 # prevent third-party packages from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
-# create build stamp during install
-set(BUILD_STAMP "freesurfer" CACHE STRING "Distribution build-stamp")
-install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
-
 # if an install prefix is not provided, check the FS_INSTALL_DIR env var, and
 # if that is not defined, set the default path to /usr/local/freesurfer
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -42,6 +40,11 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer" CACHE PATH "Default install path" FORCE)
   endif()
 endif()
+
+# create build stamp during install
+string(TIMESTAMP TODAY "%Y%m%d")
+set(BUILD_STAMP "freesurfer-local-build-dev-${TODAY}" CACHE STRING "Distribution build stamp")
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # set the default build type to 'Release' for optimization purposes
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -219,7 +222,7 @@ if(DISTRIBUTE_FSPYTHON)
   if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
     set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.a)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
       DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
@@ -243,7 +246,7 @@ endif()
 # --------------------------------------------------
 
 # warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-sign-compare -Wno-write-strings -Wno-unused-result")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-absolute-value -Wno-sign-compare -Wno-write-strings -Wno-unused-result -Wno-unused-parameter")
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -256,11 +259,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # linker options
 if(APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -static-libgcc")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+  endif()
 else()
   set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STRIP_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+if(PROFILING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 endif()
 
 # check for clock_gettime on mac
@@ -402,10 +413,7 @@ if(NOT MINIMAL)
   add_subdirectories(
     anatomicuts
     BrainstemSS
-    check_siemens_dir
-    connectgraph
     diffusion_tool
-    dmri_tensoreig
     dummy
     dngtester
     freeview
@@ -416,59 +424,37 @@ if(NOT MINIMAL)
     hiam_register
     HippoSF
     histo_compute_joint_density
-    histo_fix_topology
     histo_register_block
-    histo_segment
     histo_synthesize
     label2flat
     label2patch
-    label_area
-    label_border
     mkxsubjreg
     matlab
-    mri_apply_inu_correction
-    mri_aseg_edit_reclassify
-    mri_aseg_edit_train
-    mri_auto_fill
     mri_average
-    mri_bc_sc_bias_correct
     mri_bias
-    mri_build_priors
     mri_ca_tissue_parms
     mri_ca_train
     mri_cal_renormalize_gca
-    mri_cht2p
-    mri_classify
     mri_cnr
     mri_compile_edits
     mri_compute_change_map
-    mri_compute_structure_transforms
     mri_compute_volume_fractions
-    mri_concatenate_gcam
-    mri_convert_mdh
     mri_copy_values
     mri_cor2label
     mri_correct_segmentations
     mri_cvs_register
     mri_dct_align
     mri_distance_transform
-    mri_divide_segmentation
-    mri_elastic_energy
-    mri_estimate_tissue_parms
     mri_evaluate_morph
     mri_extract
-    mri_extract_conditions
     mri_extract_fcd_features
     mri_extract_label
-    mri_fcili
     mri_fdr
     mri_fieldsign
     mri_fit_bias
     mri_fslmat_to_lta
     mri_fuse_intensity_images
     mri_gca_ambiguous
-    mri_gcab_train
-    mri_gdfglm
     mri_glmfit
     mri_gtmpvc
     mri_gtmseg
@@ -476,47 +462,28 @@ if(NOT MINIMAL)
     mri_head
     mri_hires_register
     mri_histo_eq
-    mri_histo_normalize
-    mri_ibmc
-    mri_interpolate
     mri_jacobian
     mri_joint_density
-    mri_label_accuracy
     mri_label_histo
     mri_label_vals
     mri_label_volume
     mri_linear_register
-    mri_make_bem_surfaces
-    mri_make_density_map
-    mri_make_labels
-    mri_make_register
-    mri_make_template
     mri_map_cpdat
     mri_mark_temporal_lobe
     mri_mcsim
     mri_mi
     mri_modify
     mri_morphology
-    mri_mosaic
-    mri_ms_EM
-    mri_ms_EM_with_atlas
     mri_ms_fitparms
-    mri_ms_LDA
-    mri_multiscale_segment
-    mri_multispectral_segment
     mri_nlfilter
     mri_otl
     mri_paint
     mri_parse_sdcmdir
-    mri_parselabel
-    mri_partial_ribbon
     mri_path2label
     mri_polv
     mri_probe_ima
     mri_reduce
-    mri_register
     mri_rf_label
-    mri_rf_long_label
     mri_rf_long_train
     mri_rf_train
     mri_ribbon
@@ -525,43 +492,28 @@ if(NOT MINIMAL)
     mri_seg_diff
     mri_segcentroids
     mri_seghead
-    mri_segment_tumor
-    mri_segment_wm_damage
-    mri_simulate_atrophy
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
     mri_synthesize
-    mri_threshold
     mri_topologycorrection
     mri_train
-    mri_train_autoencoder
     mri_transform
-    mri_transform_to_COR
     mri_twoclass
-    mri_update_gca
-    mri_vol2roi
     mri_volcluster
     mri_volsynth
     mri_warp_convert
     mri_wbc
-    mri_wmfilter
-    mri_xcorr
     mri_xvolavg
     mri_z2p
     mris2rgb
-    mris_add_template
     mris_annot_to_segmentation
     mris_apply_reg
-    mris_aseg_distance
     mris_average_curvature
-    mris_average_parcellation
     mris_BA_segment
     mris_ca_train
-    mris_classify_thickness
     mris_compute_acorr
     mris_compute_lgi
-    mris_compute_optimal_kernel
     mris_compute_overlap
     mris_compute_parc_overlap
     mris_compute_volume_fractions
@@ -569,7 +521,6 @@ if(NOT MINIMAL)
     mris_copy_header
     mris_defects_pointset
     mris_deform
-    mris_density
     mris_distance_map
     mris_distance_to_label
     mris_distance_transform
@@ -577,29 +528,24 @@ if(NOT MINIMAL)
     mris_errors
     mris_expand
     mris_extract_patches
-    mris_fbirn_annot
     mris_fill
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
-    mris_glm
     mris_hausdorff_dist
     mris_init_global_tractography
     mris_interpolate_warp
     mris_label_area
     mris_label_calc
     mris_label_mode
-    mris_longitudinal_surfaces
     mris_make_average_surface
     mris_make_face_parcellation
-    mris_make_map_surfaces
     mris_make_template
     mris_map_cuts
     mris_merge_parcellations
     mris_mesh_subdivide
     mris_morph_stats
     mris_ms_refine
-    mris_ms_surface_CNR
     mris_multiscale_stats
     mris_niters2fwhm
     mris_parcellate_connectivity
@@ -621,33 +567,24 @@ if(NOT MINIMAL)
     mris_segmentation_stats
     mris_shrinkwrap
     mris_simulate_atrophy
+    mris_smooth_intracortical
     mris_spherical_average
-    mris_surface_change
     mris_surface_to_vol_distances
-    mris_svm_classify
-    mris_svm_train
     mris_talairach
     mris_thickness_comparison
     mris_transform
     mris_translate_annotation
     mris_transmantle_dysplasia_paths
-    mris_twoclass
     mris_volume
-    mris_w_to_curv
     mris_warp
     mris_watershed
     mrisp_write
     nmovie_qt
     oct_register_mosaic
-    oct_train
     optseq2
     qdecproject
     qdec_glmfit
-    rbftest
-    regdat2xfm
-    repair_siemens_file
     resurf
-    spherical_stats
     spline3
     stat_normalize
     stim_polar
@@ -660,6 +597,9 @@ if(NOT MINIMAL)
   )
 endif()
 
+# No CMakeLists.txt in subdirs
+# mris_spherical_wavelets
+
 # infant freesurfer
 if(INFANT_MODULE)
   add_subdirectories(infant)
@@ -669,3 +609,108 @@ endif()
 if(TKTOOLS_MODULE)
   add_subdirectory(tktools)
 endif()
+
+# 5/2019 - The attic subdirectories were previously listed above to be built by default under
+# ./freesurfer. But because the code is old/seldom used - or never built - these subdirs have been
+# moved to ./freesurfer/attic (attic is an old CVS term).  They are no longer built and installed by 
+# default, but can be built by adding -DBUILD_ATTIC:BOOL=ON to the cmake command line.
+#
+# To see the complete log history of any file in under ./attic prior to its move there, add the
+# --follow option to the git log command, e.g., cd attic/mri_mosaic and do "git log --follow mri_mosaic.cpp"
+
+if(BUILD_ATTIC)
+  add_subdirectories(
+    attic/check_siemens_dir
+    attic/connectgraph
+    attic/dmri_tensoreig
+    attic/histo_fix_topology
+    attic/histo_segment
+    attic/label_area
+    attic/label_border
+    attic/mri_apply_inu_correction
+    attic/mri_aseg_edit_reclassify
+    attic/mri_aseg_edit_train
+    attic/mri_auto_fill
+    attic/mri_bc_sc_bias_correct
+    attic/mri_build_priors
+    attic/mri_cht2p
+    attic/mri_classify
+    attic/mri_compute_structure_transforms
+    attic/mri_concatenate_gcam
+    attic/mri_convert_mdh
+    attic/mri_divide_segmentation
+    attic/mri_elastic_energy
+    attic/mri_estimate_tissue_parms
+    attic/mri_extract_conditions
+    attic/mri_fcili
+    attic/mri_gcab_train
+    attic/mri_gdfglm
+    attic/mri_histo_normalize
+    attic/mri_ibmc
+    attic/mri_interpolate
+    attic/mri_label_accuracy
+    attic/mri_make_bem_surfaces
+    attic/mri_make_density_map
+    attic/mri_make_labels
+    attic/mri_make_register
+    attic/mri_make_template
+    attic/mri_mosaic
+    attic/mri_ms_EM
+    attic/mri_ms_EM_with_atlas
+    attic/mri_ms_LDA
+    attic/mri_multiscale_segment
+    attic/mri_multispectral_segment
+    attic/mri_parselabel
+    attic/mri_partial_ribbon
+    attic/mri_register
+    attic/mri_rf_long_label
+    attic/mri_segment_tumor
+    attic/mri_segment_wm_damage
+    attic/mri_simulate_atrophy
+    attic/mri_threshold
+    attic/mri_train_autoencoder
+    attic/mri_transform_to_COR
+    attic/mri_update_gca
+    attic/mri_vol2roi
+    attic/mri_wmfilter
+    attic/mri_xcorr
+    attic/mris_add_template
+    attic/mris_aseg_distance
+    attic/mris_average_parcellation
+    attic/mris_classify_thickness
+    attic/mris_compute_optimal_kernel
+    attic/mris_density
+    attic/mris_fbirn_annot
+    attic/mris_glm
+    attic/mris_longitudinal_surfaces
+    attic/mris_make_map_surfaces
+    attic/mris_ms_surface_CNR
+    attic/mris_surface_change
+    attic/mris_svm_classify
+    attic/mris_svm_train
+    attic/mris_twoclass
+    attic/mris_w_to_curv
+    attic/oct_train
+    attic/rbftest
+    attic/regdat2xfm
+    attic/repair_siemens_file
+    attic/spherical_stats
+  )
+endif()
+
+# These never built, i.e. have no CMakeLists.txt, so they are not listed above in attic list
+#
+# attic/mri_cc_ma_fill
+# attic/mri_cc_medial_axis
+# attic/mri_extract_ma_intensity
+# attic/mri_map_atrophy
+# attic/mris_curvature_vectors
+# attic/mris_pval_fill
+
+# This subdirectory does the install step to add a script named after
+# binaries in the attic when BUILD_ATTIC is false (the default). The
+# script is a placeholder to notify the user the command is no longer
+# built (and echoes that). If this is the last subdir added, then this
+# should be the last step in the install pass.
+add_subdirectory(${CMAKE_SOURCE_DIR}/attic/ATTIC_POSTINSTALL)
+

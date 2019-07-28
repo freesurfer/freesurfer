@@ -581,8 +581,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
 {
   int col, row, i, rows, cols, m1_cols;
   float *r3;
-  register float *r1, *r2;
-  register double val;
+  float *r1, *r2;
+  double val;
   MATRIX *m_tmp1 = NULL, *m_tmp2 = NULL;
   char tmpstr[1000];
 
@@ -711,7 +711,7 @@ MATRIX *MatrixMultiply_wkr(const MATRIX *m1, const MATRIX *m2, MATRIX *m3, const
 {
   int col, row, i, rows, cols, m1_cols;
   float *r3;
-  register float val, *r1, *r2;
+  float val, *r1, *r2;
   MATRIX *m_tmp1 = NULL, *m_tmp2 = NULL;
 
   if (!m1) ErrorExit(ERROR_BADPARM, "MatrixMultiply: m1 is null!\n");
@@ -1315,7 +1315,7 @@ MATRIX *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut)
   for (row = 1; row <= rows; row++) {
     for (col = 1; col <= cols; col++) {
       val = mIn->rptr[row][col];
-      mOut->rptr[row][col] = val * val * (val < 0) ? -1 : 1;
+      mOut->rptr[row][col] = val * val * ((val < 0) ? -1 : 1);
     }
   }
   return (mOut);

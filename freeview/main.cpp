@@ -39,7 +39,11 @@
 #include "error.h"
 #include <fenv.h>
 #include <QFile>
+#include <QSurfaceFormat>
 
+#if VTK_MAJOR_VERSION > 7
+#include <QVTKOpenGLWidget.h>
+#endif
 
 #include "fsinit.h"
 #include "chklc.h"
@@ -140,6 +144,7 @@ int main(int argc, char *argv[])
     "':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n"
     "':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n"
     "':vector_width=width' Set line width of the vectors.\n\n"
+    "':vector_norm_threshold=value' Set norm threshold for the vector display.\n\n"
     "':vector_skip=n' Skip n voxels in vector display. Default is 0 (no skipping).\n\n"
     "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
@@ -149,6 +154,7 @@ int main(int argc, char *argv[])
     "':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n"
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
+    "':isosurface_output=filename' Save isosurface to file. Extension can be .vtk or .stl.\n\n"
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
     "':name=display_name' Set the display name of the volume.\n\n"
     "':lock=lock_status' Lock the volume layer so it will not be moved in the layer stack. Status can be '1' or 'true'.\n\n"
@@ -176,6 +182,7 @@ int main(int argc, char *argv[])
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate' and 'inverse'. Use comma to apply more than one.\n\n"
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
+    "':overlay_mask=filename(,invert)' Use given label file as mask for overlay. If invert is specified, use the inverted mask.\n\n"
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
     "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
     "':overlay_zorder=number' Set z-order for rendering overlay.\n\n"
@@ -261,6 +268,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "nocursor", "nocursor", "", "Hide the cursor." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-frames", "hide-3d-frames", "", "Hide slice frames in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "no-auto-load", "no-auto-load", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),
@@ -275,8 +283,12 @@ int main(int argc, char *argv[])
   cmd.SetProgramDescription( progDesc );
   if ( !cmd.Parse( argc, argv ) )
   {
-    return false;
+    return 1;
   }
+
+#if VTK_MAJOR_VERSION > 7
+  QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
+#endif
 
 #ifdef Q_OS_LINUX
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
@@ -318,17 +330,20 @@ int main(int argc, char *argv[])
   {
     QMessageBox::warning(&w, "License Error", license_msg);
     w.close();
-    return false;
+    return 1;
   }
 
   if (!w.ParseCommand(argc, argv, true))
   {
     w.close();
-    return false;
+    return 1;
   }
 
   int ret = app.exec();
 
   LineProf::FinalizePetsc();
+  if (w.HadError())
+    ret = 1;
+
   return ret;
 }

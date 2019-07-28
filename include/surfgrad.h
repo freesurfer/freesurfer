@@ -73,11 +73,11 @@ double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long dou
 
 
 double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad);
-int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
-int MRISedgeGradDot(MRIS *surf);
+int    MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta);
+int    MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
 double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose);
+int MRISedgeGradDot(MRIS *surf);
 int MRISfaceNormalGrad(MRIS *surf, int NormOnly);
-int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta);
 int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp);
 int MRISedgeMetricEdge(MRIS *surf, int edgeno);
 int MRISfacePrint(MRIS *surf, int faceno, FILE *fp);
@@ -91,5 +91,14 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
 int BBRPARsras2vox(BBRPARAMS *bbrpar);
 long double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX *gradCost);
 double MRISedgeCost(MRIS *surf, DMATRIX *gradCost);
+int MRISedgeMetric(MRIS *surf);
+long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **pgradv0, DMATRIX **pgradv1);
+int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0);
+double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad);
+long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad);
+int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double magthresh);
+int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh, const double magthresh);
+long double MRIStargetCost(MRIS *surf, double const weight, int DoGrad);
+long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *dc);
 
 #endif

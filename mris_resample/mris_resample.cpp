@@ -235,6 +235,8 @@ resampleSurface( MRIS* mrisAtlasReg,
                  MRIS* mrisSubject,
                  bool passAnnotation )
 {
+  cheapAssert(mrisAtlasReg->origxyz_status == mrisSubject->origxyz_status);
+
   /* this function assumes the mapping function is stored
      as the "INFLATED vertex" of mris_template */
 
@@ -384,8 +386,8 @@ resampleSurface( MRIS* mrisAtlasReg,
   }
 
   if (annkdTree) delete annkdTree;
-  if (annIndex) delete annIndex;
-  if (annDist) delete annDist;
+  if (annIndex) delete[] annIndex;
+  if (annDist) delete[] annDist;
   if (QueryPt) delete QueryPt;
 
   return;

@@ -126,5 +126,9 @@ int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 int L2Stest(const char *subject);
 
 int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0);
+double *MRIStriangleAreaStats(MRIS *surf, MRI *mask, double *stats);
+double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats);
+int MRISedgePrint(FILE *fp, MRIS *surf);
+int MRISedgeWrite(char *filename, MRIS *surf);
 
 #endif

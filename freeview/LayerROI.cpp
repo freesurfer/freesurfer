@@ -68,6 +68,10 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     m_sliceActor3D[i] = vtkImageActor::New();
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
+#if VTK_MAJOR_VERSION > 5
+    m_sliceActor2D[i]->ForceOpaqueOn();
+    m_sliceActor3D[i]->ForceOpaqueOn();
+#endif
   }
 
   mProperty = new LayerPropertyROI( this );
@@ -436,7 +440,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
       }
     }
   }
-  vs[nPlane] = 1.0;
+//  vs[nPlane] = 1.0;
 
   *count_out = cnt;
   *area_out = cnt*vs[0]*vs[1]*vs[2];

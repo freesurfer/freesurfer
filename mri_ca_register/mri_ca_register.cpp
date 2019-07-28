@@ -321,7 +321,7 @@ main(int argc, char *argv[])
     }
     if (T2_mask_fname)
     {
-      MRI *mri_T2, *mri_aparc_aseg ;
+      MRI *mri_T2, *mri_aparc_aseg = nullptr;
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)
@@ -1391,6 +1391,11 @@ main(int argc, char *argv[])
   {
     GCA_MORPH_PARMS old_parms ;
     int               start_t ;
+    TRANSFORM  _transform, *transform = &_transform ;
+
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    TransformInvert(transform, mri_inputs) ;
 
     memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
     parms.l_log_likelihood = .05 ;
@@ -1531,10 +1536,14 @@ main(int argc, char *argv[])
     }
   }
 
-  if (handle_expanded_ventricles && 0)  // one more less-restrictive morph
-  {
+  if (0 && handle_expanded_ventricles) {  // one more less-restrictive morph
     GCA_MORPH_PARMS old_parms ;
     int               start_t ;
+    TRANSFORM  _transform, *transform = &_transform ;
+
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    TransformInvert(transform, mri_inputs) ;
 
     printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
     printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
@@ -1765,7 +1774,7 @@ get_option(int argc, char *argv[])
     do_secondpass_renorm = 1 ;
     printf("performing 2nd-pass renormalization...\n") ;
   }
-  else if (!stricmp(option, "renormalize"))
+  else if (!stricmp(option, "RENORM_MAP") || !stricmp(option, "RENORMALIZE_MAP"))
   {
     renormalize = 1 ;
     printf("renormalizing GCA to MAP estimate of means\n") ;
@@ -1995,7 +2004,7 @@ get_option(int argc, char *argv[])
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
-  else if (!stricmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

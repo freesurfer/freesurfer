@@ -1285,8 +1285,7 @@ int main(int argc, char *argv[])
     MRIwrite(mri_labeled, fname) ;
   }
 
-  if (reclassify_unlikely && 0)
-  {
+  if (0 && reclassify_unlikely) {
     MRI *mri_sigma ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
@@ -1824,7 +1823,7 @@ get_option(int argc, char *argv[])
     printf("reading template for histogram equalization from %s\n",
            heq_fname) ;
   }
-  else if (!stricmp(option, "RENORM"))
+  else if (!strcmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;
@@ -1855,7 +1854,7 @@ get_option(int argc, char *argv[])
     printf("using FLASH forward model and tissue parms in %s to predict"
            " intensity values...\n", tissue_parms_fname) ;
   }
-  else if (!stricmp(option, "renormalize"))
+  else if (!stricmp(option, "renormalize_iter"))
   {
     renormalize_wsize = atoi(argv[2]) ;
     renormalize_iter = atoi(argv[3]) ;

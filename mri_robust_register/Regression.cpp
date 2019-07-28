@@ -30,7 +30,7 @@
 #include "Regression.h"
 #include <iostream>
 #include <cassert>
-#include <cmath>
+#include <math.h>
 #include <limits>
 #include <vector>
 #include <fstream>

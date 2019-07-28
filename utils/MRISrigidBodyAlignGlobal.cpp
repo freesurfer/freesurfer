@@ -304,7 +304,6 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
               MRISPfunctionVal_radiusR(
                   parms->mrisp_template, 
                   fvsForAlphas,             // output values
-                  mris,
                   mris->radius, betaGammaRotated_xv[vi], betaGammaRotated_yv[vi], betaGammaRotated_zv[vi], 
                   parms->frame_no, true,
                   alphasForAlphas, ajsSize, // input requests
@@ -339,7 +338,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
                   MRISPfunctionValResultForAlpha targetAndStd;
                   MRISPfunctionVal_radiusR(
-                      parms->mrisp_template, &targetAndStd, mris, 
+                      parms->mrisp_template, &targetAndStd,
                       mris->radius, x, y, z, 
                       parms->frame_no, true,
                       &alpha, 1,
@@ -419,9 +418,9 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
             for (oci = 0; oci < outCentersSize; oci++) {
               struct Center* oc = &outCenters[oci];
               bool nearBy = 
-                  fabsf(oc->center_ai - ai) <= radius
-               && fabsf(oc->center_bi - bi) <= radius
-               && fabsf(oc->center_gi - gi) <= radius;
+                  std::abs(oc->center_ai - ai) <= radius
+               && std::abs(oc->center_bi - bi) <= radius
+               && std::abs(oc->center_gi - gi) <= radius;
               if (nearBy) {
                 if (oc->center_sse_known && oc->center_sse < sse) {
                   oci = -1;                                 // Don't replace any

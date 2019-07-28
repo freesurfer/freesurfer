@@ -73,6 +73,8 @@ void PanelTrack::ConnectLayer(Layer *layer_in)
   connect(ui->comboBoxDirectionMapping, SIGNAL(currentIndexChanged(int)), p, SLOT(SetDirectionMapping(int)));
   connect(ui->colorPickerSolidColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSolidColor(QColor)));
   connect(ui->comboBoxRenderRep, SIGNAL(currentIndexChanged(int)), p, SLOT(SetRenderRep(int)));
+  connect(ui->sliderOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderOpacity(int)));
+  connect(ui->lineEditOpacity, SIGNAL(textChanged(QString)), SLOT(OnLineEditOpacity(QString)));
 }
 
 void PanelTrack::DoUpdateWidgets()
@@ -113,6 +115,8 @@ void PanelTrack::DoUpdateWidgets()
     ui->comboBoxDirectionScheme->setCurrentIndex(layer->GetProperty()->GetDirectionScheme());
     ui->colorPickerSolidColor->setCurrentColor(layer->GetProperty()->GetSolidColor());
     ui->comboBoxRenderRep->setCurrentIndex(layer->GetProperty()->GetRenderRep());
+    ChangeLineEditNumber(ui->lineEditOpacity, layer->GetProperty()->GetOpacity());
+    ui->sliderOpacity->setValue(layer->GetProperty()->GetOpacity()*100);
   }
   ShowWidgets(m_widgetlistDirectionalColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::Directional);
   ShowWidgets(m_widgetlistSolidColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::SolidColor);
@@ -126,4 +130,28 @@ void PanelTrack::DoUpdateWidgets()
 void PanelTrack::DoIdle()
 {
 
+}
+
+void PanelTrack::OnSliderOpacity(int val)
+{
+  LayerTrack* layer = GetCurrentLayer<LayerTrack*>();
+  if (layer)
+  {
+    layer->GetProperty()->SetOpacity(val/100.0);
+  }
+  ChangeLineEditNumber(ui->lineEditOpacity, val/100.0);
+}
+
+void PanelTrack::OnLineEditOpacity(const QString & text)
+{
+  LayerTrack* layer = GetCurrentLayer<LayerTrack*>();
+  bool bOK;
+  double val = text.toDouble(&bOK);
+  if (layer && bOK)
+  {
+    layer->GetProperty()->SetOpacity(val);
+    ui->sliderOpacity->blockSignals(true);
+    ui->sliderOpacity->setValue(val*100);
+    ui->sliderOpacity->blockSignals(false);
+  }
 }

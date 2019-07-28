@@ -35,9 +35,12 @@ mri_vol2vol
   --targ targvol      : output template (or input with --inv)
   --o    outvol       : output volume
   --disp dispvol      : displacement volume
+  --downsample N1 N2 N3 : downsample input volume (do not include a targ or regsitration)
+         sets --fill-average, --fill-upsample 2, and --regheader
 
-  --lta  register.lta : Linear Transform Array (usually only 1 transform)
   --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
+  --lta  register.lta : Linear Transform Array (usually only 1 transform)
+  --lta-inv  register.lta : LTA, invert (may not be the same as --lta --inv with --fstal)
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
   --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
@@ -50,6 +53,12 @@ mri_vol2vol
   --talres resolution : set voxel size 1mm or 2mm (def is 1)
   --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
+  --m3z morph    : non-linear morph encoded in the m3z format
+  --noDefM3zPath : flag indicating that the code should not be looking for 
+       the non-linear m3z morph in the default location (subj/mri/transforms), but should use 
+       the morph name as is
+  --inv-morph    : compute and use the inverse of the m3z morph
+
   --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz 
   --crop scale        : crop and change voxel size
   --slice-crop sS sE  : crop output slices to be within sS and sE
@@ -59,11 +68,28 @@ mri_vol2vol
   --trilin            : trilinear interpolation (default)
   --nearest           : nearest neighbor interpolation
   --cubic             : cubic B-Spline interpolation
-  --interp interptype : interpolation trilin or nearest (def is trilin)
+  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)
+  --fill-average      : compute mean of all source voxels in a given target voxel
+  --fill-conserve     : compute sum  of all source voxels in a given target voxel
+  --fill-upsample USF : source upsampling factor for --fill-xxx (default is 2)
+
+  --mul mulval   : multiply output by mulval
 
   --precision precisionid : output precision (def is float)
   --keep-precision  : set output precision to that of input
   --kernel            : save the trilinear interpolation kernel instead
+
+  --gcam mov srclta gcam dstlta vsm interp out
+     srclta, gcam, or vsm can be set to 0 to indicate identity
+     direction is automatically determined from srclta and dstlta
+     interp 0=nearest, 1=trilin, 5=cubicbspline
+
+  --spm-warp mov movlta warp interp output
+     mov is the input to be mapped 
+     movlta maps mov to the vbm input space (use 0 to ignore)
+       if movlta=0, then input is anything that shares a RAS space with the VBM input
+     warp is typically y_rinput.nii
+     interp 0=nearest, 1=trilin
 
   --no-resample : do not resample, just change vox2ras matrix
 
@@ -72,15 +98,16 @@ mri_vol2vol
   --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
-  --soap ctl_point_vol niter : run soap bubble smoothing on input volume using ctl_point_vol>0
   --synth : replace input with white gaussian noise
   --seed seed : seed for synth (def is to set from time of day)
 
-  --no-save-reg : do not write out output volume registration matrix
+  --save-reg : write out output volume registration matrix
 
   --help : go ahead, make my day
   --debug
   --version
+
+
 
 ENDUSAGE ---------------------------------------------------------------
 */
@@ -594,6 +621,7 @@ int FillUpsample=2;
 MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
 int DoMultiply=0;
 double MultiplyVal=0;
+int DownSample[3] = {0,0,0}; // downsample source
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -647,7 +675,7 @@ int main(int argc, char **argv) {
     printf("Crop %lf\n",CropScale);
     mov = MRIread(movvolfile);
     if(mov == NULL) exit(1);
-    err = MRIboundingBox(mov, 0.5, &box);
+    err = MRIboundingBox(mov, 0, &box);
     if(err) exit(1);
     crop  = MRIcrop(mov,box.x, box.y, box.z,
 		    box.x+box.dx, box.y+box.dy, box.z+box.dz);
@@ -724,6 +752,24 @@ int main(int argc, char **argv) {
        targ = MRIclone(mov,targ);
        MRIcopyVolGeomToMRI(targ,&lta->xforms[0].dst); 
        usedltageom = 1;
+    }
+    else {
+      // Downsample
+      targ = MRIallocHeader(mov->width,mov->height,mov->depth,MRI_FLOAT,mov->nframes);
+      MRIcopyHeader(mov, targ);
+      MRIcopyPulseParameters(mov, targ);
+      targ->width  = ceil( mov->width  / DownSample[0]);
+      targ->height = ceil( mov->height / DownSample[1]);
+      targ->depth  = ceil( mov->depth  / DownSample[2]);
+      targ->xsize *= DownSample[0];
+      targ->ysize *= DownSample[1];
+      targ->zsize *= DownSample[2];
+      targ->xstart = -targ->xsize*targ->width / 2;
+      targ->xend   =  targ->xsize*targ->width / 2;
+      targ->ystart = -targ->ysize*targ->height/ 2;
+      targ->yend   =  targ->ysize*targ->height/ 2;
+      targ->zstart = -targ->zsize*targ->depth / 2;
+      targ->zend   =  targ->zsize*targ->depth / 2;
     }
     if (targ == NULL) exit(1);
     in = mov;
@@ -1172,6 +1218,17 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&FillUpsample);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--downsample")){
+      if (nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&DownSample[0]);
+      sscanf(pargv[1],"%d",&DownSample[1]);
+      sscanf(pargv[2],"%d",&DownSample[2]);
+      DoFill = 1;
+      DoFillConserve = 0;
+      FillUpsample = 2;
+      regheader = 1;
+      nargsused = 3;
+    }
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -1441,6 +1498,33 @@ static int parse_commandline(int argc, char **argv) {
       SegRegCostFile = pargv[0];
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--spm-warp",0)) {
+      LTA *srclta;
+      if(nargc < 5){
+	printf("  --spm-warp mov movlta warp interp out\n");
+	argnerr(option,6);
+      }
+      mov = MRIread(pargv[0]);
+      if(mov == NULL) exit(1);
+      if(strcmp(pargv[1],"0")!=0){
+	printf("Loading source LTA %s\n",pargv[1]);
+	srclta = LTAread(pargv[1]);
+	if(srclta == NULL) exit(1);
+      } else srclta = NULL;
+      MRI *warp = MRIread(pargv[2]);
+      if(warp == NULL) exit(1);
+      sscanf(pargv[3],"%d",&interpcode);
+      printf("Running MRIapplySpmVbmWarp() interp = %d\n",interpcode);
+      out = MRIapplySpmWarp(mov, srclta, warp, 0, interpcode, NULL);
+      if(out == NULL) exit(1);
+      printf("Writing to %s\n",pargv[4]);
+      err = MRIwrite(out,pargv[4]);
+      if(err) exit(1);
+      MRIfree(&warp);
+      printf("mri_vol2vol spm-vbm done\n");
+      printf("#VMPC# mri_vol2vol VmPeak %d\n",GetVmPeak());
+      exit(0);
+    }
     else if (istringnmatch(option, "--gcam",0)) {
       LTA *srclta, *dstlta;
       if(nargc < 7){
@@ -1503,6 +1587,8 @@ printf("  --mov  movvol       : input (or output template with --inv)\n");
 printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
+printf("  --downsample N1 N2 N3 : downsample input volume (do not include a targ or regsitration)\n");
+printf("         sets --fill-average, --fill-upsample 2, and --regheader\n");
 printf("\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
 printf("  --lta  register.lta : Linear Transform Array (usually only 1 transform)\n");
@@ -1520,7 +1606,9 @@ printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
 printf("\n");
 printf("  --m3z morph    : non-linear morph encoded in the m3z format\n");
-printf("  --noDefM3zPath : flag indicating that the code should not be looking for the non-linear m3z morph in the default location (subj/mri/transforms), but should use the morph name as is\n");
+printf("  --noDefM3zPath : flag indicating that the code should not be looking for \n");
+printf("       the non-linear m3z morph in the default location (subj/mri/transforms), but should use \n");
+printf("       the morph name as is\n");
 printf("  --inv-morph    : compute and use the inverse of the m3z morph\n");
 printf("\n");
 printf("  --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz \n");
@@ -1533,15 +1621,27 @@ printf("  --trilin            : trilinear interpolation (default)\n");
 printf("  --nearest           : nearest neighbor interpolation\n");
 printf("  --cubic             : cubic B-Spline interpolation\n");
 printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
-printf("   --mul mulval   : multiply output by mulval\n");
+printf("  --fill-average      : compute mean of all source voxels in a given target voxel\n");
+printf("  --fill-conserve     : compute sum  of all source voxels in a given target voxel\n");
+printf("  --fill-upsample USF : source upsampling factor for --fill-xxx (default is 2)\n");
+printf("\n");
+printf("  --mul mulval   : multiply output by mulval\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");
 printf("     direction is automatically determined from srclta and dstlta\n");
-printf("     interp %d=nearest, %d=trilin, %d=cubicbspline\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR,SAMPLE_CUBIC_BSPLINE);
+printf("     interp 0=nearest, 1=trilin, 5=cubicbspline\n");
+printf("\n");
+printf("  --spm-warp mov movlta warp interp output\n");
+printf("     mov is the input to be mapped \n");
+printf("     movlta maps mov to the vbm input space (use 0 to ignore)\n");
+printf("       if movlta=0, then input is anything that shares a RAS space with the VBM input\n");
+printf("     warp is typically y_rinput.nii\n");
+printf("     interp 0=nearest, 1=trilin\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
@@ -1934,7 +2034,12 @@ static void check_options(void) {
     }
   }
 
-  if (targvolfile == NULL){
+  if (targvolfile != NULL && DownSample[0]){
+    printf("ERROR: cannot spec target file and downsample.\n");
+    exit(1);
+  }
+
+  if (targvolfile == NULL && DownSample[0]==0){
     printf("ERROR: No target volume supplied.\n");
     exit(1);
   }
@@ -2005,7 +2110,7 @@ static void check_options(void) {
     MRIfree(&mritrgtmp);
   }
 
-  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) ) {
+  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) && !DownSample[0]) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }

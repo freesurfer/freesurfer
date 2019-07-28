@@ -142,6 +142,7 @@ if($status) goto error_exit;
 # Compute segstats
 set cmd = (mri_segstats --seg $sourceseg --sum $segstats \
   --ctab-default --excludeid 0 --i $source)
+if($#subject) set cmd = ($cmd --etiv --subject $subject)
 echo ""| tee -a $LF
 date | tee -a $LF
 echo $cmd | tee -a $LF
@@ -168,7 +169,7 @@ endif
 # This might be good to have for QA purposes.
 # Note that the FIRST registration may not look good outside of
 # the subcortical region.
-set cmd = (tkregister2 --mov $input --targ $FSLSTD1mm \
+set cmd = (tkregister2_cmdl --mov $input --targ $FSLSTD1mm \
   --fsl $outdir/input.ras_to_std_sub.mat --reg $outdir/reg.input.ras_to_std_sub.dat \
   --ltaout $outdir/reg.input.ras_to_std_sub.lta --noedit)
 echo $cmd | tee -a $LF
@@ -286,10 +287,6 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#outdir == 0) then
-  echo "ERROR: must spec outdir"
-  exit 1;
-endif
 if($#source == 0 && $#subject == 0) then
   echo "ERROR: must spec either input or subject"
   exit 1;
@@ -299,7 +296,6 @@ if($#source != 0 && $#subject != 0) then
   exit 1;
 endif
 
-set segstats = $outdir/first.fsl.stats
 if($#subject) then
   if(! -e $SUBJECTS_DIR/$subject) then
     echo "ERROR: cannot find $subject"
@@ -310,6 +306,14 @@ if($#subject) then
   set segstats = $SUBJECTS_DIR/$subject/stats/first.fsl.stats
   set diceseg  = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
 endif
+
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+
+if($#segstats == 0) set segstats = $outdir/first.fsl.stats
+
 if(! -e $source) then
   echo "ERROR: cannot find $source"
   exit 1;

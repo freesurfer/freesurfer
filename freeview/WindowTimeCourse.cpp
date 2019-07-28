@@ -34,6 +34,21 @@
 #include "FSSurface.h"
 #include <QSettings>
 #include <QDebug>
+#include "FlowLayout.h"
+#include <QColorDialog>
+#include <QPointer>
+
+ClickableLabel::ClickableLabel(QWidget* parent, Qt::WindowFlags f)
+    : QLabel(parent)
+{
+}
+
+ClickableLabel::~ClickableLabel() {}
+
+void ClickableLabel::mousePressEvent(QMouseEvent* event)
+{
+    emit clicked();
+}
 
 WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
   QWidget(parent),
@@ -45,10 +60,12 @@ WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
   ui->setupUi(this);
   this->setWindowFlags(Qt::Tool);
   this->setWindowTitle("Time Course");
-  ui->frameSecondPlot->hide();
-  connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)));
+  ui->widgetPlot->SetDarkMode(true);
+  layoutLegend = new FlowLayout;
+  ui->widgetLegend->setLayout(layoutLegend);
+
+  connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)), Qt::QueuedConnection);
   connect(ui->widgetPlot, SIGNAL(PlotRangeChanged()), this, SLOT(UpdateScaleInfo()), Qt::QueuedConnection);
-  connect(ui->comboBoxSecondPlot, SIGNAL(currentIndexChanged(int)), SLOT(OnComboSecondPlot(int)));
 
   QSettings s;
   QVariant v = s.value("WindowTimeCourse/Geomerty");
@@ -76,72 +93,17 @@ void WindowTimeCourse::showEvent(QShowEvent *e)
 
 void WindowTimeCourse::UpdateUI()
 {
-  QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
-  if (type == "MRI")
+}
+
+void WindowTimeCourse::Clear()
+{
+  ui->widgetPlot->Clear();
+  QLayoutItem* item;
+  while ( ( item = layoutLegend->takeAt( 0 ) ) != NULL )
   {
-    QList<LayerMRI*> valid_layers;
-    LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (layer && layer->GetNumberOfFrames() == 1 && lastMRI && MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
-      layer = lastMRI;
-    if (layer)
-    {
-      QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-      LayerMRI* current_2nd_layer = qobject_cast<LayerMRI*>(
-            ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
-      foreach (Layer* l, layers)
-      {
-        if (((LayerMRI*)l)->GetNumberOfFrames() == layer->GetNumberOfFrames() && l != layer)
-          valid_layers << ((LayerMRI*)l);
-      }
-      ui->comboBoxSecondPlot->blockSignals(true);
-      ui->comboBoxSecondPlot->clear();
-      ui->comboBoxSecondPlot->addItem("Off");
-      int n = 0;
-      for (int i = 0; i < valid_layers.size(); i++)
-      {
-        if (valid_layers[i] == current_2nd_layer)
-          n = i+1;
-        ui->comboBoxSecondPlot->addItem(valid_layers[i]->GetName(), QVariant::fromValue((QObject*)valid_layers[i]));
-      }
-      ui->comboBoxSecondPlot->setCurrentIndex(n);
-      ui->comboBoxSecondPlot->blockSignals(false);
-    }
-    ui->frameSecondPlot->setVisible(!valid_layers.isEmpty());
-    ui->labelSecondPlot->setText("Second Volume");
+    delete item->widget();
+    delete item;
   }
-  else if (type == "Surface")
-  {
-    QList<SurfaceOverlay*> valid_overlays;
-    LayerSurface* layer = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (layer && layer->GetNumberOfOverlays() > 1 && layer->GetActiveOverlay())
-    {
-      QList<SurfaceOverlay*> overlays = layer->GetOverlays();
-      SurfaceOverlay* current_overlay = layer->GetActiveOverlay();
-      SurfaceOverlay* current_2nd_overlay = qobject_cast<SurfaceOverlay*>(
-            ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
-      foreach (SurfaceOverlay* l, overlays)
-      {
-        if (l->GetNumberOfFrames() == current_overlay->GetNumberOfFrames() && l != current_overlay)
-          valid_overlays << l;
-      }
-      ui->comboBoxSecondPlot->blockSignals(true);
-      ui->comboBoxSecondPlot->clear();
-      ui->comboBoxSecondPlot->addItem("Off");
-      int n = 0;
-      for (int i = 0; i < valid_overlays.size(); i++)
-      {
-        if (valid_overlays[i] == current_2nd_overlay)
-          n = i+1;
-        ui->comboBoxSecondPlot->addItem(valid_overlays[i]->GetName(), QVariant::fromValue((QObject*)valid_overlays[i]));
-      }
-      ui->comboBoxSecondPlot->setCurrentIndex(n);
-      ui->comboBoxSecondPlot->blockSignals(false);
-    }
-    ui->frameSecondPlot->setVisible(!valid_overlays.isEmpty());
-    ui->labelSecondPlot->setText("Second Overlay");
-  }
-  else
-    ui->comboBoxSecondPlot->hide();
 }
 
 void WindowTimeCourse::UpdateData(bool bForce)
@@ -150,94 +112,60 @@ void WindowTimeCourse::UpdateData(bool bForce)
     return;
 
   QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
+  QList<QColor> colors;
+  colors << Qt::yellow << Qt::cyan << Qt::red << Qt::magenta;
+  Clear();
   if (type == "MRI")
   {
-    LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (lastMRI == NULL)
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    for (int nl = layers.size()-1; nl >= 0; nl--)
     {
-      QList<Layer*> mri_col = MainWindow::GetMainWindow()->GetLayers("MRI");
-      foreach (Layer* mri, mri_col)
+      LayerMRI* layer = qobject_cast<LayerMRI*>(layers[nl]);
+      if (layer && layer->GetNumberOfFrames() > 1)
       {
-        if (((LayerMRI*)mri)->GetNumberOfFrames() > 1)
-        {
-          lastMRI = ((LayerMRI*)mri);
-          break;
-        }
-      }
-    }
-    if (layer && layer->GetNumberOfFrames() == 1 &&
-        MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
-      layer = lastMRI;
-    if (layer && layer->GetNumberOfFrames() > 1)
-    {
-      double ras[3];
-      int n[3];
-      MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
-      layer->RemapPositionToRealRAS(ras, ras);
-      layer->RASToOriginalIndex(ras, n);
-      QList<double> data, data2;
-      for (int i = 0; i < layer->GetNumberOfFrames(); i++)
-        data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
-      LayerMRI* layer2 = qobject_cast<LayerMRI*>(ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
-      if (layer2)
-      {
+        double ras[3];
+        int n[3];
         MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
-        layer2->RemapPositionToRealRAS(ras, ras);
-        layer2->RASToOriginalIndex(ras, n);
-        for (int i = 0; i < layer2->GetNumberOfFrames(); i++)
-        {
-          data2 <<  layer2->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
-        }
-      }
-      FSVolume* vol = layer->GetSourceVolume();
-      double val_min = vol->GetMinValue(), val_max = vol->GetFullMaxValue();
-      if (layer2)
-      {
-        val_min = qMin(val_min, layer2->GetSourceVolume()->GetMinValue());
-        val_max = qMax(val_max, layer2->GetSourceVolume()->GetFullMaxValue());
-      }
-      ui->widgetPlot->SetTimeCourseData(data, val_min, val_max, layer->GetTR());
-      ui->widgetPlot->SetSecondData(data2);
-      ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
+        layer->RemapPositionToRealRAS(ras, ras);
+        layer->RASToOriginalIndex(ras, n);
+        QList<double> data;
+        for (int i = 0; i < layer->GetNumberOfFrames(); i++)
+          data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
+        FSVolume* vol = layer->GetSourceVolume();
+        double val_min = vol->GetMinValue(), val_max = vol->GetFullMaxValue();
+        QVariantMap info = layer->GetTimeSeriesInfo();
+        TimeCourseData td;
+        td.m_points = data;
+        td.m_dMin = val_min;
+        td.m_dMax = val_max;
+        if (!layer->property("legend_color").value<QColor>().isValid())
+          layer->setProperty("legend_color", colors[(layers.size()-1-nl)%colors.size()]);
+        td.m_color = layer->property("legend_color").value<QColor>();
+        td.m_strXUnit = info["unit"].toString();
+        td.m_dXInterval = info["tr"].toDouble();
+        td.m_dXOffset = info["offset"].toDouble();
+        td.m_nId = layer->GetID();
+        td.m_strName = layer->GetName();
+        if (layer->property("timecourse_visible").isValid())
+          td.m_bShow = layer->property("timecourse_visible").toBool();
+        ui->widgetPlot->AddTimeCourseData(td);
+        ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
 
-      QVariantMap info = layer->GetTimeSeriesInfo();
-      ui->widgetPlot->SetXUnitInfo(info["tr"].toDouble(), info["offset"].toDouble(), info["unit"].toString());
+        connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
+                this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
 
-      connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
-              this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
-      setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
-      lastMRI = layer;
+        QWidget* w = MakeLegendWidget(layer, td);
+        layoutLegend->addWidget(w);
+      }
+      //  setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
     }
   }
   else if (type == "Surface")
   {
     LayerSurface* surf = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    SurfaceOverlay* overlay = (surf ? surf->GetActiveOverlay() : NULL);
-    if (surf && lastOverlay == NULL)
+    if (surf)
     {
-      for (int i = 0; i < surf->GetNumberOfOverlays(); i++)
-      {
-        SurfaceOverlay* so = surf->GetOverlay(i);
-        if (so->GetNumberOfFrames() > 1)
-        {
-          lastOverlay = so;
-          lastSurface = surf;
-          break;
-        }
-      }
-    }
-    if (overlay && overlay->GetNumberOfFrames() == 1 &&
-        MainWindow::GetMainWindow()->GetLayerCollection("Surface")->Contains(lastSurface))
-    {
-      if (lastOverlay && lastOverlay->GetNumberOfFrames() > 1)
-      {
-        overlay = lastOverlay;
-        surf = lastSurface;
-      }
-    }
-
-    if (surf && overlay && overlay->GetNumberOfFrames() > 1)
-    {
+      Clear();
       double pos[3];
       MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
       int nVert = -1;
@@ -248,42 +176,80 @@ void WindowTimeCourse::UpdateData(bool bForce)
       if (nVert < 0)
         return;
 
-      int nFrames = overlay->GetNumberOfFrames();
-      float* buffer = new float[nFrames];
-      double range[2];
-      overlay->GetDataAtVertex(nVert, buffer);
-      overlay->GetRawRange(range);
-      QList<double> data, data2;
-      for (int i = 0; i < nFrames; i++)
-        data << buffer[i];
-      SurfaceOverlay* overlay2 = qobject_cast<SurfaceOverlay*>(ui->comboBoxSecondPlot->itemData(ui->comboBoxSecondPlot->currentIndex()).value<QObject*>());
-
-      if (overlay2)
+      QList<SurfaceOverlay*> overlays = surf->GetOverlays();
+      for (int no = 0; no < overlays.size(); no++)
       {
-        double range2[2];
-        overlay2->GetDataAtVertex(nVert, buffer);
-        overlay2->GetRawRange(range2);
-        range[0] = qMin(range[0], range2[0]);
-        range[1] = qMax(range[1], range2[1]);
-        for (int i = 0; i < nFrames; i++)
-          data2 << buffer[i];
+        if (overlays[no]->GetNumberOfFrames() <= 1)
+        {
+          overlays.removeAt(no);
+          no--;
+        }
       }
-      delete[] buffer;
-      ui->widgetPlot->SetTimeCourseData(data, range[0], range[1]);
-      ui->widgetPlot->SetSecondData(data2);
-      ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
-      setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
-      lastSurface = surf;
-      lastOverlay = overlay;
+
+      for (int no = 0; no < overlays.size(); no++)
+      {
+        SurfaceOverlay* overlay = overlays[no];
+        int nFrames = overlay->GetNumberOfFrames();
+        float* buffer = new float[nFrames];
+        double range[2];
+        overlay->GetDataAtVertex(nVert, buffer);
+        overlay->GetRawRange(range);
+        QList<double> data;
+        for (int i = 0; i < nFrames; i++)
+          data << buffer[i];
+        delete[] buffer;
+        TimeCourseData td;
+        td.m_points = data;
+        td.m_dMin = range[0];
+        td.m_dMax = range[1];
+        if (!overlay->property("legend_color").value<QColor>().isValid())
+          overlay->setProperty("legend_color", colors[(overlays.size()-1-no)%colors.size()]);
+        if (overlay->property("timecourse_visible").isValid())
+          td.m_bShow = overlay->property("timecourse_visible").toBool();
+        td.m_color = overlay->property("legend_color").value<QColor>();
+        td.m_nId = overlay->GetID();
+        td.m_strName = overlay->GetName();
+        ui->widgetPlot->AddTimeCourseData(td);
+        ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
+
+        QWidget* w = MakeLegendWidget(overlay, td);
+        layoutLegend->addWidget(w);
+      }
+      //  setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
     }
   }
+}
+
+QWidget* WindowTimeCourse::MakeLegendWidget(QObject* obj, const TimeCourseData& td)
+{
+  QWidget* w = new QWidget(this);
+  QHBoxLayout* hbox = new QHBoxLayout;
+  w->setLayout(hbox);
+  QCheckBox* checkbox = new QCheckBox();
+  checkbox->setChecked(td.m_bShow);
+  checkbox->setProperty("data_id", td.m_nId);
+  checkbox->setProperty("data_obj", qVariantFromValue(obj));
+  connect(checkbox, SIGNAL(toggled(bool)), SLOT(OnCheckBoxShowData(bool)));
+  checkbox->setCursor(Qt::PointingHandCursor);
+  hbox->addWidget(checkbox);
+  ClickableLabel* label = new ClickableLabel();
+  label->setText(td.m_strName);
+  label->setProperty("data_id", td.m_nId);
+  hbox->addWidget(label);
+  label->setStyleSheet(QString("color:rgb(%1,%2,%3)")
+                          .arg(td.m_color.red()).arg(td.m_color.green()).arg(td.m_color.blue()));
+  label->setProperty("data_obj", qVariantFromValue(obj));
+  label->setCursor(Qt::PointingHandCursor);
+  connect(label, SIGNAL(clicked()), SLOT(OnLegendLabelClicked()));
+
+  return w;
 }
 
 void WindowTimeCourse::OnFrameChanged(int frame)
 {
   QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
   if (type != "MRI" && type != "Surface")
-    type == "MRI";
+    type = "MRI";
   if (type == "MRI")
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
@@ -377,3 +343,31 @@ void WindowTimeCourse::OnCheckShowFrameNumber(bool b)
   ui->widgetPlot->SetShowFrameNumber(b);
 }
 
+void WindowTimeCourse::OnCheckBoxShowData(bool bShow)
+{
+  QCheckBox* cb = qobject_cast<QCheckBox*>(sender());
+  if (cb)
+  {
+    ui->widgetPlot->SetDataVisible(cb->property("data_id").toLongLong(), bShow);
+    QObject* obj = cb->property("data_obj").value<QObject*>();
+    if (obj)
+      obj->setProperty("timecourse_visible", bShow);
+  }
+}
+
+void WindowTimeCourse::OnLegendLabelClicked()
+{
+  QPointer<QLabel> l = qobject_cast<QLabel*>(sender());
+  if (l)
+  {
+    QObject* obj = l->property("data_obj").value<QObject*>();
+    QColor c = QColorDialog::getColor(obj?obj->property("legend_color").value<QColor>():Qt::white, this);
+    if (c.isValid() && l)
+    {
+      l->setStyleSheet(QString("color:rgb(%1,%2,%3)")
+                              .arg(c.red()).arg(c.green()).arg(c.blue()));
+      obj->setProperty("legend_color", c);
+      ui->widgetPlot->SetDataColor(l->property("data_id").toLongLong(), c);
+    }
+  }
+}

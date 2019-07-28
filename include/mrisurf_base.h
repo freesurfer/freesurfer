@@ -33,18 +33,12 @@ extern int fix_vertex_area;
 #ifdef BEVIN_REPRODUCIBLES_CHECK
 
     #define BEVIN_MRISCOMPUTENORMALS_CHECK
-    #define BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
-    #define BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
-    #define BEVIN_MRISCOMPUTESSE_CHECK
 #endif
 
 
 // Configurable support for enabling the new code that does get reproducible results
 //
-#define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
-#define BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
-#define BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTEQUADRATICCURVATURESSE_REPRODUCIBLE
 
 
@@ -113,6 +107,19 @@ extern int fix_vertex_area;
 #if DMALLOC
 #include "dmalloc.h"
 #endif
+
+
+// Differ from SQR etc. if an argument has a side-effect
+//
+template <typename T> double sign   (T const & t) { return (t > 0) ? 1.0 : -1.0; }
+template <typename T>   T    square (T const & t) { return t*t; }
+template <typename T>   T    square3(T const & t) { return square(t[0])+square(t[1])+square(t[2]); }
+template <typename T>   T    norm3  (T const & t) { return sqrt(square3(t)); }
+template <typename T>   T    max    (T const & lhs, T const & rhs) { return (lhs>rhs) ? lhs : rhs; }
+template <typename T>   T    min    (T const & lhs, T const & rhs) { return (lhs<rhs) ? lhs : rhs; }
+template <typename T>   T    max3   (T const & lhs, T const & mid, T const & rhs) { return max(max(lhs,mid),rhs); }
+template <typename T>   T    min3   (T const & lhs, T const & mid, T const & rhs) { return min(min(lhs,min),rhs); }
+
 
 #ifndef SQR
 #define SQR(x) ((x) * (x))

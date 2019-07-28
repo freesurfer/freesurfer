@@ -246,7 +246,7 @@ SPHERE_ELTS
         MRISfree(&mris);
     }
     MRIS* mris;
-    int   const status;
+    MRIS_Status const status;
     int   const nvertices;
     float radius;
     struct Vertex {
@@ -6560,8 +6560,6 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
       f2m+=force;
 
-      force1=force1;
-
       // Delta = 0.8 x St + force1 x Sn + force x Vn
       /////////////////////////////////////////////////////
       dx = sxt*0.8 + force1*sxn + v->nx*force;
@@ -7768,10 +7766,10 @@ mrisComputeCorrelationErrorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     src = v->curv ;
 
     target =
-      MRISPfunctionVal(parms->mrisp_template, mris, x, y, z,
+      MRISPfunctionVal(parms->mrisp_template, mris->radius, x, y, z,
                        parms->frame_no) ;
 
-    std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,
+    std = MRISPfunctionVal(parms->mrisp_template,mris->radius,x,y,z,
                            parms->frame_no+1);
     std = sqrt(std) ;
 
@@ -7858,8 +7856,8 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
            sse, min_sse ;
-  int      curv_old_status = mris_curv->status
-                             ,dist_old_status=mris_dist->status ;
+  auto const curv_old_status = mris_curv->status;
+  auto const dist_old_status = mris_dist->status;
 
   //to stop the compilator warnings !
   min_sse=0;
@@ -10057,7 +10055,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
       /*brainatlas force*/
       force3=v->val;
       force4=v->val2;
-      force1=force1;
 
       v->curv=force; //test
 
@@ -10399,7 +10396,6 @@ void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
         force=MIN(0.5,force);  // this means 0. or .5
       }
 
-      force1=force1;
       dx = sxt*0.8 + sxn * force1 + v->nx*force;
       dy = syt*0.8 + syn * force1 + v->ny*force;
       dz = szt*0.8 + szn * force1 + v->nz*force;

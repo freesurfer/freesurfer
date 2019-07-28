@@ -498,6 +498,9 @@ fall inside the pial surface or are cut by the pial surface.  The idea
 is that the volume of everything in the pial surface can be computed
 using the surface and that this function can be used to compute
 everything else. Note that there is no partial volume correction.
+Note 4/2/2019: there was a bug here in that the voxel volume was
+defined as an int instead of double which means that the used voxel
+volume would have been truncated and affecting the total.
 \param aseg - aseg.mgz or aparc+aseg.mgz
 \param ribbon is the ribbon.mgz, which has non-zero values for
 everything inside the pial surf.
@@ -506,7 +509,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 {
   int c, r, s, SegId;
   double vol = 0;
-  int RibbonVal, VoxSize;
+  int RibbonVal;
+  double VoxSize; // was int
 
   VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
   for (c = 0; c < aseg->width; c++) {
@@ -571,7 +575,9 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 \brief Computes the volume of non-cortical structures within the
 ribbon. This should be subtracted from the cortical GM volume computed
 by subtracting the volume inside the white from the volume inside the
-pial.
+pial. Note 4/2/2019: there was a bug here in that the voxel volume was
+defined as an int instead of double which means that the used voxel
+volume would have been truncated and affecting the total.
 \param aseg - segmentation
 \param ribbon - ribbon
 \param hemi - 1=left, 2=right
@@ -580,7 +586,8 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
 {
   int c, r, s, SegId;
   double vol = 0, vol2 = 0;
-  int RibbonVal, VoxSize;
+  int RibbonVal;
+  double VoxSize;
 
   VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
   for (c = 0; c < aseg->width; c++) {
@@ -654,12 +661,300 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
 }
 
 /*!
+  \fn int MRIasegContraLatLabel(int id)
+  \brief returns the seg id of the contralateral segmentation of the
+   passed seg id.  Should handle, aseg, aparc+aseg, aparc.a2009s+aseg,
+   and wmparc, and samseg. If these segmentations change, then this
+   program (written on 12/19/2011) may fail. If the seg id is unlateralized,
+   then just returns id. If it is unrecognized, then it prints a message
+   and returns -1.
+ */
+int MRIasegContraLatLabel(int id)
+{ 
+  int id2 = -1;
+
+  if(id==0) return(0);
+
+  if (id > 999) {
+    // This should handle the cortical and wmparc labels in aparc+aseg, etc
+    if (id >= 1000 && id < 1999) id2 = id + 1000;
+    if (id >= 2000 && id < 2999) id2 = id - 1000;
+    if (id >= 3000 && id < 3999) id2 = id + 1000;
+    if (id >= 4000 && id < 4999) id2 = id - 1000;
+    if (id >= 11100 && id < 11999) id2 = id + 1000;
+    if (id >= 12100 && id < 12999) id2 = id - 1000;
+    if (id >= 13100 && id < 13999) id2 = id + 1000;
+    if (id >= 14100 && id < 14999) id2 = id - 1000;
+    if (id == 5001) id2 = 5002;
+    if (id == 5002) id2 = 5001;
+    return(id2);
+  }
+  // This should handle all the subcortical stuff
+  switch (id) {
+  case Left_Cerebral_White_Matter:
+    id2 = Right_Cerebral_White_Matter;
+    break;
+  case Left_Cerebral_Exterior:
+    id2 = Right_Cerebral_Exterior;
+    break;
+  case Left_Cerebral_Cortex:
+    id2 = Right_Cerebral_Cortex;
+    break;
+  case Left_Lateral_Ventricle:
+    id2 = Right_Lateral_Ventricle;
+    break;
+  case Left_Inf_Lat_Vent:
+    id2 = Right_Inf_Lat_Vent;
+    break;
+  case Left_Cerebellum_Exterior:
+    id2 = Right_Cerebellum_Exterior;
+    break;
+  case Left_Cerebellum_White_Matter:
+    id2 = Right_Cerebellum_White_Matter;
+    break;
+  case Left_Cerebellum_Cortex:
+    id2 = Right_Cerebellum_Cortex;
+    break;
+  case Left_Thalamus:
+    id2 = Right_Thalamus;
+    break;
+  case 9: // Left_Thalamus-unused (backwards compat)
+    id2 = 48;
+    break;
+  case Left_Caudate:
+    id2 = Right_Caudate;
+    break;
+  case Left_Putamen:
+    id2 = Right_Putamen;
+    break;
+  case Left_Pallidum:
+    id2 = Right_Pallidum;
+    break;
+  case Left_Hippocampus:
+    id2 = Right_Hippocampus;
+    break;
+  case Left_Amygdala:
+    id2 = Right_Amygdala;
+    break;
+  case Left_Insula:
+    id2 = Right_Insula;
+    break;
+  case Left_Operculum:
+    id2 = Right_Operculum;
+    break;
+  case Left_Lesion:
+    id2 = Right_Lesion;
+    break;
+  case Left_Accumbens_area:
+    id2 = Right_Accumbens_area;
+    break;
+  case Left_Substancia_Nigra:
+    id2 = Right_Substancia_Nigra;
+    break;
+  case Left_VentralDC:
+    id2 = Right_VentralDC;
+    break;
+  case Left_undetermined:
+    id2 = Right_undetermined;
+    break;
+  case Left_vessel:
+    id2 = Right_vessel;
+    break;
+  case Left_choroid_plexus:
+    id2 = Right_choroid_plexus;
+    break;
+  case Left_F3orb:
+    id2 = Right_F3orb;
+    break;
+  case Left_lOg:
+    id2 = Right_lOg;
+    break;
+  case Left_aOg:
+    id2 = Right_aOg;
+    break;
+  case Left_mOg:
+    id2 = Right_mOg;
+    break;
+  case Left_pOg:
+    id2 = Right_pOg;
+    break;
+  case Left_Stellate:
+    id2 = Right_Stellate;
+    break;
+  case Left_Porg:
+    id2 = Right_Porg;
+    break;
+  case Left_Aorg:
+    id2 = Right_Aorg;
+    break;
+  case Left_Interior:
+    id2 = Right_Interior;
+    break;
+  case Left_WM_hypointensities:
+    id2 = Right_WM_hypointensities;
+    break;
+  case Left_non_WM_hypointensities:
+    id2 = Right_non_WM_hypointensities;
+    break;
+  case Left_F1:
+    id2 = Right_F1;
+    break;
+  case Left_Amygdala_Anterior:
+    id2 = Right_Amygdala_Anterior;
+    break;
+  case Right_Cerebral_Exterior:
+    id2 = Left_Cerebral_Exterior;
+    break;
+  case Right_Cerebral_White_Matter:
+    id2 = Left_Cerebral_White_Matter;
+    break;
+  case Right_Cerebral_Cortex:
+    id2 = Left_Cerebral_Cortex;
+    break;
+  case Right_Inf_Lat_Vent:
+    id2 = Left_Inf_Lat_Vent;
+    break;
+  case Right_Cerebellum_Exterior:
+    id2 = Left_Cerebellum_Exterior;
+    break;
+  case Right_Cerebellum_White_Matter:
+    id2 = Left_Cerebellum_White_Matter;
+    break;
+  case Right_Cerebellum_Cortex:
+    id2 = Left_Cerebellum_Cortex;
+    break;
+  case Right_Thalamus:
+    id2 = Left_Thalamus;
+    break;
+  case 48: // Right_Thalamus-unused (backwards compat)
+    id2 = 9;
+    break;
+  case Right_Caudate:
+    id2 = Left_Caudate;
+    break;
+  case Right_Putamen:
+    id2 = Left_Putamen;
+    break;
+  case Right_Pallidum:
+    id2 = Left_Pallidum;
+    break;
+  case Right_Hippocampus:
+    id2 = Left_Hippocampus;
+    break;
+  case Right_Amygdala:
+    id2 = Left_Amygdala;
+    break;
+  case Right_Insula:
+    id2 = Left_Insula;
+    break;
+  case Right_Operculum:
+    id2 = Left_Operculum;
+    break;
+  case Right_Lesion:
+    id2 = Left_Lesion;
+    break;
+  case Right_Accumbens_area:
+    id2 = Left_Accumbens_area;
+    break;
+  case Right_Substancia_Nigra:
+    id2 = Left_Substancia_Nigra;
+    break;
+  case Right_VentralDC:
+    id2 = Left_VentralDC;
+    break;
+  case Right_undetermined:
+    id2 = Left_undetermined;
+    break;
+  case Right_vessel:
+    id2 = Left_vessel;
+    break;
+  case Right_choroid_plexus:
+    id2 = Left_choroid_plexus;
+    break;
+  case Right_F3orb:
+    id2 = Left_F3orb;
+    break;
+  case Right_lOg:
+    id2 = Left_lOg;
+    break;
+  case Right_aOg:
+    id2 = Left_aOg;
+    break;
+  case Right_mOg:
+    id2 = Left_mOg;
+    break;
+  case Right_pOg:
+    id2 = Left_pOg;
+    break;
+  case Right_Stellate:
+    id2 = Left_Stellate;
+    break;
+  case Right_Porg:
+    id2 = Left_Porg;
+    break;
+  case Right_Aorg:
+    id2 = Left_Aorg;
+    break;
+  case Right_Interior:
+    id2 = Left_Interior;
+    break;
+  case Right_Lateral_Ventricle:
+    id2 = Left_Lateral_Ventricle;
+    break;
+  case Right_WM_hypointensities:
+    id2 = Left_WM_hypointensities;
+    break;
+  case Right_non_WM_hypointensities:
+    id2 = Left_non_WM_hypointensities;
+    break;
+  case Right_F1:
+    id2 = Left_F1;
+    break;
+  case Right_Amygdala_Anterior:
+    id2 = Left_Amygdala_Anterior;
+    break;
+  case 265: // Left-Eyeball
+    id2 = 266; 
+    break;
+  case 266: // Right-Eyeball
+    id2 = 265; 
+    break;
+  // These are unlateralized
+  case 72: // 5th vent
+  case Optic_Chiasm:
+  case Third_Ventricle:
+  case Fourth_Ventricle:
+  case Brain_Stem:
+  case CC_Posterior:
+  case CC_Mid_Posterior:
+  case CC_Central:
+  case CC_Mid_Anterior:
+  case CC_Anterior:
+  case CSF_ExtraCerebral:
+  case Head_ExtraCerebral:
+  case 165: // Skull
+  case 259: // SkullApprox
+  case 260: // BoneOrAir
+  case 262: // Sinus
+  case WM_hypointensities:
+  case non_WM_hypointensities:
+  case CSF:
+    id2 = id;
+    break;
+  default:
+    printf("MRIasegContraLatLabel() id=%d unrecognized\n",id);
+    break;
+  }
+  return(id2);
+}
+
+/*!
 \fn MRI *MRIlrswapAseg(MRI *aseg)
 \brief Performs a left-right swap of segmentation labels. Should handle
 aseg, aparc+aseg, aparc.a2009s+aseg, and wmparc. If these
 segmentations change, then this program (written on 12/19/2011) may
 fail. It only changes the voxel values and has no effect on the
-volume geometry.
+volume geometry. See MRIasegContraLatLabel().
 \param aseg - segmentation
 */
 MRI *MRIlrswapAseg(MRI *aseg)
@@ -673,243 +968,8 @@ MRI *MRIlrswapAseg(MRI *aseg)
     for (r = 0; r < aseg->height; r++) {
       for (s = 0; s < aseg->depth; s++) {
         id = MRIgetVoxVal(aseg, c, r, s, 0);
-        id2 = id;
-        if (id > 999) {
-          // This should handle the cortical and wmparc labels in aparc+aseg, etc
-          if (id >= 1000 && id < 1999) id2 = id + 1000;
-          if (id >= 2000 && id < 2999) id2 = id - 1000;
-          if (id >= 3000 && id < 3999) id2 = id + 1000;
-          if (id >= 4000 && id < 4999) id2 = id - 1000;
-          if (id >= 11100 && id < 11999) id2 = id + 1000;
-          if (id >= 12100 && id < 12999) id2 = id - 1000;
-          if (id >= 13100 && id < 13999) id2 = id + 1000;
-          if (id >= 14100 && id < 14999) id2 = id - 1000;
-          if (id == 5001) id2 = 5002;
-          if (id == 5002) id2 = 5001;
-          MRIsetVoxVal(asegswap, c, r, s, 0, id2);
-          continue;
-        }
-        // This should handle all the subcortical stuff
-        switch (id) {
-          case Left_Cerebral_White_Matter:
-            id2 = Right_Cerebral_White_Matter;
-            break;
-          case Left_Cerebral_Exterior:
-            id2 = Right_Cerebral_Exterior;
-            break;
-          case Left_Cerebral_Cortex:
-            id2 = Right_Cerebral_Cortex;
-            break;
-          case Left_Lateral_Ventricle:
-            id2 = Right_Lateral_Ventricle;
-            break;
-          case Left_Inf_Lat_Vent:
-            id2 = Right_Inf_Lat_Vent;
-            break;
-          case Left_Cerebellum_Exterior:
-            id2 = Right_Cerebellum_Exterior;
-            break;
-          case Left_Cerebellum_White_Matter:
-            id2 = Right_Cerebellum_White_Matter;
-            break;
-          case Left_Cerebellum_Cortex:
-            id2 = Right_Cerebellum_Cortex;
-            break;
-          case Left_Thalamus:
-            id2 = Right_Thalamus;
-            break;
-          case Left_Caudate:
-            id2 = Right_Caudate;
-            break;
-          case Left_Putamen:
-            id2 = Right_Putamen;
-            break;
-          case Left_Pallidum:
-            id2 = Right_Pallidum;
-            break;
-          case Left_Hippocampus:
-            id2 = Right_Hippocampus;
-            break;
-          case Left_Amygdala:
-            id2 = Right_Amygdala;
-            break;
-          case Left_Insula:
-            id2 = Right_Insula;
-            break;
-          case Left_Operculum:
-            id2 = Right_Operculum;
-            break;
-          case Left_Lesion:
-            id2 = Right_Lesion;
-            break;
-          case Left_Accumbens_area:
-            id2 = Right_Accumbens_area;
-            break;
-          case Left_Substancia_Nigra:
-            id2 = Right_Substancia_Nigra;
-            break;
-          case Left_VentralDC:
-            id2 = Right_VentralDC;
-            break;
-          case Left_undetermined:
-            id2 = Right_undetermined;
-            break;
-          case Left_vessel:
-            id2 = Right_vessel;
-            break;
-          case Left_choroid_plexus:
-            id2 = Right_choroid_plexus;
-            break;
-          case Left_F3orb:
-            id2 = Right_F3orb;
-            break;
-          case Left_lOg:
-            id2 = Right_lOg;
-            break;
-          case Left_aOg:
-            id2 = Right_aOg;
-            break;
-          case Left_mOg:
-            id2 = Right_mOg;
-            break;
-          case Left_pOg:
-            id2 = Right_pOg;
-            break;
-          case Left_Stellate:
-            id2 = Right_Stellate;
-            break;
-          case Left_Porg:
-            id2 = Right_Porg;
-            break;
-          case Left_Aorg:
-            id2 = Right_Aorg;
-            break;
-          case Left_Interior:
-            id2 = Right_Interior;
-            break;
-          case Left_WM_hypointensities:
-            id2 = Right_WM_hypointensities;
-            break;
-          case Left_non_WM_hypointensities:
-            id2 = Right_non_WM_hypointensities;
-            break;
-          case Left_F1:
-            id2 = Right_F1;
-            break;
-          case Left_Amygdala_Anterior:
-            id2 = Right_Amygdala_Anterior;
-            break;
-          case Right_Cerebral_Exterior:
-            id2 = Left_Cerebral_Exterior;
-            break;
-          case Right_Cerebral_White_Matter:
-            id2 = Left_Cerebral_White_Matter;
-            break;
-          case Right_Cerebral_Cortex:
-            id2 = Left_Cerebral_Cortex;
-            break;
-          case Right_Inf_Lat_Vent:
-            id2 = Left_Inf_Lat_Vent;
-            break;
-          case Right_Cerebellum_Exterior:
-            id2 = Left_Cerebellum_Exterior;
-            break;
-          case Right_Cerebellum_White_Matter:
-            id2 = Left_Cerebellum_White_Matter;
-            break;
-          case Right_Cerebellum_Cortex:
-            id2 = Left_Cerebellum_Cortex;
-            break;
-          case Right_Thalamus:
-            id2 = Left_Thalamus;
-            break;
-          case Right_Caudate:
-            id2 = Left_Caudate;
-            break;
-          case Right_Putamen:
-            id2 = Left_Putamen;
-            break;
-          case Right_Pallidum:
-            id2 = Left_Pallidum;
-            break;
-          case Right_Hippocampus:
-            id2 = Left_Hippocampus;
-            break;
-          case Right_Amygdala:
-            id2 = Left_Amygdala;
-            break;
-          case Right_Insula:
-            id2 = Left_Insula;
-            break;
-          case Right_Operculum:
-            id2 = Left_Operculum;
-            break;
-          case Right_Lesion:
-            id2 = Left_Lesion;
-            break;
-          case Right_Accumbens_area:
-            id2 = Left_Accumbens_area;
-            break;
-          case Right_Substancia_Nigra:
-            id2 = Left_Substancia_Nigra;
-            break;
-          case Right_VentralDC:
-            id2 = Left_VentralDC;
-            break;
-          case Right_undetermined:
-            id2 = Left_undetermined;
-            break;
-          case Right_vessel:
-            id2 = Left_vessel;
-            break;
-          case Right_choroid_plexus:
-            id2 = Left_choroid_plexus;
-            break;
-          case Right_F3orb:
-            id2 = Left_F3orb;
-            break;
-          case Right_lOg:
-            id2 = Left_lOg;
-            break;
-          case Right_aOg:
-            id2 = Left_aOg;
-            break;
-          case Right_mOg:
-            id2 = Left_mOg;
-            break;
-          case Right_pOg:
-            id2 = Left_pOg;
-            break;
-          case Right_Stellate:
-            id2 = Left_Stellate;
-            break;
-          case Right_Porg:
-            id2 = Left_Porg;
-            break;
-          case Right_Aorg:
-            id2 = Left_Aorg;
-            break;
-          case Right_Interior:
-            id2 = Left_Interior;
-            break;
-          case Right_Lateral_Ventricle:
-            id2 = Left_Lateral_Ventricle;
-            break;
-          case Right_WM_hypointensities:
-            id2 = Left_WM_hypointensities;
-            break;
-          case Right_non_WM_hypointensities:
-            id2 = Left_non_WM_hypointensities;
-            break;
-          case Right_F1:
-            id2 = Left_F1;
-            break;
-          case Right_Amygdala_Anterior:
-            id2 = Left_Amygdala_Anterior;
-            break;
-          default:
-            break;
-        }
+	id2 = MRIasegContraLatLabel(id);
+	if(id2 == -1) id2 = id;
         MRIsetVoxVal(asegswap, c, r, s, 0, id2);
       }
     }
@@ -971,6 +1031,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
   double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
   double OptChiasmVol, CSFVol;
   double *stats = NULL;
+  double VoxelVol;
+
 
   const char *suffix;
   if (suff == NULL) {
@@ -1034,6 +1096,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
     asegfixed = aseg;
     ribbonRead = 0;
   }
+  VoxelVol = aseg->xsize * aseg->ysize * aseg->zsize;
+  printf("ComputeBrainVolumeStats() using version with fixed volume, VoxelVol=%g\n",VoxelVol);
 
   lhCtxGMCor = 0;
   rhCtxGMCor = 0;
@@ -1061,50 +1125,50 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
         asegfixedid = MRIgetVoxVal(asegfixed, c, r, s, 0);
         ribbonid = MRIgetVoxVal(ribbon, c, r, s, 0);
         // Corpus Callosum
-        if (asegid == 251 || asegid == 252 || asegid == 253 || asegid == 254 || asegid == 255) CCVol++;
+        if (asegid == 251 || asegid == 252 || asegid == 253 || asegid == 254 || asegid == 255) CCVol += VoxelVol;
         // Correct CtxGM by anything in the ribbon that is not GM, WM, or Unkown in the aseg
-        if (ribbonid == 3 && asegid != 3 && asegid != 2 && asegid != 0) lhCtxGMCor += 1;
-        if (ribbonid == 42 && asegid != 42 && asegid != 41 && asegid != 0) rhCtxGMCor += 1;
+        if (ribbonid == 3 && asegid != 3 && asegid != 2 && asegid != 0) lhCtxGMCor += VoxelVol;
+        if (ribbonid == 42 && asegid != 42 && asegid != 41 && asegid != 0) rhCtxGMCor += VoxelVol;
         // Correct CtxWM by anything in the WMribbon that is not WM, eg, GM structures.
         // Does not use PVC for subcort GM. Make sure to include hypointensities (77)
         if (ribbonid == 2 && asegfixedid != 2 && asegfixedid != 77 && asegfixedid != 251 && asegfixedid != 252 &&
             asegfixedid != 253 && asegfixedid != 254 && asegfixedid != 255)
-          lhCtxWMCor += 1;
+          lhCtxWMCor += VoxelVol;
         if (ribbonid == 41 && asegfixedid != 41 && asegfixedid != 77 && asegfixedid != 251 && asegfixedid != 252 &&
             asegfixedid != 253 && asegfixedid != 254 && asegfixedid != 255)
-          rhCtxWMCor += 1;
+          rhCtxWMCor += VoxelVol;
         // Subcortical GM structures (does not use PVC)
-        if (IsSubCorticalGray(asegfixedid)) SubCortGMVol++;
+        if (IsSubCorticalGray(asegfixedid)) SubCortGMVol += VoxelVol;
         // Cerebellum GM volume
-        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex) CerebellumGMVol++;
+        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex) CerebellumGMVol += VoxelVol;
         // Cerebellum (GM+WM) volume
         if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
             asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
-          CerebellumVol++;
+          CerebellumVol += VoxelVol;
         // Ventricle Volume
         if (asegid == Left_choroid_plexus || asegid == Right_choroid_plexus || asegid == Left_Lateral_Ventricle ||
             asegid == Right_Lateral_Ventricle || asegid == Left_Inf_Lat_Vent || asegid == Right_Inf_Lat_Vent)
-          VentChorVol++;
+          VentChorVol += VoxelVol;
         // 3rd, 4th, 5th, CSF
         if (asegid == Third_Ventricle || asegid == Fourth_Ventricle || asegid == Fifth_Ventricle || asegid == CSF)
-          TFFC++;
+          TFFC += VoxelVol;
         // Other
-        if (asegid == 30 || asegid == 62) VesselVol++;
-        if (asegid == 85) OptChiasmVol++;
-        if (asegid == 24) CSFVol++;
+        if (asegid == 30 || asegid == 62) VesselVol += VoxelVol;
+        if (asegid == 85) OptChiasmVol += VoxelVol;
+        if (asegid == 24) CSFVol += VoxelVol;
         // Total number of voxels in the segmentation. Use fixed to exclude
         // stuff outside of the brain (eg, dura)
-        if (asegfixedid != 0 && asegfixedid != Brain_Stem) BrainSegVol++;
+        if (asegfixedid != 0 && asegfixedid != Brain_Stem) BrainSegVol += VoxelVol;
         // Total number of voxels in the brainmask
-        if (MRIgetVoxVal(brainmask, c, r, s, 0) > 0) MaskVol++;
+        if (MRIgetVoxVal(brainmask, c, r, s, 0) > 0) MaskVol += VoxelVol;
         // Total number of voxels in the CtxGM, CtxWM of asegfixed
         // This is to check against the surface-based measures
-        if (asegfixedid == 3) lhCtxGMCount++;
-        if (asegfixedid == 42) rhCtxGMCount++;
+        if (asegfixedid == 3) lhCtxGMCount += VoxelVol;
+        if (asegfixedid == 42) rhCtxGMCount += VoxelVol;
         // For CtxWM, include hypointensities. The hypos are not lateralized,
         // so just lateralize them based on column (not perfect, but it is only a check)
-        if (asegfixedid == 2 || asegfixedid == 78 || (asegfixedid == 77 && c < 128)) lhCtxWMCount++;
-        if (asegfixedid == 41 || asegfixedid == 79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount++;
+        if (asegfixedid == 2 || asegfixedid == 78 || (asegfixedid == 77 && c < 128)) lhCtxWMCount += VoxelVol;
+        if (asegfixedid == 41 || asegfixedid == 79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount += VoxelVol;
       }  // c
     }    // r
   }      // s
@@ -1119,8 +1183,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
   rhCtxWM = rhwhitevolTot - rhCtxWMCor;
 
   // Add half of CC to each hemi for counting,
-  lhCtxWMCount += CCVol / 2;
-  rhCtxWMCount += CCVol / 2;
+  lhCtxWMCount += CCVol / 2.0;
+  rhCtxWMCount += CCVol / 2.0;
 
   // Supratentorial volume is everything inside the pial surface plus
   // stuff that is ouside the surface but still in the ST (eg, hippo, amyg)

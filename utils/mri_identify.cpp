@@ -731,7 +731,6 @@ int is_analyze(const char *fname)
     return (0);
   }
 
-  dot = '\0';
   strcat(hfname, ".hdr");
 
   if ((fp = fopen(hfname, "r")) == NULL) {

@@ -1189,7 +1189,7 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
     printf("source->target vox->vox transform:\n") ;
     MatrixPrint(stdout, m_vox_xform) ;
   }
-  if (conform || 1)
+  if (1 || conform)
   {
     mri_aligned = MRIalloc(mri_target->width, mri_target->height,
                            mri_target->depth,mri_source->type);

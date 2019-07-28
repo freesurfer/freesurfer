@@ -941,7 +941,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
         kT = kS + 1;
         v = &(SurfReg[kT]->vertices[tvtxN]);
         /* find closest source vertex */
-        if(UseHash) svtx = MHTfindClosestVertexNo(Hash[kS], SurfReg[kS], v, &dmin);
+        if(UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
 	if(!UseHash || svtx < 0){
 	  if(svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
 	  svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -978,7 +978,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
       // printf("%5d %5d %d %d %d\n",tvtx,tvtxN,n,kS,kT);
       v = &(SurfReg[kT]->vertices[tvtxN]);
       /* find closest source vertex */
-      if (UseHash) svtx = MHTfindClosestVertexNo(Hash[kS], SurfReg[kS], v, &dmin);
+      if (UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
       if (!UseHash || svtx < 0) {
         if (svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
         svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -1019,7 +1019,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
         // printf("%5d %5d %d %d %d\n",svtx,svtxN,n,kS,kT);
         v = &(SurfReg[kS]->vertices[svtxN]);
         /* find closest target vertex */
-        if (UseHash) tvtx = MHTfindClosestVertexNo(Hash[kT], SurfReg[kT], v, &dmin);
+        if (UseHash) tvtx = MHTfindClosestVertexNo2(Hash[kT], SurfReg[kT], SurfReg[kS], v, &dmin);
         if (!UseHash || tvtx < 0) {
           if (tvtx < 0) printf("Source vertex %d of pair %d unmapped in hash, using brute force\n", svtxN, n);
           tvtx = MRISfindClosestVertex(SurfReg[kT], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
@@ -1173,7 +1173,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
 
@@ -1220,7 +1220,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
         /* find closest target vertex */
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash)
-          tvtx = MHTfindClosestVertexNo(TrgHash, TrgSurfReg, v, &dmin);
+          tvtx = MHTfindClosestVertexNo2(TrgHash, TrgSurfReg, SrcSurfReg, v, &dmin);
         else
           tvtx = MRISfindClosestVertex(TrgSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
         /* Hash table failed, so use brute force */
@@ -1336,7 +1336,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
     /* hash table failed, so use brute force */
@@ -1355,7 +1355,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash)
-      svtx = MHTfindClosestVertexNo(SrcHash, SrcSurfReg, v, &dmin);
+      svtx = MHTfindClosestVertexNo2(SrcHash, SrcSurfReg, TrgSurfReg, v, &dmin);
     else
       svtx = MRISfindClosestVertex(SrcSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
     /* hash table failed, so use bruce force */
@@ -1388,7 +1388,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
         /* find closest target vertex */
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash)
-          tvtx = MHTfindClosestVertexNo(TrgHash, TrgSurfReg, v, &dmin);
+          tvtx = MHTfindClosestVertexNo2(TrgHash, TrgSurfReg, SrcSurfReg, v, &dmin);
         else
           tvtx = MRISfindClosestVertex(TrgSurfReg, v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
         /* Hash table failed, so use brute force */
@@ -2724,4 +2724,124 @@ static int CompareAVIndices(const void *i1, const void *i2)
 
   // Same volume index and seg id.
   return (0);
+}
+
+
+/*!
+  \fn MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
+  \brief Applies a warp field computed from SPM, eg, with DNG's
+  run-vbm (which uses DARTEL).  The input vol is anything that shares
+  the scanner space with the input to vbm.  The warp field is
+  y_rinput.nii. LRRev=0,1 indicates that the pixels in the anatomical
+  were left-right reversed before the warp was computed. I thought
+  thiwas good for asym studies, but it turns out it is not
+  needed. This will only work when the column of the warp input is in
+  the left-right direction. Interp: SAMPLE_NEAREST=0 or
+  SAMPLE_TRILINEAR=1.  Handles multiple frames.  The output will be in
+  the warp space.
+ */
+MRI *MRIapplySpmWarp(MRI *vol, LTA *srclta, MRI *warp, int LRRev, int interp, MRI *out)
+{
+  int c,r,s,k,f,ncols;
+  double cc,rr,ss,val;
+  MATRIX *Q=NULL;
+
+  if(interp != SAMPLE_NEAREST && interp != SAMPLE_TRILINEAR){
+    printf("ERROR: MRIapplySpmWarp():  sample type = %d, must be %d or %d\n",
+	   interp,SAMPLE_NEAREST,SAMPLE_TRILINEAR);
+    return(NULL);
+  }
+
+  if(out==NULL){
+    out = MRIallocSequence(warp->width,warp->height,warp->depth,MRI_FLOAT,vol->nframes);
+    if(out==NULL) return(NULL);
+    MRIcopyHeader(warp,out);
+    MRIcopyPulseParameters(vol, out);
+  }
+  
+  // Compute vbminput-to-vol vox2vox. Note: SPM assumes the CRS of the
+  // vbm input is is 1-based. Everything else, including the LTA, is
+  // 0-based.
+  MATRIX *vox2ras1;  // for vbm input
+  MATRIX *Vsrc;
+  if(srclta){
+    if(srclta->type != LINEAR_VOX_TO_VOX){
+      printf("MRIapplySpmWarp(): changing Source LTA type to vox2vox\n");
+      LTAchangeType(srclta, LINEAR_VOX_TO_VOX) ;
+    }
+    // If a srclta is specified, then the vol is not the same geom as
+    // the vbm input. srclta must map between the vol and the vbm
+    // input space. Set the vbm input vox2ras1 from the approp vol geom
+    if(LTAmriIsSource(srclta, vol)){
+      vox2ras1 = VGgetVoxelToRasXform(&(srclta->xforms[0].dst),NULL,1); // spm crs base=1
+      printf("MRIapplySpmWarp(): inverting Source LTA\n");
+      Vsrc = MatrixInverse(srclta->xforms[0].m_L,NULL);
+      ncols = srclta->xforms[0].dst.width;
+    }
+    else {
+      Vsrc = MatrixCopy(srclta->xforms[0].m_L,NULL);
+      vox2ras1 = VGgetVoxelToRasXform(&(srclta->xforms[0].src),NULL,1); // spm crs base=1
+      ncols = srclta->xforms[0].src.width;
+    }
+  }
+  else {
+    vox2ras1 = MRIxfmCRS2XYZ(vol, 1); // spm crs base=1
+    Vsrc = MatrixIdentity(4,NULL);
+    ncols = vol->width;
+  }
+  MATRIX *ras2vox1 = MatrixInverse(vox2ras1,NULL);
+
+  if(LRRev){
+    // This is the matrix that realizes the left-right pixel reversal
+    // used in mri_convert --left-right-reverse-pix. Only works properly 
+    // if the column is in the LR direction 
+    Q = MatrixIdentity(4,NULL);
+    Q->rptr[1][1] = -1;
+    Q->rptr[1][4] = ncols-1;
+  }
+
+  MATRIX *vbmiRAS = MatrixAlloc(4,1,MATRIX_REAL);
+  vbmiRAS->rptr[4][1] = 1;
+  MATRIX *CRS  = MatrixAlloc(4,1,MATRIX_REAL);
+  CRS->rptr[4][1] = 1;
+  // use 1 to N-1 instead of 1 to N because edge voxels are invalid in the warp
+  for(c=1; c < warp->width-1; c++){
+    for(r=1; r < warp->height-1; r++){
+      for(s=1; s < warp->depth-1; s++){
+	// Get the RAS in the vbm input space
+	for(k=0; k<3; k++) vbmiRAS->rptr[k+1][1] = MRIgetVoxVal(warp,c,r,s,k);
+	// Get the 1-based CRS in the vbm-input space (usually a conformed space)
+	CRS = MatrixMultiplyD(ras2vox1,vbmiRAS,CRS);
+	// Subtract 1 to make 0-based (could do this in ras2vox1)
+	CRS->rptr[1][1] -= 1;
+	CRS->rptr[2][1] -= 1;
+	CRS->rptr[3][1] -= 1;
+	// If left-right rev is needed, do it here
+	if(LRRev) CRS = MatrixMultiplyD(Q,CRS,CRS);
+	if(srclta != NULL){
+	  // Now compute the CRS in the vol space
+	  // Could be combined with ras2vox1 if the conversion from 1-to-0-based
+	  // is figured out.
+	  CRS = MatrixMultiplyD(Vsrc,CRS,CRS);
+	}
+	cc = CRS->rptr[1][1];
+	rr = CRS->rptr[2][1];
+	ss = CRS->rptr[3][1];
+	if(cc < 0 || cc >= vol->width)  continue;
+	if(rr < 0 || rr >= vol->height) continue;
+	if(ss < 0 || ss >= vol->depth)  continue;
+	for(f=0; f < vol->nframes; f++){
+	  MRIsampleVolumeFrameType(vol, cc, rr, ss, f, interp, &val);
+	  MRIsetVoxVal(out,c,r,s,f,val);
+	}
+      }
+    }
+  }
+  MatrixFree(&vox2ras1);
+  MatrixFree(&ras2vox1);
+  MatrixFree(&vbmiRAS);
+  MatrixFree(&CRS);
+  MatrixFree(&Vsrc);
+
+  return(out);
 }

@@ -3,6 +3,7 @@ project(lineprof)
 if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   include_directories(
+    SYSTEM
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
     ${PETSC_INCLUDE_DIR}
@@ -19,9 +20,7 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
     LineProf.cpp
   )
 
-  if(SUPPRESS_WARNINGS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
-  endif()
+  add_compile_options(-Wno-deprecated)
 
   add_library(lineprof STATIC ${SOURCES})
 

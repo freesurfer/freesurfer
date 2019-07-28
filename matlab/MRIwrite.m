@@ -7,7 +7,7 @@ function err = MRIwrite(mri,fstring,datatype,permuteflag)
 %     volume, eg f_000.bfloat.
 %  3. NIFIT file, Eg, f.nii, f.nii.gz (uncompressed and compressed)
 %
-% mri should be a structure like that read by MRIread.m The goemetry
+% mri should be a structure like that read by MRIread.m The geometry
 % (ie, direction cosines, voxel resolution, and P0 are all recomputed
 % from mri.vox2ras0. So, if in the course of analysis, you changed
 % mri.x_r, this change will not be reflected in the output volume.
@@ -75,13 +75,14 @@ if(~isfield(mri,'volsize'))
   mri.volsize = [vsz(1) vsz(2) vsz(3)];
 end
 if(~isfield(mri,'nframes'))  mri.nframes = vsz(4); end
-if(~isfield(mri,'volres'))  mri.volres = [1 1 1];end
 if(~isfield(mri,'tr')) mri.tr = 0; end
 if(~isfield(mri,'te')) mri.te = 0; end
 if(~isfield(mri,'ti')) mri.ti = 0; end
 if(~isfield(mri,'flip_angle')) mri.flip_angle = 0;end
 if(~isfield(mri,'vox2ras0'))  mri.vox2ras0 = eye(4);end
-
+if(~isfield(mri,'volres'))
+    mri.volres = sqrt(sum(mri.vox2ras0(1:3,1:3).^2));
+end
   
 [fspec fstem fmt] = MRIfspec(fstring,0); % 0 = turn off checkdisk
 if(isempty(fspec))

@@ -24,11 +24,6 @@
 
 extern const char *Progname;
 
-/*-----------------------------------------------------
-  INCLUDE FILES
-  -------------------------------------------------------*/
-#define USE_ELECTRIC_FENCE 1
-
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
@@ -61,6 +56,7 @@ extern const char *Progname;
 #include "voxlist.h"
 
 #include "mri.h"
+#include "log.h"
 
 extern int errno;
 
@@ -96,22 +92,320 @@ extern int errno;
 #endif
 
 #define N_HIST_BINS 1000
+#define MAX_INDEX 500
 
 #define MRIxfmCRS2XYZPrecision double
 
-/*-----------------------------------------------------
-  STATIC DATA
-  -------------------------------------------------------*/
 
-static long mris_alloced = 0;
+/**
+  Constructs a MRI Shape descriptor from an int vector of length 3 or 4.
+*/
+MRI::Shape::Shape(const std::vector<int>& shape) {
+  // validate dimensions
+  int dims = shape.size();
+  if ((dims != 3) && (dims != 4)) logFatal(1) << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
 
-/*-----------------------------------------------------
-  STATIC PROTOTYPES
-  -------------------------------------------------------*/
+  // validate size
+  for (auto const & len : shape) {
+    if (len <= 0) logFatal(1) << "volume size must be greater than 0 in every dimension";
+  }
 
-/*-----------------------------------------------------
-  GLOBAL FUNCTIONS
-  -------------------------------------------------------*/
+  width = shape[0];
+  height = shape[1];
+  depth = shape[2];
+  nframes = (dims == 4) ? shape[3] : 1;
+  size = width * height * depth * nframes;
+}
+
+
+/**
+  Constructs an MRI from a volume file.
+*/
+MRI::MRI(const std::string& filename)
+{
+  *this = *MRIread(filename.c_str());
+}
+
+
+/**
+  Constructs an MRI with a given shape and data type. If the `alloc` parameter (defaults
+  to true) is false, the underlying image buffer is not allocated and only the header is
+  initialized.
+*/
+MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
+{
+  // set geometry
+  width = shape.width;
+  height = shape.height;
+  depth = shape.depth;
+  nframes = shape.nframes;
+  xend = width / 2.0;
+  yend = height / 2.0;
+  zend = depth / 2.0;
+  xstart = -xend;
+  ystart = -yend;
+  zstart = -zend;
+  imnr0 = 1;
+  imnr1 = depth;
+  fov = width;
+  roi.dx = width;
+  roi.dy = height;
+  roi.dz = depth;
+
+  // set data type
+  bytes_per_vox = MRIsizeof(type);
+  if (bytes_per_vox < 1) logFatal(1) << "unsupported MRI data type: " << type;
+  vox_per_row = width;
+  vox_per_slice = vox_per_row * height;
+  vox_per_vol = vox_per_slice * depth;
+  vox_total = vox_per_vol * nframes;
+  bytes_total = bytes_per_vox * vox_total;
+  
+  // allocate frames
+  frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME));
+  if (!frames) ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate %d frame\n", nframes);
+  for (int i = 0; i < nframes; i++) frames[i].m_ras2vox = MatrixAlloc(4, 4, MATRIX_REAL);
+  
+  // allocate matrices
+  MATRIX *tmp = extract_i_to_r(this);
+  AffineMatrixAlloc(&(i_to_r__));
+  SetAffineMatrix(i_to_r__, tmp);
+  MatrixFree(&tmp);
+  r_to_i__ = extract_r_to_i(this);
+
+  // file metadata
+  fname[0] = 0;
+  subject_name[0] = '\0';
+  path_to_t1[0] = '\0';
+  fname_format[0] = '\0';
+  gdf_image_stem[0] = '\0';
+  transform_fname[0] = '\0';
+
+  // return early if we're not allocating the image buffer
+  if (!alloc) return;
+
+  initIndices();
+
+  // should this be defaulted in the header instead?
+  ras_good_flag = 1;
+
+  // attempt to chunk - if that fails, try allocating non-contiguous slices
+  chunk = calloc(bytes_total, 1);
+  ischunked = bool(chunk);
+
+  // allocate an array of slice pointers - this is done regardless of chunking
+  // so that we can still support 3d-indexing and not produce any weird issues
+  int nslices = depth * nframes;
+  slices = (BUFTYPE ***)calloc(nslices, sizeof(BUFTYPE **));
+  if (!slices) logFatal(1) << "could not allocate memory for " << nslices << " slices";
+
+  void *ptr = chunk;
+  for (int slice = 0; slice < nslices; slice++) {
+    // allocate an array of row pointers
+    slices[slice] = (BUFTYPE **)calloc(height, sizeof(BUFTYPE *));
+    if (!slices[slice]) logFatal(1) << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
+
+    if (ischunked) {
+      // point the rows to the appropriate locations in the chunked buffer
+      for (int row = 0; row < height; row++) {
+        slices[slice][row] = (unsigned char *)ptr;
+        switch (type) {
+        case MRI_UCHAR:
+          ptr = (void *)((unsigned char*)ptr + vox_per_row); break;
+        case MRI_SHORT:
+          ptr = (void *)((short *)ptr + vox_per_row); break;
+        case MRI_RGB:
+        case MRI_INT:
+          ptr = (void *)((int *)ptr + vox_per_row); break;
+        case MRI_LONG:
+          ptr = (void *)((long *)ptr + vox_per_row); break;
+        case MRI_FLOAT:
+          ptr = (void *)((float *)ptr + vox_per_row); break;
+        }
+      }
+    } else {
+      // allocate the actual slice buffer
+      BUFTYPE *buffer = (BUFTYPE *)calloc(width * height * bytes_per_vox, 1);
+      if (!buffer) logFatal(1) << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
+
+      // point the rows to the appropriate locations in the slice buffer
+      for (int row = 0; row < height; row++) {
+        slices[slice][row] = buffer + (row * width * bytes_per_vox);
+      }
+    }
+  }
+}
+
+
+/**
+  Allocates the xi, yi, and zi index arrays to handle boundary conditions. This function should
+  only be called once for a single volume and is separated from the MRI constructor for readability.
+*/
+void MRI::initIndices()
+{
+  xi = (int *)calloc(width + 2 * MAX_INDEX, sizeof(int));
+  if (!xi) ErrorExit(ERROR_NO_MEMORY, "could not allocate %d elt index array", width + 2 * MAX_INDEX);
+
+  yi = (int *)calloc(height + 2 * MAX_INDEX, sizeof(int));
+  if (!yi) ErrorExit(ERROR_NO_MEMORY, "could not allocate %d elt index array", height + 2 * MAX_INDEX);
+
+  zi = (int *)calloc(depth + 2 * MAX_INDEX, sizeof(int));
+  if (!zi) ErrorExit(ERROR_NO_MEMORY, "could not allocate %d elt index array", depth + 2 * MAX_INDEX);
+
+  // indexing into these arrays returns valid pixel indices from -MAX_INDEX to width + MAX_INDEX
+  xi += MAX_INDEX;
+  yi += MAX_INDEX;
+  zi += MAX_INDEX;
+
+  for (int i = -MAX_INDEX; i < width + MAX_INDEX; i++) {
+    if (i <= 0)
+      xi[i] = 0;
+    else if (i >= width)
+      xi[i] = width - 1;
+    else
+      xi[i] = i;
+  }
+
+  for (int i = -MAX_INDEX; i < height + MAX_INDEX; i++) {
+    if (i <= 0)
+      yi[i] = 0;
+    else if (i >= height)
+      yi[i] = height - 1;
+    else
+      yi[i] = i;
+  }
+
+  for (int i = -MAX_INDEX; i < depth + MAX_INDEX; i++) {
+    if (i <= 0)
+      zi[i] = 0;
+    else if (i >= depth)
+      zi[i] = depth - 1;
+    else
+      zi[i] = i;
+  }
+}
+
+
+/**
+  \todo A lot of this can be cleaned up by simply using smart pointers and
+  vectors for many of the MRI parameters.
+*/
+MRI::~MRI()
+{
+  if (!ischunked) {
+    if (slices) {
+      for (int slice = 0; slice < depth * nframes; slice++) {
+        if (slices[slice]) {
+          free(slices[slice][0]);
+          free(slices[slice]);
+        }
+      }
+      free(slices);
+    }
+  } else {
+    free(chunk);
+    if (slices) {
+      for (int slice = 0; slice < depth * nframes; slice++)
+        if (slices[slice]) free(slices[slice]);
+    }
+    free(slices);
+  }
+
+  if (xi) free(xi - MAX_INDEX);
+  if (yi) free(yi - MAX_INDEX);
+  if (zi) free(zi - MAX_INDEX);
+
+  if (frames) {
+    for (int i = 0; i < nframes; i++)
+      if (frames[i].m_ras2vox) MatrixFree(&frames[i].m_ras2vox);
+    free(frames);
+  }
+
+  // if (free_transform) delete_general_transform(&transform);
+  if (register_mat) MatrixFree(&register_mat);
+  if (i_to_r__) AffineMatrixFree(&i_to_r__);
+  if (r_to_i__) MatrixFree(&r_to_i__);
+  if (AutoAlign) MatrixFree(&AutoAlign);
+  if (bvals) MatrixFree(&bvals);
+  if (bvecs) MatrixFree(&bvecs);
+
+  for (int i = 0; i < ncmds; i++) {
+    if (cmdlines[i]) free(cmdlines[i]);
+  }
+
+  if (pedir) free(pedir);
+}
+
+
+/**
+  Writes the MRI to a volume file.
+*/
+void MRI::write(const std::string& filename)
+{
+  MRIwrite(this, filename.c_str());
+}
+
+
+/**
+  Computes a hash of the MRI buffer data.
+*/
+FnvHash MRI::hash() {
+  FnvHash mrihash;
+  if (slices) {
+    size_t rowsize = MRIsizeof(type) * width;
+    for (int slice = 0; slice < depth; slice++) {
+      if (!slices[slice]) continue;
+      for (int row = 0; row < height; row++) {
+        mrihash.add((const unsigned char*)slices[slice][row], rowsize);
+      }
+    }
+  }
+  return mrihash;
+}
+
+
+/**
+  Frees and nulls an MRI pointer.
+*/
+int MRIfree(MRI **pmri)
+{
+  MRI *mri = *pmri;
+  if (!mri) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfree: null pointer\n"));
+  delete mri;
+  *pmri = nullptr;
+  return NO_ERROR;
+}
+
+
+/**
+  Allocates an MRI volume with a given shape and type. This function is deprecated; moving foward, the
+  c++ `new` operator should be used instead: `MRI *mri = new MRI({width, height, depth}, type);`
+*/
+MRI *MRIalloc(int width, int height, int depth, int type)
+{
+  return new MRI({width, height, depth}, type);
+}
+
+
+/**
+  Allocates an MRI volume with a given shape and type. This function is deprecated; moving foward, the
+  c++ `new` operator should be used instead: `MRI *mri = new MRI({width, height, depth, nframes}, type);`
+*/
+MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
+{
+  return new MRI({width, height, depth, nframes}, type);
+}
+
+
+/**
+  Initializes an MRI struct without allocating the image buffer. This function is deprecated; moving foward,
+  the c++ `new` operator should be used instead: `MRI *mri = new MRI({width, height, depth, nframes}, type, false);`
+*/
+MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
+{
+  return new MRI({width, height, depth, nframes}, type, false);
+}
+
 
 /*----------------------------------------------------------
   MRIxfmCRS2XYZ() - computes the matrix needed to compute the
@@ -1032,24 +1326,15 @@ int MRIhfs2Sphinx(MRI *mri)
 size_t MRIsizeof(int mritype)
 {
   switch (mritype) {
-  case MRI_UCHAR:
-    return (sizeof(char));
-    break;
-  case MRI_SHORT:
-    return (sizeof(short));
-    break;
-  case MRI_INT:
-    return (sizeof(int));
-    break;
-  case MRI_LONG:
-    return (sizeof(long));
-    break;
-  case MRI_FLOAT:
-    return (sizeof(float));
-    break;
+    case MRI_UCHAR:  return sizeof(char);
+    case MRI_INT:    return sizeof(int);
+    case MRI_RGB:    return sizeof(int);
+    case MRI_LONG:   return sizeof(long);
+    case MRI_FLOAT:  return sizeof(float);
+    case MRI_TENSOR: return sizeof(float);
+    case MRI_SHORT:  return sizeof(short);
   }
-  // should never get here
-  return (-1);
+  return (-1);  // should never get here
 }
 
 /*--------------------------------------------------------*/
@@ -1194,25 +1479,22 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   if (s < 0) return mri->outside_val;
 
   if (mri->ischunked) {
-    void *p;
-    p = mri->chunk + c * mri->bytes_per_vox + r * mri->bytes_per_row + s * mri->bytes_per_slice +
-        f * mri->bytes_per_vol;
     switch (mri->type) {
     case MRI_UCHAR:
-      return ((float)*(unsigned char *)p);
+      return (float)* ((unsigned char *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
     case MRI_SHORT:
-      return ((float)*(short *)p);
+      return (float)* ((short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
     case MRI_RGB:
     case MRI_INT:
-      return ((float)*(int *)p);
+      return (float)* ((int *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
     case MRI_LONG:
-      return ((float)*(long *)p);
+      return (float)* ((long *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
     case MRI_FLOAT:
-      return ((float)*(float *)p);
+      return (float)* ((float *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
     }
   }
@@ -1272,25 +1554,22 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   }
 
   if (mri->ischunked) {
-    void *p;
-    p = mri->chunk + c * mri->bytes_per_vox + r * mri->bytes_per_row + s * mri->bytes_per_slice +
-        f * mri->bytes_per_vol;
     switch (mri->type) {
     case MRI_UCHAR:
-      *((unsigned char *)p) = nint(voxval);
+      *((unsigned char *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
     case MRI_SHORT:
-      *((short *)p) = nint(voxval);
+      *((short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
     case MRI_RGB:
     case MRI_INT:
-      *((int *)p) = nint(voxval);
+      *((int *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
     case MRI_LONG:
-      *((long *)p) = nint(voxval);
+      *((long *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
     case MRI_FLOAT:
-      *((float *)p) = voxval;
+      *((float *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = voxval;
       break;
     }
   }
@@ -3209,58 +3488,7 @@ int MRIworldToVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, doub
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
-int MRIinitHeader(MRI *mri)
-{
-  mri->ptype = 2;
 
-  /* most of these are in mm */
-  mri->imnr0 = 1;
-  mri->imnr1 = mri->depth;
-  mri->fov = mri->width;
-  mri->thick = 1.0;
-  mri->xsize = 1.0;
-  mri->ysize = 1.0;
-  mri->zsize = 1.0;
-  mri->ps = 1;
-  mri->xstart = -mri->width / 2.0;
-  mri->xend = mri->width / 2.0;
-  mri->ystart = -mri->height / 2.0;
-  mri->yend = mri->height / 2.0;
-  mri->zstart = -mri->depth / 2.0;
-  mri->zend = mri->depth / 2;
-  // coronal
-  mri->x_r = -1;
-  mri->x_a = 0.;
-  mri->x_s = 0.;
-  //
-  mri->y_r = 0.;
-  mri->y_a = 0.;
-  mri->y_s = -1;
-  //
-  mri->z_r = 0.;
-  mri->z_a = 1;
-  mri->z_s = 0.;
-  //
-  mri->c_r = mri->c_a = mri->c_s = 0.0;
-
-  mri->ras_good_flag = 1;
-  mri->gdf_image_stem[0] = '\0';
-  mri->tag_data = NULL;
-  mri->tag_data_size = 0;
-
-  if (!mri->i_to_r__) {
-    MATRIX *tmp = extract_i_to_r(mri);
-    AffineMatrixAlloc(&(mri->i_to_r__));
-    SetAffineMatrix(mri->i_to_r__, tmp);
-    MatrixFree(&tmp);
-  }
-
-  if (!mri->r_to_i__) mri->r_to_i__ = extract_r_to_i(mri);
-
-  return (NO_ERROR);
-}
 
 /**
  * MRIreInitCache
@@ -5191,25 +5419,6 @@ MRI *MRIcloneRoi(MRI *mri_src, MRI *mri_dst)
   mri_dst->zend = mri_src->zstart + d * mri_src->zsize;
   return (mri_dst);
 }
-/*----------------------------------------------------------*/
-/*!
-  \fn int MRIchunk(MRI **pmri)
-  \brief Change input MRI memory allocation to be "chunked".
-  \return 0 on success, 1 if error
-  Has no effect if input is already chuncked
-*/
-int MRIchunk(MRI **pmri)
-{
-  MRI *mritmp;
-  if ((*pmri)->ischunked) return (0);
-  // printf("Chunking\n");
-  mritmp = MRIallocChunk((*pmri)->width, (*pmri)->height, (*pmri)->depth, (*pmri)->type, (*pmri)->nframes);
-  if (mritmp == NULL) return (1);
-  MRIcopy(*pmri, mritmp);
-  MRIfree(pmri);
-  *pmri = mritmp;
-  return (0);
-}
 
 /*----------------------------------------------------------
   Copy one MRI into another (including header info and data)
@@ -5395,471 +5604,7 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
   some headroom for bad (e.g. poorly registered) images without
   sacrificing too much space.
 */
-#define MAX_INDEX 500
-/*-----------------------------------------------------
-  Allocate a lookup table that allows indices which
-  are outside the image region.
-  ------------------------------------------------------*/
-int MRIallocIndices(MRI *mri)
-{
-  int width, height, depth, i;
 
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
-  mri->xi = (int *)calloc(width + 2 * MAX_INDEX, sizeof(int));
-  if (!mri->xi)
-    ErrorExit(ERROR_NO_MEMORY, "MRIallocIndices: could not allocate %d elt index array", width + 2 * MAX_INDEX);
-  mri->yi = (int *)calloc(height + 2 * MAX_INDEX, sizeof(int));
-  if (!mri->yi)
-    ErrorExit(ERROR_NO_MEMORY, "MRIallocIndices: could not allocate %d elt index array", height + 2 * MAX_INDEX);
-  mri->zi = (int *)calloc(depth + 2 * MAX_INDEX, sizeof(int));
-  if (!mri->zi)
-    ErrorExit(ERROR_NO_MEMORY, "MRIallocIndices: could not allocate %d elt index array", depth + 2 * MAX_INDEX);
-
-  /*
-    indexing into these arrays returns valid pixel indices from
-    -MAX_INDEX to width+MAX_INDEX
-  */
-  mri->xi += MAX_INDEX;
-  mri->yi += MAX_INDEX;
-  mri->zi += MAX_INDEX;
-  for (i = -MAX_INDEX; i < width + MAX_INDEX; i++) {
-    if (i <= 0)
-      mri->xi[i] = 0;
-    else if (i >= width)
-      mri->xi[i] = width - 1;
-    else
-      mri->xi[i] = i;
-  }
-  for (i = -MAX_INDEX; i < height + MAX_INDEX; i++) {
-    if (i <= 0)
-      mri->yi[i] = 0;
-    else if (i >= height)
-      mri->yi[i] = height - 1;
-    else
-      mri->yi[i] = i;
-  }
-  for (i = -MAX_INDEX; i < depth + MAX_INDEX; i++) {
-    if (i <= 0)
-      mri->zi[i] = 0;
-    else if (i >= depth)
-      mri->zi[i] = depth - 1;
-    else
-      mri->zi[i] = i;
-  }
-
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------*/
-/*!
-\fn MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
-\brief Alloc pixel data in MRI struct as one big buffer.
-*/
-MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
-{
-  MRI *mri;
-  int slice, row;
-  void *p;
-
-  if (sizeof(mri->bytes_total) != sizeof(size_t)) {
-    fprintf(stderr, "%s: WARNING\nbytes_total is not a size_t\n", __FUNCTION__);
-  }
-
-  mris_alloced++;
-
-  if ((width <= 0) || (height <= 0) || (depth <= 0))
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIallocChunk(%d, %d, %d): bad parm", width, height, depth));
-  mri = MRIallocHeader(width, height, depth, type, nframes);
-  mri->nframes = nframes;
-  MRIinitHeader(mri);
-
-  // Allocate a big chunk of memory
-  mri->ischunked = 1;
-  mri->bytes_per_row = mri->bytes_per_vox * mri->width;
-  mri->bytes_per_slice = mri->bytes_per_row * mri->height;
-  mri->bytes_per_vol = mri->bytes_per_slice * mri->depth;
-  mri->bytes_total = mri->bytes_per_vol * mri->nframes;
-  mri->chunk = calloc(mri->bytes_total, 1);
-  if (mri->chunk == NULL) {
-    printf("ERROR: MRIallocChunk(): could not alloc %lu\n", (unsigned long)mri->bytes_total);
-    return (NULL);
-  }
-  // printf("Allocing MRI with Chunk\n");
-
-  MRIallocIndices(mri);  // not sure what this does
-  mri->outside_val = 0;
-  mri->slices = (BUFTYPE ***)calloc(depth * nframes, sizeof(BUFTYPE **));
-  if (!mri->slices) ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate %d slices\n", mri->depth);
-
-  p = mri->chunk;
-  for (slice = 0; slice < depth * nframes; slice++) {
-    /* allocate pointer to array of rows */
-    mri->slices[slice] = (BUFTYPE **)calloc(mri->height, sizeof(BUFTYPE *));
-    if (!mri->slices[slice])
-      ErrorExit(ERROR_NO_MEMORY,
-                "MRIallocChunk(%d, %d, %d): could not allocate "
-                "%d bytes for %dth slice\n",
-                height,
-                width,
-                depth,
-                mri->height * sizeof(BUFTYPE *),
-                slice);
-    /* Instead of allocating each row, just point to the
-       correct location in the chunk. */
-    for (row = 0; row < mri->height; row++) {
-      mri->slices[slice][row] = (unsigned char *)p;
-      p += mri->bytes_per_row;
-    }
-  }
-  return (mri);
-}
-/*-------------------------------------------------------------*/
-/*!
-  \fn MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
-  \brief Allocate header and buffer for MRI struct. Maybe chunked or not
-   depending on the FS_USE_MRI_CHUNK environment variable.
-*/
-/*-------------------------------------------------------------*/
-MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
-{
-  MRI *mri;
-  int slice, row, bpp;
-  BUFTYPE *buf;
-
-  mris_alloced++;
-
-  if ((width <= 0) || (height <= 0) || (depth <= 0))
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIallocSequence(%d, %d, %d, %d): bad parm", width, height, depth, nframes));
-  mri = MRIallocHeader(width, height, depth, type, nframes);
-  MRIinitHeader(mri);
-  mri->nframes = nframes;
-  MRIallocIndices(mri);
-  mri->outside_val = 0;
-  mri->slices = (BUFTYPE ***)calloc(depth * nframes, sizeof(BUFTYPE **));
-  if (!mri->slices) ErrorExit(ERROR_NO_MEMORY, "MRIallocSequence: could not allocate %d slices\n", mri->depth);
-
-  for (slice = 0; slice < depth * nframes; slice++) {
-    /* allocate pointer to array of rows */
-    mri->slices[slice] = (BUFTYPE **)calloc(mri->height, sizeof(BUFTYPE *));
-    if (!mri->slices[slice])
-      ErrorExit(ERROR_NO_MEMORY,
-                "MRIallocSequence(%d, %d, %d,%d): could not allocate "
-                "%d bytes for %dth slice\n",
-                height,
-                width,
-                depth,
-                nframes,
-                mri->height * sizeof(BUFTYPE *),
-                slice);
-
-#if USE_ELECTRIC_FENCE
-    switch (mri->type) {
-    case MRI_BITMAP:
-      bpp = 1;
-      break;
-    case MRI_UCHAR:
-      bpp = 8;
-      break;
-    case MRI_TENSOR:
-    case MRI_FLOAT:
-      bpp = sizeof(float) * 8;
-      break;
-    case MRI_RGB:
-    case MRI_INT:
-      bpp = sizeof(int) * 8;
-      break;
-    case MRI_SHORT:
-      bpp = sizeof(short) * 8;
-      break;
-    case MRI_LONG:
-      bpp = sizeof(long) * 8;
-      break;
-    default:
-      ErrorReturn(
-            NULL,
-            (ERROR_BADPARM, "MRIallocSequence(%d, %d, %d, type=%d): unknown type", width, height, depth, mri->type));
-      break;
-    }
-    bpp /= 8;
-    buf = (BUFTYPE *)calloc((mri->width * mri->height * bpp), 1);
-    if (buf == NULL)
-      ErrorExit(ERROR_NO_MEMORY,
-                "MRIallocSequence(%d, %d, %d,%d): could not allocate "
-                "%d bytes for %dth slice\n",
-                height,
-                width,
-                depth,
-                nframes,
-                (mri->width * mri->height * bpp),
-                slice);
-    for (row = 0; row < mri->height; row++) {
-      mri->slices[slice][row] = buf + (row * mri->width * bpp);
-    }
-#else
-    /* allocate each row */
-    for (row = 0; row < mri->height; row++) {
-      switch (mri->type) {
-      case MRI_BITMAP:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width / 8, sizeof(BUFTYPE));
-        break;
-      case MRI_UCHAR:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(BUFTYPE));
-        break;
-      case MRI_TENSOR:
-      case MRI_FLOAT:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(float));
-        break;
-      case MRI_RGB:
-      case MRI_INT:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(int));
-        break;
-      case MRI_SHORT:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(short));
-        break;
-      case MRI_LONG:
-        mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(long));
-        break;
-      default:
-        ErrorReturn(NULL,
-                    (ERROR_BADPARM, "MRIalloc(%d, %d, %d, type=%d): unknown type", width, height, depth, mri->type));
-        break;
-      }
-
-      if (!mri->slices[slice][row])
-        ErrorExit(ERROR_NO_MEMORY,
-                  "MRIallocSequence(%d,%d,%d,%d): could not allocate "
-                  "%dth row in %dth slice\n",
-                  width,
-                  height,
-                  depth,
-                  nframes,
-                  slice,
-                  row);
-    }
-#endif
-  }
-
-  // Create chunked volume here. Not super efficient because
-  // must create a new volume, copy the old volume, the dealloc
-  // the old. But it assure that all the above is done.
-  // To activate chunking setenv FS_USE_MRI_CHUNK 1
-  // to deactivate: unsetenv FS_USE_MRI_CHUNK or setenv FS_USE_MRI_CHUNK 0
-  // Set it to anything other than 1
-  if (getenv("FS_USE_MRI_CHUNK") != NULL && strcmp(getenv("FS_USE_MRI_CHUNK"), "1") == 0) {
-    if (Gdiag_no > 0) printf("Chunking\n");
-    MRIchunk(&mri);
-  }
-
-  return (mri);
-}
-/*-----------------------------------------------------*/
-/*!
-  \fn MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
-  \brief allocate an MRI data structure but not space for  the image data
-*/
-MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
-{
-  MRI *mri;
-  int i;
-
-  mri = (MRI *)calloc(1, sizeof(MRI));
-  if (!mri) ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n");
-
-  // Note: changes here may need to be reflected in MRISeqchangeType()
-  mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME));
-  if (!mri->frames) ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate %d frame\n", nframes);
-  for (i = 0; i < mri->nframes; i++) mri->frames[i].m_ras2vox = MatrixAlloc(4, 4, MATRIX_REAL);
-
-  mri->imnr0 = 1;
-  mri->imnr1 = depth;
-  mri->fov = width;
-  mri->thick = 1.0;
-  mri->scale = 1;
-  mri->roi.dx = mri->width = width;
-  mri->roi.dy = mri->height = height;
-  mri->roi.dz = mri->depth = depth;
-  mri->yinvert = 1;
-  mri->xsize = mri->ysize = mri->zsize = 1;
-  mri->type = type;
-  mri->nframes = nframes;
-  mri->xi = mri->yi = mri->zi = NULL;
-  mri->slices = NULL;
-  mri->ps = 1;
-  mri->xstart = -mri->width / 2.0;
-  mri->xend = mri->width / 2.0;
-  mri->ystart = -mri->height / 2.0;
-  mri->yend = mri->height / 2.0;
-  mri->zstart = -mri->depth / 2.0;
-  mri->zend = mri->depth / 2;
-  //
-  mri->x_r = -1;
-  mri->x_a = 0.;
-  mri->x_s = 0.;
-  //
-  mri->y_r = 0.;
-  mri->y_a = 0.;
-  mri->y_s = -1;
-  //
-  mri->z_r = 0.;
-  mri->z_a = 1.;
-  mri->z_s = 0.;
-  //
-  mri->c_r = mri->c_a = mri->c_s = 0.0;
-  mri->ras_good_flag = 0;
-  mri->brightness = 1;
-  mri->register_mat = NULL;
-  mri->subject_name[0] = '\0';
-  mri->path_to_t1[0] = '\0';
-  mri->fname_format[0] = '\0';
-  mri->gdf_image_stem[0] = '\0';
-  mri->tag_data = NULL;
-  mri->tag_data_size = 0;
-  mri->transform_fname[0] = '\0';
-  mri->pedir = NULL;
-
-  MATRIX *tmp;
-  tmp = extract_i_to_r(mri);
-  AffineMatrixAlloc(&(mri->i_to_r__));
-  SetAffineMatrix(mri->i_to_r__, tmp);
-  MatrixFree(&tmp);
-
-  mri->r_to_i__ = extract_r_to_i(mri);
-  mri->AutoAlign = NULL;
-
-  // Chunking memory management
-  mri->ischunked = 0;
-  mri->chunk = NULL;
-  mri->bytes_per_vox = MRIsizeof(type);
-
-  // These things are explicitly set to 0 here because we
-  // do not yet know the true number of frames, and they
-  // are set in MRIallocChunk().
-  mri->bytes_per_row = 0;
-  mri->bytes_per_slice = 0;
-  mri->bytes_per_vol = 0;
-  mri->bytes_total = 0;
-
-  mri->bvals = NULL;  // For DWI
-  mri->bvecs = NULL;
-
-  return (mri);
-}
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  allocate an MRI data structure as well as space for
-  the image data
-  ------------------------------------------------------*/
-MRI *MRIalloc(int width, int height, int depth, int type) { return (MRIallocSequence(width, height, depth, type, 1)); }
-/*-----------------------------------------------------
-  Free and MRI data structure and all its attached memory
-  ------------------------------------------------------*/
-int MRIfree(MRI **pmri)
-{
-  MRI *mri;
-  int slice, i;
-#if !USE_ELECTRIC_FENCE
-  int row;
-#endif
-
-  mris_alloced--;
-  mri = *pmri;
-  if (!mri) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfree: null pointer\n"));
-
-  if (mri->frames) {
-    int i;
-    for (i = 0; i < mri->nframes; i++)
-      if (mri->frames[i].m_ras2vox) MatrixFree(&mri->frames[i].m_ras2vox);
-    free(mri->frames);
-  }
-  if (mri->xi) free(mri->xi - MAX_INDEX);
-  if (mri->yi) free(mri->yi - MAX_INDEX);
-  if (mri->zi) free(mri->zi - MAX_INDEX);
-
-  if (!mri->ischunked) {
-    if (mri->slices) {
-      for (slice = 0; slice < mri->depth * mri->nframes; slice++) {
-        if (mri->slices[slice]) {
-#if USE_ELECTRIC_FENCE
-          free(mri->slices[slice][0]);
-#else
-          for (row = 0; row < mri->height; row++) free(mri->slices[slice][row]);
-#endif
-          free(mri->slices[slice]);
-        }
-      }
-      free(mri->slices);
-    }
-  }
-  else {
-    // printf("Freeing MRI Chunk\n");
-    free(mri->chunk);
-    mri->chunk = NULL;
-    for (slice = 0; slice < mri->depth * mri->nframes; slice++)
-      if (mri->slices[slice]) free(mri->slices[slice]);
-    free(mri->slices);
-  }
-
-  if (mri->free_transform) delete_general_transform(&mri->transform);
-
-  if (mri->register_mat != NULL) MatrixFree(&(mri->register_mat));
-
-  if (mri->i_to_r__) {
-    AffineMatrixFree(&mri->i_to_r__);
-  }
-
-  if (mri->r_to_i__) MatrixFree(&mri->r_to_i__);
-  if (mri->AutoAlign) MatrixFree(&mri->AutoAlign);
-
-  for (i = 0; i < mri->ncmds; i++)
-    if (mri->cmdlines[i]) free(mri->cmdlines[i]);
-
-  if (mri->bvals) MatrixFree(&mri->bvals);
-  if (mri->bvecs) MatrixFree(&mri->bvecs);
-
-  if (mri->pedir) free(mri->pedir);
-
-  free(mri);
-  *pmri = NULL;
-
-  return (NO_ERROR);
-}
-/*-----------------------------------------------------*/
-/*!
-  \fn MRIfreeFrames(MRI *mri, int start_frame)
-  \brief Frees frames of the mri struct starting at start_frame.
-  Cannot be run on mri struct with chunked mem management.
-*/
-int MRIfreeFrames(MRI *mri, int start_frame)
-{
-  int slice, row, end_frame;
-
-  if (mri->ischunked) {
-    printf(
-          "WARNING: MRIfreeFrames(): cannot free frames "
-          "from chunked memory\n");
-    return (1);
-  }
-
-  end_frame = mri->nframes - 1;
-  if (!mri) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfreeFrames: null pointer\n"));
-
-  if (mri->slices) {
-    for (slice = start_frame * mri->depth; slice < mri->depth * end_frame; slice++) {
-      if (mri->slices[slice]) {
-        for (row = 0; row < mri->height; row++) free(mri->slices[slice][row]);
-        free(mri->slices[slice]);
-      }
-    }
-  }
-
-  mri->nframes -= (end_frame - start_frame + 1);
-  return (NO_ERROR);
-}
 /*-----------------------------------------------------*/
 /*!
   \fn MRIdump(MRI *mri, FILE *fp)
@@ -6113,11 +5858,13 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   mri_dst->c_s = mri_src->c_s;
   mri_dst->ras_good_flag = mri_src->ras_good_flag;
 
+  mri_dst->vox_per_row = mri_dst->width;
+  mri_dst->vox_per_slice = mri_dst->vox_per_row * mri_dst->height;
+  mri_dst->vox_per_vol = mri_dst->vox_per_slice * mri_dst->depth;
+  mri_dst->vox_total = mri_dst->vox_per_vol * mri_dst->nframes;
+
   mri_dst->bytes_per_vox = MRIsizeof(mri_dst->type);
-  mri_dst->bytes_per_row = mri_dst->bytes_per_vox * mri_dst->width;
-  mri_dst->bytes_per_slice = mri_dst->bytes_per_row * mri_dst->height;
-  mri_dst->bytes_per_vol = mri_dst->bytes_per_slice * mri_dst->depth;
-  mri_dst->bytes_total = mri_dst->bytes_per_vol * mri_dst->nframes;
+  mri_dst->bytes_total = mri_dst->bytes_per_vox * mri_dst->vox_total;
 
   mri_dst->brightness = mri_src->brightness;
   if (mri_src->register_mat != NULL)
@@ -10038,7 +9785,7 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
 {
   int OutOfBounds;
   int width, height, depth;
-  int ix_low, iy_low, iz_low, ix, iy, iz;
+  int ix_low, iy_low, iz_low, ix, iy, iz, nvals;
   double val, xx, yy, zz, fx, fy, fz, vv[4][4][4];
 
   if (FEQUAL((int)x, x) && FEQUAL((int)y, y) && FEQUAL((int)z, z))
@@ -10104,6 +9851,8 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
           break;
         case MRI_FLOAT:
           vv[ix][iy][iz] = (double)MRIFvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
+	  if (!devFinite(vv[ix][iy][iz]))
+	    DiagBreak() ;
           break;
         case MRI_SHORT:
           vv[ix][iy][iz] = (double)MRISvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
@@ -10124,6 +9873,7 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
 
   val = 0;
 
+#if 0
   for (iz = 0; iz <= 3; iz++) {
     fz = MRIcubicCoeff(zz, iz);
     for (iy = 0; iy <= 3; iy++) {
@@ -10134,8 +9884,23 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
       }
     }
   }
-
   *pval = val / 8.;
+#else
+  nvals = 0 ;
+  for (iz = MAX(0, 1 - iz_low); iz < MIN(4, depth + 1 - iz_low); iz++) {
+    fz = MRIcubicCoeff(zz, iz);
+    for (iy = MAX(0, 1 - iy_low); iy < MIN(4, height + 1 - iy_low); iy++) {
+      fy = MRIcubicCoeff(yy, iy);
+      for (ix = MAX(0, 1 - ix_low); ix < MIN(4, width + 1 - ix_low); ix++) {
+        fx = MRIcubicCoeff(xx, ix);
+        val += (double)(vv[ix][iy][iz] * fx * fy * fz);
+	nvals++ ;
+      }
+    }
+  }
+  *pval = val / nvals;
+#endif
+
 
   return (NO_ERROR);
 }
@@ -13463,9 +13228,7 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
   int c, r, s, f, n, ncols, nrows, nslices, nframes;
   float m;
   float *pout = NULL;
-  void *pin = NULL;
   double v, aa, bb;
-  int sz;
 
   if (a == 0)
     aa = 1;
@@ -13499,32 +13262,13 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
     return (NULL);
   }
 
-  // Number of bytes in the input data type
-  sz = 0;
-  switch (in->type) {
-  case MRI_UCHAR:
-    sz = sizeof(char);
-    break;
-  case MRI_SHORT:
-    sz = sizeof(short);
-    break;
-  case MRI_INT:
-    sz = sizeof(int);
-    break;
-  case MRI_LONG:
-    sz = sizeof(long);
-    break;
-  case MRI_FLOAT:
-    sz = sizeof(float);
-    break;
-  }
-
   n = 0;
   for (f = 0; f < nframes; f++) {
     for (s = 0; s < nslices; s++) {
       for (r = 0; r < nrows; r++) {
         // Pointers to the start of the column
-        pin = (void *)in->slices[n][r];
+        void *pin = (void *)in->slices[n][r];
+        int nvox = 0;
         pout = (float *)out->slices[n][r];
         for (c = 0; c < ncols; c++) {
           if (mask) {
@@ -13532,26 +13276,26 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
             if (m < 0.5) {
               // must increment pointers
               *pout++ = 0.0;
-              pin += sz;
+              nvox++;
               continue;
             }
           }
           // Get input value
           switch (in->type) {
           case MRI_UCHAR:
-            v = (double)(*((char *)pin));
+            v = (double) *((unsigned char *)pin + nvox);
             break;
           case MRI_SHORT:
-            v = (double)(*((short *)pin));
+            v = (double) *((short *)pin + nvox);
             break;
           case MRI_INT:
-            v = (double)(*((int *)pin));
+            v = (double) *((int *)pin + nvox);
             break;
           case MRI_LONG:
-            v = (double)(*((long *)pin));
+            v = (double) *((long *)pin + nvox);
             break;
           case MRI_FLOAT:
-            v = (double)(*((float *)pin));
+            v = (double) *((float *)pin + nvox);
             break;
           }
           if (v == 0) v = EPSILON;
@@ -13559,7 +13303,7 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
           *pout = aa * log(fabs(bb * v));
           // Increment
           pout++;
-          pin += sz;
+          nvox++;
         }  // cols
       }    // rows
       n++;
@@ -16412,6 +16156,8 @@ const char *MRItype2str(int type)
     return ("bitmap");
   case MRI_TENSOR:
     return ("tensor");
+  case MRI_RGB:
+    return ("RGB") ;
   }
   return ("unknown data type");
 }
@@ -16870,8 +16616,7 @@ int MRIcomputeLabelMeansandCovariances(
   means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL);
   cov_final = MatrixAlloc(mri_inputs->nframes, mri_inputs->nframes, MATRIX_REAL);
 
-  // how does this work? looks like an inf loop; should it be for(l = 0; l < length; l++) ?
-  for (l = 0; length; l++) {
+  for (l = 0; l < length; l++) {
     for (x = 0; x < mri_labeled->width; x++) {
       for (y = 0; y < mri_labeled->height; y++) {
         for (z = 0; z < mri_labeled->depth; z++) {
@@ -17640,106 +17385,3 @@ MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0,
   MRIfree(&mri_mask) ;
   return (vl);
 }
-
-
-// Support for writing traces that can be compared across test runs to help find where differences got introduced  
-//
-void mri_hash_init (MRI_HASH* hash, MRI const * mri)
-{
-  hash->hash = fnv_init();
-  if (mri) mri_hash_add(hash, mri);
-}
-
-static void matrix_hash_add(MRI_HASH* hash, MATRIX const * m)
-{
-  if (!m) return;
-#define ELT(MBR) \
-  hash->hash = fnv_add(hash->hash, (const unsigned char*)(&m->MBR), sizeof(m->MBR));
-  ELT(type)
-      ELT(rows)
-      ELT(cols)
-    #undef ELT
-      int r;
-  for (r = 0; r < m->rows; r++) {
-    const unsigned char* rptr = (const unsigned char*)(m->rptr[r]);
-    if (!rptr) {
-      static int count;
-      if (!count++) fprintf(stderr, "%s:%d !rptr r:%d m->rows:%d m->cols:%d\n",
-                            __FILE__,__LINE__, r, m->rows, m->cols);
-      continue;
-    }
-    hash->hash =
-        fnv_add(hash->hash,
-                rptr,
-                m->cols * ((m->type == MATRIX_REAL) ? sizeof(float) : sizeof(COMPLEX_FLOAT)));
-  }
-}
-
-static void general_transform_hash_add(MRI_HASH* hash, General_transform const * transform)
-{
-  if (!transform) return;
-  //    nyi;
-}
-
-static void transform_hash_add(MRI_HASH* hash, Transform const * transform)
-{
-  if (!transform) return;
-  //    nyi;
-}
-
-void mri_hash_add(MRI_HASH* hash, MRI const * mri)
-{
-  if (!mri) return;
-
-#define SEP
-#define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
-#define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mri->MBR), sizeof(mri->MBR));
-#define ELTX(TYPE,   MBR)
-  LIST_OF_MRI_ELTS
-    #undef ELTX
-    #undef ELTT
-    #undef ELTP
-    #undef SEP
-
-      // Now include some of the pointer targets
-      //
-      matrix_hash_add(hash, mri->register_mat);
-  general_transform_hash_add(hash, &mri->transform);
-  transform_hash_add(hash, mri->linear_transform);
-  transform_hash_add(hash, mri->inverse_linear_transform);
-  matrix_hash_add(hash, mri->r_to_i__);
-  matrix_hash_add(hash, mri->AutoAlign);
-  matrix_hash_add(hash, mri->bvals);
-  matrix_hash_add(hash, mri->bvecs);
-  // nyi ct
-  // nyi frames
-  //
-  if (mri->slices) {
-    int slice, row;
-    for (slice = 0; slice < mri->depth; slice++) {
-      if (!mri->slices[slice]) continue;
-      for (row = 0; row < mri->height; row++) {
-        const unsigned char* ptr = (const unsigned char*)(mri->slices[slice][row]);
-        if (!ptr) continue;
-        hash->hash =
-            fnv_add(hash->hash,
-                    ptr,
-                    mri->bytes_per_row);
-      }
-    }
-  }
-}
-
-void mri_hash_print(MRI_HASH const* hash, FILE* file)
-{
-  fprintf(file, "%ld", hash->hash);
-}
-
-void mri_print_hash(FILE* file, MRI const * mri, const char* prefix, const char* suffix) {
-  MRI_HASH hash;
-  mri_hash_init(&hash, mri);
-  fprintf(file, "%sMRI_HASH{",prefix);
-  mri_hash_print(&hash, file);
-  fprintf(file, "}%s",suffix);
-}
-

@@ -56,7 +56,8 @@
       <argument>-regularize-mean regularizemean</argument>
       <argument>-scale_smoothness smoothness</argument>
       <argument>-nobright </argument>
-      <argument>-renormalize</argument>
+      <argument>-renormalize_map</argument>
+      <argument>-renormalize intensity_file</argument>
       <argument>-read_lta </argument>
       <argument>-smoothness smoothness</argument>
       <argument>-samples samples</argument>

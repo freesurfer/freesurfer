@@ -1,14 +1,13 @@
-#!/usr/bin/env fspython
+#!/usr/bin/env python
 
 import os
 import sys
-import numpy as np
 import json
 import scipy.io
 import freesurfer as fs
+from freesurfer.gems import setGlobalDefaultNumberOfThreads
+from freesurfer.samseg import registerAtlas, samsegment, initVisualizer, icv
 
-from freesurfer.gems import setGlobalDefaultNumberOfThreads, kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
-from freesurfer.samseg import Specification, registerAtlas, samsegment, initVisualizer, icv
 
 # ------ Parse Command Line Arguments ------
 
@@ -23,22 +22,17 @@ parser.add_argument('--reg-only', action='store_true', default=False, help='Only
 parser.add_argument('-r', '--reg-mat', metavar='FILE', help='Skip initial affine registration and read transform from file.')
 parser.add_argument('--init-lta', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
-parser.add_argument('--no-brainmask', action='store_true', default=False, help='Skip the initial brain masking based on the affine atlas registration.')
-parser.add_argument('--diag-covs', action='store_true', default=False, help='Use diagonal covariance matrices (only affects multi-contrast case).')
-parser.add_argument('--stiffness', type=float, default=0.1, help='Stiffness (K) of the mesh. Defaults to 0.1.')
-parser.add_argument('--max-iters', type=int, default=100, help='Maximum number of iterations.')
-parser.add_argument('--acpvdsc', type=float, default=1e-4, help='Absolute cost-per-voxel-decrease stop criterion. Defaults to 1e-4.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
-parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Enable verbose debug output.')
 
 args = parser.parse_args()
 
 fs.printPeakMemory('run_samseg init')
+
 
 # ------ Initial Setup ------
 
@@ -57,9 +51,9 @@ if args.threads is not None:
     setGlobalDefaultNumberOfThreads(args.threads)
 
 # Remove previous cost log
-costfile = os.path.join(args.outputDirectory, "cost.txt")
-if os.path.exists(costfile):
-    os.remove(costfile)
+costfile = os.path.join( args.outputDirectory, "cost.txt" )
+if os.path.exists( costfile ):
+    os.remove( costfile ) 
 
 # Get the atlas directory
 atlasDir = os.environ.get('SAMSEG_DATA_DIR')
@@ -84,15 +78,20 @@ if args.reg_mat:
 else:
     worldToWorldTransformMatrix = None
 
-worldToWorldTransformMatrix, transformedTemplateFileName = registerAtlas(
-    args.inputFileNames[0],
-    affineRegistrationMeshCollectionFileName,
-    templateFileName,
-    args.outputDirectory,
-    visualizer,
-    worldToWorldTransformMatrix,
-    args.init_lta
-)
+_, transformedTemplateFileName, optimizationSummary = registerAtlas( args.inputFileNames[0],
+                                                                     affineRegistrationMeshCollectionFileName,
+                                                                     templateFileName,
+                                                                     args.outputDirectory,
+                                                                     visualizer,
+                                                                     worldToWorldTransformMatrix,
+                                                                     args.init_lta
+                                                                   )
+
+# Save a summary of the optimization process
+with open( costfile, "a") as file:
+    file.write( "templateRegistration %d %f\n" % ( optimizationSummary[ 'numberOfIterations' ], 
+                                                   optimizationSummary[ 'cost' ] ) )
+
 
 timer.mark('atlas registration complete')
 if args.reg_only:
@@ -102,83 +101,33 @@ if args.reg_only:
 # ------ Prepare Samsegment Parameters ------
 
 # Load user options from a JSON file
+userModelSpecifications = {}
+userOptimizationOptions = {}
 if args.options:
     with open(args.options) as f:
         userOptions = json.load(f)
-else:
-    userOptions = {}
-
-# Read the contents of 'compressionLookupTable.txt', and show the names of the structures being considered.
-# The results are automatically sorted according to their 'compressed label', i.e., the first result corresponds to
-# the first entry in the vector of probabilities associated with each node in our atlas mesh.
-FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(os.path.join(atlasDir, 'compressionLookupTable.txt'))
-
-# Because we have many labels to segment, and each of these labels has its own Gaussian mixture model
-# whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
-# the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
-# governing their Gaussian mixture model. For example, we'd expect no intensity differences between the left and right
-# part of each structure.
-# The way we implement this is by defining 'super-structures' (i.e., a global white matter tissue class), and therefore
-# work with a simplied ('reduced') model during the entire parameter estimation phase. At the same time we also build
-# an inverse lookup table (mapping from original class number onto a reduced class number (super-structure)) that we
-# will need to compute the final segmentation.
-sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(atlasDir, 'sharedGMMParameters.txt'))
-
-# Set model specifications
-modelSpecifications = Specification({
-    'FreeSurferLabels': FreeSurferLabels,
-    'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
-    'names': names,
-    'colors': colors,
-    'sharedGMMParameters': sharedGMMParameters,
-    'useDiagonalCovarianceMatrices': args.diag_covs,
-    'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
-    'brainMaskingThreshold': -np.inf if args.no_brainmask else 0.01,
-    'K': args.stiffness,  # stiffness of the mesh
-    'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
-}).merged(userOptions.get('modelSpecifications'))
-
-# Set optimization specifications
-userOptimizationOptions = userOptions.get('optimizationOptions')
-optimizationOptions = Specification({
-    'maximumNumberOfDeformationIterations': 20,
-    'absoluteCostPerVoxelDecreaseStopCriterion': args.acpvdsc,
-    'verbose': args.verbose,
-    'maximalDeformationStopCriterion': 0.001,  # measured in pixels
-    'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
-    'maximalDeformationAppliedStopCriterion': 0.0,
-    'BFGSMaximumMemoryLength': 12,
-    'multiResolutionSpecification': None  # resolution specification is set below
-}).merged(userOptimizationOptions)
-
-# Default parameters for each resolution level
-defaultMultiResolution = Specification({
-    'atlasFileName': None,
-    'targetDownsampledVoxelSpacing': 1.0,
-    'maximumNumberOfIterations': args.max_iters,
-    'estimateBiasField': True
-})
-
-# Set the multi resolution level specifications
-if userOptimizationOptions and userOptimizationOptions.get('multiResolutionSpecification'):
-    multiResolutions = userOptimizationOptions.get('multiResolutionSpecification')
-else:
-    multiResolutions = [{
-        'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
-        'targetDownsampledVoxelSpacing': 2.0,
-    }, {
-        'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
-        'targetDownsampledVoxelSpacing': 1.0,
-    }]
-
-optimizationOptions.multiResolutionSpecification = [defaultMultiResolution.merged(resolution) for resolution in multiResolutions]
+    if userOptions.get( 'modelSpecifications' ) is not None: 
+        userModelSpecifications = userOptions.get( 'modelSpecifications' )
+    if userOptions.get( 'optimizationOptions' ) is not None: 
+        userOptimizationOptions = userOptions.get( 'optimizationOptions' )
 
 # ------ Run Samsegment ------
 
 fs.printPeakMemory('run_samseg running samsegment')
 
-labels, names, volumes = samsegment(args.inputFileNames, transformedTemplateFileName, modelSpecifications, optimizationOptions,
-                                    args.outputDirectory, visualizer, saveHistory=args.history, saveMesh=args.save_mesh)
+labels, names, volumes, optimizationSummary = \
+    samsegment( args.inputFileNames, atlasDir, args.outputDirectory,
+                transformedTemplateFileName=transformedTemplateFileName, 
+                userModelSpecifications=userModelSpecifications, 
+                userOptimizationOptions=userOptimizationOptions,
+                visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
+                targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ] )
+
+# Save a summary of the optimization process
+with open( costfile, "a" ) as file:
+    for multiResolutionLevel, item in enumerate( optimizationSummary ):
+        file.write( "atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, item[ 'numberOfIterations' ], item[ 'perVoxelCost' ] ) )
+
 
 # ------ Volumetric Stats ------
 

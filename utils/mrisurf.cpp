@@ -197,6 +197,8 @@ static bool vertix_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS con
             if (showHashCalc) {
                 fprintf(stdout, "After dist hash is %ld\n", hash->hash);
             }
+        }
+        if (v->dist_orig) {
             hash->hash = fnv_add(hash->hash, (const unsigned char*)(v->dist_orig), vsize * sizeof(v->dist_orig[0]));
             if (showHashCalc) {
                 fprintf(stdout, "After dist_orig hash is %ld\n", hash->hash);
@@ -216,6 +218,7 @@ static bool face_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
     unsigned int i;
     #define SEP
     #define ELTP(TARGET,NAME) // don't hash pointers
+    #define ELTX(TARGET,NAME) // don't hash these fiellds
     #define ELTT(TYPE,       MBR) \
         for (i = 0; i < vectorSize; i++) {                                                              \
             MRIS_HASH  * hash = &hashVector[i];                                                         \
@@ -230,6 +233,7 @@ static bool face_n_hash_add(size_t vectorSize, MRIS_HASH* hashVector, MRIS const
         // end of macro
     LIST_OF_FACE_ELTS
     #undef ELTP
+    #undef ELTX
     #undef ELTT
     #undef SEP
     return true;

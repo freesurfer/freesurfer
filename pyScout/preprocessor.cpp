@@ -1,6 +1,6 @@
 
 // STL
-#include <cmath>
+#include <math.h>
 
 // ITK
 #include <itkPointSetToImageFilter.h>

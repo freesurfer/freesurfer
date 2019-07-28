@@ -707,6 +707,42 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&LabelCodeOffset);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--defects")) {
+      // surf defectno template offset mergeflag
+      if(nargc < 6) {
+	printf("usage: --defects surf defectno.mgz template.mgz offset mergeflag\n");
+	argnerr(option,6);
+      }
+      MRIS *defsurf  = MRISread(pargv[0]); // surf
+      if(defsurf==NULL) exit(1);
+      MRI *defno    = MRIread(pargv[1]); //defects no
+      if(defno==NULL) exit(1);
+      MRI *deftemp  = MRIread(pargv[2]); //template
+      if(deftemp==NULL) exit(1);
+      int defmerge, defoffset,deferr;
+      sscanf(pargv[3],"%d",&defoffset);
+      sscanf(pargv[4],"%d",&defmerge);
+      if(defmerge==0){
+	MRIconst(deftemp->width,deftemp->height,deftemp->depth,deftemp->nframes,0,deftemp); // set MRI to 0
+	if(deftemp->type != MRI_INT) {
+	  printf("Changing input type %d to MRI_INT\n",deftemp->type);
+	  MRI *defmritmp = MRIchangeType(deftemp,MRI_INT,0,0,1);
+	  MRIfree(&deftemp);
+	  deftemp = defmritmp;
+	}
+      }
+      printf("Converting defects to volume: offset=%d, merge=%d\n",defoffset,defmerge);
+      deferr = MRISdefects2Seg(defsurf, defno, defoffset, deftemp);
+      if(deferr) exit(1);
+      printf("Writing to %s\n",pargv[5]);
+      deferr = MRIwrite(deftemp,pargv[5]);
+      if(deferr) exit(1);
+      MRISfree(&defsurf);
+      MRIfree(&defno);
+      MRIfree(&deftemp);
+      exit(0);
+      nargsused = 6;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -726,6 +762,8 @@ static void usage_exit(void) {
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("USAGE: mri_label2vol\n") ;
+  printf("\n");
+  printf("   --o volid : output volume\n");
   printf("\n");
   printf("     Possible inputs:\n");
   printf("   --label labelid <--label labelid>  \n");
@@ -755,11 +793,14 @@ static void print_usage(void) {
   printf("   --hemi hemi : needed with --proj or --annot\n");
   printf("   --surf surface  : use surface instead of white\n") ;
   printf("\n");
-  printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
   printf("   --label-stat statvol : map the label stats field into the vol\n");
   printf("   --stat-thresh thresh : only use label point where stat > thresh\n");
   printf("   --offset k : add k to segmentation numbers (good when 0 should not be ignored)\n");
+  printf("   --defects surf defectno.mgz orig.mgz offset mergeflag (ignores all other inputs)\n");
+  printf("     Creates a segmentation volume of the surface defects, eg, \n");
+  printf("       mri_label2vol --defects surf/lh.orig surf/lh.defect_labels mri/orig.mgz    1000 0 mri/defects.mgz\n");
+  printf("       mri_label2vol --defects surf/rh.orig surf/rh.defect_labels mri/defects.mgz 2000 1 mri/defects.mgz\n");
   printf("\n");
   printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");

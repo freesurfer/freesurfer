@@ -1100,7 +1100,55 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       seedfile = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--profile")) {
+      if(nargc < 6){
+	printf("ERROR: --profile requires 6 args\n");
+	printf("USAGE: --profile surf vol dist delta sigma output\n");
+	exit(1);
+      }
+      MRIS *surf  = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      MRI *mri = MRIread(pargv[1]); //norm
+      if(mri==NULL) exit(1);
+      double dist,delta,sigma;
+      sscanf(pargv[2],"%lf",&dist);
+      sscanf(pargv[3],"%lf",&delta);
+      sscanf(pargv[4],"%lf",&sigma);
+      if(delta <= 0) delta = mri->xsize/2.0;
+      printf("dist %g, delta=%g, sigma=%g\n",dist,delta,sigma);
+      MRI *mri2 = MRISsampleMRINorm(surf, mri, -dist, +dist, delta, sigma, NULL);
+      if(mri2==NULL) exit(1);
+      MRIwrite(mri2,pargv[5]);
+      printf("freeview -f %s:overlay=%s\n",pargv[0],pargv[5]);
+      printf("mri_vol2surf --profile done\n");
+      exit(0);
+    }
+    else if (!strcmp(option, "--norm-pointset")) {
+      if(nargc < 5){
+	printf("ERROR: --norm-pointset requires 5 args\n");
+	printf("USAGE: --norm-pointset surf vtxno dist delta output\n");
+	exit(1);
+      }
+      MRIS *surf  = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      int vtxno;
+      double dist,delta;
+      sscanf(pargv[1],"%d",&vtxno);
+      sscanf(pargv[2],"%lf",&dist);
+      sscanf(pargv[3],"%lf",&delta);
+      FILE *fp = fopen(pargv[4],"w");
+      if(fp==NULL) {
+	printf("ERROR: opening %s for writing\n",pargv[4]);
+	exit(1);
+      }
+      printf("vtxno = %d, dist %g, delta=%g\n",vtxno,dist,delta);
+      MRISnorm2Pointset(surf, vtxno, -dist, dist, delta, fp);
+      fclose(fp);
+      printf("mri_vol2surf --norm-pointset done\n");
+      exit(0);
+    }
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -1179,6 +1227,14 @@ static void print_usage(void) {
   printf("   --srcsynth-index : synthesize source volume with volume index no\n");
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --sd SUBJECTS_DIR \n");
+  printf("   --profile surf vol dist delta sigma output\n");
+  printf("     Computes intensity profile from -dist:delta:+dist\n");
+  printf("     If delta is <= 0, then xsize/2 is used\n");
+  printf("     If sigma >= 0, then the gradient is estimated with smoothing parameter sigma\n");
+  printf("   --norm-pointset surf vtxno dist delta output\n");
+  printf("     Creates a freeview pointset using points along the normal\n");
+  printf("\n");
+  printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");

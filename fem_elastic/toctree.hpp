@@ -3,6 +3,7 @@
 #define _h_own_octree_hpp
 
 #include <vector>
+#include <array>
 
 #include "stl_utils.hpp"
 #include "coords.h"

@@ -228,8 +228,8 @@ int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem)
   ---------------------------------------------------------*/
 int ByteSwap2(void *buf2, long int nitems)
 {
-  register char *cbuf, ctmp;
-  register long int n;
+  char *cbuf, ctmp;
+  long int n;
 
   cbuf = (char *)buf2;
   for (n = 0; n < nitems; n += 2) {
@@ -247,8 +247,8 @@ int ByteSwap2(void *buf2, long int nitems)
   ---------------------------------------------------------*/
 int ByteSwap4(void *buf4, long int nitems)
 {
-  register char *cbuf, ctmp;
-  register long int n;
+  char *cbuf, ctmp;
+  long int n;
 
   cbuf = (char *)buf4;
   for (n = 0; n < nitems; n += 4) {
@@ -274,8 +274,8 @@ int ByteSwap4(void *buf4, long int nitems)
   ---------------------------------------------------------*/
 int ByteSwap8(void *buf8, long int nitems)
 {
-  register char *cbuf, ctmp;
-  register long int n;
+  char *cbuf, ctmp;
+  long int n;
 
   cbuf = (char *)buf8;
   for (n = 0; n < nitems; n += 8) {

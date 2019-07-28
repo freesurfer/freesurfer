@@ -1,6 +1,7 @@
 project(utils)
 
-add_compile_options(-Wno-pointer-arith)
+# ATH: temporarily turning off this warning in mrisurf_defect.cpp
+add_compile_options(-Wno-for-loop-analysis)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
@@ -14,6 +15,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/packages/cephes
   ${CMAKE_SOURCE_DIR}/packages/nifti
   ${CMAKE_SOURCE_DIR}/packages/gifti
+  SYSTEM
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIRS}
 )
@@ -138,13 +140,15 @@ add_library(utils STATIC
   MRISrigidBodyAlignGlobal.cpp
   mrisurf.cpp
   mrisurf_base.cpp
+  mrisurf_compute_dxyz.cpp
   mrisurf_defect.cpp
   mrisurf_deform.cpp
   mrisurf_integrate.cpp
   mrisurf_io.cpp
   mrisurf_metricProperties.cpp
   mrisurf_mri.cpp
-  mrisurf_obsolete.cpp
+  mrisurf_project.cpp
+  mrisurf_sseTerms.cpp
   mrisurf_timeStep.cpp
   mrisurf_topology.cpp
   mrisurf_vals.cpp

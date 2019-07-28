@@ -18,7 +18,8 @@ typedef struct MRIS_MP {
 
   // ATH - temporarily adding this constructor to avoid the 'uninitialized const member' errors in g++ > 4
   MRIS_MP() :
-    status(0),
+    status(MRIS_Status__end),
+    origxyz_status(MRIS_Status__end),
     nvertices(0),
     nfaces(0),
     nsize(0),
@@ -39,11 +40,12 @@ typedef struct MRIS_MP {
 #define ELT(C,T,N) T C N;
 
   #define MRIS_MP__LIST_MRIS_IN \
-    ELT(const,  int,    status      ) SEP \
-    ELT(const,  int,    nvertices   ) SEP \
-    ELT(const,  int,    nfaces      ) SEP \
-    ELT(const,  int,    nsize       ) SEP \
-    ELT(const,  double, radius      ) SEP \
+    ELT(const,  MRIS_Status, status         ) SEP \
+    ELT(const,  MRIS_Status, origxyz_status ) SEP \
+    ELT(const,  int,         nvertices      ) SEP \
+    ELT(const,  int,         nfaces         ) SEP \
+    ELT(const,  int,         nsize          ) SEP \
+    ELT(const,  double,      radius         ) SEP \
     ELT(const,  VERTEX_TOPOLOGY const *, vertices_topology) \
     ELTX(const, FACE_TOPOLOGY   const *, faces_topology)
 
@@ -51,7 +53,7 @@ typedef struct MRIS_MP {
     
   // In out
   #define MRIS_MP__LIST_MRIS_IN_OUT \
-    ELT(,       int,    dist_nsize  ) \
+    ELT(,       int,     dist_nsize  ) \
 
     MRIS_MP__LIST_MRIS_IN_OUT
   
@@ -570,7 +572,8 @@ static void MRISMP_computeNormals(MRIS_MP* mris, bool check)
 
   if (debugNonDeterminism) {
     fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
-    // mris_print_hash(stdout, mris, "mris ", "\n");
+    // mris_print_hash(stdout, mris, "mris ", "");
+    fprintf(stdout, "\n");
   }
 
   int k;
@@ -809,6 +812,7 @@ static void MRISMP_computeNormals(MRIS_MP* mris, bool check)
 
 
 #define FUNCTION_NAME MRISMP_computeVertexDistancesWkr
+#define INPUT_STATUS status
 #define INPUT_X v_x
 #define INPUT_Y v_y
 #define INPUT_Z v_z
@@ -837,7 +841,8 @@ static void MRISMP_computeAvgInterVertexDist(MRIS_MP *mris, double *StdDev)
 
   if (showHashs) {
     fprintf(stdout, "%s:%d MRISMP_computeAvgInterVertexDist starting ",__FILE__,__LINE__);
-    //mris_print_hash(stdout, mris, "mris ", "\n");
+    //mris_print_hash(stdout, mris, "mris ", "");
+    fprintf(stdout, "\n");
   }
   
   double Sum = 0, Sum2 = 0;

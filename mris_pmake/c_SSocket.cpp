@@ -30,9 +30,6 @@ using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined __linux__ || defined __sun__
-#include <libio.h>
-#endif
 #include <errno.h>
 
 #include <sys/types.h>

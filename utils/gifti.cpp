@@ -1409,7 +1409,7 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
     }
 
     /* standard meta data for surfaces */
-    if (mris->fname) {
+    if (strlen(mris->fname) != 0) {
       const char *primary = NULL, *secondary = NULL, *geotype = NULL;
       char *name = mris->fname;
       if (strstr(name, "lh.")) {
@@ -1660,7 +1660,7 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
       //                                       mris->ct->entries[idx]->bi);
       // printf("%8.8X\n",labeltable.key[idx]);
 
-      if (mris->ct->entries[idx]->name) {
+      if (strlen(mris->ct->entries[idx]->name) != 0) {
         // printf("idx=%d, name=%s\n",idx,mris->ct->entries[idx]->name);
         labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
       }
@@ -1671,8 +1671,9 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
         labeltable.label[idx] = strcpyalloc(tmpname);
       }
 
-      if ((!mris->ct->entries[idx]->name) || (0 == strcmp(labeltable.label[idx], "unknown")) ||
-          (0 == strcmp(labeltable.label[idx], "Unknown"))) {
+      if ((strlen(mris->ct->entries[idx]->name) == 0) ||
+          (strcmp(labeltable.label[idx], "unknown") == 0) ||
+          (strcmp(labeltable.label[idx], "Unknown") == 0)) {
         // make certain unknown region is completely empty, invisible
         rgba[0] = rgba[1] = rgba[2] = rgba[3] = 0.0f;
       }

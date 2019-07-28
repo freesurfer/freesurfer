@@ -3,15 +3,21 @@
 #include <cstring>
 #include "kde.h"
 #include <QtDebug>
-#include <QElapsedTimer>
+#include <QMutexLocker>
 
 #define LARGENUMBER 1e12
 
 using namespace std;
 
-GeodesicMatting::GeodesicMatting()
+GeodesicMatting::GeodesicMatting(QObject* parent) : QObject(parent)
 {
+  m_bAbort = false;
+}
 
+void GeodesicMatting::Abort()
+{
+  QMutexLocker locker(&m_mutex);
+  m_bAbort = true;
 }
 
 double GeodesicMatting::Interpolate(const std::vector<double> &v, const std::vector<double> &hf, double val)
@@ -72,7 +78,7 @@ void GeodesicMatting::Dilate(int *dim, unsigned char *p_in, unsigned char *p_out
   }
 }
 
-double GeodesicMatting::ComputeNeighDist(double **lHood, int nLabels, unsigned char *KNOWN, double *D, int *dim, int it, int jt, int kt)
+double GeodesicMatting::ComputeNeighDist(double **lHood, int nLabels, unsigned char *KNOWN, double *D, int *dim, int it, int jt, int kt, double* scale)
 {
   size_t idx = ((size_t)it) + jt*dim[0] + kt*dim[0]*dim[1];
   double probs1[10], d = 1e12;
@@ -82,42 +88,42 @@ double GeodesicMatting::ComputeNeighDist(double **lHood, int nLabels, unsigned c
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx-1] - probs1[i]);
+      sum += qAbs(lHood[i][idx-1] - probs1[i])*scale[0];
     d = qMin(d, D[idx-1]+sum);
   }
   if (it < dim[0]-1 && KNOWN[idx+1])
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx+1] - probs1[i]);
+      sum += qAbs(lHood[i][idx+1] - probs1[i])*scale[0];
     d = qMin(d, D[idx+1]+sum);
   }
   if (jt > 0 && KNOWN[idx-dim[0]])
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx-dim[0]] - probs1[i]);
+      sum += qAbs(lHood[i][idx-dim[0]] - probs1[i])*scale[1];
     d = qMin(d, D[idx-dim[0]]+sum);
   }
   if (jt < dim[1]-1 && KNOWN[idx+dim[0]])
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx+dim[0]] - probs1[i]);
+      sum += qAbs(lHood[i][idx+dim[0]] - probs1[i])*scale[1];
     d = qMin(d, D[idx+dim[0]]+sum);
   }
   if (kt > 0 && KNOWN[idx-dim[0]*dim[1]])
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx-dim[0]*dim[1]] - probs1[i]);
+      sum += qAbs(lHood[i][idx-dim[0]*dim[1]] - probs1[i])*scale[2];
     d = qMin(d, D[idx-dim[0]*dim[1]]+sum);
   }
   if (kt < dim[2]-1 && KNOWN[idx+dim[0]*dim[1]])
   {
     double sum = 0;
     for (int i = 0; i < nLabels; i++)
-      sum += qAbs(lHood[i][idx+dim[0]*dim[1]] - probs1[i]);
+      sum += qAbs(lHood[i][idx+dim[0]*dim[1]] - probs1[i])*scale[2];
     d = qMin(d, D[idx+dim[0]*dim[1]]+sum);
   }
   return d;
@@ -206,9 +212,11 @@ template <typename T> vector<size_t> sort_indexes(const vector<T> &v) {
   return idx;
 }
 
+/*
 bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
                               unsigned char *seeds_out)
 {
+  m_bAbort = false;
   double** lHood = new double*[label_list.size()];
   double** DISTS = new double*[label_list.size()];
   size_t vol_size = ((size_t)dim[0])*dim[1]*dim[2];
@@ -230,13 +238,19 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   for (size_t l = 0; l < label_list.size(); l++)
   {
     KDE kde;
+    bool bFound = false;
     for (size_t i = 0; i < vol_size; i++)
     {
       if (seeds_in[i] == label_list[l])
       {
         kde.add_data(mri_in[i]);
-        //  qDebug() << mri_in[i];
+        bFound = true;
       }
+    }
+    if (!bFound)
+    {
+      m_bAbort = true;
+      break;
     }
 
     std::vector<double> hf;
@@ -275,8 +289,6 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   double* TRIALVALS = new double[vol_size];
   unsigned char* KNOWN = new unsigned char[vol_size];
   unsigned char* TRIAL = new unsigned char[vol_size];
-  QElapsedTimer timer;
-  timer.start();
   for (size_t l = 0; l < label_list.size(); l++)
   {
     // initialize
@@ -294,7 +306,7 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     {
       if (TRIAL[i])
       {
-        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));;
+        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));
       }
       else
       {
@@ -305,17 +317,17 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     // fast marching
     bool ready = false;
     int npix = 0;
-    while (!ready)
+    while (!ready && !m_bAbort)
     {
       npix++;
       if (npix%10000 == 0)
         qDebug() << npix;
 
       double mini = LARGENUMBER;
-      int idx = -1;
+      long long idx = -1;
       for (size_t i = 0; i < vol_size; i++)
       {
-        if (TRIALVALS[i]<mini)
+        if (TRIALVALS[i] < mini)
         {
           mini=TRIALVALS[i];
           idx=i;
@@ -458,23 +470,25 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
     }
     memcpy(DISTS[l], D, sizeof(double)*vol_size);
   }
-  qDebug() << timer.elapsed()/1000.;
 
-  memset(seeds_out, 0, vol_size);
-  for (size_t i = 0; i < vol_size; i++)
+  if (!m_bAbort)
   {
-    double dmin = 1e10;
-    int n = 0;
-    for (size_t l = 0; l < label_list.size(); l++)
+    memset(seeds_out, 0, vol_size);
+    for (size_t i = 0; i < vol_size; i++)
     {
-      if (DISTS[l][i] < dmin)
+      double dmin = 1e10;
+      int n = 0;
+      for (size_t l = 0; l < label_list.size(); l++)
       {
-        dmin = DISTS[l][i];
-        n = l;
+        if (DISTS[l][i] < dmin)
+        {
+          dmin = DISTS[l][i];
+          n = l;
+        }
       }
+      if (n != label_list.size()-1)
+        seeds_out[i] = label_list[n];
     }
-    if (n != label_list.size()-1)
-      seeds_out[i] = label_list[n];
   }
   delete[] D;
   delete[] TRIALVALS;
@@ -489,12 +503,23 @@ bool GeodesicMatting::Compute(int *dim, double *mri_in, double* mri_range_in, un
   delete[] lHood;
   delete[] DISTS;
 
-  return true;
+  return (!m_bAbort);
 }
+*/
 
-bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
-                                         unsigned char *seeds_out)
+//inline void print_progress(double precentage)
+//{
+//  if ((int)(precentage+0.01) >= 100)
+//    printf("\b\b\b\b\b%.0f%% ", precentage);
+//  else
+//    printf("\b\b\b\b\b%4.1f%%", precentage);
+//  fflush(stdout);
+//}
+
+bool GeodesicMatting::ComputeWithBinning(int *dim, double* voxel_size, double *mri_in, double* mri_range_in, unsigned char *seeds_in, std::vector<unsigned char>& label_list,
+                              unsigned char *seeds_out)
 {
+  m_bAbort = false;
   double** lHood = new double*[label_list.size()];
   double** DISTS = new double*[label_list.size()];
   size_t vol_size = ((size_t)dim[0])*dim[1]*dim[2];
@@ -512,17 +537,28 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
   for (int i = 0; i <= n_steps; i++)
     v.push_back(mri_range_in[0] + i*step_size);
 
+  m_strErrorMessage.clear();
   // compute probabilities
   for (size_t l = 0; l < label_list.size(); l++)
   {
     KDE kde;
+    bool bFound = false;
     for (size_t i = 0; i < vol_size; i++)
     {
       if (seeds_in[i] == label_list[l])
       {
         kde.add_data(mri_in[i]);
-        //  qDebug() << mri_in[i];
+        bFound = true;
       }
+    }
+    if (!bFound)
+    {
+      if (l == 0)
+        m_strErrorMessage = "No inside pixels found";
+      else
+        m_strErrorMessage = "No outside pixels found";
+      m_bAbort = true;
+      break;
     }
 
     std::vector<double> hf;
@@ -536,35 +572,34 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
     {
       lHood[l][i] = Interpolate(v, hf, mri_in[i]);
     }
-
-    //    if (l == 0)
-    //    {
-    //      for (size_t i = 0; i < hf.size(); i++)
-    //        qDebug() << hf[i];
-    //    }
   }
 
-  // normalize probabilities
-  for (size_t i = 0; i < vol_size; i++)
+  if (!m_bAbort)
   {
-    double sum = 0;
-    for (size_t j = 0; j < label_list.size(); j++)
-      sum += lHood[j][i];
-    if (sum > 0)
+    // normalize probabilities
+    for (size_t i = 0; i < vol_size; i++)
     {
+      double sum = 0;
       for (size_t j = 0; j < label_list.size(); j++)
-        lHood[j][i] /= sum;
+        sum += lHood[j][i];
+      if (sum > 0)
+      {
+        for (size_t j = 0; j < label_list.size(); j++)
+          lHood[j][i] /= sum;
+      }
     }
   }
 
   double* D = new double[vol_size];
+  double* TRIALVALS = new double[vol_size];
   unsigned char* KNOWN = new unsigned char[vol_size];
   unsigned char* TRIAL = new unsigned char[vol_size];
-  double* TRIALVALS = new double[vol_size];
-  QElapsedTimer timer;
-  timer.start();
+  qlonglong total_prog = vol_size*label_list.size();
   for (size_t l = 0; l < label_list.size(); l++)
   {
+    if (m_bAbort)
+      break;
+
     // initialize
     memset(D, 0, sizeof(double)*vol_size);
     memset(KNOWN, 0, vol_size);
@@ -576,190 +611,228 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
       }
     }
     Dilate(dim, KNOWN, TRIAL);
-    std::vector<size_t> idxs;
+    double max_size = qMax(qMax(dim[0], dim[1]), dim[2]);
     for (size_t i = 0; i < vol_size; i++)
     {
       if (TRIAL[i])
       {
-        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]));
-        idxs.push_back(i);
+        TRIALVALS[i] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i%dim[0], (i/dim[0])%dim[1], i/(dim[0]*dim[1]), voxel_size);
       }
       else
       {
-        TRIALVALS[i] = LARGENUMBER;
+        TRIALVALS[i]=LARGENUMBER;
       }
     }
 
-    //    std::vector<size_t> sorted_idx = sort_indexes(vals);
-
     // fast marching
     bool ready = false;
-    int npix = 0;
-    while (!ready)
+    double delta = 0.001;
+    int nBins = (int)qMin(1000000.0, max_size/delta);
+    QVector< QVector<long long> > bins;
+    bins.resize(nBins);
+    int nCurBin = 0;
+    double bin_step_size = max_size*2/nBins;
+    for (size_t i = 0; i < vol_size; i++)
+    {
+      if (TRIAL[i])
+      {
+        int nBinIdx = (int)qMin((TRIALVALS[i])/bin_step_size, nBins-1.0);
+        bins[nBinIdx] << i;
+      }
+    }
+
+    qlonglong npix = 0;
+    while (!ready && !m_bAbort)
     {
       npix++;
-      if (npix%10000 == 0)
-        qDebug() << npix;
+      if (npix%20000 == 0)
+        emit Progress((npix+l*vol_size)*100.0/total_prog);
 
       double mini = LARGENUMBER;
-      size_t idx = -1;
-      int n_idxs = -1;
-      //      for (size_t i = 0; i < idxs.size(); i++)
-      //      {
-      //        if (TRIALVALS[idxs[i]] < mini)
-      //        {
-      //          mini = TRIALVALS[idxs[i]];
-      //          idx = idxs[i];
-      //          n_idxs = i;
-      //        }
-      //      }
-
-      for (size_t i = 0; i < vol_size; i++)
+      long long idx = -1;
+      for (int i = nCurBin; i < nBins; i++)
       {
-        if (TRIALVALS[i]<mini)
+        if (!bins[i].isEmpty())
         {
-          mini=TRIALVALS[i];
-          idx=i;
+          idx = bins[i].first();
+          mini = TRIALVALS[idx];
+          bins[i].removeFirst();
+          break;
         }
+        else
+          nCurBin++;
       }
-
       if (idx < 0 || mini >= LARGENUMBER)
         break;
 
-      KNOWN[idx] = 1;
-      TRIAL[idx] = 0;
-      TRIALVALS[idx] = LARGENUMBER;
-      D[idx] = mini;
-      //      idxs.erase(idxs.begin()+n_idxs);
+      KNOWN[idx]=1;
+      TRIAL[idx]=0;
+      TRIALVALS[idx]=LARGENUMBER;
+      D[idx]=mini;
 
       size_t i = idx%dim[0];
       size_t j = (idx/dim[0])%dim[1];
       size_t k =  idx/(dim[0]*dim[1]);
-
-      if (i > 0 && KNOWN[idx-1] == 0)
+      long long next_idx = idx-1;
+      if (i > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-1] = 1;
-        //        TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
-
-        if (TRIAL[idx-1] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx-1] = 1;
-          TRIALVALS[idx-1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i-1, j, k, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx-1] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx-1] = qMin(TRIALVALS[idx-1],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //  idxs.push_back(idx-1);
       }
 
-      if (i < dim[0]-1 && KNOWN[idx+1] == 0)
+      next_idx = idx+1;
+      if (i < dim[0]-1 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+1] = 1;
-        //        TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
-
-        if (TRIAL[idx+1] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx+1] = 1;
-          TRIALVALS[idx+1] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i+1, j, k, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx+1] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx+1] = qMin(TRIALVALS[idx+1],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //   idxs.push_back(idx+1);
       }
 
-      if (j > 0 && KNOWN[idx-dim[0]] == 0)
+      next_idx = idx-dim[0];
+      if (j > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-dim[0]] = 1;
-        //        TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
-
-        if (TRIAL[idx-dim[0]] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx-dim[0]] = 1;
-          TRIALVALS[idx-dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j-1, k, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx-dim[0]] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx-dim[0]] = qMin(TRIALVALS[idx-dim[0]],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //  idxs.push_back(idx-dim[0]);
       }
 
-      if (j < dim[1]-1 && KNOWN[idx+dim[0]] == 0)
+      next_idx = idx+dim[0];
+      if (j < dim[1]-1 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+dim[0]] = 1;
-        //        TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
-
-        if (TRIAL[idx+dim[0]] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx+dim[0]] = 1;
-          TRIALVALS[idx+dim[0]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j+1, k, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx+dim[0]] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx+dim[0]] = qMin(TRIALVALS[idx+dim[0]],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //  idxs.push_back(idx+dim[0]);
       }
 
-      if (k > 0 && KNOWN[idx-dim[0]*dim[1]] == 0)
+      next_idx = idx-dim[0]*dim[1];
+      if (k > 0 && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx-dim[0]*dim[1]] = 1;
-        //        TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
-
-        if (TRIAL[idx-dim[0]*dim[1]] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx-dim[0]*dim[1]] = 1;
-          TRIALVALS[idx-dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k-1, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx-dim[0]*dim[1]] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx-dim[0]*dim[1]] = qMin(TRIALVALS[idx-dim[0]*dim[1]],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //  idxs.push_back(idx-dim[0]*dim[1]);
       }
 
-      if (k < dim[2]-1  && KNOWN[idx+dim[0]*dim[1]] == 0)
+      next_idx = idx+dim[0]*dim[1];
+      if (k < dim[2]-1  && KNOWN[next_idx] == 0)
       {
-        //        TRIAL[idx+dim[0]*dim[1]] = 1;
-        //        TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
-
-        if (TRIAL[idx+dim[0]*dim[1]] == 0)
+        if (TRIAL[next_idx] == 0)
         {
-          TRIAL[idx+dim[0]*dim[1]] = 1;
-          TRIALVALS[idx+dim[0]*dim[1]] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1);
+          TRIAL[next_idx] = 1;
+          TRIALVALS[next_idx] = ComputeNeighDist(lHood, label_list.size(), KNOWN, D, dim, i, j, k+1, voxel_size);
+          int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+          bins[nBinIdx] << next_idx;
         }
         else
         {
-          double step = 0;
+          double step = mini;
           for (int l = 0; l < label_list.size(); l++)
-            step += qAbs(lHood[l][idx+dim[0]*dim[1]] - lHood[l][idx]);
+            step += qAbs(lHood[l][next_idx] - lHood[l][idx]);
 
-          TRIALVALS[idx+dim[0]*dim[1]] = qMin(TRIALVALS[idx+dim[0]*dim[1]],mini+step);
+          if (step < TRIALVALS[next_idx])
+          {
+            int nBinIdx = (int)qMin(TRIALVALS[next_idx]/bin_step_size, nBins-1.0);
+            bins[nBinIdx].removeOne(next_idx);
+            nBinIdx = (int)qMin(step/bin_step_size, nBins-1.0);
+            bins[nBinIdx] << next_idx;
+            TRIALVALS[next_idx] = step;
+          }
         }
-        //  idxs.push_back(idx+dim[0]*dim[1]);
       }
 
       if (npix>=vol_size)
@@ -767,28 +840,33 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
     }
     memcpy(DISTS[l], D, sizeof(double)*vol_size);
   }
-  qDebug() << timer.elapsed()/1000.;
 
-  memset(seeds_out, 0, vol_size);
-  for (size_t i = 0; i < vol_size; i++)
+  if (!m_bAbort)
   {
-    double dmin = 1e10;
-    int n = 0;
-    for (size_t l = 0; l < label_list.size(); l++)
+    emit Progress(100);
+    memset(seeds_out, 0, vol_size);
+    for (size_t i = 0; i < vol_size; i++)
     {
-      if (DISTS[l][i] < dmin)
+      double dmin = 1e10;
+      int n = 0;
+      for (size_t l = 0; l < label_list.size(); l++)
       {
-        dmin = DISTS[l][i];
-        n = l;
+        if (DISTS[l][i] < dmin)
+        {
+          dmin = DISTS[l][i];
+          n = l;
+        }
       }
+      if (n != label_list.size()-1)
+        seeds_out[i] = label_list[n];
     }
-    if (n != label_list.size()-1)
-      seeds_out[i] = label_list[n];
   }
+
+
   delete[] D;
+  delete[] TRIALVALS;
   delete[] KNOWN;
   delete[] TRIAL;
-  delete[] TRIALVALS;
 
   for (size_t i = 0; i < label_list.size(); i++)
   {
@@ -797,6 +875,6 @@ bool GeodesicMatting::ComputeWithSorting(int *dim, double *mri_in, double* mri_r
   }
   delete[] lHood;
   delete[] DISTS;
-  return true;
-}
 
+  return (!m_bAbort);
+}

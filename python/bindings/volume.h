@@ -1,48 +1,68 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
+#include "pybind11/stl.h"
+
 #include "numpy.h"
-
-// utils
 #include "mri.h"
+#include "mri2.h"
+#include "log.h"
 
 
-void bindVolume(py::module &m);
-py::array makeArray(MRI *mri, bool copybuffer = true);
+typedef py::array_t<float, py::array::f_style | py::array::forcecast> affinematrix;
 
 
-class CoreVolume {
+/**
+  MRI subclass to allow interaction between c++ and python.
+*/
+class PyVolume
+{
 public:
-  CoreVolume(MRI *mri);
-  CoreVolume(const std::string &filename);
-  CoreVolume(py::array array);
-  ~CoreVolume();
+  PyVolume(py::array& array);
+  PyVolume(py::array& array, affinematrix& affine);
+  PyVolume(const std::string& filename) { m_mri = new MRI(filename); }
+  ~PyVolume();
 
-  // mri pointer getter/setter
-  void setMRI(MRI *mri);
-  MRI* getMRI() { return m_mri; };
+  PyVolume(MRI* mri) { m_mri = mri; }
+  operator MRI*() { return m_mri; }
 
-  // filesystem IO
-  void read(const std::string &filename);
-  void write(const std::string &filename);
+  void write(const std::string& filename) { m_mri->write(filename); }
 
-  // image array getter/setter
-  py::array getImage() { return imagebuffer; };
-  void setImage(py::array_t<float, py::array::f_style | py::array::forcecast> array);
+  static py::array copyImage(MRI* mri);
+  py::array copyImage() { return copyImage(m_mri); };
 
-  template<class T>
-  void setBufferData(const float *data) {
-    T *buff = (T *)m_mri->chunk;
-    const float *ptr = data;
-    const int count = MRInvox(m_mri);
-    for (unsigned int i = 0; i < count ; i++, ptr++, buff++) {
-      *buff = (T)*ptr;
-    }
+  void setImage(const py::array& array);
+  py::array getImage();
+
+  void setAffine(const affinematrix& array);
+  affinematrix getAffine();
+  affinematrix computeVox2Surf();
+
+  template <class T>
+  void setBufferData(py::array_t<T, py::array::f_style | py::array::forcecast> array) {
+    MRI::Shape inshape = MRI::Shape(array.request().shape);
+    if (inshape != m_mri->shape) logFatal(1) << "array " << shapeString(inshape) << " does not match volume shape " << shapeString(m_mri->shape);
+    T *dst = (T *)m_mri->chunk;
+    const T *src = array.data(0);
+    for (unsigned int i = 0; i < m_mri->vox_total ; i++, dst++, src++) *dst = *src;
   }
 
 private:
-  py::array imagebuffer;
-  MRI *m_mri = nullptr;
+  py::array buffer_array;
+  MRI* m_mri;
 };
+
+inline void bindVolume(py::module &m)
+{
+  // PyVolume class
+  py::class_<PyVolume>(m, "Volume")
+    .def(py::init<py::array&>())
+    .def(py::init<const std::string&>())
+    .def("write", &PyVolume::write)
+    .def("_compute_vox2surf", &PyVolume::computeVox2Surf)
+    .def_property("image", &PyVolume::getImage, &PyVolume::setImage)
+    .def_property("affine", &PyVolume::getAffine, &PyVolume::setAffine)
+  ;
+}
 
 #endif

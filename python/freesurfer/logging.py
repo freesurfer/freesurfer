@@ -1,6 +1,7 @@
 import sys
 import re
 import datetime as dt
+import __main__ as main
 
 from . import term
 
@@ -20,15 +21,28 @@ def error(message):
     print(term.red('error: ') + message)
 
 
-def errorExit(message, retcode=1):
-    '''Prints an error message then calls `sys.exit`.
+def fatal(message, retcode=1):
+    '''Prints an error message and exits (or raises an exception if in interactive mode).
 
     Args:
         message (str): Message to print.
         retcode (int): Exit code. Defaults to 1.
     '''
-    error(message)
-    sys.exit(retcode)
+    if hasattr(main, '__file__'):
+        error(message)
+        sys.exit(retcode)
+    else:
+        raise Exception(message)
+
+
+def errorExit(message, retcode=1):
+    fatal(message, retcode)
+
+
+def assertion(condition, message, retcode=1):
+    '''Exits with error if condition is not met.'''
+    if not condition:
+        fatal(message, retcode)
 
 
 class Logger(object):

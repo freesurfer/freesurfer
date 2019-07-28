@@ -740,7 +740,7 @@ MRIsobelRegion(MRI *mri_src, MRI *mri_grad, int domag, MRI_REGION *region)
 MRI *
 MRIxSobelRegion(MRI *mri_src, MRI *mri_x, int frame, MRI_REGION *region)
 {
-  register BUFTYPE *tr_pix, *mr_pix, *br_pix ;
+  BUFTYPE *tr_pix, *mr_pix, *br_pix ;
   int              x, y, z, width, height, depth, x0, y0, z0 ;
   float            *outPtr, left, middle, right ;
 
@@ -830,7 +830,7 @@ MRIxSobelRegion(MRI *mri_src, MRI *mri_x, int frame, MRI_REGION *region)
 MRI *
 MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame, MRI_REGION *region)
 {
-  register BUFTYPE *tr_pix, *br_pix ;
+  BUFTYPE *tr_pix, *br_pix ;
   int              width, height, depth, x, y, z ;
   float            *outPtr, left, middle, right ;
 
@@ -882,7 +882,7 @@ MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame, MRI_REGION *region)
 MRI *
 MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame, MRI_REGION *region)
 {
-  register BUFTYPE *tr_pix, *br_pix ;
+  BUFTYPE *tr_pix, *br_pix ;
   int              width, height, depth, x, y, z ;
   float            *outPtr, left, middle, right ;
 
@@ -1196,7 +1196,7 @@ MRI *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag)
 ------------------------------------------------------*/
 MRI *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
 {
-  register BUFTYPE *tr_pix, *mr_pix, *br_pix;
+  BUFTYPE *tr_pix, *mr_pix, *br_pix;
   int x, y, z, width, height, depth;
   float *outPtr, left, middle, right;
 
@@ -1326,7 +1326,7 @@ MRI *MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
 ------------------------------------------------------*/
 MRI *MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
 {
-  register BUFTYPE *tr_pix, *br_pix;
+  BUFTYPE *tr_pix, *br_pix;
   int width, height, depth, x, y, z;
   float *outPtr, left, middle, right;
 
@@ -1446,7 +1446,7 @@ MRI *MRIySobelForAllTypes(MRI *mri_src, MRI *mri_y, int frame)
 ------------------------------------------------------*/
 MRI *MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
 {
-  register BUFTYPE *tr_pix, *br_pix;
+  BUFTYPE *tr_pix, *br_pix;
   int width, height, depth, x, y, z;
   float *outPtr, left, middle, right;
 
@@ -2346,7 +2346,7 @@ MRI *MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
 }
 static int compare_sort_array(const void *pc1, const void *pc2)
 {
-  register float c1, c2;
+  float c1, c2;
 
   c1 = *(float *)pc1;
   c2 = *(float *)pc2;
@@ -3012,7 +3012,7 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 {
   int width, height, depth;
   int x = 0, y = 0, z = 0, halflen, *xi, *yi, *zi;
-  register int i = 0;
+  int i = 0;
   BUFTYPE *inBase = NULL;
   float *ki = NULL, total = 0, *inBase_f = NULL, *foutPix = NULL, val = 0;
 
@@ -3326,7 +3326,7 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 MRI *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int x, y, z, width, height, halflen, depth, *xi, *yi, *zi;
-  register int i;
+  int i;
   BUFTYPE *inBase;
   BUFTYPE *inBase_f, *outPix;
   float *ki, total;
@@ -3469,7 +3469,7 @@ MRI *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, 
 MRI *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int x, y, z, width, height, halflen, depth, *xi, *yi, *zi;
-  register int i;
+  int i;
   short *inBase;
   short *outPix;
   float *ki, total;
@@ -3555,7 +3555,7 @@ MRI *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 MRI *MRIconvolve1dInt(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int x, y, z, width, height, halflen, depth, *xi, *yi, *zi;
-  register int i;
+  int i;
   int *inBase;
   int *outPix;
   float *ki, total;
@@ -3641,7 +3641,7 @@ MRI *MRIconvolve1dInt(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, i
 MRI *MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int src_frame, int dst_frame)
 {
   int x, y, z, width, height, halflen, depth, *xi, *yi, *zi;
-  register int i;
+  int i;
   float *inBase;
   float *outPix;
   float *ki, total;
@@ -4239,7 +4239,7 @@ MRI *MRInxcorrWindow(MRI *mri_ref, MRI *mri_in, MRI *mri_dst, int window_size)
               in = *pin;
               ref = *pref;
 
-              norm += (float)(abs(in) * abs(ref));
+              norm += fabs((float)in * (float)ref);
               dst += (float)in * (float)ref;
             }
           }

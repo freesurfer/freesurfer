@@ -298,7 +298,7 @@ char *fgetl(char *s, int n, FILE *fp)
  */
 int IntSqrt(int n)
 {
-  register int approx, prev;
+  int approx, prev;
 
   if (n == 0) return 0;
 
@@ -1731,7 +1731,7 @@ float fastApproxAtan2f(float y, float x) {
     } else {
         r = halfPi - fastApproxAtan2fWkr(ax,ay);
     }
-    if (ax == x && ay == y) r =     r; else
+    if (ax == x && ay == y)          ; else
     if (ax == x && ay != y) r =    -r; else
     if (ax != x && ay == y) r =  Pi-r; else
     if (ax != x && ay != y) r = -Pi+r;
@@ -1812,4 +1812,49 @@ LogicProblemResponse copeWithLogicProblem2(
   if (wasReported) *wasReported = true;
 
   return response;
+}
+
+/*!
+  \fn double *DListStats(double *dlist, int nlist, double *stats)
+  \brief Computes statistics of a list of double numbers. If stats
+  is NULL, it allocs.
+  stats[0] = nlist;
+  stats[1] = mean;
+  stats[2] = stddev;
+  stats[3] = min;
+  stats[4] = max;
+ */
+double *DListStats(double *dlist, int nlist, double *stats)
+{
+  int n;
+  long double sum, sum2;
+  double mean,min,max,stddev;
+  if(nlist <= 0){
+    printf("ERROR: DListStats() nlist = %d\n",nlist);
+    return(NULL);
+  }
+  if(dlist == NULL){
+    printf("ERROR: DListStats() dlist is NULL\n");
+    return(NULL);
+  }
+
+  if(stats==NULL) stats = (double*)calloc(sizeof(double),5);
+  sum = 0;
+  sum2 = 0;
+  min = dlist[0];
+  max = dlist[0];
+  for(n=0; n < nlist; n++){
+    sum  += dlist[n];
+    sum2 += (dlist[n]*dlist[n]);
+    if(min > dlist[n]) min = dlist[n];
+    if(max < dlist[n]) max = dlist[n];
+  }
+  mean = sum/nlist;
+  stddev = sqrt(sum2/nlist - mean*mean);
+  stats[0] = nlist;
+  stats[1] = mean;
+  stats[2] = stddev;
+  stats[3] = min;
+  stats[4] = max;
+  return(stats);
 }

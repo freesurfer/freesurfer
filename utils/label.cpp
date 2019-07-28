@@ -496,26 +496,25 @@ int LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
 int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 {
   int n, vno;
-  VERTEX *v;
   MRIS_HASH_TABLE* mht = MHTcreateVertexTable(mris, CURRENT_VERTICES);
 
   for (n = 0; n < area->n_points; n++) {
     vno = area->lv[n].vno;
     if (vno >= 0 && vno < mris->nvertices) /* already have associated vertex */
     {
-      v = &mris->vertices[vno];
+      VERTEX *v = &mris->vertices[vno];
       area->lv[n].x = v->x;
       area->lv[n].y = v->y;
       area->lv[n].z = v->z;
     }
     else /* in canonical coordinate system - find closest vertex */
     {
-      v = MHTfindClosestVertexInTable(mht, mris, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
-      if (v == NULL) {
+      vno = MHTfindVnoOfClosestVertexInTable(mht, mris, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
+      if (vno < 0) {
         continue;
       }
-      vno = v - mris->vertices;
-      ;
+      VERTEX *v = &mris->vertices[vno];
+
       if (vno == Gdiag_no) {
         DiagBreak();
       }
@@ -1928,7 +1927,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
     if (v->ripflag) {
       continue;
     }
-    VERTEX * const vdst = MHTfindClosestVertex(mht, mris_dst, v);
+    float min_dist;
+    VERTEX * const vdst = MHTfindClosestVertex2(mht, mris_dst, mris, v, &min_dist);
     if (!vdst) {
       ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno);
       continue;
@@ -1986,7 +1986,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
       }
       if (v->marked == 0) /* hasn't been processed for this surface yet */
       {
-        VERTEX const * const vsrc = MHTfindClosestVertex(mht_src, mris, v);
+        float min_dist;
+        VERTEX const * const vsrc = MHTfindClosestVertex2(mht_src, mris, mris_dst, v, &min_dist);
         if (vsrc && vsrc->marked) /* in label */
         {
           adst->lv[n].stat += vsrc->stat;
@@ -1998,7 +1999,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
         if (vn->marked) {
           continue; /* already in label */
         }
-        VERTEX const * const vsrc = MHTfindClosestVertex(mht_src, mris, vn);
+        float min_dist;
+        VERTEX const * const vsrc = MHTfindClosestVertex2(mht_src, mris, mris_dst, vn, &min_dist);
         if (vsrc == NULL) {
           DiagBreak();
         }
@@ -3630,7 +3632,7 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
 {
   int n, min_vno, i, vno;
   LV *lv;
-  double min_dist, x, y, z, vx, vy, vz;
+  double min_dist, x, y, z, vx = 0, vy = 0, vz = 0;
   VERTEX *v;
 
   x = y = z = 0;  // quick bug fix. should review whether code is correct
@@ -3946,7 +3948,7 @@ static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, fl
 
 static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
 {
-  double xv, yv, zv;
+  double xv = 0, yv = 0, zv = 0;
 
   switch (area->coords) {
   case LABEL_COORDS_TKREG_RAS:

@@ -1326,7 +1326,7 @@ void myQueueInfo(MYqueue queue)
 
 void *myMalloc(int size)
 {
-  register void *value = (void *)malloc(size);
+  void *value = (void *)malloc(size);
   if (value == 0) myError("Virtual memory exhausted!");
 
   return value;
@@ -1334,7 +1334,7 @@ void *myMalloc(int size)
 
 void *myRealloc(void *ptr, int size)
 {
-  register void *value = (void *)realloc(ptr, size);
+  void *value = (void *)realloc(ptr, size);
   if (value == 0) myError("Virtual memory exhausted!");
 
   return value;

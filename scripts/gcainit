@@ -71,6 +71,11 @@ endif
 set initsubject = `cat $gcadir/scripts/initsubject.txt`
 set mantal = `cat $gcadir/scripts/mantal.txt`
 set manseg = `cat $gcadir/scripts/manseg.txt`
+if( -e $gcadir/scripts/dosym.txt) then
+  set DoSym = `cat $gcadir/scripts/dosym.txt`
+else
+  set DoSym = 0;
+endif
 
 # Intensity normalize init subject, ~60 sec
 @ nth = 0;
@@ -98,7 +103,9 @@ endif
 
 # Now produce the initial GCA using this one subject, ~60 sec
 echo "Building GCA `date`" |& tee -a $LF
-set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 8 -mask $maskvol \
+set cmd = (mri_ca_train)
+if($DoSym) set cmd = ($cmd -sym)
+set cmd = ($cmd -prior_spacing 2 -node_spacing 8 -mask $maskvol \
   -parc_dir $manseg  -xform $mantal -T1 $normname -check $initsubject $gca)
 echo $cmd |& tee -a $LF
 if($RunIt) then 

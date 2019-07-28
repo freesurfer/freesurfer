@@ -40,6 +40,7 @@
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include <QDebug>
 
 Cursor2D::Cursor2D( RenderView2D* view ) : QObject( view ),
   m_view( view ),
@@ -89,6 +90,9 @@ void Cursor2D::Update( bool bConnectPrevious )
   // vtkRenderer* renderer = m_view->GetRenderer();
 
   double dLen = ( m_nSize == 100 ? 100000 : m_nSize );
+#if VTK_MAJOR_VERSION > 5
+  dLen *= m_view->devicePixelRatio();
+#endif
 
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -139,6 +143,14 @@ void Cursor2D::Update( bool bConnectPrevious )
     w = m_view->rect().width();
     h = m_view->rect().height();
     int nd = 9;
+#if VTK_MAJOR_VERSION > 5
+  if (m_view->devicePixelRatio() > 1)
+  {
+      w *= m_view->devicePixelRatio();
+      h *= m_view->devicePixelRatio();
+      nd *= m_view->devicePixelRatio();
+  }
+#endif
     points->InsertNextPoint( 0, pos[1], pos[2] );
     points->InsertNextPoint( nd, pos[1], pos[2] );
     lines->InsertNextCell( 2 );
@@ -175,7 +187,11 @@ void Cursor2D::Update( bool bConnectPrevious )
   mapper->SetTransformCoordinate( coords );
 
   m_actorCursor->SetMapper( mapper );
+#if VTK_MAJOR_VERSION > 5
+  m_actorCursor->GetProperty()->SetLineWidth(m_nThickness*m_view->devicePixelRatio());
+#else
   m_actorCursor->GetProperty()->SetLineWidth(m_nThickness);
+#endif
   emit Updated();
 }
 
@@ -249,7 +265,6 @@ void Cursor2D::SetColor( double r, double g, double b )
 void Cursor2D::SetColor( const QColor& color )
 {
   SetColor( color.redF(), color.greenF(), color.blueF() );
-  int GetRadius();
 }
 
 void Cursor2D::GetColor( double* rgb )

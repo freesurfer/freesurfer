@@ -114,6 +114,30 @@
       <explanation>save residual (for debugging)</explanation>
       <argument>-v vertexno </argument>
       <explanation>set Gdiag_no to vertexno</explanation>
+      <argument>-diag-vertex vertexno </argument>
+      <explanation>set Gdiag_no to vertexno, turn off writing of  cortex label or curv files. Set output suffix to debug-vertex-vertexno</explanation>
+      <argument>-rip ripfile </argument>
+      <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-white sigmawhitefile </argument>
+      <explanation>Save white surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-sigma-pial sigmapialfile </argument>
+      <explanation>Save pial surface sigma as overlay. Spec full path including hemi, suffix, etc</explanation>
+      <argument>-output suffix </argument>
+      <explanation>Append suffix to all outputs (prevents over-writing)</explanation>
+      <argument>-min_border_white MinBW </argument>
+      <explanation> Min border white</explanation>
+      <argument>-max_border_white MaxBW </argument>
+      <explanation> Max border white</explanation>
+      <argument>-min_gray_at_white_border MinGWB </argument>
+      <explanation>MinGWB </explanation>
+      <argument>-max_gray MaxG </argument>
+      <explanation>MaxG</explanation>
+      <argument>-max_gray_at_csf_border MaxGCSFB </argument>
+      <explanation>MaxGCSFB</explanation>
+      <argument>-min_gray_at_csf_border MinGCSFB </argument>
+      <explanation>MinGCSFB</explanation>
+      <argument>-max_csf MaxCSF </argument>
+      <explanation>MaxCSF</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

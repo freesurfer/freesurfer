@@ -1,4 +1,3 @@
-
 project(anatomicuts)
 
 if(VTK_FOUND)
@@ -7,6 +6,7 @@ if(VTK_FOUND)
     ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/Code
     ${CMAKE_SOURCE_DIR}/freeview/track_io
+    SYSTEM
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
   )
@@ -14,7 +14,12 @@ if(VTK_FOUND)
   include(${ITK_USE_FILE})  
   include(${VTK_USE_FILE})
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-local-typedefs")
+  if(NOT APPLE)
+    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs  -Wno-maybe-uninitialized )
+  else()
+    # Mac OS 10.13.6 native clang compiler does not support -Wno-maybe-uninitialized
+    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs )
+  endif()
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
@@ -52,8 +57,17 @@ if(VTK_FOUND)
   add_executable(dmri_saveHistograms SaveHistograms.cxx ${TRACKIO}) 
   target_link_libraries(dmri_saveHistograms ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_saveHistograms DESTINATION bin)
+
 else() 
 message("VTK not found")
 endif()
 
+install(PROGRAMS
+  	dmri_ac.sh
+	DESTINATION bin
+)
 
+install_pyscript(
+	diffusionUtils
+	anatomiCutsUtils
+)

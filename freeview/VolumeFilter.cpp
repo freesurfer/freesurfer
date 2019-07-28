@@ -92,7 +92,7 @@ bool VolumeFilter::Update()
 
   if (m_volumeInput == m_volumeOutput)
   {
-    m_volumeInput->SaveForUndo(-1);
+    m_volumeInput->SaveForUndo(-1, -1);
   }
 
   if ( Execute() )
@@ -251,7 +251,8 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
 void VolumeFilter::TriggerFakeProgress(int interval)
 {
   m_nTimerCount = 0;
-  m_timerProgress->start(interval);
+  m_timerProgress->setInterval(interval);
+  QTimer::singleShot(0, m_timerProgress, SLOT(start()));
 }
 
 void VolumeFilter::OnTimeout()

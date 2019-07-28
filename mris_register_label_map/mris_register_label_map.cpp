@@ -895,7 +895,8 @@ compute_vertex_permutation(MRI_SURFACE *mris_mov, MRI_SURFACE *mris_fixed, MHT *
   for (vno = 0 ; vno < mris_mov->nvertices ; vno++)
   {
     v = &mris_mov->vertices[vno] ;
-    vfixed = MHTfindClosestVertex(mht, mris_fixed, v) ;
+    float min_dist;
+    vfixed = MHTfindClosestVertex2(mht, mris_fixed, mris_mov, v, &min_dist) ;
     vertices[vno] = vfixed - mris_fixed->vertices ;
     
   }    
@@ -1644,8 +1645,7 @@ compute_voxlist_surface_correlations_across_runs(VOXEL_LIST *vl, int num_maps, M
   }
 
   MRIscalarMul(mri_dst, mri_dst, 1.0/(float)runs) ; // make it an average
-  if (write_diags && 0)
-  {
+  if (0 && write_diags) {
     static int cno = 1 ;
     char fname[STRLEN] ;
     sprintf(fname, "c%d.mgz", cno++) ;

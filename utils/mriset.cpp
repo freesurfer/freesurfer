@@ -424,7 +424,7 @@ MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
 /*-----------------------------------------------------*/
 MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
 {
-  int width, height, depth, z, same;
+  int width, height, depth, z, same, f;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -442,36 +442,38 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
     same = 0;
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR) {
-    ROMP_PF_begin
-#ifdef HAVE_OPENMP
+    for (f = 0; f < mri_src->nframes; f++) {
+      ROMP_PF_begin
+    #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
-#endif
-    for (z = 0; z < depth; z++) {
-      ROMP_PFLB_begin
-      
-      int x, y, z0, zi, y0, yi, x0, xi;
-      float fmin_val, fval;
-      for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-          fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0);
-          for (z0 = -1; z0 <= 1; z0++) {
-            zi = mri_src->zi[z + z0];
-            for (y0 = -1; y0 <= 1; y0++) {
-              yi = mri_src->yi[y + y0];
-              for (x0 = -1; x0 <= 1; x0++) {
-                xi = mri_src->xi[x + x0];
-                fval = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
-                if (fval < fmin_val) fmin_val = fval;
+    #endif
+          for (z = 0; z < depth; z++) {
+        ROMP_PFLB_begin
+
+            int x, y, z0, zi, y0, yi, x0, xi;
+        float fmin_val, fval;
+        for (y = 0; y < height; y++) {
+          for (x = 0; x < width; x++) {
+            fmin_val = MRIgetVoxVal(mri_src, x, y, z, f);
+            for (z0 = -1; z0 <= 1; z0++) {
+              zi = mri_src->zi[z + z0];
+              for (y0 = -1; y0 <= 1; y0++) {
+                yi = mri_src->yi[y + y0];
+                for (x0 = -1; x0 <= 1; x0++) {
+                  xi = mri_src->xi[x + x0];
+                  fval = MRIgetVoxVal(mri_src, xi, yi, zi, f);
+                  if (fval < fmin_val) fmin_val = fval;
+                }
               }
             }
+            MRIsetVoxVal(mri_dst, x, y, z, f, fmin_val);
           }
-          MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val);
         }
+
+        ROMP_PFLB_end
       }
-      
-      ROMP_PFLB_end
+      ROMP_PF_end
     }
-    ROMP_PF_end
   }
   else {
     ROMP_PF_begin
@@ -480,7 +482,7 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
 #endif
     for (z = 0; z < depth; z++) {
       ROMP_PFLB_begin
-      
+
       int x, y, z0, zi, y0, yi, x0, xi;
       BUFTYPE *pdst, min_val, val;
 
@@ -1638,7 +1640,7 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
 #endif
     for (z = zmin; z <= zmax; z++) {
       ROMP_PFLB_begin
-      
+
       int y, x, xi, yi, zi, z0, y0, x0;
       double val, max_val;
       for (y = ymin; y <= ymax; y++) {
@@ -2129,7 +2131,7 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 #endif
   for (z = 0; z < depth; z++) {
     ROMP_PFLB_begin
-    
+
     int x, y, frame;
     float val;
 
@@ -2904,7 +2906,7 @@ MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, i
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
 {
   int width, height, depth, x, y, z, nvox;
-  BUFTYPE *psrc, *pdst;
+  BUFTYPE *psrc, *pdst = nullptr;
 
   MRIcheckVolDims(mri_src, mri_dst);
 

@@ -471,7 +471,7 @@ int main(int argc, char *argv[]) {
 	  else threshadj = csd->thresh - log10(2.0); // one-sided test
 	  // Compute clusters
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
-						0,&nClusters,NULL);
+						0,&nClusters,NULL,NULL);
 	  // Actual area of cluster with max area
 	  csize  = sclustMaxClusterArea(SurfClustList, nClusters);
 	  // Number of vertices of cluster with max number of vertices. 

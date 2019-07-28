@@ -52,7 +52,7 @@
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
-
+#include <QElapsedTimer>
 
 
 #include "registerio.h"
@@ -160,6 +160,9 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 //  }
 
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
+//  qDebug() << "Begin LoadMRI";
+//  QElapsedTimer timer;
+//  timer.start();
   MRI* tempMRI = m_MRI;
   try
   {
@@ -217,9 +220,12 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
     cerr << "Read registration failed\n";
     return false;
   }
-
+//  qDebug() << timer.elapsed()/1000;
+//  qDebug() << "begin MRIvalrange";
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
   m_fMaxValueFull = m_fMaxValue;
+//  qDebug() << timer.elapsed()/1000;
+//  qDebug() << "begin UpdateHistoCDF";
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {
@@ -230,13 +236,14 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
       m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS/2;
       if (m_fMaxValue > 10*val)
       {
+//        qDebug() << timer.elapsed()/1000;
         UpdateHistoCDF(0, m_fMaxValue, true);
         val = GetHistoValueFromPercentile(0.99)*1.1;
         m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS;
       }
     }
   }
-
+//  qDebug() << timer.elapsed()/1000;
   return true;
 }
 
@@ -249,15 +256,19 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 #endif
   int max_percent = 100.0 - 50 / nthreads;
   ::SetProgressCallback(ProgressCallback, 0, max_percent);
+//  QElapsedTimer timer;
+//  timer.start();
   if ( LoadMRI( filename, reg_filename ) )
   {
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
 
+//    qDebug() << "Before MRI to image";
     if ( !this->MapMRIToImage() )
     {
       return false;
     }
+//    qDebug() << timer.elapsed()/1000;
 
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
@@ -1163,7 +1174,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   int scalar_type = rasImage->GetScalarType();
   int* dim = rasImage->GetDimensions();
   int nNumberOfFrames = rasImage->GetNumberOfScalarComponents();
-  if ( mri->nframes > 1 )
+  if ( true ) // mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
     for ( int j = 0; j < mri->height; j++ )
@@ -1209,12 +1220,13 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   }
   else
   {
+    size_t bytes_per_slice = mri->bytes_per_vox * mri->height * mri->depth;
     global_progress_range[1] = nstart+(nend-nstart)/3;
     for ( int k = 0; k < mri->depth; k++ )
     {
       void* ptr = rasImage->GetScalarPointer( 0, 0, k );
       BUFTYPE* buf = &MRIseq_vox( mri, 0, 0, k, 0);
-      memcpy( buf, ptr, mri->bytes_per_slice );
+      memcpy( buf, ptr, bytes_per_slice );
 
       if ( mri->depth >= 5 && k%(mri->depth/5) == 0 )
       {
@@ -1876,7 +1888,9 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
 //    qDebug() << rasMRI->width << rasMRI->height << rasMRI->depth;
 
+//    QElapsedTimer t; t.start();
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
+//    qDebug() << "vol2vol time: " << t.elapsed()/1000;
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {
@@ -2362,7 +2376,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
   int zFrames = mri->nframes;
 
   vtkIdType nTuple = 0;
-  vtkDataArray *scalars = image->GetPointData()->GetScalars();
+  char* ptr = (char*)image->GetScalarPointer();
   int nProgressStep = 20;
   int nProgress = 0;
   for ( int nZ = 0; nZ < zZ; nZ++ )
@@ -2371,41 +2385,39 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
     {
       for ( int nX = 0; nX < zX; nX++ )
       {
-        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
-        {
-          switch ( mri->type )
-          {
-          case MRI_UCHAR:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_INT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_LONG:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_FLOAT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_SHORT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          default:
-            break;
-          }
-        }
         if (mri->type == MRI_RGB)
         {
           int val = MRIIseq_vox(mri, nX, nY, nZ, 0);
-          scalars->SetComponent( nTuple, 0, val & 0x00ff);
-          scalars->SetComponent( nTuple, 1, (val >> 8) & 0x00ff);
-          scalars->SetComponent( nTuple, 2, (val >> 16) & 0x00ff);
-          scalars->SetComponent( nTuple, 3, 255);
+          ptr[nTuple*4] = (val & 0x00ff);
+          ptr[nTuple*4+1] = ((val >> 8) & 0x00ff);
+          ptr[nTuple*4+2] = ((val >> 16) & 0x00ff);
+          ptr[nTuple*4+3] = (char)255;
+        }
+        else
+        {
+          for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+          {
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              ptr[nTuple*zFrames+nFrame] = MRIseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_INT:
+              ((int*)ptr)[nTuple*zFrames+nFrame] = MRIIseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_LONG:
+              ((long*)ptr)[nTuple*zFrames+nFrame] = MRILseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_FLOAT:
+              ((float*)ptr)[nTuple*zFrames+nFrame] = MRIFseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_SHORT:
+              ((short*)ptr)[nTuple*zFrames+nFrame] = MRISseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            default:
+              break;
+            }
+          }
         }
         nTuple++;
       }
@@ -3054,21 +3066,6 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
-//  MRI_REGION region;
-//  region.x = region.y = region.z = 0;
-//  region.dx = m_MRI->width;
-//  region.dy = m_MRI->height;
-//  region.dz = m_MRI->depth;
-//  HISTO *histo;
-//  if (highThresh)
-//    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
-//  else
-//    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
-//  if (!histo)
-//  {
-//    qDebug() << "Could not create HISTO";
-//    return;
-//  }
   HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
 
   for (int x = 0; x < m_MRI->width; x++)

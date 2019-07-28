@@ -160,6 +160,7 @@ int   DoETIV = 0;
 int   DoETIVonly = 0;
 int   DoOldETIVonly = 0;
 char *talxfmfile = NULL;
+int SegFromInput=0;
 
 char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
@@ -451,8 +452,7 @@ int main(int argc, char **argv)
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
   }
-  else
-  {
+  else if(LabelFile){
     printf("Constructing seg from label\n");
     if(UseLabelThresh) printf(" Label Threshold = %g\n",LabelThresh);
     label = LabelRead(NULL, LabelFile);
@@ -465,6 +465,12 @@ int main(int argc, char **argv)
       if(UseLabelThresh && label->lv[n].stat < LabelThresh) continue;
       MRIsetVoxVal(seg,label->lv[n].vno,0,0,0, 1);
     }
+  }
+  else {
+    printf("Creating a segmentation of all 1s from %s\n",InVolFile);
+    mritmp = MRIreadHeader(InVolFile,MRI_VOLUME_TYPE_UNKNOWN);
+    seg = MRIconst(mritmp->width, mritmp->height, mritmp->depth, mritmp->nframes,1,NULL);
+    MRIfree(&mritmp);
   }
 
   if (ctabfile != NULL)
@@ -1041,6 +1047,15 @@ int main(int argc, char **argv)
       fprintf(fp,"# subjectname %s\n",subject);
     }
     if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
+    if(BrainVolStats){
+      if(fabs(voxelvolume-1)>.01){
+	// This indicates that the global stats has been fixed
+	fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
+      }
+      else{
+	fprintf(fp,"# BrainVolStatsFixed-NotNeeded because voxelvolume=1mm3\n");
+      }
+    }
     if (BrainVolFromSeg)
     {
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
@@ -1618,6 +1633,12 @@ static int parse_commandline(int argc, char **argv)
       SegVolFile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--seg-from-input") )
+    {
+      SegFromInput=1;
+      UserSegIdList[0] = 1;
+      nUserSegIdList = 1;
+    }
     else if (!strcmp(option, "--seg-erode")){
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nErodeSeg);
@@ -1797,12 +1818,9 @@ static int parse_commandline(int argc, char **argv)
       FSENVsetSUBJECTS_DIR(SUBJECTS_DIR);
       nargsused = 1;
     }
-    else if ( !strcmp(option, "--sum") )
+    else if( !strcmp(option, "--sum") || !strcmp(option, "--o") )
     {
-      if (nargc < 1)
-      {
-        argnerr(option,1);
-      }
+      if (nargc < 1) argnerr(option,1);
       StatTableFile = pargv[0];
       nargsused = 1;
     }
@@ -2043,9 +2061,13 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if (SegVolFile == NULL && annot == NULL && LabelFile == NULL &&
-      DoETIVonly == 0 && DoOldETIVonly == 0){
+  if(SegVolFile == NULL && annot == NULL && LabelFile == NULL &&
+     DoETIVonly == 0 && DoOldETIVonly == 0 && SegFromInput==0){
     printf("ERROR: must specify a segmentation volume\n");
+    exit(1);
+  }
+  if(SegFromInput==1 && InVolFile==0){
+    printf("ERROR: must specify an input volume with --seg-from-input\n");
     exit(1);
   }
   if (StatTableFile == NULL && FrameAvgFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0 && FrameAvgVolFile==NULL)

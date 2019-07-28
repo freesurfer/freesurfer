@@ -110,9 +110,9 @@ void KernelCopy(KIMAGE *ksrc, KIMAGE *kdst, int src_row, int src_col, int dst_ro
 {
   int row, col, cols;
   KERNEL *src_kernel, *dst_kernel;
-  register float *src_w, *dst_w;
+  float *src_w, *dst_w;
 
-  if (src_row == 8 && dst_row == 8) src_col = src_row = 8; /* remove warning for now */
+  // if (src_row == 8 && dst_row == 8) src_col = src_row = 8; /* remove warning for now */
 
   src_kernel = KIMAGEpix(ksrc, dst_row, dst_col);
   dst_kernel = KIMAGEpix(kdst, dst_row, dst_col);
@@ -228,7 +228,7 @@ void KernelImageDump(KIMAGE *kimage, FILE *fp)
       fprintf(fp, "kernel at (%d, %d), row0, col0 = (%d, %d)\n", row, col, kernel->row0, kernel->col0);
       for (krow = 0; krow < kernel->rows; krow++) {
         for (kcol = 0; kcol < kernel->cols; kcol++) {
-          if (fabs(kernel->weights[krow][kcol] > 0.00001)) {
+          if (fabs(kernel->weights[krow][kcol]) > 0.00001) {
             fprintf(fp,
                     "\t(%d, %d) --> (%d, %d) = %f\n",
                     krow,
@@ -250,7 +250,7 @@ void KernelImageDump(KIMAGE *kimage, FILE *fp)
 void KernelDiscount(KIMAGE *kimage, int row, int col, float weight)
 {
   KERNEL *kernel;
-  register float *w;
+  float *w;
   int cols;
 
   DiagPrintf(DIAG_KERNELS, "KernelDiscount(%d, %d, %f)\n", row, col, weight);
@@ -270,7 +270,7 @@ void KernelDiscount(KIMAGE *kimage, int row, int col, float weight)
 void KernelUpdate(KIMAGE *ksrc, KIMAGE *kdst, int dst_row, int dst_col, int src_row, int src_col, float weight)
 {
   KERNEL *src_kernel, *dst_kernel;
-  register float *w;
+  float *w;
   int row, col, src_rows, src_cols, dst_rows, dst_cols, dst_row0, dst_col0, src_row0, src_col0, drow, dcol;
 
   DiagPrintf(DIAG_KERNELS, "KernelUpdate(%d, %d, %d, %d, %f)\n", dst_row, dst_col, src_row, src_col, weight);
@@ -328,7 +328,7 @@ void KernelImageNormalize(KIMAGE *kimage)
 void KernelNormalize(KIMAGE *kimage, int row, int col)
 {
   KERNEL *kernel;
-  register float *w, total;
+  float *w, total;
   int krow, kcol, cols, krows, kcols;
 
   kernel = KIMAGEpix(kimage, row, col);
@@ -414,7 +414,7 @@ void KernelImageConvolve(KIMAGE *kimage, IMAGE *src_image, IMAGE *dst_image)
   int krow, kcol, krows, kcols, row0, col0;
   KERNEL *kernel;
   float *src_pix, *dst_pix;
-  register float *w, total;
+  float *w, total;
 
   src_rows = src_image->rows;
   src_cols = src_image->cols;

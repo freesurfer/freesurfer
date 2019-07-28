@@ -178,7 +178,7 @@ main(int argc, char *argv[])
       printf("writing orig area to %s\n", fname) ;
       MRIwrite(mri_orig_area, fname) ;
     }
-  if (atlas && DIAG_WRITE && DIAG_VERBOSE_ON)
+  if (atlas && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       char fname[STRLEN] ;
       FileNameRemoveExtension(out_fname, out_fname) ;

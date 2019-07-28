@@ -175,7 +175,11 @@ SOURCES += \
     geos/kde.cpp \
     GeoSWorker.cpp \
     QVTKWidget/QVTKWidget.cxx \
-    QVTKWidget/QVTKPaintEngine.cxx
+    QVTKWidget/QVTKPaintEngine.cxx \
+    BusyIndicator.cpp \
+    vtkInteractorStyleMyTrackballCamera.cxx \
+    FlowLayout.cpp \
+    WindowLayerInfo.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -338,8 +342,12 @@ HEADERS  += \
     geos/GeodesicMatting.h \
     geos/kde.h \
     GeoSWorker.h \
-    QVTKWidget/QVTKWidget.h
-    QVTKWidget/QVTKPaintEngine.h
+    QVTKWidget/QVTKWidget.h \
+    BusyIndicator.h \
+    QVTKWidget/QVTKPaintEngine.h \
+    vtkInteractorStyleMyTrackballCamera.h \
+    FlowLayout.h \
+    WindowLayerInfo.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -392,7 +400,8 @@ FORMS    += MainWindow.ui \
     DialogAddPointSetStat.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
-    DialogSurfaceLabelOperations.ui
+    DialogSurfaceLabelOperations.ui \
+    WindowLayerInfo.ui
 
 RESOURCES += \
     freeview.qrc

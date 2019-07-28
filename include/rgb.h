@@ -97,7 +97,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,unsigned int y,unsigned int 
 unsigned long img_optseek(RGB_IMAGE *image, unsigned long offset);
 int img_write(RGB_IMAGE *image, char *buffer,int count);
 void cvtimage( long *buffer);
-void cvtlongs( long *buffer, register long n);
+void cvtlongs( long *buffer, long n);
 void i_errhdlr(const char *fmt, int a1, int a2, int a3, int a4);
 void swapImage(RGB_IMAGE *image);
 

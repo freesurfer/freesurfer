@@ -138,6 +138,11 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
     {
       m_annotation2D->AppendAnnotations( m_renderer );
     }
+    if (!bForScreenShot || !setting.HideScaleBar)
+    {
+      m_annotation2D->AppendAnnotations( m_renderer, true );
+    }
+
     m_selection2D->AppendProp( m_renderer );
 
     // add scalar bar
@@ -303,6 +308,13 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
   {
     double x, y, z;
     WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      x /= devicePixelRatio();
+      y /= devicePixelRatio();
+  }
+#endif
     if (!rect().contains(QPoint(x, y)))
       this->CenterAtCursor();
   }
@@ -325,6 +337,13 @@ void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
   pos[0] = posX;
   pos[1] = rect().height() - posY;
   pos[2] = 0;
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      pos[0] = pos[0] * devicePixelRatio();
+      pos[1] = pos[1] * devicePixelRatio();
+  }
+#endif
   m_renderer->ViewportToNormalizedViewport( pos[0], pos[1] );
   m_renderer->NormalizedViewportToView( pos[0], pos[1], pos[2] );
   m_renderer->ViewToWorld( pos[0], pos[1], pos[2] );

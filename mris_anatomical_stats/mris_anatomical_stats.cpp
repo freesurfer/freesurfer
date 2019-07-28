@@ -121,6 +121,7 @@ main(int argc, char *argv[])
   int           num_cortex_vertices = 0;
   float         total_cortex_area = 0;
   float         mean_cortex_thickness = 0;
+  double voxelvolume=0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
@@ -193,6 +194,7 @@ main(int argc, char *argv[])
   }
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
+  voxelvolume = mri_wm->xsize * mri_wm->ysize * mri_wm->zsize;
   if (!mri_wm)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
@@ -624,6 +626,13 @@ main(int argc, char *argv[])
       BrainVolStats = ComputeBrainVolumeStats(sname,suffix, sdir);
       if (BrainVolStats == NULL)
 	exit(1) ;
+      if(fabs(voxelvolume-1)>.01){
+	// This indicates that the global stats has been fixed
+	fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
+      }
+      else{
+	fprintf(fp,"# BrainVolStatsFixed-NotNeeded because voxelvolume=1mm3\n");
+      }
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",BrainVolStats[0]);
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
               BrainVolStats[1]);

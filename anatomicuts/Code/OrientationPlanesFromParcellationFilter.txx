@@ -1,5 +1,5 @@
 #ifndef __OrientationPlanesFromParcellationFilter_txx
-#define __OrientationPlanesFromParcellationFilter_txx_
+#define __OrientationPlanesFromParcellationFilter_txx
 
 #include "OrientationPlanesFromParcellationFilter.h"
 
@@ -252,8 +252,8 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 	m_FrontBack.Normalize();
 	m_UpDown.Normalize();
 	m_LeftRight.Normalize();
-	delete a;
-	delete eigval;
-	delete eigvec;
+	delete[] a;
+	delete[] eigval;
+	delete[] eigvec;
 }
 #endif

@@ -1,0 +1,203 @@
+#!/usr/bin/env python
+
+import numpy as np
+from dipy.data import fetch_taiwan_ntu_dsi, read_taiwan_ntu_dsi, get_sphere
+from dipy.reconst.gqi import GeneralizedQSamplingModel
+from dipy.direction import peaks_from_model
+from dipy.io import read_bvals_bvecs
+from dipy.core.gradients import gradient_table
+import nibabel as nib
+from dipy.segment.mask import median_otsu
+from dipy.tracking.local import LocalTracking, ThresholdTissueClassifier
+from dipy.tracking.utils import random_seeds_from_mask
+from nibabel.streamlines import Tractogram
+from dipy.tracking.streamline import Streamlines
+import dipy.reconst.dki as dki
+import dipy.reconst.dti as dti
+from dipy.io.streamline import save_trk
+from dipy.io.image import save_nifti
+from scipy.ndimage.filters import gaussian_filter
+import freesurfer as fs
+from dipy.tracking.eudx import EuDX
+from dipy.reconst import peaks, shm
+from dipy.tracking import utils
+
+def TckToTrkNO(in_folder):
+	import nipype.interfaces.mrtrix as mrt
+	tck2trk = mrt.MRTrix2TrackVis()
+	tck2trk.inputs.image_file = in_folder+"dmri/FOD/fa.nii.gz" 
+	tck2trk.inputs.in_file = in_folder+"dmri/FOD/tracts.tck"
+	tck2trk.inputs.out_filename = in_folder+"dmri/FOD/streamlines.trk"
+	tck2trk.run()
+
+def TckToTrk(in_folder):
+	import nibabel as nib
+	from nibabel.streamlines import Field
+	from nibabel.orientations import aff2axcodes
+
+	nii = nib.load(in_folder+"/dmri/FOD/fa.nii.gz")
+	tractogram = in_folder+"/dmri/FOD/tracts.tck"
+	output_filename = in_folder+"/dmri/FOD/streamlines.trk"
+	header = {}
+	header[Field.VOXEL_TO_RASMM] = nii.affine.copy()
+	header[Field.VOXEL_SIZES] = nii.header.get_zooms()[:3]
+	header[Field.DIMENSIONS] = nii.shape[:3]
+	header[Field.VOXEL_ORDER] = "".join(aff2axcodes(nii.affine))
+	tck = nib.streamlines.load(tractogram)
+	nib.streamlines.save(tck.tractogram, output_filename, header=header)
+
+def RemoveHeader(fa):
+	img= nib.load(fa)
+	save_nifti(fa, img.get_data(), np.eye(4))
+
+def tractographyCSA(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+
+	maskdata, mask = median_otsu(data, 2, 1) #, False,vol_idx=range(10, 35), dilate=5)
+	
+	sphere = get_sphere('symmetric724')
+	csa_model = shm.CsaOdfModel(gtab, sh_order=8)
+	csa_peaks = peaks_from_model(csa_model, data, sphere,
+                             relative_peak_threshold=.9,
+                             min_separation_angle=25,
+                             mask=mask)
+	classifier = ThresholdTissueClassifier(csa_peaks.gfa, .1)
+
+	seeds = utils.seeds_from_mask(mask, density=[1, 1, 1], affine=np.eye(4))
+	# Make a streamline bundle model of the corpus callosum ROI connectivity
+	streamlines = LocalTracking(csa_peaks, classifier, seeds, affine=np.eye(4),
+                            step_size=.8)
+	streamlines = Streamlines(streamlines)
+	GFA = csa_peaks.gfa
+
+	save_trk(subject_folder+"/streamlines.trk",streamlines,img.affine, img.header.get_zooms()[:3], GFA.shape)
+	save_nifti(subject_folder+'/gfa_map.nii.gz', GFA, img.affine)
+
+
+def tractography(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+
+	"""maskdata, mask = median_otsu(data, 2, 1) #, False,vol_idx=range(10, 35), dilate=5)
+	
+	sphere = get_sphere('symmetric724')
+	csa_model = shm.CsaOdfModel(gtab, sh_order=4)
+	csa_peaks = peaks_from_model(csa_model, data, sphere,
+                             relative_peak_threshold=.9,
+                             min_separation_angle=5,
+                             mask=mask)
+	classifier = ThresholdTissueClassifier(csa_peaks.gfa, .1)
+
+	seeds = utils.seeds_from_mask(mask, density=[1, 1, 1], affine=np.eye(4))
+	# Make a streamline bundle model of the corpus callosum ROI connectivity
+	streamlines = LocalTracking(csa_peaks, classifier, seeds, affine=np.eye(4),
+                            step_size=.5)
+	streamlines = Streamlines(streamlines)
+	GFA = csa_peaks.gfa
+
+	"""
+	gqmodel = GeneralizedQSamplingModel(gtab , method='gqi2', sampling_length=1)
+	maskdata, mask = median_otsu(data, 2, 1) #, False,vol_idx=range(10, 35), dilate=5)
+	gqfit = gqmodel.fit(data, mask=mask)
+	sphere = get_sphere('symmetric724')
+
+	ODF = gqfit.odf(sphere)
+	gqpeaks = peaks_from_model(model=gqmodel, data=data, sphere=sphere, relative_peak_threshold=.9, min_separation_angle=5, mask=mask,  return_odf=True,  normalize_peaks=True)
+
+	gqpeak_values = gqpeaks.peak_values
+	gqpeak_indices = gqpeaks.peak_indices
+	GFA = gqpeaks.gfa
+
+
+	tissue_classifier = ThresholdTissueClassifier(GFA, 0.005)
+	seeds = random_seeds_from_mask(GFA > 0.05, seeds_count=3)
+	streamline_generator = LocalTracking(gqpeaks, tissue_classifier, seeds, affine=np.eye(4), step_size=0.5)
+	streamlines = Streamlines(streamline_generator)
+
+	save_trk(subject_folder+"/streamlines.trk",streamlines,img.affine, img.header.get_zooms()[:3], GFA.shape)
+	save_nifti(subject_folder+'/gfa_map.nii.gz', GFA, img.affine)
+
+	#cmc classifier or act, but you need pv.
+
+def getMapsDTI(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	fwhm=1.25
+	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+	data_smooth = np.zeros(data.shape)
+	for v in range(data.shape[-1]):
+	    data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
+
+
+	tenmodel = dti.TensorModel(gtab)
+	dtifit = tenmodel.fit(data_smooth, mask=mask)
+
+	
+	FA = dtifit.fa
+	MD = dtifit.md
+	AD = dtifit.ad
+	RD = dtifit.rd
+
+	save_nifti(subject_folder+'/dti_FA.nii.gz', FA, img.affine)
+	save_nifti(subject_folder+'/dti_MD.nii.gz', MD, img.affine)
+	save_nifti(subject_folder+'/dti_RD.nii.gz', RD, img.affine)
+	save_nifti(subject_folder+'/dti_AD.nii.gz', AD, img.affine)
+
+def getMapsDKI(fdwi, fbval, fbvec, subject_folder):
+	img = nib.load(fdwi)
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	gtab = gradient_table(bvals, bvecs)
+	data = img.get_data()
+
+	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	fwhm=1.25
+	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+	data_smooth = np.zeros(data.shape)
+	for v in range(data.shape[-1]):
+	    data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
+
+	dkimodel = dki.DiffusionKurtosisModel(gtab)
+	dkifit = dkimodel.fit(data_smooth, mask=mask)
+	
+	FA = dkifit.fa
+	MD = dkifit.md
+	AD = dkifit.ad
+	RD = dkifit.rd
+
+	MK = dkifit.mk(0, 3)
+	AK = dkifit.ak(0, 3)
+	RK = dkifit.rk(0, 3)
+
+	save_nifti(subject_folder+'/dki_FA.nii.gz', FA, img.affine)
+	save_nifti(subject_folder+'/dki_MD.nii.gz', MD, img.affine)
+	save_nifti(subject_folder+'/dki_RD.nii.gz', RD, img.affine)
+	save_nifti(subject_folder+'/dki_AD.nii.gz', AD, img.affine)
+	save_nifti(subject_folder+'/dki_MK.nii.gz', MK, img.affine)
+	save_nifti(subject_folder+'/dki_AK.nii.gz', AK, img.affine)
+	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)
+
+
+parser = fs.ArgParser()
+# Required
+parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
+parser.add_argument('-d','--dwi', metavar='file',required=False,  help='Diffusion MRI image.')
+parser.add_argument('-b','--bval', metavar='file', required=False, help='bvalue file.')
+parser.add_argument('-v','--bvec', metavar='file', required=False, help='bvectors file')
+parser.add_argument('-s','--subject_folder', required=False, help='subject folder')
+args = parser.parse_args()
+if args.function == "TckToTrk" or args.function == "RemoveHeader":
+	eval(args.function)(args.subject_folder)
+
+else:
+	eval(args.function)(args.dwi, args.bval, args.bvec, args.subject_folder)

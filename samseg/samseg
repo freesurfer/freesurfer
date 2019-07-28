@@ -140,14 +140,15 @@ if($longitudinal) then
    }' | sed "s@meshpath@$meshpath@g" > $optionsfile
 endif
 
-set cmd0 = (run_samseg -o $outdir --threads $threads --acpvdsc $ACPVDSC)
+set cmd0 = (run_samseg -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#optionsfile) set cmd0 = ($cmd0 --options $optionsfile)
 if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
-set cmd0 = ($cmd0 --stiffness $stiffness)
+# These args are not recognized in the new run_samseg
+#set cmd0 = ($cmd0 --stiffness $stiffness  --acpvdsc $ACPVDSC)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
@@ -167,11 +168,24 @@ date | tee -a $LF
 
 # ========================================================
 
-# refine the segmentation:
-set cmd = (mri_refine_seg --debug -i $outdir/crispSegmentation.nii -o $outdir/crispSegmentation.nii)
+# Create an xfm as well
+set lta = $outdir/samseg.talairach.lta
+set xfm = $outdir/samseg.talairach.xfm
+set cmd = (lta_convert --inlta $lta --outmni $xfm)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
+
+# Need to have samseg write out a consistent file name, but until then...
+set seg = `find "$outdir" -iname "*crispSegmentation.nii" -print`
+
+# refine the segmentation:
+if(! $regonly) then
+  set cmd = (mri_refine_seg --debug -i $seg -o $seg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 # ========================================================
 # Compute dice:
@@ -179,7 +193,7 @@ if($computedice && ! $regonly) then
   set logfile = $outdir/dice.log
   set tablefile = $outdir/dice.table.dat
   rm -f $logfile # need to rm because it just appends
-  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/crispSegmentation.nii)
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $seg)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) then
@@ -191,7 +205,7 @@ endif
 if(! $regonly) then
   # Compute segstats
   set sumfile = $outdir/crispSegmentation.stats 
-  set cmd = (mri_segstats --ctab-default --seg $outdir/crispSegmentation.nii --sum $sumfile)
+  set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;

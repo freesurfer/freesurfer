@@ -68,6 +68,7 @@ int ncutends = 0, cutends_flag = 0;
 int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
 int SplitFrames=0;
+COLOR_TABLE *ctab = NULL;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -789,6 +790,18 @@ int main(int argc, char *argv[])
       in_k_direction_flag = TRUE;
     }
 
+    else if(strcmp(argv[i], "--ctab") == 0)
+    {
+      char ctabfile[STRLEN];
+      get_string(argc, argv, &i, ctabfile);
+      ctab = CTABreadASCII(ctabfile);
+      if (ctab == NULL){
+	printf("ERROR: reading %s\n",ctabfile);
+	exit(1);
+      }
+      printf("Imbedding color table %s into output volume\n",ctabfile);
+    }
+
     else if(strcmp(argv[i], "--in_orientation") == 0)
     {
       get_string(argc, argv, &i, in_orientation_string);
@@ -1048,6 +1061,10 @@ int main(int argc, char *argv[])
       else if(strcmp(StrLower(out_data_type_string), "float") == 0)
       {
         out_data_type = MRI_FLOAT;
+      }
+      else if(strcmp(StrLower(out_data_type_string), "rgb") == 0)
+      {
+        out_data_type = MRI_RGB;
       }
       else
       {
@@ -3025,7 +3042,7 @@ int main(int argc, char *argv[])
 	  MRIfree(&mri) ; MRIfree(&mri_template) ; 
 	  mri = mri_tmp ;
 	  useVolGeomToMRI(&gcam->image, mri_template) ;
-	  mri_template = mri_template ;
+    mri_template = mri_template;  // ATH I'm guessing this is a bug and it's supposed to be `mri_transformed = mri_template`
 	}
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  
@@ -3431,6 +3448,9 @@ int main(int argc, char *argv[])
   {
     mri->AutoAlign = AutoAlign ;
   }
+
+  if(ctab != NULL)
+    mri->ct = ctab;
 
   /*------ Finally, write the output -----*/
   

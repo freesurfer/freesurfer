@@ -241,6 +241,8 @@ public:
 
   void UpdateHashTable(int nSet = 0, int coord = CURRENT_VERTICES);
 
+  void UpdateCoords();
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                       const QString& patch_filename = QString(),

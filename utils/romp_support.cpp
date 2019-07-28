@@ -46,19 +46,10 @@ int romp_omp_get_thread_num()  {
 #define omp_get_thread_num romp_omp_get_thread_num
     if (n >= _MAX_FS_THREADS) {
         fprintf(stderr, "Freesurfer supports a maximum of %d threads, set OMP_NUM_THREADS accordingly\n", _MAX_FS_THREADS);
-        fprintf(stdout, "Freesurfer supports a maximum of %d threads, set OMP_NUM_THREADS accordingly\n", _MAX_FS_THREADS);
         exit(1);
     }
     return n;
 }
-
-// removes implicit declaration
-#ifdef __APPLE__
-int pthread_getcpuclockid(pthread_t t, clockid_t *clockid) {
-    return 0;
-}
-#endif
-
 
 // measurement is showing there is only a few percent difference in timing
 // between fast and assume_reproducible
@@ -109,29 +100,24 @@ typedef struct StaticData {
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
-
 static long cpuTimeUsed() {
-    clockid_t clockid = clockid_t();
-    int s = pthread_getcpuclockid(pthread_self(), &clockid);
-    if (s != 0) {
-	   fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
-	   exit(1);
-    }
-    struct timespec timespec;
-    int ret =
-#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
-        mach_gettime(clockid, &timespec);
+#ifdef __APPLE__
+    // not yet supported on mac
+    return 0;
 #else
-        clock_gettime(clockid, &timespec);
-#endif
-    if (ret != 0) {
-	fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
+    clockid_t clockid = clockid_t();
+    if (pthread_getcpuclockid(pthread_self(), &clockid) != 0) {
+        fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
         exit(1);
     }
-    long t = timespec.tv_sec * 1000000000L + timespec.tv_nsec;
-    return t;
+    struct timespec timespec;
+    if (clock_gettime(clockid, &timespec) != 0) {
+        fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
+        exit(1);
+    }
+    return timespec.tv_sec * 1000000000L + timespec.tv_nsec;
+#endif
 }
-
 
 int ROMP_if_parallel1(ROMP_level level)
 {
@@ -156,7 +142,7 @@ int ROMP_if_parallel2(ROMP_level level, ROMP_pf_stack_struct* pf_stack)
             fprintf(stderr, "ROMP_if_parallel2 tid:%d pf_stack:%p gone parallel\n",
                 omp_get_thread_num(), pf_stack);
         pf_stack->gone_parallel = 1;
-        romp_level = ROMP_level__size;	// disable nested parallelism because hard to analyze
+        romp_level = ROMP_level__size;  // disable nested parallelism because hard to analyze
     }
     
     return result;
@@ -173,11 +159,11 @@ static const char* getMainFile()
         int commSize = 0;
         if (commFile) {
             commSize = fread(commBuffer, 1, 1023, commFile);
-	    if (commSize > 0) commSize-=1; // drop the \n
-	    int i = 0;
-	    for (i = 0; i < commSize; i++) {
-	        if (commBuffer[i] == '/') commBuffer[i] = '@';
-	    }
+        if (commSize > 0) commSize-=1; // drop the \n
+        int i = 0;
+        for (i = 0; i < commSize; i++) {
+            if (commBuffer[i] == '/') commBuffer[i] = '@';
+        }
             fclose(commFile);
         }
         commBuffer[commSize] = 0;
@@ -251,7 +237,7 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
     }
     omp_set_lock(&lock);
 #endif
-    {	// Might have been made by another thread
+    {   // Might have been made by another thread
         ptr = (StaticData*)pf_static->ptr;
         if (!ptr) {
             initMainTimer();
@@ -259,7 +245,7 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
             pf_static->ptr = ptr;
             ptr->next = known_ROMP_pf;
             known_ROMP_pf = pf_static;
-        }	
+        }   
     }
 #ifdef HAVE_OPENMP
     omp_unset_lock(&lock);
@@ -280,9 +266,9 @@ void ROMP_pf_begin(
 
     int tid = 
 #ifdef HAVE_OPENMP
-	omp_get_thread_num();
+    omp_get_thread_num();
 #else
-	0;
+    0;
 #endif
     if (tid >= ROMP_maxWatchedThreadNum) return;
     
@@ -307,12 +293,12 @@ void ROMP_pf_begin(
         for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
             int childTid = 
 #ifdef HAVE_OPENMP
-	        omp_get_thread_num();
+            omp_get_thread_num();
 #else
-	        0;
+            0;
 #endif
             if (childTid >= ROMP_maxWatchedThreadNum) continue;
-	    pf_stack->watchedThreadBeginCPUTimes[childTid] = cpuTimeUsed();
+        pf_stack->watchedThreadBeginCPUTimes[childTid] = cpuTimeUsed();
             if (debug) {
 #ifdef HAVE_OPENMP
                 #pragma omp critical
@@ -336,9 +322,9 @@ static void pf_end_one_thread(int tid, ROMP_pf_stack_struct * pf_stack, PerThrea
 {
     int childTid = 
 #ifdef HAVE_OPENMP
-	omp_get_thread_num();
+    omp_get_thread_num();
 #else
-	0;
+    0;
 #endif
     if (childTid >= ROMP_maxWatchedThreadNum) return;
 
@@ -368,9 +354,9 @@ void ROMP_pf_end(
 
     int tid = 
 #ifdef HAVE_OPENMP
-	omp_get_thread_num();
+    omp_get_thread_num();
 #else
-	0;
+    0;
 #endif
     if (tid < ROMP_maxWatchedThreadNum) {
 
@@ -445,7 +431,7 @@ static void node_show_stats(FILE* file, PerThreadScopeTreeData* node, unsigned i
         pf ? pf->func : "<func>", 
         pf ? pf->line : 0,
         sd ? sd->level : 0,
-	node->in_scope, 0L, inAllThreads, 
+    node->in_scope, 0L, inAllThreads, 
         0.0, (double)inAllThreads/(double)node->in_scope);
 
     PerThreadScopeTreeData* child;
@@ -590,29 +576,29 @@ int main(int argc, char* argv[])
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(fast) reduction(+:sum)
     for (i = 0; i < v_size; i++) {
-    	ROMP_PFLB_begin
-	
-	threadMask |= 1 << 
+        ROMP_PFLB_begin
+    
+    threadMask |= 1 << 
 #ifdef HAVE_OPENMP
-		omp_get_thread_num();
+        omp_get_thread_num();
 #else
-		0;
-#endif	
-    	sum += 1.0 / i;
-	
-	int j;
-	ROMP_PF_begin
-    	#pragma omp parallel for if_ROMP(assume_reproducible) reduction(+:sum)
-    	for (j = 0; j < i; j++) {
-    	    //ROMP_PFLB_begin
-	    
-	    sum += 1.0 / j;
-	    
-    	    ROMP_PFLB_end;
+        0;
+#endif  
+        sum += 1.0 / i;
+    
+    int j;
+    ROMP_PF_begin
+        #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+:sum)
+        for (j = 0; j < i; j++) {
+            //ROMP_PFLB_begin
+        
+        sum += 1.0 / j;
+        
+            ROMP_PFLB_end;
         }
         ROMP_PF_end
-	
-    	ROMP_PFLB_end;
+    
+        ROMP_PFLB_end;
     }
     ROMP_PF_end
 

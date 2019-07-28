@@ -158,8 +158,7 @@ HISTOGRAM *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION 
   overlap = ((mri == mri_prev) && ((region->x - region->dx) > reg_prev.x) && (region->y == reg_prev.y) &&
              (region->z == reg_prev.z));
 
-  if (overlap && 0) /* take advantage of overlapping regions */
-  {
+  if (0 && overlap) {  // take advantage of overlapping regions
     MRI_REGION reg_left, reg_right;
     HISTOGRAM *histo_left, *histo_right;
 
@@ -175,9 +174,9 @@ HISTOGRAM *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION 
     HISTOadd(histo, histo_right, histo);
     HISTOfree(&histo_left);
     HISTOfree(&histo_right);
-  }
-  else
+  } else {
     mriHistogramRegion(mri, nbins, histo, region);
+  }
 
   mri_prev = mri;
   HISTOcopy(histo, h_prev);

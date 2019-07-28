@@ -921,7 +921,8 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
 #endif
         voxel_to_node_float(mri, resolution, x, y, z, &xvf, &yvf, &zvf, transform) ;
 
-        if ((Gxn >= 0 && fabs(xvf-Gxn)<=1) && (Gyn >= 0 && fabs(yvf-Gyn)) <= 1  &&
+        if ((Gxn >= 0 && fabs(xvf-Gxn)<=1) &&
+            (Gyn >= 0 && fabs(yvf-Gyn)<=1) &&
             (Gzn >= 0 && fabs(zvf-Gzn)<=1))
           printf("(%d, %d, %d) --> (%2.1f,%2.1f,%2.1f), label = %2.1f\n",
                  x, y, z, (xvf), (yvf), (zvf), label) ;
