@@ -81,7 +81,8 @@ int main(int narg, char* arg[])
         {
                 cerr << "Usage: " << endl
                      << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
-		     << "                       -ol left_overlayFile -or right_overlayFile -v volumeFile" << endl;
+		     << "                       -ol left_overlayFile -or right_overlayFile" << endl 
+		     << "			-v1 ITK_volumeFile -v2 FS_volumeFile" << endl;
 
                 return EXIT_FAILURE;
         }
@@ -116,32 +117,33 @@ int main(int narg, char* arg[])
 	// Input Parsing
 	vector<string> TRKFile;
 	TRKFile.push_back(gp.follow("Could not find TRK file", "-i"));
-	const char *surfaceFileL = gp.follow("Could not find Surface File", "-sl");
-	const char *surfaceFileR = gp.follow("Could not find Surface File", "-sr");
-	const char *overlayFileL = gp.follow("Could not find Overlay File", "-ol");
-	const char *overlayFileR = gp.follow("Could not find Overlay File", "-or");
-	const char *volumeFile   = gp.follow("Could not find Image File",   "-v");
-
+	const char *surfaceFileL   = gp.follow("Could not find Surface File", "-sl");
+	const char *surfaceFileR   = gp.follow("Could not find Surface File", "-sr");
+	const char *overlayFileL   = gp.follow("Could not find Overlay File", "-ol");
+	const char *overlayFileR   = gp.follow("Could not find Overlay File", "-or");
+	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File",   "-v1");
+	const char *FS_volumeFile  = gp.follow("Could not find FS Image File",   "-v2");
 
 	// Reading in the Image
 	// ITK Version
 	typedef itk::ImageFileReader<ImageType> ImageReaderType;
 	ImageReaderType::Pointer readerS = ImageReaderType::New();
-	readerS->SetFileName(volumeFile);
+	readerS->SetFileName(ITK_volumeFile);
 	readerS->Update();
 	ImageType::Pointer volume = readerS->GetOutput();
 
 	// FS Version
-	MRI *image = MRIread(volumeFile);
+	MRI *image = MRIread(FS_volumeFile);
 
 	//Outputting the Files to Ensure the correct files were input
 	cerr << endl 
-	     << "TRK File:           " << TRKFile.at(0) << endl 
-	     << "Left Surface File:  " << surfaceFileL  << endl 
-	     << "Left Overlay File:  " << overlayFileL  << endl
-	     << "Right Surface File: " << surfaceFileR  << endl 
-	     << "Right Overlay File: " << overlayFileR  << endl
-	     << "Volume File:        " << volumeFile    << endl;
+	     << "TRK File:           " << TRKFile.at(0)  << endl 
+	     << "Left Surface File:  " << surfaceFileL   << endl 
+	     << "Left Overlay File:  " << overlayFileL   << endl
+	     << "Right Surface File: " << surfaceFileR   << endl 
+	     << "Right Overlay File: " << overlayFileR   << endl
+	     << "ITK Volume File:    " << ITK_volumeFile << endl
+	     << "FS Volume File:     " << FS_volumeFile  << endl;
 
 	// Loading the TRK files into a mesh
 	ImageType::Pointer mask;
