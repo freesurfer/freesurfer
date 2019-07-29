@@ -6,17 +6,17 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline float                 area           (                                    ) const ;
-        inline angles_per_triangle_t angle          (                                    ) const ;
-        inline angles_per_triangle_t orig_angle     (                                    ) const ;
-        inline char                  ripflag        (                                    ) const ;
-        inline FloatXYZ              norm           ( size_t i                           ) const ;
+        inline float                 area           (                           ) const ;
+        inline angles_per_triangle_t angle          (                           ) const ;
+        inline angles_per_triangle_t orig_angle     (                           ) const ;
+        inline char                  ripflag        (                           ) const ;
+        inline PDMATRIX              norm           (                           ) const ;
         
-        inline void                  set_area       (                           float to       ) ;
-        inline void                  set_angle      (           angles_per_triangle_t to       ) ;
-        inline void                  set_orig_angle (           angles_per_triangle_t to       ) ;
-        inline void                  set_ripflag    (                            char to       ) ;
-        inline void                  set_norm       ( size_t i,              FloatXYZ to       ) ;
+        inline void                  set_area       (                  float to       ) ;
+        inline void                  set_angle      (  angles_per_triangle_t to       ) ;
+        inline void                  set_orig_angle (  angles_per_triangle_t to       ) ;
+        inline void                  set_ripflag    (                   char to       ) ;
+        inline void                  set_norm       (               PDMATRIX to       ) ;
     }; // Face
 
     struct Vertex : public Repr_Elt {

@@ -22,19 +22,14 @@ struct VERTEX_TOPOLOGY {
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
     pSeveralInt   e             ;  //  edge state for neighboring vertices                      
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-<<<<<<< HEAD
     short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
-=======
-    short const   vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
->>>>>>> dev
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
     short         v3num         ;  //  number of 1,2,or 3-hop neighbors                         
     short         vtotal        ;  //  total # of neighbors. copy of vnum.nsizeCur              
     short         nsizeMaxClock ;  //  copy of mris->nsizeMaxClock when v#num                   
     uchar         nsizeMax      ;  //  the max nsize that was used to fill in vnum etc          
     uchar         nsizeCur      ;  //  index of the current v#num in vtotal                     
-    uchar         num           ;  //  number of neighboring faces 
-    VERTEX_TOPOLOGY() : vnum(0) {}                             
+    uchar         num           ;  //  number of neighboring faces                              
 };		// VERTEX_TOPOLOGY
 
 struct vertex_type_ {
