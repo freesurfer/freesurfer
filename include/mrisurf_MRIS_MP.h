@@ -18,14 +18,14 @@
     ELT(const,  MRIS_Status, origxyz_status ) SEP \
     ELT(const,  int,         nvertices      ) SEP \
     ELT(const,  int,         nfaces         ) SEP \
-    ELT(const,  int,         nsize          ) SEP \
+    ELT(const,  char,        nsize          ) SEP \
     ELT(const,  double,      radius         ) SEP \
     ELT(const,  VERTEX_TOPOLOGY const *, vertices_topology) \
     ELTX(const, FACE_TOPOLOGY   const *, faces_topology)
 
   // In out
   #define MRIS_MP__LIST_MRIS_IN_OUT \
-    ELT(,       int,     dist_nsize  ) \
+    ELT(,       char,    dist_nsize ) \
 
   // Out
   #define MRIS_MP__LIST_MRIS_OUT \
