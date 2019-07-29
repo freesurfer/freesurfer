@@ -82,7 +82,7 @@ int main(int narg, char* arg[])
                 cerr << "Usage: " << endl
                      << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
 		     << "                       -ol left_overlayFile -or right_overlayFile" << endl 
-		     << "			-v1 ITK_volumeFile -v2 FS_volumeFile" << endl;
+		     << "			-itk ITK_volumeFile -fs FS_volumeFile" << endl;
 
                 return EXIT_FAILURE;
         }
@@ -121,8 +121,8 @@ int main(int narg, char* arg[])
 	const char *surfaceFileR   = gp.follow("Could not find Surface File", "-sr");
 	const char *overlayFileL   = gp.follow("Could not find Overlay File", "-ol");
 	const char *overlayFileR   = gp.follow("Could not find Overlay File", "-or");
-	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File",   "-v1");
-	const char *FS_volumeFile  = gp.follow("Could not find FS Image File",   "-v2");
+	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File",   "-itk");
+	const char *FS_volumeFile  = gp.follow("Could not find FS Image File",   "-fs");
 
 	// Reading in the Image
 	// ITK Version
