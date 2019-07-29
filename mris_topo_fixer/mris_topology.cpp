@@ -837,7 +837,7 @@ void MRISinitSurface(MRIS *mris)
   // counting the list of vertices
   for (int n = 0 ; n < mris->nvertices ; n++) {
     VERTEX_TOPOLOGY * const v = &mris->vertices_topology[n];
-    v->vnum = 0;
+    clearVnum(mris,n);
     for (int p = 0 ; p < v->num ; p++) {
       FACE *face = &mris->faces[v->f[p]];
       for ( int i = 0 ; i < 3 ; i++) {
@@ -845,12 +845,12 @@ void MRISinitSurface(MRIS *mris)
         if (vn==n) continue;
         if (mris->vertices[vn].marked) continue;
         mris->vertices[vn].marked=1;
-        v->vnum++;
+        vnumAdd(mris,n,1);
       }
     }
     // allocate the list of vertices
     v->v = (int*)calloc(mris->vertices_topology[n].vnum,sizeof(int));
-    v->vnum = 0;
+    clearVnum(mris,n);
     for (int p = 0 ; p < v->num ; p++) {
       FACE *face = &mris->faces[v->f[p]];
       for ( int i = 0 ; i < 3 ; i++) {
@@ -858,7 +858,7 @@ void MRISinitSurface(MRIS *mris)
         if (vn == n) continue;
         if (mris->vertices[vn].marked == 0 ) continue;
         mris->vertices[vn].marked = 0;
-        v->v[v->vnum++] = vn;
+        v->v[vnumAdd(mris,n,1)] = vn;
       }
     }
     v->v2num = v->vnum;
@@ -1054,7 +1054,7 @@ static MRIS* SurfaceToMRISwkr_old(Surface *surface)
     for (int p = 0 ; p < vsrc->vnum ; p++)
       vdstt->v[p]=vsrc->v[p];
       
-    vdstt->vnum   = vsrc->vnum;
+    setVnum(mris,n,vsrc->vnum);
     vdstt->v2num  = vsrc->vnum;
     vdstt->v3num  = vsrc->vnum;
     vdstt->vtotal = vsrc->vnum;

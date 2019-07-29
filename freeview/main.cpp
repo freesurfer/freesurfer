@@ -41,7 +41,7 @@
 #include <QFile>
 #include <QSurfaceFormat>
 
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
 #include <QVTKOpenGLWidget.h>
 #endif
 
@@ -182,6 +182,7 @@ int main(int argc, char *argv[])
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate' and 'inverse'. Use comma to apply more than one.\n\n"
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
+    "':overlay_mask=filename(,invert)' Use given label file as mask for overlay. If invert is specified, use the inverted mask.\n\n"
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
     "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
     "':overlay_zorder=number' Set z-order for rendering overlay.\n\n"
@@ -285,7 +286,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
 #endif
 

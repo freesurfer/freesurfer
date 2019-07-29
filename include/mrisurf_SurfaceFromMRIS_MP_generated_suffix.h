@@ -262,7 +262,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -387,8 +387,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_orig_angle(angles_per_triangle_t to) {
@@ -412,7 +412,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -632,8 +632,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_orig_angle(angles_per_triangle_t to) {
@@ -655,7 +655,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -956,8 +956,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_orig_angle(angles_per_triangle_t to) {
@@ -977,7 +977,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -1435,7 +1435,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -1553,8 +1553,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_area(float to) {
@@ -1569,8 +1569,8 @@ namespace SurfaceFromMRIS_MP {
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
-    void Face::set_norm(PDMATRIX to) {
-        repr->f_norm[idx] = to;
+    void Face::set_norm(size_t i, FloatXYZ to) {
+        repr->f_norm[idx][i] = to;
     }
 
 
@@ -1583,7 +1583,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -1808,8 +1808,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_orig_angle(angles_per_triangle_t to) {
@@ -1829,7 +1829,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -2126,8 +2126,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_orig_angle(angles_per_triangle_t to) {
@@ -2147,7 +2147,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];
@@ -2443,8 +2443,8 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
-        return repr->f_norm[idx];
+    FloatXYZ Face::norm(size_t i) const {
+        return repr->f_norm[idx][i];
     }
     
     void Face::set_area(float to) {
@@ -2459,8 +2459,8 @@ namespace SurfaceFromMRIS_MP {
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
-    void Face::set_norm(PDMATRIX to) {
-        repr->f_norm[idx] = to;
+    void Face::set_norm(size_t i, FloatXYZ to) {
+        repr->f_norm[idx][i] = to;
     }
 
 
@@ -2472,7 +2472,7 @@ namespace SurfaceFromMRIS_MP {
         return repr->v_dist[idx][i];
     }
     float Vertex::dist_orig(size_t i) const {  // size() is vtotal.    distance to neighboring vertices based on origxyz
-        return repr->v_dist_orig[idx][i];
+        return float(repr->v_dist_orig[idx][i]);
     }
     int Vertex::dist_capacity() const {  //  -- should contain at least vtx_vtotal elements   
         return repr->v_dist_capacity[idx];

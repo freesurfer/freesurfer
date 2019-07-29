@@ -3479,6 +3479,10 @@ static void check_options(void) {
       exit(1);
     }
   }
+  if(UseCortexLabel && maskFile){
+    printf("ERROR: cannot specify both --cortex and --mask\n");
+    exit(1);
+  }
   if(UseCortexLabel && surf){
     sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
     labelFile = strcpyalloc(tmpstr);

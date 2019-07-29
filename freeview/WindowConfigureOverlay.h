@@ -64,6 +64,7 @@ public slots:
   void UpdateUI();
   void OnCurrentVertexChanged();
   void OnFrameChanged(int nFrame);
+  void LoadLabelMask(const QString& fn);
 
 protected slots:
   void OnActiveSurfaceChanged(Layer* layer);

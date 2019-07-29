@@ -63,7 +63,6 @@
 #define MAX_3_NEIGHBORS     70
 #define MAX_2_NEIGHBORS     20
 #define MAX_1_NEIGHBORS     8
-#define MAX_NEIGHBORS       (400)       // other places have different values
 #define REPULSE_K           1.0
 
 #undef  REPULSE_E           // differs from mrisurf_base.h 0.25
