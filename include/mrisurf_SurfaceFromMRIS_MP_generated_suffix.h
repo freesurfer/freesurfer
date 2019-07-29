@@ -71,6 +71,23 @@ namespace SurfaceFromMRIS_MP {
     }
 
 
+    MRIS_MP::MRIS_MP (                                               ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx    ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                           ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( TopologyM::MRIS_MP const & src                ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Topology::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionM::MRIS_MP const & src             ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPosition::MRIS_MP const & src              ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequencesM::MRIS_MP const & src ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequences::MRIS_MP const & src  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( DistortM::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Distort::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AnalysisM::MRIS_MP const & src                ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Analysis::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                     ) : Repr_Elt(src) {}
+
+
+
     Surface::Surface (                                               ) {}
     Surface::Surface ( Representation* representation                ) : Repr_Elt(representation,0) {}
     Surface::Surface ( Surface const & src                           ) : Repr_Elt(src) {}
@@ -159,6 +176,21 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                               ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx    ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                           ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionM::MRIS_MP const & src             ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPosition::MRIS_MP const & src              ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequencesM::MRIS_MP const & src ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequences::MRIS_MP const & src  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( DistortM::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Distort::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AnalysisM::MRIS_MP const & src                ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Analysis::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                     ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                               ) {}
@@ -287,6 +319,19 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                               ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx    ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                           ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequencesM::MRIS_MP const & src ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( XYZPositionConsequences::MRIS_MP const & src  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( DistortM::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Distort::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AnalysisM::MRIS_MP const & src                ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Analysis::MRIS_MP const & src                 ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                     ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                               ) {}
@@ -446,6 +491,17 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( DistortM::MRIS_MP const & src              ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Distort::MRIS_MP const & src               ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AnalysisM::MRIS_MP const & src             ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Analysis::MRIS_MP const & src              ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}
@@ -767,6 +823,15 @@ namespace SurfaceFromMRIS_MP {
     }
 
 
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AnalysisM::MRIS_MP const & src             ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( Analysis::MRIS_MP const & src              ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
+
+
     Surface::Surface (                                ) {}
     Surface::Surface ( Representation* representation ) : Repr_Elt(representation,0) {}
     Surface::Surface ( Surface const & src            ) : Repr_Elt(src) {}
@@ -1080,6 +1145,13 @@ namespace SurfaceFromMRIS_MP {
     }
 
 
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
+
+
     Surface::Surface (                                ) {}
     Surface::Surface ( Representation* representation ) : Repr_Elt(representation,0) {}
     Surface::Surface ( Surface const & src            ) : Repr_Elt(src) {}
@@ -1229,6 +1301,13 @@ namespace SurfaceFromMRIS_MP {
     }
 
 
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
+
+
     Surface::Surface (                                ) {}
     Surface::Surface ( Representation* representation ) : Repr_Elt(representation,0) {}
     Surface::Surface ( Surface const & src            ) : Repr_Elt(src) {}
@@ -1298,6 +1377,13 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}
@@ -1415,6 +1501,13 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}
@@ -1572,6 +1665,13 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}
@@ -1897,6 +1997,13 @@ namespace SurfaceFromMRIS_MP {
     }
 
 
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
+
+
     Surface::Surface (                                ) {}
     Surface::Surface ( Representation* representation ) : Repr_Elt(representation,0) {}
     Surface::Surface ( Surface const & src            ) : Repr_Elt(src) {}
@@ -2206,6 +2313,13 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+    MRIS_MP::MRIS_MP ( AllM::MRIS_MP const & src                  ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}
@@ -2536,6 +2650,12 @@ namespace SurfaceFromMRIS_MP {
     void Vertex::set_ripflag(char to) {  //  vertex no longer exists - placed last to load the next vertex into cache
         repr->v_ripflag[idx] = to;
     }
+
+
+    MRIS_MP::MRIS_MP (                                            ) {}
+    MRIS_MP::MRIS_MP ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
+    MRIS_MP::MRIS_MP ( MRIS_MP const & src                        ) : Repr_Elt(src) {}
+
 
 
     Surface::Surface (                                ) {}

@@ -1,34 +1,12 @@
 #pragma once
 
 #include "mrisurf_aaa.h"
-
+#include "mrisurf_MRIS_MPPropertiesInVectors.h"
 
 // Just the information needed to compute the metric properties
 // Some read-only information is obtained from the underlyingMRIS
 
-typedef struct MRIS_MP {
 
-    // This constructor avoids 'uninitialized const member' errors in g++ > 4
-    //
-    MRIS_MP() :
-        status(MRIS_Status__end),
-        origxyz_status(MRIS_Status__end),
-        nvertices(0),
-        nfaces(0),
-        nsize(0),
-        radius(0),
-        vertices_topology(nullptr),
-        faces_topology(nullptr)
-    {}
-
-#define SEP
-#define ELTX(C,T,N) ELT(C,T,N)
-
-    MRIS* underlyingMRIS;  // allows access in a few rare cases where there is a real benefit 
-
-    MRIS_MP* in_src;        // since the in are not written, they can be shared by copies
-    int      in_ref_count;  // check the src doesn't go away
-    
   // MRIS
   //
   // In
@@ -45,14 +23,10 @@ typedef struct MRIS_MP {
     ELT(const,  VERTEX_TOPOLOGY const *, vertices_topology) \
     ELTX(const, FACE_TOPOLOGY   const *, faces_topology)
 
-    MRIS_MP__LIST_MRIS_IN
-    
   // In out
   #define MRIS_MP__LIST_MRIS_IN_OUT \
     ELT(,       int,     dist_nsize  ) \
 
-    MRIS_MP__LIST_MRIS_IN_OUT
-  
   // Out
   #define MRIS_MP__LIST_MRIS_OUT \
     ELT(,       float,   xlo        ) SEP   \
@@ -70,8 +44,6 @@ typedef struct MRIS_MP {
     ELT(,       double,  std_vertex_dist ) SEP   \
     ELT(,       float,   neg_orig_area   ) SEP   \
     ELT(,       float,   neg_area        ) 
-
-    MRIS_MP__LIST_MRIS_OUT
 
 #undef ELT
 
@@ -95,8 +67,6 @@ typedef struct MRIS_MP {
     ELT(const,  float,  wnz         ) SEP   \
     ELTX(const,  ptr_to_const_float, dist_orig)      /* note: these keep pointing to the original ones in the MRIS - change if code wants to change these values */
     
-    MRIS_MP__LIST_V_IN
-
   // In out
   #define MRIS_MP__LIST_V_IN_OUT_XYZ        \
     ELT(,       float,  x           ) SEP   \
@@ -116,8 +86,6 @@ typedef struct MRIS_MP {
   #define MRIS_MP__LIST_V_IN_OUT            \
     MRIS_MP__LIST_V_IN_OUT_XYZ SEP MRIS_MP__LIST_V_IN_OUT_NOXYZ
   
-    MRIS_MP__LIST_V_IN_OUT
-    
   // Out
   #define MRIS_MP__LIST_V_OUT               \
     ELT(,       float,  area        ) SEP   \
@@ -126,10 +94,6 @@ typedef struct MRIS_MP {
     ELT(,       float,  nz          ) SEP   \
     ELTX(,      char,   neg         ) SEP   \
     ELTX(,      float*, dist        )
-
-    MRIS_MP__LIST_V_OUT
-
-    float**     v_dist_buffer;
 
 #undef ELT
 
@@ -141,22 +105,16 @@ typedef struct MRIS_MP {
     ELTX(const, float,                  norm_orig_area  ) SEP   \
     ELTX(const, angles_per_triangle_t,  orig_angle      )
     
-    MRIS_MP__LIST_F_IN
-
   #define MRIS_MP__LIST_F_OUT                                   \
     ELT(,       float,                  area            ) SEP   \
     ELTX(,      char,                   normSet         ) SEP   \
     ELTX(,      FloatXYZ,               norm            ) SEP   \
     ELTX(,      angles_per_triangle_t,  angle)
 
-    MRIS_MP__LIST_F_OUT
-    
 #undef ELT
 
 #undef ELTX
 #undef SEP
-
-} MRIS_MP;
 
 
 // Should turn these into member functions now we are using C++

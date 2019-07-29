@@ -9,6 +9,7 @@ namespace SurfaceFromMRIS_MP {
     namespace Existence {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace Existence
 
@@ -16,6 +17,7 @@ namespace SurfaceFromMRIS_MP {
     namespace Topology {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace Topology
 
@@ -23,6 +25,7 @@ namespace SurfaceFromMRIS_MP {
     namespace XYZPosition {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace XYZPosition
 
@@ -30,6 +33,7 @@ namespace SurfaceFromMRIS_MP {
     namespace XYZPositionConsequences {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace XYZPositionConsequences
 
@@ -37,6 +41,7 @@ namespace SurfaceFromMRIS_MP {
     namespace Distort {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace Distort
 
@@ -44,6 +49,7 @@ namespace SurfaceFromMRIS_MP {
     namespace Analysis {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace Analysis
 
@@ -51,6 +57,7 @@ namespace SurfaceFromMRIS_MP {
     namespace ExistenceM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace ExistenceM
 
@@ -58,6 +65,7 @@ namespace SurfaceFromMRIS_MP {
     namespace TopologyM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace TopologyM
 
@@ -65,6 +73,7 @@ namespace SurfaceFromMRIS_MP {
     namespace XYZPositionM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace XYZPositionM
 
@@ -72,6 +81,7 @@ namespace SurfaceFromMRIS_MP {
     namespace XYZPositionConsequencesM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace XYZPositionConsequencesM
 
@@ -79,6 +89,7 @@ namespace SurfaceFromMRIS_MP {
     namespace DistortM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace DistortM
 
@@ -86,6 +97,7 @@ namespace SurfaceFromMRIS_MP {
     namespace AnalysisM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace AnalysisM
 
@@ -93,6 +105,7 @@ namespace SurfaceFromMRIS_MP {
     namespace AllM {
         struct Face;
         struct Vertex;
+        struct MRIS_MP;
         struct Surface;
     } // namespace AllM
     

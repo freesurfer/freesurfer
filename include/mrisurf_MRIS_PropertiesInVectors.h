@@ -3,149 +3,146 @@
 // 
 // =======================================
 struct MRISPV {
-      vertices_per_face_t* f_v                  ;
-    float*                 f_area               ;
-    angles_per_triangle_t* f_angle              ;
-    angles_per_triangle_t* f_orig_angle         ;
-    char*                  f_ripflag            ;
-    char*                  f_oripflag           ;
-    int*                   f_marked             ;
-    PDMATRIX*              f_norm               ;
-    A3PDMATRIX*            f_gradNorm           ;
+             vertices_per_face_t* f_v                      ;
+    float*                        f_area                   ;
+    angles_per_triangle_t*        f_angle                  ;
+    angles_per_triangle_t*        f_orig_angle             ;
+    char*                         f_ripflag                ;
+    char*                         f_oripflag               ;
+    int*                          f_marked                 ;
+    PDMATRIX*                     f_norm                   ;
+    A3PDMATRIX*                   f_gradNorm               ;
     //  put the pointers before the ints, before the shorts, before uchars, to reduce size
     //  the whole fits in much less than one cache line, so further ordering is no use
-    pSeveralInt*           v_f                  ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-    pSeveralUchar*         v_n                  ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-    pSeveralInt*           v_e                  ;  //  edge state for neighboring vertices                      
-    pSeveralInt*           v_v                  ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-    short*                 v_vnum               ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
-    short*                 v_v2num              ;  //  number of 1, or 2-hop neighbors                          
-    short*                 v_v3num              ;  //  number of 1,2,or 3-hop neighbors                         
-    short*                 v_vtotal             ;  //  total # of neighbors. copy of vnum.nsizeCur              
-    short*                 v_nsizeMaxClock      ;  //  copy of mris->nsizeMaxClock when v#num                   
-    uchar*                 v_nsizeMax           ;  //  the max nsize that was used to fill in vnum etc          
-    uchar*                 v_nsizeCur           ;  //  index of the current v#num in vtotal                     
-    uchar*                 v_num                ;  //  number of neighboring faces                              
+    pSeveralInt*                  v_f                      ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+    pSeveralUchar*                v_n                      ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+    pSeveralInt*                  v_e                      ;  //  edge state for neighboring vertices                      
+    pSeveralInt*                  v_v                      ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
+    short*                        v_vnum                   ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
+    short*                        v_v2num                  ;  //  number of 1, or 2-hop neighbors                          
+    short*                        v_v3num                  ;  //  number of 1,2,or 3-hop neighbors                         
+    short*                        v_vtotal                 ;  //  total # of neighbors. copy of vnum.nsizeCur              
+    short*                        v_nsizeMaxClock          ;  //  copy of mris->nsizeMaxClock when v#num                   
+    uchar*                        v_nsizeMax               ;  //  the max nsize that was used to fill in vnum etc          
+    uchar*                        v_nsizeCur               ;  //  index of the current v#num in vtotal                     
+    uchar*                        v_num                    ;  //  number of neighboring faces                              
     //  managed by MRISfreeDists[_orig] and MRISmakeDists[_orig]
-    pSeveralFloat*         v_dist               ;  // size() is vtotal.    distance to neighboring vertices based on  xyz   
-    pSeveralFloat*         v_dist_orig          ;  // size() is vtotal.    distance to neighboring vertices based on origxyz
-    int*                   v_dist_capacity      ;  //  -- should contain at least vtx_vtotal elements   
-    int*                   v_dist_orig_capacity ;  //  -- should contain at least vtx_vtotal elements   
-    float*                 v_x                  ;  //  current coordinates	
-    float*                 v_y                  ;  //  use MRISsetXYZ() to set
-    float*                 v_z                  ;
-    float*                 v_origx              ;  //  original coordinates, see also MRIS::origxyz_status
-    float*                 v_origy              ;  //  use MRISsetOriginalXYZ(, 
-    float*                 v_origz              ;  //  or MRISsetOriginalXYZfromXYZ to set
-    float*                 v_nx                 ;
-    float*                 v_ny                 ;
-    float*                 v_nz                 ;  //  curr normal
-    float*                 v_pnx                ;
-    float*                 v_pny                ;
-    float*                 v_pnz                ;  //  pial normal
-    float*                 v_wnx                ;
-    float*                 v_wny                ;
-    float*                 v_wnz                ;  //  white normal
-    float*                 v_onx                ;
-    float*                 v_ony                ;
-    float*                 v_onz                ;  //  original normal
-    float*                 v_dx                 ;
-    float*                 v_dy                 ;
-    float*                 v_dz                 ;  //  current change in position
-    float*                 v_odx                ;
-    float*                 v_ody                ;
-    float*                 v_odz                ;  //  last change of position (for momentum, 
-    float*                 v_tdx                ;
-    float*                 v_tdy                ;
-    float*                 v_tdz                ;  //  temporary storage for averaging gradient
-    float*                 v_curv               ;  //  curr curvature
-    float*                 v_curvbak            ;
-    float*                 v_val                ;  //  scalar data value (file: rh.val, sig2-rh.w)
-    float*                 v_imag_val           ;  //  imaginary part of complex data value
-    float*                 v_cx                 ;
-    float*                 v_cy                 ;
-    float*                 v_cz                 ;  //  coordinates in canonical coordinate system
-    float*                 v_tx                 ;
-    float*                 v_ty                 ;
-    float*                 v_tz                 ;  //  tmp coordinate storage
-    float*                 v_t2x                ;
-    float*                 v_t2y                ;
-    float*                 v_t2z                ;  //  another tmp coordinate storage
-    float*                 v_targx              ;
-    float*                 v_targy              ;
-    float*                 v_targz              ;  //  target coordinates
-    float*                 v_pialx              ;
-    float*                 v_pialy              ;
-    float*                 v_pialz              ;  //  pial surface coordinates
-    float*                 v_whitex             ;
-    float*                 v_whitey             ;
-    float*                 v_whitez             ;  //  white surface coordinates
-    float*                 v_l4x                ;
-    float*                 v_l4y                ;
-    float*                 v_l4z                ;  //  layerIV surface coordinates
-    float*                 v_infx               ;
-    float*                 v_infy               ;
-    float*                 v_infz               ;  //  inflated coordinates
-    float*                 v_fx                 ;
-    float*                 v_fy                 ;
-    float*                 v_fz                 ;  //  flattened coordinates
-    int*                   v_px                 ;
-    int*                   v_qx                 ;
-    int*                   v_py                 ;
-    int*                   v_qy                 ;
-    int*                   v_pz                 ;
-    int*                   v_qz                 ;  //  rational coordinates for exact calculations
-    float*                 v_e1x                ;
-    float*                 v_e1y                ;
-    float*                 v_e1z                ;  //  1st basis vector for the local tangent plane
-    float*                 v_e2x                ;
-    float*                 v_e2y                ;
-    float*                 v_e2z                ;  //  2nd basis vector for the local tangent plane
-    float*                 v_pe1x               ;
-    float*                 v_pe1y               ;
-    float*                 v_pe1z               ;  //  1st basis vector for the local tangent plane
-    float*                 v_pe2x               ;
-    float*                 v_pe2y               ;
-    float*                 v_pe2z               ;  //  2nd basis vector for the local tangent plane
-    float*                 v_nc                 ;  //  curr length normal comp 
-    float*                 v_val2               ;  //  complex comp data value (file: sig3-rh.w) 
-    float*                 v_valbak             ;  //  scalar data stack 
-    float*                 v_val2bak            ;  //  complex comp data stack 
-    float*                 v_stat               ;  //  statistic 
-    int*                   v_undefval           ;  //  [previously dist=0] 
-    int*                   v_old_undefval       ;  //  for smooth_val_sparse 
-    int*                   v_fixedval           ;  //  [previously val=0] 
-    float*                 v_fieldsign          ;  //  fieldsign--final: -1, "0", "1" (file: rh.fs) 
-    float*                 v_fsmask             ;  //  significance mask (file: rh.fm) 
-    float*                 v_d                  ;  //  for distance calculations 
-    int*                   v_annotation         ;  //  area label (defunct--now from label file name!) 
-    char*                  v_oripflag           ;
-    char*                  v_origripflag        ;  //  cuts flags 
-    p_void*                v_vp                 ;  //  to store user's information 
-    float*                 v_theta              ;
-    float*                 v_phi                ;  //  parameterization 
-    float*                 v_area               ;
-    float*                 v_origarea           ;
-    float*                 v_group_avg_area     ;
-    float*                 v_K                  ;  //  Gaussian curvature 
-    float*                 v_H                  ;  //  mean curvature 
-    float*                 v_k1                 ;
-    float*                 v_k2                 ;  //  the principal curvatures 
-    float*                 v_mean               ;
-    float*                 v_mean_imag          ;  //  imaginary part of complex statistic 
-    float*                 v_std_error          ;
-    uint*                  v_flags              ;
-    int*                   v_fno                ;  //  face that this vertex is in 
-    int*                   v_cropped            ;
-    short*                 v_marked             ;  //  for a variety of uses 
-    short*                 v_marked2            ;
-    short*                 v_marked3            ;
-    char*                  v_neg                ;  //  1 if the normal vector is inverted 
-    char*                  v_border             ;  //  flag 
-    char*                  v_ripflag            ;  //  vertex no longer exists - placed last to load the next vertex into cache
-};		// MRISPV
-
-struct MRISPV {
+    pSeveralFloat*                v_dist                   ;  // size() is vtotal.    distance to neighboring vertices based on  xyz   
+    pSeveralFloat*                v_dist_orig              ;  // size() is vtotal.    distance to neighboring vertices based on origxyz
+    int*                          v_dist_capacity          ;  //  -- should contain at least vtx_vtotal elements   
+    int*                          v_dist_orig_capacity     ;  //  -- should contain at least vtx_vtotal elements   
+    float*                        v_x                      ;  //  current coordinates	
+    float*                        v_y                      ;  //  use MRISsetXYZ() to set
+    float*                        v_z                      ;
+    float*                        v_origx                  ;  //  original coordinates, see also MRIS::origxyz_status
+    float*                        v_origy                  ;  //  use MRISsetOriginalXYZ(, 
+    float*                        v_origz                  ;  //  or MRISsetOriginalXYZfromXYZ to set
+    float*                        v_nx                     ;
+    float*                        v_ny                     ;
+    float*                        v_nz                     ;  //  curr normal
+    float*                        v_pnx                    ;
+    float*                        v_pny                    ;
+    float*                        v_pnz                    ;  //  pial normal
+    float*                        v_wnx                    ;
+    float*                        v_wny                    ;
+    float*                        v_wnz                    ;  //  white normal
+    float*                        v_onx                    ;
+    float*                        v_ony                    ;
+    float*                        v_onz                    ;  //  original normal
+    float*                        v_dx                     ;
+    float*                        v_dy                     ;
+    float*                        v_dz                     ;  //  current change in position
+    float*                        v_odx                    ;
+    float*                        v_ody                    ;
+    float*                        v_odz                    ;  //  last change of position (for momentum, 
+    float*                        v_tdx                    ;
+    float*                        v_tdy                    ;
+    float*                        v_tdz                    ;  //  temporary storage for averaging gradient
+    float*                        v_curv                   ;  //  curr curvature
+    float*                        v_curvbak                ;
+    float*                        v_val                    ;  //  scalar data value (file: rh.val, sig2-rh.w)
+    float*                        v_imag_val               ;  //  imaginary part of complex data value
+    float*                        v_cx                     ;
+    float*                        v_cy                     ;
+    float*                        v_cz                     ;  //  coordinates in canonical coordinate system
+    float*                        v_tx                     ;
+    float*                        v_ty                     ;
+    float*                        v_tz                     ;  //  tmp coordinate storage
+    float*                        v_t2x                    ;
+    float*                        v_t2y                    ;
+    float*                        v_t2z                    ;  //  another tmp coordinate storage
+    float*                        v_targx                  ;
+    float*                        v_targy                  ;
+    float*                        v_targz                  ;  //  target coordinates
+    float*                        v_pialx                  ;
+    float*                        v_pialy                  ;
+    float*                        v_pialz                  ;  //  pial surface coordinates
+    float*                        v_whitex                 ;
+    float*                        v_whitey                 ;
+    float*                        v_whitez                 ;  //  white surface coordinates
+    float*                        v_l4x                    ;
+    float*                        v_l4y                    ;
+    float*                        v_l4z                    ;  //  layerIV surface coordinates
+    float*                        v_infx                   ;
+    float*                        v_infy                   ;
+    float*                        v_infz                   ;  //  inflated coordinates
+    float*                        v_fx                     ;
+    float*                        v_fy                     ;
+    float*                        v_fz                     ;  //  flattened coordinates
+    int*                          v_px                     ;
+    int*                          v_qx                     ;
+    int*                          v_py                     ;
+    int*                          v_qy                     ;
+    int*                          v_pz                     ;
+    int*                          v_qz                     ;  //  rational coordinates for exact calculations
+    float*                        v_e1x                    ;
+    float*                        v_e1y                    ;
+    float*                        v_e1z                    ;  //  1st basis vector for the local tangent plane
+    float*                        v_e2x                    ;
+    float*                        v_e2y                    ;
+    float*                        v_e2z                    ;  //  2nd basis vector for the local tangent plane
+    float*                        v_pe1x                   ;
+    float*                        v_pe1y                   ;
+    float*                        v_pe1z                   ;  //  1st basis vector for the local tangent plane
+    float*                        v_pe2x                   ;
+    float*                        v_pe2y                   ;
+    float*                        v_pe2z                   ;  //  2nd basis vector for the local tangent plane
+    float*                        v_nc                     ;  //  curr length normal comp 
+    float*                        v_val2                   ;  //  complex comp data value (file: sig3-rh.w) 
+    float*                        v_valbak                 ;  //  scalar data stack 
+    float*                        v_val2bak                ;  //  complex comp data stack 
+    float*                        v_stat                   ;  //  statistic 
+    int*                          v_undefval               ;  //  [previously dist=0] 
+    int*                          v_old_undefval           ;  //  for smooth_val_sparse 
+    int*                          v_fixedval               ;  //  [previously val=0] 
+    float*                        v_fieldsign              ;  //  fieldsign--final: -1, "0", "1" (file: rh.fs) 
+    float*                        v_fsmask                 ;  //  significance mask (file: rh.fm) 
+    float*                        v_d                      ;  //  for distance calculations 
+    int*                          v_annotation             ;  //  area label (defunct--now from label file name!) 
+    char*                         v_oripflag               ;
+    char*                         v_origripflag            ;  //  cuts flags 
+    p_void*                       v_vp                     ;  //  to store user's information 
+    float*                        v_theta                  ;
+    float*                        v_phi                    ;  //  parameterization 
+    float*                        v_area                   ;
+    float*                        v_origarea               ;
+    float*                        v_group_avg_area         ;
+    float*                        v_K                      ;  //  Gaussian curvature 
+    float*                        v_H                      ;  //  mean curvature 
+    float*                        v_k1                     ;
+    float*                        v_k2                     ;  //  the principal curvatures 
+    float*                        v_mean                   ;
+    float*                        v_mean_imag              ;  //  imaginary part of complex statistic 
+    float*                        v_std_error              ;
+    uint*                         v_flags                  ;
+    int*                          v_fno                    ;  //  face that this vertex is in 
+    int*                          v_cropped                ;
+    short*                        v_marked                 ;  //  for a variety of uses 
+    short*                        v_marked2                ;
+    short*                        v_marked3                ;
+    char*                         v_neg                    ;  //  1 if the normal vector is inverted 
+    char*                         v_border                 ;  //  flag 
+    char*                         v_ripflag                ;  //  vertex no longer exists - placed last to load the next vertex into cache
     //  Fields being maintained by specialist functions
     int                           nverticesFrozen          ;  //  # of vertices on surface is frozen
     int                           nvertices                ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al

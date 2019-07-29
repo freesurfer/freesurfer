@@ -195,6 +195,7 @@ STRIP;
 typedef int*                    pSeveralInt;
 typedef uchar*                  pSeveralUchar;
 typedef float*                  pSeveralFloat;
+typedef float const*            pSeveralConstFloat;
 typedef void*                   p_void;
 typedef void**                  p_p_void;
 

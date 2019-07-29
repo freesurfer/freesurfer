@@ -81,6 +81,13 @@
         inline void  set_ripflag   (           char to       ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
     }; // Vertex
 
+    struct MRIS_MP : public Repr_Elt {
+        inline MRIS_MP (                                            );
+        inline MRIS_MP ( MRIS_MP const & src                        );
+        inline MRIS_MP ( Representation* representation, size_t idx );
+
+    }; // MRIS_MP
+
     struct Surface : public Repr_Elt {
         inline Surface (                                );
         inline Surface ( Surface const & src            );

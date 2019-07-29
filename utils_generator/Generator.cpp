@@ -230,6 +230,11 @@ namespace Abstract_Representation {
 		string      const accessorClassId;
 		Type*		const type;
 		Id			const id;
+
+        string key() const {
+            return accessorClassId+"."+id;
+        }
+
 		string      const comment;
 		Phase::T    const firstReadingPhase;
 		Phase::T	const firstWritingPhase;
@@ -576,7 +581,8 @@ namespace Representation_Generators {
 
 					const char * comment = "//";
 					if (prop.type) {
-						cols << how->memberType(prop) << endC << Just_left << how->memberId(prop) << endC << ";";
+						auto memberType = how->memberType(prop);
+						cols << memberType << endC << Just_left << how->memberId(prop) << endC << ";";
 						comment = "  //";
 						if (prop.repeatedSize) {
 							cols << ignoreWidth << comment << " size() is " << prop.repeatedSize->id;
@@ -1315,7 +1321,7 @@ namespace Representations {
 	struct HowPV_Face : public HowDirect {
 		HowPV_Face() { }
 		virtual string memberType(Prop const & prop) const {	// the type of the field in the classId
-			return prop.type->id + "*";
+			return storeType(prop) + "*";
 		}
 		virtual string memberId(Prop const & prop) const {		// the id of field in the classId
 			return "f_" + prop.id;								// it might need to be indexed by [idx]
@@ -1326,6 +1332,9 @@ namespace Representations {
 		virtual string storeId(Prop const & prop) const {
 			return memberId(prop) + "[idx]";
 		}
+	};
+	struct HowPV_F_indexed : public HowPV_Face {
+		virtual string indexArg(Prop const & prop) const { return "size_t i"; }
 	};
 	struct HowPV_Face_v : public HowPV_Face {
 		virtual string retType(Prop const & prop) const { return "Vertex"; }
@@ -1378,7 +1387,7 @@ namespace Representations {
 		virtual string retType(Prop const & prop) const { return "float"; }
 	};
 
-	struct HowPV_MRIS : public HowDirect { HowPV_MRIS() { this->m_secondaryName = "MRISPV"; } };
+	struct HowPV_MRIS : public HowDirect { HowPV_MRIS() { this->m_secondaryName = ""; } };
 	struct HowPV_MRIS_hidden : public HowPV_MRIS { HowPV_MRIS_hidden() { m_isImplDetail = true; } };
 	struct HowPV_MRIS_vertex : public HowPV_MRIS {
 		virtual string retType(Prop const & prop) const { return "Vertex"; }
@@ -1433,13 +1442,20 @@ namespace Representations {
 
 	struct HowMP_fromMRIS : public HowRedirect {
 		HowMP_fromMRIS(How * how) : HowRedirect(how) {}
+		virtual string secondaryName() const { return ""; }
 		virtual string reprNoArrow() const { return HowRedirect::reprNoArrow() + "->underlyingMRIS"; }
 	};
 
 	struct HowMP_fromMRIS_MP : public HowRedirect {
 		HowMP_fromMRIS_MP(How* how) : HowRedirect(how) {}
+		virtual string secondaryName() const { return ""; }
 		virtual string reprNoArrow() const { return HowRedirect::reprNoArrow() + "->in_src"; }
 	};
+
+    struct HowMP_FaceNorm : public HowPV_F_indexed {
+        virtual string retType(Prop const & prop) const { return "FloatXYZ"; }
+        virtual string storeType(Prop const & prop) const { return retType(prop); }
+    };
 
 	// Apply
 	//
@@ -1469,6 +1485,7 @@ namespace Representations {
 
 		auto t_double					= new AtomicType("double");
 		auto t_float					= new AtomicType("float");
+		auto t_constFloat				= new AtomicType("const float");
 
 		auto t_pVoid					= new AtomicType("p_void");
 		auto t_ppVoid					= new AtomicType("p_p_void");
@@ -1508,6 +1525,7 @@ namespace Representations {
 		// These are passed in by TBD, stored as a count and a pointer, by TBD.
 		//
 		auto t_PR_float					= new PointerToRepeatedAtomicType("pSeveralFloat"					, t_float);
+        auto t_PR_constFloat			= new PointerToRepeatedAtomicType("pSeveralConstFloat"              , t_constFloat);
 		auto t_PR_int					= new PointerToRepeatedAtomicType("pSeveralInt"						, t_int);
 		auto t_PR_uchar					= new PointerToRepeatedAtomicType("pSeveralUchar"					, t_uchar);
 		auto t_PR_VERTEX				= new PointerToRepeatedAtomicType("pSeveralVERTEX"					, t_VERTEX);
@@ -1651,7 +1669,7 @@ namespace Representations {
 		addProp(t_PR_float,	"dist"			    , "distance to neighboring vertices based on  xyz   ");
 			vtx_dist->setPRSize(vtx_vtotal);
 	auto vtx_dist_orig =
-		addProp(t_PR_float,	"dist_orig"		    , "distance to neighboring vertices based on origxyz");
+		addProp(t_PR_constFloat,	"dist_orig"		    , "distance to neighboring vertices based on origxyz");
 			vtx_dist_orig->setPRSize(vtx_vtotal);
 			howPop();
 
@@ -2008,16 +2026,17 @@ namespace Representations {
 		doMRIS_MP(*rep_MRIS, *rep_MRISPV, *rep_MRIS_MP);
 
 		final_representations.clear();
-		final_representations.push_back(rep_MRIS);
-		final_representations.push_back(rep_MRISPV);
+		//final_representations.push_back(rep_MRIS);
+		//final_representations.push_back(rep_MRISPV);
 		final_representations.push_back(rep_MRIS_MP);
 	}
 
 	static void doMRIS_MP(RepresentationX & rep_MRIS, RepresentationX & rep_MRISPV, RepresentationX & rep_MRIS_MP)
 	{
+        
 		struct PropHowMap : public std::map<string, Representation::PropHow*> {
 			PropHowMap(RepresentationX & r) {
-				for (auto & ph : r.implements) (*this)[ph.prop->accessorClassId+"."+ph.prop->id] = &ph;
+				for (auto & ph : r.implements) (*this)[ph.prop->key()] = &ph;
 			}
 		} rep_MRISPV_propHowMap(rep_MRISPV);
 
@@ -2090,18 +2109,37 @@ namespace Representations {
 			insert("Face.angle");
 		}		
 
-		auto const how_implementationDetail = new HowDirect();
+		auto const how_implementationDetail      = new HowDirect();
 		how_implementationDetail->m_isImplDetail = true;
-		rep_MRIS_MP.implements.push_back(
-			Representation::PropHow(
-				new Prop("Surface",new AtomicType("MRIS*"),"underlyingMRIS", Phase::end, Phase::ExistenceM,"for properties that are read from the underlying MRIS"),
-				how_implementationDetail));
+        
+        auto implementationDetail = [&](
+            string type, string id, string comment)
+        {
+		    rep_MRIS_MP.implements.push_back(
+			    Representation::PropHow(
+				    new Prop("",new AtomicType(type),id, Phase::end, Phase::ExistenceM,comment),
+				    how_implementationDetail));
+        };
+        
+		implementationDetail("MRIS*",                   "underlyingMRIS", "for properties that are read from the underlying MRIS");
+		implementationDetail("MRIS_MP*",                "in_src",         "since the in are not written, they can be shared by copies");
+		implementationDetail("int",                     "in_ref_count",   "check the src doesn't go away");
+        implementationDetail("VERTEX_TOPOLOGY const *", "vertices_topology", "pointer copied from MRIS");
+        implementationDetail("FACE_TOPOLOGY   const *", "faces_topology",    "pointer copied from MRIS");
+		
+		implementationDetail("int*",                    "v_VSize",          "");
+		implementationDetail("float**",                 "v_dist_buffer",    "");
+		implementationDetail("const float*",            "f_norm_orig_area", "");
+		implementationDetail("char*",                   "f_normSet",        "");
 
 		for (size_t i = 0; i < rep_MRIS.implements.size(); i++) {
 			auto & propHow = rep_MRIS.implements[i];
 			auto   prop = propHow.prop;
-			auto it = actions.find(prop->accessorClassId + "." + prop->id);
+            auto   iPropKey = prop->key();
+			auto it = actions.find(iPropKey);
 			if (it == actions.end()) continue;
+            
+            
 			switch (it->second) {
 				case NotImpl:
 					break;
@@ -2109,10 +2147,15 @@ namespace Representations {
 					rep_MRIS_MP.implements.push_back(Representation::PropHow(prop, new HowMP_fromMRIS(propHow.how)));
 					break;
 				case Stored: {
-					auto it = rep_MRISPV_propHowMap.find(prop->accessorClassId + "." + prop->id);
+					auto it = rep_MRISPV_propHowMap.find(iPropKey);
 					assert(it != rep_MRISPV_propHowMap.end());
 					auto & pvPropHowImpl = *it->second;
-					rep_MRIS_MP.implements.push_back(Representation::PropHow(prop, new HowMP_likePV(pvPropHowImpl.how)));
+                    How* how = new HowMP_likePV(pvPropHowImpl.how);
+                    if (iPropKey == "Face.norm") {
+                        std::cout << "Found " << iPropKey << std::endl;
+                        how = new HowMP_FaceNorm;
+                    }
+                    rep_MRIS_MP.implements.push_back(Representation::PropHow(prop, how));
 				}	break;
 			}
 		}

@@ -40,6 +40,22 @@
         inline void set_ripflag  (   char to       ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
     }; // Vertex
 
+    struct MRIS_MP : public Repr_Elt {
+        inline MRIS_MP (                                               );
+        inline MRIS_MP ( MRIS_MP const & src                           );
+        inline MRIS_MP ( Representation* representation, size_t idx    );
+        inline MRIS_MP ( XYZPositionM::MRIS_MP const & src             );
+        inline MRIS_MP ( XYZPosition::MRIS_MP const & src              );
+        inline MRIS_MP ( XYZPositionConsequencesM::MRIS_MP const & src );
+        inline MRIS_MP ( XYZPositionConsequences::MRIS_MP const & src  );
+        inline MRIS_MP ( DistortM::MRIS_MP const & src                 );
+        inline MRIS_MP ( Distort::MRIS_MP const & src                  );
+        inline MRIS_MP ( AnalysisM::MRIS_MP const & src                );
+        inline MRIS_MP ( Analysis::MRIS_MP const & src                 );
+        inline MRIS_MP ( AllM::MRIS_MP const & src                     );
+
+    }; // MRIS_MP
+
     struct Surface : public Repr_Elt {
         inline Surface (                                               );
         inline Surface ( Surface const & src                           );
