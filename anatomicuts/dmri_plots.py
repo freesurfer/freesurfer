@@ -44,27 +44,34 @@ for i in range(1, height + 1):
 
 
 # Creates the basis of the plots
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 20))
+# Increase ncols and add [#] to axes to add more plots
+fig, axes = plt.subplots(nrows=1, ncols=width, figsize=(20, 20))
 
 # Violin plot
-axes[0].violinplot(means,
-                   showmeans=True, 
-                   showmedians=False)
+for i in range(width):
+    axes[i].violinplot(means[i], showmeans=True, showmedians=False)
 
 # Box plot
-axes[1].boxplot(means)
+# axes[1].boxplot(means)
+
+xticklabels=list(sample_df.columns.values.tolist()[1:])
 
 # Adding horizontal grid lines and general labels
+# Loop if more than one plot is desired
+
+i = 0
 for ax in axes:
     ax.yaxis.grid(True)
-    ax.set_xticks([y + 1 for y in range(len(means))])
-    ax.set_xlabel('Type of Value')
+    #ax.set_xticks([y + 1 for y in range(len(means))])
+    ax.set_xticks([y for y in range(2)])
+    ax.set_xlabel(xticklabels[i])
     ax.set_ylabel('Observed Values')
-    ax.set_title('Plots of All CSV Values')
-
+    ax.set_title('CSV Comparison')
+    i+=1
+  
 # Add x tick labels
-plt.setp(axes, xticks=[y + 1 for y in range(len(means))], 
-         xticklabels=list(sample_df.columns.values.tolist()[1:]))
+#plt.setp(axes, xticks=[y + 1 for y in range(len(means))], 
+#         xticklabels=list(sample_df.columns.values.tolist()[1:]))
 
 # Print out the plots
 plt.show()
