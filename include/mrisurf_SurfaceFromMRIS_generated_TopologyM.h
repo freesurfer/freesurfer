@@ -6,16 +6,16 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline Vertex v        ( size_t i  ) const ;
-        inline char   ripflag  (           ) const ;
-        inline char   oripflag (           ) const ;
-        inline int    marked   (           ) const ;
+        inline Vertex v            ( size_t i            ) const ;
+        inline char   ripflag      (                     ) const ;
+        inline char   oripflag     (                     ) const ;
+        inline int    marked       (                     ) const ;
         
-        inline void set_v        ( size_t i, Vertex to ) ;
-        inline void set_ripflag  (             char to ) ;
-        inline void set_oripflag (             char to ) ;
-        inline void set_marked   (              int to ) ;
-    };
+        inline void   set_v        ( size_t i, Vertex to       ) ;
+        inline void   set_ripflag  (             char to       ) ;
+        inline void   set_oripflag (             char to       ) ;
+        inline void   set_marked   (              int to       ) ;
+    }; // Face
 
     struct Vertex : public Repr_Elt {
         inline Vertex (                                                                   );
@@ -26,37 +26,37 @@
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
-        inline Face   f             ( size_t i  ) const ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-        inline size_t n             ( size_t i  ) const ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        inline int    e             ( size_t i  ) const ;  //  edge state for neighboring vertices                      
-        inline Vertex v             ( size_t i  ) const ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-        inline short  vnum          (           ) const ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        inline short  v2num         (           ) const ;  //  number of 1, or 2-hop neighbors                          
-        inline short  v3num         (           ) const ;  //  number of 1,2,or 3-hop neighbors                         
-        inline short  vtotal        (           ) const ;  //  total # of neighbors. copy of vnum.nsizeCur              
-        inline short  nsizeMaxClock (           ) const ;  //  copy of mris->nsizeMaxClock when v#num                   
-        inline uchar  nsizeMax      (           ) const ;  //  the max nsize that was used to fill in vnum etc          
-        inline uchar  nsizeCur      (           ) const ;  //  index of the current v#num in vtotal                     
-        inline uchar  num           (           ) const ;  //  number of neighboring faces                              
-        inline char   ripflag       (           ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
-        inline void   which_coords  (int which, float *x, float *y, float *z) const ;
+        inline Face   f                 ( size_t i            ) const ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        inline size_t n                 ( size_t i            ) const ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+        inline int    e                 ( size_t i            ) const ;  //  edge state for neighboring vertices                      
+        inline Vertex v                 ( size_t i            ) const ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
+        inline short  vnum              (                     ) const ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
+        inline short  v2num             (                     ) const ;  //  number of 1, or 2-hop neighbors                          
+        inline short  v3num             (                     ) const ;  //  number of 1,2,or 3-hop neighbors                         
+        inline short  vtotal            (                     ) const ;  //  total # of neighbors. copy of vnum.nsizeCur              
+        inline short  nsizeMaxClock     (                     ) const ;  //  copy of mris->nsizeMaxClock when v#num                   
+        inline uchar  nsizeMax          (                     ) const ;  //  the max nsize that was used to fill in vnum etc          
+        inline uchar  nsizeCur          (                     ) const ;  //  index of the current v#num in vtotal                     
+        inline uchar  num               (                     ) const ;  //  number of neighboring faces                              
+        inline char   ripflag           (                     ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
+        inline void   which_coords      (int which, float *x, float *y, float *z) const ;
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
         
-        inline void set_f             ( size_t i,   Face to ) ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-        inline void set_n             ( size_t i, size_t to ) ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        inline void set_e             ( size_t i,    int to ) ;  //  edge state for neighboring vertices                      
-        inline void set_v             ( size_t i, Vertex to ) ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-        inline void set_vnum          (            short to ) ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        inline void set_v2num         (            short to ) ;  //  number of 1, or 2-hop neighbors                          
-        inline void set_v3num         (            short to ) ;  //  number of 1,2,or 3-hop neighbors                         
-        inline void set_vtotal        (            short to ) ;  //  total # of neighbors. copy of vnum.nsizeCur              
-        inline void set_nsizeMaxClock (            short to ) ;  //  copy of mris->nsizeMaxClock when v#num                   
-        inline void set_nsizeMax      (            uchar to ) ;  //  the max nsize that was used to fill in vnum etc          
-        inline void set_nsizeCur      (            uchar to ) ;  //  index of the current v#num in vtotal                     
-        inline void set_num           (            uchar to ) ;  //  number of neighboring faces                              
-        inline void set_ripflag       (             char to ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
-    };
+        inline void   set_f             ( size_t i,   Face to       ) ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        inline void   set_n             ( size_t i, size_t to       ) ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+        inline void   set_e             ( size_t i,    int to       ) ;  //  edge state for neighboring vertices                      
+        inline void   set_v             ( size_t i, Vertex to       ) ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
+        inline void   set_vnum          (            short to       ) ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
+        inline void   set_v2num         (            short to       ) ;  //  number of 1, or 2-hop neighbors                          
+        inline void   set_v3num         (            short to       ) ;  //  number of 1,2,or 3-hop neighbors                         
+        inline void   set_vtotal        (            short to       ) ;  //  total # of neighbors. copy of vnum.nsizeCur              
+        inline void   set_nsizeMaxClock (            short to       ) ;  //  copy of mris->nsizeMaxClock when v#num                   
+        inline void   set_nsizeMax      (            uchar to       ) ;  //  the max nsize that was used to fill in vnum etc          
+        inline void   set_nsizeCur      (            uchar to       ) ;  //  index of the current v#num in vtotal                     
+        inline void   set_num           (            uchar to       ) ;  //  number of neighboring faces                              
+        inline void   set_ripflag       (             char to       ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
+    }; // Vertex
 
     struct Surface : public Repr_Elt {
         inline Surface (                                );
@@ -113,6 +113,6 @@
         inline PMRI                  mri_sras2vox             (           ) const ;  //  volume that the above matrix is for
         inline p_void                mht                      (           ) const ;
         inline p_void                temps                    (           ) const ;
-    };
+    }; // Surface
 
     } // namespace TopologyM

@@ -22,7 +22,7 @@ struct VERTEX_TOPOLOGY {
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
     pSeveralInt   e             ;  //  edge state for neighboring vertices                      
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-    short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
     short         v3num         ;  //  number of 1,2,or 3-hop neighbors                         
     short         vtotal        ;  //  total # of neighbors. copy of vnum.nsizeCur              
@@ -182,6 +182,7 @@ struct MRIS {
     float                         x0                       ;  //  center of spherical expansion
     float                         y0                       ;
     float                         z0                       ;
+    //  v_temporal_pole, v_frontal_pole, and v_occipital_pole don't appear to be used, and are unusual being pointers to vertices
     PVERTEX                       v_temporal_pole          ;
     PVERTEX                       v_frontal_pole           ;
     PVERTEX                       v_occipital_pole         ;
@@ -279,7 +280,7 @@ struct MRIS {
     ELTX(short,nsizeMaxClock)  SEP \
     ELTT(uchar,nsizeMax)  SEP \
     ELTT(uchar,nsizeCur)  SEP \
-    ELTT(uchar,num)  SEP \
+    ELTT(uchar,num)  \
 // end of macro
 
 #define LIST_OF_VERTEX_ELTS_1 \

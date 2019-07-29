@@ -1636,9 +1636,8 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double dt_in[MAX_ENTRIES], sse_out[MAX_ENTRIES];
   int N = 0;
   {
-    struct MRIScomputeSSE_asThoughGradientApplied_ctx sseCtx;
-        // This is NYI
-        
+    MRIScomputeSSE_asThoughGradientApplied_ctx sseCtx;
+
     double const starting_sse = MRIScomputeSSE(mris, parms);
 
     /* write out some data on supposed quadratic form */

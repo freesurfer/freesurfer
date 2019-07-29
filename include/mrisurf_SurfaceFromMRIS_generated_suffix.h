@@ -247,7 +247,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -255,7 +255,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -332,7 +332,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -344,7 +344,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -513,7 +513,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -521,7 +521,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -644,7 +644,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -656,7 +656,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -888,7 +888,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -896,7 +896,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -1038,7 +1038,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -1050,7 +1050,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -1101,13 +1101,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -1467,7 +1467,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -1475,7 +1475,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -2203,7 +2203,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -2215,7 +2215,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -2266,13 +2266,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -2628,7 +2628,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -2636,7 +2636,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -3362,7 +3362,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -3374,7 +3374,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -3425,13 +3425,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -3941,7 +3941,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -3949,7 +3949,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -3992,7 +3992,7 @@ namespace SurfaceFromMRIS {
     void Vertex::set_v(size_t i, Vertex to) {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         cheapAssert(repr == to.repr); repr->vertices_topology[idx].v[i] = to.idx;
     }
-    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         repr->vertices_topology[idx].vnum = to;
     }
     void Vertex::set_v2num(short to) {  //  number of 1, or 2-hop neighbors                          
@@ -4045,7 +4045,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -4057,7 +4057,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -4214,7 +4214,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -4222,7 +4222,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -4348,7 +4348,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -4360,7 +4360,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -4596,7 +4596,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -4604,7 +4604,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -4745,7 +4745,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -4757,7 +4757,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -4808,13 +4808,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -5185,7 +5185,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -5193,7 +5193,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -5919,7 +5919,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -5931,7 +5931,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -5982,13 +5982,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -6344,7 +6344,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -6352,7 +6352,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -7078,7 +7078,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -7090,7 +7090,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -7141,13 +7141,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
@@ -7516,7 +7516,7 @@ namespace SurfaceFromMRIS {
         return Face(repr,repr->vertices_topology[idx].f[i]);
     }
     size_t Vertex::n(size_t i) const {  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        return size_t(repr->vertices_topology[idx].n[i]);
+        return repr->vertices_topology[idx].n[i];
     }
     int Vertex::e(size_t i) const {  //  edge state for neighboring vertices                      
         return repr->vertices_topology[idx].e[i];
@@ -7524,7 +7524,7 @@ namespace SurfaceFromMRIS {
     Vertex Vertex::v(size_t i) const {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         return Vertex(repr,repr->vertices_topology[idx].v[i]);
     }
-    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short Vertex::vnum() const {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         return repr->vertices_topology[idx].vnum;
     }
     short Vertex::v2num() const {  //  number of 1, or 2-hop neighbors                          
@@ -7912,7 +7912,7 @@ namespace SurfaceFromMRIS {
     void Vertex::set_v(size_t i, Vertex to) {  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
         cheapAssert(repr == to.repr); repr->vertices_topology[idx].v[i] = to.idx;
     }
-    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    void Vertex::set_vnum(short to) {  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
         repr->vertices_topology[idx].vnum = to;
     }
     void Vertex::set_v2num(short to) {  //  number of 1, or 2-hop neighbors                          
@@ -8288,7 +8288,7 @@ namespace SurfaceFromMRIS {
         return repr->nstrips;
     }
     Vertex Surface::vertices(size_t i) const {
-        return Vertex(repr,i);
+        return Vertex(repr, i);
     }
     p_p_void Surface::dist_storage() const {  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
         return repr->dist_storage;
@@ -8300,7 +8300,7 @@ namespace SurfaceFromMRIS {
         return repr->tempsAssigned;
     }
     Face Surface::faces(size_t i) const {
-        return Face(repr,i);
+        return Face(repr, i);
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
@@ -8351,13 +8351,13 @@ namespace SurfaceFromMRIS {
         return repr->z0;
     }
     Vertex Surface::v_temporal_pole() const {
-        return Vertex(repr,repr->v_temporal_pole - repr->vertices);
+        return Vertex(repr, repr->v_temporal_pole - repr->vertices);
     }
     Vertex Surface::v_frontal_pole() const {
-        return Vertex(repr,repr->v_frontal_pole - repr->vertices);
+        return Vertex(repr, repr->v_frontal_pole - repr->vertices);
     }
     Vertex Surface::v_occipital_pole() const {
-        return Vertex(repr,repr->v_occipital_pole - repr->vertices);
+        return Vertex(repr, repr->v_occipital_pole - repr->vertices);
     }
     float Surface::max_curv() const {
         return repr->max_curv;
