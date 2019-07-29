@@ -5,6 +5,11 @@
  *
  * Changing the endpoint values to a different value
  *
+ * ./dmri_changeEndpoints -i /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/dmri.ac/ushape/clusters/ctx-rh-lateraloccipital.trk -sl /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/surf/lh.white -sr /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/surf/rh.white -ol ctx.lateraloccipital -or ctx.lateraloccipital -itk /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/mri/wmparc.nii.gz -fs /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/mri/wmparc.mgz
+ *
+ *
+ *
+ *
  */
 
 const int ENDPOINT_VALUE = 1;
@@ -82,7 +87,7 @@ int main(int narg, char* arg[])
                 cerr << "Usage: " << endl
                      << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
 		     << "                       -ol left_overlayFile -or right_overlayFile" << endl 
-		     << "			-itk ITK_volumeFile -fs FS_volumeFile" << endl;
+		     << "		       -itk ITK_volumeFile -fs FS_volumeFile" << endl;
 
                 return EXIT_FAILURE;
         }
@@ -160,10 +165,10 @@ int main(int narg, char* arg[])
 	MRI_SURFACE *surfL;
         surfL = MRISread(surfaceFileL);
 
-        SurfType::Pointer surfaceL = SurfType::New();
-        surfaceL->Load(&*surfL);
+        //SurfType::Pointer surfaceL = SurfType::New();
+        //surfaceL->Load(&*surfL);
 
-        surfL = surfaceL->GetFSSurface(&*surfL);
+        //surfL = surfaceL->GetFSSurface(&*surfL);
 	
 	vtkSmartPointer<vtkPolyData> surfVTK_L = FSToVTK(surfL);
 
@@ -175,10 +180,10 @@ int main(int narg, char* arg[])
 	MRI_SURFACE *surfR;
         surfR = MRISread(surfaceFileR);
 
-        SurfType::Pointer surfaceR = SurfType::New();
-        surfaceR->Load(&*surfR);
+        //SurfType::Pointer surfaceR = SurfType::New();
+        //surfaceR->Load(&*surfR);
 
-        surfR = surfaceR->GetFSSurface(&*surfR);
+        //surfR = surfaceR->GetFSSurface(&*surfR);
 
 	vtkSmartPointer<vtkPolyData> surfVTK_R = FSToVTK(surfR);
 
