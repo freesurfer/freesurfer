@@ -3066,6 +3066,24 @@ int MRIS_facesAtVertices_reorder(MRIS *apmris)
 }
 
 
+static void dumpFacesAroundVertex(MRIS* mris, int vno)
+{
+  using namespace SurfaceFromMRIS::Topology;
+  fprintf(stdout, "Dumping faces around vno:%d\n",vno);
+  Vertex  vertex(mris,vno);
+  auto const numFaces = vertex.num(); 
+  for (size_t vi = 0; vi < numFaces; vi++) {
+    auto face = vertex.f(vi);
+    fprintf(stdout, "  vi:%d is face:%d with vertices",vno,face.fno());
+    for (size_t vi = 0; vi < VERTICES_PER_FACE; vi++) {
+      auto v = face.v(vi);
+      fprintf(stdout, " %d",v.vno());
+    }
+    fprintf(stdout, "\n");
+  }
+}
+
+    
 static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometricOrder)
 {
   //
@@ -3141,7 +3159,15 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
   }
   VectorFree(&pv_commonVertices);
   xDbg_PopStack();
-  if (packedCount != nfaces)
+
+  static size_t count, limit = 1;  
+  if (count++ == limit && getenv("BEVIN_TESTING_dumpFacesAroundVertex")) {
+    limit *= 2;
+    dumpFacesAroundVertex(apmris,avertex);
+  }
+  
+  if (packedCount != nfaces) {
+    dumpFacesAroundVertex(apmris,avertex);
     ErrorReturn(-4,
                 (-4,
                  "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
@@ -3149,6 +3175,7 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
                  avertex,
                  nfaces,
                  packedCount));
-
+  }
+  
   return 1;
 }
