@@ -174,13 +174,11 @@ int main(int narg, char* arg[])
 	}
 
 	// Loading the TRK files into a mesh
-	ImageType::Pointer mask;	
-
 	vector<ColorMeshType::Pointer>* meshes;
 	vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
-	clusterTools->GetPolyDatas(TRKFiles, &polydatas, mask);
+	clusterTools->GetPolyDatas(TRKFiles, &polydatas, volumes.at(0));
 	meshes = clusterTools->PolydataToMesh(polydatas);
 	
 	//Loading the surface for each hemisphere and metric
