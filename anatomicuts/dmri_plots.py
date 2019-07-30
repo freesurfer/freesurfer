@@ -4,12 +4,6 @@
 # July 2019
 # plots.py
 
-#Now be able to take in multiple csv files, calculate the average of each column for each file, then plot the averages of each column for each file
-#Number of plots in violin = Number of files
-#Number of violins = number of columns
-
-# Find the matching file names in each subject's directory, take the average, then plot
-
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -21,8 +15,6 @@ if len(sys.argv) != 4:
     print('Usage: ./executable directory labels structure')
     exit()
 
-# Assign each infant file into a group
-
 # Take in the names and group numbers from the text csv file
 group_df = pd.read_csv(sys.argv[2])
 group_col = group_df.columns
@@ -31,61 +23,132 @@ data = []
 for c in group_col:
     data.append(group_df[c].tolist())
 
-#print(data[1][0])
-
-#print(len(os.listdir(sys.argv[1])))
-
-# Find the highest number group needed
+# Find the highest numerical group in the text csv
 max_group = 1
 for i in range(len(data[0])):
-    #print (data[1][i], max_group)
     if data[1][i] > max_group:
         max_group = data[1][i]
 
-# Create a dictionary of lists: a list for each group number
+# Dictionary to order the infants in accordance to their group number
 inf_to_group = {k: [] for k in range(1, max_group + 1)}
 
-# Iterate thru the text csv file and sort the groups
+# Iterate through the text csv file and sort the groups
 for i in range(len(data[0])):
     for j in range(len(os.listdir(sys.argv[1]))):
-        print(data[0][i], os.listdir(sys.argv[1])[j])
         if data[0][i] == os.listdir(sys.argv[1])[j]:
-            print(data[1][i], data[0][i])
             inf_to_group[data[1][i]].append(data[0][i])
-    
-print(inf_to_group)
-print(inf_to_group[2])
-
-
-# Find the files (left/right) of the structure named in the input
 
 # Collect the names of the csv files based on order of groups
-directory = sys.argv[1]
 file_names = {k: [] for k in range(1, max_group + 1)}
 
-# Case if key has no value?
+main_directory = sys.argv[1]
+
+# Loop through the groups
 for i in range(1, len(inf_to_group) + 1):
+    # Continue if no value is present
+    if (inf_to_group[i] == []):
+        continue
+
+    # Loop through each subject within a group
     for j in range(len(inf_to_group[i])):
-        print (inf_to_group[i])
-        directory = inf_to_group[i][j]
-        print(directory)
+        subject = inf_to_group[i][j]
 
-# Place this loop into previous one
-for subdir, dirs, files in os.walk(directory):
-    for file in files:
-        filepath = subdir + os.sep + file
+        # Iterate through the main directory from the command line
+        for subdir, dirs, files in os.walk(main_directory): 
+            
+            # Get the name of each file
+            for file in files:
+                filepath = subdir + os.sep + file
 
-        if filepath.endswith(sys.argv[3] + '.csv'):
-            print (filepath)
-            file_names.append(filepath)
+                # Filter out the files based on the input from command line
+                if filepath.endswith(sys.argv[3] + '.csv') and subject in filepath:
+                    file_names[i].append(filepath)
 
-print (file_names)
+# Find the maximum amount of files within one group to set width of plots
+max_files_in_group = 0
+for i in range(1, len(file_names) + 1):
+    if len(file_names[i]) > max_files_in_group:
+        max_files_in_group = len(file_names[i])
 
-# Calculate the means of each file
+# Take in one sample csv file to find amount of plots needed
+sample_df = pd.read_csv(file_names[1][0])
 
-# 4 means total: G1L, G1R, G2L, G2R
+num_plots = len(sample_df.columns) - 1
+
+# Set dimensions of plots. Height concerns both sides, so must be doubled what the largest group is
+height = 2 * max_group
+width = max_files_in_group / 2
+width = int(width)
+
+# Collect the value type names. This assumes the first column name is irrelevant
+xticklabels=list(sample_df.columns.values.tolist()[1:])
+
+# Create a 4x2 plot for each value type
+for k in range(num_plots):
+    single_plot = [[0 for x in range(width)] for y in range(height)]
+
+    # Restart to the first row
+    row_iter = 0
+
+    # Loop through each group 
+    for i in range(1, len(file_names) + 1):
+        # Reset to the first subject data for both sides
+        l_col_iter = 0
+        r_col_iter = 0
+
+        # Loop though each file within each group
+        for j in range(len(file_names[i])):
+
+            # Find files of the left side
+            if 'left' in file_names[i][j].lower() or 'lh' in file_names[i][j].lower():
+                
+                df = pd.read_csv(file_names[i][j])
+    
+                means = df.mean(axis = 0)
+               
+                # Isolate the desired mean value for this specific plot and map it
+                single_plot[row_iter][l_col_iter] = means[k]
+
+                # Advance a column only on left side to the next subject in the same group 
+                l_col_iter+=1
+
+            # Same idea as code for mapping the left side values
+            elif 'right' in file_names[i][j].lower() or 'rh' in file_names[i][j].lower():
+
+                # Briefly move to the next row so does not overlap with left side data
+                row_iter+=1
+                
+                df = pd.read_csv(file_names[i][j])
+
+                means = df.mean(axis = 0)
+
+                # On a separate row and with a separate column iterator, fill in data
+                single_plot[row_iter][r_col_iter] = means[k]
+
+                # Advance on right side to the next column, and return to the proper row
+                r_col_iter+=1
+                row_iter-=1
+
+        # For each sequential group, skip 2 rows
+        row_iter+=2
+
+    #Violin plots
+    plt.figure(xticklabels[k]) 
+    plt.violinplot(single_plot, showmeans=True)
+    
+    # Plot logistics
+    plt.title(xticklabels[k])
+    plt.xlabel('Group')
+    plt.ylabel('Observed Values')
+
+    # Label the x axis more specifically
 
 
+# Print out all the plots
+plt.show()
+
+
+# Code to read in one csv file and isolate the different types of values
 '''
 # Read in one file to get the dimensions
 sample_df = pd.read_csv(sys.argv[1])
@@ -109,9 +172,7 @@ for i in range(1, height + 1):
 
     print (means[1])
 
-'''
 
-'''
     # Read in data by columns. This assumes that the first column has irrelevant data
     j = 0
     columns = df.columns
@@ -142,6 +203,7 @@ for i in range(width):
     plt.ylabel('Observed Values')
 '''
 
+# Code to print out both a violin plot and box plot with all data represented in both
 '''
 # Violin plot
 #for i in range(width):
@@ -168,4 +230,4 @@ plt.setp(axes, xticks=[y + 1 for y in range(len(means))],
          xticklabels=list(sample_df.columns.values.tolist()[1:]))
 '''
 # Print out the plots
-#plt.show()
+# plt.show()
