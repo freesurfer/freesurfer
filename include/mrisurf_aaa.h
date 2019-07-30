@@ -30,7 +30,7 @@
 #include "matrix.h"
 #include "dmatrix.h"
 
-#define MAX_NEIGHBORS (400)
+#define MAX_NEIGHBORS (1024)
 #define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 
 #define MAX_SURFACES 20
