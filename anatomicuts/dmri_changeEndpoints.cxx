@@ -5,11 +5,6 @@
  *
  * Changing the endpoint values to a different value
  *
- * ./dmri_changeEndpoints -i /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/dmri.ac/ushape/clusters/ctx-rh-lateraloccipital.trk -sl /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/surf/lh.white -sr /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/surf/rh.white -ol ctx.lateraloccipital -or ctx.lateraloccipital -itk /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/mri/wmparc.nii.gz -fs /space/vault/7/users/vsiless/alex/FS_STRUCTURE/INF003/mri/wmparc.mgz
- *
- *
- *
- *
  */
 
 const int ENDPOINT_VALUE = 1;
@@ -151,24 +146,17 @@ int main(int narg, char* arg[])
 	     << "FS Volume File:     " << FS_volumeFile  << endl;
 
 	// Loading the TRK files into a mesh
-	ImageType::Pointer mask;
-
         vector<ColorMeshType::Pointer>* meshes;
         vector<vtkSmartPointer<vtkPolyData>> polydatas;
 
         ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
-        clusterTools->GetPolyDatas(TRKFile, &polydatas, mask);
+        clusterTools->GetPolyDatas(TRKFile, &polydatas, volume);
         meshes = clusterTools->PolydataToMesh(polydatas);
 
 	// Loading the Surface files and initialization of the KdTree
 	// Left Hemisphere
 	MRI_SURFACE *surfL;
         surfL = MRISread(surfaceFileL);
-
-        //SurfType::Pointer surfaceL = SurfType::New();
-        //surfaceL->Load(&*surfL);
-
-        //surfL = surfaceL->GetFSSurface(&*surfL);
 	
 	vtkSmartPointer<vtkPolyData> surfVTK_L = FSToVTK(surfL);
 
@@ -179,11 +167,6 @@ int main(int narg, char* arg[])
 	// Right Hemisphere
 	MRI_SURFACE *surfR;
         surfR = MRISread(surfaceFileR);
-
-        //SurfType::Pointer surfaceR = SurfType::New();
-        //surfaceR->Load(&*surfR);
-
-        //surfR = surfaceR->GetFSSurface(&*surfR);
 
 	vtkSmartPointer<vtkPolyData> surfVTK_R = FSToVTK(surfR);
 
@@ -208,7 +191,7 @@ int main(int narg, char* arg[])
 
 		ImageType::IndexType index;
 		volume->TransformPhysicalPointToIndex(point, index);
-
+		
 		MRIvoxelToSurfaceRAS(image, index[0], index[1], index[2], &point_array[0], &point_array[1], &point_array[2]);
 
 		// Finds closest point and sets value equal to ENDPOINT_VALUE
@@ -217,13 +200,10 @@ int main(int narg, char* arg[])
                 vtkIdType Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
                 vtkIdType ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
-		if (ID == Left_ID) {
+		if (ID == Left_ID)
 			surfL->vertices[ID].curv = ENDPOINT_VALUE;
-			cerr << "Left ID1: " << ID << endl;
-		} else {
+		else
 			surfR->vertices[ID].curv = ENDPOINT_VALUE;
-			cerr << "Right ID1: " << ID << endl;
-		}
 
 		// Finding last point in the stream
 		for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
@@ -237,13 +217,10 @@ int main(int narg, char* arg[])
                 Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
                 ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
-		if (ID == Left_ID){
+		if (ID == Left_ID)
 			surfL->vertices[ID].curv = ENDPOINT_VALUE;
-			cerr << "Left ID2: " << ID << endl;
-		} else {
+		else
 			surfR->vertices[ID].curv = ENDPOINT_VALUE;
-			cerr << "Right ID2: " << ID << endl;
-		}
 
 		cerr << endl;	
 	}
