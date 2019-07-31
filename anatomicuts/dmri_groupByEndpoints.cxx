@@ -393,18 +393,81 @@ bool check_string(string ref)
 bool compare_strings(string ref, string s)
 {
 	// checks if the structure is cortical
-	if ((s.find("ctx") == -1) or (s.find("Cortex") == -1))
+	if ((s.find("ctx") == -1) or (s.find("Cortex") == -1)) {
+		cerr << "Did not find cortex in nonreference structure" << endl;
 		return false;
+	}
 
 	// Determines whether reference string is left or right
 	bool ref_left;
 
-	if (ref.find("lh") != -1 or ref.find("Left") != -1)
+	if ((ref.find("lh") != -1) or (ref.find("Left") != -1))
 		ref_left = true;
 	else
 		ref_left = false;
 
 	// Determines whether the other string is left or right
+	bool left;
 
-	return false;
+	if ((s.find("lh") != -1) or (s.find("Left") != -1))
+		left = true;
+	else
+		left = false;
+
+	cerr << "Reference Structure Left? " << ref_left << endl;
+	cerr << "Other Structure Left?     " << left << endl; 
+
+	// checks if the hemispheres match
+	if (ref_left != left)
+		return false;
+
+	// isolating the ref string structure
+	string ref_struct, structure;
+	
+	if (ref_left)
+	{
+		if (ref.find("lh") != -1)
+			ref_struct = ref.substr(ref.find("lh") + 3);
+		else
+			ref_struct = ref.substr(6, ref.size() - ref.find("White") - 1);
+	} 
+	else 
+	{
+		if (ref.find("rh") != -1)
+			ref_struct = ref.substr(ref.find("rh") + 3);
+		else
+			ref_struct = ref.substr(7, ref.size() - ref.find("White") - 1);
+	}
+
+	// isolating s string structure
+	if (left)
+	{
+		if (s.find("lh") != -1)
+			structure = s.substr(s.find("lh") + 3);
+		else
+			structure = s.substr(6, s.size() - s.find("Cortex") - 1);
+	}
+	else
+	{
+		if (s.find("rh") != -1)
+			structure = s.substr(s.find("rh") + 3);
+		else
+			structure = s.substr(7, s.size() - s.find("Cortex") - 1);
+	}
+
+	// Making sure no hyphen is left in the structure
+	if (ref_struct[-1] == "-")
+		ref_struct = ref_struct.substr(0, ref_struct.size() - 2);
+
+	if (structure[-1] == "-")
+		structure = structure.substr(0, structure.size() - 2);
+
+	cerr << "Reference Structure: " << ref_struct << endl;
+	cerr << "Other Structure:     " << structure << endl;
+
+	// if the structures don't match
+	if (ref_struct != structure)
+		return false;
+
+	return true;
 }
