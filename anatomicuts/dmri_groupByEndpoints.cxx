@@ -388,5 +388,5 @@ bool check_string(string ref)
 
 bool compare_strings(string ref, string s)
 {
-
+	cout << hello << endl;
 }
