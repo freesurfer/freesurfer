@@ -32,6 +32,7 @@
 using namespace std;
 
 bool check_string(string ref); 
+bool compare_strings(string ref, string s)
 
 int main(int narg, char* arg[]) 
 {
@@ -101,7 +102,7 @@ int main(int narg, char* arg[])
 	ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin(); 
 
 	//Variables to hold the start and end values of a streamline
-	float val1, val2; 
+	int val1, val2; 
 
 	//Map of the region values to their corresponding meshes and other information
 	map<int, ColorMeshType::Pointer> sorted_meshes; 
@@ -117,13 +118,12 @@ int main(int narg, char* arg[])
 		unsigned char b;
 	} color_triplet2;
 
-                        //Code to help extract the name of the structure based on the value
-                        COLOR_TABLE *ct;
-                        FSENV *fsenv = FSENVgetenv();
-                        char tmpstr[2000];
-                        sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
-                        ct = CTABreadASCII(tmpstr);
-
+        //Code to help extract the name of the structure based on the value
+        COLOR_TABLE *ct;
+        FSENV *fsenv = FSENVgetenv();
+        char tmpstr[2000];
+        sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+        ct = CTABreadASCII(tmpstr);
 
 	//Testing variables
 	ImageType::IndexType index1, index2; 
@@ -133,7 +133,7 @@ int main(int narg, char* arg[])
 	{
 		val1 = 0, val2 = 0; 
 
-		PointType end, before_end;
+		PointType start, second, end, before_end;
 	        end.Fill(0); 
        		before_end.Fill(0); 	       
 
@@ -148,7 +148,7 @@ int main(int narg, char* arg[])
 			input->GetPoint(*it, &pt);
 	
 			ImageType::IndexType index; 
-			float value = 0; 
+			int value = 0; 
 
 			//Find the first and last nonzero values based on the transformation of the point
 			if (inputImage->TransformPhysicalPointToIndex(pt, index))
@@ -157,37 +157,32 @@ int main(int narg, char* arg[])
 				if (val1 == 0 and value != 0)
 				{
 					val1 = value; 
+					input->GetPoint(*it, start); 
+					input->GetPoint(*(it + 1), second); 
 				}
-				if (value != 0)
+				if (value != 0 and it != inputCellIt.Value()->PointIdsBegin())
 				{
 					val2 = value; 
+					input->GetPoint(*it, &end); 
+					input->GetPoint(*(it - 1), &before_end); 
 				}
-			}
-
-			if (it == inputCellIt.Value()->PointIdsEnd() - 1) 
-			{
-				input->GetPoint(*it, &end);
-			}
-			else
-			{
-				input->GetPoint(*it, &before_end);
 			}
 		}  	
 		
-		//If start and end values match, take in that cell Id
-		if (val1 != 0 and val1 == val2)
+		// Add points to the streamline?
+		string str1 = string(ct->entries[val1]->name);
+
+		PointType estimate = start; 
+		
+		for (int i = 0; i < 3; i++) 
 		{
-			int int_val = static_cast<int>(round(val1)); 
-			string str = string(ct->entries[int_val]->name);
-
-			if (check_string(str))
+			if (check_string(str1))
 			{
-				PointType vector = end - before_end; 
-				PointType estimate;
+				PointType vector = start - second; 
 
-				estimate[0] = end[0] + vector[0]; 
-				estimate[1] = end[1] + vector[1]; 
-				estimate[2] = end[2] + vector[2]; 
+				estimate[0] = estimate[0] + vector[0]; 
+				estimate[1] = estimate[1] + vector[1]; 
+				estimate[2] = estimate[2] + vector[2]; 
 
 				ImageType::IndexType test_index; 
 				int test_value; 
@@ -195,15 +190,53 @@ int main(int narg, char* arg[])
 				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
 				{
 					test_value = inputImage->GetPixel(test_index);
-					int int_val = static_cast<int>(round(test_value));
-		                        str = string(ct->entries[test_value]->name);
+		                        str1 = string(ct->entries[test_value]->name);
 				}
 
-				cerr << "test value: " << test_value << " with string: " << str << endl; 
+				cerr << "Test value: " << test_value << " with string: " << str << endl; 
 			}
 
+			if (!check_string(str1))
+				break; 
+			
+		}
+
+		string str2 = string(ct->entries[val2]->name);
+
+		estimate = end; 
+		
+		for (int i = 0; i < 3; i++) 
+		{
+			if (check_string(str2))
+			{
+				PointType vector = end - before_end; 
+
+				estimate[0] = estimate[0] + vector[0]; 
+				estimate[1] = estimate[1] + vector[1]; 
+				estimate[2] = estimate[2] + vector[2]; 
+
+				ImageType::IndexType test_index; 
+				int test_value; 
+
+				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
+				{
+					test_value = inputImage->GetPixel(test_index);
+		                        str1 = string(ct->entries[test_value]->name);
+				}
+
+				cerr << "Test value: " << test_value << " with string: " << str << endl; 
+			}
+
+			if (!check_string(str2))
+		//See if val1 and val2 change and != 0 to indicate change in region
+			
+		}
 
 
+
+		//If start and end values match, take in that cell Id
+		if (val1 != 0 and val1 == val2)
+		{
 			//Obtain the mesh and related information associated with the value
 			if (sorted_meshes.count(val1) == 0)
 			{
@@ -351,4 +384,9 @@ bool check_string(string ref)
 	}
 
 	return false; 
+}
+
+bool compare_strings(string ref, string s)
+{
+
 }
