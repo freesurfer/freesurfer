@@ -11,6 +11,8 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <stdio.h>
+#include <ctype.h>
 
 #include <itkImage.h>
 #include <itkImageFileReader.h>
@@ -28,6 +30,8 @@
 #include "ClusterTools.h"
 
 using namespace std;
+
+bool check_string(string ref); 
 
 int main(int narg, char* arg[]) 
 {
@@ -113,6 +117,13 @@ int main(int narg, char* arg[])
 		unsigned char b;
 	} color_triplet2;
 
+                        //Code to help extract the name of the structure based on the value
+                        COLOR_TABLE *ct;
+                        FSENV *fsenv = FSENVgetenv();
+                        char tmpstr[2000];
+                        sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+                        ct = CTABreadASCII(tmpstr);
+
 
 	//Testing variables
 	ImageType::IndexType index1, index2; 
@@ -121,6 +132,10 @@ int main(int narg, char* arg[])
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
 		val1 = 0, val2 = 0; 
+
+		PointType end, before_end;
+	        end.Fill(0); 
+       		before_end.Fill(0); 	       
 
 		//Make a variable to iterate thru one stream at a time
 		CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); 
@@ -149,11 +164,46 @@ int main(int narg, char* arg[])
 				}
 			}
 
+			if (it == inputCellIt.Value()->PointIdsEnd() - 1) 
+			{
+				input->GetPoint(*it, &end);
+			}
+			else
+			{
+				input->GetPoint(*it, &before_end);
+			}
 		}  	
 		
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
+			int int_val = static_cast<int>(round(val1)); 
+			string str = string(ct->entries[int_val]->name);
+
+			if (check_string(str))
+			{
+				PointType vector = end - before_end; 
+				PointType estimate;
+
+				estimate[0] = end[0] + vector[0]; 
+				estimate[1] = end[1] + vector[1]; 
+				estimate[2] = end[2] + vector[2]; 
+
+				ImageType::IndexType test_index; 
+				int test_value; 
+
+				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
+				{
+					test_value = inputImage->GetPixel(test_index);
+					int int_val = static_cast<int>(round(test_value));
+		                        str = string(ct->entries[test_value]->name);
+				}
+
+				cerr << "test value: " << test_value << " with string: " << str << endl; 
+			}
+
+
+
 			//Obtain the mesh and related information associated with the value
 			if (sorted_meshes.count(val1) == 0)
 			{
@@ -231,13 +281,6 @@ int main(int narg, char* arg[])
 
 	i = 0; 
 
-	//Code to help extract the name of the structure based on the value
-	COLOR_TABLE *ct; 
-	FSENV *fsenv = FSENVgetenv(); 
-	char tmpstr[2000]; 
-	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME); 
-	ct = CTABreadASCII(tmpstr); 
-
 	//Print out the output trk file for each mesh with a unique key	
 	for (map<int, ColorMeshType::Pointer>::iterator iter = sorted_meshes.begin(); iter != sorted_meshes.end(); iter++)
 	{
@@ -245,7 +288,8 @@ int main(int narg, char* arg[])
 		
 		//Name the output trk file based on the structure name associated with its value
 		string str = string(ct->entries[iter->first]->name); 
-		
+		cout << iter->first << " " << str << endl; 	
+
 		string filename = str + ".trk"; 
 		outputName = string(output) + "/" + filename; 
 
@@ -278,4 +322,33 @@ int main(int narg, char* arg[])
 	cellIndices.clear(); 
 
 	return 0; 	
+}
+
+// Checks if the inputted string contains "wm" or "White"
+bool check_string(string ref) 
+{
+	// Find the index of 'w' if it exists
+	int w_pos = ref.find_first_of('w');
+	if (w_pos == -1)
+		w_pos = ref.find_first_of('W'); 
+
+	// False if nonexistent 
+	if (w_pos == -1 or w_pos == ref.length() - 1)
+		return false; 
+	
+	// Search subsequent characters after 'w'
+	if (ref[w_pos + 1] == 'm')
+		return true; 
+	else if (ref[w_pos + 1] == 'h')
+	{
+		if (w_pos < ref.length() - 4)
+		{
+			if (ref.substr(w_pos, 5) == "White" or ref.substr(w_pos, 5) == "white")
+			{
+				return true; 
+			}
+		}
+	}
+
+	return false; 
 }
