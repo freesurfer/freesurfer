@@ -357,6 +357,26 @@ int main(int narg, char* arg[])
 	return 0; 	
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Checks if the inputted string contains "wm" or "White"
 bool check_string(string ref) 
 {
