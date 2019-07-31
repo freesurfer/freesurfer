@@ -128,6 +128,7 @@ int main(int narg, char* arg[])
 	//Testing variables
 	ImageType::IndexType index1, index2; 
 
+	
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
@@ -173,6 +174,7 @@ int main(int narg, char* arg[])
 		int new_val1, new_val2; 
 
 		string str1 = string(ct->entries[val1]->name);
+		string str_mod1; 
 
 		PointType estimate = start; 
 		PointType vector = start - second; 
@@ -190,7 +192,7 @@ int main(int narg, char* arg[])
 				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
 				{
 					new_val1 = inputImage->GetPixel(test_index);
-		                        str1 = string(ct->entries[new_val1]->name);
+		                        str_mod1 = string(ct->entries[new_val1]->name);
 				}
 
 				//cerr << "Test value: " << new_val1 << " with string: " << str1 << i << endl; 
@@ -201,7 +203,20 @@ int main(int narg, char* arg[])
 			
 		}
 
+		if (check_string(str1)) 
+		{
+			if (compare_strings(str1, str_mod1))
+			{
+				val1 = new_val1; 
+			} 
+			else
+			{
+				val1 = 0; 
+			}
+		}
+
 		string str2 = string(ct->entries[val2]->name);
+		string str_mod2; 	
 
 		estimate = end; 
 		vector = end - before_end; 
@@ -219,7 +234,7 @@ int main(int narg, char* arg[])
 				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
 				{
 					new_val2 = inputImage->GetPixel(test_index);
-					str2 = string(ct->entries[new_val2]->name);
+					str_mod2 = string(ct->entries[new_val2]->name);
 				}
 
 				//cerr << "Test value: " << new_val2 << " with string: " << str2 << i << endl; 
@@ -227,25 +242,20 @@ int main(int narg, char* arg[])
 
 			if (!check_string(str2))
 				break; 
-		//See if val1 and val2 change and != 0 to indicate change in region
-			
 		}
 		
-		/*
-		if (check_string(str1) or check_string(str2))
+		if (check_string(str2))
 		{
-			cerr << "Rejecting " << str1 << " and " << str2 << endl; 
-			val1 = 0;
+			if (compare_strings(str2, str_mod2))
+			{
+				val2 = new_val2; 
+			}
+			else
+			{
+				val2 = 0; 
+			}
 		}
-		
-		else if (str1 == str2)
-		{
-			val1 = new_val1; 
-			val2 = new_val2; 
-			cerr << "Value1: " << val1 << " and Value2: " << val2 << endl; 
-		}
-		*/	
-		
+
 		//If start and end values match, take in that cell Id
 		if (val1 != 0 and val1 == val2)
 		{
@@ -405,8 +415,8 @@ bool check_string(string ref)
 bool compare_strings(string ref, string s)
 {
 	// checks if the structure is cortical
-	if ((s.find("ctx") == -1) or (s.find("Cortex") == -1)) {
-		cerr << "Did not find cortex in nonreference structure" << endl;
+	if ((s.find("ctx") == -1) and (s.find("Cortex") == -1)) {
+		//cerr << "Did not find cortex in nonreference structure" << endl;
 		return false;
 	}
 
@@ -426,8 +436,8 @@ bool compare_strings(string ref, string s)
 	else
 		left = false;
 
-	cerr << "Reference Structure Left? " << ref_left << endl;
-	cerr << "Other Structure Left?     " << left << endl; 
+	//cerr << "Reference Structure Left? " << ref_left << endl;
+	//cerr << "Other Structure Left?     " << left << endl; 
 
 	// checks if the hemispheres match
 	if (ref_left != left)
@@ -441,14 +451,20 @@ bool compare_strings(string ref, string s)
 		if (ref.find("lh") != -1)
 			ref_struct = ref.substr(ref.find("lh") + 3);
 		else
-			ref_struct = ref.substr(6, ref.size() - ref.find("White") - 1);
+		{
+			ref_struct = ref.substr(5, ref.size() - ref.find("Matter") - 1);
+			ref_struct = ref_struct.substr(0, ref_struct.size() - ref_struct.find("White") - 1);
+		}
 	} 
 	else 
 	{
 		if (ref.find("rh") != -1)
 			ref_struct = ref.substr(ref.find("rh") + 3);
 		else
-			ref_struct = ref.substr(7, ref.size() - ref.find("White") - 1);
+		{
+			ref_struct = ref.substr(6, ref.size() - ref.find("Matter") - 1);
+			ref_struct = ref_struct.substr(0, ref_struct.size() - ref_struct.find("White") - 1);
+		}
 	}
 
 	// isolating s string structure
@@ -457,25 +473,25 @@ bool compare_strings(string ref, string s)
 		if (s.find("lh") != -1)
 			structure = s.substr(s.find("lh") + 3);
 		else
-			structure = s.substr(6, s.size() - s.find("Cortex") - 1);
+			structure = s.substr(5, s.size() - s.find("Cortex") - 1);
 	}
 	else
 	{
 		if (s.find("rh") != -1)
 			structure = s.substr(s.find("rh") + 3);
 		else
-			structure = s.substr(7, s.size() - s.find("Cortex") - 1);
+			structure = s.substr(6, s.size() - s.find("Cortex") - 1);
 	}
 
 	// Making sure no hyphen is left in the structure
-	if (ref_struct[-1] == "-")
+	if (ref_struct[-1] == '-')
 		ref_struct = ref_struct.substr(0, ref_struct.size() - 2);
 
-	if (structure[-1] == "-")
+	if (structure[-1] == '-')
 		structure = structure.substr(0, structure.size() - 2);
 
-	cerr << "Reference Structure: " << ref_struct << endl;
-	cerr << "Other Structure:     " << structure << endl;
+	//cerr << "Reference Structure: " << ref_struct << endl;
+	//cerr << "Other Structure:     " << structure << endl;
 
 	// if the structures don't match
 	if (ref_struct != structure)
