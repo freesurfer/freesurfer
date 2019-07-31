@@ -4,7 +4,7 @@
 Author: Alexander Zsikla
 Advisor: Viviana Siless
 Time: Summer 2019
-Name: runProject.sh
+Name: bundleAnalysis.sh
 
 Takes in a patient and a possible option and produces metrics about the endpoints in order to analyze
 
@@ -12,11 +12,13 @@ Takes in a patient and a possible option and produces metrics about the endpoint
 
 # Checking correct amount of inputs
 if [ $# == 0 ]; then
-	echo "Usage: ./name.sh <Patient File Directory> <Option: DTI>"
+	echo "Usage: $0 <Patient File Directory> <Option: DTI>"
 	exit 0
 fi
 
 #Making Directories
+cd $1
+mkdir dmri.ac
 cd $1/dmri.ac
 mkdir ushape
 cd ushape
