@@ -357,26 +357,6 @@ int main(int narg, char* arg[])
 	return 0; 	
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Checks if the inputted string contains "wm" or "White"
 bool check_string(string ref) 
 {
@@ -406,7 +386,25 @@ bool check_string(string ref)
 	return false; 
 }
 
+// compare_strings
+// Inputs: a reference structure and another strucutre s
+// Returns: a boolean of whether the strucutres match
+// Does: whether the two structures match in hemisphere and region as well as if the nonreference structure is cortical
 bool compare_strings(string ref, string s)
 {
-	cout << hello << endl;
+	// checks if the structure is cortical
+	if ((s.find("ctx") == -1) or (s.find("Cortex") == -1))
+		return false;
+
+	// Determines whether reference string is left or right
+	bool ref_left;
+
+	if (ref.find("lh") != -1 or ref.find("Left") != -1)
+		ref_left = true;
+	else
+		ref_left = false;
+
+	// Determines whether the other string is left or right
+
+	return false;
 }
