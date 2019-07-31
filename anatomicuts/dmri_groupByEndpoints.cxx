@@ -175,16 +175,15 @@ int main(int narg, char* arg[])
 		string str1 = string(ct->entries[val1]->name);
 
 		PointType estimate = start; 
-		
+		PointType vector = start - second; 
+	
 		for (int i = 0; i < 3; i++) 
 		{
 			if (check_string(str1))
 			{
-				PointType vector = start - second; 
-
-				estimate[0] = estimate[0] + vector[0]; 
-				estimate[1] = estimate[1] + vector[1]; 
-				estimate[2] = estimate[2] + vector[2]; 
+				estimate[0] += vector[0]; 
+				estimate[1] += vector[1]; 
+				estimate[2] += vector[2]; 
 
 				ImageType::IndexType test_index; 
 
@@ -194,7 +193,7 @@ int main(int narg, char* arg[])
 		                        str1 = string(ct->entries[new_val1]->name);
 				}
 
-				cerr << "Test value: " << new_val1 << " with string: " << str1 << endl; 
+				//cerr << "Test value: " << new_val1 << " with string: " << str1 << i << endl; 
 			}
 
 			if (!check_string(str1))
@@ -205,13 +204,12 @@ int main(int narg, char* arg[])
 		string str2 = string(ct->entries[val2]->name);
 
 		estimate = end; 
-		
+		vector = end - before_end; 
+
 		for (int i = 0; i < 3; i++) 
 		{
 			if (check_string(str2))
 			{
-				PointType vector = end - before_end; 
-
 				estimate[0] = estimate[0] + vector[0]; 
 				estimate[1] = estimate[1] + vector[1]; 
 				estimate[2] = estimate[2] + vector[2]; 
@@ -221,10 +219,10 @@ int main(int narg, char* arg[])
 				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
 				{
 					new_val2 = inputImage->GetPixel(test_index);
-					str1 = string(ct->entries[new_val2]->name);
+					str2 = string(ct->entries[new_val2]->name);
 				}
 
-				cerr << "Test value: " << new_val2 << " with string: " << str2 << endl; 
+				//cerr << "Test value: " << new_val2 << " with string: " << str2 << i << endl; 
 			}
 
 			if (!check_string(str2))
@@ -232,18 +230,24 @@ int main(int narg, char* arg[])
 		//See if val1 and val2 change and != 0 to indicate change in region
 			
 		}
-
+		
+		/*
 		if (check_string(str1) or check_string(str2))
+		{
+			cerr << "Rejecting " << str1 << " and " << str2 << endl; 
 			val1 = 0;
+		}
+		
 		else if (str1 == str2)
 		{
 			val1 = new_val1; 
 			val2 = new_val2; 
+			cerr << "Value1: " << val1 << " and Value2: " << val2 << endl; 
 		}
-			
-
+		*/	
+		
 		//If start and end values match, take in that cell Id
-		if (val1 != 0 and val2 != 0 and val1 == val2)
+		if (val1 != 0 and val1 == val2)
 		{
 			//Obtain the mesh and related information associated with the value
 			if (sorted_meshes.count(val1) == 0)
