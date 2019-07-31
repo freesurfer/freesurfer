@@ -4,6 +4,13 @@
 # July 2019
 # plots.py
 
+# This program takes in a directory of subjects, a text csv file that organizes the subjects into
+# groups, and the name of a structure that the user wants data for. The program first organizes 
+# the subjects into the numbered groups. For each subject, the corresponding files for the named
+# structure are extracted and organized by whether they're in the left or right hemisphere. The
+# files are then plotted onto violin plots that directly compare each type of mean value and show
+# a plot for each group number and both sides of each group. 
+
 # Import libraries
 import sys
 import os
