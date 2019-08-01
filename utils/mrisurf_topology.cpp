@@ -2078,7 +2078,9 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
   VERTEX          const * const v1  = &mris->vertices         [vno1];
   VERTEX_TOPOLOGY const * const v2t = &mris->vertices_topology[vno2];
   VERTEX          const * const v2  = &mris->vertices         [vno2];
-  
+
+  if (mris->nfaces >= mris->max_faces-1)
+    DiagBreak() ;
   cheapAssert(!(v1->ripflag || v2->ripflag || mris->nvertices >= mris->max_vertices || mris->nfaces >= (mris->max_faces - 1)));
 
   /* check to make sure these vertices or the faces they are part of
