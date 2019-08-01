@@ -72,7 +72,7 @@ void mrisDivideEdge(MRIS * const mris, int const vno1, int const vno2)
         = 2 --> divide edge in half twice, add 3 vertices
         = 3 --> divide edge in half three times, add 7 vertices
 */
-#define MAX_SURFACE_FACES 200000
+#define MAX_SURFACE_FACES 500000
 int MRISdivideEdges(MRIS *mris, int nsubdivisions)
 {
   int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
@@ -12411,7 +12411,7 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
                                 HISTOGRAM *h_dot,
                                 TOPOLOGY_PARMS *parms) {
   fprintf(stderr,
-          "\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
+          "CORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
           defect->defect_number,
           defect->nvertices,
           defect->nchull,
