@@ -125,15 +125,12 @@ int main(int narg, char* arg[])
         sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
         ct = CTABreadASCII(tmpstr);
 
-	//Testing variables
-	ImageType::IndexType index1, index2; 
-
-	
 	//Cycles through each streamline
 	for (int cellId = 0; inputCellIt != input->GetCells()->End(); ++inputCellIt, cellId++)
 	{
 		val1 = 0, val2 = 0; 
 
+		// Points to store the first, second, second to last, and last points
 		PointType start, second, end, before_end;
 	        end.Fill(0); 
        		before_end.Fill(0); 	       
@@ -155,12 +152,16 @@ int main(int narg, char* arg[])
 			if (inputImage->TransformPhysicalPointToIndex(pt, index))
 			{
 				value = inputImage->GetPixel(index); 
+
+				// Find the first nonzero valued point, and store that point and the one after it
 				if (val1 == 0 and value != 0)
 				{
 					val1 = value; 
 					input->GetPoint(*it, &start); 
 					input->GetPoint(*(it + 1), &second); 
 				}
+
+				// Eventually keep the second to last and last points
 				if (value != 0 and it != inputCellIt.Value()->PointIdsBegin())
 				{
 					val2 = value; 
@@ -170,89 +171,100 @@ int main(int narg, char* arg[])
 			}
 		}  	
 		
-		// Add points to the streamline?
+		// Check if the endpoints are within the white matter of a structure
 		int new_val1, new_val2; 
 
 		string str1 = string(ct->entries[val1]->name);
 		string str_mod1; 
 
+		// Store the vector difference between the first and second points
 		PointType estimate = start; 
 		PointType vector = start - second; 
 	
+		// Check 3 times if any predicted points beyond the first reach the cortical structure
 		for (int i = 0; i < 3; i++) 
 		{
+			// If the structure name involves white matter
 			if (check_string(str1))
 			{
+				// Predict a point beyond the first based on the vector
 				estimate[0] += vector[0]; 
 				estimate[1] += vector[1]; 
 				estimate[2] += vector[2]; 
 
 				ImageType::IndexType test_index; 
 
+				//Extract the value of the predictions and hold that value's structure
 				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
 				{
 					new_val1 = inputImage->GetPixel(test_index);
 		                        str_mod1 = string(ct->entries[new_val1]->name);
 				}
-
-				//cerr << "Test value: " << new_val1 << " with string: " << str1 << i << endl; 
 			}
 
+			// Break loop if outside white matter
 			if (!check_string(str1))
 				break; 
 			
 		}
 
+		// See if the mod string is cortical and corresponds in structure
 		if (check_string(str1)) 
 		{
 			if (compare_strings(str1, str_mod1))
 			{
+				// Change the value if the cortical form applies
 				val1 = new_val1; 
 			} 
 			else
 			{
+				// Otherwise discard this streamline
 				val1 = 0; 
 			}
 		}
 
-		string str2 = string(ct->entries[val2]->name);
-		string str_mod2; 	
-
-		estimate = end; 
-		vector = end - before_end; 
-
-		for (int i = 0; i < 3; i++) 
+		// Only bother checking end point if first one is valid
+		if (val1 != 0)
 		{
-			if (check_string(str2))
+			//Same code as above, but predicts points past the last point
+			string str2 = string(ct->entries[val2]->name);
+			string str_mod2; 	
+
+			estimate = end; 
+			vector = end - before_end; 
+
+			for (int i = 0; i < 3; i++) 
 			{
-				estimate[0] = estimate[0] + vector[0]; 
-				estimate[1] = estimate[1] + vector[1]; 
-				estimate[2] = estimate[2] + vector[2]; 
-
-				ImageType::IndexType test_index; 
-
-				if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
+				if (check_string(str2))
 				{
-					new_val2 = inputImage->GetPixel(test_index);
-					str_mod2 = string(ct->entries[new_val2]->name);
+					estimate[0] = estimate[0] + vector[0]; 
+					estimate[1] = estimate[1] + vector[1]; 
+					estimate[2] = estimate[2] + vector[2]; 
+
+					ImageType::IndexType test_index; 
+
+					if (inputImage->TransformPhysicalPointToIndex(estimate, test_index))
+					{
+						new_val2 = inputImage->GetPixel(test_index);
+						str_mod2 = string(ct->entries[new_val2]->name);
+					}
 				}
 
-				//cerr << "Test value: " << new_val2 << " with string: " << str2 << i << endl; 
+				if (!check_string(str2))
+					break; 
 			}
-
-			if (!check_string(str2))
-				break; 
-		}
 		
-		if (check_string(str2))
-		{
-			if (compare_strings(str2, str_mod2))
+			if (check_string(str2))
 			{
-				val2 = new_val2; 
-			}
-			else
-			{
-				val2 = 0; 
+				if (compare_strings(str2, str_mod2))
+				{
+					val2 = new_val2; 
+				}
+				else
+				{
+					val2 = 0; 
+				}
+		
 			}
 		}
 
@@ -309,6 +321,7 @@ int main(int narg, char* arg[])
 		}
 	}
 
+
 	//Initiate the color table to give output meshes unique colors
 	int i;
 	int red, green, blue; 
@@ -343,7 +356,6 @@ int main(int narg, char* arg[])
 		
 		//Name the output trk file based on the structure name associated with its value
 		string str = string(ct->entries[iter->first]->name); 
-		cout << iter->first << " " << str << endl; 	
 
 		string filename = str + ".trk"; 
 		outputName = string(output) + "/" + filename; 
@@ -379,7 +391,10 @@ int main(int narg, char* arg[])
 	return 0; 	
 }
 
-// Checks if the inputted string contains "wm" or "White"
+// check_string
+// Inputs: a string
+// Returns: a boolean 
+// Does: checks if the inputted string contains "wm" or "White"
 bool check_string(string ref) 
 {
 	// Find the index of 'w' if it exists
@@ -415,8 +430,8 @@ bool check_string(string ref)
 bool compare_strings(string ref, string s)
 {
 	// checks if the structure is cortical
-	if ((s.find("ctx") == -1) and (s.find("Cortex") == -1)) {
-		//cerr << "Did not find cortex in nonreference structure" << endl;
+	if ((s.find("ctx") == -1) and (s.find("Cortex") == -1)) 
+	{
 		return false;
 	}
 
@@ -435,9 +450,6 @@ bool compare_strings(string ref, string s)
 		left = true;
 	else
 		left = false;
-
-	//cerr << "Reference Structure Left? " << ref_left << endl;
-	//cerr << "Other Structure Left?     " << left << endl; 
 
 	// checks if the hemispheres match
 	if (ref_left != left)
@@ -489,9 +501,6 @@ bool compare_strings(string ref, string s)
 
 	if (structure[-1] == '-')
 		structure = structure.substr(0, structure.size() - 2);
-
-	//cerr << "Reference Structure: " << ref_struct << endl;
-	//cerr << "Other Structure:     " << structure << endl;
 
 	// if the structures don't match
 	if (ref_struct != structure)
