@@ -2116,7 +2116,7 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 
 // Neighbourhoods
 //
-#define MAX_NEIGHBORS (400)
+#define MAX_NEIGHBORS (1024)
 void mrisVertexReplacingNeighbors(MRIS * mris, int vno, int vnum);
 void mrisForgetNeighborhoods     (MRIS * mris);
 
@@ -2393,6 +2393,7 @@ struct face_topology_type_ {    // not used much yet
 
 // Static function implementations
 //
+#if 0
 static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
   switch (i) {
   case 1: return &v->vnum;
@@ -2401,6 +2402,14 @@ static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EX
   default: cheapAssert(false); return NULL;
   }    
 }
+#endif
+
+short        modVnum  (MRIS const *mris, int vno, short add, bool clearFirst = false);
+static short setVnum  (MRIS const *mris, int vno, short to)     { return modVnum(mris,vno, to,true );     }
+static short clearVnum(MRIS const *mris, int vno)               { return modVnum(mris,vno,  0,true );     }
+static short vnumAdd  (MRIS const *mris, int vno, short add=+1) { return modVnum(mris,vno,add,false)-add; }
+static short addVnum  (MRIS const *mris, int vno, short add=-1) { return modVnum(mris,vno,add,false);     }
+
 static short VERTEXvnum(VERTEX_TOPOLOGY const * v, int i) {
   switch (i) {
   case 1: return v->vnum;

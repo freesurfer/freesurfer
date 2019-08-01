@@ -13502,7 +13502,7 @@ MRIS* MRISclone(MRIS const * mris_src)
       }
     }
     
-    vdstt->vnum     = vsrct->vnum;
+    modVnum(mris_dst,vno,vsrct->vnum,true);
     vdstt->v2num    = vsrct->v2num;
     vdstt->v3num    = vsrct->v3num;
     vdstt->nsizeMax = vsrct->nsizeMax;

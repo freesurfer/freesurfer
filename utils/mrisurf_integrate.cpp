@@ -1653,18 +1653,11 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       double delta_t;
       for (delta_t = delta; delta_t <= max_dt; delta_t += delta) {
         double predicted_sse = starting_sse - grad * delta_t;
-        MRISapplyGradient(mris, delta_t);
-        mrisProjectSurface(mris);
-        MRIScomputeMetricProperties(mris);
-
-        double sse;
-        sse = MRIScomputeSSE(mris, parms);
+        
+        double sse = MRIScomputeSSE_asThoughGradientApplied(mris, delta_t, parms, sseCtx);
+        
         fprintf(fp2, "%f  %f  %f\n", delta_t, sse, predicted_sse);
-        mrisProjectSurface(mris);
-        sse = MRIScomputeSSE(mris, parms);
-        fprintf(fp, "%f  %f  %f\n", delta_t, sse, predicted_sse);
-        fflush(fp);
-        MRISrestoreOldPositions(mris);
+        fflush(fp2);
       }
 
       fclose(fp2);
@@ -1677,29 +1670,24 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     /* pick starting step size */
     double delta_t;
     for (delta_t = min_dt; delta_t < max_dt; delta_t *= 10.0) {
-      MRISapplyGradient(mris, delta_t);
-      mrisProjectSurface(mris);
-      MRIScomputeMetricProperties(mris);
-      double sse = MRIScomputeSSE(mris, parms);
-
+      double sse = MRIScomputeSSE_asThoughGradientApplied(mris, delta_t, parms, sseCtx);
+      
       if (sse <= min_sse) /* new minimum found */
       {
         min_sse   = sse;
         min_delta = delta_t;
       }
 
-      /* undo step */
-      MRISrestoreOldPositions(mris);
     }
 
     if (FZERO(min_delta)) /* dt=0 is min starting point, look mag smaller */
     {
-      min_delta = min_dt / 10.0; /* start at smallest step */
-      MRISapplyGradient(mris, min_delta);
-      mrisProjectSurface(mris);
-      MRIScomputeMetricProperties(mris);
-      min_sse = MRIScomputeSSE(mris, parms);
-      MRISrestoreOldPositions(mris);
+      delta_t = min_dt / 10.0; /* start at smallest step */
+
+      double sse = MRIScomputeSSE_asThoughGradientApplied(mris, delta_t, parms, sseCtx);
+    
+      min_sse = sse;
+      min_delta = delta_t;
     }
 
     delta_t = min_delta;
@@ -1719,25 +1707,18 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     /* bracket the minimum by sampling on either side */
     double const dt0 = min_delta - (min_delta / 2);
     double const dt2 = min_delta + (min_delta / 2);
-    MRISapplyGradient(mris, dt0);
-    mrisProjectSurface(mris);
-    MRIScomputeMetricProperties(mris);
-    double sse0 = MRIScomputeSSE(mris, parms);
-    MRISrestoreOldPositions(mris);
-
-    MRISapplyGradient(mris, dt2);
-    mrisProjectSurface(mris);
-    MRIScomputeMetricProperties(mris);
-    double sse2 = MRIScomputeSSE(mris, parms);
-    MRISrestoreOldPositions(mris);
+  
+    double sse0 = MRIScomputeSSE_asThoughGradientApplied(mris, dt0, parms, sseCtx);
+    double sse2 = MRIScomputeSSE_asThoughGradientApplied(mris, dt2, parms, sseCtx);
 
     /* now fit a quadratic form to these values */
 
-    N = 3;    // 3 entries in sse_out and dt_in so far
-    cheapAssert(N <= MAX_ENTRIES);
     sse_out[0] = sse0;          dt_in[0] = dt0;
     sse_out[1] = min_sse;       dt_in[1] = min_delta;
     sse_out[2] = sse2;          dt_in[2] = dt2;
+
+    N = 3;    // 3 entries in sse_out and dt_in so far
+    cheapAssert(N <= MAX_ENTRIES);
     
     MATRIX* mX = MatrixAlloc(N, 3, MATRIX_REAL);
     VECTOR* vY = VectorAlloc(N, MATRIX_REAL);
@@ -1783,11 +1764,8 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         float new_min_delta = -b / a;
 
         if (new_min_delta < 10.0f * min_delta && new_min_delta > min_delta / 10.0f) {
-          MRISapplyGradient(mris, new_min_delta);
-          mrisProjectSurface(mris);
-          MRIScomputeMetricProperties(mris);
-          double sse = MRIScomputeSSE(mris, parms);
-          MRISrestoreOldPositions(mris);
+          double sse = MRIScomputeSSE_asThoughGradientApplied(mris, new_min_delta, parms, sseCtx);
+	  
           dt_in  [N] = new_min_delta;
           sse_out[N] = sse;
           N++;
@@ -1885,48 +1863,48 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   ------------------------------------------------------*/
 static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  char fname[STRLEN];
   FILE *fp = NULL;
-  double starting_sse, sse, min_sse, max_dt, total_delta, min_delta, max_delta, mag, grad, delta_t, min_dt, mean_delta;
-  float dx, dy, dz;
-  int vno, done = 0, increasing, n;
-  VERTEX *vertex;
-
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON) {
+    char fname[STRLEN];
     sprintf(fname, "%s%4.4d.dat", FileName(parms->base_name), parms->t + 1);
     fp = fopen(fname, "w");
   }
 
-  min_sse = starting_sse = MRIScomputeSSE(mris, parms);
-
   /* compute the magnitude of the gradient, and the max delta */
-  max_delta = grad = mean_delta = 0.0f;
-  for (n = vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+  double max_delta = 0.0, sum_deltaSquared = 0.0f, sum_delta = 0.0;
+  int n = 0;
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+    VERTEX const * const vertex = &mris->vertices[vno];
     if (vertex->ripflag) {
       continue;
     }
-    dx = vertex->dx;
-    dy = vertex->dy;
-    dz = vertex->dz;
-    mag = sqrt(dx * dx + dy * dy + dz * dz);
-    grad += dx * dx + dy * dy + dz * dz;
-    mean_delta += mag;
-    if (!FZERO(mag)) {
+    
+    float dx = vertex->dx;
+    float dy = vertex->dy;
+    float dz = vertex->dz;
+    double deltaSquared = dx * dx + dy * dy + dz * dz;
+    double delta        = sqrt(deltaSquared);
+    
+    sum_deltaSquared += deltaSquared;
+    sum_delta        += delta;
+    if (!FZERO(delta)) {
       n++;
     }
-    if (mag > max_delta) {
-      max_delta = mag;
+    
+    if (max_delta < delta) {
+      max_delta = delta;
     }
   }
-  mean_delta /= (float)n;
-  grad = sqrt(grad);
+  
+  double const mean_delta = sum_delta/float(n);
+  double const grad       = sqrt(sum_deltaSquared);
 
   if (FZERO(max_delta)) {
     return (0.0); /* at a local minimum */
   }
 
   /* limit the size of the largest time step */
+  double max_dt;
   switch (parms->projection) {
     case PROJECT_SPHERE:
     case PROJECT_ELLIPSOID:
@@ -1940,36 +1918,44 @@ static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
       max_dt = MAX_PLANE_MM / max_delta;
       break;
   }
-  min_dt = MIN_MM / mean_delta;
+  double const min_dt = MIN_MM / mean_delta;
+
+  double const starting_sse = MRIScomputeSSE(mris, parms);
+  double min_sse = starting_sse;
 
   /* pick starting step size */
-  min_delta = 0.0f; /* to get rid of compiler warning */
-  for (delta_t = min_dt; delta_t < max_dt; delta_t *= 10.0) {
+  double min_delta = 0.0f; /* to get rid of compiler warning */
+  for (double delta_t = min_dt; delta_t < max_dt; delta_t *= 10.0) {
+
     MRISapplyGradient(mris, delta_t);
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
-    sse = MRIScomputeSSE(mris, parms);
+    double sse = MRIScomputeSSE(mris, parms);
+    MRISrestoreOldPositions(mris);
+
     if (sse <= min_sse) /* new minimum found */
     {
       min_sse = sse;
       min_delta = delta_t;
     }
-
-    /* undo step */
-    MRISrestoreOldPositions(mris);
   }
 
   if (FZERO(min_delta)) /* dt=0 is min starting point, look mag smaller */
   {
     min_delta = min_dt / 10.0; /* start at smallest step */
+
     MRISapplyGradient(mris, min_delta);
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
-    min_sse = MRIScomputeSSE(mris, parms);
+    double sse = MRIScomputeSSE(mris, parms);
     MRISrestoreOldPositions(mris);
+
+    min_sse = sse; 
   }
 
-  delta_t = min_delta;
+
+  /* now search for minimum in gradient direction */
+  double delta_t = min_delta;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout,
@@ -1982,21 +1968,18 @@ static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
             (float)delta_t,
             min_dt);
 
-  /* now search for minimum in gradient direction */
-  increasing = 1;
-  total_delta = 0.0;
+  int increasing = 1;
+  double total_delta = 0.0;
+  
   min_sse = starting_sse;
+  bool done = false;
   while (!done) {
+  
     MRISapplyGradient(mris, delta_t);
     mrisProjectSurface(mris);
     MRIScomputeMetricProperties(mris);
-    sse = MRIScomputeSSE(mris, parms);
-#if 0
-    if (Gdiag & DIAG_WRITE)
-    {
-      fprintf(fp, "%2.8f   %2.8f\n", total_delta+delta_t, sse) ;
-    }
-#endif
+    double sse = MRIScomputeSSE(mris, parms);
+
     if (sse <= min_sse) /* new minimum found */
     {
       if ((parms->projection == PROJECT_ELLIPSOID) && (total_delta + delta_t > max_dt)) {
