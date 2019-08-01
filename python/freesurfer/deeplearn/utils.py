@@ -7,6 +7,12 @@ import keras
 import tensorflow as tf
 from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
 
+def switch_to_eager():
+    switch_execution_mode(EAGER_MODE)
+
+def switch_to_graph():
+    switch_execution_mode(GRAPH_MODE)
+
 def switch_execution_mode(mode):
     ctx = context()._eager_context
     ctx.mode = mode
