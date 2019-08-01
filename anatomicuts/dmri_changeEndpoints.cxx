@@ -1,9 +1,10 @@
-/* Alexander Zsikla
- * Professor Siless
- * Summer 2019
- * dmri_changeEndpoints.cxx
+/* Author: Alexander Zsikla
+ * Advisor: Professor Siless
+ * Time: Summer 2019
+ * Name: dmri_changeEndpoints.cxx
  *
- * Changing the endpoint values to a different value
+ * Description:
+ * Changes the endpoints of a streamline to a different value and save it to a new overlay file
  *
  */
 
@@ -77,7 +78,7 @@ int main(int narg, char* arg[])
 	GetPot gp(narg, const_cast<char**>(arg));
 
 	// Checking for correct parameters
-	if ((gp.size() <= 3) or (gp.search(2, "--help", "-h")))
+	if ((gp.size() <= 8) or (gp.search(2, "--help", "-h")))
         {
                 cerr << "Usage: " << endl
                      << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
@@ -121,8 +122,8 @@ int main(int narg, char* arg[])
 	const char *surfaceFileR   = gp.follow("Could not find Surface File", "-sr");
 	const char *overlayFileL   = gp.follow("Could not find Overlay File", "-ol");
 	const char *overlayFileR   = gp.follow("Could not find Overlay File", "-or");
-	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File",   "-itk");
-	const char *FS_volumeFile  = gp.follow("Could not find FS Image File",   "-fs");
+	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File", "-itk");
+	const char *FS_volumeFile  = gp.follow("Could not find FS Image File", "-fs");
 
 	// Reading in the Image
 	// ITK Version

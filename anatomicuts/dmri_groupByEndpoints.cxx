@@ -40,7 +40,7 @@ int main(int narg, char* arg[])
 	GetPot c1(narg, const_cast<char**>(arg));
 
 	//Usage error
-	if (c1.size() == 1 || c1.search(2, "--help", "-h"))
+	if (c1.size() == 4 || c1.search(2, "--help", "-h"))
 	{
 		cout << "Usage: " << endl; 
 		cout << arg[0] << " -s streamlineFile -i imageFile -d outputDirectory" << endl;

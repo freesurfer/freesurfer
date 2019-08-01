@@ -6,6 +6,7 @@ Advisor: Viviana Siless
 Time: Summer 2019
 Name: bundleAnalysis.sh
 
+Description:
 Takes in a patient and a possible option and produces metrics about the endpoints in order to analyze
 
 '
