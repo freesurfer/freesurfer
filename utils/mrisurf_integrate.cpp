@@ -858,6 +858,8 @@ int MRISregister(MRI_SURFACE *mris,
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n", "MRISregister", fname);
       MRISnormalizeCurvature(mris, parms->which_norm);
+      if (parms->nonmax)
+	MRISnonmaxSuppress(mris) ;
       if (parms->trinarize_thresh > 0) {
         MRIStrinarizeCurvature(mris, parms->trinarize_thresh);
       }
@@ -875,6 +877,8 @@ int MRISregister(MRI_SURFACE *mris,
       MRIScomputeSecondFundamentalForm(mris);
       MRISuseMeanCurvature(mris);
       MRISnormalizeCurvature(mris, parms->which_norm);
+      if (parms->nonmax)
+	MRISnonmaxSuppress(mris) ;
       MRISresetNeighborhoodSize(mris, 1); /*only use nearest neighbor distances*/
 
       MRISrestoreVertexPositions(mris, TMP_VERTICES);
