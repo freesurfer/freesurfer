@@ -139,10 +139,7 @@ def predict_segmentation(input_file, output_dir, contrast = 't1w',
     label_img_data = label(np.int8(hard_img_data), neighbors=8)
     freq = collections.Counter(label_img_data.flatten())
 
-    from matplotlib import pyplot as plt
-    plt.imshow(label_img_data[:,:,128])
-    plt.show()
-    print(freq.values())
+
     l_idx = np.argmax(list(freq.values())[1:])
     big_label = list(freq.keys())[1:][l_idx]
     hard_img_data[label_img_data != big_label] = 0
@@ -249,7 +246,7 @@ def sscnn_workflow(input_file, output_dir, contrast='t1w', use_gpu=True,
     subprocess.call(['mkdir', '-p', output_dir])
     if use_gpu == False:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
         gpu_id = -1
         batch_size = 16
     else:
@@ -258,16 +255,16 @@ def sscnn_workflow(input_file, output_dir, contrast='t1w', use_gpu=True,
         batch_size = 4
 
 
-        preprocess_flow = Workflow(name='preprocess', base_dir=output_dir)
-        conform = Node(MRIConvert(conform=True, out_type='niigz', out_file='conformed.nii.gz'), name='conform')
-        sscnn = Node(SSCNN(output_dir=output_dir, contrast=contrast, batch_size=batch_size,
-                             save_label_image=save_label_image, save_prob_image=save_prob_image), name='sscnn')
+    preprocess_flow = Workflow(name='preprocess', base_dir=output_dir)
+    conform = Node(MRIConvert(conform=True, out_type='niigz', out_file='conformed.nii.gz'), name='conform')
+    sscnn = Node(SSCNN(output_dir=output_dir, contrast=contrast, batch_size=batch_size,
+                         save_label_image=save_label_image, save_prob_image=save_prob_image), name='sscnn')
 
-        preprocess_flow.connect([(conform, sscnn, [('out_file', 'input_image')]),])
+    preprocess_flow.connect([(conform, sscnn, [('out_file', 'input_image')]),])
 
-        preprocess_flow.write_graph(graph2use='orig')
-        conform.inputs.in_file = input_file
-        preprocess_flow.run('MultiProc', plugin_args={'n_procs': 16})
+    preprocess_flow.write_graph(graph2use='orig')
+    conform.inputs.in_file = input_file
+    preprocess_flow.run('MultiProc', plugin_args={'n_procs': 16})
 
 
 
@@ -280,10 +277,9 @@ if __name__ == "__main__":
 
     # input_file = '/autofs/space/bhim_001/users/aj660/PSACNN/data/IXI/T2/preprocess/brain/IXI511-HH-2238/brain.nii.gz'
     # input_file = '/autofs/space/bhim_001/users/aj660/PSACNN/data/IXI/T2/processed/preprocess/brain/IXI511-HH-2238/brain.nii.gz'
-    input_file = '/autofs/space/bhim_001/users/aj660/PSACNN/data/IXI/T2/IXI012-HH-1211/IXI012-HH-1211-T2.nii.gz'
-    output_dir = '/autofs/space/bhim_001/users/aj660/psacnn_brain_segmentation/test_output/preproc_T2_IXI012-HH-1211'
+    input_file = '/autofs/space/vault_007/users/lzollei/AmodJog/data/NadineGaab-Bangladesh/01/mprage.nii.gz'
+    output_dir = '/autofs/space/bhim_001/users/aj660/tmp'
     subprocess.call(['mkdir', '-p', output_dir])
 
-    psacnn_workflow(input_file, output_dir, use_preprocess=True, model_file=None, contrast='t2w', use_gpu=True,
-                    gpu_id=0, save_label_image=False, save_prob_image=False, patch_size=96, batch_size=4,
-                    sample_rate=20000)
+    sscnn_workflow(input_file, output_dir,  contrast='t1w', use_gpu=False,
+                    gpu_id=0, save_label_image=False, save_prob_image=False,batch_size=4)
