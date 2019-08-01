@@ -41,9 +41,10 @@ cd $code_location
 
 #Running Alex's Code
 if [ "$2" == "DTI" ]; then
-	./dmri_extractSurfaceMeasurements -fa 4 FA $1/dmri/DTI/dti_FA.nii.gz MD $1/dmri/DTI/dti_MD.nii.gz RD $1/dmri/DTI/dti_RD.nii.gz AD $1/dmri/DTI/dti_AD.nii.gz -i $clusters/*trk -sl $1/surf/lh.white -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.white -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures
+	./dmri_extractSurfaceMeasurements -fa 4 FA $1/dmri/DTI/dti_FA2anat.nii.gz MD $1/dmri/DTI/dti_MD2anat.nii.gz RD $1/dmri/DTI/dti_RD2anat.nii.gz AD $1/dmri/DTI/dti_AD2anat.nii.gz -i $clusters/*trk -sl $1/surf/lh.pial -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.pial -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures -ri $1/mri/wmparc.nii.gz
 else
-	./dmri_extractSurfaceMeasurements -i $clusters/*trk -sl $1/surf/lh.white -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.white -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures
+	./dmri_extractSurfaceMeasurements -i $clusters/*trk -sl $1/surf/lh.pial -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.pial -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures -ri $1/mri/wmparc.nii.gz
+
 fi
 
 exit 0

@@ -83,7 +83,7 @@ int main(int narg, char* arg[])
                 cerr << "Usage: " << endl
                      << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -sr surfaceFile_rh.orig" << endl
 		     << "                       -ol left_overlayFile -or right_overlayFile" << endl 
-		     << "		       -itk ITK_volumeFile -fs FS_volumeFile" << endl;
+		     << "		       -ri reference_Image" << endl;
 
                 return EXIT_FAILURE;
         }
@@ -122,19 +122,18 @@ int main(int narg, char* arg[])
 	const char *surfaceFileR   = gp.follow("Could not find Surface File", "-sr");
 	const char *overlayFileL   = gp.follow("Could not find Overlay File", "-ol");
 	const char *overlayFileR   = gp.follow("Could not find Overlay File", "-or");
-	const char *ITK_volumeFile = gp.follow("Could not find ITK Image File", "-itk");
-	const char *FS_volumeFile  = gp.follow("Could not find FS Image File", "-fs");
+	const char *refImage       = gp.follow("Could not find Reference Image", "-ri");
 
 	// Reading in the Image
 	// ITK Version
 	typedef itk::ImageFileReader<ImageType> ImageReaderType;
 	ImageReaderType::Pointer readerS = ImageReaderType::New();
-	readerS->SetFileName(ITK_volumeFile);
+	readerS->SetFileName(refImage);
 	readerS->Update();
 	ImageType::Pointer volume = readerS->GetOutput();
 
 	// FS Version
-	MRI *image = MRIread(FS_volumeFile);
+	MRI *image = MRIread(refImage);
 
 	//Outputting the Files to Ensure the correct files were input
 	cerr << endl 
@@ -143,8 +142,7 @@ int main(int narg, char* arg[])
 	     << "Left Overlay File:  " << overlayFileL   << endl
 	     << "Right Surface File: " << surfaceFileR   << endl 
 	     << "Right Overlay File: " << overlayFileR   << endl
-	     << "ITK Volume File:    " << ITK_volumeFile << endl
-	     << "FS Volume File:     " << FS_volumeFile  << endl;
+	     << "Reference Image:    " << refImage << endl;
 
 	// Loading the TRK files into a mesh
         vector<ColorMeshType::Pointer>* meshes;
@@ -223,7 +221,6 @@ int main(int narg, char* arg[])
 		else
 			surfR->vertices[ID].curv = ENDPOINT_VALUE;
 
-		cerr << endl;	
 	}
 
 	MRISwriteCurvature(surfL, overlayFileL);

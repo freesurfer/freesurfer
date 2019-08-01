@@ -86,7 +86,8 @@ int main(int narg, char* arg[])
 	{
 		cerr << "Usage: " << endl
 		     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -tl overlayFile_lh.thickness -cl overlayFile_lh.curv" << endl
-		     << "-sr surfaceFile_rh.orig -tr overlayFile_rh.thickness -cr overlayFile_rh.curv -o outputDirectory"<< endl 
+		     << "-sr surfaceFile_rh.orig -tr overlayFile_rh.thickness -cr overlayFile_rh.curv -o outputDirectory" << endl 
+		     << "-ri reference_image (NOTE: only use reference image when FA is not used" << endl
 		     << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
 
 		return EXIT_FAILURE;
@@ -125,20 +126,32 @@ int main(int narg, char* arg[])
 		TRKFiles.push_back(inputName);
 
 	// Left Hemisphere
-	const char *surfaceFileL = num1.follow("lh.orig", "-sl");
-	const char *thickFileL   = num1.follow("lh.thickness", "-tl");
-	const char *curvFileL    = num1.follow("lh.curv", "-cl");
+	const char *surfaceFileL = num1.follow("Left Surface File Not Found", "-sl");
+	const char *thickFileL   = num1.follow("Left Thickness File Not Found", "-tl");
+	const char *curvFileL    = num1.follow("Left Curvature File Not Found", "-cl");
 	
 	// Right Hemisphere
-	const char *surfaceFileR = num1.follow("rh.orig", "-sr");
-	const char *thickFileR   = num1.follow("rh.thickness", "-tr");
-	const char *curvFileR    = num1.follow("rh.curv", "-cr");
+	const char *surfaceFileR = num1.follow("Right Surface File Not Found", "-sr");
+	const char *thickFileR   = num1.follow("Right Thickness File Not Found", "-tr");
+	const char *curvFileR    = num1.follow("Right Curvature File Not Found", "-cr");
 	
-	const char *outputDir    = num1.follow("measures", "-o");
+	const char *outputDir    = num1.follow("Output Directory Not Found", "-o");
 	
+	const char *refImage     = num1.follow("Reference Image Not Found", "-ri");
+
 	// Reading in FA file
 	vector<ImageType::Pointer> volumes;
 	vector<string> image_fileNames;
+	vector<ImageType::Pointer> ref_Image;
+	MRI *image;
+	
+	typedef itk::ImageFileReader<ImageType> ImageReaderType;
+	ImageReaderType::Pointer readerS = ImageReaderType::New();
+	readerS->SetFileName(refImage);
+	readerS->Update();
+	ref_Image.push_back(readerS->GetOutput());
+
+	image = MRIread(refImage);
 	
 	int numFiles = num1.follow(0, "-fa");
 	bool FA_FOUND = num1.search("-fa");
@@ -157,29 +170,29 @@ int main(int narg, char* arg[])
 			ImageType::Pointer image  = readerS->GetOutput();
 			volumes.push_back(image);	
 		}
-	}
-
+	} 
+	
 	//Outputting the Files to Ensure the correct files were input
 	cerr << endl;
 	for (int i = 0; i < TRKFiles.size(); i++)
 		cerr << "TRK File " << i + 1 << ":      " << TRKFiles.at(i) << endl;
 
 	cerr << "Left Surface:    " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
-	     << "Right Surface:   " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Thickness: " << curvFileR << endl
-	     << "Output:          " << outputDir << endl;
-
+	     << "Right Surface:   " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Curvature: " << curvFileR << endl
+	     << "Output:          " << outputDir << endl << "Reference Image: " << refImage << endl;
+	
 	if (FA_FOUND)
 	{	
 		for (int i = 0; i < image_fileNames.size(); i++)
 			cerr << "Image " << i + 1 << ":         " << image_fileNames.at(i) << endl;	
-	}
+	} 
 
 	// Loading the TRK files into a mesh
 	vector<ColorMeshType::Pointer>* meshes;
 	vector<vtkSmartPointer<vtkPolyData>> polydatas;
 	
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
-	clusterTools->GetPolyDatas(TRKFiles, &polydatas, volumes.at(0));
+	clusterTools->GetPolyDatas(TRKFiles, &polydatas, ref_Image.at(0));
 	meshes = clusterTools->PolydataToMesh(polydatas);
 	
 	//Loading the surface for each hemisphere and metric
@@ -321,12 +334,12 @@ int main(int narg, char* arg[])
 					input->GetPoint(*it, &lastPt);
 			}
 
-			// Copyings points to arrays
-			for (int j = 0; j < 3; j++)
-		       	{
-				firstPt_array[j] = firstPt[j];
-				lastPt_array[j]	 = lastPt[j];
-			}
+			// Changing the point to an index, then the index to the surface
+			ImageType::IndexType first_index, last_index;
+                	ref_Image.at(0)->TransformPhysicalPointToIndex(firstPt, first_index);
+			ref_Image.at(0)->TransformPhysicalPointToIndex(lastPt, last_index);
+                	MRIvoxelToSurfaceRAS(image, first_index[0], first_index[1], first_index[2], &firstPt_array[0], &firstPt_array[1], &firstPt_array[2]);
+                	MRIvoxelToSurfaceRAS(image, last_index[0], last_index[1], last_index[2], &lastPt_array[0], &lastPt_array[1], &lastPt_array[2]);
 
 			// Finding the vertice number
 			double distL, distR;
