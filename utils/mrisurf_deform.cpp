@@ -3483,7 +3483,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
   }
 
   // create a new surface
-  MRIS *mris_corrected = MRISalloc(kept_vertices, kept_faces);
+  MRIS *mris_corrected ; //= MRISalloc(kept_vertices, kept_faces);
+  mris_corrected = MRISoverAlloc(nint(1.5*kept_vertices), nint(1.5*kept_faces), kept_vertices, kept_faces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
   copyVolGeom(&mris->vg, &mris_corrected->vg);
