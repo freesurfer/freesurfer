@@ -21,13 +21,13 @@ import freesurfer as fs
 
 def main(inputDirectory, labels, structure):
     # Check for correct inputs
-    if len(sys.argv) != 4:
-        print('Usage: ./executable directory labels structure')
+    if len(sys.argv) != 7:
+        print('Usage: ./executable -i directory -l labels -s structure')
         exit()
 
 
     # Take in the names and group numbers from the text csv file
-    group_df = pd.read_csv(sys.argv[2])
+    group_df = pd.read_csv(sys.argv[4])
     group_col = group_df.columns
 
     data = []
@@ -37,7 +37,6 @@ def main(inputDirectory, labels, structure):
     # Find the highest numerical group in the text csv
     max_group = 1
     for i in range(len(data[0])):
-        print(i)
         if data[1][i] > max_group:
             max_group = data[1][i]
 
@@ -47,15 +46,15 @@ def main(inputDirectory, labels, structure):
 
     # Iterate through the text csv file and sort the groups
     for i in range(len(data[0])):
-        for j in range(len(os.listdir(sys.argv[1]))):
-            if data[0][i] == os.listdir(sys.argv[1])[j]:
+        for j in range(len(os.listdir(sys.argv[2]))):
+            if data[0][i] == os.listdir(sys.argv[2])[j]:
                 inf_to_group[data[1][i]].append(data[0][i])
 
 
     # Collect the names of the csv files based on order of groups
     file_names = {k: [] for k in range(1, max_group + 1)}
 
-    main_directory = sys.argv[1]
+    main_directory = sys.argv[2]
 
     # Loop through the groups
     for i in range(1, len(inf_to_group) + 1):
@@ -72,7 +71,7 @@ def main(inputDirectory, labels, structure):
                     filepath = subdir + os.sep + file
 
                     # Filter out the files based on the input from command line
-                    if filepath.endswith(sys.argv[3] + '.csv') and subject in filepath:
+                    if filepath.endswith(sys.argv[6] + '.csv') and subject in filepath:
                         file_names[i].append(filepath)
 
 
@@ -100,7 +99,8 @@ def main(inputDirectory, labels, structure):
 
 
     # Create a list of lists, two for each group
-    for k in range(num_plots):
+    k = 0
+    while k < num_plots:
         # Odd indexes will hold left side data, even ones hold right side
         single_plot = [[] for x in range(height)]
 
@@ -114,12 +114,16 @@ def main(inputDirectory, labels, structure):
                 # Find files of the left side
                 if 'left' in file_names[i][j].lower() or 'lh' in file_names[i][j].lower():
 
-            df = pd.read_csv(file_names[i][j])
+                    df = pd.read_csv(file_names[i][j])
 
-            means = df.mean(axis = 0)
+                    # Increase length of loop if a file as more columns
+                    if len(df.columns) > num_plots:
+                        num_plots = len(df.columns) - 1
+                    # Go to next file if file has less columns
+                    if len(df.columns) < k + 2:
+                        continue
 
-                    #print (xticklabels[k])
-                    #print (violin_labels[2 * i - 2], means[k])
+                    means = df.mean(axis = 0)
 
                     # Isolate the desired mean value for this specific plot and append it
                     single_plot[2 * i - 2].append(means[k])
@@ -130,10 +134,12 @@ def main(inputDirectory, labels, structure):
 
                     df = pd.read_csv(file_names[i][j])
 
-                    means = df.mean(axis = 0)
+                    if len(df.columns) > num_plots:
+                        num_plots = len(df.columns) - 1
+                    if len(df.columns) < k + 2:
+                        continue
 
-                    #print (xticklabels[k])
-                    #print (violin_labels[2 * i - 1], means[k])
+                    means = df.mean(axis = 0)
 
                     # On a separate row and with a separate column iterator, fill in data
                     single_plot[2 * i - 1].append(means[k])
@@ -151,9 +157,12 @@ def main(inputDirectory, labels, structure):
         # Label the x axis more specifically
         plt.xticks([i+1 for i in range(2 * max_group)], violin_labels)
 
+        k += 1
+
 
     # Print out all the plots
     plt.show()
+
 
 # Obtain variables from command line
 parser = fs.ArgParser()
@@ -162,5 +171,5 @@ parser.add_argument('-l', '--labels', required=True, help='CSV file with group l
 parser.add_argument('-s', '--structure', required=True, help='Name of structure')
 args = parser.parse_args()
 
-eval(main)(args.inputDirectory, args.labels, args.structure)
-
+# Run the program
+main(args.inputDirectory, args.labels, args.structure)
