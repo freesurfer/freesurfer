@@ -84,4 +84,5 @@ install(PROGRAMS
 
 install_pyscript(
 	diffusionUtils
+	dmri_violinPlots
 )
