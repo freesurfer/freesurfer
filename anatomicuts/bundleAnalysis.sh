@@ -13,27 +13,31 @@ Takes in a patient and a possible option and produces metrics about the endpoint
 
 # Checking correct amount of inputs
 if [ $# == 0 ]; then
-	echo "Usage: $0 <Patient File Directory> <Option: DTI>"
+	echo "Usage: $0 <Patients Directory> <Option: DTI>"
 	exit 0
 fi
 
-#Making Directories
-cd $1
-mkdir dmri.ac
-cd $1/dmri.ac
-mkdir ushape
-cd ushape
-mkdir clusters
-mkdir measures
-
-#Saving Locations for Folders
 code_location="/space/vault/7/users/vsiless/alex/Code/freesurfer/anatomicuts"
-measures="$1/dmri.ac/ushape/measures"
-clusters="$1/dmri.ac/ushape/clusters"
 
-# Changing File
-cd $1/mri
-mri_convert wmparc.mgz wmparc.nii.gz
+for file in $1; do
+	#Making Directories
+	cd $1/dmri.ac
+	mkdir ushape
+	cd ushape
+	mkdir clusters
+	mkdir measures
+
+	# Saving Folers
+	local measures="$1/$file/dmri.ac/ushape/measures"
+	local clusters="$1/$file/dmri.ac/ushape/clusters"
+
+	echo $measures
+	echo $clusters
+
+	# Changing File
+	cd $1/$file/mri
+	mri_convert wmparc.mgz wmparc.nii.gz
+done
 
 #Running Andrew's Code
 cd $code_location
