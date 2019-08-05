@@ -281,7 +281,7 @@ int main(int narg, char* arg[])
 		if (FA_FOUND)
 		{
 			for (int a = 0; a < image_fileNames.size(); a++)
-				oFile << ", meanFA_" << image_fileNames.at(a) << ", stdeFA_" << image_fileNames.at(a);
+				oFile << ", mean" << image_fileNames.at(a) << ", stde" << image_fileNames.at(a);
 		} 
 		oFile << endl;
 
