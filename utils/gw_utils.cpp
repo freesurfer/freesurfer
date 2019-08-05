@@ -72,7 +72,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
       f->v[n] = faces[fno].vno[n];  // already zero-based
       VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[f->v[n]];
       vt->num++;
-      vt->vnum += 2;  // Not sure what the extra +2 is for...
+      addVnum(mris,f->v[n],2);
     }
   }
 
@@ -84,7 +84,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
     VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
     vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
     if (!vt->v) ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dth vertex list.", __func__, vno);
-    vt->vnum = 0;
+    clearVnum(mris,vno);
   }
 
   //-----------------------------------------
@@ -114,7 +114,7 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcou
         }
 
         if (vn >= 0)  // add only non-duplicates
-          vt->v[vt->vnum++] = vn;
+          vt->v[vnumAdd(mris,f->v[n],1)] = vn;
       }
     }
   }

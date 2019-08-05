@@ -72,7 +72,7 @@ void mrisDivideEdge(MRIS * const mris, int const vno1, int const vno2)
         = 2 --> divide edge in half twice, add 3 vertices
         = 3 --> divide edge in half three times, add 7 vertices
 */
-#define MAX_SURFACE_FACES 200000
+#define MAX_SURFACE_FACES 500000
 int MRISdivideEdges(MRIS *mris, int nsubdivisions)
 {
   int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
@@ -355,7 +355,7 @@ static void mrisRestoreOneVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   // Restore the topology
   //
   vt->nsizeMax = vs->nsizeMax;
-  vt->vnum     = vs->vnum;
+  modVnum(mris, vno, vs->vnum, true);
   vt->v2num    = vs->v2num;
   vt->v3num    = vs->v3num;
   MRIS_setNsizeCur(mris, vno, vs->nsizeCur);
@@ -7392,9 +7392,9 @@ static void removeVertex(MRIS *mris, int vno)
 
   for (n = 0; n < vt->vnum; n++) {
     /* remove vno from the list of v->v[n] */
-    int const vno = vt->v[n];
-    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vno];
-    VERTEX          * const vn  = &mris->vertices         [vno];
+    int const vno2 = vt->v[n];
+    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vno2];
+    VERTEX          * const vn  = &mris->vertices         [vno2];
     oldlist = vnt->v;
     vnum = vnt->vnum - 1; /* the new # of neighbors */
     if (vnum) {
@@ -7411,10 +7411,10 @@ static void removeVertex(MRIS *mris, int vno)
       vnt->v = NULL;
     }
     
-    vnt->vnum     = vnum;
+    modVnum(mris,vno2,vnum,true);
     vnt->nsizeMax = 1;
     
-    MRIS_setNsizeCur(mris, vno, 1);
+    MRIS_setNsizeCur(mris, vno2, 1);
 
     /* check if the vertex became singled out */
     if (vnt->vnum == 0) {
@@ -7424,7 +7424,7 @@ static void removeVertex(MRIS *mris, int vno)
   
   v->marked = DISCARDED_VERTEX;
   freeAndNULL(vt->v);
-  vt->vnum = 0;
+  clearVnum(mris,vno);
   vt->v2num = 0;
   vt->v3num = 0;
   vt->vtotal = 0;
@@ -8891,7 +8891,8 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->K = v->K;
         vdst->k1 = v->k1;
         vdst->k2 = v->k2;
-        vdstt->num = vdstt->vnum = 0;
+        vdstt->num = 0;
+        clearVnum(mris_corrected,vno_dst);
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
@@ -8970,9 +8971,10 @@ MRI_SURFACE *MRIScorrectTopology(
     }
 
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
 
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
@@ -12411,7 +12413,7 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
                                 HISTOGRAM *h_dot,
                                 TOPOLOGY_PARMS *parms) {
   fprintf(stderr,
-          "\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
+          "CORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
           defect->defect_number,
           defect->nvertices,
           defect->nchull,
