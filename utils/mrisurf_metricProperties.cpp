@@ -2620,7 +2620,7 @@ int MRISnonmaxSuppress(MRIS *mris)
     vy = e2y * d_dist;
     vz = e2z * d_dist;
 
-    /* compute gradient usnig blurred image */
+    /* compute gradient using blurred image */
     up1 = MRISPfunctionVal(mrisp_blur, mris->radius, x + ux, y + uy, z + uz, 0);
     um1 = MRISPfunctionVal(mrisp_blur, mris->radius, x - ux, y - uy, z - uz, 0);
     vp1 = MRISPfunctionVal(mrisp_blur, mris->radius, x + vx, y + vy, z + vz, 0);

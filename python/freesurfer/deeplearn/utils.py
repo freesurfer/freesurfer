@@ -5,7 +5,18 @@ import numpy as np
 import freesurfer as fs
 import keras
 import tensorflow as tf
+from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
 
+def switch_to_eager():
+    switch_execution_mode(EAGER_MODE)
+
+def switch_to_graph():
+    switch_execution_mode(GRAPH_MODE)
+
+def switch_execution_mode(mode):
+    ctx = context()._eager_context
+    ctx.mode = mode
+    ctx.is_eager = mode ==  EAGER_MODE
 
 def configure(gpu=0):
     os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
@@ -178,23 +189,28 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
 
 
 from keras.callbacks import Callback
+from shutil import copyfile
+import os
 
 class WeightsSaver(Callback):
-    def __init__(self, model, N, name):
+    def __init__(self, model, N, name, cp_iters = 0):
         self.model = model
         self.N = N
         self.batch = 0
         self.name = name
+        self.cp_iters = cp_iters
+        self.iters = 0
     def on_batch_end(self, batch, logs={}):
         if self.batch % self.N == 0:
             name = 'weights%08d.h5' % self.batch
             name = self.name
-            
-#            if (self.batch > 0) and (self.batch % (10*self.N) == 0):
-#                print '\nafter batch %d, saving weights to %s' % (self.batch, name)
             self.model.save_weights(name)
+            self.iters += 1
+            if (self.cp_iters > 0 and self.iters >= self.cp_iters):
+                fname,ext = os.path.splitext(name)
+                cpname = fname + ".cp" + ext
+                copyfile(name, cpname)
         self.batch += 1
-
 
 def MRIStoVoxel(mris, mri):
     vox2ras = mri.get_header().get_vox2ras_tkr()

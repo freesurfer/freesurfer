@@ -429,6 +429,7 @@ typedef struct INTEGRATION_PARMS
   MRI          *mri_template ;
   int          which_surface ;
   float        trinarize_thresh;   // for trinarizing curvature in registration
+  int          nonmax ;  // apply nonmax suppression in reg
   int          smooth_intersections ;  // run soap bubble smoothing during surface positioning
   int          uncompress ;            // run code to remove compressions in tessellation
   double       min_dist ;
