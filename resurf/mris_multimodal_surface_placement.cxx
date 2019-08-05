@@ -224,7 +224,11 @@ int main(int narg, char*  arg[])
                 polyDataValues->SetLines(cellsValues);
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriterValues =  vtkSmartPointer<vtkPolyDataWriter>::New();
+        #if VTK_MAJOR_VERSION <= 5
+        pdWriterValues->SetInput(polyDataValues);
+        #else
 		pdWriterValues->SetInputData(polyDataValues);
+        #endif
 		pdWriterValues->SetFileName(outValues);
 		pdWriterValues->Update();
 
