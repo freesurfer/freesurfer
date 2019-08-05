@@ -7,9 +7,12 @@ Time: Summer 2019
 Name: bundleAnalysis.sh
 
 Description:
-Takes in a patient directory and a possible option and produces metrics about the endpoints in order to analyze
+Takes in a directory of patients and a possible option and produces metrics about the endpoints in order to analyze
 
 '
+
+# Saves the location of where the code is located
+code_location="/space/vault/7/users/vsiless/alex/Code/freesurfer/anatomicuts"
 
 : '
 	Name: makeDirs
@@ -19,7 +22,9 @@ Takes in a patient directory and a possible option and produces metrics about th
 '
 function makeDirs()
 {
-	cd $1/dmri.ac
+	cd $1
+	mkdir dmri.ac
+	cd dmri.ac
 	mkdir ushape
 	cd ushape
 	mkdir clusters
@@ -44,7 +49,6 @@ function run_code()
 		./dmri_extractSurfaceMeasurements -fa 4 FA $1/dmri/DTI/dti_FA2anat.nii.gz MD $1/dmri/DTI/dti_MD2anat.nii.gz RD $1/dmri/DTI/dti_RD2anat.nii.gz AD $1/dmri/DTI/dti_AD2anat.nii.gz -i $clusters/*trk -sl $1/surf/lh.pial -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.pial -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures -ri $1/mri/wmparc.nii.gz
 	else
 		./dmri_extractSurfaceMeasurements -i $clusters/*trk -sl $1/surf/lh.pial -cl $1/surf/lh.curv -tl $1/surf/lh.thickness -sr $1/surf/rh.pial -cr $1/surf/rh.curv -tr $1/surf/rh.thickness -o $measures -ri $1/mri/wmparc.nii.gz
-
 	fi
 
 	return
@@ -56,24 +60,33 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-code_location="/space/vault/7/users/vsiless/alex/Code/freesurfer/anatomicuts"
+# Looks for DTI Option
+DTI=
+for phrase in $@; do
+	if [ $phrase == "DTI" ]; then
+		DTI="DTI"
+	fi
+done
 
-for file in "$1/INF*"; do
-	makeDirs $1/$file
+# Cycles through all the files that are passed in
+for file in $@; do
+	if [ $file == "DTI" ]; then
+		continue
+	fi
+
+	makeDirs $file
 
 	# Saving Folers
-	local measures="$1/$file/dmri.ac/ushape/measures"
-	local clusters="$1/$file/dmri.ac/ushape/clusters"
-
-	echo $measures
-	echo $clusters
+	measures="$file/dmri.ac/ushape/measures"
+	clusters="$file/dmri.ac/ushape/clusters"
 
 	# Changing File
-	cd $1/$file/mri
+	cd $file/mri
 	mri_convert wmparc.mgz wmparc.nii.gz
 
+	# Runs the code 
 	cd $code_location
-	run_code $1/file
+	run_code $file $DTI
 done
 
 exit 0
