@@ -50,7 +50,6 @@ def main(inputDirectory, labels, structure):
             if data[0][i] == os.listdir(sys.argv[2])[j]:
                 inf_to_group[data[1][i]].append(data[0][i])
 
-
     # Collect the names of the csv files based on order of groups
     file_names = {k: [] for k in range(1, max_group + 1)}
 
