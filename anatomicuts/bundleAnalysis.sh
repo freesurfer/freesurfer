@@ -56,7 +56,7 @@ function run_code()
 
 # Checking correct amount of inputs
 if [ $# == 0 ]; then
-	echo "Usage: $0 <Patients Directory> <Option: DTI>"
+	echo "Usage: $0 <Patients Directory/*> <Option: DTI>"
 	exit 0
 fi
 
