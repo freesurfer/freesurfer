@@ -374,6 +374,7 @@ add_subdirectories(
   mri_voldiff
   mri_watershed
   mris_anatomical_stats
+  mris_annot_diff
   mris_ca_label
   mris_calc
   mris_convert

@@ -28,12 +28,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <map>
+#include <vector>
+
 #include "colortab.h"
 #include "const.h"
 #include "diag.h"
 #include "error.h"
 #include "label.h"
 #include "mri2.h"
+#include "log.h"
+#include "fio.h"
 #include "mrisurf.h"
 #include "utils.h"
 
@@ -79,6 +84,30 @@ int print_annotation_colortable(FILE *fp)
         fp, "%3d   %-40s  %3d %3d %3d  0\n", atable[n].index, atable[n].name, atable[n].r, atable[n].g, atable[n].b);
   return (0);
 }
+
+
+std::vector<int> readAnnotationIntoVector(const std::string& filename)
+{
+  FILE *file = fopen(filename.c_str(), "r");
+  if (!file) logFatal(1) << "could not open " << filename;
+
+  std::map<int,int> annotmap;
+  int num = freadInt(file);
+
+  for (int i = 0; i < num; i++) {
+    int vno = freadInt(file);
+    int v = freadInt(file);
+    annotmap[vno] = v;
+  }
+
+  fclose(file);
+
+  int maxv = annotmap.rbegin()->first;
+  std::vector<int> annotlist(maxv, 0);
+  for (auto const& elt : annotmap) annotlist[elt.first] = elt.second;
+  return annotlist;
+}
+
 
 int read_named_annotation_table(char *name)
 {

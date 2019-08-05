@@ -1,0 +1,5 @@
+<help>
+  <name>mris_annot_diff</name>
+  <usage>mris_annot_diff [options] &lt;annot1&gt; &lt;annot2&gt;</usage>
+  <description>Compare two surface annotation files.</description>
+</help>
