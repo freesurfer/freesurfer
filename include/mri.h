@@ -1593,6 +1593,8 @@ MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label,
 MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label,
 			       float source_val,float target_val, float outside_val);
 
-  int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
+int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
+
+int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm);
 
 #endif
