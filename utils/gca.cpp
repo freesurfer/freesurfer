@@ -13829,6 +13829,12 @@ int GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     {
       double mn, std, std_thresh = 10;
+      if (getenv("FS_HISTO_STD_THRESH"))
+      {
+	char *cp = getenv("FS_HISTO_STD_THRESH") ;
+	std_thresh = atof(cp) ;
+	printf("FS_HISTO_STD_THRESH found in the environment resetting from 10 to %2.1f\n", std_thresh) ;
+      }
       if (mri->xsize < .9) std_thresh *= 2;
       HISTOrobustGaussianFit(h_smooth, .3, &mn, &std);
       printf("robust fit to distribution - %2.0f +- %2.1f\n", mn, std);
