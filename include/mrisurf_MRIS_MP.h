@@ -65,7 +65,7 @@
     ELT(const,  float,  wnx         ) SEP   \
     ELT(const,  float,  wny         ) SEP   \
     ELT(const,  float,  wnz         ) SEP   \
-    ELTX(const,  ptr_to_const_float, dist_orig)      /* note: these keep pointing to the original ones in the MRIS - change if code wants to change these values */
+    ELTX(const,  float*, dist_orig)      /* note: these keep pointing to the original ones in the MRIS - change if code wants to change these values */
     
   // In out
   #define MRIS_MP__LIST_V_IN_OUT_XYZ        \

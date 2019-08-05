@@ -221,11 +221,16 @@ typedef FaceNormDeferredEntry*  pSeveralFaceNormDeferredEntry;
 
 // MRIS supplies a rich world, but in a format that causes lots of memory traffic
 //
+// It is defined in mrisurf_FACE_VERTEX_MRIS_generated.h
+//
 typedef struct MRIS MRIS,MRI_SURFACE;       // Prefer using MRIS
 
 
-// MRIS_MP is a much more efficient supplier of MetricProperties data than MRIS.
-// It is implemented in mrisurf_mp.h
+// MRIS_MP is a much more efficient supplier of MetricProperties data than MRIS,
+// but can get some of its properties from an underlying Surface so it doesn't have to 
+// implement or copy ones that are rarely used.
+//
+// It is defined in mrisurf_MRIS_MPPropertiesInVectors.h with some additional macros in mrisurf_mp.h
 //
 // It is optimized to cope with the XYZ changing as the shape is mutated to optimize some SSE.  
 // Its representation keeps the data in a format that fills cache lines with immediately
@@ -234,13 +239,28 @@ typedef struct MRIS MRIS,MRI_SURFACE;       // Prefer using MRIS
 typedef struct MRIS_MP MRIS_MP;
 
 
+// MRISPV is a much more efficient supplier of MetricProperties data than MRIS
+// and hold all the data.  It is not yet fully implemented.
+//
+// It is defined in mrisurf_MRIS_PropertiesInVectors.h
+//
+// It is optimized to cope with the XYZ changing as the shape is mutated to optimize some SSE.  
+// Its representation keeps the data in a format that fills cache lines with immediately
+// needed information.
+//
+typedef struct MRISPV MRISPV;
+
+
 // The SSE calculation uses some large subsystems, such as MHT, that are coded
 // using the MRIS.  Ideally we would use C++, a class derivation hierachy, and 
 // virtual functions or C++ templates to implement these functions on top of both 
 // MRIS and MRIS_MP
 //
-// The following is basically a base class with virtual functions.
-// It is implemented in mrisurf_MRISBase.h
+// The following precedes the change to C++,
+// should be elikminated asap.
+// It is a crude implementation of a base class with virtual functions.
+//
+// It is further defined in mrisurf_MRISBase.h
 //
 typedef struct MRISBase {
     MRIS_MP*    mris_mp;            // takes precidence over mris

@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 namespace SurfaceFromMRIS_MP {
     typedef MRIS_MP Representation;
 
@@ -212,6 +214,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -351,6 +356,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -387,7 +395,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -519,6 +527,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -632,7 +643,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -845,6 +856,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -956,7 +970,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -1162,6 +1176,9 @@ namespace SurfaceFromMRIS_MP {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1397,6 +1414,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -1521,6 +1541,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -1553,7 +1576,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -1569,7 +1592,7 @@ namespace SurfaceFromMRIS_MP {
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
-    void Face::set_norm(PDMATRIX to) {
+    void Face::set_norm(FloatXYZ to) {
         repr->f_norm[idx] = to;
     }
 
@@ -1684,6 +1707,9 @@ namespace SurfaceFromMRIS_MP {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -1808,7 +1834,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -2014,6 +2040,9 @@ namespace SurfaceFromMRIS_MP {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
     }
     float Surface::xctr() const {
         return repr->xctr;
@@ -2126,7 +2155,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -2333,6 +2362,9 @@ namespace SurfaceFromMRIS_MP {
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
     }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -2443,7 +2475,7 @@ namespace SurfaceFromMRIS_MP {
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
-    PDMATRIX Face::norm() const {
+    FloatXYZ Face::norm() const {
         return repr->f_norm[idx];
     }
     
@@ -2459,7 +2491,7 @@ namespace SurfaceFromMRIS_MP {
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
-    void Face::set_norm(PDMATRIX to) {
+    void Face::set_norm(FloatXYZ to) {
         repr->f_norm[idx] = to;
     }
 
@@ -2667,6 +2699,9 @@ namespace SurfaceFromMRIS_MP {
     }
     int Surface::nfaces() const {  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         return repr->nfaces;
+    }
+    Vertex Surface::vertices(size_t i) const {
+        return Vertex(repr, i);
     }
     float Surface::xctr() const {
         return repr->xctr;

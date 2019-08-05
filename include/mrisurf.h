@@ -2197,7 +2197,9 @@ int mrisComputeSurfaceDimensions(MRIS *mris);
 // dist is created by calls to MRISsetNeighborhoodSizeAndDist
 // dist_orig must be explicitly created
 //
-void MRISfreeDistsButNotOrig(MRIS *mris);
+void MRISfreeDistsButNotOrig(MRIS*    mris);
+void MRISfreeDistsButNotOrig(MRISPV*  mris);
+void MRISfreeDistsButNotOrig(MRIS_MP* mris);
 
 void MRISmakeDistOrig (MRIS *mris, int vno);                        // makes it the same size as the current VERTEX.dist
 void MRISgrowDistOrig (MRIS *mris, int vno, int minimumCapacity);   // same size as current or bigger

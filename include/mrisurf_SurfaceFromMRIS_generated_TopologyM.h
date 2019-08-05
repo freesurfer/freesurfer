@@ -1,5 +1,7 @@
     namespace TopologyM {
     struct Face : public Repr_Elt {
+        typedef TopologyM::Surface Surface;
+        typedef TopologyM::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -18,6 +20,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef TopologyM::Surface Surface;
+        typedef TopologyM::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -59,6 +63,8 @@
     }; // Vertex
 
     struct Surface : public Repr_Elt {
+        typedef TopologyM::Face    Face;
+        typedef TopologyM::Vertex  Vertex;
         inline Surface (                                );
         inline Surface ( Surface const & src            );
         inline Surface ( Representation* representation );

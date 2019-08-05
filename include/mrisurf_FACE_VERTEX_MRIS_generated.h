@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 #define SEPARATE_VERTEX_TOPOLOGY
 struct face_type_ {
       vertices_per_face_t v          ;

@@ -1,5 +1,7 @@
     namespace Distort {
     struct Face : public Repr_Elt {
+        typedef Distort::Surface Surface;
+        typedef Distort::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -25,6 +27,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef Distort::Surface Surface;
+        typedef Distort::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -289,6 +293,8 @@
     }; // Vertex
 
     struct Surface : public Repr_Elt {
+        typedef Distort::Face    Face;
+        typedef Distort::Vertex  Vertex;
         inline Surface (                                );
         inline Surface ( Surface const & src            );
         inline Surface ( Representation* representation );

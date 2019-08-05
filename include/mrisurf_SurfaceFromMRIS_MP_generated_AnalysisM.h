@@ -1,5 +1,7 @@
     namespace AnalysisM {
     struct Face : public Repr_Elt {
+        typedef AnalysisM::Surface Surface;
+        typedef AnalysisM::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -10,13 +12,15 @@
         inline angles_per_triangle_t angle          (                           ) const ;
         inline angles_per_triangle_t orig_angle     (                           ) const ;
         inline char                  ripflag        (                           ) const ;
-        inline PDMATRIX              norm           (                           ) const ;
+        inline FloatXYZ              norm           (                           ) const ;
         
         inline void                  set_orig_angle (  angles_per_triangle_t to       ) ;
         inline void                  set_ripflag    (                   char to       ) ;
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef AnalysisM::Surface Surface;
+        typedef AnalysisM::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -77,6 +81,9 @@
     }; // Vertex
 
     struct MRIS_MP : public Repr_Elt {
+        typedef AnalysisM::Surface Surface;
+        typedef AnalysisM::Face    Face;
+        typedef AnalysisM::Vertex  Vertex;
         inline MRIS_MP (                                            );
         inline MRIS_MP ( MRIS_MP const & src                        );
         inline MRIS_MP ( Representation* representation, size_t idx );
@@ -85,43 +92,46 @@
     }; // MRIS_MP
 
     struct Surface : public Repr_Elt {
+        typedef AnalysisM::Face    Face;
+        typedef AnalysisM::Vertex  Vertex;
         inline Surface (                                );
         inline Surface ( Surface const & src            );
         inline Surface ( Representation* representation );
         inline Surface ( AllM::Surface const & src      );
 
-        inline int         nvertices           (            ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline int         nfaces              (            ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline float       xctr                (            ) const ;
-        inline float       yctr                (            ) const ;
-        inline float       zctr                (            ) const ;
-        inline float       xlo                 (            ) const ;
-        inline float       ylo                 (            ) const ;
-        inline float       zlo                 (            ) const ;
-        inline float       xhi                 (            ) const ;
-        inline float       yhi                 (            ) const ;
-        inline float       zhi                 (            ) const ;
-        inline float       total_area          (            ) const ;
-        inline double      avg_vertex_area     (            ) const ;
-        inline double      avg_vertex_dist     (            ) const ;  //  set by MRIScomputeAvgInterVertexDist
-        inline double      std_vertex_dist     (            ) const ;
-        inline float       neg_area            (            ) const ;
-        inline float       neg_orig_area       (            ) const ;  //  amount of original surface in folds
-        inline double      radius              (            ) const ;  //  radius (if status==MRIS_SPHERE)
-        inline MRIS_Status status              (            ) const ;  //  type of surface (e.g. sphere, plane)
-        inline MRIS_Status origxyz_status      (            ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
+        inline int         nvertices           (                    ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline int         nfaces              (                    ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline Vertex      vertices            ( size_t i           ) const ;
+        inline float       xctr                (                    ) const ;
+        inline float       yctr                (                    ) const ;
+        inline float       zctr                (                    ) const ;
+        inline float       xlo                 (                    ) const ;
+        inline float       ylo                 (                    ) const ;
+        inline float       zlo                 (                    ) const ;
+        inline float       xhi                 (                    ) const ;
+        inline float       yhi                 (                    ) const ;
+        inline float       zhi                 (                    ) const ;
+        inline float       total_area          (                    ) const ;
+        inline double      avg_vertex_area     (                    ) const ;
+        inline double      avg_vertex_dist     (                    ) const ;  //  set by MRIScomputeAvgInterVertexDist
+        inline double      std_vertex_dist     (                    ) const ;
+        inline float       neg_area            (                    ) const ;
+        inline float       neg_orig_area       (                    ) const ;  //  amount of original surface in folds
+        inline double      radius              (                    ) const ;  //  radius (if status==MRIS_SPHERE)
+        inline MRIS_Status status              (                    ) const ;  //  type of surface (e.g. sphere, plane)
+        inline MRIS_Status origxyz_status      (                    ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         
-        inline void        set_xctr            (   float to       ) ;
-        inline void        set_yctr            (   float to       ) ;
-        inline void        set_zctr            (   float to       ) ;
-        inline void        set_xlo             (   float to       ) ;
-        inline void        set_ylo             (   float to       ) ;
-        inline void        set_zlo             (   float to       ) ;
-        inline void        set_xhi             (   float to       ) ;
-        inline void        set_yhi             (   float to       ) ;
-        inline void        set_zhi             (   float to       ) ;
-        inline void        set_total_area      (   float to       ) ;
-        inline void        set_avg_vertex_area (  double to       ) ;
+        inline void        set_xctr            (           float to       ) ;
+        inline void        set_yctr            (           float to       ) ;
+        inline void        set_zctr            (           float to       ) ;
+        inline void        set_xlo             (           float to       ) ;
+        inline void        set_ylo             (           float to       ) ;
+        inline void        set_zlo             (           float to       ) ;
+        inline void        set_xhi             (           float to       ) ;
+        inline void        set_yhi             (           float to       ) ;
+        inline void        set_zhi             (           float to       ) ;
+        inline void        set_total_area      (           float to       ) ;
+        inline void        set_avg_vertex_area (          double to       ) ;
     }; // Surface
 
     } // namespace AnalysisM

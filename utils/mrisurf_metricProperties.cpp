@@ -15,11 +15,18 @@
  *
  */
 #include "mrisurf_metricProperties.h"
+
+#include "mrisurf_MRIS.h"
 #include "mrisurf_MRIS_MP.h"
+#include "mrisurf_MRISPV.h"
+
+#include "mrisurf_SurfaceFromMRIS_generated.h"
+#include "mrisurf_SurfaceFromMRISPV_generated.h"
+#include "mrisurf_SurfaceFromMRIS_MP_generated.h"
+
 #include "face_barycentric_coords.h"
 
 #include "mrisurf_base.h"
-
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -676,14 +683,10 @@ MRIS* MRIStalairachTransform(MRIS* mris_src, MRIS* mris)
   return mris;
 }
 
-
-MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma)
+template <class Surface>
+void MRISrotate(Surface surface, float alpha, float beta, float gamma)
 {
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  MRISfreeDistsButNotOrig(mris_dst);  // it is either this or adjust them...
+  surface.freeDistsButNotOrig();
 
   float const sa = sin(alpha);
   float const sb = sin(beta);
@@ -705,34 +708,53 @@ MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float 
   float const cbcg = cb * cg;
   float const cbsg = cb * sg;
 
-  int vno;
-  
+  auto const nvertices = surface.nvertices();
+
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) schedule(guided)
 #endif
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
+  for (int vno = 0; vno < nvertices; vno++) {
     ROMP_PFLB_begin
-    
+
     if (vno == Gdiag_no) {
       DiagBreak();
     }
 
-    VERTEX *vertex = &mris_src->vertices[vno];
-    float x = vertex->x;
-    float y = vertex->y;
-    float z = vertex->z;
+    auto vertex = surface.vertices(vno);
+    float x = vertex.x();
+    float y = vertex.y();
+    float z = vertex.z();
     float xp =  x * cacb + z * (-cacgsb - sasg) + y * (cgsa - casbsg);
     float yp = -x * cbsa + z * ( cgsasb - casg) + y * (cacg + sasbsg);
     float zp =  z * cbcg + x * sb + y * cbsg;
-    vertex->x = xp;
-    vertex->y = yp;
-    vertex->z = zp;
+    vertex.set_x(xp);
+    vertex.set_y(yp);
+    vertex.set_z(zp);
 
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+}
+
+void MRISrotate(MRIS* mris, float alpha, float beta, float gamma)
+{
+    SurfaceFromMRIS::XYZPositionM::Surface surface(mris);
+    MRISrotate(surface, alpha, beta, gamma);
+}
+
+void MRISrotate(MRIS_MP* mris, float alpha, float beta, float gamma)
+{
+    SurfaceFromMRIS_MP::XYZPositionM::Surface surface(mris);
+    MRISrotate(surface, alpha, beta, gamma);
+}
+
+MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma)
+{
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+  MRISrotate(mris_dst, alpha, beta, gamma);
   return (mris_dst);
 }
 

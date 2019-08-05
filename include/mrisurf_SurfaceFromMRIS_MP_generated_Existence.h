@@ -1,5 +1,7 @@
     namespace Existence {
     struct Face : public Repr_Elt {
+        typedef Existence::Surface Surface;
+        typedef Existence::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -22,6 +24,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef Existence::Surface Surface;
+        typedef Existence::Face    Face;
         inline Vertex (                                                                     );
         inline Vertex (                        Vertex const & src                           );
         inline Vertex (                        Representation* representation, size_t idx   );
@@ -45,6 +49,9 @@
     }; // Vertex
 
     struct MRIS_MP : public Repr_Elt {
+        typedef Existence::Surface Surface;
+        typedef Existence::Face    Face;
+        typedef Existence::Vertex  Vertex;
         inline MRIS_MP (                                               );
         inline MRIS_MP ( MRIS_MP const & src                           );
         inline MRIS_MP ( Representation* representation, size_t idx    );
@@ -63,6 +70,8 @@
     }; // MRIS_MP
 
     struct Surface : public Repr_Elt {
+        typedef Existence::Face    Face;
+        typedef Existence::Vertex  Vertex;
         inline Surface (                                               );
         inline Surface ( Surface const & src                           );
         inline Surface ( Representation* representation                );

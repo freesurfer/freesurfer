@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 struct MRISPV {
              vertices_per_face_t* f_v                      ;
     float*                        f_area                   ;

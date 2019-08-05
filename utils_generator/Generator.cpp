@@ -1,6 +1,7 @@
 // Compile with     g++ -std=c++11 Generator.cpp
 // Run with         rm -rf tmp ; mkdir tmp ; ./a.out ./tmp/
 // Merge with       bcompare ./tmp ../include &
+//                  cp tmp/* ../include
 //
 // Abstractly, we have
 //			A Surface,			with various properties
@@ -507,9 +508,11 @@ namespace Generator_Utilities {
 			Representation & representation) : os(), representation(representation), depth(0) {
 			os.push_back(&init_os);
 			tos() << endl;
+            indent() << "#pragma once"                               << endl;
 			indent() << "// GENERATED SOURCE - DO NOT DIRECTLY EDIT" << endl;
 			indent() << "// " << endl;
 			indent() << "// =======================================" << endl;
+            indent() << "#include \"mrisurf_aaa.h\""                 << endl;
 		}
 
 		// A stack of output files so we can spread the generated code
@@ -851,9 +854,6 @@ namespace Accessor_Generators {
 			generateBeforeComment(cols, write);
         }
 
-		virtual void generateNamespaceMacros(Phase::T p) {
-		}
-
 		void generateNamespace(string const & parent, string const & name, Representation & representation) {
 			indent() << "namespace " << name << " {" << endl;
 			depth++;
@@ -877,7 +877,6 @@ namespace Accessor_Generators {
 					}
 
 					indent() << "namespace " << pns << " {" << endl;
-						generateNamespaceMacros(p);
 						generateAccessorClasses(p);
 					indent() << "} // namespace " << pns << endl;
 
@@ -933,9 +932,6 @@ namespace Accessor_Generators {
 		{
 		}
 
-		virtual void generateNamespaceMacros(Phase::T p) {
-		}
-
 		virtual string classMemberPrefix(string const & classId) { return ""; }
 		virtual void   beginClass(Phase::T p, string const & classId) {}
 		virtual void   endClass  (Phase::T p, string const & classId) {}
@@ -969,17 +965,23 @@ namespace Accessor_Generators {
 		}
 
 		virtual void beginClass(Phase::T p, string const & classId) {
+            auto const phaseNamespaceId = Phase::namespaceName(p);
             bool isSurface = (classId == "Surface");
 
 			indent() << "struct " << classId << " : public Repr_Elt {" << endl;
 			depth++;
-
+            {
+                if (classId != "Surface") { indent() << "typedef " << phaseNamespaceId << "::Surface Surface;" << endl; }
+                if (classId != "Face")    { indent() << "typedef " << phaseNamespaceId << "::Face    Face;"    << endl; }
+                if (classId != "Vertex")  { indent() << "typedef " << phaseNamespaceId << "::Vertex  Vertex;"  << endl; }
+            }
+            
 			ColumnedOutput::T cols;
 			cols << "inline " << classId << endC << "(" << endC << ""                                            << endC << ");" << endR;
 			cols << "inline " << classId << endC << "(" << endC << "" << classId << " const & src"               << endC << ");" << endR;
 			cols << "inline " << classId << endC << "(" << endC << "Representation* representation" << (isSurface?"":", size_t idx") << endC << ");" << endR;
 
-			bool const isModifier = (Phase::namespaceName(p).back() == 'M');
+			bool const isModifier = (phaseNamespaceId.back() == 'M');
 
 			for (auto pLater = Phase::T(p + 1); pLater < Phase::end; pLater = Phase::T(pLater + 1)) {
 				auto pnsLater = Phase::namespaceName(pLater);
@@ -995,11 +997,20 @@ namespace Accessor_Generators {
             if (classId == "Vertex") {
                 cols << "int vno"     << endC << "() const { return idx; }" << endR;
             }
-            
+            if (classId == "Surface") {
+                generateVariousSurfaceMethods(p, cols);
+            }
+                    
 			cols.append(tos(), depth);
 			tos() << endl;
 		}
 
+        void generateVariousSurfaceMethods(Phase::T p, ColumnedOutput::T & cols) {
+            if (p == Phase::XYZPositionM || p == Phase::DistortM || p == Phase::DistortM) {
+                cols << "void freeDistsButNotOrig() { MRISfreeDistsButNotOrig(repr); }" << endR;
+            }
+        }
+        
 		virtual void endClass(Phase::T p, string const & classId) {
 			// indent() << absolutePns(p) << "_" << c.id << " // implementation details" << endl;
 			depth--;
@@ -1452,11 +1463,10 @@ namespace Representations {
 		virtual string reprNoArrow() const { return HowRedirect::reprNoArrow() + "->in_src"; }
 	};
 
-    struct HowMP_FaceNorm : public HowPV_F_indexed {
+    struct HowMP_FaceNorm : public HowPV_Face {
         virtual string retType(Prop const & prop) const { return "FloatXYZ"; }
         virtual string storeType(Prop const & prop) const { return retType(prop); }
     };
-
 	// Apply
 	//
 	struct RepresentationX : public Representation {
@@ -1669,7 +1679,7 @@ namespace Representations {
 		addProp(t_PR_float,	"dist"			    , "distance to neighboring vertices based on  xyz   ");
 			vtx_dist->setPRSize(vtx_vtotal);
 	auto vtx_dist_orig =
-		addProp(t_PR_constFloat,	"dist_orig"		    , "distance to neighboring vertices based on origxyz");
+		addProp(t_PR_float,	"dist_orig"		    , "distance to neighboring vertices based on origxyz");
 			vtx_dist_orig->setPRSize(vtx_vtotal);
 			howPop();
 
@@ -2026,8 +2036,8 @@ namespace Representations {
 		doMRIS_MP(*rep_MRIS, *rep_MRISPV, *rep_MRIS_MP);
 
 		final_representations.clear();
-		//final_representations.push_back(rep_MRIS);
-		//final_representations.push_back(rep_MRISPV);
+		final_representations.push_back(rep_MRIS);
+		final_representations.push_back(rep_MRISPV);
 		final_representations.push_back(rep_MRIS_MP);
 	}
 
@@ -2049,6 +2059,7 @@ namespace Representations {
 			insert("Surface.status",				FromMRIS);
 			insert("Surface.origxyz_status");
 			insert("Surface.nvertices");
+			insert("Surface.vertices");
 			insert("Surface.nfaces");
 			insert("Surface.nsize");
 			insert("Surface.radius");

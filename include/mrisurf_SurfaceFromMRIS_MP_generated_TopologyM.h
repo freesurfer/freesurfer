@@ -1,5 +1,7 @@
     namespace TopologyM {
     struct Face : public Repr_Elt {
+        typedef TopologyM::Surface Surface;
+        typedef TopologyM::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -12,6 +14,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef TopologyM::Surface Surface;
+        typedef TopologyM::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -25,6 +29,9 @@
     }; // Vertex
 
     struct MRIS_MP : public Repr_Elt {
+        typedef TopologyM::Surface Surface;
+        typedef TopologyM::Face    Face;
+        typedef TopologyM::Vertex  Vertex;
         inline MRIS_MP (                                            );
         inline MRIS_MP ( MRIS_MP const & src                        );
         inline MRIS_MP ( Representation* representation, size_t idx );
@@ -33,16 +40,19 @@
     }; // MRIS_MP
 
     struct Surface : public Repr_Elt {
+        typedef TopologyM::Face    Face;
+        typedef TopologyM::Vertex  Vertex;
         inline Surface (                                );
         inline Surface ( Surface const & src            );
         inline Surface ( Representation* representation );
         inline Surface ( AllM::Surface const & src      );
 
-        inline int         nvertices      (   ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline int         nfaces         (   ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline double      radius         (   ) const ;  //  radius (if status==MRIS_SPHERE)
-        inline MRIS_Status status         (   ) const ;  //  type of surface (e.g. sphere, plane)
-        inline MRIS_Status origxyz_status (   ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
+        inline int         nvertices      (           ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline int         nfaces         (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline Vertex      vertices       ( size_t i  ) const ;
+        inline double      radius         (           ) const ;  //  radius (if status==MRIS_SPHERE)
+        inline MRIS_Status status         (           ) const ;  //  type of surface (e.g. sphere, plane)
+        inline MRIS_Status origxyz_status (           ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
     }; // Surface
 
     } // namespace TopologyM

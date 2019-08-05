@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 struct MRIS_MP {
                       MRIS* underlyingMRIS    ;  //  for properties that are read from the underlying MRIS
     MRIS_MP*                in_src            ;  //  since the in are not written, they can be shared by copies
@@ -18,7 +20,7 @@ struct MRIS_MP {
     char*                   f_ripflag         ;
     FloatXYZ*               f_norm            ;
     pSeveralFloat*          v_dist            ;  // size() is vtotal.    distance to neighboring vertices based on  xyz   
-    pSeveralConstFloat*     v_dist_orig       ;  // size() is vtotal.    distance to neighboring vertices based on origxyz
+    pSeveralFloat*          v_dist_orig       ;  // size() is vtotal.    distance to neighboring vertices based on origxyz
     int*                    v_dist_capacity   ;  //  -- should contain at least vtx_vtotal elements   
     float*                  v_x               ;  //  current coordinates	
     float*                  v_y               ;  //  use MRISsetXYZ() to set
@@ -47,6 +49,7 @@ struct MRIS_MP {
     char*                   v_ripflag         ;  //  vertex no longer exists - placed last to load the next vertex into cache
     int                     nvertices         ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
     int                     nfaces            ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+    pSeveralVERTEX          vertices          ;
     float                   xctr              ;
     float                   yctr              ;
     float                   zctr              ;

@@ -1,5 +1,7 @@
     namespace DistortM {
     struct Face : public Repr_Elt {
+        typedef DistortM::Surface Surface;
+        typedef DistortM::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -23,6 +25,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef DistortM::Surface Surface;
+        typedef DistortM::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -285,10 +289,13 @@
     }; // Vertex
 
     struct Surface : public Repr_Elt {
-        inline Surface (                                );
-        inline Surface ( Surface const & src            );
-        inline Surface ( Representation* representation );
-        inline Surface ( AllM::Surface const & src      );
+        typedef DistortM::Face    Face;
+        typedef DistortM::Vertex  Vertex;
+        inline Surface                                                (                                );
+        inline Surface                                                ( Surface const & src            );
+        inline Surface                                                ( Representation* representation );
+        inline Surface                                                ( AllM::Surface const & src      );
+        void freeDistsButNotOrig() { MRISfreeDistsButNotOrig(repr); }
 
         // Fields being maintained by specialist functions
         inline int                   nverticesFrozen          (                               ) const ;  //  # of vertices on surface is frozen

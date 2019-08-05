@@ -1,5 +1,7 @@
     namespace XYZPositionConsequences {
     struct Face : public Repr_Elt {
+        typedef XYZPositionConsequences::Surface Surface;
+        typedef XYZPositionConsequences::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -27,6 +29,8 @@
     }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef XYZPositionConsequences::Surface Surface;
+        typedef XYZPositionConsequences::Face    Face;
         inline Vertex (                                                                   );
         inline Vertex (                        Vertex const & src                         );
         inline Vertex (                        Representation* representation, size_t idx );
@@ -91,6 +95,8 @@
     }; // Vertex
 
     struct Surface : public Repr_Elt {
+        typedef XYZPositionConsequences::Face    Face;
+        typedef XYZPositionConsequences::Vertex  Vertex;
         inline Surface (                                );
         inline Surface ( Surface const & src            );
         inline Surface ( Representation* representation );

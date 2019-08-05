@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 namespace SurfaceFromMRIS_MP {
     typedef MRIS_MP Representation;
 

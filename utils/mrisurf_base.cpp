@@ -354,35 +354,6 @@ static void growDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int minimumCapa
   changeDistOrDistOrig(doOrig, mris, vno, oldSize, vSize);
 }
 
-
-// VERTEX, FACE, EDGE primitives
-//
-static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
-  freeAndNULL(v->v);
-  freeAndNULL(v->f);
-  freeAndNULL(v->n);
-}
-
-static void VERTEXdtr(VERTEX* v) {
-  freeDistOrDistOrig(false, v);
-  freeDistOrDistOrig(true,  v);
-}
-
-static void FACEdtr(FACE* f) {
-  if (f->norm) DMatrixFree(&f->norm);
-  int k;
-  for (k=0; k < 3; k++){
-    if (f->gradNorm[k]) DMatrixFree(&f->gradNorm[k]);
-  }
-}
-
-static void MRIS_EDGEdtr(MRI_EDGE* e) {
-  int k;
-  for (k=0; k<4; k++){
-    if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
-  }
-}
-
 void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity)
 {
   growDistOrDistOrig(false, mris, vno, minimumCapacity);
@@ -412,7 +383,7 @@ void MRISmakeDistOrig(MRIS *mris, int vno)
 
 // Freeing
 //
-void freeDistsOrDistOrigs(bool doOrig, MRIS *mris)
+static void freeDistsOrDistOrigs(bool doOrig, MRIS *mris)
 {
   char const flag = (char)(1)<<doOrig;
 
@@ -439,6 +410,43 @@ void MRISfreeDistOrigs(MRIS* mris)
   freeDistsOrDistOrigs(true,mris);
 }
 
+void MRISfreeDistsButNotOrig(MRIS_MP* mris)
+{
+  cheapAssert(!"MRISfreeDistsButNotOrig(MRIS_MP* mris) NYI");  
+}
+void MRISfreeDistsButNotOrig(MRISPV* mris)
+{
+  cheapAssert(!"MRISfreeDistsButNotOrig(MRISPV* mris) NYI");  
+}
+
+
+// VERTEX, FACE, EDGE primitives
+//
+static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
+  freeAndNULL(v->v);
+  freeAndNULL(v->f);
+  freeAndNULL(v->n);
+}
+
+static void VERTEXdtr(VERTEX* v) {
+  freeDistOrDistOrig(false, v);
+  freeDistOrDistOrig(true,  v);
+}
+
+static void FACEdtr(FACE* f) {
+  if (f->norm) DMatrixFree(&f->norm);
+  int k;
+  for (k=0; k < 3; k++){
+    if (f->gradNorm[k]) DMatrixFree(&f->gradNorm[k]);
+  }
+}
+
+static void MRIS_EDGEdtr(MRI_EDGE* e) {
+  int k;
+  for (k=0; k<4; k++){
+    if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
+  }
+}
 
 // MRIS 
 //
