@@ -68,7 +68,7 @@ if(VTK_FOUND)
   target_link_libraries(dmri_coloredFA utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_coloredFA DESTINATION bin)
 
-#dmri_changeEndpoints
+#dmri_projectEndPoints
   add_executable(dmri_projectEndPoints dmri_projectEndPoints.cxx ${TRACKIO})
   target_link_libraries(dmri_projectEndPoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_projectEndPoints DESTINATION bin)
