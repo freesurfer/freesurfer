@@ -1791,15 +1791,14 @@ long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *d
 }
 
 /*!
-  \fn double MRISedgeLengthCost(MRIS *surf, double L0, int DoGrad)
-  \brief Compute the total edge length cost over all edges assuming
-  the desired length of each edge is L0. This is a spring cost with a
-  (potentially) non-zero resting length of L0. If DoGrad==1, then the
-  gradient of the total cost wrt each vertex position is computed and
-  stored in v->t{xyz}. If weight>0, then the total cost and gradients
-  are multiplied by weight and the gradients are stored in
-  v->d{xyz}. The total cost and gradients are normalized by the number
-  of edges.
+  \fn long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
+  \brief Compute the total target vertex cost over all vertices. The
+  cost for a single vertex is the the distance from xyz to targ{xyz}.
+  If DoGrad==1, then the gradient of the total cost wrt each vertex
+  position is computed and stored in v->t{xyz}. If weight>0, then the
+  total cost and gradients are multiplied by weight and the gradients
+  are stored in v->d{xyz}. The total cost and gradients are normalized
+  by the number of edges. Uses OpenMP.
 */
 long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
 {
