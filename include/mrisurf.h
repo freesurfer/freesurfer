@@ -297,6 +297,9 @@ typedef struct INTEGRATION_PARMS
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nltspring ;       /* coefficient of nonlinear tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
+  float   l_spring_nzr;       /* coefficient of spring term with non-zero resting length*/
+  float   l_spring_nzr_len;   /* resting length of spring term with non-zero resting length*/
+  float   l_hinge;            /* coefficient of hinge angle term */
   float   l_repulse ;         /* repulsize force on tessellation */
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
@@ -2280,7 +2283,7 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
 
 int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
 int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
-double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double pmin[3], double dL);
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
