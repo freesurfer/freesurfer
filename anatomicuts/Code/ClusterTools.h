@@ -1,5 +1,5 @@
 #ifndef _ClusterTools_h__
-#define _ClusterTools_h_
+#define _ClusterTools_h__
 
 #include "itkMeshToMeshFilter.h"
 #include <vtkCellArray.h>
