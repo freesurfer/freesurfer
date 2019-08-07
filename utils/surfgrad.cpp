@@ -1993,3 +1993,123 @@ int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh,
   fflush(stdout);
   return(nerrs);
 }
+
+/*
+  \fn double SurfGradUnitVector(const double v0[3], const double v1[3], double u[3], DMATRIX *grad)
+  \brief Computes the unit vector from v0 to v1. Returns the distance
+  between v0 and v1. If grad is non-NULL, then it computes the
+  gradient of u with respect to v0 (just negate it if you want WRT
+  v1). grad should be a 3x3 matrix.  grad[m][k] = du[m]/dv0[k].  This
+  could be part of an edge structure. See also SurfGradUnitVectorTest().
+ */
+long double SurfGradUnitVector(const double v0[3], const double v1[3], double u[3], DMATRIX *grad)
+{
+  int k,m;
+  long double w[3],L=0;
+
+  for(k=0;k<3;k++) {
+    w[k] = (long double)v1[k]-v0[k];
+    L += (w[k]*w[k]);
+  }
+
+  L = sqrt(L);
+  if(L==0){
+    for(k=0;k<3;k++) u[k] = 0;
+    if(grad){
+      for(k=0;k<3;k++) {
+        for(m=0;m<3;m++) {
+          grad->rptr[k+1][m+1] = 0.0;
+        }
+      }
+    }
+    return(L);
+  }
+  for(k=0;k<3;k++) u[k] = w[k]/L;
+  if(grad==NULL) return(L);
+
+  // grad = (w*w')/(L^3) - I/L;
+  long double iL3 = 1.0/(L*L*L);
+  long double iL = 1.0/L;
+  long double A;
+  for(k=0;k<3;k++) {
+    for(m=0;m<3;m++) {
+      A = (w[k]*w[m])*iL3;
+      if(k==m) A -= iL;
+      // note: grad is double, not long double
+      grad->rptr[k+1][m+1] = A;
+    }
+  }
+  return(L);
+}
+
+/*
+  \fn int SurfGradUnitVectorTest(long double delta, double thresh, int ntrials)
+  \brief Test for the gradient part of SurfGradUnitVector. The test is
+  done by emperically computing the gradient by moving each dimension
+  of v0 by delta then computing the change in the unit vector. This is
+  repeated ntrials. If an error measure is greater than thresh, then
+  an error is logged. Returns the number of errors. There may be some
+  errors due to round-off. The error measure should be interpreted as
+  a number between 0 and 1. Eg, this invocation currently has no errors:
+  SurfGradUnitVectorTest(.0001, .01, 1000);
+ */
+int SurfGradUnitVectorTest(long double delta, double thresh, int ntrials)
+{
+  int k,m,n,nerrs;
+  double v0[3], v1[3],  u[3], L, v0b[3], ub[3];
+  DMATRIX *grad, *gradnum;
+  double e,emax,g,gmax, err, errmax;
+
+  grad = DMatrixAlloc(3,3,MATRIX_REAL);
+  gradnum = DMatrixAlloc(3,3,MATRIX_REAL);
+
+  nerrs = 0;
+  errmax = 0;
+  for(n=0; n<ntrials; n++){
+    for(k=0;k<3;k++) {
+      v0[k] = drand48();
+      v1[k] = drand48();
+    }
+    
+    L = SurfGradUnitVector(v0,v1, u, grad);
+    //printf("L=%g\n",L);
+ 
+    for(k=0;k<3;k++) {
+      for(m=0;m<3;m++) v0b[m] = v0[m];
+      v0b[k] = v0[k] + delta;
+      SurfGradUnitVector(v0b,v1, ub, NULL);
+      for(m=0; m<3; m++) gradnum->rptr[m+1][k+1] = (ub[m]-u[m])/delta;
+    }
+
+    emax = 0;
+    gmax = 0;
+    for(k=0;k<3;k++) {
+      for(m=0; m<3; m++) {
+	e = fabs(grad->rptr[m+1][k+1]-gradnum->rptr[m+1][k+1]);
+	if(emax < e) emax = e;
+	g = fabs(grad->rptr[m+1][k+1]);
+	if(gmax < g) gmax = g;
+      }
+    }
+    err = emax/gmax;
+ 
+    if(err > thresh){
+      printf("n = %d\n",n);
+      printf("err = %g, thresh=%g, emax=%g, gmax=%g\n",err,thresh,emax,gmax);
+      printf("v0 = ["); for(k=0;k<3;k++) printf(" %g ",v0[k]);printf("]';\n");
+      printf("v1 = ["); for(k=0;k<3;k++) printf(" %g ",v1[k]);printf("]';\n");
+      printf("grad = [\n");
+      DMatrixPrint(stdout,grad);
+      printf("];\n");
+      printf("gradnum = [\n");
+      DMatrixPrint(stdout,gradnum);
+      printf("];\n");
+      nerrs++;
+    }
+    if(errmax < err) errmax = err;
+  }
+
+  printf("nerrs = %d/%d, thresh=%g, delta=%Lf, errmax = %g\n",nerrs,ntrials,thresh,delta,errmax);
+
+  return(nerrs);
+}

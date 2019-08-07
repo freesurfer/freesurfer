@@ -100,5 +100,7 @@ int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double m
 int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh, const double magthresh);
 long double MRIStargetCost(MRIS *surf, double const weight, int DoGrad);
 long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *dc);
+long double SurfGradUnitVector(const double v0[3], const double v1[3], double u[3], DMATRIX *grad);
+int SurfGradUnitVectorTest(long double delta, double thresh, int ntrials);
 
 #endif
