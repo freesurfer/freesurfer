@@ -20,7 +20,7 @@ struct VERTEX_TOPOLOGY {
     //  the whole fits in much less than one cache line, so further ordering is no use
     pSeveralInt   f             ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-    pSeveralInt   e             ;  //  edge state for neighboring vertices                      
+    pSeveralInt   e             ;  //  edge state for neighboring vertices (used by MRI_EDGE,MRI_CORNER)              
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
     short const   vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
@@ -160,6 +160,7 @@ struct MRIS {
     int                           nfaces                   ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
     bool                          faceAttachmentDeferred   ;  //  defer connecting faces to vertices for performance reasons
     int                           nedges                   ;  //  # of edges on surface
+    int                           ncorners                 ;  //  # of triangle corners
     int                           nstrips                  ;
     pSeveralVERTEX_TOPOLOGY       vertices_topology        ;
     pSeveralVERTEX                vertices                 ;
@@ -168,6 +169,7 @@ struct MRIS {
     int                           tempsAssigned            ;  //  State of various temp fields that can be borrowed if not already in use
     pSeveralFACE                  faces                    ;
     pSeveralMRI_EDGE              edges                    ;
+    pSeveralMRI_CORNER            corners                  ;
     pSeveralFaceNormCacheEntry    faceNormCacheEntries     ;
     pSeveralFaceNormDeferredEntry faceNormDeferredEntries  ;
     pSeveralSTRIP                 strips                   ;
@@ -424,6 +426,7 @@ struct MRIS {
     ELTT(int,nfaces)  SEP \
     ELTT(bool,faceAttachmentDeferred)  SEP \
     ELTT(int,nedges)  SEP \
+    ELTT(int,ncorners)  SEP \
     ELTT(int,nstrips)  SEP \
     ELTP(VERTEX_TOPOLOGY,vertices_topology)  SEP \
     ELTP(VERTEX,vertices)  SEP \

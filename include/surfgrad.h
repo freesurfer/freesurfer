@@ -90,6 +90,7 @@ BBRFACE *BBRFaceDiff(const BBRFACE *bbrf1, const BBRFACE *bbrf2, const double de
 double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose);
 int BBRPARsras2vox(BBRPARAMS *bbrpar);
 long double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX *gradCost);
+
 double MRISedgeCost(MRIS *surf, DMATRIX *gradCost);
 int MRISedgeMetric(MRIS *surf);
 long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **pgradv0, DMATRIX **pgradv1);
@@ -102,5 +103,15 @@ long double MRIStargetCost(MRIS *surf, double const weight, int DoGrad);
 long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *dc);
 long double SurfGradUnitVector(const double v0[3], const double v1[3], double u[3], DMATRIX *grad);
 int SurfGradUnitVectorTest(long double delta, double thresh, int ntrials);
+
+double *MRIScornerStats(MRIS *surf, int metricid, MRI *mask, double *stats);
+int MRIScornersPrint(FILE *fp, MRIS *surf);
+int MRIScornersWrite(char *filename, MRIS *surf);
+long double MRIScornerDotCost(MRIS *surf, double weight, int DoGrad);
+int MRIScornerDotCostTest(MRIS *surf, const double delta, const double anglethresh, const double magthresh);
+int MRIScornerPrint(FILE *fp, const MRIS *surf, const int cornerno);
+int MRISedgeGradU(MRIS *surf);
+int MRIScornerMetric(MRIS *surf, const int DoGrad);
+double MRIScornerMetricCorner(MRIS *surf, const int cornerno, const int DoGrad);
 
 #endif
