@@ -66,12 +66,13 @@ int mrisComputeSpringTerm           (MRI_SURFACE *mris, double l_spring);
 int mrisComputeLaplacianTerm        (MRI_SURFACE *mris, double l_laplacian);
 int mrisComputeNormalizedSpringTerm (MRI_SURFACE *mris, double l_spring);
 
-int mrisProjectSurface                     (MRI_SURFACE *mris);
+int mrisProjectSurface                     (MRIS*    mris);
+int mrisProjectSurface                     (MRIS_MP* mris);
+
 int mrisApplyTopologyPreservingGradient    (MRI_SURFACE *mris, double dt, int which_gradient);
 int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt);
 int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt);
 
-int mrisProjectSurface(MRI_SURFACE *mris);
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient);
 int mrisCountCompressed(MRI_SURFACE *mris, double min_dist);
 

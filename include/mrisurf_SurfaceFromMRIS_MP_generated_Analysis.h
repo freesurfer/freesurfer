@@ -39,6 +39,9 @@
         inline float wnx           (                   ) const ;
         inline float wny           (                   ) const ;
         inline float wnz           (                   ) const ;  //  white normal
+        inline float dx            (                   ) const ;
+        inline float dy            (                   ) const ;
+        inline float dz            (                   ) const ;  //  current change in position
         inline float curv          (                   ) const ;  //  curr curvature
         inline float cx            (                   ) const ;
         inline float cy            (                   ) const ;
@@ -63,6 +66,9 @@
         inline void  set_wnx       (          float to       ) ;
         inline void  set_wny       (          float to       ) ;
         inline void  set_wnz       (          float to       ) ;  //  white normal
+        inline void  set_dx        (          float to       ) ;
+        inline void  set_dy        (          float to       ) ;
+        inline void  set_dz        (          float to       ) ;  //  current change in position
         inline void  set_curv      (          float to       ) ;  //  curr curvature
         inline void  set_cx        (          float to       ) ;
         inline void  set_cy        (          float to       ) ;

@@ -29,6 +29,9 @@ bool mrisCheckDistOrig(MRIS const * mris);
 
 void MRISmakeDist(MRIS *mris, int vno);
 
+
+
+
 typedef struct PerThreadMRIDistance {
   MRI const * mri_distance;
   int heightTimesDepth,depth;

@@ -151,6 +151,7 @@ struct MRISPV {
     int                           nfaces                   ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
     bool                          faceAttachmentDeferred   ;  //  defer connecting faces to vertices for performance reasons
     int                           nedges                   ;  //  # of edges on surface
+    int                           ncorners                 ;  //  # of triangle corners
     int                           nstrips                  ;
     pSeveralVERTEX_TOPOLOGY       vertices_topology        ;
     pSeveralVERTEX                vertices                 ;
@@ -159,6 +160,7 @@ struct MRISPV {
     int                           tempsAssigned            ;  //  State of various temp fields that can be borrowed if not already in use
     pSeveralFACE                  faces                    ;
     pSeveralMRI_EDGE              edges                    ;
+    pSeveralMRI_CORNER            corners                  ;
     pSeveralFaceNormCacheEntry    faceNormCacheEntries     ;
     pSeveralFaceNormDeferredEntry faceNormDeferredEntries  ;
     pSeveralSTRIP                 strips                   ;

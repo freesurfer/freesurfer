@@ -356,6 +356,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -376,6 +379,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -684,6 +690,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -704,6 +713,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -1095,6 +1107,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -1115,6 +1130,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -2267,6 +2285,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -2287,6 +2308,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -3433,6 +3457,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -3453,6 +3480,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -4124,6 +4154,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -4144,6 +4177,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -4443,6 +4479,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -4463,6 +4502,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -4857,6 +4899,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -4877,6 +4922,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -6038,6 +6086,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -6058,6 +6109,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -7204,6 +7258,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -7224,6 +7281,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];
@@ -8421,6 +8481,9 @@ namespace SurfaceFromMRISPV {
     int Surface::nedges() const {  //  # of edges on surface
         return repr->nedges;
     }
+    int Surface::ncorners() const {  //  # of triangle corners
+        return repr->ncorners;
+    }
     int Surface::nstrips() const {
         return repr->nstrips;
     }
@@ -8441,6 +8504,9 @@ namespace SurfaceFromMRISPV {
     }
     MRI_EDGE Surface::edges(size_t i) const {
         return repr->edges[i];
+    }
+    MRI_CORNER Surface::corners(size_t i) const {
+        return repr->corners[i];
     }
     FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
         return repr->faceNormCacheEntries[i];

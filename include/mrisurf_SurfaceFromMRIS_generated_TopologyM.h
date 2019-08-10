@@ -76,6 +76,7 @@
         inline int                   nfaces                   (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         inline bool                  faceAttachmentDeferred   (           ) const ;  //  defer connecting faces to vertices for performance reasons
         inline int                   nedges                   (           ) const ;  //  # of edges on surface
+        inline int                   ncorners                 (           ) const ;  //  # of triangle corners
         inline int                   nstrips                  (           ) const ;
         inline Vertex                vertices                 ( size_t i  ) const ;
         inline p_p_void              dist_storage             (           ) const ;  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
@@ -83,6 +84,7 @@
         inline int                   tempsAssigned            (           ) const ;  //  State of various temp fields that can be borrowed if not already in use
         inline Face                  faces                    ( size_t i  ) const ;
         inline MRI_EDGE              edges                    ( size_t i  ) const ;
+        inline MRI_CORNER            corners                  ( size_t i  ) const ;
         inline FaceNormCacheEntry    faceNormCacheEntries     ( size_t i  ) const ;
         inline FaceNormDeferredEntry faceNormDeferredEntries  ( size_t i  ) const ;
         inline int                   initialized              (           ) const ;

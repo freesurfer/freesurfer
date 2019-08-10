@@ -31,6 +31,9 @@ struct MRIS_MP {
     float*                  v_wnx             ;
     float*                  v_wny             ;
     float*                  v_wnz             ;  //  white normal
+    float*                  v_dx              ;
+    float*                  v_dy              ;
+    float*                  v_dz              ;  //  current change in position
     float*                  v_curv            ;  //  curr curvature
     float*                  v_cx              ;
     float*                  v_cy              ;

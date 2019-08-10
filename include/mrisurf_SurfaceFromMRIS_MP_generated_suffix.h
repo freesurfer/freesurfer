@@ -698,6 +698,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::wnz() const {  //  white normal
         return repr->v_wnz[idx];
     }
+    float Vertex::dx() const {
+        return repr->v_dx[idx];
+    }
+    float Vertex::dy() const {
+        return repr->v_dy[idx];
+    }
+    float Vertex::dz() const {  //  current change in position
+        return repr->v_dz[idx];
+    }
     float Vertex::curv() const {  //  curr curvature
         return repr->v_curv[idx];
     }
@@ -786,6 +795,15 @@ namespace SurfaceFromMRIS_MP {
     }
     void Vertex::set_wnz(float to) {  //  white normal
         repr->v_wnz[idx] = to;
+    }
+    void Vertex::set_dx(float to) {
+        repr->v_dx[idx] = to;
+    }
+    void Vertex::set_dy(float to) {
+        repr->v_dy[idx] = to;
+    }
+    void Vertex::set_dz(float to) {  //  current change in position
+        repr->v_dz[idx] = to;
     }
     void Vertex::set_curv(float to) {  //  curr curvature
         repr->v_curv[idx] = to;
@@ -1023,6 +1041,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::wnz() const {  //  white normal
         return repr->v_wnz[idx];
     }
+    float Vertex::dx() const {
+        return repr->v_dx[idx];
+    }
+    float Vertex::dy() const {
+        return repr->v_dy[idx];
+    }
+    float Vertex::dz() const {  //  current change in position
+        return repr->v_dz[idx];
+    }
     float Vertex::curv() const {  //  curr curvature
         return repr->v_curv[idx];
     }
@@ -1111,6 +1138,15 @@ namespace SurfaceFromMRIS_MP {
     }
     void Vertex::set_wnz(float to) {  //  white normal
         repr->v_wnz[idx] = to;
+    }
+    void Vertex::set_dx(float to) {
+        repr->v_dx[idx] = to;
+    }
+    void Vertex::set_dy(float to) {
+        repr->v_dy[idx] = to;
+    }
+    void Vertex::set_dz(float to) {  //  current change in position
+        repr->v_dz[idx] = to;
     }
     void Vertex::set_curv(float to) {  //  curr curvature
         repr->v_curv[idx] = to;
@@ -1887,6 +1923,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::wnz() const {  //  white normal
         return repr->v_wnz[idx];
     }
+    float Vertex::dx() const {
+        return repr->v_dx[idx];
+    }
+    float Vertex::dy() const {
+        return repr->v_dy[idx];
+    }
+    float Vertex::dz() const {  //  current change in position
+        return repr->v_dz[idx];
+    }
     float Vertex::curv() const {  //  curr curvature
         return repr->v_curv[idx];
     }
@@ -1975,6 +2020,15 @@ namespace SurfaceFromMRIS_MP {
     }
     void Vertex::set_wnz(float to) {  //  white normal
         repr->v_wnz[idx] = to;
+    }
+    void Vertex::set_dx(float to) {
+        repr->v_dx[idx] = to;
+    }
+    void Vertex::set_dy(float to) {
+        repr->v_dy[idx] = to;
+    }
+    void Vertex::set_dz(float to) {  //  current change in position
+        repr->v_dz[idx] = to;
     }
     void Vertex::set_curv(float to) {  //  curr curvature
         repr->v_curv[idx] = to;
@@ -2208,6 +2262,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::wnz() const {  //  white normal
         return repr->v_wnz[idx];
     }
+    float Vertex::dx() const {
+        return repr->v_dx[idx];
+    }
+    float Vertex::dy() const {
+        return repr->v_dy[idx];
+    }
+    float Vertex::dz() const {  //  current change in position
+        return repr->v_dz[idx];
+    }
     float Vertex::curv() const {  //  curr curvature
         return repr->v_curv[idx];
     }
@@ -2296,6 +2359,15 @@ namespace SurfaceFromMRIS_MP {
     }
     void Vertex::set_wnz(float to) {  //  white normal
         repr->v_wnz[idx] = to;
+    }
+    void Vertex::set_dx(float to) {
+        repr->v_dx[idx] = to;
+    }
+    void Vertex::set_dy(float to) {
+        repr->v_dy[idx] = to;
+    }
+    void Vertex::set_dz(float to) {  //  current change in position
+        repr->v_dz[idx] = to;
     }
     void Vertex::set_curv(float to) {  //  curr curvature
         repr->v_curv[idx] = to;
@@ -2536,6 +2608,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::wnz() const {  //  white normal
         return repr->v_wnz[idx];
     }
+    float Vertex::dx() const {
+        return repr->v_dx[idx];
+    }
+    float Vertex::dy() const {
+        return repr->v_dy[idx];
+    }
+    float Vertex::dz() const {  //  current change in position
+        return repr->v_dz[idx];
+    }
     float Vertex::curv() const {  //  curr curvature
         return repr->v_curv[idx];
     }
@@ -2633,6 +2714,15 @@ namespace SurfaceFromMRIS_MP {
     }
     void Vertex::set_wnz(float to) {  //  white normal
         repr->v_wnz[idx] = to;
+    }
+    void Vertex::set_dx(float to) {
+        repr->v_dx[idx] = to;
+    }
+    void Vertex::set_dy(float to) {
+        repr->v_dy[idx] = to;
+    }
+    void Vertex::set_dz(float to) {  //  current change in position
+        repr->v_dz[idx] = to;
     }
     void Vertex::set_curv(float to) {  //  curr curvature
         repr->v_curv[idx] = to;

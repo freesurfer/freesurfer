@@ -22,7 +22,7 @@ struct VERTEX_TOPOLOGY {
     //  the whole fits in much less than one cache line, so further ordering is no use
     pSeveralInt   f             ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-    pSeveralInt   e             ;  //  edge state for neighboring vertices (used by MRI_EDGE,MRI_CORNER)              
+    pSeveralInt   e             ;  //  edge state for neighboring vertices                      
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
     short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
@@ -437,6 +437,7 @@ struct MRIS {
     ELTT(int,tempsAssigned)  SEP \
     ELTP(FACE,faces)  SEP \
     ELTP(MRI_EDGE,edges)  SEP \
+    ELTP(MRI_CORNER,corners)  SEP \
     ELTP(FaceNormCacheEntry,faceNormCacheEntries)  SEP \
     ELTP(FaceNormDeferredEntry,faceNormDeferredEntries)  SEP \
     ELTP(STRIP,strips)  SEP \

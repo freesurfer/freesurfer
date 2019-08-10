@@ -308,7 +308,7 @@ public:
   bool canDo(int mris_status) { 
     switch (mris_status) {
     //case MRIS_PARAMETERIZED_SPHERE: return true;
-    //case MRIS_SPHERE:               return true;
+    case MRIS_SPHERE:               return true;
     default:;
     }
     static int shown = 0;
@@ -319,9 +319,9 @@ public:
     return false;
   }
   
-  void project(MRIS_MP* mris) {
-    switch (mris->status) {
-      case MRIS_SPHERE:   MRISprojectOntoSphere(mris, mris->radius);     break;
+  void project(MRIS_MP* mris_mp) {
+    switch (mris_mp->status) {
+      case MRIS_SPHERE:   MRISprojectOntoSphere(mris_mp, mris_mp->radius);  break;
       default: break;
     }
     cheapAssert(false);
@@ -370,6 +370,12 @@ public:
 int mrisProjectSurface(MRIS* mris) 
 {
   mrisSurfaceProjector<MRIS>().project(mris);
+  return (NO_ERROR);
+}
+
+int mrisProjectSurface(MRIS_MP* mris) 
+{
+  mrisSurfaceProjector<MRIS_MP>().project(mris);
   return (NO_ERROR);
 }
 
@@ -936,36 +942,11 @@ int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt)
 
 int MRISapplyGradient(MRIS* mris, double dt)
 {
-  int vno, nvertices;
-
-  nvertices = mris->nvertices;
   MRISstoreCurrentPositions(mris);
   if (mris->status == MRIS_RIGID_BODY) {
     MRISrotate(mris, mris, dt * mris->alpha, dt * mris->beta, dt * mris->gamma);
-  }
-  else {
-    ROMP_PF_begin
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) schedule(static, 1)
-#endif
-    for (vno = 0; vno < nvertices; vno++) {
-      ROMP_PFLB_begin
-      
-      VERTEX *v;
-      v = &mris->vertices[vno];
-      if (v->ripflag) ROMP_PF_continue;
-
-      if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
-        ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
-      if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
-        ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
-      v->x += dt * v->dx;
-      v->y += dt * v->dy;
-      v->z += dt * v->dz;
-      
-      ROMP_PFLB_end
-    }
-    ROMP_PF_end
+  } else {
+    MRIStranslate_along_vertex_dxdydz(mris, mris, dt);
   }
   return (NO_ERROR);
 }

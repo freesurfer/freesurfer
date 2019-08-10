@@ -992,6 +992,58 @@ void MRISblendXYZandNXYZ(MRIS* mris, float nxyzScale)
 }
 
 
+template <class SurfaceOut, class SurfaceInp>
+void MRIStranslate_along_vertex_dxdydz(SurfaceOut surfaceOut, SurfaceInp surfaceInp, double dt)
+{
+  surfaceOut.freeDistsButNotOrig();
+
+  auto const nvertices = surfaceInp.nvertices();
+  cheapAssert(nvertices == surfaceOut.nvertices());
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) schedule(guided)
+#endif
+  for (int vno = 0; vno < nvertices; vno++) {
+    ROMP_PFLB_begin
+      
+    auto vertexInp = surfaceInp.vertices(vno);
+    if (vertexInp.ripflag()) continue;
+    
+    float x = vertexInp.x();
+    float y = vertexInp.y();
+    float z = vertexInp.z();
+
+    x += dt * vertexInp.dx();
+    y += dt * vertexInp.dy();
+    z += dt * vertexInp.dz();
+
+
+    auto vertexOut = surfaceOut.vertices(vno);
+    vertexOut.set_x(x);
+    vertexOut.set_y(y);
+    vertexOut.set_z(z);
+
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+}
+
+void MRIStranslate_along_vertex_dxdydz(MRIS*    dst, MRIS*    src, double dt)
+{
+    SurfaceFromMRIS::Distort::Surface      surfaceInp(src);
+    SurfaceFromMRIS::XYZPositionM::Surface surfaceOut(dst);
+    MRIStranslate_along_vertex_dxdydz(surfaceOut, surfaceInp, dt);
+}
+
+void MRIStranslate_along_vertex_dxdydz(MRIS_MP* dst, MRIS_MP* src, double dt)
+{
+    SurfaceFromMRIS_MP::Distort::Surface      surfaceInp(src);
+    SurfaceFromMRIS_MP::XYZPositionM::Surface surfaceOut(dst);
+    MRIStranslate_along_vertex_dxdydz(surfaceOut, surfaceInp, dt);
+}
+
+
 static void MRISaverageVertexPositionsWkr_part1(MRIS* mris, int navgs, float scale, bool includeCenter, int start, int step, float **ppx, float **ppy, float **ppz)
 {
   MRISfreeDistsButNotOrig(mris);  // it is either this or adjust them...

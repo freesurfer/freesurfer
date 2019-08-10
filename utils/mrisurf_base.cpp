@@ -354,43 +354,6 @@ static void growDistOrDistOrig(bool doOrig, MRIS *mris, int vno, int minimumCapa
   changeDistOrDistOrig(doOrig, mris, vno, oldSize, vSize);
 }
 
-// VERTEX, FACE, EDGE primitives
-//
-static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
-  freeAndNULL(v->v);
-  freeAndNULL(v->f);
-  freeAndNULL(v->n);
-  if(v->e) freeAndNULL(v->e);
-}
-
-static void VERTEXdtr(VERTEX* v) {
-  freeDistOrDistOrig(false, v);
-  freeDistOrDistOrig(true,  v);
-}
-
-static void FACEdtr(FACE* f) {
-  if (f->norm) DMatrixFree(&f->norm);
-  int k;
-  for (k=0; k < 3; k++){
-    if (f->gradNorm[k]) DMatrixFree(&f->gradNorm[k]);
-  }
-}
-
-static void MRIS_EDGEdtr(MRI_EDGE* e) {
-  int k;
-  for (k=0; k<4; k++){
-    if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
-  }
-  if(e->gradU) DMatrixFree(&e->gradU);
-}
-
-static void MRIS_CORNERdtr(MRI_CORNER* c) {
-  int k;
-  for (k=0; k<3; k++){
-    if (c->gradDot[k]) DMatrixFree(&c->gradDot[k]);
-  }
-}
-
 void MRISgrowDist(MRIS *mris, int vno, int minimumCapacity)
 {
   growDistOrDistOrig(false, mris, vno, minimumCapacity);
@@ -463,6 +426,7 @@ static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
   freeAndNULL(v->v);
   freeAndNULL(v->f);
   freeAndNULL(v->n);
+  if (v->e) freeAndNULL(v->e);
 }
 
 static void VERTEXdtr(VERTEX* v) {
@@ -479,9 +443,14 @@ static void FACEdtr(FACE* f) {
 }
 
 static void MRIS_EDGEdtr(MRI_EDGE* e) {
-  int k;
-  for (k=0; k<4; k++){
+  for (int k=0; k<4; k++){
     if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
+  }
+}
+
+static void MRIS_CORNERdtr(MRI_CORNER* c) {
+  for (int k=0; k<3; k++){
+    if (c->gradDot[k]) DMatrixFree(&c->gradDot[k]);
   }
 }
 

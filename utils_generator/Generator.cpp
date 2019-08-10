@@ -1313,6 +1313,9 @@ namespace Representations {
 	struct How_MRIS_indexed_MRI_EDGE : public How_MRIS_indexed {
 		virtual string retType(Prop const & prop) const { return "MRI_EDGE"; }
 	};
+	struct How_MRIS_indexed_MRI_CORNER : public How_MRIS_indexed {
+		virtual string retType(Prop const & prop) const { return "MRI_CORNER"; }
+	};
 	struct How_MRIS_indexed_FaceNormCacheEntry : public How_MRIS_indexed {
 		virtual string retType(Prop const & prop) const { return "FaceNormCacheEntry"; }
 	};
@@ -1427,6 +1430,9 @@ namespace Representations {
 	struct HowPV_MRIS_indexed_MRI_EDGE : public HowPV_MRIS_indexed {
 		virtual string retType(Prop const & prop) const { return "MRI_EDGE"; }
 	};
+	struct HowPV_MRIS_indexed_MRI_CORNER : public HowPV_MRIS_indexed {
+		virtual string retType(Prop const & prop) const { return "MRI_CORNER"; }
+	};
 	struct HowPV_MRIS_indexed_FaceNormCacheEntry : public HowPV_MRIS_indexed {
 		virtual string retType(Prop const & prop) const { return "FaceNormCacheEntry"; }
 	};
@@ -1511,6 +1517,7 @@ namespace Representations {
 		auto t_VERTEX_TOPOLOGY			= new AtomicType("VERTEX_TOPOLOGY");
 		auto t_FACE						= new AtomicType("FACE");
 		auto t_MRI_EDGE					= new AtomicType("MRI_EDGE");
+		auto t_MRI_CORNER			    = new AtomicType("MRI_CORNER");
 		auto t_FaceNormCacheEntry		= new AtomicType("FaceNormCacheEntry");
 		auto t_FaceNormDeferredEntry	= new AtomicType("FaceNormDeferredEntry");
 		auto t_STRIP					= new AtomicType("STRIP");
@@ -1542,6 +1549,7 @@ namespace Representations {
 		auto t_PR_VERTEX_TOPOLOGY		= new PointerToRepeatedAtomicType("pSeveralVERTEX_TOPOLOGY"			, t_VERTEX_TOPOLOGY);
 		auto t_PR_FACE					= new PointerToRepeatedAtomicType("pSeveralFACE"					, t_FACE);
 		auto t_PR_MRI_EDGE				= new PointerToRepeatedAtomicType("pSeveralMRI_EDGE"				, t_MRI_EDGE);
+		auto t_PR_MRI_CORNER			= new PointerToRepeatedAtomicType("pSeveralMRI_CORNER"				, t_MRI_CORNER);
 		auto t_PR_FaceNormCacheEntry	= new PointerToRepeatedAtomicType("pSeveralFaceNormCacheEntry"		, t_FaceNormCacheEntry);
 		auto t_PR_FaceNormDeferredEntry = new PointerToRepeatedAtomicType("pSeveralFaceNormDeferredEntry"	, t_FaceNormDeferredEntry);
 		auto t_PR_STRIP					= new PointerToRepeatedAtomicType("pSeveralSTRIP"					, t_STRIP);
@@ -1868,6 +1876,7 @@ namespace Representations {
 		addProp(t_int,						"nfaces",		            "# of faces on surface, change by calling MRISreallocVerticesAndFaces et al");
 		addProp(t_bool,						"faceAttachmentDeferred",	"defer connecting faces to vertices for performance reasons");
 		addProp(t_int,						"nedges",		            "# of edges on surface");
+        addProp(t_int,                      "ncorners",                 "# of triangle corners");
 		addProp(t_int,						"nstrips");
 
 			howPush(new How_MRIS_hidden, new HowPV_MRIS_hidden);
@@ -1885,6 +1894,8 @@ namespace Representations {
 		addProp(t_PR_FACE,					"faces");
 			howMod(new How_MRIS_indexed_MRI_EDGE, new HowPV_MRIS_indexed_MRI_EDGE);
 		addProp(t_PR_MRI_EDGE,				"edges");
+			howMod(new How_MRIS_indexed_MRI_CORNER, new HowPV_MRIS_indexed_MRI_CORNER);
+        addProp(t_PR_MRI_CORNER,            "corners");
 			howMod(new How_MRIS_indexed_FaceNormCacheEntry, new HowPV_MRIS_indexed_FaceNormCacheEntry);
 		addProp(t_PR_FaceNormCacheEntry,	"faceNormCacheEntries");
 			howMod(new How_MRIS_indexed_FaceNormDeferredEntry, new HowPV_MRIS_indexed_FaceNormDeferredEntry);
@@ -2096,6 +2107,9 @@ namespace Representations {
 			insert("Vertex.x");
 			insert("Vertex.y");
 			insert("Vertex.z");
+			insert("Vertex.dx");
+			insert("Vertex.dy");
+			insert("Vertex.dz");
 			insert("Vertex.dist_capacity");
 			insert("Vertex.border");
 			insert("Vertex.cx");
