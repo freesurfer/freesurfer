@@ -345,6 +345,18 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow yellow)
       breaksw
 
+    case "-orig":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig rh.orig)
+      set surfcolor = ($surfcolor green green)
+      breaksw
+
+    case "-orig.nofix":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig.nofix rh.orig.nofix)
+      set surfcolor = ($surfcolor cyan cyan)
+      breaksw
+
     case "-surfext":  
       if($#argv < 1) goto arg1err;
       set surfext = $argv[1]; shift
@@ -569,6 +581,8 @@ usage_exit:
   echo "-seg2 seg3 <-seg2 seg4> : add segs beyond -seg and -aux-seg"
   echo "-white : load {l,r}h.white"
   echo "-pial : load {l,r}h.pial"
+  echo "-orig : load {l,r}h.orig"
+  echo "-orig.nofix : load {l,r}h.orig.nofix"
   echo "-surfext ext : add ext to the name of the surface"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""

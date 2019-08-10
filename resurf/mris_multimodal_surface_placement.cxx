@@ -158,7 +158,11 @@ int main(int narg, char*  arg[])
                 polyData->SetLines(cells);
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriter =  vtkSmartPointer<vtkPolyDataWriter>::New();
+		#if VTK_MAJOR_VERSION <= 5
 		pdWriter->SetInput(polyData);
+		#else
+		pdWriter->SetInputData(polyData);
+		#endif
 		pdWriter->SetFileName(outNormals);
 		pdWriter->Update();
 
@@ -220,7 +224,11 @@ int main(int narg, char*  arg[])
                 polyDataValues->SetLines(cellsValues);
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriterValues =  vtkSmartPointer<vtkPolyDataWriter>::New();
-		pdWriterValues->SetInput(polyDataValues);
+        #if VTK_MAJOR_VERSION <= 5
+        pdWriterValues->SetInput(polyDataValues);
+        #else
+		pdWriterValues->SetInputData(polyDataValues);
+        #endif
 		pdWriterValues->SetFileName(outValues);
 		pdWriterValues->Update();
 

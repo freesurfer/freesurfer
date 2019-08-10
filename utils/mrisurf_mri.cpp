@@ -25,6 +25,7 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_compute_dxyz.h"
 #include "region.h"
+#include "surfgrad.h"
 
 #include "mrisurf_base.h"
 
@@ -603,6 +604,25 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     /*mrisUpdateSulcalGradients(mris, parms) ;*/
     /* smoothness terms */
     mrisComputeSpringTerm(mris, parms->l_spring);
+    if(parms->l_hinge || parms->l_spring_nzr > 0){
+      if(mris->edges == NULL){
+	printf("First pass, creating edges\n");
+	MRISedges(mris);
+      }
+      MRISedgeMetric(mris);
+      MRISfaceNormalGrad(mris, 0);
+      MRISedgeGradDot(mris);
+    }
+    if(parms->l_spring_nzr > 0){
+      double springcost = MRISedgeLengthCost(mris, parms->l_spring_nzr_len, parms->l_spring_nzr, 1);
+      printf("#@%% spring_nzr cost L0=%g, weight=%g, cost = %g\n",parms->l_spring_nzr_len,parms->l_spring_nzr,springcost);
+      fflush(stdout);
+    }
+    if(parms->l_hinge > 0){
+      double hingecost = MRISedgeAngleCost(mris,parms->l_hinge, 1);
+      printf("#@%% hinge cost weight=%g, cost = %g\n",parms->l_hinge,hingecost);
+
+    }
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm);
     mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current, mht_f_current);
     mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth, parms);
@@ -1598,14 +1618,18 @@ int MRIScomputeBorderValues(
   outside_low = min_csf = meanGM - MAX(0.5,(V-1)*stdGM) (eg, 10)
   outside_hi  = (max_csf+max_gray_at_csf_border)/2 (eg, 60.8)
 
+  border_hi  - determines when a sample is too bright on the inward  loop
+  border_low - determines when a sample is too dark   on the outward loop
+
   The outputs are set in each vertex structure:
       v->val2 = current_sigma; // smoothing level along gradient used to find the target
       v->val  = max_mag_val; // target intensity
       v->d = max_mag_dist;   // dist to target intensity along normal
       v->mean = max_mag;     // derive at target intensity
       v->marked = 1;         // vertex has good data
+      v->targx = v->x + v->nx * v->d; // same for y and z
       Skips all ripped vertices
-#BV
+#CBV
 */
 static int MRIScomputeBorderValues_new(
     MRI_SURFACE *       mris,
@@ -1705,6 +1729,9 @@ static int MRIScomputeBorderValues_new(
     if(vno == Gdiag_no) printf("Starting vno=%d\n",vno);
     if (v->ripflag) {
       if(vno == Gdiag_no) printf("vno=%d is ripped, ignoring \n",vno);
+      v->targx = v->x;
+      v->targy = v->y;
+      v->targz = v->z;
       ROMP_PF_continue;
     }
 
@@ -2462,6 +2489,10 @@ static int MRIScomputeBorderValues_new(
         nmissing++;
       }
     }
+
+    v->targx = v->x + v->nx * v->d;
+    v->targy = v->y + v->ny * v->d;
+    v->targz = v->z + v->nz * v->d;
 
     if (vno == Gdiag_no)
       printf("vno=%d, target value = %2.1f, mag = %2.1f, dist = %2.2f, %s\n",
@@ -6611,6 +6642,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
 
   MRIvalRange(mri, &min_val, &max_val);
   nbins = ceil(max_val - min_val) + 1;
+  printf("MRIScomputeClassModes(): min=%g max=%g nbins=%d\n",min_val,max_val,nbins);
   h_white = HISTOalloc(nbins);
   h_csf = HISTOalloc(nbins);
   h_gray = HISTOalloc(nbins);

@@ -18,7 +18,7 @@ if(VTK_FOUND)
     add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs  -Wno-maybe-uninitialized )
   else()
     # Mac OS 10.13.6 native clang compiler does not support -Wno-maybe-uninitialized
-    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs )
+    add_compile_options(-Wno-deprecated -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedefs -Wno-inconsistent-missing-override )
   endif()
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
