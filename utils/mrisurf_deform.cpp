@@ -379,6 +379,10 @@ int mrisProjectSurface(MRIS_MP* mris)
   return (NO_ERROR);
 }
 
+static bool mrisProjectSurface_CanDo(int mris_status)
+{
+  return mrisSurfaceProjector<MRIS_MP>().canDo(mris_status);
+}
 
 int mrisComputePlaneTerm(MRIS* mris, double l_plane, double l_spacing)
 {
@@ -993,7 +997,7 @@ double MRIScomputeSSE_asThoughGradientApplied(
   INTEGRATION_PARMS* parms,
   MRIScomputeSSE_asThoughGradientApplied_ctx& ctx)
 {
-  bool const canUseNewBehaviour = false; // TODO mrismp_ProjectSurface_canDo(mris->status) && MRISMP_computeSSE_canDo(parms);
+  bool const canUseNewBehaviour = mrisProjectSurface_CanDo(mris->status) && MRIScomputeSSE_canDo((MRIS_MP*)nullptr,parms);
 
   bool useOldBehaviour = !!getenv("FREESURFER_OLD_MRIScomputeSSE_asThoughGradientApplied");
   bool useNewBehaviour = !!getenv("FREESURFER_NEW_MRIScomputeSSE_asThoughGradientApplied") || !useOldBehaviour;
@@ -1015,14 +1019,10 @@ double MRIScomputeSSE_asThoughGradientApplied(
       false,  // needs to copy the outputs because those are inputs to ProjectSurface
       true);  // no need to copy v_x[*] etc. because they are obtained by the translate_along_vertex_dxdydxz below
 
-#if 1
-    cheapAssert(false); // TODO
-#else
-    MRISMP_translate_along_vertex_dxdydz(&ctxImpl.orig, &ctxImpl.curr, delta_t, ctxImpl.dx, ctxImpl.dy, ctxImpl.dz);
-    mrismp_ProjectSurface(&ctxImpl.curr);
-    MRISMP_computeMetricProperties(&ctxImpl.curr);
-    new_result = MRISMP_computeSSE(&ctxImpl.curr, parms);
-#endif
+    MRIStranslate_along_vertex_dxdydz(&ctxImpl.orig, &ctxImpl.curr, delta_t);
+    mrisProjectSurface(&ctxImpl.curr);
+    MRIScomputeMetricProperties(&ctxImpl.curr);
+    new_result = MRIScomputeSSE(&ctxImpl.curr, parms);
   }
 
   double old_result = 0.0;

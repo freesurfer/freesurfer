@@ -16,6 +16,10 @@
 #include "mrisurf_project.h"
 
 #include "mrisurf_base.h"
+#include "mrisurf_MRIS_MP.h"
+#include "mrisurf_SurfaceFromMRIS_MP_generated.h"
+
+#include "mrishash_SurfaceFromMRIS.h"
 
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
@@ -2649,33 +2653,9 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
       ELT(sse_vectorCorrelationError, 1.0,                    use_multiframes,            mrisComputeVectorCorrelationError(mris, parms, 1)                               )     \
       // end of list
 
-#if defined(COMPILING_MRIS_MP)
-bool MRISMP_computeSSE_canDo(INTEGRATION_PARMS *parms)
-{
-  debug |= debugNonDeterminism;
-  
-  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
-  // double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
 
-  bool result = true;
-#define SEP
-#define ELTM(NAME,MULTIPLIER,COND,EXPR,EXPRM)
-#define ELT(NAME, MULTIPLIER, COND, EXPR) \
-  if (COND) { static bool reported = false; \
-    if (!reported) { reported = true; fprintf(stdout, "%s:%d can't do %s %s\n", __FILE__,__LINE__,#NAME,#EXPR); } \
-    result = false; \
-  }
-  SSE_TERMS
-  ELT(sse_init,1.0,gMRISexternalSSE,)
-#undef ELT
-#undef ELTM
-#undef SEP
-  return result;
-}
-#endif
-
-
-double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+template <class Surface, class Some_MRIS>
+double MRIScomputeSSE_template(Surface surface, Some_MRIS* mris, INTEGRATION_PARMS *parms)
 {
   bool const debug = debugNonDeterminism;
   
@@ -2684,7 +2664,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double const l_curv_scaled    = (double)parms->l_curv * CURV_SCALE;
   double const area_scale =
 #if METRIC_SCALE
-    (mris->patch || mris->noscale) ? 1.0 : mris->orig_area / mris->total_area;
+    (surface.patch() || surface.noscale()) ? 1.0 : surface.orig_area() / surface.total_area();
 #else
     1.0;
 #endif
@@ -2702,11 +2682,13 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     relevant_angle = 0; computed_neg_area = 0; computed_area = 0;
 
+    auto const nfaces = surface.nfaces();
+
 #ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
 
   #define ROMP_VARIABLE       fno
   #define ROMP_LO             0
-  #define ROMP_HI             mris->nfaces
+  #define ROMP_HI             nfaces
     
   #define ROMP_SUMREDUCTION0  relevant_angle
   #define ROMP_SUMREDUCTION1  computed_neg_area
@@ -2737,27 +2719,29 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     #pragma omp parallel for if_ROMP(fast) reduction(+ : relevant_angle, computed_neg_area, computed_area)
 #endif
 #endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
+    for (fno = 0; fno < nfaces; fno++) {
       ROMP_PFLB_begin
 
 #endif      
-      FACE const * const face = &mris->faces[fno];
-      if (face->ripflag) ROMP_PF_continue;
+      auto face = surface.faces(fno);
+      if (face.ripflag()) ROMP_PF_continue;
       FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
 
       {
-        double const delta = (double)(area_scale * face->area - fNorm->orig_area);
+        auto const area = face.area();
+        double const delta = (double)(area_scale * area - fNorm->orig_area);
 #if ONLY_NEG_AREA_TERM
-        if (face->area < 0.0f) computed_neg_area += delta * delta;
+        if (area < 0.0f) computed_neg_area += delta * delta;
 #endif
         computed_area += delta * delta;
       }
       
       int ano;
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
-        double delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
+        auto const angle = face.angle()[ano];
+        double delta = deltaAngle(angle, face.orig_angle()[ano]);
 #if ONLY_NEG_AREA_TERM
-        if (face->angle[ano] >= 0.0f) delta = 0.0f;
+        if (angle >= 0.0f) delta = 0.0f;
 
 #endif
         relevant_angle += delta * delta;
@@ -2811,7 +2795,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MHT* mht_f_current = NULL;
   if (!FZERO(parms->l_repulse)) {
     double vmean, vsigma;
-    vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
+    vmean = MRIScomputeTotalVertexSpacingStats     (mris, &vsigma, NULL, NULL, NULL, NULL);
     mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, vmean);
     mht_f_current = MHTcreateFaceTable_Resolution  (mris, CURRENT_VERTICES, vmean);
   }
@@ -2930,6 +2914,56 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #undef COMPUTE_DISTANCE_ERROR
 #undef SSE_TERMS
 
+bool MRIScomputeSSE_canDo(MRIS* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
+{
+  return true;
+}
+
+double MRIScomputeSSE(MRIS* mris, INTEGRATION_PARMS *parms)
+{
+  SurfaceFromMRIS::XYZPositionConsequences::Surface surface(mris);
+  return MRIScomputeSSE_template(surface,mris,parms);    
+}
+
+
+#define MRIScomputeSSE_MP_NYI
+bool MRIScomputeSSE_canDo(MRIS_MP* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
+{
+#ifdef MRIScomputeSSE_MP_NYI
+  return false;
+#else
+  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
+  double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
+
+  bool result = true;
+#define SEP
+#define ELTM(NAME,MULTIPLIER,COND,EXPR,EXPRM)
+#define ELT(NAME, MULTIPLIER, COND, EXPR) \
+  if (COND) { static bool reported = false; \
+    if (!reported) { reported = true; fprintf(stdout, "%s:%d can't do %s %s\n", __FILE__,__LINE__,#NAME,#EXPR); } \
+    result = false; \
+  }
+  SSE_TERMS
+  ELT(sse_init,1.0,gMRISexternalSSE,)
+#undef ELT
+#undef ELTM
+#undef SEP
+  return result;
+#endif
+}
+
+
+double MRIScomputeSSE(MRIS_MP* mris, INTEGRATION_PARMS *parms)
+{
+#ifdef MRIScomputeSSE_MP_NYI
+  cheapAssert(!"NYI");
+  return 0.0;
+#else
+  SurfaceFromMRIS_MP::XYZPositionConsequences::Surface surface(mris);
+  return MRIScomputeSSE_template(surface,mris,parms);    
+#endif
+}
+
 
 double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
 {
@@ -2947,7 +2981,6 @@ double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_
 
   return (sse);
 }
-
 
 
 

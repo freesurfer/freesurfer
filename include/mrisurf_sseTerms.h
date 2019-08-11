@@ -44,8 +44,14 @@ void mrismp_ComputeFaceRelevantAngleAndArea(MRIS_MP* mris, INTEGRATION_PARMS *pa
 int mrisAverageSignedGradients             (MRIS*    mris, int num_avgs);
 int mrisComputePositioningGradients        (MRIS*    mris, INTEGRATION_PARMS *parms);
 
-double MRIScomputeSSE        (MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse);
+bool   MRIScomputeSSE_canDo  (MRIS*    mris, INTEGRATION_PARMS *parms);
+bool   MRIScomputeSSE_canDo  (MRIS_MP* mris, INTEGRATION_PARMS *parms);
+
+double MRIScomputeSSE        (MRIS*    mris, INTEGRATION_PARMS *parms);
+double MRIScomputeSSEExternal(MRIS*    mris, INTEGRATION_PARMS *parms, double *ext_sse);
+double MRIScomputeSSE        (MRIS_MP* mris, INTEGRATION_PARMS *parms);
+
+
 
 // MEF support
 //

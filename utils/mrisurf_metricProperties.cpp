@@ -1902,7 +1902,7 @@ int MRIScomputeMetricProperties(MRIS *mris)
   if (useNewBehaviour) {
     MRISfreeDistsButNotOrig(mris);                                      // So they can be stolen to avoid unnecessary mallocs and frees
     MRISMP_load(&mp, mris);                                             // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
-    MRISMP_computeMetricProperties(&mp);                                // It should not matter the order these are done in
+    MRIScomputeMetricProperties(&mp);                                // It should not matter the order these are done in
   }
   
   if (useOldBehaviour) {

@@ -1149,7 +1149,7 @@ int mrismp_OrientSurface(MRIS_MP *mris)
 }
 
 
-static void MRISMP_computeMetricProperties(MRIS_MP* mris) {
+void MRIScomputeMetricProperties(MRIS_MP* mris) {
   // fprintf(stdout,"%s:%d %s\n",__FILE__,__LINE__,__MYFUNCTION__);
 
   MRISMP_computeNormals(mris, false);           // changes XYZ

@@ -167,3 +167,6 @@ void computeDefectFaceNormal_calculate(
 #define VERTEX_EDGE(vec, v0, v1)           VECTOR_LOAD(vec, v1->x     - v0->x,     v1->y     - v0->y,     v1->z     - v0->z)
 #define VERTEX_ORIG_EDGE(vec, v0, v1)      VECTOR_LOAD(vec, v1->origx - v0->origx, v1->origy - v0->origy, v1->origz - v0->origz)
 #define VERTEX_CANONICAL_EDGE(vec, v0, v1) VECTOR_LOAD(vec, v1->cx    - v0->cx,    v1->cy    - v0->cy,    v1->cz    - v0->cz)
+
+
+void MRIScomputeMetricProperties(MRIS_MP* mris);
