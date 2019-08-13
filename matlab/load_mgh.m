@@ -62,11 +62,12 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') || ...
   gzipped =  round(rand(1)*10000000 + ...
 		   sum(int16(fname))) + round(cputime);
   %ind = findstr(fname, '.');
-  if(exist('/scratch'))
-    new_fname = sprintf('%s.load_mgh.%d.mgh', tempname('/scratch/'),gzipped);
-  else
-    new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
-  end
+  new_fname = sprintf('%s.load_mgh.m.mgh', tempname(fsgettmppath));
+  %if(exist('/scratch'))
+  %  new_fname = sprintf('%s.load_mgh.%d.mgh', tempname('/scratch/'),gzipped);
+  %else
+  %  new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
+  %end
   
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     [status,msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
