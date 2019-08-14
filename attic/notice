@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "error: @TOOL@ has been removed from this version of freesurfer. For further information, please post to the help list at freesurfer@nmr.mgh.harvard.edu"
+exit 1
