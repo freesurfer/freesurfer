@@ -8,9 +8,11 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline char ripflag     (          ) const ;
+        inline Vertex v           ( size_t i            ) const ;
+        inline char   ripflag     (                     ) const ;
         
-        inline void set_ripflag (  char to       ) ;
+        inline void   set_v       ( size_t i, Vertex to       ) ;
+        inline void   set_ripflag (             char to       ) ;
     }; // Face
 
     struct Vertex : public Repr_Elt {

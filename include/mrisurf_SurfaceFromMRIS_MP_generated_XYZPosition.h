@@ -14,9 +14,10 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline char ripflag     (          ) const ;
+        inline Vertex v           ( size_t i         ) const ;
+        inline char   ripflag     (                  ) const ;
         
-        inline void set_ripflag (  char to       ) ;
+        inline void   set_ripflag (          char to       ) ;
     }; // Face
 
     struct Vertex : public Repr_Elt {
@@ -40,6 +41,9 @@
         inline float x             (                   ) const ;  //  current coordinates	
         inline float y             (                   ) const ;  //  use MRISsetXYZ() to set
         inline float z             (                   ) const ;
+        inline float origx         (                   ) const ;  //  original coordinates, see also MRIS::origxyz_status
+        inline float origy         (                   ) const ;  //  use MRISsetOriginalXYZ(, 
+        inline float origz         (                   ) const ;  //  or MRISsetOriginalXYZfromXYZ to set
         inline float cx            (                   ) const ;
         inline float cy            (                   ) const ;
         inline float cz            (                   ) const ;  //  coordinates in canonical coordinate system

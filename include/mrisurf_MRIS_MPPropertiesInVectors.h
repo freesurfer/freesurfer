@@ -14,6 +14,7 @@ struct MRIS_MP {
     float**                       v_dist_buffer           ;
     const float*                  f_norm_orig_area        ;
     char*                         f_normSet               ;
+    vertices_per_face_t*          f_v                     ;
     float*                        f_area                  ;
     angles_per_triangle_t*        f_angle                 ;
     angles_per_triangle_t*        f_orig_angle            ;
@@ -25,6 +26,9 @@ struct MRIS_MP {
     float*                        v_x                     ;  //  current coordinates	
     float*                        v_y                     ;  //  use MRISsetXYZ() to set
     float*                        v_z                     ;
+    float*                        v_origx                 ;  //  original coordinates, see also MRIS::origxyz_status
+    float*                        v_origy                 ;  //  use MRISsetOriginalXYZ(, 
+    float*                        v_origz                 ;  //  or MRISsetOriginalXYZfromXYZ to set
     float*                        v_nx                    ;
     float*                        v_ny                    ;
     float*                        v_nz                    ;  //  curr normal

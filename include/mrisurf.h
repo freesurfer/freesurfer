@@ -122,10 +122,6 @@ void MRIS_checkAcquiredTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquire
 void MRIS_releaseTemp      (MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_result);  // ... be allowed to release it
 
 
-FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
-void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
-
-
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
 void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno);

@@ -6396,15 +6396,6 @@ short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrin
 }
 
 
-void computeDefectFaceNormal(MRIS const * const mris, int const fno)
-{
-  float nx, ny, nz, orig_area;
-  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
-  setFaceNorm    (mris, fno, nx, ny, nz);
-  setFaceOrigArea(mris, fno, orig_area);
-}
-
-
 int MRIScomputeSurfaceNormals(MRIS *mris, int which, int navgs)
 {
   int vno, n, i;
@@ -7563,24 +7554,25 @@ int MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, 
   ------------------------------------------------------*/
 
 //#define CHECK_DEFERED_NORMS
-void computeDefectFaceNormal_calculate(
-    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+template  <class Surface>
+void computeDefectFaceNormal_calculate_template(
+  Surface surface, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
 {
-  FACE const * const face = &mris->faces[fno];
+  auto face = surface.faces(fno);
   
-  VERTEX * v1 = &mris->vertices[face->v[0]];
-  VERTEX * v2 = &mris->vertices[face->v[1]];
-  VERTEX * v3 = &mris->vertices[face->v[2]];
+  auto v1 = face.v(0);
+  auto v2 = face.v(1);
+  auto v3 = face.v(2);
 
   /* compute the face normal on the original configuration */
   float a[3], b[3];
 
-  a[0] = v2->origx - v1->origx;
-  b[0] = v3->origx - v1->origx;
-  a[1] = v2->origy - v1->origy;
-  b[1] = v3->origy - v1->origy;
-  a[2] = v2->origz - v1->origz;
-  b[2] = v3->origz - v1->origz;
+  a[0] = v2.origx() - v1.origx();
+  b[0] = v3.origx() - v1.origx();
+  a[1] = v2.origy() - v1.origy();
+  b[1] = v3.origy() - v1.origy();
+  a[2] = v2.origz() - v1.origz();
+  b[2] = v3.origz() - v1.origz();
 
   float norm[3];
   F_CROSS(a, b, norm);
@@ -7597,12 +7589,12 @@ void computeDefectFaceNormal_calculate(
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
     //          (%f,%f,%f)",v1->origx,v1->origy,v1->origz,v2->origx,v2->origy,v2->origz,v3->origx,v3->origy,v3->origz);
     /* try another dot product */
-    a[0] = 100.0 * (v3->origx - v2->origx);
-    b[0] = 100.0 * (v1->origx - v2->origx);
-    a[1] = 100.0 * (v3->origy - v2->origy);
-    b[1] = 100.0 * (v1->origy - v2->origy);
-    a[2] = 100.0 * (v3->origz - v2->origz);
-    b[2] = 100.0 * (v1->origz - v2->origz);
+    a[0] = 100.0 * (v3.origx() - v2.origx());
+    b[0] = 100.0 * (v1.origx() - v2.origx());
+    a[1] = 100.0 * (v3.origy() - v2.origy());
+    b[1] = 100.0 * (v1.origy() - v2.origy());
+    a[2] = 100.0 * (v3.origz() - v2.origz());
+    b[2] = 100.0 * (v1.origz() - v2.origz());
     F_CROSS(a, b, norm);
     nx = norm[0];
     ny = norm[1];
@@ -7621,9 +7613,33 @@ void computeDefectFaceNormal_calculate(
   *p_orig_area = len / 2.0f;
 }
 
-     
+static void computeDefectFaceNormal_calculate(
+  MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+{
+  SurfaceFromMRIS::XYZPositionM::Surface surface(const_cast<MRIS*>(mris));
+  computeDefectFaceNormal_calculate_template(surface, fno, p_nx, p_ny, p_nz, p_orig_area);
+}
 
-void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+void computeDefectFaceNormal_calculate(
+  MRIS_MP const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+{
+  SurfaceFromMRIS_MP::XYZPositionM::Surface surface(const_cast<MRIS_MP*>(mris));
+  computeDefectFaceNormal_calculate_template(surface, fno, p_nx, p_ny, p_nz, p_orig_area);
+}
+
+
+void computeDefectFaceNormal(MRIS const * const mris, int const fno)
+{
+  float nx, ny, nz, orig_area;
+  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
+  setFaceNorm    (mris, fno, nx, ny, nz);
+  setFaceOrigArea(mris, fno, orig_area);
+}
+
+
+
+template <class SOME_MRIS>
+void setFaceNorm_template(SOME_MRIS const * const mris, int fno, float nx, float ny, float nz) {
     FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
     FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
 
@@ -7631,8 +7647,16 @@ void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz)
     fNorm->ny = ny;
     fNorm->nz = nz;
     fNormDeferred->deferred &= ~1;          // now known
-
 }
+
+void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+    setFaceNorm_template(mris, fno, nx, ny, nz);
+}
+
+void setFaceNorm(MRIS_MP const * const mris, int fno, float nx, float ny, float nz) {
+    setFaceNorm_template(mris, fno, nx, ny, nz);
+}
+
 
 void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
     FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
@@ -7652,7 +7676,8 @@ float getFaceOrigArea(MRIS const * const mris, int fno) {
 }
 
 
-FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
+template <class SOME_MRIS>
+FaceNormCacheEntry const * getFaceNorm_template(SOME_MRIS const * const mris, int fno) {
 
     // volatile to stop the compiler from reordering the stores of the nx,ny,nz,orig with the stores of the deferred 
     //
@@ -7692,6 +7717,15 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
     }
     return (FaceNormCacheEntry*)fNorm;
 }
+
+FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
+    return getFaceNorm_template(mris, fno);
+}
+
+FaceNormCacheEntry const * getFaceNorm(MRIS_MP const * const mris, int fno) {
+    return getFaceNorm_template(mris, fno);
+}
+
 
 void mrisurf_deferSetFaceNorms(MRIS* mris) {
     static int use_parallel;

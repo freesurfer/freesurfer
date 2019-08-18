@@ -8,14 +8,15 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline float                 area           (                           ) const ;
-        inline angles_per_triangle_t angle          (                           ) const ;
-        inline angles_per_triangle_t orig_angle     (                           ) const ;
-        inline char                  ripflag        (                           ) const ;
-        inline FloatXYZ              norm           (                           ) const ;
+        inline Vertex                v              ( size_t i                          ) const ;
+        inline float                 area           (                                   ) const ;
+        inline angles_per_triangle_t angle          (                                   ) const ;
+        inline angles_per_triangle_t orig_angle     (                                   ) const ;
+        inline char                  ripflag        (                                   ) const ;
+        inline FloatXYZ              norm           (                                   ) const ;
         
-        inline void                  set_orig_angle (  angles_per_triangle_t to       ) ;
-        inline void                  set_ripflag    (                   char to       ) ;
+        inline void                  set_orig_angle (          angles_per_triangle_t to       ) ;
+        inline void                  set_ripflag    (                           char to       ) ;
     }; // Face
 
     struct Vertex : public Repr_Elt {
@@ -33,6 +34,9 @@
         inline float x             (                   ) const ;  //  current coordinates	
         inline float y             (                   ) const ;  //  use MRISsetXYZ() to set
         inline float z             (                   ) const ;
+        inline float origx         (                   ) const ;  //  original coordinates, see also MRIS::origxyz_status
+        inline float origy         (                   ) const ;  //  use MRISsetOriginalXYZ(, 
+        inline float origz         (                   ) const ;  //  or MRISsetOriginalXYZfromXYZ to set
         inline float nx            (                   ) const ;
         inline float ny            (                   ) const ;
         inline float nz            (                   ) const ;  //  curr normal

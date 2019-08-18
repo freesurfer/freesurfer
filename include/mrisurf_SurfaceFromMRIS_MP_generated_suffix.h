@@ -139,6 +139,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -264,6 +267,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -302,6 +308,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::z() const {
         return repr->v_z[idx];
     }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
+    }
     float Vertex::cx() const {
         return repr->v_cx[idx];
     }
@@ -323,6 +338,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(CANONICAL_VERTICES,c)
         default:
           *x = *y = *z = 0.0;
@@ -419,6 +435,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -470,6 +489,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::z() const {
         return repr->v_z[idx];
     }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
+    }
     float Vertex::nx() const {
         return repr->v_nx[idx];
     }
@@ -503,6 +531,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(CANONICAL_VERTICES,c)
         default:
@@ -685,6 +714,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Analysis::Face const & src                 ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -733,6 +765,15 @@ namespace SurfaceFromMRIS_MP {
     }
     float Vertex::z() const {
         return repr->v_z[idx];
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
     }
     float Vertex::nx() const {
         return repr->v_nx[idx];
@@ -818,6 +859,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(WHITE_NORMALS,wn)
         CASE(CANONICAL_VERTICES,c)
@@ -1048,6 +1090,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1094,6 +1139,15 @@ namespace SurfaceFromMRIS_MP {
     }
     float Vertex::z() const {
         return repr->v_z[idx];
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
     }
     float Vertex::nx() const {
         return repr->v_nx[idx];
@@ -1179,6 +1233,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(WHITE_NORMALS,wn)
         CASE(CANONICAL_VERTICES,c)
@@ -1492,10 +1547,16 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
     
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(repr == to.repr); repr->f_v[idx][i] = to.idx;
+    }
     void Face::set_ripflag(char to) {
         repr->f_ripflag[idx] = to;
     }
@@ -1587,6 +1648,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     char Face::ripflag() const {
         return repr->f_ripflag[idx];
     }
@@ -1619,6 +1683,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::z() const {
         return repr->v_z[idx];
     }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
+    }
     float Vertex::cx() const {
         return repr->v_cx[idx];
     }
@@ -1640,6 +1713,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(CANONICAL_VERTICES,c)
         default:
           *x = *y = *z = 0.0;
@@ -1729,6 +1803,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -1785,6 +1862,15 @@ namespace SurfaceFromMRIS_MP {
     float Vertex::z() const {
         return repr->v_z[idx];
     }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
+    }
     float Vertex::nx() const {
         return repr->v_nx[idx];
     }
@@ -1818,6 +1904,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(CANONICAL_VERTICES,c)
         default:
@@ -2008,6 +2095,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -2054,6 +2144,15 @@ namespace SurfaceFromMRIS_MP {
     }
     float Vertex::z() const {
         return repr->v_z[idx];
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
     }
     float Vertex::nx() const {
         return repr->v_nx[idx];
@@ -2139,6 +2238,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(WHITE_NORMALS,wn)
         CASE(CANONICAL_VERTICES,c)
@@ -2365,6 +2465,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
     Face::Face ( AllM::Face const & src                     ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -2411,6 +2514,15 @@ namespace SurfaceFromMRIS_MP {
     }
     float Vertex::z() const {
         return repr->v_z[idx];
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
     }
     float Vertex::nx() const {
         return repr->v_nx[idx];
@@ -2496,6 +2608,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(WHITE_NORMALS,wn)
         CASE(CANONICAL_VERTICES,c)
@@ -2721,6 +2834,9 @@ namespace SurfaceFromMRIS_MP {
     Face::Face ( Representation* representation, size_t idx ) : Repr_Elt(representation,idx) {}
     Face::Face ( Face const & src                           ) : Repr_Elt(src) {}
 
+    Vertex Face::v(size_t i) const {
+        return Vertex(repr,repr->f_v[idx][i]);
+    }
     float Face::area() const {
         return repr->f_area[idx];
     }
@@ -2737,6 +2853,9 @@ namespace SurfaceFromMRIS_MP {
         return repr->f_norm[idx];
     }
     
+    void Face::set_v(size_t i, Vertex to) {
+        cheapAssert(repr == to.repr); repr->f_v[idx][i] = to.idx;
+    }
     void Face::set_area(float to) {
         repr->f_area[idx] = to;
     }
@@ -2775,6 +2894,15 @@ namespace SurfaceFromMRIS_MP {
     }
     float Vertex::z() const {
         return repr->v_z[idx];
+    }
+    float Vertex::origx() const {  //  original coordinates, see also MRIS::origxyz_status
+        return repr->v_origx[idx];
+    }
+    float Vertex::origy() const {  //  use MRISsetOriginalXYZ(, 
+        return repr->v_origy[idx];
+    }
+    float Vertex::origz() const {  //  or MRISsetOriginalXYZfromXYZ to set
+        return repr->v_origz[idx];
     }
     float Vertex::nx() const {
         return repr->v_nx[idx];
@@ -2860,6 +2988,7 @@ namespace SurfaceFromMRIS_MP {
     
       switch (which) {
         CASE(CURRENT_VERTICES,)
+        CASE(ORIGINAL_VERTICES,orig)
         CASE(VERTEX_NORMALS,n)
         CASE(WHITE_NORMALS,wn)
         CASE(CANONICAL_VERTICES,c)

@@ -2122,6 +2122,9 @@ namespace Representations {
 			insert("Vertex.cy");
 			insert("Vertex.cz");
 			insert("Vertex.curv");
+			insert("Vertex.origx");
+			insert("Vertex.origy");
+			insert("Vertex.origz");
 			insert("Vertex.origarea");
 			insert("Vertex.fno");
 			insert("Vertex.area");
@@ -2132,6 +2135,7 @@ namespace Representations {
 			insert("Vertex.dist");
 			
 			insert("Face.ripflag");
+			insert("Face.v");
 			insert("Face.norm_orig_area");
 			insert("Face.orig_angle");
 			insert("Face.area");

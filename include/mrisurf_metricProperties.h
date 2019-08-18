@@ -82,9 +82,6 @@ extern double l_wm;
 
 void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], int verbose);
 
-void computeDefectFaceNormal_calculate(
-    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
-
 void  setFaceNorm    (MRIS const * const mris, int fno, float nx, float ny, float nz);
 void  setFaceOrigArea(MRIS const * const mris, int fno, float orig_area);
 float getFaceOrigArea(MRIS const * const mris, int fno);
@@ -120,6 +117,11 @@ float  mrisComputeArea                   (MRIS *mris, int fac, int n);
 float  MRIScomputeOrigArea               (MRIS* mris);
 void   MRISsetOrigArea                   (MRIS* mris);
 
+
+FaceNormCacheEntry const * getFaceNorm(MRIS    const * const mris, int fno);
+FaceNormCacheEntry const * getFaceNorm(MRIS_MP const * const mris, int fno);
+void setFaceNorm(MRIS    const * const mris, int fno, float nx, float ny, float nz);
+void setFaceNorm(MRIS_MP const * const mris, int fno, float nx, float ny, float nz);
 
 int mrisComputeBoundaryNormals(MRIS *mris);
 
@@ -160,9 +162,6 @@ typedef struct ComputeDefectContext {
 static void constructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
     bzero(computeDefectContext, sizeof(*computeDefectContext));
 }
-
-void computeDefectFaceNormal_calculate(
-    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
 
 #define VERTEX_EDGE(vec, v0, v1)           VECTOR_LOAD(vec, v1->x     - v0->x,     v1->y     - v0->y,     v1->z     - v0->z)
 #define VERTEX_ORIG_EDGE(vec, v0, v1)      VECTOR_LOAD(vec, v1->origx - v0->origx, v1->origy - v0->origy, v1->origz - v0->origz)
