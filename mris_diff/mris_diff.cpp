@@ -94,6 +94,7 @@ double round(double x);
 #include "macros.h"
 #include "utils.h"
 #include "mrisurf.h"
+#include "mrisurf_metricProperties.h"
 #include "mrisutils.h"
 #include "error.h"
 #include "diag.h"
