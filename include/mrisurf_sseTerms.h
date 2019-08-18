@@ -142,7 +142,7 @@ int mrisComputeIntensityTerm_mef                (MRI_SURFACE *mris,
 LIST_OF_SSETERMS
 #undef ELT
 #define MRIS MRIS_MP
-#define ELT(NAME, SIGNATURE, CALL)    double mrismp_Compute##NAME SIGNATURE;
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE;
 LIST_OF_PER_VERTEX_SSETERMS_Implemented SEP LIST_OF_PER_FACE_SSETERMS
 #undef ELT
 #undef MRIS

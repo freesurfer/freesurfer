@@ -114,6 +114,12 @@ namespace SurfaceFromMRIS_MP {
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
     }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
+    }
 
 
     } // namespace Existence
@@ -217,6 +223,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -225,6 +240,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
 
 
@@ -359,6 +380,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -367,6 +397,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
 
 
@@ -530,6 +566,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -569,6 +614,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -583,6 +631,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -877,6 +931,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -916,6 +979,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -930,6 +996,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -1216,6 +1288,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -1255,6 +1336,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -1269,6 +1353,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -1375,12 +1465,21 @@ namespace SurfaceFromMRIS_MP {
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
     }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
+    }
     
     void Surface::set_status(MRIS_Status to) {  //  type of surface (e.g. sphere, plane)
         repr->underlyingMRIS->status = to;
     }
     void Surface::set_origxyz_status(MRIS_Status to) {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         repr->origxyz_status = to;
+    }
+    void Surface::set_patch(int to) {  //  if a patch of the surface
+        repr->underlyingMRIS->patch = to;
     }
 
 
@@ -1453,6 +1552,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -1461,6 +1569,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
 
 
@@ -1580,6 +1694,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     double Surface::radius() const {  //  radius (if status==MRIS_SPHERE)
         return repr->radius;
     }
@@ -1588,6 +1711,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
 
 
@@ -1747,6 +1876,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -1786,6 +1924,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -1800,6 +1941,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -1840,6 +1987,9 @@ namespace SurfaceFromMRIS_MP {
     }
     void Surface::set_std_vertex_dist(double to) {
         repr->std_vertex_dist = to;
+    }
+    void Surface::set_orig_area(float to) {
+        repr->orig_area = to;
     }
     void Surface::set_neg_area(float to) {
         repr->neg_area = to;
@@ -2098,6 +2248,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -2137,6 +2296,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -2151,6 +2313,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -2437,6 +2605,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -2476,6 +2653,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -2490,6 +2670,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -2793,6 +2979,15 @@ namespace SurfaceFromMRIS_MP {
     Vertex Surface::vertices(size_t i) const {
         return Vertex(repr, i);
     }
+    Face Surface::faces(size_t i) const {
+        return Face(repr, i);
+    }
+    FaceNormCacheEntry Surface::faceNormCacheEntries(size_t i) const {
+        return repr->faceNormCacheEntries[i];
+    }
+    FaceNormDeferredEntry Surface::faceNormDeferredEntries(size_t i) const {
+        return repr->faceNormDeferredEntries[i];
+    }
     float Surface::xctr() const {
         return repr->xctr;
     }
@@ -2832,6 +3027,9 @@ namespace SurfaceFromMRIS_MP {
     double Surface::std_vertex_dist() const {
         return repr->std_vertex_dist;
     }
+    float Surface::orig_area() const {
+        return repr->orig_area;
+    }
     float Surface::neg_area() const {
         return repr->neg_area;
     }
@@ -2846,6 +3044,12 @@ namespace SurfaceFromMRIS_MP {
     }
     MRIS_Status Surface::origxyz_status() const {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         return repr->origxyz_status;
+    }
+    int Surface::patch() const {  //  if a patch of the surface
+        return repr->underlyingMRIS->patch;
+    }
+    int Surface::noscale() const {  //  don't scale by surface area if true
+        return repr->underlyingMRIS->noscale;
     }
     
     void Surface::set_xctr(float to) {
@@ -2887,6 +3091,9 @@ namespace SurfaceFromMRIS_MP {
     void Surface::set_std_vertex_dist(double to) {
         repr->std_vertex_dist = to;
     }
+    void Surface::set_orig_area(float to) {
+        repr->orig_area = to;
+    }
     void Surface::set_neg_area(float to) {
         repr->neg_area = to;
     }
@@ -2898,6 +3105,9 @@ namespace SurfaceFromMRIS_MP {
     }
     void Surface::set_origxyz_status(MRIS_Status to) {  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
         repr->origxyz_status = to;
+    }
+    void Surface::set_patch(int to) {  //  if a patch of the surface
+        repr->underlyingMRIS->patch = to;
     }
 
 

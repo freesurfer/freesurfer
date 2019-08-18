@@ -51,8 +51,12 @@ struct SseTermsBase {
 
 // This template is for all the terms that can be computed from any Surface
 //
-template <class Surface, class Face, class Vertex>
-struct SseTerms_Template : public SseTermsBase {
+template <class _Surface>
+struct SseTerms_DistortedSurfaces : public SseTermsBase {
+    typedef          _Surface        Surface;
+    typedef typename Surface::Face   Face;
+    typedef typename Surface::Vertex Vertex;
+    
     Surface surface;
 #if METRIC_SCALE
     double const area_scale;
@@ -64,7 +68,7 @@ struct SseTerms_Template : public SseTermsBase {
     int const fnoBegin;
     int const fnoEnd;
 
-    SseTerms_Template(Surface surface, int selector) 
+    SseTerms_DistortedSurfaces(Surface surface, int selector) 
       : surface(surface), 
 #if METRIC_SCALE                                                         
         area_scale((surface.patch())                               ? 1.0 :  // it is weird that this doesn't have all the alternatives the dist has
@@ -269,15 +273,33 @@ struct SseTerms_Template : public SseTermsBase {
 };
 
 
-typedef SurfaceFromMRIS::Distort::Surface MRIS_Surface;
-typedef SurfaceFromMRIS::Distort::Face    MRIS_Face;
-typedef SurfaceFromMRIS::Distort::Vertex  MRIS_Vertex;
+// This lets us map the MRIS and MRIS_MP to the right namespace hence Surface, Face, Vertex, etc.
+//
+template <class SOME_MRIS> 
+struct SSE_Surface_types {
+};
 
-typedef SseTerms_Template<MRIS_Surface,MRIS_Face,MRIS_Vertex> SseTerms_Template_for_SurfaceFromMRIS;
+template <>
+struct SSE_Surface_types<MRIS> {
+    typedef MRIS                                 Representation;
+    typedef SurfaceFromMRIS::Distort::Surface    Surface;
+};
 
-struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
+template <>
+struct SSE_Surface_types<MRIS_MP> {
+    typedef MRIS_MP                              Representation;
+    typedef SurfaceFromMRIS_MP::Distort::Surface Surface;
+};
+
+
+// This lets us map the MRIS and MRIS_MP to the set of functions that are implemented for them
+// whether done using the SseTerms_DistortedSurfaces implementations or specific implementations or not at all
+//
+typedef SseTerms_DistortedSurfaces<SSE_Surface_types<MRIS>::Surface> SseTerms_Template_for_SurfaceFromMRIS;
+
+struct SseTerms_MRIS : public SseTerms_Template_for_SurfaceFromMRIS {
     MRIS* const mris;
-    SseTerms(MRIS* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS(MRIS_Surface(mris),selector), mris(mris) {}
+    SseTerms_MRIS(MRIS* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS(Surface(mris),selector), mris(mris) {}
     
     #define MRIS_PARAMETER          
     #define MRIS_PARAMETER_COMMA
@@ -295,25 +317,27 @@ struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
 };
 
 
+
 //=============
 // Energy Terms
 //
-double SseTerms::RepulsiveRatioEnergy(double l_repulse)
+double SseTerms_MRIS::RepulsiveRatioEnergy(double l_repulse)
 {
     return SseTerms_Template_for_SurfaceFromMRIS::RepulsiveRatioEnergy(l_repulse);
 }
 
-double SseTerms::SpringEnergy()
+
+double SseTerms_MRIS::SpringEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::SpringEnergy();
 }
 
-double SseTerms::LaplacianEnergy()
+double SseTerms_MRIS::LaplacianEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::LaplacianEnergy();
 }
 
-double SseTerms::TangentialSpringEnergy()
+double SseTerms_MRIS::TangentialSpringEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
 }
@@ -324,12 +348,12 @@ double SseTerms::TangentialSpringEnergy()
 
 // Misc
 //
-double SseTerms::NonlinearDistanceSSE()
+double SseTerms_MRIS::NonlinearDistanceSSE()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
 }
 
-double SseTerms::NonlinearAreaSSE()
+double SseTerms_MRIS::NonlinearAreaSSE()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::NonlinearAreaSSE();
 }
@@ -346,7 +370,7 @@ double SseTerms::NonlinearAreaSSE()
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
+double SseTerms_MRIS::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
 {
   if (FZERO(l_curv)) {
     return (NO_ERROR);
@@ -499,7 +523,7 @@ double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_
 
   Description
   ------------------------------------------------------*/
-double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tmin;
@@ -551,7 +575,7 @@ double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PA
 }
 
 
-double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   double sse_tparallel, max_inc;
@@ -610,7 +634,7 @@ double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_P
 }
 
 
-double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
@@ -649,7 +673,7 @@ double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS 
 
 
 static double big_sse = 10.0;
-double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tnormal;
@@ -725,7 +749,7 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
 }
 
 
-double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_spring, sse;
@@ -781,7 +805,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
 
 
 /*!
-  \fn double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
+  \fn double SseTerms_MRIS::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
   \brief The repulsive term causes vertices to push away from each
   other based on the distance in 3D space (does not apply to nearest
   neighbors). This helps to prevent self-intersection. The force is
@@ -792,7 +816,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
     REPULSE_E - sets minimum distance
     4 - scaling term
 */
-double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
+double SseTerms_MRIS::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
@@ -899,7 +923,7 @@ double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
 }
 
 
-double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
@@ -954,7 +978,7 @@ double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
   return (sse_spring);
 }
 
-double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
+double SseTerms_MRIS::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
 {
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
@@ -1034,7 +1058,7 @@ double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
 }
 
 
-double SseTerms::AshburnerTriangleEnergy(
+double SseTerms_MRIS::AshburnerTriangleEnergy(
                                                  double l_ashburner_triangle,
                                                  INTEGRATION_PARMS *parms)
 {
@@ -1074,7 +1098,7 @@ double SseTerms::AshburnerTriangleEnergy(
   return (sse_ashburner);
 }
 
-double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 {
   double likelihood, entropy;
   int x, y, z, label;
@@ -1134,7 +1158,7 @@ double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms_MRIS::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   double sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval;
@@ -1259,7 +1283,7 @@ double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 }
 
 
-double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms_MRIS::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   MHT *mht;
@@ -1488,7 +1512,7 @@ double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 //===================================================================================================
 // Error functions
 //
-double SseTerms::DistanceError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::DistanceError( INTEGRATION_PARMS *parms)
 {
   if (!(mris->dist_alloced_flags & 1)) {
     switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
@@ -1700,7 +1724,7 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
   return (sqrt(error / (double)MRISvalidVertices(mris)));
 }
 
-double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms_MRIS::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   float l_corr;
 
@@ -1808,13 +1832,13 @@ double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 
 
 /*!
-  \fn double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
+  \fn double SseTerms_MRIS::IntensityError( INTEGRATION_PARMS *parms)
   \brief Computes the sum of the squares of the value at a vertex minus the v->val.
    Ignores ripped vertices or any with v->val<0. Does not normalize by the number
    of vertices. Basically same computation as mrisRmsValError() but that func
    does normalize.
 */
-double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::IntensityError( INTEGRATION_PARMS *parms)
 {
   int vno,nhits;
   VERTEX *v;
@@ -1841,7 +1865,7 @@ double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::TargetLocationError( INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   VERTEX *v;
@@ -1889,7 +1913,7 @@ double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::RmsDistanceError()
+double SseTerms_MRIS::RmsDistanceError()
 {
   INTEGRATION_PARMS parms;
   double rms;
@@ -1901,7 +1925,7 @@ double SseTerms::RmsDistanceError()
 }
 
 
-double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::IntensityGradientError( INTEGRATION_PARMS *parms)
 {
   int vno;
   VERTEX *v;
@@ -1944,7 +1968,7 @@ double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
 
 
 
-double SseTerms::SphereError( double l_sphere, double r0)
+double SseTerms_MRIS::SphereError( double l_sphere, double r0)
 {
   int vno;
   double sse, x0, y0, z0;
@@ -2003,7 +2027,7 @@ double SseTerms::SphereError( double l_sphere, double r0)
   return (sse);
 }
 
-double SseTerms::DuraError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::DuraError( INTEGRATION_PARMS *parms)
 {
   double dura_thresh = parms->dura_thresh, sse;
   MRI *mri_dura = parms->mri_dura;
@@ -2043,7 +2067,7 @@ double SseTerms::DuraError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms_MRIS::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   double src, target, sse, delta, std;
   VERTEX *v;
@@ -2201,7 +2225,7 @@ double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 }
 
 
-double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
+double SseTerms_MRIS::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
 {
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz, sse, error, dist;
@@ -2249,7 +2273,7 @@ double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double ta
   return (sse);
 }
 
-double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
+double SseTerms_MRIS::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 {
 #if 0
   static int iter = 100 ;
@@ -2276,7 +2300,7 @@ double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 
 
 
-double SseTerms::Error(
+double SseTerms_MRIS::Error(
                                INTEGRATION_PARMS *parms,
                                float *parea_rms,
                                float *pangle_rms,
@@ -2366,6 +2390,7 @@ double SseTerms::Error(
 #endif
   return (rms);
 }
+
 
 int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 {
@@ -2710,7 +2735,7 @@ double MRIScomputeSSE_template(Surface surface, Some_MRIS* mris, INTEGRATION_PAR
 
     int fno;
     
-    ROMP_PF_begin       // mris_register
+    ROMP_PF_begin
 
 #ifdef BEVIN_MRISCOMPUTESSE_CHECK
     #pragma omp parallel for if(trial==0) reduction(+ : relevant_angle, computed_neg_area, computed_area)
@@ -2906,13 +2931,8 @@ double MRIScomputeSSE_template(Surface surface, Some_MRIS* mris, INTEGRATION_PAR
     DiagBreak();
   }
 
-#undef COMPUTE_DISTANCE_ERROR
-
   return sse;
 }
-
-#undef COMPUTE_DISTANCE_ERROR
-#undef SSE_TERMS
 
 bool MRIScomputeSSE_canDo(MRIS* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
 {
@@ -2927,6 +2947,8 @@ double MRIScomputeSSE(MRIS* mris, INTEGRATION_PARMS *parms)
 
 
 #define MRIScomputeSSE_MP_NYI
+
+
 bool MRIScomputeSSE_canDo(MRIS_MP* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
 {
 #ifdef MRIScomputeSSE_MP_NYI
@@ -2964,6 +2986,9 @@ double MRIScomputeSSE(MRIS_MP* mris, INTEGRATION_PARMS *parms)
 #endif
 }
 
+#undef COMPUTE_DISTANCE_ERROR
+#undef SSE_TERMS
+
 
 double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
 {
@@ -2986,12 +3011,12 @@ double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_
 
 // Generate all the jackets
 //
-#define MRIS_PARAMETER          MRIS* mris          
+#define MRIS_PARAMETER          MRIS* mris
 #define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
 #define NOCOMMA_SELECTOR        int selector
 #define COMMA_SELECTOR          , NOCOMMA_SELECTOR
 #define SEP 
-#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms sseTerms(mris,selector); return sseTerms.NAME CALL; }
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms_MRIS sseTerms(mris,selector); return sseTerms.NAME CALL; }
 LIST_OF_SSETERMS
 #undef ELT
 #undef SEP
@@ -3000,4 +3025,20 @@ LIST_OF_SSETERMS
 #undef MRIS_PARAMETER_COMMA
 #undef MRIS_PARAMETER
 
+#ifndef MRIScomputeSSE_MP_NYI
 
+#define MRIS_PARAMETER          MRIS_MP* mris
+#define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
+#define NOCOMMA_SELECTOR        int selector
+#define COMMA_SELECTOR          , NOCOMMA_SELECTOR
+#define SEP 
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms_MRIS_MP sseTerms(mris,selector); return sseTerms.NAME CALL; }
+LIST_OF_SSETERMS
+#undef ELT
+#undef SEP
+#undef COMMA_SELECTOR
+#undef NOCOMMA_SELECTOR
+#undef MRIS_PARAMETER_COMMA
+#undef MRIS_PARAMETER
+
+#endif

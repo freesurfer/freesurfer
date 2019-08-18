@@ -63,12 +63,17 @@
         inline Surface                                                ( AllM::Surface const & src      );
         void freeDistsButNotOrig() { MRISfreeDistsButNotOrig(repr); }
 
-        inline int         nvertices      (           ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline int         nfaces         (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
-        inline Vertex      vertices       ( size_t i  ) const ;
-        inline double      radius         (           ) const ;  //  radius (if status==MRIS_SPHERE)
-        inline MRIS_Status status         (           ) const ;  //  type of surface (e.g. sphere, plane)
-        inline MRIS_Status origxyz_status (           ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
+        inline int                   nvertices               (           ) const ;  //  # of vertices on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline int                   nfaces                  (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
+        inline Vertex                vertices                ( size_t i  ) const ;
+        inline Face                  faces                   ( size_t i  ) const ;
+        inline FaceNormCacheEntry    faceNormCacheEntries    ( size_t i  ) const ;
+        inline FaceNormDeferredEntry faceNormDeferredEntries ( size_t i  ) const ;
+        inline double                radius                  (           ) const ;  //  radius (if status==MRIS_SPHERE)
+        inline MRIS_Status           status                  (           ) const ;  //  type of surface (e.g. sphere, plane)
+        inline MRIS_Status           origxyz_status          (           ) const ;  //  type of surface (e.g. sphere, plane) that this origxyz were obtained from
+        inline int                   patch                   (           ) const ;  //  if a patch of the surface
+        inline int                   noscale                 (           ) const ;  //  don't scale by surface area if true
     }; // Surface
 
     } // namespace XYZPositionM

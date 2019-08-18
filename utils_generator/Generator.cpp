@@ -2068,27 +2068,33 @@ namespace Representations {
 		};
 		{ 
 			insert("Surface.status",				FromMRIS);
+			insert("Surface.patch",				        FromMRIS);
+			insert("Surface.noscale",			        FromMRIS);
 			insert("Surface.origxyz_status");
 			insert("Surface.nvertices");
 			insert("Surface.vertices");
 			insert("Surface.nfaces");
+                        insert("Surface.faces");
+                        insert("Surface.faceNormCacheEntries");
+                        insert("Surface.faceNormDeferredEntries");
 			insert("Surface.nsize");
 			insert("Surface.radius");
 			insert("Surface.faces_topology");
 			insert("Surface.dist_nsize");
+			insert("Surface.xctr");
+			insert("Surface.yctr");
+			insert("Surface.zctr");
 			insert("Surface.xlo");
 			insert("Surface.xhi");
 			insert("Surface.ylo");
 			insert("Surface.yhi");
 			insert("Surface.zlo");
 			insert("Surface.zhi");
-			insert("Surface.xctr");
-			insert("Surface.yctr");
-			insert("Surface.zctr");
 			insert("Surface.total_area");
 			insert("Surface.avg_vertex_area");
 			insert("Surface.avg_vertex_dist");
 			insert("Surface.std_vertex_dist");
+			insert("Surface.orig_area");
 			insert("Surface.neg_orig_area");
 			insert("Surface.neg_area");
 
