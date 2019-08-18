@@ -101,6 +101,8 @@ char *LabelFile = NULL;
 char *SurfXYZFile = NULL;
 int OutputCurvFormat=0;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
+int ApplyScaleSurf(MRIS *surf, const double scale);
+double SourceSurfRegScale = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -141,6 +143,11 @@ int main(int argc, char *argv[]) {
       SurfReg[n] = MRISread(SurfRegFile[n]);
     free(base);
     if(SurfReg[n]==NULL) exit(1);
+  }
+
+  if(SourceSurfRegScale > 0){
+    printf("Scaling first surface by %g\n",SourceSurfRegScale);
+    ApplyScaleSurf(SurfReg[0], SourceSurfRegScale);
   }
 
   // Load in source data
@@ -315,6 +322,14 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--src-reg-scale")){
+      if(nargc < 1) CMDargNErr(option,1);
+      // Scale the coords of the first surface by SourceSurfRegScale. This
+      // was implemented to make it easier to use CAT reg surfaces which
+      // have a radius of 1.
+      sscanf(pargv[0],"%lf",&SourceSurfRegScale);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
       if (nargc < 1) CMDargNErr(option,1);
       LabelFile = pargv[0];
@@ -425,6 +440,7 @@ static void print_usage(void) {
   printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
   printf("     other options do not apply to --m3z\n");
   printf("\n");
+  printf("   --src-reg-scale Scale : Scale the coords of the first surface\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -563,4 +579,18 @@ LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
   }
 
   return(label);
+}
+
+// A simple function to muliply the surf coords
+int ApplyScaleSurf(MRIS *surf, const double scale)
+{
+  int vtxno;
+  VERTEX *v;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    v = &(surf->vertices[vtxno]);
+    v->x *= scale;
+    v->y *= scale;
+    v->z *= scale;
+  }
+  return(0);
 }
