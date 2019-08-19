@@ -607,7 +607,7 @@ int MRISedges(MRIS *surf)
 
   surf->nedges = MRIScountEdges(surf);
   surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
-  printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
+  //printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
 
   // This is not thread safe and cannot be made thread safe
   for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
@@ -739,13 +739,13 @@ int MRIScorners(MRIS *surf)
 
   if(surf->corners) return(0);
 
-  printf("Building triangle corner toplology\n");
+  //printf("Building triangle corner toplology\n");
   if(!surf->edges) MRISedges(surf);
 
   surf->ncorners = 3*surf->nfaces;
   surf->corners = (MRI_CORNER*) calloc(sizeof(MRI_CORNER),surf->ncorners);
-  printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
-	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
+  //printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
+  //	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
 
   // First assign vertices to each corner
   cornerno = 0;
