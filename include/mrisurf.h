@@ -1205,6 +1205,9 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
 int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
+int MRISprintSurfQualityStats(FILE *fp, MRIS *surf);
+int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
+
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
