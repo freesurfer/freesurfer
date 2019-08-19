@@ -16,6 +16,8 @@
  */
 #include "mrisurf_metricProperties.h"
 #include "face_barycentric_coords.h"
+#include "mrisutils.h"
+#include "surfgrad.h"
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -13659,6 +13661,67 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
     // nbr nbrno vno dist varea faceno farea
     fprintf(fp,"nbr %d  %5d %6.4lf %6.4lf %5d %6.4f\n",n,vnno,dist,vn->area,faceno,face->area);
   }
+
+  if(surf->edges){
+    int edgeno;
+    for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+      MRI_EDGE *e = &(surf->edges[edgeno]);
+      int evno;
+      for(evno = 0; evno < 4; evno ++){
+	if(e->vtxno[evno] == vertexno){
+	  printf("Edge %6d %d\n",edgeno,evno);
+	}
+      }
+    }
+  }
+
+  return(0);
+}
+
+
+int MRISprintSurfQualityStats(FILE *fp, MRIS *surf)
+{
+  double *estats, *hstats, *astats, *cstats;
+  astats = MRIStriangleAreaStats(surf, NULL, NULL); // trangle area
+  cstats = MRIScornerStats(surf, 1, NULL, NULL); // corner angle (deg)
+  estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
+  hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
+
+  // mean, stddev, min, max
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",astats[1],astats[2],astats[3],astats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",cstats[1],cstats[2],cstats[3],cstats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",estats[1],estats[2],estats[3],estats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",hstats[1],hstats[2],hstats[3],hstats[4]);
+  fprintf(fp,"\n");
+  fflush(fp);
+
+  free(astats);
+  free(cstats);
+  free(estats);
+  free(hstats);
+
+  return(0);
+}
+
+int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
+{
+  double *estats, *hstats, *astats, *cstats;
+  astats = MRIStriangleAreaStats(surf, NULL, NULL); // trangle area
+  cstats = MRIScornerStats(surf, 1, NULL, NULL); // corner angle (deg)
+  estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
+  hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
+
+  // mean, stddev, min, max
+  fprintf(fp,"Area   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)astats[0],astats[1],astats[2],astats[3],astats[4]);
+  fprintf(fp,"Corner %7d %8.5f %8.5f %8.6f %8.4f\n",(int)cstats[0],cstats[1],cstats[2],cstats[3],cstats[4]);
+  fprintf(fp,"Edge   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)estats[0],estats[1],estats[2],estats[3],estats[4]);
+  fprintf(fp,"Hinge  %7d %8.5f %8.5f %8.6f %8.4f\n",(int)hstats[0],hstats[1],hstats[2],hstats[3],hstats[4]);
+  fflush(fp);
+
+  free(astats);
+  free(cstats);
+  free(estats);
+  free(hstats);
 
   return(0);
 }
