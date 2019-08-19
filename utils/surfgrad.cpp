@@ -43,6 +43,78 @@
 
 
 /*!
+  \fn int MRISfaceMetric(MRIS *surf, int DoGrad)
+  \brief Computes face metrics for all faces. The only
+  metric it computes are the face normals. 
+ */
+int MRISfaceMetric(MRIS *surf, int DoGrad)
+{
+  int faceno;
+
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
+  #endif
+  for(faceno=0; faceno < surf->nfaces; faceno++){
+    ROMP_PFLB_begin
+    if(DoGrad)
+      MRISfaceNormalGradFace(surf, faceno);
+    else
+      MRISfaceNormalFace(surf, faceno, NULL, NULL);
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+  return(0);
+}
+
+/*!
+  \fn int MRISedgeMetric(MRIS *surf)
+  \brief Computes the edge metric for all edges.
+ */
+int MRISedgeMetric(MRIS *surf, int DoGrad)
+{
+  int edgeno;
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
+  #endif
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    ROMP_PFLB_begin
+    MRISedgeMetricEdge(surf, edgeno, DoGrad);
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+  return(0);
+}
+
+/*!
+  \fn double MRIScornerMetric(MRIS *surf, const int DoGrad)
+  \brief Computes the metrics (dot, angle) of all corners. If
+  requested, the gradient of the dot is also computed WRT each vertex
+  in all corners.
+*/
+int MRIScornerMetric(MRIS *surf, const int DoGrad)
+{
+  int cornerno;
+  if(surf->corners == NULL) MRIScorners(surf);
+
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
+  #endif
+  for(cornerno = 0; cornerno < surf->ncorners; cornerno++){
+    ROMP_PFLB_begin
+    MRIScornerMetricCorner(surf, cornerno, DoGrad);
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+
+  return(0);
+}
+
+
+
+/*!
   \fn int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL)
   \brief Compute the normal to the given face. If pc and pcL are not NULL,
   then the un-normalized cross product (c) and lenght of c (cL) are returned.
@@ -147,18 +219,18 @@ int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL)
 }
 
 /*!
-\fn int MRISfaceNormalGradFace(MRIS *surf, int faceno)
-Computes the gradient of the face normal with respect to changes 
-in the the position of each vertex (also computes the norm itself).
+  \fn int MRISfaceNormalGradFace(MRIS *surf, int faceno)
+
+  \brief Computes the gradient of the face normal with respect to changes in
+the the position of each vertex.  The matrices are stored in
+face->gradNorm[refvtxno] (also computes the norm itself).
 The gradient is a 3x3 matrix of the form
    dnx/dvx dnx/dvy dnx/dvz  
    dny/dvx dny/dvy dny/dvz  
    dnz/dvx dnz/dvy dnz/dvz  
 Where nx is the x component of the normal and vx is the x component of the vertex.
 Since there are three vertices, there are three such matrices.
-The matrices are stored in face->gradNorm[refvtxno]
 The norm is stored in face->norm
-If NormOnly != 0, then only the norm is computed
 These equations themselves have been verified emperically, though there could be
 some issues with accuracy in certain cases because the data structures use float.
 See MRISfaceNormalGradTest().
@@ -350,6 +422,45 @@ double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long dou
 
 
 /*!
+  \fn int MRISedgeMetricEdge(MRIS *surf, int edgeno, int DoGrad)
+  \brief Computes edge-related metrics including the length, the dot
+  product of the angle of the faces across the edge, and the angle
+  (def).
+ */
+int MRISedgeMetricEdge(MRIS *surf, int edgeno, int DoGrad)
+{
+  MRI_EDGE *e;
+  FACE *f0, *f1;
+  VERTEX *v0, *v1;
+  double v0xyz[3],v1xyz[3];
+  DMATRIX *gradU=NULL;
+  e = &(surf->edges[edgeno]);
+  v0 = &(surf->vertices[e->vtxno[0]]);
+  v1 = &(surf->vertices[e->vtxno[1]]);
+  StuffVertexCoords(surf, e->vtxno[0], &v0xyz[0]);
+  StuffVertexCoords(surf, e->vtxno[1], &v1xyz[0]);
+  if(DoGrad == 1 || DoGrad == 3){
+    if(e->gradU == NULL) e->gradU = DMatrixAlloc(3,3,MATRIX_REAL);
+    gradU = e->gradU;
+  }
+  e->len = SurfGradUnitVector(v0xyz, v1xyz, e->u, gradU);
+  if(DoGrad == 2 || DoGrad == 3){
+    int wrtvtx; // compute d->gradDot[4]
+    for(wrtvtx = 0; wrtvtx < 4; wrtvtx ++){
+      MRISedgeGradDotEdgeVertex(surf, edgeno, wrtvtx);
+    }
+  }
+  // Note f->norm must have been computed with MRISfaceNormalGrad(), grad not needed
+  f0 = &(surf->faces[e->faceno[0]]);
+  f1 = &(surf->faces[e->faceno[1]]);
+  e->dot = DVectorDot(f0->norm,f1->norm);
+  if(e->dot > 1.0)  e->dot = +1.0; // might be a slight overflow
+  if(e->dot < -1.0) e->dot = -1.0; // might be a slight overflow
+  e->angle = acos(e->dot)*180/M_PI;
+  return(0);
+}
+
+/*!
   \fn double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad)
   \brief Computes the cost of an edge as well as its gradient with
   respect to the given edge vertex (0-3). cost = (1-dot).^2 all
@@ -386,7 +497,7 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
   int wrtdimno, c;
 
   MRISfaceNormalGrad(surf, 0);
-  MRISedgeGradDot(surf);
+  //MRISedgeGradDot(surf);
   
   g0 = DMatrixAlloc(1,3,MATRIX_REAL);
   J0 = MRISedgeAngleCostEdgeVertex(surf, edgeno, wrtvtxno, &g0);
@@ -414,7 +525,7 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
     MRISsetXYZ(surf, surfvtxno, x,y,z);
     
     MRISfaceNormalGrad(surf, 0);
-    MRISedgeGradDot(surf);
+    //MRISedgeGradDot(surf);
     J1 = MRISedgeAngleCostEdgeVertex(surf, edgeno, wrtvtxno, NULL);
     //printf("  %g %g %g    %g\n",v->x,v->y,v->z,J1);
     gnum->rptr[1][wrtdimno+1] = (J1-J0)/delta;
@@ -448,18 +559,8 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
  */
 int MRISfaceNormalGrad(MRIS *surf, int NormOnly)
 {
-  int faceno;
-
-  #ifdef HAVE_OPENMP
-  #pragma omp parallel for 
-  #endif
-  for(faceno=0; faceno < surf->nfaces; faceno++){
-    if(NormOnly)
-      MRISfaceNormalFace(surf, faceno, NULL, NULL);
-    else
-      MRISfaceNormalGradFace(surf, faceno);
-  }
-  return(0);
+  int r = MRISfaceMetric(surf, !NormOnly);
+  return(r);
 }
 
 /*!
@@ -488,9 +589,9 @@ double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long 
   MRISfaceNormalFace_AddDeltaVertex = -1;
   MRISfaceNormalGradFace(surf, e->faceno[0]);
   MRISfaceNormalGradFace(surf, e->faceno[1]);
-  MRISedgeMetricEdge(surf, edgeno);
+  MRISedgeMetricEdge(surf, edgeno, 3); // does all wrtvtxno
   dot0 = e->dot;
-  MRISedgeGradDotEdgeVertex(surf, edgeno, wrtvtxno);
+  //MRISedgeGradDotEdgeVertex(surf, edgeno, wrtvtxno);
   g0 = e->gradDot[wrtvtxno];
   gmax = DMatrixMaxAbs(g0);
 
@@ -530,7 +631,7 @@ double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long 
       MRISfaceNormalGradFace(surf, e->faceno[0]);
     }
 
-    MRISedgeMetricEdge(surf, edgeno);
+    MRISedgeMetricEdge(surf, edgeno, 0);
     dot1 = e->dot;
     gnum->rptr[1][wrtdimno+1] = (dot1-dot0)/delta;
     diff = fabs(gnum->rptr[1][wrtdimno+1] - g0->rptr[1][wrtdimno+1]);
@@ -562,6 +663,7 @@ double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long 
   return(maxrdiff);
 }
 
+#if 0
 /*!
   \fn int MRISedgeGradDot(MRIS *surf)
   \brief Computes gradient of the dot product of the normals of the
@@ -584,7 +686,7 @@ int MRISedgeGradDot(MRIS *surf)
   }
   return(0);
 }
-
+#endif
 
 /*!
   \fn int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno)
@@ -639,41 +741,6 @@ int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno)
   DMatrixFree(&tmp1T);
   DMatrixFree(&tmp2);
 
-  return(0);
-}
-
-/*!
-  \fn int MRISedgeMetricEdge(MRIS *surf, int edgeno)
-  \brief Computes edge-related metrics including the length, the dot
-  product of the angle of the faces across the edge, and the angle
-  (def).
- */
-int MRISedgeMetricEdge(MRIS *surf, int edgeno)
-{
-  MRI_EDGE *e;
-  FACE *f0, *f1;
-  VERTEX *v0, *v1;
-  int nthface,faceno;
-  double v0xyz[3],v1xyz[3];
-  e = &(surf->edges[edgeno]);
-  v0 = &(surf->vertices[e->vtxno[0]]);
-  v1 = &(surf->vertices[e->vtxno[1]]);
-  StuffVertexCoords(surf, e->vtxno[0], &v0xyz[0]);
-  StuffVertexCoords(surf, e->vtxno[1], &v1xyz[0]);
-  e->len = SurfGradUnitVector(v0xyz, v1xyz, e->u, NULL); // NULL=dont compute grad
-  //e->len = sqrt((v0->x-v1->x)*(v0->x-v1->x) + (v0->y-v1->y)*(v0->y-v1->y) + (v0->z-v1->z)*(v0->z-v1->z));
-  for(nthface = 0; nthface < 2; nthface++){
-    faceno = e->faceno[nthface];
-    f0 = &(surf->faces[faceno]);
-    // Compute the normal to the face if it does not exist
-    if(!f0->norm) MRISfaceNormalFace(surf, faceno, NULL, NULL);
-  }
-  f0 = &(surf->faces[e->faceno[0]]);
-  f1 = &(surf->faces[e->faceno[1]]);
-  e->dot = DVectorDot(f0->norm,f1->norm);
-  if(e->dot > 1.0)  e->dot = +1.0; // might be a slight overflow
-  if(e->dot < -1.0) e->dot = -1.0; // might be a slight overflow
-  e->angle = acos(e->dot)*180/M_PI;
   return(0);
 }
 
@@ -1257,10 +1324,6 @@ double MRISedgeCost(MRIS *surf, DMATRIX *gradCost)
   MRI_EDGE *e;
   DMATRIX *gradCostEV=NULL;
 
-  // These must have been already run
-  //MRISfaceNormalGrad(surf, 0);
-  //MRISedgeGradDot(surf);
-
   cost = 0;
   for(edgeno = 0; edgeno < surf->nedges; edgeno++){
     e = &(surf->edges[edgeno]);
@@ -1333,7 +1396,7 @@ long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **
   the desired length of each edge is L0. This is a spring cost with a
   (potentially) non-zero resting length of L0. If DoGrad==1, then the
   gradient of the total cost wrt each vertex position is computed and
-  stored in v->t{xyz}. If weight>0, then the total cost and gradients
+  stored in v->t{xyz}. If weight>=0, then the total cost and gradients
   are multiplied by weight and the gradients are stored in
   v->d{xyz}. The total cost and gradients are normalized by the number
   of edges.
@@ -1347,6 +1410,8 @@ double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
   VERTEX *v;
   double *tx,*ty,*tz;
 
+  if(weight == 0.0) return(0);
+
   if(DoGrad){
     gradv0 = DMatrixAlloc(3,1,MATRIX_REAL);
     gradv1 = DMatrixAlloc(3,1,MATRIX_REAL);
@@ -1355,6 +1420,7 @@ double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
     tz = (double*)calloc(sizeof(double),surf->nvertices);
   }
 
+  // To parallelized this, need txyz for each thread, then combine them 
   totcost = 0;
   nhits = 0;
   for(eno = 0; eno < surf->nedges; eno++){
@@ -1378,8 +1444,9 @@ double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
   }
   // normalize to the number of edges
   totcost /= nhits;
-  if(weight > 0) totcost *= weight;
+  if(weight > 0.0) totcost *= weight;
 
+  // This can be easily parallelized
   if(DoGrad){
     double a = weight/nhits;
     for(vno = 0; vno < surf->nvertices; vno++){
@@ -1437,7 +1504,7 @@ int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
   // Set up the surface
   MRISedges(surf);
   MRIScomputeMetricProperties(surf);
-  MRISedgeMetric(surf);
+  MRISedgeMetric(surf,1); //1=DoGrad= only do gradU needed for this cost
 
   meanlen = 0;
   for(edgeno = 0; edgeno < surf->nedges; edgeno++){
@@ -1455,7 +1522,7 @@ int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
 
   // Compute the cost with this configuration of vertices. Also
   // compute the gradient at each vertex.
-  cost0 = MRISedgeLengthCost(surf, L0, 0, 1);
+  cost0 = MRISedgeLengthCost(surf, L0, -1.0, 1);
   printf("cost0 = %Lf\n",cost0);
 
   vmpeak0 = GetVmPeak();
@@ -1484,10 +1551,10 @@ int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
       if(k==2) v0->z += delta;
       // This step is slow. Could just do the edges connected to this vertex, but
       // probably should use the full function
-      MRISedgeMetric(surf);
+      MRISedgeMetric(surf,0);
       // In theory, this could just be done just for the connected edges, but, again, 
       // probably should use the full function
-      cost = MRISedgeLengthCost(surf, L0, 0, 0);
+      cost = MRISedgeLengthCost(surf, L0, -1.0, 0);
       // Compute the emperical gradient
       dcost[k] = (cost-cost0)/delta;
       // Keep track of the sum^2 for dot product calc below
@@ -1540,26 +1607,13 @@ int MRISedgeLengthCostTest(MRIS *surf, double delta, double thresh, double L0)
 }
 
 /*!
-  \fn int MRISedgeMetric(MRIS *surf)
-  \brief Computes the edge metric for all edges.
- */
-int MRISedgeMetric(MRIS *surf)
-{
-  int edgeno;
-  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
-    MRISedgeMetricEdge(surf, edgeno);
-  }
-  return(0);
-}
-
-/*!
   \fn long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
   \brief Computes the total angle cost of all non-ripped vertices. If
   DoGrad=1, then computes the gradient of the cost with respect to
   each vertex and saves in v->t{xyz}. If weight>0, then the cost and
   gradients are multipled by weight, and the negative of the weighted
   gradient is added to v->d{xyz} to make it compatible with the
-  surface placement optimization code.
+  surface placement optimization code. edgeAngle=hinge
  */
 long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
 {
@@ -1569,6 +1623,8 @@ long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
   MRI_EDGE *e;
   VERTEX *v;
   double *tx,*ty,*tz;
+
+  if(weight == 0.0) return(0);
 
   if(DoGrad){
     gradv = DMatrixAlloc(1,3,MATRIX_REAL); // row vector
@@ -1602,17 +1658,20 @@ long double MRISedgeAngleCost(MRIS *surf, double weight, int DoGrad)
       tx[e->vtxno[wrtvtxno]] += gradv->rptr[1][1];
       ty[e->vtxno[wrtvtxno]] += gradv->rptr[1][2];
       tz[e->vtxno[wrtvtxno]] += gradv->rptr[1][3];
+      if(e->vtxno[wrtvtxno] == 195){
+	//printf("#@& eno= %4d v=239 wrt=%d  %8.7f %8.7f %8.7f\n",eno,wrtvtxno,gradv->rptr[1][1],gradv->rptr[1][2],gradv->rptr[1][3]);
+      }
     }
   }
 
   // normalize to the number of edges
   totcost /= nhits;
-  if(weight > 0) totcost *= weight;
+  if(weight > 0.0) totcost *= weight;
 
   if(DoGrad){
     // Stuff gradients a
     double a = 1.0/nhits;
-    if(weight > 0) a = weight/nhits;
+    if(weight > 0.0) a = weight/nhits;
     for(vno = 0; vno < surf->nvertices; vno++){
       v = &(surf->vertices[vno]);
       if (v->ripflag)  continue;
@@ -1652,9 +1711,9 @@ int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double m
   // Set up the surface
   MRISedges(surf);
   MRIScomputeMetricProperties(surf);
-  MRISedgeMetric(surf);
+  MRISedgeMetric(surf,1);
   MRISfaceNormalGrad(surf, 0);
-  MRISedgeGradDot(surf);
+  //MRISedgeGradDot(surf);
 
   meanlen = 0;
   for(edgeno = 0; edgeno < surf->nedges; edgeno++){
@@ -1667,7 +1726,7 @@ int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double m
 
   // Compute the cost with this configuration of vertices. Also
   // compute the gradient at each vertex.
-  cost0 =  MRISedgeAngleCost(surf, 0, 1);
+  cost0 =  MRISedgeAngleCost(surf, -1.0, 1);
   printf("cost0 = %Lf\n",cost0);
 
   vmpeak0 = GetVmPeak();
@@ -1698,12 +1757,12 @@ int MRISedgeAngleCostTest(MRIS *surf, double delta, double anglethresh, double m
       // This step is slow. Could just do the edges connected to this vertex, but
       // probably should use the full function
       MRIScomputeMetricProperties(surf);
-      MRISedgeMetric(surf);
+      MRISedgeMetric(surf,0);
       MRISfaceNormalGrad(surf, 0);
-      MRISedgeGradDot(surf);
+      //MRISedgeGradDot(surf);
       // In theory, this could just be done just for the connected edges, but, again, 
       // probably should use the full function
-      cost = MRISedgeAngleCost(surf, 0, 0);
+      cost = MRISedgeAngleCost(surf, -1.0, 0);
       // Compute the emperical gradient
       dcost[k] = (cost-cost0)/delta;
       // Keep track of the sum^2 for dot product calc below
@@ -1811,12 +1870,15 @@ long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
   long double totcost,vcost;
   double *tx,*ty,*tz;
 
+  if(weight == 0.0) return(0);
+
   if(DoGrad){
     tx = (double*)calloc(sizeof(double),surf->nvertices);
     ty = (double*)calloc(sizeof(double),surf->nvertices);
     tz = (double*)calloc(sizeof(double),surf->nvertices);
   }
 
+  // This particular cost function is easy to parallelize
   totcost = 0;
   nhits = 0;
   ROMP_PF_begin
@@ -1842,14 +1904,13 @@ long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
   ROMP_PF_end
   // normalize to the number of vertices
   totcost /= nhits;
-  if(weight > 0) totcost *= weight;
+  if(weight > 0.0) totcost *= weight;
 
   if(! DoGrad) return(totcost);
 
   double a;
-  if(weight > 0) a = weight/nhits;
+  if(weight > 0.0) a = weight/nhits;
   else           a = 1.0/nhits;
-
 
   ROMP_PF_begin
   #ifdef HAVE_OPENMP
@@ -1902,7 +1963,7 @@ int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh,
   // Compute the cost with this configuration of vertices. Also
   // compute the gradient at each vertex.
   Timer timer;
-  cost0 =  MRIStargetCost(surf, 0, 1);
+  cost0 =  MRIStargetCost(surf, -1.0, 1);
   printf("cost0 = %Lf\n",cost0);
   printf("cost computation time %9.6f sec\n",timer.seconds());
 
@@ -1936,7 +1997,7 @@ int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh,
       MRIScomputeMetricProperties(surf);
       // In theory, this could just be done just for the connected edges, but, again, 
       // probably should use the full function
-      cost = MRIStargetCost(surf, 0, 0);
+      cost = MRIStargetCost(surf, -1.0, 0);
       // Compute the emperical gradient
       dcost[k] = (cost-cost0)/delta;
       // Keep track of the sum^2 for dot product calc below
@@ -2125,21 +2186,6 @@ int SurfGradUnitVectorTest(long double delta, double thresh, int ntrials)
   printf("nerrs = %d/%d, thresh=%g, delta=%Lf, errmax = %g\n",nerrs,ntrials,thresh,delta,errmax);
 
   return(nerrs);
-}
-
-/*!
-  \fn double MRIScornerMetric(MRIS *surf, const int DoGrad)
-  \brief Computes the metrics (dot, angle) of all corners. If
-  requested, the gradient of the dot is also computed WRT each vertex
-  in all corners.
-*/
-int MRIScornerMetric(MRIS *surf, const int DoGrad)
-{
-  int cornerno;
-  if(surf->corners == NULL) MRIScorners(surf);
-  for(cornerno = 0; cornerno < surf->ncorners; cornerno++)
-    MRIScornerMetricCorner(surf, cornerno, DoGrad);
-  return(0);
 }
 
 /*!
@@ -2355,6 +2401,8 @@ long double MRIScornerDotCost(MRIS *surf, double weight, int DoGrad)
   VERTEX *v;
   double *tx,*ty,*tz;
 
+  if(weight == 0.0) return(0);
+
   if(DoGrad){
     tx = (double*)calloc(sizeof(double),surf->nvertices);
     ty = (double*)calloc(sizeof(double),surf->nvertices);
@@ -2398,12 +2446,12 @@ long double MRIScornerDotCost(MRIS *surf, double weight, int DoGrad)
 
   // normalize to the number of corners
   totcost /= nhits;
-  if(weight > 0) totcost *= weight;
+  if(weight > 0.0) totcost *= weight;
 
   if(DoGrad){
     // Stuff gradients intp proper surface field
     double a = 1.0/nhits;
-    if(weight > 0) a = weight/nhits;
+    if(weight > 0.0) a = weight/nhits;
     for(vno = 0; vno < surf->nvertices; vno++){
       v = &(surf->vertices[vno]);
       if (v->ripflag)  continue;
@@ -2460,22 +2508,22 @@ int MRIScornerDotCostTest(MRIS *surf, const double delta, const double anglethre
   // Set up the surface
   MRISedges(surf);
   MRIScomputeMetricProperties(surf);
-  MRISedgeMetric(surf);
-  MRISedgeGradU(surf);
+  MRISedgeMetric(surf,1); // gradU needed for corner
+  //MRISedgeGradU(surf);
   MRIScornerMetric(surf, 1);
   printf("delta = %g, anglethresh = %g, magthresh = %g\n",delta,anglethresh,magthresh);
   printf("nvertices %d, nfaces %d, ncorners %d\n",surf->nvertices,surf->nfaces,surf->ncorners);
 
   // Time without gradient computation
   Timer timer0;
-  cost0 =  MRIScornerDotCost(surf, 0, 0);
+  cost0 =  MRIScornerDotCost(surf, -1.0, 0);
   printf("cost computation time without gradient %9.6f sec\n",timer0.seconds());
   printf("cost0 = %Lf\n",cost0);
 
   // Compute the cost with this configuration of vertices. Also
   // computes the gradient at each vertex.
   Timer timer;
-  cost0 =  MRIScornerDotCost(surf, 0, 1);
+  cost0 =  MRIScornerDotCost(surf, -1.0, 1);
   printf("cost computation time with gradient %9.6f sec\n",timer.seconds());
   printf("cost0 = %Lf\n",cost0);
 
@@ -2509,9 +2557,9 @@ int MRIScornerDotCostTest(MRIS *surf, const double delta, const double anglethre
       // This step is slow. Could just do the edges connected to this vertex, but
       // probably should use the full function to be sure
       MRIScomputeMetricProperties(surf);
-      MRISedgeMetric(surf);
+      MRISedgeMetric(surf,0);
       MRIScornerMetric(surf, 0);
-      cost = MRIScornerDotCost(surf, 0, 0);
+      cost = MRIScornerDotCost(surf, -1.0, 0);
       // Compute the empirical gradient
       dcost[k] = (cost-cost0)/delta;
       // Keep track of the sum^2 for dot product calc below
