@@ -601,14 +601,17 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     /*mrisUpdateSulcalGradients(mris, parms) ;*/
     /* smoothness terms */
     mrisComputeSpringTerm(mris, parms->l_spring);
-    if(parms->l_hinge || parms->l_spring_nzr > 0){
+    if(parms->l_hinge > 0 || parms->l_spring_nzr > 0){
       if(mris->edges == NULL){
 	printf("First pass, creating edges\n");
 	MRISedges(mris);
       }
-      MRISedgeMetric(mris);
       MRISfaceNormalGrad(mris, 0);
-      MRISedgeGradDot(mris);
+      int DoGrad = 0;
+      if(parms->l_hinge <= 0 && parms->l_spring_nzr >  0) DoGrad = 1; // NZR only
+      if(parms->l_hinge >  0 && parms->l_spring_nzr <= 0) DoGrad = 2; // Hinge only
+      if(parms->l_hinge >  0 && parms->l_spring_nzr >  0) DoGrad = 3; // both
+      MRISedgeMetric(mris, DoGrad);
     }
     if(parms->l_spring_nzr > 0){
       double springcost = MRISedgeLengthCost(mris, parms->l_spring_nzr_len, parms->l_spring_nzr, 1);
