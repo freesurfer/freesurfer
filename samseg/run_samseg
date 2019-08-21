@@ -25,6 +25,7 @@ parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternativ
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
+parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
@@ -121,13 +122,13 @@ labels, names, volumes, optimizationSummary = \
                 userModelSpecifications=userModelSpecifications, 
                 userOptimizationOptions=userOptimizationOptions,
                 visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
-                targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ] )
+                targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ],
+                savePosteriors=args.save_posteriors)
 
 # Save a summary of the optimization process
 with open( costfile, "a" ) as file:
     for multiResolutionLevel, item in enumerate( optimizationSummary ):
         file.write( "atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, item[ 'numberOfIterations' ], item[ 'perVoxelCost' ] ) )
-
 
 # ------ Volumetric Stats ------
 

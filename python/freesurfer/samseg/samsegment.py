@@ -1217,7 +1217,7 @@ def scaleBiasFields( biasFields, imageBuffers, mask, posteriors, targetIntensity
 
 def writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
                   targetIntensity=None, targetSearchStrings=None, names=None,
-                  threshold=None, thresholdSearchString=None
+                  threshold=None, thresholdSearchString=None, savePosteriors=False
                   ):
 
     # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
@@ -1277,10 +1277,17 @@ def writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, post
         with open( os.path.join( savePath, scanName + '_scaling-factor.txt' ), 'w' ) as f:
             print( scalingFactors[ contrastNumber ], file=f )
 
+    if savePosteriors:
+        posteriorPath = os.path.join(savePath, 'posteriors')
+        os.makedirs(posteriorPath, exist_ok=True)
+        for i, name in enumerate(names):
+            pvol = np.zeros(imageBuffers.shape[:3], dtype=np.float32)
+            pvol[mask] = posteriors[:, i]
+            writeImage(os.path.join(posteriorPath, name + '.nii'), pvol, cropping, exampleImage)
+
     # Compute volumes in mm^3
     volumeOfOneVoxel = np.abs( np.linalg.det( exampleImage.transform_matrix.as_numpy_array[ 0:3, 0:3 ] ) )
     volumesInCubicMm = ( np.sum( posteriors, axis=0 ) ) * volumeOfOneVoxel
-
 
     return volumesInCubicMm
   
@@ -1310,7 +1317,7 @@ def samsegment( imageFileNames, atlasDir, savePath,
                 hyperpriorPlugin=None,
                 posteriorPlugin=None,
                 posteriorPluginVariables=None,
-                threshold=None, thresholdSearchString=None
+                threshold=None, thresholdSearchString=None, savePosteriors=False
                 ):
 
     # Get full model specifications and optimization options (using default unless overridden by user) 
@@ -1460,7 +1467,7 @@ def samsegment( imageFileNames, atlasDir, savePath,
     volumesInCubicMm = writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields,
                                      posteriors, modelSpecifications.FreeSurferLabels, cropping,
                                      targetIntensity, targetSearchStrings, modelSpecifications.names,
-                                     threshold, thresholdSearchString
+                                     threshold, thresholdSearchString, savePosteriors=savePosteriors
                                      )
 
 
