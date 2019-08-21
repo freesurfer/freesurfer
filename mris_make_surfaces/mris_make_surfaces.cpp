@@ -56,6 +56,7 @@
 #include "voxlist.h"
 #include "fsinit.h"
 #include "mris_multimodal_refinement.h"
+#include "surfgrad.h"
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -337,7 +338,6 @@ int main(int argc, char *argv[])
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
   double        current_sigma, thresh = 0, spring_scale = 1;
-  double *stats=NULL;
   Timer then ;
   M3D           *m3d ;
   INTEGRATION_PARMS old_parms ;
@@ -685,21 +685,20 @@ int main(int argc, char *argv[])
   }
   else mrisAutoDet = mris;
 
+  MRISfaceMetric(mris,0); // just computes f->norm, does not replace MRISmetricProperties
+  MRISedges(mris);
+  MRIScorners(mris);
+  MRISedgeMetric(mris,0);
+  MRIScornerMetric(mris,0);
+  printf("Input Surface Quality Stats\n");
+  MRISprettyPrintSurfQualityStats(stdout, mris);
+
   if(parms.l_hinge > 0 || parms.l_spring_nzr > 0){
-    MRISedges(mris);
     if(parms.l_spring_nzr){
       double  *edgestats = MRISedgeStats(mris, 0, NULL, NULL);
       parms.l_spring_nzr_len = edgestats[1];
       free(edgestats);
     }
-  }
-
-  // print out some stats for the input surface
-  stats = MRIStriangleAreaStats(mris, NULL, stats);
-  printf("Init Area stats: %d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
-  for(j=0; j < 3; j++){
-    stats = MRISedgeStats(mris, j, NULL, stats);
-    printf("Init Edge stats: %d %d %g %g %g %g\n",j,(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
   }
 
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
@@ -1291,13 +1290,9 @@ int main(int argc, char *argv[])
     }
     printf("writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
-    // print out some stats for the output surface
-    stats = MRIStriangleAreaStats(mris, NULL, stats);
-    printf("White Area stats: %d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
-    for(j=0; j < 3; j++){
-      stats = MRISedgeStats(mris, j, NULL, stats);
-      printf("White Edge stats: %d %d %g %g %g %g\n",j,(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
-    }
+
+    printf("Output Surface Quality Stats\n");
+    MRISprettyPrintSurfQualityStats(stdout, mris);
 
     if(mri_aseg && label_cortex) {
       LABEL *lcortex, **labels ;
