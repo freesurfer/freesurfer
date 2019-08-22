@@ -474,8 +474,12 @@ def getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
     else:
         hyperMixtureWeightsNumberOfMeasurements = hyperMixtureWeightsNumberOfMeasurements.copy()
 
-    # Make sure the inverse-Wishart is normalizable (flat or peaked around hyperVariances)
-    threshold = ( numberOfContrasts - 1 ) + eps
+    # Making sure the inverse-Wishart is normalizable (flat or peaked around hyperVariances)
+    # requires that hyperVarianceNumberOfMeasurements is not smaller than (numberOfContrasts-1)
+    # for any Gaussian. However, in order to prevent numerical errors with near-zero variances
+    # (which can happen when almost no voxels are associated with a Gaussian in the EM algorithm,
+    # due to e.g., tiny mixture weight), we use (numberOfContrasts-1)+1 instead.
+    threshold = ( numberOfContrasts - 1 ) + 1 + eps
     hyperVariancesNumberOfMeasurements[ hyperVariancesNumberOfMeasurements < threshold ] = threshold
 
     if False:
@@ -1708,6 +1712,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                                     saveHistory=True, visualizer=visualizer )
 
     if hasattr( visualizer, 'show_flag' ):
+        import matplotlib.pyplot as plt   # avoid importing matplotlib by default
         plt.ion()    
         sstBiasFields = getBiasFields( sstBiasFieldCoefficients, biasFieldBasisFunctions,  mask )
         sstData = sstImageBuffers[ mask, : ] - sstBiasFields[ mask, : ]
@@ -1841,6 +1846,11 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
     threshold = ( numberOfContrasts + 1 ) + 1e-6
     latentVariancesNumberOfMeasurements[ latentVariancesNumberOfMeasurements < threshold ] = threshold
 
+    # No point in updating latent GMM parameters if the GMM hyperprior has zero weight. The latent variances are also
+    # a bit tricky, as they're technically driven to zero in that scenario -- let's try not to go there...
+    if ( strengthOfLatentGMMHyperprior == 0 ):
+        updateLatentMeans, updateLatentVariances, updateLatentMixtureWeights = False, False, False
+
 
     # Loop over all iterations
     historyOfTotalCost, historyOfTotalTimepointCost, historyOfLatentAtlasCost = [], [], []
@@ -1918,6 +1928,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             print( '\n' )
             print( '=================================' )
             if hasattr( visualizer, 'show_flag' ):
+                import matplotlib.pyplot as plt   # avoid importing matplotlib by default
                 plt.ion()    
                 timepointBiasFields = getBiasFields( timepointBiasFieldCoefficients[ timepointNumber ], 
                                                      biasFieldBasisFunctions,  mask )
