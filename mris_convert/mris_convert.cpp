@@ -674,7 +674,7 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
-  else if (!stricmp(option, "center"))
+  else if (!stricmp(option, "center") || !stricmp(option, "-center"))
   {
     center_surface = 1 ;
     printf("centering surface\n") ;
