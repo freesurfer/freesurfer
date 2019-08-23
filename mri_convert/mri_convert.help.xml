@@ -73,6 +73,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>see SPECIFYING THE ORIENTATION</explanation>
       <argument>-ic, --in_center &lt;R coordinate&gt; &lt;A coordinate&gt; &lt;S coordinate&gt;</argument>
       <argument>-dic, --delta_in_center &lt;dR coordinate&gt; &lt;dA coordinate&gt; &lt;dS coordinate&gt;</argument>
+      <argument>--delete-cmds   Remove imbedded command history</argument>
+      <argument>--new-transform-fname xfmname   Change the internal transform name to xfmname</argument>
       <argument>--sphinx</argument>
       <explanation>change orientation info to sphinx</explanation>
       <argument>-oni, -oic, --out_i_count &lt;count&gt;</argument>

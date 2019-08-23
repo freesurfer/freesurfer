@@ -69,6 +69,9 @@ int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
 int SplitFrames=0;
 COLOR_TABLE *ctab = NULL;
+int DeleteCMDs = 0;
+char NewTransformFname[2000];
+int DoNewTransformFname=0;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -475,6 +478,13 @@ int main(int argc, char *argv[])
     {
       conform_flag = TRUE;
       conform_width_256_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--delete-cmds") == 0 ){
+      DeleteCMDs = 1;
+    }
+    else if (strcmp(argv[i], "--new-transform-fname") == 0 ){    
+      get_string(argc, argv, &i, NewTransformFname);
+      DoNewTransformFname = 1;
     }
     else if (strcmp(argv[i], "--sphinx") == 0 )
     {
@@ -2418,6 +2428,11 @@ int main(int argc, char *argv[])
     mri->z_a = in_k_directions[1];
     mri->z_s = in_k_directions[2];
     mri->ras_good_flag = 1;
+  }
+  if(DeleteCMDs) mri->ncmds = 0;
+  if(DoNewTransformFname) {
+    printf("Changing xform name to %s\n",NewTransformFname);
+    strcpy(mri->transform_fname,NewTransformFname);
   }
   if (in_orientation_flag)
   {

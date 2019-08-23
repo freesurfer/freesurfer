@@ -297,6 +297,9 @@ typedef struct INTEGRATION_PARMS
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nltspring ;       /* coefficient of nonlinear tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
+  float   l_spring_nzr;       /* coefficient of spring term with non-zero resting length*/
+  float   l_spring_nzr_len;   /* resting length of spring term with non-zero resting length*/
+  float   l_hinge;            /* coefficient of hinge angle term */
   float   l_repulse ;         /* repulsize force on tessellation */
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
@@ -1202,6 +1205,9 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
 int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
+int MRISprintSurfQualityStats(FILE *fp, MRIS *surf);
+int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
+
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
@@ -2055,6 +2061,7 @@ int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_
 MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
+int MRIScorners(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 
@@ -2280,7 +2287,7 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
 
 int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
 int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
-double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double pmin[3], double dL);
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);

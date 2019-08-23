@@ -16,6 +16,8 @@
  */
 #include "mrisurf_metricProperties.h"
 #include "face_barycentric_coords.h"
+#include "mrisutils.h"
+#include "surfgrad.h"
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -5682,13 +5684,14 @@ int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3])
   return(0);
 }
 /*!
-  \bf double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL)
+  \bf double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double pmin[3], double dL)
   \brief Compute the RMS distance from a given point (ptest) to the
-  triangle defined by points (p1,p2,p3). Uses brute force (BF) by
-  barycentrically tessellating the triangle into dL spaced points. It
-  is possible to do this analytically, but this was easy.
+  triangle defined by points (p1,p2,p3). The closest point is returned
+  in pmin. Uses brute force (BF) by barycentrically tessellating the
+  triangle into dL spaced points. It is possible to do this
+  analytically, but this was easy.
 */
-double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL)
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double pmin[3], double dL)
 {
   double l1, l2, l3,d,dmin;
   double r[3], pr[3];
@@ -5707,7 +5710,10 @@ double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptes
       }
       d = sqrt(d);
       // check for min
-      if(d<dmin) dmin=d;
+      if(d<dmin) {
+	dmin=d;
+	for(k=0; k<3; k++) pmin[k] = r[k];
+      }
     }
   }
   return(dmin);
@@ -5730,15 +5736,16 @@ double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptes
   points controlled by dL), and the distance is computed as the
   closest of those 25. An exact solution is possible, just harder 
   to program. The difference is put in to the curv field of surf1.
+  The closest point is put into targ{xyz}
 */
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
 {
-  int vno1, nthface, faceno2,vno2; 
+  int vno1, nthface, faceno2,vno2,k; 
   VERTEX_TOPOLOGY *vt2;
   MRIS_HASH_TABLE *mht;
   float dminv;
   double d,dmin,dL=0.2;
-  double pv1[3], pf1[3], pf2[3], pf3[3];
+  double pv1[3], pf1[3], pf2[3], pf3[3], pmin[3], pmin0[3];
   VERTEX *v1, *v2;
 
   mht = MHTcreateVertexTable_Resolution(surf2, CURRENT_VERTICES, 10);
@@ -5754,6 +5761,9 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
     vno2 = MHTfindClosestVertexNo2(mht, surf2, surf1, v1, &dminv);
     v2 = &surf2->vertices[vno2];    
     vt2 = &surf2->vertices_topology[vno2];
+    pmin[0] = v2->x;
+    pmin[1] = v2->y;
+    pmin[2] = v2->z;
 
     // Go through each face of this vertex
     dmin = dminv;
@@ -5763,12 +5773,18 @@ int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2)
       StuffFaceCoords(surf2, faceno2, 1, pf2);
       StuffFaceCoords(surf2, faceno2, 2, pf3);
       // Find the closest point on the surface from vertex1 to this face
-      d = MinDistToTriangleBF(pf1,pf2,pf3,pv1,dL);
-      if(d<dmin) dmin = d;
+      d = MinDistToTriangleBF(pf1,pf2,pf3,pv1,pmin0,dL);
+      if(d<dmin) {
+	dmin = d;
+	for(k=0; k<3; k++) pmin[k] = pmin0[k];
+      }
     }
     //if(vno1 == Gdiag_no || vno2 == Gdiag_no) printf("%6d %6d  %6.4f %6.4f\n",vno1,vno2,dminv,dmin);
 
     v1->curv = dmin;
+    v1->targx = pmin[0];
+    v1->targy = pmin[1];
+    v1->targz = pmin[2];
   }
 
   MHTfree(&mht);
@@ -13645,6 +13661,67 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
     // nbr nbrno vno dist varea faceno farea
     fprintf(fp,"nbr %d  %5d %6.4lf %6.4lf %5d %6.4f\n",n,vnno,dist,vn->area,faceno,face->area);
   }
+
+  if(surf->edges){
+    int edgeno;
+    for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+      MRI_EDGE *e = &(surf->edges[edgeno]);
+      int evno;
+      for(evno = 0; evno < 4; evno ++){
+	if(e->vtxno[evno] == vertexno){
+	  printf("Edge %6d %d\n",edgeno,evno);
+	}
+      }
+    }
+  }
+
+  return(0);
+}
+
+
+int MRISprintSurfQualityStats(FILE *fp, MRIS *surf)
+{
+  double *estats, *hstats, *astats, *cstats;
+  astats = MRIStriangleAreaStats(surf, NULL, NULL); // trangle area
+  cstats = MRIScornerStats(surf, 1, NULL, NULL); // corner angle (deg)
+  estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
+  hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
+
+  // mean, stddev, min, max
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",astats[1],astats[2],astats[3],astats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",cstats[1],cstats[2],cstats[3],cstats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",estats[1],estats[2],estats[3],estats[4]);
+  fprintf(fp,"%7.5f %7.5f %7.5f %7.5f  ",hstats[1],hstats[2],hstats[3],hstats[4]);
+  fprintf(fp,"\n");
+  fflush(fp);
+
+  free(astats);
+  free(cstats);
+  free(estats);
+  free(hstats);
+
+  return(0);
+}
+
+int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
+{
+  double *estats, *hstats, *astats, *cstats;
+  astats = MRIStriangleAreaStats(surf, NULL, NULL); // trangle area
+  cstats = MRIScornerStats(surf, 1, NULL, NULL); // corner angle (deg)
+  estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
+  hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
+
+  // mean, stddev, min, max
+  fprintf(fp,"Area   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)astats[0],astats[1],astats[2],astats[3],astats[4]);
+  fprintf(fp,"Corner %7d %8.5f %8.5f %8.6f %8.4f\n",(int)cstats[0],cstats[1],cstats[2],cstats[3],cstats[4]);
+  fprintf(fp,"Edge   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)estats[0],estats[1],estats[2],estats[3],estats[4]);
+  fprintf(fp,"Hinge  %7d %8.5f %8.5f %8.6f %8.4f\n",(int)hstats[0],hstats[1],hstats[2],hstats[3],hstats[4]);
+  fflush(fp);
+
+  free(astats);
+  free(cstats);
+  free(estats);
+  free(hstats);
 
   return(0);
 }

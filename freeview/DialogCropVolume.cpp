@@ -91,7 +91,9 @@ void DialogCropVolume::OnSpinRange(int nVal)
   {
     if ( qobject_cast<QSpinBox*>(sender()) == m_spinRange[i] )
     {
-      MainWindow::GetMainWindow()->GetVolumeCropper()->SetExtent( i, nVal );
+      if ( (i%2 == 0 && nVal < m_spinRange[i+1]->value()) ||
+           (i%2 == 1 && nVal > m_spinRange[i-1]->value()) )
+        MainWindow::GetMainWindow()->GetVolumeCropper()->SetExtent( i, nVal );
       break;
     }
   }

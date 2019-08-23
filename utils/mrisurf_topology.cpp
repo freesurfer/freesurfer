@@ -602,12 +602,14 @@ int MRIStopologicalDefectIndex(MRIS *mris)
 */
 int MRISedges(MRIS *surf)
 {
+  int edgeno = 0;
+  int vtxno0, vtxno1;
+
   surf->nedges = MRIScountEdges(surf);
   surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
+  //printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
 
   // This is not thread safe and cannot be made thread safe
-  int edgeno = 0;
-  int vtxno0;
   for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
     VERTEX_TOPOLOGY const * const v0t = &surf->vertices_topology[vtxno0];
     
@@ -631,7 +633,7 @@ int MRISedges(MRIS *surf)
 	  for(m=0; m < v1t->num; m++){ // go thru faces of vtx2
 	    if(v0t->f[n] == v1t->f[m]){ // same face
 	      if(k>1){
-	        printf("ERROR: MRISedge(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
+	        printf("ERROR: MRISedges(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
 	        return(1);
 	      }
 	      FACE const * const f = &(surf->faces[v0t->f[n]]);
@@ -647,7 +649,7 @@ int MRISedges(MRIS *surf)
 	  }
         }
         if(k != 2){
-	  printf("ERROR: MRISedge(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
+	  printf("ERROR: MRISedges(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
 	  return(1);
         }
       }
@@ -697,8 +699,108 @@ int MRISedges(MRIS *surf)
     }
   }
 
+  // Allocate the edge number array in each vertex
+  VERTEX_TOPOLOGY *vt;
+  for(vtxno0 = 0; vtxno0 < surf->nvertices; vtxno0++){
+    vt = &(surf->vertices_topology[vtxno0]);
+    if(vt->e) free(vt->e);
+    vt->e = (int*)calloc(sizeof(int),vt->vtotal);
+  }
+
+  // Assign edge numbers to vertices
+  // could add directionality here too
+  int k;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    vtxno0 = surf->edges[edgeno].vtxno[0];
+    vtxno1 = surf->edges[edgeno].vtxno[1];
+    vt = &(surf->vertices_topology[vtxno0]);
+    for(k=0; k < vt->vtotal; k++)
+      if(vt->v[k] == vtxno1) vt->e[k] = edgeno;
+    vt = &(surf->vertices_topology[vtxno1]);
+    for(k=0; k < vt->vtotal; k++)
+      if(vt->v[k] == vtxno0) vt->e[k] = edgeno;
+  }
+
   return(0);
 }
+
+
+/*!
+  \fn int MRIScorners(MRIS *surf)
+  \brief Create triangle corner topology. Will return immediately with
+  0 if already done. If edge topology has not been built, then that
+  will be done as well. A corner is an angle of a triangle.
+ */
+int MRIScorners(MRIS *surf)
+{
+  int faceno, cornerno, k,m,n;
+  FACE *face;
+  MRI_CORNER *c;
+
+  if(surf->corners) return(0);
+
+  //printf("Building triangle corner toplology\n");
+  if(!surf->edges) MRISedges(surf);
+
+  surf->ncorners = 3*surf->nfaces;
+  surf->corners = (MRI_CORNER*) calloc(sizeof(MRI_CORNER),surf->ncorners);
+  //printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
+  //	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
+
+  // First assign vertices to each corner
+  cornerno = 0;
+  for(faceno=0; faceno < surf->nfaces; faceno++){
+    face = &(surf->faces[faceno]);
+    for(k=0; k < 3; k++){
+      c = &(surf->corners[cornerno]);
+      c->cornerno = cornerno;
+      c->faceno = faceno;
+      m = k + 1;
+      if(m>2) m -= 3;
+      n = k + 2;
+      if(n>2) n -= 3;
+      c->vtxno[0] = face->v[k];
+      c->vtxno[1] = face->v[m];
+      c->vtxno[2] = face->v[n];
+      cornerno++;
+    }
+  }
+
+  // Now assign edges and edge direction to each corner
+  for(cornerno = 0; cornerno < surf->ncorners; cornerno++){
+    c = &(surf->corners[cornerno]);
+    VERTEX_TOPOLOGY *v = &(surf->vertices_topology[c->vtxno[0]]);
+    // Go through the two cornder vertex neighbors (ie, edges) for this corner
+    int nthedge;
+    for(nthedge=0; nthedge < 2; nthedge++){
+      // Go through all the vertex neighbors of the corner vertex
+      int hit = 0;
+      for(k=0; k < v->vtotal; k++){
+	// If this vertex neighbor is the same vertex as this corner neighbor
+	if(v->v[k] == c->vtxno[nthedge+1]){
+	  // Set the edgeno for this edge to the edgeno connecting central vertex with neighbor
+	  c->edgeno[nthedge] = v->e[k];
+	  // Determine the direction of the edge. If the first vertex
+	  // of the edge is the same as the center vertex of the
+	  // corner, then they are pointing the in same direction
+	  MRI_EDGE *edge = &(surf->edges[c->edgeno[nthedge]]);
+	  if(edge->vtxno[0] == c->vtxno[0]) c->edgedir[nthedge] = +1;
+	  else                              c->edgedir[nthedge] = -1;
+	  hit = 1;
+	  break;
+	}
+      } // loop over neighbors
+      if(!hit){
+	printf("MRIScorners(): ERROR: could not find an edge for corner %d, edge %d, %d->%d\n",
+	       cornerno,nthedge,c->vtxno[0],c->vtxno[nthedge+1]);
+	fflush(stdout);
+      }
+    } // loop over edges
+  }
+
+  return(0);
+}
+
 
 
 //=============================================================================

@@ -420,6 +420,12 @@ while( $#argv != 0 )
       set xsubjectlist = ($xsubjectlist `cat $fname`);
       breaksw
 
+    case "--xs":
+      if($#argv < 1) goto arg1err;
+      set xsubject = $argv[1]; shift;
+      set xsubjectlist = ($xsubjectlist $xsubject)
+      breaksw
+
     case "--seg":
       if($#argv < 1) goto arg1err;
       set manseg = $argv[1]; shift;
@@ -659,6 +665,7 @@ usage_exit:
   echo "   --sym (only specify to make a symmetric atlas)"
   echo ""
   echo " --x xfile : exclude the subjects in xfile, good for jack-knifing"
+  echo " --xs subject : exclude subject, good for jack-knifing"
   echo " --no-strict : do not require FS build stamps to match across iteration"
   echo " --gcareg-iters : set to 1 for testing"
   echo " --prep-only"

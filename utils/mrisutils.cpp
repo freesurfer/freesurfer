@@ -3393,7 +3393,7 @@ double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
     MRISedges(surf);
   }
   MRIScomputeMetricProperties(surf);
-  MRISedgeMetric(surf);
+  MRISedgeMetric(surf,0);
 
   metric = (double*)calloc(sizeof(double),surf->nedges);
   nedges = 0;
@@ -3433,10 +3433,12 @@ int MRISedgePrint(FILE *fp, MRIS *surf)
   int edgeno;
   MRI_EDGE *e;
   MRIScomputeMetricProperties(surf);
-  MRISedgeMetric(surf);
+  MRISedgeMetric(surf,0);
   for(edgeno = 0; edgeno < surf->nedges; edgeno++){
     e = &(surf->edges[edgeno]);
-    fprintf(fp,"%6d %6d %6d %10.8f %10.8f %8.4f\n",edgeno,e->vtxno[0],e->vtxno[1],e->len,e->dot,e->angle);
+    double cost = (1.0-e->dot)*(1.0-e->dot);
+    fprintf(fp,"%6d %6d %6d %10.8f %10.8f %8.4f %12.8f\n",edgeno,
+	    e->vtxno[0],e->vtxno[1],e->len,e->dot,e->angle,cost);
   }
   fflush(fp);
   return(0);
@@ -3454,6 +3456,11 @@ int MRISedgeWrite(char *filename, MRIS *surf)
   if(surf->edges == NULL){
     MRISedges(surf);
   }
+  MRIScomputeMetricProperties(surf) ;
+  MRISedges(surf);
+  MRISfaceNormalGrad(surf, 0); //0=DoGrad
+  MRISedgeMetric(surf,0);
+
   fp = fopen(filename,"w");
   if(fp == NULL) return(1);
   MRISedgePrint(fp,surf);

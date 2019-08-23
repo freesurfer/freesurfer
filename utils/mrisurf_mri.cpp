@@ -25,6 +25,7 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_compute_dxyz.h"
 #include "region.h"
+#include "surfgrad.h"
 
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
 {
@@ -600,6 +601,28 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     /*mrisUpdateSulcalGradients(mris, parms) ;*/
     /* smoothness terms */
     mrisComputeSpringTerm(mris, parms->l_spring);
+    if(parms->l_hinge > 0 || parms->l_spring_nzr > 0){
+      if(mris->edges == NULL){
+	printf("First pass, creating edges\n");
+	MRISedges(mris);
+      }
+      MRISfaceNormalGrad(mris, 0);
+      int DoGrad = 0;
+      if(parms->l_hinge <= 0 && parms->l_spring_nzr >  0) DoGrad = 1; // NZR only
+      if(parms->l_hinge >  0 && parms->l_spring_nzr <= 0) DoGrad = 2; // Hinge only
+      if(parms->l_hinge >  0 && parms->l_spring_nzr >  0) DoGrad = 3; // both
+      MRISedgeMetric(mris, DoGrad);
+    }
+    if(parms->l_spring_nzr > 0){
+      double springcost = MRISedgeLengthCost(mris, parms->l_spring_nzr_len, parms->l_spring_nzr, 1);
+      printf("#@%% spring_nzr cost L0=%g, weight=%g, cost = %g\n",parms->l_spring_nzr_len,parms->l_spring_nzr,springcost);
+      fflush(stdout);
+    }
+    if(parms->l_hinge > 0){
+      double hingecost = MRISedgeAngleCost(mris,parms->l_hinge, 1);
+      printf("#@%% hinge cost weight=%g, cost = %g\n",parms->l_hinge,hingecost);
+
+    }
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm);
     mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current, mht_f_current);
     mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth, parms);

@@ -46,6 +46,7 @@
 #include "proto.h"
 #include "error.h"
 #include "gifti.h"
+#include "surfgrad.h"
 
 const char *Progname = "mris_info";
 
@@ -82,6 +83,14 @@ int EdgeMetricId = 0;
 char *edgefile = NULL;
 MRI *mask=NULL;
 LABEL *label=NULL;
+int DoQuality = 0;
+int vmatlab = -1;
+char *vmatlabfile=NULL;
+int  edgenox = -1;
+
+int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
+int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
+int MRISprintEdgeInfo(FILE *fp, const MRIS *surf, int edgeno);
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -160,6 +169,11 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   MRIScomputeMetricProperties(mris) ;
+  MRISedges(mris);
+  MRIScorners(mris);
+  MRISfaceMetric(mris,0);
+  MRISedgeMetric(mris,0);
+  MRIScornerMetric(mris,0);
 
   if(label){
     // Create a mask from the label
@@ -168,6 +182,11 @@ int main(int argc, char *argv[]) {
     for (n = 0; n < label->n_points; n++){
       MRIsetVoxVal(mask,label->lv[n].vno,0,0,0, 1);
     }
+  }
+
+  if(DoQuality){
+    MRISprettyPrintSurfQualityStats(stdout, mris);
+    exit(0);
   }
 
   if(DoAreaStats){
@@ -184,7 +203,7 @@ int main(int argc, char *argv[]) {
     }
     else {
       int k;
-      for(k=0; k < 2; k++){
+      for(k=0; k < 3; k++){
 	double *stats = MRISedgeStats(mris, k, mask, NULL);
 	printf("%d %d %g %g %g %g\n",k,(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
 	free(stats);
@@ -194,6 +213,7 @@ int main(int argc, char *argv[]) {
   }
   if(edgefile){
     MRISedgeWrite(edgefile, mris);
+    //MRISedgeVertices2Pointset(mris, mask, 2, 145, "tmp.pointset");
     exit(0);
   }
 
@@ -208,6 +228,15 @@ int main(int argc, char *argv[]) {
   }
   if(vnox >= 0){
     MRISprintVertexInfo(stdout, mris, vnox);
+    exit(0);
+  }
+  if(vmatlab > -1){
+    fp = fopen(vmatlabfile,"w");
+    MatlabPlotVertexNbhd(fp, mris, vmatlab, 3, 'k', .1);
+    fclose(fp);
+  }
+  if(edgenox >= 0){
+    MRISprintEdgeInfo(stdout, mris, edgenox);
     exit(0);
   }
 
@@ -427,6 +456,20 @@ static int parse_commandline(int argc, char **argv) {
       vnox = atoi(pargv[0]);
       nargsused = 1;
     } 
+    else if ( !strcmp(option, "--v-matlab") ) {
+      if (nargc < 2) argnerr(option,2);
+      vmatlab = atoi(pargv[0]);
+      vmatlabfile = pargv[1];
+      nargsused = 2;
+    } 
+    else if ( !strcmp(option, "--ex") ) {
+      if (nargc < 1) argnerr(option,1);
+      edgenox = atoi(pargv[0]);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--quality") ) {
+      DoQuality = 1;
+    } 
     else if ( !strcmp(option, "--area-stats") ) {
       DoAreaStats = 1;
     } 
@@ -521,6 +564,9 @@ static void print_usage(void) {
   printf("  --area-stats : compute stats on triangle area (n, mean, std, min, max)\n");
   printf("  --edge-stats id : compute stats on edge metric (n, mean, std, min, max)\n");
   printf("                    id=0=length, id=1=dot, id=2=angle, id<0= all\n");
+  printf("  --ex edgeno : printout extended into about edge\n");
+  printf("  --v-matlab vtxno mfile : write matlab file to plot vertex neighborhood\n");
+  printf("  --quality: print out surface quality stats\n");
   printf("  --mask mask.mgz : only compute edge and area stats using vertices in mask\n");
   printf("  --label labelfile : only compute edge and area stats using vertices in label\n");
   printf("  --edge-file file : print edge info for all edges into file\n");
@@ -555,4 +601,132 @@ static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+
+/*!
+  \fn int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf)
+  \brief Outputs a file that can be loaded into freeview with -c
+ */
+int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf)
+{
+  int n,vtxno;
+  VERTEX *v;
+  FILE *fp;
+
+  fp = fopen(fname,"w");
+  n = 0;
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    v = &(surf->vertices[vtxno]);
+    if(! v->marked) continue;
+    fprintf(fp,"%g %g %g\n",v->x,v->y,v->z);
+    n++;
+  }
+  fprintf(fp,"info\n");
+  fprintf(fp,"numpoints %d\n",n);
+  fprintf(fp,"useRealRAS 0\n");
+  fclose(fp);
+
+  return(0);
+}
+
+int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname)
+{
+  int edgeno, nthv, npoints;
+  MRI_EDGE *e;
+  double metric;
+  FILE *fp;
+
+  if(surf->edges == NULL) MRISedges(surf);
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+
+  fp = fopen(fname,"w");
+  npoints = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    int skip = 0;
+    for(nthv=0; nthv < 4; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    switch(metricid){
+    case 0: metric = e->len; break;
+    case 1: metric = e->dot; break;
+    case 2: metric = e->angle; break;
+    default:
+      printf("ERROR: MRISmarkEdgeVertices) metricid %d unrecognized\n",metricid);
+      return(1);
+    }
+    if(metric < thresh) continue;
+    for(nthv=0; nthv < 2; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      fprintf(fp,"%g %g %g\n",v->x,v->y,v->z);
+      npoints++;
+    }
+  }
+  fprintf(fp,"info\n");
+  fprintf(fp,"numpoints %d\n",npoints);
+  fprintf(fp,"useRealRAS 0\n");
+  fclose(fp);
+  return(0);
+}
+
+
+int MRISprintEdgeInfo(FILE *fp, const MRIS *surf, int edgeno)
+{
+  MRI_EDGE *e = &(surf->edges[edgeno]);
+  int k,j;
+  VERTEX *v;
+  FACE *f;
+
+  fprintf(fp,"edgeno %d\n",edgeno);
+
+  fprintf(fp,"vertices ");
+  for(k=0; k < 4; k++)  fprintf(fp,"%5d ",e->vtxno[k]);
+  fprintf(fp,"\n");
+
+
+  for(k=0; k < 4; k++){
+    v = &(surf->vertices[e->vtxno[k]]);
+    fprintf(fp,"v%d = [%10.8f %10.8f %10.8f]'; \n",k,v->x,v->y,v->z);
+  }
+
+  fprintf(fp,"faces ");
+  for(k=0; k < 2; k++)  fprintf(fp,"%5d ",e->faceno[k]);
+  fprintf(fp,"\n");
+
+  for(k=0; k < 2; k++){
+    f = &(surf->faces[e->faceno[k]]);
+    if(f->norm == NULL) continue;
+    fprintf(fp,"f%d = [%10.8f %10.8f %10.8f]'; \n",k,f->norm->rptr[1][1],
+	    f->norm->rptr[2][1],f->norm->rptr[3][1]);
+  }
+
+  for(j=0; j < 2; j++){
+    fprintf(fp,"corner%d ",j);
+    for(k=0; k < 4; k++)  fprintf(fp,"%d ",(int)(e->corner[k][j]));
+    fprintf(fp,"\n");
+  }
+
+  fprintf(fp,"dot %g\n",e->dot);
+  fprintf(fp,"angle %g\n",e->angle);
+  fprintf(fp,"J %g\n",e->J);
+
+  fprintf(fp,"u = [ ");
+  for(k=0; k < 3; k++)  fprintf(fp,"%10.8f ",e->u[k]);
+  fprintf(fp,"];\n");
+
+  if(e->gradU){
+    fprintf(fp,"gradU = [ ");
+    DMatrixPrint(fp,e->gradU);
+    fprintf(fp,"];\n");
+  }
+
+  fflush(fp);
+  return(0);
+}
+
 
