@@ -12,6 +12,7 @@ option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
 option(BUILD_ATTIC "Build deprecated tools from the attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
+option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 
@@ -405,10 +406,10 @@ add_subdirectories(
 if(NOT MINIMAL)
   add_subdirectories(
     anatomicuts
+    attic
     BrainstemSS
     diffusion_tool
     dummy
-    dngtester
     freeview
     fsfast
     fslutils
@@ -590,13 +591,14 @@ if(NOT MINIMAL)
   )
 endif()
 
-# attic
-add_subdirectory(attic)
-
 if(INFANT_MODULE)
-  add_subdirectories(infant)
+  add_subdirectory(infant)
 endif()
 
 if(TKTOOLS_MODULE)
   add_subdirectory(tktools)
+endif()
+
+if(BUILD_DNG)
+  add_subdirectory(dngtester)
 endif()
