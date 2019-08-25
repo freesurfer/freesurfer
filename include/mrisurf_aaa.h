@@ -164,16 +164,36 @@ typedef struct FaceNormDeferredEntry {
 
 typedef struct edge_type_
 {
-  int edgeno; // this face no
+  // topology
+  int edgeno; // this edge no
   int vtxno[4]; // vertex numbers of 2 ends + 2 opposites
   int faceno[2]; // two adjacent faces
   unsigned char corner[4][2]; // corner[nthvtx][faceno]
+  // metrics
   double len; // length of the edge
   double dot; // dot product of the adjacent face normals
   double angle; // angle (deg) of the adjacent face normals
   double J; // Angle Cost of this edge
+  double u[3]; // unit vector pointing from v0 to v1
+  DMATRIX *gradU; // 1x3 grad of unit verctor wrt vertex 0
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
+
+// Corner of a triangluar face 
+typedef struct corner_type_
+{
+  // topology
+  int cornerno; // this corner number
+  int vtxno[3]; // vertex 0 is the source
+  int faceno; // face this corner belongs to
+  int edgeno[2]; // edge numbers
+  int edgedir[2]; // direction of the edge relative to the corner
+  // metrics
+  double dot; // dot product of the adjacent segments
+  double angle; // angle (deg) of the corner
+  double J; // cost, eg, (dot-0.5)^2 where 0.5 = cos(60) = equilateral tri
+  DMATRIX *gradDot[3]; // 3 1x3 grad of dot wrt each vertex
+} MRI_CORNER;
 
 
 #include "colortab.h" // 'COLOR_TABLE'
@@ -203,6 +223,7 @@ typedef COLOR_TABLE*            PCOLOR_TABLE;
 
 typedef MRI*                    PMRI;
 typedef MRI_EDGE*               pSeveralMRI_EDGE;
+typedef MRI_CORNER*             pSeveralMRI_CORNER;
 typedef MRIS_AREA_LABEL*        PMRIS_AREA_LABEL;
 typedef VERTEX *                PVERTEX;
 typedef FixedSizeArray<PDMATRIX,3> A3PDMATRIX;

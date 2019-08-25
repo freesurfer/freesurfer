@@ -96,7 +96,6 @@ def wm_peak_normalize_t2w(in_img_data):
     out_img_data = in_img_data * wm_scaling
     return out_img_data
 
-
 def wm_peak_normalize_t2w(in_img_data):
     """Function to scale image intensities by setting wm peak to 200"""
     import sklearn.mixture

@@ -30,6 +30,8 @@
 #include <vector>
 #include <string>
 
+#include <mrisurf.h>
+
 #ifdef ANNOTATION_SRC
 char *annotation_table_file = NULL;
 #else
@@ -48,6 +50,7 @@ LABEL*	annotation2label(int annotid, MRIS *Surf);
 int 	set_atable_from_ctable(COLOR_TABLE *pct);
 int  	MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int  	MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;
+std::vector<int> readAnnotationIntoVector(const std::string& filename);
 int  	MRISmergeAnnotations(MRIS *mris, int nparcs, std::vector<std::string> parcnames, const char *newparcname);
 MRI*	MRISannot2seg(MRIS *surf, int base);
 MRI*	MRISannot2border(MRIS *surf);

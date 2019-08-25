@@ -1973,7 +1973,7 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
       f->v[n] = gw_ic2562_faces[fno].vno[n] - 1; /* make it zero-based */
       VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[f->v[n]];
       vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
+      addVnum(mris,f->v[n],2);     /* will remove duplicates later */
     }
   }
 
@@ -1986,7 +1986,7 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
       f->v[n] = (gw_ic2562_faces[fno].vno[n] - 1) + ICO_NVERTICES; /* make it zero-based */
       VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[f->v[n]];
       vt->num++;
-      vt->vnum += 2; /* will remove duplicates later */
+      addVnum(mris,f->v[n],2); /* will remove duplicates later */
     }
   }
 
@@ -1998,7 +1998,7 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
     VERTEX_TOPOLOGY* const vt = &mris->vertices_topology[vno];
     vt->v = (int *)calloc(vt->vnum / 2, sizeof(int));
     if (!vt->v) ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dth vertex list.", __func__, vno);
-    vt->vnum = 0;
+    clearVnum(mris,vno);
   }
 
   //-------------------------------------
@@ -2034,7 +2034,7 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
             break;
           }
         }
-        if (vn >= 0) vt->v[vt->vnum++] = vn;
+        if (vn >= 0) vt->v[vnumAdd(mris,f->v[n],1)] = vn;
       }
       
       vt->nsizeMax = vt->nsizeCur = 1;

@@ -2926,13 +2926,13 @@ bool LayerSurface::IsVertexOnPath(int vno)
   return false;
 }
 
-void LayerSurface::FillPath(int nvo, const QVariantMap &options)
+bool LayerSurface::FillPath(int nvo, const QVariantMap &options)
 {
   QVector<int> verts = FloodFillFromSeed(nvo, options);
   if (verts.size() == 0)
   {
     qDebug() << "Did not fill/remove any vertices";
-    return;
+    return false;
   }
   if (options["CreateLabel"].toBool())
   {
@@ -2944,6 +2944,20 @@ void LayerSurface::FillPath(int nvo, const QVariantMap &options)
     //    label->SaveForUndo();
     label->EditVertices(verts, !options["RemoveFromLabel"].toBool());
     emit Modified();
+  }
+  return true;
+}
+
+void LayerSurface::FillPath(const QVector<int> &verts, const QVariantMap &options)
+{
+  QVariantMap opt = options;
+  foreach (int nvo, verts)
+  {
+    if (FillPath(nvo, opt) && opt["CreateLabel"].toBool())
+    {
+      opt["CreateLabel"] = false;
+      opt["AddToLabel"] = true;
+    }
   }
 }
 
@@ -2957,6 +2971,14 @@ int LayerSurface::GetLastMark()
       vno = verts.last();
   }
   return vno;
+}
+
+QVector<int> LayerSurface::GetAllMarks()
+{
+  QVector<int> verts;
+  if (m_marks)
+    verts = m_marks->GetPathVerts();
+  return verts;
 }
 
 bool LayerSurface::LoadParameterization(const QString &filename)

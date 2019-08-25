@@ -171,7 +171,6 @@ int main(int narg, char*  arg[])
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriter =  vtkSmartPointer<vtkPolyDataWriter>::New();
 		
-		
 		#if VTK_MAJOR_VERSION <= 5	
 			pdWriter->SetInput(polyData);
 		#else

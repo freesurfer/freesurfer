@@ -569,8 +569,12 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->optschema = 1;
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--2dz"))   {
+    else if (!strcasecmp(option, "--xztrans+yrot") || !strcasecmp(option, "--2dz"))   {
       cmdargs->optschema = 2;
+      cmdargs->dof = 3;
+    }
+    else if (!strcasecmp(option, "--xytrans+zrot"))   {
+      cmdargs->optschema = 4;
       cmdargs->dof = 3;
     }
     else if (!strcasecmp(option, "--zscale"))   {
@@ -740,7 +744,8 @@ static void print_usage(void) {
   printf("   --s subject (forces --ref-mask aparc+aseg.mgz)\n");
   printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
   printf("   --zscale : a 7 dof reg with xyz shift and rot and scaling in z\n");
-  printf("   --2dz : for 2D images uses shifts in x and z and rot about y\n");
+  printf("   --xytrans+zrot : for 2D images uses shifts in x and y and rot about z (no scale)\n");
+  printf("   --xztrans+yrot : for 2D images uses shifts in x and z and rot about y (no scale) (was --2dz)\n");
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
   printf("   --no-ref-mask : do not mask ref (good to undo aparc+aseg.mgz, put AFTER --s)\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
@@ -984,7 +989,7 @@ int COREGhist(COREG *coreg)
 	  if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
 
           double dsmov = 0;
-	  if(coreg->optschema != 2){
+	  if(coreg->optschema != 2 && coreg->optschema != 4){
 	    dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
 	    if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
 	  }
@@ -1380,6 +1385,14 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
     par[6] = par[7] = 1; // scaling in x and y
     for(n=0; n < 6; n++) par[n] = coreg->params[n];
     par[8] = coreg->params[6];
+    break;
+  case 4: 
+    // schema 4 is for a 2D image (3dof: x and y trans with rot about z)
+    for(n=0; n<12; n++) par[n] = 0;
+    par[6] = par[7] = par[8] = 1; // scaling
+    par[0] = coreg->params[0]; // x trans
+    par[1] = coreg->params[1]; // y trans
+    par[5] = coreg->params[2]; // rotation about z
     break;
   }
   return(par);

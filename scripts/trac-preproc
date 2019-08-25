@@ -217,10 +217,8 @@ if ($docorr && ! $dobase) then
   endif
 
   if ($#bvecfile && $bvecfile != $dwidir/dwi_orig.bvecs) then
-    set cmd = (cp $bvecfile $dwidir/dwi_orig.bvecs)
-    echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
-      $cmd |& tee -a $LF
+      tr -d '\r' < $bvecfile > $dwidir/dwi_orig.bvecs
       if ($status) goto error_exit
     endif
   endif
@@ -235,10 +233,8 @@ if ($docorr && ! $dobase) then
   set nvec = `printf '%g' $nvec`
 
   if ($#bvalfile && $bvalfile != $dwidir/dwi_orig.bvals) then
-    set cmd = (cp $bvalfile $dwidir/dwi_orig.bvals)
-    echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
-      $cmd |& tee -a $LF
+      tr -d '\r' < $bvalfile > $dwidir/dwi_orig.bvals
       if ($status) goto error_exit
     endif
   endif
