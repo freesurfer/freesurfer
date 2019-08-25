@@ -349,7 +349,7 @@ int main( int argc, char* argv[] )
 		stripper2->Update();   	
 		vtkSurface = stripper2->GetOutput();
 
-		float reduction = 1.0 -80000.0 /vtkSurface->GetNumberOfPoints();
+		float reduction = 1.0 -10000.0 /vtkSurface->GetNumberOfPoints();
 		std::cout << " reduction " << reduction << " num points " << vtkSurface->GetNumberOfPoints()<< std::endl;
 		vtkSmartPointer<vtkQuadricDecimation> decimate = vtkSmartPointer<vtkQuadricDecimation>::New();
 		//vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
