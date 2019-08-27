@@ -1347,6 +1347,8 @@ void LayerMRI::SetVisible( bool bVisible )
     m_projectionMapActor[i]->SetVisibility( bVisible && GetProperty()->GetShowProjectionMap() );
   }
   m_actorContour->SetVisibility( bVisible ? 1 : 0 );
+  if (GetProperty()->GetShowAsContour() && GetProperty()->GetShowAsLabelContour())
+    OnLabelContourChanged();
   LayerVolumeBase::SetVisible(bVisible);
 }
 
@@ -4016,9 +4018,10 @@ void LayerMRI::OnLabelContourChanged(int n)
     keys.clear();
     keys << n;
   }
+  bool bVisible = IsVisible();
   foreach (int i, keys)
   {
-    m_labelActors[i]->SetVisibility(labels.contains(i)?1:0);
+    m_labelActors[i]->SetVisibility((bVisible && labels.contains(i))?1:0);
   }
   emit ActorUpdated();
 }

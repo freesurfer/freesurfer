@@ -1542,9 +1542,9 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                             userModelSpecifications={}, userOptimizationOptions={},
                             visualizer=None, saveHistory=False, 
                             targetIntensity=None, targetSearchStrings=None,
-                            numberOfIterations=10,
+                            numberOfIterations=5,
                             strengthOfLatentGMMHyperprior=1.0,
-                            strengthOfLatentDeformationHyperprior=1.0, 
+                            strengthOfLatentDeformationHyperprior=10.0, 
                             saveSSTResults=True,
                             updateLatentMeans=True,
                             updateLatentVariances=True,
@@ -1900,7 +1900,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                 timepointDeformations[ timepointNumber ], timepointDeformationAtlasFileNames[ timepointNumber ], \
                 optimizationSummary, optimizationHistory = \
                     estimateModelParameters( imageBuffersList[ timepointNumber ], mask, biasFieldBasisFunctions, transform, voxelSpacing,
-                                              modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
+                                              K1, modelSpecifications.useDiagonalCovarianceMatrices,
                                               classFractions, numberOfGaussiansPerClass, timepointOptimizationOptions,  
                                               saveHistory=True, visualizer=visualizer,
                                               initialMeans=timepointMeans[ timepointNumber ], 
@@ -2008,16 +2008,16 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             plt.draw()
 
         if saveHistory:
-            history[ "timepointMeansEvolution" ].append( timepointMeans )
-            history[ "timepointVariancesEvolution" ].append( timepointVariances )
-            history[ "timepointMixtureWeightsEvolution" ].append( timepointMixtureWeights )
-            history[ "timepointBiasFieldCoefficientsEvolution" ].append( timepointBiasFieldCoefficients )
-            history[ "timepointDeformationsEvolution" ].append( timepointDeformations )
-            history[ "timepointDeformationAtlasFileNamesEvolution" ].append( timepointDeformationAtlasFileNames )
-            history[ "latentMeansEvolution" ].append( latentMeans )
-            history[ "latentVariancesEvolution" ].append( latentVariances )
-            history[ "latentMixtureWeightsEvolution" ].append( latentMixtureWeights )
-            history[ "latentDeformationEvolution" ].append( latentDeformation )
+            history[ "timepointMeansEvolution" ].append( timepointMeans.copy() )
+            history[ "timepointVariancesEvolution" ].append( timepointVariances.copy() )
+            history[ "timepointMixtureWeightsEvolution" ].append( timepointMixtureWeights.copy() )
+            history[ "timepointBiasFieldCoefficientsEvolution" ].append( timepointBiasFieldCoefficients.copy() )
+            history[ "timepointDeformationsEvolution" ].append( timepointDeformations.copy() )
+            history[ "timepointDeformationAtlasFileNamesEvolution" ].append( timepointDeformationAtlasFileNames.copy() )
+            history[ "latentMeansEvolution" ].append( latentMeans.copy() )
+            history[ "latentVariancesEvolution" ].append( latentVariances.copy() )
+            history[ "latentMixtureWeightsEvolution" ].append( latentMixtureWeights.copy() )
+            history[ "latentDeformationEvolution" ].append( latentDeformation.copy() )
             history[ "latentDeformationAtlasFileNameEvolution" ].append( latentDeformationAtlasFileName )
 
         if iterationNumber >= ( numberOfIterations-1 ):
