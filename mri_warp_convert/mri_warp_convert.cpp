@@ -47,10 +47,11 @@ struct Parameters
   string in_src_geom;
   filetypes::FileType in_type;
   filetypes::FileType out_type;
+  bool downsample;
 };
 
 static struct Parameters P =
-{ "", "", "", filetypes::UNKNOWN, filetypes::UNKNOWN};
+{ "", "", "", filetypes::UNKNOWN, filetypes::UNKNOWN, false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -269,10 +270,14 @@ GCAM* readVOX(const string& warp_file)
   return gcam;
 }
 
-void writeM3Z(const string& fname, const GCAM *gcam)
+void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
 // Write an m3z file. Just calls down to GCAMwrite
 {
-  GCAMwrite(gcam, fname.c_str());
+  GCA_MORPH* out = downsample ? GCAMdownsample2(gcam) : gcam;
+  GCAMwrite(out, fname.c_str());
+  if (downsample) {
+      GCAMfree(&out);
+  }
 }
 
 void writeFSL(const string& fname, const GCAM *gcam)
@@ -451,7 +456,7 @@ int main(int argc, char *argv[])
 
   switch (P.out_type) {
     case filetypes::M3Z:
-      writeM3Z(P.out_warp.c_str(), gcam);
+      writeM3Z(P.out_warp.c_str(), gcam, P.downsample);
       break;
     case filetypes::FSL:
       writeFSL(P.out_warp.c_str(), gcam);
@@ -628,6 +633,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     cout << "--insrcgeom: " << P.in_src_geom
          << " src image (geometry)." << endl;
   }
+  else if (!strcmp(option, "DOWNSAMPLE") )
+  {
+    if (!P.downsample)
+        cout << "--downsample: save M3Z warp at half resolution." << endl;
+    P.downsample = true;
+    nargs = 0;
+  }
   else if (!strcmp(option, "HELP") )
   {
     printUsage();
@@ -673,6 +685,12 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   // validate src geom exists if input type is ITK
   if (P.in_type == filetypes::ITK && P.in_src_geom.empty()) {
     cerr << endl << endl << "ERROR: ITK input warp requires --insrcgeom"
+         << endl << endl;
+    return false;
+  }
+  if (P.out_type != filetypes::M3Z && P.downsample) {
+    cerr << endl << endl;
+    cerr << "ERROR: --downsample flag only valid for output type M3Z"
          << endl << endl;
     return false;
   }

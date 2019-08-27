@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
     "':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n\n"
     "':color=name' Set color of the label. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n"
     "':opacity=value' Set the opacity of the label. value ranges from 0 to 1. \n\n"
-    "':threshold=value' Set the threshold of the label. value ranges from 0 to 1.\n\n"
+    "':threshold=value' Set the threshold of the label.\n\n"
     "':centroid=flag' Move the cursor to the centroid of the label. flag can be '1', 'true' or 'yes'.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "w", "way-points", "<FILE>...", "Load one or multiple way points files. Available sub-options are:\n\n"
     "':color=name' Set color of the way points. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n"
