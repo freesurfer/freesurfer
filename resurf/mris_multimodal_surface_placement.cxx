@@ -57,7 +57,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc -m numberOfImages image1 image2 image3"  << std::endl;   
+			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc -min/max -m numberOfImages image1 image2 image3"  << std::endl;   
 			return -1;
 		}
 		const char *inSurf= cl.follow ("", "-i");
@@ -69,6 +69,7 @@ int main(int narg, char*  arg[])
 		int numberOfSteps= cl.follow (20, "-k");
 		const char *asegFile= cl.follow ("", "-a");
 		float gradientSigma= cl.follow (.20, "-g");
+		bool maxGradient = !cl.search("-min");
 
 
 		MRI_SURFACE *surf;
@@ -100,6 +101,7 @@ int main(int narg, char*  arg[])
 		t2refinement->SetStep(step_size);
 		t2refinement->SetNumberOfSteps(numberOfSteps);
 		t2refinement->SetGradientSigma(gradientSigma);
+		//t2refinement->SetLookMaximumGradient(maxGradient);
 		t2refinement->getTarget(surf); //, debugVertex);
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();
