@@ -47,6 +47,7 @@
 #include "error.h"
 #include "gifti.h"
 #include "surfgrad.h"
+#include "mrisurf_metricProperties.h"
 
 const char *Progname = "mris_info";
 
@@ -87,6 +88,7 @@ int DoQuality = 0;
 int vmatlab = -1;
 char *vmatlabfile=NULL;
 int  edgenox = -1;
+int CountIntersections = 0;
 
 int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
 int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
@@ -186,6 +188,16 @@ int main(int argc, char *argv[]) {
 
   if(DoQuality){
     MRISprettyPrintSurfQualityStats(stdout, mris);
+    exit(0);
+  }
+
+  if(CountIntersections){
+    mrisMarkIntersections(mris);
+    int n, nintersections=0;
+    for(n=0; n < mris->nvertices; n++){
+      if(mris->vertices[n].marked) nintersections++;
+    }
+    printf("Found %d intersections\n",nintersections);
     exit(0);
   }
 
@@ -470,6 +482,9 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--quality") ) {
       DoQuality = 1;
     } 
+    else if ( !strcmp(option, "--intersections") ) {
+      CountIntersections = 1;
+    } 
     else if ( !strcmp(option, "--area-stats") ) {
       DoAreaStats = 1;
     } 
@@ -567,6 +582,7 @@ static void print_usage(void) {
   printf("  --ex edgeno : printout extended into about edge\n");
   printf("  --v-matlab vtxno mfile : write matlab file to plot vertex neighborhood\n");
   printf("  --quality: print out surface quality stats\n");
+  printf("  --intersections : print the number of vertices that belong to a face that intersects another face\n");
   printf("  --mask mask.mgz : only compute edge and area stats using vertices in mask\n");
   printf("  --label labelfile : only compute edge and area stats using vertices in label\n");
   printf("  --edge-file file : print edge info for all edges into file\n");
