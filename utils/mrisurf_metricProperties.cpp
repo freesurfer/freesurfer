@@ -13667,9 +13667,9 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
     for(edgeno = 0; edgeno < surf->nedges; edgeno++){
       MRI_EDGE *e = &(surf->edges[edgeno]);
       int evno;
-      for(evno = 0; evno < 4; evno ++){
+      for(evno = 0; evno < 2; evno ++){
 	if(e->vtxno[evno] == vertexno){
-	  printf("Edge %6d %d\n",edgeno,evno);
+	  printf("Edge %6d %d  %4d %4d %7.3lf %7.3lf\n",edgeno,evno,e->vtxno[0],e->vtxno[1],e->len,e->angle);
 	}
       }
     }
@@ -13711,11 +13711,18 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
   hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
 
+  mrisMarkIntersections(surf);
+  int n, nintersections=0;
+  for(n=0; n < surf->nvertices; n++){
+    if(surf->vertices[n].marked) nintersections++;
+  }
   // mean, stddev, min, max
   fprintf(fp,"Area   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)astats[0],astats[1],astats[2],astats[3],astats[4]);
   fprintf(fp,"Corner %7d %8.5f %8.5f %8.6f %8.4f\n",(int)cstats[0],cstats[1],cstats[2],cstats[3],cstats[4]);
   fprintf(fp,"Edge   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)estats[0],estats[1],estats[2],estats[3],estats[4]);
   fprintf(fp,"Hinge  %7d %8.5f %8.5f %8.6f %8.4f\n",(int)hstats[0],hstats[1],hstats[2],hstats[3],hstats[4]);
+  // Number of vertices that belong to a face that intersects another face
+  fprintf(fp,"Intersections %d \n",nintersections);
   fflush(fp);
 
   free(astats);
