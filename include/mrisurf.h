@@ -2444,3 +2444,66 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 }
 
 
+/**
+  class AutoDetGWStats. This class houses functions used to compute
+  intensity limits used in MRIScomputeBorderValues() when placing both
+  the white and pial surfaces on a T1w image. This is functionality
+  that used to be in mris_make_surfaces.cpp. It has mostly been copied
+  over, which is why it is not very well organized. 
+ */
+class AutoDetGWStats
+{
+public:
+  MRIS *mrisAD; // surface used to autodetect stats
+  MRI *mri_T1, *mri_wm;
+  char *wm_name = "wm" ;
+  char *orig_name = "orig";
+  //In mris_make_surfaces, "brain" is the default, but brain.finalsurfs is always used in recon-all
+  char *T1_name = "brain.finalsurfs"; 
+  int hemicode = 0; //1=left, 2=right
+  int use_mode = 1;
+  float variablesigma = 3.0;
+  double std_scale = 1.0;
+  float adWHITE_MATTER_MEAN = 110;
+  float MAX_WHITE = 120;
+  float MAX_BORDER_WHITE = 105;
+  float MIN_BORDER_WHITE = 85;
+  float MIN_GRAY_AT_WHITE_BORDER = 70;
+  float MAX_GRAY = 95;
+  float MIN_GRAY_AT_CSF_BORDER = 40;
+  float MAX_GRAY_AT_CSF_BORDER = 75;
+  float MIN_CSF = 10;
+  float adMAX_CSF = 40;
+  float white_mean, white_std, gray_mean, gray_std ;
+  float white_mode, gray_mode ;
+  float max_border_white = MAX_BORDER_WHITE;
+  float min_border_white = MIN_BORDER_WHITE;
+  float min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER;
+  float max_gray = MAX_GRAY;
+  float max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER;
+  float min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER;
+  float min_csf = MIN_CSF;
+  float max_csf = adMAX_CSF ;
+  double max_gray_scale = 0.0 ;  
+  double MAX_SCALE_DOWN = .2;
+  double white_inside_hi;
+  double white_border_hi;
+  double white_border_low;
+  double white_outside_low;
+  double white_outside_hi;
+  double pial_inside_hi;
+  double pial_border_hi;
+  double pial_border_low;
+  double pial_outside_low;
+  double pial_outside_hi;
+  // These indicate whether there was a manual override.
+  int  max_border_white_set = 0, min_border_white_set = 0, min_gray_at_white_border_set = 0,
+    max_gray_set = 0,max_gray_at_csf_border_set = 0, min_gray_at_csf_border_set = 0,
+    min_csf_set = 0, max_csf_set = 0 ;
+  int AutoDetectStats(char *subject, char *hemistr);
+  int AutoDetectStats(void);
+  int Write(char *fname);
+  int Print(FILE *fp);
+  int Read(char *fname); // from file name
+  int ReadStream(FILE *fp); // read from stream
+};
