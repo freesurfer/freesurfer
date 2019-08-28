@@ -2470,6 +2470,7 @@ public:
   float MIN_BORDER_WHITE = 85;
   float MIN_GRAY_AT_WHITE_BORDER = 70;
   float MAX_GRAY = 95;
+  float MID_GRAY;
   float MIN_GRAY_AT_CSF_BORDER = 40;
   float MAX_GRAY_AT_CSF_BORDER = 75;
   float MIN_CSF = 10;
@@ -2485,7 +2486,7 @@ public:
   float min_csf = MIN_CSF;
   float max_csf = adMAX_CSF ;
   double max_gray_scale = 0.0 ;  
-  double MAX_SCALE_DOWN = .2;
+  double max_scale_down = .2;
   double white_inside_hi;
   double white_border_hi;
   double white_border_low;
