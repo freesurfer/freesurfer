@@ -84,9 +84,9 @@
       <explanation># of sigmas above the mean to allow gray matter T2 intensities</explanation>
       <argument>-nsigma_below n</argument>
       <explanation># of sigmas below the mean to allow gray matter T2 intensities</explanation>
-      <argument>-T2_min threshold</argument>
+      <argument>-T2_min_inside threshold</argument>
       <explanation>specify threshold for min T2 value allowed to be interior to the cortical ribbon</explanation>
-      <argument>-T2_max threshold</argument>
+      <argument>-T2_max_inside threshold</argument>
       <explanation>specify threshold for max T2 value allowed to be interior to the cortical ribbon</explanation>
       <argument>-T2_outside_min threshold</argument>
       <explanation>specify threshold for min T2 value outside of pial surface that will cause surface to deform outwards</explanation>

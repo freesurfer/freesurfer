@@ -103,7 +103,7 @@ int main(int narg, char*  arg[])
 	constexpr unsigned int Dimension = 3;
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
-//	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
+	//	typedef fs::SurfaceOptimizationFilter< SurfType, SurfType> SurfFilterType;
 
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -246,7 +246,7 @@ int main(int narg, char*  arg[])
 		fout.open(csvFilename, ios::out | ios::app); 
 
 
-		//MRISwriteCurvature(surf,overlayFilename) ;
+		MRISwriteCurvature(surf,overlayFilename) ;
 		//COLOR_TABLE *ct;
 		//int annot;
 
@@ -283,7 +283,7 @@ int main(int narg, char*  arg[])
 		curvature->SetCurvatureTypeToGaussian();
 		#else
 		vtkSmartPointer<vtkPCACurvatureEstimation> curvature =   vtkPCACurvatureEstimation::New();
-		curvature->SetSampleSize(500);
+		curvature->SetSampleSize(100);
 		curvature->SetInputData(FSToVTK(surf));
 		#endif
 
@@ -303,7 +303,7 @@ int main(int narg, char*  arg[])
 			curv= 	polydata->GetPointData()->GetScalars()->GetTuple(i)[0];
 		#else  			
 			double* curvs = dynamic_cast<vtkDataArray*>(polydata->GetPointData()->GetArray("PCACurvature"))->GetTuple3(i);
-			curv =  curvs[0]*50+ curvs[1]*50; //,  curvs[2])*100;
+			curv = curvs[1]/( curvs[0] + curvs[1] +curvs[2]); //,  curvs[2])*100;
 		#endif
 			surf->vertices[i].curv= curv;
 		}	
@@ -354,178 +354,4 @@ int main(int narg, char*  arg[])
 	return EXIT_SUCCESS;
 }
 
-/*
- *
- *vtkSmartPointer<vtkPolyDataNormals> normals =   vtkSmartPointer<vtkPolyDataNormals>::New();
-		normals->SetInput( FSToVTK(surf) );
-		//	normals->SetInput( polydata );
-		normals->SetFeatureAngle( 60.0 );
-		normals->ComputePointNormalsOff();
-		normals->ComputeCellNormalsOn();
-		normals->ConsistencyOn();
-		normals->SplittingOff();
-		normals->Update();
-
-
-		vtkSmartPointer<vtkPolyData> polydata = normals->GetOutput();
-
-		vtkDataArray* normalsGeneric = polydata->GetCellData()->GetNormals(); //works
-		std::cout << "There are " << normalsGeneric->GetNumberOfTuples() << std::endl;
-		std::cout << "There are " <<polydata->GetNumberOfCells() << std::endl;
-		int num = normalsGeneric->GetNumberOfTuples() ;
-		vtkSmartPointer<vtkFloatArray> colors= vtkSmartPointer<vtkFloatArray>::New();
-		std::cout << image->GetLargestPossibleRegion()<< std::endl;
-		for(int i=0;i<num;i++)
-		{
-			double normal[3];
-			normalsGeneric->GetTuple(i, normal);
-
-			double point[3];
-			//polydata->GetPoint(i, point);
-			polydata->GetCell(i)->GetPoints()->GetPoint(1, point);
-
-			ImageType::PointType point1,point2, point0;
-			ImageType::IndexType index;
-			int dir=1;
-			for(int j=0;j<3;j++)
-			{
-				normal[j] =normal[j]*spacing[0]/2;
-				point1[j] = -point[j];			
-				point2[j] = -point[j];			
-				point0[j] = -point[j];			
-
-			}
-			point1[2]=-point1[2];
-			point2[2]=-point2[2];
-			point0[2]=-point0[2];
-			image->TransformPhysicalPointToIndex(point1, index);
-			float thickness = 0;
-
-			float thicknessPos = 0, thicknessNeg =0;
-			int currentLabel = image->GetPixel(index);
-			while(currentLabel != label && currentLabel != 0 && currentLabel!= nolabel)
-			{
-				for(int j=0;j<3;j++)
-				{
-					point1[j] = point1[j] +  normal[j];			
-				}		
-				if (image->TransformPhysicalPointToIndex(point1, index))
-				{ //std::cout << index << std::endl;
-
-					currentLabel = image->GetPixel(index) ;
-					thicknessPos ++;
-				}
-				else
-				{
-					break;
-				}
-			}
-			thicknessPos = point1.EuclideanDistanceTo(point0);
-			if( currentLabel == label )
-				thickness = thicknessPos;
-			std::cout << currentLabel <<  " " << label  << " " << thicknessPos ;
-			image->TransformPhysicalPointToIndex(point2, index);
-			currentLabel = image->GetPixel(index);
-			while(currentLabel != label && currentLabel!=0 && currentLabel != nolabel)
-			{
-				for(int j=0;j<3;j++)
-				{
-					point2[j] = point2[j] - normal[j];			
-				}		
-				if(image->TransformPhysicalPointToIndex(point2, index))
-				{
-					currentLabel = image->GetPixel(index) ;
-					thicknessNeg ++;
-				}
-				else
-				{
-					break;
-				}
-			}
-			thicknessNeg = point2.EuclideanDistanceTo(point0);
-			std::cout << " " <<thicknessNeg << " " << currentLabel  << std::endl;
-			if( currentLabel == label )
-				thickness = thicknessNeg;
-			//if(thickness == 0)
-			{
-				if( thicknessNeg < 2.5 && thicknessNeg>.1)
-					thickness =  thicknessNeg;
-				else if( thicknessPos < 2.5 && thicknessPos>.1)
-					thickness = thicknessPos;
-
-			}	
-			colors->InsertNextValue(thickness);
-
-		}
-		polydata->GetCellData()->SetScalars(colors);
-
-
- */	/*if( cl.search("--turvatures"))
-	{
-
-		vtkSmartPointer<vtkPolyData> surfVTK =  FSToVTK(surf);
-
-		vtkSmartPointer<vtkKdTreePointLocator> surfTree =	vtkSmartPointer<vtkKdTreePointLocator>::New();
-		surfTree->SetDataSet(surfVTK);
-		surfTree->BuildLocator();
-
-
-		double *a[3], a0[3], a1[3], a2[3], xp[3];
-		a[0] = a0; a[1] = a1; a[2] = a2;
-
-		for(int i=0; i<surfVTK->GetNumberOfPoints();i++)
-		{	
-			double* point = surfVTK->GetPoint( i);
-	
-      			vtkIdList*& pIds;
-			surfTree->FindClosestNPoints(20, point, pIds);
-			int numPts = pIds->GetNumberOfIds();
-
-			// First step: compute the mean position of the neighborhood.
-			double mean[3];
-			mean[0] = mean[1] = mean[2] = 0.0;
-			for (int sample=0; sample<numPts; ++sample)
-			{
-				double* point2 = surfVTK->GetPoint( sample);
-				for(int j=0;j<3;j++)
-					mean[j] += sample[j];
-			}
-			for(int j=0;j<3;j++)
-				mean[j] /= numPts;
-
-			// Now compute the covariance matrix
-			a0[0] = a1[0] = a2[0] = 0.0;
-			a0[1] = a1[1] = a2[1] = 0.0;
-			a0[2] = a1[2] = a2[2] = 0.0;
-			for (int sample=0; sample < numPts; ++sample )
-			{
-				double* point2 = surfVTK->GetPoint( sample);
-				for(int j=0;j<3;j++)
-					xp[j] = sample[j] - mean[j];
-				for (i=0; i < 3; i++)
-				{
-					a0[i] += xp[0] * xp[i];
-					a1[i] += xp[1] * xp[i];
-					a2[i] += xp[2] * xp[i];
-				}
-			}
-			for (i=0; i < 3; i++)
-			{
-				a0[i] /= numPts;
-				a1[i] /= numPts;
-				a2[i] /= numPts;
-			}
-
-			// Next extract the eigenvectors and values
-			vtkMath::Jacobi(a,eVal,v);
-
-			// Finally compute the curvatures
-			double den = eVal[0] + eVal[1] + eVal[2];
-			c[0] = (eVal[0] - eVal[1]) / den;
-			c[1] = 2.0*(eVal[1] - eVal[2]) / den;
-			c[3] = 3.0*eVal[2] / den;
-
-			
-
-	}*/
 
