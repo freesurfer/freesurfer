@@ -7747,7 +7747,7 @@ int AutoDetGWStats::AutoDetectStats(void)
   printf("Auto detecting stats\n");
   MRI *mri_tmp ;
   
-  // This does not smooth. It clips the maximum WM value
+  // Clip the maximum WM value
   // May want to do this outside of this function
   MRIclipBrightWM(mri_T1, mri_wm);
   
@@ -7791,13 +7791,13 @@ int AutoDetGWStats::AutoDetectStats(void)
     min_border_white = gray_mean ;
   
   // apply some sanity checks
-  printf("Applying sanity checks, MAX_SCALE_DOWN = %g\n",MAX_SCALE_DOWN);
+  printf("Applying sanity checks, max_scale_down = %g\n",max_scale_down);
   
-  if (min_gray_at_white_border < MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER)
-    min_gray_at_white_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER) ;
-  if (max_border_white < MAX_SCALE_DOWN*MAX_BORDER_WHITE)    max_border_white = nint(MAX_SCALE_DOWN*MAX_BORDER_WHITE) ;
-  if (min_border_white < MAX_SCALE_DOWN*MIN_BORDER_WHITE)    min_border_white = nint(MAX_SCALE_DOWN*MIN_BORDER_WHITE) ;
-  if (max_csf < MAX_SCALE_DOWN*adMAX_CSF)    max_csf = MAX_SCALE_DOWN*adMAX_CSF ;
+  if (min_gray_at_white_border < max_scale_down*MIN_GRAY_AT_WHITE_BORDER)
+    min_gray_at_white_border = nint(max_scale_down*MIN_GRAY_AT_WHITE_BORDER) ;
+  if (max_border_white < max_scale_down*MAX_BORDER_WHITE)    max_border_white = nint(max_scale_down*MAX_BORDER_WHITE) ;
+  if (min_border_white < max_scale_down*MIN_BORDER_WHITE)    min_border_white = nint(max_scale_down*MIN_BORDER_WHITE) ;
+  if (max_csf < max_scale_down*adMAX_CSF)    max_csf = max_scale_down*adMAX_CSF ;
   
   printf("setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %f)\n",min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
   printf("setting MAX_BORDER_WHITE to %2.1f (was %f)\n",max_border_white, MAX_BORDER_WHITE) ;
@@ -7814,17 +7814,19 @@ int AutoDetGWStats::AutoDetectStats(void)
   if (!min_gray_at_csf_border_set)
     min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
   
-  if (max_gray < MAX_SCALE_DOWN*MAX_GRAY)
-    max_gray = nint(MAX_SCALE_DOWN*MAX_GRAY) ;
-  if (max_gray_at_csf_border < MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER)
-    max_gray_at_csf_border = nint(MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER) ;
-  if (min_gray_at_csf_border < MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER)
-    min_gray_at_csf_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER) ;
+  if (max_gray < max_scale_down*MAX_GRAY)
+    max_gray = nint(max_scale_down*MAX_GRAY) ;
+  if (max_gray_at_csf_border < max_scale_down*MAX_GRAY_AT_CSF_BORDER)
+    max_gray_at_csf_border = nint(max_scale_down*MAX_GRAY_AT_CSF_BORDER) ;
+  if (min_gray_at_csf_border < max_scale_down*MIN_GRAY_AT_CSF_BORDER)
+    min_gray_at_csf_border = nint(max_scale_down*MIN_GRAY_AT_CSF_BORDER) ;
   
   printf("setting MAX_GRAY to %2.1f (was %f)\n",max_gray, MAX_GRAY) ;
   printf("setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %f)\n",max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
   printf("setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %f)\n",min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
   MRIfree(&mri_tmp) ;
+
+  MID_GRAY = ((max_gray + min_gray_at_csf_border) / 2.0);
   
   // Below are values input to MRIScomputeBorderValues()
   printf("When placing the white surface\n");
@@ -7904,6 +7906,7 @@ int AutoDetGWStats::Print(FILE *fp)
   fprintf(fp,"MIN_BORDER_WHITE %f\n",MIN_BORDER_WHITE);
   fprintf(fp,"MAX_BORDER_WHITE %f\n",MAX_BORDER_WHITE);
   fprintf(fp,"MAX_GRAY %f\n",MAX_GRAY);
+  fprintf(fp,"MID_GRAY %f\n",MID_GRAY);
   fprintf(fp,"MIN_GRAY_AT_CSF_BORDER %f\n",MIN_GRAY_AT_CSF_BORDER);
   fprintf(fp,"MAX_GRAY_AT_CSF_BORDER %f\n",MAX_GRAY_AT_CSF_BORDER);
   fprintf(fp,"MIN_CSF %f\n",MIN_CSF);
@@ -7923,7 +7926,7 @@ int AutoDetGWStats::Print(FILE *fp)
   fprintf(fp,"min_csf %f\n",min_csf);
   fprintf(fp,"max_csf %f\n",max_csf);
   fprintf(fp,"max_gray_scale %lf\n",max_gray_scale);
-  fprintf(fp,"MAX_SCALE_DOWN %lf\n",MAX_SCALE_DOWN);
+  fprintf(fp,"max_scale_down %lf\n",max_scale_down);
   fflush(fp);
   return(0);
 }
@@ -7959,6 +7962,7 @@ int AutoDetGWStats::ReadStream(FILE *fp){ // read from stream
   fscanf(fp,"%*s %f",&MIN_BORDER_WHITE);
   fscanf(fp,"%*s %f",&MAX_BORDER_WHITE);
   fscanf(fp,"%*s %f",&MAX_GRAY);
+  fscanf(fp,"%*s %f",&MID_GRAY);
   fscanf(fp,"%*s %f",&MIN_GRAY_AT_CSF_BORDER);
   fscanf(fp,"%*s %f",&MAX_GRAY_AT_CSF_BORDER);
   fscanf(fp,"%*s %f",&MIN_CSF);
@@ -7978,7 +7982,7 @@ int AutoDetGWStats::ReadStream(FILE *fp){ // read from stream
   fscanf(fp,"%*s %f",&min_csf);
   fscanf(fp,"%*s %f",&max_csf);
   fscanf(fp,"%*s %lf",&max_gray_scale);
-  fscanf(fp,"%*s %lf",&MAX_SCALE_DOWN);
+  fscanf(fp,"%*s %lf",&max_scale_down);
   return(0);
 }
 int AutoDetGWStats::Read(char *fname){ // from file name
