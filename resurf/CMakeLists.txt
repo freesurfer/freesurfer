@@ -23,7 +23,7 @@ if(ITK_FOUND AND VTK_FOUND)
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
-    add_executable(mris_multimodal mris_multimodal.cxx)
+  add_executable(mris_multimodal mris_multimodal.cxx)
   target_link_libraries(mris_multimodal utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal DESTINATION bin)
   
@@ -51,5 +51,9 @@ if(ITK_FOUND AND VTK_FOUND)
   add_executable(mris_multimodal_surface_placement mris_multimodal_surface_placement.cxx ${TRACKIO})
   target_link_libraries(mris_multimodal_surface_placement utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_multimodal_surface_placement DESTINATION bin)
+
+  add_executable(mris_curvature2image mris_curvature2image.cxx)
+  target_link_libraries(mris_curvature2image utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_curvature2image DESTINATION bin)
 
 endif()
