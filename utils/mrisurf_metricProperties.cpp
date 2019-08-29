@@ -13732,3 +13732,75 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
 
   return(0);
 }
+
+/*!
+  \fn int MRISfindExpansionRegions(MRI_SURFACE *mris)
+  \brief Sets v->curv=0 unless the given vertex has more than 25% of
+  the neighbors whose v->d value is greater than mean+2*std (mean and
+  std are the global mean and stddev distances). The dist, eg, is the
+  distance along the normal to point of the max gradient. The v->val
+  is the max gradient. Moved from mris_make_surfaces.
+  Hidden parameters: 0.25 and mean+2*std
+ */
+int MRISfindExpansionRegions(MRI_SURFACE *mris)
+{
+  int    vno, num, n, num_long, total ;
+  float  d, dsq, mean, std, dist ;
+
+  // Compute the mean and stddev of the distance to max gradient
+  d = dsq = 0.0f ;
+  for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX const * const v = &mris->vertices[vno] ;
+    if (v->ripflag || v->val <= 0)
+    {
+      continue ;
+    }
+    num++ ;
+    dist = fabs(v->d) ;
+    d += dist ;
+    dsq += (dist*dist) ;
+  }
+  mean = d / num ;
+  std = sqrt(dsq/num - mean*mean) ;
+  printf("mean absolute distance = %2.2f +- %2.2f\n", mean, std); fflush(stdout);
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    v->curv = 0 ;
+
+    if (v->ripflag || v->val <= 0) continue ;
+
+    if (fabs(v->d) < mean+2*std) continue ;
+
+    // Only gets here if distance is not too big
+
+    // Count number of neighbors with big distances
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++)
+    {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
+      if (vn->val <= 0 || v->ripflag) continue ;
+      if (fabs(vn->d) >= mean+2*std)
+        num_long++ ;
+      num++ ;
+    }
+
+    // If the number of big dist neighbors is greater than 25%
+    // Set v->curv = fabs(v->d) and increment total
+    if ((float)num_long / (float)num > 0.25)
+    {
+      v->curv = fabs(v->d) ;
+      total++ ; // not used for anything except diagnostic
+    }
+
+  } // end loop over vertices
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d vertices more than 2 sigmas from mean.\n", total) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteCurvature(mris, "long") ;
+
+  return(NO_ERROR) ;
+}
