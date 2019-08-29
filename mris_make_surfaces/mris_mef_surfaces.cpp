@@ -65,9 +65,9 @@ static void print_version(void) ;
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
-int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
+int LocalMRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
-MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
+MRI *LocalMRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs);
 static int  MRIcomputeClassStatistics_mef(MRI *mri_T1_30, 
@@ -440,7 +440,7 @@ main(int argc, char *argv[]) {
                                       2*max_thickness, parms.fp) ;
 
     //what does this do?
-    MRISfindExpansionRegions(mris) ;
+    LocalMRISfindExpansionRegions(mris) ;
 
     if (vavgs) {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -1044,7 +1044,7 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 }
 
 int
-MRISfindExpansionRegions(MRI_SURFACE *mris) {
+LocalMRISfindExpansionRegions(MRI_SURFACE *mris) {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
 
@@ -1129,7 +1129,7 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) {
   return(NO_ERROR) ;
 }
 MRI *
-MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
+LocalMRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   int     width, height, depth, x, y, z, nlabeled, nwhite,
   xk, yk, zk, xi, yi, zi;
   BUFTYPE *pT1, *pwm, val, wm ;
