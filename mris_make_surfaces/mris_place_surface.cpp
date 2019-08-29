@@ -23,9 +23,6 @@
  *
  */
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -72,6 +69,9 @@ const char *Progname = "mri_glmfit";
 INTEGRATION_PARMS parms, old_parms ;
 int lh_label = LH_LABEL ;
 int rh_label = RH_LABEL ;
+int bright_label = 130;
+int bright_border_label = 100;
+
 
 int max_pial_averages = 16 ;
 int min_pial_averages = 2 ;
@@ -193,8 +193,8 @@ int main(int argc, char **argv)
   if(wm==NULL) exit(1);
   MRIclipBrightWM(invol, wm) ;
   MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
-  MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
-  MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
+  MRImask(invol, mri_labeled, invol, bright_label, 0) ;
+  MRImask(invol, mri_labeled, invol, bright_border_label, 0) ;
   MRIfree(&wm);
   MRIfree(&mri_labeled);
 
@@ -210,7 +210,6 @@ int main(int argc, char **argv)
   double border_low = adgws.white_border_low;
   double outside_low = adgws.white_outside_low;
   double outside_hi = adgws.white_outside_hi;
-
 
   timer.reset() ;
 
