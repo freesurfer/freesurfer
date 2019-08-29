@@ -1657,11 +1657,11 @@ static int MRIScomputeBorderValues_new(
   mytimer.reset();
 
   printf("Entering MRIScomputeBorderValues_new(): \n");
-  printf("  inside_hi   = %g;\n",inside_hi);
-  printf("  border_hi   = %g;\n",border_hi);
-  printf("  border_low  = %g;\n",border_low);
-  printf("  outside_low = %g;\n",outside_low);
-  printf("  outside_hi  = %g;\n",outside_hi);
+  printf("  inside_hi   = %11.7lf;\n",inside_hi);
+  printf("  border_hi   = %11.7lf;\n",border_hi);
+  printf("  border_low  = %11.7lf;\n",border_low);
+  printf("  outside_low = %11.7lf;\n",outside_low);
+  printf("  outside_hi  = %11.7lf;\n",outside_hi);
   printf("  sigma = %g;\n",sigma);
   printf("  max_thickness = %g;\n",max_thickness);
   printf("  step_size=%g;\n",step_size);
