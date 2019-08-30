@@ -378,7 +378,7 @@ int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   int nmarked, nmarked2, nripped;
 
   printf("Entering: MRISripMidline(): inhibiting deformation at non-cortical midline structures...\n") ;
-  printf("  which=%d, fix_mtl=%d\n",which, fix_mtl);
+  printf("  which=%d, fix_mtl=%d, using annot = %d\n",which, fix_mtl, mris->ct != NULL);
   printf("#FML0# MRISripMidline(): nripped=%d\n",MRIScountRipped(mris));
   fflush(stdout);
 
