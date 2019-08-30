@@ -37,6 +37,7 @@ double round(double x);
 #include "utils.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
+#include "surfgrad.h"
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -83,7 +84,7 @@ float max_thickness = 5.0 ;
 int vavgs = 5 ;
 int nthreads = 1;
 int nbrs = 2;
-static int smooth = 5 ;
+int nsmoothsurf = 5 ;
 
 char *SUBJECTS_DIR;
 char *insurfpath = NULL;
@@ -91,9 +92,10 @@ char *outsurfpath = NULL;
 char *involpath=NULL;
 char *segvolpath=NULL;
 char *wmvolpath=NULL;
+char *aparcpath=NULL;
 
 char *subject = NULL,*hemi = NULL,*insurfname = NULL, *outsurfname = NULL;
-char *involname="brain.finalsurfs.mgz", *segvolname="aseg.presurf.mgz",*wmvolname="wm.mgz";
+char *involname="brain.finalsurfs.mgz", *segvolname="aseg.presurf.mgz",*wmvolname="wm.mgz",*aparcname="aparc";
 
 char tmpstr[2000];
 int err=0;
@@ -171,17 +173,33 @@ int main(int argc, char **argv)
   printf("Reading in input surface %s\n",insurfpath);
   surf = MRISread(insurfpath);
   if(surf==NULL) exit(1);
+  MRISedges(surf);
+  MRIScorners(surf);
   MRIScomputeMetricProperties(surf);
   if(nbrs > 1) MRISsetNeighborhoodSizeAndDist(surf, nbrs) ;
-  if(smooth > 0) {
-    MRISaverageVertexPositions(surf, smooth) ;
+  if(nsmoothsurf > 0) {
+    printf("Smoothing surface with %d iterations\n",nsmoothsurf);
+    // In mris_make_surface, this is not done when orig_white is specified, ie,
+    // it is done when the orig surface is used for initiation (eg, when 
+    // creating white.preaparc)
+    MRISaverageVertexPositions(surf, nsmoothsurf) ;
     MRIScomputeMetricProperties(surf);
   }
+  else printf("Not smoothing input surface\n");
   MRISstoreMetricProperties(surf) ;
   MRISsaveVertexPositions(surf, ORIGINAL_VERTICES) ;
   MRISsaveVertexPositions(surf, WHITE_VERTICES) ;
   MRISsetVals(surf,-1) ;  /* clear white matter intensities */
-  //MRISprettyPrintSurfQualityStats(stdout, surf);
+  MRISfaceMetric(surf,0);
+  MRISedgeMetric(surf,0);
+  MRIScornerMetric(surf,0);
+  MRISprettyPrintSurfQualityStats(stdout, surf);
+  if(aparcpath) {
+    printf("Reading in aparc %s\n",aparcpath);
+    if (MRISreadAnnotation(surf, aparcpath) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",aparcpath) ;
+  }
+  else printf("Not reading in aparc\n");
 
   printf("Reading in input volume %s\n",involpath);
   invol = MRIread(involpath);
@@ -342,6 +360,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       checkoptsonly = 0;
     }
+    else if(!strcmp(option, "--nsmooth")){
+      sscanf(pargv[0],"%d",&nsmoothsurf);
+      nargsused = 1;
+      checkoptsonly = 0;
+    }
     else if(!strcmp(option, "--sd")){
       if(nargc < 1) CMDargNErr(option,1);
       printf("using %s as SUBJECTS_DIR...\n", pargv[0]) ;
@@ -413,6 +436,13 @@ static void check_options(void) {
   if(insurfpath == NULL && subject != NULL){
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,insurfname);
     insurfpath = strcpyalloc(tmpstr);
+    // Turn off surface smoothing unless input is orig (mris_make_surfaces)
+    if(strcmp(insurfname,"orig")!=0) nsmoothsurf = 0;
+    if(strcmp(insurfname,"white.preaparc")==0){
+      // If init surface is white.preaparc, then load the aparc
+      sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,aparcname);
+      aparcpath = strcpyalloc(tmpstr);
+    }
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,outsurfname);
     outsurfpath = strcpyalloc(tmpstr);
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,involname);
