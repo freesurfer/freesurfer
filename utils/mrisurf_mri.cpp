@@ -1709,7 +1709,7 @@ static int MRIScomputeBorderValues_new(
   MRIS_SurfRAS2VoxelMap* sras2v_map = 
     MRIS_makeRAS2VoxelMap(mri_brain, mris);
   
-  int vno;
+  int vno,nripped=0;
 
   // Loop over all the vertices
   ROMP_PF_begin
@@ -1717,7 +1717,7 @@ static int MRIScomputeBorderValues_new(
   #pragma omp parallel for if_ROMP(assume_reproducible) \
     reduction(+:mean_dist,mean_in,mean_out,mean_border) \
     reduction(+:total_vertices,ngrad_max,ngrad,nmin,nmissing,nout,nin,nfound,nalways_missing,num_changed) \
-    reduction(+:n_sigma_increases)
+    reduction(+:n_sigma_increases,nripped)
 #endif
   for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
@@ -1732,6 +1732,7 @@ static int MRIScomputeBorderValues_new(
       v->targx = v->x;
       v->targy = v->y;
       v->targz = v->z;
+      nripped ++;
       ROMP_PF_continue;
     }
 
@@ -2504,7 +2505,7 @@ static int MRIScomputeBorderValues_new(
   //=============================vertex ======================						  
   ROMP_PF_end
 
-  printf("#SI# sigma=%g had to be increased for %d vertices\n",sigma,n_sigma_increases);
+  printf("#SI# sigma=%g had to be increased for %d vertices, nripped=%d\n",sigma,n_sigma_increases,nripped);
   mean_dist   /= (float)(total_vertices - nmissing);
   mean_border /= (float)total_vertices;
 
@@ -2522,24 +2523,15 @@ static int MRIScomputeBorderValues_new(
   int pass;
   // NONREPRODUCIBLE NUMBERS NOT USED FOR ANYTHING 
   for (pass = 0; fp && (pass < 2); pass++, fp = log_fp) {
-    fprintf(fp,
-      "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
+    fprintf(fp, "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
       "[%2.1f (%%%2.1f)->%2.1f (%%%2.1f))]\n",
-      mean_border,
-      nmissing,
-      nalways_missing,
-      mean_dist,
-      mean_in,
-      100.0f * (float)nin  / (float)nfound,
-      mean_out,
-      100.0f * (float)nout / (float)nfound);
-    fprintf(fp,
-      "%%%2.0f local maxima, %%%2.0f large gradients "
+      mean_border, nmissing, nalways_missing, mean_dist, mean_in, 100.0f * (float)nin  / (float)nfound,
+      mean_out,   100.0f * (float)nout / (float)nfound);
+    fprintf(fp, "%%%2.0f local maxima, %%%2.0f large gradients "
       "and %%%2.0f min vals, %d gradients ignored\n",
       100.0f * (float)ngrad_max / (float)mris->nvertices,
       100.0f * (float)ngrad     / (float)mris->nvertices,
-      100.0f * (float)nmin      / (float)mris->nvertices,
-      num_changed);
+      100.0f * (float)nmin      / (float)mris->nvertices, num_changed);
     fflush(fp);
   }
 
@@ -2555,6 +2547,7 @@ static int MRIScomputeBorderValues_new(
   }
   msec = mytimer.milliseconds() ;
   printf("MRIScomputeBorderValues_new() finished in %6.4f min\n",(float)msec/(60*1000.0f)); fflush(stdout);
+  printf("\n\n");
   return (NO_ERROR);
 }
 
@@ -5094,6 +5087,12 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         }
         else if (usecurv) {
           val = surf->vertices[vtx].curv;
+        }
+        else if (!strcmp(Field, "marked")) {
+          val = surf->vertices[vtx].marked;
+        }
+        else if (!strcmp(Field, "marked2")) {
+          val = surf->vertices[vtx].marked2;
         }
         else if (!strcmp(Field, "stat")) {
           val = surf->vertices[vtx].stat;
