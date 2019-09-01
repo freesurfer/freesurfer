@@ -6616,3 +6616,24 @@ int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, 
   SurfHopListFree(&shl);
   return(0);
 }
+
+/*!
+  \fn int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname)
+  \brief Converts data in the given fields into "voxel" in an MRI structure
+  using MRIcopyMRIS() and writes to the given volume-style (eg, mgz) output file. 
+  Field names must be known to MRIcopyMRIS(). 
+*/
+int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname)
+{
+  int n;
+  MRI *mri=NULL;
+  for(n=nfields-1; n >= 0; n--){
+    mri = MRIcopyMRIS(mri, surf, n, fields[n]);
+    if(mri==NULL) exit(1);
+  }
+  int err = MRIwrite(mri,outname);
+  MRIfree(&mri);
+  return(err);
+}
+
+

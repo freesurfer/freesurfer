@@ -2443,6 +2443,11 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
   return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
 }
 
+int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi, int which, int fix_mtl);
+int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
+			  double *pnz, int use_abs);
+int MRISfindExpansionRegions(MRI_SURFACE *mris);
+
 
 /**
   class AutoDetGWStats. This class houses functions used to compute

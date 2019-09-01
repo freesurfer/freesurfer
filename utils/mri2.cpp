@@ -5744,3 +5744,65 @@ int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected)
 
 
 
+MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
+{
+  int     width, height, depth, x, y, z, nlabeled, nwhite,
+          xk, yk, zk, xi, yi, zi;
+  BUFTYPE *pwm, val, wm ;
+  MRI     *mri_labeled, *mri_tmp ;
+  int aMIN_WHITE = ((3*3*3-1)/2);
+  int aBRIGHT_LABEL = 130;
+  int aBRIGHT_BORDER_LABEL = 100;
+
+  mri_labeled = MRIclone(mri_T1, NULL) ;
+  width = mri_T1->width ;
+  height = mri_T1->height ;
+  depth = mri_T1->depth ;
+
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      pwm = &MRIvox(mri_wm, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)      {
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
+        wm = *pwm++ ;
+        /* not white matter and bright (e.g. eye sockets) */
+        if ((wm < WM_MIN_VAL) && (val > 125)) {
+          nwhite = 0 ;
+          for (xk = -1 ; xk <= 1 ; xk++)          {
+            xi = mri_T1->xi[x+xk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)            {
+              yi = mri_T1->yi[y+yk] ;
+              for (zk = -1 ; zk <= 1 ; zk++)              {
+                zi = mri_T1->zi[z+zk] ;
+                if (MRIvox(mri_wm, xi, yi, zi) >= WM_MIN_VAL)
+                  nwhite++ ;
+              }
+            }
+          }
+          if (nwhite < aMIN_WHITE)
+            MRIvox(mri_labeled, x, y, z) = aBRIGHT_LABEL ;
+        }
+      }
+    }
+  }
+
+  /* find all connected voxels that are above 115 */
+  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, aBRIGHT_LABEL, 10,115);
+  MRIclose(mri_labeled, mri_labeled) ;
+
+  /* expand once more to all neighboring voxels that are bright. At
+     worst we will erase one voxel of white matter.
+  */
+  mri_tmp = MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, aBRIGHT_LABEL,1,100);
+  MRIxor(mri_labeled, mri_tmp, mri_tmp, 1, 255) ;
+  MRIreplaceValues(mri_tmp, mri_tmp, 1, aBRIGHT_BORDER_LABEL) ;
+  MRIunion(mri_tmp, mri_labeled, mri_labeled) ;
+  nlabeled = MRIvoxelsInLabel(mri_labeled, aBRIGHT_LABEL) ;
+  printf("%d bright non-wm voxels segmented.\n", nlabeled) ;
+
+  /* dilate outwards if exactly 0 */
+  MRIdilateInvThreshLabel(mri_labeled, mri_T1, mri_labeled, aBRIGHT_LABEL, 3, 0) ;
+
+  MRIfree(&mri_tmp) ;
+  return(mri_labeled) ;
+}
