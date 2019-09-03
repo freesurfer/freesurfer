@@ -1297,7 +1297,12 @@ int main(int argc, char *argv[])
     if(mri_aseg && label_cortex) {
       // Label cortex based on aseg (4=ndilate,4=nerode)
       LABEL *lcortex = MRIScortexLabelDECC(mris, mri_aseg, 4, 4, -1) ;
-      printf("writing cortex label to %s...\n", fname) ;
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s%s%s.label", hemi, "cortex", output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+      }
+      printf("Writing cortical label to %s\n",fname);
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
