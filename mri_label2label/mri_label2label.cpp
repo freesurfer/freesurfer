@@ -167,6 +167,9 @@ int DoPaint = 0;
 double PaintMax = 2.0;
 int DoRescale = 1;
 int DoOutMaskStat = 0;
+int DoDirectSurface = 0 ;
+static char *src_annot_fname = NULL ;
+static char *trg_annot_fname = NULL ;
 
 int UseScannerCoords = 0;
 char *DminminFile=NULL;
@@ -268,6 +271,64 @@ int main(int argc, char **argv) {
   xyzSrc->rptr[3+1][0+1] = 1.0;
   xyzTrg = MatrixAlloc(4,1,MATRIX_REAL);
 
+  if (DoDirectSurface)
+  {
+    int     vno ;
+    VERTEX  *vtrg ;
+
+    printf("Starting direct surface-based mapping\n");
+    if(srcsurfregfile == NULL)
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
+	      srchemi,srcsurfreg);
+    else strcpy(tmpstr,srcsurfregfile);
+    SrcSurfReg = MRISread(tmpstr);
+    if (SrcSurfReg == NULL) {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+      exit(1);
+      if (strcmp(srchemi,trghemi)==0)
+	sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
+		trghemi,trgsurfreg);
+    }
+
+    if (MRISreadAnnotation(SrcSurfReg, src_annot_fname) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read annotation from %s", Progname, src_annot_fname) ;
+
+
+    if(trgsurfregfile == NULL){
+      if (strcmp(srchemi,trghemi)==0)
+	sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
+		trghemi,trgsurfreg);
+      else
+	sprintf(tmpstr,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,srcsubject,
+		trghemi,srchemi,srcsurfreg);
+    }
+    else strcpy(tmpstr,trgsurfregfile);
+    
+    printf("Reading target registration \n %s\n",tmpstr);
+    TrgSurfReg = MRISread(tmpstr);
+    if (TrgSurfReg == NULL) {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+      exit(1);
+    }
+    printf("Building source registration hash (res=%g).\n",hashres);
+    SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES,hashres);
+
+    TrgSurfReg->ct = SrcSurfReg->ct ;
+    for (vno = 0 ; vno < TrgSurfReg->nvertices ; vno++)
+    {
+      vtrg = &TrgSurfReg->vertices[vno] ;
+      srcvtxno = MHTfindClosestVertexNoXYZ(SrcHash,SrcSurfReg, vtrg->x,vtrg->y,vtrg->z, &dmin);
+      if (srcvtxno < 0)
+      {
+	printf("trg vertex %d could not be mapped!\n", vno) ;
+	continue ;
+      }
+      vtrg->annotation = SrcSurfReg->vertices[srcvtxno].annotation ;
+    }
+    printf("writing mapped annotation to %s\n", trg_annot_fname);
+    MRISwriteAnnotation(TrgSurfReg, trg_annot_fname) ;
+    exit(0) ;
+  }
   /*--------------------- VOLUMETRIC MAPPING --------------------------*/
   if (!strcmp(regmethod,"volume")) {
 
@@ -811,6 +872,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--usepathfiles")) usepathfiles = 1;
     else if (!strcmp(option, "--xfm-invert")) InvertXFM = 1;
     else if (!strcmp(option, "--src-invert")) SrcInv = 1;
+    else if (!strcmp(option, "--direct")) 
+    {
+      if (nargc < 2) argnerr(option,1);
+      DoDirectSurface = 1 ;
+      src_annot_fname = pargv[0] ;
+      trg_annot_fname = pargv[1] ;
+      nargsused = 2 ;
+    }
     else if (!strcmp(option, "--trg-invert")) TrgInv = 1;
     else if (!strcmp(option, "--scanner")) UseScannerCoords = 1;
 
@@ -1085,6 +1154,7 @@ static void print_usage(void) {
   printf("   --trghemi     hemisphere (lh or rh) (with surface)\n");
   printf("   --srcicoorder when srcsubject=ico\n");
   printf("   --trgicoorder when trgsubject=ico\n");
+  printf("   --direct <src annot> <trg annot>     use the [xyz] coords for src and trg surfaces to do direct lookup\n");
   printf("   --trgsurf     get xyz from this surface (white)\n");
   printf("   --surfreg     surface registration (sphere.reg)  \n");
   printf("   --srcsurfreg  source surface registration (sphere.reg)\n");
