@@ -1,6 +1,6 @@
 
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
 #include "small_matrix.h"
 
