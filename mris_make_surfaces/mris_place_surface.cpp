@@ -172,10 +172,10 @@ int main(int argc, char **argv)
   int nargs, i, msec;
   double        spring_scale = 1;
   MRIS *surf;
-  MRI *invol, *seg, *wm;
+  MRI *invol, *seg, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
-  //char *field;
+  //char *field=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -329,6 +329,35 @@ int main(int argc, char **argv)
     MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
   }
 
+  if(surftype == GRAY_CSF){
+    printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
+    // Replace brightborder voxels with MID_GRAY (can be done once?)
+    // Why would you want to do this? The brightborder voxels are >= 100,
+    // but this would make them look like GM and force the pial outside of them.
+    // This would happen, eg, for a bright vessel in cortex
+    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
+    // Replace bright voxels with 255 (this gets changed below)
+    // Not sure why this is needed except that it gets set to 0 below which
+    // could look like a strong negative gradient
+    involCBV = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 255) ;
+    /* From mris_make_surfaces: Replace bright stuff such as eye
+       sockets with 255.  Simply zeroing it out would make the border
+       always go through the sockets, and ignore subtle local minima
+       in intensity at the border of the sockets.  Will set to 0
+       after border values have been computed so that it doesn't mess
+       up gradients.  */
+    // Replace bright voxels with 0 (mask them out)
+    // This undoes some of the masking above (or vice versa)
+    involPS = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 0);
+  }
+  else {
+    // Use the same input for white surface
+    involCBV = invol;
+    involPS  = invol;
+  }
+  MRIfree(&mri_labeled);
+  // ========= End intensity volume preproc ===================
+
   printf("Reading in seg volume %s\n",segvolpath);
   seg = MRIread(segvolpath);
   if(seg==NULL) exit(1);
@@ -337,6 +366,7 @@ int main(int argc, char **argv)
   if(seg && surftype == GRAY_CSF){
     printf("Freezing midline and others\n");  fflush(stdout);
     MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
+    //field = "ripflag";    MRISwriteField(surf, &field, 1, "lh.pial.rip.mgz");
   }
 
   if(initsurfpath){
@@ -385,30 +415,12 @@ int main(int argc, char **argv)
       // at some other point, the number of ripped vertices will 
       // increase.
       MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
+      //field = "ripflag";    MRISwriteField(surf, &field, 1, "lh.white.rip.mgz");
     }
 
     parms.sigma = current_sigma ;
     parms.n_averages = n_averages ;
     
-    if(surftype == GRAY_CSF){
-      printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
-      // Replace brightborder voxels with MID_GRAY (can be done once?)
-      // Why would you want to do this? The brightborder voxels are >= 100,
-      // but this would make them look like GM and force the pial outside of them.
-      // This would happen, eg, for a bright vessel in cortex
-      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
-      // Replace bright voxels with 255 (this gets changed below)
-      // Not sure why this is needed except that it gets set to 0 below which
-      // could look like a strong negative gradient
-      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 255) ;
-      /* From mris_make_surfaces: Replace bright stuff such as eye
-        sockets with 255.  Simply zeroing it out would make the border
-        always go through the sockets, and ignore subtle local minima
-        in intensity at the border of the sockets.  Will set to 0
-        after border values have been computed so that it doesn't mess
-        up gradients.  */
-    }
-
     printf("Computing border values \n");
     // The outputs are set in each vertex structure:
     //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
@@ -419,16 +431,11 @@ int main(int argc, char **argv)
     //   v->targx = v->x + v->nx * v->d; // same for y and z
     // Note "max_thickness" here is really a limit on the distance that CBV will
     // search along the normal (inside and out)
-    MRIScomputeBorderValues(surf, invol, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+    MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
 			    current_sigma, 2*max_thickness, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
     // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
     // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 
-    if(surftype == GRAY_CSF){
-      // Replace bright voxels with 0 (mask them out)
-      // This undoes some of the masking above (or vice versa)
-      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
-    }
 
     if(seg && surftype == GRAY_WHITE){
       printf("Finding expansion regions\n"); fflush(stdout);
@@ -479,7 +486,7 @@ int main(int argc, char **argv)
     printf("Positioning pial surface\n");fflush(stdout);
     // Note: 3rd input (invol) was "mri_smooth" in mris_make_surfaces, but
     // this was always a copy of the input (mri_T1 or invol)
-    MRISpositionSurface(surf, invol, invol, &parms);
+    MRISpositionSurface(surf, involPS, involPS, &parms);
 
     //sprintf(tmpstr,"lh.place.postpos%02d",i);
     //MRISwrite(surf, tmpstr);
