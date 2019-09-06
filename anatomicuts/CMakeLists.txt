@@ -78,6 +78,7 @@ if(VTK_FOUND)
   target_link_libraries(dmri_projectEndPoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_projectEndPoints DESTINATION bin)
 
+
 else() 
 message("VTK not found")
 endif()
