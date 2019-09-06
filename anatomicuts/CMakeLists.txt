@@ -78,6 +78,11 @@ if(VTK_FOUND)
   target_link_libraries(dmri_projectEndPoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_projectEndPoints DESTINATION bin)
 
+#dmri_neighboringRegions
+  add_executable(dmri_neighboringRegions dmri_neighboringRegions.cxx ${TRACKIO})
+  target_link_libraries(dmri_neighboringRegions utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_neighboringRegions DESTINATION bin)
+
 
 else() 
 message("VTK not found")
