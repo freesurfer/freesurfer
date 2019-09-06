@@ -1595,6 +1595,6 @@ MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, 
 
 int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
 
-int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm);
+int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
 
 #endif

@@ -17387,12 +17387,14 @@ MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0,
 }
 
 /*!
-  \fn int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
-  \brief Replaces values that are greater than WM_MIN_VAL with
-  DEFAULT_DESIRED_WHITE_MATTER_VALUE. This function was called
-  MRIsmoothBrightWM(), but it did not smooth so changed the name.
+  \fn int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
+  \brief If a voxels is in the mri_wm mask (wm>=WM_MIN_VAL) but its
+  mri_T1 value is > DEFAULT_DESIRED_WHITE_MATTER_VALUE, the the mri_T1
+  value is replaced with DEFAULT_DESIRED_WHITE_MATTER_VALUE=110.  This 
+  function was called MRIsmoothBrightWM(), but it did not smooth so 
+  changed the name.
 */
-int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
+int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nthresholded ;
   BUFTYPE *pwm, val, wm ;
@@ -17421,7 +17423,7 @@ int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
     }
   }
 
-  printf("MRIclipBrightWM(): thresh=%d, clip=%d, %d bright wm thresholded.\n", 
+  printf("MRIclipBrightWM(): nthresh=%d, wmmin=%d, clip=%d \n",
 	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
 
   return(NO_ERROR) ;
