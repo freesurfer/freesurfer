@@ -1,13 +1,11 @@
 /* Author: Alexander Zsikla
- * Advisor: Professor Siless
+ * Advisor: Viviana Siless
  * Time: August 2019
  * Name: dmri_extractSurfaceMeasurements.cxx
  *
  * Description:
  * This program is designed to take in a surface, two overlay files, one or multiple volume files, one or multiple streamline files, and an output directory.
  * Based on the streamlines, output metrics will be placed into a CSV file with the name of the original file and include metrics such as curvature, thickness, and FA values.
- *
- * NOTE: Copied directory (fsSurface.h) from freesurfer/resurf/Code to freesurfer/anatomicuts/Code to compile
  *
  */
 
