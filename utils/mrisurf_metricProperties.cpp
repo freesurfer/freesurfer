@@ -13739,7 +13739,8 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   the neighbors whose v->d value is greater than mean+2*std (mean and
   std are the global mean and stddev distances). The dist, eg, is the
   distance along the normal to point of the max gradient. The v->val
-  is the max gradient. Moved from mris_make_surfaces.
+  is the max gradient. Moved from mris_make_surfaces. This is essentially
+  masking out the curv field of vertices with long distances.
   Hidden parameters: 0.25 and mean+2*std
  */
 int MRISfindExpansionRegions(MRI_SURFACE *mris)
