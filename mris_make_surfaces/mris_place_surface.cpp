@@ -283,12 +283,14 @@ int main(int argc, char **argv)
   printf("Reading in wm volume %s\n",wmvolpath);
   wm = MRIread(wmvolpath);
   if(wm==NULL) exit(1);
+  // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
   MRIclipBrightWM(invol, wm) ;
 
   MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
   MRIfree(&wm);
   if(surftype == GRAY_WHITE){
     printf("Masking bright non-wm for white surface\n");
+    // Replace bright and borderbright invol voxels with 0
     MRImask(invol, mri_labeled, invol, bright_label, 0) ;
     MRImask(invol, mri_labeled, invol, bright_border_label, 0) ;
   }
@@ -360,19 +362,37 @@ int main(int argc, char **argv)
     
     if(surftype == GRAY_CSF){
       printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
-      MRImask(invol, mri_labeled, invol, bright_label, 255) ;
+      // Replace brightborder voxels with MID_GRAY (can be done once?)
+      // Why would you want to do this? The brightborder voxels are >= 100,
+      // but this would make them look like GM and force the pial outside of them.
+      // This would happen, eg, for a bright vessel in cortex
       MRImask(invol, mri_labeled, invol, bright_border_label, adgws.MID_GRAY);
+      // Replace bright voxels with 255 (this gets changed below)
+      // Not sure why this is needed except that it gets set to 0 below which
+      // could look like a strong negative gradient
+      MRImask(invol, mri_labeled, invol, bright_label, 255) ;
     }
+
     printf("Computing border values \n");
+    // The outputs are set in each vertex structure:
+    //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
+    //   v->val  = max_mag_val; // intensity at target location
+    //   v->d = max_mag_dist;   // dist to target along normal
+    //   v->mean = max_mag;     // derivative at target intensity
+    //   v->marked = 1;         // vertex has good data
+    //   v->targx = v->x + v->nx * v->d; // same for y and z
     MRIScomputeBorderValues(surf, invol, mri_smooth, inside_hi,border_hi,border_low,outside_low,outside_hi,
 			    current_sigma, 2*max_thickness, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+
     if(surftype == GRAY_CSF){
-      // This undoes some of the masking above
+      // Replace bright voxels with 0 (mask them out)
+      // This undoes some of the masking above (or vice versa)
       MRImask(invol, mri_labeled, invol, bright_label, 0) ;
     }
 
     if(seg && surftype == GRAY_WHITE){
       printf("Finding expansion regions\n"); fflush(stdout);
+      // Masks out the v->curv field of vertices with long distances (v->d)
       MRISfindExpansionRegions(surf) ;
     }
 
@@ -393,8 +413,6 @@ int main(int argc, char **argv)
       the target intensities).
     */
 
-    // Everything up to now has been leading up to this. This is where
-    // the surfaces get placed.
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 
     // This appears to adjust the cost weights based on the iteration but in
