@@ -56,8 +56,8 @@ int debug__ = 0; /// tosa debug
 
 int main(int argc, char *argv[]) ;
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 //static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, 
 //float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;

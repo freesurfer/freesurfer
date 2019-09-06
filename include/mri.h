@@ -1126,6 +1126,11 @@ MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 #define WM_EDITED_ON_VAL                 255
 #define WM_EDITED_OFF_VAL                1
 
+// For labeling bright voxels and neighbors of bright voxels
+#define BRIGHT_LABEL 130
+#define BRIGHT_BORDER_LABEL 100
+
+
 MRI *MRIreduceMeanAndStd(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame) ;

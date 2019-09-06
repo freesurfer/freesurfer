@@ -70,8 +70,8 @@ static char vcid[] =
 int main(int argc, char *argv[]) ;
 
 #define MIN_NONCORTEX_VERTICES 10
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 #define MIN_PEAK_PCT 0.1
 static double Ghisto_left_outside_peak_pct = MIN_PEAK_PCT ;

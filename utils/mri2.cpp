@@ -5745,8 +5745,9 @@ int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected)
 
 /*!
   \fn MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
-  \brief Segments mri_T1 into three labels: 0, 100=border, 130=bright
-  that are (mostly) outside of the mri_wm mask (wm < WM_MIN_VAL=5).
+  \brief Segments mri_T1 into three labels: 0,
+  BRIGHT_BORDER_LABEL=100=border, BRIGHT_LABEL=130=bright that are
+  (mostly) outside of the mri_wm mask (wm < WM_MIN_VAL=5).
  */
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 {
@@ -5754,9 +5755,7 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
           xk, yk, zk, xi, yi, zi;
   BUFTYPE *pwm, val, wm ;
   MRI     *mri_labeled, *mri_tmp ;
-  int aMIN_WHITE = ((3*3*3-1)/2); // = 14, hidden parameter
-  int aBRIGHT_LABEL = 130;
-  int aBRIGHT_BORDER_LABEL = 100;
+  int aMIN_WHITE = ((3*3*3-1)/2); // = 14, hidden parameter, voxelsize dep
 
   mri_labeled = MRIclone(mri_T1, NULL) ;
   width  = mri_T1->width ;
@@ -5800,41 +5799,41 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 	  // Number of WM neighbors must be less than 14 for this
           if (nwhite < aMIN_WHITE){
 	    // voxel to be labeled bright
-            MRIvox(mri_labeled, x, y, z) = aBRIGHT_LABEL ;
+            MRIvox(mri_labeled, x, y, z) = BRIGHT_LABEL ;
 	  }
         }
       }
     }
   }
-  // At this point mri_labeled is a binary volume with 0 or aBRIGHT_LABEL
+  // At this point mri_labeled is a binary volume with 0 or BRIGHT_LABEL
 
   /* Within a bounding box of the above label, dilate voxels that are
   > 115 in the brain.finalsurfs (mri_T1). This operation expands the
   binaization above. Hidden parameters: 115 and 10=number of  dilations */
-  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, aBRIGHT_LABEL, 10,115);
+  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
   // One dilation followed by one erosion
   MRIclose(mri_labeled, mri_labeled) ;
 
   /* expand once more to all neighboring voxels that are bright. At
      worst we will erase one voxel of white matter. */
-  mri_tmp = MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, aBRIGHT_LABEL,1,100);
+  mri_tmp = MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL,1,100);
 
   // The xor essentially creates a shell (border)
   // xor (0,0->0), (1,0->1), (0,1->1), (1,1)->0
   // "1" means val is between 1 and 255 
   // "0" means val < 1 or > 255
   MRIxor(mri_labeled, mri_tmp, mri_tmp, 1, 255) ;
-  MRIreplaceValues(mri_tmp, mri_tmp, 1, aBRIGHT_BORDER_LABEL) ;
+  MRIreplaceValues(mri_tmp, mri_tmp, 1, BRIGHT_BORDER_LABEL) ;
 
   // union mean val = MAX(mri_tmp,mri_labeled)
   MRIunion(mri_tmp, mri_labeled, mri_labeled) ;
-  nlabeled = MRIvoxelsInLabel(mri_labeled, aBRIGHT_LABEL) ;
+  nlabeled = MRIvoxelsInLabel(mri_labeled, BRIGHT_LABEL) ;
   printf("MRIfindBrightNonWM(): %d bright non-wm voxels segmented.\n", nlabeled) ;
 
   /* dilate outwards if exactly 0 */
   // 3 = number of dilation iterations
   // 0 = threshold (exactly 0)
-  MRIdilateInvThreshLabel(mri_labeled, mri_T1, mri_labeled, aBRIGHT_LABEL, 3, 0) ;
+  MRIdilateInvThreshLabel(mri_labeled, mri_T1, mri_labeled, BRIGHT_LABEL, 3, 0) ;
 
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;

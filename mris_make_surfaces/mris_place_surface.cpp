@@ -105,8 +105,8 @@ const char *Progname = "mri_glmfit";
 INTEGRATION_PARMS parms, old_parms ;
 int lh_label = LH_LABEL ;
 int rh_label = RH_LABEL ;
-int bright_label = 130;
-int bright_border_label = 100;
+//int bright_label = 130;
+//int bright_border_label = 100;
 double mid_gray = 67.5;
 
 int max_pial_averages = 16 ;
@@ -291,8 +291,8 @@ int main(int argc, char **argv)
   if(surftype == GRAY_WHITE){
     printf("Masking bright non-wm for white surface\n");
     // Replace bright and borderbright invol voxels with 0
-    MRImask(invol, mri_labeled, invol, bright_label, 0) ;
-    MRImask(invol, mri_labeled, invol, bright_border_label, 0) ;
+    MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
+    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
   }
 
   mri_smooth = MRIcopy(invol, NULL) ; // might not be necessary
@@ -366,11 +366,11 @@ int main(int argc, char **argv)
       // Why would you want to do this? The brightborder voxels are >= 100,
       // but this would make them look like GM and force the pial outside of them.
       // This would happen, eg, for a bright vessel in cortex
-      MRImask(invol, mri_labeled, invol, bright_border_label, adgws.MID_GRAY);
+      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
       // Replace bright voxels with 255 (this gets changed below)
       // Not sure why this is needed except that it gets set to 0 below which
       // could look like a strong negative gradient
-      MRImask(invol, mri_labeled, invol, bright_label, 255) ;
+      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 255) ;
     }
 
     printf("Computing border values \n");
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
     if(surftype == GRAY_CSF){
       // Replace bright voxels with 0 (mask them out)
       // This undoes some of the masking above (or vice versa)
-      MRImask(invol, mri_labeled, invol, bright_label, 0) ;
+      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
     }
 
     if(seg && surftype == GRAY_WHITE){
