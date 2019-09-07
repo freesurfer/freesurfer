@@ -7754,7 +7754,6 @@ int AutoDetGWStats::AutoDetectStats(void)
   // take a value of MRI_NOT_WHITE; those above will get MRI_WHITE.
   printf("Binarizing thresholding at %d\n",WM_MIN_VAL);
   mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
-  MRISsaveVertexPositions(mrisAD, WHITE_VERTICES) ;
   printf("computing class statistics... low=30, hi=%f\n",adWHITE_MATTER_MEAN);
   // This computes means and stddevs of voxels near the border of
   // wm.mgz with inside being WM and outside being GM. Seems like
@@ -7769,11 +7768,35 @@ int AutoDetGWStats::AutoDetectStats(void)
     // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
     // This makes the identity of mris very important! It will be orig_name by default but will
     // become white_name if white_name specified.
-    MRIScomputeClassModes(mrisAD, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
-    white_mean = white_mode ;
-    gray_mean = gray_mode ;
-    printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
+    if(mrisAD){
+      MRISsaveVertexPositions(mrisAD, WHITE_VERTICES) ;
+      MRIScomputeClassModes(mrisAD, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
+    }
+    else {
+      if(mrisADlh){
+	MRISsaveVertexPositions(mrisADlh, WHITE_VERTICES) ;
+	MRIScomputeClassModes(mrisADlh, mri_T1, &lh_white_mode, &lh_gray_mode, NULL, NULL, NULL, NULL);
+	printf("lh_white_mode = %g, lh_gray_mode = %g\n",lh_white_mode, lh_gray_mode);
+	white_mode = lh_white_mode;
+	gray_mode  = lh_gray_mode;
+      }
+      if(mrisADrh){
+	MRISsaveVertexPositions(mrisADrh, WHITE_VERTICES) ;
+	MRIScomputeClassModes(mrisADrh, mri_T1, &rh_white_mode, &rh_gray_mode, NULL, NULL, NULL, NULL);
+	printf("rh_white_mode = %g, rh_gray_mode = %g\n",rh_white_mode, rh_gray_mode);
+	white_mode = rh_white_mode;
+	gray_mode  = rh_gray_mode;
+      }
+      if(mrisADlh && mrisADrh){
+	white_mode = (lh_white_mode + rh_white_mode)/2.0;
+	gray_mode  = (lh_gray_mode  + rh_gray_mode )/2.0;
+	hemicode = 3;
+      }
+    }
   }
+  printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
+  white_mean = white_mode ;
+  gray_mean = gray_mode ;
   printf("std_scale = %g\n",std_scale);
   
   white_std /= std_scale;

@@ -2447,7 +2447,7 @@ int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
 			  double *pnz, int use_abs);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
-
+int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute
@@ -2459,7 +2459,7 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris);
 class AutoDetGWStats
 {
 public:
-  MRIS *mrisAD; // surface used to autodetect stats
+  MRIS *mrisAD, *mrisADlh, *mrisADrh; // surface used to autodetect stats
   MRI *mri_T1, *mri_wm;
   char *wm_name = "wm" ;
   char *orig_name = "orig";
@@ -2482,6 +2482,7 @@ public:
   float adMAX_CSF = 40;
   float white_mean, white_std, gray_mean, gray_std ;
   float white_mode, gray_mode ;
+  float lh_white_mode, lh_gray_mode, rh_white_mode, rh_gray_mode ;
   float max_border_white = MAX_BORDER_WHITE;
   float min_border_white = MIN_BORDER_WHITE;
   float min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER;
