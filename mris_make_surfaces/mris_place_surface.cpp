@@ -165,6 +165,8 @@ int err=0;
 int longitudinal = 0;
 int surftype = -1; //GRAY_WHITE; // GRAY_CSF
 int UseAParc = 0;
+char *adgwsinfile = NULL;
+char *adgwsoutfile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -175,6 +177,7 @@ int main(int argc, char **argv)
   MRI *invol, *seg, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
+  AutoDetGWStats adgws;
   //char *field=NULL;
 
   /* rkt: check for and handle version tag */
@@ -249,10 +252,20 @@ int main(int argc, char **argv)
   printf("\n");
   fflush(stdout);
 
-  // Note: in long stream orig = orig_white
-  AutoDetGWStats adgws;
-  err = adgws.AutoDetectStats(subject, hemi);
-  if(err) exit(1);
+  if(adgwsinfile == NULL){
+    // Note: in long stream orig = orig_white
+    err = adgws.AutoDetectStats(subject, hemi);
+    if(err) exit(1);
+  }
+  else {
+    err = adgws.Read(adgwsinfile);
+    if(err) exit(1);
+  }
+  if(adgwsoutfile){
+    err = adgws.Write(adgwsoutfile);
+    if(err) exit(1);
+  }
+
   double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0,current_sigma=0;
   int n_averages=0, n_min_averages=0;
   if(surftype == GRAY_WHITE){
@@ -592,6 +605,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&max_thickness);
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--adgws-in")){
+      adgwsinfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--adgws-out")){
+      adgwsoutfile = pargv[0];
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
@@ -676,10 +697,11 @@ static void check_options(void) {
 /* --------------------------------------------- */
 static void print_usage(void) 
 {
-printf("\n");
-printf("USAGE: ./mris_place_surface\n");
-printf(" --s subject hemi insurfname outsurfname\n");
-printf("\n");
+  printf("\n");
+  printf("USAGE: ./mris_place_surface\n");
+  printf(" --s subject hemi insurfname outsurfname\n");
+  printf(" --adgws-in input gray/white stats file (see mris_autodet_gwstats)\n");
+  printf("\n");
 }
 
 
