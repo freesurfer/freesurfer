@@ -53,8 +53,8 @@ static char vcid[] =
 
 int main(int argc, char *argv[]) ;
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;

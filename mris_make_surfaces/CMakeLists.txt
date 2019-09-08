@@ -5,6 +5,10 @@ include_directories(
     	${CMAKE_SOURCE_DIR}/resurf/Code
 	)
 
+add_executable(mris_autodet_gwstats mris_autodet_gwstats.cpp)
+target_link_libraries(mris_autodet_gwstats utils)
+install(TARGETS mris_autodet_gwstats DESTINATION bin)
+
 add_executable(mris_place_surface mris_place_surface.cpp)
 target_link_libraries(mris_place_surface utils)
 install(TARGETS mris_place_surface DESTINATION bin)

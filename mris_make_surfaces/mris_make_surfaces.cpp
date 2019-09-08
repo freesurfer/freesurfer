@@ -70,8 +70,8 @@ static char vcid[] =
 int main(int argc, char *argv[]) ;
 
 #define MIN_NONCORTEX_VERTICES 10
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 #define MIN_PEAK_PCT 0.1
 static double Ghisto_left_outside_peak_pct = MIN_PEAK_PCT ;
@@ -903,7 +903,7 @@ int main(int argc, char *argv[])
   {
     if(nowhite) break ; // skip if not placing the white surface
 
-    printf("Iteration %d =========================================\n",i);
+    printf("Iteration %d white =========================================\n",i);
     printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
     // This does not look like it actually smooths anything. It creates the kernel and frees 
@@ -1297,7 +1297,12 @@ int main(int argc, char *argv[])
     if(mri_aseg && label_cortex) {
       // Label cortex based on aseg (4=ndilate,4=nerode)
       LABEL *lcortex = MRIScortexLabelDECC(mris, mri_aseg, 4, 4, -1) ;
-      printf("writing cortex label to %s...\n", fname) ;
+      if (getenv("FS_POSIX")) {
+        sprintf(fname,"./%s.%s%s%s.label", hemi, "cortex", output_suffix, suffix);
+      } else {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
+      }
+      printf("Writing cortical label to %s\n",fname);
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
@@ -1334,7 +1339,7 @@ int main(int argc, char *argv[])
 
   // ==========================================================================
   // Place pial surface. #pial
-  printf("\n\n\nPlacing pial surface\n");
+  printf("\n\n\nPlacing pial surface (pialpial)\n");
 
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
   MRISunrip(mris) ;
@@ -1410,6 +1415,7 @@ int main(int argc, char *argv[])
       //between final white and orig pial
       MRISblendXYZandTXYZ(mris, 0.75f, 0.25f);
     }
+
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever
     // orig_pial is used??? Maybe that's why the cross-intersection
     // was caused
@@ -1502,6 +1508,7 @@ int main(int argc, char *argv[])
          n_averages /= 2, current_sigma /= 2, i++)
     {
 
+      printf("Iteration %d pial =========================================\n",i);
       printf("j=%d, i=%d, sigma=%g\n",j,i,current_sigma);
 
       if(flair_or_T2_name) {
@@ -1744,7 +1751,7 @@ int main(int argc, char *argv[])
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
 
-      if (fill_interior == 0){ // off by default
+      if (fill_interior == 0){ // this happens by default default
         /* Replace bright stuff such as eye sockets with 255.  Simply
         zeroing it out would make the border always go through the
         sockets, and ignore subtle local minima in intensity at the
