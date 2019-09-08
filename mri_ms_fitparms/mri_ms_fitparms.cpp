@@ -874,7 +874,8 @@ main(int argc, char *argv[])
   }
   mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD,
                                M_reg, Glta, mri_T1) ;
-  MRIfree(&mri_T1) ;
+  if (mri_T1)
+    MRIfree(&mri_T1) ;
   if (mri_T2star)
   {
     resetTRTEFA(mri_T2star, TR, TE, FA);
