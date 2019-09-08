@@ -3132,9 +3132,9 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
 
           if (Mreg[scan_types[e]-1])
           {
-            MatrixMultiply(vox2ras[i],v_src,rasvec1);
+            MatrixMultiply(vox2ras[e],v_src,rasvec1);
             MatrixMultiply(Mreg[scan_types[e]-1],rasvec1,rasvec2);
-            MatrixMultiply(ras2vox[i],rasvec2,v_dst);
+            MatrixMultiply(ras2vox[e],rasvec2,v_dst);
           }
           else
           {
