@@ -167,13 +167,14 @@ int surftype = -1; //GRAY_WHITE; // GRAY_CSF
 int UseAParc = 0;
 char *adgwsinfile = NULL;
 char *adgwsoutfile = NULL;
+MRIS *surf;
+char *ripfile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
   int nargs, i, msec;
   double        spring_scale = 1;
-  MRIS *surf;
   MRI *invol, *seg, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
@@ -379,7 +380,6 @@ int main(int argc, char **argv)
   if(seg && surftype == GRAY_CSF){
     printf("Freezing midline and others\n");  fflush(stdout);
     MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
-    //field = "ripflag";    MRISwriteField(surf, &field, 1, "lh.pial.rip.mgz");
   }
 
   if(initsurfpath){
@@ -522,6 +522,12 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  if(ripfile){
+    printf("Writing ripfile to %s\n",ripfile);
+    char *field = "ripflag";    
+    MRISwriteField(surf, &field, 1, ripfile);
+  }
+
   msec = timer.milliseconds() ;
   printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
   printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
@@ -571,6 +577,11 @@ static int parse_commandline(int argc, char **argv) {
       outsurfpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcmp(option, "--rip")){
+      if(nargc < 1) CMDargNErr(option,1);
+      ripfile = pargv[0];
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--init")){
       if(nargc < 1) CMDargNErr(option,1);
       initsurfpath = pargv[0];
@@ -606,12 +617,96 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--adgws-in")){
+      if(nargc < 1) CMDargNErr(option,1);
       adgwsinfile = pargv[0];
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--adgws-out")){
+      if(nargc < 1) CMDargNErr(option,1);
       adgwsoutfile = pargv[0];
       nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--thickness")){
+      // This appears to give the same result as mris_make_surfaces
+      // except in a few vertices "near" the edge of the ripped
+      // region. The way the thickness calc works is that it searchs
+      // within a nbhd_size hop radius for the closest vertex on the
+      // other surface excluding ripped vertices. nbhd_size=20 is
+      // pretty big (about 6mm FWHM), so a ripped vertex might have an
+      // influence pretty far away.  However, most of the time, the
+      // closest vertex is within a few hops, so you don't usually see
+      // effects far away, but they certainly can be there.
+      if(nargc < 5) {
+	printf("ERROR: usage --thickness white pial nbhd_size(20) maxthickness(5) out\n");
+	exit(1);
+      }
+      surf = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      MRIScomputeMetricProperties(surf); // probably don't need to do this
+      MRISsaveVertexPositions(surf, ORIGINAL_VERTICES) ;
+      err = MRISreadVertexPositions(surf, pargv[1]);
+      if(err) exit(1);
+      MRIScomputeMetricProperties(surf);
+      int nbhd_size;
+      sscanf(pargv[2],"%d",&nbhd_size);
+      sscanf(pargv[3],"%f",&max_thickness);
+      MRISmeasureCorticalThickness(surf, nbhd_size, max_thickness) ;
+      err = MRISwriteCurvature(surf, pargv[4]);
+      if(err) exit(1);
+      exit(0);
+      nargsused = 4;
+    } 
+    else if(!strcasecmp(option, "--curv")){
+      // This gives the same result as mris_make_surfaces for
+      // white. For pial, there is a band around the ripped vertices
+      // where it is different (but the same in the center). The
+      // center is the same because, in MMS, the curv would have been
+      // computed from the white and the pial is the same as the white
+      // in the ripped vertices. This function differs from MMS
+      // because the ripped vertices are included in the curv
+      // calculation for vertices near the ripped area (and vice
+      // versa). This has implications for the surface-based
+      // registration (with white.preaparc).
+      if(nargc < 4) {
+	printf("ERROR: usage --curv surf nbrs(2) curvature_avgs(10) out\n");
+	exit(1);
+      }
+      surf = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      int curvature_avgs;
+      sscanf(pargv[1],"%d",&nbrs);
+      sscanf(pargv[2],"%d",&curvature_avgs);
+      printf("insurf  %s, nbrs %d, curvature_avgs %d\n",pargv[0],nbrs,curvature_avgs);
+      if(nbrs > 1) MRISsetNeighborhoodSizeAndDist(surf, nbrs) ;
+      MRIScomputeMetricProperties(surf);
+      MRIScomputeSecondFundamentalForm(surf) ;
+      MRISuseMeanCurvature(surf) ;
+      MRISaverageCurvatures(surf, curvature_avgs) ;
+      err = MRISwriteCurvature(surf, pargv[3]);
+      if(err) exit(1);
+      exit(0);
+      nargsused = 3;
+    } 
+    else if(!strcasecmp(option, "--area")){
+      // This appears to give the same result as mris_make_surfaces
+      // for white. For pial, it is the same except in vertices of the
+      // ripped region. In MRISwriteArea(), the area of non-ripped
+      // vertices is copied into the curv, then curv is saved. In MMS,
+      // the curv field already has something in it after pial
+      // placement, so it gets copied too. This does not happen for
+      // white because the surface is unripped prior to this
+      // computation.
+      if(nargc < 2) {
+	printf("ERROR: usage --area surf out\n");
+	exit(1);
+      }
+      surf = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      MRIScomputeMetricProperties(surf);
+      err = MRISwriteArea(surf, pargv[1]);
+      if(err) exit(1);
+      exit(0);
+      nargsused = 2;
     } 
     else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
