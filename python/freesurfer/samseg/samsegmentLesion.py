@@ -1,5 +1,5 @@
 from freesurfer.samseg.samsegment import samsegment, initializeGMMParameters, getFullHyperparameters, \
-                                         getLikelihoods, fitGMMParameters, getGaussianLikelihoods
+    getLikelihoods, fitGMMParameters, getGaussianLikelihoods
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -8,30 +8,26 @@ from scipy.stats import invwishart
 from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
 import os
 
-#eps = np.spacing(1)
-eps = np.finfo( float ).eps
+# eps = np.spacing(1)
+eps = np.finfo(float).eps
 
 
-  
-
-
-def getClassNumber( structureSearchString ):
+def getClassNumber(structureSearchString):
     #
     if structureSearchString is None:
         return None
-    
+
     #
     global atlasDir_
-  
-    sharedGMMParameters = kvlReadSharedGMMParameters( os.path.join( atlasDir_, 'sharedGMMParameters.txt') )
 
-    for classNumber, mergeOption in enumerate( sharedGMMParameters ):
+    sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(atlasDir_, 'sharedGMMParameters.txt'))
+
+    for classNumber, mergeOption in enumerate(sharedGMMParameters):
         for searchString in mergeOption.searchStrings:
             if structureSearchString in searchString:
                 structureClassNumber = classNumber
 
     return structureClassNumber
-
 
 
 # Encoder network
@@ -111,9 +107,9 @@ def get_encoder(data):
 # decoder network
 def get_decoder(code, imageSize):
     epsilon = 1e-3
-    
+
     graph = tf.get_default_graph()
-    
+
     code_size = tf.shape(code)
 
     # First deconv layer
@@ -235,122 +231,114 @@ def run_net(lesion, imageSize):
     return get_decoder(sample_latent, imageSize)
 
 
-def defineHyperparameters( data, classPriors, numberOfGaussiansPerClass, voxelSpacing ):
+def defineHyperparameters(data, classPriors, numberOfGaussiansPerClass, voxelSpacing):
     #
     global hyperMeans_, hyperMeansNumberOfMeasurements_, hyperVariances_, hyperVariancesNumberOfMeasurements_, \
-           lesionClassNumber_
-    
+        lesionClassNumber_
+
     #
-    initialMeans, _, _ = initializeGMMParameters( data, classPriors, numberOfGaussiansPerClass )
-    lesionGaussianNumbers = [ sum( numberOfGaussiansPerClass[ 0:lesionClassNumber_ ] ) ]
-    lesionHyperMeans = initialMeans[ lesionGaussianNumbers ]
+    initialMeans, _, _ = initializeGMMParameters(data, classPriors, numberOfGaussiansPerClass)
+    lesionGaussianNumbers = [sum(numberOfGaussiansPerClass[0:lesionClassNumber_])]
+    lesionHyperMeans = initialMeans[lesionGaussianNumbers]
     lesionHyperMeansNumberOfMeasurements = 200 / np.prod(voxelSpacing)
     lesionHyperVariancesNumberOfMeasurements = 200 / np.prod(voxelSpacing)
-        dataVariance = np.var( data, axis=0 )
+    dataVariance = np.var(data, axis=0)
     lesionHyperVariances = 1.0 * np.diag(dataVariance)
 
-    numberOfContrasts = data.shape[ -1 ]
+    numberOfContrasts = data.shape[-1]
     hyperMeans_, hyperMeansNumberOfMeasurements_, \
-           hyperVariances_, hyperVariancesNumberOfMeasurements_, \
-           hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements = \
-             getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts )
+    hyperVariances_, hyperVariancesNumberOfMeasurements_, \
+    hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements = \
+        getFullHyperparameters(numberOfGaussiansPerClass, numberOfContrasts)
 
-    hyperMeans_[ lesionGaussianNumbers ] = lesionHyperMeans
-    hyperMeansNumberOfMeasurements_[ lesionGaussianNumbers ] = lesionHyperMeansNumberOfMeasurements
-    hyperVariances_[ lesionGaussianNumbers, :, : ] = lesionHyperVariances
-    hyperVariancesNumberOfMeasurements_[ lesionGaussianNumbers ] = lesionHyperVariancesNumberOfMeasurements
+    hyperMeans_[lesionGaussianNumbers] = lesionHyperMeans
+    hyperMeansNumberOfMeasurements_[lesionGaussianNumbers] = lesionHyperMeansNumberOfMeasurements
+    hyperVariances_[lesionGaussianNumbers, :, :] = lesionHyperVariances
+    hyperVariancesNumberOfMeasurements_[lesionGaussianNumbers] = lesionHyperVariancesNumberOfMeasurements
 
     return hyperMeans_, hyperMeansNumberOfMeasurements_, \
            hyperVariances_, hyperVariancesNumberOfMeasurements_, \
            hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements
 
 
-
-def getMCMCPosteriors( data, priors, means, variances, mixtureWeights, 
-                         numberOfGaussiansPerClass, classFractions,
-                         posteriorPluginDictionary ):
-
+def getMCMCPosteriors(data, priors, means, variances, mixtureWeights,
+                      numberOfGaussiansPerClass, classFractions,
+                      posteriorPluginDictionary):
     # Retrieve the global variables
     global hyperMeans_, hyperMeansNumberOfMeasurements_, hyperVariances_, hyperVariancesNumberOfMeasurements_, \
-           atlasDir_, lesionClassNumber_, intensityMaskingClassNumber_, numberOfSamplingSteps_, numberOfBurnInSteps_, \
-           intensityMaskingPattern_, visualizer_  
-
+        atlasDir_, lesionClassNumber_, intensityMaskingClassNumber_, numberOfSamplingSteps_, numberOfBurnInSteps_, \
+        intensityMaskingPattern_, visualizer_
 
     # Unpack the extra variables we asked for
-    useDiagonalCovarianceMatrices = posteriorPluginDictionary[ 'modelSpecifications.useDiagonalCovarianceMatrices' ]
-    mask = posteriorPluginDictionary[ 'mask' ]
-    voxelSpacing = posteriorPluginDictionary[ 'voxelSpacing' ]
-    transform = posteriorPluginDictionary[ 'transform' ]
+    useDiagonalCovarianceMatrices = posteriorPluginDictionary['modelSpecifications.useDiagonalCovarianceMatrices']
+    mask = posteriorPluginDictionary['mask']
+    voxelSpacing = posteriorPluginDictionary['voxelSpacing']
+    transform = posteriorPluginDictionary['transform']
 
     #
-    numberOfClasses = len( numberOfGaussiansPerClass )
-    numberOfVoxels = data.shape[ 0 ]
-    numberOfContrasts = data.shape[ -1 ]
+    numberOfClasses = len(numberOfGaussiansPerClass)
+    numberOfVoxels = data.shape[0]
+    numberOfContrasts = data.shape[-1]
     imageSize = mask.shape
-    lesionGaussianNumbers = [ sum( numberOfGaussiansPerClass[ 0 : lesionClassNumber_ ] ) ]
+    lesionGaussianNumbers = [sum(numberOfGaussiansPerClass[0: lesionClassNumber_])]
 
-
-    # The implementation here only works for the special scenario where 
+    # The implementation here only works for the special scenario where
     #   (a) The structure you're sampling from has its own class (mixture model) not shared with any other structure
     #   (b) This class (mixture model) has only a single component
     #   (c) The structure you're sampling from is not a mixture of two or more classes (mixture models)
     # Let's test for that here
-    lesionStructureNumbers = np.flatnonzero( classFractions[ lesionClassNumber_, : ] == 1 )
+    lesionStructureNumbers = np.flatnonzero(classFractions[lesionClassNumber_, :] == 1)
     if lesionStructureNumbers.size is not 1:
-        raise Exception( 'Structure of interest should correspond to exactly one class (mixture model) and vice versa' )
-    if len( lesionGaussianNumbers ) is not 1:
-        raise Exception( 'Structure of interest should have a mixture model with only a single component' )
-    lesionStructureNumber = lesionStructureNumbers[ 0 ]
-    lesionGaussianNumber = lesionGaussianNumbers[ 0 ]
-
-
+        raise Exception('Structure of interest should correspond to exactly one class (mixture model) and vice versa')
+    if len(lesionGaussianNumbers) is not 1:
+        raise Exception('Structure of interest should have a mixture model with only a single component')
+    lesionStructureNumber = lesionStructureNumbers[0]
+    lesionGaussianNumber = lesionGaussianNumbers[0]
 
     # Create intensity-based lesion mask
     if intensityMaskingClassNumber_ is not None:
         # We have -1 mask below mean, +1 above, 0 nothing
-        intensityMaskingGaussianNumbers = [ sum( numberOfGaussiansPerClass[ 0 : intensityMaskingClassNumber_ ] ) ]
-        intensityMaskingMean = np.sum( means[ intensityMaskingGaussianNumbers ] * 
-                                      mixtureWeights[ intensityMaskingGaussianNumbers ].reshape( -1, 1 ), axis=0 )
-        tmp = np.ones( numberOfVoxels, dtype=bool )
-        for contrastNumber in range( numberOfContrasts ):
-            direction = intensityMaskingPattern_[ contrastNumber ]
+        intensityMaskingGaussianNumbers = [sum(numberOfGaussiansPerClass[0: intensityMaskingClassNumber_])]
+        intensityMaskingMean = np.sum(means[intensityMaskingGaussianNumbers] *
+                                      mixtureWeights[intensityMaskingGaussianNumbers].reshape(-1, 1), axis=0)
+        tmp = np.ones(numberOfVoxels, dtype=bool)
+        for contrastNumber in range(numberOfContrasts):
+            direction = intensityMaskingPattern_[contrastNumber]
             if direction == -1:
-                tmp = np.logical_and( tmp, data[:, contrastNumber ] < intensityMaskingMean[ contrastNumber ] )
+                tmp = np.logical_and(tmp, data[:, contrastNumber] < intensityMaskingMean[contrastNumber])
             elif direction == 1:
-                tmp = np.logical_and( tmp, data[:, contrastNumber ] > intensityMaskingMean[ contrastNumber ] )
+                tmp = np.logical_and(tmp, data[:, contrastNumber] > intensityMaskingMean[contrastNumber])
         intensityMask = np.zeros(imageSize, dtype=bool);
         intensityMask[mask] = tmp
     else:
         intensityMask = np.zeros(imageSize, dtype=bool);
         intensityMask[mask] = True
 
-    visualizer_.show( image_list=[ intensityMask.astype( float ) ], title="Intensity mask" )
-
+    visualizer_.show(image_list=[intensityMask.astype(float)], title="Intensity mask")
 
     # Initialize the structure likelihoods from the initial parameter values. Since only the parameters of a single structure
     # will be altered, only one column in the likelihoods will need to be updated during sampling
-    likelihoods = getLikelihoods( data, means, variances, mixtureWeights, numberOfGaussiansPerClass, classFractions )
-
+    likelihoods = getLikelihoods(data, means, variances, mixtureWeights, numberOfGaussiansPerClass, classFractions)
 
     # Initialize the sampler with a majority-vote lesion segmentation, masked with intensity-based mask
     posteriors = likelihoods * priors
-    posteriors /= np.expand_dims( np.sum( posteriors, axis=1 ) + eps, 1 )
-    lesion = np.zeros( imageSize )
-    lesion[ mask ] = ( np.array( np.argmax( posteriors, 1 ), dtype=np.uint32 ) == lesionStructureNumber )
+    posteriors /= np.expand_dims(np.sum(posteriors, axis=1) + eps, 1)
+    lesion = np.zeros(imageSize)
+    lesion[mask] = (np.array(np.argmax(posteriors, 1), dtype=np.uint32) == lesionStructureNumber)
     lesion *= intensityMask
 
-    visualizer_.show( image_list=[ lesion ], title="Initial lesion segmentation" )
+    visualizer_.show(image_list=[lesion], title="Initial lesion segmentation")
 
     # Initalize the VAE tensorflow model and its various settings.
     # TODO: remove various warnings about deprecated function calls etc
 
     # Restore from checkpoint
     sess = tf.Session()
-    VAEModelPath = os.path.join( atlasDir_, 'VAE' )
-    VAEModelFileName = os.path.join( VAEModelPath, 'model.ckpt.meta' )
-    saver = tf.train.import_meta_graph( VAEModelFileName )
-    saver.restore( sess, tf.train.latest_checkpoint( VAEModelPath ) )
-    print( 'VAE lesion model loaded' )
+    VAEModelPath = os.path.join(atlasDir_, 'VAE')
+    VAEModelFileName = os.path.join(VAEModelPath, 'model.ckpt.meta')
+    saver = tf.train.import_meta_graph(VAEModelFileName)
+    saver.restore(sess, tf.train.latest_checkpoint(VAEModelPath))
+    print('VAE lesion model loaded')
 
     # Get some info about the VAE
     VAEInfo = np.load(os.path.join(atlasDir_, 'VAE/VAEInfo.npz'))
@@ -364,23 +352,23 @@ def getMCMCPosteriors( data, priors, means, variances, mixtureWeights,
     trainToSubjectMat = transform.as_numpy_array @ trainToTemplateMat
     subjectToTrainMat = np.linalg.inv(trainToSubjectMat)
 
-        # Create tf placeholder
-        lesionPlaceholder = tf.placeholder(tf.float32, [1, net_shape[0], net_shape[1], net_shape[2], 1])
-        net = run_net(lesionPlaceholder, net_shape)
+    # Create tf placeholder
+    lesionPlaceholder = tf.placeholder(tf.float32, [1, net_shape[0], net_shape[1], net_shape[2], 1])
+    net = run_net(lesionPlaceholder, net_shape)
 
     # Do the actual sampling of lesion, latent variables of the VAE model, and mean/variance of the lesion intensity model.
-    hyperMean = hyperMeans_[ lesionGaussianNumber ]
-    hyperMeanNumberOfMeasurements = hyperMeansNumberOfMeasurements_[ lesionGaussianNumber ]
-    hyperVariance = hyperVariances_[ lesionGaussianNumber ]
-    hyperVarianceNumberOfMeasurements = hyperVariancesNumberOfMeasurements_[ lesionGaussianNumber ]
-    averagePosteriors = np.zeros_like( likelihoods )
-    visualizer_.start_movie( window_id="Lesion prior using VAE only", title="Lesion prior using VAE only -- the movie" )
-    visualizer_.start_movie( window_id="Lesion sample", title="Lesion sample -- the movie" )
-    for sweepNumber in range( numberOfBurnInSteps_ + numberOfSamplingSteps_ ):
-            
-            # Sample from the VAE latent variables, conditioned on the current lesion segmentation. 
-            # Implementation-wise we don't store the latent variables, but rather the factorized
-            # prior in the visible units (voxels) that they encode.
+    hyperMean = hyperMeans_[lesionGaussianNumber]
+    hyperMeanNumberOfMeasurements = hyperMeansNumberOfMeasurements_[lesionGaussianNumber]
+    hyperVariance = hyperVariances_[lesionGaussianNumber]
+    hyperVarianceNumberOfMeasurements = hyperVariancesNumberOfMeasurements_[lesionGaussianNumber]
+    averagePosteriors = np.zeros_like(likelihoods)
+    visualizer_.start_movie(window_id="Lesion prior using VAE only", title="Lesion prior using VAE only -- the movie")
+    visualizer_.start_movie(window_id="Lesion sample", title="Lesion sample -- the movie")
+    for sweepNumber in range(numberOfBurnInSteps_ + numberOfSamplingSteps_):
+
+        # Sample from the VAE latent variables, conditioned on the current lesion segmentation.
+        # Implementation-wise we don't store the latent variables, but rather the factorized
+        # prior in the visible units (voxels) that they encode.
 
         # We first go from subject space to train space of the VAE
         # Since we are using scipy affine transform that takes an INVERSE transformation
@@ -405,116 +393,109 @@ def getMCMCPosteriors( data, priors, means, variances, mixtureWeights,
             visualizer_.show(probabilities=tmp, title="Lesion prior using VAE only",
                              window_id="Lesion prior using VAE only")
 
-            # Sample from the mean and variance, conditioned on the data and the lesion segmentation 
-            bestMean, bestVariance, _ = fitGMMParameters( data, 
-                                                          lesion[ mask ].reshape( -1, 1 ), 
-                                                          [ 1 ], useDiagonalCovarianceMatrices,
-                                                          hyperMeans=np.array( [ hyperMean ] ), 
+        # Sample from the mean and variance, conditioned on the data and the lesion segmentation
+        bestMean, bestVariance, _ = fitGMMParameters(data,
+                                                     lesion[mask].reshape(-1, 1),
+                                                     [1], useDiagonalCovarianceMatrices,
+                                                     hyperMeans=np.array([hyperMean]),
                                                      hyperMeansNumberOfMeasurements=np.array(
                                                          [hyperMeanNumberOfMeasurements]),
-                                                          hyperVariances=np.array( [ hyperVariance ] ), 
+                                                     hyperVariances=np.array([hyperVariance]),
                                                      hyperVariancesNumberOfMeasurements=np.array(
                                                          [hyperVarianceNumberOfMeasurements])
-                                                        )
-            bestMean, bestVariance = bestMean[ 0 ], bestVariance[ 0 ]
-            N = lesion[ mask ].sum()
-            
-            # Murphy, page 134 with v0 = hyperVarianceNumberOfMeasurements - numberOfContrasts - 1
-            variance = invwishart.rvs( N + hyperVarianceNumberOfMeasurements - numberOfContrasts - 1, 
-                                      bestVariance * ( hyperVarianceNumberOfMeasurements + N + 1 ) )
-            
+                                                     )
+        bestMean, bestVariance = bestMean[0], bestVariance[0]
+        N = lesion[mask].sum()
+
+        # Murphy, page 134 with v0 = hyperVarianceNumberOfMeasurements - numberOfContrasts - 1
+        variance = invwishart.rvs(N + hyperVarianceNumberOfMeasurements - numberOfContrasts - 1,
+                                  bestVariance * (hyperVarianceNumberOfMeasurements + N + 1))
+
         # If numberOfContrast is 1 force variance to be a (1,1) array
         if numberOfContrasts == 1:
             variance = np.atleast_2d(variance)
-            
+
         if useDiagonalCovarianceMatrices:
             variance = np.diag(np.diag(variance))
-            
+
         mean = np.random.multivariate_normal(bestMean, variance / (hyperMeanNumberOfMeasurements + N)).reshape(-1, 1)
-            
-            # Sample from the lesion segmentation, conditioned on the data and the VAE latent variables
-            # (Implementation-wise the latter is encoded in the VAE prior). At the same time we also
-            # compute the full posterior of each structure, which is at the end the thing we're averaging
-            # over (i.e., the reason why we're sampling)
-            effectivePriors = np.array( priors / 65535, dtype=np.float32 )
-            effectivePriors[:, lesionStructureNumber ] *= lesionPriorVAE
-            if hasattr( visualizer_, 'show_flag' ): 
+
+        # Sample from the lesion segmentation, conditioned on the data and the VAE latent variables
+        # (Implementation-wise the latter is encoded in the VAE prior). At the same time we also
+        # compute the full posterior of each structure, which is at the end the thing we're averaging
+        # over (i.e., the reason why we're sampling)
+        effectivePriors = np.array(priors / 65535, dtype=np.float32)
+        effectivePriors[:, lesionStructureNumber] *= lesionPriorVAE
+        if hasattr(visualizer_, 'show_flag'):
             tmp = np.zeros(imageSize);
             tmp[mask] = effectivePriors[:, lesionStructureNumber]
-                visualizer_.show( probabilities=tmp, title="Lesion prior using VAE and atlas together",
-                                window_id="Lesion prior using VAE and atlas together" )
+            visualizer_.show(probabilities=tmp, title="Lesion prior using VAE and atlas together",
+                             window_id="Lesion prior using VAE and atlas together")
 
-                # Generative model where the atlas generates *candidate* lesions, and the VAE prior is sampled 
-                # from *only within the candidates*.
-                numberOfStructures = priors.shape[-1]
-                otherStructureNumbers = [ i for i in range( numberOfStructures ) if i != lesionStructureNumber ]
-                otherStructurePriors = effectivePriors[ :, otherStructureNumbers ]
-                otherStructurePriors /= ( np.sum( otherStructurePriors, axis=1 ).reshape( -1, 1 ) + eps )
-                effectivePriors[ :, otherStructureNumbers ] = otherStructurePriors * \
-                                                            ( 1 - effectivePriors[:, lesionStructureNumber ].reshape( -1, 1 ) )
-            likelihoods[ :, lesionStructureNumber ] = getGaussianLikelihoods( data, mean, variance )
-            posteriors = effectivePriors * likelihoods
-            posteriors /= np.expand_dims( np.sum( posteriors, axis=1 ) + eps, 1 )
-            sample = np.random.rand( numberOfVoxels ) <= posteriors[ :, lesionStructureNumber ] 
+        # Generative model where the atlas generates *candidate* lesions, and the VAE prior is sampled
+        # from *only within the candidates*.
+        numberOfStructures = priors.shape[-1]
+        otherStructureNumbers = [i for i in range(numberOfStructures) if i != lesionStructureNumber]
+        otherStructurePriors = effectivePriors[:, otherStructureNumbers]
+        otherStructurePriors /= (np.sum(otherStructurePriors, axis=1).reshape(-1, 1) + eps)
+        effectivePriors[:, otherStructureNumbers] = otherStructurePriors * \
+                                                    (1 - effectivePriors[:, lesionStructureNumber].reshape(-1, 1))
+        likelihoods[:, lesionStructureNumber] = getGaussianLikelihoods(data, mean, variance)
+        posteriors = effectivePriors * likelihoods
+        posteriors /= np.expand_dims(np.sum(posteriors, axis=1) + eps, 1)
+        sample = np.random.rand(numberOfVoxels) <= posteriors[:, lesionStructureNumber]
         lesion = np.zeros(imageSize);
         lesion[mask] = sample
 
-            visualizer_.show( image_list=[ lesion ], title="Lesion sample", window_id="Lesion sample" )
-            
-            
+        visualizer_.show(image_list=[lesion], title="Lesion sample", window_id="Lesion sample")
+
         # Collect data after burn in steps
         if sweepNumber >= numberOfBurnInSteps_:
-            print('Sample ' + str( sweepNumber + 1 - numberOfBurnInSteps_ ) + ' times')
+            print('Sample ' + str(sweepNumber + 1 - numberOfBurnInSteps_) + ' times')
             averagePosteriors += posteriors / numberOfSamplingSteps_
         else:
-            print('Burn-in ' + str( sweepNumber + 1) + ' times')
-
+            print('Burn-in ' + str(sweepNumber + 1) + ' times')
 
     #
-    visualizer_.show_movie( window_id="Lesion prior using VAE only" )
-    visualizer_.show_movie( window_id="Lesion sample" )
-
+    visualizer_.show_movie(window_id="Lesion prior using VAE only")
+    visualizer_.show_movie(window_id="Lesion sample")
 
     # Return
     return averagePosteriors
 
 
-
-def samsegmentLesion( imageFileNames, atlasDir, savePath,
-                      transformedTemplateFileName=None, 
-                      userModelSpecifications={}, userOptimizationOptions={},
-                      lesionSearchString='Lesion',
-                      numberOfSamplingSteps=50, numberOfBurnInSteps=50,
-                      visualizer=None, saveHistory=False, saveMesh=False,
-                      targetIntensity=None, targetSearchStrings=None,
-                      intensityMaskingPattern=None, intensityMaskingSearchString=None,
-                      lesionThreshold=None ): 
-  
+def samsegmentLesion(imageFileNames, atlasDir, savePath,
+                     transformedTemplateFileName=None,
+                     userModelSpecifications={}, userOptimizationOptions={},
+                     lesionSearchString='Lesion',
+                     numberOfSamplingSteps=50, numberOfBurnInSteps=50,
+                     visualizer=None, saveHistory=False, saveMesh=False,
+                     targetIntensity=None, targetSearchStrings=None,
+                     intensityMaskingPattern=None, intensityMaskingSearchString=None,
+                     lesionThreshold=None):
     # We can't pass on user-specified options to plugins, so let's do it using global variables
     # (using underscore notation to stress they're global variables )
     global hyperMeans_, hyperMeansNumberOfMeasurements_, hyperVariances_, hyperVariancesNumberOfMeasurements_, \
-           atlasDir_, lesionClassNumber_ , intensityMaskingClassNumber_, numberOfSamplingSteps_, \
-           numberOfBurnInSteps_, intensityMaskingPattern_, visualizer_
-    
+        atlasDir_, lesionClassNumber_, intensityMaskingClassNumber_, numberOfSamplingSteps_, \
+        numberOfBurnInSteps_, intensityMaskingPattern_, visualizer_
+
     atlasDir_ = atlasDir
-    lesionClassNumber_ = getClassNumber( lesionSearchString )
-    intensityMaskingClassNumber_ = getClassNumber( intensityMaskingSearchString )
+    lesionClassNumber_ = getClassNumber(lesionSearchString)
+    intensityMaskingClassNumber_ = getClassNumber(intensityMaskingSearchString)
     numberOfSamplingSteps_ = numberOfSamplingSteps
     numberOfBurnInSteps_ = numberOfBurnInSteps
     intensityMaskingPattern_ = intensityMaskingPattern
     visualizer_ = visualizer
 
-
     # Now call samsegment with plugins
-    samsegment( imageFileNames, atlasDir, savePath,
-                userModelSpecifications=userModelSpecifications, 
-                userOptimizationOptions=userOptimizationOptions,
-                visualizer=visualizer,
-                targetIntensity=targetIntensity, 
-                targetSearchStrings=targetSearchStrings,
-                hyperpriorPlugin=defineHyperparameters,
-                posteriorPlugin=getMCMCPosteriors,
-                posteriorPluginVariables=[ 'modelSpecifications.useDiagonalCovarianceMatrices', 
-                                            'mask', 'voxelSpacing', 'transform' ],
-                threshold=lesionThreshold, thresholdSearchString=lesionSearchString )
-
+    samsegment(imageFileNames, atlasDir, savePath,
+               userModelSpecifications=userModelSpecifications,
+               userOptimizationOptions=userOptimizationOptions,
+               visualizer=visualizer,
+               targetIntensity=targetIntensity,
+               targetSearchStrings=targetSearchStrings,
+               hyperpriorPlugin=defineHyperparameters,
+               posteriorPlugin=getMCMCPosteriors,
+               posteriorPluginVariables=['modelSpecifications.useDiagonalCovarianceMatrices',
+                                         'mask', 'voxelSpacing', 'transform'],
+               threshold=lesionThreshold, thresholdSearchString=lesionSearchString)
