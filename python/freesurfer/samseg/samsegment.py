@@ -474,8 +474,12 @@ def getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
     else:
         hyperMixtureWeightsNumberOfMeasurements = hyperMixtureWeightsNumberOfMeasurements.copy()
 
-    # Make sure the inverse-Wishart is normalizable (flat or peaked around hyperVariances)
-    threshold = ( numberOfContrasts - 1 ) + eps
+    # Making sure the inverse-Wishart is normalizable (flat or peaked around hyperVariances)
+    # requires that hyperVarianceNumberOfMeasurements is not smaller than (numberOfContrasts-1)
+    # for any Gaussian. However, in order to prevent numerical errors with near-zero variances
+    # (which can happen when almost no voxels are associated with a Gaussian in the EM algorithm,
+    # due to e.g., tiny mixture weight), we use (numberOfContrasts-1)+1 instead.
+    threshold = ( numberOfContrasts - 1 ) + 1 + eps
     hyperVariancesNumberOfMeasurements[ hyperVariancesNumberOfMeasurements < threshold ] = threshold
 
     if False:
@@ -1217,7 +1221,7 @@ def scaleBiasFields( biasFields, imageBuffers, mask, posteriors, targetIntensity
 
 def writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
                   targetIntensity=None, targetSearchStrings=None, names=None,
-                  threshold=None, thresholdSearchString=None
+                  threshold=None, thresholdSearchString=None, savePosteriors=False
                   ):
 
     # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
@@ -1277,10 +1281,17 @@ def writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields, post
         with open( os.path.join( savePath, scanName + '_scaling-factor.txt' ), 'w' ) as f:
             print( scalingFactors[ contrastNumber ], file=f )
 
+    if savePosteriors:
+        posteriorPath = os.path.join(savePath, 'posteriors')
+        os.makedirs(posteriorPath, exist_ok=True)
+        for i, name in enumerate(names):
+            pvol = np.zeros(imageBuffers.shape[:3], dtype=np.float32)
+            pvol[mask] = posteriors[:, i]
+            writeImage(os.path.join(posteriorPath, name + '.nii'), pvol, cropping, exampleImage)
+
     # Compute volumes in mm^3
     volumeOfOneVoxel = np.abs( np.linalg.det( exampleImage.transform_matrix.as_numpy_array[ 0:3, 0:3 ] ) )
     volumesInCubicMm = ( np.sum( posteriors, axis=0 ) ) * volumeOfOneVoxel
-
 
     return volumesInCubicMm
   
@@ -1310,7 +1321,7 @@ def samsegment( imageFileNames, atlasDir, savePath,
                 hyperpriorPlugin=None,
                 posteriorPlugin=None,
                 posteriorPluginVariables=None,
-                threshold=None, thresholdSearchString=None
+                threshold=None, thresholdSearchString=None, savePosteriors=False
                 ):
 
     # Get full model specifications and optimization options (using default unless overridden by user) 
@@ -1460,7 +1471,7 @@ def samsegment( imageFileNames, atlasDir, savePath,
     volumesInCubicMm = writeResults( imageFileNames, savePath, imageBuffers, mask, biasFields,
                                      posteriors, modelSpecifications.FreeSurferLabels, cropping,
                                      targetIntensity, targetSearchStrings, modelSpecifications.names,
-                                     threshold, thresholdSearchString
+                                     threshold, thresholdSearchString, savePosteriors=savePosteriors
                                      )
 
 
@@ -1531,9 +1542,9 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                             userModelSpecifications={}, userOptimizationOptions={},
                             visualizer=None, saveHistory=False, 
                             targetIntensity=None, targetSearchStrings=None,
-                            numberOfIterations=10,
+                            numberOfIterations=5,
                             strengthOfLatentGMMHyperprior=1.0,
-                            strengthOfLatentDeformationHyperprior=1.0, 
+                            strengthOfLatentDeformationHyperprior=10.0, 
                             saveSSTResults=True,
                             updateLatentMeans=True,
                             updateLatentVariances=True,
@@ -1701,6 +1712,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                                     saveHistory=True, visualizer=visualizer )
 
     if hasattr( visualizer, 'show_flag' ):
+        import matplotlib.pyplot as plt   # avoid importing matplotlib by default
         plt.ion()    
         sstBiasFields = getBiasFields( sstBiasFieldCoefficients, biasFieldBasisFunctions,  mask )
         sstData = sstImageBuffers[ mask, : ] - sstBiasFields[ mask, : ]
@@ -1834,6 +1846,11 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
     threshold = ( numberOfContrasts + 1 ) + 1e-6
     latentVariancesNumberOfMeasurements[ latentVariancesNumberOfMeasurements < threshold ] = threshold
 
+    # No point in updating latent GMM parameters if the GMM hyperprior has zero weight. The latent variances are also
+    # a bit tricky, as they're technically driven to zero in that scenario -- let's try not to go there...
+    if ( strengthOfLatentGMMHyperprior == 0 ):
+        updateLatentMeans, updateLatentVariances, updateLatentMixtureWeights = False, False, False
+
 
     # Loop over all iterations
     historyOfTotalCost, historyOfTotalTimepointCost, historyOfLatentAtlasCost = [], [], []
@@ -1883,7 +1900,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                 timepointDeformations[ timepointNumber ], timepointDeformationAtlasFileNames[ timepointNumber ], \
                 optimizationSummary, optimizationHistory = \
                     estimateModelParameters( imageBuffersList[ timepointNumber ], mask, biasFieldBasisFunctions, transform, voxelSpacing,
-                                              modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
+                                              K1, modelSpecifications.useDiagonalCovarianceMatrices,
                                               classFractions, numberOfGaussiansPerClass, timepointOptimizationOptions,  
                                               saveHistory=True, visualizer=visualizer,
                                               initialMeans=timepointMeans[ timepointNumber ], 
@@ -1911,6 +1928,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             print( '\n' )
             print( '=================================' )
             if hasattr( visualizer, 'show_flag' ):
+                import matplotlib.pyplot as plt   # avoid importing matplotlib by default
                 plt.ion()    
                 timepointBiasFields = getBiasFields( timepointBiasFieldCoefficients[ timepointNumber ], 
                                                      biasFieldBasisFunctions,  mask )
@@ -1990,16 +2008,16 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
             plt.draw()
 
         if saveHistory:
-            history[ "timepointMeansEvolution" ].append( timepointMeans )
-            history[ "timepointVariancesEvolution" ].append( timepointVariances )
-            history[ "timepointMixtureWeightsEvolution" ].append( timepointMixtureWeights )
-            history[ "timepointBiasFieldCoefficientsEvolution" ].append( timepointBiasFieldCoefficients )
-            history[ "timepointDeformationsEvolution" ].append( timepointDeformations )
-            history[ "timepointDeformationAtlasFileNamesEvolution" ].append( timepointDeformationAtlasFileNames )
-            history[ "latentMeansEvolution" ].append( latentMeans )
-            history[ "latentVariancesEvolution" ].append( latentVariances )
-            history[ "latentMixtureWeightsEvolution" ].append( latentMixtureWeights )
-            history[ "latentDeformationEvolution" ].append( latentDeformation )
+            history[ "timepointMeansEvolution" ].append( timepointMeans.copy() )
+            history[ "timepointVariancesEvolution" ].append( timepointVariances.copy() )
+            history[ "timepointMixtureWeightsEvolution" ].append( timepointMixtureWeights.copy() )
+            history[ "timepointBiasFieldCoefficientsEvolution" ].append( timepointBiasFieldCoefficients.copy() )
+            history[ "timepointDeformationsEvolution" ].append( timepointDeformations.copy() )
+            history[ "timepointDeformationAtlasFileNamesEvolution" ].append( timepointDeformationAtlasFileNames.copy() )
+            history[ "latentMeansEvolution" ].append( latentMeans.copy() )
+            history[ "latentVariancesEvolution" ].append( latentVariances.copy() )
+            history[ "latentMixtureWeightsEvolution" ].append( latentMixtureWeights.copy() )
+            history[ "latentDeformationEvolution" ].append( latentDeformation.copy() )
             history[ "latentDeformationAtlasFileNameEvolution" ].append( latentDeformationAtlasFileName )
 
         if iterationNumber >= ( numberOfIterations-1 ):

@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) ;
 
 static char vcid[] = "$Id: mris_apply_reg.c,v 1.9 2016/12/06 19:40:48 greve Exp $";
 const char *Progname = NULL;
+static int center_surface=0 ;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
@@ -237,6 +238,8 @@ int main(int argc, char *argv[]) {
     MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,0,"x");
     MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,1,"y");
     MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,2,"z");
+    if (center_surface)
+      MRIScenter(SurfReg[nsurfs-1], SurfReg[nsurfs-1]);
     MRISwrite(SurfReg[nsurfs-1], TrgValFile);
   }
   else{
@@ -292,6 +295,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--randn")) DoSynthRand = 1;
     else if (!strcasecmp(option, "--ones")) DoSynthOnes = 1;
     else if (!strcasecmp(option, "--curv")) OutputCurvFormat=1;
+    else if (!strcasecmp(option, "--center")) center_surface = 1 ;
 
     else if (!strcasecmp(option, "--src") || !strcasecmp(option, "--sval") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -365,6 +369,8 @@ static int parse_commandline(int argc, char **argv) {
       if(lta==NULL) exit(1);
       int err = MRISltaMultiply(ltasurf, lta);
       if(err) exit(1);
+      if (center_surface)
+	MRIScenter(ltasurf, ltasurf);
       printf("Writing surf to %s\n",pargv[2]);
       err = MRISwrite(ltasurf,pargv[2]);
       if(err) exit(1);
@@ -389,6 +395,8 @@ static int parse_commandline(int argc, char **argv) {
       MRIfree(&mri_tmp) ;
       int err = GCAMmorphSurf(m3zsurf, gcam);
       if(err) exit(1);
+      if (center_surface)
+	MRIScenter(m3zsurf, m3zsurf);
       printf("Writing surf to %s\n",pargv[2]);
       err = MRISwrite(m3zsurf,pargv[2]);
       if(err) exit(1);
@@ -432,6 +440,7 @@ static void print_usage(void) {
   printf("   --no-rev : do not do reverse mapping\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
+  printf("   --center  : place the center of the output surface at (0,0,0)\n");
   printf("   --curv  : save output in curv file format (spec full path)\n");
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");

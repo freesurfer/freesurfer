@@ -88,7 +88,10 @@ static int get_option(int argc, char *argv[]) ;
 MRI *MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
                              float low_thresh, float hi_thresh,
                              MRI *mri_labels) ;
-MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
+
+// Note:  the library version of this function is used
+MRI *LocalMRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
+
 MRI *MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIfillVentricles(MRI *mri_src, MRI *mri_dst) ;
@@ -368,7 +371,9 @@ int main(int argc, char *argv[])
     if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_dst, "wmseg.thicken.mgz") ;
   }
 
+  // Note: there is a local version of this function, but the library version is used here
   mri_tmp = MRIfindBrightNonWM(mri_src, mri_dst) ;
+
   MRIbinarize(mri_tmp, mri_tmp, WM_MIN_VAL, 255, 0) ;
   MRImaskLabels(mri_dst, mri_tmp, mri_dst) ;
   MRIfree(&mri_tmp);
@@ -1427,8 +1432,9 @@ MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
 }
 
 #endif
-MRI *
-MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
+
+// Note not using this local version
+MRI *LocalMRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nlabeled, nwhite,
           xk, yk, zk, xi, yi, zi;
