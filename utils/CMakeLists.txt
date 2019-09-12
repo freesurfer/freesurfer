@@ -145,6 +145,7 @@ add_library(utils STATIC
   mrisurf_deform.cpp
   mrisurf_integrate.cpp
   mrisurf_io.cpp
+  mrisurf_io_stl.cpp
   mrisurf_metricProperties.cpp
   mrisurf_mri.cpp
   mrisurf_project.cpp
