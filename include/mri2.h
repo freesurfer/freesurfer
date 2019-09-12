@@ -155,4 +155,6 @@ int QuadEulerCharChange(MRI *vol, MRI *mask, int c, int r, int s);
 int QuadEulerCharChangeTest(int ForceFail);
 int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected);
 
+MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);
+
 #endif

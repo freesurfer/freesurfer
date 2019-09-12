@@ -137,6 +137,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_cmdParser(cmdParser),
   m_bHadError(false)
 {
+  m_defaultSettings["no_autoload"] = true;  // default no autoload
+
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -845,9 +847,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  if (parser->Found( "no-auto-load"))
+  if (parser->Found( "auto-load-surf"))
   {
-    m_defaultSettings["no_autoload"] = true;
+    m_defaultSettings["no_autoload"] = false;
   }
   if ( parser->Found( "viewport", &sa ) )
   {
@@ -2240,7 +2242,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0,  (QStringList("setisosurfaceupsample") << subArgu) );
       }
-      else if (subOption == "color")
+      else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
       }

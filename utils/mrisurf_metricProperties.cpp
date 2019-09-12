@@ -13667,9 +13667,9 @@ int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno)
     for(edgeno = 0; edgeno < surf->nedges; edgeno++){
       MRI_EDGE *e = &(surf->edges[edgeno]);
       int evno;
-      for(evno = 0; evno < 4; evno ++){
+      for(evno = 0; evno < 2; evno ++){
 	if(e->vtxno[evno] == vertexno){
-	  printf("Edge %6d %d\n",edgeno,evno);
+	  printf("Edge %6d %d  %4d %4d %7.3lf %7.3lf\n",edgeno,evno,e->vtxno[0],e->vtxno[1],e->len,e->angle);
 	}
       }
     }
@@ -13711,11 +13711,18 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   estats = MRISedgeStats(surf, 0, NULL, NULL); // edge length
   hstats = MRISedgeStats(surf, 2, NULL, NULL); // hinge angle (deg)
 
+  mrisMarkIntersections(surf);
+  int n, nintersections=0;
+  for(n=0; n < surf->nvertices; n++){
+    if(surf->vertices[n].marked) nintersections++;
+  }
   // mean, stddev, min, max
   fprintf(fp,"Area   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)astats[0],astats[1],astats[2],astats[3],astats[4]);
   fprintf(fp,"Corner %7d %8.5f %8.5f %8.6f %8.4f\n",(int)cstats[0],cstats[1],cstats[2],cstats[3],cstats[4]);
   fprintf(fp,"Edge   %7d %8.5f %8.5f %8.6f %8.4f\n",(int)estats[0],estats[1],estats[2],estats[3],estats[4]);
   fprintf(fp,"Hinge  %7d %8.5f %8.5f %8.6f %8.4f\n",(int)hstats[0],hstats[1],hstats[2],hstats[3],hstats[4]);
+  // Number of vertices that belong to a face that intersects another face
+  fprintf(fp,"Intersections %d \n",nintersections);
   fflush(fp);
 
   free(astats);
@@ -13724,4 +13731,77 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   free(hstats);
 
   return(0);
+}
+
+/*!
+  \fn int MRISfindExpansionRegions(MRI_SURFACE *mris)
+  \brief Sets v->curv=0 unless the given vertex has more than 25% of
+  the neighbors whose v->d value is greater than mean+2*std (mean and
+  std are the global mean and stddev distances). The dist, eg, is the
+  distance along the normal to point of the max gradient. The v->val
+  is the max gradient. Moved from mris_make_surfaces. This is essentially
+  masking out the curv field of vertices with long distances.
+  Hidden parameters: 0.25 and mean+2*std
+ */
+int MRISfindExpansionRegions(MRI_SURFACE *mris)
+{
+  int    vno, num, n, num_long, total ;
+  float  d, dsq, mean, std, dist ;
+
+  // Compute the mean and stddev of the distance to max gradient
+  d = dsq = 0.0f ;
+  for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX const * const v = &mris->vertices[vno] ;
+    if (v->ripflag || v->val <= 0)
+    {
+      continue ;
+    }
+    num++ ;
+    dist = fabs(v->d) ;
+    d += dist ;
+    dsq += (dist*dist) ;
+  }
+  mean = d / num ;
+  std = sqrt(dsq/num - mean*mean) ;
+  printf("mean absolute distance = %2.2f +- %2.2f\n", mean, std); fflush(stdout);
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    v->curv = 0 ;
+
+    if (v->ripflag || v->val <= 0) continue ;
+
+    if (fabs(v->d) < mean+2*std) continue ;
+
+    // Only gets here if distance is not too big
+
+    // Count number of neighbors with big distances
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++)
+    {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
+      if (vn->val <= 0 || v->ripflag) continue ;
+      if (fabs(vn->d) >= mean+2*std)
+        num_long++ ;
+      num++ ;
+    }
+
+    // If the number of big dist neighbors is greater than 25%
+    // Set v->curv = fabs(v->d) and increment total
+    if ((float)num_long / (float)num > 0.25)
+    {
+      v->curv = fabs(v->d) ;
+      total++ ; // not used for anything except diagnostic
+    }
+
+  } // end loop over vertices
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d vertices more than 2 sigmas from mean.\n", total) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteCurvature(mris, "long") ;
+
+  return(NO_ERROR) ;
 }

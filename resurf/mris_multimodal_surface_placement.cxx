@@ -57,7 +57,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps -m numberOfImages image1 image2 image3"  << std::endl;   
+			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc -min/max -m numberOfImages image1 image2 image3"  << std::endl;   
 			return -1;
 		}
 		const char *inSurf= cl.follow ("", "-i");
@@ -67,16 +67,23 @@ int main(int narg, char*  arg[])
 		int debugVertex= cl.follow (-1, "-d");
 		float step_size= cl.follow (.4, "-s");
 		int numberOfSteps= cl.follow (20, "-k");
+		const char *asegFile= cl.follow ("", "-a");
+		float gradientSigma= cl.follow (.20, "-g");
+		bool maxGradient = !cl.search("-min");
 
 
 		MRI_SURFACE *surf;
 		surf = MRISread(inSurf);
 
+		std::cout << "debug vertex " << debugVertex << " " <<surf->vertices[debugVertex].x << " "  << surf->vertices[debugVertex].y<< " " <<surf->vertices[debugVertex].z << std::endl; 
+
+
+
 		int imageNumber = cl.follow(0,"-m");
 		
 		std::vector<MRI*> images; 
 
-		MRIS_MultimodalRefinement* meh = new MRIS_MultimodalRefinement();
+		MRIS_MultimodalRefinement* t2refinement = new MRIS_MultimodalRefinement();
 
 		std::vector<std::string> fileNames;
 		for(;imageNumber>0;imageNumber--)
@@ -84,11 +91,18 @@ int main(int narg, char*  arg[])
 			fileNames.push_back(cl.next(""));
 			MRI *imageFS =  MRIread(fileNames[fileNames.size()-1].c_str()) ;
 			images.push_back(imageFS);
-			meh->addImage(imageFS);
+			t2refinement->addImage(imageFS);
 		}
 
-		meh->getTarget(surf); //, debugVertex);
+		MRI *aseg= MRIread(asegFile);
+	        t2refinement->SetSegmentation(aseg);
 		
+		t2refinement->SetVertexDebug(debugVertex);
+		t2refinement->SetStep(step_size);
+		t2refinement->SetNumberOfSteps(numberOfSteps);
+		t2refinement->SetGradientSigma(gradientSigma);
+		//t2refinement->SetLookMaximumGradient(maxGradient);
+		t2refinement->getTarget(surf); //, debugVertex);
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();
 		int totalPoints=0;
@@ -158,10 +172,11 @@ int main(int narg, char*  arg[])
                 polyData->SetLines(cells);
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriter =  vtkSmartPointer<vtkPolyDataWriter>::New();
-		#if VTK_MAJOR_VERSION <= 5
-		pdWriter->SetInput(polyData);
+		
+		#if VTK_MAJOR_VERSION <= 5	
+			pdWriter->SetInput(polyData);
 		#else
-		pdWriter->SetInputData(polyData);
+			pdWriter->SetInputData(polyData);
 		#endif
 		pdWriter->SetFileName(outNormals);
 		pdWriter->Update();
@@ -170,8 +185,9 @@ int main(int narg, char*  arg[])
 		vtkSmartPointer<vtkPoints> pointsValues= vtkPoints::New();
   		vtkSmartPointer<vtkCellArray> cellsValues = vtkSmartPointer<vtkCellArray>::New();
 		totalPoints = 0;
-		int max_thickness = 10;
-		float step=0.2;
+
+		numberOfSteps/=3;
+		step_size*=3;
 		for (unsigned j=0;j<surf->nvertices;j++)
 		{
 			double x,y,z, nx,ny,nz;
@@ -180,8 +196,8 @@ int main(int narg, char*  arg[])
 			float normal[3]={0,0,0};
 	
 			vtkSmartPointer<vtkPolyLine> polyLine =    vtkSmartPointer<vtkPolyLine>::New();
-			vtkIdType *ids = new vtkIdType [21];
-			polyLine->GetPointIds()->SetNumberOfIds(21);
+			vtkIdType *ids = new vtkIdType [numberOfSteps*2+1];
+			polyLine->GetPointIds()->SetNumberOfIds(numberOfSteps*2+1);
 
 			MRISsurfaceRASToVoxel(surf, images[0], surf->vertices[j].nx,surf->vertices[j].ny,surf->vertices[j].nz, &nx,&ny,&nz);
 			float dist = sqrt(nx*nx + ny*ny + nz*nz);
@@ -196,11 +212,11 @@ int main(int narg, char*  arg[])
 			double max_val=0;
 			for (int d=-1; d<2;d+=2)
 			{
-				for(int t=-max_thickness, i=0; t<=max_thickness;t++,i++)
+				for(int t=-numberOfSteps, i=0; t<=numberOfSteps;t++,i++)
 				{
-					x=surf->vertices[j].x +nx*t*step;
-					y=surf->vertices[j].y +ny*t*step;
-					z=surf->vertices[j].z +nz*t*step;
+					x=surf->vertices[j].x +nx*t*step_size;
+					y=surf->vertices[j].y +ny*t*step_size;
+					z=surf->vertices[j].z +nz*t*step_size;
 
 					MRISsurfaceRASToVoxel(surf, images[0], x,y,z, &xv,&yv,&zv);
 
@@ -209,7 +225,7 @@ int main(int narg, char*  arg[])
 					MRIsampleVolume(images[0], xv, yv, zv, &val);
 					MRIsampleVolumeDerivativeScale(images[0], xv, yv, zv, -nx, -ny, -nz, &mag, 1.0);   // expensive
 				//	std::cout << ((float)t)*step << " " << val << " " <<  mag << std::endl;
-					pointsValues->InsertPoint (totalPoints,((float)t)*step, val, mag);
+					pointsValues->InsertPoint (totalPoints,((float)t)*step_size, val, mag);
 					ids[i] = totalPoints;
 					totalPoints++;
 
@@ -224,11 +240,12 @@ int main(int narg, char*  arg[])
                 polyDataValues->SetLines(cellsValues);
 
 		vtkSmartPointer<vtkPolyDataWriter> pdWriterValues =  vtkSmartPointer<vtkPolyDataWriter>::New();
-        #if VTK_MAJOR_VERSION <= 5
-        pdWriterValues->SetInput(polyDataValues);
-        #else
+		
+		#if VTK_MAJOR_VERSION <= 5	
+		pdWriterValues->SetInput(polyDataValues);
+		#else
 		pdWriterValues->SetInputData(polyDataValues);
-        #endif
+		#endif	
 		pdWriterValues->SetFileName(outValues);
 		pdWriterValues->Update();
 

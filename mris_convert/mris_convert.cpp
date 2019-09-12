@@ -94,6 +94,7 @@ static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 const char *Progname ;
 
+static int center_surface=0 ;
 static int talairach_flag = 0 ;
 static char *talxfmsubject = NULL;
 static int patch_flag = 0 ;
@@ -288,6 +289,8 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
+    if (center_surface)
+      MRIScenter(mris, mris) ;
     if (combinesurfs_flag)
     {
       mris2 = MRISread(in2_fname) ;
@@ -671,6 +674,11 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "center") || !stricmp(option, "-center"))
+  {
+    center_surface = 1 ;
+    printf("centering surface\n") ;
+  }
   else if (!stricmp(option, "-annot"))
   {
     annot_fname = argv[2] ;
@@ -893,6 +901,7 @@ print_help(void)
   printf( "  -a                Print only surface xyz to ascii file\n") ;
   printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
   printf( "  --delete-cmds : delete command lines in surface\n") ;
+  printf( "  --center : put center of surface at (0,0,0)\n") ;
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;

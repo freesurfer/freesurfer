@@ -12,6 +12,8 @@ set xform = talairach.m3z
 set mergevol = aparc+aseg.mgz
 set DoPons = 1;
 set DoVermis = 1;
+set seg1name = ()
+set DoStats = 1;
 
 # Seghead parameters
 set thresh1 = 20;
@@ -84,12 +86,14 @@ set outseg = $SUBJECTS_DIR/$subject/mri/$outvol
 set segbase = `fname2stem $outvol`
 
 # Perform the labeling
-set seg1 = $tmpdir/seg1.mgh
-set cmd = (mri_ca_label -align -nobigventricles \
-   $srcvolpath $xformpath $atlas $seg1)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+if($#seg1name == 0) then
+  set seg1 = $tmpdir/seg1.mgh
+  set cmd = (mri_ca_label -align -nobigventricles \
+     $srcvolpath $xformpath $atlas $seg1)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 # Replace all cortex GM and cerebral WM with xCSF. It wont matter
 # that stuff in the brain is replaced because that will get replaced
@@ -164,19 +168,21 @@ if($status) goto error_exit;
 # Run segstats to get stats of the extra cerebral structures.  This is
 # done for informational purposes only.  Values for other structures
 # are there for reference.
-set sdir = $SUBJECTS_DIR/$subject
-set sum =  $sdir/stats/$segbase.stats 
-set cmd = (mri_segstats --seg $outseg --sum $sum \
-   --pv $sdir/mri/nu.mgz --empty --brainmask $sdir/mri/brainmask.mgz \
-   --in-intensity-name nu \
-   --in $sdir/mri/nu.mgz  --in-intensity-units MR --etiv  \
-   --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \
-   --subject $subject --id 2 41 4 5 14 15 43 44 130 165 257 258)
-if($DoVermis) set cmd = ($cmd --id 172)
-if($DoPons)   set cmd = ($cmd --id 174)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+if($DoStats) then
+  set sdir = $SUBJECTS_DIR/$subject
+  set sum =  $sdir/stats/$segbase.stats 
+  set cmd = (mri_segstats --seg $outseg --sum $sum \
+     --pv $sdir/mri/nu.mgz --empty --brainmask $sdir/mri/brainmask.mgz \
+     --in-intensity-name nu \
+     --in $sdir/mri/nu.mgz  --in-intensity-units MR --etiv  \
+     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \
+     --subject $subject --id 2 41 4 5 14 15 43 44 130 165 257 258)
+  if($DoVermis) set cmd = ($cmd --id 172)
+  if($DoPons)   set cmd = ($cmd --id 174)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 #========================================================
 
@@ -230,6 +236,17 @@ while( $#argv != 0 )
       set mergevol = $argv[1]; shift;
       breaksw
 
+    case "--seg1":
+      if($#argv < 1) goto arg1err;
+      set seg1name = $argv[1]; shift;
+      set DoStats = 0;
+      breaksw
+
+    case "--srcvol":
+      if($#argv < 1) goto arg1err;
+      set srcvol = $argv[1]; shift;
+      breaksw
+
     case "--threads":
     case "--nthreads":
       setenv OMP_NUM_THREADS $argv[1]; shift;
@@ -242,6 +259,10 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $atlas"
         exit 1;
       endif
+      breaksw
+
+    case "--no-stats":
+      set DoStats = 0;
       breaksw
 
     case "--nopons":
@@ -308,10 +329,20 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
-set xformpath = $SUBJECTS_DIR/$subject/mri/transforms/$xform
-if(! -e $xformpath) then
-  echo "ERROR: cannot find $xformpath"
-  exit 1;
+if($#seg1name) then
+  set seg1 = $SUBJECTS_DIR/$subject/mri/$seg1name
+  if(! -e $seg1) then
+    echo "ERROR: cannot find $seg1"
+    exit 1;
+  endif
+endif
+
+if($#seg1name == 0) then
+  set xformpath = $SUBJECTS_DIR/$subject/mri/transforms/$xform
+  if(! -e $xformpath) then
+    echo "ERROR: cannot find $xformpath"
+    exit 1;
+  endif
 endif
 
 set srcvolpath = $SUBJECTS_DIR/$subject/mri/$srcvol
@@ -347,6 +378,9 @@ usage_exit:
   echo " --o outvol (default: $outvol)"
   echo " --atlas headgca (default: $atlas)"
   echo " --m mergevol : merge with mergevol (default is $mergevol)"
+  echo " --srcvol source intensity volume (default is $srcvol)"
+  echo " --no-stats : do not  run mri_segstats"
+  echo " --seg1 seg1name : full-head seg (usually computed with mri_ca_label)"
   echo ""
   echo " --no-pons"
   echo " --no-vermis"

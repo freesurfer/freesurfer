@@ -1657,11 +1657,11 @@ static int MRIScomputeBorderValues_new(
   mytimer.reset();
 
   printf("Entering MRIScomputeBorderValues_new(): \n");
-  printf("  inside_hi   = %g;\n",inside_hi);
-  printf("  border_hi   = %g;\n",border_hi);
-  printf("  border_low  = %g;\n",border_low);
-  printf("  outside_low = %g;\n",outside_low);
-  printf("  outside_hi  = %g;\n",outside_hi);
+  printf("  inside_hi   = %11.7lf;\n",inside_hi);
+  printf("  border_hi   = %11.7lf;\n",border_hi);
+  printf("  border_low  = %11.7lf;\n",border_low);
+  printf("  outside_low = %11.7lf;\n",outside_low);
+  printf("  outside_hi  = %11.7lf;\n",outside_hi);
   printf("  sigma = %g;\n",sigma);
   printf("  max_thickness = %g;\n",max_thickness);
   printf("  step_size=%g;\n",step_size);
@@ -1709,7 +1709,7 @@ static int MRIScomputeBorderValues_new(
   MRIS_SurfRAS2VoxelMap* sras2v_map = 
     MRIS_makeRAS2VoxelMap(mri_brain, mris);
   
-  int vno;
+  int vno,nripped=0;
 
   // Loop over all the vertices
   ROMP_PF_begin
@@ -1717,7 +1717,7 @@ static int MRIScomputeBorderValues_new(
   #pragma omp parallel for if_ROMP(assume_reproducible) \
     reduction(+:mean_dist,mean_in,mean_out,mean_border) \
     reduction(+:total_vertices,ngrad_max,ngrad,nmin,nmissing,nout,nin,nfound,nalways_missing,num_changed) \
-    reduction(+:n_sigma_increases)
+    reduction(+:n_sigma_increases,nripped)
 #endif
   for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
@@ -1732,6 +1732,7 @@ static int MRIScomputeBorderValues_new(
       v->targx = v->x;
       v->targy = v->y;
       v->targz = v->z;
+      nripped ++;
       ROMP_PF_continue;
     }
 
@@ -2504,7 +2505,7 @@ static int MRIScomputeBorderValues_new(
   //=============================vertex ======================						  
   ROMP_PF_end
 
-  printf("#SI# sigma=%g had to be increased for %d vertices\n",sigma,n_sigma_increases);
+  printf("#SI# sigma=%g had to be increased for %d vertices, nripped=%d\n",sigma,n_sigma_increases,nripped);
   mean_dist   /= (float)(total_vertices - nmissing);
   mean_border /= (float)total_vertices;
 
@@ -2522,24 +2523,15 @@ static int MRIScomputeBorderValues_new(
   int pass;
   // NONREPRODUCIBLE NUMBERS NOT USED FOR ANYTHING 
   for (pass = 0; fp && (pass < 2); pass++, fp = log_fp) {
-    fprintf(fp,
-      "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
+    fprintf(fp, "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
       "[%2.1f (%%%2.1f)->%2.1f (%%%2.1f))]\n",
-      mean_border,
-      nmissing,
-      nalways_missing,
-      mean_dist,
-      mean_in,
-      100.0f * (float)nin  / (float)nfound,
-      mean_out,
-      100.0f * (float)nout / (float)nfound);
-    fprintf(fp,
-      "%%%2.0f local maxima, %%%2.0f large gradients "
+      mean_border, nmissing, nalways_missing, mean_dist, mean_in, 100.0f * (float)nin  / (float)nfound,
+      mean_out,   100.0f * (float)nout / (float)nfound);
+    fprintf(fp, "%%%2.0f local maxima, %%%2.0f large gradients "
       "and %%%2.0f min vals, %d gradients ignored\n",
       100.0f * (float)ngrad_max / (float)mris->nvertices,
       100.0f * (float)ngrad     / (float)mris->nvertices,
-      100.0f * (float)nmin      / (float)mris->nvertices,
-      num_changed);
+      100.0f * (float)nmin      / (float)mris->nvertices, num_changed);
     fflush(fp);
   }
 
@@ -2555,6 +2547,7 @@ static int MRIScomputeBorderValues_new(
   }
   msec = mytimer.milliseconds() ;
   printf("MRIScomputeBorderValues_new() finished in %6.4f min\n",(float)msec/(60*1000.0f)); fflush(stdout);
+  printf("\n\n");
   return (NO_ERROR);
 }
 
@@ -5095,6 +5088,12 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         else if (usecurv) {
           val = surf->vertices[vtx].curv;
         }
+        else if (!strcmp(Field, "marked")) {
+          val = surf->vertices[vtx].marked;
+        }
+        else if (!strcmp(Field, "marked2")) {
+          val = surf->vertices[vtx].marked2;
+        }
         else if (!strcmp(Field, "stat")) {
           val = surf->vertices[vtx].stat;
         }
@@ -5140,11 +5139,14 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         else if (!strcmp(Field, "vnum")) {
           val = surf->vertices_topology[vtx].vnum;
         }
-        else if (!strcmp(Field, "annotation")) {
-          val = surf->vertices[vtx].annotation;
-        }
         else if (!strcmp(Field, "ripflag")) {
           val = surf->vertices[vtx].ripflag;
+        }
+        else if (!strcmp(Field, "marked")) {
+          val = surf->vertices[vtx].marked;
+        }
+        else if (!strcmp(Field, "annotation")) {
+          val = surf->vertices[vtx].annotation;
         }
         else if (!strcmp(Field, "area")) {
           val = surf->vertices[vtx].area;
@@ -7732,5 +7734,283 @@ int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double ds
   fprintf(fp,"useRealRAS 0\n");
   fflush(fp);
 
+  return(0);
+}
+
+/*!
+  \fn int AutoDetGWStats::AutoDetectStats(void)
+  \brief Computes stats used in MRIScomputeBorderValues()
+ */
+int AutoDetGWStats::AutoDetectStats(void)
+{
+  printf("Auto detecting stats\n");
+  MRI *mri_tmp ;
+  
+  // Clip the maximum WM value
+  // May want to do this outside of this function
+  MRIclipBrightWM(mri_T1, mri_wm);
+  
+  // Binarize wm.mgz by thresholding at WM_MIN_VAL. Voxels below threshold will 
+  // take a value of MRI_NOT_WHITE; those above will get MRI_WHITE.
+  printf("Binarizing thresholding at %d\n",WM_MIN_VAL);
+  mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
+  printf("computing class statistics... low=30, hi=%f\n",adWHITE_MATTER_MEAN);
+  // This computes means and stddevs of voxels near the border of
+  // wm.mgz with inside being WM and outside being GM. Seems like
+  // the aseg would be better for this than the wm.mgz
+  MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, adWHITE_MATTER_MEAN,
+			    &white_mean, &white_std, &gray_mean, &gray_std) ;
+  printf("white_mean = %g +/- %g, gray_mean = %g +/- %g\n",white_mean, white_std, gray_mean,gray_std) ;
+  
+  if(use_mode){
+    printf("using class modes intead of means, discounting robust sigmas....\n") ;
+    //MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+    // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
+    // This makes the identity of mris very important! It will be orig_name by default but will
+    // become white_name if white_name specified.
+    if(mrisAD){
+      MRISsaveVertexPositions(mrisAD, WHITE_VERTICES) ;
+      MRIScomputeClassModes(mrisAD, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
+    }
+    else {
+      if(mrisADlh){
+	MRISsaveVertexPositions(mrisADlh, WHITE_VERTICES) ;
+	MRIScomputeClassModes(mrisADlh, mri_T1, &lh_white_mode, &lh_gray_mode, NULL, NULL, NULL, NULL);
+	printf("lh_white_mode = %g, lh_gray_mode = %g\n",lh_white_mode, lh_gray_mode);
+	white_mode = lh_white_mode;
+	gray_mode  = lh_gray_mode;
+      }
+      if(mrisADrh){
+	MRISsaveVertexPositions(mrisADrh, WHITE_VERTICES) ;
+	MRIScomputeClassModes(mrisADrh, mri_T1, &rh_white_mode, &rh_gray_mode, NULL, NULL, NULL, NULL);
+	printf("rh_white_mode = %g, rh_gray_mode = %g\n",rh_white_mode, rh_gray_mode);
+	white_mode = rh_white_mode;
+	gray_mode  = rh_gray_mode;
+      }
+      if(mrisADlh && mrisADrh){
+	white_mode = (lh_white_mode + rh_white_mode)/2.0;
+	gray_mode  = (lh_gray_mode  + rh_gray_mode )/2.0;
+	hemicode = 3;
+      }
+    }
+  }
+  printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
+  white_mean = white_mode ;
+  gray_mean = gray_mode ;
+  printf("std_scale = %g\n",std_scale);
+  
+  white_std /= std_scale;
+  gray_std /= std_scale;
+  
+  //these may be set on the cmd
+  if(!min_gray_at_white_border_set)
+    min_gray_at_white_border = gray_mean-gray_std ;
+  if(!max_border_white_set)
+    max_border_white = white_mean+white_std ;
+  if(!max_csf_set)
+    max_csf = gray_mean - MAX(.5, (variablesigma-1.0))*gray_std ;
+  if (!min_border_white_set)
+    min_border_white = gray_mean ;
+  
+  // apply some sanity checks
+  printf("Applying sanity checks, max_scale_down = %g\n",max_scale_down);
+  
+  if (min_gray_at_white_border < max_scale_down*MIN_GRAY_AT_WHITE_BORDER)
+    min_gray_at_white_border = nint(max_scale_down*MIN_GRAY_AT_WHITE_BORDER) ;
+  if (max_border_white < max_scale_down*MAX_BORDER_WHITE)    max_border_white = nint(max_scale_down*MAX_BORDER_WHITE) ;
+  if (min_border_white < max_scale_down*MIN_BORDER_WHITE)    min_border_white = nint(max_scale_down*MIN_BORDER_WHITE) ;
+  if (max_csf < max_scale_down*adMAX_CSF)    max_csf = max_scale_down*adMAX_CSF ;
+  
+  printf("setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %f)\n",min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
+  printf("setting MAX_BORDER_WHITE to %2.1f (was %f)\n",max_border_white, MAX_BORDER_WHITE) ;
+  printf("setting MIN_BORDER_WHITE to %2.1f (was %f)\n",min_border_white, MIN_BORDER_WHITE) ;
+  printf("setting MAX_CSF to %2.1f (was %f)\n",max_csf, adMAX_CSF) ;
+  
+  //these may be set on the cmd
+  if (!max_gray_set)
+    max_gray = white_mean-white_std ;
+  if (!max_gray_at_csf_border_set){
+    //max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+      max_gray_at_csf_border = gray_mean-1.0*gray_std ;   // changed to push pial surfaces further out BRF 12/10/2015
+  }
+  if (!min_gray_at_csf_border_set)
+    min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
+  
+  if (max_gray < max_scale_down*MAX_GRAY)
+    max_gray = nint(max_scale_down*MAX_GRAY) ;
+  if (max_gray_at_csf_border < max_scale_down*MAX_GRAY_AT_CSF_BORDER)
+    max_gray_at_csf_border = nint(max_scale_down*MAX_GRAY_AT_CSF_BORDER) ;
+  if (min_gray_at_csf_border < max_scale_down*MIN_GRAY_AT_CSF_BORDER)
+    min_gray_at_csf_border = nint(max_scale_down*MIN_GRAY_AT_CSF_BORDER) ;
+  
+  printf("setting MAX_GRAY to %2.1f (was %f)\n",max_gray, MAX_GRAY) ;
+  printf("setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %f)\n",max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
+  printf("setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %f)\n",min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
+  MRIfree(&mri_tmp) ;
+
+  MID_GRAY = ((max_gray + min_gray_at_csf_border) / 2.0);
+  
+  // Below are values input to MRIScomputeBorderValues()
+  printf("When placing the white surface\n");
+  white_inside_hi  = MAX_WHITE;
+  white_border_hi  = max_border_white;
+  white_border_low = min_border_white;
+  white_outside_low = min_gray_at_white_border;
+  white_outside_hi = (max_border_white + max_gray_scale*max_gray) / (max_gray_scale+1.0) ;
+  printf("  white_border_hi   = %g;\n",white_border_hi);
+  printf("  white_border_low  = %g;\n",white_border_low);
+  printf("  white_outside_low = %g;\n",white_outside_low);
+  printf("  white_inside_hi   = %g;\n",white_inside_hi);
+  printf("  white_outside_hi  = %g;\n",white_outside_hi);
+  
+  printf("When placing the pial surface\n");
+  pial_inside_hi = max_gray;
+  pial_border_hi = max_gray_at_csf_border;
+  pial_border_low = min_gray_at_csf_border;
+  pial_outside_low = min_csf;
+  pial_outside_hi  = (max_csf+max_gray_at_csf_border)/2;
+  printf("  pial_border_hi   = %g;\n",pial_border_hi);
+  printf("  pial_border_low  = %g;\n",pial_border_low);
+  printf("  pial_outside_low = %g;\n",pial_outside_low);
+  printf("  pial_inside_hi   = %g;\n",pial_inside_hi);
+  printf("  pial_outside_hi  = %g;\n",pial_outside_hi);
+  //border_hi  - determines when a sample is too bright on the inward  loop
+  //border_low - determines when a sample is too dark   on the outward loop
+  
+  return(0);
+}
+/*!
+  \fn int AutoDetGWStats::AutoDetectStats(char *subject, char *hemistr)
+  \brief Computes stats used in MRIScomputeBorderValues()  given the
+  subject and the hemisphere.
+ */
+int AutoDetGWStats::AutoDetectStats(char *subject, char *hemistr)
+{
+  char *SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  char fname[1000];
+  sprintf(fname,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,T1_name);
+  mri_T1 = MRIread(fname);
+  if(mri_T1==NULL) return(1);
+  sprintf(fname,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,wm_name);
+  mri_wm = MRIread(fname);
+  if(mri_wm==NULL) return(1);
+  sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemistr,orig_name);
+  mrisAD = MRISread(fname);
+  if(mrisAD==NULL) return(1);
+  if(strcmp(hemistr,"lh")==0) hemicode = 1;
+  if(strcmp(hemistr,"rh")==0) hemicode = 2;
+  int err = AutoDetectStats();
+  return(err);
+}
+/*!
+  \fn int AutoDetGWStats::Print(FILE *fp)
+  \brief Writes out stats used in MRIScomputeBorderValues() into the given stream
+  in a way that is compatible with AutoDetGWStats::Read(FILE *fp)
+ */
+int AutoDetGWStats::Print(FILE *fp)
+{
+  fprintf(fp,"hemicode           %d\n",hemicode);
+  fprintf(fp,"white_border_hi    %lf\n",white_border_hi);
+  fprintf(fp,"white_border_low   %lf\n",white_border_low);
+  fprintf(fp,"white_outside_low  %lf\n",white_outside_low);
+  fprintf(fp,"white_inside_hi    %lf\n",white_inside_hi);
+  fprintf(fp,"white_outside_hi   %lf\n",white_outside_hi);
+  fprintf(fp,"pial_border_hi    %lf\n",pial_border_hi);
+  fprintf(fp,"pial_border_low   %lf\n",pial_border_low);
+  fprintf(fp,"pial_outside_low  %lf\n",pial_outside_low);
+  fprintf(fp,"pial_inside_hi    %lf\n",pial_inside_hi);
+  fprintf(fp,"pial_outside_hi   %lf\n",pial_outside_hi);
+  fprintf(fp,"use_mode %d\n",use_mode);
+  fprintf(fp,"variablesigma %f\n",variablesigma);
+  fprintf(fp,"std_scale %lf\n",std_scale);
+  fprintf(fp,"adWHITE_MATTER_MEAN %f\n",adWHITE_MATTER_MEAN);
+  fprintf(fp,"MAX_WHITE %f\n",MAX_WHITE);
+  fprintf(fp,"MIN_BORDER_WHITE %f\n",MIN_BORDER_WHITE);
+  fprintf(fp,"MAX_BORDER_WHITE %f\n",MAX_BORDER_WHITE);
+  fprintf(fp,"MAX_GRAY %f\n",MAX_GRAY);
+  fprintf(fp,"MID_GRAY %f\n",MID_GRAY);
+  fprintf(fp,"MIN_GRAY_AT_CSF_BORDER %f\n",MIN_GRAY_AT_CSF_BORDER);
+  fprintf(fp,"MAX_GRAY_AT_CSF_BORDER %f\n",MAX_GRAY_AT_CSF_BORDER);
+  fprintf(fp,"MIN_CSF %f\n",MIN_CSF);
+  fprintf(fp,"adMAX_CSF %f\n",adMAX_CSF);
+  fprintf(fp,"white_mean %f\n",white_mean);
+  fprintf(fp,"white_mode %f\n",white_mode);
+  fprintf(fp,"white_std %f\n",white_std);
+  fprintf(fp,"gray_mean %f\n",gray_mean);
+  fprintf(fp,"gray_mode %f\n",gray_mode );
+  fprintf(fp,"gray_std %f\n",gray_std);
+  fprintf(fp,"min_border_white %f\n",min_border_white);
+  fprintf(fp,"max_border_white %f\n",max_border_white);
+  fprintf(fp,"min_gray_at_white_border %f\n",min_gray_at_white_border);
+  fprintf(fp,"max_gray %f\n",max_gray);
+  fprintf(fp,"min_gray_at_csf_border %f\n",min_gray_at_csf_border);
+  fprintf(fp,"max_gray_at_csf_border %f\n",max_gray_at_csf_border);
+  fprintf(fp,"min_csf %f\n",min_csf);
+  fprintf(fp,"max_csf %f\n",max_csf);
+  fprintf(fp,"max_gray_scale %lf\n",max_gray_scale);
+  fprintf(fp,"max_scale_down %lf\n",max_scale_down);
+  fflush(fp);
+  return(0);
+}
+/*!
+  \fn int AutoDetGWStats::Write(char *fname)
+  \brief Writes out stats used in MRIScomputeBorderValues() into the given filename
+ */
+int AutoDetGWStats::Write(char *fname)
+{
+  FILE *fp = fopen(fname,"w");
+  if(fp==NULL) return(1);
+  Print(fp);
+  fclose(fp);
+  return(0);
+}
+int AutoDetGWStats::ReadStream(FILE *fp){ // read from stream
+  fscanf(fp,"%*s %d",&hemicode);
+  fscanf(fp,"%*s %lf",&white_border_hi);
+  fscanf(fp,"%*s %lf",&white_border_low);
+  fscanf(fp,"%*s %lf",&white_outside_low);
+  fscanf(fp,"%*s %lf",&white_inside_hi);
+  fscanf(fp,"%*s %lf",&white_outside_hi);
+  fscanf(fp,"%*s %lf",&pial_border_hi);
+  fscanf(fp,"%*s %lf",&pial_border_low);
+  fscanf(fp,"%*s %lf",&pial_outside_low);
+  fscanf(fp,"%*s %lf",&pial_inside_hi);
+  fscanf(fp,"%*s %lf",&pial_outside_hi);
+  fscanf(fp,"%*s %d\n",&use_mode);
+  fscanf(fp,"%*s %f",&variablesigma);
+  fscanf(fp,"%*s %lf",&std_scale);
+  fscanf(fp,"%*s %f",&adWHITE_MATTER_MEAN);
+  fscanf(fp,"%*s %f",&MAX_WHITE);
+  fscanf(fp,"%*s %f",&MIN_BORDER_WHITE);
+  fscanf(fp,"%*s %f",&MAX_BORDER_WHITE);
+  fscanf(fp,"%*s %f",&MAX_GRAY);
+  fscanf(fp,"%*s %f",&MID_GRAY);
+  fscanf(fp,"%*s %f",&MIN_GRAY_AT_CSF_BORDER);
+  fscanf(fp,"%*s %f",&MAX_GRAY_AT_CSF_BORDER);
+  fscanf(fp,"%*s %f",&MIN_CSF);
+  fscanf(fp,"%*s %f",&adMAX_CSF);
+  fscanf(fp,"%*s %f",&white_mean);
+  fscanf(fp,"%*s %f",&white_mode);
+  fscanf(fp,"%*s %f",&white_std);
+  fscanf(fp,"%*s %f",&gray_mean);
+  fscanf(fp,"%*s %f",&gray_mode );
+  fscanf(fp,"%*s %f",&gray_std);
+  fscanf(fp,"%*s %f",&min_border_white);
+  fscanf(fp,"%*s %f",&max_border_white);
+  fscanf(fp,"%*s %f",&min_gray_at_white_border);
+  fscanf(fp,"%*s %f",&max_gray);
+  fscanf(fp,"%*s %f",&min_gray_at_csf_border);
+  fscanf(fp,"%*s %f",&max_gray_at_csf_border);
+  fscanf(fp,"%*s %f",&min_csf);
+  fscanf(fp,"%*s %f",&max_csf);
+  fscanf(fp,"%*s %lf",&max_gray_scale);
+  fscanf(fp,"%*s %lf",&max_scale_down);
+  return(0);
+}
+int AutoDetGWStats::Read(char *fname){ // from file name
+  FILE *fp = fopen(fname,"r");
+  if(fp==NULL) return(1);
+  ReadStream(fp);
+  fclose(fp);
   return(0);
 }
