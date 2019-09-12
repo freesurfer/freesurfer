@@ -84,6 +84,7 @@ set InitCoReg = 1;
 set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
+set BBRXopts = ()
 set IntermediateFSD = ()
 set IntermediateStem = ()
 set contrast = bold
@@ -214,6 +215,7 @@ foreach sess ($SessList)
     if($InitSPM)   set cmd = ($cmd -init-spm)
     if($InitHeader) set cmd = ($cmd -init-header)
     if($#IntermediateFSD) set cmd = ($cmd -bbr-int $IntermediateFSD $IntermediateStem)
+    if($#BBRXopts) set cmd = ($cmd -bbr-xopts $BBRXopts)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -389,6 +391,15 @@ while( $#argv != 0 )
     case "-reg-dof":
       if ( $#argv == 0) goto arg1err;
       set RegDOF = $argv[1]; shift;
+      breaksw
+
+    case "-bbr-xopts":
+      if ( $#argv == 0) goto arg1err;
+      set BBRXopts = $argv[1]; shift
+      if(! -e $BBRXopts) then
+        echo "ERROR: cannot find $BBRXopts"
+        exit 1;
+      endif
       breaksw
 
     case "-mc-in":
@@ -862,7 +873,7 @@ check_params:
     exit 1;
   endif
 
-  if($DoB0DC && $#ProjFracExpKey) then
+  if($UseB0DC && $#ProjFracExpKey) then
     # This can actually be done but will create a conflict at the time of mkanalysis
     echo "WARNING: specifying -b0dc and -projfrac at the same time may create a conflict when mkanalysis-sess is run"
     #exit 1;
@@ -952,6 +963,7 @@ usage_exit:
   echo ""
   echo ""
   echo "  -regfile regfile   : registration file for use with -surf-fwhm (register.dat)"
+  echo "  -bbr-xopts bbr.xopts : pass expert options to bbregister"
   echo "  -projfrac frac expkey : projection fraction for use with -surf-fwhm (0.5)"
   echo "    expkey is a code string used to make sure that the output file name is unique."
   echo "    This should be passed to mkanalysis-sess with -expkey. "

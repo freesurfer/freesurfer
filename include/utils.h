@@ -139,5 +139,6 @@ int *GetMemUsage(int *u);
 int PrintMemUsage(FILE *fp);
 int PrintRUsage(int who, const char *pre, FILE *fp);
 int WriteRUsage(int who, const char *pre, char *fname);
+double *DListStats(double *dlist, int nlist, double *stats);
 
 #endif

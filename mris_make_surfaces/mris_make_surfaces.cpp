@@ -56,6 +56,7 @@
 #include "voxlist.h"
 #include "fsinit.h"
 #include "mris_multimodal_refinement.h"
+#include "surfgrad.h"
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -69,8 +70,8 @@ static char vcid[] =
 int main(int argc, char *argv[]) ;
 
 #define MIN_NONCORTEX_VERTICES 10
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 #define MIN_PEAK_PCT 0.1
 static double Ghisto_left_outside_peak_pct = MIN_PEAK_PCT ;
@@ -159,8 +160,7 @@ static MRI  *MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
-int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
-int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
+//int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 static int fix_mtl = 0 ;
@@ -232,6 +232,8 @@ static int ngray = 100  /* 30*/ /*45*/ ;
 // will be overwritten by the orig_white surface (which will not be
 // smoothed).
 static char *orig_name = ORIG_NAME ; // "orig"
+
+static char *AutoDetSurfName=NULL; // surf to use when autodet stats
 
 // white_only=1, then only place the white, do not place pial
 static int white_only = 0 ;
@@ -329,7 +331,7 @@ int main(int argc, char *argv[])
 {
   char          *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
   int           nargs, i, msec, n_averages, j ;
-  MRI_SURFACE   *mris ;
+  MRI_SURFACE   *mris, *mrisAutoDet ;
   MRI           *mri_wm, *mri_kernel = NULL;
   MRI *mri_smooth = NULL, *mri_mask = NULL;
   MRI *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
@@ -386,6 +388,9 @@ int main(int argc, char *argv[])
   parms.l_spring = 0.0f ;
   parms.l_surf_repulse = 0.0 ;
   parms.l_repulse = 5.0 ;
+  parms.l_spring_nzr = 0.0 ;
+  parms.l_spring_nzr_len = 0.0 ;
+  parms.l_hinge = 0;
 
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
@@ -643,7 +648,7 @@ int main(int argc, char *argv[])
   //  setMRIforSurface(mri_wm);
 
   // This does not smooth. It clips the maximum WM value
-  MRIsmoothBrightWM(mri_T1, mri_wm) ;
+  MRIclipBrightWM(mri_T1, mri_wm) ;
 
   if(fill_interior == 0)
     mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
@@ -651,7 +656,7 @@ int main(int argc, char *argv[])
     mri_labeled = MRIclone(mri_T1, NULL) ;
 
   if(mri_T1_white)
-    MRIsmoothBrightWM(mri_T1_white, mri_wm) ;
+    MRIclipBrightWM(mri_T1_white, mri_wm) ;
 
 
   if (overlay)
@@ -670,6 +675,31 @@ int main(int argc, char *argv[])
   mris = MRISreadOverAlloc(fname, 1.1) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
+
+  if(AutoDetSurfName){
+    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, AutoDetSurfName, suffix) ;
+    printf("reading surface for AutoDet from %s...\n", fname) ;
+    mrisAutoDet = MRISreadOverAlloc(fname, 1.1) ;
+    if (!mrisAutoDet)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
+  }
+  else mrisAutoDet = mris;
+
+  MRISfaceMetric(mris,0); // just computes f->norm, does not replace MRISmetricProperties
+  MRISedges(mris);
+  MRIScorners(mris);
+  MRISedgeMetric(mris,0);
+  MRIScornerMetric(mris,0);
+  printf("Input Surface Quality Stats\n");
+  MRISprettyPrintSurfQualityStats(stdout, mris);
+
+  if(parms.l_hinge > 0 || parms.l_spring_nzr > 0){
+    if(parms.l_spring_nzr){
+      double  *edgestats = MRISedgeStats(mris, 0, NULL, NULL);
+      parms.l_spring_nzr_len = edgestats[1];
+      free(edgestats);
+    }
+  }
 
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
     spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
@@ -704,7 +734,7 @@ int main(int argc, char *argv[])
     // take a value of MRI_NOT_WHITE; those above will get MRI_WHITE.
     printf("Binarizing %s thresholding at %d\n",wm_name,WM_MIN_VAL);
     mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
-    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+    MRISsaveVertexPositions(mrisAutoDet, WHITE_VERTICES) ;
     // WHITE_MATTER_MEAN = 110
     printf("computing class statistics... low=30, hi=%d\n",WHITE_MATTER_MEAN);
     // This computes means and stddevs of voxels near the border of
@@ -720,7 +750,7 @@ int main(int argc, char *argv[])
       // This gets stats based on sampling the MRI at 1mm inside (WM) and 1mm outside (GM) of the surface.
       // This makes the identity of mris very important! It will be orig_name by default but will
       // become white_name if white_name specified.
-      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
+      MRIScomputeClassModes(mrisAutoDet, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
       printf("white_mode = %g, gray_mode = %g\n",white_mode, gray_mode);
@@ -873,7 +903,7 @@ int main(int argc, char *argv[])
   {
     if(nowhite) break ; // skip if not placing the white surface
 
-    printf("Iteration %d =========================================\n",i);
+    printf("Iteration %d white =========================================\n",i);
     printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
     // This does not look like it actually smooths anything. It creates the kernel and frees 
@@ -909,7 +939,7 @@ int main(int argc, char *argv[])
 	vgdiag = &mris->vertices[Gdiag_no];
 	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
       }
-      fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
+      MRISripMidline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
       if(Gdiag_no > 0){
 	vgdiag = &mris->vertices[Gdiag_no];
 	printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
@@ -1199,7 +1229,7 @@ int main(int argc, char *argv[])
 
   if (mri_aseg) //update aseg using either generated or orig_white
   {
-    //    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;   //moved to later
+    //    MRISripMidline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;   //moved to later
     if (write_aseg_fname) {
       edit_aseg_with_surfaces(mris, mri_aseg) ;
       printf("writing corrected aseg to %s\n", write_aseg_fname) ;
@@ -1261,79 +1291,18 @@ int main(int argc, char *argv[])
     printf("writing white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
 
+    printf("Output Surface Quality Stats\n");
+    MRISprettyPrintSurfQualityStats(stdout, mris);
+
     if(mri_aseg && label_cortex) {
-      LABEL *lcortex, **labels ;
-      int   n, max_l, max_n, nlabels ;
-
-      //lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
-      // Label cortex based on aseg
-      lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
-      if (Gdiag & DIAG_VERBOSE_ON) {
-        if (getenv("FS_POSIX")) {
-          sprintf(fname,"./%s.%s%s%s_orig.label", hemi, "cortex", output_suffix, suffix);
-        } else {
-          sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
-        }
-        printf("writing cortex label to %s...\n", fname) ;
-        LabelWrite(lcortex, fname) ;
-      }
-
-      // Erode the label by 4
-      LabelErode(lcortex, mris, 4) ;
-      if (Gdiag & DIAG_VERBOSE_ON) {
-        if (getenv("FS_POSIX")) {
-          sprintf(fname, "./%s.%s%s%s_erode.label", hemi, "cortex", output_suffix, suffix);
-        } else {
-          sprintf(fname, "%s/%s/label/%s.%s%s%s_erode.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
-        }
-        printf("writing cortex label to %s...\n", fname) ;
-        LabelWrite(lcortex, fname) ;
-      }
-
-      // Dilate the label by 4
-      LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
-      if (Gdiag & DIAG_VERBOSE_ON) {
-        if (getenv("FS_POSIX")) {
-          sprintf(fname,"./%s.%s%s%s_dilate.label", hemi, "cortex", output_suffix, suffix);
-        } else {
-          sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
-        }
-        printf("writing cortex label to %s...\n", fname) ;
-        LabelWrite(lcortex, fname) ;
-      }
-
-      // Not sure what is happening here
-      MRISclearMarks(mris) ;
-      LabelMark(lcortex, mris) ;
-      MRISsegmentMarked(mris, &labels, &nlabels, 1) ; // where are labels coming from? aseg?
-
-      // Find the label with the most points in it
-      max_n = 0 ;
-      max_l = labels[0]->n_points ;
-      for (n = 1 ; n < nlabels ; n++){
-        if (labels[n]->n_points > max_l){
-          max_l = labels[n]->n_points ;
-          max_n = n ;
-        }
-      }
-      // Unmark the vertices if they are not part of the biggest label 
-      for (n = 0 ; n < nlabels ; n++)      {
-        if (n != max_n)
-          LabelUnmark(labels[n], mris) ;
-        LabelFree(&labels[n]) ;
-      }
-      LabelFree(&lcortex) ;
-      
-      // Get the final cortex label
-      lcortex = LabelFromMarkedSurface(mris) ;
-
+      // Label cortex based on aseg (4=ndilate,4=nerode)
+      LABEL *lcortex = MRIScortexLabelDECC(mris, mri_aseg, 4, 4, -1) ;
       if (getenv("FS_POSIX")) {
         sprintf(fname,"./%s.%s%s%s.label", hemi, "cortex", output_suffix, suffix);
       } else {
         sprintf(fname,"%s/%s/label/%s.%s%s%s.label", sdir, sname, hemi, "cortex", output_suffix, suffix);
       }
-
-      printf("writing cortex label to %s...\n", fname) ;
+      printf("Writing cortical label to %s\n",fname);
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }// done writing out white surface
@@ -1370,7 +1339,7 @@ int main(int argc, char *argv[])
 
   // ==========================================================================
   // Place pial surface. #pial
-  printf("\n\n\nPlacing pial surface\n");
+  printf("\n\n\nPlacing pial surface (pialpial)\n");
 
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
   MRISunrip(mris) ;
@@ -1382,7 +1351,7 @@ int main(int argc, char *argv[])
       printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
     }
     printf("Freezing midline and others\n");  fflush(stdout);
-    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
+    MRISripMidline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
     if(Gdiag_no > 0){
       vgdiag = &mris->vertices[Gdiag_no];
       printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d\n",Gdiag_no,vgdiag->val,vgdiag->d,vgdiag->marked,vgdiag->ripflag);
@@ -1446,6 +1415,7 @@ int main(int argc, char *argv[])
       //between final white and orig pial
       MRISblendXYZandTXYZ(mris, 0.75f, 0.25f);
     }
+
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever
     // orig_pial is used??? Maybe that's why the cross-intersection
     // was caused
@@ -1538,6 +1508,7 @@ int main(int argc, char *argv[])
          n_averages /= 2, current_sigma /= 2, i++)
     {
 
+      printf("Iteration %d pial =========================================\n",i);
       printf("j=%d, i=%d, sigma=%g\n",j,i,current_sigma);
 
       if(flair_or_T2_name) {
@@ -1780,7 +1751,7 @@ int main(int argc, char *argv[])
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
 
-      if (fill_interior == 0){ // off by default
+      if (fill_interior == 0){ // this happens by default default
         /* Replace bright stuff such as eye sockets with 255.  Simply
         zeroing it out would make the border always go through the
         sockets, and ignore subtle local minima in intensity at the
@@ -2789,6 +2760,11 @@ get_option(int argc, char *argv[])
     auto_detect_stats = 0 ;
     fprintf(stderr, "disabling auto-detection of border ranges...\n") ;
   }
+  else if (!stricmp(option, "autodetsurf")){
+    AutoDetSurfName = argv[2];
+    nargs = 1 ;
+  }
+
   else if (!stricmp(option, "inoutin"))
   {
     in_out_in_flag = 1 ;
@@ -2890,6 +2866,18 @@ get_option(int argc, char *argv[])
     parms.integration_type = INTEGRATE_MOMENTUM ;
     fprintf(stderr,  "using dt = %2.1e\n", parms.dt) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "spring_nzr"))
+  {
+    parms.l_spring_nzr = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("l_spring_nzr = %2.3f\n", parms.l_spring_nzr) ;
+  }
+  else if (!stricmp(option, "hinge"))
+  {
+    parms.l_hinge = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("l_hinge = %2.3f\n", parms.l_hinge);
   }
   else if (!stricmp(option, "spring"))
   {
@@ -3436,7 +3424,7 @@ MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
   is the max gradient.
   Hidden parameters: 0.25 and mean+2*std
  */
-int MRISfindExpansionRegions(MRI_SURFACE *mris)
+int DeleteMRISfindExpansionRegions(MRI_SURFACE *mris)
 {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
@@ -3499,47 +3487,9 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
-/*!
-  \fn int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
-  \brief Does not smooth. It actually just replaces values that are
-  greater than WM_MIN_VAL with DEFAULT_DESIRED_WHITE_MATTER_VALUE
-*/
-int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
-{
-  int     width, height, depth, x, y, z, nthresholded ;
-  BUFTYPE *pwm, val, wm ;
 
-  width = mri_T1->width ;
-  height = mri_T1->height ;
-  depth = mri_T1->depth ;
-
-  nthresholded = 0 ;
-  for (z = 0 ; z < depth ; z++)  {
-    for (y = 0 ; y < height ; y++)    {
-      pwm = &MRIvox(mri_wm, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)      {
-        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
-        wm = *pwm++ ;
-        if (wm >= WM_MIN_VAL){
-	  /* labeled as white */
-          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE){
-            nthresholded++ ;
-            val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
-          }
-        }
-	// If too bright, replace value with DEFAULT_DESIRED_WHITE_MATTER_VALUE 
-        MRIsetVoxVal(mri_T1, x, y, z, 0, val) ;
-      }
-    }
-  }
-
-  printf("MRIsmoothBrightWM(): thresh=%d, clip=%d, %d bright wm thresholded.\n", 
-	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
-
-  return(NO_ERROR) ;
-}
 MRI *
-MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
+DeletemeMRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nlabeled, nwhite,
           xk, yk, zk, xi, yi, zi;
@@ -5784,6 +5734,8 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
   *pnz = nz ;
   return(NO_ERROR) ;
 }
+
+
 int
 MRISremoveSelfIntersections(MRI_SURFACE *mris)
 {

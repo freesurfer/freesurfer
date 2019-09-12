@@ -361,6 +361,7 @@ static void VERTEX_TOPOLOGYdtr(VERTEX_TOPOLOGY* v) {
   freeAndNULL(v->v);
   freeAndNULL(v->f);
   freeAndNULL(v->n);
+  if(v->e) freeAndNULL(v->e);
 }
 
 static void VERTEXdtr(VERTEX* v) {
@@ -380,6 +381,14 @@ static void MRIS_EDGEdtr(MRI_EDGE* e) {
   int k;
   for (k=0; k<4; k++){
     if (e->gradDot[k]) DMatrixFree(&e->gradDot[k]);
+  }
+  if(e->gradU) DMatrixFree(&e->gradU);
+}
+
+static void MRIS_CORNERdtr(MRI_CORNER* c) {
+  int k;
+  for (k=0; k<3; k++){
+    if (c->gradDot[k]) DMatrixFree(&c->gradDot[k]);
   }
 }
 
@@ -673,6 +682,12 @@ void MRISdtr(MRIS *mris) {
     MRIS_EDGEdtr(&mris->edges[edgeNo]);
   }
   freeAndNULL(mris->edges);
+
+  int cornerNo;
+  for (cornerNo=0; cornerNo < mris->ncorners; cornerNo++) {
+    MRIS_CORNERdtr(&mris->corners[cornerNo]);
+  }
+  freeAndNULL(mris->corners);
 
   if (mris->free_transform) {
     if (mris->SRASToTalSRAS_) {

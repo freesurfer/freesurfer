@@ -362,11 +362,15 @@ BEGINHELP
 
 Wrapper to run the FSL FIRST program to perform subcortical segmentation. Handles
 formats and orientations, computes segmentation stats, and will compute dice
-coefficients with a passed segmentation. 
+coefficients with a passed segmentation. The final output will be
+source.first_all_fast_firstseg.nii.gz
 
 If run with --s, the input becomes orig.mgz, the seg used for dice
 becomes aseg.presurf.mgz, the output will be mri/first, and the stats
-file will go into the stats folder (ie, stats/first.fsl.stats)
+file will go into the stats folder (ie, stats/first.fsl.stats). The
+stats can be compiled with 
+
+asegstats2table -t subcort.volume.first.dat --statsfile=first.fsl.stats --subjectsfile=slist.txt 
 
 For more info see https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST
 

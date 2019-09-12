@@ -137,6 +137,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_cmdParser(cmdParser),
   m_bHadError(false)
 {
+  m_defaultSettings["no_autoload"] = true;  // default no autoload
+
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -845,9 +847,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  if (parser->Found( "no-auto-load"))
+  if (parser->Found( "auto-load-surf"))
   {
-    m_defaultSettings["no_autoload"] = true;
+    m_defaultSettings["no_autoload"] = false;
   }
   if ( parser->Found( "viewport", &sa ) )
   {
@@ -1790,6 +1792,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlaySmooth( sa );
   }
+  else if (cmd == "setsurfaceoverlaymask")
+  {
+    CommandSetSurfaceOverlayMask( sa );
+  }
   else if ( cmd == "setsurfaceoffset" )
   {
     CommandSetSurfaceOffset( sa );
@@ -2236,7 +2242,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0,  (QStringList("setisosurfaceupsample") << subArgu) );
       }
-      else if (subOption == "color")
+      else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
       }
@@ -3144,7 +3150,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QStringList valid_overlay_options;
   QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom";
+                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth" << "overlay_custom"
+                        << "overlay_mask";
   bool bNoAutoLoad = m_defaultSettings["no_autoload"].toBool();
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
@@ -3162,6 +3169,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QStringList overlay_color;
     QStringList overlay_thresholds;
     QStringList overlay_custom;
+    QStringList overlay_mask;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
     {
@@ -3188,6 +3196,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_smooth_steps = subArgu;
         else if (subOption == "overlay_custom")
           overlay_custom = subArgu.split(",", QString::SkipEmptyParts);
+        else if (subOption == "overlay_mask")
+          overlay_mask = subArgu.split(",", QString::SkipEmptyParts);
       }
     }
     if (overlay_reg.isEmpty())
@@ -3289,6 +3299,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_smooth_steps.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaysmooth") << overlay_smooth_steps);
+
+          if (!overlay_mask.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlaymask") << overlay_mask);
         }
         else if ( subOption == "mrisps" )
         {
@@ -3578,6 +3591,22 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       }
     }
   }
+}
+
+void MainWindow::CommandSetSurfaceOverlayMask(const QStringList &cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+    if ( surf )
+    {
+      SurfaceOverlay* overlay = surf->GetActiveOverlay();
+      if ( overlay )
+      {
+          if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
+             overlay->GetProperty()->SetMaskInverse(true);
+          qDebug() << overlay->GetProperty()->GetMaskInverse();
+          emit OverlayMaskRequested(cmd[1]);
+      }
+    }
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
@@ -8595,4 +8624,17 @@ void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename 
   {
     QMessageBox::warning(this, "Error", QString("Could not load parameterization from %1").arg(filename));
   }
+}
+
+void MainWindow::OnExportLabelStats()
+{
+   QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
+                                       AutoSelectLastDir( "mri" ),
+                                       "CSV files (*.csv)");
+   if (!fn.isEmpty() )
+   {
+       LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
+       if (!mri->ExportLabelStats(fn))
+           QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
+   }
 }

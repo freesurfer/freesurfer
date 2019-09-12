@@ -39,6 +39,7 @@ set annot = ();
 set pointset = ();
 set altargs = ()
 set DoWoT2Pial = 0;
+set UseVGLRun = 0;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -184,7 +185,13 @@ if($CenterCursor) set cmd = ($cmd -cc)
 if($#Zoom) set cmd = ($cmd -zoom $Zoom)
 set cmd = ($cmd $altargs)
 echo $cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  echo "Using vglrun"
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 
 #========================================================
 
@@ -412,6 +419,11 @@ while( $#argv != 0 )
 
     case "--aparc":
       set annot = aparc.annot
+      breaksw
+
+    case "-vgl":
+    case "--vgl":
+      set UseVGLRun = 1;
       breaksw
 
     case "--log":

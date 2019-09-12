@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "mrisutils.h"
+#include "surfgrad.h"
 
 #include "romp_support.h"
 
@@ -1516,16 +1517,16 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
 
   mri_aseg = MRIcopy(mri_aseg, NULL);  // so we can mess with it
 
-// remove the posterior few mm of the ventricles to prevent
-// them poking into the calcarine
-#define ERASE_MM 3
+  // remove the posterior few mm of the ventricles to prevent
+  // them poking into the calcarine
+  int erase_mm = 3;
   for (l = 0; l < 2; l++) {
     if (l == 0)
       target_label = Left_Lateral_Ventricle;
     else
       target_label = Right_Lateral_Ventricle;
     MRIlabelBoundingBox(mri_aseg, target_label, &box);
-    for (z = box.z + box.dz - (ERASE_MM + 1); z < box.z + box.dz; z++)
+    for (z = box.z + box.dz - (erase_mm + 1); z < box.z + box.dz; z++)
       for (y = 0; y < mri_aseg->height; y++)
         for (x = 0; x < mri_aseg->width; x++) {
           label = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0);
@@ -1687,6 +1688,51 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
   MRIfree(&mri_aseg);  // a locally edited copy, not the original
   return (lcortex);
 }
+
+/*!
+  \fn LABEL *MRIScortexLabelCC(MRIS *mris, MRI *mri_aseg, int min_vertices)
+  \brief Creates a label of cortex that is better defined than that
+  produced by MRIScortexLabel(). It runs MRIScortexLabel() first, then
+  refines it by dilating (D) and eroding (E) then excluding all but
+  the largest connected component (CC). This replaces what is in
+  mris_make_surfaces when ndilate=nerode=4 and min_vertices=-1.
+ */
+LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices)
+{
+  LABEL *lcortex, **labels ;
+  int   n, max_l, max_n, nlabels ;
+  
+  lcortex = MRIScortexLabel(mris, mri_aseg, min_vertices) ;
+  LabelErode(lcortex, mris, nerode) ; // Erode the label by 4
+  LabelDilate(lcortex, mris, ndilate, CURRENT_VERTICES) ;// Dilate the label by 4
+
+  // Create clusters of the labels and take the biggest
+  MRISclearMarks(mris) ;
+  LabelMark(lcortex, mris) ;
+  MRISsegmentMarked(mris, &labels, &nlabels, 1) ; 
+  
+  // Find the label with the most points in it
+  max_n = 0 ;
+  max_l = labels[0]->n_points ;
+  for (n = 1 ; n < nlabels ; n++){
+    if (labels[n]->n_points > max_l){
+      max_l = labels[n]->n_points ;
+      max_n = n ;
+    }
+  }
+  // Unmark the vertices if they are not part of the biggest label 
+  for (n = 0 ; n < nlabels ; n++){
+    if (n != max_n){
+      LabelUnmark(labels[n], mris) ;
+    }
+    LabelFree(&labels[n]) ;
+  }
+  LabelFree(&lcortex) ;
+  
+  // Get the final cortex label
+  lcortex = LabelFromMarkedSurface(mris) ;
+  return(lcortex);
+ }
 
 /*!
   \fn int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
@@ -3336,3 +3382,133 @@ int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, 
 
   return(eno);
 }
+
+
+/*!
+  \fn double *MRIStriangleAreaStats(MRIS *surf, double *stats)
+  \brief Computes stats (nfaces, mean, stddev, min, max) over
+  all faces that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. Runs MRIScomputeMetricProperties().
+ */
+double *MRIStriangleAreaStats(MRIS *surf, MRI *mask, double *stats)
+{
+  int fno, nfaces;
+  double *area;
+  MRIScomputeMetricProperties(surf);
+
+  area = (double*)calloc(sizeof(double),surf->nfaces);
+  nfaces = 0;
+  for(fno=0; fno < surf->nfaces; fno++){
+    FACE *f = &(surf->faces[fno]);
+    int nthv, skip;
+    skip = 0;
+    for(nthv = 0; nthv < 3; nthv++){
+      int vno = f->v[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    area[nfaces] = f->area;
+    nfaces ++;
+    //printf("%g\n",f->area);
+  }
+  stats = DListStats(area, nfaces, stats);
+  free(area);
+
+  return(stats);
+}
+/*!
+  \fn double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+  \brief Computes stats (nedges, mean, stddev, min, max) over
+  all edges that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. metricid: 0=length, 1=dot, 2=angle.
+  Will create the edge structure if not already there. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric(surf).
+ */
+double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+{
+  int edgeno, nedges, nthv;
+  MRI_EDGE *e;
+  double *metric;
+
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+
+  metric = (double*)calloc(sizeof(double),surf->nedges);
+  nedges = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    int skip = 0;
+    for(nthv=0; nthv < 4; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    switch(metricid){
+    case 0: metric[nedges] = e->len; break;
+    case 1: metric[nedges] = e->dot; break;
+    case 2: metric[nedges] = e->angle; break;
+    default:
+      printf("ERROR: MRISedgeStats() metricid %d unrecognized\n",metricid);
+      return(NULL);
+    }
+    //printf("%lf\n",metric[nedges]);
+    nedges++;
+  }
+
+  stats = DListStats(metric, nedges, stats);
+  free(metric);
+  return(stats);
+}
+/*!
+  \fn int MRISedgePrint(FILE *fp, MRIS *surf)
+  \brief Print edge metrics to a stream. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+ */
+int MRISedgePrint(FILE *fp, MRIS *surf)
+{
+  int edgeno;
+  MRI_EDGE *e;
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    double cost = (1.0-e->dot)*(1.0-e->dot);
+    fprintf(fp,"%6d %6d %6d %10.8f %10.8f %8.4f %12.8f\n",edgeno,
+	    e->vtxno[0],e->vtxno[1],e->len,e->dot,e->angle,cost);
+  }
+  fflush(fp);
+  return(0);
+}
+
+/*!
+  \fn int MRISedgeWrite(char *filename, MRIS *surf)
+  \brief Print edge metrics to a file. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+  via MRISedgePrint(). 
+ */
+int MRISedgeWrite(char *filename, MRIS *surf)
+{
+  FILE *fp;
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf) ;
+  MRISedges(surf);
+  MRISfaceNormalGrad(surf, 0); //0=DoGrad
+  MRISedgeMetric(surf,0);
+
+  fp = fopen(filename,"w");
+  if(fp == NULL) return(1);
+  MRISedgePrint(fp,surf);
+  return(0);
+}
+
