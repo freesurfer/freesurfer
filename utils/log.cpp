@@ -11,7 +11,8 @@
 
 namespace term {
 
-  /** Checks to make sure that stdout and stderr are ttys that accept colors. */
+  // Checks to make sure that stdout and stderr are ttys that accept colors.
+#if 0
   static bool termAllowsColor() {
     if (!isatty(fileno(stderr))) return false;
     if (!isatty(fileno(stdout))) return false;
@@ -29,6 +30,10 @@ namespace term {
     }
     else return false;
   }
+#else
+  // colors aren't fully tested yet, so let's always return false until confident
+  static bool termAllowsColor() { return false; }
+#endif
 
   const char* black()     { return termAllowsColor() ? "\e[30m" : ""; }
   const char* red()       { return termAllowsColor() ? "\e[31m" : ""; }
