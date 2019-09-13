@@ -36,6 +36,7 @@
 #include "macros.h"
 #include "mris_compVolFrac.h"
 #include "mrisurf.h"
+#include "mrisurf_metricProperties.h"
 #include "utils.h"
 #include "version.h"
 

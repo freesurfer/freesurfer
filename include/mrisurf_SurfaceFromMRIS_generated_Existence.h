@@ -1,5 +1,7 @@
     namespace Existence {
     struct Face : public Repr_Elt {
+        typedef Existence::Surface Surface;
+        typedef Existence::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -16,16 +18,18 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline char ripflag  (   ) const ;
-        inline char oripflag (   ) const ;
-        inline int  marked   (   ) const ;
+        inline char ripflag      (          ) const ;
+        inline char oripflag     (          ) const ;
+        inline int  marked       (          ) const ;
         
-        inline void set_ripflag  (  char to ) ;
-        inline void set_oripflag (  char to ) ;
-        inline void set_marked   (   int to ) ;
-    };
+        inline void set_ripflag  (  char to       ) ;
+        inline void set_oripflag (  char to       ) ;
+        inline void set_marked   (   int to       ) ;
+    }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef Existence::Surface Surface;
+        typedef Existence::Face    Face;
         inline Vertex (                                                                     );
         inline Vertex (                        Vertex const & src                           );
         inline Vertex (                        Representation* representation, size_t idx   );
@@ -42,13 +46,15 @@
         inline Vertex (                        AllM::Vertex const & src                     );
         int vno       () const { return idx; }
 
-        inline char ripflag      (    ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
+        inline char ripflag      (           ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
         inline void which_coords (int which, float *x, float *y, float *z) const ;
         
-        inline void set_ripflag (  char to ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
-    };
+        inline void set_ripflag  (   char to       ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
+    }; // Vertex
 
     struct Surface : public Repr_Elt {
+        typedef Existence::Face    Face;
+        typedef Existence::Vertex  Vertex;
         inline Surface (                                               );
         inline Surface ( Surface const & src                           );
         inline Surface ( Representation* representation                );
@@ -98,6 +104,6 @@
         inline PMRI                mri_sras2vox             (           ) const ;  //  volume that the above matrix is for
         inline p_void              mht                      (           ) const ;
         inline p_void              temps                    (           ) const ;
-    };
+    }; // Surface
 
     } // namespace Existence

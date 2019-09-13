@@ -31,6 +31,7 @@
 #include <stdlib.h>
 
 #include "mrisurf.h"
+#include "mrisurf_project.h"
 
 #include "annotation.h"
 #include "cma.h"

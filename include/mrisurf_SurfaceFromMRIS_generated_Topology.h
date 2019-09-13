@@ -1,5 +1,7 @@
     namespace Topology {
     struct Face : public Repr_Elt {
+        typedef Topology::Surface Surface;
+        typedef Topology::Vertex  Vertex;
         inline Face                        (                                            );
         inline Face (                        Face const & src                           );
         inline Face (                        Representation* representation, size_t idx );
@@ -14,17 +16,19 @@
         inline Face (                        AllM::Face const & src                     );
         int fno     () const { return idx; }
 
-        inline Vertex v        ( size_t i  ) const ;
-        inline char   ripflag  (           ) const ;
-        inline char   oripflag (           ) const ;
-        inline int    marked   (           ) const ;
+        inline Vertex v            ( size_t i         ) const ;
+        inline char   ripflag      (                  ) const ;
+        inline char   oripflag     (                  ) const ;
+        inline int    marked       (                  ) const ;
         
-        inline void set_ripflag  (  char to ) ;
-        inline void set_oripflag (  char to ) ;
-        inline void set_marked   (   int to ) ;
-    };
+        inline void   set_ripflag  (          char to       ) ;
+        inline void   set_oripflag (          char to       ) ;
+        inline void   set_marked   (           int to       ) ;
+    }; // Face
 
     struct Vertex : public Repr_Elt {
+        typedef Topology::Surface Surface;
+        typedef Topology::Face    Face;
         inline Vertex (                                                                     );
         inline Vertex (                        Vertex const & src                           );
         inline Vertex (                        Representation* representation, size_t idx   );
@@ -41,30 +45,32 @@
 
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
-        inline Face   f             ( size_t i  ) const ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-        inline size_t n             ( size_t i  ) const ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        inline int    e             ( size_t i  ) const ;  //  edge state for neighboring vertices                      
-        inline Vertex v             ( size_t i  ) const ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-        inline short  vnum          (           ) const ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
-        inline short  v2num         (           ) const ;  //  number of 1, or 2-hop neighbors                          
-        inline short  v3num         (           ) const ;  //  number of 1,2,or 3-hop neighbors                         
-        inline short  vtotal        (           ) const ;  //  total # of neighbors. copy of vnum.nsizeCur              
-        inline short  nsizeMaxClock (           ) const ;  //  copy of mris->nsizeMaxClock when v#num                   
-        inline uchar  nsizeMax      (           ) const ;  //  the max nsize that was used to fill in vnum etc          
-        inline uchar  nsizeCur      (           ) const ;  //  index of the current v#num in vtotal                     
-        inline uchar  num           (           ) const ;  //  number of neighboring faces                              
-        inline char   ripflag       (           ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
+        inline Face   f             ( size_t i            ) const ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        inline size_t n             ( size_t i            ) const ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+        inline int    e             ( size_t i            ) const ;  //  edge state for neighboring vertices                      
+        inline Vertex v             ( size_t i            ) const ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
+        inline short  vnum          (                     ) const ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
+        inline short  v2num         (                     ) const ;  //  number of 1, or 2-hop neighbors                          
+        inline short  v3num         (                     ) const ;  //  number of 1,2,or 3-hop neighbors                         
+        inline short  vtotal        (                     ) const ;  //  total # of neighbors. copy of vnum.nsizeCur              
+        inline short  nsizeMaxClock (                     ) const ;  //  copy of mris->nsizeMaxClock when v#num                   
+        inline uchar  nsizeMax      (                     ) const ;  //  the max nsize that was used to fill in vnum etc          
+        inline uchar  nsizeCur      (                     ) const ;  //  index of the current v#num in vtotal                     
+        inline uchar  num           (                     ) const ;  //  number of neighboring faces                              
+        inline char   ripflag       (                     ) const ;  //  vertex no longer exists - placed last to load the next vertex into cache
         inline void   which_coords  (int which, float *x, float *y, float *z) const ;
         // put the pointers before the ints, before the shorts, before uchars, to reduce size
         // the whole fits in much less than one cache line, so further ordering is no use
         
-        inline void set_f       ( size_t i,   Face to ) ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
-        inline void set_n       ( size_t i, size_t to ) ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-        inline void set_e       ( size_t i,    int to ) ;  //  edge state for neighboring vertices                      
-        inline void set_ripflag (             char to ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
-    };
+        inline void   set_f         ( size_t i,   Face to       ) ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
+        inline void   set_n         ( size_t i, size_t to       ) ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
+        inline void   set_e         ( size_t i,    int to       ) ;  //  edge state for neighboring vertices                      
+        inline void   set_ripflag   (             char to       ) ;  //  vertex no longer exists - placed last to load the next vertex into cache
+    }; // Vertex
 
     struct Surface : public Repr_Elt {
+        typedef Topology::Face    Face;
+        typedef Topology::Vertex  Vertex;
         inline Surface (                                               );
         inline Surface ( Surface const & src                           );
         inline Surface ( Representation* representation                );
@@ -84,6 +90,7 @@
         inline int                   nfaces                   (           ) const ;  //  # of faces on surface, change by calling MRISreallocVerticesAndFaces et al
         inline bool                  faceAttachmentDeferred   (           ) const ;  //  defer connecting faces to vertices for performance reasons
         inline int                   nedges                   (           ) const ;  //  # of edges on surface
+        inline int                   ncorners                 (           ) const ;  //  # of triangle corners
         inline int                   nstrips                  (           ) const ;
         inline Vertex                vertices                 ( size_t i  ) const ;
         inline p_p_void              dist_storage             (           ) const ;  //  the malloced/realloced vertex dist fields, so those fields can be quickly nulled and restored
@@ -91,6 +98,7 @@
         inline int                   tempsAssigned            (           ) const ;  //  State of various temp fields that can be borrowed if not already in use
         inline Face                  faces                    ( size_t i  ) const ;
         inline MRI_EDGE              edges                    ( size_t i  ) const ;
+        inline MRI_CORNER            corners                  ( size_t i  ) const ;
         inline FaceNormCacheEntry    faceNormCacheEntries     ( size_t i  ) const ;
         inline FaceNormDeferredEntry faceNormDeferredEntries  ( size_t i  ) const ;
         inline int                   initialized              (           ) const ;
@@ -127,6 +135,6 @@
         inline PMRI                  mri_sras2vox             (           ) const ;  //  volume that the above matrix is for
         inline p_void                mht                      (           ) const ;
         inline p_void                temps                    (           ) const ;
-    };
+    }; // Surface
 
     } // namespace Topology

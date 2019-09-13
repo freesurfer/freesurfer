@@ -23,6 +23,9 @@
 #include "mrisurf_compute_dxyz.h"
 #include "mrinorm.h"
 
+#include "mrisurf_base.h"
+
+
 int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL;
 
 

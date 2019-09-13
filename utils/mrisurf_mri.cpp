@@ -27,6 +27,9 @@
 #include "region.h"
 #include "surfgrad.h"
 
+#include "mrisurf_base.h"
+
+
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
 {
     fprintf(file, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f", n+1, dt, (float)sse, (float)rms);
