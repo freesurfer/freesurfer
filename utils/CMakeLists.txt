@@ -48,7 +48,6 @@ add_library(utils STATIC
   dmatrix.cpp
   dti.cpp
   dtk.fs.cpp
-  error.cpp
   evschutils.cpp
   fcd.cpp
   fftutils.cpp

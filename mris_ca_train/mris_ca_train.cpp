@@ -43,9 +43,12 @@
 #include <math.h>
 #include <ctype.h>
 
-#include "mri.h"
 #include "macros.h"
+
+#include "mri.h"
 #include "mrisurf.h"
+#include "mrisurf_project.h"
+
 #include "error.h"
 #include "diag.h"
 #include "proto.h"

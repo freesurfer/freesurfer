@@ -2292,7 +2292,7 @@ int MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::mhtBruteForceClosestVertex(
 
 // 
 //
-using namespace SurfaceFromMRIS::Analysis;
+using namespace Minimal_Surface_MRIS;
 //using namespace SurfaceFromMRIS::XYZPositionConsequences;
 //using namespace SurfaceFromMRISPV::XYZPositionConsequences;
 
@@ -2328,8 +2328,8 @@ MRIS_HASH_TABLE* MHTcreateFaceTable(ARG mris)                                   
 }                                                                                                                   \
 // end of macro
 
-CONSTRUCTORS(MRIS *,                                               SurfaceFromMRIS::Analysis)
-CONSTRUCTORS(SurfaceFromMRIS::Analysis::Surface,                   SurfaceFromMRIS::Analysis)
+CONSTRUCTORS(MRIS *,                                               Minimal_Surface_MRIS)
+CONSTRUCTORS(Minimal_Surface_MRIS::Surface,                   Minimal_Surface_MRIS)
 CONSTRUCTORS(SurfaceFromMRIS::XYZPositionConsequences::Surface,    SurfaceFromMRIS::XYZPositionConsequences)
 CONSTRUCTORS(SurfaceFromMRISPV::XYZPositionConsequences::Surface,  SurfaceFromMRISPV::XYZPositionConsequences)
 

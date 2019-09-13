@@ -19,6 +19,9 @@
  */
 #include "mrisurf_vals.h"
 
+#include "mrisurf_base.h"
+
+
 // Vals are scalar properties of vertexs or faces
 // that are independent of 
 //
