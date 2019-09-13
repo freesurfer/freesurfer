@@ -48,7 +48,7 @@ namespace fs {
   struct fatal : public detail::logger
   {
     int ret;
-    fatal(int err) : ret(err) {}
+    fatal(int err = 1) : ret(err) {}
     ~fatal() {
       std::cerr << term::red() << "error: " << term::reset() << this->ss.str() << "\n";
       detail::writeToErrorLog(this->ss.str());
