@@ -122,10 +122,6 @@ void MRIS_checkAcquiredTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquire
 void MRIS_releaseTemp      (MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_result);  // ... be allowed to release it
 
 
-FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
-void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
-
-
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
 void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno);
@@ -668,9 +664,6 @@ int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
 			      INTEGRATION_PARMS *parms) ;
 
-MRIS* MRISprojectOntoSphere   (MRIS* mris_src, MRIS* mris_dst, double r) ;
-MRIS* MRISprojectOntoEllipsoid(MRIS* mris_src, MRIS* mris_dst, float a, float b, float c) ;
-
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
                                       int nbrs_per_distance) ;
@@ -776,11 +769,6 @@ MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris,
     int min_neg, float min_neg_pct) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
-
-MRIS* MRIStranslate_along_vertex_dxdydz(MRIS* mris_src, MRIS* mris_dst, double dt);
-
-MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst,
-                         float alpha, float beta, float gamma) ;
 
 MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) ;
 MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) ;
@@ -2123,7 +2111,6 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 
 // Neighbourhoods
 //
-#define MAX_NEIGHBORS (1024)
 void mrisVertexReplacingNeighbors(MRIS * mris, int vno, int vnum);
 void mrisForgetNeighborhoods     (MRIS * mris);
 
@@ -2131,7 +2118,6 @@ int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 void MRISsetNeighborhoodSize        (MRIS *mris, int nsize) ;   // Doesn't compute distances if not already present
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;   // Always computes distances
 
-#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
     // sets vlist[*] to the neighboring vno
     // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist
@@ -2185,8 +2171,14 @@ int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
-void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
-void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x          + nx*nxyzScale  etc.
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);          // x = x*xyzScale + tx*txyzScale  etc.
+void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);          // x = x          + nx*nxyzScale  etc.
+
+
+void MRIStranslate_along_vertex_dxdydz(MRIS*    dst, MRIS*    src, double dt);  // dst.x = src.x + src.dx*dt, etc.
+void MRIStranslate_along_vertex_dxdydz(MRIS_MP* dst, MRIS_MP* src, double dt);
+
+MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma) ;
 
 void mrisDisturbVertices(MRIS *mris, double amount);
 
@@ -2209,7 +2201,9 @@ int mrisComputeSurfaceDimensions(MRIS *mris);
 // dist is created by calls to MRISsetNeighborhoodSizeAndDist
 // dist_orig must be explicitly created
 //
-void MRISfreeDistsButNotOrig(MRIS *mris);
+void MRISfreeDistsButNotOrig(MRIS*    mris);
+void MRISfreeDistsButNotOrig(MRISPV*  mris);
+void MRISfreeDistsButNotOrig(MRIS_MP* mris);
 
 void MRISmakeDistOrig (MRIS *mris, int vno);                        // makes it the same size as the current VERTEX.dist
 void MRISgrowDistOrig (MRIS *mris, int vno, int minimumCapacity);   // same size as current or bigger

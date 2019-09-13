@@ -43,29 +43,31 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "macros.h"
+
+#include "mri.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
+
 #include "mrisurf.h"
+#include "mrisurf_project.h"
 #include "mrishash_internals.h"
 
-#include "macros.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
 #include "timer.h"
-#include "mri.h"
-#include "macros.h"
-#include "mrimorph.h"
-#include "mrinorm.h"
 #include "matrix.h"
-
-#define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y,v1->z-v0->z)
 
 #define MAX_4_NEIGHBORS     100
 #define MAX_3_NEIGHBORS     70
 #define MAX_2_NEIGHBORS     20
 #define MAX_1_NEIGHBORS     8
-
 #define REPULSE_K           1.0
+
+#undef  REPULSE_E           // differs from mrisurf_base.h 0.25
 #define REPULSE_E           0.5
+
 #define MAX_MOMENTUM_MM     1
 
 static int    get_option(int argc, char *argv[]) ;
@@ -94,8 +96,8 @@ static double mrisComputeGaussianCurvatureSpringEnergy(MRI_SURFACE *mris, double
 
 static double mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
                                    float n_averages);
-static int    mrisProjectSurface(MRI_SURFACE *mris);
-static int    mrisComputeTangentPlanes(MRI_SURFACE *mris);
+static int    my_mrisProjectSurface(MRI_SURFACE *mris);
+static int    my_mrisComputeTangentPlanes(MRI_SURFACE *mris);
 static int    FindSpikes(MRI_SURFACE *mris, int iter);
 static int    SmoothSpikes(MRI_SURFACE *mris, int niter);
 
@@ -1122,7 +1124,7 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
   if (FZERO(l_curv))
     return(NO_ERROR) ;
 
-  mrisComputeTangentPlanes(mris) ;
+  my_mrisComputeTangentPlanes(mris) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
   v_A = VectorAlloc(2, MATRIX_REAL) ;
   v_e1 = VectorAlloc(3, MATRIX_REAL) ;
@@ -1197,7 +1199,7 @@ mrisComputeQuadraticCurvatureEnergy(MRI_SURFACE *mris) {
   double   sse = 0.0 ;
 
 
-  mrisComputeTangentPlanes(mris) ;
+  my_mrisComputeTangentPlanes(mris) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
   v_A = VectorAlloc(2, MATRIX_REAL) ;
   v_e1 = VectorAlloc(3, MATRIX_REAL) ;
@@ -1782,12 +1784,12 @@ mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
     }
   }
   
-  mrisProjectSurface(mris) ;
+  my_mrisProjectSurface(mris) ;
   return(delta_t) ;
 }
 
 static int
-mrisProjectSurface(MRI_SURFACE *mris) {
+my_mrisProjectSurface(MRI_SURFACE *mris) {
 
   /*  MRISupdateSurface(mris) ;*/
   switch (mris->status) {
@@ -1815,7 +1817,7 @@ mrisProjectSurface(MRI_SURFACE *mris) {
 
 
 static int
-mrisComputeTangentPlanes(MRI_SURFACE *mris) {
+my_mrisComputeTangentPlanes(MRI_SURFACE *mris) {
   VECTOR  *v_n, *v_e1, *v_e2, *v ;
   int     vno ;
   VERTEX  *vertex ;

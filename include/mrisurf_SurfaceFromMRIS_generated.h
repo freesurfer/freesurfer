@@ -1,9 +1,11 @@
 #pragma once
 #include "./mrisurf_SurfaceFromMRIS_generated_prefix.h"
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 namespace SurfaceFromMRIS {
     typedef MRIS Representation;
     #include "mrisurf_SurfaceFromMRIS_generated_Existence.h"

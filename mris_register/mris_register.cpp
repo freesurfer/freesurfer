@@ -33,21 +33,25 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef HAVE_OPENMP
+
+#include "macros.h"
+
+#include "mri.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
+
 #include "romp_support.h"
-#endif
 
 #include "timer.h"
-#include "macros.h"
 #include "error.h"
 #include "diag.h"
 #include "tags.h"
 #include "proto.h"
-#include "mrisurf.h"
-#include "mri.h"
 #include "macros.h"
 #include "version.h"
 #include "gcsa.h"
+
+#define PARAM_IMAGES (IMAGES_PER_SURFACE * SURFACES)
 
 static char vcid[] =
   "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $";
@@ -81,7 +85,6 @@ static float sigmas[MAX_SIGMAS] ;
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
-#define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 
 static char *starting_reg_fname = NULL ;
 static int multi_scale = 0 ;

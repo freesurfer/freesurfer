@@ -31,20 +31,22 @@
 #include <ctype.h>
 
 #include "macros.h"
+
+#include "mri.h"
+#include "mrisegment.h"
+#include "mrisegment.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
+#include "icosahedron.h"
+
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
 #include "timer.h"
-#include "mrisurf.h"
-#include "mri.h"
-#include "macros.h"
-#include "mrimorph.h"
-#include "mrinorm.h"
 #include "version.h"
-#include "icosahedron.h"
 #include "cma.h"
-#include "mrisegment.h"
-#include "mrisegment.h"
 
 static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist) ;
 static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS *parms) ;
