@@ -1,31 +1,37 @@
 #include "mrisurf.h"
+#include "mrisurf_metricProperties.h"
 
+// STLs are simple files that only record a collection of triangles, so when reading,
+// we  have to build a list of unique vertices on our own with a simple hash table.
 
 #define hashTableSize (1024 * 1024)
 #define someKeysSize 100000
 
-
+// An xyz hashing function that preserves many of the bits in the float and doesn't care much
+// about their range. Cost is not very important compared to all the other work done.
 static int pointHash(float x, float y, float z)
 {
-  int hx = (int)( 1000.0f*logf(abs(x)+1.0f) );  // a hashing function that preserves many of the bits in the float
-  int hy = (int)( 1000.0f*logf(abs(y)+1.0f) );  // and doesn't care much about their range
-  int hz = (int)( 1000.0f*logf(abs(z)+1.0f) );  // Cost is not very important compared to all the other work done
-  int hash = (hx*2017) ^ (hy*1029) ^ (hz*1159); // No good reason behind these multipliers
+  int hx = 1000.0f * logf(abs(x) + 1.0f);
+  int hy = 1000.0f * logf(abs(y) + 1.0f);
+  int hz = 1000.0f * logf(abs(z) + 1.0f);
+  int hash = (hx*2017) ^ (hy*1029) ^ (hz*1159);  // No good reason behind these multipliers
   return hash % hashTableSize;
 }
 
 
+// STLs can be either binary or ascii, so the STLMesher class can be used as a universal
+// means of registering vertices and faces.
 class STLMesher
 {
   struct Key  { struct Key*  next; float x, y, z; int vertexNo; };
   struct Keys { struct Keys* next; Key someKeys[someKeysSize]; };
   struct XYZ  { float x,y,z; };
 
-  unsigned int vidx = 0;
-  unsigned int fidx = 0;
+  unsigned int vidx = 0;  // current vertex index
+  unsigned int fidx = 0;  // current face index
 
   int nextVertexNo = 0;
-  int faceVertexNo = 3;
+  int faceVertexNo = 3;  // to make sure there are never more than 3 vertices per face
 
   std::vector<Key*> hashTable;
   std::vector<Key*> vertices;
@@ -35,8 +41,10 @@ class STLMesher
   int keysInUse = someKeysSize;
 
 public:
+  // initialize the vertices and normals vectors with an arbitrary starting size - they
+  // can always be extended later on
   STLMesher() : hashTable(hashTableSize, nullptr), vertices(500000), normals(150000) {}
-  
+
   ~STLMesher() {
     while (keys) {
       Keys* next = keys->next;
@@ -45,12 +53,14 @@ public:
     }
   }
 
+  // adds a vertex to the mesh if it has not already been added
   void addVertex(float &x, float &y, float &z)
   {
-    // allocate a vertexNo - those already seen reuse their previously assigned number
+    // hash the vertex position - those already seen will reuse their previously assigned vertex idx
     Key** keyPtrPtr = &hashTable[pointHash(x, y, z)];
     Key* keyPtr;
 
+    // ensure vertex is unique (or not)
     for (; (keyPtr = *keyPtrPtr); keyPtrPtr = &keyPtr->next) {
       if (keyPtr->x == x && keyPtr->y == y && keyPtr->z == z) break;
     }
@@ -64,19 +74,22 @@ public:
       }
       keyPtr = &keys->someKeys[keysInUse++];
       keyPtr->next = nullptr;
-      keyPtr->x = x; keyPtr->y = y; keyPtr->z = z;
+      keyPtr->x = x;
+      keyPtr->y = y;
+      keyPtr->z = z;
       keyPtr->vertexNo = nextVertexNo++;
       *keyPtrPtr = keyPtr;
     }
 
-    // if (faceVertexNo > 2) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains more than 3 vertices for the face\n", fname, lineNo));
-    faceVertexNo++;
+    // sanity check on the current face geometry
+    if (faceVertexNo++ > 2) fs::fatal() << "STL file does not appear to represent a triangular mesh";
 
-    // store it (resize if necessary)
+    // store the vertex (resize if necessary)
     if (vidx == vertices.size()) vertices.resize(vertices.size() * 2);
     vertices[vidx++] = keyPtr;
   }
 
+  // initiates a new face (represented by its normal) in the mesh
   void addFaceNormal(float &x, float &y, float &z)
   {
     // resize if necessary
@@ -88,11 +101,13 @@ public:
     faceVertexNo = 0;
   }
 
+  // build the final surface structure once all data has been read
   MRIS* buildSurface()
   {
     MRIS *mris = MRISalloc(nextVertexNo, fidx);
     mris->type = MRIS_TRIANGULAR_SURFACE;
 
+    // set corresponding face vertices
     int nv = 0;
     for (int faceNo = 0; faceNo < mris->nfaces; faceNo++) {
 
@@ -123,7 +138,7 @@ public:
       }
     }
 
-    // alloc mem for neighbor list for each vertex
+    // alloc memory for neighbor list of each vertex
     for (int vno = 0; vno < mris->nvertices; vno++) {
       VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       v->v = (int *)calloc(v->vnum, sizeof(int));
@@ -143,9 +158,8 @@ public:
           // don't connect vertex to itself
           if (fvno2 == fvno) continue;
 
-          int vn = mris->faces[fno].v[fvno2];
-
           // check to make sure it's not a duplicate
+          int vn = mris->faces[fno].v[fvno2];
           for (int n2 = 0; n2 < v->vnum; n2++) {
             if (v->v[n2] == vn) {
               vn = -1;  // mark it as a duplicate
@@ -164,7 +178,7 @@ public:
       if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", vt->num);
       vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
       if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", vt->n);
-      vt->num = 0; // for use as counter in next section
+      vt->num = 0;  // for use as counter in next section
       vt->vtotal = vt->vnum;
     }
 
@@ -183,21 +197,25 @@ public:
 };
 
 
+// Reads an ascii-formatted STL file into a surface.
 static MRIS *mrisReadAsciiSTL(const std::string &filename)
 {
-  std::ifstream stlfile(filename);
-  std::string line; 
   STLMesher mesher;
   int solids = 0;
 
-  while (std::getline(stlfile, line))
-  {
-    switch (line[0]) {
+  FILE *stlfile = fopen(filename.c_str(), "r");
+  char line[STRLEN], *cp;
+  while ((cp = fgetl(line, STRLEN, stlfile))) {
+
+    // For efficiency purposes, we'll only look at the first character
+    // of each line to determine what it is. This should not be problematic
+    // for a valid STL file.
+    switch (*cp) {
 
       // vertex
       case 'v': {
         float x, y, z;
-        sscanf(line.c_str(), "vertex %f %f %f", &x, &y, &z);
+        sscanf(cp, "vertex %f %f %f", &x, &y, &z);
         mesher.addVertex(x, y, z);
         continue;
       } break;
@@ -205,7 +223,7 @@ static MRIS *mrisReadAsciiSTL(const std::string &filename)
       // facet
       case 'f': {
         float x, y, z;
-        sscanf(line.c_str(), "facet normal %f %f %f", &x, &y, &z);
+        sscanf(cp, "facet normal %f %f %f", &x, &y, &z);
         mesher.addFaceNormal(x, y, z);
         continue;
       } break;
@@ -213,7 +231,7 @@ static MRIS *mrisReadAsciiSTL(const std::string &filename)
       // solid
       case 's': {
         if (++solids > 1) {
-          // fs::error() << "STL file " << filename << " contains multiple solids!";
+          fs::error() << "STL file " << filename << " contains multiple solids!";
           return nullptr;
         }
         continue;
@@ -223,7 +241,7 @@ static MRIS *mrisReadAsciiSTL(const std::string &filename)
       case 'o': { continue; } break;  // outer loop
     }
 
-    // fs::error() << "ASCII STL file " << filename << " contains unrecognized line (num " << lineno << "): " << cp;
+    fs::error() << "ASCII STL file " << filename << " contains unrecognized line: " << line;
     return nullptr;
   }
 
@@ -231,6 +249,7 @@ static MRIS *mrisReadAsciiSTL(const std::string &filename)
 }
 
 
+// Reads a single float from an ifstream.
 static float readFloat(std::ifstream &stream)
 {
   float value;
@@ -239,25 +258,30 @@ static float readFloat(std::ifstream &stream)
 }
 
 
+// Reads a binary-formatted STL file into a surface.
 static MRIS* mrisReadBinarySTL(const std::string &filename) 
 {
   STLMesher mesher;
 
+  // load and read 80-byte header (not used)
   std::ifstream stlfile(filename, std::ios::in | std::ios::binary);
   char header[80] = "";
   stlfile.read(header, 80);
 
-  char n[4];
-  stlfile.read(n, 4);
-  unsigned int* r = (unsigned int*) n;
-  unsigned int ntriangles = *r;
+  // read total number of triangles
+  unsigned int ntriangles;
+  stlfile.read(reinterpret_cast<char*>(&ntriangles), 4);
 
+  // for each triangle read the face normal and the associated vertex positions
   for (unsigned int tri = 0 ; tri < ntriangles ; tri++) {
+
+    // face normal
     float x = readFloat(stlfile);
     float y = readFloat(stlfile);
     float z = readFloat(stlfile);
     mesher.addFaceNormal(x, y, z);
 
+    // face vertices
     for (int vnum = 0 ; vnum < 3; vnum++) {
       float x = readFloat(stlfile);
       float y = readFloat(stlfile);
@@ -265,6 +289,7 @@ static MRIS* mrisReadBinarySTL(const std::string &filename)
       mesher.addVertex(x, y, z);
     }
 
+    // read 2-byte attribute (not used)
     char attribute[2];
     stlfile.read(attribute, 2);
   }
@@ -297,7 +322,7 @@ MRIS* mrisReadSTL(const std::string &filename)
   unsigned int fileSize = stlfile.tellg();
   stlfile.close();
 
-  // if the true filesize matches the predicted, it's in binary format
+  // if the true filesize matches the predicted size, it's in binary format
   if (fileSize == fileSizeIfBinary) {
     return mrisReadBinarySTL(filename);
   } else {
@@ -306,6 +331,7 @@ MRIS* mrisReadSTL(const std::string &filename)
 }
 
 
+// Writes a surface into a binary-formatted STL file.
 bool mrisWriteSTL(const MRIS* mris, const std::string &filename)
 {
   std::ofstream stlfile(filename.c_str(), std::ios::out | std::ios::binary);
@@ -321,10 +347,6 @@ bool mrisWriteSTL(const MRIS* mris, const std::string &filename)
 
   for (int fno = 0; fno < mris->nfaces; fno++) {
 
-    // make sure the face is valid
-    FACE *face = &mris->faces[fno];
-    if (face->ripflag) continue;
-
     // write the face normal
     FaceNormCacheEntry const * const norm = getFaceNorm(mris, fno);
     stlfile.write((char*)&norm->nx, 4);
@@ -332,6 +354,7 @@ bool mrisWriteSTL(const MRIS* mris, const std::string &filename)
     stlfile.write((char*)&norm->nz, 4);
 
     // write the face vertices
+    FACE *face = &mris->faces[fno];
     for (int vno = 0; vno < 3; vno++) {
       VERTEX *vtx = &mris->vertices[face->v[vno]];
       stlfile.write((char*)&vtx->x, 4);
