@@ -2327,24 +2327,42 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
   return (mri_dst);
 }
 
-/*--------------------------------------------------------------------------
-  MRImask() - applies mask to an mri data set. If mri_mask == mask at a voxel,
+/*!
+  MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
+  \brief Applies mask to an mri data set. If mri_mask == mask at a voxel,
   then that voxel is set to out_val. Eg, if your mask is binary (0 and 1),
   and you want to set voxels outside the mask to 0 (ie, maskmri=0), then
-  MRImask(src,mask,dst,0,0). Handles multiple frames.
-  --------------------------------------------------------------------------*/
+  MRImask(src,mask,dst,0,0). Handles multiple frames. If the geometries are
+  diff between mri_src and mri_mask, then it performs a header registration.
+  This can be turned off with setenv FS_MRIMASK_ALLOW_DIFF_GEOM 0.
+*/
 MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
   int width, height, depth, nframes, x, y, z, f, mask_val;
   float val;
   VOL_GEOM vg_src, vg_mask;
-  
+
+  // If the geometries differ, then MRImask() will do a header registration. This
+  // is not what one want to do all the time (eg, with surfaces). Rather than
+  // add another argument and change the millions of calls ot MRImask(), the caller
+  // can set an env variable to turn off this capability, eg,
+  // setenv FS_MRIMASK_ALLOW_DIFF_GEOM 0
+  // If this variable is not defined, then it will potentially change geom
+  int AllowDiffGeom = 1;
+  char *pstr= getenv("FS_MRIMASK_ALLOW_DIFF_GEOM");
+  if(pstr!=NULL) sscanf(pstr,"%d",&AllowDiffGeom);
+  printf("MRImask(): AllowDiffGeom = %d\n",AllowDiffGeom);
+
   getVolGeom(mri_src, &vg_src);
   getVolGeom(mri_mask, &vg_mask);
   const double threshold = 1e-4; // Don't be too restrictive.
   if (vg_isNotEqualThresh(&vg_src, &vg_mask, threshold)) {
-    printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
-    return (MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst, mask, out_val));
+    if(AllowDiffGeom){
+      printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
+      return (MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst, mask, out_val));
+    }
+    printf("INFO: MRImask(): geometries differ but not using MRImaskDifferentGeometry() \n");    
+    fflush(stdout);
   }
 
   MRIcheckVolDims(mri_src, mri_mask);
