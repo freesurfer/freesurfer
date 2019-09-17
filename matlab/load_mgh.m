@@ -49,7 +49,7 @@ M = [];
 mr_parms = [];
 volsz = [];
 
-if(nargin < 1 | nargin > 4)
+if(nargin < 1 || nargin > 4)
   msg = 'USAGE: [vol M] = load_mgh(fname,<slices>,<frames>,<headeronly>)';
   fprintf('%s',msg);
   return;
@@ -63,7 +63,7 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
 		   sum(int16(fname))) + round(cputime);
   %ind = findstr(fname, '.');
   if(exist('/scratch'))
-    new_fname = sprintf('%s.load_mgh.%d.mgh', tempname('/scratch/'),gzipped);
+    new_fname = sprintf('%s.load_mgh.%d.mgh', tempname(fsgettmppath), gzipped);
   else
     new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
   end
@@ -150,12 +150,12 @@ fseek(fid, unused_space_size, 'cof') ;
 nv = ndim1 * ndim2 * ndim3 * nframes;  
 volsz = [ndim1 ndim2 ndim3 nframes];
 
-MRI_UCHAR =  0 ;
-MRI_INT =    1 ;
-MRI_LONG =   2 ;
-MRI_FLOAT =  3 ;
-MRI_SHORT =  4 ;
-MRI_BITMAP = 5 ;
+MRI_UCHAR  = 0;
+MRI_INT    = 1;
+MRI_LONG   = 2;
+MRI_FLOAT  = 3;
+MRI_SHORT  = 4;
+MRI_BITMAP = 5;
 
 % Determine number of bytes per voxel
 switch type
@@ -172,7 +172,7 @@ end
 if(headeronly)
   fseek(fid,nv*nbytespervox,'cof');
   if(~feof(fid))
-    [mr_parms count] = fread(fid,4,'float32');
+    [mr_parms, count] = fread(fid,4,'float32');
     if(count ~= 4) 
       fprintf('WARNING: error reading MR params\n');
     end
@@ -186,20 +186,20 @@ end
 %------------------ Read in the entire volume ----------------%
 if(slices(1) <= 0 & frames(1) <= 0)
   switch type
-   case MRI_FLOAT,
-    vol = fread(fid, nv, 'float32') ; 
-   case MRI_UCHAR,
-    vol = fread(fid, nv, 'uchar') ; 
-   case MRI_SHORT,
-    vol = fread(fid, nv, 'short') ; 
-   case MRI_INT,
-    vol = fread(fid, nv, 'int') ; 
+    case MRI_FLOAT,
+      vol = fread(fid, nv, '*float32'); 
+    case MRI_UCHAR,
+      vol = fread(fid, nv, '*uchar'); 
+    case MRI_SHORT,
+      vol = fread(fid, nv, '*short'); 
+    case MRI_INT,
+      vol = fread(fid, nv, '*int'); 
   end
 
   if(~feof(fid))
-    [mr_parms count] = fread(fid,4,'float32');
+    [mr_parms, count] = fread(fid,4,'float32');
     if(count ~= 4) 
-      fprintf('WARNING: error reading MR params\n');
+      fprintf('WARNING: err8or reading MR params\n');
     end
   end
   fclose(fid) ;
@@ -235,14 +235,14 @@ for frame = frames
     fseek(fid,filepos,'bof');
     
     switch type
-     case MRI_FLOAT,
-      [tmpslice nread]  = fread(fid, nvslice, 'float32') ; 
-     case MRI_UCHAR,
-      [tmpslice nread]  = fread(fid, nvslice, 'uchar') ; 
-     case MRI_SHORT,
-      [tmpslice nread]  = fread(fid, nvslice, 'short') ; 
-     case MRI_INT,
-      [tmpslice nread]  = fread(fid, nvslice, 'int') ; 
+      case MRI_FLOAT,
+        [tmpslice, nread]  = fread(fid, nvslice, '*float32'); 
+      case MRI_UCHAR,
+        [tmpslice, nread]  = fread(fid, nvslice, '*uchar'); 
+      case MRI_SHORT,
+        [tmpslice, nread]  = fread(fid, nvslice, '*short'); 
+      case MRI_INT,
+        [tmpslice, nread]  = fread(fid, nvslice, '*int'); 
     end
 
     if(nread ~= nvslice)
@@ -265,7 +265,7 @@ filepos = (nframes*nvvol)*nbytespervox + filepos0;
 fseek(fid,filepos,'bof');
 
 if(~feof(fid))
-  [mr_parms count] = fread(fid,5,'float32');
+  [mr_parms, count] = fread(fid,5,'float32');
   if(count < 4) 
     fprintf('WARNING: error reading MR params\n');
   end
