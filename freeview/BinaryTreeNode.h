@@ -40,7 +40,6 @@ protected:
 private:
     QList<BinaryTreeEdge *> edgeList;
     QPointF newPos;
-    BinaryTreeView *graph;
     bool  m_bHighlighted;
 };
 

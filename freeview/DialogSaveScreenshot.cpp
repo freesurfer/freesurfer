@@ -43,7 +43,7 @@ DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
 #ifdef Q_OS_MAC
   ui->checkBoxAutoTrim->hide();
 #endif
-  qDebug() << m_strLastDir;
+//  qDebug() << m_strLastDir;
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
@@ -70,6 +70,7 @@ void DialogSaveScreenshot::SetSettings( SettingsScreenshot s )
   ui->checkBoxHideAnnotation->setChecked( s.HideCoords );
   ui->spinBoxMagnification->setValue( s.Magnification );
   ui->checkBoxAutoTrim->setChecked( s.AutoTrim );
+  ui->checkBoxHideScaleBar->setChecked( s.HideScaleBar );
 }
 
 SettingsScreenshot DialogSaveScreenshot::GetSettings()
@@ -80,6 +81,7 @@ SettingsScreenshot DialogSaveScreenshot::GetSettings()
   s.HideCoords    = ui->checkBoxHideAnnotation->isChecked();
   s.Magnification = ui->spinBoxMagnification->value();
   s.AutoTrim  = ui->checkBoxAutoTrim->isChecked();
+  s.HideScaleBar  = ui->checkBoxHideScaleBar->isChecked();
 
   return s;
 }

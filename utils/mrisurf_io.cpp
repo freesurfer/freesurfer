@@ -21,6 +21,9 @@
 #include "mrisurf_io.h"
 #include "mrisp.h"
 
+#include "mrisurf_base.h"
+
+
 #define QUAD_FILE_MAGIC_NUMBER (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER (-3 & 0x00ffffff)
@@ -1286,7 +1289,7 @@ int MRISwritePatch(MRI_SURFACE *mris, const char *fname)
     return (MRISwriteGeo(mris, fname));
   }
   else if (type == MRIS_STL_FILE) {
-    return (MRISwriteSTL(mris, fname));
+    return (mrisWriteSTL(mris, fname));
   }
 
   // binary file write
@@ -1698,9 +1701,9 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_tab
   if (TAG_OLD_COLORTABLE == tag) {
     /* We have a color table, read it with CTABreadFromBinary. If it
     fails, it will print its own error message. */
-    fprintf(stderr, "reading colortable from annotation file...\n");
+    fprintf(stdout, "reading colortable from annotation file...\n");
     ctab = CTABreadFromBinary(fp);
-    if (NULL != ctab) fprintf(stderr, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
+    if (NULL != ctab) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
   }
 
   fclose(fp);
@@ -2465,15 +2468,13 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   ------------------------------------------------------*/
 int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
 {
-  int old_status;
-
   if (!sname) {
     sname = "smoothwm";
   }
 
   MRISsaveVertexPositions(mris, TMP_VERTICES);
 
-  old_status = mris->status;
+  auto const old_status = mris->status;
   mris->status = MRIS_PATCH; /* so no orientating will be done */
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadOriginalProperties: could not read surface file %s", sname));
@@ -2580,7 +2581,7 @@ int MRISwriteAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -2613,7 +2614,7 @@ int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteNormalsAscii: could not open file %s", fname));
 
-  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname);
+  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", mris->fname.data());
   fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -3247,7 +3248,7 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
   fprintf(fp,
           "#!ascii version of patch %s. "
           "The 1st index is not a vertex number\n",
-          mris->fname);
+          mris->fname.data());
   fprintf(fp, "%d %d\n", nvertices, nfaces);
   fprintf(stdout, "nvertices=%d (valid=%d) nfaces=%d\n", nvertices, MRISvalidVertices(mris), nfaces);
 
@@ -3275,51 +3276,6 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters: MRI_SURFACE *mris, char *fname
-
-  Returns value: int
-
-  Description: write ascii STL (stereolithography) format
-  ------------------------------------------------------*/
-int MRISwriteSTL(MRI_SURFACE *mris, const char *fname)
-{
-  int vno, fno;
-  VERTEX *v;
-  FACE *face;
-  FILE *fp;
-
-  fp = fopen(fname, "w");
-  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteSTL: could not open file %s", fname));
-
-  fprintf(fp, "solid %s\n", fname);
-
-  // go over all faces, ignoring bad ones
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    face = &mris->faces[fno];
-    if (face->ripflag) {
-      continue;
-    }
-
-    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
-    fprintf(fp, "facet normal %f %f %f\n", fNorm->nx, fNorm->ny, fNorm->nz);
-    fprintf(fp, "  outer loop\n");
-
-    for (vno = 0; vno < VERTICES_PER_FACE; vno++) {
-      v = &mris->vertices[face->v[vno]];
-      fprintf(fp, "    vertex %f %f %f\n", v->x, v->y, v->z);
-    }
-
-    fprintf(fp, "  endloop\n");
-    fprintf(fp, "endfacet\n");
-  }
-
-  fprintf(fp, "endsolid %s\n", fname);
-
-  fclose(fp);
-
-  return (NO_ERROR);
-}
 
 /*-----------------------------------------------------
   Parameters:
@@ -3555,314 +3511,6 @@ mrisReadAsciiPatchFile(char *fname)
 }
 #endif
 
-/*-----------------------------------------------------
-  Parameters:    input file name of STL file
-
-  Returns value: freesurfer surface structure
-
-  Description:   reads an ascii stereolithography (STL)
-                 formatted file, putting vertices, faces,
-                 and face normals into an MRIS_SURFACE
-                 structure.
-  ------------------------------------------------------*/
-
-#define mrisReadSTLfile_hashTableSize (1024*1024)
-static int mrisReadSTLfile_hash(float x, float y, float z) {
-  int hx = (int)( 1000.0f*logf(abs(x)+1.0f) );	// a hashing function that preserves many of the bits in the float
-  int hy = (int)( 1000.0f*logf(abs(y)+1.0f) ); 	// and doesn't care much about their range
-  int hz = (int)( 1000.0f*logf(abs(z)+1.0f) );	// Cost is not very important compared to all the other work done
-  int hash = (hx*2017) ^ (hy*1029) ^ (hz*1159);	// No good reason behind these multipliers
-  return hash % mrisReadSTLfile_hashTableSize;
-}
-
-static const int mrisReadSTLfile_debugging = 0;
-
-
-static MRI_SURFACE *mrisReadSTLfile(const char *fname) 
-{
-
-  MRI_SURFACE *mris = NULL;
-
-  {
-    // Scanning them twice is 2x cost of scanning them once, because there is so little other work.
-    // Instead scan them once into the hashTable and into the vector of vertices, checking there is
-    // only one solid with 3 vertices per facet
-    //
-    typedef struct Key  { struct Key*  next; float x,y,z; int vertexNo; } Key;
-    Key** const hashTable = (Key**)calloc(mrisReadSTLfile_hashTableSize,sizeof(Key*));
-    if (!hashTable) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not calloc hash table"));
-
- #define mrisReadSTLfile_bevin_someKeysSize 100000
-    typedef struct Keys { struct Keys* next; Key someKeys[mrisReadSTLfile_bevin_someKeysSize]; } Keys;
-    Keys* keys = NULL;
-    int keysInUse = mrisReadSTLfile_bevin_someKeysSize;
-
-    size_t verticesCapacity 	  = 500000;
-    size_t verticesSize     	  =      0;
-    Key**  vertices         	  = (Key**)malloc(sizeof(Key*)*verticesCapacity);
-
-    typedef struct XYZ { float x,y,z; } XYZ;
-    size_t faceNormalXYZsCapacity = 150000;
-    size_t faceNormalXYZsSize     =      0;
-    XYZ* faceNormalXYZs           = (XYZ*)malloc(sizeof(XYZ)*faceNormalXYZsCapacity);
-
-    {
-      FILE *fp = fopen(fname, "r");
-      if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not open file %s", fname));
-
-      char line[STRLEN], *cp;
-      int lineNo       = 0;
-      int solidNo      = 0;
-      int nextVertexNo = 0;
-      int faceVertexNo = 3; 
-
-      while ((cp = fgetl(line, STRLEN, fp))) {
-
-        lineNo++;
-        if (lineNo == 2 && solidNo != 1) {
-          ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s does not appear to be an STL file",    fname));
-        }
-
-        switch (*cp) {	// avoid unnecessary strncmp's
-
-	  case 's': {
-    	    if (strncmp(cp, "solid", 5) == 0) { 
-	      solidNo++; 
-              if (solidNo > 1) {
-	        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains a second solid\n",
-                  fname,
-                  lineNo));
-	      }
-	      continue; 
-	    }
-          } break;
-
-	  case 'f': {
-      	    if (strncmp(cp, "facet ", 6) == 0) {
-  	      if (faceNormalXYZsSize == faceNormalXYZsCapacity) {
-	        faceNormalXYZsCapacity *= 2;
-                faceNormalXYZs = (XYZ*)realloc(faceNormalXYZs, sizeof(XYZ)*faceNormalXYZsCapacity);
-	      }
-              sscanf(cp, "facet normal %f %f %f", 
-	        &faceNormalXYZs[faceNormalXYZsSize].x, 
-	        &faceNormalXYZs[faceNormalXYZsSize].y,
-	        &faceNormalXYZs[faceNormalXYZsSize].z);
-	      faceNormalXYZsSize++;
-  	      faceVertexNo = 0;			// checking 3 vertices per face
-  	      continue;	// endfacet increments facetNo
-  	    }
-          } break;
-
-	  case 'o': {
-            if (strncmp(cp, "outer loop", 10) == 0) continue;
-          } break;
-
-          case 'v': {
-      	    if (strncmp(cp, "vertex ", 7) == 0) {
-
-  	      float x,y,z;
-   	      sscanf(cp, "vertex %f %f %f", &x, &y, &z);
-
-  	      // allocate a vertexNo - those already seen reuse their previously assigned number
-	      int hash = mrisReadSTLfile_hash(x,y,z);
-  	      Key** keyPtrPtr = &hashTable[hash];
-  	      Key* keyPtr;
-  	      for (; (keyPtr = *keyPtrPtr); keyPtrPtr=&keyPtr->next) {
-  	        if (keyPtr->x == x && keyPtr->y == y && keyPtr->z == z) break;
-  	      }
-  	      if (!keyPtr) {
-	        if (mrisReadSTLfile_bevin_someKeysSize == keysInUse) {
-		  Keys* moreKeys = (Keys*)malloc(sizeof(Keys));
-		  moreKeys->next = keys;
-		  keys = moreKeys;
-		  keysInUse = 0;
-	        }
-  	        keyPtr = &keys->someKeys[keysInUse++];
-  	        keyPtr->next = NULL;
-  	        keyPtr->x = x; keyPtr->y = y; keyPtr->z = z;
-  	        keyPtr->vertexNo = nextVertexNo++;
-  	        *keyPtrPtr = keyPtr;
-  	      }
-
-	      if (faceVertexNo > 2) {
-      	        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains more than 3 vertices for the face\n",
-                  fname,
-                  lineNo));
-  	      }
-	      faceVertexNo++;
-
-	      // store it	    
-  	      if (verticesSize == verticesCapacity) {
-	        verticesCapacity *= 2;
-                vertices = (Key**)realloc(vertices, sizeof(Key*)*verticesCapacity);
-	      }
-	      vertices[verticesSize++] = keyPtr;
-
-  	      continue;
-  	    }
-          } break;
-
-          case 'e': {
-            switch (cp[3]) {        
-      	    case 'f': {
-  	      if (strncmp(cp, "endfacet", 8) == 0) { 
-  	        if (faceVertexNo != 3) {
-      	          ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains less than 3 vertices for the face\n",
-                      fname,
-                      lineNo));
-  	        }
-  	        continue; 
-  	       }
-              } break;
-              case 'l': {
-      	      if (strncmp(cp, "endloop", 7) == 0) continue;
-              } break;
-              case 's': {
-      	      if (strncmp(cp, "endsolid", 8) == 0) continue;
-              } break;
-            } // switch
-          } break;
-        } // switch
-
-        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains bad line %s\n",
-          fname,
-          lineNo,
-          cp));
-      } // while getl
-
-      fclose(fp);
-
-      printf("\nFound %d unique vertices and %d faces\n", nextVertexNo, (int)faceNormalXYZsSize);
-      mris = MRISalloc(nextVertexNo, faceNormalXYZsSize);
-      if (!mris) {
-        ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
-      }
-      mris->type = MRIS_TRIANGULAR_SURFACE;
-
-    } // scanned the file and made the mris
-
-    { // fill in the mris
-      int nfaces = mris->nfaces;
-      int faceNo;
-      int nextVertexNo = 0;
-      for (faceNo = 0; faceNo < nfaces; faceNo++) {
-
-        FACE* face = &mris->faces   [faceNo];
-	XYZ*  xyz  = &faceNormalXYZs[faceNo];
-
-        setFaceNorm(mris, faceNo, xyz->x, xyz->y, xyz->z);
-
-	int faceVertexNo;
-	for (faceVertexNo = 0; faceVertexNo < 3; faceVertexNo++) {
-	  int undupVertexNo = 3*faceNo + faceVertexNo;
-	  Key* keyPtr = vertices[undupVertexNo];
-          int vertexNo = keyPtr->vertexNo;
-  	  if (vertexNo == nextVertexNo) { 
-  	    MRISsetXYZ(mris,vertexNo,
-  	      keyPtr->x, 
-              keyPtr->y, 
-              keyPtr->z);
-  	    nextVertexNo++;
-	  }
-       	  face->v[faceVertexNo] = vertexNo;
-  	  if (mrisReadSTLfile_debugging && undupVertexNo < 10) {
-	    fprintf(stdout, "Mapping undupVertexNo:%d to vertexNo:%d (%f, %f, %f)\n",
-	       undupVertexNo, vertexNo, keyPtr->x, keyPtr->y, keyPtr->z);
-	  }
-        }	  
-      } // for
-    } // filled in the mris
-
-    free(faceNormalXYZs);
-    free(vertices);
-    free(hashTable);
-    while (keys) {
-      Keys* next = keys->next;
-      free(keys);
-      keys = next;
-    }
- #undef mrisReadSTLfile_bevin_someKeysSize
-  }
-
-  int fno, vno, fvno, n2;
-  FACE *face = NULL;
-  
-#if 1
-  {
-    int fvno2, vn;
-
-    /* count # of faces each vertex is part of */
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      face = &mris->faces[fno];
-      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
-        v->num++;
-        v->vnum += 2;
-      }
-    }
-
-    // alloc mem for neighbor list for each vertex
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
-      v->v = (int *)calloc(v->vnum, sizeof(int));
-      if (!v->v) ErrorExit(ERROR_NOMEMORY, "MRISreadSTLfile: could not allocate %dth vertex list.", vno);
-      v->vnum = 0;
-    }
-
-    /* now build list of neighbors */
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      face = &mris->faces[fno];
-      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
-
-        /* now add an edge to other 2 vertices if not already in list */
-        for (fvno2 = 0; fvno2 < VERTICES_PER_FACE; fvno2++) {
-          if (fvno2 == fvno) /* don't connect vertex to itself */
-          {
-            continue;
-          }
-
-          vn = mris->faces[fno].v[fvno2];
-
-          /* now check to make sure it's not a duplicate */
-          for (n2 = 0; n2 < v->vnum; n2++) {
-            if (v->v[n2] == vn) {
-              vn = -1; /* mark it as a duplicate */
-              break;
-            }
-          }
-          if (vn >= 0) {
-            v->v[v->vnum++] = vn;
-          }
-        }
-      }
-    }
-
-    /* now allocate face arrays in vertices */
-    for (vno = 0; vno < mris->nvertices; vno++) {
-      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
-      vt->f = (int *)calloc(vt->num, sizeof(int));
-      if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", vt->num);
-      vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
-      if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", vt->n);
-      vt->num = 0; /* for use as counter in next section */
-      vt->vtotal = vt->vnum;
-    }
-
-    /* fill in face indices in vertex structures */
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      face = &mris->faces[fno];
-      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
-        v->n[v->num] = fvno;
-        v->f[v->num++] = fno;
-      }
-    }
-  }
-#endif
-
-  return (mris);
-}
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -3928,7 +3576,7 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
     }
     else if (type == MRIS_STL_FILE) /* .STL */
     {
-      mris = mrisReadSTLfile(fname);
+      mris = mrisReadSTL(fname);
       if (!mris) {
         return (NULL);
       }
@@ -4344,7 +3992,7 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier)
   }
   else if (type == MRIS_STL_FILE) /* .STL */
   {
-    mris = mrisReadSTLfile(fname);
+    mris = mrisReadSTL(fname);
     if (!mris) {
       return (NULL);
     }
@@ -4892,7 +4540,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
     return MRISwriteICO(mris, fname);
   }
   else if (type == MRIS_STL_FILE) {
-    return MRISwriteSTL(mris, fname);
+    return mrisWriteSTL(mris, fname);
   }
   else if (type == MRIS_GIFTI_FILE) {
     return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
@@ -5018,7 +4666,7 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
     return MRISwriteICO(mris, fname);
   }
   else if (type == MRIS_STL_FILE) {
-    return MRISwriteSTL(mris, fname);
+    return mrisWriteSTL(mris, fname);
   }
   else if (type == MRIS_GIFTI_FILE) {
     return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
@@ -5966,7 +5614,7 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
                  "mrisReadTriangleFile opened %s okay but surface doesn't match %s.  nvertices:%d != "
                  "mris->nvertices:%d || nfaces:%d != mris->nfaces:%d\n",
                  fname,
-                 mris->fname,
+                 mris->fname ? mris->fname : "NULL",
                  nvertices,
                  mris->nvertices,
                  nfaces,
@@ -6026,7 +5674,15 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   fscanf(fp, "\n");
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
-  nfaces = freadInt(fp);
+  nfaces    = freadInt(fp);
+  
+  if (nvertices < 0 || nfaces < 0) {
+    fflush(stdout);
+    fflush(stderr);
+    fprintf(stderr, "%s:%d %s freadInt returned nvertices:%d \n", __FILE__,__LINE__,fname,nvertices);
+    fprintf(stderr, "%s:%d %s freadInt returned nfaces:%d \n", __FILE__,__LINE__,fname,nfaces);
+    exit(1);
+  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "surface %s: %d vertices and %d faces.\n", fname, nvertices, nfaces);
@@ -6506,3 +6162,128 @@ MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
   MRIScomputeMetricProperties(mris) ;
   return(mri) ;
 }
+
+
+int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
+{
+  FACE *face = &(surf->faces[faceno]);
+  int n,m,vno1,vno2;
+  VERTEX *v1,*v2;
+  double cx=0,cy=0,cz=0;
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Face %d\n",faceno);
+  fprintf(fp,"plot3(");
+  for(n=0; n<3; n++){
+    m = n + 1;
+    if(m>2) m = 0;
+    vno1 = face->v[n];
+    vno2 = face->v[m];
+    v1 = &(surf->vertices[vno1]);
+    v2 = &(surf->vertices[vno2]);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c' ",
+	    v1->x,v2->x,v1->y,v2->y,v1->z,v2->z,color);
+    if(n!=2) fprintf(fp,",");
+    cx += v1->x;
+    cy += v1->y;
+    cz += v1->z;
+  }
+  cx /= 3;
+  cy /= 3;
+  cz /= 3;
+  fprintf(fp,");\n");
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'F%d');\n",cx,cy,cz,faceno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    float snorm[3];
+    mrisNormalFace(surf, faceno, 0, snorm);
+    //printf("%g %g %g\n",snorm[0],snorm[1],snorm[2]);
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*',",cx,cy,cz,color);
+    fprintf(fp,"[%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c'",
+	    cx,cx+NormLen*snorm[0],cy,cy+NormLen*snorm[1],cz,cz+NormLen*snorm[2],
+	    normcolor);
+    fprintf(fp,");\n");
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen)
+{
+  VERTEX *v = &(surf->vertices[vno]);
+  int fontsize=7;
+  char normcolor = 'k';
+
+  printf("%% Vertex %d\n",vno);
+  fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*')\n",v->x,v->y,v->z,color);
+  fprintf(fp,"h=text(%6.4f,%6.4f,%6.4f,'V%d');\n",v->x,v->y,v->z,vno);
+  fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
+  if(fabs(NormLen) > 0){
+    fprintf(fp,"hold on;\n");
+    fprintf(fp,"plot3([%6.4f,%6.4f],[%6.4f,%6.4f],[%6.4f,%6.4f],'%c')\n",
+	    v->x,v->x+NormLen*v->nx, v->y,v->y+NormLen*v->ny, v->z,v->z+NormLen*v->nz, normcolor);
+    fprintf(fp,"hold off;\n");
+  }
+  fflush(fp);
+  return(0);
+}
+
+int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen)
+{
+
+  int nthhop, nnbrs, nthnbr, nbrvtxno, faceno,nthface;
+  SURFHOPLIST *shl;
+  shl = SetSurfHopList(cvno, surf, nhops);
+
+  for(nthhop = 0; nthhop < nhops; nthhop++) {
+    nnbrs = shl->nperhop[nthhop];
+    // loop through the neighbors nthhop links away
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+      nbrvtxno = shl->vtxlist[nthhop][nthnbr];
+      fprintf(fp,"hold on;\n");
+      MatlabPlotVertex(fp, surf, nbrvtxno, 'g', NormLen);
+      if(nthhop >= nhops-1) continue;
+      VERTEX_TOPOLOGY *vt = &(surf->vertices_topology[nbrvtxno]);
+      for(nthface=0; nthface <  vt->num; nthface++){
+	faceno = vt->f[nthface];
+	fprintf(fp,"hold on;\n");
+	MatlabPlotFace(fp, surf, faceno, 'b', NormLen);
+	//fprintf(stderr,"%2d %3d %d %6d %6d\n",nthhop,nthnbr,nthface,nbrvtxno,faceno);
+      }
+
+    } /* end loop over hop neighborhood */
+  }   /* end loop over hop */
+
+  // Have to do this at the end
+  fprintf(fp,"hold on;\n");
+  MatlabPlotVertex(fp, surf, cvno, 'r', NormLen);
+  fprintf(fp,"title('Vertex %d');\n",cvno);
+  fprintf(fp,"hold off;\n");
+
+  SurfHopListFree(&shl);
+  return(0);
+}
+
+/*!
+  \fn int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname)
+  \brief Converts data in the given fields into "voxel" in an MRI structure
+  using MRIcopyMRIS() and writes to the given volume-style (eg, mgz) output file. 
+  Field names must be known to MRIcopyMRIS(). 
+*/
+int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname)
+{
+  int n;
+  MRI *mri=NULL;
+  for(n=nfields-1; n >= 0; n--){
+    mri = MRIcopyMRIS(mri, surf, n, fields[n]);
+    if(mri==NULL) exit(1);
+  }
+  int err = MRIwrite(mri,outname);
+  MRIfree(&mri);
+  return(err);
+}
+
+

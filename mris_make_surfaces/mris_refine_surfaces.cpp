@@ -56,8 +56,8 @@ int debug__ = 0; /// tosa debug
 
 int main(int argc, char *argv[]) ;
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 //static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, 
 //float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
@@ -71,7 +71,7 @@ static void print_version(void) ;
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
                       int out_label, MRI *mri_dst);
 
-int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
+int LocalMRISfindExpansionRegions(MRI_SURFACE *mris) ;
 
 static double pial_errfunc_gradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double pial_errfunc_sse(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
@@ -641,7 +641,7 @@ main(int argc, char *argv[]) {
                                    mri_wm, i) ;
     //    compute_border_gradients(mris, mri_hires, 20) ;
 #endif    
-    MRISfindExpansionRegions(mris) ;
+    LocalMRISfindExpansionRegions(mris) ;
     if (vavgs) {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
       MRISaverageMarkedVals(mris, vavgs) ;
@@ -667,7 +667,7 @@ main(int argc, char *argv[]) {
                                      current_sigma, max_thickness, 1, parms.fp,
                                      mri_wm, i) ;
       //    compute_border_gradients(mris, mri_hires, 20) ;
-      MRISfindExpansionRegions(mris) ;
+      LocalMRISfindExpansionRegions(mris) ;
       if (vavgs) {
         fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
         MRISaverageMarkedVals(mris, vavgs) ;
@@ -823,7 +823,7 @@ main(int argc, char *argv[]) {
            max_gray_at_csf_border, min_gray_at_csf_border,
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
-           GRAY_CSF, NULL, 0, parms.flags, NULL) ;
+           GRAY_CSF, NULL, 0, parms.flags, NULL, -1, -1) ;
 
       if (i == 0)
       {
@@ -1163,7 +1163,7 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
 
 
 int
-MRISfindExpansionRegions(MRI_SURFACE *mris) {
+LocalMRISfindExpansionRegions(MRI_SURFACE *mris) {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
 

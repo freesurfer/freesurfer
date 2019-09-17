@@ -1,6 +1,6 @@
 
 // STL includes
-#include <cmath>
+#include <math.h>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -1570,7 +1570,6 @@ private:
 {};
 
   std::vector<int> m_vecAparcIgnored;
-  int ctIndex;
   MRIS* m_psurf;
 
   void

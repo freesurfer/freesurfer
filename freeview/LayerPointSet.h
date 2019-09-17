@@ -110,6 +110,8 @@ public:
 
   bool IsEnhanced();
 
+  double GetEndPointDistance();
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();

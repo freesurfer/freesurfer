@@ -58,7 +58,7 @@ public:
   // The color map types in which a volume can be drawn.
   enum ColorMapType
   {
-    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, PET, DirectionCoded
+    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, PET, DirectionCoded, Binary
   };
 
   enum VectorInversion
@@ -158,11 +158,11 @@ public:
   // These determine the heatscale color map. The threshold is mirrored:
   // -> cyan -> blue -> trans_blue -> clear -> trans_orange -> orange -> red ->
   // -> -max -> -mid ->    -min    ->   0   ->     min      ->   mid  -> max ->
-  void    SetHeatScaleMinThreshold ( double iValue );
+  void    SetHeatScaleMinThreshold ( double iValue, bool bMidToMin = false );
   double  GetHeatScaleMinThreshold ();
   void    SetHeatScaleMidThreshold ( double iValue );
   double  GetHeatScaleMidThreshold ();
-  void    SetHeatScaleMaxThreshold ( double iValue );
+  void    SetHeatScaleMaxThreshold ( double iValue, bool bMidToMin = false );
   double  GetHeatScaleMaxThreshold ();
   void    SetHeatScaleOffset ( double iValue );
   double  GetHeatScaleOffset ();
@@ -192,7 +192,12 @@ public:
   void SetShowNegativeHeatScaleValues ( bool ib );
   bool GetShowNegativeHeatScaleValues ();
 
-  bool GetClearZero();
+  bool GetClearBackground();
+
+  double GetClearBackgroundValue()
+  {
+    return mClearBackgroundValue;
+  }
 
   // void EditorChangedHeatScale ();
 
@@ -394,6 +399,18 @@ public:
     return m_nVectorSkip;
   }
 
+  double GetVectorNormThreshold()
+  {
+    return m_dVectorNormThreshold;
+  }
+
+  QColor GetBinaryColor()
+  {
+    return m_colorBinary;
+  }
+
+  void SetBinaryColor(const QColor& color);
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -403,7 +420,8 @@ public slots:
   void SetShowAsContour( bool bContour );
   void SetShowAsLabelContour(bool bLabelContour);
   void SetShowVoxelizedContour(bool bVoxelize);
-  void SetClearZero( bool bClear );
+  void SetClearBackground( bool bClear );
+  void SetClearBackgroundValue( double val );
   void SetResliceInterpolation ( int iMode );
   void SetWindow( double iWindow );
   void SetLevel ( double iLevel );
@@ -438,7 +456,7 @@ public slots:
   }
 
   void SetAutoAdjustFrameLevel(bool b);
-  void SetHeatScaleAutoMid(bool bAutoMid);
+  void SetHeatScaleAutoMid(bool bAutoMid, bool bAutoMidToMin = false);
 
   void SetProjectionMapRange(int n, int start, int end);
   void SetSelectLabel(int nVal, bool bSelected);
@@ -452,6 +470,8 @@ public slots:
   void UpdateLUTTable();
 
   void SetCustomColors(const QMap<int, QColor>& colors);
+
+  void SetVectorNormThreshold(double dVal);
 
 signals:
   void ColorMapChanged();
@@ -495,9 +515,10 @@ private:
   int     mResliceInterpolation;
   int     mTextureSmoothing;
 
-  bool    mbClearZero;
+  bool    mbClearBackground;
   double  mMinVoxelValue, mMaxVoxelValue;
   double  mMinVisibleValue, mMaxVisibleValue;
+  double  mClearBackgroundValue;
 
   // For grayscale drawing.
   double  mMinGrayscaleWindow, mMaxGrayscaleWindow;
@@ -537,6 +558,7 @@ private:
   bool    m_bNormalizeVector;
   double  m_dVectorDisplayScale;
   double  m_dVectorScale;
+  double  m_dVectorNormThreshold;
 
   bool    m_bDisplayRGB;
 
@@ -574,6 +596,7 @@ private:
   int     m_nVectorSkip;
 
   QList<int>  m_listVisibleLabels;
+  QColor  m_colorBinary;
 };
 
 #endif

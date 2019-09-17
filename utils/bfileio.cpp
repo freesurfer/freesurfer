@@ -55,8 +55,8 @@ extern int errno;
 /* ------------------------- */
 int byteswapbufdouble(void *buf, long int nbufbytes)
 {
-  register char *cbuf, c;
-  register long int n, nmax;
+  char *cbuf, c;
+  long int n, nmax;
 
   nmax = nbufbytes;
   cbuf = (char *)buf;
@@ -85,8 +85,8 @@ int byteswapbufdouble(void *buf, long int nbufbytes)
 /* ------------------------- */
 int byteswapbuffloat(void *buf, long int nbufbytes)
 {
-  register char *cbuf, c;
-  register long int n, nmax;
+  char *cbuf, c;
+  long int n, nmax;
 
   nmax = nbufbytes;
   cbuf = (char *)buf;
@@ -107,8 +107,8 @@ int byteswapbuffloat(void *buf, long int nbufbytes)
 /* ------------------------- */
 int byteswapbufshort(void *buf, long int nbufbytes)
 {
-  register char *cbuf, c;
-  register long int n, nmax;
+  char *cbuf, c;
+  long int n, nmax;
 
   nmax = nbufbytes;
   cbuf = (char *)buf;

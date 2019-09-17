@@ -43,6 +43,7 @@ public:
   virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
   virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
   virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
+  virtual bool ProcessMouseWheelEvent(QWheelEvent *event, RenderView *view);
 
 protected:
   virtual void UpdateCursor( QEvent* event, QWidget* wnd );

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>349</height>
+    <height>376</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,6 +61,16 @@
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxUseAllPoints">
+        <property name="text">
+         <string>Use all marked vertices</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

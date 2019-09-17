@@ -4,7 +4,7 @@
  *
  */
 #include "Spline3.h"
-#include <cmath>
+#include <math.h>
 
 
 int main () 

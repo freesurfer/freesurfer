@@ -67,7 +67,7 @@ void ThreadBuildContour::run()
     dTh2 = m_nSegValue + 0.5;
   }
 
-  vtkImageData* imagedata = m_mri->GetImageData();
+  vtkSmartPointer<vtkImageData> imagedata = m_mri->GetImageData();
   if (m_mri->GetNumberOfFrames() > 1)
   {
     vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
@@ -89,6 +89,9 @@ void ThreadBuildContour::run()
       if (!map.contains(i))
       {
         vtkActor* actor = vtkActor::New();
+#if VTK_MAJOR_VERSION > 5
+        actor->ForceOpaqueOn();
+#endif
         actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
         actor->GetMapper()->ScalarVisibilityOn();
         MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour, m_mri->GetProperty()->GetShowVoxelizedContour());

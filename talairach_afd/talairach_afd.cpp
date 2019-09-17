@@ -538,7 +538,7 @@ LoadProbas(char *fname, int *nb_samples)
 {
   FILE *fp;
   char tag[1000], tmpstr[1000], c[1000];
-  int  nth, r,  len;
+  int  nth, r,  len = 0;
   double *p=NULL;
 
   fp = fopen(fname,"r");

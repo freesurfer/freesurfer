@@ -107,7 +107,6 @@ int main(int argc, char **argv)
   MRISedges(surf);
   MRIScomputeMetricProperties(surf);
   MRISfaceNormalGrad(surf, 0);
-  MRISedgeGradDot(surf);
   PlaceSurf(mri, surf);
   exit(0);
 
@@ -141,7 +140,6 @@ int main(int argc, char **argv)
         v->y + dy,
         v->z + dz);
       MRISfaceNormalGrad(surf, 0);
-      MRISedgeGradDot(surf);
       //d1 = MRISbbrCost(bbrpar, NULL);
       d1 = MRISedgeCost(surf, NULL);
       gnum->rptr[1][c+1] = (d1-d)/delta;
@@ -488,7 +486,6 @@ int PlaceSurf(MRI *mri, MRIS *surf)
   bbrpar->interp = SAMPLE_TRILINEAR;
 
   MRISfaceNormalGrad(surf, 0);
-  MRISedgeGradDot(surf);
   gradEdge = AllocGradCost(surf->nvertices);
   gradBBR  = AllocGradCost(surf->nvertices);
   costEdge = MRISedgeCost(surf, gradEdge);
@@ -498,7 +495,6 @@ int PlaceSurf(MRI *mri, MRIS *surf)
     SteepDir = DMatrixAddMul(gradEdge,gradBBR,1,1,SteepDir);
     UpdateVertexPosition(surf, 1000, SteepDir);
     MRISfaceNormalGrad(surf, 0);
-    MRISedgeGradDot(surf);
     costEdge = MRISedgeCost(surf, gradEdge);
     costBBR = MRISbbrCost(bbrpar, gradBBR);
     cost = costEdge + costBBR;

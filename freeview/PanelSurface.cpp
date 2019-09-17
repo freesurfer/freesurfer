@@ -50,6 +50,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui(new Ui::PanelSurface)
 {
   ui->setupUi(this);
+#ifdef Q_OS_MAC
+  ui->pushButtonNewLabel->setMaximumWidth(55);
+  ui->pushButtonDeleteLabel->setMaximumWidth(62);
+  ui->pushButtonLoadLabel->setMaximumWidth(55);
+  ui->pushButtonSaveLabel->setMaximumWidth(55);
+#endif
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
@@ -152,6 +158,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
+  connect(mainwnd, SIGNAL(OverlayMaskRequested(QString)), m_wndConfigureOverlay, SLOT(LoadLabelMask(QString)));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -595,7 +602,7 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     act = new QAction("Dilate/Erode/Open/Close...", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
     menu->addAction(act);
-    act = new QAction("MaskOverlay", this);
+    act = new QAction("Mask Overlay", this);
     connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
     menu->addAction(act);
     menu->addSeparator();
@@ -1393,12 +1400,17 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options)
     int vno = surf->GetLastMark();
     if (vno < 0)
       vno = surf->GetCurrentVertex();
-    if (vno < 0)
+    QVector<int> verts;
+    if (vno >= 0)
+      verts << vno;
+    if (options["UseAllPoints"].toBool())
+      verts = surf->GetAllMarks();
+    if (verts.size() == 0)
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(vno, options);
+      surf->FillPath(verts, options);
   }
 }
 

@@ -142,6 +142,7 @@ if($status) goto error_exit;
 # Compute segstats
 set cmd = (mri_segstats --seg $sourceseg --sum $segstats \
   --ctab-default --excludeid 0 --i $source)
+if($#subject) set cmd = ($cmd --etiv --subject $subject)
 echo ""| tee -a $LF
 date | tee -a $LF
 echo $cmd | tee -a $LF
@@ -286,10 +287,6 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#outdir == 0) then
-  echo "ERROR: must spec outdir"
-  exit 1;
-endif
 if($#source == 0 && $#subject == 0) then
   echo "ERROR: must spec either input or subject"
   exit 1;
@@ -299,7 +296,6 @@ if($#source != 0 && $#subject != 0) then
   exit 1;
 endif
 
-set segstats = $outdir/first.fsl.stats
 if($#subject) then
   if(! -e $SUBJECTS_DIR/$subject) then
     echo "ERROR: cannot find $subject"
@@ -310,6 +306,14 @@ if($#subject) then
   set segstats = $SUBJECTS_DIR/$subject/stats/first.fsl.stats
   set diceseg  = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
 endif
+
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+
+if($#segstats == 0) set segstats = $outdir/first.fsl.stats
+
 if(! -e $source) then
   echo "ERROR: cannot find $source"
   exit 1;
@@ -358,11 +362,15 @@ BEGINHELP
 
 Wrapper to run the FSL FIRST program to perform subcortical segmentation. Handles
 formats and orientations, computes segmentation stats, and will compute dice
-coefficients with a passed segmentation. 
+coefficients with a passed segmentation. The final output will be
+source.first_all_fast_firstseg.nii.gz
 
 If run with --s, the input becomes orig.mgz, the seg used for dice
 becomes aseg.presurf.mgz, the output will be mri/first, and the stats
-file will go into the stats folder (ie, stats/first.fsl.stats)
+file will go into the stats folder (ie, stats/first.fsl.stats). The
+stats can be compiled with 
+
+asegstats2table -t subcort.volume.first.dat --statsfile=first.fsl.stats --subjectsfile=slist.txt 
 
 For more info see https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST
 

@@ -3581,7 +3581,7 @@ scan_number_done:
 
 
 #include <cassert> // assert
-#include <cmath> // isfinite
+#include <math.h> // isfinite
 #include <cstdint> // uint8_t
 #include <functional> // function
 #include <string> // string

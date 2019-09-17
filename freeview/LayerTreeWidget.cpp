@@ -175,6 +175,15 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   //    menu->addSeparator();
   //  }
 
+  if (type == "MRI" || type == "Surface")
+  {
+    if (type == "MRI")
+      wnd->ui->actionViewLayerInfo->setText("View Volume Info...");
+    else if (type == "Surface")
+      wnd->ui->actionViewLayerInfo->setText("View Surface Info...");
+    menu->addAction(wnd->ui->actionViewLayerInfo);
+    menu->addSeparator();
+  }
   if (type == "MRI" || type.isEmpty())
   {
     menu->addAction(wnd->ui->actionNewVolume);
@@ -302,6 +311,14 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
         act = new QAction("Apply Transformation...", this);
         connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
         menu->addAction(act);
+      }
+
+      if (((LayerMRI*)layers[0])->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+      {
+          act = new QAction("Export label stats...", this);
+          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnExportLabelStats()));
+          menu->addSeparator();
+          menu->addAction(act);
       }
     }
     else if (layers[0]->GetEndType() == "Surface")

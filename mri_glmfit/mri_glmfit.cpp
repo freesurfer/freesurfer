@@ -583,6 +583,7 @@ char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int eresSave=0;
+int SaveFWHMMap=0;
 int eresSCMSave=0;
 int condSave=0;
 
@@ -654,6 +655,7 @@ char *subject=NULL, *hemi=NULL, *simbase=NULL;
 MRI_SURFACE *surf=NULL;
 int nsim,nthsim;
 double csize;
+MRI *fwhmmap = NULL;
 
 VOLCLUSTER **VolClustList;
 
@@ -671,6 +673,7 @@ int weightinv=0, weightsqrt=0;
 
 int OneSamplePerm=0;
 int OneSampleGroupMean=0;
+int PermNonStatCor = 0;
 Timer mytimer;
 int ReallyUseAverage7 = 0;
 int logflag = 0; // natural log
@@ -1724,6 +1727,14 @@ int main(int argc, char **argv) {
 	else {
           if(!DoSim) printf("Starting fit and test\n");
           MRIglmFitAndTest(mriglm);
+	  // If using permutation with non-stationary correction, compute fwhmmap here
+	  if(!strcmp(csd->simtype,"perm") && PermNonStatCor) {
+	    if(ar1)     MRIfree(&ar1);
+	    if(fwhmmap) MRIfree(&fwhmmap);
+	    ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
+	    fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
+	    // MRISsmoothMRI(surf, fwhmmap, SmthLevel, mriglm->mask, fwhmmap)
+	  }
         }
       }
 
@@ -1808,7 +1819,7 @@ int main(int argc, char **argv) {
 	      if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
 					       mytimer.seconds());
 	      SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
-						    0,&nClusters,NULL);
+						    0,&nClusters,NULL,fwhmmap);
 	      csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	    } 
 	    else {
@@ -1876,6 +1887,7 @@ int main(int argc, char **argv) {
 	} // sign list
       } // thresh list
       //MRIfree(&sig);
+
     }// simulation loop
     if(SimDoneFile){
       fp = fopen(SimDoneFile,"w");
@@ -1915,6 +1927,13 @@ int main(int argc, char **argv) {
       eresgstd = eresfwhm/sqrt(log(256.0));
       printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
              ar1mn,ar1std,eresgstd,eresfwhm);
+      if(SaveFWHMMap){
+	printf("Computing map of FWHM\n");
+	fwhmmap = MRISfwhmFromAR1Map(surf, mriglm->mask, ar1);
+	sprintf(tmpstr,"%s/fwhm.%s",GLMDir,format);
+	MRIwrite(fwhmmap,tmpstr);
+	MRIfree(&fwhmmap);
+      }
       MRIfree(&ar1);
     } else {
       printf("Computing spatial AR1 in volume.\n");
@@ -2248,8 +2267,7 @@ int main(int argc, char **argv) {
 
   // --------- Save FSGDF stuff --------------------------------
   if (fsgd != NULL) {
-    if ((NULL == fsgd->measname) || (strlen(fsgd->measname) == 0))
-    {
+    if (strlen(fsgd->measname) == 0) {
       strcpy(fsgd->measname,"external");
     }
     if(yOutFile != NULL) sprintf(fsgd->datafile,"%s",yOutFile);
@@ -2368,6 +2386,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
+    else if (!strcasecmp(option, "--save-fwhm-map")) {SaveFWHMMap=1;ComputeFWHM = 1;}
     else if (!strcasecmp(option, "--eres-scm")) eresSCMSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
@@ -2382,6 +2401,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--osgm"))   {OneSampleGroupMean = 1; DoPCC = 0;}
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
+    else if (!strcasecmp(option, "--perm-nonstatcor")) PermNonStatCor = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
@@ -2940,6 +2960,7 @@ printf("   --rm-spatial-mean : subtract the (masked) mean from each frame\n");
 printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
 printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
+printf("   --save-fwhm-map : save voxel-wise map of FWHM estimates\n");
 printf("   --y-out y.out.mgh : save input after any pre-processing\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
@@ -3457,6 +3478,10 @@ static void check_options(void) {
       fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
       exit(1);
     }
+  }
+  if(UseCortexLabel && maskFile){
+    printf("ERROR: cannot specify both --cortex and --mask\n");
+    exit(1);
   }
   if(UseCortexLabel && surf){
     sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);

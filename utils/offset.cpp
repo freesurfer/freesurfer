@@ -113,8 +113,8 @@ IMAGE *ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu, flo
   float vx, vy, vsq, c1, *g, *xpix, *ypix;
   static float *gaussian = NULL;
   static int w = 0;
-  register float gauss, fxpix, fypix, dot_product;
-  register int xc, yc;
+  float gauss, fxpix, fypix, dot_product;
+  int xc, yc;
 
   if ((Gdiag & DIAG_SHOW) && (Gdiag & DIAG_VERBOSE))
     fprintf(stderr, "ImageCalculateNitshiOffset: mu = %2.4f, c = %2.4f, wsize = %d\n", mu, c, wsize);
@@ -232,8 +232,8 @@ IMAGE *ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 {
   float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, xf, yf, dot;
   int x0, y0, rows, cols, delta, i;
-  register int x, y;
-  register float dx, dy, odx, ody;
+  int x, y;
+  float dx, dy, odx, ody;
 
   if (!Idst) Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, Isrc->num_frame);
 
@@ -606,8 +606,8 @@ IMAGE *ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iof
   float vx, vy, *g, *xpix, *ypix;
   static float *gaussian = NULL;
   static int w = 0;
-  register float gauss, fxpix, fypix, dot_product;
-  register int xc, yc;
+  float gauss, fxpix, fypix, dot_product;
+  int xc, yc;
 
   rows = Ix->rows;
   cols = Ix->cols;
@@ -714,8 +714,8 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
   float vx, vy, *g, *xpix, *ypix, dx, dy, ox, oy, delta, slope, xf, yf, odx, ody, *dpix, *spix, sort_array[3 * 3],
       *sptr;
   static float *gaussian = NULL;
-  register float gauss, fxpix, fypix, dot_product;
-  register int xc, yc;
+  float gauss, fxpix, fypix, dot_product;
+  int xc, yc;
 
   srows = Isrc->rows;
   scols = Isrc->cols;
@@ -945,7 +945,7 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
 
 static int compare_sort_array(const void *pf1, const void *pf2)
 {
-  register float f1, f2;
+  float f1, f2;
 
   f1 = *(float *)pf1;
   f2 = *(float *)pf2;

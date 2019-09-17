@@ -32,11 +32,13 @@
 #include <unistd.h>
 
 #include "mrisutils.h"
+#include "surfgrad.h"
 
 #include "romp_support.h"
 
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrisurf_sseTerms.h"
 #include "mrisurf_vals.h"
 
 #include "chklc.h"
@@ -248,7 +250,6 @@ MRI *MRISpeelVolume(MRIS *mris, MRI *mri_src, MRI *mri_dst, int type, unsigned c
 ///////////////////////////////////////////////////////////////////
 
 static MRI *mriIsolateLabel(MRI *mri_seg, int label, MRI_REGION *bbox);
-static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs);
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag);
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
 static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
@@ -259,75 +260,6 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
 
 
-static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
-{
-  if (num_avgs <= 0) return (NO_ERROR);
-
-  if (Gdiag_no >= 0) {
-    VERTEX const * const v = &mris->vertices[Gdiag_no];
-    fprintf(stdout, "before averaging dot = %2.2f ", v->dx * v->nx + v->dy * v->ny + v->dz * v->nz);
-  }
-
-  if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE) /* use convolution */
-  {
-    float const sigma = sqrt((float)num_avgs) / 4.0;
-    MRI_SP * mrisp      = MRISgradientToParameterization(mris, NULL, 1.0);
-    MRI_SP * mrisp_blur = MRISPblur(mrisp, NULL, sigma, -1);
-    MRISgradientFromParameterization(mrisp_blur, mris);
-    MRISPfree(&mrisp);
-    MRISPfree(&mrisp_blur);
-  }
-  else
-  {
-    int i;
-    for (i = 0; i < num_avgs; i++) {
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-        VERTEX*                       v  = &mris->vertices         [vno];
-        if (v->ripflag) continue;
-        float dx = v->dx;
-        float dy = v->dy;
-        float dz = v->dz;
-        int const * pnb = vt->v;
-        /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
-        int const vnum = vt->vnum;
-        int num = 1;
-	int vnb;
-        for (vnb = 0; vnb < vnum; vnb++) {
-          VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
-          if (vn->ripflag) continue;
-          float dot = vn->dx * v->dx + vn->dy * v->dy + vn->dz * v->dz;
-          if (dot < 0) continue; /* pointing in opposite directions */
-
-          num++;
-          dx += vn->dx;
-          dy += vn->dy;
-          dz += vn->dz;
-        }
-        v->tdx = dx / num;
-        v->tdy = dy / num;
-        v->tdz = dz / num;
-      }
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX * v = &mris->vertices[vno];
-        if (v->ripflag) continue;
-        v->dx = v->tdx;
-        v->dy = v->tdy;
-        v->dz = v->tdz;
-      }
-    }
-  }
-  
-  if (Gdiag_no >= 0) {
-    VERTEX const * const v = &mris->vertices[Gdiag_no];
-    float const dot = v->nx * v->dx + v->ny * v->dy + v->nz * v->dz;
-    fprintf(stdout, " after dot = %2.2f\n", dot);
-    if (fabs(dot) > 50) DiagBreak();
-  }
-  
-  return (NO_ERROR);
-}
 
 MRI_REGION *MRIlocateRegion(MRI *mri, int label)
 {
@@ -435,14 +367,12 @@ static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
 {
-  VERTEX *v;
-
-  v = &mris->vertices[vno];
+  VERTEX *v = &mris->vertices[vno];
 
   mrisRemoveNeighborGradientComponent(mris, vno);
-  if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+  if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
     mrisRemoveNormalGradientComponent(mris, vno);
-    if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
+    if (MHTisVectorFilled(mht, vno, v->odx, v->ody, v->odz)) {
       v->odx = v->ody = v->odz = 0.0;
       return (NO_ERROR);
     }
@@ -464,7 +394,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
     int const vno =
       (direction < 0) ? (mris->nvertices - i - 1) : (i);
       
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     
     if (v->ripflag) continue;
@@ -486,7 +416,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
     /* erase the faces this vertex is part of */
 
     if (mht) {
-      MHTremoveAllFaces(mht, mris, vt);
+      MHTremoveAllFaces(mht, mris, vno);
       mrisLimitGradientDistance(mris, mht, vno);
     }
     
@@ -495,7 +425,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
       v->y + v->ody,
       v->z + v->odz);
     
-    if (mht) MHTaddAllFaces(mht, mris, vt);
+    if (mht) MHTaddAllFaces(mht, mris, vno);
   }
 
   direction *= -1;
@@ -1247,6 +1177,37 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   return (niters);
 }
 
+/*!
+  \fn MRI *MRISfwhmFromAR1Map(MRIS *surf, MRI *mask, MRI *ar1map)
+  \brief Computes FWHM for each vertex
+ */
+MRI *MRISfwhmFromAR1Map(MRIS *surf, MRI *mask, MRI *ar1map)
+{
+  double ar1, fwhm, gstd, InterVertexDistAvg;
+  MRIScomputeMetricProperties(surf);
+
+  InterVertexDistAvg = surf->avg_vertex_dist;
+  if (surf->group_avg_surface_area > 0)
+    InterVertexDistAvg *= sqrt(surf->group_avg_surface_area / surf->total_area);
+
+  MRI *fwhmmap = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+  MRIcopyHeader(ar1map,fwhmmap);
+  MRIcopyPulseParameters(ar1map,fwhmmap);
+
+  int n;
+  for(n=0; n < surf->nvertices; n++){
+    if(mask && MRIgetVoxVal(mask,n,0,0,0)<0.5) continue;
+    ar1 = MRIgetVoxVal(ar1map,n,0,0,0);
+    // Cant just call MRISfwhmFromAR1() because it runs compute metric properties
+    if(ar1 <= 0.0) continue;
+    gstd = InterVertexDistAvg / sqrt(-4 * log(ar1));
+    fwhm = gstd * sqrt(log(256.0));
+    MRIsetVoxVal(fwhmmap,n,0,0,0,fwhm);
+  }
+  return(fwhmmap);
+}
+
+
 /*----------------------------------------------------------------------
   MRISfwhm() - estimates fwhm from global ar1 mean
   ----------------------------------------------------------------------*/
@@ -1556,16 +1517,16 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
 
   mri_aseg = MRIcopy(mri_aseg, NULL);  // so we can mess with it
 
-// remove the posterior few mm of the ventricles to prevent
-// them poking into the calcarine
-#define ERASE_MM 3
+  // remove the posterior few mm of the ventricles to prevent
+  // them poking into the calcarine
+  int erase_mm = 3;
   for (l = 0; l < 2; l++) {
     if (l == 0)
       target_label = Left_Lateral_Ventricle;
     else
       target_label = Right_Lateral_Ventricle;
     MRIlabelBoundingBox(mri_aseg, target_label, &box);
-    for (z = box.z + box.dz - (ERASE_MM + 1); z < box.z + box.dz; z++)
+    for (z = box.z + box.dz - (erase_mm + 1); z < box.z + box.dz; z++)
       for (y = 0; y < mri_aseg->height; y++)
         for (x = 0; x < mri_aseg->width; x++) {
           label = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0);
@@ -1727,6 +1688,51 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
   MRIfree(&mri_aseg);  // a locally edited copy, not the original
   return (lcortex);
 }
+
+/*!
+  \fn LABEL *MRIScortexLabelCC(MRIS *mris, MRI *mri_aseg, int min_vertices)
+  \brief Creates a label of cortex that is better defined than that
+  produced by MRIScortexLabel(). It runs MRIScortexLabel() first, then
+  refines it by dilating (D) and eroding (E) then excluding all but
+  the largest connected component (CC). This replaces what is in
+  mris_make_surfaces when ndilate=nerode=4 and min_vertices=-1.
+ */
+LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices)
+{
+  LABEL *lcortex, **labels ;
+  int   n, max_l, max_n, nlabels ;
+  
+  lcortex = MRIScortexLabel(mris, mri_aseg, min_vertices) ;
+  LabelErode(lcortex, mris, nerode) ; // Erode the label by 4
+  LabelDilate(lcortex, mris, ndilate, CURRENT_VERTICES) ;// Dilate the label by 4
+
+  // Create clusters of the labels and take the biggest
+  MRISclearMarks(mris) ;
+  LabelMark(lcortex, mris) ;
+  MRISsegmentMarked(mris, &labels, &nlabels, 1) ; 
+  
+  // Find the label with the most points in it
+  max_n = 0 ;
+  max_l = labels[0]->n_points ;
+  for (n = 1 ; n < nlabels ; n++){
+    if (labels[n]->n_points > max_l){
+      max_l = labels[n]->n_points ;
+      max_n = n ;
+    }
+  }
+  // Unmark the vertices if they are not part of the biggest label 
+  for (n = 0 ; n < nlabels ; n++){
+    if (n != max_n){
+      LabelUnmark(labels[n], mris) ;
+    }
+    LabelFree(&labels[n]) ;
+  }
+  LabelFree(&lcortex) ;
+  
+  // Get the final cortex label
+  lcortex = LabelFromMarkedSurface(mris) ;
+  return(lcortex);
+ }
 
 /*!
   \fn int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
@@ -3376,3 +3382,133 @@ int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, 
 
   return(eno);
 }
+
+
+/*!
+  \fn double *MRIStriangleAreaStats(MRIS *surf, double *stats)
+  \brief Computes stats (nfaces, mean, stddev, min, max) over
+  all faces that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. Runs MRIScomputeMetricProperties().
+ */
+double *MRIStriangleAreaStats(MRIS *surf, MRI *mask, double *stats)
+{
+  int fno, nfaces;
+  double *area;
+  MRIScomputeMetricProperties(surf);
+
+  area = (double*)calloc(sizeof(double),surf->nfaces);
+  nfaces = 0;
+  for(fno=0; fno < surf->nfaces; fno++){
+    FACE *f = &(surf->faces[fno]);
+    int nthv, skip;
+    skip = 0;
+    for(nthv = 0; nthv < 3; nthv++){
+      int vno = f->v[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    area[nfaces] = f->area;
+    nfaces ++;
+    //printf("%g\n",f->area);
+  }
+  stats = DListStats(area, nfaces, stats);
+  free(area);
+
+  return(stats);
+}
+/*!
+  \fn double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+  \brief Computes stats (nedges, mean, stddev, min, max) over
+  all edges that do not have a ripped vertex. If mask is non-null,
+  then the mask value of a vertex must be greater than 0.5 to
+  be included in the list. metricid: 0=length, 1=dot, 2=angle.
+  Will create the edge structure if not already there. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric(surf).
+ */
+double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats)
+{
+  int edgeno, nedges, nthv;
+  MRI_EDGE *e;
+  double *metric;
+
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+
+  metric = (double*)calloc(sizeof(double),surf->nedges);
+  nedges = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    int skip = 0;
+    for(nthv=0; nthv < 4; nthv++){
+      int vno = e->vtxno[nthv];
+      VERTEX  * const v = &(surf->vertices[vno]);
+      if(v->ripflag) skip = 1;
+      if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) skip = 1;
+    }
+    if(skip) continue;
+    switch(metricid){
+    case 0: metric[nedges] = e->len; break;
+    case 1: metric[nedges] = e->dot; break;
+    case 2: metric[nedges] = e->angle; break;
+    default:
+      printf("ERROR: MRISedgeStats() metricid %d unrecognized\n",metricid);
+      return(NULL);
+    }
+    //printf("%lf\n",metric[nedges]);
+    nedges++;
+  }
+
+  stats = DListStats(metric, nedges, stats);
+  free(metric);
+  return(stats);
+}
+/*!
+  \fn int MRISedgePrint(FILE *fp, MRIS *surf)
+  \brief Print edge metrics to a stream. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+ */
+int MRISedgePrint(FILE *fp, MRIS *surf)
+{
+  int edgeno;
+  MRI_EDGE *e;
+  MRIScomputeMetricProperties(surf);
+  MRISedgeMetric(surf,0);
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    double cost = (1.0-e->dot)*(1.0-e->dot);
+    fprintf(fp,"%6d %6d %6d %10.8f %10.8f %8.4f %12.8f\n",edgeno,
+	    e->vtxno[0],e->vtxno[1],e->len,e->dot,e->angle,cost);
+  }
+  fflush(fp);
+  return(0);
+}
+
+/*!
+  \fn int MRISedgeWrite(char *filename, MRIS *surf)
+  \brief Print edge metrics to a file. Runs
+  MRIScomputeMetricProperties() and MRISedgeMetric()
+  via MRISedgePrint(). 
+ */
+int MRISedgeWrite(char *filename, MRIS *surf)
+{
+  FILE *fp;
+  if(surf->edges == NULL){
+    MRISedges(surf);
+  }
+  MRIScomputeMetricProperties(surf) ;
+  MRISedges(surf);
+  MRISfaceNormalGrad(surf, 0); //0=DoGrad
+  MRISedgeMetric(surf,0);
+
+  fp = fopen(filename,"w");
+  if(fp == NULL) return(1);
+  MRISedgePrint(fp,surf);
+  return(0);
+}
+

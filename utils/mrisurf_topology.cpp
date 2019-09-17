@@ -20,6 +20,8 @@
  
 #include "mrisurf_topology.h"
 
+#include "mrisurf_base.h"
+
 
 // MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
 //                   and with their partitioning into sets (ripped, marked, ...)
@@ -354,6 +356,22 @@ int mrisCountValidLinks(MRIS *mris, int vno1, int vno2)
   return (nvalid);
 }
 
+
+short modVnum(MRIS const *mris, int vno, short add, bool clear) 
+{
+  VERTEX_TOPOLOGY* vt = &mris->vertices_topology[vno];
+  short * p = const_cast<short*>(&vt->vnum);
+  if (clear) *p = 0;
+  *p += add;
+  static short maxVnumSeen = 30;
+  if (*p > maxVnumSeen) {
+    maxVnumSeen =*p;
+    fprintf(stdout, "modVnum: vno:%d has %d immediate neighbours mrisurf_topology.cpp:%d\n",vno,*p,__LINE__); 
+  }
+  return *p;
+}
+
+
 static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2) 
 {
   if (vno1 < 0 || vno2 < 0) {
@@ -367,26 +385,23 @@ static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2)
     fprintf(stdout, "adding edge %d <--> %d\n", vno1, vno2);
   }
 
-  /* add v2 link to v1 struct */
-  {
-    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
+  auto adjustV = [&](int vnoA, int vnoB) {  
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vnoA];
     v->v = (int*)realloc(v->v, (v->vnum+1)*sizeof(int));
     if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-    v->v[v->vnum++] = vno2;
+    v->v[vnumAdd(mris,vnoA,1)] = vnoB;
     v->vtotal = v->vnum; v->nsizeCur = v->nsizeMax = 1;
-  }
-  
-  /* add v1 link to v2 struct */
-  {
-    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno2];
-    v->v = (int*)realloc(v->v, (v->vnum+1)*sizeof(int));
-    if (!v->v) ErrorExit(ERROR_NO_MEMORY, "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-    v->v[v->vnum++] = vno1;
-    v->vtotal = v->vnum; v->nsizeCur = v->nsizeMax = 1;
-  }
+    static int maxVnum = 20;
+    if (maxVnum < v->vnum) {
+      maxVnum = v->vnum;
+      fprintf(stdout, "vno:%d now has %d immediate neighbours  mrisurf_topology.cpp:%d\n", vnoA, v->vnum, __LINE__);
+    }
+  };
   
+  adjustV(vno1,vno2);
+  adjustV(vno2,vno1);
 }
 
 void mrisAddEdge(MRIS *mris, int vno1, int vno2)
@@ -405,7 +420,7 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2)
   int i;
   for (i = 0; i < v1->vnum; i++)
     if (v1->v[i] == vno2) {
-      v1->vnum--;
+      addVnum(mris,vno1,-1);
       if (i < v1->vnum) /* not the (previous) last index */
       {
         memmove(&v1->v[i], &v1->v[i + 1], (v1->vnum - i) * sizeof(v1->v[0]));
@@ -429,7 +444,7 @@ int mrisRemoveVertexLink(MRIS *mris, int vno1, int vno2)
 
   if (n < v->vnum) {
     memmove(v->v + n, v->v + n + 1, (v->vtotal - (n + 1)) * sizeof(int));
-    v->vnum--;
+    addVnum(mris,vno1,-1);
     v->vtotal--;
   }
   return (NO_ERROR);
@@ -589,12 +604,14 @@ int MRIStopologicalDefectIndex(MRIS *mris)
 */
 int MRISedges(MRIS *surf)
 {
+  int edgeno = 0;
+  int vtxno0, vtxno1;
+
   surf->nedges = MRIScountEdges(surf);
   surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
+  //printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
 
   // This is not thread safe and cannot be made thread safe
-  int edgeno = 0;
-  int vtxno0;
   for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
     VERTEX_TOPOLOGY const * const v0t = &surf->vertices_topology[vtxno0];
     
@@ -618,7 +635,7 @@ int MRISedges(MRIS *surf)
 	  for(m=0; m < v1t->num; m++){ // go thru faces of vtx2
 	    if(v0t->f[n] == v1t->f[m]){ // same face
 	      if(k>1){
-	        printf("ERROR: MRISedge(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
+	        printf("ERROR: MRISedges(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
 	        return(1);
 	      }
 	      FACE const * const f = &(surf->faces[v0t->f[n]]);
@@ -634,7 +651,7 @@ int MRISedges(MRIS *surf)
 	  }
         }
         if(k != 2){
-	  printf("ERROR: MRISedge(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
+	  printf("ERROR: MRISedges(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
 	  return(1);
         }
       }
@@ -684,8 +701,108 @@ int MRISedges(MRIS *surf)
     }
   }
 
+  // Allocate the edge number array in each vertex
+  VERTEX_TOPOLOGY *vt;
+  for(vtxno0 = 0; vtxno0 < surf->nvertices; vtxno0++){
+    vt = &(surf->vertices_topology[vtxno0]);
+    if(vt->e) free(vt->e);
+    vt->e = (int*)calloc(sizeof(int),vt->vtotal);
+  }
+
+  // Assign edge numbers to vertices
+  // could add directionality here too
+  int k;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    vtxno0 = surf->edges[edgeno].vtxno[0];
+    vtxno1 = surf->edges[edgeno].vtxno[1];
+    vt = &(surf->vertices_topology[vtxno0]);
+    for(k=0; k < vt->vtotal; k++)
+      if(vt->v[k] == vtxno1) vt->e[k] = edgeno;
+    vt = &(surf->vertices_topology[vtxno1]);
+    for(k=0; k < vt->vtotal; k++)
+      if(vt->v[k] == vtxno0) vt->e[k] = edgeno;
+  }
+
   return(0);
 }
+
+
+/*!
+  \fn int MRIScorners(MRIS *surf)
+  \brief Create triangle corner topology. Will return immediately with
+  0 if already done. If edge topology has not been built, then that
+  will be done as well. A corner is an angle of a triangle.
+ */
+int MRIScorners(MRIS *surf)
+{
+  int faceno, cornerno, k,m,n;
+  FACE *face;
+  MRI_CORNER *c;
+
+  if(surf->corners) return(0);
+
+  //printf("Building triangle corner toplology\n");
+  if(!surf->edges) MRISedges(surf);
+
+  surf->ncorners = 3*surf->nfaces;
+  surf->corners = (MRI_CORNER*) calloc(sizeof(MRI_CORNER),surf->ncorners);
+  //printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
+  //	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
+
+  // First assign vertices to each corner
+  cornerno = 0;
+  for(faceno=0; faceno < surf->nfaces; faceno++){
+    face = &(surf->faces[faceno]);
+    for(k=0; k < 3; k++){
+      c = &(surf->corners[cornerno]);
+      c->cornerno = cornerno;
+      c->faceno = faceno;
+      m = k + 1;
+      if(m>2) m -= 3;
+      n = k + 2;
+      if(n>2) n -= 3;
+      c->vtxno[0] = face->v[k];
+      c->vtxno[1] = face->v[m];
+      c->vtxno[2] = face->v[n];
+      cornerno++;
+    }
+  }
+
+  // Now assign edges and edge direction to each corner
+  for(cornerno = 0; cornerno < surf->ncorners; cornerno++){
+    c = &(surf->corners[cornerno]);
+    VERTEX_TOPOLOGY *v = &(surf->vertices_topology[c->vtxno[0]]);
+    // Go through the two cornder vertex neighbors (ie, edges) for this corner
+    int nthedge;
+    for(nthedge=0; nthedge < 2; nthedge++){
+      // Go through all the vertex neighbors of the corner vertex
+      int hit = 0;
+      for(k=0; k < v->vtotal; k++){
+	// If this vertex neighbor is the same vertex as this corner neighbor
+	if(v->v[k] == c->vtxno[nthedge+1]){
+	  // Set the edgeno for this edge to the edgeno connecting central vertex with neighbor
+	  c->edgeno[nthedge] = v->e[k];
+	  // Determine the direction of the edge. If the first vertex
+	  // of the edge is the same as the center vertex of the
+	  // corner, then they are pointing the in same direction
+	  MRI_EDGE *edge = &(surf->edges[c->edgeno[nthedge]]);
+	  if(edge->vtxno[0] == c->vtxno[0]) c->edgedir[nthedge] = +1;
+	  else                              c->edgedir[nthedge] = -1;
+	  hit = 1;
+	  break;
+	}
+      } // loop over neighbors
+      if(!hit){
+	printf("MRIScorners(): ERROR: could not find an edge for corner %d, edge %d, %d->%d\n",
+	       cornerno,nthedge,c->vtxno[0],c->vtxno[nthedge+1]);
+	fflush(stdout);
+      }
+    } // loop over edges
+  }
+
+  return(0);
+}
+
 
 
 //=============================================================================
@@ -770,7 +887,7 @@ void mrisVertexReplacingNeighbors(MRIS * const mris, int const vno, int const vn
 
   resizeVertexV(mris,vno, vnum, old_vt_vnum);
 
-  vt->vnum  = vnum; 
+  modVnum(mris,vno,vnum,true);
   vt->v2num = 0;
   vt->v3num = 0;
   
@@ -1075,7 +1192,8 @@ void MRIS_check_vertexNeighbours(MRIS* mris) {
   }
 }
 
-static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops, bool noCache)
+static int MRISfindNeighborsAtVertex_newWkr(
+    MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops, bool noCache, bool debug = false)
 {
 /*
   Fills in v, vnum, v2num, v3num, etc. in the vertex.
@@ -1166,9 +1284,11 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
       
       temp->status[vnoCandidate] = Status_inSet;
 
-      cheapAssert(neighborCount < listCapacity);
-      vlist[neighborCount] = vnoCandidate;
-      hops [neighborCount] = ringLinks;
+      if (neighborCount < listCapacity) {
+        vlist[neighborCount] = vnoCandidate;
+        hops [neighborCount] = ringLinks;
+      }
+      if (debug) fprintf(stdout, "  vnoCandidate:%d known to be in ring:%d\n", vnoCandidate, ringLinks-1);
       neighborCount++;
     }
   }
@@ -1203,13 +1323,15 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
 
         temp->status[vnoCandidate] = Status_inSet;
 
-        cheapAssert(neighborCount < listCapacity);
-        vlist[neighborCount] = vnoCandidate;
-        hops [neighborCount] = ringLinks;
+        if (neighborCount < listCapacity) {
+          vlist[neighborCount] = vnoCandidate;
+          hops [neighborCount] = ringLinks;
+        }
+        if (debug) fprintf(stdout, "  vnoCandidate:%d is neighbour of vno:%d in ring:%d\n", vnoCandidate, vnoRing, i);
         neighborCount++;
       }
     }
-    vnums[ringLinks] = neighborCount;
+    vnums[ringLinks] = MIN(listCapacity,neighborCount);
   }
 
   // Make nsize the highest current valid vt->nsizeCur
@@ -1237,9 +1359,9 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
       int cachedRing;
       for (cachedRing = nsize+1; cachedRing <= newPossibleNsizeMax; cachedRing++) {
         switch (cachedRing) {
-        case 1: vt->vnum  = vnums[cachedRing];          break;   // happens when encounters ripped vertexs
-        case 2: vt->v2num = vnums[cachedRing];          break;
-        case 3: vt->v3num = vnums[cachedRing];          break;
+        case 1: modVnum(mris,vno,vnums[cachedRing],true);   break;   // happens when encounters ripped vertexs
+        case 2: vt->v2num = vnums[cachedRing];              break;
+        case 3: vt->v3num = vnums[cachedRing];              break;
         default: cheapAssert(false);
         }
         vt->nsizeMax = newPossibleNsizeMax; vt->nsizeMaxClock = mris->nsizeMaxClock; 
@@ -1254,7 +1376,8 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   // Clear the temp for reuse later
   //
   temp->status[vno] = Status_notInSet;
-  for (unsigned int i = 0; i < neighborCount; i++) {
+  auto const usedNeighborCount = MIN(listCapacity,neighborCount);
+  for (unsigned int i = 0; i < usedNeighborCount; i++) {
     temp->status[vlist[i]] = Status_notInSet;
   }
   
@@ -1263,6 +1386,17 @@ static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t
   return neighborCount;
 }
 
+static int MRISfindNeighborsAtVertex_new(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops, bool noCache)
+{
+  auto neighborCount = MRISfindNeighborsAtVertex_newWkr(mris, vno, nlinks, listCapacity, vlist, hops, noCache);
+  if (neighborCount > listCapacity) {
+    fprintf(stdout, "MRISfindNeighborsAtVertex: vno:%d has %d neighbours, but listCapacity is %ld\n", vno, neighborCount, listCapacity);
+    MRISfindNeighborsAtVertex_newWkr(mris, vno, nlinks, listCapacity, vlist, hops, noCache, true);
+    mrisCheckVertexVertexTopologyWkr(__FILE__,__LINE__,mris, true);
+    cheapAssert(false);
+  } 
+  return neighborCount;
+}
 
 
 static int MRISfindNeighborsAtVertex_old(MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops)
@@ -2078,7 +2212,9 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
   VERTEX          const * const v1  = &mris->vertices         [vno1];
   VERTEX_TOPOLOGY const * const v2t = &mris->vertices_topology[vno2];
   VERTEX          const * const v2  = &mris->vertices         [vno2];
-  
+
+  if (mris->nfaces >= mris->max_faces-1)
+    DiagBreak() ;
   cheapAssert(!(v1->ripflag || v2->ripflag || mris->nvertices >= mris->max_vertices || mris->nfaces >= (mris->max_faces - 1)));
 
   /* check to make sure these vertices or the faces they are part of
@@ -2095,7 +2231,7 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
 
   VERTEX_TOPOLOGY * const vnewt = &mris->vertices_topology[vnew_no];
   
-  vnewt->vnum = 2; /* at least connected to two bisected vertices */
+  modVnum(mris,vnew_no,2,true); /* at least connected to two bisected vertices */
 
   /* count the # of faces that both vertices are part of */
   int n, m, n1, n2;
@@ -2113,7 +2249,7 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
         if (vnewt->num == 100) {
           ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
         }
-        vnewt->vnum++;
+        addVnum(mris,vnew_no,1);
         vnewt->vtotal = vnewt->vnum;
       }
   }
@@ -2138,7 +2274,7 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
   vnewt->v = (int *)calloc(vnewt->vnum, sizeof(int));
   if (!vnewt->v) ErrorExit(ERROR_NOMEMORY, "could not allocate %dth vertex list.\n", vnew_no);
 
-  vnewt->num = vnewt->vnum = 0;
+  vnewt->num = 0; clearVnum(mris,vnew_no);
 
   /* divide every face that both vertices are part of in two */
   for (n = 0; n < v1t->num; n++) {
@@ -2198,10 +2334,10 @@ int mrisDivideEdgeTopologically(MRIS * const mris, int const vno1, int const vno
       }
     }
     if (vnoA >= 0) {
-      vnewt->v[vnewt->vnum++] = vnoA;
+      vnewt->v[vnumAdd(mris,vnew_no,1)] = vnoA;
     }
     if (vnoB >= 0) {
-      vnewt->v[vnewt->vnum++] = vnoB;
+      vnewt->v[vnumAdd(mris,vnew_no,1)] = vnoB;
     }
     vnewt->vtotal = vnewt->vnum;
   }
@@ -2300,7 +2436,7 @@ static void mrisDivideFace(MRIS *mris, int fno, int vno1, int vno2, int vnew_no)
   memmove(v3->f, flist, v3->num * sizeof(v3->f[0]));
   memmove(v3->n, nlist, v3->num * sizeof(v3->n[0]));
   memmove(v3->v, vlist, v3->vnum * sizeof(v3->v[0]));
-  v3->v[v3->vnum++] = vnew_no;
+  v3->v[vnumAdd(mris,vno3,1)] = vnew_no;
   v3->vtotal = v3->vnum;
   v3->f[v3->num] = fnew_no;
 
@@ -2392,7 +2528,7 @@ static void mrisCompleteTopology_old(MRI_SURFACE *mris) // was mrisFindNeighbors
       DiagBreak();
     }
     VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[k];    
-    vt->vnum = 0;
+    clearVnum(mris,k);
     for (m = 0; m < vt->num; m++) {
       n = vt->n[m];               /* # of this vertex in the mth face that it is in */
       f = &mris->faces[vt->f[m]]; /* ptr to the mth face */
@@ -2403,13 +2539,13 @@ static void mrisCompleteTopology_old(MRI_SURFACE *mris) // was mrisFindNeighbors
         ;
       }
       if (i == vt->vnum) {
-        vtmp[(int)vt->vnum++] = f->v[n0];
+        vtmp[(int)vnumAdd(mris,k,1)] = f->v[n0];
       }
       for (i = 0; i < vt->vnum && vtmp[i] != f->v[n1]; i++) {
         ;
       }
       if (i == vt->vnum) {
-        vtmp[(int)vt->vnum++] = f->v[n1];
+        vtmp[(int)vnumAdd(mris,k,1)] = f->v[n1];
       }
     }
     if (mris->vertices_topology[k].v) {
@@ -2617,7 +2753,7 @@ static void removeRippedVertices(MRI_SURFACE *mris)
     int vnum, v2num, v3num ;
 
     vnum = v->vnum ; v2num = v->v2num ; v3num = v->v3num ;
-    v->v3num = v->v2num = v->vnum = 0 ;
+    v->v3num = v->v2num = 0 ;  clearVnum(mris,vno);
     for (n = 0 ; n < v->vtotal ; n++)
     {
       int vno2 = v->v[n] ;
@@ -2628,7 +2764,7 @@ static void removeRippedVertices(MRI_SURFACE *mris)
       if (n < v2num)
 	v->v2num++ ;
       if (n < vnum)
-	v->vnum++ ;
+	addVnum(mris,vno,1);
     }
     v->nsizeMax = v->nsizeCur;  // since the above loop only went to v->vtotal
     cheapAssert(mris->nsize <= v->nsizeMax);
@@ -3034,6 +3170,24 @@ int MRIS_facesAtVertices_reorder(MRIS *apmris)
 }
 
 
+static void dumpFacesAroundVertex(MRIS* mris, int vno)
+{
+  using namespace SurfaceFromMRIS::Topology;
+  fprintf(stdout, "Dumping faces around vno:%d\n",vno);
+  Vertex  vertex(mris,vno);
+  auto const numFaces = vertex.num(); 
+  for (size_t vi = 0; vi < numFaces; vi++) {
+    auto face = vertex.f(vi);
+    fprintf(stdout, "  vi:%d is face:%d with vertices",vno,face.fno());
+    for (size_t vi = 0; vi < VERTICES_PER_FACE; vi++) {
+      auto v = face.v(vi);
+      fprintf(stdout, " %d",v.vno());
+    }
+    fprintf(stdout, "\n");
+  }
+}
+
+    
 static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometricOrder)
 {
   //
@@ -3109,7 +3263,15 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
   }
   VectorFree(&pv_commonVertices);
   xDbg_PopStack();
-  if (packedCount != nfaces)
+
+  static size_t count, limit = 1;  
+  if (count++ == limit && getenv("BEVIN_TESTING_dumpFacesAroundVertex")) {
+    limit *= 2;
+    dumpFacesAroundVertex(apmris,avertex);
+  }
+  
+  if (packedCount != nfaces) {
+    dumpFacesAroundVertex(apmris,avertex);
     ErrorReturn(-4,
                 (-4,
                  "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
@@ -3117,6 +3279,7 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
                  avertex,
                  nfaces,
                  packedCount));
-
+  }
+  
   return 1;
 }

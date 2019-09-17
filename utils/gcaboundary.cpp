@@ -1139,7 +1139,7 @@ int GCABtrain(GCAB *gcab, MRI *mri_int, MRI *mri_seg, TRANSFORM *transform, int 
 int GCABsourceVoxelToNode(
     GCAB *gcab, MRI *mri, TRANSFORM *transform, float xv, float yv, float zv, float *pxn, float *pyn, float *pzn)
 {
-  float xt, yt, zt;
+  float xt = 0, yt = 0, zt = 0;
   double xrt, yrt, zrt;
   LTA *lta;
 

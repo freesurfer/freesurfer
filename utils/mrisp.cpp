@@ -835,6 +835,182 @@ MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, float scale, int fr
 
   return (mrisp);
 }
+
+
+MRI_SP* MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, const float *overlay, float scale, int frameno)
+{
+  float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *fp;
+  int vno, u, v, unfilled, **filled, nfilled;
+  VERTEX *vertex;
+  MHT  *mht ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stderr, "computing parameterization...");
+
+  if (!mrisp)
+    mrisp = MRISPalloc(scale, 1);
+  else
+    ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, frameno);
+
+  a = b = c = MRISaverageRadius(mris);
+
+  filled = (int **)calloc(U_DIM(mrisp), sizeof(int *));
+  distances = (float **)calloc(U_DIM(mrisp), sizeof(float *));
+  for (u = 0; u <= U_MAX_INDEX(mrisp); u++) {
+    filled[u] = (int *)calloc(V_DIM(mrisp), sizeof(int));
+    distances[u] = (float *)calloc(V_DIM(mrisp), sizeof(float));
+
+    for (v = 0; v <= V_MAX_INDEX(mrisp); v++) filled[u][v] = UNFILLED_ELT;
+  }
+
+  fp = IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, frameno);
+  /* first calculate total distances to a point in parameter space */
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    vertex = &mris->vertices[vno];
+    x = vertex->x;
+    y = vertex->y;
+    z = vertex->z;
+    if (vno == Gdiag_no) DiagBreak();
+    theta = atan2(y / b, x / a);
+    if (theta < 0.0f) theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
+    d = c * c - z * z;
+    if (d < 0.0) d = 0;
+    phi = atan2(sqrt(d), z);
+    if (phi < RADIANS(1)) DiagBreak();
+    if (vno == DEBUG_VNO) DiagBreak();
+    vertex->phi = phi;
+    vertex->theta = theta;
+    uf = PHI_DIM(mrisp) * phi / PHI_MAX;
+    vf = THETA_DIM(mrisp) * theta / THETA_MAX;
+    u = nint(uf);
+    v = nint(vf);
+    if (u < 0) /* enforce spherical topology  */
+      u = -u;
+    if (u >= U_DIM(mrisp)) u = U_DIM(mrisp) - (u - U_DIM(mrisp) + 1);
+    if (v < 0) /* enforce spherical topology  */
+      v += V_DIM(mrisp);
+    if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
+
+    if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    {
+      printf("v %d --> [%d, %d] (%2.1f, %2.1f)\n", vno, u, v, theta, phi);
+      DiagBreak();
+    }
+
+    filled[u][v] = vno;
+    distances[u][v] += 1; /* keep track of total # of nodes */
+  }
+
+  if (DEBUG_U >= 0) fprintf(stderr, "\ndistance[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V, distances[DEBUG_U][DEBUG_V]);
+
+  /* now add in curvatures proportional to their distance from the point */
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    vertex = &mris->vertices[vno];
+    x = vertex->x;
+    y = vertex->y;
+    z = vertex->z;
+    theta = atan2(y / b, x / a);
+    if (theta < 0.0f) theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
+    d = c * c - z * z;
+    if (d < 0.0) d = 0.0;
+    phi = atan2(sqrt(d), z);
+    uf = PHI_DIM(mrisp) * phi / PHI_MAX;
+    vf = THETA_DIM(mrisp) * theta / THETA_MAX;
+    u = nint(uf);
+    v = nint(vf);
+    if (u < 0) /* enforce spherical topology  */
+      u = -u;
+    if (u >= U_DIM(mrisp)) u = U_DIM(mrisp) - (u - U_DIM(mrisp) + 1);
+    if (v < 0) /* enforce spherical topology  */
+      v += V_DIM(mrisp);
+    if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
+
+    if (u == 0 && v == 56) DiagBreak();
+
+    /* 0,0 */
+    total_d = distances[u][v];
+    if ((total_d > 10000.0) || (overlay[vno] > 1000.0)) DiagBreak();
+    if (total_d > 0.0) 
+      *IMAGEFseq_pix(mrisp->Ip, u, v, frameno) += overlay[vno] / total_d;
+    if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, frameno)) == 0)
+      DiagBreak() ;
+    if ((u == DEBUG_U) && (v == DEBUG_V))
+      fprintf(stderr,
+              "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
+              "proportion = %2.3f\n",
+              vno,
+              x,
+              y,
+              z,
+              overlay[vno],
+              d);
+  }
+
+  if (DEBUG_U >= 0)
+    fprintf(stderr, "curv[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V, *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, frameno));
+
+  mht = MHTcreateFaceTable_Resolution(mris, CANONICAL_VERTICES, mris->avg_vertex_dist/2);  // to lookup closest face
+  // do backwards sampling to fill in missing pixels
+  nfilled = 0;
+  {
+    IMAGE *Ip;
+    double fdist, x, y, z, theta, phi;
+    FACE  *face ;
+    int   fno ;
+
+    Ip = mrisp->Ip;
+    unfilled = 0;
+
+    for (u = 0; u <= U_MAX_INDEX(mrisp); u++) 
+    {
+      for (v = 0; v <= V_MAX_INDEX(mrisp); v++) 
+      {
+        if ((u == DEBUG_U) && (v == DEBUG_V)) 
+    DiagBreak();
+  if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, frameno)) == 0)
+    DiagBreak() ;
+        if (filled[u][v] == UNFILLED_ELT) 
+  {
+    phi = u * PHI_MAX / PHI_DIM(mrisp) ;
+    theta = v * THETA_MAX / THETA_DIM(mrisp) ;
+    x = a * sin(phi) * cos(theta) ;
+    y = a * sin(phi) * sin(theta) ;
+    z = a*cos(phi) ;
+
+    MHTfindClosestFaceGeneric(mht, mris, x, y, z, 1000, -1, -1, &face, &fno, &fdist);
+    if (face)
+    {
+      float val ;
+      float v0 = overlay[face->v[0]];
+      float v1 = overlay[face->v[1]];
+      float v2 = overlay[face->v[2]];
+      
+      val = MRISsampleFace(mris, fno, CANONICAL_VERTICES, x, y, z, v0, v1, v2) ;
+      filled[u][v] = 1 ;
+      *IMAGEFseq_pix(Ip, u, v, frameno) = val ;
+      nfilled++ ;
+    }
+  }
+      }
+    }
+  }
+  MHTfree(&mht) ;
+  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) fprintf(stderr, "backsampling filled %d elements \n", nfilled);
+
+  for (u = 0; u <= U_MAX_INDEX(mrisp); u++) {
+    free(filled[u]);
+    free(distances[u]);
+  }
+  free(filled);
+  free(distances);
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stderr, "done.\n");
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) ImageWrite(mrisp->Ip, "sphere.hipl");
+
+  return (mrisp);
+}
+
+
 MRIS  *
 MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRIS *mris,int fno)
 
@@ -894,6 +1070,36 @@ MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRIS *mris,int fno)
 
   return (mris);
 }
+
+int
+MRIScoordsFromParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, int which_vertices)
+{
+  float    *curvs ;
+  int      vno ;
+
+  if (which_vertices != WHITE_VERTICES)
+    ErrorExit(ERROR_UNSUPPORTED, "MRIScoordsToParameterizationBarycentric: unsupported which_vertices %d", which_vertices) ;
+
+  curvs = (float *)calloc(mris->nvertices, sizeof(float));
+  if (curvs == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRIScoordsToParameterizationBarycentric: could not allocate %d-len curvature vector", mris->nvertices) ;
+
+  MRISextractCurvatureVector(mris, curvs) ;
+  MRISfromParameterizationBarycentric(mrisp, mris, 0) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitex = mris->vertices[vno].curv ;
+  MRISfromParameterization(mrisp, mris, 1) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitey = mris->vertices[vno].curv ;
+  MRISfromParameterization(mrisp, mris, 2) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].whitez = mris->vertices[vno].curv ;
+  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+  MRISimportCurvatureVector(mris, curvs) ;
+  free(curvs) ;
+  return(NO_ERROR) ;
+}
+
 
 static double UF = 254.8, VF = 409.5;
 
@@ -1012,7 +1218,6 @@ MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int
     total_d = distances[u][v];
     if ((total_d > 10000.0) || (vertex->curv > 1000.0)) DiagBreak();
     switch (which_vertices) {
-      default:
       case ORIGINAL_VERTICES:
         x = vertex->origx;
         y = vertex->origy;
@@ -1028,6 +1233,13 @@ MRI_SP *MRIScoordsToParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int
         y = vertex->pialy;
         z = vertex->pialz;
         break;
+      case WHITE_VERTICES:
+        x = vertex->whitex;
+        y = vertex->whitey;
+        z = vertex->whitez;
+        break;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRIScoordsToParameterization: unsupported vertex set %d", which_vertices) ;
     }
     if (total_d > 0.0) {
       *IMAGEFseq_pix(mrisp->Ip, u, v, 0) += x / total_d;
@@ -1232,6 +1444,9 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
 
   MRIS * const mris = (!mrisInit) ? MRISclone(mrisp->mris) : mrisInit;
 
+  if (which_vertices == ORIGINAL_VERTICES)
+    cheapAssert(mris->origxyz_status == mrisInit->origxyz_status);
+  
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * const vertex = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
@@ -1313,6 +1528,16 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
             du * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, 2);
 
     switch (which_vertices) {
+      case WHITE_VERTICES:
+	vertex->whitex = origx ;
+	vertex->whitey = origy ;
+	vertex->whitez = origz ;
+        break;
+      case CURRENT_VERTICES:
+	vertex->x = origx ;
+	vertex->y = origy ;
+	vertex->z = origz ;
+        break;
       case ORIGINAL_VERTICES:
         MRISsetOriginalXYZ(mris, vno, origx, origy, origz);
         break;
@@ -1671,7 +1896,6 @@ MRIS *MRISgradientFromParameterization(MRI_SP *mrisp, MRIS *mris)
 void MRISPfunctionVal_radiusR(                                                      // returns the value that would be stored in resultsForEachFno[0] for fnoLo
                               MRI_SURFACE_PARAMETERIZATION *mrisp,  
                               MRISPfunctionValResultForAlpha* resultsForEachAlpha,  // must be numAlphas elements
-                              MRIS *mris,
                               float r, float x, float y, float z, 
                               int fnoLo, bool getNextAlso,                          // always fills in resultsForEachAlpha.curr for fno, optionally fills in .next for fno+1
                               float const * alphas, float numAlphas,                // rotate x,y,z by these alphas (radians) and get the values
@@ -1774,13 +1998,13 @@ void MRISPfunctionVal_radiusR(                                                  
 }
 
 
-double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno, bool trace)
+double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, float desired_radius, float x, float y, float z, int fno, bool trace)
 {
   double r = sqrt(x * x + y * y + z * z);
 
-  if (!FEQUAL(r, mris->radius)) /* project it onto sphere */
+  if (!FEQUAL(r, desired_radius)) /* project it onto sphere */
   {
-    r = mris->radius;
+    r = desired_radius;
     double r2 = r * r;
     double r4 = r2 * r2;
     double r6 = r2 * r4;
@@ -1801,12 +2025,12 @@ double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris
 
   float zero = 0.0f;
   MRISPfunctionValResultForAlpha result;
-  MRISPfunctionVal_radiusR(mrisp, &result, mris, r, x, y, z, fno, false, &zero, 1, trace);
+  MRISPfunctionVal_radiusR(mrisp, &result, r, x, y, z, fno, false, &zero, 1, trace);
   return result.curr;
 }
 
-double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRIS *mris, float x, float y, float z, int fno) {
-    return MRISPfunctionValTraceable(mrisp, mris, x, y, z, fno, false);
+double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, float desired_radius, float x, float y, float z, int fno) {
+    return MRISPfunctionValTraceable(mrisp, desired_radius, x, y, z, fno, false);
 }
 
 /*-----------------------------------------------------

@@ -562,6 +562,39 @@ MRI * MyMRI::gaussianCube(int size)
   return g;
 }
 
+MRI * MyMRI::setTypeUCHAR(MRI * mri)
+{
+  int no_scale_flag = FALSE;
+  printf("       -- changing data type from %d to %d (noscale = %d)...\n",
+      mri->type, MRI_UCHAR , no_scale_flag);
+    // not sure what happens if mri is already UCHAR?
+  MRI * mri2 = MRISeqchangeType(mri, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
+  if (mri2 == NULL)
+  {
+    printf("ERROR: MRISeqchangeType in MyMRI::setTypeUCHAR\n");
+    exit(1);
+  }
+  return mri2;
+}
+
+void MyMRI::setMaxOutsideVal(MRI * mri)
+{
+  float maxval = MRIgetVoxVal (mri,0,0,0,0);
+  int w,h,d;
+  for (d = 0; d<mri->depth; d++)
+  {
+    for (h = 0; h<mri->height; h++)
+    {
+      for (w = 0; w<mri->width; w++)
+      {
+         const float & val = MRIgetVoxVal (mri, w, h, d,0);
+         if (val > maxval) maxval = val;
+      }
+    }
+  }
+  mri->outside_val = maxval;
+}
+
 
 float MyMRI::getBackground(MRI * mri)
 // simple approach : count min and max values
@@ -598,6 +631,7 @@ float MyMRI::getBackground(MRI * mri)
       }
     }
   }
+  //std::cout << "min: " << minval << " (# " << mins<<" ),   max: " << maxval << " (# " <<maxs<<" ) " << std::endl; 
   if (mins > maxs) return minval;
   else return maxval;
   

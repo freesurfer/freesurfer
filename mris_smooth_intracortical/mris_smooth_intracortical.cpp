@@ -1,5 +1,5 @@
 /**
- * @file  mri_surf_smooth.c
+ * @file  mri_surf_smooth.cpp
  * @brief smoothing along the cortical surface meshes with a given tangential (neighborhood size) and radial (number of surface meshes) extent
  *
  * This method has been described in:
@@ -8,6 +8,7 @@
  * 2019, Neuroimage 189 (601-614)
  * https://doi.org/10.1016/j.neuroimage.2019.01.054
  */
+
 /*
  * Original Author: Anna I. Blazejewska
  * CVS Revision Info:
@@ -28,7 +29,7 @@
  */
 
 /*!
- \file mri_surf_smooth.c
+ \file mri_surf_smooth.cpp
  \brief Smoothing along the cortical surface meshes with a given tangential and radial extent ((neighborhood size &number of surface meshes).
  \author Anna I. Blazejewska
  */
@@ -74,6 +75,10 @@
 #define MAX_SURF (20) // max number of surfaces
 #define MAX_VERTICES (1000000) // max number of vertices
 #define SEP "/"
+
+#ifndef GLOB_PERIOD
+#define GLOB_PERIOD 0
+#endif
 
 int main(int argc, char *argv[]);
 static void calculate_nb_weights(float *nb_weights, int nb_num, int *hops);
@@ -370,7 +375,6 @@ static void print_usage(void) {
   				"  --tan-weights type      : weighting function for tangential smoothing [default: gauss]\n"
   				"                            gauss = gaussian with FWHM = tansize\n"
   				"                            distance = 1/tansize\n"
-
   				"  --rad-weights type      : weighting function for radial extent of the kernel: not yet implemented\n"
   				"\n"
   				"  --help                  : prints this info\n"

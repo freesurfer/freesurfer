@@ -48,6 +48,7 @@
 #include "version.h"
 #include "transform.h"
 #include "region.h"
+#include "cma.h"
 
 static char vcid[] = "$Id: mri_mask.c,v 1.24 2016/11/28 20:30:57 fischl Exp $";
 
@@ -63,6 +64,10 @@ static int   InterpMethod = SAMPLE_NEAREST;
    of the input FSL/LTA transform */
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
+
+static int no_cerebellum = 0 ;
+static int DoLH = 0;
+static int DoRH = 0;
 
 static  float out_val=0;
 static int invert = 0 ;
@@ -232,6 +237,32 @@ int main(int argc, char *argv[])
 	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
   }
 
+  if (DoLH || DoRH)  // mri_mask is an aseg - convert it to a mask
+  {
+    MRI *mri_aseg = mri_mask ;
+    int label ;
+
+    mri_mask = MRIclone(mri_aseg, NULL) ;
+
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+ 	  label = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0);
+	  if (IS_CEREBELLUM(label) && no_cerebellum)
+	    label = 0 ;
+	  if (DoLH && IS_LH_CLASS(label))
+	    MRIsetVoxVal(mri_mask, x, y, z, 0, 1) ;
+	  else if (DoRH && IS_RH_CLASS(label))
+	    MRIsetVoxVal(mri_mask, x, y, z, 0, 1) ;
+	  else
+	    MRIsetVoxVal(mri_mask, x, y, z, 0, 0) ;
+	  
+	}
+      }
+    }
+  }
   if(DoBB){
     printf("Computing bounding box, npad = %d\n",nPadBB);
     region = REGIONgetBoundingBox(mri_mask,nPadBB);
@@ -315,6 +346,18 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "abs"))
   {
     DoAbs = 1;
+  }
+  else if (!stricmp(option, "lh"))
+  {
+    DoLH = 1;
+  }
+  else if (!stricmp(option, "no_cerebellum"))
+  {
+    no_cerebellum = 1;
+  }
+  else if (!stricmp(option, "rh"))
+  {
+    DoRH = 1;
   }
   else if (!stricmp(option, "xform"))
   {

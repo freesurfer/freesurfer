@@ -410,7 +410,7 @@ void LayerFCD::MakeAllLayers()
       surf->SetRefVolume(m_layerSource);
     }
     surf->SetName(m_sSubject + ".lh");
-    surf->SetFileName(m_fcd->mris_lh->fname);
+    surf->SetFileName(m_fcd->mris_lh->fname.data());
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
       surf->SetName(m_sSubject + ".lh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh))
@@ -433,7 +433,7 @@ void LayerFCD::MakeAllLayers()
       surf->SetRefVolume(m_layerSource);
     }
     surf->SetName(m_sSubject + ".lh.pial");
-    surf->SetFileName(m_fcd->mris_lh_pial->fname);
+    surf->SetFileName(m_fcd->mris_lh_pial->fname.data());
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
       surf->SetName(m_sSubject + ".lh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_pial))
@@ -485,7 +485,7 @@ void LayerFCD::MakeAllLayers()
       surf->SetRefVolume(m_layerSource);
     }
     surf->SetName(m_sSubject + ".rh");
-    surf->SetFileName(m_fcd->mris_rh->fname);
+    surf->SetFileName(m_fcd->mris_rh->fname.data());
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
       surf->SetName(m_sSubject + ".rh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh))
@@ -508,7 +508,7 @@ void LayerFCD::MakeAllLayers()
       surf->SetRefVolume(m_layerSource);
     }
     surf->SetName(m_sSubject + ".rh.pial");
-    surf->SetFileName(m_fcd->mris_rh_pial->fname);
+    surf->SetFileName(m_fcd->mris_rh_pial->fname.data());
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
       surf->SetName(m_sSubject + ".rh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_pial))

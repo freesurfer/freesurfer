@@ -49,6 +49,7 @@ struct SettingsScreenshot
 {
   bool HideCursor;
   bool HideCoords;
+  bool HideScaleBar;
   bool AntiAliasing;
   int  Magnification;
   bool AutoTrim;

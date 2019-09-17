@@ -3,7 +3,7 @@ import tempfile
 import numpy as np
 import nibabel as nib
 
-from . import error, run
+from . import error, run, Volume, Surface, collectOutput
 
 
 class Freeview:
@@ -43,20 +43,19 @@ class Freeview:
         self._tempdir = None
         self.items = {'volumes': [], 'surfaces': []}
 
-    def vol(self, volume, affine=np.eye(4), name=None, colormap=None, opacity=None, opts=''):
+    def vol(self, volume, affine=None, name=None, colormap=None, opacity=None, opts=''):
         '''Adds a new volume to the freeview command. If the volume provided is not a
         filepath, then the input will be saved as a volume in a temporary directory. 
 
         Args:
-            volume: An existing volume filename, a numpy array, or a nibabel image.
+            volume: An existing volume filename, numpy array, or Volume object.
             name (str): Optional filename to apply to saved volumes. Do not include the extension.
-            affine (numpy.ndarray): A 4x4 affine transform to apply to the saved volume. The identity matrix 
-                is used by default.
+            affine (numpy.ndarray): A 4x4 affine transform to apply to the saved volume.
             colormap (string): Colormap to apply to the volume.
             opacity (float): Opacity of the volume layer.
             opts (str): Additional options to append to the volume argument.
         '''
-        filename = self._makeVolume(volume, 'volume', affine)
+        filename = self._get_volume_file(volume, 'volume', affine)
         if filename is None:
             return
 
@@ -69,30 +68,26 @@ class Freeview:
 
         self.items['volumes'].append(filename + opts)
 
-    def surf(self, surface, overlay=None, mrisp=None, opts=''):
-        '''Adds a new surface to the freeview command. Currently, only existing surface file
-        must be provided as input.
+    def surf(self, surface, name=None, overlay=None, mrisp=None, opts=''):
+        '''Adds a new surface to the freeview command.
 
         Args:
-            surface: An existing surface filename.
+            surface: An existing surface filename or Surface object.
+            name (str): Optional filename to apply to saved surfaces.
             overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
             mrisp: An existing volume filename, a numpy array, or a nibabel image to apply as an mrisp.
             opts (str): Additional options to append to the surface argument.
         '''
-        if isinstance(surface, str):
-            # input is an already-existing surface file
-            if not os.path.exists(surface):
-                error('surface file %s does not exist' % surface)
-                return
-            filename = surface
-        else:
-            error('invalid freeview surface argument type %s' % type(surface))
+        filename = self._get_surface_file(surface, 'surface')
+        if filename is None:
             return
 
+        if name is not None:
+            opts += ':name=' + name
         if overlay is not None:
-            opts += ':overlay=' + self._makeVolume(overlay, 'overlay', np.eye(4))
+            opts += ':overlay=' + self._get_volume_file(overlay, 'overlay', np.eye(4))
         if mrisp is not None:
-            opts += ':mrisp=' + self._makeVolume(mrisp, 'mrisp', np.eye(4))
+            opts += ':mrisp=' + self._get_volume_file(mrisp, 'mrisp', np.eye(4))
 
         self.items['surfaces'].append(filename + opts)
 
@@ -110,7 +105,8 @@ class Freeview:
         vgl = all([os.path.exists(path) for path in ('/etc/opt/VirtualGL/vgl_xauth_key', '/usr/pubsw/bin/vglrun')])
         local = any([os.environ.get('DISPLAY', '').endswith(string) for string in (':0', ':0.0')])
         if vgl and not local:
-            cmd = '/usr/pubsw/bin/vglrun ' + cmd
+            if not 'NV-GLX' in collectOutput('xdpyinfo')[0]:
+                cmd = '/usr/pubsw/bin/vglrun ' + cmd
 
         if self.items['volumes']:
             cmd += ' -v ' + ' '.join(self.items['volumes'])
@@ -118,13 +114,14 @@ class Freeview:
             cmd += ' -f ' + ' '.join(self.items['surfaces'])
         if opts:
             cmd += ' ' + opts
+
         if self._tempdir is not None:
             # delete the temporary directory after freeview closes
             cmd += ' ; rm -rf ' + self._tempdir
 
         run(cmd, background=background)
 
-    def _makeVolume(self, volume, name, affine):
+    def _get_volume_file(self, volume, name, affine):
         if isinstance(volume, str):
             # input is an already-existing volume file
             if not os.path.exists(volume):
@@ -133,26 +130,50 @@ class Freeview:
             filename = volume
         elif isinstance(volume, nib.spatialimages.SpatialImage):
             # input is a nibabel image
-            volume.set_filename(os.path.join(self._makeTempDir(), name))
-            volume.set_filename(self._validName(volume.get_filename()))
+            volume.set_filename(os.path.join(self._get_temp_dir(), name))
+            volume.set_filename(self._get_valid_name(volume.get_filename()))
             nib.save(volume, volume.get_filename())
             filename = volume.get_filename()
+        elif isinstance(volume, Volume):
+            filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
+            volume.write(filename)
         elif isinstance(volume, np.ndarray):
+            # int64 MRI IO isn't very stable, so convert to int32 for now
+            if volume.dtype == 'int64':
+                volume = volume.astype('int32')
             # input is a nifty array
-            filename = self._validName(os.path.join(self._makeTempDir(), name + '.nii.gz'))
-            nib.save(nib.Nifti1Image(volume, affine), filename)
+            filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
+            vol = Volume(volume)
+            if affine:
+                vol.affine = affine
+            vol.write(filename)
         else:
             error('invalid freeview volume argument type %s' % type(volume))
             return None
         return filename
 
-    def _makeTempDir(self):
+    def _get_surface_file(self, surface, name):
+        if isinstance(surface, str):
+            # input is an already-existing surface file
+            if not os.path.exists(surface):
+                error('surface file %s does not exist' % surface)
+                return None
+            filename = surface
+        elif isinstance(surface, Surface):
+            filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name))
+            surface.write(filename)
+        else:
+            error('invalid freeview surface argument type %s' % type(surface))
+            return None
+        return filename
+
+    def _get_temp_dir(self):
         # make the temporary directory if it does not already exist
         if self._tempdir is None:
             self._tempdir = tempfile.mkdtemp()
         return self._tempdir
 
-    def _validName(self, filename):
+    def _get_valid_name(self, filename):
         # identifies a unique filename in the temporary directory
         if not os.path.exists(filename):
             return filename
@@ -167,8 +188,9 @@ class Freeview:
 
 
 def fv(*args, **kwargs):
-    '''Freeview wrapper to quickly load an arbitray number of volumes. Inputs can be
-    existing volume filenames, numpy arrays, or nibabel images.
+    '''Freeview wrapper to quickly load an arbitray number of volumes and surfaces. Inputs
+    can be existing filenames, surfaces, volumes or numpy arrays. Use the `Freeview` class directly
+    for a more specific configuration.
 
     Args:
         background: Run freeview as a background process. Defaults to True.
@@ -178,7 +200,10 @@ def fv(*args, **kwargs):
 
     freeview = Freeview()
     for arg in args:
-        freeview.vol(arg)
+        if isinstance(arg, Surface):
+            freeview.surf(arg)
+        else:
+            freeview.vol(arg)
     freeview.show(background=background, opts=opts)
 
 

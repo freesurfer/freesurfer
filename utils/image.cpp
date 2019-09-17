@@ -2319,7 +2319,7 @@ IMAGE *ImageAbs(IMAGE *inImage, IMAGE *outImage)
             break;
           case PFINT:
             iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno;
-            while (size--) *iOut++ = (UINT)abs(*cIn++);
+            while (size--) *iOut++ = (UINT)*cIn++;
             break;
           default:
             ErrorExit(ERROR_BADPARM, "ImageAbs: unsupported output image pixel format (%d)\n", outImage->pixel_format);
@@ -2332,7 +2332,7 @@ IMAGE *ImageAbs(IMAGE *inImage, IMAGE *outImage)
         switch (outImage->pixel_format) {
           case PFINT:
             iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno;
-            while (size--) *iOut++ = abs(*iIn++);
+            while (size--) *iOut++ = *iIn++;
             break;
             break;
           default:
@@ -3157,8 +3157,8 @@ IMAGE *ImageShrink(IMAGE *Isrc, IMAGE *Idst)
   IMAGE *Iin, *Iout, *Igaussian;
   int srows, scols, drows, dcols, x, y, xc, yc, xhalf, yhalf, xk, yk, ys;
   float smax, smin, xscale, yscale, *dpix;
-  register int xs;
-  register float *spix, *gpix, total;
+  int xs;
+  float *spix, *gpix, total;
 
   srows = Isrc->rows;
   scols = Isrc->cols;

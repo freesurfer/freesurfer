@@ -418,7 +418,7 @@ main(int argc, char *argv[])
     }
     if (T2_mask_fname)
     {
-      MRI *mri_T2, *mri_aparc_aseg ;
+      MRI *mri_T2, *mri_aparc_aseg = nullptr;
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)
@@ -890,7 +890,7 @@ get_option(int argc, char *argv[])
     printf("writing  transformed normalization control points to %s...\n",
            normalized_transformed_sample_fname) ;
   }
-  else if (!strcmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

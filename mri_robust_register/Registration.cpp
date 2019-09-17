@@ -3890,20 +3890,22 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
   // set outside value to background:
   float bgvals = MyMRI::getBackground(mri_source);
   float bgvalt = MyMRI::getBackground(mri_target);
-  //cout << "    - checkBackground: outside val " << mri_source->outside_val << " src, " << mri_target->outside_val << " trg" << endl;
+  //cout << "    - checkBackground: outside_val " << mri_source->outside_val << " src, " << mri_target->outside_val << " trg" << endl;
   //cout << "          suspected background val " << bgvals << " src, " << bgvalt << " trg" << endl;
   //MRIwrite(mri_source,"test.mgz");
   if (bgvals != mri_source->outside_val)
   {
-    cout << "    - warn: src mri outside_val = " << mri_source->outside_val << "  but suspected background: " << bgvals << endl;     
-    cout << "    - updating outside value..." << endl;
-    mri_source->outside_val = bgvals;
+    cout << "    - WARNING: src mri outside_val = " << mri_source->outside_val << "  but suspected background: " << bgvals << endl;     
+    cout << "               If background is black or darkgray, ignore this. If white, pass --whitebgmov" << endl;
+    //cout << "    - updating outside value..." << endl;
+    //mri_source->outside_val = bgvals;
   }
   if (bgvalt != mri_target->outside_val)
   {
-    cout << "    - warn: trg mri outside_val = " << mri_target->outside_val << "  but suspected background: " << bgvalt << endl;     
-    cout << "    - updating outside value..." << endl;
-    mri_target->outside_val = bgvalt;
+    cout << "    - WARNING: trg mri outside_val = " << mri_target->outside_val << "  but suspected background: " << bgvalt << endl;     
+    cout << "               If background is black or darkgray, ignore this. If white, pass --whitebgdst" << endl;
+    //cout << "    - updating outside value..." << endl;
+    //mri_target->outside_val = bgvalt;
   }  
 
 //  // flip and reorder axis of source based on RAS alignment or ixform:

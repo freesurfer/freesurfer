@@ -221,9 +221,7 @@ apply_transform(MRI *mri, GCA *gca, MATRIX *m_L)
 }
 
 char *rusage_file=NULL;
-#ifdef HAVE_OPENMP
-  int          n_omp_threads;
-#endif
+int n_omp_threads = 1;
 
 int
 main(int argc, char *argv[])
@@ -300,8 +298,7 @@ main(int argc, char *argv[])
 
 #ifdef HAVE_OPENMP
   n_omp_threads = omp_get_max_threads(); 
-  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-         Progname, n_omp_threads);
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n", Progname, n_omp_threads);
 #endif
 
   ninputs = argc-3 ;
@@ -472,7 +469,7 @@ main(int argc, char *argv[])
     }
     if (T2_mask_fname)
     {
-      MRI *mri_T2, *mri_aparc_aseg ;
+      MRI *mri_T2, *mri_aparc_aseg = nullptr;
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)
@@ -772,7 +769,7 @@ main(int argc, char *argv[])
        scale < nscales ;
        scale++, spacing /= 2)
   {
-    if (skull && 0)
+    if (0 && skull)
       parms.gcas = GCAfindExteriorSamples(gca, &nsamples,spacing,
                                           min_prior,unknown_nbr_spacing, 0) ;
     else if (use_contrast) // -contrast option
@@ -811,7 +808,7 @@ main(int argc, char *argv[])
   }
 
   // change nsamples to all samples
-  if (skull && 0)
+  if (0 && skull)
     parms.gcas = GCAfindExteriorSamples(gca, &nsamples,spacing/2,
                                         min_prior,unknown_nbr_spacing, 0) ;
   else
@@ -1173,7 +1170,7 @@ main(int argc, char *argv[])
 
   ///////////////////////////////////////////////////////////////
   msec = start.milliseconds() ;
-  printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+  printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n", msec/(1000.0*60.0*60.0), n_omp_threads);
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
@@ -1807,11 +1804,13 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "THREADS"))
   {
-    sscanf(argv[2],"%d",&n_omp_threads);
-    #ifdef _OPENMP
+#ifdef HAVE_OPENMP
+    sscanf(argv[2], "%d", &n_omp_threads);
     omp_set_num_threads(n_omp_threads);
-    #endif
-    printf("threads %d\n",n_omp_threads);
+    printf("threads %d\n", n_omp_threads);
+#else
+    printf("multithreading is not available\n");
+#endif
     nargs = 1 ;
   }
   else if (!strcmp(option, "MASK"))
@@ -1936,7 +1935,7 @@ get_option(int argc, char *argv[])
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
-  else if (!strcmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM") || !stricmp(option, "RENORMALIZE"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;

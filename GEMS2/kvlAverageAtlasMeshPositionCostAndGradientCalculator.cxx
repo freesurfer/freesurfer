@@ -77,15 +77,15 @@ AverageAtlasMeshPositionCostAndGradientCalculator
   //std::cout << "Rasterizing internal meshes" << std::endl;
   for ( int meshNumber = 0; meshNumber < m_CachedInternalMeshes.size(); meshNumber++ )
     {
-    //std::cout << "  meshNumber: " << meshNumber << std::endl;  
-
+    //std::cout << "  meshNumber: " << meshNumber << std::endl; 
+  
     // Set up mesh to rasterize
     AtlasMesh::Pointer  internalMesh = m_CachedInternalMeshes[ meshNumber ];
     internalMesh->SetPoints( const_cast< AtlasMesh::PointsContainer* >( mesh->GetPoints() ) );
-      
+  
     // Now do the work
     AtlasMeshPositionCostAndGradientCalculator::Pointer  calculator = AtlasMeshPositionCostAndGradientCalculator::New();
-    calculator->Rasterize( mesh );
+    calculator->Rasterize( internalMesh );
     
     // If successful, add contribution to cost
     const double  minLogLikelihoodContribution = calculator->GetMinLogLikelihoodTimesPrior();
@@ -111,6 +111,10 @@ AverageAtlasMeshPositionCostAndGradientCalculator
     
     } // End loop over meshes
     
+    
+  // Make sure boundary conditions are respected
+  this->ImposeBoundaryCondition( mesh );
+  
   
 }
 

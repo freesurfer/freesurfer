@@ -37,14 +37,13 @@
 #include <string>
 #include "colortab.h"
 #include "fsenv.h"
-#include "fsSurfaceOptimizationFilter.h"
 #include "itkVTKPolyDataWriter.h"
 #include <vnl/vnl_cross.h>
 #include <cmath>
 
  
 
-	#include "mrisurf.h"
+#include "mrisurf.h"
 
 
 int main(int narg, char * arg[])
@@ -68,7 +67,6 @@ int main(int narg, char * arg[])
 	typedef ClassifierType::ClassLabelVectorType                     ClassLabelVectorType;
 	typedef ClassifierType::MembershipFunctionVectorObjectType       MembershipFunctionVectorObjectType;
 	typedef ClassifierType::MembershipFunctionVectorType             MembershipFunctionVectorType;
-	typedef SurfaceType::TriangleType 				TriangleType;
   	
 	GetPot cl(narg, const_cast<char**>(arg));
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
@@ -82,12 +80,12 @@ int main(int narg, char * arg[])
 	const char *outputImageFilename = cl.follow ("", "-o");
 	const char *outputSurfaceFilename = cl.follow ("", "-b");
 	const char *annotationFilename = cl.follow ("", "-a");
-	int numClusters = cl.follow(10,"-c");
-	int deep= cl.follow(10,"-d");
-	int imageNumber= cl.follow (1, "-i");
+	unsigned int numClusters = cl.follow(10,"-c");
+	unsigned int deep= cl.follow(10,"-d");
+	unsigned int imageNumber= cl.follow (1, "-i");
 	std::vector<const char *> imageFilenames;
 	std::vector<ImageType::Pointer> images;
-	for(int i=0; i< imageNumber;i++)	
+	for(unsigned int i=0; i< imageNumber;i++)	
 	{
 		imageFilenames.push_back(cl.next(""));
 		ReaderType::Pointer reader = ReaderType::New();
@@ -108,7 +106,7 @@ int main(int narg, char * arg[])
  	MRI *imageFS =  MRIread(imageFilenames[0]) ;
 
 		SampleType::Pointer sample = SampleType::New();
-	int vectorLenght= (deep*2+1)*imageNumber;
+	unsigned int vectorLenght= (deep*2+1)*imageNumber;
 	std::cout<< vectorLenght<< std::endl;
 	sample->SetMeasurementVectorSize( vectorLenght);
 
@@ -125,7 +123,6 @@ int main(int narg, char * arg[])
 
 	OutputImageType::SizeType size;
 	OutputImageType::IndexType start;
-	float vol=0;	
 	direction.SetIdentity();
 	for(int i=0;i<3;i++)
 	{
@@ -172,9 +169,9 @@ int main(int narg, char * arg[])
 		MeasurementVectorType mv;
 		mv.AllocateElements(vectorLenght);
 		mv.SetSize(vectorLenght);
-		for(int j=0; j<images.size();j++)
+		for(unsigned int j=0; j<images.size();j++)
 		{
-			for( int d=-deep;d<=deep;d++)
+			for(unsigned  int d=-deep;d<=deep;d++)
 			{
 				SurfaceType::PointType pt;
 				for(int i=0;i<3;i++)
@@ -269,7 +266,7 @@ int main(int narg, char * arg[])
 		norm[iter.GetClassLabel()]++;
 		++iter;
 	}	
-	for (int i=0;i<numClusters;i++)
+	for (unsigned int i=0;i<numClusters;i++)
 	{
 		std::cout << clusterMeans[i]/norm[i]<< " " << norm[i] << std::endl;
 		if(norm[i]>0)
@@ -280,7 +277,7 @@ int main(int narg, char * arg[])
 	int i=0;
 
 	COLOR_TABLE *ct;
-	int vtxno, vtx_clusterno, annot, n;
+	int annot;
 
 	ct = CTABalloc(numClusters+ 1);
 	surf->ct = ct;
@@ -297,7 +294,7 @@ int main(int narg, char * arg[])
 		index[0]=x;
 		index[1]=y;
 		index[2]=z;
-		for(int j=0;j<vectorLenght;j++)
+		for(unsigned int j=0;j<vectorLenght;j++)
 		{
 			index[3]=j;
 			output->SetPixel(index, iter.GetMeasurementVector()[index[3]]);

@@ -1,9 +1,11 @@
 #ifndef __fsSurface_h
 #define __fsSurface_h
+
+#include <array>
+
 #include "itkMesh.h"
 #include "itkTriangleCell.h"
 #include "vtkSmartPointer.h"
- 
 
 #include "mrisurf.h"
 

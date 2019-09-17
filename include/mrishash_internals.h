@@ -27,29 +27,30 @@
  */
 
 
-#ifndef MRISHASH_INTERNALS_ONCE_H
-#define MRISHASH_INTERNALS_ONCE_H
+#pragma once
 
 #include "mrishash.h"
 #include "romp_support.h"
 
-//--------------------------
-typedef struct
-{
-  int     fno ;
-} MRIS_HASH_BIN, MHB ;
 
 //--------------------------
 typedef struct
 {
+    int fno ;
+} MRIS_HASH_BIN, MHB ;
+
+
+//--------------------------
+typedef struct MRIS_HASH_BUCKET
+{
 #ifdef HAVE_OPENMP
-  omp_lock_t     bucket_lock;
+    omp_lock_t     mutable bucket_lock;
 #endif
-  MRIS_HASH_BIN  * const bins ;
-  int              const max_bins ;
-  int                    nused ;
-  int                    size, ysize, zsize ;
-} MRIS_HASH_BUCKET, MHBT ;
+    MRIS_HASH_BIN  * const bins ;
+    int              const max_bins ;
+    int                    nused ;
+    int                    size, ysize, zsize ;
+} MHBT ;
 
 
 //-----------------------------------------------------------
@@ -77,16 +78,6 @@ typedef struct
 //#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 #define TABLE_SIZE     2000
 
-#define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
-#define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))
-#define VOXEL_TO_WORLD(mht,x)    ((((x)*(mht)->vres)-FIELD_OF_VIEW/2))
-
-
-typedef enum {
-    MHTFNO_FACE   = 0,
-    MHTFNO_VERTEX = 1
-} MHTFNO_t;
-
 
 typedef struct mht_face_t {
     // for per-vertex information that should not be stored in the MRIS FACE
@@ -94,27 +85,10 @@ typedef struct mht_face_t {
 } MHT_FACE;
 
 
-struct _mht 
-{
-  MRI_SURFACE const *mris ;                                             //
-  float              vres ;                                             // Resolution of discretization
-  MHTFNO_t           fno_usage;                                         // To enforce consistent use of fno:  face number or vertex number
-  int                nbuckets ;                                         // Total # of buckets
-
-#ifdef HAVE_OPENMP
-  omp_lock_t         buckets_lock;
-#endif
-  MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
-  int                which_vertices ;                                   // ORIGINAL, CANONICAL, CURRENT
-
-  int                nfaces;
-  MHT_FACE*          f;
-} ;
-
-
 MHBT * MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int  xv, int   yv, int   zv);
 MHBT * MHTacqBucket       (MRIS_HASH_TABLE *mht, float x, float y,  float z );
 
 void MHTrelBucket(MHBT**);
 void MHTrelBucketC(MHBT const **);
-#endif
+
+

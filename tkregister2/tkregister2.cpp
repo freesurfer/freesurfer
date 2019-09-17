@@ -2227,7 +2227,7 @@ static void check_options(void) {
     printf("ERROR: no registration file specified\n");
     exit(1);
   }
-  if (subjectid == NULL && fstal) {
+  if (strlen(subjectid) == 0 && fstal) {
     printf("ERROR: must spec subjectid with --fstal\n");
     exit(1);
   }

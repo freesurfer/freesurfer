@@ -35,7 +35,7 @@ def predict_segmentation(input_file, output_dir, contrast = 't1w',
        model_file = opj(model_dir, 'flt1t2_psacnn_p'+str(patch_dim)+'.h5')
 
     loss = 'dice_coef_loss2'
-    curr_unet = DeepImageSynth.DeepImageSynth.from_file(model_file, loss, n_labels=len(aseg_labels), labels=aseg_labels,
+    curr_unet = DeepImageSynth.DeepImageSynth.from_file(model_file, loss, net='unet_2d_v1',n_labels=len(aseg_labels), labels=aseg_labels,
                                                         storage_loc='disk', temp_folder=model_dir,
                                                         num_input_channels=num_channels, channel_names=channel_names,
                                                         out_channel_names=['seg'], initial_learning_rate=0.00001,
@@ -43,7 +43,7 @@ def predict_segmentation(input_file, output_dir, contrast = 't1w',
                                                         wmp_standardize=True, rob_standardize=True, fcn=True,
                                                         num_gpus=1,
                                                         preprocessing=False, augment=False, num_outputs=1,
-                                                        nmr_augment=True, use_tal=False, rare_label_list=[]
+                                                        nmr_augment=False, use_tal=False, rare_label_list=[]
                                                         )
 
     print('creating output directory: ' + output_dir)

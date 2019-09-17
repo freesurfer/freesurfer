@@ -50,6 +50,8 @@ public:
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0, bool ignore_exclusion = false );
   void CloneVoxelByRAS( double* ras, int nPlane );
   void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
+  void ShiftVoxelsByRAS( double* ras_offset, int nPlane);
+  void ShiftVoxels(int *nOffset, int nPlane);
 
   bool BorderFillByRAS( double* ras, int nPlane, bool b3D = false);
 
@@ -66,7 +68,7 @@ public:
   void Paste( int nPlane );
   bool CopyStructure( int nPlane, double* ras );
 
-  virtual void SaveForUndo( int nPlane = -1 );
+  virtual void SaveForUndo( int nPlane = -1, bool bAllFrames = false );
 
   double GetFillValue();
 
@@ -118,6 +120,8 @@ public slots:
   void SetBlankValue( double fBlank );
   void SetBrushRadius( int nRadius );
   void ClearVoxels();
+  void PrepareShifting(int nPlane);
+  void DoneShifting();
 
 protected:
   QVector<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
@@ -182,6 +186,9 @@ protected:
   LivewireTool*  m_livewire;
 
   int     m_nActiveFrame;
+
+  char*   m_shiftBackgroundData;
+  char*   m_shiftForegroundData;
 };
 
 #endif

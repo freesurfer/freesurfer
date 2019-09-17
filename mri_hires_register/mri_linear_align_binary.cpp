@@ -191,8 +191,8 @@ int
 main(int argc, char *argv[]) {
   char       **av, *source_fname, *target_fname, *out_fname, fname[STRLEN] ;
   int        ac, nargs, i ;
-  MRI        *mri_target, *mri_source, *mri_tmp, *mri_dist_src = NULL,
-      *mri_dist_target = NULL, *mri_whole_source, *mri_whole_target ;
+  MRI        *mri_target = nullptr, *mri_source, *mri_tmp, *mri_dist_src = nullptr,
+      *mri_dist_target = nullptr, *mri_whole_source, *mri_whole_target ;
   VOXEL_LIST *vl_target, *vl_source ;
   MRI_REGION  box ;
   Timer start ;
@@ -1597,7 +1597,7 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
     printf("source->target vox->vox transform:\n") ;
     MatrixPrint(stdout, m_vox_xform) ;
   }
-  if (conform || 1) {
+  if (1 || conform) {
     mri_aligned = MRIalloc(mri_target->width, mri_target->height,
                            mri_target->depth,mri_source->type);
     MRIcopyHeader(mri_target, mri_aligned) ;

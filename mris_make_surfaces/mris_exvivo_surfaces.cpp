@@ -54,8 +54,8 @@ static char vcid[] =
 
 int main(int argc, char *argv[]) ;
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -64,7 +64,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int externalTimestep(MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
-int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
+int LocalMRISfindExpansionRegions(MRI_SURFACE *mris) ;
 
 int MRISaverageMarkedValbaks(MRI_SURFACE *mris, int navgs);
 static int  MRIcomputeClassStatistics_mef(MRI *mri_T1_30, MRI *mri_T1_5, 
@@ -114,12 +114,6 @@ MRIScomputeBorderValues_T1_PIAL(MRI_SURFACE *mris,
                                 double sigma,
                                 float max_thickness, FILE *log_fp, 
                                 int formalin, int first);
-
-// int MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, INTEGRATION_PARMS *parms, float weight30, float weight5);
-
-// static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5);
-
-// static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity, MRI *mri_30, MRI *mri_5, double sigma_global, float weight30, float weight5);
 
 static int  MRInormalizeMEF(MRI *mri, MRI *mri_em_seg);
 
@@ -518,7 +512,7 @@ main(int argc, char *argv[]) {
                                         max_thickness, parms.fp) ;
 
     //what does this do?
-    MRISfindExpansionRegions(mris) ;
+    LocalMRISfindExpansionRegions(mris) ;
 
     if (vavgs) {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -1160,7 +1154,7 @@ print_version(void) {
 }
 
 int
-MRISfindExpansionRegions(MRI_SURFACE *mris) {
+LocalMRISfindExpansionRegions(MRI_SURFACE *mris) {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
 

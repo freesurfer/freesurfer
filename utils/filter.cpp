@@ -455,7 +455,7 @@ int ImageMedianFilter(IMAGE *inImage, int wsize, IMAGE *offsetImage, IMAGE *outI
   float *sptr, *outPix, min_val, max_val, *inPix;
   byte *in_image, *out_image;
   IMAGE *Iout, *Iin;
-  register int xc;
+  int xc;
 
   rows = inImage->rows;
   cols = inImage->cols;
@@ -573,7 +573,7 @@ int ImageMedianFilter(IMAGE *inImage, int wsize, IMAGE *offsetImage, IMAGE *outI
 }
 static int compare_sort_array(const void *pf1, const void *pf2)
 {
-  register float f1, f2;
+  float f1, f2;
 
   f1 = *(float *)pf1;
   f2 = *(float *)pf2;
@@ -724,9 +724,9 @@ IMAGE *ImageConvolveGaussianFrames(IMAGE *Isrc, IMAGE *gImage, IMAGE *Idst)
 void ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 {
   int x, y, width, height, halflen;
-  register int i;
+  int i;
   float *outPix;
-  register float *ki, total, *inBase;
+  float *ki, total, *inBase;
   static int *xi_LUT = NULL, LUT_width, LUT_height, *yi_LUT = NULL, LUT_len = 0;
 
   width = I->cols;
@@ -801,9 +801,9 @@ void ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 void ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 {
   int x, y, width, height, halflen, xi, yi;
-  register int i;
+  int i;
   float *outPix;
-  register float *ki, total, *inBase;
+  float *ki, total, *inBase;
 
   width = I->cols;
   height = I->rows;
@@ -856,8 +856,8 @@ void ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 void ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 {
   int x, y, width, height, halflen;
-  register int i;
-  register float *ki, total;
+  int i;
+  float *ki, total;
   byte *inBase, *outPix;
   static int *xi_LUT = NULL, LUT_width, LUT_height, *yi_LUT = NULL, LUT_len = 0;
 
@@ -1247,7 +1247,7 @@ int ImageSobel(IMAGE *Isrc, IMAGE *gradImage, IMAGE *dxImage, IMAGE *dyImage)
 #if !FAST_SOBEL
 int ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 {
-  register float *tl_pix, *ml_pix, *bl_pix, *tr_pix, *mr_pix, *br_pix, *outPtr;
+  float *tl_pix, *ml_pix, *bl_pix, *tr_pix, *mr_pix, *br_pix, *outPtr;
   int rows, cols, row, col;
 
   rows = Isrc->rows;
@@ -1292,7 +1292,7 @@ use overlapping windows to speed up sobel calculation
 ----------------------------------------------------------------------*/
 int ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 {
-  register float *tr_pix, *mr_pix, *br_pix, *outPtr, left, middle, right;
+  float *tr_pix, *mr_pix, *br_pix, *outPtr, left, middle, right;
   int rows, cols, row, col;
 
   rows = Isrc->rows;
@@ -1333,7 +1333,7 @@ int ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 #if !FAST_SOBEL
 int ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 {
-  register float *tl_pix, *tm_pix, *tr_pix, *bl_pix, *bm_pix, *br_pix, *outPtr;
+  float *tl_pix, *tm_pix, *tr_pix, *bl_pix, *bm_pix, *br_pix, *outPtr;
   int rows, cols, row, col;
 
   rows = Isrc->rows;
@@ -1378,7 +1378,7 @@ use overlapping windows to speed up sobel calculation
 ----------------------------------------------------------------------*/
 int ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 {
-  register float *tr_pix, *br_pix, *outPtr, left, middle, right;
+  float *tr_pix, *br_pix, *outPtr, left, middle, right;
   int rows, cols, row, col;
 
   rows = Isrc->rows;
@@ -1549,7 +1549,7 @@ IMAGE *ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset, IM
   int x0, y0, rows, cols, x, y, whalf, yc, dx, dy, frame, wsq, w, npix;
   float *sptr, *outPix, min_val, max_val, *inPix, val, mean, sigma, sigma_thresh, filter_val;
   IMAGE *Iout, *Iin;
-  register int xc;
+  int xc;
 
   if (nsigma <= 0.0f) nsigma = 2.0f;
   rows = Isrc->rows;

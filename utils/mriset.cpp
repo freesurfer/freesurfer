@@ -303,13 +303,11 @@ MRI *MRIorVal(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
   return (mri_dst);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn MRI *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
+  \brief xor (0,0->0), (1,0->1), (0,1->1), (1,1)->0. Threshold
+  mri1 and mri2 between t1 and t2.
+*/
 MRI *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
   int width, height, depth, x, y, z;
@@ -424,7 +422,7 @@ MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
 /*-----------------------------------------------------*/
 MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
 {
-  int width, height, depth, z, same;
+  int width, height, depth, z, same, f;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -442,36 +440,38 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
     same = 0;
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR) {
-    ROMP_PF_begin
-#ifdef HAVE_OPENMP
+    for (f = 0; f < mri_src->nframes; f++) {
+      ROMP_PF_begin
+    #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
-#endif
-    for (z = 0; z < depth; z++) {
-      ROMP_PFLB_begin
-      
-      int x, y, z0, zi, y0, yi, x0, xi;
-      float fmin_val, fval;
-      for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-          fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0);
-          for (z0 = -1; z0 <= 1; z0++) {
-            zi = mri_src->zi[z + z0];
-            for (y0 = -1; y0 <= 1; y0++) {
-              yi = mri_src->yi[y + y0];
-              for (x0 = -1; x0 <= 1; x0++) {
-                xi = mri_src->xi[x + x0];
-                fval = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
-                if (fval < fmin_val) fmin_val = fval;
+    #endif
+          for (z = 0; z < depth; z++) {
+        ROMP_PFLB_begin
+
+            int x, y, z0, zi, y0, yi, x0, xi;
+        float fmin_val, fval;
+        for (y = 0; y < height; y++) {
+          for (x = 0; x < width; x++) {
+            fmin_val = MRIgetVoxVal(mri_src, x, y, z, f);
+            for (z0 = -1; z0 <= 1; z0++) {
+              zi = mri_src->zi[z + z0];
+              for (y0 = -1; y0 <= 1; y0++) {
+                yi = mri_src->yi[y + y0];
+                for (x0 = -1; x0 <= 1; x0++) {
+                  xi = mri_src->xi[x + x0];
+                  fval = MRIgetVoxVal(mri_src, xi, yi, zi, f);
+                  if (fval < fmin_val) fmin_val = fval;
+                }
               }
             }
+            MRIsetVoxVal(mri_dst, x, y, z, f, fmin_val);
           }
-          MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val);
         }
+
+        ROMP_PFLB_end
       }
-      
-      ROMP_PFLB_end
+      ROMP_PF_end
     }
-    ROMP_PF_end
   }
   else {
     ROMP_PF_begin
@@ -480,7 +480,7 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
 #endif
     for (z = 0; z < depth; z++) {
       ROMP_PFLB_begin
-      
+
       int x, y, z0, zi, y0, yi, x0, xi;
       BUFTYPE *pdst, min_val, val;
 
@@ -1052,13 +1052,19 @@ MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int maskfra
   return (out);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, int niter, int thresh)
+  \brief Localized iterative dilation. Each iteration: finds bounding box of
+  label in mri_src; within this bounding box, finds voxels in
+  mri_val>thresh; if any face-edge-corner nearest neighbor has
+  mri_src=label, then the voxel is set to label.
+  \param mri_src - labeled volume
+  \param mri_val - intensity image (same scale as thresh), eg, brain.finalsurfs
+  \param mri_dst - output (also returned)
+  \param label - label value to use (eg, 130 for BRIGHT_LABEL)
+  \param niter - number of dilations
+  \param thresh - threshold for mri_val (eg, 115)
+*/
 MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, int niter, int thresh)
 {
   int width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax, i, nadded;
@@ -1071,12 +1077,13 @@ MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, i
   height = mri_src->height;
   depth = mri_src->depth;
 
-  /* get everything outside of bounding box */
+  /* keep everything outside of bounding box */
   mri_dst = MRIcopy(mri_src, mri_dst);
 
   for (i = 0; i < niter; i++) {
-    nadded = 0;
     mri_tmp = MRIcopy(mri_dst, mri_tmp); /* will allocate first time */
+
+    // Get the bounding box that contains the src label
     xmax = 0;
     xmin = width - 1;
     ymax = 0;
@@ -1104,23 +1111,31 @@ MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, i
     ymax = MIN(height - 1, ymax);
     zmin = MAX(0, zmin);
     zmax = MIN(depth - 1, zmax);
+
+    // Search in the bounding box
+    nadded = 0;
     for (z = zmin; z <= zmax; z++) {
       for (y = ymin; y <= ymax; y++) {
         for (x = xmin; x <= xmax; x++) {
           out_val = MRIvox(mri_tmp, x, y, z);
+	  // If the input value is (eg, brain.finalsurfs) is above thresh (eg, 115)
           if (MRIvox(mri_val, x, y, z) >= thresh) {
+	    // Search thru nearest neighbors
             for (z0 = -1; z0 <= 1; z0++) {
               zi = mri_tmp->zi[z + z0];
               for (y0 = -1; y0 <= 1; y0++) {
                 yi = mri_tmp->yi[y + y0];
                 for (x0 = -1; x0 <= 1; x0++) {
                   xi = mri_tmp->xi[x + x0];
+		  // If neighbor is the label (possibly) change output to label
+		  // This is a dilation of values above thresh
                   val = MRIvox(mri_tmp, xi, yi, zi);
                   if (val == label) out_val = label;
                 }
               }
             }
             if (out_val == label) {
+	      // update bounding box
               if (xi < xmin) xmin = xi;
               if (xi > xmax) xmax = xi;
               if (yi < ymin) ymin = yi;
@@ -1134,8 +1149,10 @@ MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, i
         }
       }
     }
+
     if (nadded == 0) break;
-  }
+  } // iteration
+
   MRIfree(&mri_tmp);
 
   return (mri_dst);
@@ -1252,6 +1269,8 @@ MRI *MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label
 
   for (i = 0; i < niter; i++) {
     nadded = 0;
+
+    // Find bounding box of label
     mri_tmp = MRIcopy(mri_dst, mri_tmp); /* will allocate first time */
     xmax = 0;
     xmin = width - 1;
@@ -1280,23 +1299,29 @@ MRI *MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label
     ymax = MIN(height - 1, ymax);
     zmin = MAX(0, zmin);
     zmax = MIN(depth - 1, zmax);
+
+    // Search within bounding box
     for (z = zmin; z <= zmax; z++) {
       for (y = ymin; y <= ymax; y++) {
         for (x = xmin; x <= xmax; x++) {
           out_val = MRIvox(mri_tmp, x, y, z);
+	  // If mri_val <= thresh at this voxel
           if (MRIvox(mri_val, x, y, z) <= thresh) {
+	    // Search nearest FEC neighbors ...
             for (z0 = -1; z0 <= 1; z0++) {
               zi = mri_tmp->zi[z + z0];
               for (y0 = -1; y0 <= 1; y0++) {
                 yi = mri_tmp->yi[y + y0];
                 for (x0 = -1; x0 <= 1; x0++) {
                   xi = mri_tmp->xi[x + x0];
+		  // If one of the neighors is labeled, label this voxel
                   val = MRIvox(mri_tmp, xi, yi, zi);
                   if (val == label) out_val = label;
                 }
               }
             }
             if (out_val == label) {
+	      // update bounding box
               if (xi < xmin) xmin = xi;
               if (xi > xmax) xmax = xi;
               if (yi < ymin) ymin = yi;
@@ -1310,8 +1335,10 @@ MRI *MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label
         }
       }
     }
+
     if (nadded == 0) break;
-  }
+
+  } // iteration
   MRIfree(&mri_tmp);
 
   return (mri_dst);
@@ -1638,7 +1665,7 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
 #endif
     for (z = zmin; z <= zmax; z++) {
       ROMP_PFLB_begin
-      
+
       int y, x, xi, yi, zi, z0, y0, x0;
       double val, max_val;
       for (y = ymin; y <= ymax; y++) {
@@ -2129,7 +2156,7 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 #endif
   for (z = 0; z < depth; z++) {
     ROMP_PFLB_begin
-    
+
     int x, y, frame;
     float val;
 
@@ -2300,24 +2327,42 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
   return (mri_dst);
 }
 
-/*--------------------------------------------------------------------------
-  MRImask() - applies mask to an mri data set. If mri_mask == mask at a voxel,
+/*!
+  MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
+  \brief Applies mask to an mri data set. If mri_mask == mask at a voxel,
   then that voxel is set to out_val. Eg, if your mask is binary (0 and 1),
   and you want to set voxels outside the mask to 0 (ie, maskmri=0), then
-  MRImask(src,mask,dst,0,0). Handles multiple frames.
-  --------------------------------------------------------------------------*/
+  MRImask(src,mask,dst,0,0). Handles multiple frames. If the geometries are
+  diff between mri_src and mri_mask, then it performs a header registration.
+  This can be turned off with setenv FS_MRIMASK_ALLOW_DIFF_GEOM 0.
+*/
 MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
   int width, height, depth, nframes, x, y, z, f, mask_val;
   float val;
   VOL_GEOM vg_src, vg_mask;
-  
+
+  // If the geometries differ, then MRImask() will do a header registration. This
+  // is not what one want to do all the time (eg, with surfaces). Rather than
+  // add another argument and change the millions of calls ot MRImask(), the caller
+  // can set an env variable to turn off this capability, eg,
+  // setenv FS_MRIMASK_ALLOW_DIFF_GEOM 0
+  // If this variable is not defined, then it will potentially change geom
+  int AllowDiffGeom = 1;
+  char *pstr= getenv("FS_MRIMASK_ALLOW_DIFF_GEOM");
+  if(pstr!=NULL) sscanf(pstr,"%d",&AllowDiffGeom);
+  printf("MRImask(): AllowDiffGeom = %d\n",AllowDiffGeom);
+
   getVolGeom(mri_src, &vg_src);
   getVolGeom(mri_mask, &vg_mask);
   const double threshold = 1e-4; // Don't be too restrictive.
   if (vg_isNotEqualThresh(&vg_src, &vg_mask, threshold)) {
-    printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
-    return (MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst, mask, out_val));
+    if(AllowDiffGeom){
+      printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
+      return (MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst, mask, out_val));
+    }
+    printf("INFO: MRImask(): geometries differ but not using MRImaskDifferentGeometry() \n");    
+    fflush(stdout);
   }
 
   MRIcheckVolDims(mri_src, mri_mask);
@@ -2904,7 +2949,7 @@ MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, i
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
 {
   int width, height, depth, x, y, z, nvox;
-  BUFTYPE *psrc, *pdst;
+  BUFTYPE *psrc, *pdst = nullptr;
 
   MRIcheckVolDims(mri_src, mri_dst);
 

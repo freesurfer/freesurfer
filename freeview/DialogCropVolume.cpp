@@ -29,6 +29,7 @@
 #include "LayerMRI.h"
 #include <QShowEvent>
 #include <QHideEvent>
+#include <QSettings>
 
 DialogCropVolume::DialogCropVolume(QWidget *parent, LayerMRI *mri) :
   QDialog(parent),
@@ -51,10 +52,23 @@ DialogCropVolume::DialogCropVolume(QWidget *parent, LayerMRI *mri) :
   connect(ui->pushButtonApply, SIGNAL(clicked()), vc, SLOT(Apply()));
   connect(ui->pushButtonSaveAs, SIGNAL(clicked()),
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
+
+  QSettings s;
+  QByteArray val = s.value("VolumeCropper/Geometry").toByteArray();
+  if (!val.isEmpty())
+    restoreGeometry(val);
+  else
+  {
+    QWidget* p = parentWidget();
+    if (p)
+      move(p->rect().center());
+  }
 }
 
 DialogCropVolume::~DialogCropVolume()
 {
+  QSettings s;
+  s.setValue("VolumeCropper/Geometry", saveGeometry());
   delete ui;
 }
 
@@ -77,7 +91,9 @@ void DialogCropVolume::OnSpinRange(int nVal)
   {
     if ( qobject_cast<QSpinBox*>(sender()) == m_spinRange[i] )
     {
-      MainWindow::GetMainWindow()->GetVolumeCropper()->SetExtent( i, nVal );
+      if ( (i%2 == 0 && nVal < m_spinRange[i+1]->value()) ||
+           (i%2 == 1 && nVal > m_spinRange[i-1]->value()) )
+        MainWindow::GetMainWindow()->GetVolumeCropper()->SetExtent( i, nVal );
       break;
     }
   }

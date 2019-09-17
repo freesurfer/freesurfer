@@ -22,8 +22,6 @@
  *
  */
 
-using namespace std;
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -50,6 +48,8 @@ using namespace std;
 #include "timer.h"
 #include "chklc.h"
 #include "diag.h"
+
+using namespace std;
 
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */

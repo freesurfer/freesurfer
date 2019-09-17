@@ -185,6 +185,8 @@ void WindowConfigureOverlay::UpdateUI()
     ui->checkBoxUseNonZeroVertices->setChecked(p->GetIgnoreZeros());
     ui->checkBoxUseNonZeroVertices->setVisible(p->GetUsePercentile());
 
+    ui->checkBoxMaskInverse->setChecked(p->GetMaskInverse());
+
     if (p->GetUsePercentile())
     {
       ChangeLineEditNumber( ui->lineEditMin, overlay->PositionToPercentile(p->GetMinPoint()) );
@@ -848,8 +850,7 @@ void WindowConfigureOverlay::OnComboMask(int n)
                                                      "Label files (*)");
     if ( !filename.isEmpty())
     {
-      setProperty("wait_for_label", true);
-      emit MaskLoadRequested(filename);
+      LoadLabelMask(filename);
     }
     else
     {
@@ -862,6 +863,12 @@ void WindowConfigureOverlay::OnComboMask(int n)
       OnApply();
     UpdateUI();
   }
+}
+
+void WindowConfigureOverlay::LoadLabelMask(const QString& fn)
+{
+    setProperty("wait_for_label", true);
+    emit MaskLoadRequested(fn);
 }
 
 void WindowConfigureOverlay::OnCheckInverseMask(bool bChecked)

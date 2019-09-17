@@ -38,6 +38,9 @@ set DoClusterMean = 1
 set OutputAnnot = 1
 set DoGRFOCNAnat = 0;
 set y = ()
+set framemask = ()
+set PermNonStatCor = 0;
+set fwhmmap = ()
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -165,6 +168,15 @@ while($#glmfitcmd)
     endif
     if("$flag" == "--table") set UseTable = 1;
     breaksw
+  case "--frame-mask"
+    set framemask = $glmfitcmd[1]; 
+    shift glmfitcmd;
+    if(! -e $framemask) then
+      echo "ERROR: cannot find frame mask $framemask"
+      exit 1;
+    endif
+    echo "Using frame mask $framemask"
+    breaksw
   case "--wls"
     if($nulltype == perm) then
       echo "ERROR: cannot use permutation with weighted least squares (--wls)"
@@ -206,6 +218,12 @@ while($#glmfitcmd)
   case "dods"
   case "mri_glmfit.bin"
   case "--save-eres"
+  case "--eres-save"
+  case "--save-fwhm-map"
+  case "--mgz"
+  case "--mgh"
+  case "--nii"
+  case "--nii.gz"
     breaksw
   # Ignore these options that have one arg
   case "--glmdir"
@@ -417,12 +435,14 @@ if($DoSim) then
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
+    if($#framemask)  set cmd = ($cmd --frame-mask $framemask)
     # --y must go after --fsgd
     if(! $UseTable) then
       set cmd = ($cmd --mask $mask)
       if($PermResid == 0) set cmd = ($cmd --y $y)
       if($PermResid == 1) set cmd = ($cmd --y $residual)
       if($PermSignFlip == 1) set cmd = ($cmd --perm-1)
+      if($PermNonStatCor) set cmd = ($cmd --perm-nonstatcor)
     endif
     if($UseTable)   set cmd = ($cmd --table $y)
     #if($#label) set cmd = ($cmd --label $label)
@@ -532,6 +552,7 @@ if($DoPBSubmit) then
   set cmd = (mri_glmfit-sim --glmdir $glmdir  --tmp $tmpdir)
   set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase --cwpvalthresh $cwpvalthresh)
   set cmd = ($cmd --log $LF)
+  if($PermNonStatCor) set cmd = ($cmd --perm-nonstatcor)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
   pbsubmit $PBNodeType -c "$cmd"
@@ -581,9 +602,10 @@ foreach conname ($conlist)
     set cmd = (mri_surfcluster --in $sig  --mask $mask \
       --cwsig $cwsig --sum $sum --ocn $ocn \
       --annot $annot --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
+    set cmd = ($cmd --csd-out $glmdir/csd/all.$csdbase-$conname.csd)
     if(! $UseGRF) set cmd = ($cmd $csdlist --csdpdf $csdpdf --vwsig $vwsig --vwsigmax $vwsigmax)
     if($UseGRF)   set cmd = ($cmd --fwhm $fwhm --hemi $hemi --subject $subject --thmin $thresh --sign $simsign)
-
+    if($PermNonStatCor) set cmd = ($cmd --fwhm-map $fwhmmap)
     if($OutputAnnot) set cmd = ($cmd --oannot $oannot)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if($ReportCentroid) set cmd = ($cmd --centroid);
@@ -749,8 +771,9 @@ while( $#argv != 0 )
       set csdbase = perm.th$threshStr.$simsign
       breaksw
 
-    case "--perm-signflip":
-      set PermSignFlip = 1;
+    case "--perm-nonstatcor":
+      set PermNonStatCor = 1;
+      set csdbase = perm.nsc.th$threshStr.$simsign
       breaksw
 
     case "--sim":
@@ -963,6 +986,16 @@ endif
 if($DiagCluster && $DoSim == 0) then
   echo "ERROR: must simulate with --diag-cluster"
   exit 1;
+endif
+
+if($PermNonStatCor) then
+  set stem = $glmdir/fwhm
+  set fwhmmap = `stem2fname $stem`
+  if($status) then
+    echo "ERROR: cannot find fwhmmap $stem needed with --perm-nonstatcor"
+    echo "  when running mri_glmfit, make sure to include --save-fwhm-map"
+    exit 1;
+  endif
 endif
 
 goto check_params_return;

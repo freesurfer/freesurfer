@@ -55,6 +55,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionColorPicker );
   ag->addAction( ui->actionClone );
   ag->addAction( ui->actionAutoSeg);
+  ag->addAction( ui->actionShift );
   ag->setExclusive( true );
   ui->actionContour->setData( Interactor2DVoxelEdit::EM_Contour );
   ui->actionColorPicker->setData( Interactor2DVoxelEdit::EM_ColorPicker );
@@ -64,6 +65,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
   ui->actionAutoSeg->setData( Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->actionShift->setData( Interactor2DVolumeEdit::EM_Shift );
   ui->colorPickerGeoInside->setCurrentColor(Qt::green);
   ui->colorPickerGeoOutside->setCurrentColor(Qt::red);
   ui->colorPickerGeoFill->setCurrentColor(Qt::yellow);
@@ -89,10 +91,13 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->pushButtonGeoClearFilling, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegClearFilling()));
   connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegGo()));
   connect(ui->pushButtonGeoApply, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegApply()));
+  connect(ui->pushButtonGeoUndo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegUndo()));
   connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->colorPickerGeoFill, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeoSeg(QColor)));
   connect(ui->sliderGeoOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderGeoOpacity(int)));
+  connect(ui->pushButtonAbort, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegAbort()));
+  connect(mainwnd, SIGNAL(SupplementLayerChanged()), this, SLOT(UpdateWidgets()));
 
   for (int i = 0; i < 3; i++)
   {
@@ -145,8 +150,14 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->widgetGeoColors
                    << ui->sliderGeoOpacity
                    << ui->pushButtonGeoApply
+                   << ui->pushButtonGeoUndo
                    << ui->labelTipsGeoS
-                   << ui->widgetBusyIndicator;
+                   << ui->widgetBusyIndicator
+                   << ui->checkBoxApplySmoothing
+                   << ui->lineEditSmoothingStd
+                   << ui->pushButtonAbort
+                   << ui->checkBoxGeoSegOverwrite
+                   << ui->labelGeoMessage;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -201,6 +212,8 @@ void ToolWindowEdit::OnIdle()
     return;
   }
 
+  m_bToUpdateWidgets = false;
+  ui->labelGeoMessage->clear();
   QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -293,12 +306,15 @@ void ToolWindowEdit::OnIdle()
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
-  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
+//  ui->widgetBusyIndicator->setVisible(ui->pushButtonGeoGo->isVisible() && !ui->pushButtonGeoGo->isEnabled());
+  ui->widgetBusyIndicator->hide();
 
   ui->labelGeoLambda->hide();
   ui->labelGeoWsize->hide();
   ui->lineEditGeoLambda->hide();
   ui->spinBoxGeoWsize->hide();
+
+  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -318,7 +334,8 @@ void ToolWindowEdit::OnIdle()
     ui->lineEditExcludeRangeHigh->setEnabled(false);
   }
 
-  m_bToUpdateWidgets = false;
+//  LayerMRI* mri_draw = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
+//  ui->pushButtonGeoUndo->setEnabled(mri_draw && mri_draw->HasUndo());
 }
 
 void ToolWindowEdit::OnEditMode(QAction *act)
@@ -340,6 +357,8 @@ void ToolWindowEdit::OnEditMode(QAction *act)
       }
     }
   }
+  setWindowTitle(tr("Voxel Edit - %1").arg(act->text()));
+
   UpdateWidgets();
 }
 
@@ -549,7 +568,18 @@ void ToolWindowEdit::OnButtonGeoSegClear()
   LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
   if (mri)
   {
+    mri->SaveForUndo();
     mri->ClearVoxels();
+    MainWindow::GetMainWindow()->RequestRedraw();
+  }
+}
+
+void ToolWindowEdit::OnButtonGeoSegUndo()
+{
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
+  if (mri)
+  {
+    mri->Undo();
     MainWindow::GetMainWindow()->RequestRedraw();
   }
 }
@@ -566,6 +596,7 @@ void ToolWindowEdit::OnButtonGeoSegClearFilling()
 
 void ToolWindowEdit::OnButtonGeoSegGo()
 {
+  ui->labelGeoMessage->clear();
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
   if (mri)
   {
@@ -577,20 +608,53 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
       int wsize = ui->spinBoxGeoWsize->value();
       mri_fill->ClearVoxels();
-      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, NULL);
-      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished()), this, SLOT(ResetGeoSegUI()), Qt::UniqueConnection);
+      bool ok = false;
+      double std = 0;
+      if (ui->checkBoxApplySmoothing->isChecked())
+        std = ui->lineEditSmoothingStd->text().toDouble(&ok);
+      mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0,
+                                     ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")));
+      connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnGeoSegFinished(double)), Qt::UniqueConnection);
+      connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
       ui->pushButtonGeoGo->setEnabled(false);
       ui->pushButtonGeoApply->setEnabled(false);
-      ui->widgetBusyIndicator->show();
+//      ui->widgetBusyIndicator->show();
+      ui->pushButtonAbort->setEnabled(true);
+    }
+    else
+    {
+      ui->labelGeoMessage->setText("<span style=\"color:red\">No inside pixels found</span>");
     }
   }
 }
 
-void ToolWindowEdit::ResetGeoSegUI()
+void ToolWindowEdit::OnButtonGeoSegAbort()
+{
+  LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
+  if (mri_fill)
+    mri_fill->GeodesicSegmentationAbort();
+  ui->labelGeoMessage->clear();
+}
+
+void ToolWindowEdit::OnGeoSegFinished(double time_in_secs)
 {
   ui->pushButtonGeoApply->setEnabled(true);
   ui->pushButtonGeoGo->setEnabled(true);
   ui->widgetBusyIndicator->hide();
+  ui->pushButtonAbort->setEnabled(false);
+  if (time_in_secs < 0)
+  {
+    LayerMRI* mri_fill = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_FILL"));
+    ui->labelGeoMessage->setText(QString("<span style=\"color:red\">%1</span>")
+                                 .arg(mri_fill?mri_fill->GetGeoSegErrorMessage():""));
+  }
+  else
+    ui->labelGeoMessage->setText(QString::asprintf("Time taken: %.3fs", time_in_secs));
+}
+
+void ToolWindowEdit::OnGeoSegProgress(double val)
+{
+  ui->labelGeoMessage->setText(QString::asprintf("%.1f%%", val));
 }
 
 void ToolWindowEdit::OnButtonGeoSegApply()
@@ -602,6 +666,7 @@ void ToolWindowEdit::OnButtonGeoSegApply()
     connect(mri, SIGNAL(GeodesicSegmentationApplied()), SLOT(OnButtonGeoSegClearFilling()), Qt::UniqueConnection);
     mri->GeodesicSegmentationApply(mri_fill);
   }
+  ui->labelGeoMessage->clear();
 }
 
 void ToolWindowEdit::OnColorPickerGeoSeg(const QColor &color)

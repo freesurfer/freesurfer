@@ -64,6 +64,7 @@ set TolF = 1e-8;
 set Tol1D = 1e-3;
 set nPowellMax = 36;
 set DOF = 6;
+set coregDOF = 6;
 set FSLDOF = 6;
 set FSLSwapTrans = 0;
 set FSLBETMov = 0;
@@ -134,7 +135,10 @@ mkdir -p $tmpdir
 echo tmp $tmpdir
 
 if(! $nolog) then
-  set LF = $outreg.log
+  set outregdir  = `dirname $outreg`
+  set outregbase = `basename $outreg .dat`
+  set outregbase = `basename $outregbase .lta`
+  set LF = $outregdir/$outregbase.log
   if(-e $LF) mv $LF $LF.old
 else
   set LF = /dev/null
@@ -251,7 +255,7 @@ if($#InitReg == 0) then
   endif
   if($InitCoreg) then
     set cmd = (mri_coreg --s $subject --mov $regvol --regdat $InitReg \
-      --reg $tmpdir/mri_coreg.lta --nthreads $OMP_NUM_THREADS --dof $DOF \
+      --reg $tmpdir/mri_coreg.lta --nthreads $OMP_NUM_THREADS --dof $coregDOF \
       --sep 4 --ftol .0001 --linmintol .01)
     set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
     if($CoRegRefMask == 0 || ! -e $apas) set cmd = ($cmd --no-ref-mask)
@@ -859,14 +863,22 @@ while( $#argv != 0 )
     case "--6":
       # Default anyway
       set DOF = 6;
+      set coregDOF = 6;
       breaksw
 
     case "--9":
       set DOF = 9;
+      set coregDOF = 9;
       breaksw
 
     case "--12":
       set DOF = 12;
+      set coregDOF = 12;
+      breaksw
+
+    case "--coreg-dof":
+      if($#argv < 1) goto arg1err;
+      set coregDOF = $argv[1]; shift;
       breaksw
 
     case "--no-pass1":

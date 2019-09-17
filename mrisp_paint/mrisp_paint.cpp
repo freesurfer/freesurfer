@@ -49,6 +49,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static int coords = -1 ;
 static int normalize = 0 ;
 static int variance =  0 ;
 static int navgs = 0 ;
@@ -141,6 +142,27 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
               Progname, template_fname) ;
 
+  if (coords >= 0)
+  {
+#if 1
+    MRIScoordsFromParameterizationBarycentric(mris, mrisp, coords) ;
+#else
+    int vno ;
+    MRISfromParameterization(mrisp, mris, 0) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitex = mris->vertices[vno].curv ;
+    MRISfromParameterization(mrisp, mris, 1) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitey = mris->vertices[vno].curv ;
+    MRISfromParameterization(mrisp, mris, 2) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      mris->vertices[vno].whitez = mris->vertices[vno].curv ;
+#endif
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    printf("writing surface to %s\n", out_fname);
+    MRISwrite(mris,out_fname) ;
+    exit(0) ;
+  }
   if (normalize)
   {
     MRISnormalizeFromParameterization(mrisp, mris, frame_number) ;
@@ -254,6 +276,17 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
   {
     print_version() ;
+  }
+  else if (!stricmp(option, "COORDS"))
+  {
+    if (!stricmp(argv[2], "white"))
+      coords = WHITE_VERTICES ;
+    else if (!stricmp(argv[2], "pial"))
+      coords = PIAL_VERTICES ;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "Unknown coords value %s", argv[2]) ;
+    nargs = 1 ;
+    printf("writing coords %s (%d) into parameterizaton\n", argv[2], coords) ;
   }
   else if (!stricmp(option, "SDIR"))
   {

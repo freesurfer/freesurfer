@@ -76,10 +76,6 @@ TermWidget::TermWidget(QWidget *parent) :
   QSettings settings;
   this->restoreGeometry(settings.value("/CommandConsole/Geometry").toByteArray());
 
-//#ifdef DEVELOPMENT
-//  SetRedirectStdOutput(false); // for debugging
-//#else
-//#endif
   SetRedirectStdOutput(true);
   SetDuplicateStdOutput(true);
 
@@ -152,6 +148,12 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
     return;
   }
 
+  if (strg == "abort")
+  {
+    MainWindow::GetMainWindow()->AbortScripts();
+    return;
+  }
+
   if (strg[strg.size()-1] == '&')
   {
     strg.resize(strg.size()-1);
@@ -177,6 +179,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
       MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
     else
       MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
+
     if ( MainWindow::GetMainWindow()->IsBusy())
     {
       AppendErrorString("Still busy. Command is added to queue and will be executed later.\n");
@@ -261,6 +264,7 @@ void TermWidget::OnTimeOut()
     {
       m_bufferStdErr.clear();
     }
+    MainWindow::GetMainWindow()->SetHadError(true);
   }
 }
 

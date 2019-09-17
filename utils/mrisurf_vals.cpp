@@ -19,6 +19,9 @@
  */
 #include "mrisurf_vals.h"
 
+#include "mrisurf_base.h"
+
+
 // Vals are scalar properties of vertexs or faces
 // that are independent of 
 //
@@ -599,12 +602,15 @@ int MRISclearFixedValFlags(MRI_SURFACE *mris)
 }
 
 
-//
-//
-int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
+float* MRISexportCurv(MRIS* mris) {
+  float* p = (float*)malloc(mris->nvertices * sizeof(float));
+  MRISextractCurvatureVector(mris, p);
+  return p;
+}
+
+int MRISextractCurvatureVector(MRIS *mris, float *curvs)
 {
   int vno;
-
   for (vno = 0; vno < mris->nvertices; vno++) {
     curvs[vno] = mris->vertices[vno].curv;
   }

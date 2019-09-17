@@ -55,6 +55,7 @@ LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(pa
   connect(mProperty, SIGNAL(DirectionMappingChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(SolidColorChanged(QColor)), this, SLOT(UpdateColor()));
   connect(mProperty, SIGNAL(RenderRepChanged()), this, SLOT(RebuildActors()));
+  connect(mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity(double)));
 }
 
 LayerTrack::~LayerTrack()
@@ -267,6 +268,9 @@ void LayerTrack::VectorToColor(float *pt1, float *pt2, float *c_out, int nMappin
 vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtkUnsignedCharArray *scalars)
 {
   vtkActor* actor = vtkActor::New();
+#if VTK_MAJOR_VERSION > 5
+  actor->ForceOpaqueOn();
+#endif
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints(points);
   polydata->SetLines(lines);
@@ -345,4 +349,11 @@ bool LayerTrack::IsCluster()
 bool LayerTrack::HasEmbeddedColor()
 {
   return (m_trackData && m_trackData->HasEmbeddedColor());
+}
+
+void LayerTrack::UpdateOpacity(double val)
+{
+  foreach(vtkActor* actor, m_actors)
+    actor->GetProperty()->SetOpacity(val);
+  emit ActorUpdated();
 }

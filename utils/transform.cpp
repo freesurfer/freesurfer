@@ -4720,24 +4720,16 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
 {
   double wmsum, wmsum2, wmmean, wmstd;
   double ctxsum, ctxsum2, ctxmean, ctxstd;
-  double vseg = 0, vf, t, cost;
-  int r, c, s, nwmhits, nctxhits;
-  float *pf;
-  void *pseg;
-  int psegincr = 0;
+  double t, cost;
+  int nwmhits, nctxhits;
 
-  if (regseg->type == MRI_INT)
-    psegincr = sizeof(int);
-  else if (regseg->type == MRI_UCHAR)
-    psegincr = sizeof(unsigned char);
-  else if (regseg->type == MRI_FLOAT)
-    psegincr = sizeof(float);
-  else {
+  if ((regseg->type != MRI_INT) && (regseg->type != MRI_UCHAR) && (regseg->type != MRI_FLOAT)) {
     printf("ERROR: SegRegCost(): regseg type must be int, uchar, or float\n");
     return (NULL);
   }
+
   if (f->type != MRI_FLOAT) {
-    printf("ERROR: SegRegCost(): f type must be int, uchar, or float\n");
+    printf("ERROR: SegRegCost(): f type must be float\n");
     return (NULL);
   }
 
@@ -4751,23 +4743,15 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   wmsum2 = 0;
   ctxsum = 0;
   ctxsum2 = 0;
-  for (s = 0; s < f->depth; s++) {
-    for (r = 0; r < f->height; r++) {
-      pf = (float *)f->slices[s][r];
-      pseg = regseg->slices[s][r];
-      // Start loop over column
-      for (c = 0; c < f->width; c++) {
-        vf = (*pf);
-        // If the f vol is zero, then skip this vox
+
+  for (unsigned int c = 0; c < f->width; c++) {
+    for (unsigned int r = 0; r < f->height; r++) {
+      for (unsigned int s = 0; s < f->depth; s++) {
+        double vf = MRIgetVoxVal(f, c, r, s, 0);
         if (vf == 0) {
-          pf++;
-          pseg += psegincr;
           continue;
         }
-        // Determine tissue class
-        if (regseg->type == MRI_UCHAR) vseg = (*(unsigned char *)pseg);
-        if (regseg->type == MRI_INT) vseg = (*(int *)pseg);
-        if (regseg->type == MRI_FLOAT) vseg = (*(float *)pseg);
+        double vseg = MRIgetVoxVal(regseg, c, r, s, 0);
         if (vseg == 2 || vseg == 41) {
           // white matter
           wmsum += vf;
@@ -4780,8 +4764,6 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
           ctxsum2 += (vf * vf);
           nctxhits++;
         }
-        pf++;
-        pseg += psegincr;
       }
     }
   }
@@ -5126,3 +5108,87 @@ void TransformInvertReplace(TRANSFORM *transform, const MRI *mri)
   }
 }
 
+/*!
+  \fn int LTAinversionNeeded(const MRI *src, const MRI *dst, const LTA *lta)
+  \brief Determines whether the LTA needs to be inverted or not given a source
+  and destination MRI. This is useful when loading in two volumes and a
+  transform to make sure the transform goes in the right direction.
+  \return
+    0 = no inversion needed
+    1 = inversion needed
+    2 = error: geometries are equal, cannot determine whether inversion needed
+    3 = error: source MRI does not match geometry of either LTA source or destination
+    4 = error: destination MRI does not match geometry of either LTA source or destination
+  Note: it is highly likely that there are going to be some very small differences 
+  in the geometry, so it is suggested to vg_isEqual_Threshold = 10e-4;
+  See also int LTAinvertIfNeeded()
+ */
+int LTAinversionNeeded(const MRI *src, const MRI *dst, const LTA *lta)
+{
+  int InversionNeeded=0;
+  VOL_GEOM vgsrc, vgdst;
+
+  getVolGeom(src, &vgsrc);
+  getVolGeom(dst, &vgdst);
+
+  if(Gdiag_no > 0){
+    printf("LTAinversionNeeded(): vg_isEqual_Threshold=%g\n",vg_isEqual_Threshold);
+    printf("mri src ==================================\n");
+    writeVolGeom(stdout, &vgsrc);
+    printf("mri dst ==================================\n");
+    writeVolGeom(stdout, &vgdst);
+    printf("lta src ==================================\n");
+    writeVolGeom(stdout, &(lta->xforms[0].src));
+    printf("lta dst ==================================\n");
+    writeVolGeom(stdout, &(lta->xforms[0].dst));
+    printf("==================================\n");
+  }
+
+  if(vg_isEqual(&vgsrc, &vgdst)){
+    printf("WARNING: LTAinversionNeeded(): src and dst MRIs have same vol geom.\n");
+    printf("         Cannot determine if an inversion is needed ...\n");
+    return(2);
+  }
+  if(!vg_isEqual(&vgsrc, &(lta->xforms[0].src))){
+    if(!vg_isEqual(&vgsrc, &(lta->xforms[0].dst))){
+      printf("ERROR: LTAinversionNeeded(): src MRI matches neither src nor dst in LTA (%g)\n",
+	     vg_isEqual_Threshold);
+      return(3);
+    }
+    InversionNeeded = 1;
+  }
+  if(!vg_isEqual(&vgdst, &(lta->xforms[0].dst))){
+    if(!vg_isEqual(&vgdst, &(lta->xforms[0].src))){
+      printf("ERROR: LTAinversionNeeded(): dst MRI matches neither src nor dst in LTA (%g)\n",
+	     vg_isEqual_Threshold);
+      return(4);
+    }
+    InversionNeeded = 1; // this should be redundant
+  }
+  
+  return(InversionNeeded);
+}
+
+/*!
+  \fn int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta)
+  \brief Determines whether the LTA needs to be inverted or not given a source
+  and destination MRI and performs the inversion. This is useful when loading in two 
+  volumes and a transform to make sure the transform goes in the right direction.
+  \return
+    0 = no inversion needed
+    1 = inversion needed
+    2 = error: geometries are equal, cannot determine whether inversion needed
+    3 = error: source MRI does not match geometry of either LTA source or destination
+    4 = error: destination MRI does not match geometry of either LTA source or destination
+  Note: it is highly likely that there are going to be some very small differences 
+  in the geometry, so it is suggested to vg_isEqual_Threshold = 10e-4;
+  See also int LTAinversionNeeded()
+ */
+int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta)
+{
+  int InversionNeeded = LTAinversionNeeded(src, dst, lta);
+  if(InversionNeeded != 1) return(InversionNeeded);
+  printf("LTAinvertIfNeeded(): Inverting LTA\n");
+  LTAinvert(lta,lta);
+  return(InversionNeeded);  
+}

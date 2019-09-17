@@ -64,7 +64,7 @@ SURFCLUSTERSUM, SCS;
 
 SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
                            int thsign, float minarea, int *nClusters,
-                           MATRIX *XFM);
+                           MATRIX *XFM, MRI *fwhmmap);
 int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf,
                           float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
@@ -76,8 +76,8 @@ float sclustZeroSurfaceNonClusters(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs);
 float sclustCountClusters(MRI_SURFACE *Surf);
-SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
-SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
+SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters, MRI *fwhmmap);
+SCS *SurfClusterSummaryOld(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
 int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
 SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);

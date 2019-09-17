@@ -17,7 +17,7 @@
 #define NODE_RADIUS 5
 
 BinaryTreeNode::BinaryTreeNode(BinaryTreeView *graphWidget)
-  : graph(graphWidget), m_bHighlighted(false)
+  : m_bHighlighted(false)
 {
   setFlag(ItemIsSelectable);
   //setFlag(ItemIsMovable);

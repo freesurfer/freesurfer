@@ -1,4 +1,5 @@
 project(mris_smooth_intracortical)
+
 cmake_minimum_required(VERSION 3.9)
 
 include_directories(${FS_INCLUDE_DIRS})

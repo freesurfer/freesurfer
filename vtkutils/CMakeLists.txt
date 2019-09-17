@@ -15,14 +15,12 @@ if(VTK_FOUND)
     vtkArrowPipeline.cxx
     vtkRGBATransferFunction.cxx
     vtkRGBAColorTransferFunction.cxx
- #   vtkFDTensorGlyph.cxx
- #   vtkODFGlyph.cxx
     vtkInflatePolyData.cxx
+    # vtkFDTensorGlyph.cxx
+    # vtkODFGlyph.cxx
   )
 
-  if(SUPPRESS_WARNINGS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
-  endif()
+  add_compile_options(-Wno-deprecated -Wno-inconsistent-missing-override)
 
   add_library(vtkutils STATIC ${SOURCES})
   target_link_libraries(vtkutils tiff)

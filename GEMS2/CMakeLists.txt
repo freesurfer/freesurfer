@@ -69,7 +69,6 @@ set(SOURCES
   itkMGHImageIO.cxx
   itkMGHImageIOFactory.cxx
   kvlAtlasMeshAlphaDrawer.cxx
-  # kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
   kvlAtlasMeshCollection.cxx
   kvlAtlasMeshCollectionValidator.cxx
   kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx

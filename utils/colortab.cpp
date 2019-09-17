@@ -336,7 +336,7 @@ COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct)
     }
   }
   if (ct->ctabTissueType) copy->ctabTissueType = CTABdeepCopy(ct->ctabTissueType);
-
+  strcpy(copy->TissueTypeSchema,ct->TissueTypeSchema);
   /* Return the new copy. */
   return copy;
 }
@@ -1717,11 +1717,11 @@ depending upon the schema)
 */
 COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, const char *schema)
 {
-  if (strcmp(schema, "default-jan-2014") == 0) {
+  if(strcmp(schema, "default-jan-2014")==0){
     ct = TissueTypeSchemaDefault(ct);
     return (ct);
   }
-  if (strcmp(schema, "default-jan-2014+head") == 0) {
+  if(strcmp(schema, "default-jan-2014+head")==0 || strcmp(schema, "default-apr-2019+head")==0) {
     ct = TissueTypeSchemaDefaultHead(ct);
     return (ct);
   }
@@ -1813,6 +1813,10 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Left_Caudate:
       case Left_Accumbens_area:
       case Right_Accumbens_area:
+      case Left_VentralDC:
+      case Right_VentralDC:
+      case Brain_Stem: // was WM
+      case 174:  // Pons,  was WM
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -1823,10 +1827,6 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Right_Cerebellum_White_Matter:
       case 690:  // Cerebellum CbmWM_Gyri_Left
       case 691:  // Cerebellum CbmWM_Gyri_Right
-      case Brain_Stem:
-      case 174:  // Pons
-      case Left_VentralDC:
-      case Right_VentralDC:
       case WM_hypointensities:
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
@@ -1879,7 +1879,8 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
 /*!
 \fn COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
 \brief Adds tissue type information to a color table using the
-default FreeSurfer schema and includes a Head tissue type
+default FreeSurfer schema and includes a Head tissue type.
+Apr 2019, changed ventraldc, brainstem, and pons to be subcort GM
 \param ct - color table with tissue type info (if null then
 uses FreeSurferColorLUT.txt)
 */
@@ -1902,7 +1903,10 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     ct = CTABreadASCII(tmpstr);
   }
 
-  sprintf(ct->TissueTypeSchema, "default-jan-2014+head");
+  // changed schema name to help indicate that ventraldc, brainstem,
+  // and pons are now subcortical GM
+  sprintf(ct->TissueTypeSchema, "default-apr-2019+head"); 
+  printf("schema %s\n",ct->TissueTypeSchema);
   ct->ctabTissueType = CTABalloc(6);
   cte = ct->ctabTissueType->entries[0];
   sprintf(cte->name, "unknown");
@@ -1968,6 +1972,10 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Left_Caudate:
       case Left_Accumbens_area:
       case Right_Accumbens_area:
+      case Left_VentralDC:
+      case Right_VentralDC:
+      case Brain_Stem: // was WM
+      case 174:  // Pons,  was WM
       case non_WM_hypointensities:  // not sure
         TT = TTSubCtxGM;
         break;
@@ -1978,10 +1986,6 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Right_Cerebellum_White_Matter:
       case 690:  // Cerebellum CbmWM_Gyri_Left
       case 691:  // Cerebellum CbmWM_Gyri_Right
-      case Brain_Stem:
-      case 174:  // Pons
-      case Left_VentralDC:
-      case Right_VentralDC:
       case WM_hypointensities:
       case Left_WM_hypointensities:
       case Right_WM_hypointensities:
@@ -2050,6 +2054,218 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       if (n >= 4201 && n <= 4207) TT = TTWM;
       if (n >= 1100 && n <= 1181) TT = TTCtxGM;
       if (n >= 2100 && n <= 2181) TT = TTCtxGM;
+      if (n >= 3100 && n <= 3181) TT = TTWM;
+      if (n >= 4100 && n <= 4181) TT = TTWM;
+      if (n == 5001 || n == 5002) TT = TTWM;
+    }
+
+    cte->TissueType = TT;
+  }
+
+  return (ct);
+}
+
+/*!
+\fn COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
+\brief Adds tissue type information to a color table using the
+default FreeSurfer schema including a Head tissue type. 
+Creates lateralized tissue types.
+\param ct - color table with tissue type info (if null then
+uses FreeSurferColorLUT.txt)
+*/
+COLOR_TABLE *TissueTypeSchemaLat(COLOR_TABLE *ct)
+{
+  COLOR_TABLE_ENTRY *cte;
+  FSENV *fsenv;
+  char tmpstr[2000];
+  int n, TT, TTUnknown, TTCtxGMlh, TTSubCtxGMlh, TTSubCtxGMmid, TTCtxGMrh, TTSubCtxGMrh, TTWM, TTCSF, TTHead;
+  TTUnknown = 0;
+  TTCtxGMlh = 1;
+  TTCtxGMrh = 2;
+  TTSubCtxGMlh = 3;
+  TTSubCtxGMrh = 4;
+  TTSubCtxGMmid = 5;
+  TTWM = 6;
+  TTCSF = 7;
+  TTHead = 8;
+
+  if (ct == NULL) {
+    fsenv = FSENVgetenv();
+    sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+    ct = CTABreadASCII(tmpstr);
+  }
+
+  sprintf(ct->TissueTypeSchema, "default-apr-2019+head+lat");
+  ct->ctabTissueType = CTABalloc(9); // should dealloc existing?
+  cte = ct->ctabTissueType->entries[0];
+  sprintf(cte->name, "unknown");
+  cte->ri = 0;
+  cte->gi = 0;
+  cte->bi = 0;
+  cte = ct->ctabTissueType->entries[1];
+  sprintf(cte->name, "cortex-lh");
+  cte->ri = 205;
+  cte->gi = 62;
+  cte->bi = 78;
+  cte = ct->ctabTissueType->entries[2];
+  sprintf(cte->name, "cortex-rh");
+  cte->ri = 205;
+  cte->gi = 62;
+  cte->bi = 78;
+  cte = ct->ctabTissueType->entries[3];
+  sprintf(cte->name, "subcort_gm-lh");
+  cte->ri = 230;
+  cte->gi = 148;
+  cte->bi = 34;
+  cte = ct->ctabTissueType->entries[4];
+  sprintf(cte->name, "subcort_gm-rh");
+  cte->ri = 230;
+  cte->gi = 148;
+  cte->bi = 34;
+  cte = ct->ctabTissueType->entries[5];
+  sprintf(cte->name, "subcort_gm-mid");
+  cte->ri = 230;
+  cte->gi = 148;
+  cte->bi = 34;
+  cte = ct->ctabTissueType->entries[6];
+  sprintf(cte->name, "wm");
+  cte->ri = 0;
+  cte->gi = 255;
+  cte->bi = 0;
+  cte = ct->ctabTissueType->entries[7];
+  sprintf(cte->name, "csf");
+  cte->ri = 120;
+  cte->gi = 18;
+  cte->bi = 134;
+  cte = ct->ctabTissueType->entries[8];
+  sprintf(cte->name, "head");
+  cte->ri = 150;
+  cte->gi = 150;
+  cte->bi = 200;
+
+  for (n = 0; n < ct->nentries; n++) {
+    cte = ct->entries[n];
+    if (cte == NULL) continue;
+
+    TT = -1;
+    switch (n) {
+      case 0:  // unknown
+        TT = TTUnknown;
+        break;
+
+      case Left_Cerebral_Cortex:
+        TT = TTCtxGMlh;
+        break;
+      case Right_Cerebral_Cortex:
+        TT = TTCtxGMrh;
+        break;
+
+      case Left_Cerebellum_Cortex:
+      case Left_Hippocampus:
+      case Left_Amygdala:
+      case Left_Thalamus:
+      case Left_Putamen:
+      case Left_Pallidum:
+      case Left_Caudate:
+      case Left_Accumbens_area:
+      case Left_VentralDC:
+      case 179:  // Floculus
+      case non_WM_hypointensities:  // not sure
+        TT = TTSubCtxGMlh;
+        break;
+
+      case Right_Cerebellum_Cortex:
+      case Right_Hippocampus:
+      case Right_Amygdala:
+      case Right_Thalamus:
+      case Right_Putamen:
+      case Right_Pallidum:
+      case Right_Caudate:
+      case Right_Accumbens_area:
+      case Right_VentralDC:
+        TT = TTSubCtxGMrh;
+        break;
+
+      case 172:  // Vermis // not clear how to laterlize
+      case 174:  // Pons (now considered GM)
+      case Brain_Stem: //(now considered GM)
+        TT = TTSubCtxGMmid;
+        break;
+
+      case Left_Cerebral_White_Matter:
+      case Right_Cerebral_White_Matter:
+      case Left_Cerebellum_White_Matter:
+      case Right_Cerebellum_White_Matter:
+      case 690:  // Cerebellum CbmWM_Gyri_Left
+      case 691:  // Cerebellum CbmWM_Gyri_Right
+      case WM_hypointensities:
+      case Left_WM_hypointensities:
+      case Right_WM_hypointensities:
+      case Optic_Chiasm:
+      case Corpus_Callosum:
+      case CC_Posterior:
+      case CC_Mid_Posterior:
+      case CC_Central:
+      case CC_Mid_Anterior:
+      case CC_Anterior:
+        TT = TTWM;
+        break;
+
+      case Third_Ventricle:
+      case Fourth_Ventricle:
+      case CSF:
+      case CSF_ExtraCerebral:
+      case Left_Lateral_Ventricle:
+      case Right_Lateral_Ventricle:
+      case Left_Inf_Lat_Vent:
+      case Right_Inf_Lat_Vent:
+      case Left_choroid_plexus:
+      case Right_choroid_plexus:
+      case Fifth_Ventricle:
+      case Left_vessel:
+      case Right_vessel:
+        TT = TTCSF;
+        break;
+
+      case Head_ExtraCerebral:
+      case 165:  // Skull
+      case 259:  // PossibleSkull
+      case 118:  // Epidermis
+      case 119:  // Conn-Tissue
+      case 120:  // SC-Fat-Muscle
+      case 121:  // Cranium
+      case 122:  // CSF-SA
+      case 123:  // Muscle
+      case 124:  // Ear
+      case 127:  // Soft-Tissue
+      case 129:  // Bone
+      case 130:  // Air
+      case 131:  // Oribital-Fat
+      case 132:  // Tongue
+      case 133:  // Nasal-Structures
+      case 134:  // Globe
+      case 135:  // Teeth
+      case 143:  // Vitreous-Humor
+      case 144:  // Lens
+      case 145:  // Atrieous-Humor
+      case 167:  // Scalp
+      case 262:  // Sinus
+      case 263:  // Left-Eustachian
+      case 264:  // Right-Eustachian
+        TT = TTHead;
+        break;
+    }
+
+    if (TT == -1) {
+      // still not assigned
+      if (n >= 1000 && n <= 1035) TT = TTCtxGMlh;
+      if (n >= 2000 && n <= 2035) TT = TTCtxGMrh;
+      if (n >= 3000 && n <= 3035) TT = TTWM;
+      if (n >= 4000 && n <= 4035) TT = TTWM;
+      if (n >= 3201 && n <= 3207) TT = TTWM;
+      if (n >= 4201 && n <= 4207) TT = TTWM;
+      if (n >= 1100 && n <= 1181) TT = TTCtxGMlh;
+      if (n >= 2100 && n <= 2181) TT = TTCtxGMrh;
       if (n >= 3100 && n <= 3181) TT = TTWM;
       if (n >= 4100 && n <= 4181) TT = TTWM;
       if (n == 5001 || n == 5002) TT = TTWM;

@@ -1,9 +1,14 @@
 import os
 import sys
 import re
+import shutil
 import platform
+import pickle
 import datetime as dt
 import subprocess as sp
+import numpy as np
+
+from .colors import get_cmap
 
 
 def run(command, silent=False, background=False, executable='/bin/bash'):
@@ -121,6 +126,31 @@ def printPeakMemory(prefix=''):
         print('%sVmPeak: %d kB' % (prefix, peak))
 
 
+def clean_directory(path):
+    '''Removes the contents of a path and creates the directory if it does not exist).'''
+    os.makedirs(path, exist_ok=True)
+    shutil.rmtree(path)
+    os.makedirs(path)
+
+
+def readlines(filename):
+    '''Reads the lines of a text file in to a list.'''
+    with open(filename) as file:
+        content = file.read().splitlines()
+    return content
+
+
+def write_pickle(item, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(item, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def read_pickle(filename):
+    with open(filename, 'rb') as file:
+        item = pickle.load(file)
+    return item
+
+
 class Timer:
     '''A simple timer class to track process speed.'''
     def __init__(self, message=None):
@@ -133,3 +163,30 @@ class Timer:
 
     def mark(self, message):
         print('%s: %s' % (message, str(self.elapsed)))
+
+
+class LookupTable:
+    def __init__(self):
+        self._colors = {}
+        self._names = {}
+
+    def add(self, i, name, color):
+        self._colors[i] = color
+        self._names[i] = name
+
+    def color(self, i):
+        return self._colors.get(i, np.array([255, 255, 255], dtype='int'))
+
+    def name(self, i):
+        return self._names.get(i, '')
+
+    @staticmethod
+    def from_list(labels, cmap='pastel'):
+        unique = np.unique(labels)
+        colors = get_cmap(cmap).list(len(unique))
+        lut = LookupTable()
+        for i, label in enumerate(unique):
+            lut.add(label, '', colors[i])
+        return lut
+
+

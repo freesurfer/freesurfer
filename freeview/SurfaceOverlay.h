@@ -167,6 +167,11 @@ public:
 
   double PositionToPercentile(double dPos, bool ignore_zeros);
 
+  qint64 GetID()
+  {
+    return m_nID;
+  }
+
 signals:
   void DataUpdated();
 
@@ -209,6 +214,8 @@ private:
   LayerMRI*  m_volumeCorrelationSource;
   float*    m_fCorrelationSourceData;
   float*    m_fCorrelationDataBuffer;
+
+  qint64    m_nID;
 };
 
 #endif

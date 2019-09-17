@@ -1179,7 +1179,7 @@ int RFfree(RANDOM_FOREST **prf)
 
 static int rfPruneTree(NODE *node, int min_training_samples)
 {
-  int deleted;
+  int deleted = 0;
 
   if (node == NULL) return (0);
   if ((node->total_counts < min_training_samples) ||

@@ -25,10 +25,10 @@
 #define _GenericRenderView_h
 #include "vtkVersion.h"
 
-#if VTK_MAJOR_VERSION > 5
-#include "QVTKOpenGLWidget.h"
+#if VTK_MAJOR_VERSION > 7
+#include "QVTKOpenGLNativeWidget.h"
 #else
-#include "QVTKWidget/QVTKWidget.h"
+#include "QVTKWidget.h"
 #endif
 #include <vtkSmartPointer.h>
 #include <QPoint>
@@ -51,8 +51,8 @@ class vtkRenderer;
 typedef QPair<QString, double> CameraOperation;
 typedef QList<CameraOperation> CameraOperations;
 
-#if VTK_MAJOR_VERSION > 5
-class GenericRenderView : public QVTKOpenGLWidget
+#if VTK_MAJOR_VERSION > 7
+class GenericRenderView : public QVTKOpenGLNativeWidget
 #else
 class GenericRenderView : public QVTKWidget
 #endif

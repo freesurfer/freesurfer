@@ -1,5 +1,6 @@
 #ifndef __fsSurfaceOptimizationFilter_h
-#define __fsSurfaceOptimizatoinFilter_h
+#define __fsSurfaceOptimizationFilter_h
+
 #include "itkMesh.h"
 #include "itkMeshToMeshFilter.h"
 #include "fsSurface.h"

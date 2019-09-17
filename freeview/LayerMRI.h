@@ -321,7 +321,9 @@ public:
   
   bool IsObscuring();
 
-  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
+  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing_std, LayerMRI* mask);
+
+  void GeodesicSegmentationAbort();
 
   void GeodesicSegmentationApply(LayerMRI* filled);
 
@@ -335,6 +337,10 @@ public:
   QVector<double> GetVoxelList(int nVal);
 
   QVariantMap GetTimeSeriesInfo();
+
+  QString GetGeoSegErrorMessage();
+
+  bool ExportLabelStats(const QString& fn);
   
 public slots:
   virtual void SetModified();
@@ -359,7 +365,8 @@ Q_SIGNALS:
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
   void GeodesicSegmentationApplied();
-  void GeodesicSegmentationFinished();
+  void GeodesicSegmentationFinished(double time_in_secs);
+  void GeodesicSegmentationProgress(double percentage);
 
 protected slots:
   void UpdateDisplayMode();
@@ -391,6 +398,7 @@ protected slots:
   void OnLabelContourChanged(int n = -1);
   void RebuildContour();
 
+  void UpdateLabelInformation();
   void OnLabelInformationReady();
 
   void UpdateVectorLineWidth(double val);

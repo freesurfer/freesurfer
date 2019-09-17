@@ -1,6 +1,7 @@
 install(PROGRAMS
   annot2std
   aparc2feat
+  aparc_stats_aseg
   aparcstats2table
   aparcstatsdiff
   apas2aseg
@@ -33,6 +34,7 @@ install(PROGRAMS
   dcmsplit
   dcmunpack
   deface_subject
+  defect2seg
   defect-seg
   dicom-rename
   dmrirc.example
@@ -112,6 +114,7 @@ install(PROGRAMS
   labels_disjoint
   labels_intersect
   labels_union
+  listsubj
   long_create_base_sigma
   long_create_orig
   long_mris_slopes

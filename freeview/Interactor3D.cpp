@@ -34,6 +34,7 @@
 #include "VolumeCropper.h"
 #include "SurfaceROI.h"
 #include <vtkRenderer.h>
+#include <QDebug>
 
 Interactor3D::Interactor3D(QObject* parent) :
   Interactor(parent),
@@ -46,6 +47,14 @@ Interactor3D::Interactor3D(QObject* parent) :
 
 Interactor3D::~Interactor3D()
 {}
+
+bool Interactor3D::ProcessMouseWheelEvent(QWheelEvent *event, RenderView *renderview)
+{
+  RenderView3D* view = ( RenderView3D* )renderview;
+  view->CancelUpdateMouseRASPosition();
+
+  return Interactor::ProcessMouseWheelEvent(event, view);
+}
 
 bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
@@ -180,7 +189,7 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
     }
     else
     {
-      view->UpdateMouseRASPosition( posX, posY );
+      view->UpdateMouseRASPosition( posX, posY, event->modifiers() != Qt::ShiftModifier );
     }
 
     return Interactor::ProcessMouseMoveEvent( event, view );
@@ -209,7 +218,6 @@ bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   }
   else if ( nKeyCode == Qt::Key_Down )
   {
-
     view->MoveDown();
   }
   else if ( nKeyCode == Qt::Key_Left )
@@ -227,6 +235,11 @@ bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   else if ( nKeyCode == Qt::Key_Delete )
   {
     view->DeleteCurrentSelectRegion();
+  }
+  else if ( nKeyCode == Qt::Key_Shift)
+  {
+    QPoint pt = view->mapFromGlobal(QCursor::pos());
+    view->UpdateMouseRASPosition(pt.x(), pt.y());
   }
   else
   {

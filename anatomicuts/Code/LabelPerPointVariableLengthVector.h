@@ -20,6 +20,7 @@ public:
   typedef VariableLengthVector<TValueType>              Superclass;
   typedef TMesh						MeshType;
   typedef typename MeshType::Pointer			MeshPointerType;
+  typedef typename MeshType::ConstPointer		ConstMeshPointerType;
   typedef typename MeshType::PixelType			PixelType; //??
   typedef typename MeshType::CellPixelType		CellType; //??
   typedef typename MeshType::CellAutoPointer		CellAutoPointerType; //??
@@ -30,12 +31,11 @@ public:
 }; 
 
   /** Constructor with size. Size can only be changed by assignment */
-  LabelPerPointVariableLengthVector(unsigned int dimension):Superclass(dimension){
-	;
-};
-  LabelPerPointVariableLengthVector( ValueType* data, unsigned int sz, 
-                                        bool LetArrayManageMemory = false):Superclass(data, sz, LetArrayManageMemory){};
+	LabelPerPointVariableLengthVector(unsigned int dimension):Superclass(dimension){;};
+	LabelPerPointVariableLengthVector( ValueType* data, unsigned int sz, bool LetArrayManageMemory = false):Superclass(data, sz, LetArrayManageMemory){};
+
  	void SetCell(MeshPointerType mesh, int cellID);
+
 	const std::vector<CellType>* GetLabels() const 
 	{
 		return &this->m_labels;

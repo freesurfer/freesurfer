@@ -46,6 +46,7 @@ set niterssrc = ();
 set niterstarg = ();
 set projfrac = ();
 set projfracmax = ();
+set projfracavg = ();
 set V2SMaskNonCtx = 1; 
 set outpath = ();
 set paireddiff = 0;
@@ -82,7 +83,7 @@ set fsgdf = ();
 set outstem = ()
 set format = mgh
 set DoETIV = 0; # scale each subject by ETIV as found in aseg.stats
-
+set DoPrune = 1;
 set SessFile = ();
 set SessDirFile = ();
 set FSFAnalysis = ();
@@ -238,6 +239,7 @@ foreach subj ($subjlist)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
       if($#projfracmax)  set cmd = ($cmd --projfrac-max $projfracmax)
+      if($#projfracmax)  set cmd = ($cmd --projfrac-avg $projfracavg)
       if($V2SMaskNonCtx) set cmd = ($cmd --cortex)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
       if($reshape)   set cmd = ($cmd --reshape);
@@ -340,6 +342,7 @@ if(! $CacheOutOnly) then
   if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2 --prune);
   if($catmean)         set cmd = ($cmd --mean --prune);
   if($catstd)          set cmd = ($cmd --std --prune);
+  if($DoPrune == 0)    set cmd = ($cmd --no-prune); # must be last
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -566,6 +569,10 @@ while( $#argv != 0 )
       set DoETIV = 1;
       breaksw
 
+    case "--no-prune":
+      set DoPrune = 0;
+      breaksw
+
     case "--target":
       if ( $#argv == 0) goto arg1err;
       set target = $argv[1]; shift;
@@ -614,6 +621,12 @@ while( $#argv != 0 )
     case "--projfrac-max":
       if ( $#argv < 3) goto arg3err;
       set projfracmax = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
+      breaksw
+
+    case "--projfrac-avg":
+      if ( $#argv < 3) goto arg3err;
+      set projfracavg = ($argv[1] $argv[2] $argv[3]); 
       shift; shift; shift;
       breaksw
 
@@ -933,7 +946,7 @@ if($srcsurf && $srcvol) then
   echo "ERROR: cannot use both surface and volume sources"
   exit 1;
 endif
-if($srcsurf && $#projfrac != 0) then
+if($srcsurf && ($#projfrac != 0 || $#projfracmax != 0 || $#projfracavg != 0)) then
   echo "ERROR: can only use projfrac with volume-based sources"
   exit 1;
 endif
@@ -1029,6 +1042,14 @@ if($#projfrac && $#projfracmax) then
   echo "ERROR: cannot specify --projfrac and --projfrac-max"
   exit 1;
 endif
+if($#projfrac && $#projfracavg) then
+  echo "ERROR: cannot specify --projfrac and --projfrac-avg"
+  exit 1;
+endif
+if($#projfracmax && $#projfracavg) then
+  echo "ERROR: cannot specify --projfrac-max and --projfrac-avg"
+  exit 1;
+endif
 
 if(($meas == area      || $meas == area.mid || \
     $meas == area.pial || $meas == volume) && $NoJac == 0) then
@@ -1082,6 +1103,7 @@ usage_exit:
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
   echo "  --projfrac-max min max delta : find max along projection for vol2surf"
+  echo "  --projfrac-avg min max delta : compute average along projection for vol2surf"
   echo "  --no-mask-non-cortex : do not mask out non-cortex in vol2surf"
   echo ""
   echo "  --sf sessfile        : fsfast session file"
@@ -1117,6 +1139,8 @@ usage_exit:
   echo "  --cache-out-only tmpdir"
   echo "  --cache-out-update tmpdir : implies --cache-out-only"
   echo ""
+  echo "  --no-prune : do not prune, ie, if any subject has a 0 in a vertex, that vertex "
+  echo "     is set to 0 (pruned) for all subjects; this flag turns pruning off"
   echo "  --mean : compute the mean of all inputs"
   echo "  --std : compute the standard deviation of all inputs"
   echo "  --reshape : reshape spatial dimensions"

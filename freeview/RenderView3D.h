@@ -27,6 +27,7 @@
 #include "RenderView.h"
 #include <vtkSmartPointer.h>
 #include <QVariantMap>
+#include <QThread>
 
 class vtkActor;
 class vtkProp;
@@ -43,9 +44,13 @@ class Layer;
 class LayerSurface;
 class SurfaceROI;
 class Interactor3DPathEdit;
+class RenderView3D;
+class vtkInteractorStyleMyTrackballCamera;
 
 class RenderView3D : public RenderView
 {
+  friend class PropPickingThread;
+
   Q_OBJECT
 public:
   RenderView3D( QWidget* parent );
@@ -74,7 +79,7 @@ public:
   void MoveSliceToScreenCoord( int x, int y );
 
   void UpdateCursorRASPosition( int posX, int posY );
-  void UpdateMouseRASPosition( int posX, int posY );
+  void UpdateMouseRASPosition( int posX, int posY, bool bSlicePickOnly = false );
   bool InitializeSelectRegion( int posX, int poboolsY );
 
   void AddSelectRegionLoopPoint( int posX, int posY );
@@ -123,6 +128,16 @@ public:
 
   void MapToInflatedCoords(double* pos_in);
 
+  bool GetFocalPointAtCursor()
+  {
+    return m_bFocalPointAtCursor;
+  }
+
+  bool GetShowAxes()
+  {
+    return m_bShowAxes;
+  }
+
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
@@ -154,9 +169,12 @@ public slots:
   void Azimuth(double degrees);
   void Elevation(double degrees);
   void UpdateScalarBar();
+  void SetFocalPointAtCursor(bool b);
+  void UpdateAxesActor();
+  void SetShowAxes(bool b);
 
 protected:
-  void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
+  void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
   void DoUpdateConnectivityDisplay();
 
   void HighlightSliceFrame( int n );
@@ -172,6 +190,7 @@ private:
   bool m_bToUpdateRASPosition;
   bool m_bToUpdateCursorPosition;
   bool m_bToUpdateConnectivity;
+  bool m_bSlicePickOnly;
 
   Cursor3D* m_cursor3D;
   Cursor3D* m_cursorInflatedSurf;
@@ -189,6 +208,7 @@ private:
   bool    m_bShowSliceFrames;
   bool    m_bShowAxes;
   bool    m_bShowCursor;
+  bool    m_bFocalPointAtCursor;
 
   double  m_dIntersectPoint[3];
   Interactor3DNavigate*   m_interactorNavigate;
@@ -196,6 +216,8 @@ private:
   Interactor3DVolumeCrop* m_interactorVolumeCrop;
   Interactor3DROIEdit*    m_interactorROIEdit;
   Interactor3DPathEdit*   m_interactorPathEdit;
+
+  vtkSmartPointer<vtkInteractorStyleMyTrackballCamera>  m_interactorStyle;
 };
 
 #endif // RENDERVIEW3D_H
