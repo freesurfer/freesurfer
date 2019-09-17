@@ -2308,6 +2308,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         sup_data["IgnoreHeader"] = true;
       }
+      else if (subOption == "binary_color")
+      {
+        QColor color = ParseColorInput( subArgu );
+        if ( color.isValid() )
+          sup_data["BinaryColor"] = color;
+        else
+          cerr << "Unrecognized color input for :binary_color.\n";
+      }
       else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -2404,6 +2412,10 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   else if ( strg == "pet" )
   {
     nColorMap = LayerPropertyMRI::PET;
+  }
+  else if ( strg == "binary" )
+  {
+    nColorMap = LayerPropertyMRI::Binary;
   }
   else if ( strg != "grayscale" )
   {
@@ -5084,6 +5096,8 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     layer->SetID(sup_data["ID"].toInt());
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+  if (sup_data.contains("BinaryColor"))
+    layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
   layer->GetProperty()->blockSignals(false);
 
   if (sup_data.value("IgnoreHeader").toBool())
