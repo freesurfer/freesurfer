@@ -176,6 +176,11 @@ public:
 
   void CopyCorrelationOverlay(LayerSurface* surf);
 
+  QList<SurfaceOverlay*> GetOverlays()
+  {
+    return m_overlays;
+  }
+
   // annotation functions
   int GetNumberOfAnnotations();
 
@@ -269,6 +274,8 @@ public:
 
   int GetLastMark();
 
+  QVector<int> GetAllMarks();
+
   bool GetCorrelationOverlayDataAtVertex(int nVert, float* output, int nFrames);
 
   bool IsInflated();
@@ -351,13 +358,17 @@ public:
 
   bool WritePatch(const QString& filename);
 
-  void FillPath(int nvo, const QVariantMap& options);
+  bool FillPath(int nvo, const QVariantMap& options);
+
+  void FillPath(const QVector<int>& verts, const QVariantMap& options);
 
   void ClearMarks();
 
   SurfaceLabel* CreateNewLabel(const QString& name = "");
 
   bool LoadParameterization(const QString& filename);
+
+  bool LoadCoordsFromParameterization(const QString &filename);
 
   void SetSphereFileName(const QString& fn)
   {
@@ -435,6 +446,8 @@ public slots:
   {
     return m_marks;
   }
+
+  vtkActor* GetMainActor();
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

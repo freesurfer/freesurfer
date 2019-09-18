@@ -89,7 +89,7 @@ int       HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
 int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                      int b0, int b1) ;
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
-int       HISTOplot(HISTOGRAM *histo, char *fname) ;
+int       HISTOplot(HISTOGRAM *histo, const char *fname) ;
 int       HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac);
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
 int       HISTOfindCurrentPeak(HISTOGRAM *histo,
@@ -185,7 +185,7 @@ HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,f
 HISTOGRAM2D *HISTO2Dread(char *fname) ;
 HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters) ;
 float       HISTOcomputeFWHM(HISTOGRAM *h, int peak) ;
-int HISTOwriteTxt(HISTOGRAM *histo, char *fname) ;
+int HISTOwriteTxt(HISTOGRAM *histo, const char *fname) ;
 int HISTOsumNorm(HISTOGRAM *histo);
 HISTOGRAM *HISTOcumsum(HISTOGRAM *h, HISTOGRAM *hout);
 

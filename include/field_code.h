@@ -71,7 +71,7 @@
 #define MAX_OF_TWO(a,b) ((a)>(b) ? (a):(b))
 #endif
 
-char *ReturnFieldName(int which_field);
+const char *ReturnFieldName(int which_field);
 int IsDistanceField(int which_field);
 
 typedef struct

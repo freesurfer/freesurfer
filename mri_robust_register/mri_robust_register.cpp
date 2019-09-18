@@ -52,11 +52,6 @@
 #include "MyMatrix.h"
 #include "JointHisto.h"
 
-// all other software are all in "C"
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
@@ -67,10 +62,6 @@ extern "C"
 #include "mrimorph.h"
 #include "version.h"
 #include "transform.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 
@@ -138,6 +129,9 @@ struct Parameters
   bool entball;
   bool entcorrection;
   double powelltol;
+  bool whitebgmov;
+  bool whitebgdst;
+  bool uchartype;
 };
 static struct Parameters P =
 { "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false, false,
@@ -145,7 +139,7 @@ static struct Parameters P =
     NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
     "", -1, -1, Registration::ROB,
 //  256,
-    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5 };
+    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5, false, false,false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -642,9 +636,9 @@ int main(int argc, char *argv[])
 // exit(1);
 
     // Timer
-    struct timeb start;
+    Timer start;
     int msec, minutes, seconds;
-    TimerStart(&start);
+    start.reset();
 
     // init registration from Parameters
     Registration * Rp = NULL;
@@ -695,7 +689,7 @@ int main(int argc, char *argv[])
 //     cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
 //     cout << " epstopdf " << R.getName() << "-sat.eps " << endl;
 //     cout << " and view the pdf " << endl << endl;
-//     msec = TimerStop(&start) ;
+//     msec = start.milliseconds() ;
 //     seconds = nint((float)msec/1000.0f) ;
 //     minutes = seconds / 60 ;
 //     seconds = seconds % 60 ;
@@ -1197,7 +1191,7 @@ int main(int argc, char *argv[])
       LTAfree(&lta);
 
     ///////////////////////////////////////////////////////////////
-    msec = TimerStop(&start);
+    msec = start.milliseconds();
     seconds = nint((float) msec / 1000.0f);
     minutes = seconds / 60;
     seconds = seconds % 60;
@@ -1230,7 +1224,7 @@ int main(int argc, char *argv[])
 //   MRI          *mri_src, *mri_dst, *mri_tmp;
 //
 //   int          nargs,ninputs,i,msec,minutes,seconds;
-//   struct timeb start ;
+//   Timer start ;
 //
 //   // defaults
 //   Progname = argv[0] ;
@@ -1262,7 +1256,7 @@ int main(int argc, char *argv[])
 //  // Gdiag |= DIAG_WRITE ;
 //  // cout << "logging results to "<< parms.base_name <<".log" << endl;
 //
-//   TimerStart(&start) ;
+//   start.reset() ;
 //   ///////////  read MRI Target //////////////////////////////////////////////////
 //   cout << endl << "reading target '"<<fname_dst<<"'..."<< endl;;
 //   fflush(stdout) ;
@@ -1407,7 +1401,7 @@ int main(int argc, char *argv[])
 //
 //
 //   ///////////////////////////////////////////////////////////////
-//   msec = TimerStop(&start) ;
+//   msec = start.milliseconds() ;
 //   seconds = nint((float)msec/1000.0f) ;
 //   minutes = seconds / 60 ;
 //   seconds = seconds % 60 ;
@@ -1578,16 +1572,16 @@ static void initRegistration(Registration & R, Parameters & P)
   if (P.entropy)
   {
     MRI * temp = mri_mov;
-    struct timeb start;
+    Timer start;
     int msec, seconds;
-    TimerStart(&start);
+    start.reset();
     cout << "Converting mov to entropy image (radius " << P.entroradius
         << " ) ... (can take 1-2 min)" << endl;
     mri_mov = MyMRI::entropyImage(temp, P.entroradius, P.entball,
         P.entcorrection,mri_mask);
     if (P.entmov != "")
       MRIwrite(mri_mov, P.entmov.c_str());
-    msec = TimerStop(&start);
+    msec = start.milliseconds();
     seconds = nint((float) msec / 1000.0f);
 //    minutes = seconds / 60;
     //seconds = seconds % 60 ;
@@ -1778,6 +1772,23 @@ static void initRegistration(Registration & R, Parameters & P)
   }
 
   cout << endl;
+
+  // set to uchar if passed
+  if (P.uchartype)
+  {
+    MRI * mriuchar = MyMRI::setTypeUCHAR(mri_mov);
+    MRIfree(&mri_mov);
+    mri_mov = mriuchar;
+    mriuchar = MyMRI::setTypeUCHAR(mri_dst);
+    MRIfree(&mri_dst);
+    mri_dst = mriuchar; 
+  }
+
+  // set oustide value to white if passed
+  if (P.whitebgmov)
+    MyMRI::setMaxOutsideVal(mri_mov);
+  if (P.whitebgdst)
+    MyMRI::setMaxOutsideVal(mri_dst);
 
   // now actually set source and target (and possibly reslice):
   // important that first everything else is set!
@@ -2185,6 +2196,27 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.symmetry = false;
     nargs = 0;
     cout << "--nosym: Will resample source to target (no half-way space)!"
+        << endl;
+  }
+  else if (!strcmp(option, "WHITEBGMOV"))
+  {
+    P.whitebgmov = true;
+    nargs = 0;
+    cout << "--whitebgmov: Will assume white background in MOV!"
+        << endl;
+  }
+  else if (!strcmp(option, "WHITEBGDST"))
+  {
+    P.whitebgdst = true;
+    nargs = 0;
+    cout << "--whitebgdst: Will assume white background in DST!"
+        << endl;
+  }
+  else if (!strcmp(option, "UCHAR"))
+  {
+    P.uchartype = true;
+    nargs = 0;
+    cout << "--uchar: Will convert images to uchar (with re-scaling and histogram cropping)!"
         << endl;
   }
   else if (!strcmp(option, "ISCALEOUT"))

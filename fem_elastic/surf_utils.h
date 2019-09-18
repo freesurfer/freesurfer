@@ -8,11 +8,11 @@
 #include "coords.h"
 #include "fem_3d.h"
 
-extern "C"
-{
+
+
 #include "mri.h"
 #include "mrisurf.h"
-}
+
 
 enum SurfaceType
 {

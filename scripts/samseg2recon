@@ -99,10 +99,12 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
+set segvol = `find "$samsegdir" -iname "*crispSegmentation.nii" -print`
+
 if(! $KeepECS) then
   # Remove extra cerebral stuff from samseg seg
   # --uchar has no effect here because --replaceonly copies type of input (float)
-  set cmd = (mri_binarize  --i $samsegdir/crispSegmentation.nii \
+  set cmd = (mri_binarize  --i $segvol \
     --replaceonly 258 0 --replaceonly 259 0 --replaceonly 165 0 \
     --o $mdir/aseg.auto_noCCseg.mgz)
   echo $cmd | tee -a $LF
@@ -118,7 +120,7 @@ if(! $KeepECS) then
 else
   echo "Keeping Extracerebral segs" | tee -a $LF
   # odt must be int because extracerebral seg ids are > 255
-  set cmd = (mri_convert $samsegdir/crispSegmentation.nii \
+  set cmd = (mri_convert $segvol \
       $mdir/aseg.auto_noCCseg.mgz -odt int --no_scale 1)
   echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
@@ -147,7 +149,7 @@ set bc = $samsegdir/$vbase"_biasCorrected".nii
 # Need to rescale bias corrected such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
-set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 2 41 --erode 2 --o $wm)
+set cmd = (mri_binarize --i $segvol --match 2 41 --erode 2 --o $wm)
 echo $cmd | tee -a $LF
 fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -171,7 +173,7 @@ if($status) goto error_exit;
 # Remove extracerebral stuff
 # Could just use aseg created above
 set mask = $tmpdir/mask.mgh
-set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 0 165 258 259 --inv --o $mask)
+set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
 echo $cmd | tee -a $LF
 fs_time $cmd | tee -a $LF
 if($status) goto error_exit;

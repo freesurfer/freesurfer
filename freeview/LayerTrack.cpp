@@ -55,6 +55,7 @@ LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(pa
   connect(mProperty, SIGNAL(DirectionMappingChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(SolidColorChanged(QColor)), this, SLOT(UpdateColor()));
   connect(mProperty, SIGNAL(RenderRepChanged()), this, SLOT(RebuildActors()));
+  connect(mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity(double)));
 }
 
 LayerTrack::~LayerTrack()
@@ -267,6 +268,9 @@ void LayerTrack::VectorToColor(float *pt1, float *pt2, float *c_out, int nMappin
 vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtkUnsignedCharArray *scalars)
 {
   vtkActor* actor = vtkActor::New();
+#if VTK_MAJOR_VERSION > 5
+  actor->ForceOpaqueOn();
+#endif
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints(points);
   polydata->SetLines(lines);
@@ -275,10 +279,14 @@ vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtk
   if (GetProperty()->GetRenderRep() == LayerPropertyTrack::Tube)
   {
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+    tube->SetInputData(polydata);
+#else
     tube->SetInput(polydata);
+#endif
     tube->SetRadius(GetProperty()->GetTubeRadius());
     tube->SetNumberOfSides(GetProperty()->GetNumberOfSides());
-    mapper->SetInput(tube->GetOutput());
+    mapper->SetInputConnection(tube->GetOutputPort());
     actor->SetMapper(mapper);
     /*
     mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -288,7 +296,11 @@ vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtk
   }
   else
   {
+#if VTK_MAJOR_VERSION > 5
+    mapper->SetInputData(polydata);
+#else
     mapper->SetInput(polydata);
+#endif
     actor->SetMapper(mapper);
   }
   return actor;
@@ -337,4 +349,11 @@ bool LayerTrack::IsCluster()
 bool LayerTrack::HasEmbeddedColor()
 {
   return (m_trackData && m_trackData->HasEmbeddedColor());
+}
+
+void LayerTrack::UpdateOpacity(double val)
+{
+  foreach(vtkActor* actor, m_actors)
+    actor->GetProperty()->SetOpacity(val);
+  emit ActorUpdated();
 }

@@ -23,7 +23,7 @@
  */
 
 #include <iostream>
-#include <cmath>
+#include <math.h>
 
 #include "tensorCubicSmoothing.h"
 

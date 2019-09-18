@@ -47,10 +47,14 @@ Region2DPolyline::Region2DPolyline( RenderView2D* view, bool bSpline ) :
   m_bSpline = bSpline;
   m_actorPolyline = vtkSmartPointer<vtkActor2D>::New();
   m_actorPolyline->GetProperty()->SetOpacity( 0.75 );
-  m_actorPolyline->GetProperty()->SetLineWidth( 3 );
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = view->devicePixelRatio();
+#endif
+  m_actorPolyline->GetProperty()->SetLineWidth( 3*ratio );
   m_actorPoints = vtkSmartPointer<vtkActor2D>::New();
   m_actorPoints->GetProperty()->SetOpacity( 0.75 );
-  m_actorPoints->GetProperty()->SetPointSize( 5 );
+  m_actorPoints->GetProperty()->SetPointSize( 5*ratio );
 
   Highlight( true );
 }
@@ -117,12 +121,20 @@ void Region2DPolyline::Update()
   vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
   if ( !m_bSpline )
   {
+#if VTK_MAJOR_VERSION > 5
+    mapper->SetInputData( polydata );
+#else
     mapper->SetInput( polydata );
+#endif
   }
   else
   {
     vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+    spline->SetInputData( polydata );
+#else
     spline->SetInput( polydata );
+#endif
     LayerMRI* layer = m_view->GetFirstNonLabelVolume();
     if ( layer )
     {
@@ -149,7 +161,11 @@ void Region2DPolyline::Update()
   }
   polydata2->SetVerts( verts );
   mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( polydata2 );
+#else
   mapper->SetInput( polydata2 );
+#endif
   mapper->SetTransformCoordinate( coords );
   m_actorPoints->SetMapper( mapper );
 

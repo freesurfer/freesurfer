@@ -1,4 +1,3 @@
-#if defined(USE_LOCAL_MINC)
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -1856,5 +1855,3 @@ VIOAPI  void  set_minc_output_use_volume_starts_and_steps_flag(
     options->use_volume_starts_and_steps = flag;
     options->use_starts_set = TRUE;
 }
-
-#endif	// USE_LOCAL_MINC

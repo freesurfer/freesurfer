@@ -62,7 +62,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
   if (v.isValid())
   {
-    this->restoreGeometry(v.toByteArray());
+   this->restoreGeometry(v.toByteArray());
   }
   v = settings.value("WindowConfigureOverlay/AutoApply");
   if (!v.isValid())
@@ -184,6 +184,8 @@ void WindowConfigureOverlay::UpdateUI()
     ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
     ui->checkBoxUseNonZeroVertices->setChecked(p->GetIgnoreZeros());
     ui->checkBoxUseNonZeroVertices->setVisible(p->GetUsePercentile());
+
+    ui->checkBoxMaskInverse->setChecked(p->GetMaskInverse());
 
     if (p->GetUsePercentile())
     {
@@ -753,7 +755,7 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
     delete[] m_fDataCache;
     m_fDataCache = NULL;
     UpdateGraph(true);
-    emit ActiveFrameChanged();
+    emit ActiveFrameChanged(nFrame);
   }
 }
 
@@ -848,8 +850,7 @@ void WindowConfigureOverlay::OnComboMask(int n)
                                                      "Label files (*)");
     if ( !filename.isEmpty())
     {
-      setProperty("wait_for_label", true);
-      emit MaskLoadRequested(filename);
+      LoadLabelMask(filename);
     }
     else
     {
@@ -862,6 +863,12 @@ void WindowConfigureOverlay::OnComboMask(int n)
       OnApply();
     UpdateUI();
   }
+}
+
+void WindowConfigureOverlay::LoadLabelMask(const QString& fn)
+{
+    setProperty("wait_for_label", true);
+    emit MaskLoadRequested(fn);
 }
 
 void WindowConfigureOverlay::OnCheckInverseMask(bool bChecked)
@@ -901,7 +908,7 @@ void WindowConfigureOverlay::OnComboOverlayChanged(int n)
 
 void WindowConfigureOverlay::OnCycleOverlay()
 {
-  if (isVisible() && m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
+  if (m_layerSurface && m_layerSurface->GetNumberOfOverlays() > 1)
   {
     ui->comboBoxOverlayList->setCurrentIndex((m_layerSurface->GetActiveOverlayIndex()+1)%m_layerSurface->GetNumberOfOverlays());
   }

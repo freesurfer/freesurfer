@@ -53,8 +53,8 @@
 
 #include "mris_decimate.h"
 
-extern "C"
-{
+
+
 #include "macros.h"
 #include "utils.h"
 #include "fio.h"
@@ -63,7 +63,7 @@ extern "C"
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
-}
+
 
 
 

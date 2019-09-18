@@ -6,11 +6,11 @@
 #include <QList>
 #include <vtkSmartPointer.h>
 
-extern "C"
-{
+
+
 #include "cmat.h"
 #include "colortab.h"
-}
+
 
 class LayerMRI;
 class LayerPropertyConnectomeMatrix;

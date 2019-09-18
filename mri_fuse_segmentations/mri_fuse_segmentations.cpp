@@ -29,10 +29,6 @@
 #include <vector>
 #include <iostream>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
@@ -46,10 +42,6 @@ extern "C"
 #include "version.h"
 #include "cma.h"
 #include "transform.h"
-#ifdef __cplusplus
-}
-#endif
-
 
 struct Parameters
 {
@@ -87,8 +79,8 @@ int main(int argc, char *argv[])
   if (nargs && argc - nargs == 1) exit(EXIT_SUCCESS);
   argc -= nargs;
   
-  struct timeb start;
-  TimerStart(&start);
+  Timer start;
+  start.reset();
   Parameters par;
   parseCommand(argc, argv, par);
   if (par.trx_paths.empty()) {
@@ -135,7 +127,7 @@ int main(int argc, char *argv[])
                                         mri_norms, par.cross_time_sigma);
   std::cout << "Writing fused segmentation to " << par.out_path << std::endl;
   MRIwrite(mri_fused, par.out_path.c_str());
-  int msec = TimerStop(&start);
+  int msec = start.milliseconds();
   int sec = nint((float)msec/1000.0f);
   int min = sec / 60;
   sec = sec % 60;

@@ -50,6 +50,8 @@ signals:
 public slots:
   void UpdateTrackVolumeAnnotation(Layer* layer, const QVariantMap& info);
   void UpdateAll();
+  void ShowHeaderText();
+  void ClearHeaderText();
 
 protected slots:
   void OnMousePositionChanged();

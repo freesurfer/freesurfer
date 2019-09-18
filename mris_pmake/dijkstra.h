@@ -23,9 +23,6 @@
  *
  */
 
-
-using namespace std;
-
 #ifndef __DIJKSTRA_H__
 #define __DIJKSTRA_H__
 
@@ -33,18 +30,12 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 
-#ifdef __cplusplus
-extern  "C" {
-#endif
+using namespace std;
 
 #include "mri.h"
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "general.h"
 #include "env.h"

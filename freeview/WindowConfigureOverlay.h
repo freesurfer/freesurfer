@@ -51,7 +51,7 @@ public:
   void resizeEvent(QResizeEvent* e);
 
 signals:
-  void ActiveFrameChanged();
+  void ActiveFrameChanged(int nframe);
   void MaskLoadRequested(const QString& filename);
   void OverlayChanged();
 
@@ -63,6 +63,8 @@ public slots:
   }
   void UpdateUI();
   void OnCurrentVertexChanged();
+  void OnFrameChanged(int nFrame);
+  void LoadLabelMask(const QString& fn);
 
 protected slots:
   void OnActiveSurfaceChanged(Layer* layer);
@@ -77,7 +79,6 @@ protected slots:
   void OnSmoothChanged();
   void OnTextThresholdChanged(const QString& strg);
   void OnApply();
-  void OnFrameChanged(int nFrame);
   void OnCheckComputeCorrelation(bool bChecked);
   void OnComboCorrelationVolume(int n);
   void OnCheckUsePercentile(bool bChecked);

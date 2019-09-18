@@ -48,18 +48,10 @@
 #include <vnl/algo/vnl_svd.h>
 #include <vnl/algo/vnl_determinant.h>
 
-// all other software are all in "C"
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
 #include "matrix.h"
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

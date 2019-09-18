@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>294</height>
+    <height>376</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,7 +26,7 @@
       <item>
        <widget class="QCheckBox" name="checkBoxFillToPaths">
         <property name="text">
-         <string>Up to and include paths</string>
+         <string>Up to and including paths</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -48,12 +48,29 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="checkBoxFillToCurvature">
+        <property name="text">
+         <string>Up to and including different curvature</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="checkBoxFillToThreashold">
         <property name="text">
          <string>Up to functional values below threshold</string>
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxUseAllPoints">
+        <property name="text">
+         <string>Use all marked vertices</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

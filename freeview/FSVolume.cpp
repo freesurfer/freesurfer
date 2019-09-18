@@ -52,16 +52,16 @@
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
+#include <QElapsedTimer>
 
-extern "C"
-{
+
 #include "registerio.h"
 #include "utils.h"
 #include "macros.h"
 #include "mrisegment.h"
 #include "mri.h"
 #include "mri2.h"
-}
+
 
 #define NUM_OF_HISTO_BINS 10000
 
@@ -160,6 +160,9 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 //  }
 
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
+//  qDebug() << "Begin LoadMRI";
+//  QElapsedTimer timer;
+//  timer.start();
   MRI* tempMRI = m_MRI;
   try
   {
@@ -217,9 +220,12 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
     cerr << "Read registration failed\n";
     return false;
   }
-
+//  qDebug() << timer.elapsed()/1000;
+//  qDebug() << "begin MRIvalrange";
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
   m_fMaxValueFull = m_fMaxValue;
+//  qDebug() << timer.elapsed()/1000;
+//  qDebug() << "begin UpdateHistoCDF";
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {
@@ -230,13 +236,14 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
       m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS/2;
       if (m_fMaxValue > 10*val)
       {
+//        qDebug() << timer.elapsed()/1000;
         UpdateHistoCDF(0, m_fMaxValue, true);
         val = GetHistoValueFromPercentile(0.99)*1.1;
         m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS;
       }
     }
   }
-
+//  qDebug() << timer.elapsed()/1000;
   return true;
 }
 
@@ -249,15 +256,19 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 #endif
   int max_percent = 100.0 - 50 / nthreads;
   ::SetProgressCallback(ProgressCallback, 0, max_percent);
+//  QElapsedTimer timer;
+//  timer.start();
   if ( LoadMRI( filename, reg_filename ) )
   {
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
 
+//    qDebug() << "Before MRI to image";
     if ( !this->MapMRIToImage() )
     {
       return false;
     }
+//    qDebug() << timer.elapsed()/1000;
 
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
@@ -558,6 +569,31 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
   }
   else
   {
+    m_imageData->SetOrigin( src_vol->m_imageData->GetOrigin() );
+    m_imageData->SetSpacing( src_vol->m_imageData->GetSpacing() );
+    m_imageData->SetDimensions( src_vol->m_imageData->GetDimensions() );
+#if VTK_MAJOR_VERSION > 5
+    switch ( m_MRI->type )
+    {
+    case MRI_UCHAR:
+      m_imageData->AllocateScalars(VTK_UNSIGNED_CHAR, 1);
+      break;
+    case MRI_INT:
+      m_imageData->AllocateScalars(VTK_INT, 1);
+      break;
+    case MRI_LONG:
+      m_imageData->AllocateScalars(VTK_LONG, 1);
+      break;
+    case MRI_FLOAT:
+      m_imageData->AllocateScalars(VTK_FLOAT, 1);
+      break;
+    case MRI_SHORT:
+      m_imageData->AllocateScalars(VTK_SHORT, 1);
+      break;
+    default:
+      break;
+    }
+#else
     m_imageData->SetNumberOfScalarComponents( 1 );
     switch ( m_MRI->type )
     {
@@ -579,11 +615,9 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     default:
       break;
     }
-
-    m_imageData->SetOrigin( src_vol->m_imageData->GetOrigin() );
-    m_imageData->SetSpacing( src_vol->m_imageData->GetSpacing() );
-    m_imageData->SetDimensions( src_vol->m_imageData->GetDimensions() );
     m_imageData->AllocateScalars();
+#endif
+
     char* ptr = ( char* )m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
     if ( !ptr )
@@ -1140,7 +1174,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   int scalar_type = rasImage->GetScalarType();
   int* dim = rasImage->GetDimensions();
   int nNumberOfFrames = rasImage->GetNumberOfScalarComponents();
-  if ( mri->nframes > 1 )
+  if ( true ) // mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
     for ( int j = 0; j < mri->height; j++ )
@@ -1186,12 +1220,13 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   }
   else
   {
+    size_t bytes_per_slice = mri->bytes_per_vox * mri->height * mri->depth;
     global_progress_range[1] = nstart+(nend-nstart)/3;
     for ( int k = 0; k < mri->depth; k++ )
     {
       void* ptr = rasImage->GetScalarPointer( 0, 0, k );
       BUFTYPE* buf = &MRIseq_vox( mri, 0, 0, k, 0);
-      memcpy( buf, ptr, mri->bytes_per_slice );
+      memcpy( buf, ptr, bytes_per_slice );
 
       if ( mri->depth >= 5 && k%(mri->depth/5) == 0 )
       {
@@ -1853,7 +1888,9 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
 //    qDebug() << rasMRI->width << rasMRI->height << rasMRI->depth;
 
+//    QElapsedTimer t; t.start();
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
+//    qDebug() << "vol2vol time: " << t.elapsed()/1000;
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {
@@ -1989,71 +2026,58 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
   //  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   imageData->SetDimensions(zX, zY, zZ);
-  imageData->SetNumberOfScalarComponents( rasMRI->type == MRI_RGB? 4:zFrames );
+  if (rasMRI->type == MRI_RGB)
+    zFrames = 4;
 
   // create the scalars for all of the images. set the element size
   // for the data we will read.
+#if VTK_MAJOR_VERSION > 5
   switch ( rasMRI->type )
   {
   case MRI_UCHAR:
+  case MRI_RGB:
+    imageData->AllocateScalars(VTK_UNSIGNED_CHAR, zFrames);
+    break;
+  case MRI_INT:
+    imageData->AllocateScalars(VTK_INT, zFrames);
+    break;
+  case MRI_LONG:
+    imageData->AllocateScalars(VTK_LONG, zFrames);
+    break;
+  case MRI_FLOAT:
+    imageData->AllocateScalars(VTK_FLOAT, zFrames);
+    break;
+  case MRI_SHORT:
+    imageData->AllocateScalars(VTK_SHORT, zFrames);
+    break;
+  default:
+    return false;
+  }
+#else
+  imageData->SetNumberOfScalarComponents(zFrames);
+  switch ( rasMRI->type )
+  {
+  case MRI_UCHAR:
+  case MRI_RGB:
     imageData->SetScalarTypeToUnsignedChar();
-    ucharScalars = vtkUnsignedCharArray::New();
-    scalars = (vtkDataArray*) ucharScalars;
     break;
   case MRI_INT:
     imageData->SetScalarTypeToInt();
-    intScalars = vtkIntArray::New();
-    scalars = (vtkDataArray*) intScalars;
-    break;
-  case MRI_RGB:
-    imageData->SetScalarTypeToUnsignedChar();
-    ucharScalars = vtkUnsignedCharArray::New();
-    scalars = (vtkDataArray*) ucharScalars;
-    zFrames = 4;
     break;
   case MRI_LONG:
     imageData->SetScalarTypeToLong();
-    longScalars = vtkLongArray::New();
-    scalars = (vtkDataArray*) longScalars;
     break;
   case MRI_FLOAT:
     imageData->SetScalarTypeToFloat();
-    floatScalars = vtkFloatArray::New();
-    scalars = (vtkDataArray*) floatScalars;
     break;
   case MRI_SHORT:
     imageData->SetScalarTypeToShort();
-    shortScalars = vtkShortArray::New();
-    scalars = (vtkDataArray*) shortScalars;
     break;
   default:
-    break ;
-  }
-
-  if ( NULL == scalars )
-  {
-    cerr << "Could not allocate scalars array.\n";
     return false;
   }
-
-  // change the number of components to store tuples
-  if ( zFrames > 1 )
-  {
-    scalars->SetNumberOfComponents( zFrames );
-  }
-
-  cValues = zX * zY * zZ;
-  if ( !scalars->Allocate( cValues ) )
-  {
-    cerr << "Could not allocate scalars array.\n";
-    scalars->Delete();
-    return false;
-  }
-  scalars->SetNumberOfTuples( zX*zY*zZ );
-
-  // Assign the scalars array to the image.
-  imageData->GetPointData()->SetScalars( scalars );
-  scalars->Delete();
+  imageData->AllocateScalars();
+#endif
 
   return true;
 }
@@ -2091,42 +2115,6 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   double origin[3] = { 0, 0, 0 };
   refImageData->GetOrigin( origin );
 
-  /*
-  float cornerFactor[3];
-  double RAS[3], index[3];
-  double indexBounds[6];
-  indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
-  indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
-  for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
-  {
-    for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ )
-    {
-      for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
-      {
-          ::MRIvoxelToWorld( rasMRI,
-                             cornerFactor[0]*rasMRI->width-0.5,
-                             cornerFactor[1]*rasMRI->height-0.5,
-                             cornerFactor[2]*rasMRI->depth-0.5,
-                             &RAS[0], &RAS[1], &RAS[2] );
-          ::MRIworldToVoxel( refTarget,
-                             RAS[0], RAS[1], RAS[2],
-                             &index[0], &index[1], &index[2] );
-
-          if ( index[0] < indexBounds[0] ) indexBounds[0] = index[0];
-          if ( index[0] > indexBounds[1] ) indexBounds[1] = index[0];
-          if ( index[1] < indexBounds[2] ) indexBounds[2] = index[1];
-          if ( index[1] > indexBounds[3] ) indexBounds[3] = index[1];
-          if ( index[2] < indexBounds[4] ) indexBounds[4] = index[2];
-          if ( index[2] > indexBounds[5] ) indexBounds[5] = index[2];
-      }
-    }
-  }
-
-  origin[0] += indexBounds[0] * refTarget->xsize;;
-  origin[1] += indexBounds[2] * refTarget->ysize;
-  origin[2] += indexBounds[4] * refTarget->zsize;
-  */
-
   double vox[3], tvox[3];
   ::MRIworldToVoxel( rasMRI,
                      rasPoint[0], rasPoint[1], rasPoint[2],
@@ -2144,66 +2132,60 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
 
-  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
-  imageData->SetNumberOfScalarComponents( zFrames );
+  imageData->SetExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
+
+  if (rasMRI->type == MRI_RGB)
+    zFrames = 4;
 
   // create the scalars for all of the images. set the element size
   // for the data we will read.
+#if VTK_MAJOR_VERSION > 5
   switch ( rasMRI->type )
   {
   case MRI_UCHAR:
+  case MRI_RGB:
+    imageData->AllocateScalars(VTK_UNSIGNED_CHAR, zFrames);
+    break;
+  case MRI_INT:
+    imageData->AllocateScalars(VTK_INT, zFrames);
+    break;
+  case MRI_LONG:
+    imageData->AllocateScalars(VTK_LONG, zFrames);
+    break;
+  case MRI_FLOAT:
+    imageData->AllocateScalars(VTK_FLOAT, zFrames);
+    break;
+  case MRI_SHORT:
+    imageData->AllocateScalars(VTK_SHORT, zFrames);
+    break;
+  default:
+    return false;
+  }
+#else
+  imageData->SetNumberOfScalarComponents(zFrames);
+  switch ( rasMRI->type )
+  {
+  case MRI_UCHAR:
+  case MRI_RGB:
     imageData->SetScalarTypeToUnsignedChar();
-    ucharScalars = vtkUnsignedCharArray::New();
-    scalars = (vtkDataArray*) ucharScalars;
-    zElement = sizeof( unsigned char );
     break;
   case MRI_INT:
     imageData->SetScalarTypeToInt();
-    intScalars = vtkIntArray::New();
-    scalars = (vtkDataArray*) intScalars;
-    zElement = sizeof( int );
     break;
   case MRI_LONG:
     imageData->SetScalarTypeToLong();
-    longScalars = vtkLongArray::New();
-    scalars = (vtkDataArray*) longScalars;
-    zElement = sizeof( long );
     break;
   case MRI_FLOAT:
     imageData->SetScalarTypeToFloat();
-    floatScalars = vtkFloatArray::New();
-    scalars = (vtkDataArray*) floatScalars;
-    zElement = sizeof( float );
     break;
   case MRI_SHORT:
     imageData->SetScalarTypeToShort();
-    shortScalars = vtkShortArray::New();
-    scalars = (vtkDataArray*) shortScalars;
-    zElement = sizeof( short );
     break;
   default:
     break ;
   }
-
-  if ( NULL == scalars )
-  {
-    cerr << "Could not allocate scalars array.\n";
-    return false;
-  }
-
-  // change the number of components to store tuples
-  if ( zFrames > 1 )
-  {
-    scalars->SetNumberOfComponents( zFrames );
-  }
-
-  cValues = zX * zY * zZ;
-  scalars->Allocate( cValues );
-  scalars->SetNumberOfTuples( zX*zY*zZ );
-
-  // Assign the scalars array to the image.
-  imageData->GetPointData()->SetScalars( scalars );
-  scalars->Delete();
+  imageData->AllocateScalars();
+#endif
 
   return true;
 }
@@ -2394,7 +2376,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
   int zFrames = mri->nframes;
 
   vtkIdType nTuple = 0;
-  vtkDataArray *scalars = image->GetPointData()->GetScalars();
+  char* ptr = (char*)image->GetScalarPointer();
   int nProgressStep = 20;
   int nProgress = 0;
   for ( int nZ = 0; nZ < zZ; nZ++ )
@@ -2403,41 +2385,39 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
     {
       for ( int nX = 0; nX < zX; nX++ )
       {
-        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
-        {
-          switch ( mri->type )
-          {
-          case MRI_UCHAR:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_INT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_LONG:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_FLOAT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_SHORT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          default:
-            break;
-          }
-        }
         if (mri->type == MRI_RGB)
         {
           int val = MRIIseq_vox(mri, nX, nY, nZ, 0);
-          scalars->SetComponent( nTuple, 0, val & 0x00ff);
-          scalars->SetComponent( nTuple, 1, (val >> 8) & 0x00ff);
-          scalars->SetComponent( nTuple, 2, (val >> 16) & 0x00ff);
-          scalars->SetComponent( nTuple, 3, 255);
+          ptr[nTuple*4] = (val & 0x00ff);
+          ptr[nTuple*4+1] = ((val >> 8) & 0x00ff);
+          ptr[nTuple*4+2] = ((val >> 16) & 0x00ff);
+          ptr[nTuple*4+3] = (char)255;
+        }
+        else
+        {
+          for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+          {
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              ptr[nTuple*zFrames+nFrame] = MRIseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_INT:
+              ((int*)ptr)[nTuple*zFrames+nFrame] = MRIIseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_LONG:
+              ((long*)ptr)[nTuple*zFrames+nFrame] = MRILseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_FLOAT:
+              ((float*)ptr)[nTuple*zFrames+nFrame] = MRIFseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_SHORT:
+              ((short*)ptr)[nTuple*zFrames+nFrame] = MRISseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            default:
+              break;
+            }
+          }
         }
         nTuple++;
       }
@@ -3086,21 +3066,6 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
-//  MRI_REGION region;
-//  region.x = region.y = region.z = 0;
-//  region.dx = m_MRI->width;
-//  region.dy = m_MRI->height;
-//  region.dz = m_MRI->depth;
-//  HISTO *histo;
-//  if (highThresh)
-//    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
-//  else
-//    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
-//  if (!histo)
-//  {
-//    qDebug() << "Could not create HISTO";
-//    return;
-//  }
   HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
 
   for (int x = 0; x < m_MRI->width; x++)

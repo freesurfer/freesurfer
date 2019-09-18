@@ -32,11 +32,11 @@
 #include <fstream>
 #include <vector>
 
-extern "C" {
+ 
 #include "mri.h"
 #include "macros.h"
   const char *Progname="fsl_label2voxel";
-}
+
 
 using namespace std;
 

@@ -27,10 +27,10 @@
 #define _DICOMRead_H
 
 
-#include "dicom/dicom.h"
-#include "dicom/lst.h"
-#include "dicom/dicom_objects.h"
-#include "dicom/condition.h"
+#include "dicom.h"
+#include "lst.h"
+#include "dicom_objects.h"
+#include "condition.h"
 
 #define NUMBEROFTAGS 24
 #define SHORTSIZE 16

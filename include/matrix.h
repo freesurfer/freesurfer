@@ -26,11 +26,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 #ifdef X
 #undef X
 #endif
@@ -129,7 +124,7 @@ int     MatrixPrint(FILE *fp, const MATRIX *mat) ;
 int     MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
-int     MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post);
+int     MatrixPrintWithString(FILE *fp, MATRIX *m, const char *Pre, const char *Post);
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
@@ -357,11 +352,5 @@ double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R);
 MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
-
-
-#if defined(__cplusplus)
-};
-#endif
-
 
 #endif

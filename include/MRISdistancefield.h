@@ -28,24 +28,11 @@
 #ifndef mrisdistancefield_h
 #define mrisdistancefield_h
 
-// The following is usable from C
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "diag.h"
 
-  MRI *MRISdistancefield(MRIS *mris, MRI *mri_tmp, double max_distance, int signedfield);
-
-#ifdef __cplusplus
-}
-#endif
-
-// C++ portion starts here
-#ifdef __cplusplus
+MRI *MRISdistancefield(MRIS *mris, MRI *mri_tmp, double max_distance, int signedfield);
 
 #include <iostream>
 #include "utilsmath.h"
@@ -186,6 +173,5 @@ class MRISDistanceField
 
 };
 
-#endif
 #endif
 

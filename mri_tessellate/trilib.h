@@ -225,9 +225,9 @@ int elecs(int nlm, DCONT *c, int i1, int i2,
 
 /* readtail.c    */
 
-char *find_tail_item(int length, char tail[], char template[]);
-int tail_float(int length, char tail[], char template[], float *value);
-int tail_replace_item(int *length, char **tail, char template[], char new_val[]);
+char *find_tail_item(int length, char tail[], char temp[]);
+int tail_float(int length, char tail[], char temp[], float *value);
+int tail_replace_item(int *length, char **tail, char temp[], char new_val[]);
 
 /* trifun.c    */
 

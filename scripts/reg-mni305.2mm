@@ -78,7 +78,7 @@ set mov = $FREESURFER_HOME/average/mni305.cor.subfov2.mgz
 
 echo "To check, run"
 echo ""
-echo "tkregister2 --reg $regfile --mov $mov"
+echo "tkregisterfv --reg $regfile --mov $mov"
 echo ""
 
 echo "reg-mni305.2mm done"

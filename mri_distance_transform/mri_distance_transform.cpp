@@ -30,7 +30,7 @@
 #include <math.h>
 #include <ctype.h>
 
-extern "C" {
+ 
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -42,7 +42,7 @@ extern "C" {
 #include "timer.h"
 #include "cma.h"
 
-}
+
 #include "fastmarching.h"
 
 const char *Progname ;

@@ -1,10 +1,6 @@
 #include "minc_volume_io.h"
 #include "minc_internals.h"
 
-#if defined(USE_LOCAL_MINC)
-	// Warning - does not extend all the way to the end,  there are some unconditional parts 
-	// that are used for testing
-
 /**
  * @file  minc_volume_io.c
  * @brief substitutes for the needed functionality previously obtained from minc
@@ -1598,9 +1594,6 @@ void  delete_volume_input(
     }
 }
 
-#endif
-
-
 // Based on minc-1.5.1/volume_io/Volumes/volumes.c
 // which requires the following...
 //
@@ -1631,9 +1624,6 @@ static double dot_vectors(
 
     return( d );
 }
-
-
-#if defined(USE_LOCAL_MINC)
 
 static  void   cross_3D_vector(
     double   v1[],
@@ -1841,7 +1831,6 @@ bool convert_dim_name_to_spatial_axis(
 
     return( *axis >= 0 );
 }
-#endif
 
 static  void  convert_transform_origin_to_starts(
     double      origin[],
@@ -1954,11 +1943,7 @@ static  void  convert_transform_origin_to_starts(
     }
 }
 
-#if !defined(USE_LOCAL_MINC)
-void  test_convert_transform_to_starts_and_steps(
-#else
 void  convert_transform_to_starts_and_steps(
-#endif
     General_transform  *transform,
     int                n_volume_dimensions,
     double             step_signs[],
@@ -2031,9 +2016,6 @@ void  convert_transform_to_starts_and_steps(
     convert_transform_origin_to_starts( origin, n_volume_dimensions,
                                         spatial_axes, dir_cosines, starts );
 }
-
-
-#if defined(USE_LOCAL_MINC)
 
 static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSIONS] =
 {
@@ -2959,5 +2941,3 @@ bool input_more_of_volume(
 
     return( more_to_do );
 }
-
-#endif

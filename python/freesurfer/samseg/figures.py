@@ -57,7 +57,7 @@ def initVisualizer(showfigs, movie):
             raise RuntimeError('the samseg visualization tool requires pyqtgraph and pyqt5 - '
                 'please install these python packages to show figures')
         else:
-            return ShowFigures(show_flag=showfigs, movie_flag=movie)
+            return ShowFigures(show_flag=showfigs, movie_flag=movie, interactive=True)
     else:
         return DoNotShowFigures()
 
@@ -102,6 +102,9 @@ class ShowFigures:
         self.show_flag = show_flag
         self.movies = {}
         self.user_callbacks = {}
+        self.plotWindows = {}
+        self.nextPlotWindow_id = 0
+
 
     def create_palette(self, layer_count):
         self_size = len(self.palette)
@@ -252,9 +255,18 @@ class ShowFigures:
                     self.movies[window_id] = None
                     self.user_callbacks[window_id] = None
 
-    def plot(self, data, title=None):
+    def plot(self, data, title=None, window_id=None ):
         if self.show_flag:
-            pg.plot(y=data, pen=pg.mkPen(color='l', width=3), title=title)
+            if window_id is None:
+                window_id = str( self.nextPlotWindow_id )
+                self.nextPlotWindow_id += 1
+            if window_id not in self.plotWindows:
+                self.plotWindows[ window_id ] = pg.PlotWidget()
+            self.plotWindows[ window_id ].clear()
+            self.plotWindows[ window_id ].plot( y=data, pen=pg.mkPen( color='l', width=3 ) )
+            if title is not None:
+                self.plotWindows[ window_id ].setWindowTitle( title )
+            self.plotWindows[ window_id ].show()
             if self.interactive:
                 QtGui.QApplication.processEvents()
             else:

@@ -24,7 +24,9 @@
 
     {
         typedef void FORVAR;    // make sure not shared
-        if (sizeof(FORVAR*));   // use to avoid a warning msg
+        if (sizeof(FORVAR*)) {
+	  ;   // use to avoid a warning msg
+	}
         
         // Decide the distribution of the loops
         // and start the sum reductions, if any
@@ -55,13 +57,22 @@
     {
         // Poison the reduced identifiers
 #ifdef ROMP_SUMREDUCTION0
-        typedef void ROMP_SUMREDUCTION0; if (sizeof(ROMP_SUMREDUCTION0*));  // use to avoid a warning msg
+      typedef void ROMP_SUMREDUCTION0;
+      if (sizeof(ROMP_SUMREDUCTION0*)) {
+	;  // use to avoid a warning msg
+      }
 #endif
 #ifdef ROMP_SUMREDUCTION1
-        typedef void ROMP_SUMREDUCTION1; if (sizeof(ROMP_SUMREDUCTION1*));  // use to avoid a warning msg
+      typedef void ROMP_SUMREDUCTION1;
+      if (sizeof(ROMP_SUMREDUCTION1*)) {
+	;  // use to avoid a warning msg
+      }
 #endif
 #ifdef ROMP_SUMREDUCTION2
-        typedef void ROMP_SUMREDUCTION2; if (sizeof(ROMP_SUMREDUCTION2*));  // use to avoid a warning msg
+      typedef void ROMP_SUMREDUCTION2;
+      if (sizeof(ROMP_SUMREDUCTION2*)) {
+	;  // use to avoid a warning msg
+      }
 #endif
                 
         // Parallel iteration over the partial sums

@@ -38,11 +38,11 @@
 #include <vector>
 #include <string>
 
-extern "C"
-{
+
+
 #include "mrisurf.h"
 #include "mri.h"
-}
+
 
 #define NUM_OF_VSETS 5
 
@@ -240,6 +240,8 @@ public:
   QVector<int> FloodFillFromSeed(int seed_vno);
 
   void UpdateHashTable(int nSet = 0, int coord = CURRENT_VERTICES);
+
+  void UpdateCoords();
 
 protected:
   bool InitializeData(const QString& vector_filename = QString(),

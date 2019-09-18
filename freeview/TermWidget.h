@@ -24,6 +24,7 @@
 #ifndef TERMWIDGET_H
 #define TERMWIDGET_H
 
+#include <ios>
 #include <QWidget>
 #include <QSocketNotifier>
 #include <unistd.h> //Provides STDIN_FILENO

@@ -59,4 +59,3 @@ static const char *dimwidthlist[]={MIxspace_width, MIyspace_width, MIzspace_widt
 /* List of variables */
 static const char *varlist[]={MIrootvariable, MIimage, MIimagemax, MIimagemin, 
                         MIpatient, MIstudy, MIacquisition, NULL};
-

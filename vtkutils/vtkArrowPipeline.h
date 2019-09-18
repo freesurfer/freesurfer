@@ -40,7 +40,7 @@ class vtkArrowPipeline : public vtkObject {
  public:
 
   static vtkArrowPipeline* New();
-  vtkTypeRevisionMacro( vtkArrowPipeline, vtkObject );
+  vtkTypeMacro( vtkArrowPipeline, vtkObject );
 
   // Description:
   // Set the start and end points of the arrow.

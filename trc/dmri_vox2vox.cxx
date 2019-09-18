@@ -78,7 +78,7 @@ char *inDir = NULL, *inFile[100],
 struct utsname uts;
 char *cmdline, cwd[2000];
 
-struct timeb cputimer;
+Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     vector<float> inpts;
 
     printf("Processing coordinate file %d of %d...\n", k+1, nout);
-    TimerStart(&cputimer);
+    cputimer.reset();
 
     // Read input text file
     if (inDir)
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 
     outfile.close();
 
-    cputime = TimerStop(&cputimer);
+    cputime = cputimer.milliseconds();
     printf("Done in %g sec.\n", cputime/1000.0);
   }
 

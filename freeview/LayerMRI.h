@@ -31,11 +31,11 @@
 #include <QString>
 #include <QList>
 
-extern "C"
-{
+
+
 #include "colortab.h"
 #include "nifti1.h"
-}
+
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -321,7 +321,11 @@ public:
   
   bool IsObscuring();
 
-  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, LayerMRI* mask);
+  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing_std, LayerMRI* mask);
+
+  void GeodesicSegmentationAbort();
+
+  void GeodesicSegmentationApply(LayerMRI* filled);
 
   void GetVolumeInfo(int* dim, double* voxel_size);
 
@@ -333,6 +337,10 @@ public:
   QVector<double> GetVoxelList(int nVal);
 
   QVariantMap GetTimeSeriesInfo();
+
+  QString GetGeoSegErrorMessage();
+
+  bool ExportLabelStats(const QString& fn);
   
 public slots:
   virtual void SetModified();
@@ -356,6 +364,9 @@ Q_SIGNALS:
   void IsoSurfaceUpdated();
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
+  void GeodesicSegmentationApplied();
+  void GeodesicSegmentationFinished(double time_in_secs);
+  void GeodesicSegmentationProgress(double percentage);
 
 protected slots:
   void UpdateDisplayMode();
@@ -385,8 +396,9 @@ protected slots:
   void ResetRef();
 
   void OnLabelContourChanged(int n = -1);
-  void OnContourSmoothIterationChanged();
+  void RebuildContour();
 
+  void UpdateLabelInformation();
   void OnLabelInformationReady();
 
   void UpdateVectorLineWidth(double val);

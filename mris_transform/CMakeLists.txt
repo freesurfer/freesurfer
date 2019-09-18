@@ -2,7 +2,7 @@ project(mris_transform)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-add_executable(mris_transform mris_transform.c)
+add_executable(mris_transform mris_transform.cpp)
 add_help(mris_transform mris_transform.help.xml)
 target_link_libraries(mris_transform utils)
 

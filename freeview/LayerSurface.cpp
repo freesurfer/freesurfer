@@ -118,15 +118,19 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_mainActor = vtkSmartPointer<vtkActor>::New();
   m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
 
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
   m_vectorActor->GetProperty()->SetColor( GetProperty()->GetVectorColor() );
-  m_vectorActor->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize() );
+  m_vectorActor->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize()*ratio );
   m_vectorActor->PickableOff();
 
   for ( int i = 0; i < 3; i++ )
   {
     m_vectorActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVectorColor() );
-    m_vectorActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize() );
+    m_vectorActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize()*ratio );
     m_vectorActor2D[i]->PickableOff();
   }
 
@@ -158,6 +162,14 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
   if (m_volumeRef)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
+
+#if VTK_MAJOR_VERSION > 5
+  m_mainActor->ForceOpaqueOn();
+  m_wireframeActor->ForceOpaqueOn();
+  m_vectorActor->ForceOpaqueOn();
+  for (int i = 0; i < 3; i++)
+    m_vectorActor2D[i]->ForceOpaqueOn();
+#endif
 }
 
 LayerSurface::~LayerSurface()
@@ -250,7 +262,7 @@ bool LayerSurface::CreateFromMRIS(void *mris_ptr)
   {
     return false;
   }
-  SetFileName(mris->fname);
+  SetFileName(mris->fname.data());
   InitializeData();
   return true;
 }
@@ -656,36 +668,56 @@ void LayerSurface::InitializeActors()
 
   // main surface actor
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData( m_surfaceSource->GetPolyData() );
+#else
   mapper->SetInput( m_surfaceSource->GetPolyData() );
+#endif
   m_mainActor->SetMapper( mapper );
   mapper->Update();
 
   // vector actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+#if VTK_MAJOR_VERSION > 5
+  tube->SetInputData(m_surfaceSource->GetVectorPolyData());
+#else
   tube->SetInput(m_surfaceSource->GetVectorPolyData());
+#endif
   tube->SetNumberOfSides(8);
   tube->SetRadius(0.04);
   tube->CappingOn();
-  mapper->SetInput( tube->GetOutput() );
+  mapper->SetInputConnection( tube->GetOutputPort() );
   m_vectorActor->SetMapper( mapper );
   //  mapper->Update();
 
   for ( int i = 0; i < 3; i++ )
   {
     mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+    mapper->SetInputData(  m_surfaceSource->GetVector2DPolyData( i ) );
+#else
     mapper->SetInput(  m_surfaceSource->GetVector2DPolyData( i ) );
+#endif
     m_vectorActor2D[i]->SetMapper( mapper );
   }
 
   // vertex actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData(  m_surfaceSource->GetVertexPolyData() );
+#else
   mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
+#endif
   m_vertexActor->SetMapper( mapper );
 
   // wireframe actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION > 5
+  mapper->SetInputData(  m_surfaceSource->GetWireframePolyData() );
+#else
   mapper->SetInput(  m_surfaceSource->GetWireframePolyData() );
+#endif
   m_wireframeActor->SetMapper( mapper );
   mapper->Update();
 
@@ -706,7 +738,11 @@ void LayerSurface::InitializeActors()
     m_box[i] = vtkSmartPointer<vtkBox>::New();
     m_box[i]->SetBounds(bounds);
     vtkSmartPointer<vtkExtractPolyDataGeometry> extract = vtkSmartPointer<vtkExtractPolyDataGeometry>::New();
+#if VTK_MAJOR_VERSION > 5
+    extract->SetInputData(m_surfaceSource->GetPolyData());
+#else
     extract->SetInput(m_surfaceSource->GetPolyData());
+#endif
     extract->ExtractInsideOn();
     extract->ExtractBoundaryCellsOn();
     extract->SetImplicitFunction(m_box[i]);
@@ -727,18 +763,24 @@ void LayerSurface::InitializeActors()
     //
     // Actors in the scene, drawing the mapped lines.
     //
+
+    double line_w = GetProperty()->GetEdgeThickness();
+    double ratio = 1;
+  #if VTK_MAJOR_VERSION > 5
+    ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+  #endif
     m_sliceActor2D[i]->SetMapper( mapper );
     //  m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
     //  m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
     m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
-    m_sliceActor2D[i]->GetProperty()->SetLineWidth( GetProperty()->GetEdgeThickness() );
+    m_sliceActor2D[i]->GetProperty()->SetLineWidth( line_w*ratio );
 
     m_sliceActor3D[i]->SetMapper( mapper2 );
     //  m_sliceActor3D[i]->SetBackfaceProperty( m_sliceActor3D[i]->MakeProperty() );
     //  m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
-    m_sliceActor3D[i]->GetProperty()->SetLineWidth( GetProperty()->GetEdgeThickness() );
+    m_sliceActor3D[i]->GetProperty()->SetLineWidth( line_w*ratio );
     //    m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();
 
     vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -750,7 +792,7 @@ void LayerSurface::InitializeActors()
     mapper3->ScalarVisibilityOff();
     m_vertexActor2D[i]->SetMapper(mapper3);
     m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
-    m_vertexActor2D[i]->GetProperty()->SetPointSize(3);
+    m_vertexActor2D[i]->GetProperty()->SetPointSize(3*ratio);
     m_vertexActor2D[i]->GetProperty()->SetInterpolationToFlat();
 
     // Set ourselves up.
@@ -775,10 +817,14 @@ void LayerSurface::UpdateOpacity()
 
 void LayerSurface::UpdateEdgeThickness()
 {
+  double line_w = GetProperty()->GetEdgeThickness();
+#if VTK_MAJOR_VERSION > 5
+  line_w *= MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->GetProperty()->SetLineWidth( GetProperty()->GetEdgeThickness() );
-    m_sliceActor3D[i]->GetProperty()->SetLineWidth( GetProperty()->GetEdgeThickness() );
+    m_sliceActor2D[i]->GetProperty()->SetLineWidth( line_w );
+    m_sliceActor3D[i]->GetProperty()->SetLineWidth( line_w );
   }
 
   if ( GetProperty()->GetEdgeThickness() == 0 )
@@ -805,11 +851,15 @@ void LayerSurface::UpdateEdgeThickness()
 
 void LayerSurface::UpdateVectorPointSize()
 {
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   for ( int i = 0; i < 3; i++ )
   {
-    m_vectorActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize() );
+    m_vectorActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize()*ratio );
   }
-  m_vectorActor->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize() );
+  m_vectorActor->GetProperty()->SetPointSize( GetProperty()->GetVectorPointSize()*ratio );
   emit ActorUpdated();
 }
 
@@ -880,7 +930,7 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   {
     if (bSliceVisibility[i])
     {
-      renderer->AddViewProp( m_sliceActor3D[i] );
+    //  renderer->AddViewProp( m_sliceActor3D[i] );
     }
   }
 
@@ -1530,8 +1580,13 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
       }
       for ( int i = 0; i < nCount; i++ )
       {
+#if VTK_MAJOR_VERSION > 5
+        array->SetTypedTuple( i, data + i*4 );
+#else
         array->SetTupleValue( i, data + i*4 );
+#endif
       }
+      array->Modified();
       delete[] data;
       polydata->GetPointData()->SetActiveScalars( "Overlay" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1599,8 +1654,13 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {
+#if VTK_MAJOR_VERSION > 5
+          array->SetTypedTuple( i, data + i*4 );
+#else
           array->SetTupleValue( i, data + i*4 );
+#endif
         }
+        array->Modified();
         delete[] data;
         polydata->GetPointData()->SetActiveScalars( "Overlay" );
         if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1620,6 +1680,10 @@ void LayerSurface::UpdateRenderMode()
 {
   //  m_mainActor->GetProperty()->EdgeVisibilityOff();
   //  m_mainActor->GetProperty()->BackfaceCullingOn();
+  double line_w = 1;
+#if VTK_MAJOR_VERSION > 5
+  line_w = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   switch ( GetProperty()->GetSurfaceRenderMode() )
   {
   case LayerPropertySurface::SM_Surface:
@@ -1629,12 +1693,12 @@ void LayerSurface::UpdateRenderMode()
   case LayerPropertySurface::SM_Wireframe:
     m_mainActor->VisibilityOff();
     m_wireframeActor->VisibilityOn();
-    m_wireframeActor->GetProperty()->SetLineWidth( 1 );
+    m_wireframeActor->GetProperty()->SetLineWidth( line_w );
     break;
   case LayerPropertySurface::SM_SurfaceAndWireframe:
     m_mainActor->VisibilityOn();
     m_wireframeActor->VisibilityOn();
-    m_wireframeActor->GetProperty()->SetLineWidth( 2 );
+    m_wireframeActor->GetProperty()->SetLineWidth( 2*line_w );
     break;
   }
   emit ActorUpdated();
@@ -1717,13 +1781,17 @@ SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
 
 void LayerSurface::UpdateVertexRender()
 {
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = MainWindow::GetMainWindow()->devicePixelRatio();
+#endif
   m_vertexActor->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
-  m_vertexActor->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize() );
+  m_vertexActor->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize()*ratio );
   m_vertexActor->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
   for (int i = 0; i < 3; i++)
   {
     m_vertexActor2D[i]->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
-    m_vertexActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize() );
+    m_vertexActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize()*ratio );
     m_vertexActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
   }
   emit ActorUpdated();
@@ -2634,7 +2702,9 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
   bool bDoNotCrossLabels = options["DoNotCrossLabels"].toBool();
   bool bDoNotFillUnlabeled = options["DoNotFillUnlabeled"].toBool();
   bool bDoNotCrossThreshold = options["DoNotCrossThreshold"].toBool();
+  bool bDoNotCrossCurv = (HasCurvature() && options["FillToCurvature"].toBool());
   bool bNewLabel = options["CreateLabel"].toBool();
+  double seed_curv = 0;
   double seed_value = 0;
   SurfaceOverlay* overlay = GetActiveOverlay();
   if (!overlay)
@@ -2645,6 +2715,8 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
     seed_value = overlay->GetDataAtVertex(seed_vno);
     fthresh = overlay->GetProperty()->GetMinPoint();
   }
+  if (bDoNotCrossCurv)
+    seed_curv = mris->vertices[seed_vno].curv;
 
   while (num_filled_this_iter > 0)
   {
@@ -2689,6 +2761,9 @@ QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& op
         {
           continue;
         }
+
+        if (bDoNotCrossCurv && ((seed_curv <= 0 && v->curv > 0) || (seed_curv >= 0 && v->curv < 0)))
+          continue;
 
         /* if we're not crossing the cmid, see if the cmid at this
            vertex is on the other side of the cmid as the seed
@@ -2851,13 +2926,13 @@ bool LayerSurface::IsVertexOnPath(int vno)
   return false;
 }
 
-void LayerSurface::FillPath(int nvo, const QVariantMap &options)
+bool LayerSurface::FillPath(int nvo, const QVariantMap &options)
 {
   QVector<int> verts = FloodFillFromSeed(nvo, options);
   if (verts.size() == 0)
   {
     qDebug() << "Did not fill/remove any vertices";
-    return;
+    return false;
   }
   if (options["CreateLabel"].toBool())
   {
@@ -2869,6 +2944,20 @@ void LayerSurface::FillPath(int nvo, const QVariantMap &options)
     //    label->SaveForUndo();
     label->EditVertices(verts, !options["RemoveFromLabel"].toBool());
     emit Modified();
+  }
+  return true;
+}
+
+void LayerSurface::FillPath(const QVector<int> &verts, const QVariantMap &options)
+{
+  QVariantMap opt = options;
+  foreach (int nvo, verts)
+  {
+    if (FillPath(nvo, opt) && opt["CreateLabel"].toBool())
+    {
+      opt["CreateLabel"] = false;
+      opt["AddToLabel"] = true;
+    }
   }
 }
 
@@ -2882,6 +2971,14 @@ int LayerSurface::GetLastMark()
       vno = verts.last();
   }
   return vno;
+}
+
+QVector<int> LayerSurface::GetAllMarks()
+{
+  QVector<int> verts;
+  if (m_marks)
+    verts = m_marks->GetPathVerts();
+  return verts;
 }
 
 bool LayerSurface::LoadParameterization(const QString &filename)
@@ -2923,4 +3020,28 @@ bool LayerSurface::LoadParameterization(const QString &filename)
   }
   else
     return false;
+}
+
+bool LayerSurface::LoadCoordsFromParameterization(const QString &filename)
+{
+  MRIS* mris = m_surfaceSource->GetMRIS();
+  MRI_SP* mrisp = ::MRISPread(filename.toLatin1().data());
+  if (mrisp)
+  {
+    ::MRIScoordsFromParameterization(mrisp, mris, IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+    m_surfaceSource->UpdateHashTable();
+    m_surfaceSource->UpdateCoords();
+    emit ActorUpdated();
+    return true;
+  }
+  else
+  {
+    cerr << "Failed to load " << qUtf8Printable(filename) << endl;
+    return false;
+  }
+}
+
+vtkActor* LayerSurface::GetMainActor()
+{
+  return m_mainActor;
 }

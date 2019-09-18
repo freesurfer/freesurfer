@@ -27,24 +27,10 @@
 #ifndef MRISOBBTree_h
 #define MRISOBBTree_h
 
-// The following is usable from C
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "mri.h"
 #include "mrisurf.h"
 #include "diag.h"
 #include "error.h"
-
-#ifdef __cplusplus
-}
-#endif
-
-
-// C++ portion starts here
-#ifdef __cplusplus
 
 #include <list>
 #include <iostream>
@@ -889,5 +875,3 @@ class MRISOBBTree
 };
 
 #endif
-#endif
-

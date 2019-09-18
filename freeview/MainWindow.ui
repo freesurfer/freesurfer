@@ -213,7 +213,7 @@
               </column>
               <column>
                <property name="text">
-                <string>-</string>
+                <string/>
                </property>
               </column>
              </widget>
@@ -233,7 +233,7 @@
               </column>
               <column>
                <property name="text">
-                <string>-</string>
+                <string/>
                </property>
               </column>
              </widget>
@@ -1698,6 +1698,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+R</string>
+   </property>
+  </action>
+  <action name="actionViewLayerInfo">
+   <property name="text">
+    <string>View Layer Info</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
    </property>
   </action>
  </widget>

@@ -65,6 +65,7 @@ class DialogSetCamera;
 class DialogThresholdVolume;
 class DialogVolumeSegmentation;
 class BinaryTreeView;
+class WindowLayerInfo;
 
 #define MAX_RECENT_FILES    10
 
@@ -85,6 +86,16 @@ public:
   enum MainView  { MV_Sagittal = 0, MV_Coronal, MV_Axial, MV_3D };
 
   static MainWindow* GetMainWindow();
+
+  bool HadError()
+  {
+    return m_bHadError;
+  }
+
+  void SetHadError(bool b)
+  {
+    m_bHadError = b;
+  }
 
   BrushProperty* GetBrushProperty()
   {
@@ -225,6 +236,8 @@ public:
 
   void SaveLayers(const QList<Layer*>& layers);
 
+  Layer* FindSupplementLayer(const QString& name);
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
@@ -233,6 +246,8 @@ Q_SIGNALS:
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
   void CycleOverlayRequested();
+  void SupplementLayerChanged();
+  void OverlayMaskRequested(const QString& fn);
 
 public slots:
   void SetMode( int nMode );
@@ -282,6 +297,15 @@ public slots:
 
   void OnStereoRender(bool bOn);
 
+  void AbortScripts()
+  {
+    ClearScripts();
+  }
+
+  void OnExportLabelStats();
+
+  bool ExportLineProfileThickness(const QString& filename, const QVariantMap& options);
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -315,6 +339,7 @@ protected:
   void LoadTrackFile            ( const QString& fn );
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void LoadSurfaceParameterization(const QString& filename);
+  void LoadSurfaceCoordsFromParameterization(const QString& filename);
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 
@@ -337,6 +362,7 @@ protected:
   void CommandLoadSurfaceAnnotation ( const QStringList& cmd );
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
+  void CommandLoadSurfaceCoordsFromParameterization ( const QStringList& cmd );
   void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
   void CommandLoadFCD           ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
@@ -360,6 +386,7 @@ protected:
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
   void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
   void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
+  void CommandSetSurfaceOverlayMask      ( const QStringList& cmd );
   void CommandSetSurfaceOverlayCustom     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
@@ -397,6 +424,7 @@ protected:
   void CommandUnloadLayers    ( const QStringList& cmd );
   void CommandSetActiveFrame    ( const QStringList& cmd );
   void CommandSetActiveLayer    ( const QStringList& cmd );
+  void CommandExportLineProfileThickness  (const QStringList& cmd);
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
@@ -488,7 +516,7 @@ protected slots:
   void OnSmoothSurface();
   void OnRemoveIntersectionsFromSurface();
   void OnShowLabelStats();
-  void OnSaveIsoSurface();
+  void OnSaveIsoSurface(const QString& fn = "");
   void OnPlot();
   void OnLineProfile();
   void OnCycleSurfaceLabel();
@@ -516,6 +544,11 @@ protected slots:
   void SetProcessing( bool bProcessing = true )
   {
     m_bProcessing = bProcessing;
+  }
+
+  void SetProcessingFinished()
+  {
+    SetProcessing(false);
   }
 
   void ReassureGeometry();
@@ -546,6 +579,12 @@ protected slots:
   void OnLoadVolumeTransform();
 
   void OnUnloadVolumeTransform();
+
+  void SetCurrentTimeCourseFrame(int nFrame);
+
+  void OnViewLayerInfo();
+
+  void UpdateLayerInfo(Layer* layer);
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
@@ -609,10 +648,8 @@ private:
   DialogPreferences*    m_dlgPreferences;
   DialogRepositionSurface*  m_dlgRepositionSurface;
   DialogSmoothSurface*  m_dlgSmoothSurface;
-  WindowQuickReference* m_wndQuickRef;
   FloatingStatusBar*    m_statusBar;
   TermWidget*           m_term;
-  WindowTimeCourse*     m_wndTimeCourse;
   WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
   DialogLineProfile*    m_dlgLineProfile;
@@ -620,6 +657,9 @@ private:
   DialogThresholdVolume* m_dlgThresholdVolume;
   DialogVolumeSegmentation* m_dlgVolumeSegmentation;
   BinaryTreeView*       m_wndTractCluster;
+  WindowQuickReference* m_wndQuickRef;
+  WindowTimeCourse*     m_wndTimeCourse;
+  WindowLayerInfo*      m_wndLayerInfo;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 
@@ -634,6 +674,8 @@ private:
 
   bool                  m_bVerbose;
   bool                  m_bContinue;
+
+  bool                  m_bHadError;
 };
 
 #endif // MAINWINDOW_H

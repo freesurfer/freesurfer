@@ -28,13 +28,16 @@
 #ifndef LABEL_H
 #define LABEL_H
 
-#include "minc_volume_io.h"
+#include "minc.h"
 
 #include "matrix.h"
 #include "const.h"
 #include "mri.h"
 
-typedef struct
+#include "mrisurf_aaa.h"    // incomplete MRIS, MHT
+#include "transform.h"
+
+struct LABEL_VERTEX
 {
   int           vno ;
   float         x ;
@@ -45,10 +48,9 @@ typedef struct
   int           zv ;
   unsigned char deleted ;
   float         stat ;     /* statistic (might not be used) */
-}
-LABEL_VERTEX, LV ;
+};
 
-typedef struct
+struct LABEL
 {
   int    max_points ;         /* # of points allocated */
   int    coords ;             // one of the LABEL_COORDS* constants below
@@ -63,10 +65,9 @@ typedef struct
   double avg_stat ;
   int    *vertex_label_ind ; // mris->nvertices long - < 0 means it isn't in the label
   MRI    *mri_template ;
-  void   *mht ;
-  void   *mris; 
-}
-LABEL ;
+  MHT    *mht ;
+  MRIS   *mris ; 
+};
 
 #define LABEL_COORDS_NONE         0
 #define LABEL_COORDS_TKREG_RAS    1
@@ -74,7 +75,6 @@ LABEL ;
 #define LABEL_COORDS_VOXEL        3
 #define LABEL_COORDS_SURFACE_RAS  4
 
-#include "mrisurf.h" // MRI_SURFACE, MRIS
 
 LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
@@ -114,7 +114,7 @@ LABEL  *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst);
 LABEL   *LabelCompact(LABEL *lsrc, LABEL *ldst) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
-LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
+LABEL   *LabelAlloc(int max_points, const char *subject_name, const char *label_name) ;
 LABEL   *LabelRealloc(LABEL *lb, int max_points);
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
                       int max_vertices, MRI_SURFACE *mris) ;
@@ -169,7 +169,6 @@ int LabelMaskSurfaceValues(LABEL *label, MRI_SURFACE *mris) ;
 int LabelMaskSurfaceCurvature(LABEL *label, MRI_SURFACE *mris) ;
 int LabelMaskSurfaceVolume(LABEL *label, MRI *mri, float nonmask_val) ;
 
-#include "mrishash.h"
 LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
                                MRIS_HASH_TABLE *mht,
                                MRI_SURFACE *mris_dst, LABEL *area_dst);

@@ -3,7 +3,7 @@ project(mri_em_register)
 include_directories(${FS_INCLUDE_DIRS})
 
 set(SOURCES
-  mri_em_register.c
+  mri_em_register.cpp
   findtranslation.cpp
   emregisterutils.cpp
 )

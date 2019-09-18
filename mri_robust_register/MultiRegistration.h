@@ -39,17 +39,10 @@
 
 #include "RegRobust.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
 #include "mri.h"
 #include "mriBSpline.h"
 #include "transform.h"
-#ifdef __cplusplus
-}
-#endif
 
 /** \class MultiRegistration
  * \brief Class for co-registering several images (same modality)

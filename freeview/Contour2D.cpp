@@ -104,7 +104,11 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
   if ( imagedata->GetNumberOfScalarComponents() > 1 )
   {
-    extract->SetInput( imagedata );
+#if VTK_MAJOR_VERSION > 5
+    extract->SetInputData( imagedata );
+#else
+    extract->SetInput(imagedata);
+#endif
     extract->SetComponents( active_frame );
     extract->Update();
     m_imageInput = extract->GetOutput();
@@ -113,8 +117,11 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   {
     m_imageInput = imagedata;
   }
-
-  m_filterThreshold->SetInput( m_imageInput );
+#if VTK_MAJOR_VERSION > 5
+  m_filterThreshold->SetInputData( m_imageInput );
+#else
+  m_filterThreshold->SetInput(m_imageInput);
+#endif
   SetContourValue( dContourValue );
 
   // create two masks and initialize them.
@@ -131,17 +138,27 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
     ptr[i] = 1;
   }
 
+#if VTK_MAJOR_VERSION > 5
+  m_filterLogic->SetInput1Data( m_filterThreshold->GetOutput() );
+  m_filterLogic->SetInput2Data( m_imageMaskAdd );
+  m_filterMask->SetMaskInputData( m_imageMaskRemove );
+#else
   m_filterLogic->SetInput1( m_filterThreshold->GetOutput() );
   m_filterLogic->SetInput2( m_imageMaskAdd );
-  m_filterMask->SetInputConnection( m_filterLogic->GetOutputPort() );
   m_filterMask->SetMaskInput( m_imageMaskRemove );
+#endif
+  m_filterMask->SetInputConnection( m_filterLogic->GetOutputPort() );
   double vs[3];
   imagedata->GetSpacing(vs);
   m_filterResample->SetOutputSpacing(vs[0]/IMAGE_RESAMPLE_FACTOR, vs[1]/IMAGE_RESAMPLE_FACTOR, vs[2]/IMAGE_RESAMPLE_FACTOR);
   m_filterResample->SetInputConnection( m_filterMask->GetOutputPort() );
   m_filterEdge->SetInputConnection( m_filterResample->GetOutputPort() );
   m_colormap->SetInputConnection( m_filterEdge->GetOutputPort() );
+#if VTK_MAJOR_VERSION > 5
+  m_actorContour->SetInputData( m_colormap->GetOutput() );
+#else
   m_actorContour->SetInput( m_colormap->GetOutput() );
+#endif
 
   SetSmooth( m_bSmooth );
   UpdateSliceLocation( dSliceLocation );
@@ -292,8 +309,13 @@ void Contour2D::SetSmooth( bool bSmooth )
   m_bSmooth = bSmooth;
   if ( m_imageInput )
   {
+#if VTK_MAJOR_VERSION > 5
+    m_filterSmooth->SetInputData( m_imageInput );
+    m_filterThreshold->SetInputData( bSmooth ? m_filterSmooth->GetOutput() : m_imageInput );
+#else
     m_filterSmooth->SetInput( m_imageInput );
     m_filterThreshold->SetInput( bSmooth ? m_filterSmooth->GetOutput() : m_imageInput );
+#endif
   }
 }
 

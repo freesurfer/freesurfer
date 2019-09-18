@@ -40,12 +40,6 @@
 
 #include "proto.h"  // malloc   is needed from here
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-
 extern const char *Progname;
     // various of the utility programs define this global variable to be their name
 
@@ -79,15 +73,6 @@ extern const char *Progname;
 // defines the maximum number of threads used in OpenMP code
 //
 #define _MAX_FS_THREADS 128 
-
-#ifndef HAVE_OPENMP
-    // Make it easier to write code which is insensitive to OpenMP being present
-    //
-    #pragma GCC diagnostic ignored "-Wunused-function"
-    static int omp_get_max_threads() { return 1; }
-    #pragma GCC diagnostic ignored "-Wunused-function"
-    static int omp_get_thread_num()  { return 0; }
-#endif
 
 // assertions
 //
@@ -137,6 +122,16 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 #define freeAndNULL(PTR) { free((void*)(PTR)); (PTR) = NULL; }
 
 
+// Some trivial types
+//
+#ifndef uchar
+typedef unsigned char unsigned_char;
+#define uchar unsigned_char
+#endif
+
+typedef const float * ptr_to_const_float;
+
+
 // Some trivial math functions needed lots
 //
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -145,13 +140,23 @@ static float squaref(float x) { return x*x; }
 #pragma GCC diagnostic ignored "-Wunused-function"
 static double squared(double x) { return x*x; }
 
-
 typedef struct FloatXYZ {
     float x,y,z;
 } FloatXYZ;
 
 
-#if defined(__cplusplus)
-};
-#endif
 
+template <typename T, size_t SIZE>
+struct FixedSizeArray {
+    T&         operator[](size_t i)         { return v[i]; }
+    T const&   operator[](size_t i)   const { return v[i]; }
+    
+    operator T       *()                    { return v;    }
+    operator T const *()              const { return v;    }
+    
+    T       * data()                        { return v;    }
+    T const * data()                  const { return v;    }
+    
+private:
+    T v[SIZE];
+};

@@ -52,6 +52,7 @@
 #ifndef __vtkRGBATransferFunction_h
 #define __vtkRGBATransferFunction_h
 
+//#include "vtkCommonCoreModule.h" // For export macro
 #include "vtkScalarsToColors.h"
 
 class vtkPiecewiseFunction;
@@ -59,10 +60,12 @@ class vtkPiecewiseFunction;
 #define VTK_CTF_RGB           0
 #define VTK_CTF_HSV           1
 
-class VTK_FILTERING_EXPORT vtkRGBATransferFunction : public vtkScalarsToColors {
+class /*VTKCOMMONCORE_EXPORT*/ vtkRGBATransferFunction : public vtkScalarsToColors {
 public:
   static vtkRGBATransferFunction *New();
-  vtkTypeRevisionMacro(vtkRGBATransferFunction,vtkScalarsToColors);
+  vtkTypeMacro(vtkRGBATransferFunction,vtkScalarsToColors);
+
+  using vtkScalarsToColors::DeepCopy;
   void DeepCopy( vtkRGBATransferFunction *f );
 
   // Description:
@@ -110,7 +113,11 @@ public:
 
   // Description:
   // Map one value through the lookup table.
+#if VTK_MAJOR_VERSION >= 8 && VTK_MINOR_VERSION >= 2
+  virtual const unsigned char *MapValue(double v);
+#else
   virtual unsigned char *MapValue(double v);
+#endif
 
   // Description:
   // Returns min and max position of all function points.
@@ -209,8 +216,8 @@ protected:
   // Set the range of scalars being mapped. The set has no functionality
   // in this subclass of vtkScalarsToColors.
   virtual void SetRange(double, double) {};
-  void SetRange(double rng[2]) {
-    this->SetRange(rng[0],rng[1]);
+  void SetRange(const double rng[2]) {
+    this->SetRange(rng[0], rng[1]);
   };
 
 

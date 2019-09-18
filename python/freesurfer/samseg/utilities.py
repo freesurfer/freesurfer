@@ -10,9 +10,6 @@ def forceFortranOrder(funcname):
         return old_func(*args, **kwargs)
     setattr(np, funcname, new_func)
 
-for funcname in ('array', 'zeros', 'empty', 'zeros_like', 'empty_like'):
-    forceFortranOrder(funcname)
-
 
 class Specification:
     def __init__(self, params):

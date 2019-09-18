@@ -7,10 +7,12 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     ${FS_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/vtkutils
     ${CMAKE_SOURCE_DIR}/lineprof
+    SYSTEM
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
   )
 
+  include(${VTK_USE_FILE})
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
@@ -92,8 +94,6 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     PanelSurface.cpp
     PanelVolume.cpp
     qtcolorpicker.cpp
-    QVTKWidget.cxx
-    QVTKPaintEngine.cxx
     Region2D.cpp
     Region2DLine.cpp
     Region2DPolyline.cpp
@@ -186,10 +186,33 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     GeoSWorker.cpp
     geos/GeodesicMatting.cpp
     geos/kde.cpp
+    BusyIndicator.cpp
+    vtkInteractorStyleMyTrackballCamera.cxx
+    FlowLayout.cpp
+    WindowLayerInfo.cpp
     freeview.qrc
   )
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare")
+  if(NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
+    if(${VTK_MAJOR_VERSION} STREQUAL 5)
+      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK5)
+      set(SOURCES ${SOURCES} QVTK5/QVTKWidget.cxx QVTK5/QVTKPaintEngine.cxx)
+    elseif(APPLE)
+      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK8)
+      set(SOURCES ${SOURCES}
+        QVTK8/QVTKWidget.cxx
+        QVTK8/QVTKOpenGLWidget.cxx
+        QVTK8/QVTKOpenGLNativeWidget.cxx
+        QVTK8/QVTKOpenGLWindow.cxx
+        QVTK8/QVTKInteractor.cxx
+        QVTK8/QVTKInteractorAdapter.cxx
+        QVTK8/vtkEventQtSlotConnect.cxx
+        QVTK8/vtkQtConnection.cxx
+      )
+    endif()
+  endif()
+
+  add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare -Wno-overloaded-virtual -Wno-inconsistent-missing-override)
 
   set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
 
@@ -200,21 +223,18 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   endif()
 
   add_executable(freeview ${SOURCES})
-  target_link_libraries(freeview 
+  target_link_libraries(freeview
     vtkutils
-    vtkfsio
     lineprof
     ${VTK_LIBRARIES}
     ${PETSC_LIBRARIES}
     ${ITK_LIBRARIES}
-    fsgdf
     utils
     ${QT_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${BLAS_LIBRARIES}
     ${GFORTRAN_LIBRARIES}
-    -static-libgcc
   )
 
   if(NOT APPLE)

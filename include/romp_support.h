@@ -26,22 +26,25 @@
 
 // OPTIONS
 
+// Uncomment this to compile in the code that collects the statistics 
 //#define ROMP_SUPPORT_ENABLED
-    // Uncomment this to compile in the code that collects the statistics 
 
+
+// For efficiency reasons, only the first few threads are studied
 #define ROMP_maxWatchedThreadNum 4
-    // For efficiency reasons, only the first few threads are studied
 
 
 // This code requires omp to work, but can be compiled without it
-//
 #ifdef HAVE_OPENMP
-#include <omp.h>
+  #include <omp.h>
+  int romp_omp_get_thread_num();
+  #define omp_get_thread_num romp_omp_get_thread_num
+#else
+  // Make it easier to write code which is insensitive to OpenMP being present
+  static inline int omp_get_max_threads() { return 1; }
+  static inline int omp_get_thread_num() { return 0; }
+  #define omp_set_num_threads(n)
 #endif
-
-int romp_omp_get_thread_num();
-#define omp_get_thread_num romp_omp_get_thread_num
-
 
 
 // The source of the times
@@ -119,8 +122,8 @@ typedef struct ROMP_pf_static_struct {
 
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
-    NanosecsTimer beginTime;
-    Nanosecs      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
+    Timer timer;
+    long      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
     int 	  gone_parallel;
     ROMP_level    entry_level;
 } ROMP_pf_stack_struct;
@@ -148,7 +151,7 @@ void ROMP_pf_end(
 //
 typedef struct ROMP_pflb_stack_struct {
     ROMP_pf_stack_struct * pf_stack;
-    NanosecsTimer beginTime;
+    Timer timer;
     int tid;
 } ROMP_pflb_stack_struct;
 

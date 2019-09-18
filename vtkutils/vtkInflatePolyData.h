@@ -38,7 +38,7 @@ public:
 
   static vtkInflatePolyData *New();
   void PrintSelf(ostream& os, vtkIndent indent);
-  vtkTypeRevisionMacro(vtkInflatePolyData,vtkPolyDataAlgorithm);
+  vtkTypeMacro(vtkInflatePolyData,vtkPolyDataAlgorithm);
 
   // Description:
   // The factor to use. >0 will inflate, and <0 will deflate.

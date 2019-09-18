@@ -30,10 +30,6 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /* This function looks for the --version, or -version tag in the
    argv and if found, prints out version information. This can be used
    in any binary. It will return the number of options processed and
@@ -69,17 +65,11 @@ extern "C" {
 
 */
 
-int handle_version_option (int argc, char** argv,
-                           const char* id_string, const char* version_string);
-int make_cmd_version_string (int argc, char** argv,  const char* id_string,
-                             const char* version_string, char *return_string) ;
+int handle_version_option(int argc, char** argv, const char* id_string, const char* version_string);
+int make_cmd_version_string(int argc, char** argv,  const char* id_string, const char* version_string, char *return_string);
 char *argv2cmdline(int argc, char *argv[]);
 char *VERuser(void);
 char *VERfileTimeStamp(char *fname);
 char *VERcurTimeStamp(void);
-
-#if defined(__cplusplus)
-};
-#endif
 
 #endif

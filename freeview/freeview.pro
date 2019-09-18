@@ -78,8 +78,6 @@ SOURCES += \
     PanelSurface.cpp \
     PanelVolume.cpp \
     qtcolorpicker.cpp \
-    QVTKWidget.cxx \
-    QVTKPaintEngine.cxx \
     Region2D.cpp \
     Region2DLine.cpp \
     Region2DPolyline.cpp \
@@ -175,7 +173,13 @@ SOURCES += \
     DialogSurfaceLabelOperations.cpp \
     geos/GeodesicMatting.cpp \
     geos/kde.cpp \
-    GeoSWorker.cpp
+    GeoSWorker.cpp \
+    QVTKWidget/QVTKWidget.cxx \
+    QVTKWidget/QVTKPaintEngine.cxx \
+    BusyIndicator.cpp \
+    vtkInteractorStyleMyTrackballCamera.cxx \
+    FlowLayout.cpp \
+    WindowLayerInfo.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -248,7 +252,6 @@ HEADERS  += \
     PanelSurface.h \
     PanelVolume.h \
     qtcolorpicker.h \
-    QVTKWidget.h \
     Region2D.h \
     Region2DLine.h \
     Region2DPolyline.h \
@@ -338,7 +341,13 @@ HEADERS  += \
     DialogSurfaceLabelOperations.h \
     geos/GeodesicMatting.h \
     geos/kde.h \
-    GeoSWorker.h
+    GeoSWorker.h \
+    QVTKWidget/QVTKWidget.h \
+    BusyIndicator.h \
+    QVTKWidget/QVTKPaintEngine.h \
+    vtkInteractorStyleMyTrackballCamera.h \
+    FlowLayout.h \
+    WindowLayerInfo.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -391,7 +400,8 @@ FORMS    += MainWindow.ui \
     DialogAddPointSetStat.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
-    DialogSurfaceLabelOperations.ui
+    DialogSurfaceLabelOperations.ui \
+    WindowLayerInfo.ui
 
 RESOURCES += \
     freeview.qrc
@@ -404,7 +414,9 @@ include ($$PWD/json/qjson.pri)
 QMAKE_CXXFLAGS += -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
                    -DDEVELOPMENT -DHAVE_OPENMP
 
-QMAKE_CXXFLAGS_WARN_ON += -Wno-deprecated -Wno-write-strings #-Wno-reorder
+if(SUPPRESS_WARNINGS) {
+  QMAKE_CXXFLAGS_WARN_ON += -Wno-deprecated -Wno-write-strings #-Wno-reorder
+}
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer_dev

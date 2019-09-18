@@ -28,11 +28,6 @@
 #ifndef CMA_H
 #define CMA_H
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "stats.h"
 #include "mri2.h"
 
@@ -359,6 +354,10 @@ extern "C" {
 
 */
 
+#define wm_lh_unknown        3000
+#define wm_rh_unknown        4000
+#define Left_Unsegmented_WM  5001
+#define Right_Unsegmented_WM 5002
 #define MIN_CORTICAL_PARCELLATION   1000
 
 #define    ctx_lh_unknown  1000 //                      25  5   25  0
@@ -459,6 +458,7 @@ extern "C" {
 
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
 #define IS_CEREBELLAR_GM(label) (((label) == Left_Cerebellum_Cortex) || ((label) == Right_Cerebellum_Cortex))
+#define IS_CEREBELLUM(label) (IS_CEREBELLAR_WM(label) || IS_CEREBELLAR_GM(label))
 
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
 #define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
@@ -644,6 +644,7 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
 int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
                             MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial,
                             int hemi) ;
+int MRIasegContraLatLabel(int id);
 MRI *MRIlrswapAseg(MRI *aseg);
 MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt);
 int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct);
@@ -651,11 +652,5 @@ MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
 MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
 SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm);
 int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm);
-
-#if defined(__cplusplus)
-};
-#endif
-
-
 
 #endif

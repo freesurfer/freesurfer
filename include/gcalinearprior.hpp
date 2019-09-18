@@ -27,8 +27,7 @@
 
 #include <vector>
 
-#include "chronometer.hpp"
-
+#include "timer.h"
 #include "gca.h"
 
 // Forward declaration
@@ -61,10 +60,7 @@ public:
     maxLabels(),
     labels(),
     priors(),
-    totTraining(),
-    tExhume() {};
-
-
+    totTraining() {};
 
   // -----------------------------------------------------
 
@@ -314,10 +310,10 @@ private:
   //! Stores total_training field of GCA_PRIOR
   std::vector<int> totTraining;
 
-  //! Time required for exhumation of data
-  mutable SciGPU::Utilities::Chronometer tExhume;
-  //! Time require for inhumation of data
-  mutable SciGPU::Utilities::Chronometer tInhume;
+  //! Time for exhumation of data
+  mutable long exhumeTime;
+  //! Time for inhumation of data
+  mutable long inhumeTime;
 
   friend class const_GCAprior;
   friend class GPU::Classes::GCApriorGPU;

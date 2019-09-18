@@ -204,10 +204,6 @@ set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set DoRobustMotionCor = 1; # if 1, then use mri_robust_template for motion cor
 set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
                      # correction, construct template from: 0 Mean, 1 Median
-set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
-                 # mri_em_register_cuda, mri_ca_register_cuda,
-                 # mris_inflate_cuda, mris_sphere_cuda
-set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
@@ -2075,29 +2071,38 @@ skullstrip:
     echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
   endif
 
+  # Specify the name of the LTA used by watershed
+  if($#EMRegMaskArg == 0) then
+    set WSLTA = talairach_with_skull.lta
+  else
+    set WSLTA = talairach_with_externmask.lta
+  endif
+
   set cmd = (mri_watershed)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
     if ( ! $WSUseTalXfm) then # dont bother if using talairach.xfm
       # if using the GCA atlas to help with the skull-strip, then run the
       # GCA registration (mri_em_register) to align to an atlas with a skull,
-      # unless that file already exists
-      if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
+      # unless that file already exists. But see below if external mask is spec
+      if ( ! -e transforms/$WSLTA || $DoCleanLta ) then
         if($NoEMReg == 0) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
-          set cmd2 = (mri_em_register)
-          if($UseCuda) set cmd2 = (mri_em_register_cuda)
-          set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
-          set cmd2 = ($cmd2 -skull)
-          set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
-          set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
+          set cmd2 = (mri_em_register $xopts2 )
+          if($#EMRegMaskArg == 0) then
+            set cmd2 = ($cmd2 -skull nu.mgz ${GCADIR}/$GCASkull)
+          else
+            # When using an external mask, register to the GCA without skull
+            set cmd2 = ($cmd2 -mask $EMRegMask nu.mgz ${GCADIR}/$GCA)
+          endif
+          # Calling this "with skull" is inaccurate with external mask
+          set cmd2 = ($cmd2 transforms/$WSLTA)
         else
           # Convert talairach.xfm to LTA format
           set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
           set xfm = transforms/talairach.xfm 
-          set lta = transforms/talairach_with_skull.lta
+          set lta = transforms/$WSLTA
           set cmd2 = (lta_convert --src orig.mgz --trg $mni305 \
              --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
         endif
@@ -2115,7 +2120,7 @@ skullstrip:
                     transforms/talairach.xfm $opts)
       else
         set opts = (-brain_atlas ${GCADIR}/$GCASkull \
-                    transforms/talairach_with_skull.lta $opts)
+                    transforms/$WSLTA $opts)
       endif
     endif
   endif
@@ -2201,7 +2206,7 @@ skullstrip:
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
         if ( ! -e $BMA) continue;
-        set LTA = transforms/talairach_with_skull.lta
+        set LTA = transforms/$WSLTA
         set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
         set cmd = ($cmd $xopts ${GCADIR}/$GCA $LTA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2356,8 +2361,7 @@ if($DoGCAReg) then
   else
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
-      if($UseCuda) set cmd = (mri_em_register_cuda)
-      set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
+      #set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
         set cmd = ($cmd -mask brainmask.mgz $xopts \
@@ -2367,7 +2371,7 @@ if($DoGCAReg) then
         # default processing:
         set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
+        set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
                     nu.mgz ${GCADIR}/$GCA $lta)
       endif
     else
@@ -2457,7 +2461,6 @@ if($DoCAReg) then
 
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
-  if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
@@ -2511,8 +2514,6 @@ if($DoCARegInv) then
   $PWD |& tee -a $LF
   # set xopts = `fsr-getxopts mri_ca_register $XOptsFile`; # careful here
   set cmd = (mri_ca_register)
-  #NJS: cuda version doesnt work will -invert-and-save:
-  #if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.inv.dat) 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2559,7 +2560,6 @@ if($DoSkullLTA) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
   set cmd = (mri_em_register)
-  if ($UseCuda) set cmd = (mri_em_register_cuda)
   set cmd = ($cmd -skull -t transforms/talairach.lta \
      $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
      transforms/talairach_with_skull_2.lta)
@@ -3096,7 +3096,6 @@ if($DoInflate1 && ( ! $longitudinal )) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
     set cmd = (mris_inflate)
-    if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd  -no-save-sulc $xopts \
       ../surf/$hemi.smoothwm.nofix ../surf/$hemi.inflated.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3130,7 +3129,6 @@ if($DoQSphere && ( ! $longitudinal )) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
-    if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
@@ -3437,7 +3435,6 @@ if($DoInflate2) then
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
     set cmd = (mris_inflate)
-    if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd -rusage $touchdir/rusage.mris_inflate.$hemi.dat) 
     set cmd = ($cmd $xopts ../surf/$hemi.smoothwm \
                ../surf/$hemi.inflated)
@@ -3597,7 +3594,6 @@ if($DoSphere) then
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
       set cmd = (mris_sphere)
-      if($UseCuda) set cmd = (mris_sphere_cuda)
       set cmd = ($cmd -rusage $touchdir/rusage.mris_sphere.$hemi.dat) 
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -7307,24 +7303,6 @@ while( $#argv != 0 )
       set DoShowEdits = 1;
       breaksw;
 
-    case "-use-cuda":
-    case "-use_cuda":
-    case "-use-gpu":
-    case "-use_gpu":
-      set UseCuda = 1;
-      # then set LD_LIBRARY_PATH to distributed cuda libs
-      source $FREESURFER_HOME/bin/cuda_setup
-      breaksw;
-
-    case "-get-cuda":
-    case "-get-gpu":
-    case "-show-cuda":
-    case "-show-gpu":
-      set GetCuda = 1; # info dump in check_params section below
-      # then set LD_LIBRARY_PATH to distributed cuda libs
-      source $FREESURFER_HOME/bin/cuda_setup
-      breaksw;
-
     case "-parallel":
       set DoParallel = 1;
       if ( ! $OMP_NUM_SET ) then
@@ -7504,28 +7482,6 @@ check_params:
     set InVolDir = `pwd`;
     popd > /dev/null
     set T2volHippoSF = "$InVolDir/$InVolBase";
-  endif
-
-  if($UseCuda || $GetCuda) then
-    # test a binary
-    echo "Testing for CUDA device:"
-    $FREESURFER_HOME/bin/mri_em_register_cuda --version \
-        | grep -v "\-\-all\-info"
-    if ($status) goto error_exit;
-    echo ""
-
-    # print version of installed driver
-    if ( -e /proc/driver/nvidia/version) then
-      echo "NVIDIA driver version info:"
-      cat /proc/driver/nvidia/version | grep NVIDIA
-      echo ""
-    endif
-
-    if ($GetCuda) then
-      $FREESURFER_HOME/bin/cudadetect
-      if ($status) goto error_exit;
-      exit 0;
-    endif
   endif
 
   if(! $DoVersionsOnly) then

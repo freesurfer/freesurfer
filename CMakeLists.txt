@@ -1,4 +1,4 @@
-# before starting the project, set gcc/g++ as default
+# before starting the project, set gcc/g++ as the default compiler
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
 
@@ -9,9 +9,17 @@ enable_language(C CXX Fortran)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
-option(BUILD_GUIS "Build GUIs" ON)
-option(USE_OPENCL "Build OpenCL algorithms" OFF)
+option(BUILD_GUIS "Build GUI tools" ON)
+option(BUILD_ATTIC "Build deprecated tools from the attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
+option(BUILD_DNG "Build Doug's testing tools" OFF)
+option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
+option(PROFILING "Complile binaries for profiling with gprof" OFF)
+
+if(NOT APPLE)
+  # linux-only build options
+  option(TKTOOLS_MODULE "Install old Linux TK GUIs" OFF)
+endif()
 
 # enable ctest
 enable_testing()
@@ -21,17 +29,11 @@ include(cmake/functions.cmake)
 include(TestBigEndian)
 include(CheckFunctionExists)
 
-# prevents itk from importing as a system
+# prevent third-party packages from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
-# xxd is used to generate the helptext headers - make sure it exists
-find_program(XXD xxd)
-if(NOT XXD)
-  message(FATAL_ERROR "The xxd program is required to build freesurfer")
-endif()
-
-# allow reading installation dir from environment var, but if not defined,
-# then override default install dir /usr/local (too messy to install there)
+# if an install prefix is not provided, check the FS_INSTALL_DIR env var, and
+# if that is not defined, set the default path to /usr/local/freesurfer
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
     set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE PATH "Copied from FS_INSTALL_DIR env variable" FORCE)
@@ -39,6 +41,11 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer" CACHE PATH "Default install path" FORCE)
   endif()
 endif()
+
+# create build stamp during install
+string(TIMESTAMP TODAY "%Y%m%d")
+set(BUILD_STAMP "freesurfer-local-build-dev-${TODAY}" CACHE STRING "Distribution build stamp")
+install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # set the default build type to 'Release' for optimization purposes
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -49,15 +56,15 @@ endif()
 # create a custom target "make install-nmr" to only install nmr-component files 
 add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake_install.cmake)
 
-# create build stamp during install
-if(NOT FS_BUILD_STAMP)
-  set(FS_BUILD_STAMP "freesurfer")
-endif()
-install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${FS_BUILD_STAMP}\\n)")
+# --------------------------------------------------
+#               external dependencies
+# --------------------------------------------------
 
-# --------------------------------------------------
-#   library dependencies and third-party packages
-# --------------------------------------------------
+# xxd is used to generate the helptext headers
+find_program(XXD xxd)
+if(NOT XXD)
+  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+endif()
 
 # Most of the packages required by freesurfer are located by custom find-modules stored in the
 # 'cmake' subdir. The find-modules expect each package to be installed under a common
@@ -99,17 +106,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(ZLIB REQUIRED)
 add_definitions(-DHAVE_ZLIB)
 
+# -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-
-  # -------- gfortran --------
   find_library(GFORTRAN_LIBRARIES
     HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
     NAMES libgfortran.a gfortran)
-
-  # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-
 endif()
 
 # -------- armadillo --------
@@ -119,19 +122,15 @@ find_package(Armadillo)
 find_package(PETSC)
 
 # -------- itk --------
-if(NOT ITK_DIR)
-  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0)
-endif()
+set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
-# todo: since ITK is now required, we can get rid of this macro
-add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- ann --------
 # ANN is only used by mris_resample
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate and mris_decimate_gui
+# only used by mris_decimate
 find_package(GTS)
 
 # -------- openMP --------
@@ -148,16 +147,8 @@ if(NOT APPLE)
   find_package(OpenCV)
 endif()
 
-# -------- openCL --------
-if(USE_OPENCL)
-  find_package(OpenCL)
-endif()
-
 # -------- X11 ---------
 find_package(X11 REQUIRED)
-
-# -------- vtk --------
-find_package(VTK)
 
 # search for GUI libraries
 if(BUILD_GUIS)
@@ -176,17 +167,23 @@ if(BUILD_GUIS)
   # -------- qt --------
   find_package(QT)
 
-  # -------- tcltktixblt --------
-  find_package(TCLTKTIXBLT)
+endif()
 
-  # -------- wxwidgets --------
-  # only used by mris_decimate_gui
-  find_package(WXWidgets)
-
+# -------- vtk --------
+set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1 CACHE PATH "VTK install directory")
+find_package(VTK HINTS ${VTK_DIR})
+if(VTK_FOUND AND NOT APPLE)
+  # install the shared libraries to the freesurfer lib directory
+  file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
+  if(VTK_LIBRARIES_TO_INSTALL)
+    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib/vtk)
+    # add vtk library directory to rpath
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
+  endif()
 endif()
 
 # --------------------------------------------------
-#             global build configuration
+#              global system information
 # --------------------------------------------------
 
 add_definitions(-D${CMAKE_SYSTEM_NAME})
@@ -199,71 +196,20 @@ else()
   set(BYTEORDER 1234)
 endif()
 
-# compiler warnings
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall")
-# clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-const-variable")
-else()
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wno-unused-but-set-variable")
-endif()
-
-# ANSI
-add_definitions(-DANSI)
-
-# SSE matrix and math functions (affine.h and sse_mathfun.h)
-# todo: write some logic to set this correctly
-add_definitions(-DUSE_SSE_MATHFUN)
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse -fPIC")
-
-# large file support: support for files > 2GB
-if(APPLE)
-  add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
-endif()
-
-# todo: implement processor-based logic to determine this
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
-
-# for stripping unused code
-if(APPLE)
-  set(STRIP_FLAGS "-dead_strip")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -static-libgcc")
-else()
-  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
-endif()
-
-if(NOT APPLE)
-  # link map (only for linux)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-endif()
-
-# check for clock_gettime on mac
-if(APPLE)
-  check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
-  if(HAVE_CLOCK_GETTIME)
-    add_definitions(-DHAVE_CLOCK_GETTIME)
-  endif()
-endif()
-
-# apply C and CXX flags
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
-
 # enable std c++11
 set(CMAKE_CXX_STANDARD 11)
 
-# set executable rpath
-if(NOT APPLE)
-  set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib:${CMAKE_INSTALL_RPATH}")
-endif()
-
 # --------------------------------------------------
-#                   setup python
+#                  third-party code
 # --------------------------------------------------
 
-# Unfortunately, the python version used to run bind c-libraries must be equivalent to
+add_subdirectory(packages)
+
+# --------------------------------------------------
+#                    setup python
+# --------------------------------------------------
+
+# Unfortunately, the python version used to run pybind c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
 # distributing a minimal, custom python installation called fspython. This fspython package
@@ -277,7 +223,7 @@ if(DISTRIBUTE_FSPYTHON)
   if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
     set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m.a)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
       DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
@@ -288,7 +234,7 @@ if(DISTRIBUTE_FSPYTHON)
 endif()
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)  # minimum version required
+set(PYBIND11_PYTHON_VERSION 3.5)
 add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
@@ -297,56 +243,58 @@ if(NOT DISTRIBUTE_FSPYTHON)
 endif()
 
 # --------------------------------------------------
+#             freesurfer build settings
+# --------------------------------------------------
+
+# warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-absolute-value -Wno-sign-compare -Wno-write-strings -Wno-unused-result -Wno-unused-parameter")
+
+# clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+# linker options
+if(APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+  endif()
+else()
+  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STRIP_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+if(PROFILING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+endif()
+
+# --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
 
-# first, prepare the freesurfer distribution
+# prepare the freesurfer distribution
 add_subdirectory(distribution)
-if(NOT MINIMAL)
-  add_subdirectory(images)
-endif()
 
-# the top-level include dir contain the most commonly
-# included freesurfer header files
+# the top-level include dir contain the most commonly included freesurfer header files
 set(FS_INCLUDE_DIRS
-  ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/packages/minc
   ${CMAKE_SOURCE_DIR}/packages/netcdf
+  ${CMAKE_SOURCE_DIR}/packages/nifti
 )
 
-# build third-party libraries
-# make sure to use the local minc source
-add_definitions(-DUSE_LOCAL_MINC)
-add_subdirectories(
-  packages/jpeg
-  packages/expat
-  packages/tiff
-  packages/xml2
-  packages/minc
-  packages/netcdf
-  packages/tetgen
-)
-
-if(OPENGL_FOUND)
-  add_subdirectory(packages/glut)
-endif()
-
-# now build the freesurfer static libraries (order here matters!)
-add_subdirectories(
-  log
-  rgb
-  hipsstubs
-  dicom
-  utils
-  utilscpp
-  fsgdf
-  svm-lib
-  opencl_algorithms
-)
+# build the freesurfer static libraries
+add_subdirectories(utils)
 
 # the following utility libraries are required for freeview
-add_subdirectories(vtkfsio vtkutils lineprof)
+add_subdirectories(vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
@@ -419,6 +367,7 @@ add_subdirectories(
   mri_voldiff
   mri_watershed
   mris_anatomical_stats
+  mris_annot_diff
   mris_ca_label
   mris_calc
   mris_convert
@@ -452,18 +401,15 @@ add_subdirectories(
   tkregister2
 )
 
-# the following program subdirectories aren't required in the standard
-# recon-all stream - they will be built by default, but not if a minimal build
-# is configured
+# the following program subdirectories aren't required in the standard recon-all stream.
+# they will be built by default, but not if a minimal build is configured
 if(NOT MINIMAL)
   add_subdirectories(
     anatomicuts
+    attic
     BrainstemSS
-    check_siemens_dir
-    connectgraph
     diffusion_tool
-    dmri_tensoreig
-    dngtester
+    dummy
     freeview
     fsfast
     fslutils
@@ -472,59 +418,37 @@ if(NOT MINIMAL)
     hiam_register
     HippoSF
     histo_compute_joint_density
-    histo_fix_topology
     histo_register_block
-    histo_segment
     histo_synthesize
     label2flat
     label2patch
-    label_area
-    label_border
     mkxsubjreg
     matlab
-    mri_apply_inu_correction
-    mri_aseg_edit_reclassify
-    mri_aseg_edit_train
-    mri_auto_fill
     mri_average
-    mri_bc_sc_bias_correct
     mri_bias
-    mri_build_priors
     mri_ca_tissue_parms
     mri_ca_train
     mri_cal_renormalize_gca
-    mri_cht2p
-    mri_classify
     mri_cnr
     mri_compile_edits
     mri_compute_change_map
-    mri_compute_structure_transforms
     mri_compute_volume_fractions
-    mri_concatenate_gcam
-    mri_convert_mdh
     mri_copy_values
     mri_cor2label
     mri_correct_segmentations
     mri_cvs_register
     mri_dct_align
     mri_distance_transform
-    mri_divide_segmentation
-    mri_elastic_energy
-    mri_estimate_tissue_parms
     mri_evaluate_morph
     mri_extract
-    mri_extract_conditions
     mri_extract_fcd_features
     mri_extract_label
-    mri_fcili
     mri_fdr
     mri_fieldsign
     mri_fit_bias
     mri_fslmat_to_lta
     mri_fuse_intensity_images
     mri_gca_ambiguous
-    mri_gcab_train
-    mri_gdfglm
     mri_glmfit
     mri_gtmpvc
     mri_gtmseg
@@ -532,47 +456,28 @@ if(NOT MINIMAL)
     mri_head
     mri_hires_register
     mri_histo_eq
-    mri_histo_normalize
-    mri_ibmc
-    mri_interpolate
     mri_jacobian
     mri_joint_density
-    mri_label_accuracy
     mri_label_histo
     mri_label_vals
     mri_label_volume
     mri_linear_register
-    mri_make_bem_surfaces
-    mri_make_density_map
-    mri_make_labels
-    mri_make_register
-    mri_make_template
     mri_map_cpdat
     mri_mark_temporal_lobe
     mri_mcsim
     mri_mi
     mri_modify
     mri_morphology
-    mri_mosaic
-    mri_ms_EM
-    mri_ms_EM_with_atlas
     mri_ms_fitparms
-    mri_ms_LDA
-    mri_multiscale_segment
-    mri_multispectral_segment
     mri_nlfilter
     mri_otl
     mri_paint
     mri_parse_sdcmdir
-    mri_parselabel
-    mri_partial_ribbon
     mri_path2label
     mri_polv
     mri_probe_ima
     mri_reduce
-    mri_register
     mri_rf_label
-    mri_rf_long_label
     mri_rf_long_train
     mri_rf_train
     mri_ribbon
@@ -581,52 +486,35 @@ if(NOT MINIMAL)
     mri_seg_diff
     mri_segcentroids
     mri_seghead
-    mri_segment_tumor
-    mri_segment_wm_damage
-    mri_simulate_atrophy
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
     mri_synthesize
-    mri_threshold
     mri_topologycorrection
     mri_train
-    mri_train_autoencoder
     mri_transform
-    mri_transform_to_COR
     mri_twoclass
-    mri_update_gca
-    mri_vol2roi
     mri_volcluster
     mri_volsynth
     mri_warp_convert
     mri_wbc
-    mri_wmfilter
-    mri_xcorr
     mri_xvolavg
     mri_z2p
     mris2rgb
-    mris_add_template
     mris_annot_to_segmentation
     mris_apply_reg
-    mris_aseg_distance
     mris_average_curvature
-    mris_average_parcellation
     mris_BA_segment
     mris_ca_train
-    mris_classify_thickness
     mris_compute_acorr
     mris_compute_lgi
-    mris_compute_optimal_kernel
     mris_compute_overlap
     mris_compute_parc_overlap
     mris_compute_volume_fractions
     mris_congeal
     mris_copy_header
-    mris_decimate_gui
     mris_defects_pointset
     mris_deform
-    mris_density
     mris_distance_map
     mris_distance_to_label
     mris_distance_transform
@@ -634,29 +522,24 @@ if(NOT MINIMAL)
     mris_errors
     mris_expand
     mris_extract_patches
-    mris_fbirn_annot
     mris_fill
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
-    mris_glm
     mris_hausdorff_dist
     mris_init_global_tractography
     mris_interpolate_warp
     mris_label_area
     mris_label_calc
     mris_label_mode
-    mris_longitudinal_surfaces
     mris_make_average_surface
     mris_make_face_parcellation
-    mris_make_map_surfaces
     mris_make_template
     mris_map_cuts
     mris_merge_parcellations
     mris_mesh_subdivide
     mris_morph_stats
     mris_ms_refine
-    mris_ms_surface_CNR
     mris_multiscale_stats
     mris_niters2fwhm
     mris_parcellate_connectivity
@@ -678,33 +561,24 @@ if(NOT MINIMAL)
     mris_segmentation_stats
     mris_shrinkwrap
     mris_simulate_atrophy
+    mris_smooth_intracortical
     mris_spherical_average
-    mris_surface_change
     mris_surface_to_vol_distances
-    mris_svm_classify
-    mris_svm_train
     mris_talairach
     mris_thickness_comparison
     mris_transform
     mris_translate_annotation
     mris_transmantle_dysplasia_paths
-    mris_twoclass
     mris_volume
-    mris_w_to_curv
     mris_warp
     mris_watershed
     mrisp_write
     nmovie_qt
     oct_register_mosaic
-    oct_train
     optseq2
     qdecproject
     qdec_glmfit
-    rbftest
-    regdat2xfm
-    repair_siemens_file
     resurf
-    spherical_stats
     spline3
     stat_normalize
     stim_polar
@@ -717,7 +591,14 @@ if(NOT MINIMAL)
   )
 endif()
 
-# infant freesurfer
 if(INFANT_MODULE)
-  add_subdirectories(infant)
+  add_subdirectory(infant)
+endif()
+
+if(TKTOOLS_MODULE)
+  add_subdirectory(tktools)
+endif()
+
+if(BUILD_DNG)
+  add_subdirectory(dngtester)
 endif()

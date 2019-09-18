@@ -53,12 +53,10 @@
 #include "fs_vnl/fs_lbfgs.h"
 #include "fs_vnl/fs_powell.h"
 
-extern "C" {
 #include "cephes.h"
 #include "diag.h"
 #include "error.h"
 #include "numerics.h"
-}
 
 // used for calculating the incomplete beta function
 static double d_huge();
@@ -464,7 +462,7 @@ static double beta(double x, double y)
  * @param x Argument of the function.  Normally, 0.0 <= x <= 1.0.
  * @return Value of the function.
  */
-extern "C" float OpenBetaIncomplete(float a, float b, float x)
+float OpenBetaIncomplete(float a, float b, float x)
 {
   double cx;
   int i;
@@ -716,7 +714,7 @@ double normal_01_cdf(double x)
  * GAMMA_INC is returned as 0.
  * @return The value of the function.
  */
-extern "C" float OpenGammaIncomplete(float p, float x)
+float OpenGammaIncomplete(float p, float x)
 {
   double a;
   double arg;
@@ -850,7 +848,7 @@ extern "C" float OpenGammaIncomplete(float p, float x)
   return value;
 }
 
-extern "C" int OpenDFPMin(float p[],
+int OpenDFPMin(float p[],
                           int n,
                           float iTolerance,
                           int *oIterations,
@@ -934,7 +932,7 @@ extern "C" int OpenDFPMin(float p[],
 /**
  * Provides the eigen values and vectors for symmetric matrices.
  */
-extern "C" int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
+int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
 {
   vnl_matrix< float > vnlMatrix(iaData, icData, icData);
 
@@ -952,7 +950,7 @@ extern "C" int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, f
 /**
  * Provides the eigen values and vectors for symmetric matrices.
  */
-extern "C" int OpenNonSymmetricEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
+int OpenNonSymmetricEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
 {
   // convert the data into a double
   double data[icData * icData];
@@ -984,7 +982,7 @@ extern "C" int OpenNonSymmetricEigenSystem(float *iaData, int icData, float *oEi
   return NO_ERROR;
 }
 
-extern "C" void OpenPowell(float iaParams[],
+void OpenPowell(float iaParams[],
                            float **ioInitialDirection,
                            int icParams,
                            float iTolerance,
@@ -1041,7 +1039,7 @@ extern "C" void OpenPowell(float iaParams[],
   It would be better to have more options on this function.
   Note: each "iteration" is a loop thru a 1D min for each parameter.
   ------------------------------------------------------------------------*/
-extern "C" int OpenPowell2(float iaParams[],
+int OpenPowell2(float iaParams[],
                            float **ioInitialDirection,
                            int icParams,
                            float iTolerance,
@@ -1095,7 +1093,7 @@ extern "C" int OpenPowell2(float iaParams[],
   return (0);
 }
 
-extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse)
+int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse)
 {
   // NO_ERROR from error.h
   int errorCode = NO_ERROR;
@@ -1157,7 +1155,7 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse)
  * @param iMatrix
  * @return Returns 0 if the matrix is non-square.
  */
-extern "C" float OpenMatrixDeterminant(MATRIX *iMatrix)
+float OpenMatrixDeterminant(MATRIX *iMatrix)
 {
   float determinant = 0.0;
 
@@ -1184,7 +1182,7 @@ extern "C" float OpenMatrixDeterminant(MATRIX *iMatrix)
  * @param oW Ouput diagonal vector.
  * @param oV Ouput V matrix.
  */
-extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
+int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
 {
   int errorCode = NO_ERROR;
 
@@ -1215,7 +1213,7 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
  * different seed.  The behaviour of this function is meant to mimic that of
  * the ran1 algorithm in numerical recipes.
  */
-extern "C" float OpenRan1(long *iSeed)
+float OpenRan1(long *iSeed)
 {
 
 #ifdef HAVE_OPENMP
@@ -1246,7 +1244,7 @@ extern "C" float OpenRan1(long *iSeed)
  * @param iYStartDerivative The derivative at the beginning of the function.
  * @param iYEndDerivative The derivative at the last point of the function.
  */
-extern "C" void OpenSpline(
+void OpenSpline(
     float iaX[], float iaY[], int icXY, float iYStartDerivative, float iYEndDerivative, float oaYSecondDerivatives[])
 {
   float *secondDerivatives = SplineCubicSet(
@@ -1264,7 +1262,7 @@ extern "C" void OpenSpline(
  * interpolated as the closest edge point, rather than the usual extrapolated
  * point.
  */
-extern "C" void OpenSplint(
+void OpenSplint(
     float iaX[], float iaY[], float iaYSecondDerivatives[], int icYSecondDerivatives, float iX, float *oY)
 {
   float firstDerivative = 0.0;
@@ -1644,7 +1642,7 @@ float *d3_np_fs(int n, float a[], float b[])
 #define NR_END 1
 #define FREE_ARG char *
 
-extern "C" float *vector(long nl, long nh)
+float *vector(long nl, long nh)
 /* allocate a float vector with subscript range v[nl..nh] */
 {
   float *v;
@@ -1654,7 +1652,7 @@ extern "C" float *vector(long nl, long nh)
   return v - nl + NR_END;
 }
 
-extern "C" float **matrix(long nrl, long nrh, long ncl, long nch)
+float **matrix(long nrl, long nrh, long ncl, long nch)
 /* allocate a float matrix with subscript range m[nrl..nrh][ncl..nch] */
 {
   long i, nrow = nrh - nrl + 1, ncol = nch - ncl + 1;
@@ -1678,7 +1676,7 @@ extern "C" float **matrix(long nrl, long nrh, long ncl, long nch)
   return m;
 }
 
-extern "C" void free_vector(float *v, long nl, long nh)
+void free_vector(float *v, long nl, long nh)
 /* free a float vector allocated with vector() */ { free((FREE_ARG)(v + nl - NR_END)); }
 
 void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
@@ -1792,7 +1790,7 @@ vnl_matrix_fixed< double, 4, 4 > MatrixSqrt(const vnl_matrix_fixed< double, 4, 4
   return msqrt;
 }
 
-extern "C" MATRIX *MatrixSqrt(MATRIX *m, MATRIX *sqrtm)
+MATRIX *MatrixSqrt(MATRIX *m, MATRIX *sqrtm)
 {
   int i, j;
   vnl_matrix_fixed< double, 4, 4 > vnl_m;
@@ -1828,9 +1826,6 @@ extern "C" MATRIX *MatrixSqrt(MATRIX *m, MATRIX *sqrtm)
 */
 
 //##################### FUNC PROTOS ######################################
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 static const unsigned long int SC_MASK_LO = 0x00ffffffUL; /*2^24 - 1 */
 static const unsigned long int SC_MASK_HI = ~0x00ffffffUL;
@@ -1846,10 +1841,6 @@ double sc_gamma_large(const sc_rng *r, const double a);
 double sc_gamma_int(const sc_rng *r, const unsigned int a);
 double sc_ugauss(const sc_rng *r);
 
-#ifdef __cplusplus
-}
-#endif
-
 //##################### FUNCTIONS #######################################
 
 //########### VNL ###################################################
@@ -1862,7 +1853,7 @@ double sc_ugauss(const sc_rng *r);
   Returns 0 on success and nonzero otherwise (eg,
   when U is non-positive def).
  */
-extern "C" int sc_linalg_cholesky_decomp(MATRIX *U)
+int sc_linalg_cholesky_decomp(MATRIX *U)
 {
   int i, j, err;
 
@@ -1894,7 +1885,7 @@ static void sc_err_msg(const char *msg)
 
 //########################## RNG ###############################
 
-extern "C" unsigned long int sc_inc_status(sc_status_t *status)
+unsigned long int sc_inc_status(sc_status_t *status)
 {
   int i, j;
   long int step;
@@ -1931,7 +1922,7 @@ extern "C" unsigned long int sc_inc_status(sc_status_t *status)
   return (step);
 }
 
-extern "C" unsigned long int sc_rng_get(const sc_rng *r)
+unsigned long int sc_rng_get(const sc_rng *r)
 {
   sc_status_t *status;
   int i, skip;
@@ -1950,7 +1941,7 @@ extern "C" unsigned long int sc_rng_get(const sc_rng *r)
   return (ret);
 }
 
-extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in)
+void sc_rng_set(sc_rng *r, unsigned long int seed_in)
 {
   int const_lux;
   sc_status_t *status;
@@ -1992,7 +1983,7 @@ extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in)
   return;
 }
 
-extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T)
+sc_rng *sc_rng_alloc(const sc_rng_type *T)
 {
   sc_rng *r;
 
@@ -2009,7 +2000,7 @@ extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T)
   return (r);
 }
 
-extern "C" void sc_rng_free(sc_rng *r)
+void sc_rng_free(sc_rng *r)
 {
   if (r->status != NULL) free(r->status);
 
@@ -2018,7 +2009,7 @@ extern "C" void sc_rng_free(sc_rng *r)
   return;
 }
 
-extern "C" double sc_uni(const sc_rng *r)
+double sc_uni(const sc_rng *r)
 {
   double u;
 
@@ -2027,7 +2018,7 @@ extern "C" double sc_uni(const sc_rng *r)
   return (u);
 }
 
-extern "C" double sc_uni_pos(const sc_rng *r)
+double sc_uni_pos(const sc_rng *r)
 {
   double x;
   do {
@@ -2039,7 +2030,7 @@ extern "C" double sc_uni_pos(const sc_rng *r)
 
 //##################### RAN ###
 
-extern "C" double sc_ran_flat(const sc_rng *r, const double a, const double b)
+double sc_ran_flat(const sc_rng *r, const double a, const double b)
 {
   double u, ret;
 
@@ -2048,7 +2039,7 @@ extern "C" double sc_ran_flat(const sc_rng *r, const double a, const double b)
   return (ret);
 }
 
-extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma)
+double sc_ran_gaussian(const sc_rng *r, const double sigma)
 {
   double x, y, r2, ret;
 
@@ -2062,7 +2053,7 @@ extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma)
   return (ret);
 }
 
-extern "C" double sc_ugauss(const sc_rng *r)
+double sc_ugauss(const sc_rng *r)
 {
   double ret;
 
@@ -2071,7 +2062,7 @@ extern "C" double sc_ugauss(const sc_rng *r)
   return (ret);
 }
 
-extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a)
+double sc_gamma_int(const sc_rng *r, const unsigned int a)
 {
   unsigned int i;
   double prod, ret;
@@ -2090,7 +2081,7 @@ extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a)
   }
 }
 
-extern "C" double sc_gamma_large(const sc_rng *r, const double a)
+double sc_gamma_large(const sc_rng *r, const double a)
 {
   double sqa, y, v, ret;
 
@@ -2106,7 +2097,7 @@ extern "C" double sc_gamma_large(const sc_rng *r, const double a)
   return (ret);
 }
 
-extern "C" double sc_gamma_frac(const sc_rng *r, const double a)
+double sc_gamma_frac(const sc_rng *r, const double a)
 {
   double p, q, u, v, ret;
   p = M_E / (a + M_E);
@@ -2127,7 +2118,7 @@ extern "C" double sc_gamma_frac(const sc_rng *r, const double a)
   return (ret);
 }
 
-extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b)
+double sc_ran_gamma(const sc_rng *r, const double a, const double b)
 {
   unsigned int na;
   double ret;
@@ -2147,7 +2138,7 @@ extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b)
   }
 }
 
-extern "C" double sc_ran_fdist(const sc_rng *r, const double nu1, const double nu2)
+double sc_ran_fdist(const sc_rng *r, const double nu1, const double nu2)
 {
   double Y1, Y2, ret;
 
@@ -2158,7 +2149,7 @@ extern "C" double sc_ran_fdist(const sc_rng *r, const double nu1, const double n
   return (ret);
 }
 
-extern "C" double sc_ran_chisq(const sc_rng *r, const double nu)
+double sc_ran_chisq(const sc_rng *r, const double nu)
 {
   double ret;
 
@@ -2166,7 +2157,7 @@ extern "C" double sc_ran_chisq(const sc_rng *r, const double nu)
   return (ret);
 }
 
-extern "C" double sc_ran_tdist(const sc_rng *r, const double nu)
+double sc_ran_tdist(const sc_rng *r, const double nu)
 {
   double Y1, Y2, Z, ret;
 
@@ -2188,7 +2179,7 @@ extern "C" double sc_ran_tdist(const sc_rng *r, const double nu)
   }
 }
 
-extern "C" double sc_ran_exponential(const sc_rng *r, const double mu)
+double sc_ran_exponential(const sc_rng *r, const double mu)
 {
   double u, ret;
 
@@ -2198,7 +2189,7 @@ extern "C" double sc_ran_exponential(const sc_rng *r, const double mu)
   return (ret);
 }
 
-extern "C" double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n)
+double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n)
 {
   double ret;
 
@@ -2214,7 +2205,7 @@ extern "C" double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n)
 
 //##################### CDF ###
 
-extern "C" double sc_cdf_flat_Q(double x, double a, double b)
+double sc_cdf_flat_Q(double x, double a, double b)
 {
   double ret = 0.0;
 
@@ -2225,7 +2216,7 @@ extern "C" double sc_cdf_flat_Q(double x, double a, double b)
   return (1.0 - ret);
 }
 
-extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b)
+double sc_cdf_flat_Qinv(double Q, double a, double b)
 {
   double ret = 0.0;
 
@@ -2238,7 +2229,7 @@ extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b)
   return (ret);
 }
 
-extern "C" double sc_cdf_fdist_Q(double x, double nu1, double nu2)
+double sc_cdf_fdist_Q(double x, double nu1, double nu2)
 {
   double ret = 0.0;
 
@@ -2247,7 +2238,7 @@ extern "C" double sc_cdf_fdist_Q(double x, double nu1, double nu2)
   return (ret);
 }
 
-extern "C" double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2)
+double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2)
 {
   double ret = 0.0;
 
@@ -2256,7 +2247,7 @@ extern "C" double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2)
   return (ret);
 }
 
-extern "C" double sc_cdf_tdist_Q(double x, double nu)
+double sc_cdf_tdist_Q(double x, double nu)
 {
   double ret = 0.0;
 
@@ -2265,7 +2256,7 @@ extern "C" double sc_cdf_tdist_Q(double x, double nu)
   return (ret);
 }
 
-extern "C" double sc_cdf_tdist_Qinv(double Q, double nu)
+double sc_cdf_tdist_Qinv(double Q, double nu)
 {
   double ret = 0.0;
 
@@ -2274,7 +2265,7 @@ extern "C" double sc_cdf_tdist_Qinv(double Q, double nu)
   return (ret);
 }
 
-extern "C" double sc_cdf_gaussian_Q(double x, double nu)
+double sc_cdf_gaussian_Q(double x, double nu)
 {
   double ret = 0.0;
 
@@ -2288,7 +2279,7 @@ extern "C" double sc_cdf_gaussian_Q(double x, double nu)
   return (ret);
 }
 
-extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu)
+double sc_cdf_gaussian_Qinv(double Q, double nu)
 {
   double ret = 0.0;
 
@@ -2302,7 +2293,7 @@ extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu)
   return (ret);
 }
 
-extern "C" double sc_cdf_chisq_Q(double x, double nu)
+double sc_cdf_chisq_Q(double x, double nu)
 {
   double ret = 0.0;
 
@@ -2311,7 +2302,7 @@ extern "C" double sc_cdf_chisq_Q(double x, double nu)
   return (ret);
 }
 
-extern "C" double sc_cdf_chisq_Qinv(double Q, double nu)
+double sc_cdf_chisq_Qinv(double Q, double nu)
 {
   double ret = 0.0;
 

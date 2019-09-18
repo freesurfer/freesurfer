@@ -1,12 +1,8 @@
 project(tiff)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 add_definitions(-DZIP_SUPPORT -DPIXARLOG_SUPPORT)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Wno-missing-braces -Wno-strict-aliasing")
-
-set(SOURCES
+add_library(tiff STATIC
   tif_aux.c
   tif_close.c
   tif_codec.c
@@ -44,5 +40,3 @@ set(SOURCES
   tif_write.c
   tif_zip.c
 )
-
-add_library(tiff STATIC ${SOURCES})

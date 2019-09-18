@@ -39,11 +39,6 @@
 
 #include "MultiRegistration.h"
 
-// all other software are all in "C"
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
@@ -52,10 +47,6 @@ extern "C"
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 
@@ -197,9 +188,9 @@ int main(int argc, char *argv[])
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
 
     // Timer
-    struct timeb start;
+    Timer start;
     int msec, minutes, seconds;
-    TimerStart(&start);
+    start.reset();
     ///////////////////////////////////////////////////////////////
 
     MultiRegistration MR;
@@ -388,7 +379,7 @@ int main(int argc, char *argv[])
     MR.clear();
 
     ///////////////////////////////////////////////////////////////
-    msec = TimerStop(&start);
+    msec = start.milliseconds();
     seconds = nint((float) msec / 1000.0f);
     minutes = seconds / 60;
     seconds = seconds % 60;

@@ -28,10 +28,10 @@
 #include <QList>
 #include <QVector>
 
-extern "C"
-{
+
+
 #include "colortab.h"
-}
+
 
 namespace Ui
 {
@@ -62,6 +62,8 @@ public:
   explicit PanelVolume(QWidget *parent = 0);
   ~PanelVolume();
 
+  bool eventFilter(QObject *watched, QEvent *event);
+
 protected slots:
   void OnCheckShowContour( bool bShow );
   void OnCheckShowLabelContour( bool bShow );
@@ -91,7 +93,6 @@ protected slots:
   void OnSliderContourMax(int);
   void OnSliderContourSmooth(int);
   void OnContourValueChanged();
-  void OnContourSave();
   void OnCopySettings();
   void OnPasteSettings();
   void OnPasteSettingsToAll();
@@ -121,6 +122,8 @@ protected slots:
 
   void OnLineEditVectorLineWidth(const QString& strg);
 
+  void OnLineEditVectorNormThreshold(const QString &strg);
+
   void OnLineEditProjectionMapRangeChanged();
 
   void OnComboProjectionMapType(int nType);
@@ -145,6 +148,14 @@ protected slots:
 
   void OnColorTableChangeColor();
 
+  void OnCheckVoxelizedContour( bool bVoxelize );
+
+  void OnCheckBoxSetAutoMid(bool b);
+
+  void UpdateOpacity(double val);
+
+  void OnLineEditClearBackgroundValue(const QString& text);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();
@@ -163,7 +174,6 @@ private:
   QList<QWidget*> m_widgetlistVector;
   QList<QWidget*> m_widgetlistContour;
   QList<QWidget*> m_widgetlistContourNormal;
-  QList<QWidget*> m_widgetlistContourLabel;
   QList<QWidget*> m_widgetlistNormalDisplay;
   QList<QWidget*> m_widgetlistEditable;
   QList<QWidget*> m_widgetlistVolumeTrack;

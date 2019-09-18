@@ -1,0 +1,520 @@
+#! /bin/tcsh -f
+# This script runs Cortical Parcellation, Surface Anatomical Stats and Aparc2aseg using a given .gcs file.
+set RunIt = 1
+set ProgName = `basename $0`;
+set PWD = pwd;
+set hemilist = (lh rh)
+set DoCortParc = 1
+set DoParcStats = 1
+set DoAParc2ASeg = 1
+set XOptsFile = ()
+set GlobXOptsFile = ()
+set XOptsClean = 0; # Delete a pre-existing xopts file
+set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
+set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
+set GCADIR = "${FREESURFER_HOME}/average"
+set GCA = RB_all_2016-05-10.vc700.gca
+set GCSDIR = "${FREESURFER_HOME}/average"
+#set DESTRIEUX_GCS = CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
+set DESTRIEUX_GCS = destrieux.simple.2009-07-29.gcs
+set UseAseg = 1
+set NoRandomness = 1
+set longitudinal = 0
+set RngSeed = 1234
+set TH3Flag = 1
+set LHonly = 0
+set RHonly = 0
+set a2009s = 0
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) goto usage_exit;
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+#----------------                       -----------------#
+#---------------- Cortical Parcellation -----------------#
+#----------------       -cortparc       -----------------#
+#----------------                       -----------------#
+if($DoCortParc) then
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------"\
+      |& tee -a $LF
+    echo "#@# Cortical Parc ${PARC_NAME} $hemi `date`" \
+      |& tee -a $LF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile $GlobXOptsFile`;
+    set CPAtlas = ${GCSDIR}/${hemi}.${GCS_FILE}
+    if(! $?OUTDIR ) then
+      set annot = ../label/$hemi.aparc.${PARC_NAME}.annot
+    else
+      set annot = $OUTDIR/$hemi.aparc.${PARC_NAME}.annot
+    endif
+    set cmd = (mris_ca_label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if("$version" == "6.0.0" || "$version" == "dev") then
+      if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
+    else
+      if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    endif
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts)
+    if($longitudinal) then
+      # longitudinal:
+      set cmd = ($cmd -long -R \
+                 $longbasedir/label/${hemi}.aparc.${PARC_NAME}.annot)
+    endif
+    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
+    echo "\n $cmd \n" |& tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  end # Loop over hemilist
+endif
+
+#----------                          -----------#
+#---------- Surface Anatomical Stats -----------#
+#----------       -parcstats         -----------#
+#----------                          -----------#
+if($DoParcStats) then
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF
+    echo "#@# Parcellation Stats ${PARC_NAME} $hemi `date`" \
+      |& tee -a $LF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
+    if(! $?OUTDIR ) then
+      set annot = ../label/$hemi.aparc.${PARC_NAME}.annot
+      set stats = ../stats/$hemi.aparc.${PARC_NAME}.stats
+      set ctab  = ../label/aparc.annot.${PARC_NAME}.ctab
+    else
+      set annot = $OUTDIR/$hemi.aparc.${PARC_NAME}.annot
+      set stats = $OUTDIR/$hemi.aparc.${PARC_NAME}.stats
+      set ctab  = $OUTDIR/aparc.annot.${PARC_NAME}.ctab
+    endif
+    if("$version" == "6.0.0" || "$version" == "dev") then
+      set cmd = (mris_anatomical_stats $TH3Opt -mgz)
+    else
+      set cmd = (mris_anatomical_stats -mgz)
+    endif
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    echo "\n $cmd \n"|& tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  end # Loop over hemilist
+  rm ${ctab}
+endif
+
+#-----------------               -----------------#
+#-----------------  -aparc2aseg  -----------------#
+#-----------------               -----------------#
+if($DoAParc2ASeg) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF
+    echo "#@# AParc-to-ASeg ${PARC_NAME} `date`" \
+      |& tee -a $LF
+    cd $subjdir > /dev/null
+    $PWD |& tee -a $LF
+    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
+    if(! $longitudinal) then
+      set asegintensities = mri/aseg.auto_noCCseg.label_intensities.txt
+    else
+      set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
+    endif
+    set cmd = (mri_aparc2aseg --s $subjid --volmask)
+    if("$version" == "6.0.0" || "$version" == "dev") then
+      set cmd = ($cmd --aseg aseg.presurf.hypos)
+      if(-e mri/transforms/talairach.m3z) then
+        # These options will not work with samseg, which does not have a tal.m3z
+        set cmd = ($cmd --relabel mri/norm.mgz mri/transforms/talairach.m3z ${GCADIR}/$GCA $asegintensities)
+      endif
+    endif
+    if ($LHonly) set cmd = ($cmd --lh )
+    if ($RHonly) set cmd = ($cmd --rh )
+    if(! $?OUTDIR ) then
+      set lh_annot = ${subjdir}/label/lh.aparc.${PARC_NAME}.annot
+      set rh_annot = ${subjdir}/label/rh.aparc.${PARC_NAME}.annot
+      set mgz = mri/aparc.${PARC_NAME}+aseg.mgz
+    else
+      set lh_annot = $OUTDIR/lh.aparc.${PARC_NAME}.annot
+      set rh_annot = $OUTDIR/rh.aparc.${PARC_NAME}.annot
+      set lh_link = ${subjdir}/label/lh.aparc.${PARC_NAME}.annot
+      set rh_link = ${subjdir}/label/rh.aparc.${PARC_NAME}.annot
+      if (! $RHonly) ln -s ${lh_annot} ${lh_link}
+      if (! $LHonly) ln -s ${rh_annot} ${rh_link}
+      set mgz = $OUTDIR/aparc.${PARC_NAME}+aseg.mgz
+    endif
+    if( ${a2009s} ) then
+      set cmd = ($cmd --a2009s)
+    else
+      set cmd = ($cmd --annot aparc.${PARC_NAME})
+    endif
+    set cmd = ($cmd --o ${mgz})
+    set cmd = ($cmd $xopts)
+    echo "\n $cmd \n" |& tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if( $?OUTDIR ) then
+      if ( -l ${lh_link} && -l ${rh_link} ) then
+        if (! $RHonly) rm ${lh_link}
+        if (! $LHonly) rm ${rh_link}
+      endif
+    endif
+endif
+
+exit 0
+
+#--------------                  ----------------#
+#--------------    ERROR EXIT    ----------------#
+#--------------                  ----------------#
+
+#-------------------------------------------------#
+error_exit:
+#-------------------------------------------------#
+  uname -a | tee -a $LF
+  echo "" |& tee -a $LF
+  echo "${ProgName} exited with ERRORS at `date`" \
+    |& tee -a $LF
+  echo "" |& tee -a $LF
+  echo "For more details, see the log file $LF"
+ 
+  # Finally exit
+  exit 1;
+endif
+
+#-------------------------------------------------#
+parse_args:
+#-------------------------------------------------#
+set cmdline = "$argv";
+while( $#argv != 0 )
+  set flag = $argv[1]; shift;
+  switch($flag)
+    case "-s":
+    case "-subject":
+    case "-subjid":
+    case "-sid":
+      if( $#argv < 1 ) goto arg1err
+      set subjid = $argv[1]; shift;
+      breaksw
+    case "-sd":
+    case "-sdir":
+      if( $#argv < 1 ) goto arg1err
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+    case "-gcsd":
+    case "-gcsdir":
+      if( $#argv < 1 ) goto arg1err
+      set GCSDIR = $argv[1];shift;
+      breaksw
+    case "-gcs":
+      if( $#argv < 1 ) goto arg1err
+      set GCS_FILE = "$argv[1].gcs";
+      set GCS_NAME = $argv[1];shift;
+      breaksw
+    case "-name":
+      if( $#argv < 1 ) goto arg1err
+      set PARC_NAME = $argv[1];shift;
+      breaksw
+    case "-o":
+      set OUTDIR = $argv[1];shift;
+      breaksw
+    case "-log":
+      set LF = $argv[1];shift;
+      breaksw
+    case "-lh":
+    case "-lh-only":
+      set LHonly = 1;
+      set hemilist = lh
+      breaksw
+    case "-rh":
+    case "-rh-only":
+      set hemilist = rh
+      set RHonly = 1;
+      breaksw
+    case "-a2009s":
+      set a2009s = 1;
+      set GCS_FILE = ${DESTRIEUX_GCS}; 
+      breaksw
+    case "-noaseg":
+      set UseAseg = 0;
+      set DoAParc2ASeg = 0;
+      breaksw
+    case "-nocortparc":
+      set DoCortParc = 0;
+      breaksw
+    case "-noparcstats":
+      set DoParcStats = 0;
+      breaksw
+    case "-noaparc2aseg":
+      set DoAParc2ASeg = 0;
+      breaksw
+    # -th3 turns on new volume calc for mris_anat_stats
+    case "-th3":
+      set TH3Flag = 1
+      breaksw
+    case "-no-th3":
+      set TH3Flag = 0
+      breaksw
+    case "-norandomness":
+      set NoRandomness = 1;
+      breaksw
+    case "-randomness":
+      set NoRandomness = 0;
+      breaksw
+    case "-seed":
+    case "-rng-seed":
+      set NoRandomness = 1;
+      set RngSeed = $argv[1]; shift;
+      breaksw
+    # with longitudinal processing
+    case "-long":
+    case "-longitudinal":
+      set longitudinal = 1;
+      set NoRandomness = 1;
+      if ( $#argv < 2) goto arg1err;
+      # get the subject name to use for timepoint
+      set tpNid = $argv[1]; shift;
+      set tpNid = `basename $tpNid`; # remove trailing /
+      # get the subject to use for the base subject
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # and create subjid to reflect its longitudinal relation to longbaseid
+      set subjid = ${tpNid}.long.${longbaseid}
+      breaksw
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+    case "-xopts-use"
+      set XOptsUse = 1; # Use pre-existing xopts
+      breaksw
+    case "-xopts-clean"
+      set XOptsClean = 1; # Delete pre-existing xopts
+      breaksw
+    case "-xopts-overwrite"
+      set XOptsOverwrite = 1; # Overwrite pre-existing xopts
+      breaksw
+    default:
+      echo "ERROR: Flag $flag unrecognized."
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+
+#-------------------------------------------------#
+check_params:
+#-------------------------------------------------#
+
+if(! $?FREESURFER_HOME ) then
+  echo "ERROR: environment variable FREESURFER_HOME not set."
+  exit 1;
+endif
+
+if(! -e $FREESURFER_HOME ) then
+  echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+  exit 1;
+endif
+
+if(! $?SUBJECTS_DIR ) then
+  echo "ERROR: environment variable SUBJECTS_DIR not set. This can be done by setting it in the shell or by using the -sd flag"
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR ) then
+  echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR/${subjid} ) then
+  echo "ERROR: SUBJECT ${subjid} does not exist."
+  exit 1;
+endif
+
+set subjdir = "$SUBJECTS_DIR/$subjid"
+
+foreach hemi ($hemilist)
+  if(! -e ${GCSDIR}/${hemi}.${GCS_FILE} ) then
+    echo "ERROR: GCS FILE ${GCSDIR}/${hemi}.${GCS_FILE} does not exist."
+    exit 1;
+  endif
+end
+
+if($TH3Flag)   set TH3Opt = "-th3"
+if(! $TH3Flag) set TH3Opt = "-no-th3"
+
+if(! $?PARC_NAME ) then
+  if ( $a2009s ) then
+    set PARC_NAME="a2009s"
+  else
+    set PARC_NAME=${GCS_NAME}
+  endif
+endif
+
+if(! $?LF ) then
+  if( $?OUTDIR ) then
+    set LF = $OUTDIR/aparc_stats_aseg.log
+  else
+    set LF = $subjdir/scripts/aparc_stats_aseg.log
+  endif
+endif
+
+if($longitudinal) then
+  set longbasedir = $SUBJECTS_DIR/$longbaseid
+endif
+
+if($XOptsUse == 1 && $XOptsClean == 1) then
+  echo "ERROR: cannot specify both -xopts-clean and -xopts-use"
+  exit 1;
+endif
+
+mkdir -p $subjdir/scripts
+set XOptsPreExist = $subjdir/scripts/expert-options
+if(-e $XOptsPreExist) then
+  # There is a pre-existing xopts file
+  if($#XOptsFile == 0) then
+    # XOpts not passed on cmd line
+    if($XOptsUse == 0 && $XOptsClean == 0) then
+      echo "ERROR: there is a pre-existing expert options file."
+      echo "You must explicitly specify whether to:"
+      echo "  1. Use the pre-existing file (-xopts-use)"
+      echo "  2. Delete the pre-existing file (-xopts-clean)"
+      exit(1);
+    endif
+    if($XOptsClean == 1) then
+      rm -f $XOptsPreExist
+      set XOptsFile = ();
+    endif
+    if($XOptsUse == 1) then
+      set XOptsFile = $XOptsPreExist;
+    endif
+  else
+    # XOpts was passed on cmd line, but pre-existing xopts file
+    if(! $XOptsOverwrite) then
+      echo "ERROR: there is a pre-existing expert options file and"
+      echo "you have specified an expert options file on the command-line."
+      echo "If you want to use the file specified on the command-line,"
+      echo "you must run with -xopts-overwrite, or you may edit the "
+      echo "existing file $XOptsFile (and not use the -expert option)."
+      exit(1);
+    endif
+    # If it gets here, then overwrite
+    rm -f $XOptsPreExist
+    cp $XOptsFile $XOptsPreExist
+    if($status) goto error_exit;
+  endif
+else
+  # No pre-existing file
+  if($#XOptsFile != 0) then
+    # Expert options file specified on cmd line, make copy
+    cp $XOptsFile $XOptsPreExist
+    if($status) goto error_exit;
+  endif
+endif
+
+set GlobXOptsFile = $SUBJECTS_DIR/global-expert-options.txt
+if(-e $GlobXOptsFile) then
+  fsr-checkxopts $GlobXOptsFile
+  if($status) goto error_exit
+  if($XOptsUse == 0) then
+    echo "ERROR: there is a global expert options file ($GlobXOptsFile)"
+    echo "but you have not specified -xopts-use. If you want to use"
+    echo "this file, then add -xopts-use. If you do not want to use"
+    echo "this file, then delete it and re-run."
+    exit(1);
+  endif
+  cp $GlobXOptsFile $subjdir/scripts/global-expert-options.copy
+else
+  set GlobXOptsFile = ()
+endif
+
+set version = `freesurfer`
+if("$version" =~ *5.3.0*) then
+  set version = "5.3.0"
+else if("$version" =~ *6.0.0*) then
+  set version = "6.0.0"
+else if("$version" =~ *dev*) then
+  set version = "dev"
+else
+  echo "ERROR: Freesurfer not found."
+  exit 1
+endif
+
+goto check_params_return;
+
+#-------------------------------------------------#
+arg1err:
+#-------------------------------------------------#
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+
+#-------------------------------------------------#
+usage_exit:
+#-------------------------------------------------#
+  echo "NAME"
+  echo "\t${ProgName}\n"
+  echo "SYNOPSIS"
+  echo "\t${ProgName} [options]\n"
+  echo "DESCRIPTION"
+  echo "\tThis program runs mris_ca_label, mris_anatomical_stats and mri_aparc2aseg.\n"
+  echo "POSITIONAL ARGUMENTS"
+  echo "\tNone\n"
+  echo "REQUIRED FLAGGED ARGUMENTS"
+  echo "\t-s <subject name>"
+  echo "\t\tSubject name\n"
+  echo "\t-gcs <gcs name>"
+  echo "\t\tGCS file name\n"
+  echo "OPTIONAL FLAGGED ARGUMENTS"
+  echo "\t-sd <subject dir>"
+  echo "\t\tspecify a subjects directory (default=$SUBJECTS_DIR)\n"
+  echo "\t-gcsd <gcs dir>"
+  echo "\t\tGCS file directory (default=${FREESURFER_HOME}/average)\n"
+  echo "\t-name <parcellation name>"
+  echo "\t\tSpecify the parcellation name (default=gcs name)\n"
+  echo "\t-o <output dir>"
+  echo "\t\tSpecify the output dir\n"
+  echo "\t-log <log file>"
+  echo "\t\tSpecify the log file\n"
+  echo "\t-lh"
+  echo "\t\tlh only\n"
+  echo "\t-rh"
+  echo "\t\trh only\n"
+  echo "\t-a2009s"
+  echo "\t\tUse Christophe Destrieux cortical parcellation atlas\n"
+  echo "\t-noaseg":
+  echo "\t\tDo not use aseg\n"
+  echo "\t-nocortparc":
+  echo "\t\tDo not do cortical parcellation\n"
+  echo "\t-noparcstats":
+  echo "\t\tDo not do surface anatomical statistics\n"
+  echo "\t-noaparc2aseg"
+  echo "\t\tDo not do aparc2aseg\n"
+  echo "\t-seed <number>"
+  echo "\t\tRandom seed (default=1234)\n"
+  echo "\t-th3"
+  echo "\t\tUse -th3 flag, turn on new volume calculation for mris_anatomical_stats (default=on) (Only available for freesurfer version higher than 6.0.0)\n"
+  echo "\t-no-th3"
+  echo "\t\tUse -no-th3 flag for mris_anatomical_stats \n"
+  echo "\t-long <tpNid> <templateid>"
+  echo "\t\tLongitudinal Processsing (default=off)\n"
+  echo "\t-expert <file>"
+  echo "\t\tread-in expert options file\n"
+  echo "\t-xopts-use"
+  echo "\t\tuse pre-existing expert options file\n"
+  echo "\t-xopts-clean"
+  echo "\t\tdelete pre-existing expert options file\n"
+  echo "\t-xopts-overwrite"
+  echo "\t\toverwrite pre-existing expert options file\n"
+

@@ -4,10 +4,10 @@
 #include <iostream>
 #include <string>
 
-extern "C"
-{
+
+
 #include "matrix.h"
-}
+
 
 #include "ui/CommandParser.h"
 #include "ui/FreeSurferExecutable.h"

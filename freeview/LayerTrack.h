@@ -86,6 +86,7 @@ public slots:
     SetFileNames(filenames);
     LoadTrackFromFiles();
   }
+  void UpdateOpacity(double val);
 
 protected:
   virtual void OnSlicePositionChanged(int nPlane);

@@ -1,5 +1,3 @@
-#if defined(USE_LOCAL_MINC)
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : value_conversion.c
 @DESCRIPTION: File of functions for converting values. These routines
@@ -733,5 +731,3 @@ SEMIPRIVATE int MI_convert_type(long number_of_values,
    MI_RETURN(MI_NOERROR);
    
 }
-
-#endif

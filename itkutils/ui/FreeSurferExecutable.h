@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-extern "C" {
+ 
 #include "mri.h"
-}
+
 
 #include "CommandParser.h"
 

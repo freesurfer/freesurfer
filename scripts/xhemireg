@@ -29,6 +29,8 @@ set PrintHelp = 0;
 set outdir = ();
 set DoAllVol = 0;
 set DoTal = 1;
+set gcaprep = 0
+set CoRegThreads = 1
 
 # Not all of the lists below are really needed (orig T1 brain needed by make_ave_vol)
 set vollist = (orig T1 brain brainmask norm aseg aparc+aseg)
@@ -62,6 +64,14 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+if($#outdir == 0) then
+  set xsubject = $subject/xhemi
+  set outdir = $SUBJECTS_DIR/$xsubject
+endif
+mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts 
+set outdir = `getfullpath $outdir`
+echo "outdir is $outdir" 
+
 cd $SUBJECTS_DIR/$subject
 
 if($DoAllVol) then
@@ -70,13 +80,6 @@ if($DoAllVol) then
   set vollist = (`ls *.mgz *.mgh | sed 's/.mgz//g' | sed 's/.mgh//g'`);
   cd ..
 endif
-
-if($#outdir == 0) then
-  set xsubject = $subject/xhemi
-  set outdir = $SUBJECTS_DIR/$xsubject
-endif
-echo "outdir is $outdir" 
-mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts 
 
 @ nthhemi = 0;
 foreach srchemi ($srchemilist)
@@ -168,6 +171,42 @@ foreach srchemi ($srchemilist)
       #set cmd = (xhemi-tal --s $subject)
     endif
 
+    if($gcaprep) then
+      # Create a new xfm from passed xfm
+      # Convert passed xfm to lta
+      set taltemplate = $FREESURFER_HOME/average/mni305.cor.mgz
+      mkdir -p $outdir/mri/transforms
+      set cmd = (lta_convert --trg $taltemplate --src mri/orig.mgz \
+        --inmni mri/transforms/$gcaprepxfm \
+        --outlta $outdir/mri/transforms/norev.$gcaprepxfm.lta)
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      # Register the lrrev back to the norev. Note this is different than
+      # the lrrev.register.dat above as this is an actual registration
+      # of intensities
+      set cmd = (mri_coreg --mov $outdir/mri/brainmask.mgz --targ mri/brainmask.mgz \
+        --reg $outdir/mri/transforms/reg.lrrev-to-norev.lta --threads $CoRegThreads)
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      # Concatenate the two to get the lrev reg to the taltemplate
+      set cmd = (mri_concatenate_lta $outdir/mri/transforms/reg.lrrev-to-norev.lta \
+        $outdir/mri/transforms/norev.$gcaprepxfm.lta \
+        $outdir/mri/transforms/$gcaprepxfm.lta)
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      # Convert registration to xfm
+      set cmd = (lta_convert --inlta  $outdir/mri/transforms/$gcaprepxfm.lta \
+        --outmni  $outdir/mri/transforms/$gcaprepxfm)
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      # This command will need to be modified if an output folder has not been spec
+      echo "To test new registration run:"  | tee -a $LF
+      echo " tkregister2 --fstal --s `basename $outdir`"  | tee -a $LF
+    endif
   endif # nthhemi == 1
 
   # Convert Surfaces (apply LR registration)
@@ -272,6 +311,24 @@ while( $#argv != 0 )
       set DoReg = 0;
       breaksw
 
+    case "--gcaprep":
+      # This is for when creating a symmetric gca
+      # Need to create mri/tranforms
+      if( $#argv < 2) goto arg2err;
+      set gcaprep = 1
+      set gcaprepseg = $argv[1]; shift; # this should not have an extension
+      set gcaprepxfm = $argv[1]; shift; # not sure what to do with this yet
+      set vollist = (orig T1 nu brainmask $gcaprepseg)
+      set ovlist = ()
+      set surflist = ()
+      set DoTal = 0;
+      breaksw
+
+    case "--threads":
+      if( $#argv < 1) goto arg1err;
+      set CoRegThreads = $argv[1]; shift;
+      breaksw
+
     case "--avgerage-subject":
     case "--avgeragesubject":
     case "--avgsubject":
@@ -356,6 +413,8 @@ usage_exit:
   echo "   --rh : srchemi = rh (map from right to left) "
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
   echo "   --no-tal    : do not perform talairach registration"
+  echo "   --gcaprep seg xfm : for training symmetrical GCA atlases (see gcaprepone)"
+  echo "   --threads nthreads: only applies with --gcaprep"
   echo "   --version   : print version and exit"
   echo "   --help      : print help and exit"
   echo ""

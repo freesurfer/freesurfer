@@ -48,6 +48,7 @@ pkgs = [
   Package('itk',         '4.13.0', 'build_itk.sh',       'itk-4.13.0.tar.gz'),
   Package('petsc',       '2.3.3',  'build_petsc.sh',     'petsc-2.3.3.tar.gz', required=False),
   Package('ann',         '1.1.2',  'build_ann.sh',       'ann-1.1.2.tar.gz', required=False),
+  Package('gts',         '0.7.6',  'build_gts.sh',       'gts-0.7.6.tar.gz', required=False),
   Package('vtk',         '5.10.1', 'build_vtk.sh',       'vtk-5.10.1.tar.gz', required=False)
 ]
 

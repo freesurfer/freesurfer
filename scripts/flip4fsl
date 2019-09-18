@@ -135,7 +135,7 @@ if $docheck then
   endif
   echo "INFO: checking that image was reoriented correctly"
   echo "INFO: inspect overlap in tkregister window"
-  set cmd = tkregister2 
+  set cmd = tkregisterfv
   set cmd = ($cmd --targ $inframe --mov $outframe)
   set cmd = ($cmd --regheader --reg $tmpdir/register.dat)
   echo $cmd

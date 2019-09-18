@@ -39,6 +39,8 @@ set CursorCRS = ();
 set CenterCursor = 0;
 set Zoom = ();
 set altargs = ()
+set UseVGLRun = 0
+set DoDefects = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -75,7 +77,8 @@ if(! $UseTkMedit) then
   ### FreeView ####----------------------------------------------
   set cmd = (freeview  -v $mainvol)
   if($#auxvol) set cmd = ($cmd -v $auxvol)
-  if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
+  if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut")
+  if($#segcolor) set cmd = ($cmd":lut=$segcolor")
   if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut")
   @ nth = 0;
   foreach v ($segvollist) 
@@ -133,7 +136,12 @@ else
   if($DoSurfs) set cmd = ($cmd -surfs)
 endif
 echo $cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 
 #========================================================
 
@@ -209,8 +217,9 @@ while( $#argv != 0 )
 
     case "-defect":
     case "-defects":
+      set DoDefects = 1;
       set segvol0 = surface.defects.mgz
-      set segcolor = DefectLUT.txt;
+      set segcolor = (); # color table imbedded
       set surflist0 = ($surflist0 lh.orig.nofix)
       set surflist0 = ($surflist0 rh.orig.nofix)
       set surflist0 = ($surflist0 lh.orig)
@@ -336,6 +345,18 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow yellow)
       breaksw
 
+    case "-orig":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig rh.orig)
+      set surfcolor = ($surfcolor green green)
+      breaksw
+
+    case "-orig.nofix":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig.nofix rh.orig.nofix)
+      set surfcolor = ($surfcolor cyan cyan)
+      breaksw
+
     case "-surfext":  
       if($#argv < 1) goto arg1err;
       set surfext = $argv[1]; shift
@@ -356,6 +377,10 @@ while( $#argv != 0 )
     case "-tkmedit":
     case "-tkm":
       set UseTkMedit = 1;
+      breaksw
+
+    case "-vgl":
+      set UseVGLRun = 1;
       breaksw
 
     case "--nolog":
@@ -556,7 +581,10 @@ usage_exit:
   echo "-seg2 seg3 <-seg2 seg4> : add segs beyond -seg and -aux-seg"
   echo "-white : load {l,r}h.white"
   echo "-pial : load {l,r}h.pial"
+  echo "-orig : load {l,r}h.orig"
+  echo "-orig.nofix : load {l,r}h.orig.nofix"
   echo "-surfext ext : add ext to the name of the surface"
+  echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

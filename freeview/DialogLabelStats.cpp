@@ -82,7 +82,8 @@ void DialogLabelStats::UpdateStats()
     roi->GetStats( mainwnd->GetMainViewId(), &nCount, &fArea, mri, &mean, &sd );
     ui->labelLabel->setText(roi->GetName());
     ui->labelCount->setText(QString::number(nCount));
-    ui->labelArea->setText(QString("%1 mm2").arg(fArea));
+    ui->labelArea->setText("Volume:");
+    ui->labelArea->setText(QString("%1 mm3").arg(fArea));
     if (mri)
     {
       ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));

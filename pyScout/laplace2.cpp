@@ -1,5 +1,5 @@
 
-#include <cmath>
+#include <math.h>
 
 #include <vtkCellArray.h>
 #include <vtkPoints.h>

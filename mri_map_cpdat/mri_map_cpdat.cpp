@@ -25,19 +25,11 @@
 #include <string>
 #include <iostream>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "error.h"
 #include "macros.h"
 #include "version.h"
 #include "transform.h"
 #include "ctrpoints.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

@@ -50,6 +50,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui(new Ui::PanelSurface)
 {
   ui->setupUi(this);
+#ifdef Q_OS_MAC
+  ui->pushButtonNewLabel->setMaximumWidth(55);
+  ui->pushButtonDeleteLabel->setMaximumWidth(62);
+  ui->pushButtonLoadLabel->setMaximumWidth(55);
+  ui->pushButtonSaveLabel->setMaximumWidth(55);
+#endif
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
@@ -106,7 +112,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->labelLabelZOrderLabel
                  << ui->spinBoxZOrderLabel
                  << ui->labelLabelOpacity
-                 << ui->lineEditLabelOpacity;
+                 << ui->lineEditLabelOpacity
+                 << ui->toolButtonMoreLabelOptions;
 
   m_widgetsOverlay << ui->pushButtonConfigureOverlay
                    << ui->pushButtonRemoveOverlay
@@ -146,10 +153,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndConfigureOverlay->hide();
   connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
-  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(SetCurrentTimeCourseFrame(int)));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
+  connect(mainwnd, SIGNAL(OverlayMaskRequested(QString)), m_wndConfigureOverlay, SLOT(LoadLabelMask(QString)));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -582,6 +591,25 @@ void PanelSurface::UpdateLabelWidgets(bool block_signals)
     ui->toolButtonLabelUp->setEnabled(label != layer->GetLabel(0));
     ui->toolButtonLabelDown->setEnabled(label != layer->GetLabel(layer->GetNumberOfLabels()-1));
 
+    QMenu* menu = new QMenu();
+    ui->toolButtonMoreLabelOptions->setMenu(menu);
+    QAction* act = new QAction("Go To Centroid", this);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToSurfaceLabel()));
+    menu->addAction(act);
+    act = new QAction("Resample", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelResample()));
+    menu->addAction(act);
+    act = new QAction("Dilate/Erode/Open/Close...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMoreOps()));
+    menu->addAction(act);
+    act = new QAction("Mask Overlay", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLabelMaskOverlay()));
+    menu->addAction(act);
+    menu->addSeparator();
+    act = new QAction("Save As...", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(OnSaveLabelAs()));
+    menu->addAction(act);
+
     if (block_signals)
       BlockAllSignals(false);
   }
@@ -807,19 +835,20 @@ void PanelSurface::OnButtonNewLabel()
 
 void PanelSurface::OnButtonSaveLabel()
 {
-  static QString last_dir = "";
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if (surf)
   {
     SurfaceLabel* label = surf->GetActiveLabel();
     if (label)
     {
+      QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+      dir.cdUp();
+      dir.cd("label");
       QString fn = label->GetFileName();
       if (fn.isEmpty())
       {
         QString def_fn = label->GetName() + ".label";
-        if (!last_dir.isEmpty())
-          def_fn = last_dir + "/" + def_fn;
+        def_fn = dir.absoluteFilePath(def_fn);
         fn = QFileDialog::getSaveFileName( this, "Select label file",
                                            def_fn,
                                            "Label files (*)");
@@ -827,7 +856,6 @@ void PanelSurface::OnButtonSaveLabel()
       if (!fn.isEmpty())
       {
         label->SaveToFile(fn);
-        last_dir = QFileInfo(fn).absolutePath();
       }
     }
   }
@@ -1279,6 +1307,13 @@ void PanelSurface::OnLabelResample()
     surf->GetActiveLabel()->Resample(mri);
 }
 
+void PanelSurface::OnLabelMaskOverlay()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->MaskOverlay();
+}
+
 void PanelSurface::OnLabelMoreOps()
 {
   m_dlgLabelOps->show();
@@ -1365,12 +1400,17 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options)
     int vno = surf->GetLastMark();
     if (vno < 0)
       vno = surf->GetCurrentVertex();
-    if (vno < 0)
+    QVector<int> verts;
+    if (vno >= 0)
+      verts << vno;
+    if (options["UseAllPoints"].toBool())
+      verts = surf->GetAllMarks();
+    if (verts.size() == 0)
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(vno, options);
+      surf->FillPath(verts, options);
   }
 }
 
@@ -1431,4 +1471,9 @@ void PanelSurface::OnButtonLabelDown()
       ui->treeWidgetLabels->setCurrentItem(curItem);
     }
   }
+}
+
+void PanelSurface::SetOverlayFrame(int nFrame)
+{
+  m_wndConfigureOverlay->OnFrameChanged(nFrame);
 }

@@ -12,10 +12,22 @@ static bool FUNCTION_NAME(
   
 #ifndef COMPILING_MRIS_MP
   if (debugNonDeterminism) {
-    fprintf(stdout, "%s:%d %s stdout ",__FILE__,__LINE__, __MYFUNCTION__);
+    fprintf(stdout, "%s:%d %s ",__FILE__,__LINE__, __MYFUNCTION__);
     mris_print_hash(stdout, mris, "mris ", "\n");
   }
 #endif
+
+  if (false && mris->status != mris->INPUT_STATUS) {
+    auto oldStatusFormula = MRIS_Status_distanceFormula(mris->status);
+    auto newStatusFormula = MRIS_Status_distanceFormula(mris->INPUT_STATUS);
+    fprintf(stdout, "%s:%d %s mris->status:%s != mris->INPUT_STATUS:%s\n",__FILE__,__LINE__, __MYFUNCTION__,
+      MRIS_Status_text(mris->status), 
+      MRIS_Status_text(mris->INPUT_STATUS));
+    if (oldStatusFormula != newStatusFormula) 
+      fprintf(stdout, "  executing formula_%d instead of _%d\n", newStatusFormula, oldStatusFormula);
+    else
+      fprintf(stdout, "  but using the same formula_%d so not important\n", oldStatusFormula);
+  }
 
   int nonZeroInputXCount = 0;
   
@@ -23,11 +35,12 @@ static bool FUNCTION_NAME(
   
   int vno;
 
-  switch (mris->status) {
-    default: /* don't really know what to do in other cases */
+  switch (MRIS_Status_distanceFormula(mris->INPUT_STATUS)) {
+    default: 
+      cheapAssert(false);
 
-    case MRIS_PLANE:
-
+    case MRIS_Status_DistanceFormula_0:
+    {
       ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
       #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+:errors)  reduction(+:nonZeroInputXCount)
@@ -84,12 +97,10 @@ static bool FUNCTION_NAME(
         ROMP_PFLB_end
       }
       ROMP_PF_end
-  
-      break;
+    } break;
 
-    case MRIS_PARAMETERIZED_SPHERE:
-    case MRIS_SPHERE: {
-
+    case MRIS_Status_DistanceFormula_1:
+    {
       // Sped up by computing the normalized vectors for all the vertices once rather than repeatedly
       // and storing them along with their ripflag in a structure!
       //
@@ -217,6 +228,7 @@ static bool FUNCTION_NAME(
 }
 
 #undef FUNCTION_NAME 
+#undef INPUT_STATUS
 #undef INPUT_X 
 #undef INPUT_Y 
 #undef INPUT_Z

@@ -44,22 +44,13 @@
 #include <vnl/vnl_matlab_print.h>
 #undef export
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include "matrix.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
 using namespace std;
 
-extern "C"
-{
+extern "C" {
 
 // complex Schur decomposition
 extern void zgees_(char *jobvs, char *sort, long (*select)(), long *n,
@@ -92,7 +83,7 @@ extern void ztrsen_(char *job, char *compq, int *select, long *n,
 // 
 // }
 
-// extern "C"{
+// extern "C" {
 // /*: Computes Schur Decomposistion of nxn complex matrix */
 // extern int v3p_netlib_zgees_(
 //   char v3p_netlib_const *jobvs,
@@ -757,7 +748,7 @@ vnl_matrix < vcl_complex < double > > & TS)
   work.data_block(),// WORK
   &lwork,// LWORK 
   &info);
-  delete(selecti);
+  delete[] selecti;
   TS.inplace_transpose();// switch back ..
   US.inplace_transpose();// from fortran ordering
   //cout << " info: " << info << endl;
@@ -1347,7 +1338,7 @@ vnl_matrix<double> MyMatrix::MatrixSqrt(const vnl_matrix<double>& A)
         //cout << " upper triangular ! " << endl;
 
         vnl_matrix < vcl_complex < double > > R(n,n,0.0);
-        vcl_complex < double > s;
+        // vcl_complex < double > s;
         for (int j= 0; j< n; j++)// column
         {
           R[j][j] = sqrt(T[j][j]);

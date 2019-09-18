@@ -52,7 +52,7 @@ void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
   connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
-  connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
+  connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearBackground(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
   connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
   connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );

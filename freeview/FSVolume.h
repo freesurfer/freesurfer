@@ -33,13 +33,13 @@
 #include "CommonDataStruct.h"
 #include <vector>
 
-extern "C"
-{
+
+
 #include "mri.h"
 #include "histo.h"
 #include "colortab.h"
 #include "transform.h"
-}
+
 
 class vtkTransform;
 

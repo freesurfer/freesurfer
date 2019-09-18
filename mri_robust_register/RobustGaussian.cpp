@@ -26,16 +26,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <cmath>
+#include <math.h>
 #include <iostream>
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 #include "error.h"
-#ifdef __cplusplus
-}
-#endif
 
 using namespace std;
 

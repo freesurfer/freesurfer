@@ -27,21 +27,3 @@
 
 #include "mrisurf_timeStep.h"
 #include "mrisurf_deform.h"
-
-
-#ifdef FS_CUDA
-
-#include "mrisurf_cuda.h"
-static int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
-static int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages);
-static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
-static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
-
-
-/* this stuff could be useful outside FS_CUDA as well */
-static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms);
-static void mrisDeleteIP(INTEGRATION_PARMS *parms);
-
-#endif /* FS_CUDA */
-

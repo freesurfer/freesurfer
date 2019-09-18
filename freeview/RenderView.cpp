@@ -46,6 +46,7 @@
 #include "vtkScalarBarActor.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
+#include "vtkRenderWindowInteractor.h"
 #include <QPainter>
 #include <QAction>
 #include <vtkCellPicker.h>
@@ -98,12 +99,20 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   normCoords->SetCoordinateSystemToNormalizedDisplay();
 
   vtkSmartPointer<vtkPolyDataMapper2D> pMapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+#if VTK_MAJOR_VERSION > 5
+  pMapper->SetInputData(Grid);
+#else
   pMapper->SetInput(Grid);
+#endif
   pMapper->SetTransformCoordinate(normCoords);
 
   m_actorFocusFrame->SetMapper(pMapper);
   m_actorFocusFrame->GetProperty()->SetColor( 0.9, 0.9, 0);
-  m_actorFocusFrame->GetProperty()->SetLineWidth( 5 );
+  double ratio = 1;
+#if VTK_MAJOR_VERSION > 5
+  ratio = devicePixelRatio();
+#endif
+  m_actorFocusFrame->GetProperty()->SetLineWidth( 5*ratio );
 
   m_actorScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
   m_actorScalarBar->SetOrientationToVertical();
@@ -247,6 +256,8 @@ void RenderView::enterEvent( QEvent* event )
     this->setFocus();
   }
 
+  emit MouseIn();
+
   if ( m_interactor->ProcessMouseEnterEvent( event, this ) )
   {
     GenericRenderView::enterEvent( event );
@@ -255,6 +266,8 @@ void RenderView::enterEvent( QEvent* event )
 
 void RenderView::leaveEvent( QEvent* event )
 {
+  emit MouseOut();
+
   if ( m_interactor->ProcessMouseLeaveEvent( event, this ) )
   {
     GenericRenderView::leaveEvent( event );
@@ -307,13 +320,28 @@ void RenderView::WorldToScreen( double world_x, double world_y, double world_z, 
 {
   double dx, dy, dz;
   MyVTKUtils::WorldToViewport( m_renderer, world_x, world_y, world_z, dx, dy, dz );
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      dx /= devicePixelRatio();
+      dy /= devicePixelRatio();
+  }
+#endif
   x = (int)dx;
   y = (int)( this->rect().height()-dy );
 }
 
 void RenderView::ScreenToWorld( int x, int y, int z, double& world_x, double& world_y, double& world_z )
 {
-  MyVTKUtils::ViewportToWorld( m_renderer, x, rect().height()-y, z, world_x, world_y, world_z );
+  y = rect().height()-y;
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      x *= devicePixelRatio();
+      y *= devicePixelRatio();
+  }
+#endif
+  MyVTKUtils::ViewportToWorld( m_renderer, x, y, z, world_x, world_y, world_z );
 }
 
 void RenderView::MoveLeft()
@@ -588,7 +616,15 @@ int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
 
   picker->InitializePickList();
   picker->AddPickList( prop );
-  picker->Pick( posX, this->rect().height() - posY, 0, GetRenderer() );
+  posY = this->rect().height() - posY;
+#if VTK_MAJOR_VERSION > 5
+  if (devicePixelRatio() > 1)
+  {
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
+  }
+#endif
+  picker->Pick( posX, posY, 0, GetRenderer() );
   if ( pos_out )
   {
     picker->GetPickPosition( pos_out );

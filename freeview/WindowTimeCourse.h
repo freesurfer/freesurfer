@@ -26,6 +26,7 @@
 #define WINDOWTIMECOURSE_H
 
 #include <QWidget>
+#include <QLabel>
 
 namespace Ui {
 class WindowTimeCourse;
@@ -34,6 +35,24 @@ class WindowTimeCourse;
 class LayerMRI;
 class LayerSurface;
 class SurfaceOverlay;
+class FlowLayout;
+struct TimeCourseData;
+
+class ClickableLabel : public QLabel
+{
+    Q_OBJECT
+
+public:
+    explicit ClickableLabel(QWidget* parent = Q_NULLPTR, Qt::WindowFlags f = Qt::WindowFlags());
+    ~ClickableLabel();
+
+signals:
+    void clicked();
+
+protected:
+    void mousePressEvent(QMouseEvent* event);
+
+};
 
 class WindowTimeCourse : public QWidget
 {
@@ -53,20 +72,31 @@ public slots:
   void OnLineEditScaleReturnPressed();
   void OnCheckAutoScale(bool bChecked);
   void OnCheckMaxScale(bool bChecked);
-  void OnComboSecondVolume(int nSel);
+  void OnComboSecondPlot(int nSel);
   void UpdateScaleInfo();
   void UpdateUI();
   void OnCheckShowFrameNumber(bool);
+  void UpdateAll()
+  {
+    UpdateUI();
+    UpdateData();
+  }
+
+  void Clear();
+  void OnCheckBoxShowData(bool bShow);
+  void OnLegendLabelClicked();
 
 signals:
-  void FrameChanged(int frame);
+  void OverlayFrameChanged(int frame);
 
 private:
+  QWidget* MakeLegendWidget(QObject* obj, const TimeCourseData& td);
 
   Ui::WindowTimeCourse *ui;
   LayerMRI*     lastMRI;
   LayerSurface* lastSurface;
   SurfaceOverlay* lastOverlay;
+  FlowLayout*   layoutLegend;
 };
 
 #endif // WINDOWTIMECOURSE_H
