@@ -195,13 +195,13 @@ end
 if(slices(1) <= 0 & frames(1) <= 0)
   switch type
    case MRI_FLOAT,
-    vol = fread(fid, nv, 'float32') ; 
+    vol = fread(fid, nv, '*float32') ; 
    case MRI_UCHAR,
-    vol = fread(fid, nv, 'uchar') ; 
+    vol = fread(fid, nv, '*uchar') ; 
    case MRI_SHORT,
-    vol = fread(fid, nv, 'short') ; 
+    vol = fread(fid, nv, '*short') ; 
    case MRI_INT,
-    vol = fread(fid, nv, 'int') ; 
+    vol = fread(fid, nv, '*int') ; 
   end
 
   if(~feof(fid))
@@ -247,13 +247,13 @@ for frame = frames
     
     switch type
      case MRI_FLOAT,
-      [tmpslice nread]  = fread(fid, nvslice, 'float32') ; 
+      [tmpslice nread]  = fread(fid, nvslice, '*float32') ; 
      case MRI_UCHAR,
-      [tmpslice nread]  = fread(fid, nvslice, 'uchar') ; 
+      [tmpslice nread]  = fread(fid, nvslice, '*uchar') ; 
      case MRI_SHORT,
-      [tmpslice nread]  = fread(fid, nvslice, 'short') ; 
+      [tmpslice nread]  = fread(fid, nvslice, '*short') ; 
      case MRI_INT,
-      [tmpslice nread]  = fread(fid, nvslice, 'int') ; 
+      [tmpslice nread]  = fread(fid, nvslice, '*int') ; 
     end
 
     if(nread ~= nvslice)
