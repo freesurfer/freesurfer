@@ -99,7 +99,10 @@ end
 v       = fread(fid, 1, 'int') ; 
 if(isempty(v))
   fprintf('ERROR: problem reading fname\n');
-  if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
+  if(gzipped >=0) 
+    [status, msg] = unix(sprintf('rm -f %s', fname)); 
+    if status ~= 0, fprintf('%s\n',msg) ; end
+  end
 end
 ndim1   = fread(fid, 1, 'int') ; 
 ndim2   = fread(fid, 1, 'int') ; 
