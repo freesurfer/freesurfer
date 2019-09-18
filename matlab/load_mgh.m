@@ -183,7 +183,10 @@ if(headeronly)
     end
   end
   fclose(fid);
-  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
+  if(gzipped >=0)  
+    [status, msg] = unix(sprintf('rm -f %s', fname));  
+    if status ~= 0, fprintf('%s\n',msg) ; end
+  end
   return;
 end
 
@@ -208,7 +211,10 @@ if(slices(1) <= 0 & frames(1) <= 0)
     end
   end
   fclose(fid) ;
-  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
+  if(gzipped >=0)  
+    [status, msg] = unix(sprintf('rm -f %s', fname)); 
+    if status ~= 0, fprintf('%s\n',msg) ; end
+  end
   
   nread = prod(size(vol));
   if(nread ~= nv)
