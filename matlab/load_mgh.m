@@ -70,10 +70,11 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
   %end
   
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
-    unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
+    [status, msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
   else
-    unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+    [status, msg] = unix(sprintf('zcat %s > %s', fname, new_fname)) ;
   end
+  if status ~= 0, fprintf('%s\n',msg) ; end
   fname = new_fname ;
 else
   gzipped = -1 ;
