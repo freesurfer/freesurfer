@@ -8677,8 +8677,8 @@ void MainWindow::CommandExportLineProfileThickness(const QStringList &cmd)
         opts["resolution"] = list[1].toDouble();
       else if (list[0].toLower() == "offset")
         opts["offset"] = list[1].toDouble();
-      else if (list[0].toLower() == "samples")
-        opts["samples"] = list[1].toDouble();
+      else if (list[0].toLower() == "segments")
+        opts["segments"] = list[1].toDouble();
     }
   }
   QString fn = ar[0];
@@ -8692,7 +8692,7 @@ bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVari
   QList<LayerPointSet*> lines;
   foreach (Layer* layer, layers)
   {
-    lines << qobject_cast<LayerPointSet*>(layer);
+    lines.insert(0, qobject_cast<LayerPointSet*>(layer));
   }
 
   if (lines.size() > 1)
@@ -8718,8 +8718,8 @@ bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVari
       resolution = opts["resolution"].toDouble();
     if (opts.contains("offset"))
       offset = opts["offset"].toDouble();
-    if (opts.contains("samples"))
-      samples = opts["samples"].toInt();
+    if (opts.contains("segments"))
+      samples = opts["segments"].toInt();
 
     if (!lp->Solve(spacing, dVoxelSize, resolution, offset))
     {

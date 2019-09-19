@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     "':spacing=value' Set spacing of the line profiles. Default value is 1.0.\n\n"
     "':resolution=value' Set resolution of the line profiles. Default value is 1.0.\n\n"
     "':offset=value' Set the offset to compute line profiles. Default value is 5.\n\n"
-    "':samples=value' Set the number of samples on the line profiles. Default value is 100.\n", 1, 1 ),
+    "':segments=value' Set the number of segments on the line profiles. Default value is 100.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. NOTE: AUTO_TRIM option is only available on Linux.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
