@@ -316,7 +316,9 @@ struct SseTerms_MRIS_MP : public SseTerms_Template_for_SurfaceFromMRIS_MP {
     #define NOCOMMA_SELECTOR
     #define COMMA_SELECTOR
     #define SEP 
-    #define ELT(NAME, SIGNATURE, CALL)    double NAME SIGNATURE;
+    // #define ELT(NAME, SIGNATURE, CALL) double NAME SIGNATURE;
+    // andrew temporarily adding these definitions since they don't get defined anywhere else
+    #define ELT(NAME, SIGNATURE, CALL) inline double NAME SIGNATURE { fs::fatal() << #NAME << "() has not been implemented for SseTerms_MRIS_MP"; return 0; };
     LIST_OF_SSETERMS
     #undef ELT
     #undef SEP

@@ -304,6 +304,8 @@ public slots:
 
   void OnExportLabelStats();
 
+  bool ExportLineProfileThickness(const QString& filename, const QVariantMap& options);
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -422,6 +424,7 @@ protected:
   void CommandUnloadLayers    ( const QStringList& cmd );
   void CommandSetActiveFrame    ( const QStringList& cmd );
   void CommandSetActiveLayer    ( const QStringList& cmd );
+  void CommandExportLineProfileThickness  (const QStringList& cmd);
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
