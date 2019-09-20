@@ -75,14 +75,12 @@ endif()
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
 # Note: FS_PACKAGES_DIR can be defined in an environment variable
 
-
-
 if(NOT FS_PACKAGES_DIR)
   if(NOT "$ENV{FS_PACKAGES_DIR}" STREQUAL "")
     # check if FS_PACKAGES_DIR has been set 
     set(FS_PACKAGES_DIR "$ENV{FS_PACKAGES_DIR}" CACHE INTERNAL "Copied from FS_PACKAGES_DIR environment variable")
   elseif(EXISTS /usr/pubsw/packages)
-    # if the user is at Martinos, default to /usr/pubsw/packages 
+    # if the user is at Martinos, default to /usr/pubsw/packages
     set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
