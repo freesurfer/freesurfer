@@ -31,7 +31,8 @@ class Window(QWidget):
         self.numClasses = len(self.numGaussiansPerClass)
         self.numGaussians = np.sum(self.numGaussiansPerClass)
         self.numResolutionLevels = len(self.history['historyWithinEachMultiResolutionLevel'])
-
+        self.numConstrasts = self.history['imageBuffers'].shape[3]
+        self.centerCursor = True
         self.initUI()
         self.updateMultiResolutionLevel()
         self.show()
@@ -89,6 +90,14 @@ class Window(QWidget):
         controlBox.addWidget(QLabel('Resolution Level'), 5, 0)
         controlBox.addWidget(self.multiresDropdown, 5, 1)
 
+        # constrasts dropdown
+        self.contrastsDropdown = QComboBox()
+        self.contrastsDropdown.addItems(['Contrast %d' % (i + 1) for i in range(self.numConstrasts)])
+        self.contrastsDropdown.setCurrentIndex(0)
+        self.contrastsDropdown.currentIndexChanged.connect(self.updateContrast)
+        controlBox.addWidget(QLabel('Contrast'), 6, 0)
+        controlBox.addWidget(self.contrastsDropdown, 6, 1)
+
         # setup the gaussians
         numRows = np.ceil(np.sqrt(self.numClasses))
         numCols = np.ceil(self.numClasses / numRows)
@@ -123,14 +132,25 @@ class Window(QWidget):
         self.setWindowTitle('GEMS Model Inspector')
 
 
+    def updateContrast(self):
+        # when changing contrast you want the cursor to point at the same voxel
+        self.centerCursor = False
+        # call update multi resolution with updated contrast
+        self.updateMultiResolutionLevel()
+
+
     def updateMultiResolutionLevel(self):
         # update image buffer
         level = self.multiresDropdown.currentIndex()
+        contrast = self.contrastsDropdown.currentIndex()
         historyWithinEachMultiResolutionLevel = self.history['historyWithinEachMultiResolutionLevel'][level]
-        image = historyWithinEachMultiResolutionLevel['downSampledImageBuffers'][:, :, :, 0]
+        image = historyWithinEachMultiResolutionLevel['downSampledImageBuffers'][:, :, :, contrast]
         self.downSampledImage = transformVolume(image)
         self.volumeViewer.layers = [createLayer(self.downSampledImage)]
-        self.volumeViewer.centerCursor()
+        if self.centerCursor:
+            self.volumeViewer.centerCursor()
+        else:
+            self.centerCursor = True
 
         # image mask
         self.downSampledMask = historyWithinEachMultiResolutionLevel['downSampledMask']
@@ -142,8 +162,9 @@ class Window(QWidget):
         self.priors = historyWithinEachMultiResolutionLevel['priorsAtEnd']
 
         iteration = historyWithinEachMultiResolutionLevel['historyWithinEachIteration'][-1]
-        self.means = iteration['means']
-        self.variances = iteration['variances']
+        self.means = iteration['means'][:, contrast]
+        # it works just with diagonal covariances right now!
+        self.variances = iteration['variances'][:, contrast, contrast]
         self.mixtureWeights = iteration['mixtureWeights']
 
         # update gaussians
