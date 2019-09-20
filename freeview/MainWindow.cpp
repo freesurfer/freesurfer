@@ -3616,18 +3616,18 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
 
 void MainWindow::CommandSetSurfaceOverlayMask(const QStringList &cmd)
 {
-    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
-    if ( surf )
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
     {
-      SurfaceOverlay* overlay = surf->GetActiveOverlay();
-      if ( overlay )
-      {
-          if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
-             overlay->GetProperty()->SetMaskInverse(true);
-          qDebug() << overlay->GetProperty()->GetMaskInverse();
-          emit OverlayMaskRequested(cmd[1]);
-      }
+      if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
+        overlay->GetProperty()->SetMaskInverse(true);
+      qDebug() << overlay->GetProperty()->GetMaskInverse();
+      emit OverlayMaskRequested(cmd[1]);
     }
+  }
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
@@ -3779,13 +3779,13 @@ void MainWindow::CommandSetSurfaceOverlayColormap(const QStringList &cmd)
     SurfaceOverlay* overlay = surf->GetActiveOverlay();
     if ( overlay )
     {
-      if (cmd[1] == "colorwheel")
-        overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
-      if (cmd.size() > 2)
+      for (int i = 1; i < cmd.size(); i++)
       {
-        if (cmd[2] == "inverse")
+        if (cmd[i] == "colorwheel")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
+        else if (cmd[i] == "inverse")
           overlay->GetProperty()->SetColorInverse(true);
-        else if (cmd[2] == "truncate")
+        else if (cmd[i] == "truncate")
           overlay->GetProperty()->SetColorTruncate(true);
       }
       surf->UpdateOverlay(true);
@@ -7502,9 +7502,9 @@ void MainWindow::OnSaveIsoSurface(const QString& fn_in)
   QString selectedFilter;
   if (fn.isEmpty())
     fn = QFileDialog::getSaveFileName( NULL,
-                                     "Save iso-surface",
-                                     MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
-                                     "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
+                                       "Save iso-surface",
+                                       MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
+                                       "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
   else
     selectedFilter = QFileInfo(fn).suffix();
   if ( !fn.isEmpty() )
@@ -8651,15 +8651,15 @@ void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename 
 
 void MainWindow::OnExportLabelStats()
 {
-   QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
-                                       AutoSelectLastDir( "mri" ),
-                                       "CSV files (*.csv)");
-   if (!fn.isEmpty() )
-   {
-       LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
-       if (!mri->ExportLabelStats(fn))
-           QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
-   }
+  QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
+                                             AutoSelectLastDir( "mri" ),
+                                             "CSV files (*.csv)");
+  if (!fn.isEmpty() )
+  {
+    LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
+    if (!mri->ExportLabelStats(fn))
+      QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
+  }
 }
 
 void MainWindow::CommandExportLineProfileThickness(const QStringList &cmd)
