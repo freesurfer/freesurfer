@@ -175,7 +175,10 @@ endif
 set cmd = (mri_segstats --seg $aseg --sum $statsfile \
   --in $norm --pv $norm --empty --excludeid 0 \
   --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subject \
+  --brainmask brainmask.mgz --brain-vol-from-seg \
   --in-intensity-name norm.$gcabase --in-intensity-units MR )
+if(-e transforms/talairach.xfm ) set cmd = ($cmd --etiv);
+
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
