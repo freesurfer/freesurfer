@@ -354,6 +354,7 @@ add_subdirectories(
   mri_remove_neck
   mri_robust_register
   mri_seg_overlap
+  mri_seg_diff
   mri_segment
   mri_segreg
   mri_segstats
@@ -483,7 +484,6 @@ if(NOT MINIMAL)
     mri_ribbon
     mri_rigid_register
     mri_sbbr
-    mri_seg_diff
     mri_segcentroids
     mri_seghead
     mri_strip_nonwhite
