@@ -328,7 +328,6 @@ add_subdirectories(
   mri_convert
   mri_coreg
   mri_deface
-  mris_defects_pointset
   mri_diff
   mri_edit_segmentation
   mri_edit_segmentation_with_surfaces
@@ -376,6 +375,7 @@ add_subdirectories(
   mris_curvature
   mris_curvature_stats
   mris_decimate
+  mris_defects_pointset
   mris_diff
   mris_divide_parcellation
   mris_euler_number
