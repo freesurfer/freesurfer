@@ -328,6 +328,7 @@ add_subdirectories(
   mri_convert
   mri_coreg
   mri_deface
+  mris_defects_pointset
   mri_diff
   mri_edit_segmentation
   mri_edit_segmentation_with_surfaces
@@ -513,7 +514,6 @@ if(NOT MINIMAL)
     mris_compute_volume_fractions
     mris_congeal
     mris_copy_header
-    mris_defects_pointset
     mris_deform
     mris_distance_map
     mris_distance_to_label
