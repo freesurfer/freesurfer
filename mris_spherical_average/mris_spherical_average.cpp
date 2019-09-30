@@ -57,6 +57,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static char *surf_dir = "surf" ;
 static int erode = 0 ;
 static int dilate = 0 ;
 static float threshold = 0 ;
@@ -217,13 +218,14 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read ico from %s",Progname,fname) ;
   }
 
-  MRISclearWhichAndVal2(mris_avg, which) ;
+  if (which != VERTEX_LABEL)
+    MRISclearWhichAndVal2(mris_avg, which) ;
 
 #define FIRST_SUBJECT 5
   for (nsubjects = 0, i = FIRST_SUBJECT ; i < argc-1 ; i++, nsubjects++)
   {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
+    sprintf(fname, "%s/%s/%s/%s.%s", sdir, argv[i], surf_dir, hemi, surf_name) ;
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -451,7 +453,7 @@ main(int argc, char *argv[])
 
   if (output_subject_name)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", osdir,output_subject_name,ohemi,osurf);
+    sprintf(fname, "%s/%s/%s/%s.%s", osdir,output_subject_name,surf_dir,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     MRISfree(&mris) ;
     mris = MRISread(fname) ;
@@ -467,7 +469,8 @@ main(int argc, char *argv[])
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   }
 
-  MRISclearWhichAndVal2(mris, which) ;
+  if (which != VERTEX_LABEL)
+    MRISclearWhichAndVal2(mris, which) ;
   mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL,
                                        CURRENT_VERTICES);
   if (max_len > mean+3*sigma)
@@ -642,6 +645,12 @@ get_option(int argc, char *argv[])
   {
     ohemi = argv[2] ;
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "surf_dir"))
+  {
+    surf_dir = argv[2] ;
+    fprintf(stderr, "using %s instead surf directory\n", surf_dir) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "lslope"))
