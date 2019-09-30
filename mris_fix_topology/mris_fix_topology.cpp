@@ -70,6 +70,7 @@ const char *Progname ;
 static int exit_after_diag = 0 ;
 extern int topology_fixing_exit_after_diag ;
 
+static char *surf_dir = "surf" ;
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
 static char *sphere_name   = "qsphere.nofix" ;
@@ -203,7 +204,7 @@ main(int argc, char *argv[])
     strcpy(sdir, cp) ;
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
+  sprintf(fname, "%s/%s/%s/%s.%s", sdir, sname, surf_dir, hemi, sphere_name) ;
   printf("reading input surface %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname,nVFMultiplier) ;
   if (!mris)
@@ -300,15 +301,15 @@ main(int argc, char *argv[])
   if (write_inflated)
   {
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
-    sprintf(fname, "%s/%s/surf/%s.%s%s",
-            sdir,sname,hemi,inflated_name,suffix);
+    sprintf(fname, "%s/%s/%s/%s.%s%s",
+            sdir,sname,surf_dir, hemi,inflated_name,suffix);
     fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
     MRISwrite(mris_corrected, fname) ;
   }
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   /* at this point : smoothed corrected orig vertices = solution */
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, out_name,suffix);
+  sprintf(fname, "%s/%s/%s/%s.%s%s", sdir, sname, surf_dir, hemi, out_name,suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
 
@@ -316,7 +317,7 @@ main(int argc, char *argv[])
   MRISmarkOrientationChanges(mris_corrected);
 
   /*
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "ico_geo") ;
+    sprintf(fname, "%s/%s/%s/%s.%s", sdir, sname, surf_dir, hemi, "ico_geo") ;
     fprintf(stderr, "writing output surface to %s...\n", fname) ;
     MRISwrite(mris_corrected, fname) ;
   */
@@ -747,6 +748,12 @@ get_option(int argc, char *argv[])
   {
     brain_name = argv[2] ;
     fprintf(stderr,"using '%s' as brain volume\n",brain_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "surf"))
+  {
+    surf_dir = argv[2] ;
+    fprintf(stderr,"using '%s' instead of surf subdirectory\n",surf_dir);
     nargs = 1 ;
   }
   else if (!stricmp(option, "seed"))
