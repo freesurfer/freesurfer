@@ -33,7 +33,61 @@ int mrisComputeSurfaceDimensions(MRIS *mris)
   
   return (NO_ERROR);
 }
+//OVOX: define a function that returns the angle of a face to a given vertex
+static float mrisFaceAngle(MRIS* mris, int fno, int k)
+{
+// fno is the face index we are looping over k is the current vertex index
+FACE const * const f = &mris->faces[fno];
+//these are the vertices that span the face, check which one is the current vertex k
+ int  const * const pv = f->v;
+  
+  int  const vno0 = pv[0];
+  int  const vno1 = pv[1];
+  int  const vno2 = pv[2];
+float v0[3], v1[3];
+//find the vertices that are not the current vertex and calculate the vector between the current vertex and the other two
+ if (vno0==k)
+	{ v0[0] = mris->vertices[k].x - mris->vertices[vno1].x;
+          v0[1] = mris->vertices[k].y - mris->vertices[vno1].y;
+	  v0[2] = mris->vertices[k].z - mris->vertices[vno1].z;
+          v1[0] = mris->vertices[k].x - mris->vertices[vno2].x;
+          v1[1] = mris->vertices[k].y - mris->vertices[vno2].y;
+	  v1[2] = mris->vertices[k].z - mris->vertices[vno2].z;
+	}
+ else if (vno1==k)
+ 	{ v0[0] = mris->vertices[k].x - mris->vertices[vno0].x;
+          v0[1] = mris->vertices[k].y - mris->vertices[vno0].y;
+	  v0[2] = mris->vertices[k].z - mris->vertices[vno0].z;
+          v1[0] = mris->vertices[k].x - mris->vertices[vno2].x;
+          v1[1] = mris->vertices[k].y - mris->vertices[vno2].y;
+	  v1[2] = mris->vertices[k].z - mris->vertices[vno2].z;
+	}
+ else   { v0[0] = mris->vertices[k].x - mris->vertices[vno0].x;
+          v0[1] = mris->vertices[k].y - mris->vertices[vno0].y;
+	  v0[2] = mris->vertices[k].z - mris->vertices[vno0].z;
+          v1[0] = mris->vertices[k].x - mris->vertices[vno1].x;
+          v1[1] = mris->vertices[k].y - mris->vertices[vno1].y;
+	  v1[2] = mris->vertices[k].z - mris->vertices[vno1].z;
+	}
+//Calculate the angle between the sides that emanate from the current vertex, i.e. between v0 and v1
+// the angle for a triangle is the asin(||v0 x v1|| /( ||v0|| * ||v1||); i.e. the norm of the cross 
+// product, normalised and if you want  you can take the sin of it, but we don't have to for our purpose. 
+// But let's do it as we call it angle here
+ float cross[3];
+       cross[0] = -v0[1]*v1[2] + v1[1]*v0[2];
+       cross[1] =  v0[0]*v1[2] - v1[0]*v0[2];
+       cross[2] = -v0[0]*v1[1] + v1[0]*v0[1]; 
+ float NormedCross = sqrt(cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]);
+ float Normv0      = sqrt(v0[0] * v0[0] + v0[1] * v0[1] + v0[2] * v0[2]);
+ float Normv1      = sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+ float FaceAngle   = NormedCross / ( Normv0 * Normv1);
 
+//printf("face vertex index %i\t vertex index %i\t faceangle %f\n",vno0,k,FaceAngle);
+
+return (FaceAngle);
+
+}
+//OVOXend
 
 static float mrisTriangleArea(MRIS* mris, int fno, int n)
 {
@@ -98,7 +152,8 @@ static void mrisFaceAreaNormal(MRIS* mris, int fno, float norm[])
   // compute cross product
   norm[0] = -v12[1]*v20[2] + v20[1]*v12[2];
   norm[1] =  v12[0]*v20[2] - v20[0]*v12[2];
-  norm[2] = -v12[0]*v20[1] + v20[0]*v12[1];
+  norm[2] = -v12[0]*v20[1] + v20[0]*v12[1]; 
+
 }
 
 
@@ -154,6 +209,7 @@ int mrisNormalFace(MRIS* mris, int fno, int n, float norm[])
   norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
   norm[1] =  v1[0]*v0[2] - v0[0]*v1[2];
   norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
+
 
   // Note: cross product is not a unit vector even if inputs
   // are. Inputs do not need to be unit.  Until Oct 2017, this
@@ -287,14 +343,18 @@ int MRIScomputeNormals(MRIS *mris)
             // The normal is NOT unit length OR area length
             // Instead it's length is the sin of the angle of the vertex
             // The vertex normal is biased towards being perpendicular to 90degree contributors...
-
-        snorm[0] += norm[0];
-        snorm[1] += norm[1];
-        snorm[2] += norm[2];
+            //
+//OVOX: add angle weigth here, a new functio mrisFaceAngle has been defined above to calcualte the 
+//angle of the two sides of each face that point towards the current vertex
+       float FaceAngle = mrisFaceAngle(mris,vt->f[n],k);
+       
+        snorm[0] += (norm[0] * FaceAngle);
+        snorm[1] += (norm[1] * FaceAngle);
+        snorm[2] += (norm[2] * FaceAngle);
 
         area += mrisTriangleArea(mris, vt->f[n], (int)vt->n[n]);
       }
-      
+ 
       if (!count || mrisNormalize(snorm) > 0.0) {       // Success?
 
         if (fix_vertex_area)
@@ -304,11 +364,12 @@ int MRIScomputeNormals(MRIS *mris)
 
         if (v->origarea < 0)                            // has never been set
           v->origarea = v->area;
-
-        v->nx = snorm[0];
+        
+	v->nx = snorm[0];
         v->ny = snorm[1];
         v->nz = snorm[2];
-        
+//OVOX
+
         ROMP_PFLB_continue;
       }
 
