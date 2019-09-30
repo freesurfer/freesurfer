@@ -523,6 +523,9 @@ int main(int argc, char **argv)
   uname(&uts);
   getcwd(cwd,2000);
 
+  // Make sure that MRImask() does not try to compensate for the geometry
+  setenv("FS_MRIMASK_ALLOW_DIFF_GEOM","0",1);
+
   Progname = argv[0] ;
   argc --;
   argv++;

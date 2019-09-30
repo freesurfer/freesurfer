@@ -550,9 +550,18 @@ int GLMtest(GLMMAT *glm)
       glm->igCVM[n] = MatrixScalarMul(glm->igCVM[n], 1.0 / dtmp, glm->igCVM[n]);
       glm->gtigCVM[n] = MatrixMultiplyD(glm->gammat[n], glm->igCVM[n], glm->gtigCVM[n]);
       F = MatrixMultiplyD(glm->gtigCVM[n], glm->gamma[n], F);
-      glm->F[n] = F->rptr[1][1];
-      glm->p[n] = sc_cdf_fdist_Q(glm->F[n], glm->C[n]->rows, glm->dof);
-      glm->z[n] = RFp2StatVal(rfs, glm->p[n] / 2.0);
+      if(F->rptr[1][1] >= 0){
+	glm->F[n] = F->rptr[1][1];
+	glm->p[n] = sc_cdf_fdist_Q(glm->F[n], glm->C[n]->rows, glm->dof);
+	glm->z[n] = RFp2StatVal(rfs, glm->p[n] / 2.0);
+      }
+      else {
+	// Neg F can sometimes happen when the design matrix is ill-cond. One example
+	// is in kinetic modeling when a voxel comes from the reference region
+	glm->F[n] = 0;
+	glm->p[n] = 1;
+	glm->z[n] = 0;
+      }
       if (glm->C[n]->rows == 1 && glm->gamma[n]->rptr[1][1] < 0) glm->z[n] *= -1;
 
       if (glm->Dt[n] != NULL) {

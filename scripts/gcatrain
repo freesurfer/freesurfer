@@ -605,7 +605,7 @@ if($#xsubjectlist) then
     end
     if($keep) set subjectlisttmp = ($subjectlisttmp $subject)
   end
-  set subjectlist = $subjectlisttmp;
+  set subjectlist = ($subjectlisttmp);
 endif
 
 foreach subject ($subjectlist $initsubject)

@@ -47,10 +47,14 @@ set dt = `date '+%Y:%m:%d:%H:%M:%S'`
 set fmt = "$key $dt $argv[1] N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
 
 set cmd = /usr/bin/time
-if($#outfile) set cmd = ($cmd -o $outfile)
+if($#outfile == 0)  set outfile = /dev/stdout; # time default is stderr, which is annoying
+set cmd = ($cmd -o $outfile)
+echo $cmd
+echo $fmt
+echo $argv
 $cmd  -f "$fmt" $argv
 set st = $status
-if($#outfile) cat $outfile
+if($outfile != /dev/stdout) cat $outfile
 
 if($FSTIME_LOAD) then
   set dt = `date '+%Y:%m:%d:%H:%M:%S'`
@@ -207,7 +211,7 @@ mri_convert : command that was run
 N 2 : mri_convert was run with 2 arguments
 e 2.20 : total elapsed time in seconds from start to end
 S 0.05 : seconds spent in system mode
-U 1.64 : seconds specnt in user mode
+U 1.64 : seconds spent in user mode
 P 77%  : percent of cpu that process used (S+U)/e
 M 23628 : maximum memory size in Kbytes
 F 0 : no major page faults

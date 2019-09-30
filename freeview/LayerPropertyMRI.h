@@ -58,7 +58,7 @@ public:
   // The color map types in which a volume can be drawn.
   enum ColorMapType
   {
-    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, PET, DirectionCoded
+    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, PET, DirectionCoded, Binary
   };
 
   enum VectorInversion
@@ -404,6 +404,13 @@ public:
     return m_dVectorNormThreshold;
   }
 
+  QColor GetBinaryColor()
+  {
+    return m_colorBinary;
+  }
+
+  void SetBinaryColor(const QColor& color);
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -589,6 +596,7 @@ private:
   int     m_nVectorSkip;
 
   QList<int>  m_listVisibleLabels;
+  QColor  m_colorBinary;
 };
 
 #endif

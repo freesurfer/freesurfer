@@ -19,8 +19,10 @@
 #include "mrishash.h"
 #include "mrisurf_SurfaceFromMRIS_generated.h"
 
-MRIS_HASH_TABLE* MHTcreateFaceTable             (SurfaceFromMRIS::Analysis::Surface surface);
-MRIS_HASH_TABLE* MHTcreateFaceTable_Resolution  (SurfaceFromMRIS::Analysis::Surface surface, int which, float res);
-MRIS_HASH_TABLE* MHTcreateVertexTable           (SurfaceFromMRIS::Analysis::Surface surface, int which);
-MRIS_HASH_TABLE* MHTcreateVertexTable_Resolution(SurfaceFromMRIS::Analysis::Surface surface, int which, float res);
+namespace Minimal_Surface_MRIS = SurfaceFromMRIS::XYZPosition;
+
+MRIS_HASH_TABLE* MHTcreateFaceTable             (Minimal_Surface_MRIS::Surface surface);
+MRIS_HASH_TABLE* MHTcreateFaceTable_Resolution  (Minimal_Surface_MRIS::Surface surface, int which, float res);
+MRIS_HASH_TABLE* MHTcreateVertexTable           (Minimal_Surface_MRIS::Surface surface, int which);
+MRIS_HASH_TABLE* MHTcreateVertexTable_Resolution(Minimal_Surface_MRIS::Surface surface, int which, float res);
 

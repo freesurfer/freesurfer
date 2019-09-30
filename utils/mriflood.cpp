@@ -31,6 +31,7 @@
 #include "macros.h"
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrisurf_metricProperties.h"
 #include "region.h"
 #include "timer.h"
 

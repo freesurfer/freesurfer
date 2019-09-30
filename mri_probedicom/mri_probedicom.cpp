@@ -116,7 +116,8 @@ int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
 char *ElementValueFormat(DCM_ELEMENT *e);
-int DCMCompare(char *dcmfile1, char *dcmfile2);
+int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh);
+double DCMCompareThresh = .00001;
 
 #define TMPSTRLEN 10000
 static char tmpstr[TMPSTRLEN];
@@ -137,7 +138,7 @@ int DoBackslash = 0;
 int DoAltDump = 0;
 int GetMax = 0;
 int GetSiemensCrit = 0;
-
+int dcmGetPixelSpacing(const char *dcmfile, float *ColRes, float *RowRes);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -388,9 +389,14 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 2) argnerr(option,2);
       dicomfile1 = pargv[0];
       dicomfile2 = pargv[1];
-      if(DCMCompare(dicomfile1,dicomfile2)) exit(1);
+      if(DCMCompare(dicomfile1,dicomfile2,DCMCompareThresh)) exit(1);
       exit(0);
       nargsused = 2;
+    } 
+    else if (!strcmp(option, "--compare-thresh")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&DCMCompareThresh);
+      nargsused = 1;
     } 
     else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
@@ -489,6 +495,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --ob stem         : dump binary pixel data into bshort  \n");
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
   fprintf(stdout, "   --compare dcm1 dcm2 : compare on key parameters\n");
+  fprintf(stdout, "       --compare-thresh threshold  IMPORTANT: this must go before --compare (default=%lf)\n",DCMCompareThresh);
   fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
   fprintf(stdout, "   --siemens-crit    : include tag 51,1016 in dump\n");
   fprintf(stdout, "   --alt             : print alt ascii header\n");
@@ -604,7 +611,9 @@ static void print_help(void) {
     "     Strength, Pulse Sequence, Transmitting Coil, Flip Angle, Echo Time\n"
     "     Repetition Time, Phase Encode Direction, Slice Distance, Slice Thickness, \n"
     "     Pixel Spacing, Rows, and Cols. If they are the same, exits 0, otherwise\n"
-    "     exits 1.\n"
+    "     exits 1. A threshold can be placed on numerical differences with \n"
+    "     --compare-thresh threshold . IMPORTANT: this must go before --compare\n"
+    "     Default threshold is .00001\n"
     "\n"
     "     Written by Douglas N. Greve.\n"
     "\n"
@@ -1532,7 +1541,7 @@ int RenderImage(int argc, char **argv) {
 #endif // HAVE_OPENGL
 
 
-int DCMCompare(char *dcmfile1, char *dcmfile2)
+int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh)
 {
   DCM_ELEMENT *e1, *e2;
   int tag1[100], tag2[100], type[100];
@@ -1545,23 +1554,24 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   tagname[n] = "Software Version"; tag1[n] = 0x18; tag2[n] = 0x1020; type[n] = 0; n++;
   tagname[n] = "Institution";      tag1[n] = 0x8;  tag2[n] = 0x0080; type[n] = 0; n++;
   //tagname[n] = "Imaging Frequency";tag1[n] = 0x18; tag2[n] = 0x0084; type[n] = 0; n++;
-  tagname[n] = "Pixel Frequency";  tag1[n] = 0x18; tag2[n] = 0x0095; type[n] = 0; n++;
-  tagname[n] = "Field Strength";   tag1[n] = 0x18; tag2[n] = 0x0087; type[n] = 0; n++;
+  tagname[n] = "Pixel Frequency";  tag1[n] = 0x18; tag2[n] = 0x0095; type[n] = 2; n++;
+  tagname[n] = "Field Strength";   tag1[n] = 0x18; tag2[n] = 0x0087; type[n] = 2; n++;
   tagname[n] = "Pulse Sequence";   tag1[n] = 0x18; tag2[n] = 0x0024; type[n] = 0; n++;
   tagname[n] = "Transmitting Coil";tag1[n] = 0x18; tag2[n] = 0x1251; type[n] = 0; n++;
-  tagname[n] = "Flip Angle";       tag1[n] = 0x18; tag2[n] = 0x1314; type[n] = 0; n++;
-  tagname[n] = "Echo Time";        tag1[n] = 0x18; tag2[n] = 0x0081; type[n] = 0; n++;
-  tagname[n] = "Inversion Time";   tag1[n] = 0x18; tag2[n] = 0x0082; type[n] = 0; n++;
-  tagname[n] = "Repetition Time";  tag1[n] = 0x18; tag2[n] = 0x0080; type[n] = 0; n++;
+  tagname[n] = "Flip Angle";       tag1[n] = 0x18; tag2[n] = 0x1314; type[n] = 2; n++;
+  tagname[n] = "Echo Time";        tag1[n] = 0x18; tag2[n] = 0x0081; type[n] = 2; n++;
+  tagname[n] = "Inversion Time";   tag1[n] = 0x18; tag2[n] = 0x0082; type[n] = 2; n++;
+  tagname[n] = "Repetition Time";  tag1[n] = 0x18; tag2[n] = 0x0080; type[n] = 2; n++;
   tagname[n] = "Phase Encode Direction"; tag1[n] = 0x18; tag2[n] = 0x1312; type[n] = 0; n++;
   tagname[n] = "Pixel Spacing";    tag1[n] = 0x28; tag2[n] = 0x0030; type[n] = 0; n++;
   tagname[n] = "Rows";             tag1[n] = 0x28; tag2[n] = 0x0010; type[n] = 1; n++;
   tagname[n] = "Cols";             tag1[n] = 0x28; tag2[n] = 0x0011; type[n] = 1; n++;
-  tagname[n] = "Slice Thickness";  tag1[n] = 0x18; tag2[n] = 0x0050; type[n] = 0; n++;
-  tagname[n] = "Slice Distance";   tag1[n] = 0x18; tag2[n] = 0x0088; type[n] = 0; n++;
+  tagname[n] = "Slice Thickness";  tag1[n] = 0x18; tag2[n] = 0x0050; type[n] = 2; n++;
+  tagname[n] = "Slice Distance";   tag1[n] = 0x18; tag2[n] = 0x0088; type[n] = 2; n++;
 
   isdiff = 0;
   for(nth = 0; nth < n; nth++){
+    fflush(stdout);
     e1 = GetElementFromFile(dcmfile1, tag1[nth], tag2[nth]);
     if(e1 == NULL) {
       printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile1);
@@ -1572,6 +1582,20 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
     if(e2 == NULL) {
       printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile2);
       printf("Continuing\n");
+      continue;
+    }
+    if(strcmp(tagname[nth],"Pixel Spacing")==0){
+      printf("%2d %s (%x,%x) %s %s ",nth,tagname[nth],tag1[nth],tag2[nth],e1->d.string,e2->d.string);
+      int err;
+      float ColRes1, RowRes1;
+      float ColRes2, RowRes2;
+      err = dcmGetPixelSpacing(dcmfile1, &ColRes1, &RowRes1);
+      err = dcmGetPixelSpacing(dcmfile2, &ColRes2, &RowRes2);
+      if(fabs(ColRes1-ColRes2)>thresh || fabs(RowRes2-RowRes2)>thresh){
+	printf("  -------- Files differ\n");
+	isdiff = 1;
+      }
+      else printf("\n");
       continue;
     }
     if(type[nth] == 0){
@@ -1594,6 +1618,19 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
       }
       else printf("\n");
     }
+    if(type[nth] == 2){
+      // It is a string but treat it like a number
+      double val1, val2;
+      printf("%2d %s (%x,%x) %s %s ",nth,tagname[nth],tag1[nth],tag2[nth],e1->d.string,e2->d.string);
+      sscanf(e1->d.string,"%lf",&val1);
+      sscanf(e2->d.string,"%lf",&val2);
+      if(fabs(val1-val2)>thresh){
+	printf("  -------- Files differ\n");
+	isdiff = 1;
+      }
+      else printf("\n");
+    }
+    fflush(stdout);
   }
   return(isdiff);
 }
@@ -1630,3 +1667,40 @@ double ConvertTimeStringToSec(char *tstring)
 }
 
 
+int dcmGetPixelSpacing(const char *dcmfile, float *ColRes, float *RowRes)
+{
+  DCM_ELEMENT *e;
+  char *s;
+  int ns, n;
+  int slash_not_found;
+
+  /* Load the Pixel Spacing - this is a string of the form:
+     ColRes\RowRes   */
+  e = GetElementFromFile(dcmfile, 0x28, 0x30);
+  if (e == NULL) {
+    return (1);
+  }
+
+  /* Put it in a temporary sting */
+  s = e->d.string;
+
+  /* Go through each character looking for the backslash */
+  slash_not_found = 1;
+  ns = strlen(s);
+  for (n = 0; n < ns; n++) {
+    if (s[n] == '\\') {
+      s[n] = ' ';
+      slash_not_found = 0;
+      break;
+    }
+  }
+  if (slash_not_found) {
+    return (1);
+  }
+
+  sscanf(s, "%f %f", ColRes, RowRes);
+
+  FreeElementData(e);
+  free(e);
+  return(0);
+}

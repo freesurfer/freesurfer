@@ -69,5 +69,5 @@ install(PROGRAMS
 
 install_pyscript(
 	diffusionUtils
-	anatomiCutsUtils
+	anatomiCutsUtils.py
 )

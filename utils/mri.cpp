@@ -11397,6 +11397,11 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low, float f_high, int no
   /* Change mri dimensions back to original */
   mri->depth = nslices;
   mri->nframes = nframes;
+  // These are needed for chunking
+  mri->vox_per_row = mri->width;
+  mri->vox_per_slice = mri->vox_per_row * mri->height;
+  mri->vox_per_vol = mri->vox_per_slice * mri->depth;
+  mri->vox_total = mri->vox_per_vol * mri->nframes;
 
   // Alloc MRI_FRAME. This needs to be updated when MRI_FRAME items are added
   mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME));

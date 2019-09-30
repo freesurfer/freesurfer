@@ -1477,9 +1477,10 @@ int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask)
     S2->rptr[1][c] *= nmask;  // Needs this
     (*pS)->rptr[1][c] = sqrt(S2->rptr[1][c]);
     // Exclude dims for which the singular value is very small
-    if (S2->rptr[1][c] < EPSILON) break;
+    if (S2->rptr[1][c] < FLT_EPSILON) break;
   }
   dim_real = c - 1;
+  if(dim_real < 1) dim_real = 1; // keep at least one
 
   // Compute U*inv(S) (note square root to go from S2 to S)
   UinvS = MatrixAlloc(D->nframes, dim_real, MATRIX_REAL);

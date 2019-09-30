@@ -94,6 +94,7 @@ double round(double x);
 #include "macros.h"
 #include "utils.h"
 #include "mrisurf.h"
+#include "mrisurf_metricProperties.h"
 #include "mrisutils.h"
 #include "error.h"
 #include "diag.h"
@@ -368,7 +369,7 @@ static bool compareVertexPositions(MRIS * const lhs, MRIS * const rhs, std::vect
   
   return !badHistogram;
 }
-
+int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, int verbosity);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -1101,6 +1102,16 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
       nargsused = 4;
     } 
+    else if (!strcasecmp(option, "--simple")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      MRIS *surf1tmp = MRISread(pargv[0]);
+      if(surf1tmp==NULL) exit(1);
+      MRIS *surf2tmp = MRISread(pargv[1]);
+      if(surf2tmp==NULL) exit(1);
+      printf("Checking for differences between %s and %s\n",pargv[0],pargv[1]);
+      int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
+      exit(res);
+    }
     else {
       if (surf1path == NULL) {
         surf1path = option;
@@ -1295,3 +1306,66 @@ MRI *MRISminDist(MRIS *srcsurf, MRIS *trgsurf)
   return(mindist);
 }
 
+int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, int verbosity)
+{
+  int n,ndiff;
+  VERTEX *v1, *v2;
+  VERTEX_TOPOLOGY *vt1, *vt2;
+  double dx,dy,dz,rms,rmsmax;
+
+  printf("Entering MRISdiffSimple(): ndiffmin=%d, rmsthresh=%g, verbosity=%d\n",ndiffmin,rmsthresh,verbosity);
+
+  if(surf1->nvertices != surf2->nvertices){
+    printf("Surfaces differ in the number of vertices %d %d\n",surf1->nvertices,surf2->nvertices);fflush(stdout);
+    return(1);
+  }
+  if(surf1->nfaces != surf2->nfaces){
+    printf("Surfaces differ in the number of faces %d %d\n",surf1->nfaces,surf2->nfaces);fflush(stdout);
+    return(2);
+  }
+
+  ndiff = 0;
+  for(n=0; n < surf1->nvertices; n++){
+    vt1 = &(surf1->vertices_topology[n]);
+    vt2 = &(surf2->vertices_topology[n]);
+    if(vt1->vnum != vt2->vnum){
+      if(verbosity > 0){
+	printf("%d Surfaces differ in number of neighbors at vertex %d   %d %d\n",ndiff,n,vt1->vnum,vt2->vnum);
+	fflush(stdout);
+      }
+      ndiff ++;
+    }
+  }
+  if(ndiff > ndiffmin){
+    printf("Surfaces differ in number of neighbors at a vertex ndiff=%d\n",ndiff);fflush(stdout);
+    return(3);
+  }
+
+  ndiff = 0;
+  rmsmax = 0;
+  for(n=0; n < surf1->nvertices; n++){
+    v1 = &(surf1->vertices[n]);
+    v2 = &(surf2->vertices[n]);
+    dx = v1->x - v2->x;
+    dy = v1->y - v2->y;
+    dz = v1->z - v2->z;
+    rms = sqrt(dx*dx + dy*dy + dz*dz);
+    if(rmsmax < rms) rmsmax = rms;
+    if(rms > rmsthresh){
+      if(verbosity > 0){
+	printf("%d Surfaces differ in xyz at vertex %d  rms=%g (%g,%g,%g) (%g,%g,%g)\n",
+	       ndiff,n,rms,v1->x,v1->y,v1->z,v2->x,v2->y,v2->z);fflush(stdout);
+      }
+      ndiff ++;
+    }
+  }
+  if(ndiff > ndiffmin){
+    printf("Surfaces differ in vertex xyz ndiff=%d, rmsmax = %g\n",ndiff,rmsmax);fflush(stdout);
+    return(4);
+  }
+  if(rmsmax > 0) printf("rmsmax = %g\n",rmsmax);
+  printf("surfaces do not differ\n");
+  fflush(stdout);  
+
+  return(0);
+}

@@ -36,6 +36,8 @@
 
 #define MALLOC_CHECK_ 2
 
+#define _GCAMORPH_SRC
+
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -830,6 +832,9 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   MRI *mri_smooth = NULL, *mri_kernel;
   double base_sigma, pct_change, rms, last_rms = 0.0, label_dist, orig_dt, l_smooth, start_rms = 0.0, l_orig_smooth,
                                       l_elastic, l_orig_elastic;
+  long int tnow, tstart;
+  Timer timer,timer2;
+  printf("Starting GCAMregister()\n"); fflush(stdout);
 
   if (FZERO(parms->min_sigma)) {
     parms->min_sigma = 0.4;
@@ -1001,8 +1006,12 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   if (parms->npasses <= 0) {
     parms->npasses = 1;
   }
+
+  printf("npasses = %d, nlevels = %d\n",parms->npasses,parms->levels);
+
   for (passno = 0; passno < parms->npasses; passno++) {
-    printf("**************** pass %d of %d ************************\n", passno + 1, parms->npasses);
+
+    printf("#pass# %d of %d ************************\n", passno + 1, parms->npasses);
     if (parms->log_fp)
       fprintf(parms->log_fp, "**************** pass %d of %d ************************\n", passno + 1, parms->npasses);
     if (passno == parms->enable_zero_passes) {
@@ -1013,7 +1022,12 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
     parms->navgs = navgs;
     label_dist = parms->label_dist;
+
+    // This level adjusts the coeffient of the smoothness cost that controls
+    // the smoothness of the mesh (not to be confused with the next level
+    // that changes the smoothing of the MRI (parms->levels controls both)
     for (level = parms->levels - 1; level >= 0; level--) {
+      
       rms = parms->start_rms;
       if (parms->reset_avgs == parms->navgs) {
         printf("resetting metric properties...\n");
@@ -1024,33 +1038,44 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       }
       parms->relabel = (parms->relabel_avgs >= parms->navgs);
       parms->sigma = base_sigma;
+
       if (FZERO(parms->l_smoothness) && !FZERO(parms->l_elastic)) {
         parms->l_elastic = l_elastic;
         parms->l_elastic = l_elastic / ((parms->navgs) + 1);
         printf("setting elastic coefficient to %2.3f\n", parms->l_elastic);
       }
       else {
-#if 0
-        parms->l_smoothness = l_smooth / (sqrt(parms->navgs)+1) ;
-#else
         if (DZERO(parms->l_binary) && DZERO(parms->l_area_intensity) && parms->scale_smoothness) {
           parms->l_smoothness = l_smooth / ((parms->navgs) + 1);
         }
         else {
           parms->l_smoothness = l_smooth;
         }
-#endif
-        printf("setting smoothness coefficient to %2.3f\n", parms->l_smoothness);
+        printf("setting smoothness cost coefficient to %2.3f\n", parms->l_smoothness);
       }
-      for (l2 = 0; l2 < parms->levels; l2++)  // different sigma levels
-      {
-        if (mri) {
+
+      // L2 loop over sigma levels. This is how much the MRI is
+      // smoothed. Not to be confused with the the next higher loop
+      // that controls the smoothing coeff which controls the how
+      // smooth the mesh is. parms->levels applies to both loops
+      for (l2 = 0; l2 < parms->levels; l2++){  
+      
+	tnow = timer.milliseconds();
+	if(l2==0) tstart = tnow;
+
+	printf("\n#GCAMreg# pass %d level1 %d level2 %d tsec %g sigma %g\n",
+	       passno,level,l2,(tnow-tstart)/1000.0,parms->sigma);
+	tstart = timer.milliseconds();
+	log_integration_parms(stdout,parms); 
+	printf("\n");
+	fflush(stdout);
+
+        if(mri) {
           if (DZERO(parms->sigma)) {
             mri_smooth = MRIcopy(mri, mri_smooth);
             if (parms->mri_binary) parms->mri_binary_smooth = MRIcopy(parms->mri_binary, parms->mri_binary_smooth);
           }
           else {
-            //      if (Gdiag & DIAG_SHOW)
             printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma);
             mri_kernel = MRIgaussian1d(parms->sigma, 100);
             if (parms->mri_binary)
@@ -1068,6 +1093,13 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
           start_t = parms->start_t;
         }
 
+	// This is the  part of this function that takes the longest
+        // GCAMregister_pctLoop() - no loop
+	//   GCAMregisterPipelineAndComputeRMS() - no loop
+	//     GCAMregisterLevel() - Does not change opt params, just tries
+	//       to find min RMS given the current state. Runs a loop with
+	//         gcamComputeGradient(gcam, mri, mri_smooth, parms); (no loop)
+	//         gcamFindOptimalTimeStep() - loop to find opt step along gradient
         GCAMregister_pctLoop(gcam, mri, parms, level, mri_smooth, &rms, &last_rms, &pct_change);
 
         parms->sigma /= 4;
@@ -1144,6 +1176,8 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   parms->dt = orig_dt;
   if (parms->mri_dist_map) MRIfree(&parms->mri_dist_map);
   if (parms->mri_atlas_dist_map) MRIfree(&parms->mri_atlas_dist_map);
+
+  printf("GCAMregister done in %g min\n",timer2.milliseconds()/1000.0/60.0);
 
   return (NO_ERROR);
 }
@@ -1916,6 +1950,9 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
   GCA_MORPH_NODE *gcamn = NULL;
   MATRIX *m_delI[_MAX_FS_THREADS], *m_inv_cov[_MAX_FS_THREADS];
   VECTOR *v_means[_MAX_FS_THREADS], *v_grad[_MAX_FS_THREADS];
+  extern int gcamLogLikelihoodTerm_nCalls;
+  extern double gcamLogLikelihoodTerm_tsec;
+  Timer timer;
 
   if (DZERO(l_log_likelihood)) {
     return (NO_ERROR);
@@ -2100,6 +2137,10 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
     VectorFree(&v_means[i]);
     VectorFree(&v_grad[i]);
   }
+
+  gcamLogLikelihoodTerm_nCalls++;
+  gcamLogLikelihoodTerm_tsec += (timer.milliseconds()/1000.0);
+
   return (NO_ERROR);
 }
 
@@ -2213,6 +2254,13 @@ static float ***last_sse = NULL;
 
 #define GCAM_LLENERGY_OUTPUT 0
 
+/*!
+  \fn double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
+  \brief Computes the likelihood energy across valid nodes.  This
+   function is in the deepest loop of mri_ca_register and so time
+   sensitive.
+#E#
+ */
 double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 {
 /*
@@ -2255,6 +2303,9 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 // TIMER_INTERVAL_BEGIN(loop)
 
   double sse = 0.0;
+  extern int gcamLogLikelihoodEnergy_nCalls;
+  extern double gcamLogLikelihoodEnergy_tsec;
+  Timer timer;
 
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
@@ -2404,6 +2455,10 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 #if GCAM_LLENERGY_OUTPUT
   nCalls++;
 #endif
+
+  gcamLogLikelihoodEnergy_nCalls++;
+  gcamLogLikelihoodEnergy_tsec += (timer.milliseconds()/1000.0);
+
 
   return (sse);
 }
@@ -2584,6 +2639,9 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   double orig_area = 0.0, ratio = 0.0, max_norm;
   double mn[_MAX_FS_THREADS]; /* _MAX_FS_THREADS is in utils.h */
   GCA_MORPH_NODE *gcamn = NULL;
+  extern int gcamJacobianTerm_nCalls;
+  extern double gcamJacobianTerm_tsec;
+  Timer timer;
 
   if (DZERO(l_jacobian)) {
     return (NO_ERROR);
@@ -2613,48 +2671,6 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
         ratio = gcamn->area / orig_area;
         if (ratio < ratio_thresh) {
           num++;
-#if 0
-          for (xk = -1 ; xk <= 1 ; xk++)
-          {
-            xi = i+xk ;
-            if (xi < 0)
-            {
-              xi = 0 ;
-            }
-            if (xi >= gcam->width)
-            {
-              xi = gcam->width-1 ;
-            }
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = i+yk ;
-              if (yi < 0)
-              {
-                yi = 0 ;
-              }
-              if (yi >= gcam->height)
-              {
-                yi = gcam->height-1 ;
-              }
-              for (zk = -1 ; zk <= 1 ; zk++)
-              {
-                zi = i+zk ;
-                if (zi < 0)
-                {
-                  zi = 0 ;
-                }
-                if (zi >= gcam->depth)
-                {
-                  zi = gcam->depth-1 ;
-                }
-                gcamn = &gcam->nodes[xi][yi][zi] ;
-                /*
-                     gcamn->dx = gcamn->dy = gcamn->dz = 0 ;
-                */
-              }
-            }
-          }
-#endif
         }
       }
     }
@@ -2744,7 +2760,6 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
         }
 
         gcamJacobianTermAtNode(gcam, mri, l_jacobian, i, j, k, &dx, &dy, &dz);
-#if 1
         norm = sqrt(dx * dx + dy * dy + dz * dz);
         if (norm > max_norm * jac_scale && max_norm > 0 && norm > 1)
         /* don't let it get too big, otherwise it's the
@@ -2754,7 +2769,6 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
           dy *= max_norm / norm;
           dz *= max_norm / norm;
         }
-#endif
         gcam->nodes[i][j][k].dx += dx;
         gcam->nodes[i][j][k].dy += dy;
         gcam->nodes[i][j][k].dz += dz;
@@ -2763,6 +2777,9 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
     ROMP_PFLB_end
   }
   ROMP_PF_end
+
+  gcamJacobianTerm_nCalls++;
+  gcamJacobianTerm_tsec += (timer.milliseconds()/1000.0);
 
   return (NO_ERROR);
 }
@@ -3662,17 +3679,18 @@ int gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area, int i, int j, int k, doub
   }
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-
 void SetGinvalid(const int val) { Ginvalid = val; }
 
 #define GCAM_CMP_OUTPUT 0
+
+/*!
+  \fn int gcamComputeMetricProperties(GCA_MORPH *gcam)
+  \brief Computes the metric properties of the GCAM mesh. At this
+  point, there is only one metric property computed (the volume (aka
+  "area")) of each node using a parallelepiped approximation. There
+  are more notes inside of the code. This function is in the deepest
+  loop of mri_ca_register and so time sensitive.
+*/
 #if 1
 int gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
@@ -3705,6 +3723,11 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   nthreads = 1;
 #endif
 
+  extern int gcamComputeMetricProperties_nCalls;
+  extern double gcamComputeMetricProperties_tsec;
+  Timer timer;
+
+
   for (i = 0; i < nthreads; i++) {
     v_i[i] = VectorAlloc(3, MATRIX_REAL);
     v_j[i] = VectorAlloc(3, MATRIX_REAL);
@@ -3725,6 +3748,29 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
 	  __FILE__, __LINE__, width);
       }
   }
+
+  /* This algorithm works by going through each node the the GCAM and
+     computing the volume ("area") of two parallelepipeds (PLP), one
+     formed with the node immediately "after" the center node (ie, add
+     1 to each index; area1), the other formed with the node
+     immediately "before" it (area2). The volume of a node is then
+     computed as the average of the volumes of the two PLPs. Note that
+     the PLP is an approximation because there are no constraints on
+     the nodes to form a PLP. The cell itself is a six-sided polygon
+     with quadralteral faces. This object can have a complicated
+     shape, including being convex (which could produce a negative
+     volume in the PLP approximation).  There are restrictions on the
+     computation. First, if a node is "invalid" (ie, gcamn->invalid ==
+     GCAM_POSITION_INVALID), the node is skipped and its volume not
+     computed. A node may have an invalid position if it is outside of
+     the brain mask.  If a neighboring (ie, before or after) PLP has
+     an edge node that is invalid, then the volume of that PLP is not
+     computed and the center node volume is computed from the other
+     PLP. If neither PLP qualify, gcamn->invalid =
+     GCAM_AREA_INVALID. At first, I thought this code could be sped up
+     because the volume of a PLP is computed twice: once when it is
+     the "before" PLP and once when it is the "after" PLP. But these
+     are two different PLPs and so new computations are needed.  */
   
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
@@ -3758,7 +3804,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
         neg = num = 0;
         gcamn->area = 0.0;
 
-        // Compute Jacobean determinants on the 'right'
+        // Compute Jacobian determinants on the 'right'
         if ((i < width - 1) && (j < height - 1) && (k < depth - 1)) {
           gcamni = &gcam->nodes[i + 1][j][k];
           gcamnj = &gcam->nodes[i][j + 1][k];
@@ -3777,7 +3823,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
               DiagBreak();
             }
 
-            // Store the 'right' Jacobean determinant
+            // Store the 'right' Jacobian determinant
             gcamn->area1 = area1;
 
             // Accumulate onto common determinant
@@ -3789,7 +3835,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamn->area1 = 0;
         }
 
-        // Compute Jacobean determinants on the 'left'
+        // Compute Jacobian determinants on the 'left'
         if ((i > 0) && (j > 0) && (k > 0)) /* left-hand coordinate system */
         {
           gcamni = &gcam->nodes[i - 1][j][k];
@@ -3806,7 +3852,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
             // add two volume
             area2 = VectorTripleProduct(v_j[tid], v_k[tid], v_i[tid]);
 
-            // Store the 'left' Jacobean determinant
+            // Store the 'left' Jacobian determinant
             gcamn->area2 = area2;
 
             if (area2 <= 0) {
@@ -3823,7 +3869,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamn->area2 = 0;
         }
 
-        // Check if at least one Jacobean determinant was computed
+        // Check if at least one Jacobian determinant was computed
         if (num > 0) {
           // Store the average of computed determinants in the common determinant
           gcamn->area = gcamn->area / (float)num;  // average volume
@@ -3892,6 +3938,9 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   nCalls++;
 #endif
 
+  gcamComputeMetricProperties_nCalls++;
+  gcamComputeMetricProperties_tsec += (timer.milliseconds()/1000.0);
+
   return (NO_ERROR);
 }
 #else
@@ -3925,6 +3974,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
           continue;
         }
 
+	// AREA_NEIGHBORS=8
         for (area = 0.0, num = n = 0; n < AREA_NEIGHBORS; n++) {
           /* assign gcamn pointers to appropriate nodes */
           invert = 1;
@@ -4059,9 +4109,19 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
 
 #define GCAM_JACOBENERGY_OUTPUT 0
 
+/*!
+  \fn double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
+  \brief Computes the jacobian energy based on the ratio of the volume
+    of a node now vs the original volume.This function is in the deepest loop of
+    mri_ca_register and so time sensitive.
+#E#
+ */
 double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
 {
   double sse = 0;
+  extern int gcamJacobianEnergy_nCalls;
+  extern double gcamJacobianEnergy_tsec;
+  Timer timer;
 
 #if GCAM_JACOBENERGY_OUTPUT
   const unsigned int gcamJacobEnergyOutputFreq = 10;
@@ -4198,6 +4258,9 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
 #if GCAM_JACOBENERGY_OUTPUT
   nCalls++;
 #endif
+
+  gcamJacobianEnergy_nCalls++;
+  gcamJacobianEnergy_tsec += (timer.milliseconds()/1000.0);
 
   return (sse);
 }
@@ -5073,12 +5136,21 @@ static int nodesCompressed1, nodesCompressed2, nodesCompressed3;
 static int inconsistentLabelNodes;
 static float maxGradient, gradientArea;
 
+/*!
+  \fn int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
+  \brief One of the lowest levels of mri_ca_register
+#GCMRL#
+ */
+
 int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
   int n, nsmall, done = 0, which = GCAM_INTEGRATE_OPTIMAL, max_small, increasing, good_step, good_step_ever;
   // int reduced;
   double rms, last_rms, pct_change, orig_dt, min_dt, orig_j, tol, last_pct_change;
   GCA_MORPH_PARMS jacobian_parms;
+  Timer timer;
+  double tFOTS, tGradient;
+  long int tnow;
 
   if (parms->integration_type == GCAM_INTEGRATE_FIXED) {
     which = GCAM_INTEGRATE_FIXED;
@@ -5131,6 +5203,7 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
   GCAMremoveStatus(gcam, GCAM_LABEL_NODE);
   GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD);
   last_rms = GCAMcomputeRMS(gcam, mri, parms);
+  printf("GCAMRegisterLevel(): init RMS %g\n",last_rms);
   if (parms->log_fp) {
     fprintf(parms->log_fp, "%04d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d", 0, 0.0f, last_rms, gcam->neg, Ginvalid);
     if (parms->l_binary > 0)
@@ -5143,18 +5216,6 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     }
     fflush(parms->log_fp);
     fflush(parms->log_fp);
-  }
-  //  if (Gdiag & DIAG_SHOW)
-  {
-    printf("%04d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d", 0, 0.0f, last_rms, gcam->neg, Ginvalid);
-    if (parms->l_binary > 0)
-      printf(", aligned = %d (%2.3f%%)\n",
-             Galigned,
-             100.0 * Galigned / ((gcam->width * gcam->height * gcam->depth) - Ginvalid));
-    else {
-      printf("\n");
-    }
-    fflush(stdout);
   }
 
   orig_j = parms->l_jacobian;
@@ -5171,47 +5232,23 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
   }
 
   gcamCheck(gcam, mri);
+  // Start loop over niterations (500, but exits early)
   for (n = parms->start_t; n < parms->start_t + parms->niterations; n++) {
-#if 0
-    printf("Loop %d of %d...\n", n,parms->start_t+parms->niterations);
-    // check for early termination, rather than looping needlessly
-    if ( (n>200) \
-         && (nodesCompressed1==0) &&
-         (nodesCompressed2==0) &&
-         (nodesCompressed3==0) \
-         && (inconsistentLabelNodes==0) \
-         && (maxGradient==0) && (gradientArea==0))
-    {
-      printf("GCAMRegisterLevel appears complete.");
-      break;
-    }
-#endif
-
-    /*              parms->l_jacobian = 1 ;*/
+    timer.reset();
     GCAMremoveStatus(gcam, GCAM_LABEL_NODE);
     GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD);
+    tnow = timer.milliseconds();
     gcamComputeGradient(gcam, mri, mri_smooth, parms);
+    tGradient = (timer.milliseconds() - tnow)/1000.0;
     parms->l_jacobian = orig_j;
     if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON) gcamWriteDiagnostics(gcam);
+
+    tFOTS = 0;
     switch (parms->integration_type) {
       case GCAM_INTEGRATE_OPTIMAL:
         parms->dt = (sqrt(parms->navgs) + 1.0f) * orig_dt; /* will search around this value */
         min_dt = gcamFindOptimalTimeStep(gcam, parms, mri);
         parms->dt = min_dt;
-#if 0
-      if (gcam->neg > 0 && parms->noneg == True && 0)  // disabled
-      {
-	printf("negative nodes detected - removing likelihood from those lattice locations and recomputing\n") ;
-	GCAMsetNegativeNodeStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
-	GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
-	gcamClearMomentum(gcam) ;
-	gcamComputeMetricProperties(gcam) ;
-	gcamComputeGradient(gcam, mri, mri_smooth, parms) ;
-	parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
-	min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
-	parms->dt = min_dt ;
-      }
-#endif
         break;
       case GCAM_INTEGRATE_FIXED:
         min_dt = parms->dt = (sqrt(parms->navgs) + 1.0f) * orig_dt;
@@ -5220,7 +5257,10 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
         if (which == GCAM_INTEGRATE_OPTIMAL) {
           check_gcam(gcam);
           parms->dt = (sqrt(parms->navgs) + 1.0f) * orig_dt; /* will search around  this value */
+	  // FOTS is one of the slowest parts
+	  tnow = timer.milliseconds();
           min_dt = gcamFindOptimalTimeStep(gcam, parms, mri);
+	  tFOTS = (timer.milliseconds() - tnow)/1000.0;
           check_gcam(gcam);
           parms->dt = min_dt;
           max_small = parms->nsmall;
@@ -5242,11 +5282,9 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     gcamComputeMetricProperties(gcam);
     gcamCheck(gcam, mri);
     if (gcam->neg > 0) {
-      if (gcam_write_neg)  // diagnostic
-      {
+      if (gcam_write_neg){  // diagnostic
         MRI *mri;
         char fname[STRLEN];
-
         mri = GCAMwriteMRI(gcam, NULL, GCAM_NEG);
         sprintf(fname, "%s_neg_%4.4d.mgz", parms->base_name, n + 1);
         printf("writing neg nodes to %s...\n", fname);
@@ -5263,20 +5301,8 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
         MRIwrite(mri, fname);
         MRIfree(&mri);
       }
+    } // end diagnostic
 
-#if 0      
-      printf("%d negative nodes detected - removing likelihood from those lattice locations and recomputing\n",gcam->neg) ;
-      GCAMsetNegativeNodStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
-      GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
-      gcamClearMomentum(gcam) ;
-      gcamComputeMetricProperties(gcam) ;
-      gcamComputeGradient(gcam, mri, mri_smooth, parms) ;
-      GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
-      parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
-      min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
-      parms->dt = min_dt ;
-#endif
-    }
     if (parms->constrain_jacobian) {
       gcamConstrainJacobian(gcam, mri, parms);
     }
@@ -5284,7 +5310,6 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
       gcamShowCompressed(gcam, stdout);
     }
 
-    //    GCAMcomputeOriginalProperties(gcam) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       GCAMwrite(gcam, "test.m3z");
     }
@@ -5302,14 +5327,9 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
       gcamApplyGradient(gcam, parms);
       gcamComputeMetricProperties(gcam);
       while (gcam->neg > 0) {
-#if 0
-        gcamCropNegativeAreaNodeGradient(gcam, 0.9) ;
-#else
         parms->dt *= 0.5;
         if (Gdiag & DIAG_SHOW)
           printf("%3.3d: %d negative nodes - reducing timestep to %2.6f...\n", i + 1, gcam->neg, parms->dt);
-// reduced = 1; /* don't reset parms->dt until we switch integration types */
-#endif
         gcamUndoGradient(gcam);
         gcamComputeMetricProperties(gcam);
         gcamApplyGradient(gcam, parms);
@@ -5348,7 +5368,9 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     if (parms->write_iterations > 0 && !((n + 1) % parms->write_iterations) && (Gdiag & DIAG_WRITE)) {
       write_snapshot(gcam, mri, parms, n + 1);
     }
+
     rms = GCAMcomputeRMS(gcam, mri, parms);
+
     last_pct_change = pct_change;
     if (FZERO(last_rms)) {
       pct_change = 0.0;
@@ -5356,6 +5378,7 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     else {
       pct_change = 100.0 * (last_rms - rms) / last_rms;
     }
+
     if ((pct_change < last_pct_change) || FZERO(pct_change)) {
       if (increasing && (Gdiag & DIAG_SHOW)) {
         printf("pct change decreased\n");
@@ -5366,6 +5389,7 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     {
       increasing = 1;
     }
+
     if (pct_change <= 0) {
       if (Gdiag & DIAG_SHOW) {
         printf("rms increased - undoing step...\n");
@@ -5386,40 +5410,14 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
     if (parms->log_fp) {
       fprintf(parms->log_fp,
               "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
-              n + 1,
-              min_dt,
-              rms,
-              pct_change,
-              gcam->neg,
-              Ginvalid);
+              n + 1, min_dt, rms,pct_change,gcam->neg, Ginvalid);
       if (parms->l_binary > 0)
-        fprintf(parms->log_fp,
-                ", aligned = %d (%2.3f%%)\n",
-                Galigned,
+        fprintf(parms->log_fp,", aligned = %d (%2.3f%%)\n",Galigned,
                 100.0 * Galigned / ((gcam->width * gcam->height * gcam->depth) - Ginvalid));
       else {
         fprintf(parms->log_fp, "\n");
       }
       fflush(parms->log_fp);
-    }
-
-    //  if (Gdiag & DIAG_SHOW)
-    {
-      printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
-             n + 1,
-             min_dt,
-             rms,
-             pct_change,
-             gcam->neg,
-             Ginvalid);
-      if (parms->l_binary > 0)
-        printf(", aligned = %d (%2.3f%%)\n",
-               Galigned,
-               100.0 * Galigned / ((gcam->width * gcam->height * gcam->depth) - Ginvalid));
-      else {
-        printf("\n");
-      }
-      fflush(stdout);
     }
 
     if ((pct_change < tol) && !increasing) {
@@ -5473,28 +5471,16 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
               /* will search around this value */
             }
             else {
-#if 0
-              if (good_step && parms->regrid == True)
-              {
-                GCAMregrid(gcam, mri, 0, parms, NULL) ;
-                rms = GCAMcomputeRMS(gcam, mri, parms) ;
-              }
-              else
-#endif
               {
                 increasing = /*1 */ 0;
                 pct_change = 0.0;
                 which = GCAM_INTEGRATE_FIXED;
-#if 0
-                min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
-#else
                 if (!DZERO(min_dt)) {
                   parms->dt = min_dt;
                 }
                 else {
                   min_dt = parms->dt = (sqrt(parms->navgs) + 1.0f) * orig_dt;
                 }
-#endif
               }
               if (Gdiag & DIAG_SHOW)
                 printf("\tswitching integration type to %s (done=%d)\n",
@@ -5517,14 +5503,17 @@ int GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARM
       done = 0;   /* for integration type == BOTH, apply both types again */
       nsmall = 0; /* start counting small steps again */
     }
-#if 0
-    if (parms->relabel)
-    {
-      GCAMcomputeLabels(mri, gcam) ;
-      last_rms = GCAMcomputeRMS(gcam, mri, parms) ;
+
+    printf("#GCMRL# %4d dt %10.6f rms %6.3f %6.3f%% neg %d  invalid %d tFOTS %6.4f tGradient %6.4f tsec %6.4f",
+	   n, min_dt, rms, pct_change, gcam->neg,  Ginvalid, tFOTS, tGradient, timer.milliseconds()/1000.0);
+    if (parms->l_binary > 0)
+      printf(", aligned = %d (%2.3f%%)\n", Galigned,
+	     100.0 * Galigned / ((gcam->width * gcam->height * gcam->depth) - Ginvalid));
+    else {
+      printf("\n");
     }
-    else
-#endif
+    fflush(stdout);
+
     last_rms = rms;
     /*          parms->label_dist -= 0.5 ;*/
     if (parms->label_dist < 0) {
@@ -6171,6 +6160,9 @@ double gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
   static int i = 0;
+  extern int gcamComputeGradient_nCalls;
+  extern double gcamComputeGradient_tsec;
+  Timer timer;
 
   // make dx = dy = 0
   gcamClearGradient(gcam);
@@ -6268,6 +6260,9 @@ int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PA
     MRIfree(&mri);
   }
   i++; /* for debugging */
+
+  gcamComputeGradient_nCalls++;
+  gcamComputeGradient_tsec += (timer.milliseconds()/1000.0);
 
   return (NO_ERROR);
 }
@@ -6451,6 +6446,11 @@ int gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   return (NO_ERROR);
 }
 
+/*!
+  \fn int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothness)
+  \brief Compute derivative of mesh smoothness cost. Derivatives are approximate.
+  Consumes a lot of time in mri_ca_register. Can be sped up by about a factor of 6.
+ */
 int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothness)
 {
   double vx = 0.0, vy = 0.0, vz = 0.0, vnx = 0.0, vny = 0.0, vnz = 0.0;
@@ -6458,10 +6458,16 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
   int x = 0, y = 0, z = 0, xk = 0, yk = 0, zk = 0, xn = 0, yn = 0, zn = 0;
   int width, height, depth, num = 0;
   GCA_MORPH_NODE *gcamn = NULL, *gcamn_nbr = NULL;
+  extern int gcamSmoothnessTerm_nCalls;
+  extern double gcamSmoothnessTerm_tsec;
+  Timer timer;
 
   if (DZERO(l_smoothness)) {
     return (NO_ERROR);
   }
+
+  gcamSmoothnessTerm_nCalls ++;
+
   width = gcam->width;
   height = gcam->height;
   depth = gcam->depth;
@@ -6518,13 +6524,6 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
                 continue;
               }
 
-#if 0
-              if (gcamn_nbr->label != gcamn->label)
-              {
-                continue ;
-              }
-#endif
-
               vnx = gcamn_nbr->x - gcamn_nbr->origx;
               vny = gcamn_nbr->y - gcamn_nbr->origy;
               vnz = gcamn_nbr->z - gcamn_nbr->origz;
@@ -6534,18 +6533,8 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
               dz += (vnz - vz);
 
               if ((x == Gx && y == Gy && z == Gz) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
-                printf(
-                    "\tnode(%d,%d,%d): V=(%2.2f,%2.2f,%2.2f), "
-                    "DX=(%2.2f,%2.2f,%2.2f)\n",
-                    xn,
-                    yn,
-                    zn,
-                    vnx,
-                    vny,
-                    vnz,
-                    vnx - vx,
-                    vny - vy,
-                    vnz - vz);
+                printf("\tnode(%d,%d,%d): V=(%2.2f,%2.2f,%2.2f), "
+                    "DX=(%2.2f,%2.2f,%2.2f)\n",xn,yn,zn,vnx,vny,vnz,vnx - vx,vny - vy,vnz - vz);
               }
 
               num++;
@@ -6572,6 +6561,9 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
     ROMP_PFLB_end
   }
   ROMP_PF_end
+
+  gcamSmoothnessTerm_tsec += (timer.milliseconds()/1000.0);
+
   return (NO_ERROR);
 }
 
@@ -6681,6 +6673,15 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri);
 static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri);
 #endif
 
+/*!
+  \fn double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri) 
+  \brief Computes the smoothness energy. The smoothness is a measure
+  of the variation in edge length around a node.  This function is in
+  the deepest loop of mri_ca_register and so time sensitive.  The "new"
+  function can probably be made faster by not computing the index
+  each time by using a static lookup table (it won't change).
+#E#
+ */
 double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri) 
 #ifdef FASTER_gcamSmoothnessEnergy
 {
@@ -6688,6 +6689,10 @@ double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri)
     static bool const do_new = true;
     double old_result = 0.0;
     double new_result = 0.0;
+    extern int gcamSmoothnessEnergy_nCalls;
+    extern double gcamSmoothnessEnergy_tsec;
+    Timer timer;
+
     if (do_new && do_old) fprintf(stderr,"\n\n\n");
     if (do_new) {
         if (do_old) fprintf(stderr,"Doing new way\n");
@@ -6705,6 +6710,9 @@ double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri)
 	    exit(1);
 	}
     }
+    gcamSmoothnessEnergy_nCalls++;
+    gcamSmoothnessEnergy_tsec += (timer.milliseconds()/1000.0);
+
     return do_old ? old_result : new_result;
 }
 
@@ -8681,6 +8689,13 @@ int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
 #define GCAM_FOTS_OUTPUT 0
 #define GCAM_FOTS_TIMERS 0
 
+/*!
+  \fn double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
+  \brief Steps along the gradient to find the optimum (min RMS). This is in
+  one of mri_ca_register's lowest loops and so time sensitive. Takes about 16000ms.
+  Could probably be sped up (see notes).
+#FOTS#
+*/
 double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
 #if GCAM_FOTS_TIMERS
@@ -8696,6 +8711,9 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   int N, i, Gxs, Gys, Gzs, suppressed = 0, prev_neg;
   // int  bad;
   long diag;
+  int GotBetter;
+  double old_min_rms, old_min_dt;
+  //extern int nFOTS_Calls;
 
 #if GCAM_FOTS_OUTPUT
   const unsigned int outputFreq = 10;
@@ -8726,7 +8744,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   Gdiag = 0;
 
   // start_rms =
-  min_rms = GCAMcomputeRMS(gcam, mri, parms);
+  min_rms = GCAMcomputeRMS(gcam, mri, parms); // about 850ms
   min_dt = 0;
 
   /* first find right order of magnitude for time step */
@@ -8740,6 +8758,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   start_dt = (sqrt(parms->navgs) + 1) * orig_dt / (10 * 16.0 * 16.0);
   max_dt = (sqrt(parms->navgs) + 1) * orig_dt * (10 * 10 * 16.0 * 16.0);
 
+  // typically 11 iterations about 1000ms per iteration
   i = 0;
   do {
     if (i++ > 0) {
@@ -8800,38 +8819,6 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
         parms->dt /= 4;
         continue;
       }
-#if 0
-      if (gcam->neg <100)
-      {
-        GCA_MORPH_NODE *gcamn ;
-        int x,y,z;
-        if (bad++ > 10)
-        {
-          break ;
-        }
-        for (x=0; x<gcam->width; x++)
-        {
-          for (y=0; y<gcam->height; y++)
-          {
-            for (z=0; z<gcam->depth; z++)
-            {
-              gcamn = &gcam->nodes[x][y][z] ;
-              if (gcamn->area < 0)
-              {
-                gcamSetGradientToNbrAverage(gcam, x, y, z) ;
-              }
-            }
-          }
-        }
-        parms->dt /= 4 ;  /* do it again */
-        continue ;
-      }
-      if (gcam->neg == 0)
-      {
-        bad = 0 ;
-      }
-#endif
-
       if (gcam->neg && parms->noneg == True) {
         break;
       }
@@ -8849,8 +8836,19 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
     max_dt = start_dt * 10; /* will only iterate if min was at start_dt */
   } while (DEQUAL(min_dt, start_dt));
 
+
+  // Fit RMS/stepsize to a quadradic using 5 points. This could
+  // probably be done only at the final stages. It is also possible
+  // that previous samples could be used instead of computing more.
+  GotBetter=0; // Keep track over whether this operation actually makes things better
+  old_min_dt  = min_dt;
+  old_min_rms = min_rms;
+
+  // Start with the current best
   dt_in[0] = min_dt;
   rms_out[0] = min_rms;
+
+  // Sample RMS at four locations (-0.4, -0.2, 0.2, 0.4). Takes about 3800ms for all four
   parms->dt = dt_in[1] = dt_in[0] - dt_in[0] * .2;
   gcamApplyGradient(gcam, parms);
   rms = rms_out[1] = GCAMcomputeRMS(gcam, mri, parms);
@@ -8858,6 +8856,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0)) {
     min_rms = rms;
     min_dt = parms->dt;
+    GotBetter=1;
   }
 
   parms->dt = dt_in[2] = dt_in[0] - dt_in[0] * .4;
@@ -8866,6 +8865,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0)) {
     min_rms = rms;
     min_dt = parms->dt;
+    GotBetter=1;
   }
   gcamUndoGradient(gcam);
 
@@ -8876,6 +8876,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0)) {
     min_rms = rms;
     min_dt = parms->dt;
+    GotBetter=1;
   }
 
   parms->dt = dt_in[4] = dt_in[0] + dt_in[0] * .4;
@@ -8885,9 +8886,11 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0)) {
     min_rms = rms;
     min_dt = parms->dt;
+    GotBetter=1;
   }
 
   /* now compute location of minimum of best quadratic fit */
+  // This takes about 1000ms and could probably be made faster
   N = 5; /* min_dt +- .1*min_dt and .2*min_dt */
   mX = MatrixAlloc(N, 3, MATRIX_REAL);
   vY = VectorAlloc(N, MATRIX_REAL);
@@ -8925,6 +8928,7 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
       if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0)) {
         min_rms = rms;
         min_dt = parms->dt;
+	GotBetter=1;
       }
     }
   }
@@ -8932,6 +8936,12 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
   MatrixFree(&m_xTx);
   MatrixFree(&mX);
   VectorFree(&vY);
+
+  if(GotBetter){
+    printf("#FOTS# QuadFit found better minimum quadopt=(dt=%g,rms=%g) vs oldopt=(dt=%g,rms=%g)\n",
+	   min_dt,min_rms,old_min_dt,old_min_rms);
+    fflush(stdout);
+  }
 
   gcamComputeMetricProperties(gcam);
   parms->dt = orig_dt;
@@ -8953,6 +8963,13 @@ double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri
 
 #define GCAM_LABELENERGY_OUTPUT 0
 
+/*!
+  \fn double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label_dist)
+  \brief Computes the label energy by summing up the gcamn->label_dist
+   across valid nodes.  This function is in the deepest loop of
+   mri_ca_register and so time sensitive.
+#E#
+ */
 double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label_dist)
 {
 #if GCAM_LABELENERGY_OUTPUT
@@ -8966,6 +8983,9 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
   }
   nCalls++;
 #endif
+  extern int gcamLabelEnergy_nCalls;
+  extern double gcamLabelEnergy_tsec;
+  Timer timer;
 
   float sse;
 
@@ -8985,7 +9005,11 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
 
         gcamn = &gcam->nodes[x][y][z];
 
-        if ((gcamn->invalid == GCAM_POSITION_INVALID) || ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
+	//if ((gcamn->invalid == GCAM_POSITION_INVALID) || ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
+	// Doing it in this order makes this function about 30% faster because the status
+	// comparison is often false so it never gets to the invalid comparison
+	// In the grand scheme of things, it does not make much of a diff though
+        if (((gcamn->status & GCAM_LABEL_NODE) == 0) || (gcamn->invalid == GCAM_POSITION_INVALID)) {
           continue;
         }
 
@@ -8993,6 +9017,9 @@ double gcamLabelEnergy(const GCA_MORPH *gcam, const MRI *mri, const double label
       }
     }
   }
+
+  gcamLabelEnergy_nCalls++;
+  gcamLabelEnergy_tsec += (timer.milliseconds()/1000.0);
 
   return (sse);
 }
@@ -9710,6 +9737,9 @@ int gcamLabelTerm(GCA_MORPH *gcam, const MRI *mri, double l_label, double label_
 {
   int num, nremoved;
   MRI *mri_dist;
+  extern int gcamLabelTerm_nCalls;
+  extern double gcamLabelTerm_tsec;
+  Timer timer;
 
   if (DZERO(l_label)) {
     return (NO_ERROR);
@@ -9775,6 +9805,9 @@ int gcamLabelTerm(GCA_MORPH *gcam, const MRI *mri, double l_label, double label_
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     printf("\t%d nodes for which label term applies\n", num);
   }
+
+  gcamLabelTerm_nCalls++;
+  gcamLabelTerm_tsec += (timer.milliseconds()/1000.0);
 
   return (NO_ERROR);
 }

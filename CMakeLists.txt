@@ -354,6 +354,7 @@ add_subdirectories(
   mri_remove_neck
   mri_robust_register
   mri_seg_overlap
+  mri_seg_diff
   mri_segment
   mri_segreg
   mri_segstats
@@ -374,6 +375,7 @@ add_subdirectories(
   mris_curvature
   mris_curvature_stats
   mris_decimate
+  mris_defects_pointset
   mris_diff
   mris_divide_parcellation
   mris_euler_number
@@ -483,7 +485,6 @@ if(NOT MINIMAL)
     mri_ribbon
     mri_rigid_register
     mri_sbbr
-    mri_seg_diff
     mri_segcentroids
     mri_seghead
     mri_strip_nonwhite
@@ -513,7 +514,6 @@ if(NOT MINIMAL)
     mris_compute_volume_fractions
     mris_congeal
     mris_copy_header
-    mris_defects_pointset
     mris_deform
     mris_distance_map
     mris_distance_to_label

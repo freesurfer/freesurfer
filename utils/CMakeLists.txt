@@ -48,7 +48,6 @@ add_library(utils STATIC
   dmatrix.cpp
   dti.cpp
   dtk.fs.cpp
-  error.cpp
   evschutils.cpp
   fcd.cpp
   fftutils.cpp
@@ -145,6 +144,7 @@ add_library(utils STATIC
   mrisurf_deform.cpp
   mrisurf_integrate.cpp
   mrisurf_io.cpp
+  mrisurf_io_stl.cpp
   mrisurf_metricProperties.cpp
   mrisurf_mri.cpp
   mrisurf_project.cpp
