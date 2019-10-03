@@ -73,7 +73,6 @@ int    MRISreplaceAnnotations(MRI_SURFACE *mris,
                               int in_annotation,
                               int out_annotation) ;
 const char *Progname ;
-static char *suffix = "" ;
 static double sigma = 0.0f ;
 static float ignore_below = 0 ;
 static float ignore_above = 20 ;
@@ -621,27 +620,21 @@ main(int argc, char *argv[])
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",sdir,sname);
       atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
       printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",(int)atlas_icv,determinant);
-      
-      double *BrainVolStats;
-      BrainVolStats = ComputeBrainVolumeStats(sname,suffix, sdir);
-      if (BrainVolStats == NULL)
-	exit(1) ;
-      if(fabs(voxelvolume-1)>.01){
-	// This indicates that the global stats has been fixed
-	fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
+
+      std::vector<double> BrainVolStats = ReadCachedBrainVolumeStats(sname, sdir);
+      if (fabs(voxelvolume-1) > 0.01) {
+        // This indicates that the global stats has been fixed
+        fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
+      } else {
+	      fprintf(fp,"# BrainVolStatsFixed-NotNeeded because voxelvolume=1mm3\n");
       }
-      else{
-	fprintf(fp,"# BrainVolStatsFixed-NotNeeded because voxelvolume=1mm3\n");
-      }
-      fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",BrainVolStats[0]);
-      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
-              BrainVolStats[1]);
-      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
-	      BrainVolStats[14]);
-      fprintf(fp,"# Measure Cortex, CortexVol, Total cortical gray matter volume, %f, mm^3\n",BrainVolStats[7]);
-      fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
-      fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
-      fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
+      fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n", BrainVolStats[0]);
+      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, %f, mm^3\n", BrainVolStats[1]);
+      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n", BrainVolStats[14]);
+      fprintf(fp,"# Measure Cortex, CortexVol, Total cortical gray matter volume, %f, mm^3\n", BrainVolStats[7]);
+      fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, Supratentorial volume, %f, mm^3\n", BrainVolStats[2]);
+      fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, Supratentorial volume, %f, mm^3\n", BrainVolStats[3]);
+      fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %f, mm^3\n", atlas_icv);
     }
 
     fprintf(fp,"# NTableCols 10\n");
@@ -1094,11 +1087,6 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
   {
     print_version() ;
-  }
-  else if (!stricmp(option, "suffix"))
-  {
-    suffix = argv[2] ;
-    nargs = 1 ;
   }
   else if (!stricmp(option, "log"))
   {

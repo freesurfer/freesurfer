@@ -317,6 +317,7 @@ add_subdirectories(
   mri_aparc2aseg
   mri_aparc2wmseg
   mri_binarize
+  mri_brainvol_stats
   mri_ca_label
   mri_ca_normalize
   mri_ca_register
