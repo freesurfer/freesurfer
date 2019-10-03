@@ -75,7 +75,7 @@ if(isempty(aseg)) return; end
 % Caudate
 % Pallidum
 % Lateral-Ventricle
-% Thalamus-Proper
+% Thalamus
 % VentralDC 28 60
 m0 = (aseg.vol == 10 | aseg.vol == 11 | ...
       aseg.vol == 12 | aseg.vol == 13 | ...

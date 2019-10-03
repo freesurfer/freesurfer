@@ -236,7 +236,7 @@ for FreeSurferLabel = {'MAC_Medulla','MAC_Pons','MAC_Midbrain','Left-VentralDC',
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 sameGaussianParameters{end+1} = [];
-for FreeSurferLabel = {'Left-Caudate','Left-Accumbens-area','Left-Pallidum','3rd-Ventricle','Left-Putamen','Left-Thalamus-Proper','Left-Amygdala','Left-Lateral-Ventricle','Left-choroid-plexus','Left-Hippocampus','Left-Cerebral-White-Matter','Left-Cerebral-Cortex','Background-tissue','Background-CSF','Background'}
+for FreeSurferLabel = {'Left-Caudate','Left-Accumbens-area','Left-Pallidum','3rd-Ventricle','Left-Putamen','Left-Thalamus','Left-Amygdala','Left-Lateral-Ventricle','Left-choroid-plexus','Left-Hippocampus','Left-Cerebral-White-Matter','Left-Cerebral-Cortex','Background-tissue','Background-CSF','Background'}
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 cheatingMeans=[255;1];
@@ -651,7 +651,7 @@ for FreeSurferLabel = {'Left-Putamen'}
 end
 % Thalamus
 sameGaussianParameters{end+1} = [];
-for FreeSurferLabel = {'Left-Thalamus-Proper'}
+for FreeSurferLabel = {'Left-Thalamus'}
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 % Choroid plexus
