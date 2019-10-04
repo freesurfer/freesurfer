@@ -17420,7 +17420,7 @@ int MRISdefects2Seg(MRIS *surf, MRI *defects, int offset, MRI *vol)
       cy /= 3.0;
       cz /= 3.0;
       // Compute the normal of the face
-      mrisNormalFace(surf, faceno, 0, snorm);
+      mrisUnitNormalFace(surf, faceno, snorm);
       // Sample the volume at a voxel just above and just below the face
       for(projsign = -1; projsign <= +1; projsign+=2){
 	x = cx + (projsign*delta)*snorm[0];

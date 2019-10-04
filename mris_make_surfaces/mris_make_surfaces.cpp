@@ -2297,12 +2297,6 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "setting l_repulse = %2.2f\n", parms.l_repulse) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "no-unitize"))
-  {
-    UnitizeNormalFace = 0;
-    printf("Turning off face normal unitization\n");
-    nargs = 1 ;
-  }
   else if (!stricmp(option, "border-vals-hires"))
   {
     BorderValsHiRes = 1;

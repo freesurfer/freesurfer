@@ -103,15 +103,21 @@ static void mrisFaceAreaNormal(MRIS* mris, int fno, float norm[])
 
 
 /*!
-  \fn int mrisNormalFace(MRIS *mris, int fac, int n,float norm[])
-  \brief Computes the normal to a triangle face. The normal will not
-  have a unit length unless global variable UnitizeNormalFace=1. fac
-  is the face index in mris->faces. n is the nth (0,1,2) vertex 
-  
-  The definition here results in the length being the sin of the angle at the vertex
-  and is used to bias the sum of the face normal vectors used to compute a vertex normal vector
-  
- */ 
+  Computes the unit normal of a triangle face (using the angle at the 0th vertex).
+*/
+void mrisUnitNormalFace(MRIS* mris, int fno, float norm[])
+{
+  mrisNormalFace(mris, fno, 0, norm);
+  mrisNormalize(norm);
+}
+
+
+/*!
+  Computes the normal to a triangle face. fno is the face index in mris->faces.
+  n is the nth (0,1,2) vertex. The definition here results in the length being
+  the sin of the angle at the vertex and is used to bias the sum of the face
+  normal vectors used to compute a vertex normal vector.
+*/
 int mrisNormalFace(MRIS* mris, int fno, int n, float norm[])
 {
   FACE const * const f  = &mris->faces[fno];
@@ -154,14 +160,6 @@ int mrisNormalFace(MRIS* mris, int fno, int n, float norm[])
   norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
   norm[1] =  v1[0]*v0[2] - v0[0]*v1[2];
   norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
-
-  // Note: cross product is not a unit vector even if inputs
-  // are. Inputs do not need to be unit.  Until Oct 2017, this
-  // function always returned a non-unitized vector. UnitizeNormalFace is a
-  // global variable defined in mrisurf.h that can turn unitization on
-  // and off to test its effect. Note: skull stripping uses this
-  // function.
-  if (UnitizeNormalFace) mrisNormalize(norm);
 
   return (NO_ERROR);
 }
@@ -284,9 +282,9 @@ int MRIScomputeNormals(MRIS *mris)
         
         float norm[3];
         mrisNormalFace(mris, vt->f[n], (int)vt->n[n], norm);
-            // The normal is NOT unit length OR area length
-            // Instead it's length is the sin of the angle of the vertex
-            // The vertex normal is biased towards being perpendicular to 90degree contributors...
+        // The normal is NOT unit length OR area length
+        // Instead it's length is the sin of the angle of the vertex
+        // The vertex normal is biased towards being perpendicular to 90degree contributors...
 
         snorm[0] += norm[0];
         snorm[1] += norm[1];

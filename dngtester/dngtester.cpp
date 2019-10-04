@@ -87,7 +87,6 @@ int main(int argc, char **argv)
   omp_set_num_threads(10);
 #endif
 
-  UnitizeNormalFace = 1;
   //surf = MRISread("/homes/4/greve/subjects/vrfp-mar14-anat/surf/lh.white");
   //surf = MRISread("/homes/4/greve/l/sp1/fsh.github.local/lib/bem/ic1.tri");
   //MRISscaleVertices(surf, 100);

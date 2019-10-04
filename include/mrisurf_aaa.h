@@ -298,18 +298,6 @@ static MRISBase      MRISBaseCtr     (      MRIS_MP* mris_mp, MRIS       * mris)
 static MRISBaseConst MRISBaseConstCtr(const MRIS_MP* mris_mp, MRIS const * mris) { MRISBaseConst base; base.mris_mp = mris_mp; base.mris = mris; return base; }
 static MRISBaseConst MRISBaseToConst (      MRISBase src                       ) { return MRISBaseConstCtr(src.mris_mp, src.mris); }
 
-
-
-//  UnitizeNormalFace is a global variable used in mrisNormalFace() to allow the
-//  output norm to be unitized or not. That function computed the norm
-//  using a cross product but then did not normalize the result (cross
-//  product is not unit length even if inputs are unit). UnitizeNormalFace
-//  allows unitization to be turned on and off for testing. Note: skull
-//  stripping uses this function, so may want to UnitizeNormalFace=0 when
-//  testing effects on surface placement so that the stream is the same up
-//  until surface placement.
-extern int UnitizeNormalFace;
-
 //  This variable can be used to turn on the hires options
 //  in MRIScomputeBorderValues_new()
 extern int BorderValsHiRes;
@@ -318,5 +306,3 @@ extern int BorderValsHiRes;
 //  into v->valbak and v->val2bak when running mrisRmsValError()
 //  for debugging or evaluation purposes.
 extern int RmsValErrorRecord;
-
-

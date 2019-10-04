@@ -1145,10 +1145,7 @@ MRI* computeAngles(MRIS* surf)
   printf("be exact). A detailed description and example can be found on the freesurfer wiki.\n");
   printf("************************************************************************************\n");
 
-  // this will enable angle-weighted surface normals
-  UnitizeNormalFace = 0;
   MRIScomputeNormals(surf);
-  UnitizeNormalFace = 1;
 
   MATRIX* vox2ras = vg_i_to_r(&surf->vg);  // scanner space vox2ras from volume geometry
   MATRIX* ras2vox = MatrixInverse(vox2ras, nullptr);  // inverse from imaging reference frame to scanner coordinate system
