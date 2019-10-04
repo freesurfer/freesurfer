@@ -848,6 +848,82 @@ int MRISunrip(MRIS *mris)
 }
 
 
+/*
+  Returns an (N x 3) array of the surface's vertex positions.
+*/
+float* MRISgetVertexArray(MRIS *mris)
+{
+  float * const buffer = new float[mris->nvertices * 3];
+  float * ptr = buffer;
+  for (int n = 0 ; n < mris->nvertices ; n++) {
+    *ptr++ = mris->vertices[n].x;
+    *ptr++ = mris->vertices[n].y;
+    *ptr++ = mris->vertices[n].z;
+  }
+  return buffer;
+}
+
+
+/*
+  Returns an (N x 3) array of the surface's vertex normals.
+*/
+float* MRISgetVertexNormalArray(MRIS *mris)
+{
+  float * const buffer = new float[mris->nvertices * 3];
+  float * ptr = buffer;
+  for (int n = 0 ; n < mris->nvertices ; n++) {
+    *ptr++ = mris->vertices[n].nx;
+    *ptr++ = mris->vertices[n].ny;
+    *ptr++ = mris->vertices[n].nz;
+  }
+  return buffer;
+}
+
+
+/*
+  Returns an (M x 3) array of the surface's face indices.
+*/
+int* MRISgetFaceArray(MRIS *mris)
+{
+  int * const buffer = new int[mris->nfaces * 3];
+  int * ptr = buffer;
+  for (int n = 0 ; n < mris->nfaces ; n++) {
+    *ptr++ = mris->faces[n].v[0];
+    *ptr++ = mris->faces[n].v[1];
+    *ptr++ = mris->faces[n].v[2];
+  }
+  return buffer;
+}
+
+
+/*
+  Contructs an MRIS instance from a set of vertices and faces.
+
+  \param vertices An (N x 3) array of vertex positions.
+  \param nvertices Number of vertices in mesh.
+  \param faces An (M x 3) array of face indices.
+  \param nfaces Number of faces in mesh.
+*/
+MRIS* MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces)
+{
+  MRIS* mris = MRISalloc(nvertices, nfaces);
+  mris->type = MRIS_TRIANGULAR_SURFACE;
+
+  // vertex positions
+  const float* v = vertices;
+  for (int n = 0 ; n < mris->nvertices ; n++, v += 3) MRISsetXYZ(mris, n, v[0], v[1], v[2]);
+
+  // face positions
+  const int* f = faces;
+  setFaceAttachmentDeferred(mris, true);
+  for (int n = 0 ; n < mris->nfaces ; n++, f += 3) mrisAttachFaceToVertices(mris, n, f[0], f[1], f[2]);
+  setFaceAttachmentDeferred(mris, false);
+
+  mrisCompleteTopology(mris);
+
+  return mris;
+}
+
 
 char const * mrisurf_surface_names[3] = {"inflated", "smoothwm", "smoothwm"};
 char const * curvature_names      [3] = {"inflated.H", "sulc", NULL};
