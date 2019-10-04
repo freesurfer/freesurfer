@@ -1088,6 +1088,11 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "suffix"))
+  {
+    fs::warning() << "the --suffix flag has been removed. Brain volume stats will be computed normally";
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "log"))
   {
     log_file_name = argv[2] ;
