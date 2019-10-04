@@ -1271,8 +1271,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
                                float *pmean_gm, float *psigma_gm) ;
 int MRIcomputeClassStatisticsSeg(MRI *norm, MRI *seg, float *wmmean, float *wmstd, float *ctxmean, float *ctxstd);
 int MRIcomputeNbhdMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, int label, int x, int y, int z, int nbhd, MATRIX **p_mcov, VECTOR **p_vmeans) ;
-int MRIcomputeLabelMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nbhd) ;
-int MRIcomputeLabelMeansandCovariances2(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd);
+int MRIcomputeLabelMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd);
 int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeWMSAMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeCaudateMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;

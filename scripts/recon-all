@@ -1750,7 +1750,7 @@ if($DoTalCheck) then
     echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
       rm -f $qalog $qalog2
-      $fs_time $cmd >& $qalog
+      $cmd >& $qalog
       if($status) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
@@ -4418,6 +4418,10 @@ endif
 ##---------       -parcstats         -----------#
 #----------                          -----------#
 if($DoParcStats) then
+
+  # cache volume stats
+  if($RunIt) $fs_time mri_brainvol_stats $subjid |& tee -a $LF
+
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     echo "#-----------------------------------------" \

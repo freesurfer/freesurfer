@@ -89,6 +89,7 @@ static void print_version(void) ;
 static int convertToWFile(char *in_fname, char *out_fname) ;
 static int convertFromWFile(char *in_fname, char *out_fname) ;
 static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
+static MRI* computeAngles(MRIS* surf) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -712,6 +713,17 @@ get_option(int argc, char *argv[])
     MRIfree(&SrcVals); MRISfree(&surf);
     exit(err);
   }
+  else if (!stricmp(option, "-angle")) {
+    // This little bit of code is self-contained. Run like:
+    // mris_convert --angle <surface> <angles.mgz>
+    MRIS *surf = MRISread(argv[2]);
+    if (!surf) exit(1);
+    MRI *angles = computeAngles(surf);
+    int error = MRIwrite(angles, argv[3]);
+    MRIfree(&angles);
+    MRISfree(&surf);
+    exit(error);
+  }
   else if (!stricmp(option, "-volume")){
     // This little bit of code is self-contained, run like
     // mris_convert --volume subject hemi outcurv
@@ -908,6 +920,7 @@ print_help(void)
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
   printf( "  --area surface area.mgz : compute vertex-wise area (no other args needed); rescales group if needed\n") ;
+  printf( "  --angle surface angles.mgz : compute cortical orientation angles\n") ;
   printf( "  --label2mask surface label mask.mgz : convert a surface-based label to a binary mask (no other args needed)\n") ;
   printf( "  Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability\n") ;
   printf( "    Use --to-tkr and --to-scanner instead\n") ;
@@ -954,6 +967,10 @@ print_help(void)
   printf( "contains a single value:\n") ;
   printf( "  mris_convert --annot lh.aparc.annot --parcstats lh.parcstats.txt\\ \n") ;
   printf( "               lh.white lh.parcstats\n") ;
+  printf( "\n") ;
+  printf( "Create a scalar overlay of surface orientation angles with regard\n") ;
+  printf( "to the scanner's B0 field and the image volume axes:\n") ;
+  printf( "  mris_convert --angle <surface> <angles.mgz>\n") ; 
   printf( "\n") ;
   printf( "See also mri_surf2surf\n") ;
   exit(1) ;
@@ -1111,4 +1128,63 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
   fclose(fp);
 
   return(0);
+}
+
+
+MRI* computeAngles(MRIS* surf)
+{
+  // added by OVOX (see pull request #707)
+
+  printf("************************************* CAUTION **************************************\n"); 
+  printf("If you are running \"mris_convert --angle\" on an original surface (i.e. has not\n"); 
+  printf("been transformed by mris_surf2surf), then you can ignore this message.\n");
+  printf("However, if you need to calculate orientation angles of a TRANSFOMRED surface you \n");
+  printf("will need to convert the .lta/.dat registration file first and force the original \n");
+  printf("volume as the source. Otherwise important header information will be lost and the \n");
+  printf("angles will be incorrect (do not be fooled, they might appear close, but they won't\n");
+  printf("be exact). A detailed description and example can be found on the freesurfer wiki.\n");
+  printf("************************************************************************************\n");
+
+  // this will enable angle-weighted surface normals
+  UnitizeNormalFace = 0;
+  MRIScomputeNormals(surf);
+  UnitizeNormalFace = 1;
+
+  MATRIX* vox2ras = vg_i_to_r(&surf->vg);  // scanner space vox2ras from volume geometry
+  MATRIX* ras2vox = MatrixInverse(vox2ras, nullptr);  // inverse from imaging reference frame to scanner coordinate system
+
+  // imaging volume axes
+  double vi_x[3] = { ras2vox->rptr[1][1], ras2vox->rptr[2][1], ras2vox->rptr[3][1] };
+  double vi_y[3] = { ras2vox->rptr[1][2], ras2vox->rptr[2][2], ras2vox->rptr[3][2] };
+  double vi_z[3] = { ras2vox->rptr[1][3], ras2vox->rptr[2][3], ras2vox->rptr[3][3] };
+
+  // normalize the axes
+  auto normalize = [](double* vec) {
+    double len = sqrt(pow(vec[0], 2) +  pow(vec[1], 2) + pow(vec[2], 2));
+    vec[0] /= len;
+    vec[1] /= len;
+    vec[2] /= len;
+  };
+
+  normalize(vi_x);
+  normalize(vi_y);
+  normalize(vi_z);
+
+  // the angle between normal and volume axes is simply the acos of the normal's coordinate, 
+  // the angle to the scanner axes is the acos of the dot product between the normal and 
+  // the scanner directions. Store all angles in one overlay file. The first three will be w.r.t.
+  // B0, the other w.r.t. the scanner volume
+  MRI *angles = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 6);
+
+  for (int vno = 0; vno < surf->nvertices; vno++) {
+    VERTEX* v = &surf->vertices[vno];
+    MRIsetVoxVal(angles, vno, 0, 0, 0, acos((vi_x[0] * v->nx + vi_x[1] * v->ny + vi_x[2] * v->nz)) * 180 / PI); 
+    MRIsetVoxVal(angles, vno, 0, 0, 1, acos((vi_y[0] * v->nx + vi_y[1] * v->ny + vi_y[2] * v->nz)) * 180 / PI); 
+    MRIsetVoxVal(angles, vno, 0, 0, 2, acos((vi_z[0] * v->nx + vi_z[1] * v->ny + vi_z[2] * v->nz)) * 180 / PI); 
+    MRIsetVoxVal(angles, vno, 0, 0, 3, acos(v->nx) * 180 / PI) ;
+    MRIsetVoxVal(angles, vno, 0, 0, 4, acos(v->ny) * 180 / PI); 
+    MRIsetVoxVal(angles, vno, 0, 0, 5, acos(v->nz) * 180 / PI);
+  }
+
+  return angles;
 }
