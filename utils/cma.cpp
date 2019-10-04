@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <iomanip>
 #include "error.h"
 #include "fio.h"
 #include "gtm.h"
@@ -1003,127 +1004,98 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
   return (asegfixed);
 }
 
+
 /*!
-\fn double *ComputeBrainVolumeStats(char *subject)
-\brief computes various brain volume statistics and returns them as a
-double array.  These include BrainSegVol, BrainSegVolNotVent,
-SupraTentVol, SubCortGM, CtxGM, CtxWM, etc.  The hope is that this one
-function will be able to consistently define all of these
-parameters. Where possible, this function returns values based on
-surface-based analysis. It also computes the same values based on
-volume-based analysis to check against the surface-based results.
-\param subject
+  Computes various brain volume statistics and returns them as a vector of doubles.
+  These stats include BrainSegVol, BrainSegVolNotVent, SupraTentVol, SubCortGM, CtxGM,
+  CtxWM, etc. The hope is that this one function will be able to consistently define
+  all of these parameters for a single subject. Where possible, this function returns
+  values based on surface-based analysis. It also computes the same values based on
+  volume-based analysis to check against the surface-based results.
 */
-double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
+std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir)
 {
-  char tmpstr[2000];
-  char *SUBJECTS_DIR;
-  MRI *aseg, *ribbon, *asegfixed, *brainmask;
-  MRIS *mris;
-  int c, r, s, asegid, ribbonid, asegfixedid, ribbonRead;
-  double lhwhitevolTot, rhwhitevolTot, lhpialvolTot, rhpialvolTot;
-  double lhCtxGM, rhCtxGM, lhCtxWM, rhCtxWM;
-  double lhCtxGMCor, rhCtxGMCor, lhCtxWMCor, rhCtxWMCor;
-  double lhCtxGMCount, rhCtxGMCount, lhCtxWMCount, rhCtxWMCount;
-  double CCVol, TFFC, eBSVnvSurf;
-  double SupraTentVol, SupraTentVolCor, SupraTentVolNotVent, eSTV, eSTVnv;
-  double SubCortGMVol, CerebellumVol, CerebellumGMVol, VentChorVol;
-  double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
-  double OptChiasmVol, CSFVol;
-  double *stats = NULL;
-  double VoxelVol;
+  auto subjfile = [subject, subjdir](const char* fname) { return subjdir + "/" + subject + "/" + fname; };
 
+  std::string fname = subjfile("surf/lh.white");
+  MRIS* mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double lhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
 
-  const char *suffix;
-  if (suff == NULL) {
-    suffix = "";
-  } else {
-    suffix = suff;
+  fname = subjfile("surf/rh.white");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double rhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("surf/lh.pial");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double lhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("surf/rh.pial");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double rhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("mri/brainmask.mgz");
+  MRI* brainmask = MRIread(fname.c_str());
+  if (!brainmask) fs::fatal() << "cannot compute vol stats without " << fname;
+
+  fname = subjfile("mri/aseg.presurf.mgz");
+  if (!FileExists(fname.c_str())) {
+    std::cout << fname << " doesn't exist - using old naming conventions" << std::endl;
+    fname = subjfile("mri/aseg.mgz");
+    if (!FileExists(fname.c_str())) fname = subjfile("mri/aseg.long.mgz");
   }
+  MRI* aseg = MRIread(fname.c_str());
+  if (!aseg) fs::fatal() << "cannot compute vol stats without " << fname;
 
-  if (sdir)
-    SUBJECTS_DIR = sdir;
-  else
-    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-
-  sprintf(tmpstr, "%s/%s/surf/lh.white%s", SUBJECTS_DIR, subject, suffix);
-  mris = MRISread(tmpstr);
-  if (mris == NULL) return (NULL);
-  lhwhitevolTot = MRISvolumeInSurf(mris);
-  MRISfree(&mris);
-
-  sprintf(tmpstr, "%s/%s/surf/rh.white%s", SUBJECTS_DIR, subject, suffix);
-  mris = MRISread(tmpstr);
-  if (mris == NULL) return (NULL);
-  rhwhitevolTot = MRISvolumeInSurf(mris);
-  MRISfree(&mris);
-
-  sprintf(tmpstr, "%s/%s/surf/lh.pial%s", SUBJECTS_DIR, subject, suffix);
-  mris = MRISread(tmpstr);
-  if (mris == NULL) return (NULL);
-  lhpialvolTot = MRISvolumeInSurf(mris);
-  MRISfree(&mris);
-
-  sprintf(tmpstr, "%s/%s/surf/rh.pial%s", SUBJECTS_DIR, subject, suffix);
-  mris = MRISread(tmpstr);
-  if (mris == NULL) return (NULL);
-  rhpialvolTot = MRISvolumeInSurf(mris);
-  MRISfree(&mris);
-
-  sprintf(tmpstr, "%s/%s/mri/brainmask.mgz", SUBJECTS_DIR, subject);
-  brainmask = MRIread(tmpstr);
-  if (brainmask == NULL) return (NULL);
-
-  sprintf(tmpstr, "%s/%s/mri/aseg.presurf%s.mgz", SUBJECTS_DIR, subject, suffix);
-  if (FileExists(tmpstr) == 0) {
-    printf("%s doesn't exist, using old naming conventions\n", tmpstr);
-    sprintf(tmpstr, "%s/%s/mri/aseg%s.mgz", SUBJECTS_DIR, subject, suffix);
-    if (FileExists(tmpstr) == 0) sprintf(tmpstr, "%s/%s/mri/aseg.long%s.mgz", SUBJECTS_DIR, subject, suffix);
-  }
-  aseg = MRIread(tmpstr);
-  if (aseg == NULL) return (NULL);
-
-  sprintf(tmpstr, "%s/%s/mri/ribbon.mgz", SUBJECTS_DIR, subject);
-  if (fio_FileExistsReadable(tmpstr)) {
-    ribbon = MRIread(tmpstr);
-    if (ribbon == NULL) return (NULL);
+  MRI *ribbon, *asegfixed;
+  int ribbonRead;
+  fname = subjfile("mri/ribbon.mgz");
+  if (fio_FileExistsReadable(fname.c_str())) {
+    ribbon = MRIread(fname.c_str());
+    if (!ribbon) fs::fatal() << "cannot compute vol stats without " << fname;
     asegfixed = MRIfixAsegWithRibbon(aseg, ribbon, NULL);
     ribbonRead = 1;
-  }
-  else {
-    printf("WARNING: %s does not exist, ribbon based measurements will be inaccurate\n", tmpstr);
+  } else {
+    fs::warning() << fname << " does not exist - ribbon based measurements will be inaccurate";
     ribbon = aseg;
     asegfixed = aseg;
     ribbonRead = 0;
   }
-  VoxelVol = aseg->xsize * aseg->ysize * aseg->zsize;
-  printf("ComputeBrainVolumeStats() using version with fixed volume, VoxelVol=%g\n",VoxelVol);
+  double VoxelVol = aseg->xsize * aseg->ysize * aseg->zsize;
+  std::cout << "ComputeBrainVolumeStats using version with fixed volume (VoxelVol=" << VoxelVol << ")" << std::endl;
 
-  lhCtxGMCor = 0;
-  rhCtxGMCor = 0;
-  lhCtxWMCor = 0;
-  rhCtxWMCor = 0;
-  lhCtxGMCount = 0;
-  rhCtxGMCount = 0;
-  lhCtxWMCount = 0;
-  rhCtxWMCount = 0;
-  CCVol = 0;
-  SubCortGMVol = 0;
-  CerebellumVol = 0;
-  CerebellumGMVol = 0;
-  VentChorVol = 0;
-  BrainSegVol = 0;
-  MaskVol = 0;
-  VesselVol = 0;
-  OptChiasmVol = 0;
-  CSFVol = 0;
-  TFFC = 0;
-  for (c = 0; c < aseg->width; c++) {
-    for (r = 0; r < aseg->height; r++) {
-      for (s = 0; s < aseg->depth; s++) {
-        asegid = MRIgetVoxVal(aseg, c, r, s, 0);
-        asegfixedid = MRIgetVoxVal(asegfixed, c, r, s, 0);
-        ribbonid = MRIgetVoxVal(ribbon, c, r, s, 0);
+  double lhCtxGMCor = 0;
+  double rhCtxGMCor = 0;
+  double lhCtxWMCor = 0;
+  double rhCtxWMCor = 0;
+  double lhCtxGMCount = 0;
+  double rhCtxGMCount = 0;
+  double lhCtxWMCount = 0;
+  double rhCtxWMCount = 0;
+  double CCVol = 0;
+  double SubCortGMVol = 0;
+  double CerebellumVol = 0;
+  double CerebellumGMVol = 0;
+  double VentChorVol = 0;
+  double BrainSegVol = 0;
+  double MaskVol = 0;
+  double VesselVol = 0;
+  double OptChiasmVol = 0;
+  double CSFVol = 0;
+  double TFFC = 0;
+  for (int c = 0; c < aseg->width; c++) {
+    for (int r = 0; r < aseg->height; r++) {
+      for (int s = 0; s < aseg->depth; s++) {
+        double asegid = MRIgetVoxVal(aseg, c, r, s, 0);
+        double asegfixedid = MRIgetVoxVal(asegfixed, c, r, s, 0);
+        double ribbonid = MRIgetVoxVal(ribbon, c, r, s, 0);
         // Corpus Callosum
         if (asegid == 251 || asegid == 252 || asegid == 253 || asegid == 254 || asegid == 255) CCVol += VoxelVol;
         // Correct CtxGM by anything in the ribbon that is not GM, WM, or Unkown in the aseg
@@ -1169,18 +1141,18 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
         // so just lateralize them based on column (not perfect, but it is only a check)
         if (asegfixedid == 2 || asegfixedid == 78 || (asegfixedid == 77 && c < 128)) lhCtxWMCount += VoxelVol;
         if (asegfixedid == 41 || asegfixedid == 79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount += VoxelVol;
-      }  // c
-    }    // r
-  }      // s
+      }
+    }
+  }
 
   // CtxGM = everything inside pial surface minus everything in white surface
   // minus stuff in the ribbon that is not cortex
-  lhCtxGM = lhpialvolTot - lhwhitevolTot - lhCtxGMCor;
-  rhCtxGM = rhpialvolTot - rhwhitevolTot - rhCtxGMCor;
+  double lhCtxGM = lhpialvolTot - lhwhitevolTot - lhCtxGMCor;
+  double rhCtxGM = rhpialvolTot - rhwhitevolTot - rhCtxGMCor;
 
   // CtxWM = everything inside of white surface minus stuff that is not WM
-  lhCtxWM = lhwhitevolTot - lhCtxWMCor;
-  rhCtxWM = rhwhitevolTot - rhCtxWMCor;
+  double lhCtxWM = lhwhitevolTot - lhCtxWMCor;
+  double rhCtxWM = rhwhitevolTot - rhCtxWMCor;
 
   // Add half of CC to each hemi for counting,
   lhCtxWMCount += CCVol / 2.0;
@@ -1188,67 +1160,39 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
 
   // Supratentorial volume is everything inside the pial surface plus
   // stuff that is ouside the surface but still in the ST (eg, hippo, amyg)
-  SupraTentVolCor = SupraTentorialVolCorrection(aseg, ribbon);
-  SupraTentVol = lhpialvolTot + rhpialvolTot + SupraTentVolCor;
-  SupraTentVolNotVent = SupraTentVol - VentChorVol;
+  double SupraTentVolCor = SupraTentorialVolCorrection(aseg, ribbon);
+  double SupraTentVol = lhpialvolTot + rhpialvolTot + SupraTentVolCor;
+  double SupraTentVolNotVent = SupraTentVol - VentChorVol;
   // Estimated STV based - should these be exactly the same? Might depend on how
   // much of CSF and OptChiasm are in or out of the surface.
   // eSTV = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + VentChorVol + VesselVol;
-  eSTV = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VentChorVol + VesselVol;
-  eSTVnv = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VesselVol;
+  double eSTV = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VentChorVol + VesselVol;
+  double eSTVnv = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VesselVol;
 
   // Estimated BrainSegVolume - mostly a comparison between surface- and
   // volume-based
-  eBSV = eSTV + CerebellumVol + CSFVol + OptChiasmVol;
+  double eBSV = eSTV + CerebellumVol + CSFVol + OptChiasmVol;
 
   // Surface-based est of brainseg not vent
-  eBSVnvSurf = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + CerebellumVol + VesselVol;
+  double eBSVnvSurf = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + CerebellumVol + VesselVol;
 
-  BrainSegVolNotVent = BrainSegVol - VentChorVol - TFFC;
+  double BrainSegVolNotVent = BrainSegVol - VentChorVol - TFFC;
 
-  printf("lhCtxGM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
-         lhCtxGM,
-         lhCtxGMCount,
-         lhCtxGM - lhCtxGMCount,
-         100 * (lhCtxGM - lhCtxGMCount) / lhCtxGM);
-  printf("rhCtxGM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
-         rhCtxGM,
-         rhCtxGMCount,
-         rhCtxGM - rhCtxGMCount,
-         100 * (rhCtxGM - rhCtxGMCount) / rhCtxGM);
-  printf("lhCtxWM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
-         lhCtxWM,
-         lhCtxWMCount,
-         lhCtxWM - lhCtxWMCount,
-         100 * (lhCtxWM - lhCtxWMCount) / lhCtxWM);
-  printf("rhCtxWM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
-         rhCtxWM,
-         rhCtxWMCount,
-         rhCtxWM - rhCtxWMCount,
-         100 * (rhCtxWM - rhCtxWMCount) / rhCtxWM);
+  double TotalGMVol = SubCortGMVol + lhCtxGM + rhCtxGM + CerebellumGMVol;
+
+  auto printstatdiff = [](const char* name, double v, double c) {
+    printf("%s: %9.3f (%9.3f)  diff=%7.1f  pctdiff=%6.3f\n", name, v, c, v - c, 100 * (v - c) / v);
+  };
+
+  printstatdiff("lhCtxGM", lhCtxGM, lhCtxGMCount);
+  printstatdiff("rhCtxGM", rhCtxGM, rhCtxGMCount);
+  printstatdiff("lhCtxWM", lhCtxWM, lhCtxWMCount);
+  printstatdiff("rhCtxWM", rhCtxWM, rhCtxWMCount);
   printf("SubCortGMVol  %9.3f\n", SubCortGMVol);
-  printf("SupraTentVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
-         SupraTentVol,
-         eSTV,
-         SupraTentVol - eSTV,
-         100 * (SupraTentVol - eSTV) / SupraTentVol);
-  printf("SupraTentVolNotVent  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
-         SupraTentVolNotVent,
-         eSTVnv,
-         SupraTentVolNotVent - eSTVnv,
-         100 * (SupraTentVolNotVent - eSTVnv) / SupraTentVolNotVent);
-  printf("BrainSegVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
-         BrainSegVol,
-         eBSV,
-         BrainSegVol - eBSV,
-         100 * (BrainSegVol - eBSV) / BrainSegVol);
-  printf("BrainSegVolNotVent  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
-         BrainSegVolNotVent,
-         eBSVnvSurf,
-         BrainSegVolNotVent - eBSVnvSurf,
-         100 * (BrainSegVolNotVent - eBSVnvSurf) / BrainSegVolNotVent);
-
-  printf("BrainSegVolNotVent  %9.3f\n", BrainSegVolNotVent);
+  printstatdiff("SupraTentVol", SupraTentVol, eSTV);
+  printstatdiff("SupraTentVolNotVent", SupraTentVolNotVent, eSTVnv);
+  printstatdiff("BrainSegVol", BrainSegVol, eBSV);
+  printstatdiff("BrainSegVolNotVent", BrainSegVolNotVent, eBSVnvSurf);
   printf("CerebellumVol %9.3f\n", CerebellumVol);
   printf("VentChorVol   %9.3f\n", VentChorVol);
   printf("3rd4th5thCSF  %9.3f\n", TFFC);
@@ -1267,26 +1211,129 @@ double *ComputeBrainVolumeStats(char *subject, char *suff, char *sdir)
     rhCtxGM = 0;
   }
 
-  stats = (double *)calloc(16, sizeof(double));
-  stats[0] = BrainSegVol;
-  stats[1] = BrainSegVolNotVent;
-  stats[2] = SupraTentVol;
-  stats[3] = SupraTentVolNotVent;
-  stats[4] = SubCortGMVol;
-  stats[5] = lhCtxGM;
-  stats[6] = rhCtxGM;
-  stats[7] = lhCtxGM + rhCtxGM;
-  stats[8] = SubCortGMVol + lhCtxGM + rhCtxGM + CerebellumGMVol;  // total GM Vol
-  stats[9] = lhCtxWM;
-  stats[10] = rhCtxWM;
-  stats[11] = lhCtxWM + rhCtxWM;
-  stats[12] = MaskVol;
-  stats[13] = eSTVnv;       // voxel-based supratentorial not vent volume
-  stats[14] = eBSVnvSurf;   // surface-based brain  not vent volume
-  stats[15] = VentChorVol;  // volume of ventricles + choroid
+  std::vector<double> stats = {
+    BrainSegVol,          // 0
+    BrainSegVolNotVent,   // 1
+    SupraTentVol,         // 2
+    SupraTentVolNotVent,  // 3
+    SubCortGMVol,         // 4
+    lhCtxGM,              // 5
+    rhCtxGM,              // 6
+    lhCtxGM + rhCtxGM,    // 7
+    TotalGMVol,           // 8
+    lhCtxWM,              // 9
+    rhCtxWM,              // 10
+    lhCtxWM + rhCtxWM,    // 11
+    MaskVol,              // 12
+    eSTVnv,               // 13   voxel-based supratentorial not vent volume
+    eBSVnvSurf,           // 14   surface-based brain  not vent volume
+    VentChorVol           // 15   volume of ventricles + choroid
+  };
 
-  return (stats);
+  return stats;
 }
+
+
+static const std::string brainVolumeStatsFilename = "stats/brainvol.stats";
+
+
+/*!
+  Caches brain volume stats, as computed by `ComputeBrainVolumeStats()`, in a stats file so that
+  these values can be easily queried in `mri_segstats` and `mris_anatomical_stats` without having
+  to recompute them every time (it's a bit time consuming).
+*/
+void CacheBrainVolumeStats(const std::vector<double>& stats, const std::string& subject, const std::string& subjdir)
+{
+  // cache brain volume stats in subject/stats/brainvol.stats
+  std::string filename = subjdir + "/" + subject + "/" + brainVolumeStatsFilename;
+  std::ofstream statsfile(filename);
+  if (!statsfile) fs::fatal() << "could not open file " << filename << " for writing";
+
+  statsfile << std::fixed << std::setprecision(12);
+  statsfile << "# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, " << stats[0] << ", mm^3" << std::endl;
+  statsfile << "# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, " << stats[1] << ", mm^3" << std::endl;
+  statsfile << "# Measure SupraTentorial, SupraTentorialVol, Supratentorial volume, " << stats[2] << ", mm^3" << std::endl;
+  statsfile << "# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, Supratentorial volume, " << stats[3] << ", mm^3" << std::endl;
+  statsfile << "# Measure SubCortGray, SubCortGrayVol, Subcortical gray matter volume, " << stats[4] << ", mm^3" << std::endl;
+  statsfile << "# Measure lhCortex, lhCortexVol, Left hemisphere cortical gray matter volume, " << stats[5] << ", mm^3" << std::endl;
+  statsfile << "# Measure rhCortex, rhCortexVol, Right hemisphere cortical gray matter volume, " << stats[6] << ", mm^3" << std::endl;
+  statsfile << "# Measure Cortex, CortexVol, Total cortical gray matter volume, " << stats[7] << ", mm^3" << std::endl;
+  statsfile << "# Measure TotalGray, TotalGrayVol, Total gray matter volume, " << stats[8] << ", mm^3" << std::endl;
+  statsfile << "# Measure lhCerebralWhiteMatter, lhCerebralWhiteMatterVol, Left hemisphere cerebral white matter volume, " << stats[9] << ", mm^3" << std::endl;
+  statsfile << "# Measure rhCerebralWhiteMatter, rhCerebralWhiteMatterVol, Right hemisphere cerebral white matter volume, " << stats[10] << ", mm^3" << std::endl;
+  statsfile << "# Measure CerebralWhiteMatter, CerebralWhiteMatterVol, Total cerebral white matter volume, " << stats[11] << ", mm^3" << std::endl;
+  statsfile << "# Measure Mask, MaskVol, Mask Volume, " << stats[12] << ", mm^3" << std::endl;
+  statsfile << "# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, Supratentorial volume voxel count, " << stats[13] << ", mm^3" << std::endl;
+  statsfile << "# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, Brain Segmentation Volume Without Ventricles from Surf, " << stats[14] << ", mm^3" << std::endl;
+  statsfile << "# Measure VentricleChoroidVol, VentricleChoroidVol, Volume of ventricles and choroid plexus, " << stats[15] << ", mm^3" << std::endl;
+}
+
+
+/*!
+  Reads cached brain volume stats computed by `ComputeBrainVolumeStats()`. If the file if not found,
+  the values are computed and cached.
+*/
+std::vector<double> ReadCachedBrainVolumeStats(const std::string& subject, const std::string& subjdir)
+{
+  // check for cached brainvol.stats file
+  std::string filename = subjdir + "/" + subject + "/" + brainVolumeStatsFilename;
+  std::ifstream statsfile(filename);
+  if (!statsfile) {
+    // compute and cache stats if not found
+    std::cout << "computing (and caching) brain volume statistics" << std::endl;
+    std::vector<double> result = ComputeBrainVolumeStats(subject, subjdir);
+    CacheBrainVolumeStats(result, subject, subjdir);
+    return result;
+  }
+
+  std::vector<std::string> volumeNames = {
+      "BrainSeg, BrainSegVol",                                   // 0
+      "BrainSegNotVent, BrainSegVolNotVent",                     // 1
+      "SupraTentorial, SupraTentorialVol",                       // 2
+      "SupraTentorialNotVent, SupraTentorialVolNotVent",         // 3
+      "SubCortGray, SubCortGrayVol",                             // 4
+      "lhCortex, lhCortexVol",                                   // 5
+      "rhCortex, rhCortexVol",                                   // 6
+      "Cortex, CortexVol",                                       // 7
+      "TotalGray, TotalGrayVol",                                 // 8
+      "lhCerebralWhiteMatter, lhCerebralWhiteMatterVol",         // 9
+      "rhCerebralWhiteMatter, rhCerebralWhiteMatterVol",         // 10
+      "CerebralWhiteMatter, CerebralWhiteMatterVol",             // 11
+      "Mask, MaskVol",                                           // 12
+      "SupraTentorialNotVentVox, SupraTentorialVolNotVentVox",   // 13
+      "BrainSegNotVentSurf, BrainSegVolNotVentSurf",             // 14
+      "VentricleChoroidVol, VentricleChoroidVol"                 // 15
+  };
+
+  int nstats = volumeNames.size();
+  std::vector<double> stats(nstats, -1.0);
+
+  for (std::string line ; getline(statsfile, line) ;) {
+    for (int i = 0 ; i < nstats ; i++) {
+      if (line.find(volumeNames[i]) != std::string::npos) {
+        std::stringstream ss(line);
+        std::string word;
+        double volume;
+        while (!ss.eof()) {
+          ss >> word;
+          word.pop_back();
+          if (std::stringstream(word) >> volume) {
+            stats[i] = volume;
+            break;
+          }
+          word.clear();
+        }
+      }
+    }
+  }
+
+  for (int n = 0 ; n < nstats; n++) {
+    if (stats[n] < 0) fs::fatal() << "could not find stat for " << volumeNames[n] << " in " << filename;
+  }
+
+  return stats;
+}
+
 
 /*!
   \fn MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt)

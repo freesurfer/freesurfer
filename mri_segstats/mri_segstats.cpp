@@ -34,7 +34,7 @@
    16  Brain-Stem                            119  159  176    0
 
     4  Left-Lateral-Ventricle                120   18  134    0
-   10  Left-Thalamus                    0  118   14    0
+   10  Left-Thalamus                           0  118   14    0
    11  Left-Caudate                          122  186  220    0
    12  Left-Putamen                          236   13  176    0
    13  Left-Pallidum                          12   48  255    0
@@ -44,7 +44,7 @@
    28  Left-VentralDC                        165   42   42    0
 
    43  Right-Lateral-Ventricle               120   18  134    0
-   49  Right-Thalamus                   0  118   14    0
+   49  Right-Thalamus                          0  118   14    0
    50  Right-Caudate                         122  186  220    0
    51  Right-Putamen                         236   13  176    0
    52  Right-Pallidum                         13   48  255    0
@@ -216,7 +216,6 @@ int main(int argc, char **argv)
   LABEL *label;
   MRI *tmp;
   MATRIX *vox2vox = NULL;
-  double *BrainVolStats=NULL;
   nhits = 0;
   vol = 0;
 
@@ -495,12 +494,12 @@ int main(int argc, char **argv)
     ctab = GCAcolorTableCMA(gca);
   }
 
+  std::vector<double> BrainVolStats;
   if(DoSurfWMVol || DoSurfCtxVol || DoSupraTent || BrainVolFromSeg || DoSubCortGrayVol){
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     if(fio_FileExistsReadable(tmpstr)){
       printf("Getting Brain Volume Statistics\n");
-      BrainVolStats = ComputeBrainVolumeStats(subject, NULL,NULL);
-      if(BrainVolStats == NULL) exit(1);
+      BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
     }
     else{
       printf("Warning: cannot find %s, not computing whole brain stats\n",tmpstr);
@@ -1046,8 +1045,8 @@ int main(int argc, char **argv)
       fprintf(fp,"# SUBJECTS_DIR %s\n",SUBJECTS_DIR);
       fprintf(fp,"# subjectname %s\n",subject);
     }
-    if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
-    if(BrainVolStats){
+    if (UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
+    if (!BrainVolStats.empty()) {
       if(fabs(voxelvolume-1)>.01){
 	// This indicates that the global stats has been fixed
 	fprintf(fp,"# BrainVolStatsFixed see surfer.nmr.mgh.harvard.edu/fswiki/BrainVolStatsFixed\n");
@@ -1068,7 +1067,7 @@ int main(int argc, char **argv)
               "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
               BrainVolStats[14]);
     }
-    if(BrainVolStats){
+    if (!BrainVolStats.empty()) {
       fprintf(fp,"# Measure VentricleChoroidVol, VentricleChoroidVol, "
 	      "Volume of ventricles and choroid plexus, %f, mm^3\n",
 	      BrainVolStats[15]);
@@ -1112,7 +1111,7 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
               "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
     }
-    if (BrainMaskFile && BrainVolStats != NULL){
+    if (BrainMaskFile && (!BrainVolStats.empty())) {
       //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
       //fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
       //       VERfileTimeStamp(BrainMaskFile));
@@ -2365,11 +2364,9 @@ int CountEdits(char *subject, char *outfile)
   sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",SUBJECTS_DIR,subject);
   atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
 
-  double *BrainVolStats=NULL;
-  BrainVolStats = ComputeBrainVolumeStats(subject,NULL,NULL);
+  std::vector<double> BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
   double MaskVolToETIV;
-  MaskVolToETIV = BrainVolStats[12]/atlas_icv;
-  free(BrainVolStats);
+  MaskVolToETIV = BrainVolStats[12] / atlas_icv;
 
   float *wmstats;
   // Erode=3, trim the top and bottom 2% when computing WM mean, std, etc

@@ -4764,6 +4764,10 @@ if($DoSegStats) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
+  
+  # cache volume stats
+  if($RunIt) $fs_time mri_brainvol_stats $subjid |& tee -a $LF
+
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
   if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
