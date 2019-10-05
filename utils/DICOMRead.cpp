@@ -3339,14 +3339,19 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
     sdfi0 = sdfi_list[RunList[0]];
 
     if (sdfi0->IsMosaic) {
-      /* It is a mosaic */
+      /* 2019-10-05, mu40: do not set the error flag if the number of files in
+       * the run exceeds the number of repetitions, as the run is most likely
+       * not truncated. The lRepetition field may not have been set, e.g. in
+       * vNavs. */
       sdfi0->NFrames = nfilesperrun;
       if (nfilesperrun != (sdfi0->lRepetitions + 1)) {
         fprintf(stderr, "WARNING: Run %d appears to be truncated\n", nthrun + 1);
         fprintf(stderr, "  Files Found: %d, Files Expected (lRep+1): %d\n", nfilesperrun, (sdfi0->lRepetitions + 1));
         DumpSDCMFileInfo(stderr, sdfi0);
         fflush(stderr);
-        sdfi0->ErrorFlag = 1;
+        if (nfilesperrun < (sdfi0->lRepetitions + 1)) {
+            sdfi0->ErrorFlag = 1;
+        }
       }
     }
 
