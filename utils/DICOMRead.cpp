@@ -3231,6 +3231,11 @@ int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist)
   3. For mosaics, the image number is meaningless. Because of
   note 2, the image number comparison should never be reached.
   4. For non-mosaics, image number increases for later acquisitions.
+
+  2019-10-05, mu40: only consider slice locations for non-mosaics, as this
+  condition may be mistakenly triggered e.g. if prospective motion correction
+  was being used. Assumptions 2 and 3 were observed to be violated in HCP
+  rs-fMRI data.
   -----------------------------------------------------------*/
 int CompareSDCMFileInfo(const void *a, const void *b)
 {
@@ -3259,27 +3264,28 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   }
 
   /* ------ Sort by Slice Position -------- */
-  /* Compute vector from the first to the second */
-  dvsum2 = 0;
-  for (n = 0; n < 3; n++) {
-    dv[n] = sdcmfi2->ImgPos[n] - sdcmfi1->ImgPos[n];
-    dvsum2 += (dv[n] * dv[n]);
-  }
-  for (n = 0; n < 3; n++) {
-    dv[n] /= sqrt(dvsum2); /* normalize */
-  }
-  /* Compute dot product with Slice Normal vector */
-  dot = 0;
-  for (n = 0; n < 3; n++) {
-    dot += (dv[n] * sdcmfi1->Vs[n]);
-  }
-
-  // Sort by slice position.
-  if (dot > +0.5) {
-    return (-1);
-  }
-  if (dot < -0.5) {
-    return (+1);
+  if (!sdcmfi1->IsMosaic || !sdcmfi2->IsMosaic) {
+    /* Compute vector from the first to the second */
+    dvsum2 = 0;
+    for (n = 0; n < 3; n++) {
+      dv[n] = sdcmfi2->ImgPos[n] - sdcmfi1->ImgPos[n];
+      dvsum2 += (dv[n] * dv[n]);
+    }
+    for (n = 0; n < 3; n++) {
+      dv[n] /= sqrt(dvsum2); /* normalize */
+    }
+    /* Compute dot product with Slice Normal vector */
+    dot = 0;
+    for (n = 0; n < 3; n++) {
+      dot += (dv[n] * sdcmfi1->Vs[n]);
+    }
+    // Sort by slice position.
+    if (dot > +0.5) {
+      return (-1);
+    }
+    if (dot < -0.5) {
+      return (+1);
+    }
   }
 
   /* Sort by Image Number (Temporal Sequence) */
