@@ -2186,6 +2186,7 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
   int Nrows, Ncols;
   float ColRes, RowRes, SliceRes;
   int NrowsExp, NcolsExp;
+  int NimagesMosaic, NmosaicSideLen;
   float PhEncFOV, ReadOutFOV;
   int err, IsMosaic;
   char *tmpstr;
@@ -2223,34 +2224,49 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
     return (0);
   }
 
-  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
-  if (tmpstr == NULL) {
-    return (0);
-  }
-  sscanf(tmpstr, "%f", &PhEncFOV);
-  free(tmpstr);
-
-  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
-  if (tmpstr == NULL) {
-    return (0);
-  }
-  sscanf(tmpstr, "%f", &ReadOutFOV);
-  free(tmpstr);
-
-  err = dcmGetVolRes(dcmfile, &ColRes, &RowRes, &SliceRes);
-  if (err) {
-    return (-1);
-  }
-
-  if (strncmp(PhEncDir, "COL", 3) == 0) {
-    /* Each row is a different phase encode */
-    NrowsExp = (int)(rint(PhEncFOV / RowRes));
-    NcolsExp = (int)(rint(ReadOutFOV / ColRes));
+  /* 2019-10-05, mu40: try to derive dimensions from Siemens' private
+   * NumberOfImagesInMosaic field first, which represents the number of slices
+   * in the run. Note that mosaics are always square, i.e. filled with empty
+   * slices at the end. */
+  e = GetElementFromFile(dcmfile, 0x19, 0x100a);
+  NimagesMosaic = 0;
+  if (e != NULL) {
+    IsMosaic = 1;
+    NimagesMosaic = (int)*(e->d.us);
+    NmosaicSideLen = ceil(sqrt(NimagesMosaic));
+    NrowsExp = Nrows / NmosaicSideLen;
+    NcolsExp = Ncols / NmosaicSideLen;
   }
   else {
-    /* Each column is a different phase encode */
-    NrowsExp = (int)(rint(ReadOutFOV / RowRes));
-    NcolsExp = (int)(rint(PhEncFOV / ColRes));
+    tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
+    if (tmpstr == NULL) {
+      return (0);
+    }
+    sscanf(tmpstr, "%f", &PhEncFOV);
+    free(tmpstr);
+
+    tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
+    if (tmpstr == NULL) {
+      return (0);
+    }
+    sscanf(tmpstr, "%f", &ReadOutFOV);
+    free(tmpstr);
+
+    err = dcmGetVolRes(dcmfile, &ColRes, &RowRes, &SliceRes);
+    if (err) {
+      return (-1);
+    }
+
+    if (strncmp(PhEncDir, "COL", 3) == 0) {
+      /* Each row is a different phase encode */
+      NrowsExp = (int)(rint(PhEncFOV / RowRes));
+      NcolsExp = (int)(rint(ReadOutFOV / ColRes));
+    }
+    else {
+      /* Each column is a different phase encode */
+      NrowsExp = (int)(rint(ReadOutFOV / RowRes));
+      NcolsExp = (int)(rint(PhEncFOV / ColRes));
+    }
   }
 
   if (NrowsExp != Nrows || NcolsExp != Ncols) {
@@ -2277,7 +2293,10 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
     }
     if (pNslices != NULL) {
       tmpstr = getenv("NSLICES_OVERRIDE"); // was NSLICES_OVERRIDE_BCHWAUNIE
-      if (tmpstr == NULL) {
+      if (tmpstr == NULL && NimagesMosaic > 0) {
+        *pNslices = NimagesMosaic;
+      }
+      else if (tmpstr == NULL) {
         tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
         if (tmpstr == NULL) {
           return (0);
