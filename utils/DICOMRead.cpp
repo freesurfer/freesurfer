@@ -3802,39 +3802,12 @@ int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist, i
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
 {
   char *strtmp, *dcmfile;
-  MATRIX *ras_c, *R, *crs_c, *ras0;
+  MATRIX *ras_c, *R, *crs_c, *ras0, *shift;
   int r;
 
   if (!sdfi->IsMosaic) {
     return (0);
   }
-
-  // Center of first slice
-  ras_c = MatrixAlloc(3, 1, MATRIX_REAL);
-  crs_c = MatrixAlloc(3, 1, MATRIX_REAL);
-
-  dcmfile = sdfi->FileName;
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dSag", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[1][1]));
-    ras_c->rptr[1][1] *= -1.0;
-    free(strtmp);
-  }
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dCor", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[2][1]));
-    ras_c->rptr[2][1] *= -1.0;
-    free(strtmp);
-  }
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dTra", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[3][1]));
-    free(strtmp);
-  }
-
-  crs_c->rptr[1][1] = sdfi->VolDim[0] / 2.0;
-  crs_c->rptr[2][1] = sdfi->VolDim[1] / 2.0;
-  crs_c->rptr[3][1] = 0;  // first slice
 
   R = MatrixAlloc(3, 3, MATRIX_REAL);
   for (r = 0; r < 3; r++) {
@@ -3843,18 +3816,62 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
     R->rptr[r + 1][3] = sdfi->Vs[r] * sdfi->VolRes[2];
   }
 
-  ras0 = MatrixMultiply(R, crs_c, NULL);
-  ras0 = MatrixSubtract(ras_c, ras0, ras0);
+  /* 2019-10-05, mu40: add alternative method for fixing mosaic position without
+   * using the ASCII header. This is based on the previous routine that Doug
+   * replaced in 2005. */
+  if (getenv("FS_MOSAIC_FIX_NOASCII")) {
+    printf("INFO: fixing mosaic center without using ASCII header\n");
+    shift = MatrixAlloc(3, 1, MATRIX_REAL);
+    shift->rptr[1][1] = (sdfi->NImageCols - sdfi->VolDim[0]) / 2.0;
+    shift->rptr[2][1] = (sdfi->NImageRows - sdfi->VolDim[1]) / 2.0;
+    shift->rptr[3][1] = 0;
+    MatrixMultiplyD(R, shift, shift);
+    sdfi->ImgPos[0] += shift->rptr[1][1];
+    sdfi->ImgPos[1] += shift->rptr[2][1];
+    sdfi->ImgPos[2] += shift->rptr[3][1];
+    MatrixFree(&shift);
+  }
+  else {
+    // Center of first slice
+    ras_c = MatrixAlloc(3, 1, MATRIX_REAL);
+    crs_c = MatrixAlloc(3, 1, MATRIX_REAL);
 
-  sdfi->ImgPos[0] = ras0->rptr[1][1];
-  sdfi->ImgPos[1] = ras0->rptr[2][1];
-  sdfi->ImgPos[2] = ras0->rptr[3][1];
+    dcmfile = sdfi->FileName;
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dSag", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[1][1]));
+      ras_c->rptr[1][1] *= -1.0;
+      free(strtmp);
+    }
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dCor", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[2][1]));
+      ras_c->rptr[2][1] *= -1.0;
+      free(strtmp);
+    }
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dTra", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[3][1]));
+      free(strtmp);
+    }
 
-  MatrixFree(&ras_c);
-  MatrixFree(&crs_c);
-  MatrixFree(&ras0);
+    crs_c->rptr[1][1] = sdfi->VolDim[0] / 2.0;
+    crs_c->rptr[2][1] = sdfi->VolDim[1] / 2.0;
+    crs_c->rptr[3][1] = 0;  // first slice
+
+    ras0 = MatrixMultiply(R, crs_c, NULL);
+    ras0 = MatrixSubtract(ras_c, ras0, ras0);
+
+    sdfi->ImgPos[0] = ras0->rptr[1][1];
+    sdfi->ImgPos[1] = ras0->rptr[2][1];
+    sdfi->ImgPos[2] = ras0->rptr[3][1];
+
+    MatrixFree(&ras_c);
+    MatrixFree(&crs_c);
+    MatrixFree(&ras0);
+  }
+
   MatrixFree(&R);
-
   return (0);
 }
 /*-----------------------------------------------------------------------
