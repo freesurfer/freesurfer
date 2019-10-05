@@ -1389,6 +1389,9 @@ int main(int argc, char *argv[])
       sprintf(tmpstr,"%d",NRowsOverride);
       setenv("NROWS_OVERRIDE",tmpstr,1);
     }
+    else if (strcmp(argv[i], "--mosaic-fix-noascii") == 0) {
+        setenv("FS_MOSAIC_FIX_NOASCII","1",1);
+    }
     /*-------------------------------------------------------------*/
     else if ( (strcmp(argv[i], "--nspmzeropad") == 0) ||
               (strcmp(argv[i], "--out_nspmzeropad") == 0))
