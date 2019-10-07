@@ -177,9 +177,11 @@ struct ExamplesOfUsingEnergyFunctionals
     //
     double lap, lapOfOneVertex;
     
-    ExamplesOfUsingEnergyFunctionals(MRIS* mris, int vno) { 
+    ExamplesOfUsingEnergyFunctionals(MRIS* mris, int vnoOrFno) { 
     	lap = mrisComputeLaplacianEnergy(mris);
-	lapOfOneVertex 	= mrisComputeLaplacianEnergy(mris, vno);
+	lapOfOneVertex 	= mrisComputeLaplacianEnergy(mris, vnoOrFno);
+    	//
+	// ... etc for all the functions in the lists above
     }
 };
 
