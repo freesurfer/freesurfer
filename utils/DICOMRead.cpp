@@ -2186,6 +2186,7 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
   int Nrows, Ncols;
   float ColRes, RowRes, SliceRes;
   int NrowsExp, NcolsExp;
+  int NimagesMosaic, NmosaicSideLen;
   float PhEncFOV, ReadOutFOV;
   int err, IsMosaic;
   char *tmpstr;
@@ -2223,34 +2224,49 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
     return (0);
   }
 
-  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
-  if (tmpstr == NULL) {
-    return (0);
-  }
-  sscanf(tmpstr, "%f", &PhEncFOV);
-  free(tmpstr);
-
-  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
-  if (tmpstr == NULL) {
-    return (0);
-  }
-  sscanf(tmpstr, "%f", &ReadOutFOV);
-  free(tmpstr);
-
-  err = dcmGetVolRes(dcmfile, &ColRes, &RowRes, &SliceRes);
-  if (err) {
-    return (-1);
-  }
-
-  if (strncmp(PhEncDir, "COL", 3) == 0) {
-    /* Each row is a different phase encode */
-    NrowsExp = (int)(rint(PhEncFOV / RowRes));
-    NcolsExp = (int)(rint(ReadOutFOV / ColRes));
+  /* 2019-10-05, mu40: try to derive dimensions from Siemens' private
+   * NumberOfImagesInMosaic field first, which represents the number of slices
+   * in the run. Note that mosaics are always square, i.e. filled with empty
+   * slices at the end. */
+  e = GetElementFromFile(dcmfile, 0x19, 0x100a);
+  NimagesMosaic = 0;
+  if (e != NULL) {
+    IsMosaic = 1;
+    NimagesMosaic = (int)*(e->d.us);
+    NmosaicSideLen = ceil(sqrt(NimagesMosaic));
+    NrowsExp = Nrows / NmosaicSideLen;
+    NcolsExp = Ncols / NmosaicSideLen;
   }
   else {
-    /* Each column is a different phase encode */
-    NrowsExp = (int)(rint(ReadOutFOV / RowRes));
-    NcolsExp = (int)(rint(PhEncFOV / ColRes));
+    tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
+    if (tmpstr == NULL) {
+      return (0);
+    }
+    sscanf(tmpstr, "%f", &PhEncFOV);
+    free(tmpstr);
+
+    tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
+    if (tmpstr == NULL) {
+      return (0);
+    }
+    sscanf(tmpstr, "%f", &ReadOutFOV);
+    free(tmpstr);
+
+    err = dcmGetVolRes(dcmfile, &ColRes, &RowRes, &SliceRes);
+    if (err) {
+      return (-1);
+    }
+
+    if (strncmp(PhEncDir, "COL", 3) == 0) {
+      /* Each row is a different phase encode */
+      NrowsExp = (int)(rint(PhEncFOV / RowRes));
+      NcolsExp = (int)(rint(ReadOutFOV / ColRes));
+    }
+    else {
+      /* Each column is a different phase encode */
+      NrowsExp = (int)(rint(ReadOutFOV / RowRes));
+      NcolsExp = (int)(rint(PhEncFOV / ColRes));
+    }
   }
 
   if (NrowsExp != Nrows || NcolsExp != Ncols) {
@@ -2277,7 +2293,10 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
     }
     if (pNslices != NULL) {
       tmpstr = getenv("NSLICES_OVERRIDE"); // was NSLICES_OVERRIDE_BCHWAUNIE
-      if (tmpstr == NULL) {
+      if (tmpstr == NULL && NimagesMosaic > 0) {
+        *pNslices = NimagesMosaic;
+      }
+      else if (tmpstr == NULL) {
         tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
         if (tmpstr == NULL) {
           return (0);
@@ -3212,6 +3231,11 @@ int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist)
   3. For mosaics, the image number is meaningless. Because of
   note 2, the image number comparison should never be reached.
   4. For non-mosaics, image number increases for later acquisitions.
+
+  2019-10-05, mu40: only consider slice locations for non-mosaics, as this
+  condition may be mistakenly triggered e.g. if prospective motion correction
+  was being used. Assumptions 2 and 3 were observed to be violated in HCP
+  rs-fMRI data.
   -----------------------------------------------------------*/
 int CompareSDCMFileInfo(const void *a, const void *b)
 {
@@ -3240,27 +3264,28 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   }
 
   /* ------ Sort by Slice Position -------- */
-  /* Compute vector from the first to the second */
-  dvsum2 = 0;
-  for (n = 0; n < 3; n++) {
-    dv[n] = sdcmfi2->ImgPos[n] - sdcmfi1->ImgPos[n];
-    dvsum2 += (dv[n] * dv[n]);
-  }
-  for (n = 0; n < 3; n++) {
-    dv[n] /= sqrt(dvsum2); /* normalize */
-  }
-  /* Compute dot product with Slice Normal vector */
-  dot = 0;
-  for (n = 0; n < 3; n++) {
-    dot += (dv[n] * sdcmfi1->Vs[n]);
-  }
-
-  // Sort by slice position.
-  if (dot > +0.5) {
-    return (-1);
-  }
-  if (dot < -0.5) {
-    return (+1);
+  if (!sdcmfi1->IsMosaic || !sdcmfi2->IsMosaic) {
+    /* Compute vector from the first to the second */
+    dvsum2 = 0;
+    for (n = 0; n < 3; n++) {
+      dv[n] = sdcmfi2->ImgPos[n] - sdcmfi1->ImgPos[n];
+      dvsum2 += (dv[n] * dv[n]);
+    }
+    for (n = 0; n < 3; n++) {
+      dv[n] /= sqrt(dvsum2); /* normalize */
+    }
+    /* Compute dot product with Slice Normal vector */
+    dot = 0;
+    for (n = 0; n < 3; n++) {
+      dot += (dv[n] * sdcmfi1->Vs[n]);
+    }
+    // Sort by slice position.
+    if (dot > +0.5) {
+      return (-1);
+    }
+    if (dot < -0.5) {
+      return (+1);
+    }
   }
 
   /* Sort by Image Number (Temporal Sequence) */
@@ -3320,14 +3345,19 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
     sdfi0 = sdfi_list[RunList[0]];
 
     if (sdfi0->IsMosaic) {
-      /* It is a mosaic */
+      /* 2019-10-05, mu40: do not set the error flag if the number of files in
+       * the run exceeds the number of repetitions, as the run is most likely
+       * not truncated. The lRepetition field may not have been set, e.g. in
+       * vNavs. */
       sdfi0->NFrames = nfilesperrun;
       if (nfilesperrun != (sdfi0->lRepetitions + 1)) {
         fprintf(stderr, "WARNING: Run %d appears to be truncated\n", nthrun + 1);
         fprintf(stderr, "  Files Found: %d, Files Expected (lRep+1): %d\n", nfilesperrun, (sdfi0->lRepetitions + 1));
         DumpSDCMFileInfo(stderr, sdfi0);
         fflush(stderr);
-        sdfi0->ErrorFlag = 1;
+        if (nfilesperrun < (sdfi0->lRepetitions + 1)) {
+            sdfi0->ErrorFlag = 1;
+        }
       }
     }
 
@@ -3772,39 +3802,12 @@ int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist, i
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
 {
   char *strtmp, *dcmfile;
-  MATRIX *ras_c, *R, *crs_c, *ras0;
+  MATRIX *ras_c, *R, *crs_c, *ras0, *shift;
   int r;
 
   if (!sdfi->IsMosaic) {
     return (0);
   }
-
-  // Center of first slice
-  ras_c = MatrixAlloc(3, 1, MATRIX_REAL);
-  crs_c = MatrixAlloc(3, 1, MATRIX_REAL);
-
-  dcmfile = sdfi->FileName;
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dSag", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[1][1]));
-    ras_c->rptr[1][1] *= -1.0;
-    free(strtmp);
-  }
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dCor", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[2][1]));
-    ras_c->rptr[2][1] *= -1.0;
-    free(strtmp);
-  }
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dTra", 0);
-  if (strtmp != NULL) {
-    sscanf(strtmp, "%f", &(ras_c->rptr[3][1]));
-    free(strtmp);
-  }
-
-  crs_c->rptr[1][1] = sdfi->VolDim[0] / 2.0;
-  crs_c->rptr[2][1] = sdfi->VolDim[1] / 2.0;
-  crs_c->rptr[3][1] = 0;  // first slice
 
   R = MatrixAlloc(3, 3, MATRIX_REAL);
   for (r = 0; r < 3; r++) {
@@ -3813,18 +3816,62 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
     R->rptr[r + 1][3] = sdfi->Vs[r] * sdfi->VolRes[2];
   }
 
-  ras0 = MatrixMultiply(R, crs_c, NULL);
-  ras0 = MatrixSubtract(ras_c, ras0, ras0);
+  /* 2019-10-05, mu40: add alternative method for fixing mosaic position without
+   * using the ASCII header. This is based on the previous routine that Doug
+   * replaced in 2005. */
+  if (getenv("FS_MOSAIC_FIX_NOASCII")) {
+    printf("INFO: fixing mosaic center without using ASCII header\n");
+    shift = MatrixAlloc(3, 1, MATRIX_REAL);
+    shift->rptr[1][1] = (sdfi->NImageCols - sdfi->VolDim[0]) / 2.0;
+    shift->rptr[2][1] = (sdfi->NImageRows - sdfi->VolDim[1]) / 2.0;
+    shift->rptr[3][1] = 0;
+    MatrixMultiplyD(R, shift, shift);
+    sdfi->ImgPos[0] += shift->rptr[1][1];
+    sdfi->ImgPos[1] += shift->rptr[2][1];
+    sdfi->ImgPos[2] += shift->rptr[3][1];
+    MatrixFree(&shift);
+  }
+  else {
+    // Center of first slice
+    ras_c = MatrixAlloc(3, 1, MATRIX_REAL);
+    crs_c = MatrixAlloc(3, 1, MATRIX_REAL);
 
-  sdfi->ImgPos[0] = ras0->rptr[1][1];
-  sdfi->ImgPos[1] = ras0->rptr[2][1];
-  sdfi->ImgPos[2] = ras0->rptr[3][1];
+    dcmfile = sdfi->FileName;
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dSag", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[1][1]));
+      ras_c->rptr[1][1] *= -1.0;
+      free(strtmp);
+    }
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dCor", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[2][1]));
+      ras_c->rptr[2][1] *= -1.0;
+      free(strtmp);
+    }
+    strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sPosition.dTra", 0);
+    if (strtmp != NULL) {
+      sscanf(strtmp, "%f", &(ras_c->rptr[3][1]));
+      free(strtmp);
+    }
 
-  MatrixFree(&ras_c);
-  MatrixFree(&crs_c);
-  MatrixFree(&ras0);
+    crs_c->rptr[1][1] = sdfi->VolDim[0] / 2.0;
+    crs_c->rptr[2][1] = sdfi->VolDim[1] / 2.0;
+    crs_c->rptr[3][1] = 0;  // first slice
+
+    ras0 = MatrixMultiply(R, crs_c, NULL);
+    ras0 = MatrixSubtract(ras_c, ras0, ras0);
+
+    sdfi->ImgPos[0] = ras0->rptr[1][1];
+    sdfi->ImgPos[1] = ras0->rptr[2][1];
+    sdfi->ImgPos[2] = ras0->rptr[3][1];
+
+    MatrixFree(&ras_c);
+    MatrixFree(&crs_c);
+    MatrixFree(&ras0);
+  }
+
   MatrixFree(&R);
-
   return (0);
 }
 /*-----------------------------------------------------------------------
