@@ -16607,57 +16607,8 @@ int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **
   return (NO_ERROR);
 }
 
+
 int MRIcomputeLabelMeansandCovariances(
-    MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nbhd)
-{
-  int a, x, y, z, l, n, length;
-  length = sizeof(labels) / sizeof(int);
-  length = 1;
-  a = 1;
-  MATRIX *m_data, *m_data_final, *cov_final, *means_final;
-
-  m_data = MatrixAlloc(
-        (0.5 * (mri_labeled->width) * (mri_labeled->height) * (mri_labeled->depth)), mri_inputs->nframes, MATRIX_REAL);
-  means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL);
-  cov_final = MatrixAlloc(mri_inputs->nframes, mri_inputs->nframes, MATRIX_REAL);
-
-  for (l = 0; l < length; l++) {
-    for (x = 0; x < mri_labeled->width; x++) {
-      for (y = 0; y < mri_labeled->height; y++) {
-        for (z = 0; z < mri_labeled->depth; z++) {
-          if (MRIgetVoxVal(mri_labeled, x, y, z, 0) == labels[l]) {
-            if (nbhd == 1) {
-              if (MRIlabelsInNbhd(mri_labeled, x, y, z, 3, labels[l]) == 343) {
-                printf("Voxel %d, %d, %d has no non-WM neighbors\n", x, y, z);
-                fflush(stdout);
-                for (n = 0; n < mri_inputs->nframes; n++) {
-                  m_data->rptr[a][n + 1] = MRIgetVoxVal(mri_inputs, x, y, z, n);
-                }
-                a++;
-              }
-            }
-            else {
-              for (n = 0; n < mri_inputs->nframes; n++) {
-                m_data->rptr[a][n + 1] = MRIgetVoxVal(mri_inputs, x, y, z, n);
-              }
-              a++;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  m_data_final = MatrixCopyRegion(m_data, NULL, 1, 1, a, mri_inputs->nframes, 1, 1);
-  MatrixCovariance(m_data_final, cov_final, means_final);
-  MatrixFree(&m_data);
-  MatrixFree(&m_data_final);
-  *p_mcov = cov_final;
-  *p_vmeans = means_final;
-  return (NO_ERROR);
-}
-
-int MRIcomputeLabelMeansandCovariances2(
     MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd)
 {
   int a, x, y, z, l, n;
