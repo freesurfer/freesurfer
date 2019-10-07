@@ -166,3 +166,20 @@ typedef enum {
 typedef struct MRIS_sseTerms {
     double term[MRIS_sseTermFlag_bitPosition_LAST];
 } MRIS_sseTerms;
+
+
+// Examples of use
+//
+struct ExamplesOfUsingEnergyFunctionals
+{
+    // After including this file, the following can be used
+    // Only a handful of the ,vno forms are currently implemented.
+    //
+    double lap, lapOfOneVertex;
+    
+    ExamplesOfUsingEnergyFunctionals(MRIS* mris, int vno) { 
+    	lap = mrisComputeLaplacianEnergy(mris);
+	lapOfOneVertex 	= mrisComputeLaplacianEnergy(mris, vno);
+    }
+};
+
