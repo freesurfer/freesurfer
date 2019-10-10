@@ -47,7 +47,7 @@
 #include "fsinit.h"
 #include "log.h"
 #include "chklc.h"
-
+#include "utils.h"
 
 const char* Progname;
 
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 
   LineProf::InitializePetsc(true);
   FSinit();
+  setRandomSeed(-1L);
 
   CmdLineEntry cmdLineDesc[] =
   {

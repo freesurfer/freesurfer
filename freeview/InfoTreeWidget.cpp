@@ -242,7 +242,7 @@ void InfoTreeWidget::UpdateAll()
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
       item->setText(0, surf->GetName());
       int nVertex = -1;
-      bool bMappingVertex = (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
+      bool bMappingVertex = (surf->IsInflated() && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
       if (bMappingVertex)
         nVertex = (m_bForCursor ? surf->GetCurrentVertex() : surf->GetMouseVertex());
 
