@@ -5374,6 +5374,11 @@ MRI *MRIclone(const MRI *mri_src, MRI *mri_dst)
   if (!mri_dst)
     mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, mri_src->type, mri_src->nframes);
 
+  // Including this in MRIcopyHeader might have unwanted effects. A
+  // valid mri->ct indicates to freeview that it's a segmentation, and
+  // there might be code that copies the header from a seg to a non-seg.
+  if (mri_src->ct) mri_dst->ct = CTABdeepCopy(mri_src->ct);
+
   MRIcopyHeader(mri_src, mri_dst);
   return (mri_dst);
 }
@@ -5890,6 +5895,7 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
     strcpy(mri_dst->cmdlines[i], mri_src->cmdlines[i]);
   }
   mri_dst->ncmds = mri_src->ncmds;
+
   return (mri_dst);
 }
 /*-----------------------------------------------------
