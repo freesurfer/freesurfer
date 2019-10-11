@@ -11650,12 +11650,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           break;
 
         case TAG_OLD_COLORTABLE:
-          /* We have a color table, read it with CTABreadFromBinary. If it
-             fails, it will print its own error message. */
-          fprintf(stderr, "reading colortable from MGH file...\n");
+          // if reading colortable fails, it will print its own error message
           mri->ct = znzCTABreadFromBinary(fp);
-          if (NULL != mri->ct)
-            fprintf(stderr, "colortable with %d entries read (originally %s)\n", mri->ct->nentries, mri->ct->fname);
           break;
 
         case TAG_OLD_MGH_XFORM:
@@ -11907,17 +11903,12 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   znzTAGwriteMRIframes(fp, mri);
 
   if (mri->ct) {
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("writing colortable into annotation file...\n");
     znzwriteInt(TAG_OLD_COLORTABLE, fp);
     znzCTABwriteIntoBinary(mri->ct, fp);
   }
 
   // write other tags
-  {
-    int i;
-
-    for (i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
-  }
+  for (int i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
 
   // fclose(fp) ;
   znzclose(fp);

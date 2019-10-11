@@ -68,7 +68,6 @@ int ncutends = 0, cutends_flag = 0;
 int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
 int SplitFrames=0;
-COLOR_TABLE *ctab = NULL;
 int DeleteCMDs = 0;
 char NewTransformFname[2000];
 int DoNewTransformFname=0;
@@ -115,6 +114,7 @@ int main(int argc, char *argv[])
   char in_orientation_string[STRLEN];
   int  out_orientation_flag = FALSE;
   char out_orientation_string[STRLEN];
+  char colortablefile[STRLEN] = "";
   char tmpstr[STRLEN], *stem, *ext;
   char ostr[4] = {'\0','\0','\0','\0'};
   char *errmsg = NULL;
@@ -799,19 +799,10 @@ int main(int argc, char *argv[])
       }
       in_k_direction_flag = TRUE;
     }
-
     else if(strcmp(argv[i], "--ctab") == 0)
     {
-      char ctabfile[STRLEN];
-      get_string(argc, argv, &i, ctabfile);
-      ctab = CTABreadASCII(ctabfile);
-      if (ctab == NULL){
-	printf("ERROR: reading %s\n",ctabfile);
-	exit(1);
-      }
-      printf("Imbedding color table %s into output volume\n",ctabfile);
+      get_string(argc, argv, &i, colortablefile);
     }
-
     else if(strcmp(argv[i], "--in_orientation") == 0)
     {
       get_string(argc, argv, &i, in_orientation_string);
@@ -3467,8 +3458,21 @@ int main(int argc, char *argv[])
     mri->AutoAlign = AutoAlign ;
   }
 
-  if(ctab != NULL)
-    mri->ct = ctab;
+  // ----- modify color lookup table (specified by --ctab option) -----
+  if (strcmp("remove", colortablefile) == 0) {
+    // remove an embedded ctab
+    if (mri->ct) {
+      std::cout << "removing color lookup table" << std::endl;
+      CTABfree(&mri->ct);
+    }
+  }
+  else if (strlen(colortablefile) != 0) {
+    // add a user-specified ctab
+    std::cout << "embedding color lookup table" << std::endl;
+    if (mri->ct) CTABfree(&mri->ct);
+    mri->ct = CTABreadASCII(colortablefile);
+    if (!mri->ct) fs::fatal() << "could not read lookup table from " << colortablefile;
+  }
 
   /*------ Finally, write the output -----*/
   

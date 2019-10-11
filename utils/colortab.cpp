@@ -1205,6 +1205,16 @@ int znzCTABwriteIntoBinaryV2(COLOR_TABLE *ct, znzFile fp)
   return (NO_ERROR);
 }
 
+
+// Reads the default color table from $FREESURFER_HOME/FreeSurferColorLUT.txt
+COLOR_TABLE* CTABreadDefault() {
+  FSENV *fsenv = FSENVgetenv();
+  std::string filename = std::string(fsenv->FREESURFER_HOME) + "/FreeSurferColorLUT.txt";
+  FSENVfree(&fsenv);
+  return CTABreadASCII(filename.c_str());
+}
+
+
 /*-------------------------------------------------------------------
   ----------------------------------------------------------------*/
 int CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len)

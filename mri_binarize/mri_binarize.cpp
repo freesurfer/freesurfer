@@ -434,6 +434,7 @@ int main(int argc, char *argv[]) {
   nhits = 0;
   if(nReplace == 0){
     // Binarize
+
     mergeval = BinValNot;
     InMask = 1;
     for(frame = fstart; frame <= fend; frame++){
@@ -495,7 +496,8 @@ int main(int argc, char *argv[]) {
     } // frame
   } // if(nReplace == 0)
 
-  if(nReplace != 0){
+  if(nReplace != 0) {
+
     if (replace_only)
     {
       printf("Replacing %d and propagating source list\n",nReplace);
@@ -571,6 +573,9 @@ int main(int argc, char *argv[]) {
     MRIfree(&OutVol);
     OutVol = mritmp;
   }
+
+  // if we didn't binarize, copy any embedded color table from the input
+  if ((nReplace != 0) && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
 
   // Save output
   if(OutVolFile) MRIwrite(OutVol,OutVolFile);
