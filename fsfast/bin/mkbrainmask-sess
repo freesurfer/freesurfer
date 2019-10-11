@@ -262,6 +262,11 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
+    case "-dof":
+      if ($#argv < 1) goto arg1err;
+      set RegDOF = $argv[1]; shift;
+      breaksw
+
     case "-b0dc":
     case "-b0dcor":
     case "-vsm":
