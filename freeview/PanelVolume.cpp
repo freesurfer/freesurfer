@@ -222,6 +222,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
                           << ui->labelSmoothIteration << ui->sliderContourSmoothIteration
                           << ui->lineEditContourSmoothIteration;
+  m_widgetlistVolumeTrack.removeOne(ui->checkBoxAutoAdjustFrameLevel);
 
   m_widgetlistVolumeTrackSpecs
       << ui->labelTrackVolumeThreshold
@@ -245,6 +246,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
       combo.removeAt(n);
   }
   m_widgetlistNonVolumeTrack = combo;
+  m_widgetlistNonVolumeTrack << ui->labelMask << ui->comboBoxMask;
 
   ui->checkBoxUpsample->hide();
 
@@ -611,10 +613,11 @@ void PanelVolume::DoUpdateWidgets()
 
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
-    ShowWidgets(m_widgetlistNonVolumeTrack, false);
     ShowWidgets(m_widgetlistVolumeTrack, true);
+    ShowWidgets(m_widgetlistNonVolumeTrack, false);
+    m_bShowExistingLabelsOnly = false;
     if (m_curCTAB != layer->GetEmbeddedColorTable())
-      PopulateColorTable( layer->GetEmbeddedColorTable() );
+      PopulateColorTable(layer->GetEmbeddedColorTable());
   }
   else
   {
@@ -724,7 +727,7 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
 
-  UpdateTrackVolumeThreshold();
+//  UpdateTrackVolumeThreshold();
 
   ui->checkBoxUpsampleContour->hide();
 
@@ -752,11 +755,11 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     else
     {
       layer->SetFillValue( val );
+      ChangeLineEditNumber( ui->lineEditBrushValue, val );
+      MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
+      UpdateColorLabel();
+      m_nCurrentVoxelIndex = -1;
     }
-    ChangeLineEditNumber( ui->lineEditBrushValue, val );
-    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
-    UpdateColorLabel();
-    m_nCurrentVoxelIndex = -1;
   }
 }
 
@@ -769,7 +772,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
   {
     double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-    if ( layer )
+    if ( layer && !layer->IsTypeOf("VolumeTrack"))
     {
       double pos[3];
       if (layer->GetLayerLabelCenter(val, pos))
@@ -859,13 +862,14 @@ void PanelVolume::UpdateTrackVolumeThreshold()
     ui->lineEditTrackVolumeThresholdLow->blockSignals(false);
     layer->Highlight(nLabel);
   }
-  ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
+  if (!ui->lineEditTrackVolumeThresholdLow->isVisible())
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
   EnableWidgets(this->m_widgetlistVolumeTrackSpecs, item);
 }
 
-void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
+void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
 {
-  if ( ct && ct != m_curCTAB )
+  if ( ct && (bForce || ct != m_curCTAB) )
   {
     m_curCTAB = ct;
     ui->treeWidgetColorTable->clear();
@@ -1548,7 +1552,9 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
       if ( item->data(0, Qt::UserRole+1).toInt() == nLabel )
       {
+        ui->treeWidgetColorTable->blockSignals(true);
         ui->treeWidgetColorTable->setCurrentItem(item);
+        ui->treeWidgetColorTable->blockSignals(false);
         return;
       }
     }
