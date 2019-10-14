@@ -137,6 +137,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_cmdParser(cmdParser),
   m_bHadError(false)
 {
+  m_defaultSettings["no_autoload"] = true;  // default no autoload
+
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -845,9 +847,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  if (parser->Found( "no-auto-load"))
+  if (parser->Found( "auto-load-surf"))
   {
-    m_defaultSettings["no_autoload"] = true;
+    m_defaultSettings["no_autoload"] = false;
   }
   if ( parser->Found( "viewport", &sa ) )
   {
@@ -1236,6 +1238,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ((RenderView3D*)m_views[3])->SetShowSliceFrames(false);
   }
 
+  if (parser->Found("lineprofile", &sa))
+  {
+    this->AddScript(QStringList("exportlineprofile") << sa[0]);
+  }
+
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
 
@@ -1344,19 +1351,20 @@ void MainWindow::OnIdle()
   ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
   ui->actionPointSetEdit->setChecked( nMode == RenderView::IM_PointSetEdit );
 
-  if ( nMode == RenderView::IM_ROIEdit )
+  QString type = GetCurrentLayerType();
+  if ( nMode == RenderView::IM_ROIEdit || (nMode == RenderView::IM_Navigate && type == "ROI"))
   {
     LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
     ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
     ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || nMode == RenderView::IM_Navigate )
+  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || (nMode == RenderView::IM_Navigate && type == "MRI"))
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
     ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
     ui->actionRedo->setEnabled( mri && mri->IsVisible() && mri->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_PointSetEdit )
+  else if ( nMode == RenderView::IM_PointSetEdit || (nMode == RenderView::IM_Navigate && type == "PointSet"))
   {
     LayerPointSet* wp = ( LayerPointSet* )GetActiveLayer("PointSet");
     ui->actionUndo->setEnabled( wp && wp->IsVisible() && wp->HasUndo() );
@@ -1953,6 +1961,10 @@ void MainWindow::RunScript()
     else if (sa[1] == "medial")
       ui->view3D->ResetViewMedial();
   }
+  else if (cmd == "exportlineprofile")
+  {
+    CommandExportLineProfileThickness(sa);
+  }
   else
   {
     cerr << "Command '" << qPrintable(cmd) << "' was not recognized.\n";
@@ -2240,7 +2252,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0,  (QStringList("setisosurfaceupsample") << subArgu) );
       }
-      else if (subOption == "color")
+      else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
       }
@@ -2296,6 +2308,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "ignore_header")
       {
         sup_data["IgnoreHeader"] = true;
+      }
+      else if (subOption == "binary_color")
+      {
+        QColor color = ParseColorInput( subArgu );
+        if ( color.isValid() )
+          sup_data["BinaryColor"] = color;
+        else
+          cerr << "Unrecognized color input for :binary_color.\n";
       }
       else if (!subOption.isEmpty())
       {
@@ -2393,6 +2413,10 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   else if ( strg == "pet" )
   {
     nColorMap = LayerPropertyMRI::PET;
+  }
+  else if ( strg == "binary" )
+  {
+    nColorMap = LayerPropertyMRI::Binary;
   }
   else if ( strg != "grayscale" )
   {
@@ -3593,18 +3617,18 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
 
 void MainWindow::CommandSetSurfaceOverlayMask(const QStringList &cmd)
 {
-    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
-    if ( surf )
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
     {
-      SurfaceOverlay* overlay = surf->GetActiveOverlay();
-      if ( overlay )
-      {
-          if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
-             overlay->GetProperty()->SetMaskInverse(true);
-          qDebug() << overlay->GetProperty()->GetMaskInverse();
-          emit OverlayMaskRequested(cmd[1]);
-      }
+      if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
+        overlay->GetProperty()->SetMaskInverse(true);
+      qDebug() << overlay->GetProperty()->GetMaskInverse();
+      emit OverlayMaskRequested(cmd[1]);
     }
+  }
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
@@ -3756,13 +3780,13 @@ void MainWindow::CommandSetSurfaceOverlayColormap(const QStringList &cmd)
     SurfaceOverlay* overlay = surf->GetActiveOverlay();
     if ( overlay )
     {
-      if (cmd[1] == "colorwheel")
-        overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
-      if (cmd.size() > 2)
+      for (int i = 1; i < cmd.size(); i++)
       {
-        if (cmd[2] == "inverse")
+        if (cmd[i] == "colorwheel")
+          overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
+        else if (cmd[i] == "inverse")
           overlay->GetProperty()->SetColorInverse(true);
-        else if (cmd[2] == "truncate")
+        else if (cmd[i] == "truncate")
           overlay->GetProperty()->SetColorTruncate(true);
       }
       surf->UpdateOverlay(true);
@@ -5073,6 +5097,8 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     layer->SetID(sup_data["ID"].toInt());
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+  if (sup_data.contains("BinaryColor"))
+    layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
   layer->GetProperty()->blockSignals(false);
 
   if (sup_data.value("IgnoreHeader").toBool())
@@ -7477,9 +7503,9 @@ void MainWindow::OnSaveIsoSurface(const QString& fn_in)
   QString selectedFilter;
   if (fn.isEmpty())
     fn = QFileDialog::getSaveFileName( NULL,
-                                     "Save iso-surface",
-                                     MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
-                                     "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
+                                       "Save iso-surface",
+                                       MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName(),
+                                       "VTK files (*.vtk);;STL files (*.stl);;All files (*)", &selectedFilter);
   else
     selectedFilter = QFileInfo(fn).suffix();
   if ( !fn.isEmpty() )
@@ -8626,13 +8652,90 @@ void MainWindow::LoadSurfaceCoordsFromParameterization( const QString& filename 
 
 void MainWindow::OnExportLabelStats()
 {
-   QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
-                                       AutoSelectLastDir( "mri" ),
-                                       "CSV files (*.csv)");
-   if (!fn.isEmpty() )
-   {
-       LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
-       if (!mri->ExportLabelStats(fn))
-           QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
-   }
+  QString fn = QFileDialog::getSaveFileName( this, "Save Label Stats",
+                                             AutoSelectLastDir( "mri" ),
+                                             "CSV files (*.csv)");
+  if (!fn.isEmpty() )
+  {
+    LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
+    if (!mri->ExportLabelStats(fn))
+      QMessageBox::warning(this, "Error", QString("Could not save label stats to %1").arg(fn));
+  }
+}
+
+void MainWindow::CommandExportLineProfileThickness(const QStringList &cmd)
+{
+  QVariantMap opts;
+  QStringList ar = cmd[1].split(":");
+  for (int i = 1; i < ar.size(); i++)
+  {
+    QStringList list = ar[i].split("=");
+    if (list.size() > 1)
+    {
+      if (list[0].toLower() == "spacing")
+        opts["spacing"] = list[1].toDouble();
+      else if (list[0].toLower() == "resolution")
+        opts["resolution"] = list[1].toDouble();
+      else if (list[0].toLower() == "offset")
+        opts["offset"] = list[1].toDouble();
+      else if (list[0].toLower() == "segments")
+        opts["segments"] = list[1].toDouble();
+    }
+  }
+  QString fn = ar[0];
+  if (!ExportLineProfileThickness(fn, opts))
+    qDebug() << "Failed to export line profile thickness to " << fn;
+}
+
+bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVariantMap& opts)
+{
+  QList<Layer*> layers = GetLayers("PointSet");
+  QList<LayerPointSet*> lines;
+  foreach (Layer* layer, layers)
+  {
+    lines.insert(0, qobject_cast<LayerPointSet*>(layer));
+  }
+
+  if (lines.size() > 1)
+  {
+    LayerLineProfile* lp = new LayerLineProfile(GetMainViewId(), this, lines.first(), lines.last());
+    lines.removeFirst();
+    lines.removeLast();
+
+    double dVoxelSize = 1.0;
+    LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+    if (mri)
+    {
+      double vs[3];
+      mri->GetWorldVoxelSize(vs);
+      dVoxelSize = qMin(vs[0], qMin(vs[1], vs[2]));
+    }
+
+    double spacing = 1, resolution = 1, offset = 5;
+    int samples = 100;
+    if (opts.contains("spacing"))
+      spacing = opts["spacing"].toDouble();
+    if (opts.contains("resolution"))
+      resolution = opts["resolution"].toDouble();
+    if (opts.contains("offset"))
+      offset = opts["offset"].toDouble();
+    if (opts.contains("segments"))
+      samples = opts["segments"].toInt();
+
+    if (!lp->Solve(spacing, dVoxelSize, resolution, offset))
+    {
+      cerr << "Could not solve line profile\n";
+      lp->deleteLater();
+      return false;
+    }
+    else if (!lp->ExportThickness(filename, lines, samples))
+    {
+      cerr << "Could not export line profile thickness\n";
+      lp->deleteLater();
+      return false;
+    }
+    else
+      lp->deleteLater();
+  }
+  return true;
 }

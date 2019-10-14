@@ -46,6 +46,50 @@
 #define GCAM_RAS         1
 #define GCAM_VOX         2
 
+#ifdef _GCAMORPH_SRC
+  int gcamLogLikelihoodEnergy_nCalls=0;
+  double gcamLogLikelihoodEnergy_tsec=0;
+  int gcamLabelEnergy_nCalls=0;
+  double gcamLabelEnergy_tsec=0;
+  int gcamSmoothnessEnergy_nCalls=0;
+  double gcamSmoothnessEnergy_tsec=0;
+  int gcamJacobianEnergy_nCalls=0;
+  double gcamJacobianEnergy_tsec=0;
+  int gcamLogLikelihoodTerm_nCalls=0;
+  double gcamLogLikelihoodTerm_tsec=0;
+  int gcamSmoothnessTerm_nCalls=0;
+  double gcamSmoothnessTerm_tsec=0;
+  int gcamJacobianTerm_nCalls=0;
+  double gcamJacobianTerm_tsec=0;
+  int gcamLabelTerm_nCalls=0;
+  double gcamLabelTerm_tsec=0;
+  int gcamComputeGradient_nCalls=0;
+  double gcamComputeGradient_tsec=0;
+  int gcamComputeMetricProperties_nCalls=0;
+  double gcamComputeMetricProperties_tsec=0;
+#else
+  extern int gcamLogLikelihoodEnergy_nCalls;
+  extern double gcamLogLikelihoodEnergy_tsec;
+  extern int gcamLabelEnergy_nCalls;
+  extern double gcamLabelEnergy_tsec;
+  extern int gcamSmoothnessEnergy_nCalls;
+  extern double gcamSmoothnessEnergy_tsec;
+  extern int gcamJacobianEnergy_nCalls;
+  extern double gcamJacobianEnergy_tsec;
+  extern int gcamLogLikelihoodTerm_nCalls;
+  extern double gcamLogLikelihoodTerm_tsec;
+  extern int gcamSmoothnessTerm_nCalls;
+  extern double gcamSmoothnessTerm_tsec;
+  extern int gcamJacobianTerm_nCalls;
+  extern double gcamJacobianTerm_tsec;
+  extern int gcamLabelTerm_nCalls;
+  extern double gcamLabelTerm_tsec;
+  extern int gcamComputeGradient_nCalls;
+  extern double gcamComputeGradient_tsec;
+  extern int gcamComputeMetricProperties_nCalls;
+  extern double gcamComputeMetricProperties_tsec;
+#endif
+
 typedef struct
 {
   // gcamorph uses these fields in its hottest function so put them together to reduce cache misses

@@ -556,8 +556,11 @@ int IsSubCorticalGray(int SegId);
 #include "mri.h"
 double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi);
-double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir);
 MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
+
+std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir);
+void CacheBrainVolumeStats(const std::vector<double>& stats, const std::string& subject, const std::string& subjdir);
+std::vector<double> ReadCachedBrainVolumeStats(const std::string& subject, const std::string& subjdir);
 
 #define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0

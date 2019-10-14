@@ -36,7 +36,6 @@
 #include "LineProf.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "error.h"
 #include <fenv.h>
 #include <QFile>
 #include <QSurfaceFormat>
@@ -46,8 +45,9 @@
 #endif
 
 #include "fsinit.h"
+#include "log.h"
 #include "chklc.h"
-
+#include "utils.h"
 
 const char* Progname;
 
@@ -108,16 +108,10 @@ void myMessageOutput(QtMsgType type, const char *msg)
 }
 #endif
 
-void my_error_exit(int ecode)
-{
-  if (ecode != 0)
-    throw (ecode);
-}
-
 int main(int argc, char *argv[])
 {
   Progname = argv[0];
-  ErrorSetExitFunc(my_error_exit);
+  throwExceptions(true);
 
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
@@ -130,16 +124,18 @@ int main(int argc, char *argv[])
 
   LineProf::InitializePetsc(true);
   FSinit();
+  setRandomSeed(-1L);
 
   CmdLineEntry cmdLineDesc[] =
   {
     CmdLineEntry( CMD_LINE_OPTION, "v", "volume", "<FILE>...", "Load one or multiple volume files. Available sub-options are: \n\n"
-    "':colormap=name' Set colormap for display. Valid names are grayscale/lut/heat/jet/gecolor/nih/pet. \n\n"
+    "':colormap=name' Set colormap for display. Valid names are grayscale/lut/heat/jet/gecolor/nih/pet/binary. \n\n"
     "':grayscale=min,max' Set grayscale window values.\n\n"
     "':heatscale=min,mid,max' Set heat scale values. If only 2 values given, min and mid will be set to the same value.\n\n"
     "':heatscaleoptions=option1[,option2]' Set heat scale options. Options can be 'truncate','invert', or both.\n\n"
     "':colorscale=min,max' Set generic colorscale values for jet/gecolor/nih/pet.\n\n"
     "':lut=name' Set lookup table to the given name. Name can be the name of a stock color table or the filename of a color table file.\n\n"
+    "':binary_color=color' Set the color of the non-zero voxels. Colormap must be set to binary. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
     "':percentile=flag' Set min/mid/max thresholds as percentile.\n\n"
     "':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n"
     "':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n"
@@ -154,6 +150,7 @@ int main(int argc, char *argv[])
     "':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n"
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
+    "':isosurface_color=color' Set the color of the isosurface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
     "':isosurface_output=filename' Save isosurface to file. Extension can be .vtk or .stl.\n\n"
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
     "':name=display_name' Set the display name of the volume.\n\n"
@@ -216,7 +213,7 @@ int main(int argc, char *argv[])
     "':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n\n"
     "':color=name' Set color of the label. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n"
     "':opacity=value' Set the opacity of the label. value ranges from 0 to 1. \n\n"
-    "':threshold=value' Set the threshold of the label. value ranges from 0 to 1.\n\n"
+    "':threshold=value' Set the threshold of the label.\n\n"
     "':centroid=flag' Move the cursor to the centroid of the label. flag can be '1', 'true' or 'yes'.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "w", "way-points", "<FILE>...", "Load one or multiple way points files. Available sub-options are:\n\n"
     "':color=name' Set color of the way points. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n"
@@ -239,6 +236,11 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "lineprofile", "lineprofile", "<OUTPUT_FILE>", "Compute the thickness of layers along line profiles and export them to given csv file. Initial lines (waypoints) must be loaded in order with waypoint options. Available sub-options are:\n\n"
+    "':spacing=value' Set spacing of the line profiles. Default value is 1.0.\n\n"
+    "':resolution=value' Set resolution of the line profiles. Default value is 1.0.\n\n"
+    "':offset=value' Set the offset to compute line profiles. Default value is 5.\n\n"
+    "':segments=value' Set the number of segments on the line profiles. Default value is 100.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. NOTE: AUTO_TRIM option is only available on Linux.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
@@ -268,7 +270,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "nocursor", "nocursor", "", "Hide the cursor." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-frames", "hide-3d-frames", "", "Hide slice frames in 3D view." ),
-    CmdLineEntry( CMD_LINE_SWITCH, "no-auto-load", "no-auto-load", "", "Do not automatically load sphere or other supplemental surface data." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "auto-load-surf", "auto-load-surf", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),

@@ -319,6 +319,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Cerebellum_White_Matter:
         case Right_Cerebellum_Exterior:
         case Right_Cerebellum_Cortex:
+        case Optic_Chiasm: // added by dng 10/11/2019
 #if 0
 	  // I don't think these make sense
         case Right_Cerebral_Cortex:

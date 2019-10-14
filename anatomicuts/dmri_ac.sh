@@ -32,7 +32,7 @@ anatomiCutsBin=${code}dmri_AnatomiCuts
 HungarianBin=${code}dmri_match 
 stats_ac_bin=${code}dmri_stats_ac
 TractsToImageBin=${code}trk_tools 
-
+#forAll runAC subject DTI/DKI FOD/GQI 45 bb/- "pbsubmit_-n_1_-c_1"
 function forAll()
 {
  	function=$1 #i.e. tractography
@@ -175,6 +175,22 @@ function anat2dwi()
 	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wm2009parc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
 	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wmparc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
 }
+
+function dwi2anat()
+{
+	echo "dwi2anat"
+	subject=$1
+	model2=$2
+	dmri_trk2trk --in ${DMRI_DIR}/${subject}/dmri/${model2}/streamlines.trk --out ${DMRI_DIR}/${subject}/dmri/${model2}/streamlines2anat.trk --reg ${SUBJECTS_DIR}/${subject}/mri/FSLREG.diff2struct.mat  --inref ${DMRI_DIR}/${subject}/dmri/${model2}/fa.nii.gz --outref ${SUBJECTS_DIR}/${subject}/mri/norm.mgz 
+	
+	mri_vol2vol --targ  ${SUBJECTS_DIR}/${subject}/mri/norm.mgz --mov ${DMRI_DIR}/${subject}/dmri/DTI/dti_FA.nii.gz --o ${DMRI_DIR}/${subject}/dmri/DTI/dti_FA2anat.nii.gz --fsl ${SUBJECTS_DIR}/${subject}/mri/FSLREG.diff2struct.mat 
+	mri_vol2vol --targ  ${SUBJECTS_DIR}/${subject}/mri/norm.mgz --mov ${DMRI_DIR}/${subject}/dmri/DTI/dti_MD.nii.gz --o ${DMRI_DIR}/${subject}/dmri/DTI/dti_MD2anat.nii.gz --fsl ${SUBJECTS_DIR}/${subject}/mri/FSLREG.diff2struct.mat 
+	mri_vol2vol --targ  ${SUBJECTS_DIR}/${subject}/mri/norm.mgz --mov ${DMRI_DIR}/${subject}/dmri/DTI/dti_RD.nii.gz --o ${DMRI_DIR}/${subject}/dmri/DTI/dti_RD2anat.nii.gz --fsl ${SUBJECTS_DIR}/${subject}/mri/FSLREG.diff2struct.mat 
+	mri_vol2vol --targ  ${SUBJECTS_DIR}/${subject}/mri/norm.mgz --mov ${DMRI_DIR}/${subject}/dmri/DTI/dti_AD.nii.gz --o ${DMRI_DIR}/${subject}/dmri/DTI/dti_AD2anat.nii.gz --fsl ${SUBJECTS_DIR}/${subject}/mri/FSLREG.diff2struct.mat 
+
+
+}
+
 function filterStreamlines()
 {
 	echo "filterStreamlines"
@@ -250,9 +266,11 @@ function GA()
 	lenght=$2
 	std=$3
 
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 2 -gb 1 -l ${lenght} -std ${std} 
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 2 -l ${lenght} -std ${std} 
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DTI" -cf "/autofs/space/snoke_001/public/vivros/hd_tracula/labels_hd.csv" -cc 0:2 -cta 100 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga 2 -gb 1 -l ${lenght} -std ${std} 
+
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 2 -gb 1 -l ${lenght} -std ${std} 
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 2 -l ${lenght} -std ${std} 
 
 }
 

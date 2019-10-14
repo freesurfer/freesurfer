@@ -20,6 +20,8 @@
  
 #include "mrisurf_topology.h"
 
+#include "mrisurf_base.h"
+
 
 // MRIS code dealing with the existence and connectedness of the vertices, edges, and faces
 //                   and with their partitioning into sets (ripped, marked, ...)
@@ -607,7 +609,7 @@ int MRISedges(MRIS *surf)
 
   surf->nedges = MRIScountEdges(surf);
   surf->edges  = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
-  printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
+  //printf("MRISedges(): nv=%d, nf=%d, ne=%d\n",surf->nvertices,surf->nfaces,surf->nedges);
 
   // This is not thread safe and cannot be made thread safe
   for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
@@ -739,13 +741,13 @@ int MRIScorners(MRIS *surf)
 
   if(surf->corners) return(0);
 
-  printf("Building triangle corner toplology\n");
+  //printf("Building triangle corner toplology\n");
   if(!surf->edges) MRISedges(surf);
 
   surf->ncorners = 3*surf->nfaces;
   surf->corners = (MRI_CORNER*) calloc(sizeof(MRI_CORNER),surf->ncorners);
-  printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
-	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
+  //printf("MRIScorners(): nv=%d, nf=%d, ne=%d, nc=%d\n",
+  //	 surf->nvertices,surf->nfaces,surf->nedges,surf->ncorners);
 
   // First assign vertices to each corner
   cornerno = 0;
@@ -3168,6 +3170,24 @@ int MRIS_facesAtVertices_reorder(MRIS *apmris)
 }
 
 
+static void dumpFacesAroundVertex(MRIS* mris, int vno)
+{
+  using namespace SurfaceFromMRIS::Topology;
+  fprintf(stdout, "Dumping faces around vno:%d\n",vno);
+  Vertex  vertex(mris,vno);
+  auto const numFaces = vertex.num(); 
+  for (size_t vi = 0; vi < numFaces; vi++) {
+    auto face = vertex.f(vi);
+    fprintf(stdout, "  vi:%d is face:%d with vertices",vno,face.fno());
+    for (size_t vi = 0; vi < VERTICES_PER_FACE; vi++) {
+      auto v = face.v(vi);
+      fprintf(stdout, " %d",v.vno());
+    }
+    fprintf(stdout, "\n");
+  }
+}
+
+    
 static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometricOrder)
 {
   //
@@ -3243,7 +3263,15 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
   }
   VectorFree(&pv_commonVertices);
   xDbg_PopStack();
-  if (packedCount != nfaces)
+
+  static size_t count, limit = 1;  
+  if (count++ == limit && getenv("BEVIN_TESTING_dumpFacesAroundVertex")) {
+    limit *= 2;
+    dumpFacesAroundVertex(apmris,avertex);
+  }
+  
+  if (packedCount != nfaces) {
+    dumpFacesAroundVertex(apmris,avertex);
     ErrorReturn(-4,
                 (-4,
                  "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
@@ -3251,6 +3279,7 @@ static short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_ge
                  avertex,
                  nfaces,
                  packedCount));
-
+  }
+  
   return 1;
 }

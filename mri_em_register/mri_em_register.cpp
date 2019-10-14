@@ -1170,7 +1170,7 @@ main(int argc, char *argv[])
 
   ///////////////////////////////////////////////////////////////
   msec = start.milliseconds() ;
-  printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n", msec/(1000.0*60.0*60.0), n_omp_threads);
+  printf("FSRUNTIME@ mri_em_register %7.4f hours %d threads\n", msec/(1000.0*60.0*60.0), n_omp_threads);
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;

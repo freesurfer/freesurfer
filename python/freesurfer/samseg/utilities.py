@@ -99,10 +99,10 @@ def icv(structures, includeStructures=None):
             'Right-Lateral-Ventricle',
             'Right-Pallidum',
             'Left-Caudate',
-            'Right-Thalamus-Proper',
+            'Right-Thalamus',
             'Left-Pallidum',
             'Right-Caudate',
-            'Left-Thalamus-Proper',
+            'Left-Thalamus',
             'non-WM-hypointensities',
             '5th-Ventricle'
         ]

@@ -73,6 +73,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>see SPECIFYING THE ORIENTATION</explanation>
       <argument>-ic, --in_center &lt;R coordinate&gt; &lt;A coordinate&gt; &lt;S coordinate&gt;</argument>
       <argument>-dic, --delta_in_center &lt;dR coordinate&gt; &lt;dA coordinate&gt; &lt;dS coordinate&gt;</argument>
+      <argument>--delete-cmds   Remove imbedded command history</argument>
+      <argument>--new-transform-fname xfmname   Change the internal transform name to xfmname</argument>
       <argument>--sphinx</argument>
       <explanation>change orientation info to sphinx</explanation>
       <argument>-oni, -oic, --out_i_count &lt;count&gt;</argument>
@@ -119,8 +121,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>TI in msec (note upper case flag)</explanation>
       <argument>-flip_angle flip angle </argument>
       <explanation>angle in radians </explanation>
-      <argument>--ctab ColorTableFile </argument>
-      <explanation>Imbed color table into output </explanation>
+      <argument>--ctab &lt;colortablefile&gt;</argument>
+      <explanation>Embed colortablefile into output volume. If colortablefile is 'remove', any embedded table will be deleted.</explanation>
       <argument>--autoalign mtxfile </argument>
       <explanation>text file with autoalign matrix </explanation>
       <argument>-oval  val</argument>
@@ -162,6 +164,8 @@ The main and aux volumes should overlap very closely. If they do not, use tkregi
       <explanation>reverse order of slices, update vox2ras</explanation> 
       <argument>--nslices-override nslices </argument>
       <explanation>Use this number of slices when converting DICOM mosaics</explanation> 
+      <argument>--mosaic-fix-noascii</argument>
+      <explanation>fix the center of DICOM mosaics without using the ASCII header</explanation>
       <argument>--slice-bias alpha </argument>
       <explanation>apply half-cosine bias field</explanation> 
       <argument>--fwhm fwhm </argument>

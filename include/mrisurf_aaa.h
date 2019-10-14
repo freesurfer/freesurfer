@@ -30,6 +30,8 @@
 #include "matrix.h"
 #include "dmatrix.h"
 
+#define MAX_NEIGHBORS (1024)
+#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 
 #define MAX_SURFACES 20
 #define TALAIRACH_COORDS     0
@@ -164,27 +166,31 @@ typedef struct FaceNormDeferredEntry {
 
 typedef struct edge_type_
 {
+  // topology
   int edgeno; // this edge no
   int vtxno[4]; // vertex numbers of 2 ends + 2 opposites
   int faceno[2]; // two adjacent faces
   unsigned char corner[4][2]; // corner[nthvtx][faceno]
+  // metrics
   double len; // length of the edge
   double dot; // dot product of the adjacent face normals
   double angle; // angle (deg) of the adjacent face normals
   double J; // Angle Cost of this edge
-  DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
   double u[3]; // unit vector pointing from v0 to v1
   DMATRIX *gradU; // 1x3 grad of unit verctor wrt vertex 0
+  DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
 
 // Corner of a triangluar face 
 typedef struct corner_type_
 {
+  // topology
   int cornerno; // this corner number
   int vtxno[3]; // vertex 0 is the source
   int faceno; // face this corner belongs to
   int edgeno[2]; // edge numbers
   int edgedir[2]; // direction of the edge relative to the corner
+  // metrics
   double dot; // dot product of the adjacent segments
   double angle; // angle (deg) of the corner
   double J; // cost, eg, (dot-0.5)^2 where 0.5 = cos(60) = equilateral tri
@@ -209,6 +215,7 @@ STRIP;
 typedef int*                    pSeveralInt;
 typedef uchar*                  pSeveralUchar;
 typedef float*                  pSeveralFloat;
+typedef float const*            pSeveralConstFloat;
 typedef void*                   p_void;
 typedef void**                  p_p_void;
 
@@ -235,11 +242,16 @@ typedef FaceNormDeferredEntry*  pSeveralFaceNormDeferredEntry;
 
 // MRIS supplies a rich world, but in a format that causes lots of memory traffic
 //
+// It is defined in mrisurf_FACE_VERTEX_MRIS_generated.h
+//
 typedef struct MRIS MRIS,MRI_SURFACE;       // Prefer using MRIS
 
 
-// MRIS_MP is a much more efficient supplier of MetricProperties data than MRIS.
-// It is implemented in mrisurf_mp.h
+// MRIS_MP is a much more efficient supplier of MetricProperties data than MRIS,
+// but can get some of its properties from an underlying Surface so it doesn't have to 
+// implement or copy ones that are rarely used.
+//
+// It is defined in mrisurf_MRIS_MPPropertiesInVectors.h with some additional macros in mrisurf_mp.h
 //
 // It is optimized to cope with the XYZ changing as the shape is mutated to optimize some SSE.  
 // Its representation keeps the data in a format that fills cache lines with immediately
@@ -248,13 +260,28 @@ typedef struct MRIS MRIS,MRI_SURFACE;       // Prefer using MRIS
 typedef struct MRIS_MP MRIS_MP;
 
 
+// MRISPV is a much more efficient supplier of MetricProperties data than MRIS
+// and hold all the data.  It is not yet fully implemented.
+//
+// It is defined in mrisurf_MRIS_PropertiesInVectors.h
+//
+// It is optimized to cope with the XYZ changing as the shape is mutated to optimize some SSE.  
+// Its representation keeps the data in a format that fills cache lines with immediately
+// needed information.
+//
+typedef struct MRISPV MRISPV;
+
+
 // The SSE calculation uses some large subsystems, such as MHT, that are coded
 // using the MRIS.  Ideally we would use C++, a class derivation hierachy, and 
 // virtual functions or C++ templates to implement these functions on top of both 
 // MRIS and MRIS_MP
 //
-// The following is basically a base class with virtual functions.
-// It is implemented in mrisurf_MRISBase.h
+// The following precedes the change to C++,
+// should be elikminated asap.
+// It is a crude implementation of a base class with virtual functions.
+//
+// It is further defined in mrisurf_MRISBase.h
 //
 typedef struct MRISBase {
     MRIS_MP*    mris_mp;            // takes precidence over mris

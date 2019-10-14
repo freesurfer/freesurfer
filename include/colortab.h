@@ -96,6 +96,9 @@ int         CTABfree(COLOR_TABLE **pct) ;
 /* Returns a deep copy of the table. */
 COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct);
 
+// Reads the default color table from $FREESURFER_HOME/FreeSurferColorLUT.txt
+COLOR_TABLE *CTABreadDefault();
+
 /* Converts an RGB triplet into an annotaion value */
 int CTABrgb2Annotation(int r, int g, int b);
 

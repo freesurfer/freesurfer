@@ -62,6 +62,8 @@
       pass it via --insrcgeom. </intro>
       <argument>--insrcgeom</argument>
       <explanation>specify src image geometry (mov volume)</explanation>
+      <argument>--downsample</argument>
+      <explanation>Downsample output M3Z to spacing of 2.</explanation>
     </optional-flagged>
   </arguments>
   <example>Convert FSL warp to M3Z (FreeSurfer):

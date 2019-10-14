@@ -42,6 +42,7 @@ set longitudinal = 0;
 set basedir = ()
 set ACPVDSC = 1e-4;
 set max_iters = ()
+set SavePosteriors = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -147,6 +148,7 @@ if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
+if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
 # These args are not recognized in the new run_samseg
 #set cmd0 = ($cmd0 --stiffness $stiffness  --acpvdsc $ACPVDSC)
 foreach input ($inputlist)
@@ -509,6 +511,10 @@ while( $#argv != 0 )
       set max_iters = $argv[1]; shift;
       breaksw
 
+    case "--save-posteriors":
+      set SavePosteriors = 1;
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -694,6 +700,8 @@ usage_exit:
   echo "  --no-hires  : do not use -hires when running recon-all"
   echo "  --no-decimate  : do not use -decimate when running recon-all"
   echo "  --sd SUBJECTS_DIR"
+  echo "  --save-posteriors : save posterior probs"
+  echo "  --threads nthreads : set the number of CPUs to use"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"

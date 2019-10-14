@@ -40,6 +40,7 @@ class QToolButton;
 class QActionGroup;
 class DialogCustomFill;
 class DialogSurfaceLabelOperations;
+class WindowEditAnnotation;
 
 class PanelSurface : public PanelLayer
 {
@@ -48,6 +49,8 @@ class PanelSurface : public PanelLayer
 public:
   explicit PanelSurface(QWidget *parent = 0);
   ~PanelSurface();
+
+  bool eventFilter(QObject *watched, QEvent *event);
 
 protected:
   void DoUpdateWidgets();
@@ -74,6 +77,7 @@ protected slots:
   void OnComboSpline(int nSel );
   void OnComboColor(int nSel);
   void OnButtonConfigureOverlay();
+  void OnButtonEditAnnotation();
   void OnButtonRemoveOverlay();
   void OnEditPositionOffset();
   void OnLabelItemChanged(QTreeWidgetItem *item);
@@ -119,6 +123,7 @@ protected slots:
   void OnButtonLabelUp();
   void OnButtonLabelDown();
   void SetOverlayFrame(int nFrame);
+  void OnButtonSaveAnnotation();
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();
@@ -141,6 +146,7 @@ private:
   WindowConfigureOverlay* m_wndConfigureOverlay;
   DialogCustomFill*     m_dlgCustomFill;
   DialogSurfaceLabelOperations* m_dlgLabelOps;
+  WindowEditAnnotation*   m_wndEditAnnotation;
 };
 
 #endif // PANELSURFACE_H

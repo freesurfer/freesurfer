@@ -1,7 +1,9 @@
 
+#pragma once
 // GENERATED SOURCE - DO NOT DIRECTLY EDIT
 // 
 // =======================================
+#include "mrisurf_aaa.h"
 #define SEPARATE_VERTEX_TOPOLOGY
 struct face_type_ {
       vertices_per_face_t v          ;
@@ -20,17 +22,16 @@ struct VERTEX_TOPOLOGY {
     //  the whole fits in much less than one cache line, so further ordering is no use
     pSeveralInt   f             ;  // size() is num.    array[v->num] the fno's of the neighboring faces         
     pSeveralUchar n             ;  // size() is num.    array[v->num] the face.v[*] index for this vertex        
-    pSeveralInt   e             ;  //  edge state for neighboring vertices (used by MRI_EDGE,MRI_CORNER)              
+    pSeveralInt   e             ;  //  edge state for neighboring vertices                      
     pSeveralInt   v             ;  // size() is vtotal.    array[v->vtotal or more] of vno, head sorted by hops     
-    short const   vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i, 
+    short         vnum          ;  //  number of 1-hop neighbors    should use [p]VERTEXvnum(i) 
     short         v2num         ;  //  number of 1, or 2-hop neighbors                          
     short         v3num         ;  //  number of 1,2,or 3-hop neighbors                         
     short         vtotal        ;  //  total # of neighbors. copy of vnum.nsizeCur              
     short         nsizeMaxClock ;  //  copy of mris->nsizeMaxClock when v#num                   
     uchar         nsizeMax      ;  //  the max nsize that was used to fill in vnum etc          
     uchar         nsizeCur      ;  //  index of the current v#num in vtotal                     
-    uchar         num           ;  //  number of neighboring faces 
-    VERTEX_TOPOLOGY() : vnum(0) {}                             
+    uchar         num           ;  //  number of neighboring faces                              
 };		// VERTEX_TOPOLOGY
 
 struct vertex_type_ {
@@ -185,6 +186,7 @@ struct MRIS {
     float                         x0                       ;  //  center of spherical expansion
     float                         y0                       ;
     float                         z0                       ;
+    //  v_temporal_pole, v_frontal_pole, and v_occipital_pole don't appear to be used, and are unusual being pointers to vertices
     PVERTEX                       v_temporal_pole          ;
     PVERTEX                       v_frontal_pole           ;
     PVERTEX                       v_occipital_pole         ;
@@ -282,7 +284,7 @@ struct MRIS {
     ELTX(short,nsizeMaxClock)  SEP \
     ELTT(uchar,nsizeMax)  SEP \
     ELTT(uchar,nsizeCur)  SEP \
-    ELTT(uchar,num)  SEP \
+    ELTT(uchar,num)  \
 // end of macro
 
 #define LIST_OF_VERTEX_ELTS_1 \
@@ -435,6 +437,7 @@ struct MRIS {
     ELTT(int,tempsAssigned)  SEP \
     ELTP(FACE,faces)  SEP \
     ELTP(MRI_EDGE,edges)  SEP \
+    ELTP(MRI_CORNER,corners)  SEP \
     ELTP(FaceNormCacheEntry,faceNormCacheEntries)  SEP \
     ELTP(FaceNormDeferredEntry,faceNormDeferredEntries)  SEP \
     ELTP(STRIP,strips)  SEP \

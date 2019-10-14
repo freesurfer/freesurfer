@@ -19,7 +19,7 @@
  *
  */
 #include "mrisurf_project.h"
-
+#include "mrisurf_base.h"
 
 /* project onto the sphere of radius DEFAULT_RADIUS */
 void mrisSphericalProjectXYZ(float xs, float ys, float zs, float *xd, float *yd, float *zd)
@@ -92,65 +92,40 @@ void mrisSphericalProjection(MRIS *mris)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Perform a projection onto an sphere moving each
-  point on the cortical surface to the closest spherical
-  coordinate.
-  ------------------------------------------------------*/
-MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
+static MRIS* MRISprojectOntoSphereWkr(MRIS* mris, double r)
 {
-  VERTEX *v;
-  int vno;
-  double x, y, z, d, dx, dy, dz, dist, total_dist, x2, y2, z2;
-
   if (FZERO(r)) {
     r = DEFAULT_RADIUS;
   }
 
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-    mris_dst->status = mris_src->status;    // added this, think it right - Bevin
+  if ((mris->status != MRIS_SPHERE) && (mris->status != MRIS_PARAMETERIZED_SPHERE)) {
+    MRIScenter(mris, mris);
   }
 
-  if ((mris_dst->status != MRIS_SPHERE) && (mris_dst->status != MRIS_PARAMETERIZED_SPHERE)) {
-    MRIScenter(mris_dst, mris_dst);
-  }
+  mris->radius = r;
 
-  mris_dst->radius = r;
+  MRISfreeDistsButNotOrig(mris);
 
-  MRISfreeDistsButNotOrig(mris_dst);
+  bool const showTotalDist = ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON);
   
-  for (total_dist = vno = 0; vno < mris_dst->nvertices; vno++) {
-    v = &mris_dst->vertices[vno];
+  double total_dist = 0.0; 
+  for (int vno = 0; vno < mris->nvertices; vno++) {
+  
+    auto v = &mris->vertices[vno];
     if (v->ripflag) /* shouldn't happen */
-    {
       continue;
-    }
-    if (false && vno == 118009) {
-      DiagBreak();
-    }
-    x = (double)v->x;
-    y = (double)v->y;
-    z = (double)v->z;
 
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    dist = sqrt(x2 + y2 + z2);
-    if (FZERO(dist)) {
-      d = 0;
-    }
-    else {
-      d = 1 - r / dist;
-    }
-    dx = d * x;
-    dy = d * y;
-    dz = d * z;
+    double const x = v->x, x2 = x*x;
+    double const y = v->y, y2 = y*y;
+    double const z = v->z, z2 = z*z;
+
+    double const dist = sqrt(x2 + y2 + z2);
+    double const d = FZERO(dist) ? 0 : (1 - r / dist);
+    
+    double const dx = d * x;
+    double const dy = d * y;
+    double const dz = d * z;
+    
     v->x = x - dx;
     v->y = y - dy;
     v->z = z - dz;
@@ -159,28 +134,41 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
       DiagBreak();
     }
 
-    /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
-    {
-      dist = sqrt((double)(dx * dx + dy * dy + dz * dz));
-      total_dist += dist;
-    }
-#if 1
-    x = (double)v->x;
-    y = (double)v->y;
-    z = (double)v->z;
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    dist = sqrt(x2 + y2 + z2);
-#endif
+    if (showTotalDist) total_dist += sqrt((double)(dx*dx + dy*dy + dz*dz));
   }
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
+
+  if (showTotalDist) {
     fprintf(stdout, "sphere_project: total dist = %f\n", total_dist);
   }
-  MRISupdateEllipsoidSurface(mris_dst);
-  mris_dst->status = mris_src->status == MRIS_PARAMETERIZED_SPHERE ? MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE;
-  return (mris_dst);
+
+  mris->status = (mris->status == MRIS_PARAMETERIZED_SPHERE) ? MRIS_PARAMETERIZED_SPHERE : MRIS_SPHERE;
+
+  MRISupdateEllipsoidSurface(mris);
+
+  return mris;
 }
+
+
+MRIS* MRISprojectOntoSphere(MRIS* mris, double r)
+{
+  return MRISprojectOntoSphereWkr(mris, r);
+}
+
+MRIS_MP* MRISprojectOntoSphere(MRIS_MP* mris, double r)
+{
+  cheapAssert(false);
+  return mris;
+}
+
+
+MRIS* MRISprojectOntoSphere(MRIS* mris_src, MRIS* mris_dst, double r)
+{
+  cheapAssert(mris_src == mris_dst);
+  auto result = MRISprojectOntoSphere(mris_src, r);
+  cheapAssert(result == mris_dst);
+  return result;
+}
+
 
 
 void mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)

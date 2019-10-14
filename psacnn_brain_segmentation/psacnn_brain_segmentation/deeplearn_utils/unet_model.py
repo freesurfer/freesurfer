@@ -11,7 +11,7 @@ from keras.losses import  mean_squared_error, mean_absolute_percentage_error
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, UpSampling2D, Add
 import keras
-from keras.utils.training_utils import  multi_gpu_model
+from keras.utils import  multi_gpu_model
 import numpy as np
 import os
 import tensorflow as tf
