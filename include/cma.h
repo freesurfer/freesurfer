@@ -336,6 +336,11 @@
 #define rh_slfp 5115 //                                 204 204 204 0
 #define rh_slft 5116 //                                 153 255 255 0
 #define rh_unc 5117 //                                  102 153 255 0
+#define lh_ifof 5118 //                                 153 255 255 0
+#define rh_ifof 5119 //                                 153 255 255 0
+#define lh_fornix 5120 //                               204 102 153 0
+#define rh_fornix 5121 //                               204 102 153 0
+
 
 /*
 # Below is the color table for the cortical labels of the seg volume
