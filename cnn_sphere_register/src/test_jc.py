@@ -67,7 +67,7 @@ def test(gpu_id, model_dir, iter_num, data_dir, file_name,
 
 
 
-    D = datagenerators.load_img_by_name(data_dir + file_name + '.lh.mat')
+    D = datagenerators.load_surf_by_name(data_dir + file_name)
 
     #X_vol = D[:,:,:,1,:]
     X_vol = D
