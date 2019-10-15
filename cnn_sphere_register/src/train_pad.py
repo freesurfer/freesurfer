@@ -60,8 +60,8 @@ def train(data_dir, model_dir, gpu_id, lr, n_iterations, alpha, model_save_iter,
     config.allow_soft_placement = True
     set_session(tf.Session(config=config))
 
-    train_vol_names = glob.glob(data_dir + '*lh.mat')
-    random.shuffle(train_vol_names)  # shuffle volume list
+    train_surf_names = glob.glob(data_dir + '/**/*.sphere')
+    random.shuffle(train_surf_names)  # shuffle volume list
 
     # Diffeomorphic network architecture used in MICCAI 2018 paper
     nf_enc = [16,32,32,32]
@@ -87,7 +87,7 @@ def train(data_dir, model_dir, gpu_id, lr, n_iterations, alpha, model_save_iter,
 
     #print(model.summary())
 
-    train_example_gen = datagenerators.sphericaldata_gen(train_vol_names)
+    train_example_gen = datagenerators.sphere_gen(train_surf_names)
     zeros = np.zeros((1, *vol_size, 2))
 
     # train. Note: we use train_on_batch and design out own print function as this has enabled
