@@ -1,6 +1,27 @@
 import os
 import numpy as np
 import scipy.io as sio
+import prep
+
+def load_surf_by_name(surf_name, curv='sulc')
+
+    (path_name, name) = os.path.split(surf_name)
+    hemi = name[0:3]
+    curv_name = path_name + '/' + hemi + curv
+    X = spherePad(surf_name, curv_name)
+    X = np.reshape(X, (1,) + X.shape + (1,))
+
+    return X
+
+
+def sphere_gen(surf_names):
+    #idx = 0
+    while(True):
+        idx = np.random.randint(len(surf_names))
+        X = load_surf_by_name(surf_names[idx])
+        return_vals = [X]
+
+        yield tuple(return_vals)
 
 
 def load_example_by_name(vol_name, seg_name):
