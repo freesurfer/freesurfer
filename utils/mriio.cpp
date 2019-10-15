@@ -8781,7 +8781,10 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   else
     nslices = hdr.dim[4];
 
-  if (hdr.scl_slope == 0) {
+  // check whether data needs to be scaled
+  bool scaledata = (hdr.scl_slope != 0) && !((hdr.scl_slope == 1) && (hdr.scl_inter == 0));
+
+  if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
@@ -8915,7 +8918,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): error opening file %s", img_fname));
   }
 
-  if (hdr.scl_slope == 0)  // no voxel value scaling needed
+  if (!scaledata)  // no voxel value scaling needed
   {
     void *buf;
 
@@ -9458,7 +9461,10 @@ static MRI *niiRead(const char *fname, int read_volume)
            hdr.dim[4],
            hdr.dim[5]);
 
-  if (hdr.scl_slope == 0) {
+  // check whether data needs to be scaled
+  bool scaledata = (hdr.scl_slope != 0) && !((hdr.scl_slope == 1) && (hdr.scl_inter == 0));
+
+  if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
@@ -9610,7 +9616,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding voxel data in %s", fname));
   }
 
-  if (hdr.scl_slope == 0) {
+  if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
     float *fbuf;
