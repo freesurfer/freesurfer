@@ -76,6 +76,7 @@ public:
   virtual void leaveEvent       ( QEvent* event );
   virtual void keyPressEvent    ( QKeyEvent* event );
   virtual void keyReleaseEvent  ( QKeyEvent* event );
+  virtual void mouseDoubleClickEvent( QMouseEvent* e);
 
   bool GetShowScalarBar();
 
@@ -87,6 +88,7 @@ signals:
   void ViewChanged();
   void MouseIn();
   void MouseOut();
+  void DoubleClicked();
 
 public slots:
   void RequestRedraw( bool bForce = false );

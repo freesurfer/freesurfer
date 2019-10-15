@@ -8781,7 +8781,10 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   else
     nslices = hdr.dim[4];
 
-  if (hdr.scl_slope == 0) {
+  // check whether data needs to be scaled
+  bool scaledata = (hdr.scl_slope != 0) && !((hdr.scl_slope == 1) && (hdr.scl_inter == 0));
+
+  if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
@@ -8915,7 +8918,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): error opening file %s", img_fname));
   }
 
-  if (hdr.scl_slope == 0)  // no voxel value scaling needed
+  if (!scaledata)  // no voxel value scaling needed
   {
     void *buf;
 
@@ -9458,7 +9461,10 @@ static MRI *niiRead(const char *fname, int read_volume)
            hdr.dim[4],
            hdr.dim[5]);
 
-  if (hdr.scl_slope == 0) {
+  // check whether data needs to be scaled
+  bool scaledata = (hdr.scl_slope != 0) && !((hdr.scl_slope == 1) && (hdr.scl_inter == 0));
+
+  if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
@@ -9610,7 +9616,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding voxel data in %s", fname));
   }
 
-  if (hdr.scl_slope == 0) {
+  if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
     float *fbuf;
@@ -11650,12 +11656,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           break;
 
         case TAG_OLD_COLORTABLE:
-          /* We have a color table, read it with CTABreadFromBinary. If it
-             fails, it will print its own error message. */
-          fprintf(stderr, "reading colortable from MGH file...\n");
+          // if reading colortable fails, it will print its own error message
           mri->ct = znzCTABreadFromBinary(fp);
-          if (NULL != mri->ct)
-            fprintf(stderr, "colortable with %d entries read (originally %s)\n", mri->ct->nentries, mri->ct->fname);
           break;
 
         case TAG_OLD_MGH_XFORM:
@@ -11907,17 +11909,12 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   znzTAGwriteMRIframes(fp, mri);
 
   if (mri->ct) {
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("writing colortable into annotation file...\n");
     znzwriteInt(TAG_OLD_COLORTABLE, fp);
     znzCTABwriteIntoBinary(mri->ct, fp);
   }
 
   // write other tags
-  {
-    int i;
-
-    for (i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
-  }
+  for (int i = 0; i < mri->ncmds; i++) znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i]) + 1);
 
   // fclose(fp) ;
   znzclose(fp);

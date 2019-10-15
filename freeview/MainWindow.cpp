@@ -1351,19 +1351,20 @@ void MainWindow::OnIdle()
   ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
   ui->actionPointSetEdit->setChecked( nMode == RenderView::IM_PointSetEdit );
 
-  if ( nMode == RenderView::IM_ROIEdit )
+  QString type = GetCurrentLayerType();
+  if ( nMode == RenderView::IM_ROIEdit || (nMode == RenderView::IM_Navigate && type == "ROI"))
   {
     LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
     ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
     ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || nMode == RenderView::IM_Navigate )
+  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || (nMode == RenderView::IM_Navigate && type == "MRI"))
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
     ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
     ui->actionRedo->setEnabled( mri && mri->IsVisible() && mri->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_PointSetEdit )
+  else if ( nMode == RenderView::IM_PointSetEdit || (nMode == RenderView::IM_Navigate && type == "PointSet"))
   {
     LayerPointSet* wp = ( LayerPointSet* )GetActiveLayer("PointSet");
     ui->actionUndo->setEnabled( wp && wp->IsVisible() && wp->HasUndo() );
