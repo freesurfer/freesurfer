@@ -47,9 +47,7 @@ FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
   if (mri_template)
   {
     ::LabelInit(m_label, mri_template->GetMRI(), NULL, CURRENT_VERTICES);
-    LABEL* l = m_label;
-    m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
-    LabelFree(&l);
+    LabelToScannerRAS(m_label, mri_template->GetMRI(), m_label);
   }
 }
 
@@ -84,9 +82,7 @@ bool FSLabel::LabelRead( const QString& filename )
   }
   if (m_label->coords != LABEL_COORDS_SCANNER_RAS && m_mri_template)
   {
-    LABEL* l = m_label;
-    m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
-    LabelFree(&l);
+    LabelToScannerRAS(m_label, m_mri_template->GetMRI(), m_label);
     qDebug() << "Label coordinates are converted to scanner ras for " << qPrintable(filename);
   }
 
@@ -468,9 +464,7 @@ void FSLabel::Clear()
   if (m_mri_template)
   {
     ::LabelInit(m_label, m_mri_template->GetMRI(), NULL, CURRENT_VERTICES);
-    LABEL* l = m_label;
-    m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
-    LabelFree(&l);
+    ::LabelToScannerRAS(m_label, m_mri_template->GetMRI(), m_label);
   }
 }
 
