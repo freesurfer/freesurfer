@@ -184,6 +184,12 @@ while( $#argv != 0 )
       set subjects = ($subjects $subject)
       breaksw
 
+    case "--man":
+    case "--src":
+      if($#argv < 1) goto arg1err;
+      set manparc = $argv[1]; shift;
+      breaksw
+
     case "--aseg":
       if($#argv < 1) goto arg1err;
       set asegname = $argv[1]; shift;
@@ -344,7 +350,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "train-gcs-atlas "
-  echo "  --src manparc : manual parcellation (default is $manparc)"
+  echo "  --man manparc : manual parcellation (default is $manparc)"
   echo "  --f subjlistfile"
   echo "  --lh, --rh, --hemi hemi"
   echo "  --o gcsfile"
@@ -381,7 +387,7 @@ do not necessarily need to be regenerated as long as they are
 accurate.
 
 There must be a manual parcellation in the label folder (default is
-?h.aparc_edited.annot but can be specified with --src).  This script
+?h.aparc_edited.annot but can be specified with --man).  This script
 only takes about 5min to run for 40 subjects.
 
 
