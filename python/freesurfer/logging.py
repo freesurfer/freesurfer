@@ -35,10 +35,6 @@ def fatal(message, retcode=1):
         raise Exception(message)
 
 
-def errorExit(message, retcode=1):
-    fatal(message, retcode)
-
-
 def assertion(condition, message, retcode=1):
     '''Exits with error if condition is not met.'''
     if not condition:

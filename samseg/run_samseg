@@ -39,7 +39,7 @@ fs.printPeakMemory('run_samseg init')
 
 # Make sure freesurfer has been sourced
 if not fs.fshome():
-    fs.errorExit('FREESURFER_HOME must be set')
+    fs.fatal('FREESURFER_HOME must be set')
 
 # Start the process timer
 timer = fs.Timer()
