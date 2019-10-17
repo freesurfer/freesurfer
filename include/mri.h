@@ -181,6 +181,7 @@ public:
   ~MRI();
 
   void initIndices();
+  void initSlices();
   void write(const std::string& filename);
   FnvHash hash();
 
@@ -274,6 +275,7 @@ public:
   size_t vox_per_vol = 0;       // number of voxels per volume frame
   size_t vox_total = 0;         // total number of voxels in the volume
   int ischunked;                // indicates whether the buffer is chunked (contiguous)
+  bool owndata = true;          // indicates ownership of the chunked buffer data
   BUFTYPE ***slices = nullptr;  // fallback non-contiguous storage for 3D-indexed image data
   void *chunk = nullptr;        // default contiguous storage for image data
 };
