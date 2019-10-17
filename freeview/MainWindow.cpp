@@ -899,12 +899,27 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
     {
-      QStringList script = QStringList("loadvolume") << floatingArgs[i];
-      if ( parser->Found( "r" ) )
+      QStringList fn_list;
+      if (floatingArgs[i].contains("*"))
       {
-        script << "r";
+        QStringList sublist = floatingArgs[i].split(":");
+        QFileInfoList fi_list = QDir().entryInfoList(QStringList(sublist[0]));
+        qDebug() << fi_list;
+        exit(0);
       }
-      cmds << script;
+      else
+      {
+        fn_list << floatingArgs[i];
+      }
+      for (int j = 0; j < fn_list.size(); j++)
+      {
+        QStringList script = QStringList("loadvolume") << fn_list[j];
+        if ( parser->Found( "r" ) )
+        {
+          script << "r";
+        }
+        cmds << script;
+      }
       bHasVolume = true;
     }
   }
