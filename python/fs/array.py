@@ -29,7 +29,7 @@ class ArrayContainerTemplate:
     @property
     def nframes(self):
         '''Number of data frames.'''
-        return self.shape[-1] if self.array.ndim == self.basedims + 1 else 1
+        return self.shape[-1] if self.data.ndim == self.basedims + 1 else 1
 
     @property
     def shape(self):
@@ -51,6 +51,10 @@ class ArrayContainerTemplate:
             warning('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__))
         return result
 
+    def write(self, filename):
+        '''Writes array and metadata to a volume file.'''
+        bindings.vol.write(self, filename)
+
     @classmethod
     def empty(cls, shape, dtype):
         '''Generates an empty array of given shape and datatype.'''
@@ -71,7 +75,7 @@ class Image(ArrayContainerTemplate):
     '''2D image with specific geometry.'''
     basedims = 2
 
-    def __init__(self, data, affine=np.eye(4)):
+    def __init__(self, data, affine=None):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
         super().__init__(data)
@@ -83,7 +87,7 @@ class Volume(ArrayContainerTemplate):
     '''3D volume with specific geometry.'''
     basedims = 3
 
-    def __init__(self, data, affine=np.eye(4)):
+    def __init__(self, data, affine=None):
         '''Contructs a volume from a 3D or 4D data array. The 4th dimension is
         always assumed to be the number of frames.'''
         super().__init__(data)
@@ -103,8 +107,8 @@ class Volume(ArrayContainerTemplate):
     @property
     def image(self):
         '''Internal data array. This is deprecated - just used the Volume.data member.'''
-        return self.array
+        return self.data
 
     @image.setter
     def image(self, array):
-        self.array = array
+        self.data = array

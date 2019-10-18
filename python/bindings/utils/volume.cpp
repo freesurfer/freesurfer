@@ -3,9 +3,6 @@
 namespace vol {
 
 
-typedef py::array_t<double, py::array::forcecast | py::array::c_style> affinematrix;
-
-
 /*
   Builds a python Overlay, Image, or Volume object (whichever is appropriate given the dimensionality)
   from the internal MRI instance. Voxel data ownership is immediately transfered from the MRI to
@@ -36,7 +33,7 @@ py::object Bridge::python()
     case MRI_FLOAT:
       dtype = py::dtype::of<float>(); break;
     default:
-      throw py::value_error("unknown MRI data type ID: " + std::string(p_mri->type));
+      throw py::value_error("unknown MRI data type ID: " + std::to_string(p_mri->type));
     }
 
     // squeeze the 4D MRI to determine the actual represented shape
@@ -71,7 +68,7 @@ py::object Bridge::python()
   // extract the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
     MATRIX *matrix = extract_i_to_r(p_mri.get());
-    affinematrix affine = makeArray({4, 4}, MemoryOrder::Fortran, matrix->data, false);
+    py::array affine = makeArray({4, 4}, MemoryOrder::C, matrix->data, false);
     MatrixFree(&matrix);
     pyobj.attr("affine") = affine;
   }
@@ -99,7 +96,7 @@ MRI* Bridge::mri()
 
   // make sure buffer is in fortran order and cache the array in case we're converting back to python later
   py::module np = py::module::import("numpy");
-  mri_buffer = np.attr("asfortranarray")(source.attr("array"));
+  mri_buffer = np.attr("asfortranarray")(source.attr("data"));
 
   // convert unsupported data types
   if (py::isinstance<py::array_t<bool>>(mri_buffer)) mri_buffer = py::array_t<uchar>(mri_buffer);
@@ -113,13 +110,13 @@ MRI* Bridge::mri()
   else if (py::isinstance<py::array_t<long>> (mri_buffer)) { dtype = MRI_LONG; }
   else if (py::isinstance<py::array_t<float>>(mri_buffer)) { dtype = MRI_FLOAT; }
   else {
-    throw py::value_error("unsupported array dtype " + py::str(mri_buffer.attr("dtype")).cast<std::string>()));
+    throw py::value_error("unsupported array dtype " + py::str(mri_buffer.attr("dtype")).cast<std::string>());
   }
 
   // initialize a header-only MRI structure with the known shape (expanded to 4D)
   std::vector<int> expanded, shape = mri_buffer.attr("shape").cast<std::vector<int>>();
-  int nframes = mri_buffer.attr("nframes").cast<int>();
-  int ndims = mri_buffer.attr("basedims").cast<int>();
+  int nframes = source.attr("nframes").cast<int>();
+  int ndims = source.attr("basedims").cast<int>();
   switch (ndims) {
   case 1: expanded = {shape[0], 1,        1,        nframes}; break;
   case 2: expanded = {shape[0], shape[1], 1,        nframes}; break;
@@ -132,29 +129,35 @@ MRI* Bridge::mri()
   mri->ischunked = true;
   mri->owndata = false;
   mri->initSlices();
-  // TODO init the other thing...
+  mri->initIndices();
 
   // set the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
-    mri->ras_good_flag = 1;
-    affinematrix pyaffine = source.attr("affine").cast<affinematrix>();
-    const double *affine = pyaffine.data();
-    double xr = affine[0]; double yr = affine[1]; double zr = affine[2];  double pr = affine[3];
-    double xa = affine[4]; double ya = affine[5]; double za = affine[6];  double pa = affine[7];
-    double xs = affine[8]; double ys = affine[9]; double zs = affine[10]; double ps = affine[11];
-    double sx = std::sqrt(xr * xr + xa * xa + xs * xs);
-    double sy = std::sqrt(yr * yr + ya * ya + ys * ys);
-    double sz = std::sqrt(zr * zr + za * za + zs * zs);
-    mri->x_r = xr / sx;
-    mri->x_a = xa / sx;
-    mri->x_s = xs / sx;
-    mri->y_r = yr / sy;
-    mri->y_a = ya / sy;
-    mri->y_s = ys / sy;
-    mri->z_r = zr / sz;
-    mri->z_a = za / sz;
-    mri->z_s = zs / sz;
-    MRIp0ToCRAS(mri, pr, pa, ps);
+    py::object pyaffine = source.attr("affine");
+    if (pyaffine.is(py::none())) {
+      mri->ras_good_flag = 0;
+    } else {
+      mri->ras_good_flag = 1;
+      // ensure it's a c-order double array
+      py::array_t<double, py::array::forcecast | py::array::c_style> casted = pyaffine.cast<py::array>();
+      const double *affine = casted.data();
+      double xr = affine[0]; double yr = affine[1]; double zr = affine[2];  double pr = affine[3];
+      double xa = affine[4]; double ya = affine[5]; double za = affine[6];  double pa = affine[7];
+      double xs = affine[8]; double ys = affine[9]; double zs = affine[10]; double ps = affine[11];
+      double sx = std::sqrt(xr * xr + xa * xa + xs * xs);
+      double sy = std::sqrt(yr * yr + ya * ya + ys * ys);
+      double sz = std::sqrt(zr * zr + za * za + zs * zs);
+      mri->x_r = xr / sx;
+      mri->x_a = xa / sx;
+      mri->x_s = xs / sx;
+      mri->y_r = yr / sy;
+      mri->y_a = ya / sy;
+      mri->y_s = ys / sy;
+      mri->z_r = zr / sz;
+      mri->z_a = za / sz;
+      mri->z_s = zs / sz;
+      MRIp0ToCRAS(mri, pr, pa, ps);
+    }
   }
 
   // volume-specific parameters

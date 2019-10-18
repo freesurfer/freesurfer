@@ -9,7 +9,7 @@ namespace vol {
 
 
 // Bridge allows for easy conversion between MRI objects
-// and python objects when writing c-bindings.
+// and python ArrayContainerTemplate objects when writing c-bindings.
 class Bridge
 {
 public:
@@ -18,7 +18,7 @@ public:
   operator MRI*() { return mri(); }
   MRI* mri();
 
-  // py::object MultidimArray conversions
+  // py::object conversions
   Bridge(py::object src) : source(src) {}
   operator py::object() { return python(); }
 
@@ -32,7 +32,7 @@ private:
 };
 
 
-// MultidimArray IO
+// IO
 py::object read(const std::string& filename);
 void write(Bridge vol, const std::string& filename);
 
