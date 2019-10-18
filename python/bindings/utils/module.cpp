@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 
 #include "volume.h"
+#include "surface.h"
 
 
 PYBIND11_MODULE(bindings, m) {
@@ -8,4 +9,7 @@ PYBIND11_MODULE(bindings, m) {
 
   py::module mvol = m.def_submodule("vol");
   vol::bind(mvol);
+
+  py::module msurf = m.def_submodule("surf");
+  surf::bind(msurf);
 }

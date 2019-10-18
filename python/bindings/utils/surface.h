@@ -21,10 +21,12 @@ public:
   // py::object Surface conversions
   Bridge(py::object src) : source(src) {}
   operator py::object() { return python(); }
+  void updateSource();
 
 private:
-  void setmri(MRIS* m) { p_mris = std::shared_ptr<MRIS>(m, [](MRIS* ptr) { MRIfree(&ptr); }); }
+  void setmris(MRIS* m) { p_mris = std::shared_ptr<MRIS>(m, [](MRIS* ptr) { MRISfree(&ptr); }); }
   py::object python();
+  void transferParameters(py::object& pyobj);
 
   std::shared_ptr<MRIS> p_mris;
   py::object source = py::none();
@@ -32,11 +34,15 @@ private:
 
 // IO
 py::object read(const std::string& filename);
-py::object read_directly(const std::string& filename);
+// py::object read_directly(const std::string& filename);
 void write(Bridge surf, const std::string& filename);
 
 // metrics
-void computeNormals(py::object surf);
+void computeNormals(Bridge surf);
+
+// parameterization
+py::array parameterize(Bridge surf, const arrayf<float>& overlay);
+py::array sampleParameterization(Bridge surf, const arrayf<float>& image);
 
 
 // surface submodule binding
@@ -48,7 +54,9 @@ inline void bind(py::module &m)
   m.def("read", &read);
   m.def("write", &write);
   m.def("compute_normals", &computeNormals);
-  m.def("read_directly", &read_directly);
+  m.def("parameterize", &parameterize);
+  m.def("sample_parameterization", &sampleParameterization);
+  // m.def("read_directly", &read_directly);
 }
 
 

@@ -4,6 +4,8 @@ pybind11_add_module(bindings
   module.cpp
   numpy.cpp
   volume.cpp
+  surface.cpp
+  parameterization.cpp
 )
 
 # link utilities

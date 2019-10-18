@@ -8,6 +8,13 @@
 namespace py = pybind11;
 
 
+template<class T>
+using arrayf = py::array_t<T, py::array::forcecast | py::array::f_style>;
+
+template<class T>
+using arrayc = py::array_t<T, py::array::forcecast | py::array::c_style>;
+
+
 enum MemoryOrder { C, Fortran };
 
 std::vector<ssize_t> cstrides(std::vector<ssize_t> shape, size_t size);
@@ -32,9 +39,9 @@ py::array_t<T> makeArray(std::vector<ssize_t> shape, MemoryOrder order, const T*
   // determine buffer array strides
   std::vector<ssize_t> strides;
   if (order == MemoryOrder::Fortran) {
-    strides = fstrides(shape, sizeof(T));    
+    strides = fstrides(shape, sizeof(T));
   } else {
-    strides = cstrides(shape, sizeof(T));    
+    strides = cstrides(shape, sizeof(T));
   }
   return makeArray(shape, strides, data, free);
 }

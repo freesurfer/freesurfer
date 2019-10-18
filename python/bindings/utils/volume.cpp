@@ -65,6 +65,20 @@ py::object Bridge::python()
   case 3: pyobj = fsmodule.attr("Volume")(mri_buffer); break;
   }
 
+  // transfer the rest of the parameters
+  transferParameters(pyobj);
+  return pyobj;
+}
+
+
+/*
+  Transfers parameters (except data array) from the internal MRI to the provided python instance.
+*/
+void Bridge::transferParameters(py::object& pyobj)
+{
+  // grab number of basedims
+  const int ndims = pyobj.attr("basedims").cast<int>();
+
   // extract the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
     MATRIX *matrix = extract_i_to_r(p_mri.get());
@@ -77,8 +91,21 @@ py::object Bridge::python()
   if (ndims == 3) {
     pyobj.attr("voxsize") = py::make_tuple(p_mri->xsize, p_mri->ysize, p_mri->zsize);
   }
+}
 
-  return pyobj;
+
+/*
+  Updates the cached python object with the internal MRI instance.
+*/
+void Bridge::updateSource()
+{
+  // sanity check on the MRI instance and python source
+  if (!p_mri) throw std::runtime_error("cannot bridge to python as MRI instance is null");
+  if (source.is(py::none())) throw py::value_error("cannot update source if it does not exist");
+
+  // update the data array and let transferParameters() do the rest
+  source.attr("data") = mri_buffer;
+  transferParameters(source);
 }
 
 
@@ -91,7 +118,7 @@ MRI* Bridge::mri()
   // return if the MRI instance has already been set or created
   if (p_mri) return p_mri.get();
 
-  // make sure the source python source has been provided
+  // make sure the source python object has been provided
   if (source.is(py::none())) throw py::value_error("cannot generate MRI instance without source object");
 
   // make sure buffer is in fortran order and cache the array in case we're converting back to python later
@@ -139,7 +166,7 @@ MRI* Bridge::mri()
     } else {
       mri->ras_good_flag = 1;
       // ensure it's a c-order double array
-      py::array_t<double, py::array::forcecast | py::array::c_style> casted = pyaffine.cast<py::array>();
+      arrayc<double> casted = pyaffine.cast<arrayc<double>>();
       const double *affine = casted.data();
       double xr = affine[0]; double yr = affine[1]; double zr = affine[2];  double pr = affine[3];
       double xa = affine[4]; double ya = affine[5]; double za = affine[6];  double pa = affine[7];

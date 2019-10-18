@@ -1,26 +1,32 @@
 import os
 import copy
 import numpy as np
-
 from . import bindings, LinearTransform
 
 
 class Surface:
 
-    def __init__(self, vertices, faces, affine=None, hemi=None):
+    def __init__(self, vertices, faces=None, affine=None, hemi=None):
 
-        # geometry
+        # TODEP - this is a temporary fix to support the previous way of loading from a file - it
+        # is not an ideal way of handling things and should be removed as soon as possible
+        if isinstance(vertices, str):
+            print('moving foward, please load surfaces via fs.Surface.read(filename)')
+            result = Surface.read(vertices)
+            vertices = result.vertices
+            faces = result.faces
+            affine = result.affine
+            hemi = result.hemi
+
         self.vertices = vertices
         self.faces = faces
-        self.affine = affine
-
-        # face and vertex normals
         self.vertex_normals = None
         self.face_normals = None
-        self.compute_normals()
+        self.affine = affine
+        self.hemi = hemi
 
-        # extra parameters
-        self.hemi = None
+        # compute face and vertex normals
+        self.compute_normals()
 
     # ---- utility ----
 
@@ -34,6 +40,7 @@ class Surface:
         bindings.surf.write(self, os.path.abspath(filename))
 
     def copy(self):
+        '''Returns a deep copy of the surface.'''
         return copy.deepcopy(self)
 
     # ---- mesh topology ----
@@ -61,19 +68,17 @@ class Surface:
     # ---- parameterization ----
 
     def parameterize(self, overlay):
-        '''TODOC'''
-        return bindings.surf.parameterize(self, overlay)
+        '''Parameterizes an nvertices-length array to a 256 x 512 image.
+        Default parameterization method is barycentric.'''
+        return bindings.surf.parameterize(self, overlay).squeeze()
 
-    def sample_parameterization(self, p):
-        '''TODOC'''
-        return bindings.surf.sample_parameterization(self, p)
-
-    def parameterization_map(self):
-        '''TODOC'''
-        return bindings.surf.parameterization_map(self)
+    def sample_parameterization(self, image):
+        '''Samples a parameterized image into an nvertices-length array.
+        Default sampling method is barycentric.'''
+        return bindings.surf.sample_parameterization(self, image)
 
     # ---- deprecations ----
-    # TODO remove these around mid-october (should be enough time)
+    # TODEP
 
     def copy_geometry(self):
         '''Deprecated!'''

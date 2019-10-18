@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from . import bindings
 
 
@@ -41,6 +42,10 @@ class ArrayContainerTemplate:
         '''Data type of the array.'''
         return self.data.dtype
 
+    def copy(self):
+        '''Returns a deep copy of the instance.'''
+        return copy.deepcopy(self)
+
     @classmethod
     def read(cls, filename):
         '''Reads in array and metadata from volume file.'''
@@ -48,7 +53,7 @@ class ArrayContainerTemplate:
         # since the volume bindings do all the IO work here, it's possible the returned
         # object type does not match the calling class... if this is the case, print a warning
         if not isinstance(result, cls):
-            warning('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__))
+            print('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__)) # TODO make warning
         return result
 
     def write(self, filename):
@@ -87,12 +92,25 @@ class Volume(ArrayContainerTemplate):
     '''3D volume with specific geometry.'''
     basedims = 3
 
-    def __init__(self, data, affine=None):
+    def __init__(self, data, affine=None, voxsize=None):
         '''Contructs a volume from a 3D or 4D data array. The 4th dimension is
         always assumed to be the number of frames.'''
+
+        # TODEP - this is a temporary fix to support the previous way of loading from a file - it
+        # is not an ideal way of handling things and should be removed as soon as possible
+        if isinstance(data, str):
+            print('moving foward, please load volumes via fs.Volume.read(filename)')
+            result = Volume.read(data)
+            if not isinstance(result, Volume):
+                classname = result.__class__.__name__
+                raise ValueError('file "%s" must be read as a %s, like this: %s.read(filename)' % (data, classname, classname))
+            data = result.data
+            affine = result.affine
+            voxsize = result.voxsize
+
         super().__init__(data)
         self.affine = affine
-        self.voxsize = (1.0, 1.0, 1.0)
+        self.voxsize = voxsize if voxsize else (1.0, 1.0, 1.0)
 
     def vox2ras(self):
         '''Returns the affine matrix as a LinearTransform that converts

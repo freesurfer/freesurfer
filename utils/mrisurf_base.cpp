@@ -18,6 +18,7 @@
  *
  */
 #include "mrisurf_base.h"
+#include "mrisurf_metricProperties.h"
 
 
 int mris_sort_compare_float(const void *pc1, const void *pc2)
@@ -849,7 +850,7 @@ int MRISunrip(MRIS *mris)
 
 
 /*
-  Returns an (N x 3) array of the surface's vertex positions.
+  Returns an (nvertices x 3) array of the surface's vertex positions.
 */
 float* MRISgetVertexArray(MRIS *mris)
 {
@@ -865,7 +866,7 @@ float* MRISgetVertexArray(MRIS *mris)
 
 
 /*
-  Returns an (N x 3) array of the surface's vertex normals.
+  Returns an (nvertices x 3) array of the surface's vertex normals.
 */
 float* MRISgetVertexNormalArray(MRIS *mris)
 {
@@ -881,7 +882,7 @@ float* MRISgetVertexNormalArray(MRIS *mris)
 
 
 /*
-  Returns an (M x 3) array of the surface's face indices.
+  Returns an (nfaces x 3) array of the surface's face indices.
 */
 int* MRISgetFaceArray(MRIS *mris)
 {
@@ -897,11 +898,28 @@ int* MRISgetFaceArray(MRIS *mris)
 
 
 /*
+  Returns an (nfaces x 3) array of the surface's face normals.
+*/
+float* MRISgetFaceNormalArray(MRIS *mris)
+{
+  float * const buffer = new float[mris->nfaces * 3];
+  float * ptr = buffer;
+  for (int n = 0 ; n < mris->nfaces ; n++) {
+    FaceNormCacheEntry const * norm = getFaceNorm(mris, n);
+    *ptr++ = norm->nx;
+    *ptr++ = norm->ny;
+    *ptr++ = norm->nz;
+  }
+  return buffer;
+}
+
+
+/*
   Contructs an MRIS instance from a set of vertices and faces.
 
-  \param vertices An (N x 3) array of vertex positions.
+  \param vertices An (nvertices x 3) array of vertex positions.
   \param nvertices Number of vertices in mesh.
-  \param faces An (M x 3) array of face indices.
+  \param faces An (nfaces x 3) array of face indices.
   \param nfaces Number of faces in mesh.
 */
 MRIS* MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces)
@@ -920,6 +938,7 @@ MRIS* MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *
   setFaceAttachmentDeferred(mris, false);
 
   mrisCompleteTopology(mris);
+  MRIScomputeMetricProperties(mris);
 
   return mris;
 }
