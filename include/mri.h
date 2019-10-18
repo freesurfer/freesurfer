@@ -235,7 +235,7 @@ public:
   double mean;
   int brightness = 1;
   int yinvert = 1;              // for converting between MNC and coronal slices
-  int dof;
+  int dof = 1;
   MRI_FRAME *frames = nullptr;
   COLOR_TABLE *ct = nullptr;
   MRI_REGION roi;
