@@ -37,6 +37,8 @@
 #include "vtkMatrix4x4.h"
 #include "vtkImageMask.h"
 #include "vtkImageLogic.h"
+#include "vtkImageMapper3D.h"
+#include <QDebug>
 
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
@@ -51,6 +53,9 @@ Contour2D::Contour2D( RenderView2D* view ) :
   m_actorContour = vtkSmartPointer<vtkImageActor>::New();
   m_actorContour->VisibilityOff();
   m_actorContour->InterpolateOff();
+#if VTK_MAJOR_VERSION > 5
+    m_actorContour->ForceOpaqueOn();
+#endif
 
   m_filterSmooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
   m_filterSmooth->SetStandardDeviations( 1, 1, 1 );
@@ -123,8 +128,6 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
     m_imageInput = imagedata;
   } 
 
-  m_imageMaskAdd = vtkSmartPointer<vtkImageData>::New();
-  m_imageMaskRemove = vtkSmartPointer<vtkImageData>::New();
 #if VTK_MAJOR_VERSION > 5
   m_filterThreshold->SetInputData( m_imageInput );
 #else
@@ -133,6 +136,10 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   SetContourValue( dContourValue );
 
   // create two masks and initialize them.
+  m_imageMaskAdd = vtkSmartPointer<vtkImageData>::New();
+  m_imageMaskRemove = vtkSmartPointer<vtkImageData>::New();
+  m_imageMaskAdd->DeepCopy( m_filterThreshold->GetOutput() );
+  m_imageMaskRemove->DeepCopy( m_imageMaskAdd );
   int* dim = m_imageMaskAdd->GetDimensions();
   long long size = ((long long)dim[0])*dim[1]*dim[2];
   memset( m_imageMaskAdd->GetScalarPointer(), 0, size );
@@ -159,7 +166,7 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   m_filterEdge->SetInputConnection( m_filterResample->GetOutputPort() );
   m_colormap->SetInputConnection( m_filterEdge->GetOutputPort() );
 #if VTK_MAJOR_VERSION > 5
-  m_actorContour->SetInputData( m_colormap->GetOutput() );
+  m_actorContour->GetMapper()->SetInputConnection( m_colormap->GetOutputPort() );
 #else
   m_actorContour->SetInput( m_colormap->GetOutput() );
 #endif
@@ -295,10 +302,6 @@ void Contour2D::SetContourValue( double dContourValue )
   m_dContourValue = dContourValue;
   m_filterThreshold->ThresholdByUpper( dContourValue );
   m_filterThreshold->Update();
-  m_imageMaskAdd->DeepCopy( m_filterThreshold->GetOutput() );
-  m_imageMaskRemove->DeepCopy( m_imageMaskAdd );
-  m_imageMaskAdd->Modified();
-  m_imageMaskRemove->Modified();
   emit ValueChanged();
 }
 
