@@ -33,10 +33,28 @@
 #ifndef __vtkSimpleLabelEdgeFilter_h
 #define __vtkSimpleLabelEdgeFilter_h
 
-//#include "vtkImagingGeneralModule.h" // For export macro
 #include "vtkSimpleImageToImageFilter.h"
 
-class /*VTKIMAGINGGENERAL_EXPORT*/ vtkSimpleLabelEdgeFilter : public vtkSimpleImageToImageFilter
+#if VTK_MAJOR_VERSION > 5
+#include "vtkImagingGeneralModule.h" // For export macro
+
+class VTKIMAGINGGENERAL_EXPORT vtkSimpleLabelEdgeFilter : public vtkSimpleImageToImageFilter
+{
+public:
+  static vtkSimpleLabelEdgeFilter *New();
+  vtkTypeMacro(vtkSimpleLabelEdgeFilter,vtkSimpleImageToImageFilter);
+
+protected:
+  vtkSimpleLabelEdgeFilter() {};
+  ~vtkSimpleLabelEdgeFilter() override {};
+
+  void SimpleExecute(vtkImageData* input, vtkImageData* output) override;
+private:
+  vtkSimpleLabelEdgeFilter(const vtkSimpleLabelEdgeFilter&) = delete;  // Not implemented.
+  void operator=(const vtkSimpleLabelEdgeFilter&) = delete;  // Not implemented.
+};
+#else
+class vtkSimpleLabelEdgeFilter : public vtkSimpleImageToImageFilter
 {
 public:
   static vtkSimpleLabelEdgeFilter *New();
@@ -51,5 +69,6 @@ private:
   vtkSimpleLabelEdgeFilter(const vtkSimpleLabelEdgeFilter&);  // Not implemented.
   void operator=(const vtkSimpleLabelEdgeFilter&);  // Not implemented.
 };
+#endif
 
 #endif
