@@ -386,8 +386,8 @@ if($#MMode) then
       -orig $srcsurf.rawavg -orig_white white.rawavg -orig_pial wo${MMode}.pial.rawavg \
       -aseg rawavg.aseg.presurf -wm rawavg.wm -filled rawavg.filled -mgz \
       -T1 rawavg.brain.finalsurfs)
-    if($DoT2)    set cmd = ($cmd -T2 rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
-    if($DoFLAIR) set cmd = ($cmd -T2 rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
+    if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
+    if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
     set cmd = ($cmd $subject $hemi)
     date | tee -a $LF
     echo "\n#===============================" | tee -a $LF
