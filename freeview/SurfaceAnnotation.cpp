@@ -503,6 +503,10 @@ void SurfaceAnnotation::EditLabel(const QVector<int> &verts, int fill_index, con
     fill_annot = ColorToAnnotation(nl.color);
     m_listColors << nl.color;
   }
+  else
+  {
+
+  }
 
   if (options.value("RemoveFromLabel").toBool())
   {
@@ -540,8 +544,17 @@ QColor SurfaceAnnotation::GenerateNewColor()
 
 void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id)
 {
-  NewAnnotationLabel nl = m_mapNewLabels[nId];
-  m_mapNewLabels.remove(nId);
+  int src_annot;
+  if (nId >= UNASSIGNED_ANNOT_BASE)
+  {
+    QColor color = m_mapNewLabels[nId].color;
+    m_mapNewLabels.remove(nId);
+    src_annot = ColorToAnnotation(color);
+  }
+  else
+  {
+     CTABannotationAtIndex(m_lut, nId, &src_annot);
+  }
   m_listVisibleLabels.removeOne(nId);
   if (!m_listVisibleLabels.contains(ctab_id))
     m_listVisibleLabels << ctab_id;
@@ -549,7 +562,7 @@ void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id)
   CTABannotationAtIndex(m_lut, ctab_id, &annot);
   for (int i = 0; i < m_nIndexSize; i++)
   {
-    if (m_data[i] == ColorToAnnotation(nl.color))
+    if (m_data[i] == src_annot)
       m_data[i] = annot;
   }
   if (m_nHighlightedLabel == nId)
@@ -578,6 +591,7 @@ void SurfaceAnnotation::UpdateColorList()
 
 void SurfaceAnnotation::UpdateLabelInfo(int i, const QString &name, const QColor &color)
 {
+  QColor old_color;
   if (i < UNASSIGNED_ANNOT_BASE)
   {
     if (!name.isEmpty())
@@ -587,7 +601,8 @@ void SurfaceAnnotation::UpdateLabelInfo(int i, const QString &name, const QColor
     if (color.isValid())
     {
       COLOR_TABLE_ENTRY* cte = m_lut->entries[i];
-      m_listColors.removeOne(QColor(cte->ri, cte->gi, cte->bi));
+      old_color = QColor(cte->ri, cte->gi, cte->bi);
+      m_listColors.removeOne(old_color);
       cte->ri = color.red();
       cte->gi = color.green();
       cte->bi = color.blue();
@@ -604,11 +619,23 @@ void SurfaceAnnotation::UpdateLabelInfo(int i, const QString &name, const QColor
       nl.name = name;
     if (color.isValid())
     {
+      old_color = nl.color;
       m_listColors.removeOne(nl.color);
       nl.color = color;
       m_listColors << color;
     }
     m_mapNewLabels[i] = nl;
+  }
+
+  if (color.isValid())
+  {
+    int old_annot = ColorToAnnotation(old_color);
+    int new_annot = ColorToAnnotation(color);
+    for (int i = 0; i < m_nIndexSize; i++)
+    {
+        if (m_data[i] == old_annot)
+          m_data[i] = new_annot;
+    }
   }
 
   if (color.isValid())
