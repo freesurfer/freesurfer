@@ -15,7 +15,7 @@ Interactor3DPathEdit::Interactor3DPathEdit(QObject* parent) :
 bool Interactor3DPathEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   m_bEditAttempted = false;
-  if (event->button() == Qt::LeftButton)
+  if (event->button() == Qt::LeftButton && event->modifiers() != (Qt::ShiftModifier | Qt::ControlModifier))
   {
     m_bEditAttempted = true;
   }
@@ -75,12 +75,15 @@ bool Interactor3DPathEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* 
         }
         else
         {
-          int nPath = surf->FindPathAt(nvo);
+          int nPath = -1;
+          if (event->modifiers() & Qt::ControlModifier)
+            nPath = surf->FindPathAt(nvo);
           if (nPath >= 0)
             surf->SetActivePath(nPath);
           else
             surf->AddPathPoint(nvo);
         }
+        return true;
       }
     }
   }

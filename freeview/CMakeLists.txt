@@ -190,6 +190,8 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     vtkInteractorStyleMyTrackballCamera.cxx
     FlowLayout.cpp
     WindowLayerInfo.cpp
+    WindowEditAnnotation.cpp
+    DialogNewAnnotation.cpp
     freeview.qrc
   )
 

@@ -232,6 +232,7 @@ foreach sess ($SessList)
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($RegDOF != 6) set cmd = ($cmd -dof $RegDOF)
     echo "$sessid Mask ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -279,9 +280,10 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
-    if($PerRun)   set cmd = ($cmd -per-run)
-    if($PerSess) set cmd = ($cmd -per-session)
-    if($#ProjFrac)  set cmd = ($cmd -projfrac $ProjFrac -expkey $ProjFracExpKey)
+    if($RegDOF != 6) set cmd = ($cmd -dof $RegDOF)
+    if($PerRun)      set cmd = ($cmd -per-run)
+    if($PerSess)     set cmd = ($cmd -per-session)
+    if($#ProjFrac)   set cmd = ($cmd -projfrac $ProjFrac -expkey $ProjFracExpKey)
     if($#volsurffwhm) set cmd = ($cmd -volsurffwhm $volsurffwhm) # for testing
     if(! $UseCortexLabel) set cmd = ($cmd -no-cortex-label)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
@@ -297,9 +299,10 @@ foreach sess ($SessList)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($#SliceDelayFile) set cmd = ($cmd -sdf $SliceDelayFile)
-    if($nolog)      set cmd = ($cmd -nolog);
-    if($UpdateOnly) set cmd = ($cmd -update);
-    if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($nolog)       set cmd = ($cmd -nolog);
+    if($UpdateOnly)  set cmd = ($cmd -update);
+    if($UseB0DC)     set cmd = ($cmd -b0dc)
+    if($RegDOF != 6) set cmd = ($cmd -dof $RegDOF)
     if($ApplySubCortMask)   set cmd = ($cmd -subcort-mask)
     if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
     if($PerRun)   set cmd = ($cmd -per-run)
