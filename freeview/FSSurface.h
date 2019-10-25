@@ -243,6 +243,8 @@ public:
 
   void UpdateCoords();
 
+  vtkTransform* GetSurfaceToRasTransform();
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                       const QString& patch_filename = QString(),
