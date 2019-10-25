@@ -48,6 +48,9 @@
 #include "vtkPointData.h"
 #include "vtkTubeFilter.h"
 #include "vtkCellArray.h"
+#include "vtkSTLWriter.h"
+#include "vtkTransformPolyDataFilter.h"
+#include "vtkTransform.h"
 #include "FSSurface.h"
 #include "LayerMRI.h"
 #include "SurfaceAnnotation.h"
@@ -279,6 +282,29 @@ bool LayerSurface::SaveSurface( const QString& filename )
     ResetModified();
     return true;
   }
+}
+
+bool LayerSurface::SaveSurfaceAsSTL(const QString &fn)
+{
+  vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
+  tr->DeepCopy(m_surfaceSource->GetSurfaceToRasTransform());
+  vtkSmartPointer<vtkTransformPolyDataFilter> filter =
+        vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  filter->SetTransform( tr );
+#if VTK_MAJOR_VERSION > 5
+  filter->SetInputData( m_surfaceSource->GetPolyData() );
+#else
+  filter->SetInput( m_surfaceSource->GetPolyData() );
+#endif
+  filter->Update();
+  vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
+  writer->SetFileName(fn.toLatin1().constData());
+#if VTK_MAJOR_VERSION > 5
+  writer->SetInputData( filter->GetOutput() );
+#else
+  writer->SetInput( filter->GetOutput() );
+#endif
+  return writer->Write();
 }
 
 bool LayerSurface::SaveSurface( )

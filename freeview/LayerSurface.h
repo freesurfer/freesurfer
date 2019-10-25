@@ -87,6 +87,7 @@ public:
   bool SaveSurface( const QString& filename );
   bool SaveSurface( );
   bool WriteIntersection( const QString& filename, int nPlane, LayerMRI* ref);
+  bool SaveSurfaceAsSTL(const QString& filename);
 
   void SetSlicePositionToWorldCenter();
 
