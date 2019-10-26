@@ -212,11 +212,11 @@ void CopyMRIDataToImage( MRI* mri, vtkImageData* image )
 }
 int main( int argc, char* argv[] )
 {
-	if( argc != 7 )
+	if( argc != 8 )
 	{
 		std::cerr << "Usage: "<< std::endl;
 		std::cerr << argv[0];
-		std::cerr << " <InputFileName> <OutputFileName> <Lower Threshold> <Upper Threshold> <vtk smoothing iterations> <image smoothing size>";
+		std::cerr << " <InputFileName> <OutputFileName> <Lower Threshold> <Upper Threshold> <vtk smoothing iterations> <image smoothing size> <reduction percentage>";
 		std::cerr << std::endl;
 		return EXIT_FAILURE;
 	}
@@ -243,6 +243,8 @@ int main( int argc, char* argv[] )
 	auto upperThreshold = static_cast< PixelType >( std::stof( argv[4] ) );
 	auto vtkSmoothingIterations= static_cast< PixelType >( atoi( argv[5] ) );
 	auto imageSmoothingIterations= static_cast< PixelType >( atoi( argv[6] ) );
+	float redPercentage =  std::stof( argv[7] );
+	std::cout << redPercentage << std::endl;	
 	//vtkSmartPointer<vtkNIFTIImageReader> reader =  vtkSmartPointer<vtkNIFTIImageReader>::New();
 	//reader->SetFileName(inputFileName);
 	//reader->Update();
@@ -349,7 +351,7 @@ int main( int argc, char* argv[] )
 		stripper2->Update();   	
 		vtkSurface = stripper2->GetOutput();
 
-		float reduction = 1.0 -10000.0 /vtkSurface->GetNumberOfPoints();
+		float reduction = 1.0 - redPercentage /vtkSurface->GetNumberOfPoints();
 		std::cout << " reduction " << reduction << " num points " << vtkSurface->GetNumberOfPoints()<< std::endl;
 		vtkSmartPointer<vtkQuadricDecimation> decimate = vtkSmartPointer<vtkQuadricDecimation>::New();
 		//vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();

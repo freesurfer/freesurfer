@@ -8,7 +8,7 @@ from dipy.io import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 import nibabel as nib
 from dipy.segment.mask import median_otsu
-from dipy.tracking.local import LocalTracking, ThresholdTissueClassifier
+#from dipy.tracking.local import LocalTracking, ThresholdTissueClassifier
 from dipy.tracking.utils import random_seeds_from_mask
 from nibabel.streamlines import Tractogram
 from dipy.tracking.streamline import Streamlines
@@ -18,9 +18,9 @@ from dipy.io.streamline import save_trk
 from dipy.io.image import save_nifti
 from scipy.ndimage.filters import gaussian_filter
 import freesurfer as fs
-from dipy.tracking.eudx import EuDX
-from dipy.reconst import peaks, shm
-from dipy.tracking import utils
+#from dipy.tracking.eudx import EuDX
+#from dipy.reconst import peaks, shm
+#from dipy.tracking import utils
 
 def TckToTrkNO(in_folder):
 	import nipype.interfaces.mrtrix as mrt
@@ -132,7 +132,7 @@ def getMapsDTI(fdwi, fbval, fbvec, subject_folder):
 	gtab = gradient_table(bvals, bvecs)
 	data = img.get_data()
 
-	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	maskdata, mask = median_otsu(data, vol_idx=range(10, 50), median_radius=3, numpass=1, autocrop=False,  dilate=2)
 	fwhm=1.25
 	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
 	data_smooth = np.zeros(data.shape)
@@ -160,7 +160,7 @@ def getMapsDKI(fdwi, fbval, fbvec, subject_folder):
 	gtab = gradient_table(bvals, bvecs)
 	data = img.get_data()
 
-	maskdata, mask = median_otsu(data, 3, 1, False,vol_idx=range(10, 35), dilate=2)
+	maskdata, mask = median_otsu(data, vol_idx=range(10, 50), median_radius=3, numpass=1, autocrop=False,  dilate=2)
 	fwhm=1.25
 	gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
 	data_smooth = np.zeros(data.shape)
@@ -187,6 +187,12 @@ def getMapsDKI(fdwi, fbval, fbvec, subject_folder):
 	save_nifti(subject_folder+'/dki_AK.nii.gz', AK, img.affine)
 	save_nifti(subject_folder+'/dki_RK.nii.gz', RK, img.affine)
 
+def invert_bvecs(fbval, fbvec, axis, foutbvec):
+	bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
+	bvecs[:,int(axis)]*= -1
+	outFile = open(foutbvec, 'w+')
+	for i in range(len(bvecs)):
+		outFile.write(str(bvecs[i][0])+" "+str(bvecs[i][1])+" "+str(bvecs[i][2])+ "\n") 
 
 parser = fs.ArgParser()
 # Required
@@ -195,9 +201,14 @@ parser.add_argument('-d','--dwi', metavar='file',required=False,  help='Diffusio
 parser.add_argument('-b','--bval', metavar='file', required=False, help='bvalue file.')
 parser.add_argument('-v','--bvec', metavar='file', required=False, help='bvectors file')
 parser.add_argument('-s','--subject_folder', required=False, help='subject folder')
+parser.add_argument('-a','--axis', metavar='int', required=False, help='inversion axis for bvec')
+parser.add_argument('-o','--output', required=False, help='output file')
+
+
 args = parser.parse_args()
 if args.function == "TckToTrk" or args.function == "RemoveHeader":
 	eval(args.function)(args.subject_folder)
-
+elif args.function == "invert_bvecs":
+	eval(args.function)(args.bval, args.bvec, args.axis, args.output)
 else:
 	eval(args.function)(args.dwi, args.bval, args.bvec, args.subject_folder)

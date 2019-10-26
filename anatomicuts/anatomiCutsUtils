@@ -114,11 +114,9 @@ def readTree(numNodes, histogramFile,header=True):
 def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1]):
 	ac_folder=f"dmri.ac/{lenght}/{std}"
 	
-	#with open(groups_classification) as f:
-	#	groups_cat = dict(filter(None, csv.reader(f, delimiter=',')))
-
 	indeces=[]
 	groups_cat = {row[classification_columns[0]] :row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
+	print(groups_cat)
 	significant_childs=set()
 	for c_i, clusterNum in enumerate(clustersToAnalyze):
 		
@@ -205,7 +203,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 					indeces.append(index)
 	return indeces
 					
-def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[1],[2],[3]]):
+def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]]):
 	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	clusterNum=200
 	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
@@ -235,28 +233,48 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 						group=val[0]
 						for i,h in enumerate(headers):
 							for j in range(clusterNum):
-								measures[group][i][j].append(data[h][j])
+								if not math.isnan(data[h][j]):
+									measures[group][i][j].append(data[h][j])
 			except:
 				print (measuresFile)
-	for i in clustersToAnalyze:
-		plt.figure()
-		plt.title(headers[0])
-		print("hola")
-		for gi, g in enumerate( groups):
-			plt.violinplot(measures[gi][0][i], [gi],  showmeans=True )
-			print("dwhola")
-		plt.savefig(f"{subjects_dir}/average/dmri.ac/{lenght}_{std}/"+str(i)+"_"+headers[0]+".png")		
+	for j, h in enumerate(headers):
+		for i in clustersToAnalyze:
+			plt.figure()
+			plt.title(headers[j])
+			print("hola")
+			for gi, g in enumerate( groups):
+				print(measures[gi][j][i] ,[gi])
+				plt.violinplot(measures[gi][j][i], [gi],  showmeans=True )
+				print("dwhola")
+			plt.savefig(f"{subjects_dir}/average/dmri.ac/{lenght}_{std}/"+str(i)+"_"+headers[j]+".png")		
 	#plt.show()
 
 def GA(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," ):
 	measures=['FA','MD','RD','AD']
-	#if model == 'DKI':
-	#	measures=measures+['MK','RK','AK']
-
+	if model == 'DKI':
+		measures=measures+['MK','RK','AK']
+	
+	indeces = groupAnalysis(headers=["N"],cols=[1], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+	headers= ["N"]
+	columns=[1]
 	for i, m in enumerate(measures):
 		print("mean"+m, " " , 2+4*i, classification_cols)
-		indeces = groupAnalysis(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
-		plotAverageMeasures(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+		headers += ["mean"+m]
+		columns+=[2+i*4]
+		indeces += groupAnalysis(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		#plotAverageMeasures(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+
+
+	for i, m in enumerate(measures):
+		headers += ["meanCentroid"+m]
+		columns+=[4+i*4]
+		print("meanCentroid"+m, " " , 2+4*i, classification_cols)
+		indeces += groupAnalysis(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		#plotAverageMeasures(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+
+	print(columns, headers,indeces)
+	plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+
 
 
 
