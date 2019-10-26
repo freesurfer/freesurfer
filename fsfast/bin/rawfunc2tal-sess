@@ -465,6 +465,11 @@ while( $#argv != 0 )
       set ExpKey = (.$ExpKey); # prepend a dot
       breaksw
 
+    case "-dof":
+      if ($#argv < 1) goto arg1err;
+      set RegDOF = $argv[1]; shift;
+      breaksw
+
     case "-b0dc":
     case "-b0dcor":
     case "-vsm":
@@ -600,6 +605,7 @@ usage_exit:
   echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo "  -no-subcort-mask : do not apply subcortical mask"
   echo "  -cvs : use cvs_avg35_inMNI152 instead of MNI305 (res fixed at 2mm)"
+  echo "  -dof DOF"
   echo ""
   echo "Other options"
   echo "  -update : only run if update is needed"

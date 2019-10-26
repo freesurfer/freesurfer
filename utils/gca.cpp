@@ -11690,6 +11690,18 @@ char *cma_label_to_name(int label)
   if (label == rh_slft) {
     return ("Right Superior Longitudinal Fasciculus - Temporal");
   }
+  if (label == lh_ifof) {
+    return ("Left Inferior Fronto-Occipital Fasciculus  ");
+  }
+  if (label == rh_ifof) {
+    return ("Right Inferior Fronto-Occipital Fasciculus  ");
+  }  
+  if (label == lh_fornix) {
+    return ("Left Fornix");
+  }
+  if (label == rh_fornix) {
+    return ("Right Fornix");
+  }
   if (label == Cbm_Left_I_IV) {
     return ("Cbm_Left_I_IV");
   }
@@ -26904,13 +26916,13 @@ int MRIwmsaHalo2(WMSA *wmsa)
   printf("size %d\n", (int)sizeof(llabel));
   for (i = 0; i < nreftissues; i++) {
     llabel[0] = wmsa->reftissues[i];
-    MRIcomputeLabelMeansandCovariances2(
+    MRIcomputeLabelMeansandCovariances(
         wmsa->modalities, wmsa->seg, &reftissue_covs[i], &reftissue_means[i], &llabel[0], 1, 0);
     reftissue_inv_covs[i] = MatrixInverse(reftissue_covs[i], NULL);
   }
 
   // Means and Cov of WMSA voxels
-  MRIcomputeLabelMeansandCovariances2(wmsa->modalities, wmsa->seg, &wmsa_covs, &wmsa_means, wmsa_labels, 2, 0);
+  MRIcomputeLabelMeansandCovariances(wmsa->modalities, wmsa->seg, &wmsa_covs, &wmsa_means, wmsa_labels, 2, 0);
   wmsa_inv_covs = MatrixInverse(wmsa_covs, NULL);
 
   // For each modality, we need to figure out if the mean of ref tissues

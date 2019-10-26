@@ -15,6 +15,12 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_project.h"
 
+#include "mrisurf_base.h"
+#include "mrisurf_MRIS_MP.h"
+#include "mrisurf_SurfaceFromMRIS_MP_generated.h"
+
+#include "mrishash_SurfaceFromMRIS.h"
+
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 
@@ -43,10 +49,14 @@ struct SseTermsBase {
 };
 
 
-// This template is for all the terms that can be computed from any Surface
+// This template is for all the terms that can be computed from any Surface 
 //
-template <class Surface, class Face, class Vertex>
-struct SseTerms_Template : public SseTermsBase {
+template <class _Surface>
+struct SseTerms_DistortedSurfaces : public SseTermsBase {
+    typedef          _Surface        Surface;
+    typedef typename Surface::Face   Face;
+    typedef typename Surface::Vertex Vertex;
+    
     Surface surface;
 #if METRIC_SCALE
     double const area_scale;
@@ -58,7 +68,7 @@ struct SseTerms_Template : public SseTermsBase {
     int const fnoBegin;
     int const fnoEnd;
 
-    SseTerms_Template(Surface surface, int selector) 
+    SseTerms_DistortedSurfaces(Surface surface, int selector) 
       : surface(surface), 
 #if METRIC_SCALE                                                         
         area_scale((surface.patch())                               ? 1.0 :  // it is weird that this doesn't have all the alternatives the dist has
@@ -263,15 +273,21 @@ struct SseTerms_Template : public SseTermsBase {
 };
 
 
-typedef SurfaceFromMRIS::Distort::Surface MRIS_Surface;
-typedef SurfaceFromMRIS::Distort::Face    MRIS_Face;
-typedef SurfaceFromMRIS::Distort::Vertex  MRIS_Vertex;
+// Choose the Surface et al to be used for MRIS and for MRIS_MP
+//
+typedef SurfaceFromMRIS::Distort::Surface    SSE_Surface_type_MRIS;
+typedef SurfaceFromMRIS_MP::Distort::Surface SSE_Surface_types_MRIS_MP;
 
-typedef SseTerms_Template<MRIS_Surface,MRIS_Face,MRIS_Vertex> SseTerms_Template_for_SurfaceFromMRIS;
 
-struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
+
+// This maps the MRIS and MRIS_MP to the set of functions that are implemented for them
+// whether done using the SseTerms_DistortedSurfaces implementations or specific implementations or not at all
+//
+typedef SseTerms_DistortedSurfaces<SSE_Surface_type_MRIS> SseTerms_Template_for_SurfaceFromMRIS;
+
+struct SseTerms_MRIS : public SseTerms_Template_for_SurfaceFromMRIS {
     MRIS* const mris;
-    SseTerms(MRIS* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS(MRIS_Surface(mris),selector), mris(mris) {}
+    SseTerms_MRIS(MRIS* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS(Surface(mris),selector), mris(mris) {}
     
     #define MRIS_PARAMETER          
     #define MRIS_PARAMETER_COMMA
@@ -289,25 +305,51 @@ struct SseTerms : public SseTerms_Template_for_SurfaceFromMRIS {
 };
 
 
+typedef SseTerms_DistortedSurfaces<SSE_Surface_types_MRIS_MP> SseTerms_Template_for_SurfaceFromMRIS_MP;
+
+struct SseTerms_MRIS_MP : public SseTerms_Template_for_SurfaceFromMRIS_MP {
+    MRIS_MP* const mris;
+    SseTerms_MRIS_MP(MRIS_MP* const mris, int selector) : SseTerms_Template_for_SurfaceFromMRIS_MP(Surface(mris),selector), mris(mris) {}
+    
+    #define MRIS_PARAMETER          
+    #define MRIS_PARAMETER_COMMA
+    #define NOCOMMA_SELECTOR
+    #define COMMA_SELECTOR
+    #define SEP 
+    // #define ELT(NAME, SIGNATURE, CALL) double NAME SIGNATURE;
+    // andrew temporarily adding these definitions since they don't get defined anywhere else
+    #define ELT(NAME, SIGNATURE, CALL) inline double NAME SIGNATURE { fs::fatal() << #NAME << "() has not been implemented for SseTerms_MRIS_MP"; return 0; };
+    LIST_OF_SSETERMS
+    #undef ELT
+    #undef SEP
+    #undef NOCOMMA_SELECTOR
+    #undef COMMA_SELECTOR
+    #undef MRIS_PARAMETER_COMMA
+    #undef MRIS_PARAMETER
+};
+
+
+
 //=============
 // Energy Terms
 //
-double SseTerms::RepulsiveRatioEnergy(double l_repulse)
+double SseTerms_MRIS::RepulsiveRatioEnergy(double l_repulse)
 {
     return SseTerms_Template_for_SurfaceFromMRIS::RepulsiveRatioEnergy(l_repulse);
 }
 
-double SseTerms::SpringEnergy()
+
+double SseTerms_MRIS::SpringEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::SpringEnergy();
 }
 
-double SseTerms::LaplacianEnergy()
+double SseTerms_MRIS::LaplacianEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::LaplacianEnergy();
 }
 
-double SseTerms::TangentialSpringEnergy()
+double SseTerms_MRIS::TangentialSpringEnergy()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
 }
@@ -318,12 +360,12 @@ double SseTerms::TangentialSpringEnergy()
 
 // Misc
 //
-double SseTerms::NonlinearDistanceSSE()
+double SseTerms_MRIS::NonlinearDistanceSSE()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::TangentialSpringEnergy();
 }
 
-double SseTerms::NonlinearAreaSSE()
+double SseTerms_MRIS::NonlinearAreaSSE()
 {
     return SseTerms_Template_for_SurfaceFromMRIS::NonlinearAreaSSE();
 }
@@ -340,7 +382,7 @@ double SseTerms::NonlinearAreaSSE()
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
+double SseTerms_MRIS::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_make_surfaces 3
 {
   if (FZERO(l_curv)) {
     return (NO_ERROR);
@@ -493,7 +535,7 @@ double SseTerms::QuadraticCurvatureSSE( double l_curv)            // BEVIN mris_
 
   Description
   ------------------------------------------------------*/
-double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tmin;
@@ -545,7 +587,7 @@ double SseTerms::ThicknessMinimizationEnergy( double l_thick_min, INTEGRATION_PA
 }
 
 
-double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   double sse_tparallel, max_inc;
@@ -604,7 +646,7 @@ double SseTerms::ThicknessParallelEnergy( double l_thick_parallel, INTEGRATION_P
 }
 
 
-double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
@@ -643,7 +685,7 @@ double SseTerms::ThicknessSmoothnessEnergy( double l_tsmooth, INTEGRATION_PARMS 
 
 
 static double big_sse = 10.0;
-double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_tnormal;
@@ -719,7 +761,7 @@ double SseTerms::ThicknessNormalEnergy( double l_thick_normal, INTEGRATION_PARMS
 }
 
 
-double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS *parms)
 {
   int vno;
   double sse_spring, sse;
@@ -775,7 +817,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
 
 
 /*!
-  \fn double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
+  \fn double SseTerms_MRIS::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
   \brief The repulsive term causes vertices to push away from each
   other based on the distance in 3D space (does not apply to nearest
   neighbors). This helps to prevent self-intersection. The force is
@@ -786,7 +828,7 @@ double SseTerms::ThicknessSpringEnergy( double l_thick_spring, INTEGRATION_PARMS
     REPULSE_E - sets minimum distance
     4 - scaling term
 */
-double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
+double SseTerms_MRIS::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
@@ -893,7 +935,7 @@ double SseTerms::RepulsiveEnergy( double l_repulse, MHT *mht, MHT *mht_faces)
 }
 
 
-double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
@@ -948,7 +990,7 @@ double SseTerms::NonlinearSpringEnergy( INTEGRATION_PARMS *parms)
   return (sse_spring);
 }
 
-double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
+double SseTerms_MRIS::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
 {
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
@@ -1028,7 +1070,7 @@ double SseTerms::SurfaceRepulsionEnergy( double l_repulse, MHT *mht)
 }
 
 
-double SseTerms::AshburnerTriangleEnergy(
+double SseTerms_MRIS::AshburnerTriangleEnergy(
                                                  double l_ashburner_triangle,
                                                  INTEGRATION_PARMS *parms)
 {
@@ -1068,7 +1110,7 @@ double SseTerms::AshburnerTriangleEnergy(
   return (sse_ashburner);
 }
 
-double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 {
   double likelihood, entropy;
   int x, y, z, label;
@@ -1128,7 +1170,7 @@ double SseTerms::HistoNegativeLikelihood( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms_MRIS::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   double sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval;
@@ -1253,7 +1295,7 @@ double SseTerms::NegativeLogPosterior( INTEGRATION_PARMS *parms, int *pnvox)
 }
 
 
-double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
+double SseTerms_MRIS::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 {
   MRI *mri = parms->mri_brain;
   MHT *mht;
@@ -1482,7 +1524,7 @@ double SseTerms::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnvox)
 //===================================================================================================
 // Error functions
 //
-double SseTerms::DistanceError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::DistanceError( INTEGRATION_PARMS *parms)
 {
   if (!(mris->dist_alloced_flags & 1)) {
     switch (copeWithLogicProblem("FREESURFER_fix_mrisComputeDistanceError","should have computed distances already")) {
@@ -1694,7 +1736,7 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
   return (sqrt(error / (double)MRISvalidVertices(mris)));
 }
 
-double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms_MRIS::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   float l_corr;
 
@@ -1802,13 +1844,13 @@ double SseTerms::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 
 
 /*!
-  \fn double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
+  \fn double SseTerms_MRIS::IntensityError( INTEGRATION_PARMS *parms)
   \brief Computes the sum of the squares of the value at a vertex minus the v->val.
    Ignores ripped vertices or any with v->val<0. Does not normalize by the number
    of vertices. Basically same computation as mrisRmsValError() but that func
    does normalize.
 */
-double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::IntensityError( INTEGRATION_PARMS *parms)
 {
   int vno,nhits;
   VERTEX *v;
@@ -1835,7 +1877,7 @@ double SseTerms::IntensityError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::TargetLocationError( INTEGRATION_PARMS *parms)
 {
   int vno, max_vno;
   VERTEX *v;
@@ -1883,7 +1925,7 @@ double SseTerms::TargetLocationError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::RmsDistanceError()
+double SseTerms_MRIS::RmsDistanceError()
 {
   INTEGRATION_PARMS parms;
   double rms;
@@ -1895,7 +1937,7 @@ double SseTerms::RmsDistanceError()
 }
 
 
-double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::IntensityGradientError( INTEGRATION_PARMS *parms)
 {
   int vno;
   VERTEX *v;
@@ -1938,7 +1980,7 @@ double SseTerms::IntensityGradientError( INTEGRATION_PARMS *parms)
 
 
 
-double SseTerms::SphereError( double l_sphere, double r0)
+double SseTerms_MRIS::SphereError( double l_sphere, double r0)
 {
   int vno;
   double sse, x0, y0, z0;
@@ -1997,7 +2039,7 @@ double SseTerms::SphereError( double l_sphere, double r0)
   return (sse);
 }
 
-double SseTerms::DuraError( INTEGRATION_PARMS *parms)
+double SseTerms_MRIS::DuraError( INTEGRATION_PARMS *parms)
 {
   double dura_thresh = parms->dura_thresh, sse;
   MRI *mri_dura = parms->mri_dura;
@@ -2037,7 +2079,7 @@ double SseTerms::DuraError( INTEGRATION_PARMS *parms)
 }
 
 
-double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
+double SseTerms_MRIS::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 {
   double src, target, sse, delta, std;
   VERTEX *v;
@@ -2195,7 +2237,7 @@ double SseTerms::VectorCorrelationError( INTEGRATION_PARMS *parms, int use_stds)
 }
 
 
-double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
+double SseTerms_MRIS::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double target_radius)
 {
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz, sse, error, dist;
@@ -2243,7 +2285,7 @@ double SseTerms::ExpandwrapError( MRI *mri_brain, double l_expandwrap, double ta
   return (sse);
 }
 
-double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
+double SseTerms_MRIS::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 {
 #if 0
   static int iter = 100 ;
@@ -2270,7 +2312,7 @@ double SseTerms::ShrinkwrapError( MRI *mri_brain, double l_shrinkwrap)
 
 
 
-double SseTerms::Error(
+double SseTerms_MRIS::Error(
                                INTEGRATION_PARMS *parms,
                                float *parea_rms,
                                float *pangle_rms,
@@ -2360,6 +2402,7 @@ double SseTerms::Error(
 #endif
   return (rms);
 }
+
 
 int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 {
@@ -2611,69 +2654,49 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
 //
 // These are in the order the original code computed them, so that side effects are not reordered
 // In older code the ashburner_triangle is computed but not used , here it is not computed at all
-//
-#define COMPUTE_DISTANCE_ERROR mrisComputeDistanceError(mris, parms)
 
+// The ELTS terms have a working overloading of mrisCompute### that can take a SurfaceFromMRIS_MP::XYZPositionConsequences::Surface as their first parameter
+//      They are implemented below in template <class _Surface> struct SseTerms_DistortedSurfaces {...}
+//
+// The ELTM terms have a working overloading of mrisCompute### that can take a MRIS* as their first parameter
+//      They also have an asserting overloading that can take a SurfaceFromMRIS_MP::XYZPositionConsequences::Surface as their first parameter
+//      which will not be called because MRIScomputeSSE_canDo(MRIS_MP* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms) returns false for these
+//
 #define SSE_TERMS \
-      ELT(sse_area                  , parms->l_parea,                            true,    computed_area                                                                   ) SEP \
-      ELT(sse_neg_area              , parms->l_area,                             true,    computed_neg_area                                                               ) SEP \
-      ELT(sse_repulse               , 1.0,                     (parms->l_repulse > 0),    mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, mht_f_current)) SEP \
-      ELT(sse_repulsive_ratio       , 1.0,                                       true,    mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio)                   ) SEP \
-      ELT(sse_tsmooth               , 1.0,                                       true,    mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth, parms)             ) SEP \
-      ELT(sse_thick_min             , parms->l_thick_min,                        true,    mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms)         ) SEP \
-      ELT(sse_ashburner_triangle    , parms->l_ashburner_triangle,               false,   mrisComputeAshburnerTriangleEnergy(mris, parms->l_ashburner_triangle, parms)    ) SEP \
-      ELT(sse_thick_parallel        , parms->l_thick_parallel,                   true,    mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms)        ) SEP \
-      ELT(sse_thick_normal          , parms->l_thick_normal,                     true,    mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms)            ) SEP \
-      ELT(sse_thick_spring          , parms->l_thick_spring,                     true,    mrisComputeThicknessSpringEnergy(mris, parms->l_thick_spring, parms)            ) SEP \
-      ELT(sse_nl_area               , parms->l_nlarea,        !FZERO(parms->l_nlarea),    mrisComputeNonlinearAreaSSE(mris)                                               ) SEP \
-      ELT(sse_nl_dist               , parms->l_nldist,        !DZERO(parms->l_nldist),    mrisComputeNonlinearDistanceSSE(mris)                                           ) SEP \
-      ELT(sse_dist                  , parms->l_dist,          !DZERO(parms->l_dist),      COMPUTE_DISTANCE_ERROR                                                          ) SEP \
-      ELT(sse_spring                , parms->l_spring,        !DZERO(parms->l_spring),    mrisComputeSpringEnergy(mris)                                                   ) SEP \
-      ELT(sse_lap                   , parms->l_lap,           !DZERO(parms->l_lap),       mrisComputeLaplacianEnergy(mris)                                                ) SEP \
-      ELT(sse_tspring               , parms->l_tspring,       !DZERO(parms->l_tspring),   mrisComputeTangentialSpringEnergy(mris)                                         ) SEP \
-      ELT(sse_nlspring              , parms->l_nlspring,      !DZERO(parms->l_nlspring),  mrisComputeNonlinearSpringEnergy(mris, parms)                                   ) SEP \
-      ELT(sse_curv                  , l_curv_scaled,          !DZERO(parms->l_curv),      mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv)                           ) SEP \
-      ELT(sse_corr                  , l_corr,                 !DZERO(l_corr),             mrisComputeCorrelationError(mris, parms, 1)                                     ) SEP \
-      ELT(sse_val                   , parms->l_intensity,     !DZERO(parms->l_intensity), mrisComputeIntensityError(mris, parms)                                          ) SEP \
-      ELT(sse_loc                   , parms->l_location,      !DZERO(parms->l_location),  mrisComputeTargetLocationError(mris, parms)                                     ) SEP \
-      ELT(sse_dura                  , parms->l_dura,          !DZERO(parms->l_dura),      mrisComputeDuraError(mris, parms)                                               ) SEP \
-      ELT(sse_histo                 , parms->l_histo,         !DZERO(parms->l_histo),     mrisComputeHistoNegativeLikelihood(mris, parms)                                 ) SEP \
-      ELT(sse_map                   , parms->l_map,           !DZERO(parms->l_map),       mrisComputeNegativeLogPosterior(mris, parms, NULL)                              ) SEP \
-      ELT(sse_map2d                 , parms->l_map2d,         !DZERO(parms->l_map2d),     mrisComputeNegativeLogPosterior2D(mris, parms, NULL)                            ) SEP \
-      ELT(sse_grad                  , parms->l_grad,          !DZERO(parms->l_grad),      mrisComputeIntensityGradientError(mris, parms)                                  ) SEP \
-      ELT(sse_sphere                , parms->l_sphere,        !DZERO(parms->l_sphere),    mrisComputeSphereError(mris, parms->l_sphere, parms->a)                         ) SEP \
-      ELT(sse_shrinkwrap            , parms->l_shrinkwrap,    !DZERO(parms->l_shrinkwrap),mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap)         ) SEP \
-      ELT(sse_expandwrap            , parms->l_expandwrap,    !DZERO(parms->l_expandwrap),mrisComputeExpandwrapError(mris, parms->mri_brain, parms->l_expandwrap, parms->target_radius)) SEP \
-      ELT(sse_vectorCorrelationError, 1.0,                    use_multiframes,            mrisComputeVectorCorrelationError(mris, parms, 1)                               )     \
+      ELTM(sse_area                  , parms->l_parea,                            true,    computed_area                                                                   ) \
+      ELTM(sse_neg_area              , parms->l_area,                             true,    computed_neg_area                                                               ) \
+      ELTM(sse_repulse               , 1.0,                     (parms->l_repulse > 0),    mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, mht_f_current)) \
+      ELTM(sse_repulsive_ratio       , 1.0,                                       true,    mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio)                   ) \
+      ELTM(sse_tsmooth               , 1.0,                                       true,    mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth, parms)             ) \
+      ELTM(sse_thick_min             , parms->l_thick_min,                        true,    mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms)         ) \
+      ELTM(sse_ashburner_triangle    , parms->l_ashburner_triangle,               false,   mrisComputeAshburnerTriangleEnergy(mris, parms->l_ashburner_triangle, parms)    ) \
+      ELTM(sse_thick_parallel        , parms->l_thick_parallel,                   true,    mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms)        ) \
+      ELTM(sse_thick_normal          , parms->l_thick_normal,                     true,    mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms)            ) \
+      ELTM(sse_thick_spring          , parms->l_thick_spring,                     true,    mrisComputeThicknessSpringEnergy(mris, parms->l_thick_spring, parms)            ) \
+      ELTM(sse_nl_area               , parms->l_nlarea,        !FZERO(parms->l_nlarea),    mrisComputeNonlinearAreaSSE(mris)                                               ) \
+      ELTM(sse_nl_dist               , parms->l_nldist,        !DZERO(parms->l_nldist),    mrisComputeNonlinearDistanceSSE(mris)                                           ) \
+      ELTM(sse_dist                  , parms->l_dist,          !DZERO(parms->l_dist),      mrisComputeDistanceError(mris, parms)                                           ) \
+      ELTM(sse_spring                , parms->l_spring,        !DZERO(parms->l_spring),    mrisComputeSpringEnergy(mris)                                                   ) \
+      ELTM(sse_lap                   , parms->l_lap,           !DZERO(parms->l_lap),       mrisComputeLaplacianEnergy(mris)                                                ) \
+      ELTM(sse_tspring               , parms->l_tspring,       !DZERO(parms->l_tspring),   mrisComputeTangentialSpringEnergy(mris)                                         ) \
+      ELTM(sse_nlspring              , parms->l_nlspring,      !DZERO(parms->l_nlspring),  mrisComputeNonlinearSpringEnergy(mris, parms)                                   ) \
+      ELTM(sse_curv                  , l_curv_scaled,          !DZERO(parms->l_curv),      mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv)                           ) \
+      ELTM(sse_corr                  , l_corr,                 !DZERO(l_corr),             mrisComputeCorrelationError(mris, parms, 1)                                     ) \
+      ELTM(sse_val                   , parms->l_intensity,     !DZERO(parms->l_intensity), mrisComputeIntensityError(mris, parms)                                          ) \
+      ELTM(sse_loc                   , parms->l_location,      !DZERO(parms->l_location),  mrisComputeTargetLocationError(mris, parms)                                     ) \
+      ELTM(sse_dura                  , parms->l_dura,          !DZERO(parms->l_dura),      mrisComputeDuraError(mris, parms)                                               ) \
+      ELTM(sse_histo                 , parms->l_histo,         !DZERO(parms->l_histo),     mrisComputeHistoNegativeLikelihood(mris, parms)                                 ) \
+      ELTM(sse_map                   , parms->l_map,           !DZERO(parms->l_map),       mrisComputeNegativeLogPosterior(mris, parms, NULL)                              ) \
+      ELTM(sse_map2d                 , parms->l_map2d,         !DZERO(parms->l_map2d),     mrisComputeNegativeLogPosterior2D(mris, parms, NULL)                            ) \
+      ELTM(sse_grad                  , parms->l_grad,          !DZERO(parms->l_grad),      mrisComputeIntensityGradientError(mris, parms)                                  ) \
+      ELTM(sse_sphere                , parms->l_sphere,        !DZERO(parms->l_sphere),    mrisComputeSphereError(mris, parms->l_sphere, parms->a)                         ) \
+      ELTM(sse_shrinkwrap            , parms->l_shrinkwrap,    !DZERO(parms->l_shrinkwrap),mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap)         ) \
+      ELTM(sse_expandwrap            , parms->l_expandwrap,    !DZERO(parms->l_expandwrap),mrisComputeExpandwrapError(mris, parms->mri_brain, parms->l_expandwrap, parms->target_radius)) \
+      ELTM(sse_vectorCorrelationError, 1.0,                    use_multiframes,            mrisComputeVectorCorrelationError(mris, parms, 1)                               ) \
       // end of list
 
-#if defined(COMPILING_MRIS_MP)
-bool MRISMP_computeSSE_canDo(INTEGRATION_PARMS *parms)
-{
-  debug |= debugNonDeterminism;
-  
-  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
-  // double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
-
-  bool result = true;
-#define SEP
-#define ELTM(NAME,MULTIPLIER,COND,EXPR,EXPRM)
-#define ELT(NAME, MULTIPLIER, COND, EXPR) \
-  if (COND) { static bool reported = false; \
-    if (!reported) { reported = true; fprintf(stdout, "%s:%d can't do %s %s\n", __FILE__,__LINE__,#NAME,#EXPR); } \
-    result = false; \
-  }
-  SSE_TERMS
-  ELT(sse_init,1.0,gMRISexternalSSE,)
-#undef ELT
-#undef ELTM
-#undef SEP
-  return result;
-}
-#endif
-
-
-double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+template <class Surface, class Some_MRIS>
+double MRIScomputeSSE_template(Surface surface, Some_MRIS* mris, INTEGRATION_PARMS *parms)
 {
   bool const debug = debugNonDeterminism;
   
@@ -2682,7 +2705,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double const l_curv_scaled    = (double)parms->l_curv * CURV_SCALE;
   double const area_scale =
 #if METRIC_SCALE
-    (mris->patch || mris->noscale) ? 1.0 : mris->orig_area / mris->total_area;
+    (surface.patch() || surface.noscale()) ? 1.0 : surface.orig_area() / surface.total_area();
 #else
     1.0;
 #endif
@@ -2700,11 +2723,13 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     relevant_angle = 0; computed_neg_area = 0; computed_area = 0;
 
+    auto const nfaces = surface.nfaces();
+
 #ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
 
   #define ROMP_VARIABLE       fno
   #define ROMP_LO             0
-  #define ROMP_HI             mris->nfaces
+  #define ROMP_HI             nfaces
     
   #define ROMP_SUMREDUCTION0  relevant_angle
   #define ROMP_SUMREDUCTION1  computed_neg_area
@@ -2726,7 +2751,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     int fno;
     
-    ROMP_PF_begin       // mris_register
+    ROMP_PF_begin
 
 #ifdef BEVIN_MRISCOMPUTESSE_CHECK
     #pragma omp parallel for if(trial==0) reduction(+ : relevant_angle, computed_neg_area, computed_area)
@@ -2735,27 +2760,29 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     #pragma omp parallel for if_ROMP(fast) reduction(+ : relevant_angle, computed_neg_area, computed_area)
 #endif
 #endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
+    for (fno = 0; fno < nfaces; fno++) {
       ROMP_PFLB_begin
 
 #endif      
-      FACE const * const face = &mris->faces[fno];
-      if (face->ripflag) ROMP_PF_continue;
+      auto face = surface.faces(fno);
+      if (face.ripflag()) ROMP_PF_continue;
       FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
 
       {
-        double const delta = (double)(area_scale * face->area - fNorm->orig_area);
+        auto const area = face.area();
+        double const delta = (double)(area_scale * area - fNorm->orig_area);
 #if ONLY_NEG_AREA_TERM
-        if (face->area < 0.0f) computed_neg_area += delta * delta;
+        if (area < 0.0f) computed_neg_area += delta * delta;
 #endif
         computed_area += delta * delta;
       }
       
       int ano;
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
-        double delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
+        auto const angle = face.angle()[ano];
+        double delta = deltaAngle(angle, face.orig_angle()[ano]);
 #if ONLY_NEG_AREA_TERM
-        if (face->angle[ano] >= 0.0f) delta = 0.0f;
+        if (angle >= 0.0f) delta = 0.0f;
 
 #endif
         relevant_angle += delta * delta;
@@ -2809,17 +2836,17 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MHT* mht_f_current = NULL;
   if (!FZERO(parms->l_repulse)) {
     double vmean, vsigma;
-    vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
+    vmean = MRIScomputeTotalVertexSpacingStats     (mris, &vsigma, NULL, NULL, NULL, NULL);
     mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, vmean);
     mht_f_current = MHTcreateFaceTable_Resolution  (mris, CURRENT_VERTICES, vmean);
   }
 
 
-#define SEP
-#define ELT(NAME, MULTIPLIER, COND, EXPR) double const NAME = (COND) ? (EXPR) : 0.0;
+#define ELTS(NAME, MULTIPLIER, COND, EXPR) double const NAME = (COND) ? (EXPR) : 0.0;
+#define ELTM(NAME, MULTIPLIER, COND, EXPR) double const NAME = (COND) ? (EXPR) : 0.0;
     SSE_TERMS
-#undef ELT
-#undef SEP
+#undef ELTM
+#undef ELTS
 
   if (parms->l_thick_spring > 0 || parms->l_thick_min > 0 || parms->l_thick_parallel > 0 /* && DIAG_VERBOSE_ON*/)
     printf("min=%2.3f, parallel=%2.4f, normal=%2.4f, spring=%2.4f, ashburner=%2.3f, tsmooth=%2.3f\n",
@@ -2836,22 +2863,23 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_init = (*gMRISexternalSSE)(mris, parms);
   }
   
-  double sse = sse_init +
-#define SEP +
-#define ELT(NAME, MULTIPLIER, COND, EXPR) (MULTIPLIER) * (NAME)
-    SSE_TERMS ;
-#undef ELT
-#undef SEP
+  double sse = sse_init
+#define ELTS(NAME, MULTIPLIER, COND, EXPR) + (MULTIPLIER) * (NAME)
+#define ELTM(NAME, MULTIPLIER, COND, EXPR) + (MULTIPLIER) * (NAME)
+    SSE_TERMS
+#undef ELTM
+#undef ELTS
+    ;
 
   if (debug) {
-    #define SEP
     double sum = 0;
-    #define ELT(NAME, MULTIPLIER, COND, EXPR) fprintf(stdout, "new %s : %f \n", #NAME, (MULTIPLIER) * (NAME));  sum += (MULTIPLIER) * (NAME);
-    ELT(sse_init, 1, true, sse_init)
+    #define ELTS(NAME, MULTIPLIER, COND, EXPR) fprintf(stdout, "new %s : %f \n", #NAME, (MULTIPLIER) * (NAME));  sum += (MULTIPLIER) * (NAME);
+    #define ELTM(NAME, MULTIPLIER, COND, EXPR) fprintf(stdout, "new %s : %f \n", #NAME, (MULTIPLIER) * (NAME));  sum += (MULTIPLIER) * (NAME);
+    ELTS(sse_init, 1, true, sse_init)
     SSE_TERMS
     fprintf(stdout, "new sum = %f \n", sum);
-    #undef ELT
-    #undef SEP
+    #undef ELTM
+    #undef ELTS
   }
   
   // This code matches code Bevin added to the previous good code to compare old and new runs
@@ -2891,24 +2919,17 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #undef ELT
     }
 
-#define SEP
-#define ELTM(NAME, MULTIPLIER, COND, EXPR, EXPRM) \
+#define ELTS(NAME, MULTIPLIER, COND, EXPR) ELTM(NAME, MULTIPLIER, COND, EXPR)
+#define ELTM(NAME, MULTIPLIER, COND, EXPR) \
     { double term = (MULTIPLIER) * (NAME); \
       if (term != 0.0) { fprintf(stdout, "new %s : %f \n", #NAME, term);  } \
     }
-
-#ifdef COMPILING_MRIS_MP
-#define ELT(NAME, MULTIPLIER, COND, EXPR)
-#else
-#define ELT(NAME, MULTIPLIER, COND, EXPR) ELTM(NAME, MULTIPLIER, NotUsed, NotUsed, NotUsed)
-#endif
-    ELT(sse_init, 1, true, sse_init)
+    ELTM(sse_init, 1, true, sse_init)
     SSE_TERMS
     fprintf(stdout, "new sum = %f \n", sse);
-
-#undef ELT
 #undef ELTM
-#undef SEP
+#undef ELTS
+
   }
   //
   // end of Bevin added
@@ -2920,14 +2941,57 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     DiagBreak();
   }
 
-#undef COMPUTE_DISTANCE_ERROR
-
   return sse;
 }
 
-#undef COMPUTE_DISTANCE_ERROR
-#undef SSE_TERMS
+bool MRIScomputeSSE_canDo(MRIS* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
+{
+  return true;
+}
 
+double MRIScomputeSSE(MRIS* mris, INTEGRATION_PARMS *parms)
+{
+  SurfaceFromMRIS::XYZPositionConsequences::Surface surface(mris);
+  return MRIScomputeSSE_template(surface,mris,parms);    
+}
+
+
+bool MRIScomputeSSE_canDo(MRIS_MP* usedOnlyForOverloadingResolution, INTEGRATION_PARMS *parms)
+{
+#if 1
+  return false;
+#else
+  bool   const use_multiframes  = !!(parms->flags & IP_USE_MULTIFRAMES);
+  double const l_corr           = (double)(parms->l_corr + parms->l_pcorr);
+
+  bool result = true;
+#define ELTS(NAME, MULTIPLIER, COND, EXPR)
+#define ELTM(NAME, MULTIPLIER, COND, EXPR) \
+  if (COND) { static bool reported = false; \
+    if (!reported) { reported = true; fprintf(stdout, "%s:%d can't do %s %s\n", __FILE__,__LINE__,#NAME,#EXPR); } \
+    result = false; \
+  }
+  SSE_TERMS
+  ELTM(sse_init,1.0,gMRISexternalSSE,)
+#undef ELTM
+#undef ELTS
+
+  return result;
+#endif
+}
+
+
+double MRIScomputeSSE(MRIS_MP* mris_mp, INTEGRATION_PARMS *parms)
+{
+#if 1
+  return 0.0;
+#else
+  SurfaceFromMRIS_MP::XYZPositionConsequences::Surface surface(mris_mp);
+  return MRIScomputeSSE_template(surface,mris_mp,parms);    
+#endif
+}
+
+#undef SSE_TERMS
 
 double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_sse)
 {
@@ -2948,15 +3012,14 @@ double MRIScomputeSSEExternal(MRIS* mris, INTEGRATION_PARMS *parms, double *ext_
 
 
 
-
 // Generate all the jackets
 //
-#define MRIS_PARAMETER          MRIS* mris          
+#define MRIS_PARAMETER          MRIS* mris
 #define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
 #define NOCOMMA_SELECTOR        int selector
 #define COMMA_SELECTOR          , NOCOMMA_SELECTOR
 #define SEP 
-#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms sseTerms(mris,selector); return sseTerms.NAME CALL; }
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms_MRIS sseTerms(mris,selector); return sseTerms.NAME CALL; }
 LIST_OF_SSETERMS
 #undef ELT
 #undef SEP
@@ -2965,4 +3028,16 @@ LIST_OF_SSETERMS
 #undef MRIS_PARAMETER_COMMA
 #undef MRIS_PARAMETER
 
-
+#define MRIS_PARAMETER          MRIS_MP* mris
+#define MRIS_PARAMETER_COMMA    MRIS_PARAMETER ,
+#define NOCOMMA_SELECTOR        int selector
+#define COMMA_SELECTOR          , NOCOMMA_SELECTOR
+#define SEP 
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE { SseTerms_MRIS_MP sseTerms(mris,selector); return sseTerms.NAME CALL; }
+LIST_OF_SSETERMS
+#undef ELT
+#undef SEP
+#undef COMMA_SELECTOR
+#undef NOCOMMA_SELECTOR
+#undef MRIS_PARAMETER_COMMA
+#undef MRIS_PARAMETER

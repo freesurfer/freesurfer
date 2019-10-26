@@ -164,8 +164,8 @@ static double MIN_NONBRAIN_T1 = 500.0 ;
 static double MIN_NONBRAIN_PD = 550 ;
 static double MIN_RELIABLE_PD = 150 ;
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 static double  DSTEP = 0.25 ;
 static double MAX_DSTEP = 0.5 ;   /* max sampling distance */
 #define MAX_WHITE_DIST  8               /* max distance to sample in and out */

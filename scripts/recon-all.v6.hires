@@ -7529,7 +7529,7 @@ check_params:
     endif
 
     set fname = $subjdir/scripts/DoConf2Hires
-    if(-e $fname && ! $DoConf2Hires && ($DoPialSurfs || $DoT2pial)) then
+    if(-e $fname && ! $DoConf2Hires && ($DoPialSurfs || $DoT2pial || $DoFLAIRpial)) then
       echo "ERROR: previous calls to recon-all included -conf2hires but this one does not."
       echo "If you want to run without conf2hires, delete file $fname"
       exit 1;

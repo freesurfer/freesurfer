@@ -15,9 +15,20 @@
  *
  */
 #include "mrisurf_metricProperties.h"
+
+#include "mrisurf_MRIS.h"
+#include "mrisurf_MRIS_MP.h"
+#include "mrisurf_MRISPV.h"
+
+#include "mrisurf_SurfaceFromMRIS_generated.h"
+#include "mrisurf_SurfaceFromMRISPV_generated.h"
+#include "mrisurf_SurfaceFromMRIS_MP_generated.h"
+
 #include "face_barycentric_coords.h"
 #include "mrisutils.h"
 #include "surfgrad.h"
+
+#include "mrisurf_base.h"
 
 
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -674,14 +685,10 @@ MRIS* MRIStalairachTransform(MRIS* mris_src, MRIS* mris)
   return mris;
 }
 
-
-MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma)
+template <class Surface>
+void MRISrotate(Surface surface, float alpha, float beta, float gamma)
 {
-  if (!mris_dst) {
-    mris_dst = MRISclone(mris_src);
-  }
-
-  MRISfreeDistsButNotOrig(mris_dst);  // it is either this or adjust them...
+  surface.freeDistsButNotOrig();
 
   float const sa = sin(alpha);
   float const sb = sin(beta);
@@ -703,34 +710,53 @@ MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float 
   float const cbcg = cb * cg;
   float const cbsg = cb * sg;
 
-  int vno;
-  
+  auto const nvertices = surface.nvertices();
+
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) schedule(guided)
 #endif
-  for (vno = 0; vno < mris_src->nvertices; vno++) {
+  for (int vno = 0; vno < nvertices; vno++) {
     ROMP_PFLB_begin
-    
+
     if (vno == Gdiag_no) {
       DiagBreak();
     }
 
-    VERTEX *vertex = &mris_src->vertices[vno];
-    float x = vertex->x;
-    float y = vertex->y;
-    float z = vertex->z;
+    auto vertex = surface.vertices(vno);
+    float x = vertex.x();
+    float y = vertex.y();
+    float z = vertex.z();
     float xp =  x * cacb + z * (-cacgsb - sasg) + y * (cgsa - casbsg);
     float yp = -x * cbsa + z * ( cgsasb - casg) + y * (cacg + sasbsg);
     float zp =  z * cbcg + x * sb + y * cbsg;
-    vertex->x = xp;
-    vertex->y = yp;
-    vertex->z = zp;
+    vertex.set_x(xp);
+    vertex.set_y(yp);
+    vertex.set_z(zp);
 
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+}
+
+void MRISrotate(MRIS* mris, float alpha, float beta, float gamma)
+{
+    SurfaceFromMRIS::XYZPositionM::Surface surface(mris);
+    MRISrotate(surface, alpha, beta, gamma);
+}
+
+void MRISrotate(MRIS_MP* mris, float alpha, float beta, float gamma)
+{
+    SurfaceFromMRIS_MP::XYZPositionM::Surface surface(mris);
+    MRISrotate(surface, alpha, beta, gamma);
+}
+
+MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma)
+{
+  if (!mris_dst) {
+    mris_dst = MRISclone(mris_src);
+  }
+  MRISrotate(mris_dst, alpha, beta, gamma);
   return (mris_dst);
 }
 
@@ -965,6 +991,58 @@ void MRISblendXYZandNXYZ(MRIS* mris, float nxyzScale)
   // old form did not have this
   //
   // mrisComputeSurfaceDimensions(mris);
+}
+
+
+template <class SurfaceOut, class SurfaceInp>
+void MRIStranslate_along_vertex_dxdydz(SurfaceOut surfaceOut, SurfaceInp surfaceInp, double dt)
+{
+  surfaceOut.freeDistsButNotOrig();
+
+  auto const nvertices = surfaceInp.nvertices();
+  cheapAssert(nvertices == surfaceOut.nvertices());
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) schedule(guided)
+#endif
+  for (int vno = 0; vno < nvertices; vno++) {
+    ROMP_PFLB_begin
+      
+    auto vertexInp = surfaceInp.vertices(vno);
+    if (vertexInp.ripflag()) continue;
+    
+    float x = vertexInp.x();
+    float y = vertexInp.y();
+    float z = vertexInp.z();
+
+    x += dt * vertexInp.dx();
+    y += dt * vertexInp.dy();
+    z += dt * vertexInp.dz();
+
+
+    auto vertexOut = surfaceOut.vertices(vno);
+    vertexOut.set_x(x);
+    vertexOut.set_y(y);
+    vertexOut.set_z(z);
+
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+}
+
+void MRIStranslate_along_vertex_dxdydz(MRIS*    dst, MRIS*    src, double dt)
+{
+    SurfaceFromMRIS::Distort::Surface      surfaceInp(src);
+    SurfaceFromMRIS::XYZPositionM::Surface surfaceOut(dst);
+    MRIStranslate_along_vertex_dxdydz(surfaceOut, surfaceInp, dt);
+}
+
+void MRIStranslate_along_vertex_dxdydz(MRIS_MP* dst, MRIS_MP* src, double dt)
+{
+    SurfaceFromMRIS_MP::Distort::Surface      surfaceInp(src);
+    SurfaceFromMRIS_MP::XYZPositionM::Surface surfaceOut(dst);
+    MRIStranslate_along_vertex_dxdydz(surfaceOut, surfaceInp, dt);
 }
 
 
@@ -1825,8 +1903,8 @@ int MRIScomputeMetricProperties(MRIS *mris)
 
   if (useNewBehaviour) {
     MRISfreeDistsButNotOrig(mris);                                      // So they can be stolen to avoid unnecessary mallocs and frees
-    MRISMP_load(mris, &mp);                                              // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
-    MRISMP_computeMetricProperties(&mp);                                 // It should not matter the order these are done in
+    MRISMP_load(&mp, mris);                                             // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
+    MRIScomputeMetricProperties(&mp);                                // It should not matter the order these are done in
   }
   
   if (useOldBehaviour) {
@@ -6320,15 +6398,6 @@ short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrin
 }
 
 
-void computeDefectFaceNormal(MRIS const * const mris, int const fno)
-{
-  float nx, ny, nz, orig_area;
-  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
-  setFaceNorm    (mris, fno, nx, ny, nz);
-  setFaceOrigArea(mris, fno, orig_area);
-}
-
-
 int MRIScomputeSurfaceNormals(MRIS *mris, int which, int navgs)
 {
   int vno, n, i;
@@ -7487,24 +7556,25 @@ int MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, 
   ------------------------------------------------------*/
 
 //#define CHECK_DEFERED_NORMS
-void computeDefectFaceNormal_calculate(
-    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+template  <class Surface>
+void computeDefectFaceNormal_calculate_template(
+  Surface surface, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
 {
-  FACE const * const face = &mris->faces[fno];
+  auto face = surface.faces(fno);
   
-  VERTEX * v1 = &mris->vertices[face->v[0]];
-  VERTEX * v2 = &mris->vertices[face->v[1]];
-  VERTEX * v3 = &mris->vertices[face->v[2]];
+  auto v1 = face.v(0);
+  auto v2 = face.v(1);
+  auto v3 = face.v(2);
 
   /* compute the face normal on the original configuration */
   float a[3], b[3];
 
-  a[0] = v2->origx - v1->origx;
-  b[0] = v3->origx - v1->origx;
-  a[1] = v2->origy - v1->origy;
-  b[1] = v3->origy - v1->origy;
-  a[2] = v2->origz - v1->origz;
-  b[2] = v3->origz - v1->origz;
+  a[0] = v2.origx() - v1.origx();
+  b[0] = v3.origx() - v1.origx();
+  a[1] = v2.origy() - v1.origy();
+  b[1] = v3.origy() - v1.origy();
+  a[2] = v2.origz() - v1.origz();
+  b[2] = v3.origz() - v1.origz();
 
   float norm[3];
   F_CROSS(a, b, norm);
@@ -7521,12 +7591,12 @@ void computeDefectFaceNormal_calculate(
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
     //          (%f,%f,%f)",v1->origx,v1->origy,v1->origz,v2->origx,v2->origy,v2->origz,v3->origx,v3->origy,v3->origz);
     /* try another dot product */
-    a[0] = 100.0 * (v3->origx - v2->origx);
-    b[0] = 100.0 * (v1->origx - v2->origx);
-    a[1] = 100.0 * (v3->origy - v2->origy);
-    b[1] = 100.0 * (v1->origy - v2->origy);
-    a[2] = 100.0 * (v3->origz - v2->origz);
-    b[2] = 100.0 * (v1->origz - v2->origz);
+    a[0] = 100.0 * (v3.origx() - v2.origx());
+    b[0] = 100.0 * (v1.origx() - v2.origx());
+    a[1] = 100.0 * (v3.origy() - v2.origy());
+    b[1] = 100.0 * (v1.origy() - v2.origy());
+    a[2] = 100.0 * (v3.origz() - v2.origz());
+    b[2] = 100.0 * (v1.origz() - v2.origz());
     F_CROSS(a, b, norm);
     nx = norm[0];
     ny = norm[1];
@@ -7545,9 +7615,33 @@ void computeDefectFaceNormal_calculate(
   *p_orig_area = len / 2.0f;
 }
 
-     
+static void computeDefectFaceNormal_calculate(
+  MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+{
+  SurfaceFromMRIS::XYZPositionM::Surface surface(const_cast<MRIS*>(mris));
+  computeDefectFaceNormal_calculate_template(surface, fno, p_nx, p_ny, p_nz, p_orig_area);
+}
 
-void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+void computeDefectFaceNormal_calculate(
+  MRIS_MP const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+{
+  SurfaceFromMRIS_MP::XYZPositionM::Surface surface(const_cast<MRIS_MP*>(mris));
+  computeDefectFaceNormal_calculate_template(surface, fno, p_nx, p_ny, p_nz, p_orig_area);
+}
+
+
+void computeDefectFaceNormal(MRIS const * const mris, int const fno)
+{
+  float nx, ny, nz, orig_area;
+  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
+  setFaceNorm    (mris, fno, nx, ny, nz);
+  setFaceOrigArea(mris, fno, orig_area);
+}
+
+
+
+template <class SOME_MRIS>
+void setFaceNorm_template(SOME_MRIS const * const mris, int fno, float nx, float ny, float nz) {
     FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
     FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
 
@@ -7555,8 +7649,16 @@ void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz)
     fNorm->ny = ny;
     fNorm->nz = nz;
     fNormDeferred->deferred &= ~1;          // now known
-
 }
+
+void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+    setFaceNorm_template(mris, fno, nx, ny, nz);
+}
+
+void setFaceNorm(MRIS_MP const * const mris, int fno, float nx, float ny, float nz) {
+    setFaceNorm_template(mris, fno, nx, ny, nz);
+}
+
 
 void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
     FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
@@ -7576,7 +7678,8 @@ float getFaceOrigArea(MRIS const * const mris, int fno) {
 }
 
 
-FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
+template <class SOME_MRIS>
+FaceNormCacheEntry const * getFaceNorm_template(SOME_MRIS const * const mris, int fno) {
 
     // volatile to stop the compiler from reordering the stores of the nx,ny,nz,orig with the stores of the deferred 
     //
@@ -7616,6 +7719,15 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
     }
     return (FaceNormCacheEntry*)fNorm;
 }
+
+FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
+    return getFaceNorm_template(mris, fno);
+}
+
+FaceNormCacheEntry const * getFaceNorm(MRIS_MP const * const mris, int fno) {
+    return getFaceNorm_template(mris, fno);
+}
+
 
 void mrisurf_deferSetFaceNorms(MRIS* mris) {
     static int use_parallel;
@@ -13731,4 +13843,77 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   free(hstats);
 
   return(0);
+}
+
+/*!
+  \fn int MRISfindExpansionRegions(MRI_SURFACE *mris)
+  \brief Sets v->curv=0 unless the given vertex has more than 25% of
+  the neighbors whose v->d value is greater than mean+2*std (mean and
+  std are the global mean and stddev distances). The dist, eg, is the
+  distance along the normal to point of the max gradient. The v->val
+  is the max gradient. Moved from mris_make_surfaces. This is essentially
+  masking out the curv field of vertices with long distances.
+  Hidden parameters: 0.25 and mean+2*std
+ */
+int MRISfindExpansionRegions(MRI_SURFACE *mris)
+{
+  int    vno, num, n, num_long, total ;
+  float  d, dsq, mean, std, dist ;
+
+  // Compute the mean and stddev of the distance to max gradient
+  d = dsq = 0.0f ;
+  for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX const * const v = &mris->vertices[vno] ;
+    if (v->ripflag || v->val <= 0)
+    {
+      continue ;
+    }
+    num++ ;
+    dist = fabs(v->d) ;
+    d += dist ;
+    dsq += (dist*dist) ;
+  }
+  mean = d / num ;
+  std = sqrt(dsq/num - mean*mean) ;
+  printf("mean absolute distance = %2.2f +- %2.2f\n", mean, std); fflush(stdout);
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    v->curv = 0 ;
+
+    if (v->ripflag || v->val <= 0) continue ;
+
+    if (fabs(v->d) < mean+2*std) continue ;
+
+    // Only gets here if distance is not too big
+
+    // Count number of neighbors with big distances
+    for (num_long = num = 1, n = 0 ; n < vt->vnum ; n++)
+    {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]] ;
+      if (vn->val <= 0 || v->ripflag) continue ;
+      if (fabs(vn->d) >= mean+2*std)
+        num_long++ ;
+      num++ ;
+    }
+
+    // If the number of big dist neighbors is greater than 25%
+    // Set v->curv = fabs(v->d) and increment total
+    if ((float)num_long / (float)num > 0.25)
+    {
+      v->curv = fabs(v->d) ;
+      total++ ; // not used for anything except diagnostic
+    }
+
+  } // end loop over vertices
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d vertices more than 2 sigmas from mean.\n", total) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteCurvature(mris, "long") ;
+
+  return(NO_ERROR) ;
 }

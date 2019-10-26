@@ -188,7 +188,7 @@ main(int argc, char *argv[])
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
   int          msec, hours, minutes, seconds /*, iter*/ ;
-  Timer start ;
+  Timer start, mytimer ;
   GCA_MORPH    *gcam ;
 
   // for GCA Renormalization with Alignment (if called sequentially)
@@ -1425,6 +1425,8 @@ main(int argc, char *argv[])
   gcamComputeMetricProperties(gcam) ;
 //  GCAMremoveNegativeNodes(gcam, mri_inputs, &parms) ;
 
+  //printf("--------- Integration params =========\n");
+  //log_integration_parms(stdout,parms);
   GCAMregister(gcam, mri_inputs, &parms) ;
 //  printf("registration complete, removing remaining folds if any exist\n") ;
 //  GCAMremoveNegativeNodes(gcam, mri_inputs, &parms) ;
@@ -1451,21 +1453,16 @@ main(int argc, char *argv[])
 
     // GCA Renormalization with Alignment:
     // check whether or not this is a sequential call
-    if (!got_scales)
+    if (!got_scales){
       // this is the first (and also last) call
       // do not bother passing or receiving scales info
-    {
-      GCAmapRenormalizeWithAlignment
-      (gcam->gca,
-       mri_inputs,
-       transform,
-       parms.log_fp,
-       parms.base_name,
-       NULL,
-       0) ;
+      printf("Starting GCAmapRenormalizeWithAlignment() without scales\n");
+      mytimer.reset();
+      GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs,transform,parms.log_fp,
+				     parms.base_name, NULL,0) ;
+      printf("GCAmapRenormalizeWithAlignment() took %g min\n",(mytimer.milliseconds()/1000.0)/60.0);
 
-      if (parms.write_iterations != 0)
-      {
+      if (parms.write_iterations != 0) {
         char fname[STRLEN] ;
         MRI  *mri_gca, *mri_tmp ;
         if (parms.diag_morph_from_atlas )
@@ -1478,7 +1475,6 @@ main(int argc, char *argv[])
         }
         else
         {
-//          mri_gca = MRIclone(mri_inputs, NULL) ;
 	  mri_gca = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_FLOAT) ;
 	  MRIcopyHeader(mri_inputs, mri_gca) ;
           GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
@@ -1496,18 +1492,16 @@ main(int argc, char *argv[])
           MRIwrite(mri_gca, fname) ;
           MRIfree(&mri_gca) ;
         }
-      }
+      }// write
+
     }
-    else // this is a sequential call, pass scales..
-      GCAseqRenormalizeWithAlignment
-      (gcam->gca,
-       mri_inputs,
-       transform,
-       parms.log_fp,
-       parms.base_name,
-       NULL,
-       0,
-       label_scales,label_offsets,label_peaks,label_computed) ;
+    else{
+      // this is a sequential call, pass scales..
+      printf("Starting GCAseqRenormalizeWithAlignment() with scales\n");
+      GCAseqRenormalizeWithAlignment(gcam->gca,mri_inputs,transform,parms.log_fp,
+				     parms.base_name,NULL,0,
+				     label_scales,label_offsets,label_peaks,label_computed) ;
+    }
 
     got_scales = 1;
 
@@ -1523,6 +1517,7 @@ main(int argc, char *argv[])
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 20 ;
 
+      printf("noneg pre\n");
       GCAMregister(gcam, mri_inputs, &parms) ;
 
       printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"
@@ -1532,6 +1527,7 @@ main(int argc, char *argv[])
       parms.orig_dt = 1e-6 ;
       parms.navgs = 256 ;
 
+      printf("noneg post\n");
       GCAMregister(gcam, mri_inputs, &parms) ;
     }
   }
@@ -1564,18 +1560,18 @@ main(int argc, char *argv[])
     memmove(&parms, (const void *)&old_parms, sizeof(old_parms)) ;
     parms.start_t = start_t ;
   }
+
   if (parms.l_label > 0)
   {
-    GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max
-                                                          prior labels again */
+    printf("Starting GCAMcomputeMaxPriorLabels()\n");
+    GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max prior labels again */
     if (reset)
     {
       GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
       GCAMstoreMetricProperties(gcam) ;
     }
     parms.l_label = 0 ;
-    printf("***************** morphing with label term set to 0 "
-           "*******************************\n") ;
+    printf("Morphing with label term set to 0 *******************************\n") ;
     GCAMregister(gcam, mri_inputs, &parms) ;
   }
 
@@ -1626,6 +1622,22 @@ main(int argc, char *argv[])
   {
     fclose(diag_fp) ;
   }
+
+  printf("Calls to gcamLogLikelihoodEnergy %d tmin = %g\n",gcamLogLikelihoodEnergy_nCalls,gcamLogLikelihoodEnergy_tsec/60.0);
+  printf("Calls to gcamLabelEnergy         %d tmin = %g\n",gcamLabelEnergy_nCalls,gcamLabelEnergy_tsec/60.0);
+  printf("Calls to gcamJacobianEnergy      %d tmin = %g\n",gcamJacobianEnergy_nCalls,gcamJacobianEnergy_tsec/60.0);
+  printf("Calls to gcamSmoothnessEnergy    %d tmin = %g\n",gcamSmoothnessEnergy_nCalls,gcamSmoothnessEnergy_tsec/60.0);
+
+  printf("Calls to gcamLogLikelihoodTerm %d tmin = %g\n",gcamLogLikelihoodTerm_nCalls,gcamLogLikelihoodTerm_tsec/60.0);
+  printf("Calls to gcamLabelTerm         %d tmin = %g\n",gcamLabelTerm_nCalls,gcamLabelTerm_tsec/60.0);
+  printf("Calls to gcamJacobianTerm      %d tmin = %g\n",gcamJacobianTerm_nCalls,gcamJacobianTerm_tsec/60.0);
+  printf("Calls to gcamSmoothnessTerm    %d tmin = %g\n",gcamSmoothnessTerm_nCalls,gcamSmoothnessTerm_tsec/60.0);
+
+  printf("Calls to gcamComputeGradient    %d tmin = %g\n",gcamComputeGradient_nCalls,gcamComputeGradient_tsec/60.0);
+  printf("Calls to gcamComputeMetricProperties    %d tmin = %g\n",gcamComputeMetricProperties_nCalls,gcamComputeMetricProperties_tsec/60.0);
+
+
+
   msec = start.milliseconds() ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;

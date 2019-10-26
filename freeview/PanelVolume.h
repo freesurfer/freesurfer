@@ -157,7 +157,7 @@ protected slots:
   void OnLineEditClearBackgroundValue(const QString& text);
 
 protected:
-  void PopulateColorTable( COLOR_TABLE* ctab );
+  void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();
   void DoIdle();
   virtual void ConnectLayer( Layer* layer );

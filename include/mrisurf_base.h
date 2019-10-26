@@ -358,3 +358,16 @@ void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 extern const char *mrisurf_surface_names[3];
 extern const char *curvature_names[3];
 int MRISprintCurvatureNames(FILE *fp);
+
+
+#if MATRIX_ALLOCATION
+extern MATRIX *VoxelFromSRASmatrix;
+int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv);
+#endif
+
+#if SPHERE_INTERSECTION
+int containsAnotherVertexOnSphere(MRIS *mris, int vno0, int vno1, int vno2, int mode);
+#else
+int containsAnotherVertex(MRIS *mris, int vno0, int vno1, int vno2, double e0[3], double e1[3], double origin[3]);
+#endif
+

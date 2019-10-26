@@ -142,7 +142,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistLUT << ui->treeWidgetColorTable
                   << ui->labelLookUpTable
                   << ui->comboBoxLookUpTable
-                  << ui->colorLabelBrushValue
                   << ui->checkBoxShowExistingLabels
                   << ui->checkBoxSelectAllLabels;
 
@@ -223,6 +222,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
                           << ui->labelSmoothIteration << ui->sliderContourSmoothIteration
                           << ui->lineEditContourSmoothIteration;
+  m_widgetlistVolumeTrack.removeOne(ui->checkBoxAutoAdjustFrameLevel);
 
   m_widgetlistVolumeTrackSpecs
       << ui->labelTrackVolumeThreshold
@@ -246,6 +246,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
       combo.removeAt(n);
   }
   m_widgetlistNonVolumeTrack = combo;
+  m_widgetlistNonVolumeTrack << ui->labelMask << ui->comboBoxMask;
 
   ui->checkBoxUpsample->hide();
 
@@ -478,6 +479,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->comboBoxColorMap->addItem( "GE Color", LayerPropertyMRI::GEColor );
     ui->comboBoxColorMap->addItem( "NIH", LayerPropertyMRI::NIH );
     ui->comboBoxColorMap->addItem( "PET", LayerPropertyMRI::PET );
+    ui->comboBoxColorMap->addItem( "Binary", LayerPropertyMRI::Binary );
     for ( int i = 0; i < ui->comboBoxColorMap->count(); i++ )
     {
       if ( ui->comboBoxColorMap->itemData( i ).toInt() == nColorMap )
@@ -611,10 +613,11 @@ void PanelVolume::DoUpdateWidgets()
 
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
-    ShowWidgets(m_widgetlistNonVolumeTrack, false);
     ShowWidgets(m_widgetlistVolumeTrack, true);
+    ShowWidgets(m_widgetlistNonVolumeTrack, false);
+    m_bShowExistingLabelsOnly = false;
     if (m_curCTAB != layer->GetEmbeddedColorTable())
-      PopulateColorTable( layer->GetEmbeddedColorTable() );
+      PopulateColorTable(layer->GetEmbeddedColorTable());
   }
   else
   {
@@ -622,7 +625,7 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
     ShowWidgets( m_widgetlistGenericColorMap, (bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
-        nColorMap != LayerPropertyMRI::DirectionCoded) ||
+        nColorMap != LayerPropertyMRI::DirectionCoded && nColorMap != LayerPropertyMRI::Binary) ||
                  (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !bDisplayRGB) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
@@ -676,23 +679,26 @@ void PanelVolume::DoUpdateWidgets()
     //  m_checkContour->Show( false /*nColorMap == LayerPropertyMRI::LUT*/ );
 
     ui->checkBoxShowExistingLabels->setChecked(m_bShowExistingLabelsOnly);
-    if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+    if ( layer && (nColorMap == LayerPropertyMRI::LUT || nColorMap == LayerPropertyMRI::Binary) )
     {
-      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB()) // || m_bShowExistingLabelsOnly != ui->checkBoxShowExistingLabels->isChecked())
+      if (nColorMap == LayerPropertyMRI::LUT)
       {
-        PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
-      }
-
-      for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
-      {
-        QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
-        QStringList strglist = item->text(0).split( " " );
-        bool bOK;
-        double dvalue = strglist[0].trimmed().toDouble( &bOK );
-        if ( bOK && dvalue == layer->GetFillValue() )
+        if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB()) // || m_bShowExistingLabelsOnly != ui->checkBoxShowExistingLabels->isChecked())
         {
-          ui->treeWidgetColorTable->setCurrentItem( item );
-          break;
+          PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
+        }
+
+        for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
+        {
+          QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
+          QStringList strglist = item->text(0).split( " " );
+          bool bOK;
+          double dvalue = strglist[0].trimmed().toDouble( &bOK );
+          if ( bOK && dvalue == layer->GetFillValue() )
+          {
+            ui->treeWidgetColorTable->setCurrentItem( item );
+            break;
+          }
         }
       }
       UpdateColorLabel();
@@ -710,6 +716,8 @@ void PanelVolume::DoUpdateWidgets()
   }
 
   ui->labelBrushValueWarning->hide();
+  ui->colorLabelBrushValue->setVisible(nColorMap == LayerPropertyMRI::LUT || nColorMap == LayerPropertyMRI::Binary);
+
   if (layer)
   {
     if (nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
@@ -719,7 +727,7 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
 
-  UpdateTrackVolumeThreshold();
+//  UpdateTrackVolumeThreshold();
 
   ui->checkBoxUpsampleContour->hide();
 
@@ -747,11 +755,11 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     else
     {
       layer->SetFillValue( val );
+      ChangeLineEditNumber( ui->lineEditBrushValue, val );
+      MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
+      UpdateColorLabel();
+      m_nCurrentVoxelIndex = -1;
     }
-    ChangeLineEditNumber( ui->lineEditBrushValue, val );
-    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
-    UpdateColorLabel();
-    m_nCurrentVoxelIndex = -1;
   }
 }
 
@@ -764,7 +772,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
   {
     double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-    if ( layer )
+    if ( layer && !layer->IsTypeOf("VolumeTrack"))
     {
       double pos[3];
       if (layer->GetLayerLabelCenter(val, pos))
@@ -798,29 +806,42 @@ void PanelVolume::OnColorTableSortingChanged()
 
 void PanelVolume::UpdateColorLabel()
 {
-  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if (!layer || layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
+  if (!layer)
     return;
 
-  if ( item )
+  int nColorMap = layer->GetProperty()->GetColorMap();
+  if (nColorMap != LayerPropertyMRI::LUT && nColorMap != LayerPropertyMRI::Binary)
+    return;
+
+  QColor color;
+  if (nColorMap == LayerPropertyMRI::LUT)
   {
-    QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
-    if ( color.isValid() )
+    QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+    if ( item )
     {
-      QPixmap pix( 30, 20 );
-      pix.fill( color );
-      ui->colorLabelBrushValue->setPixmap( pix );
-      ui->colorLabelBrushValue->show();
-      ui->labelBrushValueWarning->hide();
+      color = item->data( 0, Qt::UserRole ).value<QColor>();
+    }
+    else
+    {
+      ui->colorLabelBrushValue->hide();
+      bool bOK;
+      ui->lineEditBrushValue->text().trimmed().toInt(&bOK);
+      ui->labelBrushValueWarning->setVisible(bOK);
     }
   }
-  else
+  else if (nColorMap == LayerPropertyMRI::Binary)
   {
-    ui->colorLabelBrushValue->hide();
-    bool bOK;
-    ui->lineEditBrushValue->text().trimmed().toInt(&bOK);
-    ui->labelBrushValueWarning->setVisible(bOK);
+    color = layer->GetProperty()->GetBinaryColor();
+  }
+
+  if ( color.isValid() )
+  {
+    QPixmap pix( 30, 20 );
+    pix.fill( color );
+    ui->colorLabelBrushValue->setPixmap( pix );
+    ui->colorLabelBrushValue->show();
+    ui->labelBrushValueWarning->hide();
   }
 }
 
@@ -841,13 +862,14 @@ void PanelVolume::UpdateTrackVolumeThreshold()
     ui->lineEditTrackVolumeThresholdLow->blockSignals(false);
     layer->Highlight(nLabel);
   }
-  ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
+  if (!ui->lineEditTrackVolumeThresholdLow->isVisible())
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
   EnableWidgets(this->m_widgetlistVolumeTrackSpecs, item);
 }
 
-void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
+void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
 {
-  if ( ct && ct != m_curCTAB )
+  if ( ct && (bForce || ct != m_curCTAB) )
   {
     m_curCTAB = ct;
     ui->treeWidgetColorTable->clear();
@@ -1530,7 +1552,9 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
       if ( item->data(0, Qt::UserRole+1).toInt() == nLabel )
       {
+        ui->treeWidgetColorTable->blockSignals(true);
         ui->treeWidgetColorTable->setCurrentItem(item);
+        ui->treeWidgetColorTable->blockSignals(false);
         return;
       }
     }
@@ -1899,36 +1923,50 @@ void PanelVolume::OnGoToNextPoint()
 
 void PanelVolume::OnColorTableChangeColor()
 {
-  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
-  if (item)
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  QColor color;
+  if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::Binary)
   {
-    QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
+    color = layer->GetProperty()->GetBinaryColor();
     color = QColorDialog::getColor(color, this);
     if (color.isValid())
+      layer->GetProperty()->SetBinaryColor(color);
+  }
+  else
+  {
+    QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+    if (item)
     {
-      QPixmap pix(13, 13);
-      pix.fill( color );
-      item->setIcon(0, QIcon(pix) );
-      item->setData(0, Qt::UserRole, color );
-      int nIndex = item->data(0, Qt::UserRole+1).toInt();
-      if (m_curCTAB)
+      color = item->data( 0, Qt::UserRole ).value<QColor>();
+      color = QColorDialog::getColor(color, this);
+      if (color.isValid())
       {
-        m_curCTAB->entries[nIndex]->rf = color.redF();
-        m_curCTAB->entries[nIndex]->gf = color.greenF();
-        m_curCTAB->entries[nIndex]->bf = color.blueF();
-        m_curCTAB->entries[nIndex]->ri = color.red();
-        m_curCTAB->entries[nIndex]->gi = color.green();
-        m_curCTAB->entries[nIndex]->bi = color.blue();
+        QPixmap pix(13, 13);
+        pix.fill( color );
+        item->setIcon(0, QIcon(pix) );
+        item->setData(0, Qt::UserRole, color );
+        int nIndex = item->data(0, Qt::UserRole+1).toInt();
+        if (m_curCTAB)
+        {
+          m_curCTAB->entries[nIndex]->rf = color.redF();
+          m_curCTAB->entries[nIndex]->gf = color.greenF();
+          m_curCTAB->entries[nIndex]->bf = color.blueF();
+          m_curCTAB->entries[nIndex]->ri = color.red();
+          m_curCTAB->entries[nIndex]->gi = color.green();
+          m_curCTAB->entries[nIndex]->bi = color.blue();
+        }
+        if ( layer )
+        {
+          layer->GetProperty()->UpdateLUTTable();
+        }
       }
-      LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-      if ( layer )
-      {
-        layer->GetProperty()->UpdateLUTTable();
-      }
-      pix = QPixmap(32,20);
-      pix.fill(color);
-      ui->colorLabelBrushValue->setPixmap( pix );
     }
+  }
+  if (color.isValid())
+  {
+    QPixmap pix = QPixmap(32,20);
+    pix.fill(color);
+    ui->colorLabelBrushValue->setPixmap( pix );
   }
 }
 

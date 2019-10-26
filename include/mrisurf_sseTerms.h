@@ -22,7 +22,7 @@
 //  and using either the MRIS or another representation of the Surface Face Vertex information
 //
 #include "mrisurf_metricProperties.h"
-
+#include "voxlist.h"
 
 // misc
 //
@@ -44,8 +44,14 @@ void mrismp_ComputeFaceRelevantAngleAndArea(MRIS_MP* mris, INTEGRATION_PARMS *pa
 int mrisAverageSignedGradients             (MRIS*    mris, int num_avgs);
 int mrisComputePositioningGradients        (MRIS*    mris, INTEGRATION_PARMS *parms);
 
-double MRIScomputeSSE        (MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse);
+bool   MRIScomputeSSE_canDo  (MRIS*    mris, INTEGRATION_PARMS *parms);
+bool   MRIScomputeSSE_canDo  (MRIS_MP* mris, INTEGRATION_PARMS *parms);
+
+double MRIScomputeSSE        (MRIS*    mris, INTEGRATION_PARMS *parms);
+double MRIScomputeSSEExternal(MRIS*    mris, INTEGRATION_PARMS *parms, double *ext_sse);
+double MRIScomputeSSE        (MRIS_MP* mris, INTEGRATION_PARMS *parms);
+
+
 
 // MEF support
 //
@@ -136,7 +142,7 @@ int mrisComputeIntensityTerm_mef                (MRI_SURFACE *mris,
 LIST_OF_SSETERMS
 #undef ELT
 #define MRIS MRIS_MP
-#define ELT(NAME, SIGNATURE, CALL)    double mrismp_Compute##NAME SIGNATURE;
+#define ELT(NAME, SIGNATURE, CALL)    double mrisCompute##NAME SIGNATURE;
 LIST_OF_PER_VERTEX_SSETERMS_Implemented SEP LIST_OF_PER_FACE_SSETERMS
 #undef ELT
 #undef MRIS
@@ -166,3 +172,22 @@ typedef enum {
 typedef struct MRIS_sseTerms {
     double term[MRIS_sseTermFlag_bitPosition_LAST];
 } MRIS_sseTerms;
+
+
+// Examples of use
+//
+struct ExamplesOfUsingEnergyFunctionals
+{
+    // After including this file, the following can be used
+    // Only a handful of the ,vno forms are currently implemented.
+    //
+    double lap, lapOfOneVertex;
+    
+    ExamplesOfUsingEnergyFunctionals(MRIS* mris, int vnoOrFno) { 
+    	lap = mrisComputeLaplacianEnergy(mris);
+	lapOfOneVertex 	= mrisComputeLaplacianEnergy(mris, vnoOrFno);
+    	//
+	// ... etc for all the functions in the lists above
+    }
+};
+

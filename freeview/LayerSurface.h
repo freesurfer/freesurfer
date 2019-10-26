@@ -87,6 +87,7 @@ public:
   bool SaveSurface( const QString& filename );
   bool SaveSurface( );
   bool WriteIntersection( const QString& filename, int nPlane, LayerMRI* ref);
+  bool SaveSurfaceAsSTL(const QString& filename);
 
   void SetSlicePositionToWorldCenter();
 
@@ -375,6 +376,8 @@ public:
     m_sSphereFilename = fn;
   }
 
+  SurfaceAnnotation* CreateNewAnnotation(const QString& ct_file, const QString& name = "");
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
@@ -479,6 +482,7 @@ protected slots:
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
   void OnSlicePositionChanged3D();
+  void SetHighlightedLabelOnAnnotation(int n);
 
 protected:
   void InitializeData();

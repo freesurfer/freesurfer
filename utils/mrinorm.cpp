@@ -785,11 +785,12 @@ MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 
   MRInormFillHistograms(mri_src, mni);
   npeaks = MRInormFindPeaks(mni, inputs, outputs);
-  if (npeaks == 0)
-    ErrorReturn(NULL,
-                (ERROR_BADPARM,
-                 "MRInormalize: could not find any valid peaks.\n"
-                 "\nMake sure the Talairach alignment is correct!\n"));
+  if (npeaks == 0){
+    printf("ERROR: MRInormalize(): could not find any valid peaks.\n");
+    printf("Make sure the Talairach alignment is correct. See \n");
+    printf("http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach_freeview\n");
+    ErrorReturn(NULL,(ERROR_BADPARM,""));
+  }
   printf("MRIsplineNormalize(): npeaks = %d\n", npeaks);
   if (npeaks <= 1) {
     printf("ERROR: number of peaks must be > 1 for spline\n");

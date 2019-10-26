@@ -156,6 +156,7 @@ set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
+set DoRemesh = 0; # remesh ?h.orig to improve triangle quality
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -1750,7 +1751,7 @@ if($DoTalCheck) then
     echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
       rm -f $qalog $qalog2
-      $fs_time $cmd >& $qalog
+      $cmd >& $qalog
       if($status) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
@@ -3273,16 +3274,18 @@ if($DoFix && ( ! $longitudinal )) then
 
   set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
 
+  set origsurf = orig
+  if($DoRemesh) set origsurf = orig.premesh
+
   # Removed copying of orig.nofix and inflated.nofix to orig and inflated
   # because they can be specified directly as input.
   if($UseOldTopoFix) then
     set CMDFS = () # see earlier notes on -parallel implementation
     foreach hemi ($hemilist)
-      echo "#@# Fix Topology $hemi `date`" \
-        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      echo "#@# Fix Topology $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix \
-        -inflated inflated.nofix -orig orig.nofix -out orig)
+        -inflated inflated.nofix -orig orig.nofix -out $origsurf)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -3304,7 +3307,7 @@ if($DoFix && ( ! $longitudinal )) then
 
     foreach hemi ($hemilist)
       # check if total defect index != 0, meaning, euler # != 2 (surface bad)
-      set cmd = (mris_euler_number ../surf/$hemi.orig)
+      set cmd = (mris_euler_number ../surf/$hemi.$origsurf)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $cmd >& mris_euler_number.${hemi}.log
@@ -3321,7 +3324,7 @@ if($DoFix && ( ! $longitudinal )) then
           set NewTopoFixHemiList = ($NewTopoFixHemiList $hemi)
           set UseOldTopoFix = 0
           # cannot use the failed ?h.orig surface, must revert to ?.orig.nofix
-          set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.orig)
+          set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.$origsurf)
           echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
           if($RunIt) $cmd |& tee -a $LF
           if($status) goto error_exit;
@@ -3332,7 +3335,7 @@ if($DoFix && ( ! $longitudinal )) then
     end # hemi loop
 
     # Convert the defects into a segmentation
-    set cmd = (defect2seg --s $subjid)
+    set cmd = (defect2seg --s $subjid) # This needs to be updated for remeshing
     if($#hemilist == 1) set cmd = ($cmd --$hemilist-only)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3359,6 +3362,7 @@ if($DoFix && ( ! $longitudinal )) then
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+      # Need to update for remesh
       set cmd = ($cmd $xopts $subjid $hemi)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($DoParallel) then
@@ -3375,6 +3379,25 @@ if($DoFix && ( ! $longitudinal )) then
       if($status) goto error_exit;
     endif
   endif # UseNewTopoFix
+
+  # This improves the triangle quality
+  if($DoRemesh) then
+    set RemeshIterations = 3; # Does not change much after 3
+    foreach hemi ($hemilist)
+      set origsurfpath = $SUBJECTS_DIR/$subjid/surf/$hemi.$origsurf
+      set remeshpath   = $SUBJECTS_DIR/$subjid/surf/$hemi.orig
+      set cmd = (triaIO --remeshbk $RemeshIterations --outtype vtk \
+       --infile $origsurfpath --outfile $remeshpath.vtk)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      fs_time $cmd |& tee -a $LF
+      if($status) exit 1;
+      set cmd = (mris_convert $remeshpath.vtk $remeshpath)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      fs_time $cmd |& tee -a $LF
+      if($status) exit 1;
+      rm -f $origsurfpath.remesh.vtk
+    end
+  endif
 
   # run surface intersection checker/fixer
   foreach hemi ($hemilist)
@@ -3453,6 +3476,7 @@ if($DoWhiteSurfs) then
     else
       # default stream:
       set cmd = (mris_make_surfaces -save-res -save-target)
+      if($DoRemesh) set cmd = ($cmd -autodetsurf orig.premesh)
     endif
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
@@ -4104,6 +4128,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       set cmd = (mris_make_surfaces  -save-res -save-target \
           -orig_white white.preaparc \
           -orig_pial  white.preaparc)
+      if($DoRemesh) set cmd = ($cmd -autodetsurf orig.premesh)
       if ($UseFixMtl) then
         # NJS: now external flag option, 3Jun2015
         set cmd = ($cmd -fix_mtl)
@@ -4418,6 +4443,10 @@ endif
 ##---------       -parcstats         -----------#
 #----------                          -----------#
 if($DoParcStats) then
+
+  # cache volume stats
+  if($RunIt) $fs_time mri_brainvol_stats $subjid |& tee -a $LF
+
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     echo "#-----------------------------------------" \
@@ -6249,6 +6278,20 @@ while( $#argv != 0 )
     case "-notessellate":
     case "-notess":
       set DoTessellate = 0;
+      breaksw
+
+    case "-remesh"
+      # Use Martin's code to remesh ?h.orig to improve triangle quality
+      set DoRemesh = 1; 
+      which triaIO
+      if($status)  then
+        echo "Cannot find triaIO"
+        exit 1;
+      endif
+      breaksw
+    case "-noremesh"
+    case "-no-remesh"
+      set DoRemesh = 0; 
       breaksw
 
     case "-smooth1":

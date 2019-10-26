@@ -5374,6 +5374,11 @@ MRI *MRIclone(const MRI *mri_src, MRI *mri_dst)
   if (!mri_dst)
     mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, mri_src->type, mri_src->nframes);
 
+  // Including this in MRIcopyHeader might have unwanted effects. A
+  // valid mri->ct indicates to freeview that it's a segmentation, and
+  // there might be code that copies the header from a seg to a non-seg.
+  if (mri_src->ct) mri_dst->ct = CTABdeepCopy(mri_src->ct);
+
   MRIcopyHeader(mri_src, mri_dst);
   return (mri_dst);
 }
@@ -5890,6 +5895,7 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
     strcpy(mri_dst->cmdlines[i], mri_src->cmdlines[i]);
   }
   mri_dst->ncmds = mri_src->ncmds;
+
   return (mri_dst);
 }
 /*-----------------------------------------------------
@@ -11397,6 +11403,11 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low, float f_high, int no
   /* Change mri dimensions back to original */
   mri->depth = nslices;
   mri->nframes = nframes;
+  // These are needed for chunking
+  mri->vox_per_row = mri->width;
+  mri->vox_per_slice = mri->vox_per_row * mri->height;
+  mri->vox_per_vol = mri->vox_per_slice * mri->depth;
+  mri->vox_total = mri->vox_per_vol * mri->nframes;
 
   // Alloc MRI_FRAME. This needs to be updated when MRI_FRAME items are added
   mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME));
@@ -16602,57 +16613,8 @@ int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **
   return (NO_ERROR);
 }
 
+
 int MRIcomputeLabelMeansandCovariances(
-    MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nbhd)
-{
-  int a, x, y, z, l, n, length;
-  length = sizeof(labels) / sizeof(int);
-  length = 1;
-  a = 1;
-  MATRIX *m_data, *m_data_final, *cov_final, *means_final;
-
-  m_data = MatrixAlloc(
-        (0.5 * (mri_labeled->width) * (mri_labeled->height) * (mri_labeled->depth)), mri_inputs->nframes, MATRIX_REAL);
-  means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL);
-  cov_final = MatrixAlloc(mri_inputs->nframes, mri_inputs->nframes, MATRIX_REAL);
-
-  for (l = 0; l < length; l++) {
-    for (x = 0; x < mri_labeled->width; x++) {
-      for (y = 0; y < mri_labeled->height; y++) {
-        for (z = 0; z < mri_labeled->depth; z++) {
-          if (MRIgetVoxVal(mri_labeled, x, y, z, 0) == labels[l]) {
-            if (nbhd == 1) {
-              if (MRIlabelsInNbhd(mri_labeled, x, y, z, 3, labels[l]) == 343) {
-                printf("Voxel %d, %d, %d has no non-WM neighbors\n", x, y, z);
-                fflush(stdout);
-                for (n = 0; n < mri_inputs->nframes; n++) {
-                  m_data->rptr[a][n + 1] = MRIgetVoxVal(mri_inputs, x, y, z, n);
-                }
-                a++;
-              }
-            }
-            else {
-              for (n = 0; n < mri_inputs->nframes; n++) {
-                m_data->rptr[a][n + 1] = MRIgetVoxVal(mri_inputs, x, y, z, n);
-              }
-              a++;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  m_data_final = MatrixCopyRegion(m_data, NULL, 1, 1, a, mri_inputs->nframes, 1, 1);
-  MatrixCovariance(m_data_final, cov_final, means_final);
-  MatrixFree(&m_data);
-  MatrixFree(&m_data_final);
-  *p_mcov = cov_final;
-  *p_vmeans = means_final;
-  return (NO_ERROR);
-}
-
-int MRIcomputeLabelMeansandCovariances2(
     MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd)
 {
   int a, x, y, z, l, n;
@@ -17387,12 +17349,14 @@ MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0,
 }
 
 /*!
-  \fn int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
-  \brief Replaces values that are greater than WM_MIN_VAL with
-  DEFAULT_DESIRED_WHITE_MATTER_VALUE. This function was called
-  MRIsmoothBrightWM(), but it did not smooth so changed the name.
+  \fn int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
+  \brief If a voxels is in the mri_wm mask (wm>=WM_MIN_VAL) but its
+  mri_T1 value is > DEFAULT_DESIRED_WHITE_MATTER_VALUE, the the mri_T1
+  value is replaced with DEFAULT_DESIRED_WHITE_MATTER_VALUE=110.  This 
+  function was called MRIsmoothBrightWM(), but it did not smooth so 
+  changed the name.
 */
-int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
+int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nthresholded ;
   BUFTYPE *pwm, val, wm ;
@@ -17421,7 +17385,7 @@ int MRIclipBrightWM(MRI *mri_T1, MRI *mri_wm)
     }
   }
 
-  printf("MRIclipBrightWM(): thresh=%d, clip=%d, %d bright wm thresholded.\n", 
+  printf("MRIclipBrightWM(): nthresh=%d, wmmin=%d, clip=%d \n",
 	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
 
   return(NO_ERROR) ;
