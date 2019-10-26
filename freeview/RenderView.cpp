@@ -632,3 +632,8 @@ int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
   return picker->GetCellId();
 }
 
+void RenderView::mouseDoubleClickEvent(QMouseEvent *e)
+{
+  emit DoubleClicked();
+  e->accept();
+}

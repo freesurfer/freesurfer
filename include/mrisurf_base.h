@@ -108,6 +108,19 @@ extern int fix_vertex_area;
 #include "dmalloc.h"
 #endif
 
+
+// Differ from SQR etc. if an argument has a side-effect
+//
+template <typename T> double sign   (T const & t) { return (t > 0) ? 1.0 : -1.0; }
+template <typename T>   T    square (T const & t) { return t*t; }
+template <typename T>   T    square3(T const & t) { return square(t[0])+square(t[1])+square(t[2]); }
+template <typename T>   T    norm3  (T const & t) { return sqrt(square3(t)); }
+template <typename T>   T    max    (T const & lhs, T const & rhs) { return (lhs>rhs) ? lhs : rhs; }
+template <typename T>   T    min    (T const & lhs, T const & rhs) { return (lhs<rhs) ? lhs : rhs; }
+template <typename T>   T    max3   (T const & lhs, T const & mid, T const & rhs) { return max(max(lhs,mid),rhs); }
+template <typename T>   T    min3   (T const & lhs, T const & mid, T const & rhs) { return min(min(lhs,min),rhs); }
+
+
 #ifndef SQR
 #define SQR(x) ((x) * (x))
 #endif
@@ -345,3 +358,16 @@ void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 extern const char *mrisurf_surface_names[3];
 extern const char *curvature_names[3];
 int MRISprintCurvatureNames(FILE *fp);
+
+
+#if MATRIX_ALLOCATION
+extern MATRIX *VoxelFromSRASmatrix;
+int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv);
+#endif
+
+#if SPHERE_INTERSECTION
+int containsAnotherVertexOnSphere(MRIS *mris, int vno0, int vno1, int vno2, int mode);
+#else
+int containsAnotherVertex(MRIS *mris, int vno0, int vno1, int vno2, double e0[3], double e1[3], double origin[3]);
+#endif
+

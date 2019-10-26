@@ -37,10 +37,11 @@ polymorphic way.
 
 
 #include "mri.h"
-#define class xclass
+//Not sure why this #define is here, but it breaks stuff to #define "class"
+//#define class xclass
 #include "gcamorph.h"
-#undef class
-;
+//#undef class
+//;
 
 
 /*

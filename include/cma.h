@@ -336,6 +336,11 @@
 #define rh_slfp 5115 //                                 204 204 204 0
 #define rh_slft 5116 //                                 153 255 255 0
 #define rh_unc 5117 //                                  102 153 255 0
+#define lh_ifof 5118 //                                 153 255 255 0
+#define rh_ifof 5119 //                                 153 255 255 0
+#define lh_fornix 5120 //                               204 102 153 0
+#define rh_fornix 5121 //                               204 102 153 0
+
 
 /*
 # Below is the color table for the cortical labels of the seg volume
@@ -458,6 +463,7 @@
 
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
 #define IS_CEREBELLAR_GM(label) (((label) == Left_Cerebellum_Cortex) || ((label) == Right_Cerebellum_Cortex))
+#define IS_CEREBELLUM(label) (IS_CEREBELLAR_WM(label) || IS_CEREBELLAR_GM(label))
 
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
 #define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
@@ -550,8 +556,11 @@ int IsSubCorticalGray(int SegId);
 #include "mri.h"
 double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi);
-double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir);
 MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
+
+std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir);
+void CacheBrainVolumeStats(const std::vector<double>& stats, const std::string& subject, const std::string& subjdir);
+std::vector<double> ReadCachedBrainVolumeStats(const std::string& subject, const std::string& subjdir);
 
 #define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0

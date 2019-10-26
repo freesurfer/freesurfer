@@ -1,5 +1,5 @@
 /**
- * @file  mri_surf_smooth.c
+ * @file  mri_surf_smooth.cpp
  * @brief smoothing along the cortical surface meshes with a given tangential (neighborhood size) and radial (number of surface meshes) extent
  *
  * This method has been described in:
@@ -8,6 +8,7 @@
  * 2019, Neuroimage 189 (601-614)
  * https://doi.org/10.1016/j.neuroimage.2019.01.054
  */
+
 /*
  * Original Author: Anna I. Blazejewska
  * CVS Revision Info:
@@ -28,7 +29,7 @@
  */
 
 /*!
- \file mri_surf_smooth.c
+ \file mri_surf_smooth.cpp
  \brief Smoothing along the cortical surface meshes with a given tangential and radial extent ((neighborhood size &number of surface meshes).
  \author Anna I. Blazejewska
  */
@@ -70,9 +71,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MAX_NB (6) // the reasonable number which
+#define MAX_NB (6) // the reasonable number of neighbors (tan size)
 #define MAX_SURF (20) // max number of surfaces
-#define MAX_VERTICES (500000) // max number of surfaces
+#define MAX_VERTICES (1000000) // max number of vertices
 #define SEP "/"
 
 #ifndef GLOB_PERIOD
@@ -90,7 +91,7 @@ static void print_version(void);
 
 
 
-static char vcid[] = "$Id: mri_surf_smooth.c,v 1.30 2019/02/21 18:48:21 Anna Exp $";
+static char vcid[] = "$Id: mris_smooth_intracortical.c,v 1.30 2019/02/21 18:48:21 Anna Exp $";
 const char *Progname = NULL;
 
 char surf_path[STRLEN], over_path[STRLEN], out_path[STRLEN], surf_name[STRLEN], over_name[STRLEN], surf_dir[STRLEN], over_dir[STRLEN], out_dir[STRLEN], out_name[STRLEN];
@@ -206,7 +207,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// write an output overlay ///////////////////////////////////////////////////////////////////////////////////////
-	sprintf(out_path, "%s%s%s.mgz", out_dir, SEP, out_name);
+	sprintf(out_path, "%s%s%s", out_dir, SEP, out_name);
 	printf("Saving result: %s\n", out_path);
 	MRIwrite(output[0], out_path);
 
@@ -286,23 +287,23 @@ static int parse_commandline(int argc, char **argv) {
 			if (nargc < 1) ErrorExit(ERROR_BADPARM, "Flag %s needs an argument\n", option);
 			strcpy(out_name, pargv[0]);
 			nargsused = 1;
-		} else if (!stricmp(option, "--nb-rad")) {
+		} else if (!stricmp(option, "--tan-size")) {
 			if (nargc < 1) ErrorExit(ERROR_BADPARM, "Flag %s needs an argument\n", option);
 			nb_rad = atoi(pargv[0]);
 			nargsused = 1;
-		} else if (!stricmp(option, "--ic-size")) {
+		} else if (!stricmp(option, "--rad-size")) {
 			if (nargc < 1) ErrorExit(ERROR_BADPARM, "Flag %s needs an argument\n", option);
 			ic_size = atoi(pargv[0]);
 			nargsused = 1;
-		} else if (!stricmp(option, "--ic-start")) {
+		} else if (!stricmp(option, "--rad-start")) {
 			if (nargc < 1) ErrorExit(ERROR_BADPARM, "Flag %s needs an argument\n", option);
 			ic_start = atoi(pargv[0]);
 			nargsused = 1;
 		// nb weights
-		} else if (!stricmp(option, "--nb-weights")) {
+		} else if (!stricmp(option, "--tan-weights")) {
 			if (nargc < 1) ErrorExit(ERROR_BADPARM, "Flag %s needs an argument\n", option);
 			if (!stricmp(pargv[0], "gauss")) nb_wf = 0;
-			else if (!stricmp(pargv[0], "1bynb")) nb_wf = 1;
+			else if (!stricmp(pargv[0], "distance")) nb_wf = 1;
 			else fprintf(stderr, "Unknown value %s for flag %s, a default gaussian weighting function will be applied instead.\n", pargv[0], option);
 			nargsused = 1;
 		} else if (!stricmp(option, "--help")) {
@@ -351,7 +352,7 @@ static void check_options(void) {
 \brief Prints usage and exits
 */
 static void print_usage(void) {
-  printf("USAGE: %s --surf_dir surfdir --surf_name surfname --overlay_dir overdir --overlay_name overname [--output_dir outdir --output_name outname --nb-rad NBradius --ic-size ICsize --ic-start ICstart]\n",Progname);
+  printf("USAGE: %s --surf_dir surfdir --surf_name surfname --overlay_dir overdir --overlay_name overname [--output_dir outdir --output_name outname --tan-size tansize --rad-size radsize --rad-start radstart]\n",Progname);
   printf("\n"
 					"  --surf_dir surfdir      : path to the directory with surface meshes (use mris_extend for creating intermediate surfaces between white and pial)\n"
 					"  --surf_name surfname    : name of a surface file(s) (use * and ? to pass multiple names, maximum %d)\n"
@@ -359,36 +360,41 @@ static void print_usage(void) {
 					"  --overlay_dir overdir   : path to the directory with surface mesh overlays (use mris_vol2surf to map data onto the surface meshes and create overlays)\n"
 					"  --overlay_name overname : name of an overlay file(s) (use * and ? to pass multiple names, maximum %d)\n"
 					"                            multiple overlays names have to be sorted from wm to pial\n"
-  				"                            corresponding surfaces and overlays must have the same topology\n"
+  				"                            corresponding surfaces and overlays must have the same numbers of vertices\n"
   				"  --output_dir outdir     : path to the output directory [default: overdir]\n"
   				"  --output_name outname   : name of a output overlay file [default: based on the name of 1st overlay file]\n"
 					"\n"
-					"  --nb-rad NBradius       : radius of the neighborhood around the central vertex of the smoothing kernel in tangential direction (number of vertices) [default: 0 = no smoothing, max = %d]\n"
-					"  --ic-size ICsize        : extent of the intracortical smoothing kernel in radial direction (number of adjacent meshes) [default: 1 = no smoothing, max = number of input surfaces/overlays]\n"
-					"  --ic-start ICstart      : starting surface mesh of the intracortical smoothing kernel for radial direction [default: 0 = white, max = number of input surfaces/overlays - ICsize]\n"
+  				"  --tan-size tansize      : tangential extent of the smoothing kernel [default: 0 = no smoothing, max = %d]\n"
+  				"                            depending on the weighting scheme (see --tan-weights):\n"
+  				"                            gauss: tansize = FWHM of the 2D gaussian kernel applied in the tangential direction\n"
+  				"                            distance: tansize = radius of the neighborhood around the central vertex of the smoothing kernel in tangential direction (number of vertices) \n"
   				"\n"
-  				"  --nb-weights type       : weighting function for tangential smoothing [default: gauss]\n"
-  				"                            gauss = gaussian with FWHM = NBradius\n"
-  				"                            1bynb = 1/NBradius\n"
-
+					"  --rad-size radsize      : radial extent of the intracortical smoothing kernel (number of adjacent meshes) [default: 1 = no smoothing, max = number of input surfaces/overlays]\n"
+					"  --rad-start radstart    : starting surface mesh of the intracortical smoothing kernel in the radial direction [default: 0 = white, max = number of input surfaces/overlays--radsize]\n"
+  				"\n"
+  				"  --tan-weights type      : weighting function for tangential smoothing [default: gauss]\n"
+  				"                            gauss = gaussian with FWHM = tansize\n"
+  				"                            distance = 1/tansize\n"
   				"  --rad-weights type      : weighting function for radial extent of the kernel: not yet implemented\n"
   				"\n"
   				"  --help                  : prints this info\n"
 					"\n"
-					"Tangential smoothing: \n"
-					"  - requires exactly 1 input surface and exactly 1 input overlay of corresponding topology\n"
-					"  - NBradius has to be in range [1, %d]\n"
+					"Tangential-only smoothing: \n"
+					"  - requires exactly 1 input surface mesh with Nv vertices and exactly 1 corresponding overlay with Nv values\n"
+					"  - tansize has to be in range [1, %d]\n"
 					"  - one output overlay \n"
 					"\n"
-					"Intracortical smoothing: \n"
+					"Intracortical smoothing (radial + tangential): \n"
 					"  - requires 2 or more input surfaces spanning from white (=0) to pial (=n)"
-					"  - requires 2 or more input overlays - one for each input surface with a corresponding topology\n"
-					"  - ICsize has to be larger than 2 but smaller or equal to the number of input surfaces/overlays\n"
-					"  - ICstart is the \"id\" of first surface included in the IC kernel, where white (=0) & pial (= total number of surfaces-1)\n"
-  			  "  - intracortical smoothing kernel will include ICsize of adjacent surfaces starting from ICstart surface and moving towards pial surface\n"
-					"  - NBradius has to be in range [0, %d]\n"
+					"  - requires 2 or more input overlays - one for each input surface with a corresponding number of vertices\n"
+					"  - radsize has to be larger than 2 but smaller than or equal to the number of input surfaces/overlays\n"
+					"  - radstart is the index of the starting surface of the intracortical smoothing kernel, where white (=0) & pial (= total number of surfaces-1)\n"
+  			  "  - intracortical smoothing kernel will include radsize of adjacent surfaces starting from radstart surface and moving towards pial surface\n"
+					"  - tansize has to be in range [0, %d]\n"
   				"\n"
-					"Please, cite: Blazejewska AI, Fischl B, Wald LL, Polimeni JR, Intracortical smoothing of small-voxel fMRI data can provide increased detection power without spatial resolution losses compared to conventional large-voxel fMRI data. NeuroImage 2019. 189:601-614.\n"
+					"If you use mris_smooth_intracortical in your research, please cite:\n"
+					"Blazejewska AI, Fischl B, Wald LL, Polimeni JR, Intracortical smoothing of small-voxel fMRI data can provide increased detection power without spatial "
+					"resolution losses compared to conventional large-voxel fMRI data.\nNeuroImage 2019. 189:601-614. DOI: 10.1016/j.neuroimage.2019.01.054\n"
 					"\n", MAX_SURF, MAX_SURF, MAX_NB, MAX_NB, MAX_NB);
 	print_version();
 	printf("\n");
@@ -410,7 +416,7 @@ static void print_version(void) {
 \brief Prints help and exits
 */
 static void print_help(void) {
-	printf("Smoothes data overlaid onto to the cortical surface meshes using kernels for which tangential and radial extent can be parameterized. \n\n");
+	printf("Smooths data overlaid onto to the cortical surface meshes using kernels for which tangential and radial extent can be specified. \n\n");
 	print_usage() ;
 	printf("\nWARNING: this program has not yet been tested!\n");
 	exit(1) ;

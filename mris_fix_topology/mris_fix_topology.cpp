@@ -37,18 +37,20 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "romp_support.h"
-#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
+#include "mrishash.h"
+#include "icosahedron.h"
+
 #include "error.h"
-#include "tags.h"
 #include "diag.h"
+#include "macros.h"
+
+#include "romp_support.h"
+#include "tags.h"
 #include "proto.h"
 #include "timer.h"
-#include "mrisurf.h"
-#include "mri.h"
-#include "macros.h"
-#include "icosahedron.h"
-#include "mrishash.h"
 #include "version.h"
 
 static char vcid[] =

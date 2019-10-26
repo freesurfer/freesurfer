@@ -62,11 +62,12 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') || ...
   gzipped =  round(rand(1)*10000000 + ...
 		   sum(int16(fname))) + round(cputime);
   %ind = findstr(fname, '.');
-  if(exist('/scratch'))
-    new_fname = sprintf('%s.load_mgh.%d.mgh', tempname('/scratch/'),gzipped);
-  else
-    new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
-  end
+  new_fname = sprintf('%s.load_mgh.m.mgh', tempname(fsgettmppath));
+  %if(exist('/scratch'))
+  %  new_fname = sprintf('%s.load_mgh.%d.mgh', tempname('/scratch/'),gzipped);
+  %else
+  %  new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
+  %end
   
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     [status,msg] = unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
@@ -189,19 +190,27 @@ if(headeronly)
   return;
 end
 
+% set datatype to fread
+switch type
+ case MRI_FLOAT,
+  dtype = 'float32' ;
+ case MRI_UCHAR,
+  dtype = 'uchar' ;
+ case MRI_SHORT,
+  dtype = 'short' ;
+ case MRI_INT,
+  dtype = 'int' ;
+end
+
+% preserve volume datatype if env var is set to 1
+if(getenv('FS_PRESERVE_MATLAB_VOLTYPE') == '1')
+  dtype = strcat('*', dtype) ;
+end 
 
 %------------------ Read in the entire volume ----------------%
 if(slices(1) <= 0 & frames(1) <= 0)
-  switch type
-   case MRI_FLOAT,
-    vol = fread(fid, nv, 'float32') ; 
-   case MRI_UCHAR,
-    vol = fread(fid, nv, 'uchar') ; 
-   case MRI_SHORT,
-    vol = fread(fid, nv, 'short') ; 
-   case MRI_INT,
-    vol = fread(fid, nv, 'int') ; 
-  end
+
+  vol = fread(fid, nv, dtype) ;
 
   if(~feof(fid))
     [mr_parms count] = fread(fid,4,'float32');
@@ -243,17 +252,8 @@ for frame = frames
   for slice = slices
     filepos = ((frame-1)*nvvol + (slice-1)*nvslice)*nbytespervox + filepos0;
     fseek(fid,filepos,'bof');
-    
-    switch type
-     case MRI_FLOAT,
-      [tmpslice nread]  = fread(fid, nvslice, 'float32') ; 
-     case MRI_UCHAR,
-      [tmpslice nread]  = fread(fid, nvslice, 'uchar') ; 
-     case MRI_SHORT,
-      [tmpslice nread]  = fread(fid, nvslice, 'short') ; 
-     case MRI_INT,
-      [tmpslice nread]  = fread(fid, nvslice, 'int') ; 
-    end
+
+    [tmpslice nread]  = fread(fid, nvslice, dtype) ; 
 
     if(nread ~= nvslice)
       fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);

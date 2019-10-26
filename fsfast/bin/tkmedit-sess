@@ -63,6 +63,7 @@ set UseTalairach = 0;
 
 set tmpdir = ();
 set cleanup = 1;
+set UseVGLRun = 0;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -290,7 +291,12 @@ foreach c ($contrastlist)
 end
 
 # Run the cmd
-$cmd
+if($UseVGLRun == 0) then
+  $cmd
+else
+  setenv VGL_DISPLAY :0
+  exec /usr/pubsw/bin/vglrun $cmd
+endif
 if($status) then
   echo "tkmedit failed"
   exit 1;
@@ -446,6 +452,10 @@ while( $#argv != 0 )
       set UseFreeview = 1;
       breaksw
 
+    case "-vgl":
+      set UseVGLRun = 1;
+      breaksw
+
     case "-no-fv":
     case "-no-freeview":
     case "-tkm":
@@ -572,6 +582,7 @@ usage_exit:
   echo "   -tcl script.tcl  : run tkmedit with tcl script"
   echo "   -freeview : display with freeview (cannot display HRFs)"
   echo "   -tkmedit  : display with tkmedit"
+  echo "   -vgl : run using vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

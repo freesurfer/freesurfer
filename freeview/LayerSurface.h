@@ -87,6 +87,7 @@ public:
   bool SaveSurface( const QString& filename );
   bool SaveSurface( );
   bool WriteIntersection( const QString& filename, int nPlane, LayerMRI* ref);
+  bool SaveSurfaceAsSTL(const QString& filename);
 
   void SetSlicePositionToWorldCenter();
 
@@ -274,6 +275,8 @@ public:
 
   int GetLastMark();
 
+  QVector<int> GetAllMarks();
+
   bool GetCorrelationOverlayDataAtVertex(int nVert, float* output, int nFrames);
 
   bool IsInflated();
@@ -356,7 +359,9 @@ public:
 
   bool WritePatch(const QString& filename);
 
-  void FillPath(int nvo, const QVariantMap& options);
+  bool FillPath(int nvo, const QVariantMap& options);
+
+  void FillPath(const QVector<int>& verts, const QVariantMap& options);
 
   void ClearMarks();
 
@@ -370,6 +375,8 @@ public:
   {
     m_sSphereFilename = fn;
   }
+
+  SurfaceAnnotation* CreateNewAnnotation(const QString& ct_file, const QString& name = "");
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
@@ -475,6 +482,7 @@ protected slots:
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
   void OnSlicePositionChanged3D();
+  void SetHighlightedLabelOnAnnotation(int n);
 
 protected:
   void InitializeData();

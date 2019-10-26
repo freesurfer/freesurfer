@@ -172,14 +172,15 @@ bool FSSurface::MRISRead( const QString& filename,
     ::MRISfree( &m_MRIS );
   }
 
-  try {
-    m_MRIS = ::MRISread( filename.toLatin1().data() );
-  }
-  catch (int ret)
-  {
-    return false;
-  }
+//  try {
+//    m_MRIS = ::MRISread( filename.toLatin1().data() );
+//  }
+//  catch (int ret)
+//  {
+//    return false;
+//  }
 
+  m_MRIS = ::MRISread( filename.toLatin1().data() );
   if ( m_MRIS == NULL )
   {
     cerr << "MRISread failed\n";
@@ -342,6 +343,11 @@ bool FSSurface::InitializeData(const QString &vector_filename,
     LoadCurvature();
 
   return true;
+}
+
+vtkTransform* FSSurface::GetSurfaceToRasTransform()
+{
+    return m_SurfaceToRASTransform;
 }
 
 void FSSurface::UpdateHashTable(int nSet, int coord)

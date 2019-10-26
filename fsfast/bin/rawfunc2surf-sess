@@ -414,6 +414,11 @@ while( $#argv != 0 )
       set ExpKeyNeeded = 1;
       breaksw
 
+    case "-dof":
+      if ($#argv < 1) goto arg1err;
+      set RegDOF = $argv[1]; shift;
+      breaksw
+
     case "-b0dc":
     case "-b0dcor":
     case "-vsm":
@@ -590,6 +595,7 @@ usage_exit:
   echo "  -surfreg SurfReg : change from $SurfReg"
   echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo "  -no-cortex-label : do not use cortex label for masking"
+  echo "  -dof DOF"
   echo ""
   echo "Other options"
   echo "  -save-unsmoothed : save sm0 in addition to smoothed data"

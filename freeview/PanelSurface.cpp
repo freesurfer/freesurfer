@@ -44,6 +44,8 @@
 #include "DialogCustomFill.h"
 #include <QFileDialog>
 #include "DialogSurfaceLabelOperations.h"
+#include "WindowEditAnnotation.h"
+#include "DialogNewAnnotation.h"
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -122,7 +124,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   m_widgetsAnnotation << ui->checkBoxAnnotationOutline
                       << ui->labelLabelZOrderAnnotation
-                      << ui->spinBoxZOrderAnnotation;
+                      << ui->spinBoxZOrderAnnotation
+                      << ui->pushButtonEditAnnotation
+                      << ui->pushButtonSaveAnnotation;
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -151,13 +155,19 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   m_wndConfigureOverlay = new WindowConfigureOverlay( this );
   m_wndConfigureOverlay->hide();
-  connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
+  connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(UpdateInfoPanel()));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged(int)), mainwnd, SLOT(SetCurrentTimeCourseFrame(int)));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
+  connect(mainwnd, SIGNAL(OverlayMaskRequested(QString)), m_wndConfigureOverlay, SLOT(LoadLabelMask(QString)));
+
+  m_wndEditAnnotation = new WindowEditAnnotation(this);
+  m_wndEditAnnotation->hide();
+  connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
+           m_wndEditAnnotation, SLOT(OnActiveSurfaceChanged(Layer*)), Qt::QueuedConnection);
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -208,6 +218,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ag->addAction(ui->actionPathFill);
   ag->setVisible(false);
   connect(ui->actionPath, SIGNAL(toggled(bool)), ag, SLOT(setVisible(bool)));
+
+  m_wndEditAnnotation->installEventFilter(this);
 }
 
 PanelSurface::~PanelSurface()
@@ -334,6 +346,19 @@ void PanelSurface::DoIdle()
     }
   }
   BlockAllSignals( false );
+}
+
+bool PanelSurface::eventFilter(QObject *watched, QEvent *event)
+{
+  if (watched == m_wndEditAnnotation && event->type() == QEvent::Hide)
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if (surf && surf->GetActiveAnnotation())
+    {
+      surf->GetActiveAnnotation()->SetHighlightedLabel(-1);
+    }
+  }
+  return PanelLayer::eventFilter(watched, event);
 }
 
 void PanelSurface::DoUpdateWidgets()
@@ -479,6 +504,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxAnnotation->addItem( "Load from file..." );
   ui->comboBoxAnnotation->setItemData(ui->comboBoxAnnotation->count()-1, "Load from file", Qt::ToolTipRole);
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
+  ui->comboBoxAnnotation->addItem("New...");
 
   // update label controls
   QList<SurfaceLabel*> selected_labels;
@@ -790,10 +816,15 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
     {
       surf->SetActiveAnnotation( nSel );
     }
+    else if (nSel == surf->GetNumberOfAnnotations())
+    {
+      MainWindow::GetMainWindow()->LoadSurfaceAnnotation();
+    }
     else
     {
-      // load new overlay map
-      MainWindow::GetMainWindow()->LoadSurfaceAnnotation();
+      DialogNewAnnotation dlg(this, QFileInfo(surf->GetFileName()).dir().path());
+      if (dlg.exec() == QDialog::Accepted)
+        surf->CreateNewAnnotation(dlg.GetColorTableFile(), dlg.GetName());
     }
     UpdateWidgets();
   }
@@ -929,6 +960,11 @@ void PanelSurface::OnComboSpline(int nSel)
 void PanelSurface::OnButtonConfigureOverlay()
 {
   m_wndConfigureOverlay->show();
+}
+
+void PanelSurface::OnButtonEditAnnotation()
+{
+  m_wndEditAnnotation->show();
 }
 
 void PanelSurface::OnButtonRemoveOverlay()
@@ -1391,20 +1427,38 @@ void PanelSurface::OnButtonCustomFillPath()
   m_dlgCustomFill->raise();
 }
 
-void PanelSurface::OnCustomFillTriggered(const QVariantMap &options)
+void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
 {
+  QVariantMap options = options_in;
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf)
   {
     int vno = surf->GetLastMark();
     if (vno < 0)
       vno = surf->GetCurrentVertex();
-    if (vno < 0)
+    QVector<int> verts;
+    if (vno >= 0)
+      verts << vno;
+    if (options["UseAllPoints"].toBool())
+      verts = surf->GetAllMarks();
+
+    if (m_wndEditAnnotation->isVisible() || surf->GetActiveAnnotation())
+    {
+      options["AsAnnotation"] = true;
+      options["FillAnnotationIndex"] = m_wndEditAnnotation->GetCurrentIndex();
+    }
+
+    if (verts.size() == 0)
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(vno, options);
+      surf->FillPath(verts, options);
+
+    if (m_wndEditAnnotation->isVisible())
+    {
+      m_wndEditAnnotation->UpdateUI();
+    }
   }
 }
 
@@ -1470,4 +1524,39 @@ void PanelSurface::OnButtonLabelDown()
 void PanelSurface::SetOverlayFrame(int nFrame)
 {
   m_wndConfigureOverlay->OnFrameChanged(nFrame);
+}
+
+void PanelSurface::OnButtonSaveAnnotation()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (surf && surf->GetActiveAnnotation())
+  {
+    SurfaceAnnotation* annot = surf->GetActiveAnnotation();
+    if (annot->HasUnassignedLabels())
+    {
+      QMessageBox::information(this, "Save Annotatino", "There are unassigned labels in the annotation. Please assign all the labels first.");
+      return;
+    }
+    QDir dir = QFileInfo(surf->GetFileName()).absoluteDir();
+    dir.cdUp();
+    dir.cd("label");
+    QString fn = annot->GetFilename();
+    if (fn.isEmpty())
+    {
+      QString def_fn = annot->GetName();
+      if (!def_fn.contains(".annot"))
+        def_fn += ".annot";
+      def_fn = dir.absoluteFilePath(def_fn);
+      fn = QFileDialog::getSaveFileName( this, "Select annotation file",
+                                         def_fn,
+                                         "Annotation files (*.annot)");
+    }
+    if (!fn.isEmpty())
+    {
+      if (!annot->SaveToFile(fn))
+      {
+        cerr << "Failed to save annotation file at " << qPrintable(fn) << "\n";
+      }
+    }
+  }
 }

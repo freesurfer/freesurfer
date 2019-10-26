@@ -1,0 +1,415 @@
+#!/bin/tcsh -f
+# train-gcs-atlas 
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+
+set gcsfile = ();
+set subjects = ();
+set xsubject = ()
+set hemi = ();
+set ctab = $FREESURFER_HOME/average/colortable_desikan_killiany.txt
+set manparc = "aparc_edited"
+set threads = 1
+set surfreg = sphere.reg
+set annotbase = ()
+set asegname = aseg.auto.mgz # aseg.presurf.mgz
+set DoJackknife = 0;
+
+#set surfreg = avgsubj.acfb40.noaparc.i12.sphere.reg
+
+#set subjects = (15_626 vc1265 vc604 16_vc660 19_vc681 20_vc700 \
+#21_vc716 vc722 23_vc740 vc747 vc764 31_vc783 18_vc792 vc799 32_vc809 \
+#33_vc876 35_vc891 vc922 34_vc1024 vc1172 vc1249 vc1289 vc1337 vc1379 \
+#24_vc1401 25_vc1420 vc1423 27_vc1425 vc1440 vc1456 vc1463 vc1465 \
+#vc1479 vc763 vc6126 vc1493 vc852 vc1474 vc803)
+
+set subjects = ()
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $gcsfile`
+mkdir -p $outdir/log
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($DoJackknife) then
+  foreach s ($subjects)
+    set xgcs = $outdir/$hemi.$annotbase.x-$s.gcs
+    set xlog = $outdir/log/$hemi.$annotbase.x-$s.log
+    set cmd = (train-gcs-atlas $inputargs --no-jackknife --x $s --o $xgcs --log $xlog)
+    echo $cmd
+    pbsubmit -c "$cmd"
+  end
+  echo "Jobs submmited, exiting"
+  exit 0
+endif
+
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.train-gcs-atlas.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.train-gcs-atlas.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) if($#LF == 0) set LF = $gcsfile.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for train-gcs-atlas" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+setenv OMP_NUM_THREADS $threads
+set cmd = (mris_ca_train -t $ctab $hemi $surfreg $manparc $subjects0 $gcsfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit
+
+if($#xsubject) then
+  set sd = $SUBJECTS_DIR/$xsubject
+  set LFX = $sd/scripts/train-gcs-atlas.$hemi.$annotbase.log
+  rm -f $LFX
+  date | tee -a $LFX
+  set xannotfile = $hemi.$annotbase
+  # perform labeling
+  set cmd = (mris_ca_label -l $sd/label/$hemi.cortex.label \
+    -aseg $sd/mri/$asegname -seed 1234 \
+     $xsubject $hemi $sd/surf/$hemi.sphere.reg $gcsfile $xannotfile)
+  echo $cmd | tee -a $LF | tee -a $LFX
+  $cmd | tee -a $LF | tee -a $LFX
+  if($status) goto error_exit
+  # Now compute dice
+  set cmd = (mris_compute_parc_overlap --s $xsubject --hemi $hemi --annot1 $manparc --annot2 $annotbase)
+  echo $cmd | tee -a $LF | tee -a $LFX
+  $cmd | tee -a $LF | tee -a $LFX
+  if($status) goto error_exit
+  date | tee -a $LFX
+endif
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Train-Gcs-Atlas-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Train-Gcs-Atlas-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "train-gcs-atlas Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+    case "--gcs":
+      if($#argv < 1) goto arg1err;
+      set gcsfile = $argv[1]; shift;
+      breaksw
+
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set subjectsfile = $argv[1]; shift;
+      set subjects = ($subjects `cat $subjectsfile`);
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set subjects = ($subjects $subject)
+      breaksw
+
+    case "--man":
+    case "--src":
+      if($#argv < 1) goto arg1err;
+      set manparc = $argv[1]; shift;
+      breaksw
+
+    case "--aseg":
+      if($#argv < 1) goto arg1err;
+      set asegname = $argv[1]; shift;
+      breaksw
+
+    case "--x":
+      if($#argv < 1) goto arg1err;
+      set xsubject = $argv[1]; shift;
+      breaksw
+
+    case "--jackknife":
+      set DoJackknife = 1;
+      breaksw
+    case "--no-jackknife":
+      set DoJackknife = 0;
+      breaksw
+
+    case "--hemi":
+      if($#argv < 1) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemi = lh
+      breaksw
+
+    case "--rh":
+      set hemi = rh
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set surfreg = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gcsfile == 0) then
+  echo "ERROR: must spec output gcs file"
+  exit 1;
+endif
+if($#subjects == 0) then
+  echo "ERROR: must spec subjects"
+  exit 1;
+endif
+if($#hemi == 0) then
+  echo "ERROR: must spec hemi"
+  exit 1;
+endif
+
+set annotbase = `basename $gcsfile .gcs`
+set annotbase = `echo $annotbase | sed 's/lh\./ /g'| sed 's/rh\./ /g'`
+
+set xok = 0;
+if($#xsubject == 0) then
+  set xok = 1;
+else
+  if($DoJackknife) then
+    echo "ERROR: cannot have --jackknife and --x"
+    exit 1;
+  endif
+endif
+
+set subjects0 = ()
+foreach subject ($subjects)
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject/surf/$hemi.$surfreg) then
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$surfreg"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot) then
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$srcaprc.annot"
+    exit 1;
+  endif
+  if($#xsubject && $xsubject == $subject) set xok = 1
+  if($#xsubject == 0) then
+    set subjects0 = ($subjects0 $subject)
+  else if($xsubject != $subject) then
+    set subjects0 = ($subjects0 $subject)
+  endif
+end
+
+if(! $xok) then
+  echo "ERROR: cannot find exclude subject $xsubject in subject list"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "train-gcs-atlas "
+  echo "  --man manparc : manual parcellation (default is $manparc)"
+  echo "  --f subjlistfile"
+  echo "  --lh, --rh, --hemi hemi"
+  echo "  --o gcsfile"
+  echo ""
+  echo "  --reg surfreg (default is $surfreg)"
+  echo "  --aseg asegname (default is $asegname)"
+  echo "  --ctab colortable"
+  echo "  --x subject : exclude subject from atlas (will also label and compute overlap)"
+  echo "  --jackknife : pbsubmit a job for each subject excluding it"
+  echo ""
+  echo "  --threads nthreads : probably not needed, this runs pretty fast < 5min"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+The purpose of this script is to train a surface-based gaussian
+classifier which is then used to parcellate the cortical surface. The
+output is a "GCS" file, eg.
+DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs. The subjects must be
+analyzed in recon-all up to the point of creating sphere.reg. If a
+different registration is used, then specify it with --reg. Before
+creating GCSs for a release, make sure the registration is up-to-date,
+eg, by running: recon-all -s subject -sphere -surfreg to create new
+sphere and sphere.reg; make sure to use the production folding
+atlas. While a new sphere.reg must be generated for a new release, the
+white.preaparc surfaces themselves (used as input to the registration)
+do not necessarily need to be regenerated as long as they are
+accurate.
+
+There must be a manual parcellation in the label folder (default is
+?h.aparc_edited.annot but can be specified with --man).  This script
+only takes about 5min to run for 40 subjects.
+
+
+After this script is done, it can be applied with
+
+set CPAtlas = output/from/this/script
+cd $SUBJECTS_DIR/$subject
+mris_ca_label -l label/$hemi.cortex.label -aseg mri/aseg.presurf.mgz -seed 1234
+ $subject $hemi surf/$hemi.sphere.reg $CPAtlas $hemi.your.annot
+
+Above assumes that the registration $hemi.sphere.reg is what was used
+in this script. If not then change it.
+
+The aseg is set to aseg.auto.mgz by default because the if the source data are old (as with the aparc)
+
+mris_ca_label runs in less than 1min.
+
+To view the results
+freeview -f surf/lh.inflated:annot=label/lh.aparc_edited.annot surf/lh.inflated:annot=label/lh.your.annot 
+
+To compute dice (only computes overall dice right now)
+mris_compute_parc_overlap --s subject --hemi lh --annot1 aparc_edited --annot2 your
+
+# vc623
+

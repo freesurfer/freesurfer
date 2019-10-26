@@ -339,6 +339,8 @@ public:
   QVariantMap GetTimeSeriesInfo();
 
   QString GetGeoSegErrorMessage();
+
+  bool ExportLabelStats(const QString& fn);
   
 public slots:
   virtual void SetModified();

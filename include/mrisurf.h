@@ -122,10 +122,6 @@ void MRIS_checkAcquiredTemp(MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquire
 void MRIS_releaseTemp      (MRIS* mris, MRIS_TempAssigned temp, int MRIS_acquireTemp_result);  // ... be allowed to release it
 
 
-FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
-void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
-
-
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
 void mrisVertexHash(MRIS_HASH* hash, MRIS const * mris, int vno);
@@ -297,6 +293,9 @@ typedef struct INTEGRATION_PARMS
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nltspring ;       /* coefficient of nonlinear tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
+  float   l_spring_nzr;       /* coefficient of spring term with non-zero resting length*/
+  float   l_spring_nzr_len;   /* resting length of spring term with non-zero resting length*/
+  float   l_hinge;            /* coefficient of hinge angle term */
   float   l_repulse ;         /* repulsize force on tessellation */
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
@@ -429,6 +428,7 @@ typedef struct INTEGRATION_PARMS
   MRI          *mri_template ;
   int          which_surface ;
   float        trinarize_thresh;   // for trinarizing curvature in registration
+  int          nonmax ;  // apply nonmax suppression in reg
   int          smooth_intersections ;  // run soap bubble smoothing during surface positioning
   int          uncompress ;            // run code to remove compressions in tessellation
   double       min_dist ;
@@ -664,9 +664,6 @@ int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
 			      INTEGRATION_PARMS *parms) ;
 
-MRIS* MRISprojectOntoSphere   (MRIS* mris_src, MRIS* mris_dst, double r) ;
-MRIS* MRISprojectOntoEllipsoid(MRIS* mris_src, MRIS* mris_dst, float a, float b, float c) ;
-
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
                                       int nbrs_per_distance) ;
@@ -772,11 +769,6 @@ MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris,
     int min_neg, float min_neg_pct) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
-
-MRIS* MRIStranslate_along_vertex_dxdydz(MRIS* mris_src, MRIS* mris_dst, double dt);
-
-MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst,
-                         float alpha, float beta, float gamma) ;
 
 MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) ;
 MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) ;
@@ -1201,6 +1193,9 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
 int MRISprintVertexInfo(FILE *fp, MRIS *surf, int vertexno);
+int MRISprintSurfQualityStats(FILE *fp, MRIS *surf);
+int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
+
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
@@ -2054,6 +2049,7 @@ int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_
 MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
+int MRIScorners(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 
@@ -2115,7 +2111,6 @@ void mrisRemoveEdge(MRIS *mris, int vno1, int vno2);
 
 // Neighbourhoods
 //
-#define MAX_NEIGHBORS (400)
 void mrisVertexReplacingNeighbors(MRIS * mris, int vno, int vnum);
 void mrisForgetNeighborhoods     (MRIS * mris);
 
@@ -2123,7 +2118,6 @@ int  MRISresetNeighborhoodSize      (MRIS *mris, int nsize) ;
 void MRISsetNeighborhoodSize        (MRIS *mris, int nsize) ;   // Doesn't compute distances if not already present
 void MRISsetNeighborhoodSizeAndDist (MRIS *mris, int nsize) ;   // Always computes distances
 
-#define MRIS_MAX_NEIGHBORHOOD_LINKS 50  // bound on nlinks
 int  MRISfindNeighborsAtVertex      (MRIS *mris, int vno, int nlinks, size_t listCapacity, int* vlist, int* hops);
     // sets vlist[*] to the neighboring vno
     // sets hops [*] to -1 for [vno] and the number of hops for all entries returned in the vlist
@@ -2177,8 +2171,14 @@ int  MRIStranslate (MRIS *mris, float dx, float dy, float dz);
 void MRISmoveOrigin(MRIS *mris, float x0, float y0, float z0);
 int  MRISscale     (MRIS *mris, double scale);
 
-void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);  // x = x*xyzScale + tx*txyzScale  etc.
-void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);  // x = x          + nx*nxyzScale  etc.
+void MRISblendXYZandTXYZ(MRIS* mris, float xyzScale, float txyzScale);          // x = x*xyzScale + tx*txyzScale  etc.
+void MRISblendXYZandNXYZ(MRIS* mris,                 float nxyzScale);          // x = x          + nx*nxyzScale  etc.
+
+
+void MRIStranslate_along_vertex_dxdydz(MRIS*    dst, MRIS*    src, double dt);  // dst.x = src.x + src.dx*dt, etc.
+void MRIStranslate_along_vertex_dxdydz(MRIS_MP* dst, MRIS_MP* src, double dt);
+
+MRIS* MRISrotate(MRIS* mris_src, MRIS* mris_dst, float alpha, float beta, float gamma) ;
 
 void mrisDisturbVertices(MRIS *mris, double amount);
 
@@ -2201,7 +2201,9 @@ int mrisComputeSurfaceDimensions(MRIS *mris);
 // dist is created by calls to MRISsetNeighborhoodSizeAndDist
 // dist_orig must be explicitly created
 //
-void MRISfreeDistsButNotOrig(MRIS *mris);
+void MRISfreeDistsButNotOrig(MRIS*    mris);
+void MRISfreeDistsButNotOrig(MRISPV*  mris);
+void MRISfreeDistsButNotOrig(MRIS_MP* mris);
 
 void MRISmakeDistOrig (MRIS *mris, int vno);                        // makes it the same size as the current VERTEX.dist
 void MRISgrowDistOrig (MRIS *mris, int vno, int minimumCapacity);   // same size as current or bigger
@@ -2279,7 +2281,7 @@ void MRIScheckIsPolyhedron(MRIS *mris, const char* file, int line);
 
 int StuffVertexCoords(MRIS *surf, int vertexno, double p[3]);
 int StuffFaceCoords(MRIS *surf, int faceno, int cornerno, double p[3]);
-double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double dL);
+double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptest[3], double pmin[3], double dL);
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
@@ -2392,6 +2394,7 @@ struct face_topology_type_ {    // not used much yet
 
 // Static function implementations
 //
+#if 0
 static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
   switch (i) {
   case 1: return &v->vnum;
@@ -2400,6 +2403,14 @@ static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EX
   default: cheapAssert(false); return NULL;
   }    
 }
+#endif
+
+short        modVnum  (MRIS const *mris, int vno, short add, bool clearFirst = false);
+static short setVnum  (MRIS const *mris, int vno, short to)     { return modVnum(mris,vno, to,true );     }
+static short clearVnum(MRIS const *mris, int vno)               { return modVnum(mris,vno,  0,true );     }
+static short vnumAdd  (MRIS const *mris, int vno, short add=+1) { return modVnum(mris,vno,add,false)-add; }
+static short addVnum  (MRIS const *mris, int vno, short add=-1) { return modVnum(mris,vno,add,false);     }
+
 static short VERTEXvnum(VERTEX_TOPOLOGY const * v, int i) {
   switch (i) {
   case 1: return v->vnum;
@@ -2426,4 +2437,74 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
   return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
 }
 
+int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi, int which, int fix_mtl);
+int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
+			  double *pnz, int use_abs);
+int MRISfindExpansionRegions(MRI_SURFACE *mris);
+int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname);
 
+/**
+  class AutoDetGWStats. This class houses functions used to compute
+  intensity limits used in MRIScomputeBorderValues() when placing both
+  the white and pial surfaces on a T1w image. This is functionality
+  that used to be in mris_make_surfaces.cpp. It has mostly been copied
+  over, which is why it is not very well organized. 
+ */
+class AutoDetGWStats
+{
+public:
+  MRIS *mrisAD, *mrisADlh, *mrisADrh; // surface used to autodetect stats
+  MRI *mri_T1, *mri_wm;
+  char *wm_name = "wm" ;
+  char *orig_name = "orig";
+  //In mris_make_surfaces, "brain" is the default, but brain.finalsurfs is always used in recon-all
+  char *T1_name = "brain.finalsurfs"; 
+  int hemicode = 0; //1=left, 2=right
+  int use_mode = 1;
+  float variablesigma = 3.0;
+  double std_scale = 1.0;
+  float adWHITE_MATTER_MEAN = 110;
+  float MAX_WHITE = 120;
+  float MAX_BORDER_WHITE = 105;
+  float MIN_BORDER_WHITE = 85;
+  float MIN_GRAY_AT_WHITE_BORDER = 70;
+  float MAX_GRAY = 95;
+  float MID_GRAY;
+  float MIN_GRAY_AT_CSF_BORDER = 40;
+  float MAX_GRAY_AT_CSF_BORDER = 75;
+  float MIN_CSF = 10;
+  float adMAX_CSF = 40;
+  float white_mean, white_std, gray_mean, gray_std ;
+  float white_mode, gray_mode ;
+  float lh_white_mode, lh_gray_mode, rh_white_mode, rh_gray_mode ;
+  float max_border_white = MAX_BORDER_WHITE;
+  float min_border_white = MIN_BORDER_WHITE;
+  float min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER;
+  float max_gray = MAX_GRAY;
+  float max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER;
+  float min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER;
+  float min_csf = MIN_CSF;
+  float max_csf = adMAX_CSF ;
+  double max_gray_scale = 0.0 ;  
+  double max_scale_down = .2;
+  double white_inside_hi;
+  double white_border_hi;
+  double white_border_low;
+  double white_outside_low;
+  double white_outside_hi;
+  double pial_inside_hi;
+  double pial_border_hi;
+  double pial_border_low;
+  double pial_outside_low;
+  double pial_outside_hi;
+  // These indicate whether there was a manual override.
+  int  max_border_white_set = 0, min_border_white_set = 0, min_gray_at_white_border_set = 0,
+    max_gray_set = 0,max_gray_at_csf_border_set = 0, min_gray_at_csf_border_set = 0,
+    min_csf_set = 0, max_csf_set = 0 ;
+  int AutoDetectStats(char *subject, char *hemistr);
+  int AutoDetectStats(void);
+  int Write(char *fname);
+  int Print(FILE *fp);
+  int Read(char *fname); // from file name
+  int ReadStream(FILE *fp); // read from stream
+};

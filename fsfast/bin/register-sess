@@ -397,7 +397,7 @@ while( $#argv != 0 )
 
     case "-dof":
       if ($#argv < 1) goto arg1err;
-      set dof = $argv[1]; shift;
+      set RegDOF = $argv[1]; shift;
       breaksw
 
     case "-bold":

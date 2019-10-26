@@ -50,6 +50,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static char *surf_dir = "surf" ;
 static char *annot_name = NULL ;
 static char *surface_names[] =
   {
@@ -182,8 +183,8 @@ main(int argc, char *argv[])
     subject = argv[ino] ;
     fprintf(stderr, "\nprocessing subject %s (%d of %d)\n", subject,
             ino+1, argc-1) ;
-    sprintf(surf_fname, "%s/%s/surf/%s.%s",
-            subjects_dir, subject, hemi, sphere_name) ;
+    sprintf(surf_fname, "%s/%s/%s/%s.%s",
+            subjects_dir, subject, surf_dir, hemi, sphere_name) ;
     fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
     mris = MRISread(surf_fname) ;
     if (!mris)
@@ -261,8 +262,8 @@ main(int argc, char *argv[])
         else if (ReturnFieldName(parms.fields[n].field))
         {
           /* read in precomputed curvature file */
-          sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir,
-                  subject, hemi, ReturnFieldName(parms.fields[n].field)) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s", subjects_dir,
+                  subject, surf_dir, hemi, ReturnFieldName(parms.fields[n].field)) ;
           // fprintf(stderr,"\nreading field %d from %s(type=%d,frame=%d)\n",parms.fields[n].field,surf_fname,parms.fields[n].type,parms.fields[n].frame);
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
           {
@@ -275,8 +276,8 @@ main(int argc, char *argv[])
         }
         else
         {                       /* compute curvature of surface */
-          sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir,
-                  subject, hemi, surface_names[parms.fields[n].field]) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s", subjects_dir,
+                  subject, surf_dir, hemi, surface_names[parms.fields[n].field]) ;
           /*if(parms.fields[n].field==0)
            sprintf(fname, "inflated") ;
            else
@@ -347,8 +348,8 @@ main(int argc, char *argv[])
     };
     if ((!multiframes) && (!no_rot) && ino > 0)
     { /* rigid body alignment */
-      sprintf(surf_fname, "%s/%s/surf/%s.%s",
-              subjects_dir, subject, hemi, "sulc") ;
+      sprintf(surf_fname, "%s/%s/%s/%s.%s",
+              subjects_dir, subject, surf_dir, hemi, "sulc") ;
       if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
       {
         ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
@@ -402,8 +403,8 @@ main(int argc, char *argv[])
       {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                  subjects_dir, subject, hemi, curvature_names[sno]) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s",
+                  subjects_dir, subject, surf_dir, hemi, curvature_names[sno]) ;
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
           {
             nbad++ ;
@@ -417,8 +418,8 @@ main(int argc, char *argv[])
           MRISnormalizeCurvature(mris, which_norm) ;
         } else                       /* compute curvature of surface */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                  subjects_dir, subject, hemi, surface_names[sno]) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s",
+                  subjects_dir, subject, surf_dir, hemi, surface_names[sno]) ;
           if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
           {
             ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -483,8 +484,8 @@ main(int argc, char *argv[])
       if (Gdiag & DIAG_WRITE)
         fprintf(parms.fp, "processing subject %s\n", subject) ;
       fprintf(stderr, "processing subject %s\n", subject) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s",
-              subjects_dir, subject, hemi, sphere_name) ;
+      sprintf(surf_fname, "%s/%s/%s/%s.%s",
+              subjects_dir, subject, surf_dir, hemi, sphere_name) ;
       fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
       mris = MRISread(surf_fname) ;
       if (!mris)
@@ -493,8 +494,8 @@ main(int argc, char *argv[])
       MRIScomputeMetricProperties(mris) ;
       MRISstoreMetricProperties(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s",
-              subjects_dir, subject, hemi, "sulc") ;
+      sprintf(surf_fname, "%s/%s/%s/%s.%s",
+              subjects_dir, subject, surf_dir, hemi, "sulc") ;
       if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   Progname, surf_fname) ;
@@ -524,15 +525,15 @@ main(int argc, char *argv[])
       {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                  subjects_dir, subject, hemi, curvature_names[sno]) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s",
+                  subjects_dir, subject, surf_dir, hemi, curvature_names[sno]) ;
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
             ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                       Progname, surf_fname) ;
         } else                       /* compute curvature of surface */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                  subjects_dir, subject, hemi, surface_names[sno]) ;
+          sprintf(surf_fname, "%s/%s/%s/%s.%s",
+                  subjects_dir, subject, surf_dir, hemi, surface_names[sno]) ;
           if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
             ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                       Progname, surf_fname) ;
@@ -662,6 +663,12 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
   {
     annot_name = argv[2] ;
     fprintf(stderr,"zeroing medial wall in %s\n", annot_name) ;
+    nargs=1;
+  }
+  else if (!stricmp(option, "surf_dir"))
+  {
+    surf_dir = argv[2] ;
+    fprintf(stderr,"using %s subdirectory, instead of 'surf'\n", surf_dir) ;
     nargs=1;
   }
   else if (!strcmp(option, "overlay"))
@@ -828,6 +835,7 @@ print_usage(void)
   printf(" -overlay overlay naverages : read overlay from <overlay>\n");
   printf(" -overlay-dir dir           : use subject/<dir>/hemi.overlay\n");
   printf(" -s scale\n");
+  printf(" -surf_dir dir : use 'dir' instead of 'surf' for subdirectory\n");
   printf(" -a N    : smooth curvature <N> iterations\n");
   printf(" -sdir SUBJECTS_DIR\n");
   printf("\n");

@@ -206,11 +206,21 @@ void TrkVTKPolyDataFilter<TImage>::VTKToTrk(std::string outputName)
 	lines->InitTraversal();
 	vtkIdType pointCount, *pointBuf;
 	vnl_matrix<float> vox_to_ras = vnl_matrix<float>(4,4);
+	double sum=0;
 	for (int k1 = 0; k1 < 4; k1++) 
+	{
 		for (int k2 = 0; k2 < 4; k2++) 
+		{
 			vox_to_ras(k1,k2)= trkheadout.vox_to_ras[k1][k2];
+			sum += trkheadout.vox_to_ras[k1][k2];
+		}
+	}
 
-
+	if(sum ==0)
+	{
+		for (int k1 = 0; k1 < 4; k1++) 
+			vox_to_ras(k1,k1)= 1; 
+	}
 	vnl_matrix<float> ras_to_vox = 	vnl_inverse(vox_to_ras);
 	//std::cout << vox_to_ras<< std::endl;
 	//std::cout << ras_to_vox << std::endl;

@@ -55,6 +55,7 @@ set DoFieldSign = 0;
 set UseTalairach = 0;
 set RegDOF = 6;
 set regfile = ();
+set UseVGLRun = 0;
 
 if($?FSF_USE_FV == 0) setenv FSF_USE_FV 1
 set UseFreeview = $FSF_USE_FV
@@ -315,7 +316,12 @@ foreach sess ($SessList)
   echo ""
 
   # Runit
-  $cmd
+  if($UseVGLRun == 0) then
+    $cmd
+  else
+    setenv VGL_DISPLAY :0
+    exec /usr/pubsw/bin/vglrun $cmd
+  endif
 
   # delete tmp files
   rm -f $mapconcatfile
@@ -482,6 +488,10 @@ while( $#argv != 0 )
     case "-interp":
       if($#argv < 1) goto arg1err;
       set Interp = $argv[1]; shift
+      breaksw
+
+    case "-vgl":
+      set UseVGLRun = 1;
       breaksw
 
     case "-self":
@@ -665,6 +675,7 @@ usage_exit:
   echo "   -tksurfer  : display with tksurfer"
   echo "   -no-white : do not display white surface (freeview only)"
   echo "   -no-pial  : do not display pial surface (freeview only)"
+  echo "   -vgl : run using vglrun"
   echo ""
   echo "   -d  sessdir  ..."
   echo ""

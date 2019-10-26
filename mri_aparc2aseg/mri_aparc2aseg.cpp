@@ -331,25 +331,26 @@ int main(int argc, char **argv)
   }
 
   /* ------ Load ASeg ------ */
-  sprintf(tmpstr,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,asegname);
-  if (!fio_FileExistsReadable(tmpstr))
-  {
-    sprintf(tmpstr,"%s/%s/mri/%s.mgh",SUBJECTS_DIR,subject,asegname);
-    if (!fio_FileExistsReadable(tmpstr))
-    {
-      sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
-      if (!fio_FileExistsReadable(tmpstr))
-      {
-        printf("ERROR: cannot find aseg %s\n",asegname);
-        exit(1);
-      }
-      else
-      {
-        sprintf(tmpstr,"%s/%s/mri/aseg/",SUBJECTS_DIR,subject);
+  if(!fio_FileExistsReadable(asegname)){
+    sprintf(tmpstr,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,asegname);
+    if (!fio_FileExistsReadable(tmpstr))      {
+      sprintf(tmpstr,"%s/%s/mri/%s.mgh",SUBJECTS_DIR,subject,asegname);
+      if (!fio_FileExistsReadable(tmpstr))	{
+	sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
+	if (!fio_FileExistsReadable(tmpstr))	      {
+	  printf("ERROR: cannot find aseg %s\n",asegname);
+	  exit(1);
+	}
+	else {
+	  sprintf(tmpstr,"%s/%s/mri/aseg/",SUBJECTS_DIR,subject);
+	}
       }
     }
   }
-
+  else {
+    strcpy(tmpstr,asegname);
+  }
+  
   printf("\nLoading aseg from %s\n",tmpstr);
   ASeg = MRIread(tmpstr);
   if (ASeg == NULL)  {
@@ -1158,6 +1159,10 @@ int main(int argc, char **argv)
     printf("Fixing Parahip RH WM\n");
     CCSegment(ASeg, 4016, Right_Unsegmented_WM); //4016 = rhphwm, 5002 = unsegmented WM right
   }
+
+  // embed color lookup table
+  if (!ASeg->ct) ASeg->ct = CTABreadDefault();
+  if (!AParc->ct) AParc->ct = CTABreadDefault();
 
   printf("Writing output aseg to %s\n",OutASegFile);
   MRIwrite(ASeg,OutASegFile);

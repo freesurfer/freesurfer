@@ -1347,6 +1347,8 @@ void LayerMRI::SetVisible( bool bVisible )
     m_projectionMapActor[i]->SetVisibility( bVisible && GetProperty()->GetShowProjectionMap() );
   }
   m_actorContour->SetVisibility( bVisible ? 1 : 0 );
+  if (GetProperty()->GetShowAsContour() && GetProperty()->GetShowAsLabelContour())
+    OnLabelContourChanged();
   LayerVolumeBase::SetVisible(bVisible);
 }
 
@@ -4016,9 +4018,10 @@ void LayerMRI::OnLabelContourChanged(int n)
     keys.clear();
     keys << n;
   }
+  bool bVisible = IsVisible();
   foreach (int i, keys)
   {
-    m_labelActors[i]->SetVisibility(labels.contains(i)?1:0);
+    m_labelActors[i]->SetVisibility((bVisible && labels.contains(i))?1:0);
   }
   emit ActorUpdated();
 }
@@ -4166,4 +4169,25 @@ QVariantMap LayerMRI::GetTimeSeriesInfo()
 QString LayerMRI::GetGeoSegErrorMessage()
 {
   return m_geos?m_geos->GetErrorMessage():"";
+}
+
+bool LayerMRI::ExportLabelStats(const QString &fn)
+{
+    QFile file(fn);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+      return false;
+
+    QTextStream out(&file);
+    out << "Label,Count,Volume (mm3)\n";
+    double* vs = m_imageData->GetSpacing();
+    QList<int> labels = m_nAvailableLabels;
+    qSort(labels);
+    for (int i = 0; i < labels.size(); i++)
+    {
+        QVector<double> list = GetVoxelList(labels[i]);
+        if (!list.isEmpty())
+            out << QString("%1,%2,%3\n").arg(labels[i])
+                   .arg(list.size()/3).arg(list.size()/3*vs[0]*vs[1]*vs[2]);
+    }
+    return true;
 }

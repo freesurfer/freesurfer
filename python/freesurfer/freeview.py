@@ -60,7 +60,7 @@ class Freeview:
             return
 
         if name is not None:
-            opts += ':name=' + name
+            opts += ':name=' + name.replace(' ', '-')
         if colormap is not None:
             opts += ':colormap=' + colormap
         if opacity is not None:
@@ -83,8 +83,9 @@ class Freeview:
             return
 
         if name is not None:
-            opts += ':name=' + name
+            opts += ':name=' + name.replace(' ', '-')
         if overlay is not None:
+            overlay = self._overlay_to_vol(overlay)
             opts += ':overlay=' + self._get_volume_file(overlay, 'overlay', np.eye(4))
         if mrisp is not None:
             opts += ':mrisp=' + self._get_volume_file(mrisp, 'mrisp', np.eye(4))
@@ -141,6 +142,11 @@ class Freeview:
             # int64 MRI IO isn't very stable, so convert to int32 for now
             if volume.dtype == 'int64':
                 volume = volume.astype('int32')
+            # make sure dimensions are valid
+            if volume.ndim > 4:
+               volume = volume.squeeze()
+            if volume.ndim < 3:
+               volume = volume[..., np.newaxis]
             # input is a nifty array
             filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
             vol = Volume(volume)
@@ -186,6 +192,17 @@ class Freeview:
                     break
             return unique
 
+    def _overlay_to_vol(self, overlay):
+        if not isinstance(overlay, np.ndarray):
+            return overlay
+        if len(overlay.shape) == 1:
+            return overlay.reshape((overlay.shape[0], 1, 1, 1))
+        elif len(overlay.shape) == 2:
+            return overlay.reshape((overlay.shape[0], 1, 1, overlay.shape[1]))
+        else:
+            error('overlay cannot be 3D!') 
+
+
 
 def fv(*args, **kwargs):
     '''Freeview wrapper to quickly load an arbitray number of volumes and surfaces. Inputs
@@ -218,3 +235,4 @@ def fvoverlay(surface, overlay, background=True, opts=''):
     freeview = Freeview()
     freeview.surf(surface, overlay=overlay)
     freeview.show(background=background, opts=opts)
+

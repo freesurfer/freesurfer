@@ -1126,6 +1126,11 @@ MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 #define WM_EDITED_ON_VAL                 255
 #define WM_EDITED_OFF_VAL                1
 
+// For labeling bright voxels and neighbors of bright voxels
+#define BRIGHT_LABEL 130
+#define BRIGHT_BORDER_LABEL 100
+
+
 MRI *MRIreduceMeanAndStd(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame) ;
@@ -1266,8 +1271,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
                                float *pmean_gm, float *psigma_gm) ;
 int MRIcomputeClassStatisticsSeg(MRI *norm, MRI *seg, float *wmmean, float *wmstd, float *ctxmean, float *ctxstd);
 int MRIcomputeNbhdMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, int label, int x, int y, int z, int nbhd, MATRIX **p_mcov, VECTOR **p_vmeans) ;
-int MRIcomputeLabelMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nbhd) ;
-int MRIcomputeLabelMeansandCovariances2(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd);
+int MRIcomputeLabelMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nlabels, int nbhd);
 int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeWMSAMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeCaudateMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
@@ -1593,6 +1597,8 @@ MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label,
 MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label,
 			       float source_val,float target_val, float outside_val);
 
-  int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
+int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
+
+int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
 
 #endif

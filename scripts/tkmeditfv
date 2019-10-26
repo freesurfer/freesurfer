@@ -41,6 +41,9 @@ set Zoom = ();
 set altargs = ()
 set UseVGLRun = 0
 set DoDefects = 0;
+set SegOutline = 0;
+set mainmin = ()
+set mainmax = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -75,9 +78,13 @@ set tSecStart = `date '+%s'`;
 
 if(! $UseTkMedit) then
   ### FreeView ####----------------------------------------------
-  set cmd = (freeview  -v $mainvol)
+  if($#mainmin == 0) then
+    set cmd = (freeview  -v $mainvol)
+  else
+    set cmd = (freeview  -v $mainvol":"grayscale=$mainmin,$mainmax)
+  endif
   if($#auxvol) set cmd = ($cmd -v $auxvol)
-  if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut")
+  if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
   if($#segcolor) set cmd = ($cmd":lut=$segcolor")
   if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut")
   @ nth = 0;
@@ -282,6 +289,12 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-main-minmax":
+      if($#argv < 2) goto arg2err;
+      set mainmin = $argv[1]; shift;
+      set mainmax = $argv[1]; shift;
+      breaksw
+
     case "-fminmax":
       if($#argv < 2) goto arg2err;
       set fthresh = $argv[1]; shift;
@@ -345,6 +358,18 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow yellow)
       breaksw
 
+    case "-orig":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig rh.orig)
+      set surfcolor = ($surfcolor green green)
+      breaksw
+
+    case "-orig.nofix":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.orig.nofix rh.orig.nofix)
+      set surfcolor = ($surfcolor cyan cyan)
+      breaksw
+
     case "-surfext":  
       if($#argv < 1) goto arg1err;
       set surfext = $argv[1]; shift
@@ -360,6 +385,10 @@ while( $#argv != 0 )
     case "-zoom":
       if($#argv < 1) goto arg1err;
       set Zoom = $argv[1]; shift;
+      breaksw
+
+    case "-seg-outline":
+      set SegOutline = 1;
       breaksw
 
     case "-tkmedit":
@@ -569,7 +598,11 @@ usage_exit:
   echo "-seg2 seg3 <-seg2 seg4> : add segs beyond -seg and -aux-seg"
   echo "-white : load {l,r}h.white"
   echo "-pial : load {l,r}h.pial"
+  echo "-orig : load {l,r}h.orig"
+  echo "-orig.nofix : load {l,r}h.orig.nofix"
   echo "-surfext ext : add ext to the name of the surface"
+  echo "-seg-outline : bring up segmentation in outline mode"
+  echo "-main-minmax min max : set intensity min max on fist volume"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;

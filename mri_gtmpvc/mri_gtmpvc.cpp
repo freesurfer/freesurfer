@@ -625,12 +625,13 @@ int main(int argc, char *argv[])
   MRIwrite(gtm->ttpvf,tmpstr);
 
   // Compute gray matter PVF with smoothing
-  MRI *ctxpvf, *subctxpvf, *gmpvf;
+  MRI *ctxpvf, *subctxpvf, *gmpvf, *ttpvfpsf;
   ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
   subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
   gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
   // Smooth GM PVF by PSF
-  gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL); // just GM
+  ttpvfpsf = MRIgaussianSmoothNI(gtm->ttpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL); // All TisTypes
   if(gtm->UseMBrad){
     MB2D *mb;
     MRI *mritmp;
@@ -640,6 +641,9 @@ int main(int argc, char *argv[])
     mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
     MRIfree(&gtm->gmpvfpsf);
     gtm->gmpvfpsf = mritmp;
+    mritmp = MRImotionBlur2D(ttpvfpsf, mb, NULL);
+    MRIfree(&ttpvfpsf);
+    ttpvfpsf = mritmp;
     MB2Dfree(&mb);
   }
   if(gtm->UseMBtan){
@@ -651,6 +655,9 @@ int main(int argc, char *argv[])
     mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
     MRIfree(&gtm->gmpvfpsf);
     gtm->gmpvfpsf = mritmp;
+    mritmp = MRImotionBlur2D(ttpvfpsf, mb, NULL);
+    MRIfree(&ttpvfpsf);
+    ttpvfpsf = mritmp;
     MB2Dfree(&mb);
   }
   MRIfree(&ctxpvf);
@@ -658,6 +665,10 @@ int main(int argc, char *argv[])
   MRIfree(&gmpvf);
   sprintf(tmpstr,"%s/gm.pvf.psf.nii.gz",AuxDir);
   MRIwrite(gtm->gmpvfpsf, tmpstr);
+  // Write out multiframe volume of TFs smoothed by the PSF
+  sprintf(tmpstr,"%s/tissue.fraction.psf.nii.gz",AuxDir);
+  MRIwrite(ttpvfpsf, tmpstr);
+  MRIfree(&ttpvfpsf);
 
   sprintf(tmpstr,"%s/hrseg2bbpet.lta",AuxDir);
   LTAwrite(gtm->seg2pet,tmpstr);

@@ -24,6 +24,9 @@
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_compute_dxyz.h"
 #include "mrisurf_io.h"
+#include "mrisurf_MRIS_MP.h"
+
+#include "mrisurf_base.h"
 
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
@@ -289,10 +292,51 @@ static void mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
 }
 
 
-int mrisProjectSurface(MRI_SURFACE *mris)
-{
-  /*  MRISupdateSurface(mris) ;*/
-  switch (mris->status) {
+
+template <class MRIS_Representation>
+class mrisSurfaceProjector {
+public:
+  bool canDo(int mris_status);
+  void project(MRIS_Representation* representation);
+};
+
+
+template<>
+class mrisSurfaceProjector<MRIS_MP> {
+public:
+  
+  bool canDo(int mris_status) { 
+    switch (mris_status) {
+    //case MRIS_PARAMETERIZED_SPHERE: return true;
+    case MRIS_SPHERE:               return true;
+    default:;
+    }
+    static int shown = 0;
+    int shownMask = (1 << mris_status);
+    if (!(shown&shownMask)) { shown |= shownMask;
+      fprintf(stdout, "%s:%d need to process MRIS::status %d\n", __FILE__, __LINE__, mris_status);
+    }
+    return false;
+  }
+  
+  void project(MRIS_MP* mris_mp) {
+    switch (mris_mp->status) {
+      case MRIS_SPHERE:   MRISprojectOntoSphere(mris_mp, mris_mp->radius);  break;
+      default: break;
+    }
+    cheapAssert(false);
+  }
+  
+};
+
+
+template<>
+class mrisSurfaceProjector<MRIS> {
+public:
+  bool canDo(int mris_status) { return true; }
+  void project(MRIS* mris)
+  {
+    switch (mris->status) {
     case MRIS_PLANE:
       MRISflattenPatch(mris);
       break;
@@ -300,32 +344,47 @@ int mrisProjectSurface(MRI_SURFACE *mris)
       mrisSphericalProjection(mris);
       break;
     case MRIS_PARAMETERIZED_SPHERE:
-      MRISprojectOntoSphere(mris, mris, mris->radius);
+      MRISprojectOntoSphere(mris, mris->radius);
       break;
     case MRIS_SPHERE:
-      MRISprojectOntoSphere(mris, mris, mris->radius);
+      MRISprojectOntoSphere(mris, mris->radius);
       break;
     case MRIS_ELLIPSOID:
       MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
       break;
-    //        case PROJECT_PLANE:
-    /*    mrisOrientPlane(mris) ;*/
-    //                break ;
+    //se PROJECT_PLANE:
+    //mrisOrientPlane(mris)
+    //break ;
     case MRIS_RIGID_BODY:
-      /*    MRISprojectOntoSphere(mris, mris, mris->radius) ;*/
-      mris->status = MRIS_RIGID_BODY;
       break;
     case MRIS_PIAL_SURFACE:
       mrisProjectOntoSurface(mris, PIAL_VERTICES);
       break;
     default:
+      // seen to happen     cheapAssert(!"was just fall thru before - Bevin looking for cases");
       break;
+    }
   }
+};
+
+int mrisProjectSurface(MRIS* mris) 
+{
+  mrisSurfaceProjector<MRIS>().project(mris);
   return (NO_ERROR);
 }
 
+int mrisProjectSurface(MRIS_MP* mris) 
+{
+  mrisSurfaceProjector<MRIS_MP>().project(mris);
+  return (NO_ERROR);
+}
 
-int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spacing)
+static bool mrisProjectSurface_CanDo(int mris_status)
+{
+  return mrisSurfaceProjector<MRIS_MP>().canDo(mris_status);
+}
+
+int mrisComputePlaneTerm(MRIS* mris, double l_plane, double l_spacing)
 {
   int vno, n, vnum;
   MATRIX *M, *m_evectors;
@@ -887,43 +946,38 @@ int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt)
 
 int MRISapplyGradient(MRIS* mris, double dt)
 {
-  int vno, nvertices;
-
-  nvertices = mris->nvertices;
   MRISstoreCurrentPositions(mris);
   if (mris->status == MRIS_RIGID_BODY) {
     MRISrotate(mris, mris, dt * mris->alpha, dt * mris->beta, dt * mris->gamma);
-  }
-  else {
-    ROMP_PF_begin
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) schedule(static, 1)
-#endif
-    for (vno = 0; vno < nvertices; vno++) {
-      ROMP_PFLB_begin
-      
-      VERTEX *v;
-      v = &mris->vertices[vno];
-      if (v->ripflag) ROMP_PF_continue;
-
-      if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
-        ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
-      if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
-        ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
-      v->x += dt * v->dx;
-      v->y += dt * v->dy;
-      v->z += dt * v->dz;
-      
-      ROMP_PFLB_end
-    }
-    ROMP_PF_end
+  } else {
+    MRIStranslate_along_vertex_dxdydz(mris, mris, dt);
   }
   return (NO_ERROR);
 }
 
 
 struct MRIScomputeSSE_asThoughGradientApplied_ctx::Impl {
-    // NYI
+  Impl() : inited(false), dx(nullptr), dy(nullptr), dz(nullptr) {}
+  ~Impl() 
+  {
+    freeAndNULL(dx); freeAndNULL(dy); freeAndNULL(dz);
+  }
+  
+  bool inited;
+  MRIS_MP curr, orig;
+  float *dx, *dy, *dz;
+  
+  void init(MRIS* mris) {
+    cheapAssert(!inited);
+    
+    MRISMP_ctr(&orig);
+    MRISMP_ctr(&curr);
+
+    MRISmemalignNFloats(mris->nvertices, &dx, &dy, &dz);
+    MRISMP_load(&orig, mris, true, dx,dy,dz);               // needs to load the outputs because those are inputs to ProjectSurface
+      
+    inited = true;
+  }
 };
 
 
@@ -937,6 +991,56 @@ MRIScomputeSSE_asThoughGradientApplied_ctx::~MRIScomputeSSE_asThoughGradientAppl
   delete _impl;
 }
 
+double MRIScomputeSSE_asThoughGradientApplied(
+  MRIS*              mris, 
+  double             delta_t, 
+  INTEGRATION_PARMS* parms,
+  MRIScomputeSSE_asThoughGradientApplied_ctx& ctx)
+{
+  bool const canUseNewBehaviour = mrisProjectSurface_CanDo(mris->status) && MRIScomputeSSE_canDo((MRIS_MP*)nullptr,parms);
+
+  bool useOldBehaviour = !!getenv("FREESURFER_OLD_MRIScomputeSSE_asThoughGradientApplied");
+  bool useNewBehaviour = !!getenv("FREESURFER_NEW_MRIScomputeSSE_asThoughGradientApplied") || !useOldBehaviour;
+
+  useNewBehaviour = false;
+  
+  if (!canUseNewBehaviour) {
+    useNewBehaviour = false;
+    useOldBehaviour = true;
+  }
+  
+  double new_result = 0.0;
+  if (useNewBehaviour) {
+    auto & ctxImpl = *ctx._impl;
+    
+    if (!ctxImpl.inited) ctxImpl.init(mris);
+    
+    MRISMP_copy(&ctxImpl.curr, &ctxImpl.orig, 
+      false,  // needs to copy the outputs because those are inputs to ProjectSurface
+      true);  // no need to copy v_x[*] etc. because they are obtained by the translate_along_vertex_dxdydxz below
+
+    MRIStranslate_along_vertex_dxdydz(&ctxImpl.orig, &ctxImpl.curr, delta_t);
+    mrisProjectSurface(&ctxImpl.curr);
+    MRIScomputeMetricProperties(&ctxImpl.curr);
+    new_result = MRIScomputeSSE(&ctxImpl.curr, parms);
+  }
+
+  double old_result = 0.0;
+  if (useOldBehaviour) {
+    MRISapplyGradient(mris, delta_t);
+    mrisProjectSurface(mris);
+    MRIScomputeMetricProperties(mris);
+    old_result = MRIScomputeSSE(mris, parms);
+
+    MRISrestoreOldPositions(mris);
+  }
+  
+  if (useOldBehaviour && useNewBehaviour && (old_result != new_result)) {
+    cheapAssert(false);
+  }
+  
+  return useOldBehaviour ? old_result : new_result;
+}
 
 /*-----------------------------------------------------
   Parameters:
@@ -1878,14 +1982,6 @@ double mrisComputeSSE_MEF(
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-
-  ------------------------------------------------------*/
 static float neg_area_ratios[] = {
     //    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-2, 5e-2,1e-1
     1e-6,
@@ -2036,13 +2132,6 @@ int mrisRemoveNegativeArea(
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISflattenPatchRandomly(MRI_SURFACE *mris)
 {
   float extent;
@@ -2067,13 +2156,7 @@ int MRISflattenPatchRandomly(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 int MRISflattenPatch(MRI_SURFACE *mris)
 {
   float x, y, z, d, d1, d2;
@@ -2240,13 +2323,7 @@ int MRISflattenPatch(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
 #define EXPLODE_ITER 1
 int mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
 {
@@ -2901,9 +2978,10 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     }
 
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].marked == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
     vdstt->nsizeMax = 1;
     vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
@@ -3483,7 +3561,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
   }
 
   // create a new surface
-  MRIS *mris_corrected = MRISalloc(kept_vertices, kept_faces);
+  MRIS *mris_corrected ; //= MRISalloc(kept_vertices, kept_faces);
+  mris_corrected = MRISoverAlloc(nint(1.5*kept_vertices), nint(1.5*kept_faces), kept_vertices, kept_faces);
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
   copyVolGeom(&mris->vg, &mris_corrected->vg);
@@ -3590,9 +3669,10 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       i++;
     }
     /* count # of valid neighbors */
-    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+    clearVnum(mris_corrected,vno_dst);
+    for (n = 0; n < vt->vnum; n++)
       if (mris->vertices[vt->v[n]].ripflag == 0) {
-        vdstt->vnum++;
+        addVnum(mris_corrected,vno_dst,1);
       }
 
     vdstt->nsizeMax = 1;
@@ -4491,7 +4571,7 @@ MRIS *MRISsortVertices(MRIS *mris0)
     vtxnew->x = vtxold->x;
     vtxnew->y = vtxold->y;
     vtxnew->z = vtxold->z;
-    vtxtnew->vnum = vtxtold->vnum; // number of neighboring vertices
+    modVnum(mris,nthvtx,vtxtold->vnum,true); // number of neighboring vertices
     // Now copy the neighbors
     if(vtxtnew->v) free(vtxtnew->v);
     vtxtnew->v = (int *)calloc(vtxtnew->vnum, sizeof(int));

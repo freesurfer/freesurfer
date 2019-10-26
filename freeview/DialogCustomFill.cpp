@@ -37,5 +37,6 @@ void DialogCustomFill::OnButtonFill()
   map["CreateLabel"] = ui->radioButtonCreateLabel->isChecked();
   map["AddToLabel"] = ui->radioButtonAddToLabel->isChecked();
   map["RemoveFromLabel"] = ui->radioButtonRemoveFromLabel->isChecked();
+  map["UseAllPoints"] = ui->checkBoxUseAllPoints->isChecked();
   emit CustomFillTriggered(map);
 }

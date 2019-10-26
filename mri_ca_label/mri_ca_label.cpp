@@ -1371,8 +1371,12 @@ int main(int argc, char *argv[])
     }
   }
 
-  mri_labeled->ct = gca->ct ;  // embed color table in output volume
-  /*  GCAfree(&gca) ; */
+  // embed color lookup table from GCA
+  mri_labeled->ct = gca->ct;
+
+  // if GCA has no ctab, embed the default instead
+  if (!mri_labeled->ct) mri_labeled->ct = CTABreadDefault();
+
 #if 0
   if (filter)
   {
@@ -1401,8 +1405,7 @@ int main(int argc, char *argv[])
     MRI *mri_probs ;
     char fname[STRLEN] ;
 
-    mri_probs = 
-      GCAcomputeTopNProbabilities(mri_inputs,gca,mri_labeled,NULL,transform,3);
+    mri_probs = GCAcomputeTopNProbabilities(mri_inputs,gca,mri_labeled,NULL,transform,3);
     sprintf(fname, "%s.mgz", G_write_probs) ;
     printf("writing ordered labels and  probabilities to %s\n", fname) ;
     MRIwrite(mri_probs, fname) ;
@@ -1432,6 +1435,7 @@ int main(int argc, char *argv[])
     MRIfree(&mri_probs) ;
   }
   MRIfree(&mri_inputs) ;
+  GCAfree(&gca);
 
   // Print usage stats to the terminal (and a file is specified)
   PrintRUsage(RUSAGE_SELF, "mri_ca_label ", stdout);

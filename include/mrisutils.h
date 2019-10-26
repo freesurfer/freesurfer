@@ -99,6 +99,7 @@ double MRISvolumeInSurf(MRIS *mris);
 MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol);
 
 LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices);
+LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices);
 int MRISripZeros(MRIS *surf, MRI *mri);
 int MRISsphericalCoords(MRIS *surf);
 int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
@@ -126,5 +127,9 @@ int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 int L2Stest(const char *subject);
 
 int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0);
+double *MRIStriangleAreaStats(MRIS *surf, MRI *mask, double *stats);
+double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats);
+int MRISedgePrint(FILE *fp, MRIS *surf);
+int MRISedgeWrite(char *filename, MRIS *surf);
 
 #endif

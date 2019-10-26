@@ -12,8 +12,19 @@ def face_normals(vertices, faces):
 
 def vertex_normals(vertices, faces, vfaces):
     fnorm = face_normals(vertices, faces)
-    stack = tf.stack([tf.reduce_sum(tf.gather(fnorm, vf), axis=0) for vf in vfaces])
-    return tf.linalg.l2_normalize(stack, axis=1)
+
+    max_faces = max([len(x) for x in vfaces])
+    nvertices = len(vfaces)
+
+    inds = np.zeros((nvertices, max_faces), dtype='int32')
+    mask = np.zeros((nvertices, max_faces, 3), dtype='int16')
+    for v, f in enumerate(vfaces):
+        inds[v, :len(f)] = f
+        mask[v, :len(f), :] = 1
+
+    vfnorm = tf.gather(fnorm, inds) * mask
+    avg = tf.reduce_sum(vfnorm, axis=1) / tf.cast(tf.reduce_sum(mask, axis=1), dtype=tf.float32)
+    return tf.linalg.l2_normalize(avg, axis=1)
 
 
 def prod_n(lst):
@@ -38,18 +49,21 @@ def sub2ind(siz, subs, **kwargs):
     return ndx
 
 
-def interp(vol, loc, interp_method='linear'):
+def interp(vol, loc, method='linear'):
     '''From Adrian...'''
-    
+
     if isinstance(loc, (list, tuple)):
         loc = tf.stack(loc, -1)
     nb_dims = loc.shape[-1]
 
+    if not nb_dims.value:
+        raise Exception("Loc dimension is None")
+
     if len(vol.shape) not in [nb_dims, nb_dims+1]:
-        raise Exception("Number of loc Tensors %d does not match volume dimension %d" % (nb_dims, len(vol.shape[:-1])))
+        raise Exception("Number of loc Tensors %d does not match volume dimension %d" % (int(nb_dims), len(vol.shape[:-1])))
 
     if nb_dims > len(vol.shape):
-        raise Exception("Loc dimension %d does not match volume dimension %d" % (nb_dims, len(vol.shape)))
+        raise Exception("Loc dimension %d does not match volume dimension %d" % (int(nb_dims), len(vol.shape)))
 
     if vol.shape.ndims == nb_dims:
         vol = K.expand_dims(vol, -1)
@@ -63,7 +77,7 @@ def interp(vol, loc, interp_method='linear'):
         volshape = vol.shape
 
     # interpolate
-    if interp_method == 'linear':
+    if method == 'linear':
         loc0 = tf.floor(loc)
 
         # clip values
@@ -117,7 +131,7 @@ def interp(vol, loc, interp_method='linear'):
             interp_vol += wt * vol_val
         
     else:
-        assert interp_method == 'nearest'
+        assert method == 'nearest'
         roundloc = tf.cast(tf.round(loc), 'int32')
 
         # clip values

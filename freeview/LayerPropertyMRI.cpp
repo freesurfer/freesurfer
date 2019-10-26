@@ -80,7 +80,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nTensorInversion( VI_None ),
   m_nTensorRepresentation( TR_Boxoid ),
   m_bContourUseImageColorMap( false ),
-  m_bContourExtractAll( false ),
+  m_bContourExtractAll( true ),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
   m_nContourSmoothIterations( 5 ),
@@ -100,7 +100,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bDisplayRGB(false),
   m_dVectorLineWidth(1),
   m_nVectorSkip(0),
-  m_dVectorNormThreshold(0)
+  m_dVectorNormThreshold(0),
+  m_colorBinary(Qt::white)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -168,6 +169,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_bRememberFrameSettings = p->m_bRememberFrameSettings;
   m_dVectorLineWidth      =   p->m_dVectorLineWidth;
   m_dVectorNormThreshold  =   p->m_dVectorNormThreshold;
+  m_colorBinary           =   p->m_colorBinary;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
 
@@ -503,6 +505,7 @@ vtkScalarsToColors* LayerPropertyMRI::GetActiveLookupTable()
   case Heat:
     return mHeatScaleTable;
   case LUT:
+  case Binary:
     return mLUTTable;
   default:
     return mColorMapTable;
@@ -749,6 +752,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
     break;
 
   case LUT:
+  case Binary:
     break;
 
   default:
@@ -853,6 +857,8 @@ void LayerPropertyMRI::SetColorMap ( int iType )
     {
       SetUpSampleMethod( UM_None );
     }
+    else if (iType == Binary)
+      SetBinaryColor(m_colorBinary);
     this->OnColorMapChanged();
   }
 }
@@ -1892,5 +1898,17 @@ void LayerPropertyMRI::SetVectorSkip(int nSkip)
   {
     m_nVectorSkip = nSkip;
     emit VectorSkipChanged(nSkip);
+  }
+}
+
+void LayerPropertyMRI::SetBinaryColor(const QColor &color)
+{
+  m_colorBinary = color;
+  if (GetColorMap() == Binary)
+  {
+    QMap<int, QColor> colors;
+    colors[0] = QColor(0,0,0,0);
+    colors[1] = color;
+    SetCustomColors(colors);
   }
 }

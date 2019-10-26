@@ -257,6 +257,7 @@ install(PROGRAMS
   trac-paths
   trac-preproc
   tractstats2table
+  train-gcs-atlas
   unpack_ima.tcl
   unpack_ima1.tcl
   unpack_mnc.tcl

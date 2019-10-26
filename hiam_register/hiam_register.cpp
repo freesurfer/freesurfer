@@ -31,12 +31,14 @@
 #include <ctype.h>
 
 #include "macros.h"
+
+#include "mri.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
+
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
-#include "mri.h"
-#include "macros.h"
 #include "timer.h"
 
 static char vcid[] = "$Id: hiam_register.c,v 1.6 2011/12/12 03:28:32 greve Exp $";
@@ -92,7 +94,6 @@ static int use_defaults = 1 ;
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
-#define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 #define MAX_NBHD_SIZE  200
 

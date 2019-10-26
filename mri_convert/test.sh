@@ -25,3 +25,15 @@ compare_vol nuuc.mgz nuuc.ref.mgz
 # (i.e. gcam->depth * gcam->spacing = gcam->atlas.depth - 1)
 test_command mri_convert -at odd.m3z orig.mgz morphed.mgz
 compare_vol morphed.mgz odd.ref.mgz
+
+# standard mosaic'd DICOM
+test_command mri_convert ep2d.mosaic.dcm ep2d.mosaic.mgz
+compare_vol ep2d.mosaic.mgz ep2d.mosaic.ref.mgz
+
+# non-mosaic DICOM with incomplete ASCII header
+test_command mri_convert vnav.non-mosaic.dcm vnav.non-mosaic.mgz
+compare_vol vnav.non-mosaic.mgz vnav.non-mosaic.ref.mgz
+
+# DICOM with identical geometry - but mosaic'd
+test_command mri_convert --mosaic-fix-noascii vnav.mosaic.dcm vnav.mosaic.mgz
+compare_vol vnav.mosaic.mgz vnav.mosaic.ref.mgz

@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	const char* outputDirectory = cl.follow("",2,"-d","-D");
-	int maxLenght  = cl.follow(-1,2,"-l","-L");
+	int minLenght  = cl.follow(-1,2,"-min","-MIN");
+	int maxLenght  = cl.follow(500,2,"-max","-MAX");
 	int subSample = cl.follow(-1,2,"-s","-S");
 	bool filterUShape =cl.search("-nu");
 	bool maskFibers  =cl.search("-m");
@@ -170,7 +171,7 @@ int main(int argc, char *argv[])
 
 			float dist= clean?clusterTools->GetDistance((*histoMeshes)[i],averageId, cellId):0;	
 //			std::cout << dist << " " << stdCluster << std::endl;	
-			if(lenghtSoFar >= maxLenght &&  cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<=stdCluster))
+			if(lenghtSoFar >= minLenght  && lenghtSoFar <= maxLenght && cellId % offset ==0 &&( val1!=val2 || !filterUShape) && ( val1!= 0 || !maskFibers) && (dist<=stdCluster))
 			{	
 
 				unfilteredIds.insert(cellId);
@@ -227,6 +228,7 @@ int main(int argc, char *argv[])
 		clusterTools->SaveMesh(om, mask, outputName, inputFiles[i]); 
 	}
 	delete meshes;
-	delete histoMeshes;
+	if(clean)
+		delete histoMeshes;
 }
 

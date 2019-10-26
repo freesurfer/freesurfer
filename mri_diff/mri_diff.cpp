@@ -501,6 +501,7 @@ int main(int argc, char *argv[]) {
         dump_options(fp);
         fprintf(fp,"maxdiff %12.8f at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
         fprintf(fp,"Volumes differ in pixel value\n");
+	if(CheckPixVals) fprintf(fp,"diffcount %d\n",ndiff);
         fclose(fp);
       }
       ExitStatus = 106;
