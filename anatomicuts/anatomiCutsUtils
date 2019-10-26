@@ -114,10 +114,12 @@ def readTree(numNodes, histogramFile,header=True):
 def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1]):
 	ac_folder=f"dmri.ac/{lenght}/{std}"
 	
+
 	indeces=[]
 	groups_cat = {row[classification_columns[0]] :row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	print(groups_cat)
-	significant_childs=set()
+
+  significant_childs=set()
 	for c_i, clusterNum in enumerate(clustersToAnalyze):
 		
 		childs, dads = readTree(clusterNum, f"{subjects_dir}/{target_subject}/{ac_folder}/HierarchicalHistory.csv")
@@ -203,6 +205,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 					indeces.append(index)
 	return indeces
 					
+
 def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]]):
 	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	clusterNum=200
