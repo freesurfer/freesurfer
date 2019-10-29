@@ -1321,7 +1321,7 @@ def samsegment( imageFileNames, atlasDir, savePath,
                 hyperpriorPlugin=None,
                 posteriorPlugin=None,
                 posteriorPluginVariables=None,
-                threshold=None, thresholdSearchString=None, savePosteriors=False
+                threshold=None, thresholdSearchString=None, savePosteriors=False, saveWarp=False
                 ):
 
     # Get full model specifications and optimization options (using default unless overridden by user) 
@@ -1474,6 +1474,14 @@ def samsegment( imageFileNames, atlasDir, savePath,
                                      threshold, thresholdSearchString, savePosteriors=savePosteriors
                                      )
 
+    # Save the template warp (this is temporary)
+    if saveWarp:
+        print('Saving the template warp')
+        warpName = os.path.join(savePath, 'template.m3z')
+        mesh = getMesh(modelSpecifications.atlasFileName, transform, initialDeformation=deformation,
+                       initialDeformationMeshCollectionFileName=deformationAtlasFileName)
+        templateFileName = os.path.join(atlasDir, 'template.nii')
+        saveWarpField(warpName, modelSpecifications.atlasFileName, templateFileName, mesh.points, cropping)
 
     # Save the final mesh collection
     if saveMesh:
@@ -1506,6 +1514,34 @@ def samsegment( imageFileNames, atlasDir, savePath,
 
     return modelSpecifications.FreeSurferLabels, modelSpecifications.names, volumesInCubicMm, optimizationSummary
 
+
+def saveWarpField(warpName, atlasFileName, templateName, nodePositions, cropping):
+
+    # load template volume
+    template = fs.Volume(templateName)
+    shape = template.image.shape[:3]
+
+    # rasterize the final node coordinates (in image space) using the initial template mesh
+    mesh = getMesh(atlasFileName)
+    source = mesh.rasterize_values(shape, nodePositions).astype('float32')
+
+    # adjust for the offset introduced by volume cropping
+    source[..., 0] += cropping[0].start
+    source[..., 1] += cropping[1].start
+    source[..., 2] += cropping[2].start
+
+    # since m3z can only be converted from a displacement volume (and not a source map),
+    # let's generate a deformation by subtracting grid coordinates from source coordinates
+    x = np.arange(shape[0])
+    y = np.arange(shape[1])
+    z = np.arange(shape[2])
+    deform = source - np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1)
+    deform[source == 0] = 0
+
+    # write deformation field to m3z
+    warp = fs.Volume(deform)
+    warp.affine = template.affine
+    warp.write(warpName)
 
 
 def generateSubjectSpecificTemplate( imageFileNamesList, savePath ):
