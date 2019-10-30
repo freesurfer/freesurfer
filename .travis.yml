@@ -2,7 +2,6 @@ sudo: required
 
 dist: trusty
 language: cpp
-compiler: gcc
 
 cache:
   - apt
@@ -10,23 +9,27 @@ cache:
 
 matrix:
   include:
-    - os: linux
-    - os: osx
 
-addons:
-  apt:
-    packages:
-      - gfortran
-      - libxi-dev
-      - liblapack-dev
-      - python3.5-dev
-      - tcsh
-      - curl
-      - git
-  homebrew:
-    packages:
-      - gcc
-      - glib
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - libxi-dev
+            - liblapack-dev
+            - python3.5-dev
+            - tcsh
+            - curl
+            - git
+
+    - os: osx
+      addons:
+        homebrew:
+          packages:
+            - gcc
+            - glib
+      env:
+        - FC=gfortran
 
 install:
   - if [ $TRAVIS_OS_NAME = linux ]; then base=centos7 ; else base=osx10.11 ; fi
@@ -34,5 +37,4 @@ install:
   - tar -xzf ${base}-packages.tar.gz
 
 script:
-  - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF
-  - make -j4
+  - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF && make -j4
