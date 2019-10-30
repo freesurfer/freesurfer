@@ -461,7 +461,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
 
     double pos[3];
     posY = this->rect().height() - posY;
-  #if VTK_MAJOR_VERSION > 5
+  #if VTK_MAJOR_VERSION > 7
     if (devicePixelRatio() > 1)
     {
         posX *= devicePixelRatio();
@@ -736,7 +736,7 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     }
 
     double pos[3];
-  #if VTK_MAJOR_VERSION > 5
+  #if VTK_MAJOR_VERSION > 7
     if (devicePixelRatio() > 1)
     {
         posX *= devicePixelRatio();
@@ -783,7 +783,7 @@ void RenderView3D::HighlightSliceFrame( int n )
 
   double colors[][3] = { { 1, 0.1, 0.1}, { 0.1, 1, 0.1 }, { 0.1, 0.1, 1 } };
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -1008,7 +1008,7 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
     }
   }
   posY = this->rect().height() - posY;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       posX *= devicePixelRatio();

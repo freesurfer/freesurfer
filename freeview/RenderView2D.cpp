@@ -308,7 +308,7 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
   {
     double x, y, z;
     WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       x /= devicePixelRatio();
@@ -337,7 +337,7 @@ void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
   pos[0] = posX;
   pos[1] = rect().height() - posY;
   pos[2] = 0;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       pos[0] = pos[0] * devicePixelRatio();

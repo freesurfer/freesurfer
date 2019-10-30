@@ -45,7 +45,7 @@ Region2DLine::Region2DLine( RenderView2D* view ) :
   m_actorLine = vtkSmartPointer<vtkActor2D>::New();
   m_actorLine->GetProperty()->SetOpacity( 0.75 );
   double line_w = 3;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w *= view->devicePixelRatio();
 #endif
   m_actorLine->GetProperty()->SetLineWidth( line_w );

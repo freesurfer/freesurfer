@@ -57,7 +57,7 @@
 #endif
 #endif
 
-#include "vtkstd/map"
+#include <map>
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkRenderWindow.h"
 #if defined(QVTK_USE_CARBON)
@@ -913,7 +913,7 @@ public:
   {
   }
   QSignalMapper* SignalMapper;
-  typedef vtkstd::map<int, QTimer*> TimerMap;
+  typedef std::map<int, QTimer*> TimerMap;
   TimerMap Timers;
 };
 
