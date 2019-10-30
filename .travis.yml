@@ -23,9 +23,6 @@ addons:
       - curl
       - git
 
-before_install:
-  - sudo apt-get -y install libsm-dev
-
 install:
   - travis/packages.sh
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
