@@ -3,8 +3,13 @@
 set -ex
 
 #
-# script to download the pre-built packages on travis
+# script to download packages on travis
 #
+
+if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew cask uninstall oclint
+    brew install gcc glib
+fi
 
 [ "$TRAVIS_OS_NAME" == "linux" ] && tarball="centos7-packages.tar.gz"
 [ "$TRAVIS_OS_NAME" == "osx" ]   && tarball="osx10.11-packages.tar.gz"

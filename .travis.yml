@@ -2,7 +2,6 @@ sudo: required
 
 dist: trusty
 language: cpp
-compiler: gcc
 
 cache:
   - apt
@@ -11,6 +10,7 @@ cache:
 matrix:
   include:
     - os: linux
+    - os: osx
 
 addons:
   apt:
@@ -25,17 +25,6 @@ addons:
 
 install:
   - travis/packages.sh
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
-      brew cask uninstall oclint ;
-      brew install gcc5 glib ;
-    fi
-
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
-      export CC=/usr/local/bin/gcc-5 ;
-      export CXX=/usr/local/bin/g++-5 ;
-      export FC=/usr/local/bin/gfortran-5 ;
-    fi
 
 script:
   - travis/build.sh
