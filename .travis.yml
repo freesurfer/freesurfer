@@ -26,10 +26,10 @@ matrix:
       addons:
         homebrew:
           packages:
-            - gcc
+            - gcc-8
             - glib
       env:
-        - FC=gfortran
+        - FC=gfortran-8
 
 install:
   - if [ $TRAVIS_OS_NAME = linux ]; then base=centos7 ; else base=osx10.11 ; fi
