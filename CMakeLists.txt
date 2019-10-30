@@ -1,3 +1,8 @@
+# before starting the project, set gcc/g++ as the default compiler
+find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
+find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
+
+# project info
 project(freesurfer)
 cmake_minimum_required(VERSION 3.9)
 enable_language(C CXX Fortran)
