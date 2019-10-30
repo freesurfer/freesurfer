@@ -2,6 +2,7 @@ sudo: required
 
 dist: trusty
 language: cpp
+compiler: gcc
 
 cache:
   - apt
@@ -22,9 +23,16 @@ addons:
       - tcsh
       - curl
       - git
+  homebrew:
+    packages:
+      - gcc
+      - glib
 
 install:
-  - travis/packages.sh
+  - if [ $TRAVIS_OS_NAME = linux ]; then base=centos7 ; else base=osx10.11 ; fi
+  - curl --connect-timeout 8 --retry 5 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/${base}-packages.tar.gz
+  - tar -xzf ${base}-packages.tar.gz
 
 script:
-  - travis/build.sh
+  - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF
+  - make -j4
