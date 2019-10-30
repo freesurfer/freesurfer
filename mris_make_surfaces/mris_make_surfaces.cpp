@@ -1610,11 +1610,17 @@ int main(int argc, char *argv[])
                Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, wm_weight);
 	if ( followGradients)
 	{
-		std::cout << "HOLAAAAAAiAAAAAAAAAAAAAAAAAAAAAAAAAAA "<< std::endl;
+		std::cout << "T2/FLAIR compute target based on gradients "<< std::endl;
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
-		//refine->addImage(mri_T1_pial);
+		refine->SetStep(.25);
+		refine->SetNumberOfSteps(15);
+		refine->SetGradientSigma(.3);
+		refine->SetSegmentation(mri_aseg);
+		refine->FindMaximumGradient(contrast_type== CONTRAST_T2);
 		refine->addImage(mri_flair);
-		refine->getTarget(mris);	
+		refine->getTarget(mris); //, debugVertex);
+		
+			//refine->addImage(mri_T1_pial);
 	}
 	else
 	{
