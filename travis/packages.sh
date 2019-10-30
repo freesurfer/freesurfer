@@ -7,7 +7,6 @@ set -ex
 #
 
 if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    brew cask uninstall oclint
     brew install gcc glib
 fi
 
