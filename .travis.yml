@@ -9,7 +9,6 @@ cache:
 
 matrix:
   include:
-
     - os: linux
       addons:
         apt:
@@ -22,19 +21,9 @@ matrix:
             - curl
             - git
 
-    - os: osx
-      addons:
-        homebrew:
-          packages:
-            - gcc-8
-            - glib
-      env:
-        - FC=gfortran-8
-
 install:
-  - if [ $TRAVIS_OS_NAME = linux ]; then base=centos7 ; else base=osx10.11 ; fi
-  - curl --connect-timeout 8 --retry 5 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/${base}-packages.tar.gz
-  - tar -xzf ${base}-packages.tar.gz
+  - curl --connect-timeout 8 --retry 5 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz
+  - tar -xzf centos7-packages.tar.gz
 
 script:
   - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF && make -j4
