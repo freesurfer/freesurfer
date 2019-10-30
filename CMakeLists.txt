@@ -172,12 +172,21 @@ endif()
 # -------- vtk --------
 set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
 find_package(VTK HINTS ${VTK_DIR})
-if(VTK_FOUND AND NOT APPLE)
-  # install the shared libraries to the freesurfer lib directory
-  file(GLOB VTK_LIBRARIES_TO_INSTALL "${VTK_LIBRARY_DIRS}/lib*.so*")
-  if(VTK_LIBRARIES_TO_INSTALL)
-    install(PROGRAMS ${VTK_LIBRARIES_TO_INSTALL} DESTINATION lib/vtk)
-    # add vtk library directory to rpath
+if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
+  # locate all shared vtk libraries
+  if(${VTK_VERSION} LESS 7)
+    file(GLOB _vtk_library_list "${VTK_LIBRARY_DIRS}/lib*.so*")
+  else()
+    foreach(_vtk_module ${VTK_MODULES_ENABLED})
+      foreach(_vtk_library ${${_vtk_module}_LIBRARIES})
+        file(GLOB _found_library "${${_vtk_module}_RUNTIME_LIBRARY_DIRS}/lib${_vtk_library}*.so*")
+        list(APPEND _vtk_library_list ${_found_library})
+      endforeach()
+    endforeach()
+  endif()
+  # install found libraries to the freesurfer lib/vtk dir and add this directory to rpath
+  if(_vtk_library_list)
+    install(PROGRAMS ${_vtk_library_list} DESTINATION lib/vtk)
     set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/vtk:${CMAKE_INSTALL_RPATH}")
   endif()
 endif()
