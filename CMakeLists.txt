@@ -1,8 +1,3 @@
-# before starting the project, set gcc/g++ as the default compiler
-find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
-find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
-
-# project info
 project(freesurfer)
 cmake_minimum_required(VERSION 3.9)
 enable_language(C CXX Fortran)
@@ -170,7 +165,7 @@ if(BUILD_GUIS)
 endif()
 
 # -------- vtk --------
-set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1 CACHE PATH "VTK install directory")
+set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
 find_package(VTK HINTS ${VTK_DIR})
 if(VTK_FOUND AND NOT APPLE)
   # install the shared libraries to the freesurfer lib directory

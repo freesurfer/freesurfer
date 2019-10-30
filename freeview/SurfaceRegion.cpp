@@ -54,7 +54,7 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   QObject( owner )
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
