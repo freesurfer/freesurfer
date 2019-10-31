@@ -1,7 +1,9 @@
 14311777-6106-4ba8-8356-2bfb0d198b64 zkaufman@sand:/autofs/space/sand_001/users/zkaufman/temp/stable.sync/dev.git timestamp=1446754937.711084s
 16e5e991-f665-40b5-b639-35dc7e859f97 iglesias@panamint:/autofs/space/panamint_005/users/iglesias/software/freesurfer timestamp=1501607936.091872s
 1eb73610-836b-4182-ad7c-d3ad2de426d7 synmuse@Synmuses-MBP.fios-router.home:/Volumes/partition 2/freesurfer_src/git/freesurfer timestamp=1535157629.982358s
+27e8c265-2b81-4562-b337-04330e08e8be rd521@c6build:/autofs/cluster/freesurfer/build/c6build/trunk/rd521-dev timestamp=1558586925.059146s
 2d6647a1-868d-4754-8c81-24bc1895a66f zkaufman@sand:/autofs/space/sand_001/users/zkaufman/fsdev/trunk.sync.git/dev timestamp=1480438383.061009s
+328ccba6-d750-4c28-86cc-42b22f8aa295 osboxes@osboxes:~/git/freesurfer timestamp=1555364874.315012s
 355baba8-ad81-493a-8fe8-60d89339444a rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1532717960.237451s
 40f726d4-3c32-496f-99fc-80b36f2ca391 zkaufman@sand:/autofs/space/sand_001/users/zkaufman/temp/trunk.git/dev timestamp=1470841231.21786s
 459ad412-71d1-471a-80f8-4031d4a865c6 rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1532650679.24964s
@@ -20,9 +22,12 @@
 75e0cb41-cf09-4057-82e2-1894298e4186 rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1531176163.148445s
 77b904a8-4b1f-4734-9064-9d3c2e3a3e1a zkaufman@transfer:/autofs/cluster/pubftp/dist/freesurfer/repo/freesurfer.git timestamp=1444166341.990915s
 86abb331-a242-4607-8b52-15ae9d9c923a zkaufman@sand:/autofs/space/sand_001/users/zkaufman/freesurfer/dev timestamp=1467395998.330987s
+910363c5-96e6-484e-9e92-7ffee014cd1d osboxes@osboxes:~/git/freesurfer timestamp=1559259845.035934s
 9240fb38-adbe-4bfe-847a-bdd98d570f75 origin timestamp=1437153356.776948s
 9a8bd918-e920-4c39-bf99-b70b68e85907  timestamp=1491341316.75885s
+9e5053a6-4d10-4bb8-9aa0-2a356b0b85de rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1542351260.552757s
 a0ee0288-fd61-4445-8682-ce5407ce86ae rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1532726164.021081s
+afd97d89-9402-443c-b80b-68d711c95c32 rd521@topaz.nmr.mgh.harvard.edu:/autofs/space/topaz_001/topaz_nightly_build/trunk/rd521-dev timestamp=1549482643.036215s
 ba0b9401-2821-41d2-b9fc-f3319dc053e3 sand stable6 timestamp=1437161073.708035s
 bbb10393-3f65-45a0-bfa3-5d61af9a8034 localzeke@tulum:~/git_repos/freesurfer timestamp=1490022805.784771s
 bf5b776b-ca4b-404b-bb7f-e06f46f1b509 zkaufman@gate:/autofs/space/sand_001/users/zkaufman/git_repos/freesurfer timestamp=1488157030.735439s
