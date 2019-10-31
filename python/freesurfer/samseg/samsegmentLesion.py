@@ -1,5 +1,6 @@
 from freesurfer.samseg.samsegment import samsegment, initializeGMMParameters, getFullHyperparameters, \
     getLikelihoods, fitGMMParameters, getGaussianLikelihoods
+from freesurfer.samseg.figures import initVisualizer
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -472,7 +473,9 @@ def samsegmentLesion(imageFileNames, atlasDir, savePath,
                      visualizer=None, saveHistory=False, saveMesh=False,
                      targetIntensity=None, targetSearchStrings=None,
                      intensityMaskingPattern=None, intensityMaskingSearchString=None,
-                     lesionThreshold=None):
+                     lesionThreshold=None,
+                     savePosteriors=False,
+                     ):
     # We can't pass on user-specified options to plugins, so let's do it using global variables
     # (using underscore notation to stress they're global variables )
     global hyperMeans_, hyperMeansNumberOfMeasurements_, hyperVariances_, hyperVariancesNumberOfMeasurements_, \
@@ -485,6 +488,8 @@ def samsegmentLesion(imageFileNames, atlasDir, savePath,
     numberOfSamplingSteps_ = numberOfSamplingSteps
     numberOfBurnInSteps_ = numberOfBurnInSteps
     intensityMaskingPattern_ = intensityMaskingPattern
+    if visualizer is None:
+        visualizer = initVisualizer(False, False)
     visualizer_ = visualizer
 
     # Now call samsegment with plugins
@@ -498,4 +503,5 @@ def samsegmentLesion(imageFileNames, atlasDir, savePath,
                posteriorPlugin=getMCMCPosteriors,
                posteriorPluginVariables=['modelSpecifications.useDiagonalCovarianceMatrices',
                                          'mask', 'voxelSpacing', 'transform'],
-               threshold=lesionThreshold, thresholdSearchString=lesionSearchString)
+               threshold=lesionThreshold, thresholdSearchString=lesionSearchString,
+               savePosteriors=savePosteriors, saveHistory=saveHistory)
