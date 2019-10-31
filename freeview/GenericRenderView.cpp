@@ -53,6 +53,11 @@
 #include <QDateTime>
 #include <QDebug>
 
+// fix for retina screens
+#ifdef Q_OS_OSX
+#include "MacRetina.h"
+#endif
+
 #define MAX_KEY_LIGHT   1.8
 #define MIN_KEY_LIGHT   0.2
 #define MIN_RATIO_LIGHT   1.0/100
@@ -80,6 +85,10 @@ GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) : QVTKW
   setEnableHiDPI(true);
 #else
   vtkRenderWindow* renWin = GetRenderWindow();
+  // fix for retina screens
+#ifdef Q_OS_OSX
+  disableGLHiDPI(this->winId());
+#endif
 #endif
   renWin->AddRenderer(m_renderer);
 

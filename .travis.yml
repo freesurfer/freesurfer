@@ -2,7 +2,6 @@ sudo: required
 
 dist: trusty
 language: cpp
-compiler: gcc
 
 cache:
   - apt
@@ -11,31 +10,20 @@ cache:
 matrix:
   include:
     - os: linux
-
-addons:
-  apt:
-    packages:
-      - gfortran
-      - libxi-dev
-      - liblapack-dev
-      - python3.5-dev
-      - tcsh
-      - curl
-      - git
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - libxi-dev
+            - liblapack-dev
+            - python3.5-dev
+            - tcsh
+            - curl
+            - git
 
 install:
-  - travis/packages.sh
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
-      brew cask uninstall oclint ;
-      brew install gcc5 glib ;
-    fi
-
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
-      export CC=/usr/local/bin/gcc-5 ;
-      export CXX=/usr/local/bin/g++-5 ;
-      export FC=/usr/local/bin/gfortran-5 ;
-    fi
+  - curl --connect-timeout 8 --retry 5 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz
+  - tar -xzf centos7-packages.tar.gz
 
 script:
-  - travis/build.sh
+  - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF && make -j4

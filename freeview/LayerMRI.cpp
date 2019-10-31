@@ -116,7 +116,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_sPrimaryType = "MRI";
   
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -1653,7 +1653,7 @@ void LayerMRI::TargetIndexToOriginalIndex(const int *n_in, int *n_out)
 void LayerMRI::UpdateVectorLineWidth(double val)
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -1676,7 +1676,7 @@ void LayerMRI::UpdateVectorActor()
   this->blockSignals( true );
   double val = GetProperty()->GetVectorLineWidth();
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )

@@ -116,6 +116,7 @@
 #include "Annotation2D.h"
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
+#include <QDebug>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -899,12 +900,26 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
     {
-      QStringList script = QStringList("loadvolume") << floatingArgs[i];
-      if ( parser->Found( "r" ) )
+      QStringList fn_list;
+      if (floatingArgs[i].contains("*"))
       {
-        script << "r";
+        QStringList sublist = floatingArgs[i].split(":");
+        QFileInfoList fi_list = QDir().entryInfoList(QStringList(sublist[0]));
+      //  qDebug() << fi_list;
       }
-      cmds << script;
+      else
+      {
+        fn_list << floatingArgs[i];
+      }
+      for (int j = 0; j < fn_list.size(); j++)
+      {
+        QStringList script = QStringList("loadvolume") << fn_list[j];
+        if ( parser->Found( "r" ) )
+        {
+          script << "r";
+        }
+        cmds << script;
+      }
       bHasVolume = true;
     }
   }
@@ -2036,6 +2051,8 @@ void MainWindow::CommandLoadSubject(const QStringList &sa)
                          //                         "%1/surf/rh.orig:edgecolor=green:visible=0 "
                          "%1/surf/lh.inflated:annot=aparc:visible=0 "
                          "%1/surf/rh.inflated:annot=aparc:visible=0 "
+                         "%1/surf/lh.orig.nofix:overlay=%1/surf/lh.defect_labels:edgecolor=overlay:overlay_threshold=0.01,100,percentile:visible=0 "
+                         "%1/surf/rh.orig.nofix:overlay=%1/surf/rh.defect_labels:edgecolor=overlay:overlay_threshold=0.01,100,percentile:visible=0 "
                          "-viewport coronal ").arg(subject_path);
   QString control_pt_file = QString("%1/tmp/control.dat").arg(subject_path);
   if (QFile::exists(control_pt_file))

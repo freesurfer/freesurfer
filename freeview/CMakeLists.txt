@@ -195,23 +195,27 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     freeview.qrc
   )
 
-  if(NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
-    if(${VTK_MAJOR_VERSION} STREQUAL 5)
+  # if VTK version is < 8 and was not built against Qt, we must build the QVTKWidget utility
+  if(${VTK_MAJOR_VERSION} LESS 8 AND NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
+    if(${VTK_MAJOR_VERSION} LESS 7)
       include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK5)
       set(SOURCES ${SOURCES} QVTK5/QVTKWidget.cxx QVTK5/QVTKPaintEngine.cxx)
-    elseif(APPLE)
-      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK8)
+    else()
+      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK7)
       set(SOURCES ${SOURCES}
-        QVTK8/QVTKWidget.cxx
-        QVTK8/QVTKOpenGLWidget.cxx
-        QVTK8/QVTKOpenGLNativeWidget.cxx
-        QVTK8/QVTKOpenGLWindow.cxx
-        QVTK8/QVTKInteractor.cxx
-        QVTK8/QVTKInteractorAdapter.cxx
-        QVTK8/vtkEventQtSlotConnect.cxx
-        QVTK8/vtkQtConnection.cxx
+        QVTK7/vtkEventQtSlotConnect.cxx
+        QVTK7/vtkQtConnection.cxx
+        QVTK7/QVTKInteractor.cxx
+        QVTK7/QVTKInteractorAdapter.cxx
+        QVTK7/QVTKWidget.cxx
+        QVTK7/QVTKPaintEngine.cxx
       )
     endif()
+  endif()
+
+  # fix for retina screens interacting with QVTKWidget
+  if(${VTK_MAJOR_VERSION} LESS 8 AND APPLE)
+    set(SOURCES ${SOURCES} MacRetina.mm)
   endif()
 
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare -Wno-overloaded-virtual -Wno-inconsistent-missing-override)

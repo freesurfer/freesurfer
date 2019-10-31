@@ -1629,8 +1629,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
          MyMatrix::PolarDecomposition(A,R,S);
          if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
            ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error:  produced reflection.\n") ;
-         double eps = 0.00001;
-         
+         double eps = 0.0001;
          double fnorm1 = (S-I).frobenius_norm();
          if (fnorm1 > eps)
          {
@@ -1640,8 +1639,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
            vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
            vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
            vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
-           
-         
+           std::cerr << " Make sure input voxel sizes are identical for all images!" << std::endl;
            ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Rotation should not scale.\n") ;
          }
      

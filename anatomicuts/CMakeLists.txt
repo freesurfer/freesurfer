@@ -58,6 +58,32 @@ if(VTK_FOUND)
   target_link_libraries(dmri_saveHistograms ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_saveHistograms DESTINATION bin)
 
+#dmri_groupByEndpoints
+  add_executable(dmri_groupByEndpoints dmri_groupByEndpoints.cxx ${TRACKIO}) 
+  target_link_libraries(dmri_groupByEndpoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_groupByEndpoints DESTINATION bin)
+
+#dmri_extractSurfaceMeasurements
+  add_executable(dmri_extractSurfaceMeasurements dmri_extractSurfaceMeasurements.cxx ${TRACKIO}) 
+  target_link_libraries(dmri_extractSurfaceMeasurements utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_extractSurfaceMeasurements DESTINATION bin)
+
+#dmri_coloredFA
+  add_executable(dmri_coloredFA dmri_coloredFA.cxx ${TRACKIO})
+  target_link_libraries(dmri_coloredFA utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_coloredFA DESTINATION bin)
+
+#dmri_projectEndPoints
+  add_executable(dmri_projectEndPoints dmri_projectEndPoints.cxx ${TRACKIO})
+  target_link_libraries(dmri_projectEndPoints utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_projectEndPoints DESTINATION bin)
+
+#dmri_neighboringRegions
+  add_executable(dmri_neighboringRegions dmri_neighboringRegions.cxx ${TRACKIO})
+  target_link_libraries(dmri_neighboringRegions utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS dmri_neighboringRegions DESTINATION bin)
+
+
 else() 
 message("VTK not found")
 endif()
@@ -69,5 +95,6 @@ install(PROGRAMS
 
 install_pyscript(
 	diffusionUtils
-	anatomiCutsUtils.py
+	anatomiCutsUtils
+	dmri_violinPlots
 )

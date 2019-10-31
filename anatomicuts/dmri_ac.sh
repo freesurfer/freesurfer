@@ -96,20 +96,22 @@ function tractography()
 	else
 		fdwi=${DMRI_DIR}/${subject}/dmri/dwi.nii.gz
 	fi
+	fbval=${DMRI_DIR}/${subject}/dmri/bvals
+	fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
+	fxbvec=${DMRI_DIR}/${subject}/dmri/xbvecs
+	
 	if [[  ${2} == "GQI"  ]] ; then
 	
-		fbval=${DMRI_DIR}/${subject}/dmri/bvals
-		fbvec=${DMRI_DIR}/${subject}/dmri/bvecs
 		output=${DMRI_DIR}/${subject}/dmri/GQI/
 		rm ${DMRI_DIR}/${subject}/dmri/GQI/*.trk
 		mkdir -p ${DMRI_DIR}/${subject}/dmri/GQI/
 
-		#${FREESURFER_HOME}/bin/
-		diffusionUtils -f tractographyCSA -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
+		${FREESURFER_HOME}/bin/diffusionUtils -f tractography -d ${fdwi} -b ${fbval} -v ${fbvec} -s ${output}
 	else
 
+		${FREESURFER_HOME}/bin/diffusionUtils -f invert_bvecs -b ${fbval} -v ${fbvec} -a 0 -o ${fxbvec}
 		mkdir  ${DMRI_DIR}/${subject}/dmri/FOD/
-		mrconvert ${fdwi} -fslgrad ${DMRI_DIR}/${subject}/dmri/bvecs ${DMRI_DIR}/${subject}/dmri/bvals ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif -force
+		mrconvert  -fslgrad ${fxbvec} ${fbval} -force ${fdwi} ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif 
 		
 		dwi2mask ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/mask.mif -force 
 		dwi2response tournier ${DMRI_DIR}/${subject}/dmri/FOD/dwi.mif ${DMRI_DIR}/${subject}/dmri/FOD/response.txt -force 
@@ -154,7 +156,7 @@ function getMaps()
 		#cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/
 		#/space/freesurfer/python/linux/bin/python -c "import diffusionUtils;  diffusionUtils.getMaps($fdwi, $fbval, $fbvec,$output) " 
 	
-		diffusionUtils -f getMaps$model -d $fdwi -b $fbval -v $fbvec -s $output
+		${FREESURFER_HOME}/bin/diffusionUtils -f getMaps$model -d $fdwi -b $fbval -v $fbvec -s $output
 	else
 		echo "missing argument: dmri_ac.sh  getMaps SUBJECT_ID modelfit"
 		echo "modelfit: DTI, DKI"
@@ -165,15 +167,18 @@ function anat2dwi()
 {
 	echo "anat2dwi"
 	subject=$1
+	target=/FOD/fa.nii.gz
+	mat=/FOD/anat2dwi.mat
 	mri_convert ${SUBJECTS_DIR}/${subject}/mri/brain.mgz  ${SUBJECTS_DIR}/${subject}/mri/brain.nii.gz
-	flirt -in ${SUBJECTS_DIR}/${subject}/mri/brain.nii.gz -ref ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz -omat ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat
+	#flirt -in ${SUBJECTS_DIR}/${subject}/mri/brain.nii.gz -ref ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz -omat ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat
+	flirt -in ${SUBJECTS_DIR}/${subject}/mri/brain.nii.gz -ref ${DMRI_DIR}/${subject}/dmri/${target} -omat ${DMRI_DIR}/${subject}/dmri/${mat}
 
-	#bbregister --s ${subject} --mov ${diffusion}/${subject}/gfa_map.nii.gz --reg ${diffusion}/${subject}/anat2dwi.dat  --t2 --o ${diffusion}/${subject}/brain2dwi.nii.gz
-	#bbregister --s ${subject} --mov ${diffusion}/${subject}/gfa_map.nii.gz --reg ${diffusion}/${subject}/anat2dwi.dat --fslmat ${diffusion}/${subject}/anat2dwi.mat --t2 --o ${diffusion}/${subject}/brain2dwi.nii.gz
 	mri_aparc2aseg --s ${subject} --labelwm --hypo-as-wm --rip-unknown --volmask --o ${SUBJECTS_DIR}/${subject}/mri/wm2009parc.mgz --ctxseg aparc.a2009s+aseg.mgz
 	
-	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wm2009parc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
-	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wmparc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
+	#mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wm2009parc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
+	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wm2009parc.mgz --targ ${DMRI_DIR}/${subject}/dmri/${target} --o ${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/${mat} #--reg ${diffusion}/${subject}/anat2dwi.dat
+	#mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wmparc.mgz --targ ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz --o ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/GQI/anat2dwi.mat #--reg ${diffusion}/${subject}/anat2dwi.dat
+	mri_vol2vol --mov  ${SUBJECTS_DIR}/${subject}/mri/wmparc.mgz --targ ${DMRI_DIR}/${subject}/dmri/${target} --o ${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz --nearest --fsl ${DMRI_DIR}/${subject}/dmri/${mat} #--reg ${diffusion}/${subject}/anat2dwi.dat
 }
 
 function dwi2anat()
@@ -265,8 +270,11 @@ function GA()
 	targetSubject=$1
 	lenght=$2
 	std=$3
-
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DTI" -cf "/autofs/space/snoke_001/public/vivros/hd_tracula/labels_hd.csv" -cc 0:2 -cta 100 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga 2 -gb 1 -l ${lenght} -std ${std} 
+	labels_file=$4
+	groups=$5
+	groupA=$6
+	groupB=$7
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "${labels_file}" -cc ${groups} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} 
 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 2 -gb 1 -l ${lenght} -std ${std} 
@@ -326,9 +334,11 @@ function Measures()
 		mkdir -p ${anatomicuts}/measures/
 
 		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/DKI/dki_RD.nii.gz ]] ;
-		then 
+		then 	
+			#DKI
 			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 7 FA ${diff}/DKI/dki_FA.nii   MD ${diff}/DKI/dki_MD.nii   RD ${diff}/DKI/dki_RD.nii   AD ${diff}/DKI/dki_AD.nii   MK ${diff}/DKI/dki_MK.nii   RK ${diff}/DKI/dki_RK.nii   AK ${diff}/DKI/dki_AK.nii   -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		else
+			#DTI
 			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 4 FA ${diff}/DTI/dti_FA.nii.gz   MD ${diff}/DTI/dti_MD.nii   RD ${diff}/DTI/dti_RD.nii   AD ${diff}/DTI/dti_AD.nii  -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		fi
 
@@ -363,7 +373,7 @@ function ToTarget()
         mkdir ${images_clustering}
 	mkdir -p ${DMRI_DIR}/${subject}/dmri/${common}/
         
-	fsl_reg ${DMRI_DIR}/${subject}/dmri/GQI/gfa_map.nii.gz ${DMRI_DIR}/${targetSubject}/dmri/GQI/gfa_map.nii.gz ${DMRI_DIR}/${subject}/dmri/${common}/dwiTo${targetSubject} -e -FA 
+	fsl_reg ${DMRI_DIR}/${subject}/dmri/DTI/dti_FA.nii.gz ${DMRI_DIR}/${targetSubject}/dmri/DTI/dti_FA.nii.gz ${DMRI_DIR}/${subject}/dmri/${common}/dwiTo${targetSubject} -e -FA 
 
 	
 	#mri_cvs_register --mov ${subject} --template ${targetSubject}  --noaseg # --nointensity 
@@ -429,3 +439,4 @@ function average()
 }
 
 $@
+
