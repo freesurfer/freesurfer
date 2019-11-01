@@ -24,7 +24,7 @@ class MRIS_MultimodalRefinement {
 		float step=0.4;
 		int numberOfSteps =20;
 		double T2_max=200;
-		double T2_min_gray=120;
+		// double T2_min_gray=120;  unused
 		double T2_min=120;
 		double MAX_CSF=80;
 		double AVG_CSF=80;

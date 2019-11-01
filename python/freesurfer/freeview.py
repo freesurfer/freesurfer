@@ -100,6 +100,10 @@ class Freeview:
             opts: Additional arguments to append to the command.
         '''
 
+        if not self.items['volumes'] and not self.items['surfaces']:
+            error('nothing to load in freeview - not opening')
+            return
+
         cmd = 'freeview'
 
         # use vgl if remote since freeview can be a bit buggy
@@ -144,9 +148,12 @@ class Freeview:
                 volume = volume.astype('int32')
             # make sure dimensions are valid
             if volume.ndim > 4:
-               volume = volume.squeeze()
+                volume = volume.squeeze()
+                if volume.ndim > 4:
+                    error('freeview input array has %d dimensions' % volume.ndim)
+                    return None
             if volume.ndim < 3:
-               volume = volume[..., np.newaxis]
+                volume = volume[..., np.newaxis]
             # input is a nifty array
             filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
             vol = Volume(volume)
