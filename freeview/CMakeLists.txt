@@ -195,22 +195,20 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     freeview.qrc
   )
 
-  # if VTK version is < 8 and was not built against Qt, we must build the QVTKWidget utility
-  if(${VTK_MAJOR_VERSION} LESS 8 AND NOT EXISTS ${VTK_INCLUDE_DIRS}/QVTKWidget.h)
-    if(${VTK_MAJOR_VERSION} LESS 7)
-      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK5)
-      set(SOURCES ${SOURCES} QVTK5/QVTKWidget.cxx QVTK5/QVTKPaintEngine.cxx)
-    else()
-      include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK7)
-      set(SOURCES ${SOURCES}
-        QVTK7/vtkEventQtSlotConnect.cxx
-        QVTK7/vtkQtConnection.cxx
-        QVTK7/QVTKInteractor.cxx
-        QVTK7/QVTKInteractorAdapter.cxx
-        QVTK7/QVTKWidget.cxx
-        QVTK7/QVTKPaintEngine.cxx
-      )
-    endif()
+  # build the QVTKWidget utilities
+  if(${VTK_MAJOR_VERSION} LESS 7)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK5)
+    set(SOURCES ${SOURCES} QVTK5/QVTKWidget.cxx QVTK5/QVTKPaintEngine.cxx)
+  elseif(${VTK_MAJOR_VERSION} LESS 8)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK7)
+    set(SOURCES ${SOURCES}
+      QVTK7/vtkEventQtSlotConnect.cxx
+      QVTK7/vtkQtConnection.cxx
+      QVTK7/QVTKInteractor.cxx
+      QVTK7/QVTKInteractorAdapter.cxx
+      QVTK7/QVTKWidget.cxx
+      QVTK7/QVTKPaintEngine.cxx
+    )
   endif()
 
   # fix for retina screens interacting with QVTKWidget
