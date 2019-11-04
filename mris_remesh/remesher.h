@@ -271,7 +271,7 @@ class Remesher
 public:
 
   Remesher(const MRIS *surf);
-  void updateSurface(MRIS *surf);
+  MRIS * toSurface();
 
   void remeshBK(unsigned int it, double l = -1, bool ridge = false);
   

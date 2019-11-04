@@ -26,9 +26,9 @@ Remesher::Remesher(const MRIS *surf)
 }
 
 
-void Remesher::updateSurface(MRIS *surf)
+MRIS * Remesher::toSurface()
 {
-  MRISreallocVerticesAndFaces(surf, points3d.size(), tria.size());
+  MRIS * surf = MRISalloc(points3d.size(), tria.size());
 
   for (int n = 0 ; n < surf->nvertices ; n++) {
     Vector vtx = points3d[n];
@@ -36,12 +36,17 @@ void Remesher::updateSurface(MRIS *surf)
     MRISsetOriginalXYZ(surf, n, vtx[0], vtx[1], vtx[2]);
   }
 
+  setFaceAttachmentDeferred(surf, true);
   for (int n = 0 ; n < surf->nfaces ; n++) {
     std::vector<int> tri = tria[n];
-    surf->faces[n].v[0] = tri[0];
-    surf->faces[n].v[1] = tri[1];
-    surf->faces[n].v[2] = tri[2];
+    mrisAttachFaceToVertices(surf, n, tri[0], tri[1], tri[2]);
   }
+  setFaceAttachmentDeferred(surf, false);
+
+  mrisCompleteTopology(surf);
+  MRIScomputeMetricProperties(surf);
+
+  return surf;
 }
 
 
