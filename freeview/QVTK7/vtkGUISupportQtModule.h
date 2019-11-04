@@ -1,4 +1,3 @@
-
 #ifndef VTKGUISUPPORTQT_EXPORT_H
 #define VTKGUISUPPORTQT_EXPORT_H
 
@@ -34,6 +33,6 @@
 
 /* AutoInit dependencies.  */
 #include "vtkRenderingCoreModule.h"
-#include "vtkRenderingOpenGL2Module.h"
+#include "vtkRenderingOpenGLModule.h"
 
 #endif
