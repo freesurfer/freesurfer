@@ -95,6 +95,13 @@ void SurfaceAnnotation::Reset()
   m_nCenterVertices = NULL;
   m_data = NULL;
   m_lut = NULL;
+
+  for (int i = 0; i < m_bufferUndo.size(); i++)
+    m_bufferUndo[i].Free();
+  for (int i = 0; i < m_bufferRedo.size(); i++)
+    m_bufferRedo[i].Free();
+  m_bufferUndo.clear();
+  m_bufferRedo.clear();
 }
 
 bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
