@@ -13936,6 +13936,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
 
   int x;
   int nans = 0;
+  static int first = 1;
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
@@ -13955,7 +13956,14 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
           float val = MRIgetVoxVal(mri_dst, x, y, z, f);
           if (!isfinite(val)) {
             nans++;
-            MRIsetVoxVal(mri_dst, x, y, z, f, 0);
+	    if (getenv("FS_LEAVE_NANS") == NULL)
+	      MRIsetVoxVal(mri_dst, x, y, z, f, 0);
+	    if (first)
+	    {
+  printf("NaN found at voxel (%d, %d, %d, %d)\n", x, y, z, f);
+  first = 0;
+}
+
           }
         }
       }

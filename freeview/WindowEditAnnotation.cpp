@@ -25,6 +25,8 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
   connect(ui->colorpicker, SIGNAL(colorChanged(QColor)), SLOT(OnColorChanged(QColor)), Qt::QueuedConnection);
   connect(ui->treeWidgetAvailableLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(OnAvailableLabelClicked(QTreeWidgetItem*)));
   connect(ui->pushButtonSet, SIGNAL(clicked(bool)), SLOT(OnButtonSet()));
+  connect(ui->pushButtonRedo, SIGNAL(clicked(bool)), SLOT(OnButtonRedo()));
+  connect(ui->pushButtonUndo, SIGNAL(clicked(bool)), SLOT(OnButtonUndo()));
 
   QSettings settings;
   QVariant v = settings.value("WindowEditAnnotation/Geometry");
@@ -80,6 +82,10 @@ void WindowEditAnnotation::UpdateUI()
 
     foreach (QWidget* w, list)
       w->blockSignals(false);
+
+    SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
+    ui->pushButtonRedo->setEnabled(annot && annot->HasRedo());
+    ui->pushButtonUndo->setEnabled(annot && annot->HasUndo());
   }
 }
 
@@ -408,4 +414,22 @@ void WindowEditAnnotation::OnButtonSet()
         PopulateColorTable();
     }
   }
+}
+
+void WindowEditAnnotation::OnButtonUndo()
+{
+  if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
+      return;
+
+  m_layerSurface->GetActiveAnnotation()->Undo();
+  UpdateUI();
+}
+
+void WindowEditAnnotation::OnButtonRedo()
+{
+  if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
+      return;
+
+  m_layerSurface->GetActiveAnnotation()->Redo();
+  UpdateUI();
 }

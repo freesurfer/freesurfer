@@ -95,6 +95,13 @@ void SurfaceAnnotation::Reset()
   m_nCenterVertices = NULL;
   m_data = NULL;
   m_lut = NULL;
+
+  for (int i = 0; i < m_bufferUndo.size(); i++)
+    m_bufferUndo[i].Free();
+  for (int i = 0; i < m_bufferRedo.size(); i++)
+    m_bufferRedo[i].Free();
+  m_bufferUndo.clear();
+  m_bufferRedo.clear();
 }
 
 bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
@@ -483,6 +490,7 @@ void SurfaceAnnotation::SetHighlightedLabel(int n)
 
 void SurfaceAnnotation::EditLabel(const QVector<int> &verts, int fill_index, const QVariantMap &options)
 {
+  SaveForUndo();
   int fill_annot = -1;
   if (options["CreateLabel"].toBool())
   {
@@ -544,6 +552,7 @@ QColor SurfaceAnnotation::GenerateNewColor()
 
 void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id)
 {
+  SaveForUndo();
   int src_annot;
   if (nId >= UNASSIGNED_ANNOT_BASE)
   {
@@ -591,6 +600,7 @@ void SurfaceAnnotation::UpdateColorList()
 
 void SurfaceAnnotation::UpdateLabelInfo(int i, const QString &name, const QColor &color)
 {
+  SaveForUndo();
   QColor old_color;
   if (i < UNASSIGNED_ANNOT_BASE)
   {
@@ -653,4 +663,81 @@ bool SurfaceAnnotation::SaveToFile(const QString &fn)
     mris->vertices[i].annotation = m_data[i];
 
   return (::MRISwriteAnnotation(mris, qPrintable(fn)) == 0);
+}
+
+bool SurfaceAnnotation::HasUndo()
+{
+  return m_bufferUndo.size() > 0;
+}
+
+bool SurfaceAnnotation::HasRedo()
+{
+  return m_bufferRedo.size() > 0;
+}
+
+AnnotUndoRedoBufferItem SurfaceAnnotation::SaveCurrentUndoRedoBuffer()
+{
+  AnnotUndoRedoBufferItem item;
+  item.m_data = new int[m_nIndexSize];
+  memcpy(item.m_data, m_data, sizeof(int)*m_nIndexSize);
+  item.m_listVisibleLabels = m_listVisibleLabels;
+  item.m_mapNewLabels = m_mapNewLabels;
+  return item;
+}
+
+void SurfaceAnnotation::RestoreFromUndoRedoBuffer(const AnnotUndoRedoBufferItem &item)
+{
+  memcpy(m_data, item.m_data, sizeof(int)*m_nIndexSize);
+  m_listVisibleLabels = item.m_listVisibleLabels;
+  m_mapNewLabels = item.m_mapNewLabels;
+  UpdateData();
+  SetModified();
+}
+
+void SurfaceAnnotation::Undo()
+{
+  if ( m_bufferUndo.size() > 0 )
+  {
+    AnnotUndoRedoBufferItem item = m_bufferUndo[m_bufferUndo.size()-1];
+    m_bufferUndo.pop_back();
+
+    m_bufferRedo.push_back( SaveCurrentUndoRedoBuffer() );
+
+    RestoreFromUndoRedoBuffer( item );
+    item.Free();
+
+    SetModified();
+//    emit ActorUpdated();
+    emit Modified();
+  }
+}
+
+void SurfaceAnnotation::Redo()
+{
+  if ( m_bufferRedo.size() > 0 )
+  {
+    AnnotUndoRedoBufferItem item = m_bufferRedo[m_bufferRedo.size()-1];
+    m_bufferRedo.pop_back();
+
+    m_bufferUndo.push_back( SaveCurrentUndoRedoBuffer() );
+
+    RestoreFromUndoRedoBuffer( item );
+    item.Free();
+
+    SetModified();
+//    emit ActorUpdated();
+    emit Modified();
+  }
+}
+
+void SurfaceAnnotation::SaveForUndo()
+{
+  m_bufferUndo.push_back( SaveCurrentUndoRedoBuffer() );
+
+  // clear redo buffer
+  for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
+  {
+    m_bufferRedo[i].Free();
+  }
+  m_bufferRedo.clear();
 }
