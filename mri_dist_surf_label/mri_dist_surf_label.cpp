@@ -71,7 +71,8 @@ int main(int argc, char *argv[]) {
   }
 
   MRI *mri_surf_dist;
-  mri_surf_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5); MRIwrite(mri_surf_dist, "/tmp/wd.mgz");
+  mri_surf_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5); 
+  MRIwrite(mri_surf_dist, "./wd.mgz");
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_surf_dist);
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
@@ -106,6 +107,18 @@ int main(int argc, char *argv[]) {
     wdist = MRIgetVoxVal(mri_surf_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0);
     fprintf(stderr, "Distance: %f\n", wdist);
   }
+  LabelToVoxel(area, mri_surf_dist, area) ;
+  for (int i = 0 ;  i  < area->n_points ; i++) { // going through all points stored in the label file
+    double dist ;
+
+    xw =  area->lv[i].x ;
+    yw =  area->lv[i].y ;
+    zw =  area->lv[i].z ;
+    fprintf(stderr, "Label voxel coordinates: (%f, %f, %f)\n", xw, yw, zw);
+    MRIsampleVolume(mri_surf_dist, xw, yw, zw, &dist) ;
+    fprintf(stderr, "Distance: %2.2f\n", dist);
+  }
+
 }
  
 static int
