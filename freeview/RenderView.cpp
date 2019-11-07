@@ -109,7 +109,7 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   m_actorFocusFrame->SetMapper(pMapper);
   m_actorFocusFrame->GetProperty()->SetColor( 0.9, 0.9, 0);
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = devicePixelRatio();
 #endif
   m_actorFocusFrame->GetProperty()->SetLineWidth( 5*ratio );
@@ -320,7 +320,7 @@ void RenderView::WorldToScreen( double world_x, double world_y, double world_z, 
 {
   double dx, dy, dz;
   MyVTKUtils::WorldToViewport( m_renderer, world_x, world_y, world_z, dx, dy, dz );
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       dx /= devicePixelRatio();
@@ -334,7 +334,7 @@ void RenderView::WorldToScreen( double world_x, double world_y, double world_z, 
 void RenderView::ScreenToWorld( int x, int y, int z, double& world_x, double& world_y, double& world_z )
 {
   y = rect().height()-y;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       x *= devicePixelRatio();
@@ -617,7 +617,7 @@ int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
   picker->InitializePickList();
   picker->AddPickList( prop );
   posY = this->rect().height() - posY;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
       posX *= devicePixelRatio();

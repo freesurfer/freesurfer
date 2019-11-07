@@ -88,7 +88,7 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
   m_actorScaleLine = vtkSmartPointer<vtkActor2D>::New();
   m_actorScaleLine->SetMapper( vtkSmartPointer<vtkPolyDataMapper2D>::New() );
   int line_w = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_actorScaleLine->GetProperty()->SetLineWidth( line_w );

@@ -54,7 +54,7 @@ VolumeCropper::VolumeCropper( QObject* parent ) :
   m_actorBox->PickableOff();
 
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   QWidget* w = qobject_cast<QWidget*>(parent);
   if (w)
     ratio = w->devicePixelRatio();

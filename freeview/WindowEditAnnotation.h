@@ -41,6 +41,8 @@ public slots:
   void PopulateAvailableColorTable();
   void OnAvailableLabelClicked(QTreeWidgetItem* item);
   void OnButtonSet();
+  void OnButtonUndo();
+  void OnButtonRedo();
 
 private:
   void UpdateLabelItem(QTreeWidgetItem* item, int i, const QString& name, const QColor& color);

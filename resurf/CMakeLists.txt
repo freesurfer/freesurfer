@@ -56,4 +56,8 @@ if(ITK_FOUND AND VTK_FOUND)
   target_link_libraries(mris_curvature2image utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_curvature2image DESTINATION bin)
 
+  add_executable(mris_extract_values mris_extract_values.cxx)
+  target_link_libraries(mris_extract_values utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  install(TARGETS mris_extract_values DESTINATION bin)
+
 endif()

@@ -10,6 +10,8 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 	vtkSmartPointer<vtkPoints> pointsCC_3V = vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkPoints> pointsCC1 = vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkPoints> pointsCC5 = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkPoints> pointsCCmid = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkPoints> points3V = vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkPoints> rhThalamus= vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkPoints> lhThalamus = vtkSmartPointer<vtkPoints>::New();
 
@@ -44,6 +46,14 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 			lhThalamus->InsertNextPoint(point[0],point[1], point[2]);
 		}
 
+		if(pixel == 14 || (pixel ==175 && m_baby)) 
+		{
+			points3V->InsertNextPoint(point[0],point[1], point[2]);
+		}
+		if(pixel == 252 || pixel ==254  ||   (pixel ==3026 && m_baby)|| (pixel ==4026 && m_baby) || (pixel== 3010 && m_baby)|| (pixel== 4010 && m_baby) ) // || pixel == 255 || pixel == 251)
+		{
+			pointsCCmid->InsertNextPoint(point[0],point[1], point[2]);
+		}
 	}
 /*	std::cout <<  pointsCC_3V->GetNumberOfPoints() << std::endl;
 	std::cout <<  pointsCC1->GetNumberOfPoints() << std::endl;
@@ -160,7 +170,7 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 	{
 		for(int i=0;i<3;i++)
 		{
-			directionLhRh[i]= -directionLhRh[i];		
+			normal[i]= -directionLhRh[i];		
 		}
 	}
 
@@ -242,11 +252,46 @@ void OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Generate
 			this->GetOutput()->SetPixel(index, 155);
 		}
 	}
+	//orient the axial plane from down to up
+	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
+	polydata->SetPoints(pointsCCmid);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
+	centerOfMassFilter->SetInput(polydata);
+#endif
+	centerOfMassFilter->SetUseScalarsAsWeights(false);
+	centerOfMassFilter->Update();
+	
+	double CCmidCenter[3];
+	centerOfMassFilter->GetCenter(CCmidCenter);
+
+	centerOfMassFilter =	vtkSmartPointer<vtkCenterOfMass>::New();
+	polydata->SetPoints(points3V);
+#if VTK_MAJOR_VERSION > 5
+	centerOfMassFilter->SetInputData(polydata);
+#else
+	centerOfMassFilter->SetInput(polydata);
+#endif
+	centerOfMassFilter->SetUseScalarsAsWeights(false);
+	centerOfMassFilter->Update();
+	
+	double center3V[3];
+	centerOfMassFilter->GetCenter(center3V);
+	double directionDownUp[3];
+	innerProduct=0;
+	for(int i=0;i<3;i++)
+	{
+		directionDownUp[i]= CCmidCenter[i]- center3V[i];
+		innerProduct+=directionDownUp[i]*axial->GetNormal()[i];
+	}
 	for(int i=0;i<3;i++)
 	{
 		m_LeftRight[i]=normal[i];
-		m_UpDown=axial->GetNormal()[i];
-
+		if( innerProduct <0)
+			m_UpDown[i]=-axial->GetNormal()[i];
+		else
+			m_UpDown[i]=axial->GetNormal()[i];
 	}	
 	m_FrontBack.SetVnlVector(vnl_cross_3d(m_LeftRight.GetVnlVector(), m_UpDown.GetVnlVector()));
 	m_FrontBack.Normalize();

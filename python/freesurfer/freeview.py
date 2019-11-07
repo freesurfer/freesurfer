@@ -60,7 +60,7 @@ class Freeview:
             return
 
         if name is not None:
-            opts += ':name=' + name
+            opts += ':name=' + name.replace(' ', '-')
         if colormap is not None:
             opts += ':colormap=' + colormap
         if opacity is not None:
@@ -83,7 +83,7 @@ class Freeview:
             return
 
         if name is not None:
-            opts += ':name=' + name
+            opts += ':name=' + name.replace(' ', '-')
         if overlay is not None:
             overlay = self._overlay_to_vol(overlay)
             opts += ':overlay=' + self._get_volume_file(overlay, 'overlay', np.eye(4))
@@ -99,6 +99,10 @@ class Freeview:
             background: Run freeview as a background process. Defaults to True.
             opts: Additional arguments to append to the command.
         '''
+
+        if not self.items['volumes'] and not self.items['surfaces']:
+            error('nothing to load in freeview - not opening')
+            return
 
         cmd = 'freeview'
 
@@ -142,6 +146,14 @@ class Freeview:
             # int64 MRI IO isn't very stable, so convert to int32 for now
             if volume.dtype == 'int64':
                 volume = volume.astype('int32')
+            # make sure dimensions are valid
+            if volume.ndim > 4:
+                volume = volume.squeeze()
+                if volume.ndim > 4:
+                    error('freeview input array has %d dimensions' % volume.ndim)
+                    return None
+            if volume.ndim < 3:
+                volume = volume[..., np.newaxis]
             # input is a nifty array
             filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
             vol = Volume(volume)

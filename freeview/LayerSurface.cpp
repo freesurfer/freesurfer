@@ -48,6 +48,9 @@
 #include "vtkPointData.h"
 #include "vtkTubeFilter.h"
 #include "vtkCellArray.h"
+#include "vtkSTLWriter.h"
+#include "vtkTransformPolyDataFilter.h"
+#include "vtkTransform.h"
 #include "FSSurface.h"
 #include "LayerMRI.h"
 #include "SurfaceAnnotation.h"
@@ -119,7 +122,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
 
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
@@ -279,6 +282,29 @@ bool LayerSurface::SaveSurface( const QString& filename )
     ResetModified();
     return true;
   }
+}
+
+bool LayerSurface::SaveSurfaceAsSTL(const QString &fn)
+{
+  vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
+  tr->DeepCopy(m_surfaceSource->GetSurfaceToRasTransform());
+  vtkSmartPointer<vtkTransformPolyDataFilter> filter =
+        vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  filter->SetTransform( tr );
+#if VTK_MAJOR_VERSION > 5
+  filter->SetInputData( m_surfaceSource->GetPolyData() );
+#else
+  filter->SetInput( m_surfaceSource->GetPolyData() );
+#endif
+  filter->Update();
+  vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
+  writer->SetFileName(fn.toLatin1().constData());
+#if VTK_MAJOR_VERSION > 5
+  writer->SetInputData( filter->GetOutput() );
+#else
+  writer->SetInput( filter->GetOutput() );
+#endif
+  return writer->Write();
 }
 
 bool LayerSurface::SaveSurface( )
@@ -767,7 +793,7 @@ void LayerSurface::InitializeActors()
 
     double line_w = GetProperty()->GetEdgeThickness();
     double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
     ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
     m_sliceActor2D[i]->SetMapper( mapper );
@@ -819,7 +845,7 @@ void LayerSurface::UpdateOpacity()
 void LayerSurface::UpdateEdgeThickness()
 {
   double line_w = GetProperty()->GetEdgeThickness();
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w *= MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -853,7 +879,7 @@ void LayerSurface::UpdateEdgeThickness()
 void LayerSurface::UpdateVectorPointSize()
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -1685,7 +1711,7 @@ void LayerSurface::UpdateRenderMode()
   //  m_mainActor->GetProperty()->EdgeVisibilityOff();
   //  m_mainActor->GetProperty()->BackfaceCullingOn();
   double line_w = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   switch ( GetProperty()->GetSurfaceRenderMode() )
@@ -1797,7 +1823,7 @@ SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
 void LayerSurface::UpdateVertexRender()
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_vertexActor->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );

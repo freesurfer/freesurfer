@@ -2050,6 +2050,7 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRIScorners(MRIS *surf);
+MRIS *MRIScopyMetadata(MRIS const * source, MRIS * target);
 int MRISfixAverageSurf7(MRIS *surf7);
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 

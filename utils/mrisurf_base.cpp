@@ -648,6 +648,24 @@ void MRISreallocVerticesAndFaces(MRIS *mris, int nvertices, int nfaces) {
 }
 
 
+MRIS* MRIScopyMetadata(MRIS const * source, MRIS * target)
+{
+  if (!target) target = MRISalloc(source->nvertices, source->nfaces);
+
+  target->type = source->type;
+  target->status = source->status;
+  target->hemisphere = source->hemisphere;
+
+  copyVolGeom(&source->vg, &target->vg);
+
+  target->lta = LTAcopy(source->lta, nullptr);
+  target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);
+  target->TalSRASToSRAS_ = MatrixCopy(source->TalSRASToSRAS_, nullptr);
+
+  return target;
+}
+
+
 void MRISctr(MRIS *mris, int max_vertices, int max_faces, int nvertices, int nfaces) {
   // This should be the ONLY place where an MRIS is constructed
   //

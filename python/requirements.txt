@@ -5,3 +5,4 @@ scipy==1.0.0
 sklearn
 nipype
 dipy
+matplotlib

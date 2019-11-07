@@ -345,6 +345,11 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   return true;
 }
 
+vtkTransform* FSSurface::GetSurfaceToRasTransform()
+{
+    return m_SurfaceToRASTransform;
+}
+
 void FSSurface::UpdateHashTable(int nSet, int coord)
 {
   if (m_HashTable[nSet])

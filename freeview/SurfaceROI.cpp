@@ -55,7 +55,7 @@ SurfaceROI::SurfaceROI( LayerSurface* owner ) :
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_actorOutline->GetProperty()->SetLineWidth(4*ratio);
