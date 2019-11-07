@@ -452,6 +452,7 @@ if(NOT MINIMAL)
     mri_cvs_register
     mri_dct_align
     mri_distance_transform
+    mri_dist_surf_label
     mri_evaluate_morph
     mri_extract
     mri_extract_fcd_features
@@ -558,6 +559,7 @@ if(NOT MINIMAL)
     mris_register_label_map
     mris_register_to_volume
     mris_remove_variance
+    mris_remesh
     mris_resample
     mris_rescale
     mris_reverse

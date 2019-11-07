@@ -100,6 +100,10 @@ class Freeview:
             opts: Additional arguments to append to the command.
         '''
 
+        if not self.items['volumes'] and not self.items['surfaces']:
+            error('nothing to load in freeview - not opening')
+            return
+
         cmd = 'freeview'
 
         # use vgl if remote since freeview can be a bit buggy
