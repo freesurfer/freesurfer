@@ -442,6 +442,7 @@ if(NOT MINIMAL)
     mri_cvs_register
     mri_dct_align
     mri_distance_transform
+    mri_dist_surf_label
     mri_evaluate_morph
     mri_extract
     mri_extract_fcd_features
