@@ -28,15 +28,22 @@ set force               = 0 # force overwrite; delete all previously generated f
 
 set withGMWM            = 1
 set forcegmwm           = 0 # if set, check that at least one training subject has a GMWM segmentation!
-set forcegmwm2          = 0 # if set, force to choose at least one training subject has a GMWM segmentation!
+set forcegmwm2          = 1 # if set, force to choose at least one training subject has a GMWM segmentation!
 
 set avoidtraining       = 0
 set setksize            = 0
 
+set computeCCseg        = 1
+
 set useMI               = 0
 set PrintHelp = 0;
 
-source $FREESURFER_HOME/bin/set_infant_recon_params.csh
+# set gputype = -1 # ny default will not be using the GPU version; CUDA/tensorflow assumes you have and are using a GPU unless otherwise stated with "-1"
+set gpuID   = 0  # unless otherwise specified by the user
+set usegpu  = 0
+
+# source $FREESURFER_HOME/bin/set_infant_recon_params.csh
+source set_infant_recon_params.csh
 set TEMPLATE_SUBJECTS = ($CNYBCH_SUBJECTS) # the full CNYBCH training set
 set TEMPLATE_AGES     = ($CNYBCH_AGES)
 setenv TEMPLATE_SUBJECTS_DIR  $CNYBCH_TEMPLATE_SUBJECTS_DIR 
@@ -129,6 +136,14 @@ while( $#argv != 0 )
     case "--gmwm2":
       set forcegmwm2 = 1; 
       breaksw
+    case "--usegpu":
+      set usegpu = 1;
+      breaksw
+    case "--gpuid":
+      if ( $#argv < 1) goto arg1err;
+      set gpuid = $argv[1]; shift;
+      set usegpu = 1;
+      breaksw
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -164,6 +179,11 @@ endif
 # If running on the cluster, do not use freeview for checking the results.
 if($CLUSTERRUN) then
   set checkresults = 0
+endif
+
+#GPU ID
+if !($usegpu) then 
+  set gpuid = -1
 endif
 
 ##
@@ -295,7 +315,18 @@ set maskfile   = ${infile:r:r}.mask.nii.gz
 set maskedfile = ${maskfile:r:r}ed.nii.gz
 
 if !(-e $maskfile) then
-  set cmd = (picasso.sh -in  ${infile} -out ${maskfile} -pediatric)
+
+  # find out whether the computer is working with a GPU
+
+  # -use-gpu : use GPU versions of the skullstripper: sscnn_skullstrip.py
+  # $gpuID = 0 (otherwise user can specify it)
+
+  set cmd = (python sscnn_skullstrip.py -i ${infile} -o $WORK_DIR/sscnn -c t1w -gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if ($status) exit 1;
+  set cmd = (mv $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz $maskfile) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -466,19 +497,21 @@ foreach tsubj ($TEMPLATE_SUBJECTS)
       $cmd |& tee -a $LF
       if ($status) exit 1;
     endif
-    set out         = $WORK_DIR/${tsubj}-2-${subj}.DRAMMS.nii.gz
+    set out         = $WORK_DIR/${tsubj}-2-${subj}.NIFTYREG.nii.gz
     set outtemplate = ${out:h}/manseg-${out:t}
-    # set logfile = ${out:r:r}.log
-    set def     = ${out:r:r}.field.nii.gz
+    set def         = ${out:r:r}.field.nii.gz
     if !( -e $def ) then 
-      # set cmd = ($cmddir/dramms -S $in -T $ref -O $out -D $def -v -v ) # > ${logfile})
-      set cmd = (dramms -S $in -T $ref -O $out -D $def -v -v ) # > ${logfile})
+      set cmd = ($niftycmddir/reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+                                         -res ${out:r:r}.affine.nii.gz -voff)
+      set cmd = ($cmd; $niftycmddir/reg_f3d -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+                                            -cpp $def -res $out) # -omp                                                                                                                                                                                                                          
+
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if ($status) exit 1;
-      # set cmd = ($cmddir/dramms-warp $templatefile $def $outtemplate -n)
-      set cmd = (dramms-warp $templatefile $def $outtemplate -n)
+      set cmd = ($niftycmddir/reg_resample -ref $ref -flo $templatefile \
+                                           -trans $def -res $outtemplate -inter 0)
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -556,7 +589,7 @@ if ($withaparc) then
 endif
 
 # aseg with GM/WM and not parcellations
-set aseggmwmfile = ${asegfile:r:r}.GMWM.nii.gz  # TODO: this might be a misnomer is no GMWM
+set aseggmwmfile = ${asegfile:r:r}.GMWM.nii.gz  # TODO: this might be a misnomer if no GMWM
 set cmd = (cp $asegfile $aseggmwmfile)
 echo $cmd >> $LF
 echo $cmd >> $sLF
@@ -770,15 +803,32 @@ echo $cmd >> $sLF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+## add segmentation of the CC
+if ($computeCCseg) then
+set cmd = (mri_cc -aseg aseg.mgz -o aseg_CCseg.mgz $subj)
+echo $cmd >> $LF
+echo $cmd >> $sLF
+$cmd |& tee -a $LF
+if($status) exit 1;
+endif
+
 popd
 
 unsetenv SUBJECTS_DIR
 setenv SUBJECTS_DIR $WORK_DIR
 
-## needed for ribbon / stats files
+## needed for ribbon / stats files: new registration 06/17/2019
 if !(-e $datadir/$subj/mri/transforms/talairach.auto.xfm) then
   pushd $datadir/$subj/mri/
-  set cmd = (talairach_avi --i $maskedfile  --xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
+  set targ = $FREESURFER_HOME/average/mni305.cor.mgz
+  set cmd = (mri_convert $targ ./${targ:t:r}.nii.gz)
+  set talaffine = $datadir/$subj/mri/transforms/niftyreg_affine.txt
+  set cmd = ($niftycmddir/reg_aladin -ref ./${targ:t:r}.nii.gz -flo $maskedfile -aff $talaffine \
+                                     -res ${talaffine:r}.nii.gz  -voff)
+  set cmd = ($cmd; lta_convert --inniftyreg $talaffine --outlta ${talaffine:r}.lta \
+                                     --outmni ${talaffine:r}.xfm --src $maskedfile --trg ./${targ:t:r}.nii.gz)
+  set cmd = ($cmd; rm -f ./${targ:t:r}.nii.gz)
+  set cmd = ($cmd; ln -s ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -801,7 +851,8 @@ echo Creating wm surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.white) then
 # if !(-e $SUBJECTS_DIR/$subj/label/rh.aparc.annot) then
 if (1) then # 06/14/2017
-  set cmd = (source $FREESURFER_HOME/bin/create_wm_surfaces_mprage_subject.csh --s $subj) 
+  # set cmd = (source $FREESURFER_HOME/bin/create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (source create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -812,7 +863,8 @@ endif
 echo Creating pial surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.pial) then
 if !(-e $SUBJECTS_DIR/$subj/surf/rh.thickness) then
-  set cmd = (source $FREESURFER_HOME/bin/create_pial_surfaces_mprage_subject.csh --s $subj)
+  # set cmd = (source $FREESURFER_HOME/bin/create_pial_surfaces_mprage_subject.csh --s $subj)
+  set cmd = (source create_pial_surfaces_mprage_subject.csh --s $subj)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -845,6 +897,11 @@ foreach hemi (lh rh)
   if($status) exit 1;
 end
 popd
+
+#pushd $SUBJECTS_DIR/$s.EB
+#set cmd = (mri_segstats --seg mri/aseg.mgz --sum aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --e
+#uler --ctab /usr/local/freesurfer/stable6_0_0/ASegStatsLUT.txt --subject $s.EB)
+#popd
 
 ##
 
@@ -904,7 +961,7 @@ echo "Successfully finished infant_recon_all" >> $LF
 echo "Successfully finished infant_recon_all" >> $sLF
 set EndTime = `date +%s`;
 @ DiffTime = $EndTime - $StartTime
-set TimeMsg = "infant_recon_all: The whole process took $DiffTime seconds"
+set TimeMsg = "infant_recon_all: The whole process took $DiffTie seconds"
 echo $TimeMsg |& tee -a $sLF
 echo $TimeMsg >> $LF
 exit 0;
