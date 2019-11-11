@@ -9,9 +9,9 @@ set VERSION = '$Id: infant_recon_all,v 1.00 2017/01/10 12:27:40 lzollei Exp $';
 
 set checkresults        = 0 # after each processing step FreeView is called to visualize the results
 set nolog               = 0 # keep logging the processing steps
-set cleanup             = 0 # eventually turn this on
+set cleanup             = 1 # eventually turn this on
 
-set withaparc           = 0 # segmentation with parcellation labels -- TODO: NOT TESTED with parcellated templates yet!!
+set withaparc           = 0 # training data set with parcellation labels
 set fsdirset            = 0
 set maskedinput         = 0
 
@@ -19,14 +19,12 @@ set maskedinput         = 0
 set defaultinfants      = 1 # CNY-BCH training set
 set newborns            = 0
 set oneyearolds         = 0
-set withUCT             = 0
-set allnewborns         = 0
 set trainingsetsize     = 4 # set, by default, only for full  CNY-BCH templates
 set subjage             = -10
 
 set force               = 0 # force overwrite; delete all previously generated files / directories
 
-set withGMWM            = 1
+set withGMWM            = 1 # just testing if GM/WM is present
 set forcegmwm           = 0 # if set, check that at least one training subject has a GMWM segmentation!
 set forcegmwm2          = 1 # if set, force to choose at least one training subject has a GMWM segmentation!
 
@@ -41,6 +39,10 @@ set PrintHelp = 0;
 # set gputype = -1 # ny default will not be using the GPU version; CUDA/tensorflow assumes you have and are using a GPU unless otherwise stated with "-1"
 set gpuID   = 0  # unless otherwise specified by the user
 set usegpu  = 0
+
+# non-linear registration choice
+# set regtype   = NIFTYREG # by default instead of dramms -- already set in recon_params.csh
+set usedramms = 0      # still here for backwards compatibility
 
 # source $FREESURFER_HOME/bin/set_infant_recon_params.csh
 source set_infant_recon_params.csh
@@ -103,22 +105,6 @@ while( $#argv != 0 )
       set oneyearolds = 1; # use one-year-old training set from CNY-BCH for the processing
       set TEMPLATE_SUBJECTS = ($CNYBCH_AROUNDONE) 
       breaksw
-    case "--UCT":
-      set defaultinfants = 0;
-      set withUCT = 1; # use newborn training set from South Africa for the processing
-      set TEMPLATE_SUBJECTS = ($UCT_SUBJECTS)
-      unsetenv TEMPLATE_SUBJECTS_DIR
-      setenv TEMPLATE_SUBJECTS_DIR  $UCT_TEMPLATE_SUBJECTS_DIR  
-     breaksw
-    case "--allnewborns":
-      set defaultinfants = 0;
-      set allnewborns = 1; # use all available newborn training sets (CNY-BCH, UCT); TODO: implement! also ask for number of subset!!
-      set TEMPLATE_SUBJECTS = ($CNYBCH_NEONATES $UCT_SUBJECTS)
-      unsetenv TEMPLATE_SUBJECTS_DIR
-      setenv TEMPLATE_SUBJECTS_DIR /tmp
-      echo "NOT IMPLEMENTED YET!"
-      exit 1
-      breaksw
     case "--force":
       set force = 1; 
       breaksw
@@ -138,6 +124,10 @@ while( $#argv != 0 )
       breaksw
     case "--usegpu":
       set usegpu = 1;
+      breaksw
+    case "--usedramms":
+      set usedramms = 1;
+      set regtype = DRAMMS;
       breaksw
     case "--gpuid":
       if ( $#argv < 1) goto arg1err;
@@ -171,7 +161,7 @@ if(($defaultinfants) && ($subjage < 0)) then
   echo "ERROR: must set the age (in months!) for the subject to be analyzed"
   exit 1;
 endif
-if !($defaultinfants + $newborns + $oneyearolds + $withUCT + $allnewborns == 1) then
+if !($defaultinfants + $newborns + $oneyearolds == 1) then
   echo "ERROR: trainingset erroneously defined"
   exit 1;
 endif
@@ -220,10 +210,6 @@ else
 endif
 echo "Logfile for infant_recon_all" >> $LF
 echo "Summary logfile for infant_recon_all" >> $sLF
-if ($withUCT) then
-  echo "** Using the South African training data set **" >> $LF
-  echo "** Using the South African training data set **" >> $sLF
-endif
 if ($newborns) then
   echo "** Using CNYBCH newborns as training data set **" >> $LF
   echo "** Using CNYBCH newborns as training data set **" >> $sLF
@@ -315,52 +301,49 @@ set maskfile   = ${infile:r:r}.mask.nii.gz
 set maskedfile = ${maskfile:r:r}ed.nii.gz
 
 if !(-e $maskfile) then
+    # -use-gpu : use GPU versions of the skullstripper: sscnn_skullstrip.py
+    # $gpuID = 0 (otherwise user can specify it)
 
-  # find out whether the computer is working with a GPU
+    set cmd = (python sscnn_skullstrip.py -i ${infile} -o $WORK_DIR/sscnn -c t1w -gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if ($status) exit 1;
+    set cmd = (mv $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz $maskfile) 
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if ($status) exit 1;
+  endif
+  echo "MASK FILE $maskfile" | tee -a $sLF | tee -a $LF
 
-  # -use-gpu : use GPU versions of the skullstripper: sscnn_skullstrip.py
-  # $gpuID = 0 (otherwise user can specify it)
+  if !(-e $maskedfile) then
+    set cmd = (mri_mask $infile $maskfile $maskedfile )
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if ($status) exit 1;
+  endif
+  echo "MASKED FILE $maskedfile" | tee -a $sLF | tee -a $LF
 
-  set cmd = (python sscnn_skullstrip.py -i ${infile} -o $WORK_DIR/sscnn -c t1w -gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if ($status) exit 1;
-  set cmd = (mv $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz $maskfile) 
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if ($status) exit 1;
-endif
-echo "MASK FILE $maskfile" | tee -a $sLF | tee -a $LF
+  if ($checkresults) then 
+    freeview -v $infile ${maskedfile}:colormap=heat
+  endif
 
-if !(-e $maskedfile) then
-  set cmd = (mri_mask $infile $maskfile $maskedfile )
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if ($status) exit 1;
-endif
-echo "MASKED FILE $maskedfile" | tee -a $sLF | tee -a $LF
-
-if ($checkresults) then 
-  freeview -v $infile ${maskedfile}:colormap=heat
-endif
-
-else
- set maskedfile = $maskedinputfile
- set cmd = (mri_convert --conform-dc $maskedfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
- echo $cmd >> $LF
- echo $cmd >> $sLF
- $cmd |& tee -a $LF
- if ($status) exit 1; 
-endif
+  else
+   set maskedfile = $maskedinputfile
+   set cmd = (mri_convert --conform-dc $maskedfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
+   echo $cmd >> $LF
+   echo $cmd >> $sLF
+   $cmd |& tee -a $LF
+   if ($status) exit 1; 
+  endif
 echo "MASKED FILE $maskedfile" | tee -a $sLF | tee -a $LF
 
 ####
 ## In case TRAINING SUBSET NEEDS TO BE IDENTIFIED
-# echo $withUCT  $newborns $oneyearolds $setksize
-if (($withUCT || $newborns || $oneyearolds) && $setksize) then # need to select a subset of the training datasFSSCRIet -- use MI here 
+# echo $newborns $oneyearolds $setksize
+if (($newborns || $oneyearolds) && $setksize) then # need to select a subset of the training datasFSSCRIet -- use MI here 
   echo NEED to select a subset of the training dataset....
   set outfname = $WORK_DIR/trainingsubjects_MI.txt
   echo OUTFNAME $outfname
@@ -385,10 +368,9 @@ set voltype = norm # of the training subjects
 
 ##
 ## SELECT a subset of training subjects if all are used and not newborn or one-year-old
-## TODO: allow the newborns to be subsetted, too!
 ##
-#echo $withUCT  $newborns $avoidtraining
-if (($withUCT || $newborns) && $avoidtraining) then
+#echo $newborns $avoidtraining
+if (($newborns) && $avoidtraining) then
   echo Removing traning subject to be avoided $avoidtrainingname....
   set N = $#TEMPLATE_SUBJECTS
   echo Total number of template subjects $N
@@ -497,21 +479,30 @@ foreach tsubj ($TEMPLATE_SUBJECTS)
       $cmd |& tee -a $LF
       if ($status) exit 1;
     endif
-    set out         = $WORK_DIR/${tsubj}-2-${subj}.NIFTYREG.nii.gz
+    set out         = $WORK_DIR/${tsubj}-2-${subj}.$regtype.nii.gz
     set outtemplate = ${out:h}/manseg-${out:t}
+    # set logfile = ${out:r:r}.log
     set def         = ${out:r:r}.field.nii.gz
     if !( -e $def ) then 
-      set cmd = ($niftycmddir/reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
-                                         -res ${out:r:r}.affine.nii.gz -voff)
-      set cmd = ($cmd; $niftycmddir/reg_f3d -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
-                                            -cpp $def -res $out) # -omp                                                                                                                                                                                                                          
+      if ($regtype == DRAMMS ) then
+        set cmd = (dramms -S $in -T $ref -O $out -D $def -v -v ) # > ${logfile})
+      else 
+        set cmd = ($niftycmddir/reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+                                           -res ${out:r:r}.affine.nii.gz -voff)
+        set cmd = ($cmd; $niftycmddir/reg_f3d -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+                                              -cpp $def -res $out) # -omp
+      endif
 
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if ($status) exit 1;
-      set cmd = ($niftycmddir/reg_resample -ref $ref -flo $templatefile \
-                                           -trans $def -res $outtemplate -inter 0)
+      if ($regtype == DRAMMS ) then
+        set cmd = ($niftycmddir/reg_resample -ref $ref -flo $templatefile \
+                                             -trans $def -res $outtemplate -inter 0)
+      else
+        set cmd = (dramms-warp $templatefile $def $outtemplate -n)
+      endif
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -530,7 +521,7 @@ set trainingsubjects = ($TEMPLATE_SUBJECTS)
 echo TRAINING SUBJECTS LABELFUSION $trainingsubjects | tee -a $sLF | tee -a $LF
 # if !(-e $WORK_DIR/${subj}-*labels.mrf.nii.gz) then 
 if !(-e $WORK_DIR/aseg.nii.gz) then
-  set cmd = (run_label_fusion.csh --subj $subj --ts $trainingsubjects)
+  set cmd = (run_label_fusion.csh --subj $subj --ts $trainingsubjects --regtype $regtype)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
