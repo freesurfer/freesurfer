@@ -56,7 +56,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 {
   Q_UNUSED(context);
 
-  if (msg.contains("sRGB profile") || msg.contains("QWidget::create") || msg.contains("unregister timer"))
+  if (msg.contains("sRGB profile") || msg.contains("QWidget::create") || msg.contains("unregister timer") || msg.contains("QPainter::"))
     return;
 
   switch ((int)type)
