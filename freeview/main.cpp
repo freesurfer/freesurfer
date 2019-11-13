@@ -56,7 +56,8 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 {
   Q_UNUSED(context);
 
-  if (msg.contains("sRGB profile") || msg.contains("QWidget::create") || msg.contains("unregister timer") || msg.contains("QPainter::"))
+  if (msg.contains("sRGB profile") || msg.contains("QWidget::create")
+      || msg.contains("unregister timer") || msg.contains("QPainter::") || msg.contains("Empty filename passed"))
     return;
 
   switch ((int)type)
