@@ -479,7 +479,7 @@ def getFullHyperparameters( numberOfGaussiansPerClass, numberOfContrasts,
     # for any Gaussian. However, in order to prevent numerical errors with near-zero variances
     # (which can happen when almost no voxels are associated with a Gaussian in the EM algorithm,
     # due to e.g., tiny mixture weight), we use (numberOfContrasts-1)+1 instead.
-    threshold = ( numberOfContrasts - 1 ) + 1 + eps
+    threshold = ( numberOfContrasts - 2 ) + 1 + eps
     hyperVariancesNumberOfMeasurements[ hyperVariancesNumberOfMeasurements < threshold ] = threshold
 
     if False:
@@ -550,7 +550,7 @@ def fitGMMParameters( data, gaussianPosteriors, numberOfGaussiansPerClass, useDi
         variance = ( tmp.T @ (tmp * posterior) + \
                     hyperMeanNumberOfMeasurements * ( ( mean - hyperMean ) @ ( mean - hyperMean ).T ) + \
                     hyperVariance * hyperVarianceNumberOfMeasurements ) \
-                    / ( np.sum(posterior) + 1 + hyperVarianceNumberOfMeasurements )
+                    / ( np.sum(posterior) + hyperVarianceNumberOfMeasurements )
         if useDiagonalCovarianceMatrices:
             # Force diagonal covariance matrices
             variance = np.diag( np.diag( variance ) )
@@ -615,14 +615,14 @@ def evaluateMinLogPriorOfGMMParameters( means, variances, mixtureWeights,
         minLogPrior += squaredMahalanobisDistance * hyperMeanNumberOfMeasurements / 2 + halfOfLogDetVariance
 
         # -log IW( variance | hyperVariance * hyperVarianceNumberOfMeasurements, 
-        #                     hyperVarianceNumberOfMeasurements - numberOfContrasts - 1 )
+        #                     hyperVarianceNumberOfMeasurements - numberOfContrasts - 2 )
         #
         hyperL = np.linalg.cholesky( hyperVariance ) # hyperVariance = hyperL @ hyperL.T
         halfOfLogDetHyperVariance = np.sum( np.log( np.diag( hyperL ) ) )
         tmp = np.linalg.solve( L, hyperL )
         minLogPrior += np.trace( tmp @ tmp.T ) * hyperVarianceNumberOfMeasurements / 2 + \
                        hyperVarianceNumberOfMeasurements * halfOfLogDetVariance - \
-                       ( hyperVarianceNumberOfMeasurements - numberOfContrasts - 1 ) * halfOfLogDetHyperVariance
+                       ( hyperVarianceNumberOfMeasurements - numberOfContrasts - 2 ) * halfOfLogDetHyperVariance
 
 
     for classNumber in range( numberOfClasses ):
@@ -858,7 +858,10 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                              saveHistory=False, visualizer=None,
                              skipGMMParameterEstimationInFirstIteration=False,
                              skipBiasFieldParameterEstimationInFirstIteration=True,
-                             hyperpriorPlugin=None
+                             evaluateMinLogPriorOfGMMParametersPlugin=None,
+                             evaluateMinLogPriorOfGMMParametersPluginVariables=None,
+                             fitGMMParametersPlugin=None,
+                             fitGMMParametersPluginVariables=None
                              ):
 
     #  
@@ -961,23 +964,7 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                 means, variances, mixtureWeights = initializeGMMParameters( downSampledImageBuffers[ downSampledMask, : ], 
                                                                             downSampledClassPriors, numberOfGaussiansPerClass, 
                                                                             useDiagonalCovarianceMatrices )
-                
-                if hyperpriorPlugin is not None:
-                    #
-                    hyperMeans, hyperMeansNumberOfMeasurements, \
-                        hyperVariances, hyperVariancesNumberOfMeasurements, \
-                        hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements \
-                        = hyperpriorPlugin( downSampledImageBuffers[ downSampledMask, : ],
-                                            downSampledClassPriors, numberOfGaussiansPerClass, 
-                                            voxelSpacing )
-                    
-                    downSampledHyperMeans, downSampledHyperMeansNumberOfMeasurements, \
-                            downSampledHyperVariances, downSampledHyperVariancesNumberOfMeasurements, \
-                            downSampledHyperMixtureWeights, downSampledHyperMixtureWeightsNumberOfMeasurements = \
-                            getDownsampledHyperparameters( hyperMeans, hyperMeansNumberOfMeasurements, 
-                                                           hyperVariances, hyperVariancesNumberOfMeasurements,
-                                                           hyperMixtureWeights, hyperMixtureWeightsNumberOfMeasurements,
-                                                           downSamplingFactors )
+
                 
             if biasFieldCoefficients is None:
                 numberOfBasisFunctions = [ functions.shape[1] for functions in downSampledBiasFieldBasisFunctions ]
@@ -1009,14 +996,29 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                     
                     
                 # Compute the log-posterior of the model parameters, and check for convergence
-                minLogGMMParametersPrior = evaluateMinLogPriorOfGMMParameters( means, variances, mixtureWeights, 
-                                                                               numberOfGaussiansPerClass, 
-                                                                               downSampledHyperMeans,
-                                                                               downSampledHyperMeansNumberOfMeasurements,
-                                                                               downSampledHyperVariances,
-                                                                               downSampledHyperVariancesNumberOfMeasurements,
-                                                                               downSampledHyperMixtureWeights,
-                                                                               downSampledHyperMixtureWeightsNumberOfMeasurements )                 
+                if evaluateMinLogPriorOfGMMParametersPlugin is None:
+                    minLogGMMParametersPrior = evaluateMinLogPriorOfGMMParameters( means, variances, mixtureWeights,
+                                                                                   numberOfGaussiansPerClass,
+                                                                                   downSampledHyperMeans,
+                                                                                   downSampledHyperMeansNumberOfMeasurements,
+                                                                                   downSampledHyperVariances,
+                                                                                   downSampledHyperVariancesNumberOfMeasurements,
+                                                                                   downSampledHyperMixtureWeights,
+                                                                                   downSampledHyperMixtureWeightsNumberOfMeasurements )
+                else:
+                    evaluateMinLogPriorOfGMMParametersPluginDictionary = {}
+                    if evaluateMinLogPriorOfGMMParametersPluginVariables is not None:
+                        for variableName in evaluateMinLogPriorOfGMMParametersPluginVariables:
+                            evaluateMinLogPriorOfGMMParametersPluginDictionary[variableName] = eval(variableName)
+                    minLogGMMParametersPrior = evaluateMinLogPriorOfGMMParametersPlugin( means, variances, mixtureWeights,
+                                                                                   numberOfGaussiansPerClass,
+                                                                                   downSampledHyperMeans,
+                                                                                   downSampledHyperMeansNumberOfMeasurements,
+                                                                                   downSampledHyperVariances,
+                                                                                   downSampledHyperVariancesNumberOfMeasurements,
+                                                                                   downSampledHyperMixtureWeights,
+                                                                                   downSampledHyperMixtureWeightsNumberOfMeasurements,
+                                                                                   evaluateMinLogPriorOfGMMParametersPluginDictionary)
                   
                 historyOfEMCost.append( minLogLikelihood + minLogGMMParametersPrior )
                 visualizer.plot( historyOfEMCost[ 1: ], window_id='history of EM cost', 
@@ -1035,16 +1037,31 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
                 #
                 # First the mixture model parameters
                 if not( ( iterationNumber == 0 ) and skipGMMParameterEstimationInFirstIteration ):
-                    means, variances, mixtureWeights = fitGMMParameters( downSampledData, downSampledGaussianPosteriors, 
-                                                                        numberOfGaussiansPerClass,             
-                                                                        useDiagonalCovarianceMatrices,
-                                                                        downSampledHyperMeans,
-                                                                        downSampledHyperMeansNumberOfMeasurements,
-                                                                        downSampledHyperVariances,
-                                                                        downSampledHyperVariancesNumberOfMeasurements,
-                                                                        downSampledHyperMixtureWeights,
-                                                                        downSampledHyperMixtureWeightsNumberOfMeasurements )
-                 
+                    if fitGMMParametersPlugin is None:
+                        means, variances, mixtureWeights = fitGMMParameters( downSampledData, downSampledGaussianPosteriors,
+                                                                            numberOfGaussiansPerClass,
+                                                                            useDiagonalCovarianceMatrices,
+                                                                            downSampledHyperMeans,
+                                                                            downSampledHyperMeansNumberOfMeasurements,
+                                                                            downSampledHyperVariances,
+                                                                            downSampledHyperVariancesNumberOfMeasurements,
+                                                                            downSampledHyperMixtureWeights,
+                                                                            downSampledHyperMixtureWeightsNumberOfMeasurements )
+                    else:
+                        fitGMMParametersPluginDictionary = {}
+                        if fitGMMParametersPluginVariables is not None:
+                            for variableName in fitGMMParametersPluginVariables:
+                                fitGMMParametersPluginDictionary[variableName] = eval(variableName)
+                        means, variances, mixtureWeights = fitGMMParametersPlugin( downSampledData, downSampledGaussianPosteriors,
+                                                                            numberOfGaussiansPerClass,
+                                                                            useDiagonalCovarianceMatrices,
+                                                                            downSampledHyperMeans,
+                                                                            downSampledHyperMeansNumberOfMeasurements,
+                                                                            downSampledHyperVariances,
+                                                                            downSampledHyperVariancesNumberOfMeasurements,
+                                                                            downSampledHyperMixtureWeights,
+                                                                            downSampledHyperMixtureWeightsNumberOfMeasurements,
+                                                                            fitGMMParametersPluginDictionary )
                     
                 # Now update the parameters of the bias field model.
                 if ( estimateBiasField and 
@@ -1318,7 +1335,10 @@ def samsegment( imageFileNames, atlasDir, savePath,
                 userModelSpecifications={}, userOptimizationOptions={},
                 visualizer=None, saveHistory=False, saveMesh=False,
                 targetIntensity=None, targetSearchStrings=None,
-                hyperpriorPlugin=None,
+                evaluateMinLogPriorOfGMMParametersPlugin=None,
+                evaluateMinLogPriorOfGMMParametersPluginVariables=None,
+                fitGMMParametersPlugin=None,
+                fitGMMParametersPluginVariables=None,
                 posteriorPlugin=None,
                 posteriorPluginVariables=None,
                 threshold=None, thresholdSearchString=None, savePosteriors=False, saveWarp=False
@@ -1434,14 +1454,16 @@ def samsegment( imageFileNames, atlasDir, savePath,
     numberOfGaussiansPerClass = [ param.numberOfComponents for param in modelSpecifications.sharedGMMParameters ]
     classFractions, _ = gems.kvlGetMergingFractionsTable( modelSpecifications.names, modelSpecifications.sharedGMMParameters )
 
-
     means, variances, mixtureWeights, biasFieldCoefficients, \
     deformation, deformationAtlasFileName, optimizationSummary, optimizationHistory = \
             estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transform, voxelSpacing,
                                     modelSpecifications.K, modelSpecifications.useDiagonalCovarianceMatrices,
                                     classFractions, numberOfGaussiansPerClass, optimizationOptions,
                                     saveHistory=saveHistory, visualizer=visualizer,
-                                    hyperpriorPlugin=hyperpriorPlugin
+                                    evaluateMinLogPriorOfGMMParametersPlugin=evaluateMinLogPriorOfGMMParametersPlugin,
+                                    evaluateMinLogPriorOfGMMParametersPluginVariables=evaluateMinLogPriorOfGMMParametersPluginVariables,
+                                     fitGMMParametersPlugin=fitGMMParametersPlugin,
+                                    fitGMMParametersPluginVariables=fitGMMParametersPluginVariables
                                     )
 
 
@@ -1879,7 +1901,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
 
     # Estimating the mode of the latentVariance posterior distribution (which is Wishart) requires a stringent condition 
     # on latentVariancesNumberOfMeasurements so that the mode is actually defined
-    threshold = ( numberOfContrasts + 1 ) + 1e-6
+    threshold = ( numberOfContrasts + 2 ) + 1e-6
     latentVariancesNumberOfMeasurements[ latentVariancesNumberOfMeasurements < threshold ] = threshold
 
     # No point in updating latent GMM parameters if the GMM hyperprior has zero weight. The latent variances are also
@@ -2145,7 +2167,7 @@ def samsegmentLongitudinal( imageFileNamesList, atlasDir, savePath,
                 
                 latentVarianceNumberOfMeasurements = latentVariancesNumberOfMeasurements[ gaussianNumber ]
                 latentVariance = np.linalg.inv( averagePrecision ) * \
-                                ( latentVarianceNumberOfMeasurements - numberOfContrasts - 1 ) / latentVarianceNumberOfMeasurements
+                                ( latentVarianceNumberOfMeasurements - numberOfContrasts - 2 ) / latentVarianceNumberOfMeasurements
                 latentVariances[ gaussianNumber ] = latentVariance
 
           
