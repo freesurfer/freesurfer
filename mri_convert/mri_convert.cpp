@@ -3039,20 +3039,21 @@ int main(int argc, char *argv[])
 	GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
 
         // check whether the volume to be morphed and the morph have the same dimensions
+#if 0
 	if ((gcam->image.width == mri->width) &&
 	    (gcam->image.height == mri->height) &&
 	    (gcam->image.depth == mri->depth))
 	  mri_transformed = MRIclone(mri, NULL);
 	else  // when morphing atlas to subject using -ait <3d morph> must resample atlas to 256 before applying morph
 	{
-	  MRI *mri_template = MRIalloc(gcam->image.width,  gcam->image.height, gcam->image.depth, mri->type), *mri_tmp  ;
-	  useVolGeomToMRI(&gcam->atlas, mri_template) ;
-	  mri_tmp = MRIresample(mri, mri_template, resample_type_val);
+	  MRI *mri_tmp ;
+	  mri_transformed = MRIalloc(gcam->image.width,  gcam->image.height, gcam->image.depth, mri->type) ;
+	  useVolGeomToMRI(&gcam->image, mri_transformed) ;
+	  mri_tmp = MRIresample(mri, mri_transformed, resample_type_val);
 	  MRIfree(&mri) ; MRIfree(&mri_template) ; 
 	  mri = mri_tmp ;
-	  useVolGeomToMRI(&gcam->image, mri_template) ;
-    mri_template = mri_template;  // ATH I'm guessing this is a bug and it's supposed to be `mri_transformed = mri_template`
 	}
+#endif
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  
 					     gcam,
@@ -3165,7 +3166,7 @@ int main(int argc, char *argv[])
 
   /* ----- reslice if necessary and not performed during transform ----- */
   float eps = 1e-05; /* (mr) do eps testing to avoid reslicing due to tiny differences, e.g. from IO */
-  if (!out_like_flag
+  if (!out_like_flag && (transform_type != MORPH_3D_TYPE)
    && (fabs(mri->xsize - mri_template->xsize) > eps ||
       fabs(mri->ysize - mri_template->ysize) > eps ||
       fabs(mri->zsize - mri_template->zsize) > eps ||
