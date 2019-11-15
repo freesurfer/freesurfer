@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   LTA *lta_transform = NULL;
   MRI *mri_transformed = NULL;
   MRI *mritmp=NULL;
-  int transform_type;
+  int transform_type=-1;
   MATRIX *inverse_transform_matrix;
   int smooth_parcellation_flag, smooth_parcellation_count;
   int in_like_flag;
