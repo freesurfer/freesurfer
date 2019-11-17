@@ -158,6 +158,7 @@ set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
 set DoRemesh = 0; # remesh ?h.orig to improve triangle quality
+set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -2986,6 +2987,14 @@ if($DoSegmentation) then
   # ----------- Segment -------------------------
   if(! $WMSegFromASeg) then
     # Use the traditional mri_segment to generate the wm.seg.mgz
+    set mrisegment_input = brain.mgz
+    if($DoAntsDenoising) then
+      set cmd = (DenoiseImage -i brain.mgz -o antsdn.brain.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set mrisegment_input = antsdn.brain.mgz
+    endif
     set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_segment);
     if ($NoThicken) set cmd = ($cmd -thicken 0)
@@ -2993,7 +3002,7 @@ if($DoSegmentation) then
     if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
-    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $mrisegment_input wm.seg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3533,9 +3542,14 @@ if($DoWhiteSurfs) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+
+endif
+
     echo $cmd > $touchdir/$hemi.white_surface.touch
     if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
+
   end # Loop over hemilist
+
   if($RunIt && $DoParallel) then # if -parallel flag is used
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
@@ -6318,6 +6332,19 @@ while( $#argv != 0 )
     case "-noremesh"
     case "-no-remesh"
       set DoRemesh = 0; 
+      breaksw
+
+    case "-ants-denoise"
+      # Use ANTS denoising prior to mri_segment
+      set DoAntsDenoising = 1; 
+      which DenoiseImage
+      if($status)  then
+        echo "Cannot find DenoiseImage"
+        exit 1;
+      endif
+      breaksw
+    case "-no-ants-denoise"
+      set DoAntsDenoising = 0; 
       breaksw
 
     case "-smooth1":
