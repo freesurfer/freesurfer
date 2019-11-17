@@ -3543,8 +3543,6 @@ if($DoWhiteSurfs) then
       if($status) goto error_exit;
     endif
 
-endif
-
     echo $cmd > $touchdir/$hemi.white_surface.touch
     if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
 
