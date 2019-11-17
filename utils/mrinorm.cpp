@@ -2940,7 +2940,7 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
         float mean, val ;
         for (y = y1; y <= y2; y++) {
           for (x = x1; x <= x2; x++) {
-	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, f) ;
+	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
             if (ctrl == CONTROL_MARKED)  // marked point - don't change it
               continue;
 
@@ -3385,6 +3385,8 @@ int MRI3dUseFileControlPoints(MRI *mri, const char *fname)
   int count = 0;
   int useRealRAS = 0;
 
+  if (stricmp(fname, "nofile") == 0)
+    return(NO_ERROR) ;
   pArray = MRIreadControlPoints(fname, &count, &useRealRAS);
 
   {

@@ -67,6 +67,7 @@ public:
 public slots:
   void Highlight(int nLabel);
   void RestoreColors();
+  void SetLabelVisible(int nLabel, bool bVisible);
 
 protected slots:
   void UpdateFrameActor(int n);

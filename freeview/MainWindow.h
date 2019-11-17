@@ -408,6 +408,7 @@ protected:
   void CommandSetDisplayIsoSurface  ( const QStringList& cmd );
   void CommandSetIsoSurfaceColor( const QStringList& cmd );
   void CommandSetIsoSurfaceUpsample ( const QStringList& cmd );
+  void CommandSetExtractAllRegions ( const QStringList& cmd );
   void CommandLoadIsoSurfaceRegion  ( const QStringList& cmd );
   void CommandLockLayer         ( const QStringList& cmd );
   void CommandShowLayer         ( const QStringList& cmd );

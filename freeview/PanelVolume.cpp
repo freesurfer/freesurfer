@@ -763,6 +763,16 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
   }
 }
 
+void PanelVolume::OnColorTableItemClicked(QTreeWidgetItem *item)
+{
+  LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+  if (layer)
+  {
+    if (item == ui->treeWidgetColorTable->currentItem())
+      UpdateTrackVolumeThreshold();
+  }
+}
+
 void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
 {
   QTreeWidgetItem* item = item_in;
@@ -1768,7 +1778,17 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
   if ( layer )
   {
     int nVal = item->data(0, Qt::UserRole+1).toInt();
-    layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
+    if (!layer->IsTypeOf("VolumeTrack"))
+      layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
+    else
+    {
+      LayerVolumeTrack* tv = qobject_cast<LayerVolumeTrack*>(layer);
+      if (tv)
+      {
+        int nLabel = item->data(0, Qt::UserRole+1).toInt();
+        tv->SetLabelVisible(nLabel, item->checkState(0) == Qt::Checked);
+      }
+    }
     ui->checkBoxSelectAllLabels->setCheckState(layer->GetProperty()->GetSelectedLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
 
