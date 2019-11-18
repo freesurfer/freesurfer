@@ -291,6 +291,9 @@ private:
   bool contractEdge(int eidx, bool cleanup=true);
   bool rmTrias(const std::vector< int > & tnums, bool fix = true);
   bool rmTrias(bool fix = true);
+  bool rmTriaInVtoT(int vidx, int tidx);
+  bool removeTria(unsigned int tidx);
+  bool removeHangingEdge(unsigned int eidx);
 
   int rmFreeVertices(bool fix);
 
