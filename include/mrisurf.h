@@ -2291,6 +2291,9 @@ int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
 int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen);
 int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen);
   
+int MRISshrinkFaceCorner(MRIS *surf, int faceno, int nthv, double dist, double *vx, double *vy, double *vz);
+double MRISshrinkFace(MRIS *surf, int faceno, double newareafraction);
+int MRISshrinkFaces(MRIS *surf, double zthresh, int nmax);
 
 
 #if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)
