@@ -624,6 +624,10 @@ void MainWindow::LoadSettings()
   {
     m_settings["TextSize"] = 12;
   }
+  if (!m_settings.contains("Precision"))
+  {
+    m_settings["Precision"] = 2;
+  }
 
   OnPreferences();
   m_dlgPreferences->hide();
