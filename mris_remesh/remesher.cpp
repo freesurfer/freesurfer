@@ -1293,12 +1293,12 @@ bool Remesher::contractEdge(int eidx, bool cleanup)
   // tria is up to date now (except for deleting t0 t1) !!!
   
   // delete t0 and t1 from v_to_t at the four relevant vertices
-  assert( rmTriaInVtoT(v0,t0));
-  assert( rmTriaInVtoT(v0,t1));
-  assert( rmTriaInVtoT(v1,t0));
-  assert( rmTriaInVtoT(v1,t1));
-  assert( rmTriaInVtoT(vt0,t0));
-  assert( rmTriaInVtoT(vt1,t1));
+  rmTriaInVtoT(v0,t0);
+  rmTriaInVtoT(v0,t1);
+  rmTriaInVtoT(v1,t0);
+  rmTriaInVtoT(v1,t1);
+  rmTriaInVtoT(vt0,t0);
+  rmTriaInVtoT(vt1,t1);
   // merge v_to_t at v0 (with v1)
   v_to_t[v0].insert(v_to_t[v0].end(), v_to_t[v1].begin(), v_to_t[v1].end());
   v_to_lv[v0].insert(v_to_lv[v0].end(),v_to_lv[v1].begin(),v_to_lv[v1].end());
@@ -1354,7 +1354,7 @@ bool Remesher::contractEdge(int eidx, bool cleanup)
     cout << " special cases in replaceVertexInEdges: " << special << endl;
     cout << " special cases when removing Collapsed Trias: " << sp << endl;
   }
-  assert (sp == special);
+  assert(sp == special);
   return true;
 }
 
@@ -1429,6 +1429,135 @@ bool Remesher::rmTrias(bool fix)
   }
   if (fix || found) rmFreeVertices(fix);
   return found;
+}
+
+
+/**
+  Removes hanging edges (with no tria on either side).
+  Clears e_to_v and removes edge from v_to_e.
+  Note: does not check if it was removed from any t_to_e 
+  (datastructe would be invalid if edge does not have trias, but
+  still is listed in any t_to_e).
+*/
+bool Remesher::removeHangingEdge(unsigned int eidx)
+{
+  assert(eidx < e_to_v.size());
+  if (e_to_t[eidx].size() >0) return false; // cannot be deleted
+  assert (e_to_v[eidx].size() == 2);
+  
+  int a = e_to_v[eidx][0];
+  int b = e_to_v[eidx][1];
+  int e = (int)v_to_e.eraseGetVal(a,b) - 1;
+  if (e != (int) eidx)
+  {
+    cerr << " hanging edge: " << eidx << " e_to_v: " << e_to_v[eidx] << " but e " << e << endl;
+  }
+  assert (e == (int) eidx);
+  e = (int)v_to_e.eraseGetVal(b,a) - 1;
+  if (e != (int) eidx)
+  {
+    cerr << " hanging edge: " << eidx << " e_to_v: " << e_to_v[eidx] << " but e " << e << endl;
+  }
+  assert (e == (int) eidx);
+  
+  e_to_v[eidx].clear();
+  return true;
+}
+
+
+/**
+  Removes triangle tidx. 
+  If inside, creates a hole and boundary loop,
+  if at the boundary, the boundary edges are deleted
+*/
+bool Remesher::removeTria(unsigned int tidx)
+{
+  cout << "TriaNM::removeTria( "<<tidx<<" )" << endl;
+  assert(tidx < tria.size());
+  if (tria[tidx].size() < 3) return false;
+
+  // for each edge in tria
+  int found = 0;
+  for (unsigned int e = 0;e<3;e++) {
+    int eid = t_to_e[tidx][e];
+    cout << " e_to_t[ " << eid << " ] before: " << e_to_t[eid] << endl;
+    // 1. remove tidx from e_to_t
+    assert(e_to_t[eid].size() > 0);
+    found = 0;
+    for (unsigned int t = 0;t<e_to_t[eid].size(); t++)
+      if (e_to_t[eid][t] == (int) tidx)
+      {
+        e_to_t[eid][t] = e_to_t[eid].back();
+        e_to_t[eid].pop_back();
+        found++;
+        t--;
+      }
+    assert(found == 1);
+    cout << " e_to_t[ " << eid << " ] after: " << e_to_t[eid] << endl;
+
+    // 2. if edge is hanging (no tria), remove it
+    if (e_to_t[eid].size() == 0) {
+      removeHangingEdge(eid);
+      bedgecount--;
+    }
+    // 3. if edge has become boundary:
+    if (e_to_t[eid].size() == 1) bedgecount++;
+
+  }
+
+  // for each vertex in tria:
+  for (unsigned int v = 0; v<3; v++)
+  {
+    int vidx = tria[tidx][v];
+    
+    //  remove tidx from v_to_t (and v_to_lv)
+    assert(v_to_t.size() >1);
+    found = 0;
+    for (unsigned int t = 0; t<v_to_t[vidx].size(); t++) {
+      if (v_to_t[vidx][t] == (int)tidx) {
+        v_to_t[vidx][t] = v_to_t[vidx].back();
+        v_to_t[vidx].pop_back();
+        v_to_lv[vidx][t] = v_to_lv[vidx].back();
+        v_to_lv[vidx].pop_back();
+        found++;
+        t--;
+      }
+    }
+    assert(found == 1);
+    
+    // hanging vertices are 'deleted' if v_to_t empty,
+    //   and if not referenced in tria or e_to_t
+    // this should be the case if v_to_t[vidx].size==0
+  }
+
+
+  tria[tidx].clear();
+  t_to_e[tidx].clear();
+  return true;
+}
+
+
+/**
+  Removes reference to tria tidx from 
+  v_to_t list (and parallel v_to_lv list).
+  Returns true if deleted.
+  Returns false if not found.
+*/
+bool Remesher::rmTriaInVtoT(int vidx, int tidx)
+{
+
+   bool found = false;
+   for (unsigned int i = 0;i<v_to_t[vidx].size();i++)
+     if (v_to_t[vidx][i] == tidx)
+     {
+       found = true;
+       v_to_t[vidx][i] = v_to_t[vidx].back();
+       v_to_t[vidx].pop_back();
+       v_to_lv[vidx][i] = v_to_lv[vidx].back();
+       v_to_lv[vidx].pop_back();
+      }
+      
+   return found;
 }
 
 
@@ -1674,7 +1803,7 @@ int Remesher::removeCollapsedTrias(int vidx, int mididx)
    if (nextidx == mididx) nextidx = e_to_v[e0][1];
    
    // merge edge (making this non manifold here)
-   assert( mergeEdges(e0,e1));
+   mergeEdges(e0,e1);
    // e1 is gone now
 //          int cs = checkStructure();
 //       cout << " merge edge check: " << cs << " manifold: " << ismanifold << endl << endl << endl;    
@@ -1682,8 +1811,8 @@ int Remesher::removeCollapsedTrias(int vidx, int mididx)
 
 
    
-   assert (removeTria(t1)); // here boundary structres might be destroyed
-   assert (removeTria(t0)); // now should be OK again
+   removeTria(t1); // here boundary structres might be destroyed
+   removeTria(t0); // now should be OK again
    // can still be non manifold, if nextidx is tip of another collapsing tria
    
 //    int cs = checkStructure();
