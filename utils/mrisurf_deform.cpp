@@ -4533,10 +4533,11 @@ int MRISfixAverageSurf7(MRIS *surf7)
   except the xyz and neighboring vertices. The surface is actually
   written to disk and read back in to clean out all the elements.
   There may still be some non-deterministic behavior. For example,
-  when the orig.nofix is input. Not sure why, but probably because
-  the lengths of the edges are all either 1 or sqrt(2) thus
-  creating some abiguity which is handled differently on different
-  runs.
+  when the orig.nofix is input, mris_decimate can produce different
+  surfaces (same number of vertices, but not in the same places). Not
+  sure why, but probably because the lengths of the edges are all
+  either 1 or sqrt(2) thus creating some abiguity which is handled
+  differently on different runs.
  */
 MRIS *MRISsortVertices(MRIS *mris0)
 {
