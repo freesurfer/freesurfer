@@ -84,6 +84,10 @@
       <explanation>extract options from filename</explanation>
       <argument>-w &lt;w&gt;</argument>
       <explanation>set wsize (default=11)</explanation>
+      <argument>-polvwsize &lt;w&gt;</argument>
+      <explanation>set wsize for plane of least variance (default=5)</explanation>
+      <argument>-polvlen &lt;w&gt;</argument>
+      <explanation>set len for plane of least variance (default=3)</explanation>
       <argument>-dat datfile</argument>
       <explanation>set datfile (default is segment.dat)</explanation>
       <argument>-seg segmenationvolume Qwm Qctx NdilWM NdilCtx</argument>
