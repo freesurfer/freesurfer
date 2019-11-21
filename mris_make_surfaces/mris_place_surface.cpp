@@ -109,7 +109,11 @@ double round(double x);
 #include "label.h"
 #include "annotation.h"
 #include "cmdargs.h"
+#include "cma.h"
 #include "romp_support.h"
+
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -169,6 +173,12 @@ char *adgwsinfile = NULL;
 char *adgwsoutfile = NULL;
 MRIS *surf;
 char *ripfile = NULL;
+
+char *riplabelfile = NULL;
+int RipWMSA = 0;
+int RipBG = 0;
+int RipMidline = 1;
+double shrinkThresh = -1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -376,10 +386,24 @@ int main(int argc, char **argv)
   seg = MRIread(segvolpath);
   if(seg==NULL) exit(1);
 
-  // First interaction of surface and volume
-  if(seg && surftype == GRAY_CSF){
+  // First merging of surface and volume
+  if(seg && surftype == GRAY_CSF && RipMidline){
     printf("Freezing midline and others\n");  fflush(stdout);
     MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
+  }
+  if(riplabelfile){
+    printf("Ripping vertices not in %s\n",riplabelfile);
+    LABEL *riplabel = LabelRead("",riplabelfile);
+    if(riplabel == NULL) exit(1);
+    MRISripNotLabel(surf,riplabel);
+  }
+  if(RipBG){
+    printf("Ripping BG\n");
+    MRISripBasalGanglia(surf, seg, -2.0, +2.0, 0.5);
+  }
+  if(RipWMSA){
+    printf("Ripping WMSA\n");
+    MRISripWMSA(surf, seg, -2.0, +2.0, 0.5);
   }
 
   if(initsurfpath){
@@ -410,6 +434,14 @@ int main(int argc, char **argv)
     MRIScornerMetric(surf,0);
   }
 
+  if(parms.l_hinge > 0 || parms.l_spring_nzr > 0){
+    if(parms.l_spring_nzr){
+      double  *edgestats = MRISedgeStats(surf, 0, NULL, NULL);
+      parms.l_spring_nzr_len = edgestats[1];
+      free(edgestats);
+    }
+  }
+
   timer.reset() ;
   printf("n_averages %d\n",n_averages);
   for (i = 0 ;  n_averages >= n_min_averages ; n_averages /= 2, current_sigma /= 2, i++) {
@@ -417,7 +449,12 @@ int main(int argc, char **argv)
     printf("Iteration %d =========================================\n",i);
     printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
-    if(seg && surftype == GRAY_WHITE){
+    if(shrinkThresh >= 0 && i==1){
+      printf("Shrinking big triangles %g\n",shrinkThresh);
+      MRISshrinkFaces(surf, shrinkThresh, 0);
+    }
+
+    if(seg && surftype == GRAY_WHITE && RipMidline){
       printf("Freezing midline and others\n");  fflush(stdout);
       // This rips the midline vertices so that they do not move (thus
       // "fix"). It may also rip some vertices near the putamen and
@@ -567,6 +604,12 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--white")) surftype = GRAY_WHITE;
     else if(!strcmp(option, "--pial"))  surftype = GRAY_CSF;
     else if(!strcmp(option, "--use-aparc")) UseAParc = 1;
+    else if(!strcmp(option, "--rip-wmsa"))    RipWMSA = 1;
+    else if(!strcmp(option, "--no-rip-wmsa")) RipWMSA = 0;
+    else if(!strcmp(option, "--rip-bg"))    RipBG = 1;
+    else if(!strcmp(option, "--no-rip-bg")) RipBG = 0;
+    else if(!strcmp(option, "--rip-midline"))     RipMidline = 1;
+    else if(!strcmp(option, "--no-rip-midline"))  RipMidline = 0;
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
@@ -592,6 +635,56 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&nsmoothsurf);
       nargsused = 1;
     }
+    else if (!stricmp(option, "--intensity")) {
+      parms.l_intensity = atof(pargv[0]) ;
+      printf("l_intensity = %2.3f\n", parms.l_intensity);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--hinge")) {
+      parms.l_hinge = atof(pargv[0]) ;
+      printf("l_hinge = %2.3f\n", parms.l_hinge);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--spring_nzr")) {
+      parms.l_spring_nzr = atof(pargv[0]) ;
+      printf("l_spring_nzr = %2.3f\n", parms.l_spring_nzr) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--spring")) {
+      parms.l_spring = atof(pargv[0]) ;
+      printf("l_spring = %2.3f\n", parms.l_spring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--tspring")) {
+      parms.l_tspring = atof(pargv[0]) ;
+      printf("l_tspring = %2.3f\n", parms.l_tspring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--nspring")) {
+      parms.l_nspring = atof(pargv[0]) ;
+      printf("l_nspring = %2.3f\n", parms.l_nspring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--curv")){
+      parms.l_curv = atof(pargv[0]) ;
+      printf("l_curv = %2.3f\n", parms.l_curv) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--repulse")){
+      sscanf(pargv[0],"%f",&parms.l_repulse);
+      printf("l_curv = %2.3f\n", parms.l_repulse) ;
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--debug-vertex")){
+      if(nargc < 1) CMDargNErr(option,1);
+      Gdiag_no = atoi(pargv[0]) ;
+      printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--shrink")){
+      sscanf(pargv[0],"%lf",&shrinkThresh);
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--sd")){
       if(nargc < 1) CMDargNErr(option,1);
       printf("using %s as SUBJECTS_DIR...\n", pargv[0]) ;
@@ -609,6 +702,11 @@ static int parse_commandline(int argc, char **argv) {
       // input is white (output is pial)
       if(strcmp(insurfname,"white.preaparc")==0 || strcmp(insurfname,"white")==0) UseAParc=1;
     }
+    else if(!strcasecmp(option, "--rip-label")){
+      if(nargc < 1) CMDargNErr(option,1);
+      riplabelfile = pargv[0];
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--max-thickness")){
       // Note "max_thickness" here is really a limit on the distance that CBV will
       // search along the normal (inside and out)
@@ -624,6 +722,16 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--adgws-out")){
       if(nargc < 1) CMDargNErr(option,1);
       adgwsoutfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--segvolname")){
+      if(nargc < 1) CMDargNErr(option,1);
+      segvolname = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--involname")){
+      if(nargc < 1) CMDargNErr(option,1);
+      involname = pargv[0];
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--thickness")){
@@ -830,4 +938,97 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   return;
 }
+
+int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+{
+  int vno, nripped=0;
+
+  for(vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v;
+    int segid;
+    double   xv, yv, zv, xs, ys, zs, d, val ;
+
+    v = &(surf->vertices[vno]);
+    if(v->ripflag)  continue ;
+
+    for (d = dmin ; d <= dmax ; d += dstep) {
+      xs = v->x + d*v->nx ;
+      ys = v->y + d*v->ny ;
+      zs = v->z + d*v->nz ;
+
+      // Sample the aseg at this distance
+      MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      segid = nint(val) ;
+      if(!IS_WMSA(segid)) continue;
+      v->ripflag = 1;
+      nripped ++;
+      break;
+    }
+  }
+
+  printf("MRISripWMSA(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  return(nripped);
+}
+
+
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+{
+  int vno, nripped=0;
+  int indices[100], nindices=0, n;
+
+  if(! surf->ct){
+    printf("ERROR: MRISripPutamenNucAcc(): surface must have annotation\n");
+    return(-1);
+  }
+
+  nindices=0;
+  CTABfindName(surf->ct, "medialorbitofrontal", &indices[nindices++]);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &indices[nindices++]);
+  CTABfindName(surf->ct, "insula", &indices[nindices++]);
+
+  for(vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v;
+    int segid, hit, index;
+    double   xv, yv, zv, xs, ys, zs, d, val ;
+
+    v = &(surf->vertices[vno]);
+    if(v->ripflag)  continue ;
+
+    CTABfindAnnotation(surf->ct, v->annotation, &index);
+    hit = 0;
+    for(n=0; n < nindices; n++){
+      if(index == indices[n]){
+	hit = 1;
+	break;
+      }
+    }
+    if(! hit) continue;
+
+    for (d = dmin ; d <= dmax ; d += dstep) {
+      xs = v->x + d*v->nx ;
+      ys = v->y + d*v->ny ;
+      zs = v->z + d*v->nz ;
+
+      // Sample the aseg at this distance
+      MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      segid = nint(val) ;
+
+      // Add external and extreme capsules?
+      if(segid != Left_Putamen && segid != Right_Putamen &&
+	 segid != Left_Caudate && segid != Right_Caudate &&
+	 segid != Left_Claustrum && segid != Right_Claustrum &&
+	 segid != Left_Accumbens_area && segid != Right_Accumbens_area) continue;
+
+      v->ripflag = 1;
+      nripped ++;
+      break;
+    }
+  }
+
+  printf("MRISripBasalGanglia(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  return(nripped);
+}
+
 
