@@ -1972,7 +1972,7 @@ void SparseMatrix::setVal(int i, int j, double d)
 
 const double& SparseMatrix::getRef(int i, int j) const
 {
-  assert(i > =0 && i < row && j >= 0 && j < col);
+  assert(i >= 0 && i < row && j >= 0 && j < col);
   std::list<entry>::const_iterator iter;
   for (iter=entries[i].begin(); iter != entries[i].end(); iter++) {
     if((*iter).pos == j) return (*iter).value;
