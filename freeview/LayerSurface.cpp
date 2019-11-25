@@ -2541,22 +2541,6 @@ void LayerSurface::ClearMarks()
 
 void LayerSurface::EditPathPoint(int vno, bool remove)
 {
-  //  SurfacePath* path = NULL;
-  //  if (m_nActivePath >= 0 && !m_paths.isEmpty() && !m_paths[m_nActivePath]->IsPathMade())
-  //    path = m_paths[m_nActivePath];
-  //  else
-  //  {
-  //    for (int i = 0; i < m_paths.size(); i++)
-  //    {
-  //      if (!m_paths[i]->IsPathMade())
-  //      {
-  //        path = m_paths[i];
-  //        SetActivePath(i);
-  //        break;
-  //      }
-  //    }
-  //  }
-
   if (!m_marks)
   {
     m_marks = new SurfacePath(this);
@@ -2592,6 +2576,14 @@ SurfacePath* LayerSurface::GetActivePath()
     return m_paths[m_nActivePath];
   else
     return NULL;
+}
+
+SurfacePath* LayerSurface::GetMadePath(int nPath)
+{
+    if (nPath >= 0 && nPath < m_paths.size() && m_paths[nPath]->IsPathMade())
+        return m_paths[nPath];
+    else
+        return NULL;
 }
 
 void LayerSurface::DeleteActivePath()
