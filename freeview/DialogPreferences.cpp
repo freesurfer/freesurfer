@@ -109,8 +109,10 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->spinBoxFontSize, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoMidToMin, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
+  connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
 
   QList<QComboBox*> list_combos;
   list_combos << ui->comboBoxShortcutCycleLayer << ui->comboBoxShortcutToggleSurface
@@ -158,6 +160,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->checkBoxAutoScaleFont->setChecked(map["AutoScaleText"].toBool());
   ui->spinBoxFontSize->setValue(map["TextSize"].toInt());
   ui->spinBoxPrecision->setValue(map["Precision"].toInt());
+  ui->checkBoxComma->setChecked(map["UseComma"].toBool());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -209,6 +212,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["TextSize"] = ui->spinBoxFontSize->value();
   map["AutoScaleText"] = ui->checkBoxAutoScaleFont->isChecked();
   map["Precision"] = ui->spinBoxPrecision->value();
+  map["UseComma"] = ui->checkBoxComma->isChecked();
   return map;
 }
 
