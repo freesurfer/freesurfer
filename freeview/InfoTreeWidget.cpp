@@ -104,6 +104,7 @@ void InfoTreeWidget::UpdateAll()
   LayerCollection* lc_surf = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
   int nPrecision = MainWindow::GetMainWindow()->GetSetting("Precision").toInt();
+  bool bComma = MainWindow::GetMainWindow()->GetSetting("UseComma").toBool();
   if ( lc_mri->IsEmpty() && lc_surf->IsEmpty())
   {
     return;
@@ -195,10 +196,10 @@ void InfoTreeWidget::UpdateAll()
         QStringList strgs;
         foreach (double value, values)
           strgs << MyUtils::RealToNumber(value, nPrecision);
-        valueStrg = strgs.join(" ");
+        valueStrg = strgs.join(bComma?", ":" ");
         if (values.size() == 6)
         {
-          valueStrg = "("+strgs.mid(0, 3).join(" ") + ") (" + strgs.mid(3,3).join(" ")+")";
+          valueStrg = "("+strgs.mid(0, 3).join(bComma?", ":" ") + ") (" + strgs.mid(3,3).join(bComma?", ":" ")+")";
         }
       }
       for (int j = 0; j < 3; j++)
