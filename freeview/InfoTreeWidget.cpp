@@ -44,6 +44,7 @@
 #include <QDebug>
 #include <QMenu>
 #include "RenderView3D.h"
+#include "SurfacePath.h"
 
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
@@ -104,6 +105,7 @@ void InfoTreeWidget::UpdateAll()
   LayerCollection* lc_surf = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
   int nPrecision = MainWindow::GetMainWindow()->GetSetting("Precision").toInt();
+  bool bComma = MainWindow::GetMainWindow()->GetSetting("UseComma").toBool();
   if ( lc_mri->IsEmpty() && lc_surf->IsEmpty())
   {
     return;
@@ -195,10 +197,10 @@ void InfoTreeWidget::UpdateAll()
         QStringList strgs;
         foreach (double value, values)
           strgs << MyUtils::RealToNumber(value, nPrecision);
-        valueStrg = strgs.join(" ");
+        valueStrg = strgs.join(bComma?", ":" ");
         if (values.size() == 6)
         {
-          valueStrg = "("+strgs.mid(0, 3).join(" ") + ") (" + strgs.mid(3,3).join(" ")+")";
+          valueStrg = "("+strgs.mid(0, 3).join(bComma?", ":" ") + ") (" + strgs.mid(3,3).join(bComma?", ":" ")+")";
         }
       }
       for (int j = 0; j < 3; j++)
@@ -327,6 +329,17 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(annot->GetName()).arg(annot->GetAnnotationNameAtVertex( nVertex )));
           item->setToolTip(1, item->text(1));
+        }
+
+        int nPath = surf->FindPathAt(nVertex);
+        if (nPath >= 0)
+        {
+            SurfacePath* path = surf->GetMadePath(nPath);
+            if (path)
+            {
+                item = new QTreeWidgetItem(this);
+                item->setText(1, QString("Path %1 \t%2 mm").arg(nPath).arg(path->GetLength(), 0, 'f', 2));
+            }
         }
       }
       else

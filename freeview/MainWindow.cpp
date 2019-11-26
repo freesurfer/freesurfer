@@ -629,6 +629,9 @@ void MainWindow::LoadSettings()
     m_settings["Precision"] = 2;
   }
 
+  if (!m_settings.contains("UseComma"))
+    m_settings["UseComma"] = true;
+
   OnPreferences();
   m_dlgPreferences->hide();
 
