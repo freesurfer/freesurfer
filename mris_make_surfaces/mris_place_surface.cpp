@@ -144,9 +144,7 @@ int max_white_averages = 4 ;
 int min_white_averages = 0 ;
 float pial_sigma = 2.0f ;
 float white_sigma = 2.0f ;
-// Note "max_thickness" here is really a limit on the distance that CBV will
-// search along the normal (inside and out)
-float max_thickness = 5.0 ;
+float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
 int vavgs = 5 ;
 int nthreads = 1;
 int nbrs = 2;
@@ -500,10 +498,8 @@ int main(int argc, char **argv)
     //   v->mean = max_mag;     // derivative at target intensity
     //   v->marked = 1;         // vertex has good data
     //   v->targx = v->x + v->nx * v->d; // same for y and z
-    // Note "max_thickness" here is really a limit on the distance that CBV will
-    // search along the normal (inside and out)
     MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			    current_sigma, 2*max_thickness, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+			    current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
     // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
     // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 
@@ -746,11 +742,11 @@ static int parse_commandline(int argc, char **argv) {
       RipMidline = 0;
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--max-thickness")){
-      // Note "max_thickness" here is really a limit on the distance that CBV will
-      // search along the normal (inside and out)
+    else if(!strcasecmp(option, "--max-cbv-dist")){
+      // Limit on the distance that CBV will search along the normal (inside and out)
+      // This is called max_thickness in MMS
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%f",&max_thickness);
+      sscanf(pargv[0],"%f",&max_cbv_dist);
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--adgws-in")){
@@ -811,14 +807,15 @@ static int parse_commandline(int argc, char **argv) {
       MRIScomputeMetricProperties(surf);
       int nbhd_size;
       sscanf(pargv[2],"%d",&nbhd_size);
+      float max_thickness;
       sscanf(pargv[3],"%f",&max_thickness);
-      MRISmeasureCorticalThickness(surf, nbhd_size, max_thickness) ;
+      MRISmeasureCorticalThickness(surf, nbhd_size, max_thickness);
       err = MRISwriteCurvature(surf, pargv[4]);
       if(err) exit(1);
       exit(0);
       nargsused = 4;
     } 
-    else if(!strcasecmp(option, "--curv")){
+    else if(!strcasecmp(option, "--curv-map")){
       // This gives the same result as mris_make_surfaces for
       // white. For pial, there is a band around the ripped vertices
       // where it is different (but the same in the center). The
@@ -830,7 +827,7 @@ static int parse_commandline(int argc, char **argv) {
       // versa). This has implications for the surface-based
       // registration (with white.preaparc).
       if(nargc < 4) {
-	printf("ERROR: usage --curv surf nbrs(2) curvature_avgs(10) out\n");
+	printf("ERROR: usage --curv-map surf nbrs(2) curvature_avgs(10) out\n");
 	exit(1);
       }
       surf = MRISread(pargv[0]);
