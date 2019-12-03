@@ -445,7 +445,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_smooth->xsize, MIN(mri_smooth->ysize, mri_smooth->zsize)) / 2);
   printf("  max_mm = %g\n",max_mm);
   printf("  MAX_REDUCTIONS = %d, REDUCTION_PCT = %g\n",MAX_REDUCTIONS,REDUCTION_PCT);
-  printf("  parms->check_tol = %d \n",parms->check_tol);
+  printf("  parms->check_tol = %d, niterations = %d\n",parms->check_tol,parms->niterations);
   if(Gdiag_no > 0){
     vgdiag = &mris->vertices[Gdiag_no];
     printf("vno=%d  v->val=%g v->d=%g v->marked=%d, v->ripflag=%d, xyz=[%g,%g,%g]; nxyz=[%g,%g,%g];\n",
@@ -8018,6 +8018,7 @@ int AutoDetGWStats::Read(char *fname){ // from file name
   return(0);
 }
 
+// was compute_pial_target_locations()
 int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
                               MRI *mri_T2,
                               LABEL **labels,
@@ -8041,10 +8042,11 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 //  double last_pial ; 
   MRI       *mri_filled, *mri_filled_pial, *mri_tmp, *mri_dist_lh, *mri_dist_rh, *mri_dist_white, *mri_dist_pial ;
   Timer then;
+  double CPTL_SAMPLE_DIST = 0.1;
   
   printf("starting MRIScomputePialTargetLocationsMultiModal()\n");
   pix_size = (mri_T2->xsize+mri_T2->ysize + mri_T2->zsize)/3 ;
-  sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
+  sample_dist = MIN(CPTL_SAMPLE_DIST, mri_T2->xsize/2) ;
   printf("max_outward_dist = %g, sample_dist = %g, pix_size = %g, whalf = %d\n",
 	 max_outward_dist, sample_dist,pix_size,nint(7.0/pix_size));
   printf("T2_min_inside = %g, T2_max_inside %g, T2_min_outside = %g, T2_max_outside %g\n",
@@ -8093,7 +8095,7 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 
   // Create a distance volume at twice the size. This can be quite big
   // The value at a voxel is the distance from the voxel to the surface
-  printf("Creating distance volumes t=%g\n", then.minutes()); fflush(stdout);
+  printf("Creating white distance volumes t=%g\n", then.minutes()); fflush(stdout);
   mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
   mri_filled = MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30/mri_T2->xsize)) ; 
   MRIfree(&mri_tmp) ;
@@ -8102,6 +8104,7 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
   MRIfree(&mri_filled) ;
 
+  printf("Creating pial distance volumes t=%g\n", then.minutes()); fflush(stdout);
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
   MRISaverageVertexPositions(mris, 2) ; // smooth pial surface?
   MRIScomputeMetricProperties(mris) ;
@@ -8600,7 +8603,7 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 	      ohemi_dist = dleft ;
 	      hemi_dist = dright ;
 	    }
-	    if (ohemi_dist <= (hemi_dist+SAMPLE_DIST)) // keep them from crossing each other
+	    if (ohemi_dist <= (hemi_dist+CPTL_SAMPLE_DIST)) // keep them from crossing each other
 	    {
 	      if (vno == Gdiag_no)
 		printf("v %d: terminating search at distance %2.2f due to presence of contra hemi %2.1fmm dist <= hemi dist %2.1fmm\n",
