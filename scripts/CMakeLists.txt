@@ -285,6 +285,8 @@ install(PROGRAMS
   DESTINATION bin
 )
 
+install_pyscript(rca-config rca-config2csh)
+
 install_append_help(bbregister bbregister.help.xml bin)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)

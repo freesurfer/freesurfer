@@ -1,0 +1,9 @@
+# default recon-all config parameters
+
+GCA:
+    value: RB_all_2016-05-10.vc700.gca
+    flags: --gca
+
+GCASkull:
+    value: RB_all_withskull_2016-05-10.vc700.gca
+    flags: -gca-skull

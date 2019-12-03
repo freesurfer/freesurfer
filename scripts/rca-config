@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+# This script creates an updated config file from a group of command line arguments.
+# Any unrecognized args will be relayed to a text file. Usage is:
+#
+# recon-config source-config updated-config unknown-args-file args...
+#
+# The correct syntax for a config yaml file is as follows. To define a parameter that
+# can be modified with a given flag or list of flags (that will expect one argument),
+# define the following yaml block:
+#
+#     Parameter:
+#         value: default
+#         flags: --flag-name
+# 
+# If the specified flags do not expect any arguments, it is assumed the parameter
+# represents a boolean value, and the 'action' key should be specified. For
+# example, if a flag sets a parameter to True, the action should be 'enable':
+#
+#     Parameter:
+#         value: False
+#         flags: --flag-name
+#         action: enable
+#
+# To set a parameter to False, action should be 'disable'.
+#
+# If the flags expect more than one argument, the number of required args
+# can be defined with the nargs key:
+#
+#     Parameter:
+#         value: [ a, b, c, d ]
+#         flags: --flag-name
+#         nargs: 4
+#
+# For a variable number of arguments, set nargs to '+'.
+
+import sys
+import yaml
+import argparse
+
+
+def error(message):
+    print('error:', message)
+    exit(1)
+
+
+source_config_file = sys.argv[1]
+output_config_file = sys.argv[2]
+unknown_args_file  = sys.argv[3]
+args_to_parse      = sys.argv[4:]
+
+# load source config yaml
+with open(source_config_file, 'r') as file:
+    config = yaml.load(file, Loader=yaml.FullLoader)
+
+# setup a parser that maps all flags specified in the source config
+# to their corresponding parameter
+parser = argparse.ArgumentParser()
+for var_name, var_config in config.items():
+
+    # get list of flags for this parameter
+    flags = var_config.get('flags')
+    if not flags:
+        error('config parameter "%s": must specify valid flags' % var_name)
+    if not isinstance(flags, list):
+        flags = [flags]
+
+    # set number of arguments expected (or boolean action if no args are expected)
+    nargs = var_config.get('nargs')
+    action = var_config.get('action')
+    options = {}
+
+    if action is not None:
+        if action not in ('enable', 'disable'):
+            error('config parameter "%s": unknown action "%s"' % (var_name, action))
+        options['action'] = 'store_true' if action == 'enable' else 'store_false'
+
+    elif nargs is not None:
+        if nargs == 0:
+            error('config parameter "%s": if nargs is 0, use action specifier instead' % var_name)
+        options['nargs'] = nargs
+
+    # ensure parameter has a set value
+    if 'value' not in var_config:
+        error('config parameter "%s": missing default value' % var_name)
+    default = var_config['value']
+
+    # configure a parsable argument for each flag
+    for flag in flags:
+        parser.add_argument(flag, dest=var_name, default=default, **options)
+
+# parse the arguments
+parsed, unknown = parser.parse_known_args(args_to_parse)
+
+# update the config with what we found
+for var_name, value in vars(parsed).items():
+    config[var_name]['value'] = value
+
+# write config yaml file
+with open(output_config_file, 'w') as file:
+
+    file.write('# auto-generated config file\n')
+
+    for var_name, var_config in config.items():
+        file.write('\n%s:\n' % var_name)
+    
+        value = var_config['value']
+        if isinstance(value, list):
+            value = '[%s]' % ', '.join(map(str, value))
+        file.write('    value: %s\n' % value)
+
+        flags = var_config['flags']
+        if isinstance(flags, list):
+            flags = '[%s]' % ', '.join(map(str, flags))
+        file.write('    flags: %s\n' % flags)
+
+        if 'action' in var_config:
+            file.write('    action: %s\n' % var_config['action'])
+        elif 'nargs' in var_config:
+            file.write('    nargs: %s\n' % var_config['nargs'])
+
+# relay any unregistered arguments to a text file
+with open(unknown_args_file, 'w') as file:
+    for arg in unknown:
+        file.write(arg + '\n')

@@ -268,8 +268,6 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2016-05-10.vc700.gca
-set GCASkull = RB_all_withskull_2016-05-10.vc700.gca
 set GCADIR   = "${FREESURFER_HOME}/average"
 set GCAOutputName = ();
 set GCARegIterations = ();
@@ -416,6 +414,24 @@ endif
 
 source $FREESURFER_HOME/sources.csh
 
+# Forward the command line arguments to recon-config, which
+# will parse out any recognized flags and update a recon-specific
+# configuration file. Unrecognized arguments will be relayed to
+# tmp_unknown_args, which will be parsed in this script
+set tmp_config = `mktemp`
+set tmp_unknown_args = `mktemp`
+rca-config $FREESURFER_HOME/recon-config.yaml $tmp_config $tmp_unknown_args $argv:q
+if($status) then
+  echo "ERROR: could not configure recon-all parameters"
+  exit 1;
+endif
+
+# Set global parameters defined by the config file 
+eval "`rca-config2csh $tmp_config`"
+
+# Overwrite argv with all the arguments that were not recognized in the config
+set argv = ( "`cat $tmp_unknown_args`" )
+
 goto parse_args;
 parse_args_return:
 goto check_params;
@@ -504,6 +520,10 @@ cd $subjdir # This variable is set in check_params
 mkdir -p mri scripts surf tmp label touch stats touch trash
 mkdir -p mri/transforms mri/transforms/bak mri/orig
 set touchdir = $subjdir/touch
+
+# Move the subject-specific config files from their temporary locations
+mv $tmp_config scripts/recon-config.yaml
+mv $tmp_unknown_args scripts/unknown-args.txt
 
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then
@@ -1146,13 +1166,13 @@ endif
 #-----------                  -----------#
 if($#InputList != 0) then
   @ nth = 1;
-  foreach InputVol ($InputList)
+  foreach InputVol ($InputList:q)
     set nthid = `printf %03d.mgz $nth`
-    set cmd = (mri_convert $InputVol $subjdir/mri/orig/$nthid)
+    set cmd = (mri_convert "$InputVol" $subjdir/mri/orig/$nthid)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
+      $fs_time $cmd:q |& tee -a $LF
       if($status) goto error_exit;
     endif
     # sanity-check: make sure each input has the same dimensions
@@ -6240,11 +6260,6 @@ while( $#argv != 0 )
       set NoAsegInorm2     = 1;
       breaksw
 
-    case "-gca":
-      if ( $#argv < 1) goto arg1err;
-      set GCA = $argv[1]; shift;
-      breaksw
-
     case "-twm":
       if ( $#argv < 1) goto arg1err;
       set UseTWMControlPoints = 1;
@@ -6253,11 +6268,6 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $TWMControlPointsFile"
         goto error_exit;
       endif
-      breaksw
-
-    case "-gca-skull":
-      if ( $#argv < 1) goto arg1err;
-      set GCASkull = $argv[1]; shift;
       breaksw
 
     case "-gca-dir":
