@@ -16,10 +16,7 @@ if(ITK_FOUND AND VTK_FOUND)
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
     /space/erebus/2/users/vsiless/code/commong/alglib/src
- )
- file(GLOB ALGLIB_SRC
-    /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp
-)
+  )
 
   set(TRACKIO ../freeview/track_io/TrackIO.cpp)
 
@@ -28,21 +25,21 @@ if(ITK_FOUND AND VTK_FOUND)
   install(TARGETS mris_multimodal DESTINATION bin)
   
   add_executable(mris_profileClustering mris_profileClustering.cxx)
-  target_link_libraries(mris_profileClustering utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(mris_profileClustering utils ${OPENGL_LIBRARIES} ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_profileClustering DESTINATION bin)
  
   add_executable(mris_surf2vtk mris_surf2vtk.cxx)
   target_link_libraries(mris_surf2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS mris_surf2vtk DESTINATION bin)
  
-  add_executable(mris_image2vtk mris_image2vtk.cxx  ) # Code/vtkNIFTIImageReader.cxx)
+  add_executable(mris_image2vtk mris_image2vtk.cxx) # Code/vtkNIFTIImageReader.cxx)
   target_link_libraries(mris_image2vtk utils ${ITK_LIBRARIES} ${VTK_LIBRARIES} )
   install(TARGETS mris_image2vtk DESTINATION bin)
   
+  #file(GLOB ALGLIB_SRC /space/erebus/2/users/vsiless/code/commong/alglib/src/*.cpp)
   #add_executable(sigmoidFit sigmoidFit.cxx ${ALGLIB_SRC})
   #target_link_libraries(sigmoidFit utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   #install(TARGETS sigmoidFit DESTINATION bin)
-
 
   add_executable(mri_vessel_segment mri_vessel_segment.cxx)
   target_link_libraries(mri_vessel_segment utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
