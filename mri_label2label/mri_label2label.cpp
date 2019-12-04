@@ -172,6 +172,11 @@ static char *src_annot_fname = NULL ;
 static char *trg_annot_fname = NULL ;
 
 int UseScannerCoords = 0;
+int ToScannerCoords = 0;
+MRI *ToScannerTemplate = NULL;
+int ToTkrCoords = 0;
+MRI *ToTkrTemplate = NULL;
+
 char *DminminFile=NULL;
 MRI *mritmp=NULL;
 
@@ -260,6 +265,18 @@ int main(int argc, char **argv) {
     if (srclabel == NULL) {
       fprintf(stderr,"ERROR reading %s\n",srclabelfile);
       exit(1);
+    }
+    if(ToScannerCoords){
+      if(srclabel->coords != LABEL_COORDS_SCANNER_RAS){
+	printf("Converting label to scanner RAS\n");
+	LabelToScannerRAS(srclabel, ToScannerTemplate, srclabel);
+      }
+    }
+    if(ToTkrCoords){
+      if(srclabel->coords != LABEL_COORDS_TKREG_RAS){
+	printf("Converting label to TkReg RAS\n");
+	LabelToScannerRAS(srclabel, ToTkrTemplate, srclabel);
+      }
     }
   }
   printf("Found %d points in source label.\n",srclabel->n_points);
@@ -882,6 +899,19 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--trg-invert")) TrgInv = 1;
     else if (!strcmp(option, "--scanner")) UseScannerCoords = 1;
+    else if (!strcmp(option, "--to-scanner")){
+      if(nargc < 1) argnerr(option,1);
+      ToScannerTemplate = MRIreadHeader(pargv[0],MRI_VOLUME_TYPE_UNKNOWN);
+      if(ToScannerTemplate==NULL) exit(1);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--to-tkr")){
+      if (nargc < 1) argnerr(option,1);
+      ToTkrCoords = 1;
+      ToTkrTemplate = MRIreadHeader(pargv[0],MRI_VOLUME_TYPE_UNKNOWN);
+      if(ToTkrTemplate==NULL) exit(1);
+      nargsused = 1;
+    }
 
     else if (!strcmp(option, "--s")) {
       if (nargc < 1) argnerr(option,1);
@@ -1077,7 +1107,7 @@ static int parse_commandline(int argc, char **argv) {
       // surf aseg outlabel
       if(nargc < 3){
 	printf("ERROR: when using --label-cortex, the usage is:\n");
-	printf("  --cortex surf aseg outlabel\n");
+	printf("  --label-cortex surf aseg outlabel\n");
 	exit(1);
       }
       MRIS *lsurf = MRISread(pargv[0]);
@@ -1128,6 +1158,7 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --srclabel     input label file \n");
+  printf("   --trglabel     output label file \n");
   printf("\n");
   printf("   --erode  N     erode the label N times before writing\n");
   printf("   --open   N     open the label N times before writing\n");
@@ -1138,7 +1169,6 @@ static void print_usage(void) {
   printf("   --trgsubject   target subject\n");
   printf("   --s subject : use for both target and source\n");
   printf("\n");
-  printf("   --trglabel     output label file \n");
   printf("   --outmask      maskfile : save output label as a "
          "binary mask (surf only)\n");
   printf("   --outstat      statfile : save output label stat as a "
@@ -1183,8 +1213,12 @@ static void print_usage(void) {
   printf("   --sd subjectsdir : default is to use env SUBJECTS_DIR\n");
   printf("   --nohash : don't use hash table when regmethod is surface\n");
   printf("   --norevmap : don't use reverse mapping regmethod is surface\n");
+  printf("   --to-scanner template : convert coords to scanner RAS (if needed) prior \n");
+  printf("       to other operations. template is the MRI volume that the label was created on\n");
+  printf("   --to-tkr template : convert coords to tkregister RAS (if needed) prior \n");
+  printf("       to other operations. template is the MRI volume that the label was created on\n");
   printf("   --scanner : set output coordinate type to scanner\n");
-  printf("     NOTE: this does nothing more than change a string in the label file\n");
+  printf("       NOTE: --scanner does nothing more than change a string in the label file\n");
   printf("\n");
 }
 /* --------------------------------------------- */
