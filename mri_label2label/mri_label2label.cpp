@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
     if(ToTkrCoords){
       if(srclabel->coords != LABEL_COORDS_TKREG_RAS){
 	printf("Converting label to TkReg RAS\n");
-	LabelToScannerRAS(srclabel, ToTkrTemplate, srclabel);
+	LabelToSurfaceRAS(srclabel, ToTkrTemplate, srclabel);
       }
     }
   }
