@@ -270,6 +270,7 @@ install(PROGRAMS
   vertexvol
   vno_match_check
   vol2segavg
+  vol2subfield
   vol2symsurf
   vsm-smooth
   wfilemask
