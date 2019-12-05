@@ -1,0 +1,449 @@
+#!/bin/tcsh -f
+# vol2subfield - 
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set invol = ();
+set outvol = ();
+set reg = (); # invol2subject
+set subfieldvol = (); # can be anything with headerreg to orig
+set interp = nearest
+set segstats = ()
+set avgwf = ()
+set avgwfvol = ()
+set ctab = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set outreg = ()
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+if($#outvol) then
+  set outdir = `dirname $outvol`
+else
+  set outdir = `dirname $outreg`
+endif
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.vol2subfield.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.vol2subfield.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) then
+  if($#outvol) then
+    set LF = $outvol.log
+  else
+    set LF = $outreg.log
+  endif
+endif
+if($LF != /dev/null) rm -f $LF
+echo "Log file for vol2subfield" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+set regdat = $tmpdir/deleteme.dat
+set sf2conflta = $tmpdir/reg.sf2conf.lta
+set cmd = (tkregister2_cmdl --mov $subfieldvol --targ $orig --regheader \
+  --s $subject --reg $regdat --ltaout $sf2conflta)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+if($#outreg == 0) set outreg = $tmpdir/reg.invol2sf.lta
+set cmd = (mri_concatenate_lta -invert2 -invertout $sf2conflta $reg $outreg)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+echo "To check registration" | tee -a $LF
+echo "tkregisterfv --mov $invol --targ $subfieldvol --reg $outreg" | tee -a $LF
+echo "" | tee -a $LF
+
+if($#outvol == 0) goto finished
+
+set cmd = (mri_vol2vol --mov $invol --targ $subfieldvol \
+  --reg $outreg --interp $interp --o $outvol)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+if($#segstats || $#avgwf || $#avgwfvol) then
+  set cmd = (mri_segstats --i $outvol --seg $subfieldvol --ctab $ctab --exclude 0)
+  if($#segstats)  set cmd = ($cmd --sum $segstats)
+  if($#avgwf)     set cmd = ($cmd --avgwf $avgwf)
+  if($#avgwfvol)  set cmd = ($cmd --avgwfvol $avgwfvol)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+endif
+
+#========================================================
+
+echo "" | tee -a $LF
+echo "To check run" | tee -a $LF
+echo "tkmeditfv -f $outvol -seg $subfieldvol" | tee -a $LF
+echo "" | tee -a $LF
+
+finished:
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "vol2subfield Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--outreg":
+      if($#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--sf":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = $argv[1]; shift;
+      breaksw
+
+    case "--lh.hippoamyg":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = lh.hippoAmygLabels-T1.v21.mgz
+      breaksw
+    case "--rh.hippoamyg":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = rh.hippoAmygLabels-T1.v21.mgz
+      breaksw
+
+    case "--lh.hbt":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = lh.hippoAmygLabels-T1.v21.HBT.mgz
+      breaksw
+    case "--rh.hbt":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = rh.hippoAmygLabels-T1.v21.HBT.mgz
+      breaksw
+
+    case "--thalamus":
+    case "--thalamic":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = ThalamicNuclei.v10.T1.mgz
+      breaksw
+
+    case "--brainstem":
+      if($#argv < 1) goto arg1err;
+      set subfieldvol = brainstemSsLabels.v12.mgz
+      breaksw
+
+    case "--stats":
+      if($#argv < 1) goto arg1err;
+      set segstats = $argv[1]; shift;
+      breaksw
+
+    case "--avgwf":
+      if($#argv < 1) goto arg1err;
+      set avgwf = $argv[1]; shift;
+      breaksw
+
+    case "--avgwfvol":
+      if($#argv < 1) goto arg1err;
+      set avgwfvol = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--nearest":
+      set interp = nearest
+      breaksw
+    case "--trilin":
+      set interp = trilin
+      breaksw
+    case "--cubic":
+      set interp = cubic
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#invol == 0) then
+  echo "ERROR: must spec invol"
+  exit 1;
+endif
+if($#subfieldvol == 0) then
+  echo "ERROR: must spec subfieldvol"
+  exit 1;
+endif
+if($#reg == 0) then
+  echo "ERROR: must spec reg"
+  exit 1;
+endif
+
+set subject = `reg2subject --r $reg`
+set orig = $SUBJECTS_DIR/$subject/mri/orig.mgz
+if(! -e $orig) then
+  echo "ERROR: cannot find $orig"
+  exit 1;
+endif
+
+foreach f ($invol $reg)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1
+  endif
+end         
+
+if(! -e $subfieldvol) then
+  if(! -e $SUBJECTS_DIR/$subject/mri/$subfieldvol) then
+    echo "ERROR: cannot find $subfieldvol"
+    exit 1;
+  endif
+  set subfieldvol = $SUBJECTS_DIR/$subject/mri/$subfieldvol
+endif
+
+if($#outvol == 0 && $#outreg == 0) then
+  echo "ERROR: must spec outvol or outreg"
+  exit 1;
+endif
+
+
+if($#segstats || $#avgwf || $#avgwfvol) then
+  if($#outvol == 0) then
+    echo "ERROR: need an output volume with a mri_segstats output"
+    exit 1;
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "vol2subfield (run with --help to get more info)"
+  echo ""
+  echo " Required inputs"
+  echo "  --i input volume"
+  echo "  --sf subfield volume : full path or relative to subject/mri"
+  echo "  --reg reg.lta : registration that maps input volume to conformed"
+  echo ""
+  echo " Outputs"
+  echo "  --o output volume"
+  echo "  --outreg outreg.lta : registration between invol and subfield"
+  echo "  --stats stats.dat : run mri_segstats with --sum stats.dat output"
+  echo "  --avgwf avgwf.dat : run mri_segstats with --avgwf avgwf.dat output"
+  echo "  --avgwfvol avgwfvol : run mri_segstats with --avgwfvol avgwfvol output"
+  echo ""
+  echo " Other options"
+  echo "  --ctab ctab : color table to use with mri_segstats. Default is $ctab"
+  echo "  --nearest : use nearest neighbor interpolation (default)"
+  echo "  --trilin  : use triliear interpolation"
+  echo "  --cubic   : use cubic interpolation"
+  echo "  --tmp tmpdir : for debugging"
+  echo ""
+  echo " These are meant to make it easy to interface with the various subfield segs produced by FS"
+  echo "   --lh.hippoamyg : set subfield to  lh.hippoAmygLabels-T1.v21.mgz"
+  echo "   --rh.hippoamyg : set subfield to  rh.hippoAmygLabels-T1.v21.mgz"
+  echo "   --lh.hbt       : set subfield to  lh.hippoAmygLabels-T1.v21.HBT.mgz"
+  echo "   --rh.hbt       : set subfield to  rh.hippoAmygLabels-T1.v21.HBT.mgz"
+  echo "   --thalamus     : set subfield to  ThalamicNuclei.v10.T1.mgz"
+  echo "   --brainstem    : set subfield to  brainstemSsLabels.v12.mgz"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+vol2subfield provides routines that make it easier to integrate
+arbitrary volumes with volumes that share a RAS space ("header
+registration") with the orig volume in the FreeSurfer mri folder.
+This script was written to manage "subfield" segmentations (eg,
+hippocampal, amygdalar, thalamic, and brainstem), but it can be used
+much more generally.
+
+The input registration is the LTA registration between the input
+volume and the orig.mgz (eg, computed with bbregister or
+mri_coreg). IF THIS REGISTRATION IS INACCURATE THEN THE OUTPUT OF THIS
+SCRIPT WILL BE WRONG!! To check the input registration run
+tkregisterfv --mov invol --reg reg.lta --surfs
+
+This script can have three types of outputs:
+
+1. To get a registration between an input volume and a subfield volume
+
+vol2subfield --i fa.nii.gz --reg reg.lta --sf rh.hippoAmygLabels-T1.v21.HBT.mgz --outreg outreg.lta
+
+outreg.lta will map fa.nii.gz to
+rh.hippoAmygLabels-T1.v21.HBT.mgz. Note that the "subfield" volume can
+be anything that shares a RAS space with the orig.mgz (eg,
+orig/001.mgz).  It does not need to be a segmentation volume.
+
+2. To map the input volume into the subfield volume space
+
+vol2subfield --i fa.nii.gz --reg reg.lta --sf rh.hippoAmygLabels-T1.v21.HBT.mgz --o fa.rh.hbt.mgz
+
+fa.rh.hbt.mgz will be the fa.nii.gz sampled into the space of
+rh.hippoAmygLabels-T1.v21.HBT.mgz (ie, it will be in voxel-for-voxel
+registration). Again, the "subfield" volume can be anything that
+shares a RAS space with the orig.mgz (eg, orig/001.mgz).  It does not
+need to be a segmentation volume. This volume is appropriate for running
+mri_segstats. Note that there is not an output registration, but, if you
+want to save it, just use --outreg as above.
+
+3. To compute segmentation statistics of the input volume 
+
+vol2subfield --i fa.nii.gz --reg reg.lta --sf rh.hippoAmygLabels-T1.v21.HBT.mgz \
+  --o fa.rh.hbt.mgz --stats stats.dat --avgwf avgwf.dat --avgwfvol avgwfvol.mgz
+
+This will create three files (but you do not need to specify all of
+them) using mri_segstats (and excluding the 0 segmentation). See
+mri_segstats --help for what each of these outputs mean. Note that
+there is not an output registration, but, if you want to save it, just
+use --outreg as above.
+
+
+For information about the subfields created by FS, see
+https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala
+http://freesurfer.net/fswiki/ThalamicNuclei
+https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
+
