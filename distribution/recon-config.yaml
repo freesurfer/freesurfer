@@ -3,7 +3,10 @@
 GCA:
     value: RB_all_2016-05-10.vc700.gca
     flags: --gca
+    descr: Gaussian Classifier Array atlas used for segmentation
 
 GCASkull:
     value: RB_all_withskull_2016-05-10.vc700.gca
     flags: -gca-skull
+    descr: Gaussian Classifier Array atlas used for skull stripping
+
