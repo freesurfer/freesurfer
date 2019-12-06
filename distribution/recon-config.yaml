@@ -2,7 +2,7 @@
 
 GCA:
     value: RB_all_2016-05-10.vc700.gca
-    flags: --gca
+    flags: -gca
     descr: Gaussian Classifier Array atlas used for segmentation
 
 GCASkull:
