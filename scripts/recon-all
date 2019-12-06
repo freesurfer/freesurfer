@@ -336,7 +336,6 @@ set UseTWMControlPoints = 0;
 set DoSkullStrip     = 0;
 set DoSegmentation   = 0;
 set DoGCAReg         = 0;
-set DoCARegInv       = 0;
 set DoCANormalize    = 0;
 set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
@@ -358,11 +357,8 @@ set DoCurvHK         = 0;
 set DoCurvStats      = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
-set SurfRegToSubj    = ();
 set DoJacobianWhite  = 0;
 set DoJacobianDist0  = 0;
-set DoContraSurfReg  = 0;
-set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
@@ -2608,28 +2604,6 @@ if($DoCAReg) then
   echo $cmd > $touchdir/ca_register.touch
 endif
 
-#------------                                   --------------#
-#------------ Inverse of Canonical Registration --------------#
-##-----------              -careginv            --------------#
-#------------                                   --------------#
-if($DoCARegInv) then
-  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
-  echo "#@# CA Reg Inv `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  $PWD |& tee -a $LF
-  # set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`; # careful here
-  set cmd = (mri_ca_register)
-  set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.inv.dat) 
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mri_ca_register with non-zero status $status" |& tee -a $LF
-    goto error_exit;
-  endif
-  echo $cmd > $touchdir/ca_register_inv.touch
-endif
-
 #------------                                    --------------#
 #------------ Removes neck and part of the face  --------------#
 ##----------- -rmneck, needed if doing SkullLTA  --------------#
@@ -3861,124 +3835,6 @@ if($DoSurfReg) then
 endif
 
 
-#--------                             ---------#
-#-------- Contra Surface Registration ---------#
-##-------   -contrasurfreg            ---------#
-##-------   -contrasurfreg-subj       ---------#
-#--------                             ---------#
-
-# Registers ipsi and contra
-if($DoContraSurfReg) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd $xopts)
-    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-# Register ipsi to contra directly (instead of thru sphere)
-# Creates lh.rh.sphere (note that there is no .reg)
-if($DoContraSurfRegWithinSubject) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    cd $subjdir/surf
-    $PWD |& tee -a $LF
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    if(! -e $nothemi.inflated.H) then
-      echo "ERROR: cannot find $nothemi.inflated.H, try running -inflate2" \
-          |& tee -a $LF
-      goto error_exit;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg Within Subject $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set cmd = (mris_register -dist 0.3 -reverse -1 \
-       ./$hemi.sphere ./$nothemi.sphere ./$hemi.$nothemi.sphere)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphere.contra.touch
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-#----------                                         ----------------#
-#---------- Surface Registration to Average Subject ----------------#
-##---------           -surfreg-to-subject           ----------------#
-#----------                                         ----------------#
-if($#SurfRegToSubj) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Surf RegTo $SurfRegToSubj $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
-    set outreg =  ../surf/$hemi.sphere.$SurfRegToSubj.reg
-    set cmd = (mris_register -curv)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd ../surf/$hemi.sphere $AvgTif $outreg);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphreg.$SurfRegToSubj.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
 
 #----------------                  -------------------#
 ##---------------  -jacobian_white -------------------#
@@ -6117,13 +5973,6 @@ while( $#argv != 0 )
       set EMRegMaskArg = `getfullpath $EMRegMaskArg`
       breaksw
 
-    case "-careginv":
-      set DoCARegInv = 1;
-      breaksw
-    case "-nocareginv":
-      set DoCARegInv = 0;
-      breaksw
-
     case "-canorm":
       set DoCANormalize = 1;
       breaksw
@@ -6471,16 +6320,6 @@ while( $#argv != 0 )
       set DoSurfReg = 0;
       breaksw
 
-    # Specify an average subject, which will have a tif
-    # in its directory. Output will be hemi.sphere.avgsubj.reg
-    case "-surfreg-to-subject":
-      if( $#argv < 1) goto arg1err;
-      set SurfRegToSubj = $argv[1]; shift;
-      breaksw
-    case "-no-surfreg-to-subject":
-      set SurfRegToSubj = ();
-      breaksw
-
     case "-jacobian_white":
       set DoJacobianWhite = 1;
       breaksw
@@ -6493,20 +6332,6 @@ while( $#argv != 0 )
       breaksw
     case "-nojacobian_dist0":
       set DoJacobianDist0 = 0;
-      breaksw
-
-    case "-contrasurfreg":
-      set DoContraSurfReg = 1;
-      breaksw
-    case "-nocontrasurfreg":
-      set DoContraSurfReg = 0;
-      breaksw
-
-    case "-contrasurfreg-subj":
-      set DoContraSurfRegWithinSubject = 1;
-      breaksw
-    case "-nocontrasurfreg-subj":
-      set DoContraSurfRegWithinSubject = 0;
       breaksw
 
     case "-avgcurv":
@@ -6727,7 +6552,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6908,7 +6732,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6930,7 +6753,6 @@ while( $#argv != 0 )
     case "-autorecon3":
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6991,7 +6813,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -8043,9 +7864,9 @@ check_params:
 
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && ! $DoCleanCW256 && \
-     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv && \
+     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && \
      ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && ! $DoCleanXopts && \
-     ! $DoNormalization  && ! $#SurfRegToSubj &&\
+     ! $DoNormalization  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
@@ -8053,8 +7874,8 @@ check_params:
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
      ! $DoSkullLTA && ! $DoQdecCache  && ! $DoVnoMatchCheck &&\
-     ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
-     ! $DoMorphRGB && ! $DoWhiteSurfs && ! $DoContraSurfRegWithinSubject &&\
+     ! $DoSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
+     ! $DoMorphRGB && ! $DoWhiteSurfs && \
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
@@ -8079,18 +7900,6 @@ check_params:
   if( ($WSMore || $WSLess) && $WSPctPreFlood ) then
     echo "ERROR: cannot specify -wsmore or -wsless and -wsthresh"
     exit 1;
-  endif
-
-  if($#SurfRegToSubj) then
-    if(! -e $SUBJECTS_DIR/$SurfRegToSubj) then
-      echo "ERROR: cannot find $SurfRegToSubj"
-      exit 1;
-    endif
-    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
-    if(! -e $AvgTif) then
-      echo "ERROR: cannot find $AvgTif"
-      exit 1;
-    endif
   endif
 
   if($DoParallel == 1 && $#hemilist == 1) then
@@ -8384,7 +8193,6 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
   -<no>gcareg            15 min
   -<no>canorm             1 min
   -<no>careg              1 hour
-  -<no>careginv           1 min
   -<no>rmneck             1 min
   -<no>skull-lta         12 min
   -<no>calabel           34 min
@@ -8912,11 +8720,6 @@ CA Register (-<no>careg)
 
 Computes a nonlinear transform to align with GCA atlas.
 Creates the file mri/transform/talairach.m3z.
-
-CA Register Inverse (-<no>careginv)
-
-Computes the inverse of the nonlinear transform to align with GCA
-atlas.  Creates the files mri/transform/talairach.m3z.{x,y,z}.mgz.
 
 Remove neck (-<no>rmneck)
 
