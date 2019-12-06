@@ -98,6 +98,9 @@ mris_place_surface --adgws-in autodetstats.lh.dat
   --mmvol--mmvol ../mri/T2.mgz T2 --white-surf lh.white
 # The role of the input (--i) vs init (--init) surface needs to be clarified
 
+# To run with just an input surface and input volume
+ mris_place_surface --adgws-in autodetstats.lh.dat --invol ../mri/brain.finalsurfs.mgz --lh --i ../surf/lh.orig --white --o lh.junk --no-intensity-proc --no-rip-midline
+
 */
 
 #include <stdio.h>
@@ -179,7 +182,7 @@ float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
 int vavgs = 5 ;
 int nthreads = 1;
 int nbrs = 2;
-int nsmoothsurf = 5 ;
+int nsmoothsurf = 0 ;
 
 char *SUBJECTS_DIR;
 char *insurfpath = NULL;
@@ -205,9 +208,10 @@ int UseAParc = 0;
 char *adgwsinfile = NULL;
 char *adgwsoutfile = NULL;
 MRIS *surf;
-char *ripfile = NULL;
+char *ripflagout = NULL;
 RIP_MNGR ripmngr;
 LABEL *pinlabel = NULL;
+int DoIntensityProc = 1;
 
 double shrinkThresh = -1;
 
@@ -230,7 +234,7 @@ int main(int argc, char **argv)
 {
   int nargs, i, msec;
   double        spring_scale = 1;
-  MRI *invol, *seg, *wm, *involCBV, *involPS;
+  MRI *invol, *seg=NULL, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
   AutoDetGWStats adgws;
@@ -403,60 +407,68 @@ int main(int argc, char **argv)
   invol = MRIread(involpath);
   if(invol==NULL) exit(1);
 
-  // =========== intensity volume preprocessing ==============
-  // It would be nice to do this externally
-  printf("Reading in wm volume %s\n",wmvolpath);
-  wm = MRIread(wmvolpath);
-  if(wm==NULL) exit(1);
-  // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
-  MRIclipBrightWM(invol, wm) ;
-
-  MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
-  MRIfree(&wm);
-  if(surftype == GRAY_WHITE){
-    printf("Masking bright non-wm for white surface\n");
-    // Replace bright and borderbright invol voxels with 0
-    // Can this be done for pial as well?
-    MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
-    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
-  }
-
-  if(surftype == GRAY_CSF){
-    // Modify the volume for pial surface
-    printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
-    // Replace brightborder voxels with MID_GRAY (can be done once?)
-    // Why would you want to do this? The brightborder voxels are >= 100,
-    // but this would make them look like GM and force the pial outside of them.
-    // This would happen, eg, for a bright vessel in cortex
-    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
-    // Replace bright voxels with 255 (this gets changed below)
-    // Not sure why this is needed except that it gets set to 0 below which
-    // could look like a strong negative gradient
-    // Create the volume used to computed the border values
-    involCBV = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 255) ;
-    /* From mris_make_surfaces: Replace bright stuff such as eye
-       sockets with 255.  Simply zeroing it out would make the border
-       always go through the sockets, and ignore subtle local minima
-       in intensity at the border of the sockets.  Will set to 0
-       after border values have been computed so that it doesn't mess
-       up gradients.  */
-    // Replace bright voxels with 0 (mask them out)
-    // This undoes some of the masking above (or vice versa)
-    // Create the volume used to position the surface
-    involPS = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 0);
+  if(DoIntensityProc){
+    // =========== intensity volume preprocessing ==============
+    // It would be nice to do this externally
+    printf("Reading in wm volume %s\n",wmvolpath);
+    wm = MRIread(wmvolpath);
+    if(wm==NULL) exit(1);
+    // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
+    MRIclipBrightWM(invol, wm) ;
+    
+    MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
+    MRIfree(&wm);
+    if(surftype == GRAY_WHITE){
+      printf("Masking bright non-wm for white surface\n");
+      // Replace bright and borderbright invol voxels with 0
+      // Can this be done for pial as well?
+      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
+      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
+    }
+    
+    if(surftype == GRAY_CSF){
+      // Modify the volume for pial surface
+      printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
+      // Replace brightborder voxels with MID_GRAY (can be done once?)
+      // Why would you want to do this? The brightborder voxels are >= 100,
+      // but this would make them look like GM and force the pial outside of them.
+      // This would happen, eg, for a bright vessel in cortex
+      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
+      // Replace bright voxels with 255 (this gets changed below)
+      // Not sure why this is needed except that it gets set to 0 below which
+      // could look like a strong negative gradient
+      // Create the volume used to computed the border values
+      involCBV = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 255) ;
+      /* From mris_make_surfaces: Replace bright stuff such as eye
+	 sockets with 255.  Simply zeroing it out would make the border
+	 always go through the sockets, and ignore subtle local minima
+	 in intensity at the border of the sockets.  Will set to 0
+	 after border values have been computed so that it doesn't mess
+	 up gradients.  */
+      // Replace bright voxels with 0 (mask them out)
+      // This undoes some of the masking above (or vice versa)
+      // Create the volume used to position the surface
+      involPS = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 0);
+    }
+    else {
+      // Use the same input for white surface
+      involCBV = invol;
+      involPS  = invol;
+    }
+    MRIfree(&mri_labeled);
+    // ========= End intensity volume preproc ===================
   }
   else {
-    // Use the same input for white surface
     involCBV = invol;
     involPS  = invol;
   }
-  MRIfree(&mri_labeled);
-  // ========= End intensity volume preproc ===================
 
-  printf("Reading in seg volume %s\n",segvolpath);
-  seg = MRIread(segvolpath);
-  if(seg==NULL) exit(1);
-  // Check dims
+  if(segvolpath){
+    printf("Reading in seg volume %s\n",segvolpath);
+    seg = MRIread(segvolpath);
+    if(seg==NULL) exit(1);
+    // Check dims
+  }
 
   // Manage ripping of vertices
   ripmngr.hemi  = hemi;
@@ -650,10 +662,10 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if(ripfile){
-    printf("Writing ripfile to %s\n",ripfile);
+  if(ripflagout){
+    printf("Writing ripflagout to %s\n",ripflagout);
     char *field = "ripflag";    
-    MRISwriteField(surf, &field, 1, ripfile);
+    MRISwriteField(surf, &field, 1, ripflagout);
   }
 
   msec = timer.milliseconds() ;
@@ -701,6 +713,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-rip-bg")) ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
+    else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))   hemi = "rh";
     else if(!strcmp(option, "--pin-medial-wall")){
@@ -787,7 +800,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&max_cbv_dist);
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--adgws-in")){
+    else if(!strcasecmp(option, "--adgws") || !strcasecmp(option, "--adgws-in")){
       if(nargc < 1) CMDargNErr(option,1);
       adgwsinfile = pargv[0];
       nargsused = 1;
@@ -854,10 +867,10 @@ static int parse_commandline(int argc, char **argv) {
       printf("Gdiag_no set to %d\n",Gdiag_no);
       nargsused = 1;
     }
-    else if(!strcmp(option, "--rip")){
+    else if(!strcmp(option, "--ripflag-out")){
       // output ripflag overlay
       if(nargc < 1) CMDargNErr(option,1);
-      ripfile = pargv[0];
+      ripflagout = pargv[0];
       nargsused = 1;
     }
     else if(!strcmp(option, "--sd")){
@@ -1077,25 +1090,19 @@ static void check_options(void) {
 
 
 
-/* --------------------------------------------- */
-static void print_usage(void) 
+#include "mris_place_surface.help.xml.h"
+static void
+print_usage(void)
 {
-  printf("\n");
-  printf("USAGE: ./mris_place_surface\n");
-  printf(" --s subject hemi insurfname outsurfname\n");
-  printf(" --adgws-in input gray/white stats file (see mris_autodet_gwstats)\n");
-  printf("\n");
+  outputHelpXml(mris_place_surface_help_xml,mris_place_surface_help_xml_len);
 }
 
-
-/* --------------------------------------------- */
-static void print_help(void) {
+static void
+print_help(void)
+{
   print_usage() ;
-  printf("\n");
-  printf("\n");
   exit(1) ;
 }
-
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
