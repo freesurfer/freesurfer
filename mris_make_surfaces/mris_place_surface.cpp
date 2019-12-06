@@ -144,6 +144,7 @@ public:
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -206,6 +207,7 @@ char *adgwsoutfile = NULL;
 MRIS *surf;
 char *ripfile = NULL;
 RIP_MNGR ripmngr;
+LABEL *pinlabel = NULL;
 
 double shrinkThresh = -1;
 
@@ -363,7 +365,7 @@ int main(int argc, char **argv)
   MRISprettyPrintSurfQualityStats(stdout, surf);
 
   if(whitesurfpath){
-    // white coords used in t2/flair
+    // white coords used in t2/flair and to force pial to white in medial wall
     printf("Reading white surface coordinates from %s\n",whitesurfpath);
     MRISsaveVertexPositions(surf, TMP_VERTICES) ; 
     err = MRISreadVertexPositions(surf, whitesurfpath);
@@ -633,6 +635,11 @@ int main(int argc, char **argv)
 
   } // end major loop placing the white surface using
 
+  if(pinlabel){
+    printf("Pinning medial wall to white surface\n");
+    MRISpinMedialWallToWhite(surf, pinlabel);
+  }
+
   MRISremoveIntersections(surf); //matches mris_make_surface
 
   printf("\n\n");
@@ -696,6 +703,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))   hemi = "rh";
+    else if(!strcmp(option, "--pin-medial-wall")){
+      if(nargc < 1) CMDargNErr(option,1);
+      pinlabel = LabelRead("",pargv[0]);
+      if(pinlabel == NULL) exit(1);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--no-pin-medial-wall"))  pinlabel = NULL;
     else if(!strcasecmp(option, "--seg")){
       if(nargc < 1) CMDargNErr(option,1);
       segvolpath = pargv[0];
@@ -1053,6 +1067,11 @@ static void check_options(void) {
     exit(1);
   }
 
+  if(pinlabel &&  whitesurfpath == NULL){
+    printf("ERROR: must spec --white-surf with --pin-medial-wall\n");
+    exit(1);
+  }
+
   return;
 }
 
@@ -1261,4 +1280,38 @@ int RIP_MNGR::RipVertices(void)
 
   return(0);
 }
+
+/*!
+\fn int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex)
+\brief Set the current coordinates to that of white{xyz} in vertices that
+are not represented in the label. The label is named "cortex" but it
+could be anything. This function is used after the pial surface is placed
+without freezing the medial wall next to hippocampus and amyg. This function
+can then be used to force the pial surface back to the white surface in all
+of the medial wall.
+*/
+int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex)
+{
+  int vno,i;
+  int *InLabel;
+  VERTEX *v;
+
+  InLabel = (int*) calloc(sizeof(int),surf->nvertices);
+  for (i = 0; i < cortex->n_points; i++)
+    InLabel[cortex->lv[i].vno] = 1;
+
+  for(vno = 0; vno < surf->nvertices; vno++){
+    if(InLabel[vno]) continue;
+    v = &(surf->vertices[vno]);
+    v->x = v->whitex;
+    v->y = v->whitey;
+    v->z = v->whitez;
+  }
+
+  free(InLabel);
+  return(0);
+}
+
+
+
 
