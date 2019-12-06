@@ -632,8 +632,8 @@ void MainWindow::LoadSettings()
   if (!m_settings.contains("UseComma"))
     m_settings["UseComma"] = true;
 
-  OnPreferences();
-  m_dlgPreferences->hide();
+//  OnPreferences();
+//  m_dlgPreferences->hide();
 
   for (int i = 0; i < 4; i++)
   {
@@ -764,14 +764,8 @@ void MainWindow::ReassureGeometry()
 
 void MainWindow::showEvent(QShowEvent *event)
 {
-  static bool bFirstTime = true;
   QMainWindow::showEvent(event);
 #ifdef Q_OS_LINUX
-  if (bFirstTime)
-  {
-    m_dlgPreferences->hide();
-    bFirstTime = false;
-  }
   m_ptBackUpPos = this->pos();
   QTimer::singleShot(500, this, SLOT(ReassureGeometry()));
 #endif
