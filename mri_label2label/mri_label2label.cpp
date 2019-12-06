@@ -1105,9 +1105,9 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcmp(option, "--label-cortex")) {
       // surf aseg outlabel
-      if(nargc < 3){
+      if(nargc < 4){
 	printf("ERROR: when using --label-cortex, the usage is:\n");
-	printf("  --label-cortex surf aseg outlabel\n");
+	printf("  --label-cortex surf aseg KeepHipAmyg01 outlabel \n");
 	exit(1);
       }
       MRIS *lsurf = MRISread(pargv[0]);
@@ -1115,9 +1115,11 @@ static int parse_commandline(int argc, char **argv) {
       MRI *aseg = MRIread(pargv[1]);
       if(aseg==NULL) exit(1);
       MRIScomputeMetricProperties(lsurf);// might not be needed
-      LABEL *lcortex = MRIScortexLabelDECC(lsurf, aseg, 4, 4, -1);
+      int KeepHipAmyg01;
+      sscanf(pargv[2],"%d",&KeepHipAmyg01);
+      LABEL *lcortex = MRIScortexLabelDECC(lsurf, aseg, 4, 4, -1, KeepHipAmyg01);
       if(lcortex == NULL) exit(1);
-      int err = LabelWrite(lcortex, pargv[2]);
+      int err = LabelWrite(lcortex, pargv[3]);
       exit(err);
       nargsused = 4;
     } 
@@ -1196,7 +1198,7 @@ static void print_usage(void) {
   printf("   --paint dmax surfname : map to closest vertex on source surfname if d < dmax\n");
   printf("   --dmindmin overlayfile : bin mask with vertex of closest label point when painting\n");
   printf("   --baryfill surf surflabel delta outlabel\n");
-  printf("   --label-cortex surface aseg outlabel : create a label like ?h.cortex.label\n");
+  printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a label like ?h.cortex.label\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");
