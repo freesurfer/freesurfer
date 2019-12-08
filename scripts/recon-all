@@ -2277,27 +2277,26 @@ if($DoGCAReg) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   if($longitudinal) then
     # longitudinal processing:
-     set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta \
-                 transforms/talairach.lta )
-
+    set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/em_register.touch
   else
+    # cross processing
     if($EMRegAseg) then
       set cmd = (mri_em_register)
       set cmd = ($cmd $nocerebellum )
       if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 7)
       if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 7)
-      set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
+      set lta = transforms/talairach.lta
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
-        set cmd = ($cmd -mask brainmask.mgz $xopts \
-                    norm_template.mgz ${GCADIR}/$GCA \
-                    transforms/talairach.lta)
+        set cmd = ($cmd -mask brainmask.mgz $xopts  norm_template.mgz ${GCADIR}/$GCA $lta)
       else
         # default processing:
-        set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
-                    nu.mgz ${GCADIR}/$GCA $lta)
+        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts nu.mgz ${GCADIR}/$GCA $lta)
       endif
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
