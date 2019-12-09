@@ -38,9 +38,11 @@ public:
   affinematrix getAffine();
   affinematrix computeVox2Surf();
 
+  std::vector<int> getExpandedShape(py::array& array);
+
   template <class T>
   void setBufferData(py::array_t<T, py::array::f_style | py::array::forcecast> array) {
-    MRI::Shape inshape = MRI::Shape(array.request().shape);
+    MRI::Shape inshape = MRI::Shape(getExpandedShape(array));
     if (inshape != m_mri->shape) logFatal(1) << "array " << shapeString(inshape) << " does not match volume shape " << shapeString(m_mri->shape);
     T *dst = (T *)m_mri->chunk;
     const T *src = array.data(0);
