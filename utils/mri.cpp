@@ -15175,7 +15175,7 @@ MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist
   -------------------------------------------------------------------*/
 MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
 {
-  int c, r, s1, s2, f;
+  int c, r, s1, s2, f,k;
   double val;
 
   if (invol == outvol) {
@@ -15184,6 +15184,8 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
   }
 
   outvol = MRIclone(invol, outvol);
+  if(invol->bvals) outvol->bvals = MatrixAlloc(invol->depth, 1, MATRIX_REAL);
+  if(invol->bvecs) outvol->bvecs = MatrixAlloc(invol->depth, 3, MATRIX_REAL);
 
   s2 = invol->depth;
   for (s1 = 0; s1 < invol->depth; s1++) {
@@ -15196,7 +15198,13 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
         }
       }
     }
+    if(invol->bvals) outvol->bvals->rptr[s2+1][1] = invol->bvals->rptr[s1+1][1];
+    if(invol->bvecs){
+      for(k=0; k < 3; k++)
+	outvol->bvecs->rptr[s2+1][k+1] = invol->bvecs->rptr[s1+1][k+1];
+    }
   }
+
 
   return (outvol);
 }
