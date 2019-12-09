@@ -521,6 +521,7 @@ set touchdir = $subjdir/touch
 # Move the subject-specific config files from their temporary locations
 mv $tmp_config scripts/recon-config.yaml
 mv $tmp_unknown_args scripts/unknown-args.txt
+chmod 664 scripts/recon-config.yaml scripts/unknown-args.txt
 
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then
