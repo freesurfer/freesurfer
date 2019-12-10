@@ -33,7 +33,7 @@ SurfacePath::SurfacePath( LayerSurface* owner ) :
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_actorOutline->GetProperty()->SetLineWidth(4*ratio);
@@ -459,4 +459,22 @@ vtkActor* SurfacePath::GetActor()
 bool SurfacePath::Contains(int nvo)
 {
   return m_listVertices.contains(nvo);
+}
+
+double SurfacePath::GetLength()
+{
+    if (m_bPathMade)
+    {
+        double dist = 0;
+        for (int i = 0; i < m_listVertices.size()-1; i++)
+        {
+            double pt0[3], pt1[3];
+            m_mris->GetTargetAtVertex(m_listVertices[i], pt0);
+            m_mris->GetTargetAtVertex(m_listVertices[i+1], pt1);
+            dist += sqrt(vtkMath::Distance2BetweenPoints(pt0, pt1));
+        }
+        return dist;
+    }
+    else
+        return 0;
 }

@@ -106,7 +106,8 @@ set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
                          # for tal_avi (recommended as 3T default by Avi S.)
 set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
-set NoEMReg = 0; # Do not run mri_em_register. Instead convert tal.xfm to lta
+set EMRegStrip = 1; # Run mri_em_register for skullstrip (otherwise use tal.xfm)
+set EMRegAseg = 1; # Run mri_em_register for GCA (otherwise use tal.xfm converted to lta)
 
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
@@ -157,6 +158,7 @@ set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
 set DoRemesh = 0; # remesh ?h.orig to improve triangle quality
+set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -266,8 +268,6 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2016-05-10.vc700.gca
-set GCASkull = RB_all_withskull_2016-05-10.vc700.gca
 set GCADIR   = "${FREESURFER_HOME}/average"
 set GCAOutputName = ();
 set GCARegIterations = ();
@@ -336,7 +336,6 @@ set UseTWMControlPoints = 0;
 set DoSkullStrip     = 0;
 set DoSegmentation   = 0;
 set DoGCAReg         = 0;
-set DoCARegInv       = 0;
 set DoCANormalize    = 0;
 set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
@@ -358,11 +357,8 @@ set DoCurvHK         = 0;
 set DoCurvStats      = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
-set SurfRegToSubj    = ();
 set DoJacobianWhite  = 0;
 set DoJacobianDist0  = 0;
-set DoContraSurfReg  = 0;
-set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
@@ -396,10 +392,11 @@ set DoneFile = ();
 setenv LANG C # Required by MNI tool
 
 # -------------------------------------------------- #
-set argv0 = ($argv); # make a copy
 set PWD = pwd;
 # better yet, make sure the real pwd is used:
 if ( -e /bin/pwd ) set PWD = /bin/pwd
+
+set argv0 = ($argv); # make a copy
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
@@ -413,6 +410,24 @@ if($n != 0) then
 endif
 
 source $FREESURFER_HOME/sources.csh
+
+# Forward the command line arguments to recon-config, which
+# will parse out any recognized flags and update a recon-specific
+# configuration file. Unrecognized arguments will be relayed to
+# tmp_unknown_args, which will be parsed in this script
+set tmp_config = `mktemp`
+set tmp_unknown_args = `mktemp`
+rca-config $FREESURFER_HOME/recon-config.yaml $tmp_config $tmp_unknown_args $argv:q
+if($status) then
+  echo "ERROR: could not configure recon-all parameters"
+  exit 1;
+endif
+
+# Set global parameters defined by the config file 
+eval "`rca-config2csh $tmp_config`"
+
+# Overwrite argv with all the arguments that were not recognized in the config
+set argv = ( "`cat $tmp_unknown_args`" )
 
 goto parse_args;
 parse_args_return:
@@ -502,6 +517,11 @@ cd $subjdir # This variable is set in check_params
 mkdir -p mri scripts surf tmp label touch stats touch trash
 mkdir -p mri/transforms mri/transforms/bak mri/orig
 set touchdir = $subjdir/touch
+
+# Move the subject-specific config files from their temporary locations
+mv $tmp_config scripts/recon-config.yaml
+mv $tmp_unknown_args scripts/unknown-args.txt
+chmod 664 scripts/recon-config.yaml scripts/unknown-args.txt
 
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then
@@ -1144,13 +1164,13 @@ endif
 #-----------                  -----------#
 if($#InputList != 0) then
   @ nth = 1;
-  foreach InputVol ($InputList)
+  foreach InputVol ($InputList:q)
     set nthid = `printf %03d.mgz $nth`
-    set cmd = (mri_convert $InputVol $subjdir/mri/orig/$nthid)
+    set cmd = (mri_convert "$InputVol" $subjdir/mri/orig/$nthid)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
+      $fs_time $cmd:q |& tee -a $LF
       if($status) goto error_exit;
     endif
     # sanity-check: make sure each input has the same dimensions
@@ -1222,163 +1242,26 @@ endif
 #------------- Longitudinal 'base' subject input file creation ------------#
 ##------------                   -base                         ------------#
 #-------------                                                 ------------#
+# #DNG MoveToBaseScript
 if ($DoCreateBaseInput && $DoCreateBaseSubj) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Longitudinal Base Subject Creation `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  if ($#BaseSubjsList == 0) then
-    echo "ERROR: must specify subjects for base subject using -base-tp" \
-      |& tee -a $LF
-    goto error_exit;
-  endif
+  echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
+  echo "#@# Longitudinal Base Subject Creation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
-  if($RunIt) rm -f ${BaseSubjsListFname};
-  set subjInVols=();
-  set normInVols=();
-  set ltaXforms=();
-  set lta1forms=();
-  set ltaAforms=();
-  set headInVols=();
-  set geodiff=0;
+  set cmd = (rca-base-init -base $subjid)
   foreach s ($BaseSubjsList)
-    if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
-    set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
-    set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
-    set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
-    set ltaname = ${s}_to_${subjid}.lta
-    set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
-    set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
-    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)
-
-    # check if geometry differs across time
-    if ( "$s" != "$BaseSubjsList[1]" ) then
-      set cmd = (  mri_diff --notallow-pix --notallow-geo \
-                       ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
-                       ${SUBJECTS_DIR}/$BaseSubjsList[1]/mri/rawavg.mgz )
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) set geodiff = 1;
-      endif
-    endif
+    set cmd = ($cmd -tp $s)
   end
-
-  if ( "$geodiff" == "1" ) then
-    echo "\n*******************************************************************************" |& tee -a $LF
-    echo "WARNING: Image parameters differ across time, maybe due to aquisition changes?" |& tee -a $LF
-    echo "         Consistent changes in, e.g., resolution can potentially bias a " |& tee -a $LF
-    echo "         longitudinal study! You can check image parameters by running mri_info" |& tee -a $LF
-    echo "         on each input image. Will continue in 10 seconds ..." |& tee -a $LF
-    echo "*******************************************************************************\n" |& tee -a $LF
-    sleep 10
+  set cmd = ($cmd -log $LF -cf $CF -sf $SF)
+  set xopts = `fsr-getxopts rca-base-init $XOptsFile`;
+  set cmd = ($cmd $xopts)
+  if($RunIt) then
+    # Don't use fs_time or capture output because it will be captured by rca-base-init
+    echo $cmd
+    $cmd 
+    if($status) goto error_exit
   endif
-
-  if ($#BaseSubjsList == 1) then
-    # if only a single time point, create fake 'base' by making the image upright
-    # this assures that also subjects with a single time point get processes as the other
-    # subjects in the longitudinal stream
-
-    # 1. make the norm upright (base space)
-    set cmd = ( make_upright $normInVols[1] \
-        ${subjdir}/mri/norm_template.mgz $ltaXforms[1] )
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-    # 2. create the upright orig volume
-    set cmd = ( mri_convert -rt cubic \
-        -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-  else #more than 1 time point:
-
-    # create the 'mean/median' norm volume:
-    set cmd = (mri_robust_template --mov ${normInVols})
-    if ($DoAffineBase) then
-      # this is only initial rigid reg
-      set cmd = ($cmd --lta ${lta1forms})
-      set cmd = ($cmd --template ${subjdir}/mri/norm1_template.mgz)
-    else
-      # this is final rigid reg
-      set cmd = ($cmd --lta ${ltaXforms})
-      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
-    endif
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --sat 4.685 )
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-    if ($DoAffineBase) then
-      # use registration on norm.mgz to initialize affine reg on full head imgs:
-      set cmd = (mri_robust_template --mov ${headInVols})
-      set cmd = ($cmd --lta ${ltaAforms})
-      set cmd = ($cmd --average ${robust_template_avg_arg})
-      set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
-      set cmd = ($cmd --sat 4.685 )
-      set cmd = ($cmd --ixforms ${lta1forms})
-      set cmd = ($cmd --affine)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-      # use affine reg to init rigid reg on norm.mgz (fine tuning)
-      # not sure if it is really necessary
-      set cmd = (mri_robust_template --mov ${normInVols})
-      set cmd = ($cmd --lta ${ltaXforms})
-      set cmd = ($cmd --average ${robust_template_avg_arg})
-      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
-      set cmd = ($cmd --sat 4.685 )
-      set cmd = ($cmd --ixforms ${ltaAforms})
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    endif
-
-    # create the 'mean/median' input (orig) volume:
-    set cmd = (mri_robust_template --mov ${subjInVols})
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --ixforms ${ltaXforms})
-    set cmd = ($cmd --noit)
-    set cmd = ($cmd --template ${subjdir}/mri/orig.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-  endif # more than one time point
-
-  # now create the inverse transforms
-  cd $subjdir/mri/transforms > /dev/null
-  $PWD |& tee -a $LF
-  foreach s ($BaseSubjsList)
-    set cmd = (mri_concatenate_lta -invert1)
-    set cmd = ($cmd ${s}_to_${subjid}.lta)
-    set cmd = ($cmd identity.nofile)
-    set cmd = ($cmd ${subjid}_to_${s}.lta)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  end
-  touch $touchdir/base.touch
 endif
-
 #-----------             -------------#
 ##---------- AUTORECON 1 -------------#
 #-----------             -------------#
@@ -1716,6 +1599,38 @@ talairach:
 
   echo $cmd > $touchdir/talairach.touch
 endif
+
+# Always convert the talairach.xfm into an LTA
+cd $subjdir/mri > /dev/null
+set xfm = transforms/talairach.xfm 
+set lta = transforms/talairach.xfm.lta
+set ud = `UpdateNeeded $lta $xfm`
+if($ud) then
+  set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+  set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
+      --outlta $lta --subject fsaverage --ltavox2vox)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $cmd |& tee -a $LF
+    if($status) then
+      goto error_exit
+    endif
+  endif
+endif
+
+# If not using mri_em_register, then make simlinks to the ltas
+pushd $SUBJECTS_DIR/$subjid/mri/transforms
+if($EMRegStrip == 0) then
+  set cmd = (ln -sf talairach.xfm.lta talairach_with_skull.lta)
+  echo "$cmd" | tee -a $LF | tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+endif
+if($EMRegAseg == 0) then
+  set cmd = (ln -sf talairach.xfm.lta talairach.lta)
+  echo "$cmd" | tee -a $LF | tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+endif
+popd
 
 # perform the failure detection scheme
 if($DoTalCheck) then
@@ -2056,43 +1971,9 @@ skullstrip:
   # base subject stream:
   if($DoCreateBaseSubj) then
     set BMA = brainmask.auto.mgz
-    set BM  = brainmask.mgz  #used later
-    # create lists with all cross brainmasks and all ltas:
-    set bmInVols=""
-    set ltaXforms=""
-    foreach s ($BaseSubjsList)
-      set bmInVols = ($bmInVols ${SUBJECTS_DIR}/${s}/mri/brainmask.mgz)
-      set ltaname = ${s}_to_${subjid}.lta
-      set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
-    end
-
-    if ($#bmInVols == 1) then
-      # only a single time point in base
-      set cmd = (mri_convert \
-        -at $ltaXforms[1] \
-        -rt nearest \
-        $bmInVols[1] brainmask_template.mgz )
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    else
-      # map all brainmask with nearest neighbor and average 0=mean=logicalOR:
-      set cmd = (mri_robust_template --mov ${bmInVols})
-      set cmd = ($cmd --average 0)
-      set cmd = ($cmd --ixforms ${ltaXforms})
-      set cmd = ($cmd --noit)
-      set cmd = ($cmd --finalnearest)
-      set cmd = ($cmd --template brainmask_template.mgz)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    endif # more than 1 tp
-
-    # create brainmask.auto by applying brainmask_template to T1
+    set BM  = brainmask.mgz  #used later 
+    # Cannot move below to rca-base-init because of T1.mgz
+    # Create brainmask.auto by applying brainmask_template to T1
     # first apply mask and keep deletion edits (1)
     set cmd = (mri_mask -keep_mask_deletion_edits)
     set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
@@ -2106,8 +1987,8 @@ skullstrip:
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    goto skipped_skullstrip;
-  endif
+    goto skipped_skullstrip; 
+  endif 
 
   # default stream...
   set xopts = `fsr-getxopts mri_watershed $XOptsFile $GlobXOptsFile`;
@@ -2132,7 +2013,6 @@ skullstrip:
   endif
 
   set cmd = (mri_watershed)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
@@ -2141,28 +2021,21 @@ skullstrip:
       # GCA registration (mri_em_register) to align to an atlas with a skull,
       # unless that file already exists
       if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
-        if($NoEMReg == 0) then
+        if($EMRegStrip) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
           set cmd2 = (mri_em_register)
-          set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
 	  set cmd2 = ($cmd2 $nocerebellum )
 	  if ($LHonly) set cmd2 = ($cmd2 -lh )
 	  if ($RHonly) set cmd2 = ($cmd2 -rh )
           set cmd2 = ($cmd2 -skull)
           set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
           set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
-        else
-          # Convert talairach.xfm to LTA format
-          set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
-          set xfm = transforms/talairach.xfm 
-          set lta = transforms/talairach_with_skull.lta
-          set cmd2 = (lta_convert --src orig.mgz --trg $mni305 \
-             --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
+          echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
+          if($RunIt) $fs_time $cmd2 |& tee -a $LF
+          if($status) goto error_exit;
+          echo $cmd2 > $touchdir/skull.lta.touch
         endif
-        echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd2 |& tee -a $LF
-        if($status) goto error_exit;
-        echo $cmd2 > $touchdir/skull.lta.touch
+        # else just use talairach.xfm.lta 
       endif
     endif
 
@@ -2197,7 +2070,6 @@ skullstrip:
     foreach vol ( $SS_VOLUMES )
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set cmd = (mri_watershed)
-        set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
         set BMA_OLD = brainmask.auto.mgz
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
         if(-e $BMA_OLD && -e $BM && ! $DoCleanBM) then
@@ -2406,41 +2278,43 @@ if($DoGCAReg) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   if($longitudinal) then
     # longitudinal processing:
-     set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta \
-                 transforms/talairach.lta )
-
+    set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/em_register.touch
   else
-    if($NoEMReg == 0) then
+    # cross processing
+    if($EMRegAseg) then
       set cmd = (mri_em_register)
       set cmd = ($cmd $nocerebellum )
       if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 7)
       if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 7)
-      set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
+      set lta = transforms/talairach.lta
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
-        set cmd = ($cmd -mask brainmask.mgz $xopts \
-                    norm_template.mgz ${GCADIR}/$GCA \
-                    transforms/talairach.lta)
+        set cmd = ($cmd -mask brainmask.mgz $xopts  norm_template.mgz ${GCADIR}/$GCA $lta)
       else
         # default processing:
-        set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
-                    nu.mgz ${GCADIR}/$GCA $lta)
+        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts nu.mgz ${GCADIR}/$GCA $lta)
       endif
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/em_register.touch
     else
-      set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
-      set xfm = transforms/talairach.xfm 
-      set lta = transforms/talairach.lta
-      if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-      set cmd = (lta_convert --src orig.mgz --trg $mni305 \
-        --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
+      # Just use talairach.xfm.lta 
+      if($RunIt) then
+        pushd transforms
+        set lta = talairach.lta
+        if($#GCAOutputName) set lta = talairach.$GCAOutputName.lta
+        ln -sf talairach.xfm.lta $lta
+        popd
+      endif
+      touch $touchdir/em_register.touch
     endif
   endif
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/em_register.touch
 endif
 
 #------------                         --------------#
@@ -2520,7 +2394,6 @@ if($DoCAReg) then
   set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh)
   if ($RHonly) set cmd = ($cmd -rh)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
   set lta = transforms/talairach.lta
@@ -2559,28 +2432,6 @@ if($DoCAReg) then
   endif
 
   echo $cmd > $touchdir/ca_register.touch
-endif
-
-#------------                                   --------------#
-#------------ Inverse of Canonical Registration --------------#
-##-----------              -careginv            --------------#
-#------------                                   --------------#
-if($DoCARegInv) then
-  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
-  echo "#@# CA Reg Inv `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  $PWD |& tee -a $LF
-  # set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`; # careful here
-  set cmd = (mri_ca_register)
-  set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
-  set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.inv.dat) 
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mri_ca_register with non-zero status $status" |& tee -a $LF
-    goto error_exit;
-  endif
-  echo $cmd > $touchdir/ca_register_inv.touch
 endif
 
 #------------                                    --------------#
@@ -2960,6 +2811,14 @@ if($DoSegmentation) then
   # ----------- Segment -------------------------
   if(! $WMSegFromASeg) then
     # Use the traditional mri_segment to generate the wm.seg.mgz
+    set mrisegment_input = brain.mgz
+    if($DoAntsDenoising) then
+      set cmd = (DenoiseImage -i brain.mgz -o antsdn.brain.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set mrisegment_input = antsdn.brain.mgz
+    endif
     set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_segment);
     if ($NoThicken) set cmd = ($cmd -thicken 0)
@@ -2967,7 +2826,7 @@ if($DoSegmentation) then
     if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
-    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $mrisegment_input wm.seg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3507,9 +3366,12 @@ if($DoWhiteSurfs) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+
     echo $cmd > $touchdir/$hemi.white_surface.touch
     if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
+
   end # Loop over hemilist
+
   if($RunIt && $DoParallel) then # if -parallel flag is used
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
@@ -3803,124 +3665,6 @@ if($DoSurfReg) then
 endif
 
 
-#--------                             ---------#
-#-------- Contra Surface Registration ---------#
-##-------   -contrasurfreg            ---------#
-##-------   -contrasurfreg-subj       ---------#
-#--------                             ---------#
-
-# Registers ipsi and contra
-if($DoContraSurfReg) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd $xopts)
-    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-# Register ipsi to contra directly (instead of thru sphere)
-# Creates lh.rh.sphere (note that there is no .reg)
-if($DoContraSurfRegWithinSubject) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    cd $subjdir/surf
-    $PWD |& tee -a $LF
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    if(! -e $nothemi.inflated.H) then
-      echo "ERROR: cannot find $nothemi.inflated.H, try running -inflate2" \
-          |& tee -a $LF
-      goto error_exit;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg Within Subject $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set cmd = (mris_register -dist 0.3 -reverse -1 \
-       ./$hemi.sphere ./$nothemi.sphere ./$hemi.$nothemi.sphere)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphere.contra.touch
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-#----------                                         ----------------#
-#---------- Surface Registration to Average Subject ----------------#
-##---------           -surfreg-to-subject           ----------------#
-#----------                                         ----------------#
-if($#SurfRegToSubj) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Surf RegTo $SurfRegToSubj $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
-    set outreg =  ../surf/$hemi.sphere.$SurfRegToSubj.reg
-    set cmd = (mris_register -curv)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd ../surf/$hemi.sphere $AvgTif $outreg);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphreg.$SurfRegToSubj.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
 
 #----------------                  -------------------#
 ##---------------  -jacobian_white -------------------#
@@ -6059,13 +5803,6 @@ while( $#argv != 0 )
       set EMRegMaskArg = `getfullpath $EMRegMaskArg`
       breaksw
 
-    case "-careginv":
-      set DoCARegInv = 1;
-      breaksw
-    case "-nocareginv":
-      set DoCARegInv = 0;
-      breaksw
-
     case "-canorm":
       set DoCANormalize = 1;
       breaksw
@@ -6202,11 +5939,6 @@ while( $#argv != 0 )
       set NoAsegInorm2     = 1;
       breaksw
 
-    case "-gca":
-      if ( $#argv < 1) goto arg1err;
-      set GCA = $argv[1]; shift;
-      breaksw
-
     case "-twm":
       if ( $#argv < 1) goto arg1err;
       set UseTWMControlPoints = 1;
@@ -6215,11 +5947,6 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $TWMControlPointsFile"
         goto error_exit;
       endif
-      breaksw
-
-    case "-gca-skull":
-      if ( $#argv < 1) goto arg1err;
-      set GCASkull = $argv[1]; shift;
       breaksw
 
     case "-gca-dir":
@@ -6292,6 +6019,19 @@ while( $#argv != 0 )
     case "-noremesh"
     case "-no-remesh"
       set DoRemesh = 0; 
+      breaksw
+
+    case "-ants-denoise"
+      # Use ANTS denoising prior to mri_segment
+      set DoAntsDenoising = 1; 
+      which DenoiseImage
+      if($status)  then
+        echo "Cannot find DenoiseImage"
+        exit 1;
+      endif
+      breaksw
+    case "-no-ants-denoise"
+      set DoAntsDenoising = 0; 
       breaksw
 
     case "-smooth1":
@@ -6410,16 +6150,6 @@ while( $#argv != 0 )
       set DoSurfReg = 0;
       breaksw
 
-    # Specify an average subject, which will have a tif
-    # in its directory. Output will be hemi.sphere.avgsubj.reg
-    case "-surfreg-to-subject":
-      if( $#argv < 1) goto arg1err;
-      set SurfRegToSubj = $argv[1]; shift;
-      breaksw
-    case "-no-surfreg-to-subject":
-      set SurfRegToSubj = ();
-      breaksw
-
     case "-jacobian_white":
       set DoJacobianWhite = 1;
       breaksw
@@ -6432,20 +6162,6 @@ while( $#argv != 0 )
       breaksw
     case "-nojacobian_dist0":
       set DoJacobianDist0 = 0;
-      breaksw
-
-    case "-contrasurfreg":
-      set DoContraSurfReg = 1;
-      breaksw
-    case "-nocontrasurfreg":
-      set DoContraSurfReg = 0;
-      breaksw
-
-    case "-contrasurfreg-subj":
-      set DoContraSurfRegWithinSubject = 1;
-      breaksw
-    case "-nocontrasurfreg-subj":
-      set DoContraSurfRegWithinSubject = 0;
       breaksw
 
     case "-avgcurv":
@@ -6666,7 +6382,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6847,7 +6562,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6869,7 +6583,6 @@ while( $#argv != 0 )
     case "-autorecon3":
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6930,7 +6643,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
@@ -6980,11 +6692,32 @@ while( $#argv != 0 )
       set NoRandomness = 0;
       breaksw
 
-    case "-no-emreg":
-      set NoEMReg = 1;
+    # Whether to use mri_em_register for skullstripping
+    case "-emreg-strip":
+      set EMRegStrip = 1;
+      breaksw
+    case "-no-emreg-strip":
+      set EMRegStrip = 0;
+      # If not using emreg, then use an lta created from the talairach.xfm
+      # This will change GCASkull to  RB_all_withskull_2019_10_22.talxfm.mni305.gca below
+      breaksw
+
+    # Whether to use mri_em_register as init for mri_ca_register
+    case "-emreg-aseg":
+      set EMRegAseg = 1;
+      breaksw
+    case "-no-emreg-aseg":
+      set EMRegAseg = 0;
+      # If not using emreg, then use an lta created from the talairach.xfm
+      # This will change  GCA to RB_all_2019_10_25.talxfm.mni305.gca below
       breaksw
     case "-emreg":
-      set NoEMReg = 0;
+      set EMRegAseg = 1;
+      set EMRegStrip = 1;
+      breaksw
+    case "-no-emreg":
+      set EMRegStrip = 0;
+      set EMRegAseg = 0;
       breaksw
 
     case "-wmseg-from-aseg"
@@ -7637,11 +7370,15 @@ check_params:
     endif
 
     set fname = $subjdir/scripts/DoConf2Hires
-    if(-e $fname && ! $DoConf2Hires && ($DoPialSurfs || $DoT2pial)) then
+    if(-e $fname && ! $DoConf2Hires && ($DoPialSurfs || $DoT2pial || $DoFLAIRpial)) then
       echo "ERROR: previous calls to recon-all included -conf2hires but this one does not."
       echo "If you want to run without conf2hires, delete file $fname"
       exit 1;
     endif
+
+    # If not using emreg, then use an lta created from the talairach.xfm, get matching GCA
+    if($EMRegStrip == 0) set GCASkull = RB_all_withskull_2019_10_22.talxfm.mni305.gca
+    if($EMRegAseg  == 0) set GCA      = RB_all_2019_10_25.talxfm.mni305.gca
 
     #------------ Longitudinal ---------------#
     if($longitudinal) then
@@ -7794,6 +7531,12 @@ check_params:
       endif
     endif
 
+    if($DoCreateBaseSubj) then
+      if($#BaseSubjsList == 0) then
+        echo "ERROR: must specify subjects for base subject using -base-tp" 
+        exit 1;
+      endif
+    endif
 
     #---------------------------------------------------------#
     if($#InputList == 0) then
@@ -7957,9 +7700,9 @@ check_params:
 
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && ! $DoCleanCW256 && \
-     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv && \
+     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && \
      ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && ! $DoCleanXopts && \
-     ! $DoNormalization  && ! $#SurfRegToSubj &&\
+     ! $DoNormalization  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
@@ -7967,8 +7710,8 @@ check_params:
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
      ! $DoSkullLTA && ! $DoQdecCache  && ! $DoVnoMatchCheck &&\
-     ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
-     ! $DoMorphRGB && ! $DoWhiteSurfs && ! $DoContraSurfRegWithinSubject &&\
+     ! $DoSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
+     ! $DoMorphRGB && ! $DoWhiteSurfs && \
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
@@ -7993,18 +7736,6 @@ check_params:
   if( ($WSMore || $WSLess) && $WSPctPreFlood ) then
     echo "ERROR: cannot specify -wsmore or -wsless and -wsthresh"
     exit 1;
-  endif
-
-  if($#SurfRegToSubj) then
-    if(! -e $SUBJECTS_DIR/$SurfRegToSubj) then
-      echo "ERROR: cannot find $SurfRegToSubj"
-      exit 1;
-    endif
-    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
-    if(! -e $AvgTif) then
-      echo "ERROR: cannot find $AvgTif"
-      exit 1;
-    endif
   endif
 
   if($DoParallel == 1 && $#hemilist == 1) then
@@ -8298,7 +8029,6 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
   -<no>gcareg            15 min
   -<no>canorm             1 min
   -<no>careg              1 hour
-  -<no>careginv           1 min
   -<no>rmneck             1 min
   -<no>skull-lta         12 min
   -<no>calabel           34 min
@@ -8826,11 +8556,6 @@ CA Register (-<no>careg)
 
 Computes a nonlinear transform to align with GCA atlas.
 Creates the file mri/transform/talairach.m3z.
-
-CA Register Inverse (-<no>careginv)
-
-Computes the inverse of the nonlinear transform to align with GCA
-atlas.  Creates the files mri/transform/talairach.m3z.{x,y,z}.mgz.
 
 Remove neck (-<no>rmneck)
 

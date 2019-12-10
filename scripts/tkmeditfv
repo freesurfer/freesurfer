@@ -116,7 +116,7 @@ if(! $UseTkMedit) then
   if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
   if($CenterCursor) set cmd = ($cmd -cc)
   if($#Zoom) set cmd = ($cmd -zoom $Zoom)
-  set cmd = ($cmd $altargs)
+  set cmd = ($cmd $altargs --hide-3d-slices)
 else
   ### tkmedit ####----------------------------------------------
   set cmd = tkmedit
@@ -398,6 +398,10 @@ while( $#argv != 0 )
 
     case "-vgl":
       set UseVGLRun = 1;
+      breaksw
+    case "-novgl":
+    case "-no-vgl":
+      set UseVGLRun = 0;
       breaksw
 
     case "--nolog":

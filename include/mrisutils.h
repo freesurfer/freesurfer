@@ -98,8 +98,8 @@ MRI *MRISannotIndex2Seg(MRIS *mris);
 double MRISvolumeInSurf(MRIS *mris);
 MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol);
 
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices);
-LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices);
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int KeepHipAmyg);
+LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices, int KeepHipAmyg);
 int MRISripZeros(MRIS *surf, MRI *mri);
 int MRISsphericalCoords(MRIS *surf);
 int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,

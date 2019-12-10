@@ -4305,7 +4305,7 @@ double gcamAreaEnergy(GCA_MORPH *gcam)
 */
 MRI *GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_type)
 {
-  if (!sample_type)  // NN interpolation
+  if (1 || !sample_type)  // NN interpolation for everything
   {
     TRANSFORM _transform, *transform = &_transform;
     int x, y, z, f;

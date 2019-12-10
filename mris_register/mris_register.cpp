@@ -302,6 +302,11 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "reading source curvature from %s\n",curvature_fname) ;
     MRISreadCurvatureFile(mris, curvature_fname) ;
+    if (parms.nonmax)
+    {
+      printf("suppressing nonmaxima in %s\n", curvature_fname);
+      MRISnonmaxSuppress(mris) ;
+    }
   }
   if (single_surf)
   {
@@ -394,6 +399,11 @@ main(int argc, char *argv[])
           MRISrestoreVertexPositions(mris_template, CANONICAL_VERTICES) ;
           MRISnormalizeCurvature(mris_template, which_norm) ;
         }
+	if (parms.nonmax)
+	{
+	  printf("suppressing nonmaxima in %s\n", fname);
+	  MRISnonmaxSuppress(mris) ;
+	}
         fprintf(stderr,
                 "computing parameterization for surface %s...\n",
                 fname);
@@ -1139,6 +1149,11 @@ get_option(int argc, char *argv[])
     canon_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "using %s for canonical properties...\n", canon_name) ;
+  }
+  else if (!stricmp(option, "nonmax"))
+  {
+    parms.nonmax = 1 ;
+    fprintf(stderr, "applying nonmax supporession prior to registration\n") ;
   }
   else if (!stricmp(option, "overlay-dir"))
   {

@@ -28,6 +28,7 @@ parser.add_argument('--history', action='store_true', default=False, help='Save 
 parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
+parser.add_argument('--save-warp', action='store_true', help='Save the image to template warp field.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
 
 args = parser.parse_args()
@@ -123,7 +124,8 @@ labels, names, volumes, optimizationSummary = \
                 userOptimizationOptions=userOptimizationOptions,
                 visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
                 targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ],
-                savePosteriors=args.save_posteriors)
+                savePosteriors=args.save_posteriors,
+                saveWarp=args.save_warp)
 
 # Save a summary of the optimization process
 with open( costfile, "a" ) as file:

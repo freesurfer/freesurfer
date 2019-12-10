@@ -70,7 +70,7 @@ if(VTK_FOUND)
 
 #dmri_coloredFA
   add_executable(dmri_coloredFA dmri_coloredFA.cxx ${TRACKIO})
-  target_link_libraries(dmri_coloredFA utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(dmri_coloredFA utils ${OPENGL_LIBRARIES} ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_coloredFA DESTINATION bin)
 
 #dmri_projectEndPoints
@@ -83,15 +83,9 @@ if(VTK_FOUND)
   target_link_libraries(dmri_neighboringRegions utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
   install(TARGETS dmri_neighboringRegions DESTINATION bin)
 
-
-else() 
-message("VTK not found")
 endif()
 
-install(PROGRAMS
-  	dmri_ac.sh
-	DESTINATION bin
-)
+install(PROGRAMS dmri_ac.sh DESTINATION bin)
 
 install_pyscript(
 	diffusionUtils

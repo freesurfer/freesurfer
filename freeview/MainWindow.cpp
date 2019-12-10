@@ -624,9 +624,16 @@ void MainWindow::LoadSettings()
   {
     m_settings["TextSize"] = 12;
   }
+  if (!m_settings.contains("Precision"))
+  {
+    m_settings["Precision"] = 2;
+  }
 
-  OnPreferences();
-  m_dlgPreferences->hide();
+  if (!m_settings.contains("UseComma"))
+    m_settings["UseComma"] = true;
+
+//  OnPreferences();
+//  m_dlgPreferences->hide();
 
   for (int i = 0; i < 4; i++)
   {
@@ -1785,6 +1792,10 @@ void MainWindow::RunScript()
   {
     CommandSetIsoSurfaceUpsample( sa );
   }
+  else if (cmd == "setextractallregions")
+  {
+    CommandSetExtractAllRegions( sa );
+  }
   else if ( cmd == "loadisosurfaceregion" )
   {
     CommandLoadIsoSurfaceRegion( sa );
@@ -2272,6 +2283,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
+      }
+      else if (subOption == "extract_all_regions")
+      {
+        m_scripts.insert( 0,  (QStringList("setextractallregions") << subArgu) );
       }
       else if ( subOption == "surface_region" || subOption == "surface_regions" )
       {
@@ -2887,6 +2902,19 @@ void MainWindow::CommandSetIsoSurfaceUpsample(const QStringList &cmd)
     }
   }
 }
+
+void MainWindow::CommandSetExtractAllRegions(const QStringList &cmd)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    if (cmd[1].toLower() == "off" || cmd[1].toLower() == "false" || cmd[1].toLower() == "0")
+    {
+      mri->GetProperty()->SetContourExtractAllRegions(false);
+    }
+  }
+}
+
 
 void MainWindow::CommandLoadIsoSurfaceRegion( const QStringList& sa )
 {

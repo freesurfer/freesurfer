@@ -26,7 +26,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-73</y>
+     <y>0</y>
      <width>346</width>
      <height>1843</height>
     </rect>
@@ -1705,7 +1705,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>149</x>
-     <y>1476</y>
+     <y>1521</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1721,7 +1721,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>344</x>
-     <y>673</y>
+     <y>718</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1736,8 +1736,8 @@ of each frame</string>
    <slot>OnColorTableCurrentItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>1159</y>
+     <x>261</x>
+     <y>1204</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1753,7 +1753,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>145</x>
-     <y>1119</y>
+     <y>1164</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1769,7 +1769,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>584</y>
+     <y>629</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1785,7 +1785,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>757</y>
+     <y>802</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1801,7 +1801,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>788</y>
+     <y>833</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1817,7 +1817,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>819</y>
+     <y>864</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1833,7 +1833,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>850</y>
+     <y>895</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1849,7 +1849,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>881</y>
+     <y>926</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1865,7 +1865,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>262</x>
-     <y>912</y>
+     <y>957</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1881,7 +1881,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>761</y>
+     <y>806</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1897,7 +1897,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>792</y>
+     <y>837</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1913,7 +1913,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>823</y>
+     <y>868</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1929,7 +1929,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>854</y>
+     <y>899</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1945,7 +1945,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>885</y>
+     <y>930</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1961,7 +1961,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>916</y>
+     <y>961</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1977,7 +1977,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>344</x>
-     <y>702</y>
+     <y>747</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1993,7 +1993,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1539</y>
+     <y>1584</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2009,7 +2009,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1570</y>
+     <y>1629</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2025,7 +2025,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1655</y>
+     <y>1714</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2041,7 +2041,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1539</y>
+     <y>1584</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2057,7 +2057,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1570</y>
+     <y>1629</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2073,7 +2073,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1655</y>
+     <y>1714</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2089,7 +2089,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1535</y>
+     <y>1580</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2105,7 +2105,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1566</y>
+     <y>1627</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -2121,7 +2121,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1651</y>
+     <y>1718</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -2185,7 +2185,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1363</y>
+     <y>1408</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2201,7 +2201,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1359</y>
+     <y>1404</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2217,7 +2217,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>277</x>
-     <y>1363</y>
+     <y>1408</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2229,11 +2229,11 @@ of each frame</string>
    <sender>treeWidgetColorTable</sender>
    <signal>itemClicked(QTreeWidgetItem*,int)</signal>
    <receiver>PanelVolume</receiver>
-   <slot>UpdateTrackVolumeThreshold()</slot>
+   <slot>OnColorTableItemClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>71</x>
-     <y>1159</y>
+     <x>70</x>
+     <y>1204</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2249,7 +2249,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>344</x>
-     <y>1131</y>
+     <y>1176</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -2265,7 +2265,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>226</x>
-     <y>1506</y>
+     <y>1551</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -2281,7 +2281,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>344</x>
-     <y>527</y>
+     <y>572</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2297,7 +2297,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>344</x>
-     <y>74</y>
+     <y>119</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2313,7 +2313,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>945</y>
+     <y>990</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2329,7 +2329,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>384</y>
+     <y>429</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2345,11 +2345,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>999</y>
+     <y>1044</y>
     </hint>
     <hint type="destinationlabel">
      <x>23</x>
-     <y>855</y>
+     <y>900</y>
     </hint>
    </hints>
   </connection>
@@ -2361,11 +2361,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>999</y>
+     <y>1044</y>
     </hint>
     <hint type="destinationlabel">
      <x>262</x>
-     <y>850</y>
+     <y>895</y>
     </hint>
    </hints>
   </connection>
@@ -2377,11 +2377,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>999</y>
+     <y>1044</y>
     </hint>
     <hint type="destinationlabel">
      <x>343</x>
-     <y>854</y>
+     <y>899</y>
     </hint>
    </hints>
   </connection>
@@ -2392,8 +2392,8 @@ of each frame</string>
    <slot>OnColorTableItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>133</x>
-     <y>1159</y>
+     <x>132</x>
+     <y>1204</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2409,7 +2409,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>17</x>
-     <y>1131</y>
+     <y>1176</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2424,8 +2424,8 @@ of each frame</string>
    <slot>OnColorTableItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>205</x>
-     <y>1159</y>
+     <x>204</x>
+     <y>1204</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2441,7 +2441,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>557</y>
+     <y>602</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2457,7 +2457,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>356</y>
+     <y>401</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2473,7 +2473,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1506</y>
+     <y>1551</y>
     </hint>
     <hint type="destinationlabel">
      <x>340</x>
@@ -2489,11 +2489,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1506</y>
+     <y>1551</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
-     <y>1650</y>
+     <y>1719</y>
     </hint>
    </hints>
   </connection>
@@ -2505,11 +2505,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1506</y>
+     <y>1551</y>
     </hint>
     <hint type="destinationlabel">
      <x>277</x>
-     <y>1655</y>
+     <y>1714</y>
     </hint>
    </hints>
   </connection>
@@ -2521,11 +2521,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>343</x>
-     <y>1506</y>
+     <y>1551</y>
     </hint>
     <hint type="destinationlabel">
      <x>343</x>
-     <y>1651</y>
+     <y>1718</y>
     </hint>
    </hints>
   </connection>
@@ -2537,11 +2537,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>232</x>
-     <y>1055</y>
+     <y>1100</y>
     </hint>
     <hint type="destinationlabel">
      <x>299</x>
-     <y>1056</y>
+     <y>1101</y>
     </hint>
    </hints>
   </connection>
@@ -2552,8 +2552,8 @@ of each frame</string>
    <slot>OnLineEditVectorNormThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>305</x>
-     <y>401</y>
+     <x>343</x>
+     <y>457</y>
     </hint>
     <hint type="destinationlabel">
      <x>525</x>
@@ -2605,5 +2605,6 @@ of each frame</string>
   <slot>OnLineEditVectorLineWidth(QString)</slot>
   <slot>OnCheckVoxelizedContour(bool)</slot>
   <slot>OnLineEditVectorNormThreshold(QString)</slot>
+  <slot>OnColorTableItemClicked(QTreeWidgetItem*)</slot>
  </slots>
 </ui>

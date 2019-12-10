@@ -33,6 +33,10 @@
 #include "label.h"
 #include "mrishash.h"
 
+#define CONTRAST_T1    0
+#define CONTRAST_T2    1
+#define CONTRAST_FLAIR 2
+
 typedef const MRIS MRIS_const;
     // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept easily.
 
@@ -1157,6 +1161,19 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               int white,
                               MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
                               int vno_start, int vno_stop);
+int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
+                              MRI *mri_T2,
+                              LABEL **labels,
+                              int nlabels,
+                              int contrast_type, MRI *mri_aseg, double T2_min_inside, double T2_max_inside, 
+			      double T2_min_outside, double T2_max_outside, double max_outward_dist,
+			      double left_inside_peak_pct,
+			      double right_inside_peak_pct,
+			      double left_outside_peak_pct,
+			      double right_outside_peak_pct,
+			      double wm_weight,
+ 			      double pial_sigma,
+ 			      MRI *mri_T1);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
@@ -2050,6 +2067,7 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRIScorners(MRIS *surf);
+MRIS *MRIScopyMetadata(MRIS const * source, MRIS * target);
 int MRISfixAverageSurf7(MRIS *surf7);
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 
@@ -2290,6 +2308,9 @@ int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
 int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen);
 int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen);
   
+int MRISshrinkFaceCorner(MRIS *surf, int faceno, int nthv, double dist, double *vx, double *vy, double *vz);
+double MRISshrinkFace(MRIS *surf, int faceno, double newareafraction);
+int MRISshrinkFaces(MRIS *surf, double zthresh, int nmax);
 
 
 #if defined(COMPILING_MRISURF_TOPOLOGY) || defined(COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED)

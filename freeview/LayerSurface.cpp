@@ -122,7 +122,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
 
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
@@ -793,7 +793,7 @@ void LayerSurface::InitializeActors()
 
     double line_w = GetProperty()->GetEdgeThickness();
     double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
     ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
     m_sliceActor2D[i]->SetMapper( mapper );
@@ -845,7 +845,7 @@ void LayerSurface::UpdateOpacity()
 void LayerSurface::UpdateEdgeThickness()
 {
   double line_w = GetProperty()->GetEdgeThickness();
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w *= MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -879,7 +879,7 @@ void LayerSurface::UpdateEdgeThickness()
 void LayerSurface::UpdateVectorPointSize()
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   for ( int i = 0; i < 3; i++ )
@@ -1711,7 +1711,7 @@ void LayerSurface::UpdateRenderMode()
   //  m_mainActor->GetProperty()->EdgeVisibilityOff();
   //  m_mainActor->GetProperty()->BackfaceCullingOn();
   double line_w = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   line_w = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   switch ( GetProperty()->GetSurfaceRenderMode() )
@@ -1823,7 +1823,7 @@ SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
 void LayerSurface::UpdateVertexRender()
 {
   double ratio = 1;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   ratio = MainWindow::GetMainWindow()->devicePixelRatio();
 #endif
   m_vertexActor->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
@@ -2541,22 +2541,6 @@ void LayerSurface::ClearMarks()
 
 void LayerSurface::EditPathPoint(int vno, bool remove)
 {
-  //  SurfacePath* path = NULL;
-  //  if (m_nActivePath >= 0 && !m_paths.isEmpty() && !m_paths[m_nActivePath]->IsPathMade())
-  //    path = m_paths[m_nActivePath];
-  //  else
-  //  {
-  //    for (int i = 0; i < m_paths.size(); i++)
-  //    {
-  //      if (!m_paths[i]->IsPathMade())
-  //      {
-  //        path = m_paths[i];
-  //        SetActivePath(i);
-  //        break;
-  //      }
-  //    }
-  //  }
-
   if (!m_marks)
   {
     m_marks = new SurfacePath(this);
@@ -2592,6 +2576,14 @@ SurfacePath* LayerSurface::GetActivePath()
     return m_paths[m_nActivePath];
   else
     return NULL;
+}
+
+SurfacePath* LayerSurface::GetMadePath(int nPath)
+{
+    if (nPath >= 0 && nPath < m_paths.size() && m_paths[nPath]->IsPathMade())
+        return m_paths[nPath];
+    else
+        return NULL;
 }
 
 void LayerSurface::DeleteActivePath()

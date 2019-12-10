@@ -167,7 +167,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndEditAnnotation = new WindowEditAnnotation(this);
   m_wndEditAnnotation->hide();
   connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
-           m_wndEditAnnotation, SLOT(OnActiveSurfaceChanged(Layer*)), Qt::QueuedConnection);
+           m_wndEditAnnotation, SLOT(OnActiveSurfaceChanged(Layer*)));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));

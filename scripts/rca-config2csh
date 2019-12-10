@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+# This script converts the variables defined in a config file to valid csh.
+# The generated csh commands are printed to stdout, so running this script
+# with eval is the same as directly setting parameters in the shell:
+#
+# eval `recon-config2csh configfile`
+
+import sys
+import yaml
+import argparse
+
+
+def error(message):
+    print('error:', message)
+    exit(1)
+
+
+# load config yaml file
+configfile = sys.argv[1]
+with open(configfile, 'r') as file:
+    config = yaml.load(file, Loader=yaml.FullLoader)
+
+# todoc
+for var_name, var_config in config.items():
+
+    # ensure parameter has a set value
+    if 'value' not in var_config:
+        error('config parameter "%s" is missing value' % var_name)
+    value = var_config['value']
+
+    # always wrap string in quotes (default is double quotes)
+    if isinstance(value, str):
+        quote = "'" if '"' in value else '"'
+        value = quote + value + quote
+
+    # replace empty values with ()
+    if value is None:
+        value = '()'
+
+    # convert bools to 0 or 1
+    if isinstance(value, bool):
+        value = int(value)
+
+    # correctly map lists
+    if isinstance(value, list):
+        value = '( %s )' % ' '.join(map(str, value))
+
+    print('set %s = %s' % (var_name, str(value)))

@@ -52,6 +52,25 @@ struct NewAnnotationLabel
   int id;
 };
 
+struct AnnotUndoRedoBufferItem
+{
+  AnnotUndoRedoBufferItem()
+  {
+    m_data = NULL;
+  }
+
+  void Free()
+  {
+    if (m_data)
+      delete[] m_data;
+    m_data = NULL;
+  }
+
+  int*          m_data;
+  QList<int>    m_listVisibleLabels;
+  QMap<int, NewAnnotationLabel> m_mapNewLabels;
+};
+
 class SurfaceAnnotation  : public QObject
 {
   Q_OBJECT
@@ -162,6 +181,9 @@ public:
 
   bool SaveToFile(const QString& fn);
 
+  bool HasUndo();
+  bool HasRedo();
+
 signals:
   void Modified();
 
@@ -171,6 +193,10 @@ public slots:
     emit Modified();
   }
 
+  void Undo();
+  void Redo();
+  void SaveForUndo();
+
 protected:
   void Reset();
   void UpdateData();
@@ -179,6 +205,8 @@ private:
   QColor GenerateNewColor();
   void UpdateColorList();
   int ColorToAnnotation(const QColor& c);
+  AnnotUndoRedoBufferItem SaveCurrentUndoRedoBuffer();
+  void RestoreFromUndoRedoBuffer(const AnnotUndoRedoBufferItem& item);
 
   int*          m_nIndices;
   int*          m_nOutlineIndices;
@@ -197,6 +225,9 @@ private:
   int           m_nHighlightedLabel;
   QMap<int, NewAnnotationLabel> m_mapNewLabels;
   QVector<QColor> m_listColors;
+
+  QVector<AnnotUndoRedoBufferItem>  m_bufferUndo;
+  QVector<AnnotUndoRedoBufferItem>  m_bufferRedo;
 };
 
 #endif

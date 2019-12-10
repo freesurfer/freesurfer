@@ -345,6 +345,8 @@ public:
 
   SurfacePath* GetActivePath();
 
+  SurfacePath* GetMadePath(int nPath);
+
   void DeleteActivePath();
 
   int FindPathAt(int vno);

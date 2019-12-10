@@ -9,6 +9,7 @@
 #include "itkCellInterface.h"
 #include "kvlAtlasMeshAlphaDrawer.h"
 #include "kvlAtlasMeshMultiAlphaDrawer.h"
+#include "kvlAtlasMeshValueDrawer.h"
 
 #define XYZ_DIMENSIONS 3
 
@@ -404,6 +405,39 @@ py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size, int class
         return createNumpyArrayFStyle(shape, buffer);
     }  // End test if rasterizing one prior or all priors simultaneously
 
+}
+
+
+py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double, py::array::c_style | py::array::forcecast> values) {
+
+    int nframes = (values.ndim() > 1) ? values.shape(1) : 1;
+    
+    // get mesh
+    kvl::AtlasMesh::ConstPointer constMesh = static_cast< const kvl::AtlasMesh* >( mesh );
+
+    // make value drawer
+    typedef kvl::AtlasMeshValueDrawer ValueDrawer;
+    ValueDrawer::Pointer valueDrawer = kvl::AtlasMeshValueDrawer::New();
+
+    // set image size
+    ValueDrawer::ImageType::SizeType imageSize;
+    for (int i = 0; i < 3; i++) imageSize[i] = size[i];
+    valueDrawer->SetRegions(imageSize, nframes);
+    
+    // set values and rasterize
+    valueDrawer->SetValues(values.data());
+    valueDrawer->Rasterize(mesh);
+
+    // copy to numpy array
+    double * const buffer = new double[size[0] * size[1] * size[2] * nframes];
+    double * data = buffer;
+    for (int frame = 0 ; frame < nframes ; frame++) {
+        itk::ImageRegionConstIterator<ValueDrawer::ImageType> it(valueDrawer->GetImage(), valueDrawer->GetImage()->GetBufferedRegion());
+        for ( ; !it.IsAtEnd(); ++it, ++data ) *data = it.Value()[frame];
+    }
+
+    if (nframes > 1) size.push_back(nframes);
+    return createNumpyArrayFStyle(size, buffer);
 }
 
 

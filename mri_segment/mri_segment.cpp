@@ -44,8 +44,8 @@
 #include "version.h"
 #include "cma.h"
 
-#define BRIGHT_LABEL         130
-#define BRIGHT_BORDER_LABEL  100
+//#define BRIGHT_LABEL         130
+//#define BRIGHT_BORDER_LABEL  100
 
 static int extract = 0 ;
 static int  verbose = 0 ;
@@ -112,6 +112,8 @@ static int MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst,
 char *segfilename = NULL;
 double Qwm=3.0, Qctx=3.0;  // See docs for MRIclassifyAmbiguousNonPar()
 int    NdilWM=2, NdilCtx=2;// See docs for MRIclassifyAmbiguousNonPar()
+int polvwsize = 5;
+float  polvlen = 3;
 
 int main(int argc, char *argv[])
 {
@@ -324,8 +326,9 @@ int main(int argc, char *argv[])
 
   // Relabels all MRI_AMBIGUOUS=128 voxels as either MRI_WHITE=255 or MRI_NOT_WHITE=1
   printf("using local geometry to label remaining ambiguous voxels...\n") ;
+  printf("polvwsize = %d, polvlen = %g, gray_hi = %g, wm_low = %g\n",polvwsize, polvlen, gray_hi, wm_low);
   fflush(stdout);fflush(stderr);
-  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3, gray_hi, wm_low);
+  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, polvwsize, polvlen, gray_hi, wm_low);
   MRIfree(&mri_tmp) ;
   if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_labeled, "wmseg.medcurv.mgz") ;
 
@@ -589,6 +592,14 @@ get_option(int argc, char *argv[])
     printf("Using aseg %s\n",segfilename);
     printf("  params %lf %lf %d %d\n",Qwm,Qctx,NdilWM,NdilCtx);
     nargs = 5 ;
+  }
+  else if (strcmp(option, "polvwsize")==0){
+    sscanf(argv[2],"%d",&polvwsize);
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "polvlen")==0){
+    sscanf(argv[2],"%f",&polvlen);
+    nargs = 1 ;
   }
   else if (strcmp(option, "diagno")==0 || strcmp(option, "diag_no")==0){
     Gdiag_no = atoi(argv[2]) ;

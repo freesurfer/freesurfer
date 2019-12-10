@@ -71,6 +71,7 @@ protected slots:
   void OnComboColorMap( int nSel );
   void OnComboLookupTable( int nSel );
   void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
+  void OnColorTableItemClicked( QTreeWidgetItem* item);
   void OnColorTableItemDoubleClicked( QTreeWidgetItem* item = NULL );
   void OnLineEditBrushValue( const QString& strg = NULL );
   void OnCheckBoxSelectAllLabels(int nState);

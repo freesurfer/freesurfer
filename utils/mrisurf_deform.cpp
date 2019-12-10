@@ -27,6 +27,7 @@
 #include "mrisurf_MRIS_MP.h"
 
 #include "mrisurf_base.h"
+#include "mrisutils.h"
 
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
@@ -4532,10 +4533,11 @@ int MRISfixAverageSurf7(MRIS *surf7)
   except the xyz and neighboring vertices. The surface is actually
   written to disk and read back in to clean out all the elements.
   There may still be some non-deterministic behavior. For example,
-  when the orig.nofix is input. Not sure why, but probably because
-  the lengths of the edges are all either 1 or sqrt(2) thus
-  creating some abiguity which is handled differently on different
-  runs.
+  when the orig.nofix is input, mris_decimate can produce different
+  surfaces (same number of vertices, but not in the same places). Not
+  sure why, but probably because the lengths of the edges are all
+  either 1 or sqrt(2) thus creating some abiguity which is handled
+  differently on different runs.
  */
 MRIS *MRISsortVertices(MRIS *mris0)
 {
@@ -5431,5 +5433,194 @@ int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
   }
 
   return (NO_ERROR);
+}
+
+/*!
+  \fn int MRISshrinkFaces(MRIS *surf, double zthresh, int nmax)
+  \brief Iteratively shrinks triangles by moving the three vertices
+  toward the centroid to make the size of the triangle equal to the
+  mean triangle size (prior to any shrinkage). Any triangle whose area
+  is > mean+zthresh*std is shrunk. The process is iterative and
+  finishes when all traingle areas are below threshold. A maximum
+  number of iterations can be set with nmax (set to <=0 to have no
+  limit).  Not clear whether ripped vertices or faces are
+  excluded. This process can result in an intersection. Returns the
+  number of iterations.
+ */
+int MRISshrinkFaces(MRIS *surf, double zthresh, int nmax)
+{
+  double areamean, areastd, areamin, areamax, areathresh;
+  double *stats;
+  FACE *f;
+
+  MRIScomputeMetricProperties(surf);
+
+  // Does not seem to work
+  //areamean =  MRIScomputeFaceAreaStats(surf, &areastd, &areamin, &areamax);
+
+  stats = MRIStriangleAreaStats(surf, NULL, NULL);
+  printf("Shrink Pre:  %d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
+  areamean = stats[1];
+  areastd  = stats[2];
+  areamin  = stats[3];
+  areamax  = stats[4];
+
+  areathresh = areamean + zthresh*areastd;
+  printf("MRISshrinkFaces(): %g %g %g %g %g\n",areamean,areastd,zthresh,areathresh,areamax);
+
+  if(areamax < areathresh) return(0);
+
+  // Continue to reduce face sizes until the largest goes below threshold
+  int faceno, facenomax, iter=0;
+  double localmax;
+  while(areamax > areathresh){
+    if(nmax > 0 && iter > nmax) break;
+    iter++;
+    // Go through all the faces and find the one with largest area
+    facenomax = 0;
+    areamax = 0;
+    for(faceno=0; faceno < surf->nfaces; faceno++){
+      f = &(surf->faces[faceno]);
+      if(f->area > areamax){
+	facenomax = faceno;
+	areamax = f->area;
+      }
+    }
+    // Shrink the biggest face
+    f = &(surf->faces[facenomax]);
+    localmax = MRISshrinkFace(surf, facenomax, areamean/f->area);
+    // Check whether a neighboring triangle was made bigger than the thresh
+    if(localmax > areamax) areamax = localmax;
+  }
+
+  printf("iter = %d\n",iter);
+  MRIScomputeMetricProperties(surf);
+
+  stats = MRIStriangleAreaStats(surf, NULL, stats);
+  printf("Shrink Post: %d %g %g %g %g\n",(int)stats[0],stats[1],stats[2],stats[3],stats[4]);
+  free(stats);
+
+  return(iter);
+}
+
+/*!
+\fn int MRISshrinkFaceCorner(MRIS *surf, int faceno, int nthv, double dist, double *vx, double *vy, double *vz)
+\brief Shinks the given corner of a given face by moving the corner towards the centoid by dist where
+dist is a value between 0 (don't move it at all) and 1 (move all the way to the centroid). This function
+just computes the new vertex location and does not change the actual vertex xyz. The area of the triangle
+will shrink by (1-dist)^2 assuming that all vertices of the face are moved in the same way.
+*/
+int MRISshrinkFaceCorner(MRIS *surf, int faceno, int nthv, double dist, double *vx, double *vy, double *vz)
+{
+  FACE *f;
+  f = &(surf->faces[faceno]);
+  VERTEX *v0, *v1, *v2;
+  double cx,cy,cz, wx,wy,wz, ux,uy,uz, m;
+  int n0, n1, n2;
+
+  n0 = nthv;
+  n1 = n0 + 1;
+  if(n1 >= 3) n1 = 0;
+  n2 = n1 + 1;
+  if(n2 >= 3) n2 = 0;
+
+  v0 = &(surf->vertices[f->v[n0]]);// this vertex
+  v1 = &(surf->vertices[f->v[n1]]);
+  v2 = &(surf->vertices[f->v[n2]]);
+
+  // Compute the centroid.
+  // This only needs to be done once per face, so a little inefficient
+  cx = (v0->x + v1->x + v2->x)/3.0;
+  cy = (v0->y + v1->y + v2->y)/3.0;
+  cz = (v0->z + v1->z + v2->z)/3.0;
+
+  // Vector from this vertex to centroid
+  wx = cx - v0->x;
+  wy = cy - v0->y;
+  wz = cz - v0->z;
+  // Distance from this vertex to centroid
+  m = sqrt(wx*wx + wy*wy + wz*wz);
+  // Unit vector from this vertex to centroid
+  ux = wx/m;
+  uy = wy/m;
+  uz = wz/m;
+
+  // Compute new location for this vertex that is dist fraction from
+  // this vertex to the centroid. Does not change face structure
+  *vx = (v0->x + dist*m*ux);
+  *vy = (v0->y + dist*m*uy);
+  *vz = (v0->z + dist*m*uz);
+
+  return(0);
+}
+
+/*!
+  \fn double MRISshrinkFace(MRIS *surf, int faceno, double newareafraction)
+  \brief Shrinks the given face to be newareafraction times the original area.
+  The f->area of the face and all affected neighboring faces are updated
+  so that MRIScomputeMetricProperties() does not need to be run to update
+  the face areas (but will be for other metric properties). It returns
+  the maximum area of all the affected faces after shrinking the given
+  face (other faces will have gotten bigger).
+ */
+double MRISshrinkFace(MRIS *surf, int faceno, double newareafraction)
+{
+  FACE *f;
+  f = &(surf->faces[faceno]);
+  double vx0, vy0, vz0, vx1, vy1, vz1, vx2, vy2, vz2;
+  VERTEX *v0, *v1, *v2;
+  double dist,maxarea;
+
+  // Compute the distance factor needed to realize the area
+  dist = 1-sqrt(newareafraction);
+
+  // Compute the coords for each vertex to shrink
+  MRISshrinkFaceCorner(surf, faceno, 0, dist, &vx0, &vy0, &vz0);
+  MRISshrinkFaceCorner(surf, faceno, 1, dist, &vx1, &vy1, &vz1);
+  MRISshrinkFaceCorner(surf, faceno, 2, dist, &vx2, &vy2, &vz2);
+
+  // Now update the vertex positions
+  v0 = &(surf->vertices[f->v[0]]);
+  v1 = &(surf->vertices[f->v[1]]);
+  v2 = &(surf->vertices[f->v[2]]);
+
+  v0->x = vx0;
+  v0->y = vy0;
+  v0->z = vz0;
+  
+  v1->x = vx1;
+  v1->y = vy1;
+  v1->z = vz1;
+  
+  v2->x = vx2;
+  v2->y = vy2;
+  v2->z = vz2;
+
+  // Now update the affected neighboring faces
+  // First get a list of neighboring faces
+  int n, nthface, facenolist[1000], nfacenolist=0;
+  VERTEX_TOPOLOGY *vt;
+  for(n=0; n < 3; n++){
+    vt = &(surf->vertices_topology[f->v[n]]);
+    for(nthface = 0; nthface < vt->vnum; nthface++){
+      facenolist[nfacenolist] = vt->f[nthface];
+      nfacenolist++;
+    }
+  }
+  // Make sure they are unique
+  int nunique, *ulist;
+  ulist = unqiue_int_list(facenolist, nfacenolist, &nunique);
+  // Now change the area of each face
+  maxarea = 0;
+  for(nthface = 0; nthface < nunique; nthface++){
+    faceno = ulist[nthface];
+    f = &(surf->faces[faceno]);
+    f->area = fabs(mrisComputeArea(surf, faceno, 0))/2.0; //0 does not matter
+    // Not sure why it needs to be div by 2, except that it works
+    if(maxarea < f->area) maxarea = f->area;
+  }
+  free(ulist);
+
+  return(maxarea);
 }
 

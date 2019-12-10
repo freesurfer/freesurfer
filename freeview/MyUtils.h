@@ -89,6 +89,8 @@ public:
   static bool FindIntersection(std::vector < std::vector < double > >& line0,
                                std::vector < std::vector < double > >& line1,
                                double* x, double* y, int* n0 = NULL, int* n1 = NULL);
+
+  static QString RealToNumber(qreal val, int nPrecision);
 };
 
 template <class T>

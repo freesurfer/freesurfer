@@ -38,14 +38,28 @@ public:
   affinematrix getAffine();
   affinematrix computeVox2Surf();
 
+  std::vector<int> getExpandedShape(py::array& array);
+
   template <class T>
   void setBufferData(py::array_t<T, py::array::f_style | py::array::forcecast> array) {
-    MRI::Shape inshape = MRI::Shape(array.request().shape);
+    MRI::Shape inshape = MRI::Shape(getExpandedShape(array));
     if (inshape != m_mri->shape) logFatal(1) << "array " << shapeString(inshape) << " does not match volume shape " << shapeString(m_mri->shape);
     T *dst = (T *)m_mri->chunk;
     const T *src = array.data(0);
     for (unsigned int i = 0; i < m_mri->vox_total ; i++, dst++, src++) *dst = *src;
   }
+
+  void setEchoTime(float te) { m_mri->te = te; }
+  float getEchoTime() { return m_mri->te; }
+
+  void setRecoveryTime(float tr)  { m_mri->tr = tr; }
+  float getRecoveryTime() { return m_mri->tr; }
+
+  void setInversionTime(float ti)  { m_mri->ti = ti; }
+  float getInversionTime() { return m_mri->ti; }
+
+  void setFlipAngle(double flip) { m_mri->flip_angle = flip; }
+  double getFlipAngle() { return m_mri->flip_angle; }
 
 private:
   py::array buffer_array;
@@ -62,6 +76,10 @@ inline void bindVolume(py::module &m)
     .def("_compute_vox2surf", &PyVolume::computeVox2Surf)
     .def_property("image", &PyVolume::getImage, &PyVolume::setImage)
     .def_property("affine", &PyVolume::getAffine, &PyVolume::setAffine)
+    .def_property("te", &PyVolume::getEchoTime, &PyVolume::setEchoTime)
+    .def_property("tr", &PyVolume::getRecoveryTime, &PyVolume::setRecoveryTime)
+    .def_property("ti",  &PyVolume::getInversionTime, &PyVolume::setInversionTime)
+    .def_property("flip_angle", &PyVolume::getFlipAngle, &PyVolume::setFlipAngle)
   ;
 }
 

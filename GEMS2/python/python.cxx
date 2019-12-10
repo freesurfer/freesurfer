@@ -80,6 +80,7 @@ PYBIND11_MODULE(gems_python, m) {
             .def_property("points", &KvlMesh::GetPointSet, &KvlMesh::SetPointSet)
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas)
             .def("scale", &KvlMesh::Scale)
+            .def("rasterize_values", &KvlMesh::RasterizeValues, py::arg("shape"), py::arg("values"))
             .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
             // Aliases to help with profiling
             .def("rasterize_warp", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
