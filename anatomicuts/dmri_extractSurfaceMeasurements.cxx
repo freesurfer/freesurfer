@@ -14,7 +14,6 @@
 #include <fstream>
 #include <string>
 #include <cstdlib>
-
 // Input Splicing
 #include "GetPot.h"
 
@@ -71,7 +70,7 @@ using namespace std;
 // HELPER FUNCTIONS
 float calculate_mean(vector<float> n);
 float calculate_stde(vector<float> n, float mean);
-string makeCSV(string dir, string file);
+string makeCSV(string dir, string file, string extension);
 vtkIdType which_ID(double n1, double n2, vtkIdType ID1, vtkIdType ID2);
 vtkSmartPointer<vtkPolyData> FSToVTK(MRIS* surf);
 
@@ -117,12 +116,14 @@ int main(int narg, char* arg[])
 	// Surface Defintions
 	typedef float CoordType;
 	typedef fs::Surface< CoordType, Dimension> SurfType;
+	std::map<long long, int> bundlesIndeces;
 
 	// Input Parsing
 	vector<string> TRKFiles;	
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
 		TRKFiles.push_back(inputName);
 
+	const char *fileCorr =num1.follow("output.csv",2,"-r","-R"); 
 	// Left Hemisphere
 	const char *surfaceFileL = num1.follow("Left Surface File Not Found", "-sl");
 	const char *thickFileL   = num1.follow("Left Thickness File Not Found", "-tl");
@@ -173,7 +174,11 @@ int main(int narg, char* arg[])
 	//Outputting the Files to Ensure the correct files were input
 	cerr << endl;
 	for (int i = 0; i < TRKFiles.size(); i++)
+	{
 		cerr << "TRK File " << i + 1 << ":      " << TRKFiles.at(i) << endl;
+		bundlesIndeces[(long long) atoll(makeCSV("", TRKFiles.at(i), "").c_str())]=i;	
+		
+	}
 
 	cerr << "Left Surface:    " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
 	     << "Right Surface:   " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Curvature: " << curvFileR << endl
@@ -182,7 +187,9 @@ int main(int narg, char* arg[])
 	if (FA_FOUND)
 	{	
 		for (int i = 0; i < image_fileNames.size(); i++)
+		{
 			cerr << "Image " << i + 1 << ":         " << image_fileNames.at(i) << endl;	
+		}
 	} 
 
 	// Loading the TRK files into a mesh
@@ -261,12 +268,42 @@ int main(int narg, char* arg[])
 	double lastPt_array[3];
 
 	ofstream oFile;
+	ofstream averageFile;
+	averageFile.open(makeCSV(outputDir, "surfaceMeasures",".csv"));
+
+	// Adds the headers to the files and has option for finding FA values
+	averageFile << "streamline,curv.start,curv.end,thickness.start,thickness.end";
+	if (FA_FOUND)
+	{
+		for (int a = 0; a < image_fileNames.size(); a++)
+			averageFile << ", mean" << image_fileNames.at(a) << ", stde" << image_fileNames.at(a);
+	} 
+	averageFile << endl;
+	system((std::string("mkdir -p ")+std::string(outputDir)+std::string("/surf")).c_str());
+	
+	std::ifstream file( fileCorr); 
+	std::string value;
+	getline ( file, value, ',' ); 
+	getline ( file, value, ',' ); 
+	std::vector<long long> correspondences ;
+	while ( file.good() )
+	{
+		getline ( file, value, ',' );
+		// long long v1 = atoll(value.c_str());
+		getline ( file, value, ',' ); 
+		long long v2 = atoll(value.c_str());
+		correspondences.push_back(v2);		
+		std::cout << v2 << std::endl;
+	} 	
+
 
 	// Cycling through the TRK files
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
+		std::vector<float> values = std::vector<float>(20,0.0);
 		// Opening output file with a different name for every TRK File
-		oFile.open(makeCSV(outputDir, TRKFiles.at(i)));
+		//
+		oFile.open(makeCSV(std::string(outputDir)+std::string("/surf"), TRKFiles.at(i), ".csv"));
 
 		if (not oFile.is_open()) 
 		{
@@ -275,7 +312,7 @@ int main(int narg, char* arg[])
 		}
 
 		// Adds the headers to the files and has option for finding FA values
-		oFile << "Streamline Name , Curvature of Start Point , Curvature of Last Point , Thickness of Start Point , Thickness of Last Point";
+		oFile << "streamline,curv.start,curv.end,thickness.start,thickness.end";
 		if (FA_FOUND)
 		{
 			for (int a = 0; a < image_fileNames.size(); a++)
@@ -284,7 +321,8 @@ int main(int narg, char* arg[])
 		oFile << endl;
 
 		// Initialization of a new stream for every TRK files
-		ColorMeshType::Pointer input = (*meshes)[i];
+		
+		ColorMeshType::Pointer input = (*meshes)[bundlesIndeces[correspondences[i]]];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
 		// Cycling through the streams
@@ -350,28 +388,53 @@ int main(int narg, char* arg[])
 			vtkIdType ID2 = which_ID(distL, distR, Left_ID2, Right_ID2);
 
 			// Outputting values to the file
-			oFile << "StreamLine " << counter << ",";
+			oFile << "StreamLine" << counter << ",";
 
 			if (ID1 == Left_ID1)
+			{
 				oFile << surfCL->vertices[ID1].curv << ",";
+				values[0]+= surfCL->vertices[ID1].curv ;
+			}
 			else
+			{
 				oFile << surfCR->vertices[ID1].curv << ",";
-
+				values[0]+= surfCR->vertices[ID1].curv ;
+			}
+	
 			if (ID2 == Left_ID2)
+			{
 				oFile << surfCL->vertices[ID2].curv << ",";
+				values[1]+= surfCL->vertices[ID2].curv ;
+	
+			}
 			else
+			{
 				oFile << surfCR->vertices[ID2].curv << ",";
+				values[1]+= surfCR->vertices[ID2].curv ;
+			}
 			      
 			if (ID1 == Left_ID1)
+			{
 				oFile << surfTL->vertices[ID1].curv << ","; 
+				values[2]+= surfTL->vertices[ID1].curv ;
+			}
 			else
+			{
 				oFile << surfTR->vertices[ID1].curv << ",";
+				values[2]+= surfTR->vertices[ID1].curv ;
+			}
+
 
 			if (ID2 == Left_ID2)
+			{
 				oFile << surfTL->vertices[ID2].curv;
+				values[3]+= surfTL->vertices[ID2].curv ;
+			}		
 			else
+			{
 				oFile << surfTR->vertices[ID2].curv;
-			
+				values[3]+= surfTR->vertices[ID2].curv ;
+			}		
 			if (FA_FOUND)
 			{
 				for (int m = 0; m < stdeFA.size(); m++)
@@ -381,13 +444,20 @@ int main(int narg, char* arg[])
 			oFile << endl;
 		}
 
+		averageFile <<correspondences[i]<<",";
+		for(int m=0; m<4; m++)
+			averageFile << values[m]/input->GetNumberOfCells()<< "," ;
+		averageFile<< endl;
+
 		oFile.close();
 	}
 		
 	oFile.close();
-
+	averageFile.close();
 	return EXIT_SUCCESS;
 }
+
+
 
 /* Function: makeCSV
  * Input: a directory and a file
@@ -396,14 +466,14 @@ int main(int narg, char* arg[])
  * 	 of the file
  * NOTE: used in conjunction with the creating new CSV files and opening them
  */
-string makeCSV(string dir, string file)
+string makeCSV(string dir, string file, string extension)
 {
 	int front = file.find_last_of("/");
 	int back  = file.find_last_of(".");	
-	
-	dir.append("/");
+	if( dir.size() >0)	
+		dir.append("/");
 	dir.append(file.substr(front + 1, back - front - 1));
-	dir.append(".csv");
+	dir.append(extension);
 
 	return dir;
 }

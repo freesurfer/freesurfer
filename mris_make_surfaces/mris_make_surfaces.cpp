@@ -247,6 +247,7 @@ static int nowhite = 0 ;
 // to place the white surface. Whatever surface is specified, it
 // will not be smoothed prior to placing the white surface. 
 static char *orig_white = NULL ;
+static char *orig_sphere = NULL ;
 
 // orig_pial, if specified, will be used as the initial surface 
 // to place the white surface
@@ -290,6 +291,7 @@ static float variablesigma = 3.0;
 #define MID_GRAY               ((max_gray + min_gray_at_csf_border) / 2)
 #define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
+#undef MAX_CSF
 #define MAX_CSF                40
 
 static  int   max_border_white_set = 0,
@@ -1611,16 +1613,26 @@ int main(int argc, char *argv[])
 	if ( followGradients)
 	{
 		std::cout << "T2/FLAIR compute target based on gradients "<< std::endl;
+		sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_sphere, suffix) ;
+		printf("reading sphere position from %s...\n", fname) ;
+		MRIS* sph = MRISread(fname);
+		MRIStoParameterization(sph,NULL, 1,0);
+
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
-		refine->SetStep(.25);
+		MRI* nonBrain = MRIcopy(mri_T1_pial,NULL);
+		refine->SegmentNonBrainTissue(mri_T1_pial,mri_flair, nonBrain);
+
+		refine->SetStep(.3);
 		refine->SetNumberOfSteps(15);
-		refine->SetGradientSigma(.3);
+		refine->SetGradientSigma(.1);
 		refine->SetSegmentation(mri_aseg);
+		refine->SetExclusionMask(nonBrain);
 		refine->FindMaximumGradient(contrast_type== CONTRAST_T2);
+		refine->addImage(mri_T1_pial);
 		refine->addImage(mri_flair);
+		refine->SetSphere(sph);
 		refine->getTarget(mris); //, debugVertex);
 		
-			//refine->addImage(mri_T1_pial);
 	}
 	else
 	{
@@ -2688,6 +2700,12 @@ get_option(int argc, char *argv[])
   {
     orig_pial = argv[2] ;
     printf("using %s starting pial locations...\n", orig_pial) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig_sphere"))
+  {
+    orig_sphere = argv[2] ;
+    printf("using %s sphere locations...\n", orig_sphere) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "max_border_white"))
@@ -4154,7 +4172,7 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   MRIfree(&mri_filled) ;
   return(thresh) ;
 }
-
+#undef SAMPLE_DIST
 #define SAMPLE_DIST .1
 #define PERCENTILE   0.9
 

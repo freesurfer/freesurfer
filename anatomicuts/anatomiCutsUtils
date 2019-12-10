@@ -111,7 +111,7 @@ def readTree(numNodes, histogramFile,header=True):
             
     return nodes_childs, whos_dad
 
-def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1]):
+def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1], thickness=False):
 	ac_folder=f"dmri.ac/{lenght}/{std}"
 	
 
@@ -119,7 +119,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 	groups_cat = {row[classification_columns[0]] :row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	print(groups_cat)
 
-  significant_childs=set()
+	significant_childs=set()
 	for c_i, clusterNum in enumerate(clustersToAnalyze):
 		
 		childs, dads = readTree(clusterNum, f"{subjects_dir}/{target_subject}/{ac_folder}/HierarchicalHistory.csv")
@@ -140,7 +140,10 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 			gres = glob.glob(f'{subjects_dir}/{s}*')
 			if len(gres)>0:
 				subject=gres[0].split("/")[-1]
-				measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+				if thickness:
+					measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/surfaceMeasures.csv"
+				else:
+					measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
 				if os.path.exists(measures):
 					data = pd.read_csv(measures,delimiter=",", header=0, names=headers, usecols=cols)
 					#print(measures, headers, cols)
@@ -206,7 +209,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 	return indeces
 					
 
-def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]]):
+def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]], thickness=False):
 	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	clusterNum=200
 	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
@@ -226,7 +229,10 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 		gres = glob.glob(f'{subjects_dir}/{s}*')
 		if len(gres)>0:
 			subject=gres[0].split("/")[-1]
-			measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+			if thickness:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/surfaceMeasures.csv"
+			else:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
 			try:
 				data = pd.read_csv(measuresFile,delimiter=",", header=0, names=headers, usecols=cols)
 				#print(measures)
@@ -238,13 +244,13 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 							for j in range(clusterNum):
 								if not math.isnan(data[h][j]):
 									measures[group][i][j].append(data[h][j])
-			except:
-				print (measuresFile)
+			except Exception as e:
+				print (e, measuresFile)
 	for j, h in enumerate(headers):
 		for i in clustersToAnalyze:
 			plt.figure()
 			plt.title(headers[j])
-			print("hola")
+			print(headers[j])
 			for gi, g in enumerate( groups):
 				print(measures[gi][j][i] ,[gi])
 				plt.violinplot(measures[gi][j][i], [gi],  showmeans=True )
@@ -252,7 +258,7 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 			plt.savefig(f"{subjects_dir}/average/dmri.ac/{lenght}_{std}/"+str(i)+"_"+headers[j]+".png")		
 	#plt.show()
 
-def GA(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," ):
+def GA(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
 	measures=['FA','MD','RD','AD']
 	if model == 'DKI':
 		measures=measures+['MK','RK','AK']
@@ -262,21 +268,28 @@ def GA(classificationFile, classification_cols, target_subject, subjects_dir, gr
 	columns=[1]
 	for i, m in enumerate(measures):
 		print("mean"+m, " " , 2+4*i, classification_cols)
-		headers += ["mean"+m]
+		headers += [" mean"+m+" "]
 		columns+=[2+i*4]
-		indeces += groupAnalysis(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		indeces += groupAnalysis(headers=[" mean"+m+" "],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
 		#plotAverageMeasures(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
 
-
+	"""
 	for i, m in enumerate(measures):
-		headers += ["meanCentroid"+m]
+		headers += ["   meanCentroid"+m+" "]
 		columns+=[4+i*4]
 		print("meanCentroid"+m, " " , 2+4*i, classification_cols)
-		indeces += groupAnalysis(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		indeces += groupAnalysis(headers=["   meanCentroid"+m+" "],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
 		#plotAverageMeasures(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+	"""
+	if thickness:
+		measures=["curv.star","curv.end","thickness.start", "thickness.end"]
 
+		for i, m in enumerate(measures):
+			indeces += groupAnalysis(headers=[m],cols=[1+i], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std, thickness=thickness)
+
+			plotAverageMeasures(headers=measures,cols=[0,1,2,3], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=True) #groups=[groupA,groupB], 
 	print(columns, headers,indeces)
-	plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+	plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=False) #groups=[groupA,groupB], 
 
 
 
@@ -296,6 +309,8 @@ parser.add_argument('-gb','--group_b',required=False,  help='group b')
 parser.add_argument('-d','--delimiter',required=False,  help='delimiter for classification file')
 parser.add_argument('-l','--lenght',required=False,  help='minimum lenght')
 parser.add_argument('-std','--std',required=False,  help='standard deviation of clusters')
+parser.add_argument('-pt','--plot_groups',required=False,  help='groups for plot')
+parser.add_argument('-t','--thickness',required=False,  help='analyze thickness')
 
 
 args = parser.parse_args()
@@ -305,8 +320,13 @@ if args.function == "GA":
 	group_a = np.asarray(args.group_a.split(":"), dtype=np.int)
 	group_b =np.asarray(args.group_b.split(":"), dtype=np.int)
 	clusters_to_analyze= np.asarray(args.clusters_to_analyze.split(":"), dtype=np.int)
-	
-	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter )
+		
+	#groups=np.asarray(args.plot_groups.split(":"), dtype=np.int)
+	groups=[[0],[1],[2],[3]]
+	print(groups)
+
+	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter,groups, args.thickness )
+
 """
 groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
 
