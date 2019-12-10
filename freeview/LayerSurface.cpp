@@ -3078,6 +3078,7 @@ bool LayerSurface::LoadParameterization(const QString &filename)
     emit Modified();
     emit SurfaceOverlayAdded( overlay );
     connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
+    MRIfree(&mri);
     return true;
   }
   else

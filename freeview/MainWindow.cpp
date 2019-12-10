@@ -4134,8 +4134,11 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
+void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd_in )
 {
+  QStringList cmd = cmd_in;
+  while (cmd.size() < 4)
+    cmd << "n/a";
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
