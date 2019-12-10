@@ -157,7 +157,7 @@ class Freeview:
             # input is a nifty array
             filename = self._get_valid_name(os.path.join(self._get_temp_dir(), name + '.mgz'))
             vol = Volume(volume)
-            if affine:
+            if affine is not None:
                 vol.affine = affine
             vol.write(filename)
         else:

@@ -3536,6 +3536,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           sup_options["sphere"] = subArgu;
         }
+        else if ( subOption == "ignore_vg" || subOption == "ignore_volume_geometry")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            sup_options["ignore_vg"] = true;
+          }
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -3550,6 +3557,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   }
   if (bNoAutoLoad)
     sup_options["no_autoload"] = true;
+
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
@@ -4134,8 +4142,11 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
+void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd_in )
 {
+  QStringList cmd = cmd_in;
+  while (cmd.size() < 4)
+    cmd << "n/a";
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
@@ -5909,7 +5920,10 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
   layer->GetProperty()->blockSignals(false);
 
-  m_threadIOWorker->LoadSurface( layer );
+  QVariantMap args;
+  if (sup_options.contains("ignore_vg"))
+    args["ignore_vg"] = sup_options["ignore_vg"];
+  m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();
 }
 

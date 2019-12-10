@@ -1,0 +1,414 @@
+#!/bin/tcsh -f
+
+# rca-long-tp-init - initialize long timepoint subject for recon-all
+# processing. Mostly, code was just cut out of recon-all, so there are
+# some things that look funny (eg, longitudinal is explicitly set to 1
+# and checked eventhough that is what this script does). I wanted to
+# keep things as consistent as possible with recon-all. While this can
+# be run outside of recon-all, it is mostly supposed to be run from
+# within recon-all. It creates its own "local" log file but will
+# append to log, status, and cmd files if they are passed.
+#
+
+setenv FS_LOAD_DWI 0 # turn off trying to load DWI
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set RunIt = 1;
+set longitudinal = 1
+set longbaseid = ()
+set tpNid = ();
+set XOptsFile = ()
+
+set DoMotionCor = 1
+set DoSkullStrip = 1
+set DoGCAReg = 1
+set DoCANormalize = 1
+set DoWhiteSurfs = 1
+set DoSphere = 1;
+set DoPialSurfs = 1
+
+set hemilist = (lh rh)
+
+set UseLongbaseCtrlVol = 0
+set DoConf2Hires = 0;
+set ForceUpdate = 0
+
+set LF = ();
+set LFappend = 1
+set CF = ();
+set CF_DEFAULT_NAME = recon-all.cmd
+set SF = ();
+set SF_DEFAULT_NAME = recon-all-status.log
+set DoTime = 1
+
+set PWD = pwd;
+if ( -e /bin/pwd ) set PWD = /bin/pwd # better yet, make sure the real pwd is used:
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if ($DoTime) then
+  fs_time ls >& /dev/null
+  if ( ! $status) set fs_time=(fs_time)
+endif
+
+set StartTime = `date`;
+
+set subjdir = $SUBJECTS_DIR/$subjid
+set touchdir = $subjdir/touch
+foreach d (touch scripts mri/transforms surf tmp)
+  mkdir -p $subjdir/$d
+end
+
+if($#CF == 0) set CF = $subjdir/scripts/$CF_DEFAULT_NAME
+if($#SF == 0) set SF = $subjdir/scripts/$SF_DEFAULT_NAME
+set LLF = $subjdir/scripts/rca-base-init.log
+rm -f $LLF
+
+# Set up log file
+if($#LF == 0) set LF = /dev/null
+if($LF != /dev/null && ! $LFappend) rm -f $LF
+echo "Log file for rca-base-init" >> $LLF
+date  | tee -a $LLF
+echo "" | tee -a $LLF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LLF
+echo "cd `pwd`"  | tee -a $LLF
+echo $0 $inputargs | tee -a $LLF
+echo "" | tee -a $LLF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LLF
+echo $VERSION | tee -a $LLF
+uname -a  | tee -a $LLF
+echo "pid $$" | tee -a $LLF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LLF
+endif
+
+set longbasedir = $SUBJECTS_DIR/$longbaseid
+
+#========================================================
+#-----------               -----------#
+#-----------  Longitudinal -----------#
+##---------- -long and -tp ----------#
+#-----------               -----------#
+if($longitudinal) then
+  # init regfile variable with map cross_tp to base:
+  # used later in many places
+  set tpNtobase_regfile = ${longbasedir}/mri/transforms/${tpNid}_to_${longbaseid}.lta
+
+  # map control.dat file from the cross-sectional data for this subj
+  set crosscpdat = ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat
+  if ( -e $crosscpdat && ! $UseLongbaseCtrlVol ) then
+    # only if it does not already exist:
+    set cpdat = ${subjdir}/tmp/control.dat
+    set ud = `UpdateNeeded $cpdat $crosscpdat $tpNtobase_regfile)`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_map_cpdat -in $crosscpdat -lta $tpNtobase_regfile -out $cpdat)
+      echo " $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "Long control.dat update not needed" | |& tee -a $LF
+    endif
+  endif
+endif
+
+if($DoMotionCor) then
+  if($longitudinal) then
+    set cmd = (longmc -long $tpNid $longbaseid)
+    if($DoConf2Hires) set cmd = ($cmd -conf2hires)
+    set xopts = `fsr-getxopts longmc $XOptsFile`;
+    set cmd = ($cmd $xopts)
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/longmc.touch
+    endif
+  endif 
+endif
+
+if($DoSkullStrip) then
+  cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
+
+  if ($longitudinal) then
+    # longitudinal processing stream (copy from base):
+    set BM  = brainmask.mgz
+    set bmbase = brainmask_${longbaseid}.mgz
+    set cmd = (cp -f --preserve=timestamps ${longbasedir}/mri/${BM} ./${bmbase})
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+if($DoGCAReg) then
+  cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
+  if($longitudinal) then
+    # longitudinal processing:
+    set cmd = (cp -f --preserve=timestamps $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/em_register.touch
+  endif
+endif
+
+if($DoCANormalize) then
+  cd $subjdir/mri > /dev/null
+  if ($longitudinal) then
+    # longitudinal processing:
+    # cp aseg from base to current TP:
+    set cmd = (cp -f --preserve=timestamps ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if ($RunIt) $fs_time $cmd |& tee -a $LF
+    if ($status) goto error_exit;
+  endif
+endif
+
+if($DoWhiteSurfs) then
+  foreach hemi ($hemilist)
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+
+    if( $longitudinal ) then
+      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+
+      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig_white)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+
+      # also copy pial just in case (needed if $DoPialSurf == 0 below)
+      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  end
+endif
+
+if($DoSphere) then
+  foreach hemi ($hemilist)
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    if($longitudinal) then
+      # longitudinal processing:
+      set cmd = (cp $longbasedir/surf/$hemi.sphere $subjdir/surf/$hemi.sphere)
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/$hemi.sphmorph.touch
+    endif
+  end
+endif
+
+if($DoPialSurfs && ! $DoConf2Hires) then
+  foreach hemi ($hemilist)
+    cd $subjdir/scripts 
+    $PWD |& tee -a $LF
+    if( $longitudinal && ! -e $subjdir/surf/${hemi}.orig_pial ) then
+      # should rarely get here as this is copied above in Make White Surfaces
+      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt)  $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  end
+endif
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "rca-base-init Done" |& tee -a $LF
+exit 0
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+ 
+     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
+    # with longitudinal processing
+    case "-long":
+    case "-longitudinal":
+      if ( $#argv < 2) goto arg1err;
+      set longitudinal = 1;
+      set NoRandomness = 1;
+      # get the subject name to use for timepoint
+      set tpNid = $argv[1]; shift;
+      set tpNid = `basename $tpNid`; # remove trailing /
+      # get the subject to use for the base subject
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # and create subjid to reflect its longitudinal relation to longbaseid
+      set subjid = ${tpNid}.long.${longbaseid}
+      breaksw
+
+    case "-uselongbasectrlvol":
+      set UseLongbaseCtrlVol = 1;
+      breaksw
+
+     case "-hemi":
+      if ( $#argv < 1) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if($hemilist != lh && $hemilist != rh) then
+        echo "ERROR: hemi = $hemilist, must be either lh or rh"
+        goto error_exit;
+      endif
+      breaksw
+
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "-conf2hires":
+      set DoConf2Hires = 1;
+      set DoSurfVolume = 1;
+      set HiRes = 0;
+      set ConformMin = 0;
+      set UseCubic = 0; # The conformed should be generated with trilin interp
+      set DoPialSurfs = 0; # will be done in conf2hires
+      breaksw
+
+    case "-dontrun":
+      set RunIt = 0;
+      breaksw
+
+    case "--force-update":
+      set ForceUpdate = 1;
+      breaksw
+
+   case "-log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-cf":
+      if($#argv < 1) goto arg1err;
+      set CF = $argv[1]; shift;
+      breaksw
+
+    case "-sf":
+      if($#argv < 1) goto arg1err;
+      set SF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+    case "-no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subjid == 0) then
+  echo "ERROR: must spec -long"
+  exit 1;
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "rca-long-tp-init -long tp base"
+  echo "  -uselongbasectrlvol"
+  echo "  -hemi lh|rh"
+  echo "  -expert expertoptsfile"
+  echo " "
+
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+rca-long-tp-init - initialize long timepoint subject for recon-all
+processing. Mostly, code was just cut out of recon-all, so there are
+some things that look funny (eg, longitudinal is explicitly set to 1
+and checked eventhough that is what this script does). I wanted to
+keep things as consistent as possible with recon-all. While this can
+be run outside of recon-all, it is mostly supposed to be run from
+within recon-all. It creates its own "local" log file but will append
+to log, status, and cmd files if they are passed.
+
