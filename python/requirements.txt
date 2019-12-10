@@ -6,3 +6,4 @@ sklearn
 nipype
 dipy
 matplotlib
+pyyaml

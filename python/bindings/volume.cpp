@@ -47,11 +47,27 @@ static py::dtype pytype(const MRI* mri)
 
 
 /**
+  Expands array shape to a valid 4D shape vector.
+*/
+std::vector<int> PyVolume::getExpandedShape(py::array& array)
+{
+  std::vector<int> expanded, shape = array.attr("shape").cast<std::vector<int>>();
+  switch (array.attr("ndim").cast<int>()) {
+  case 1: expanded = {shape[0], 1,        1,        1}; break;
+  case 2: expanded = {shape[0], shape[1], 1,        1}; break;
+  case 3: expanded = {shape[0], shape[1], shape[2], 1}; break;
+  case 4: expanded = {shape[0], shape[1], shape[2], shape[3]}; break;
+  }
+  return expanded;
+}
+
+
+/**
   Constructs an MRI instance from a 3/4D numpy array.
 */
 PyVolume::PyVolume(py::array& array)
 {
-  m_mri = new MRI(array.request().shape, voltype(array));
+  m_mri = new MRI(getExpandedShape(array), voltype(array));
   setImage(array);
 };
 

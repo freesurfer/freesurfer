@@ -33,6 +33,10 @@
 #include "label.h"
 #include "mrishash.h"
 
+#define CONTRAST_T1    0
+#define CONTRAST_T2    1
+#define CONTRAST_FLAIR 2
+
 typedef const MRIS MRIS_const;
     // Ideally the MRIS and all the things it points to would be unchangeable via this object but C can't express this concept easily.
 
@@ -1157,6 +1161,19 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               int white,
                               MRI *mri_mask, double thresh, int flags, MRI *mri_aseg,
                               int vno_start, int vno_stop);
+int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
+                              MRI *mri_T2,
+                              LABEL **labels,
+                              int nlabels,
+                              int contrast_type, MRI *mri_aseg, double T2_min_inside, double T2_max_inside, 
+			      double T2_min_outside, double T2_max_outside, double max_outward_dist,
+			      double left_inside_peak_pct,
+			      double right_inside_peak_pct,
+			      double left_outside_peak_pct,
+			      double right_outside_peak_pct,
+			      double wm_weight,
+ 			      double pial_sigma,
+ 			      MRI *mri_T1);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,

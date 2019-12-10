@@ -1592,7 +1592,10 @@
      <normaloff>:/resource/icons/surface_path.png</normaloff>:/resource/icons/surface_path.png</iconset>
    </property>
    <property name="text">
-    <string>Custom Fill</string>
+    <string>Path/Custom Fill</string>
+   </property>
+   <property name="toolTip">
+    <string>Path/Custom Fill</string>
    </property>
   </action>
   <action name="actionMakePath">

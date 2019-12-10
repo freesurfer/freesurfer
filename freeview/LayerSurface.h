@@ -68,7 +68,7 @@ public:
   LayerSurface( LayerMRI* mri = NULL, QObject* parent = NULL );
   virtual ~LayerSurface();
 
-  bool LoadSurfaceFromFile();
+  bool LoadSurfaceFromFile(bool bIgnoreVG = false);
   bool LoadVectorFromFile();
   bool LoadCurvatureFromFile( const QString& filename );
   bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation, bool bSecondHalfData = false );
@@ -344,6 +344,8 @@ public:
   void SetActivePath(int n);
 
   SurfacePath* GetActivePath();
+
+  SurfacePath* GetMadePath(int nPath);
 
   void DeleteActivePath();
 

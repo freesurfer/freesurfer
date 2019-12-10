@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mris_place_surface</name>
+	<description>This program positions the triangular mesh representing a cortical surface, either the "white" surface (ie, white/gray boundary) or the "pial" surface (ie, the gray/csf boundary).  This is meant to replace mris_make_surfaces
+        </description>
+  <arguments>
+    <required>
+      <argument>--o output surface</argument>
+      <explanation>Output surface</explanation>
+      <argument>--i input surface</argument>
+      <explanation>Input surface</explanation>
+      <argument>--adgw AutoDetectGrayWhiteStats</argument>
+      <explanation>Intensity stats created by mris_autodet_gwstats</explanation>
+      <argument>--invol invol.mgz</argument>
+      <explanation>T1-weighed intensity volume used to find white/gray/csf gradients (usually brain.finalsurf.mgz)</explanation>
+      <argument>--white, --pial</argument>
+      <explanation>Place the white surface (boundary between white and gray) or on the pial surface (boundary between gray and csf). Must choose one.</explanation>
+      <argument>--lh, --rh</argument>
+      <explanation>Left or right hemi (must choose one)</explanation>
+
+    </required>
+
+    <optional>
+      <argument>--wm wm.mgz</argument>
+      <explanation>White matter "segmentation"</explanation>
+
+      <argument>--seg seg.mgz</argument>
+      <explanation>Whole-brain segmentation (usually aseg.presurf.mgz)</explanation>
+
+      <argument>--aparc cortical parcellation</argument>
+      <explanation>Set cortical parcellation used to rip vertices (usually ?h.aparc.annot)</explanation>
+
+      <argument>--nsmooth nsmooth</argument>
+      <explanation>Smooth input surface by number of iterations</explanation>
+
+      <argument>--max-cbv-dist distmm</argument>
+      <explanation>Limit distance MRIScomputeBorderValues() can search from the input</explanation>
+
+      <argument>--rip-label cortexlabel</argument>
+      <explanation>Do not move vertices that are NOT in the cortex label</explanation>
+
+      <argument>--rip-midline</argument>
+      <explanation>Do not move vertices that are in the midline as indicated by the seg</explanation>
+
+      <argument>--rip-bg</argument>
+      <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
+
+      <argument>--rip-wmsa</argument>
+      <explanation>Do not move vertices near white-matter signal abnormalities (77 as defined by seg)</explanation>
+
+      <argument>--ripsurface rip-surface</argument>
+      <explanation>Use this surface with ripping midline, BG, and WMSA.</explanation>
+
+      <argument>--repulse-surf repulse-surface</argument>
+      <explanation>Force input surface away from this surface (usually the white surface when placing the pial). Sets the orig{xyz} coords of the input surface to this surface</explanation>
+
+      <argument>--white-surf surface</argument>
+      <explanation>Set the white{xyz} coorinates of the input surface using this surface. Used in T2/FLAIR placement and when pinning the medial wall</explanation>
+
+      <argument>--blend-surf weight blend-surface</argument>
+      <explanation>Recompute the xyz coorindates of the input surface by computing a weighted average with the blend surface. new = (1-weight)*input + weight*blend</explanation>
+
+      <argument>--mmvol MultiModalInput Type</argument>
+      <explanation>Specify a T2 or FLAIR input volume used for placing the pial surface (Type must be T2 or FLAIR). It must be in registration with the input volume </explanation>
+
+      <argument>--pin-medial-wall cortexlabel</argument>
+      <explanation>Set coordinates in vertices NOT in cortexlabel to be that of the white{xyz} coordinates. Done after the surface is placed.</explanation>
+
+      <argument>--no-intensity-proc </argument>
+      <explanation>Do not process the input intensity volume (eg, to remove parts of eye socket)</explanation>
+
+      <argument>--debug_vertex vertexno </argument>
+
+      <argument>--ripflag-out ripfile </argument>
+      <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
+
+    </optional>
+    <cost-function>
+      <argument>--intensity weight</argument>
+      <argument>--spring weight</argument>
+      <argument>--tspring weight</argument>
+      <argument>--nspring weight</argument>
+      <argument>--curv weight</argument>
+      <argument>--repluse weight</argument>
+      <argument>--hinge weight</argument>
+      <argument>--spring_nzr weight</argument>
+      <argument>--shrink factor</argument>
+    </cost-function>
+  </arguments>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
+

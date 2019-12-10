@@ -141,6 +141,7 @@ int UpsampleFactor = -1;
 double resmm=0;
 int FillRibbon = 0;
 LTA *lta=NULL;
+MRI *ToTkrTemplate=NULL;
 
 MRI *MRIsurfaceLabel2VolOpt(MRI *ribbon, MRIS *surf, LABEL **labels, int nlabels, LTA *Q, 
 			    int DoStatThresh, double StatThresh, int DoLabelStatVol, 
@@ -332,6 +333,16 @@ int main(int argc, char **argv) {
 	  printf("ERROR reading %s\n",LabelList[nthlabel]);
 	  exit(1);
 	}
+	if(labels[nthlabel]->coords != LABEL_COORDS_TKREG_RAS){
+	  if(ToTkrTemplate == NULL){
+	    printf("ERROR: label is not in tkreg coords so you need to specify a"
+		   "template with --tkr-template MRI. The MRI should be the volume"
+		   "that the label was created on\n");
+	    exit(1);
+	  }
+	  printf("  Converting to TkRegister RAS\n");
+	  LabelToSurfaceRAS(srclabel, ToTkrTemplate, srclabel);
+	}
       }
       if(AnnotFile != NULL) {
 	labels[nthlabel] = annotation2label(nthlabel,Surf);
@@ -400,6 +411,16 @@ int main(int argc, char **argv) {
       if (srclabel == NULL) {
         printf("ERROR reading %s\n",LabelList[nthlabel]);
         exit(1);
+      }
+      if(srclabel->coords != LABEL_COORDS_TKREG_RAS){
+	if(ToTkrTemplate == NULL){
+	  printf("ERROR: label is not in tkreg coords so you need to specify a"
+		 "template with --tkr-template MRI. The MRI should be the volume"
+		 "that the label was created on\n");
+	  exit(1);
+	}
+	printf("  Converting label coords to TkRegister RAS\n");
+	LabelToSurfaceRAS(srclabel, ToTkrTemplate, srclabel);
       }
     }
     if (AnnotFile != NULL) {
@@ -607,7 +628,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       TempVolId = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--reg")) {
+    } 
+    else if (!strcmp(option, "--tkr-template")) {
+      if (nargc < 1) argnerr(option,1);
+      ToTkrTemplate = MRIreadHeader(pargv[0],MRI_VOLUME_TYPE_UNKNOWN);
+      if(ToTkrTemplate==NULL) exit(1);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--reg")) {
       if (nargc < 1) argnerr(option,1);
       RegMatFile = pargv[0];
       nargsused = 1;

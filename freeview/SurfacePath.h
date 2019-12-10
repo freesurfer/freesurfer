@@ -77,6 +77,8 @@ public:
     return m_undoVertices;
   }
 
+  double GetLength();
+
 signals:
   void ColorChanged( const QColor& );
   void Progress(int n);

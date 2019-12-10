@@ -44,6 +44,7 @@
 #include <QDebug>
 #include <QMenu>
 #include "RenderView3D.h"
+#include "SurfacePath.h"
 
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
@@ -328,6 +329,17 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(annot->GetName()).arg(annot->GetAnnotationNameAtVertex( nVertex )));
           item->setToolTip(1, item->text(1));
+        }
+
+        int nPath = surf->FindPathAt(nVertex);
+        if (nPath >= 0)
+        {
+            SurfacePath* path = surf->GetMadePath(nPath);
+            if (path)
+            {
+                item = new QTreeWidgetItem(this);
+                item->setText(1, QString("Path %1 \t%2 mm").arg(nPath).arg(path->GetLength(), 0, 'f', 2));
+            }
         }
       }
       else
