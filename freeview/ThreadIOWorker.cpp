@@ -227,7 +227,7 @@ void ThreadIOWorker::run()
     {
       return;
     }
-    if ( !surf->LoadSurfaceFromFile() )
+    if ( !surf->LoadSurfaceFromFile(m_args["ignore_vg"].toBool()) )
     {
       emit Error( m_layer, m_nJobType );
     }

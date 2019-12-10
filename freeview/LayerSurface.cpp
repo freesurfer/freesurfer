@@ -214,7 +214,7 @@ void LayerSurface::SetRefVolume(LayerMRI *ref)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
 }
 
-bool LayerSurface::LoadSurfaceFromFile()
+bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
 {
   if ( m_surfaceSource )
   {
@@ -222,6 +222,7 @@ bool LayerSurface::LoadSurfaceFromFile()
   }
 
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
+  m_surfaceSource->SetIgnoreVolumeGeometry(bIgnoreVG);
   if ( !m_surfaceSource->MRISRead( m_sFilename,
                                    m_sVectorFilename,
                                    m_sPatchFilename,
