@@ -243,7 +243,6 @@ set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4,
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
 set longbaseid = ();
 set tpNid = ();
-set longbasetotpN_regfile = ();   # reg file to align longbase to current subj
 set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
 set UseLongbaseWMedits = 0;   # if 1, xfer wm edits from base (default is cross)
@@ -1136,6 +1135,16 @@ if($longitudinal) then
     if($status) goto error_exit;
   endif
 
+  set cmd = (rca-long-tp-init -long $tpNid $longbaseid -log $LF -cf $CF -sf $SF)
+  if($UseLongbaseCtrlVol) set cmd = ($cmd -uselongbasectrlvol)
+  if($#hemilist == 1) set cmd = ($cmd -hemi $hemilist)
+  set xopts = `fsr-getxopts rca-base-init $XOptsFile`;
+  set cmd = ($cmd $xopts)
+  if($RunIt == 0) set cmd = ($cmd -dontrun)
+  echo $cmd
+  $cmd 
+  if($status) goto error_exit
+
   # init regfile variable with map cross_tp to base:
   # used later in many places
   set tpNtobase_regfile = ${longbasedir}/mri/transforms/${tpNid}_to_${longbaseid}.lta
@@ -1144,15 +1153,7 @@ if($longitudinal) then
   if ( -e ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat && ! $UseLongbaseCtrlVol ) then
     # only if it does not already exist:
     if ( ! -e ${subjdir}/tmp/control.dat ) then
-      set cmd = (mkdir -p ${subjdir}/tmp)
-      echo "\n $cmd"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-      set cmd = (mri_map_cpdat -in ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat)
-      set cmd = ($cmd -out ${subjdir}/tmp/control.dat)
-      set cmd = ($cmd -lta $tpNtobase_regfile)
-      echo " $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      # The code that was here now in rca-long-tp-init
       set UseControlPoints = 1;
     endif
   endif
@@ -1279,15 +1280,7 @@ if($DoMotionCor) then
   set origvol = $subjdir/mri/orig.mgz
 
   if($longitudinal) then
-    set cmd = (longmc -long $tpNid $longbaseid)
-    if($DoConf2Hires) set cmd = ($cmd -conf2hires)
-    set xopts = `fsr-getxopts longmc $XOptsFile`;
-    set cmd = ($cmd $xopts)
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd > $touchdir/longmc.touch
-    endif
+    # Code that was here  now in rca-long-tp-init
     goto motioncor_post_process
   endif 
 
@@ -1943,13 +1936,10 @@ skullstrip:
 
   if ($longitudinal) then
     # longitudinal processing stream (copy from base):
-    set BM  = brainmask.mgz
-    set BMA = brainmask.auto.mgz
+    # Code that copied brainmask now in rca-long-tp-init
     set bmbase = brainmask_${longbaseid}.mgz
-    set cmd = (cp -vf ${longbasedir}/mri/${BM} ./${bmbase})
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set BMA = brainmask.auto.mgz
+    set BM  = brainmask.mgz
 
     # first apply mask and keep deletion edits (1)
     set cmd = (mri_mask -keep_mask_deletion_edits)
@@ -2276,14 +2266,8 @@ if($DoGCAReg) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
-  if($longitudinal) then
-    # longitudinal processing:
-    set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/em_register.touch
-  else
+  if(! $longitudinal) then
+    # Note: longitudinal copy of talairach.lta now done in rca-long-tp-init
     # cross processing
     if($EMRegAseg) then
       set cmd = (mri_em_register)
@@ -2336,14 +2320,7 @@ if($DoCANormalize) then
     set ctrl_pts = ctrl_pts.$GCAOutputName.mgz
   endif
 
-  if ($longitudinal) then
-    # longitudinal processing:
-    # cp aseg from base to current TP:
-    set cmd = (cp -vf ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if ($RunIt) $fs_time $cmd |& tee -a $LF
-    if ($status) goto error_exit;
-  endif
+  # longitudinal copy of aseg now done in rca-long-tp-init
 
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_normalize)
@@ -2544,6 +2521,7 @@ if($DoCALabel) then
 
   # ------------ longitudinal (pre)processing ----------------#
   # fuse segmentations of subjects composing the 'longbase' subject
+  # This cannot be moved to rca-long-tp-init because it needs norm.mgz
   if ($longitudinal && $UseAsegFusion) then
     cd $subjdir/mri > /dev/null
     $PWD |& tee -a $LF
@@ -3302,26 +3280,7 @@ if($DoWhiteSurfs) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
 
-    if( $longitudinal ) then
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.white \
-                        $subjdir/surf/${hemi}.orig)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.white \
-                        $subjdir/surf/${hemi}.orig_white)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-
-      # also copy pial just in case (needed if $DoPialSurf == 0 below)
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial \
-                        $subjdir/surf/${hemi}.orig_pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
+    # longitudinal copying of white and pial now done in rca-long-tp-init
 
     # Note mris_make_surfaces uses filled.mgz implicitly
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
@@ -3580,10 +3539,8 @@ if($DoSphere) then
     echo "#@# Sphere $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    if($longitudinal) then
-      # longitudinal processing:
-      set cmd = (cp $longbasedir/surf/$hemi.sphere $subjdir/surf/$hemi.sphere)
-    else
+    # longitudinal copying of sphere now done in rca-long-tp-init
+    if(! $longitudinal) then
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_sphere)
@@ -3592,17 +3549,17 @@ if($DoSphere) then
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
       set cmd = ($cmd $xopts)
       set cmd = ($cmd ../surf/$hemi.inflated ../surf/$hemi.sphere)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($DoParallel) then
+        set CMDF = mris_sphere_${hemi}.cmd
+        echo "$cmd" > $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      else
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+      echo $cmd > $touchdir/$hemi.sphmorph.touch
     endif
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_sphere_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphmorph.touch
   end # Loop over hemilist
   if($RunIt && $DoParallel) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
@@ -3847,14 +3804,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
 
-    if( $longitudinal && ! -e $subjdir/surf/${hemi}.orig_pial ) then
-    # should rarely get here as this is copied above in Make White Surfaces
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial\
-                        $subjdir/surf/${hemi}.orig_pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
+    # longtudinal copy of pial done in rca-long-tp-init
 
     # Note mris_make_surfaces uses filled.mgz implicitly
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
@@ -3915,14 +3865,12 @@ endif
 #----------------                                     ----------------#
 # note: the registration portion requires existence of both surfaces
 if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
+  echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/scripts > /dev/null
 
   # should be one or the other.  'check_params' section checks for this.
-  if($DoT2pial) set t2flair=(T2)
+  if($DoT2pial)    set t2flair=(T2)
   if($DoFLAIRpial) set t2flair=(FLAIR)
 
   set mdir=$SUBJECTS_DIR/${subjid}/mri

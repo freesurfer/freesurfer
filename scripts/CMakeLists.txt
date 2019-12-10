@@ -192,6 +192,7 @@ install(PROGRAMS
   rcbf-prep
   rebuild_gca_atlas.csh
   rca-base-init
+  rca-long-tp-init
   recon-all
   recon-all-exvivo
   recon-all.makefile
