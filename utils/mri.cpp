@@ -15184,8 +15184,8 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
   }
 
   outvol = MRIclone(invol, outvol);
-  if(invol->bvals) outvol->bvals = MatrixAlloc(invol->depth, 1, MATRIX_REAL);
-  if(invol->bvecs) outvol->bvecs = MatrixAlloc(invol->depth, 3, MATRIX_REAL);
+  if(invol->bvals) outvol->bvals = MatrixAlloc(invol->nframes, 1, MATRIX_REAL);
+  if(invol->bvecs) outvol->bvecs = MatrixAlloc(invol->nframes, 3, MATRIX_REAL);
 
   s2 = invol->depth;
   for (s1 = 0; s1 < invol->depth; s1++) {
@@ -15198,13 +15198,16 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
         }
       }
     }
-    if(invol->bvals) outvol->bvals->rptr[s2+1][1] = invol->bvals->rptr[s1+1][1];
-    if(invol->bvecs){
-      for(k=0; k < 3; k++)
-	outvol->bvecs->rptr[s2+1][k+1] = invol->bvecs->rptr[s1+1][k+1];
-    }
   }
 
+  for(f=0; f < invol->nframes; f++) {
+    if(invol->bvals) outvol->bvals->rptr[f+1][1] = invol->bvals->rptr[f+1][1];
+    if(invol->bvecs){
+      for(k=0; k < 3; k++)
+	outvol->bvecs->rptr[f+1][k+1] = invol->bvecs->rptr[f+1][k+1];
+    }
+  }
+  outvol->bvec_space = invol->bvec_space;
 
   return (outvol);
 }
