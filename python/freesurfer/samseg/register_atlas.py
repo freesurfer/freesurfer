@@ -42,6 +42,7 @@ def registerAtlas(
         # transform (needed for subsequent computations) and be done
         print('world-to-world transform supplied - skipping registration')
         imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
+        optimizationSummary = None
     else:
         # The solution is not externally (secretly) given, so we need to compute it.
         print('performing affine atlas registration')
@@ -183,6 +184,7 @@ def registerAtlas(
         imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix
         worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv(templateImageToWorldTransformMatrix)
 
+        optimizationSummary = { 'numberOfIterations': len( minLogLikelihoodTimesPriors ), 'cost': minLogLikelihoodTimesPriors[-1] }
 
     # ------ Save Registration Results ------
 
@@ -202,9 +204,6 @@ def registerAtlas(
     transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
     template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
 
-    # Return
-    optimizationSummary = { 'numberOfIterations': len( minLogLikelihoodTimesPriors ),
-                            'cost': minLogLikelihoodTimesPriors[ -1 ] }
     return worldToWorldTransformMatrix, transformedTemplateFileName, optimizationSummary
 
 

@@ -90,10 +90,10 @@ _, transformedTemplateFileName, optimizationSummary = registerAtlas( args.inputF
                                                                    )
 
 # Save a summary of the optimization process
-with open( costfile, "a") as file:
-    file.write( "templateRegistration %d %f\n" % ( optimizationSummary[ 'numberOfIterations' ], 
-                                                   optimizationSummary[ 'cost' ] ) )
-
+if optimizationSummary:
+    with open( costfile, "a") as file:
+        file.write( "templateRegistration %d %f\n" % (optimizationSummary['numberOfIterations'],
+                                                      optimizationSummary['cost']))
 
 timer.mark('atlas registration complete')
 if args.reg_only:
