@@ -165,6 +165,9 @@ IntArray readAnnotation(const std::string& filename)
 
 py::array PySurface::parameterizeBarycentric(const FloatArrayF& overlay)
 {
+  // ensure overlay matches surfaces
+  if (m_ptr->nvertices != overlay.shape(0)) throw py::value_error("overlay does not match surface vertices");
+
   // parameterization hangs without doing this
   MRISsaveVertexPositions(m_ptr, CANONICAL_VERTICES);
 
@@ -204,7 +207,7 @@ py::array PySurface::sampleParameterization(const FloatArrayF& image)
   MRI_SP *mrisp = MRISPalloc(1, nframes);
   int udim = U_DIM(mrisp);
   int vdim = V_DIM(mrisp);
-  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) py::value_error("parameterization image must be 256 x 512");;
+  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image must be 256 x 512");
 
   // copy pixel values from image into MRISP
   float const *iptr = image.data();
