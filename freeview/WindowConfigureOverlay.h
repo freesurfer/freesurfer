@@ -38,6 +38,7 @@ class LayerSurface;
 class SurfaceLabel;
 class SurfaceOverlayProperty;
 class QAbstractButton;
+class DialogScreenshotOverlay;
 
 class WindowConfigureOverlay : public QWidget, public UIUpdateHelper
 {
@@ -48,6 +49,7 @@ public:
   ~WindowConfigureOverlay();
 
   void showEvent(QShowEvent *);
+  void hideEvent(QHideEvent *);
   void resizeEvent(QResizeEvent* e);
 
 signals:
@@ -68,7 +70,7 @@ public slots:
 
 protected slots:
   void OnActiveSurfaceChanged(Layer* layer);
-  void OnClicked( QAbstractButton* btn );
+  void OnButtonClicked();
   void OnSliderOpacity( int nVal );
   void OnSpinBoxOpacity( double dVal );
   void OnButtonAdd();
@@ -100,6 +102,7 @@ private:
   LayerSurface* m_layerSurface;
   float*        m_fDataCache;
   double        m_dSavedOffset;
+  DialogScreenshotOverlay*  m_dlgScreenshot;
 };
 
 #endif // WINDOWCONFIGUREOVERLAY_H
