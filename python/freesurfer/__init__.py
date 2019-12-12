@@ -20,7 +20,7 @@ except ImportError:
               'one used to compile the bindings library')
     raise
 
-from .transform import LinearTransform
+from .transform import *
 
 from .surface import Surface
 from .volume import Volume

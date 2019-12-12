@@ -181,7 +181,8 @@ SOURCES += \
     BusyIndicator.cpp \
     vtkInteractorStyleMyTrackballCamera.cxx \
     FlowLayout.cpp \
-    WindowLayerInfo.cpp
+    WindowLayerInfo.cpp \
+    DialogScreenshotOverlay.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -351,7 +352,8 @@ HEADERS  += \
     QVTKWidget/QVTKPaintEngine.h \
     vtkInteractorStyleMyTrackballCamera.h \
     FlowLayout.h \
-    WindowLayerInfo.h
+    WindowLayerInfo.h \
+    DialogScreenshotOverlay.h
 
 FORMS    += MainWindow.ui \
     DialogNewAnnotation.ui \
@@ -407,7 +409,8 @@ FORMS    += MainWindow.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
     DialogSurfaceLabelOperations.ui \
-    WindowLayerInfo.ui
+    WindowLayerInfo.ui \
+    DialogScreenshotOverlay.ui
 
 RESOURCES += \
     freeview.qrc

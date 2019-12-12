@@ -19,7 +19,8 @@ parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inpu
 # optional processing options
 parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
-parser.add_argument('-r', '--reg-mat', metavar='FILE', help='Skip initial affine registration and read transform from file.')
+parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
+parser.add_argument('--reg-mat', metavar='FILE', help='Skip initial affine registration and read matlab transform from file.')
 parser.add_argument('--init-lta', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
@@ -77,6 +78,8 @@ affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffin
 
 if args.reg_mat:
     worldToWorldTransformMatrix = scipy.io.loadmat(args.reg_mat).get('worldToWorldTransformMatrix')
+elif args.reg:
+    worldToWorldTransformMatrix = fs.LinearTransform.read(args.reg).matrix
 else:
     worldToWorldTransformMatrix = None
 
@@ -90,10 +93,10 @@ _, transformedTemplateFileName, optimizationSummary = registerAtlas( args.inputF
                                                                    )
 
 # Save a summary of the optimization process
-with open( costfile, "a") as file:
-    file.write( "templateRegistration %d %f\n" % ( optimizationSummary[ 'numberOfIterations' ], 
-                                                   optimizationSummary[ 'cost' ] ) )
-
+if optimizationSummary:
+    with open( costfile, "a") as file:
+        file.write( "templateRegistration %d %f\n" % (optimizationSummary['numberOfIterations'],
+                                                      optimizationSummary['cost']))
 
 timer.mark('atlas registration complete')
 if args.reg_only:
