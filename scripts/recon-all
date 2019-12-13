@@ -6505,7 +6505,6 @@ while( $#argv != 0 )
       set DoAutoDetGWStats = 1;
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
-      set DoWhiteSurfs     = 1;
       set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       breaksw
@@ -6526,7 +6525,6 @@ while( $#argv != 0 )
       set DoAutoDetGWStats = 1;
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
-      set DoWhiteSurfs     = 1;
       set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       set DoSegStats       = 0;
