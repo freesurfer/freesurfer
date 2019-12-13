@@ -1259,7 +1259,9 @@ int RIP_MNGR::RipVertices(void)
     }
   }
   else {
-    printf("INFO: rip surface needed but not specified, so using input surface\n");
+    if(ripsurfneeded){
+      printf("INFO: rip surface needed but not specified, so using input surface\n");
+    }
     ripsurf = surf;
   }
 
