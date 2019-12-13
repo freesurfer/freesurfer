@@ -135,7 +135,7 @@ endif
 
 if($DoMotionCor) then
   if($longitudinal) then
-    set cmd = (longmc -long $tpNid $longbaseid)
+    set cmd = (longmc -long $tpNid $longbaseid -s $subjid)
     if($DoConf2Hires) set cmd = ($cmd -conf2hires)
     set xopts = `fsr-getxopts longmc $XOptsFile`;
     set cmd = ($cmd $xopts)
@@ -246,7 +246,7 @@ endif
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
-echo "rca-base-init Done" |& tee -a $LF
+echo "rca-long-tp-init Done" |& tee -a $LF
 exit 0
 
 ############--------------##################
@@ -285,6 +285,24 @@ while( $#argv != 0 )
       set longbaseid = `basename $longbaseid`; # remove trailing /
       # and create subjid to reflect its longitudinal relation to longbaseid
       set subjid = ${tpNid}.long.${longbaseid}
+      breaksw
+
+    case "-subject":
+    case "-subjid":
+    case "-sid":
+    case "-s":
+      # Good for testing. Make sure to put after -long
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      set subjid = `basename $subjid`; # removes trailing /
+      breaksw
+
+    case "-sb":
+      # Hidden option: same as -s but no basename;
+      # needed when passing a subdir of a subject
+      # as a subject as with xhemi
+      if( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
       breaksw
 
     case "-uselongbasectrlvol":
@@ -392,8 +410,8 @@ usage_exit:
   echo "  -uselongbasectrlvol"
   echo "  -hemi lh|rh"
   echo "  -expert expertoptsfile"
-  echo " "
-
+  echo "  -s subject : good for testing; put after -long"
+  echo ""
 
   if(! $PrintHelp) exit 1;
   echo $VERSION
