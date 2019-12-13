@@ -517,10 +517,14 @@ mkdir -p mri scripts surf tmp label touch stats touch trash
 mkdir -p mri/transforms mri/transforms/bak mri/orig
 set touchdir = $subjdir/touch
 
-# Move the subject-specific config files from their temporary locations
-mv $tmp_config scripts/recon-config.yaml
-mv $tmp_unknown_args scripts/unknown-args.txt
-chmod 664 scripts/recon-config.yaml scripts/unknown-args.txt
+# Move the subject-specific config files from their temporary locations. I know redirecting cat to
+# copy these files to the scripts dir seems unnecessary, but often times tmp files have strict
+# permissions, and there's no easy, non-buggy way to copy files while ignoring perms on OSX (on
+# GNU it's pretty straightforward). This method is the best portable option I can think of.
+rm -f scripts/recon-config.yaml scripts/unknown-args.txt
+cat $tmp_config > scripts/recon-config.yaml
+cat $tmp_unknown_args > scripts/unknown-args.txt
+rm -f $tmp_config $tmp_unknown_args
 
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then

@@ -163,8 +163,12 @@ IntArray readAnnotation(const std::string& filename)
 }
 
 
-FloatArrayC PySurface::parameterizeBarycentric(const FloatArrayF& overlay)
+py::array PySurface::parameterizeBarycentric(const FloatArrayF& overlay)
 {
+  // ensure overlay matches surfaces
+  if (m_ptr->nvertices != overlay.shape(0)) throw py::value_error("overlay does not match surface vertices");
+
+  // parameterization hangs without doing this
   MRISsaveVertexPositions(m_ptr, CANONICAL_VERTICES);
 
   // get frames and allocate mrisp
@@ -172,84 +176,57 @@ FloatArrayC PySurface::parameterizeBarycentric(const FloatArrayF& overlay)
   MRI_SP *mrisp = MRISPalloc(1, nframes);
 
   // parameterize
-  for (int f = 0; f < nframes ; f++) {
-    const float* array = overlay.data(0) + f * overlay.shape(0);
-    MRIStoParameterizationBarycentric(m_ptr, mrisp, array, 1, f);
+  for (int frame = 0; frame < nframes ; frame++) {
+    const float* array = overlay.data() + frame * overlay.shape(0);
+    MRIStoParameterizationBarycentric(m_ptr, mrisp, array, 1, frame);
   }
 
-  // convert to array
+  // convert to numpy array
   int udim = U_DIM(mrisp);
   int vdim = V_DIM(mrisp);
   float *const buffer = new float[udim * vdim * nframes];
   float *ptr = buffer;
-  for (int u = 0; u < udim; u++) {
+  for (int f = 0; f < nframes ; f++) {
     for (int v = 0; v < vdim; v++) {
-      for (int f = 0; f < nframes ; f++) {
+      for (int u = 0; u < udim; u++) {
         *ptr++ = *IMAGEFseq_pix(mrisp->Ip, u, v, f);
       }
     }
   }
   MRISPfree(&mrisp);
-  return makeArray({udim, vdim, nframes}, MemoryOrder::C, buffer);
+  return makeArray({udim, vdim, nframes}, MemoryOrder::Fortran, buffer);
 }
 
 
-FloatArrayC PySurface::sampleParameterization(const FloatArrayC& param)
+py::array PySurface::sampleParameterization(const FloatArrayF& image)
 {
-  int udim = param.shape(0);
-  int vdim = param.shape(1);
-  int nframes = (param.ndim() == 3) ? param.shape(2) : 1;
+  // get number of frames
+  int nframes = (image.ndim() == 3) ? image.shape(2) : 1;
 
-  float *buffer = new float[m_ptr->nvertices * nframes];
-  float *ptr = buffer;
-  const float *src = param.data(0);
+  // init MRISP
+  MRI_SP *mrisp = MRISPalloc(1, nframes);
+  int udim = U_DIM(mrisp);
+  int vdim = V_DIM(mrisp);
+  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image must be 256 x 512");
 
-  float radius = MRISaverageRadius(m_ptr);
-  for (int vno = 0; vno < m_ptr->nvertices; vno++) {
-
-    VERTEX *vertex = &m_ptr->vertices[vno];
-    float x = vertex->x;
-    float y = vertex->y;
-    float z = vertex->z;
-
-    float theta = atan2(y/radius, x/radius);
-    if (theta < 0.0f) theta = 2 * M_PI + theta;  // make it 0 -> 2PI
-
-    float d = radius * radius - z * z;
-    if (d < 0.0) d = 0.0;
-
-    float phi = atan2(sqrt(d), z);
-    if (phi < RADIANS(1)) DiagBreak();
-    if (phi > M_PI) DiagBreak();
-
-    float uf = udim * phi / PHI_MAX;
-    float vf = vdim * theta / THETA_MAX;
-    int u0 = floor(uf);
-    int v0 = floor(vf);
-    int u1 = ceil(uf);
-    int v1 = ceil(vf);
-    float du = uf - (float)u0;
-    float dv = vf - (float)v0;
-
-    // enforce spherical topology
-    if (u0 < 0) u0 = -u0;
-    if (u0 >= udim) u0 = udim - (u0 - udim + 1);
-    if (u1 < 0) u1 = -u1;
-    if (u1 >= udim) u1 = udim - (u1 - udim + 1);
-    if (v0 < 0) v0 += vdim;
-    if (v0 >= vdim) v0 -= vdim;
-    if (v1 < 0) v1 += vdim;
-    if (v1 >= vdim) v1 -= vdim;
-
-    for (int f = 0; f < nframes ; f++) {
-      *ptr++ = du * dv                   * *(src + u1 * vdim * nframes + v1 * nframes + f) +
-               (1.0f - du) * dv          * *(src + u0 * vdim * nframes + v1 * nframes + f) +
-               (1.0f - du) * (1.0f - dv) * *(src + u0 * vdim * nframes + v0 * nframes + f) +
-               du * (1.0f - dv)          * *(src + u1 * vdim * nframes + v0 * nframes + f);
+  // copy pixel values from image into MRISP
+  float const *iptr = image.data();
+  for (int f = 0; f < nframes ; f++) {
+    for (int v = 0; v < vdim; v++) {
+      for (int u = 0; u < udim; u++) {
+        *IMAGEFseq_pix(mrisp->Ip, u, v, f) = *iptr++;
+      }
     }
   }
 
-  return makeArray({m_ptr->nvertices, nframes}, MemoryOrder::C, buffer);
+  // sample and save results into numpy array
+  float *const buffer = new float[m_ptr->nvertices * nframes];
+  float *vptr = buffer;
+  for (int frame = 0; frame < nframes ; frame++) {
+    MRISfromParameterizationBarycentric(mrisp, m_ptr, frame);
+    for (int v = 0 ; v < m_ptr->nvertices ; v++) *vptr++ = m_ptr->vertices[v].curv;
+  }
+  return makeArray({m_ptr->nvertices, nframes}, MemoryOrder::Fortran, buffer);
 }
 
 

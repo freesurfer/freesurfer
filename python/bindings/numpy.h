@@ -39,4 +39,16 @@ py::array_t<T> makeArray(std::vector<ssize_t> shape, MemoryOrder order, const T*
   return makeArray(shape, strides, data, free);
 }
 
+template<class T>
+py::array_t<T> copyArray(std::vector<ssize_t> shape, MemoryOrder order, const T* const data) {
+  // determine buffer array strides
+  std::vector<ssize_t> strides;
+  if (order == MemoryOrder::Fortran) {
+    strides = fstrides(shape, sizeof(T));    
+  } else {
+    strides = cstrides(shape, sizeof(T));    
+  }
+  return py::array_t<T>(shape, strides, data);
+}
+
 #endif

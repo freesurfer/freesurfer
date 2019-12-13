@@ -9,6 +9,7 @@ pybind11_add_module(bindings
   numpy.cpp
   volume.cpp
   surface.cpp
+  xform.cpp
 )
 
 # link utilities

@@ -48,8 +48,8 @@ public:
   FloatArrayF computeSurf2Vox(PyVolume& vol);
 
   // parameterization
-  FloatArrayC parameterizeBarycentric(const FloatArrayF& array);
-  FloatArrayC sampleParameterization(const FloatArrayC& param);
+  py::array parameterizeBarycentric(const FloatArrayF& array);
+  py::array sampleParameterization(const FloatArrayF& image);
   FloatArrayC computeParameterizationMapBarycentric();
 
   // misc utilities
@@ -57,12 +57,9 @@ public:
   py::array fillInterior();
 
   // deprecations - TO BE REMOVED 6/20
-  FloatArray getVerticesDeprecated() {
-    logWarning << "The Surface vertices property has been replaced by get_vertex_positions() and set_vertex_positions(). It will be completely removed soon."; return getVertexPositions(); }
-  void setVerticesDeprecated(FloatArrayC &array) {
-    logWarning << "The Surface vertices property has been replaced by get_vertex_positions() and set_vertex_positions(). It will be completely removed soon."; setVertexPositions(array); }
-  FloatArray getFacesDeprecated() {
-    logWarning << "The Surface faces property has been replaced by get_face_vertices(). It will be completely removed soon."; return getFaceVertices(); }
+  FloatArray getVerticesDeprecated() { return getVertexPositions(); }
+  void setVerticesDeprecated(FloatArrayC &array) { setVertexPositions(array); }
+  FloatArray getFacesDeprecated() { return getFaceVertices(); }
 
 private:
   MRIS* m_ptr;
