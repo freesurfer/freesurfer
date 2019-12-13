@@ -97,6 +97,9 @@
       <argument>--ripflag-out ripfile </argument>
       <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
 
+      <argument>--mm_{min,max}_{inside,outside} </argument>
+      <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
+
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>
@@ -104,10 +107,12 @@
       <argument>--tspring weight</argument>
       <argument>--nspring weight</argument>
       <argument>--curv weight</argument>
-      <argument>--repluse weight</argument>
       <argument>--hinge weight</argument>
       <argument>--spring_nzr weight</argument>
       <argument>--shrink factor</argument>
+      <argument>--repluse weight</argument>
+      <argument>--surf-repluse weight</argument>
+      <explanation> For pushing the suface away from the repulse-surf (eg, to move pial away from white)</explanation>
     </cost-function>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

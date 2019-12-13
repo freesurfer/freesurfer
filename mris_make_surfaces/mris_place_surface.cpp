@@ -816,6 +816,26 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&nsmoothsurf);
       nargsused = 1;
     }
+    else if(!strcmp(option, "--mm_min_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_min_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_max_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_min_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_min_outside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_max_outside);
+      nargsused = 1;
+    }
     // ======== Cost function weights ================
     else if (!stricmp(option, "--intensity")) {
       parms.l_intensity = atof(pargv[0]) ;
@@ -852,9 +872,14 @@ static int parse_commandline(int argc, char **argv) {
       printf("l_curv = %2.3f\n", parms.l_curv) ;
       nargsused = 1;
     }
+    else if (!stricmp(option, "--surf-repulse")){
+      sscanf(pargv[0],"%f",&parms.l_surf_repulse);
+      printf("l_surf_repulse = %2.3f\n", parms.l_surf_repulse);
+      nargsused = 1;
+    }
     else if (!stricmp(option, "--repulse")){
       sscanf(pargv[0],"%f",&parms.l_repulse);
-      printf("l_curv = %2.3f\n", parms.l_repulse) ;
+      printf("l_repulse = %2.3f\n", parms.l_repulse) ;
       nargsused = 1;
     }
     // ======== End Cost function weights ================
