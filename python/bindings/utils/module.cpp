@@ -2,6 +2,7 @@
 
 #include "volume.h"
 #include "surface.h"
+#include "xform.h"
 
 
 PYBIND11_MODULE(bindings, m) {
@@ -12,4 +13,7 @@ PYBIND11_MODULE(bindings, m) {
 
   py::module msurf = m.def_submodule("surf");
   surf::bind(msurf);
+
+  py::module mtransform = m.def_submodule("transform");
+  transform::bind(mtransform);
 }

@@ -1,10 +1,14 @@
+import os
 import numpy as np
 import copy
-from . import bindings
+
+from . import bindings, warning
+from .transform import Transformable, LinearTransform, Geometry
 
 
 class ArrayContainerTemplate:
-    '''Internal, abstract template responsible for handling an N-D array. 1D, 2D,
+    '''
+    Internal, abstract template responsible for handling an N-D array. 1D, 2D,
     and 3D implementations represent overlays, images, and volumes, respectively.
 
     Read and write functions provide default volume-file IO, regardless of the
@@ -15,9 +19,11 @@ class ArrayContainerTemplate:
     basedims = None
 
     def __init__(self, data):
-        '''Contructs the container object from an array. The input data is not copied, and
+        '''
+        Contructs the container object from an array. The input data is not copied, and
         the array should have ndims equal to the subclass' basedims (or basedims + 1).
-        Any extra dimension is assumed to represent data frames.'''
+        Any extra dimension is assumed to represent data frames.
+        '''
         # make sure this template class isn't being used directly
         if self.basedims is None:
             raise TypeError('%s should never be initialized directly' % self.__class__.__name)
@@ -26,6 +32,9 @@ class ArrayContainerTemplate:
         if self.data.ndim < self.basedims or self.data.ndim > self.basedims + 1:
             raise ValueError('%s (%dD) cannot be initialized by an array with %d dims'
                 % (self.__class__.__name__, self.basedims, self.data.ndim))
+
+        # any array type might have a valid lookup table
+        self.lut = None
 
     @property
     def nframes(self):
@@ -47,13 +56,24 @@ class ArrayContainerTemplate:
         return copy.deepcopy(self)
 
     @classmethod
+    def ensure(cls, unknown):
+        '''Ensures that the unknown instance is converted to the correct array class.'''
+        if isinstance(unknown, cls):
+            return unknown
+        if isinstance(unknown, np.ndarray):
+            return cls(unknown)
+        raise ValueError('Cannot convert object of type %s to %s' % (type(unknown).__name__, cls.__name__))
+
+    @classmethod
     def read(cls, filename):
         '''Reads in array and metadata from volume file.'''
+        if not os.path.isfile(filename):
+            raise ValueError('file %s does not exist' % filename)
         result = bindings.vol.read(filename)
         # since the volume bindings do all the IO work here, it's possible the returned
         # object type does not match the calling class... if this is the case, print a warning
         if not isinstance(result, cls):
-            print('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__)) # TODO make warning
+            warning('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__))
         return result
 
     def write(self, filename):
@@ -76,25 +96,31 @@ class Overlay(ArrayContainerTemplate):
         super().__init__(data)
 
 
-class Image(ArrayContainerTemplate):
+class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
     def __init__(self, data, affine=None):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
-        super().__init__(data)
+        ArrayContainerTemplate.__init__(self, data)
         self.affine = affine
         self.voxsize = (1.0, 1.0, 1.0)
 
+    def geometry(self):
+        '''Returns volume geometry as a `Geometry` instance.'''
+        return Geometry(self.shape, self.voxsize, self.affine)
 
-class Volume(ArrayContainerTemplate):
+
+class Volume(ArrayContainerTemplate, Transformable):
     '''3D volume with specific geometry.'''
     basedims = 3
 
     def __init__(self, data, affine=None, voxsize=None):
-        '''Contructs a volume from a 3D or 4D data array. The 4th dimension is
-        always assumed to be the number of frames.'''
+        '''
+        Contructs a volume from a 3D or 4D data array. The 4th dimension is
+        always assumed to be the number of frames.
+        '''
 
         # TODEP - this is a temporary fix to support the previous way of loading from a file - it
         # is not an ideal way of handling things and should be removed as soon as possible
@@ -107,26 +133,22 @@ class Volume(ArrayContainerTemplate):
             data = result.data
             affine = result.affine
             voxsize = result.voxsize
+            self.lut = result.lut
 
-        super().__init__(data)
+        ArrayContainerTemplate.__init__(self, data)
         self.affine = affine
         self.voxsize = voxsize if voxsize else (1.0, 1.0, 1.0)
 
-    def vox2ras(self):
-        '''Returns the affine matrix as a LinearTransform that converts
-        voxel crs coordinates to ras xyz coordinates.'''
-        return LinearTransform(self.affine)
-
-    def ras2vox(self):
-        '''Returns the inverse affine matrix as a LinearTransform that converts
-        ras xyz coordinates to voxel crs coordinates.'''
-        return self.vox2ras().inverse()
+    def geometry(self):
+        '''Returns volume geometry as a `Geometry` instance.'''
+        return Geometry(self.shape, self.voxsize, self.affine)
 
     @property
     def image(self):
-        '''Internal data array. This is deprecated - just used the Volume.data member.'''
-        return self.data
+        '''Internal data array. This will be deprecated - just used the Volume.data member.'''
+        return self.data  # TODEP
 
     @image.setter
     def image(self, array):
-        self.data = array
+        '''Internal data array. This will be deprecated - just used the Volume.data member.'''
+        self.data = array  # TODEP

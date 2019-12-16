@@ -57,7 +57,7 @@ py::object Bridge::python()
   int ndims = (p_mri->nframes > 1) ? mri_buffer.ndim() - 1 : mri_buffer.ndim();
 
   // construct the appropriate python object knowing ndims
-  py::module fsmodule = py::module::import("fs");
+  py::module fsmodule = py::module::import("freesurfer");
   py::object pyobj;
   switch (ndims) {
   case 1: pyobj = fsmodule.attr("Overlay")(mri_buffer); break;
@@ -81,15 +81,33 @@ void Bridge::transferParameters(py::object& pyobj)
 
   // extract the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
-    MATRIX *matrix = extract_i_to_r(p_mri.get());
-    py::array affine = makeArray({4, 4}, MemoryOrder::C, matrix->data, false);
-    MatrixFree(&matrix);
-    pyobj.attr("affine") = affine;
+    pyobj.attr("voxsize") = py::make_tuple(p_mri->xsize, p_mri->ysize, p_mri->zsize);
+    if (p_mri->ras_good_flag == 1) {
+      MATRIX *matrix = extract_i_to_r(p_mri.get());
+      py::array affine = copyArray({4, 4}, MemoryOrder::C, matrix->data);
+      MatrixFree(&matrix);
+      pyobj.attr("affine") = affine;
+    } else {
+      pyobj.attr("affine") = py::none();
+    }
   }
 
-  // volume parameters
-  if (ndims == 3) {
-    pyobj.attr("voxsize") = py::make_tuple(p_mri->xsize, p_mri->ysize, p_mri->zsize);
+  // transfer lookup table if it exists
+  pyobj.attr("lut") = py::none();
+  if (p_mri->ct) {
+    py::module fsmodule = py::module::import("freesurfer");
+    py::object lut = fsmodule.attr("LookupTable")();
+    py::object addfunc = lut.attr("add");
+    for (int i = 0; i < p_mri->ct->nentries; i++) {
+      if (!p_mri->ct->entries[i]) continue;
+      std::string name = std::string(p_mri->ct->entries[i]->name);
+      int r = p_mri->ct->entries[i]->ri;
+      int g = p_mri->ct->entries[i]->gi;
+      int b = p_mri->ct->entries[i]->bi;
+      int a = p_mri->ct->entries[i]->ai;
+      addfunc(i, name, py::make_tuple(r, g, b, a));
+    }
+    pyobj.attr("lut") = lut;
   }
 }
 
@@ -127,6 +145,7 @@ MRI* Bridge::mri()
 
   // convert unsupported data types
   if (py::isinstance<py::array_t<bool>>(mri_buffer)) mri_buffer = py::array_t<uchar>(mri_buffer);
+  if (py::isinstance<py::array_t<long>>(mri_buffer)) mri_buffer = py::array_t<int>(mri_buffer);
   if (py::isinstance<py::array_t<double>>(mri_buffer)) mri_buffer = py::array_t<float>(mri_buffer);
 
   // determine valid MRI type from numpy datatype
@@ -158,8 +177,14 @@ MRI* Bridge::mri()
   mri->initSlices();
   mri->initIndices();
 
-  // set the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
+    // voxel size
+    std::vector<float> voxsize = source.attr("voxsize").cast<std::vector<float>>();
+    mri->xsize = voxsize[0];
+    mri->ysize = voxsize[1];
+    mri->zsize = voxsize[2];
+
+    // set the affine transform (must come after setting voxel size)
     py::object pyaffine = source.attr("affine");
     if (pyaffine.is(py::none())) {
       mri->ras_good_flag = 0;
@@ -187,13 +212,39 @@ MRI* Bridge::mri()
     }
   }
 
-  // volume-specific parameters
-  if (ndims == 3) {
-    // voxel size
-    std::vector<float> voxsize = source.attr("voxsize").cast<std::vector<float>>();
-    mri->xsize = voxsize[0];
-    mri->ysize = voxsize[1];
-    mri->zsize = voxsize[2];
+  // transfer lookup table if it exists
+  // pretty crazy that it requires this many lines of code...
+  py::object lookup = source.attr("lut");
+  if (!lookup.is(py::none())) {
+    py::dict lut = lookup;  // cast to dict
+    COLOR_TABLE *ctab = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
+    int maxidx = 0;
+    for (auto item : lut) {
+      int curridx = item.first.cast<int>();
+      if (curridx > maxidx) maxidx = curridx;
+    }
+    ctab->nentries = maxidx + 1;
+    ctab->entries = (COLOR_TABLE_ENTRY **)calloc(ctab->nentries, sizeof(COLOR_TABLE_ENTRY *));
+    ctab->version = 2;
+    for (auto item : lut) {
+      int idx = item.first.cast<int>();
+      std::string name = item.second.attr("name").cast<std::string>();
+      std::vector<int> color = item.second.attr("color").cast<std::vector<int>>();
+      if (color.size() != 4) throw std::runtime_error("lookup table colors must be RGBA");
+      ctab->entries[idx] = (CTE *)malloc(sizeof(CTE));
+      strncpy(ctab->entries[idx]->name, name.c_str(), sizeof(ctab->entries[idx]->name));
+      ctab->entries[idx]->ri = color[0];
+      ctab->entries[idx]->gi = color[1];
+      ctab->entries[idx]->bi = color[2];
+      ctab->entries[idx]->ai = color[3];
+      ctab->entries[idx]->rf = (float)ctab->entries[idx]->ri / 255.0;
+      ctab->entries[idx]->gf = (float)ctab->entries[idx]->gi / 255.0;
+      ctab->entries[idx]->bf = (float)ctab->entries[idx]->bi / 255.0;
+      ctab->entries[idx]->af = (float)ctab->entries[idx]->ai / 255.0;
+      ctab->entries[idx]->TissueType = 0;
+      ctab->entries[idx]->count = 0;
+    }
+    mri->ct = ctab;
   }
 
   // make sure to register the new MRI instance in the bridge

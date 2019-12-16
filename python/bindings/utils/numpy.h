@@ -24,7 +24,6 @@ std::string shapeString(std::vector<ssize_t> shape);
 
 template<class T>
 py::array_t<T> makeArray(std::vector<ssize_t> shape, std::vector<ssize_t> strides, const T* const data, bool free = true) {
-  // make python capsule handle
   py::capsule capsule;
   if (free) {
     capsule = py::capsule(data, [](void *d) { delete[] (T *)d; });
@@ -36,12 +35,19 @@ py::array_t<T> makeArray(std::vector<ssize_t> shape, std::vector<ssize_t> stride
 
 template<class T>
 py::array_t<T> makeArray(std::vector<ssize_t> shape, MemoryOrder order, const T* const data, bool free = true) {
-  // determine buffer array strides
-  std::vector<ssize_t> strides;
   if (order == MemoryOrder::Fortran) {
-    strides = fstrides(shape, sizeof(T));
+    return makeArray(shape, fstrides(shape, sizeof(T)), data, free);
   } else {
-    strides = cstrides(shape, sizeof(T));
+    return makeArray(shape, cstrides(shape, sizeof(T)), data, free);
   }
-  return makeArray(shape, strides, data, free);
+}
+
+
+template<class T>
+py::array_t<T> copyArray(std::vector<ssize_t> shape, MemoryOrder order, const T* const data) {
+  if (order == MemoryOrder::Fortran) {
+    return py::array_t<T>(shape, fstrides(shape, sizeof(T)), data);
+  } else {
+    return py::array_t<T>(shape, cstrides(shape, sizeof(T)), data);
+  }
 }

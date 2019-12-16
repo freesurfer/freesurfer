@@ -1,7 +1,6 @@
 import sys
 import re
 import datetime as dt
-import __main__ as main
 
 from . import term
 
@@ -28,6 +27,7 @@ def fatal(message, retcode=1):
         message (str): Message to print.
         retcode (int): Exit code. Defaults to 1.
     '''
+    import __main__ as main
     if hasattr(main, '__file__'):
         error(message)
         sys.exit(retcode)
@@ -41,7 +41,7 @@ def assertion(condition, message, retcode=1):
         fatal(message, retcode)
 
 
-class Logger(object):
+class Logger:
     '''A base logging class that writes to a file and stdout (if tee'ing is turned on).
 
     Note:
@@ -84,7 +84,8 @@ class Logger(object):
 
 
 class RedirectingLogger(Logger):
-    '''A `Logger` that will redirect stdout and stderr to itself after
+    '''
+    A `Logger` that will redirect stdout and stderr to itself after
     initialization. Make sure to call `close` when you would no longer like to
     redirect the output.
     '''

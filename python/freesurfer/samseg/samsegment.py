@@ -1,7 +1,6 @@
 import os
 import math
 import numpy as np
-import freesurfer as fs
 import freesurfer.gems as gems
 from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
 from freesurfer.samseg.figures import initVisualizer
@@ -885,7 +884,6 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
 
 
     # Loop over resolution levels
-    fs.printPeakMemory( 'samsegment starting resolution loop' )
     numberOfMultiResolutionLevels = len( optimizationOptions.multiResolutionSpecification )
     for multiResolutionLevel in range( numberOfMultiResolutionLevels ):
         
@@ -948,7 +946,6 @@ def estimateModelParameters( imageBuffers, mask, biasFieldBasisFunctions, transf
         for iterationNumber in range( maximumNumberOfIterations ):
             
             logger.debug( 'iterationNumber=%d', iterationNumber )
-            fs.printPeakMemory( 'samsegment resolution %d iteration %d' % (multiResolutionLevel, iterationNumber) )
 
             # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -1167,9 +1164,6 @@ def segment( imageBuffers, mask, transform, biasFieldBasisFunctions,
              posteriorPlugin=None,
              posteriorPluginDictionary=None
            ):
-    #
-    fs.printPeakMemory( 'samsegment starting segmentation' )
-
     # Get the final mesh
     mesh = getMesh( atlasFileName, transform, 
                     initialDeformation=deformation, initialDeformationMeshCollectionFileName=deformationAtlasFileName )

@@ -50,7 +50,7 @@ py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
   MRI_SP *mrisp = MRISPalloc(1, nframes);
   int udim = U_DIM(mrisp);
   int vdim = V_DIM(mrisp);
-  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) py::value_error("parameterization image must be 256 x 512");;
+  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image must be 256 x 512");;
 
   // copy pixel values from image into MRISP
   float const *iptr = image.data();

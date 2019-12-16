@@ -4,7 +4,6 @@
 #include "mri.h"
 #include "log.h"
 
-
 namespace vol {
 
 

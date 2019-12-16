@@ -4,7 +4,6 @@
 #include "mrisurf.h"
 #include "log.h"
 
-
 namespace surf {
 
 

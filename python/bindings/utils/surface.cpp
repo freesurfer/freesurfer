@@ -1,4 +1,6 @@
+#include "mrisurf_base.h"
 #include "surface.h"
+#include "xform.h"
 
 namespace surf {
 
@@ -14,7 +16,7 @@ py::object Bridge::python()
   // extract the vertex and face arrays in order to construct the surface object
   py::array vertices = makeArray({p_mris->nvertices, 3}, MemoryOrder::C, MRISgetVertexArray(p_mris.get()));
   py::array faces = makeArray({p_mris->nfaces, 3}, MemoryOrder::C, MRISgetFaceArray(p_mris.get()));
-  py::module fsmodule = py::module::import("fs");
+  py::module fsmodule = py::module::import("freesurfer");
   py::object surf = fsmodule.attr("Surface")(vertices, faces);
 
   // transfer the rest of the parameters
@@ -40,6 +42,9 @@ void Bridge::transferParameters(py::object& surf)
     case BOTH_HEMISPHERES: surf.attr("hemi") = "both";  break;
     default:               surf.attr("hemi") = py::none(); break;
   }
+
+  // transfer source volume geometry
+  surf.attr("geom") = transform::volGeomToPython(&p_mris->vg);
 }
 
 
@@ -86,7 +91,8 @@ MRIS* Bridge::mris()
     else if (hemi == "both")  { mris->hemisphere = BOTH_HEMISPHERES; }
   }
 
-  // TODO transfer affine info
+  // transfer vol geometry info
+  transform::pythonToVolGeom(source.attr("geom"), &mris->vg);
 
   // make sure to register the new MRIS instance in the bridge
   setmris(mris);

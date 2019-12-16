@@ -5,11 +5,11 @@ import textwrap
 from . import term
 
 
-class _HelpFormatter(argparse.HelpFormatter):
+class HelpFormatter(argparse.HelpFormatter):
 
     # set default indent to 4 spaces
     def __init__(self, indent_increment=4, *args, **kwargs):
-        super(_HelpFormatter, self).__init__(indent_increment=indent_increment, *args, **kwargs)
+        super(HelpFormatter, self).__init__(indent_increment=indent_increment, *args, **kwargs)
 
     # format each argument
     def _format_action(self, action):
@@ -134,12 +134,12 @@ class _HelpFormatter(argparse.HelpFormatter):
             return join(['\n', heading, item_help, '\n'])
 
 
-class ArgParser(argparse.ArgumentParser):
+class ArgumentParser(argparse.ArgumentParser):
     """ArgumentParser subclass to format the help interface to the freesurfer standard."""
 
     # use the custom freesurfer help formatter by default
-    def __init__(self, add_help=True, allow_abbrev=False, formatter_class=_HelpFormatter, *args, **kwargs):
-        super(ArgParser, self).__init__(allow_abbrev=allow_abbrev, formatter_class=formatter_class, add_help=False, *args, **kwargs)
+    def __init__(self, add_help=True, allow_abbrev=False, formatter_class=HelpFormatter, *args, **kwargs):
+        super(ArgumentParser, self).__init__(allow_abbrev=allow_abbrev, formatter_class=formatter_class, add_help=False, *args, **kwargs)
         # let's organize default arguments by required/optional status instead of positional/flagged
         self._action_groups.clear()
         self._required = self.add_argument_group('REQUIRED ARGUMENTS')
@@ -159,7 +159,7 @@ class ArgParser(argparse.ArgumentParser):
         # add help flag (at the end instead of the beginning)
         if self.add_help:
             self.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
-        return super(ArgParser, self).parse_args(args, namespace)
+        return super(ArgumentParser, self).parse_args(args, namespace)
 
     # make sure default args are added to the appropriate custom groups
     def _add_action(self, action):
