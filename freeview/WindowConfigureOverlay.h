@@ -94,6 +94,8 @@ protected slots:
   void OnComboOverlayChanged(int n);
   void OnCycleOverlay();
   void UpdateGeometry();
+  void OnCheckFixedAxes(bool bChecked, bool bUpdateGraph = true);
+  void OnActiveOverlayChanged();
 
 private:
   Ui::WindowConfigureOverlay *ui;
@@ -102,6 +104,7 @@ private:
   LayerSurface* m_layerSurface;
   float*        m_fDataCache;
   double        m_dSavedOffset;
+  double        m_rangeOverall[2];
   DialogScreenshotOverlay*  m_dlgScreenshot;
 };
 

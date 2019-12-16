@@ -759,6 +759,13 @@ color: gray;</string>
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="checkBoxFixedAxes">
+          <property name="text">
+           <string>Fixed axes</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_15">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -1157,7 +1164,7 @@ color: gray;</string>
     </hint>
     <hint type="destinationlabel">
      <x>213</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
    </hints>
   </connection>
@@ -1169,7 +1176,7 @@ color: gray;</string>
    <hints>
     <hint type="sourcelabel">
      <x>94</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -1185,7 +1192,7 @@ color: gray;</string>
    <hints>
     <hint type="sourcelabel">
      <x>213</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1201,7 +1208,7 @@ color: gray;</string>
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1253,7 +1260,7 @@ color: gray;</string>
     </hint>
     <hint type="destinationlabel">
      <x>213</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
    </hints>
   </connection>
@@ -1268,8 +1275,8 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>527</x>
-     <y>715</y>
+     <x>548</x>
+     <y>714</y>
     </hint>
    </hints>
   </connection>
@@ -1296,8 +1303,8 @@ color: gray;</string>
    <slot>OnButtonAdd()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>422</x>
-     <y>715</y>
+     <x>424</x>
+     <y>714</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1488,8 +1495,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>213</x>
-     <y>648</y>
+     <x>215</x>
+     <y>647</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1504,8 +1511,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>356</x>
-     <y>648</y>
+     <x>358</x>
+     <y>647</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1520,8 +1527,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>488</x>
-     <y>648</y>
+     <x>490</x>
+     <y>647</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1537,11 +1544,11 @@ color: gray;</string>
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>801</y>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
-     <x>356</x>
-     <y>648</y>
+     <x>358</x>
+     <y>647</y>
     </hint>
    </hints>
   </connection>
@@ -1648,8 +1655,8 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>278</x>
-     <y>743</y>
+     <x>280</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1664,8 +1671,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>356</x>
-     <y>677</y>
+     <x>358</x>
+     <y>676</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1728,8 +1735,8 @@ color: gray;</string>
    <slot>OnCheckUseNonZeroVertices(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>428</x>
-     <y>743</y>
+     <x>430</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>595</x>
