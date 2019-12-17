@@ -3283,7 +3283,7 @@ if($DoAutoDetGWStats) then
     set ads  = ../surf/autodet.gw.stats.$hemi.dat
     set orig = ../surf/$hemi.orig
     # Using the premesh makes a difference
-    if($DoRemesh) set orig = ../surf/$hemi.orig.premesh
+    if($DoRemesh && ! $longitudinal) set orig = ../surf/$hemi.orig.premesh
     # set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi) # might need these
     set cmd = (mris_autodet_gwstats --o $ads  --i $bfs --wm $wm --surf $orig)
     set xopts = `fsr-getxopts mris_autodet_gwstats $XOptsFile $GlobXOptsFile`;
