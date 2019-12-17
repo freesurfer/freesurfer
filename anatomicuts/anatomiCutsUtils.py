@@ -10,9 +10,9 @@ import glob
 import subprocess
 import pandas as pd
 from nipy.modalities.fmri.glm import GeneralLinearModel
+import argparse
 #import matplotlib.pyplot as plt
 
-import freesurfer as fs
 def getCorrespondingClusters(correspondance,order=True):
 		corr=dict()
 		distances=dict()
@@ -244,8 +244,7 @@ def GA(classificationFile, classification_cols, target_subject, subjects_dir, gr
 
 
 cta=[200]
-parser = fs.ArgParser()
-# Required
+parser = argparse.ArgumentParser()
 parser.add_argument('-f','--function',  required=True, help='Function to use: GA for group analysis.')
 parser.add_argument('-m','--model',required=False,  help='Model, which could be DTI or DKI')
 parser.add_argument('-cf','--classification_file', metavar='file', required=False, help='classification file')
@@ -258,9 +257,8 @@ parser.add_argument('-gb','--group_b',required=False,  help='group b')
 parser.add_argument('-d','--delimiter',required=False,  help='delimiter for classification file')
 parser.add_argument('-l','--lenght',required=False,  help='minimum lenght')
 parser.add_argument('-std','--std',required=False,  help='standard deviation of clusters')
-
-
 args = parser.parse_args()
+
 if args.function == "GA":
 	eval(args.function)(args.classification_file, args.classification_columns, args.target_subject, args.subjects_folder, args.group_a, args.group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter)
 """

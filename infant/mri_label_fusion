@@ -140,7 +140,7 @@ def saveVolume(vol, fname):
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.ArgParser()
+parser = fs.ArgumentParser()
 # Required
 parser.add_argument('-i','--image', metavar='file', required=True, help='Input image filename.')
 parser.add_argument('-s','--segs', metavar='file', nargs='+', required=True, help='Aligned segmentations to fuse.')
