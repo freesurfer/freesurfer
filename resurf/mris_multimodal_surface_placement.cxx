@@ -57,24 +57,35 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc -min/max -m numberOfImages image1 image2 image3"  << std::endl;   
+			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc  -w whitesurface -p pOfCSF  -min/max -m numberOfImages image1 image2 image3"  << std::endl;   
 			return -1;
 		}
 		const char *inSurf= cl.follow ("", "-i");
+		const char *whSurf= cl.follow ("", "-w");
 		const char *outSurf = cl.follow ("", "-o");
 		const char *outNormals = cl.follow ("", "-n");
 		const char *outValues= cl.follow ("", "-v");
+		const char *overlayFilename= cl.follow ("", "-p");
 		int debugVertex= cl.follow (-1, "-d");
 		float step_size= cl.follow (.4, "-s");
 		int numberOfSteps= cl.follow (20, "-k");
 		const char *asegFile= cl.follow ("", "-a");
 		float gradientSigma= cl.follow (.20, "-g");
 		bool maxGradient = !cl.search("-min");
+		std::cout << maxGradient << std::endl;
 
-
+		//MRI_SURFACE *whiteSurf;
+		//whiteSurf = MRISread(whSurf);
 		MRI_SURFACE *surf;
 		surf = MRISread(inSurf);
-
+		MRIScomputeMetricProperties(surf);
+		MRISstoreMetricProperties(surf);
+/*		MRISedges(surf);
+		MRIScorners(surf);
+		MRISfaceMetric(surf,0);
+		MRISedgeMetric(surf,0);
+		MRIScornerMetric(surf,0);	
+*/
 		std::cout << "debug vertex " << debugVertex << " " <<surf->vertices[debugVertex].x << " "  << surf->vertices[debugVertex].y<< " " <<surf->vertices[debugVertex].z << std::endl; 
 
 
@@ -84,6 +95,8 @@ int main(int narg, char*  arg[])
 		std::vector<MRI*> images; 
 
 		MRIS_MultimodalRefinement* t2refinement = new MRIS_MultimodalRefinement();
+
+
 
 		std::vector<std::string> fileNames;
 		for(;imageNumber>0;imageNumber--)
@@ -101,7 +114,8 @@ int main(int narg, char*  arg[])
 		t2refinement->SetStep(step_size);
 		t2refinement->SetNumberOfSteps(numberOfSteps);
 		t2refinement->SetGradientSigma(gradientSigma);
-		//t2refinement->SetLookMaximumGradient(maxGradient);
+		t2refinement->FindMaximumGradient(maxGradient);
+		//t2refinement->SetWhite(whiteSurf); //, debugVertex);
 		t2refinement->getTarget(surf); //, debugVertex);
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();
@@ -256,6 +270,7 @@ int main(int narg, char*  arg[])
 		vtk2trk->VTKToTrk(outNormals);
 */
 		MRISwrite(surf,outSurf);		
+		MRISwriteCurvature(surf,overlayFilename) ;
 		MRISfree(&surf);	
 
 

@@ -42,7 +42,6 @@ py::array_t<T> makeArray(std::vector<ssize_t> shape, MemoryOrder order, const T*
   }
 }
 
-
 template<class T>
 py::array_t<T> copyArray(std::vector<ssize_t> shape, MemoryOrder order, const T* const data) {
   if (order == MemoryOrder::Fortran) {

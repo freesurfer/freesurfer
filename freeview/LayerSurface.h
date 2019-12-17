@@ -68,7 +68,7 @@ public:
   LayerSurface( LayerMRI* mri = NULL, QObject* parent = NULL );
   virtual ~LayerSurface();
 
-  bool LoadSurfaceFromFile();
+  bool LoadSurfaceFromFile(bool bIgnoreVG = false);
   bool LoadVectorFromFile();
   bool LoadCurvatureFromFile( const QString& filename );
   bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation, bool bSecondHalfData = false );
@@ -87,6 +87,7 @@ public:
   bool SaveSurface( const QString& filename );
   bool SaveSurface( );
   bool WriteIntersection( const QString& filename, int nPlane, LayerMRI* ref);
+  bool SaveSurfaceAsSTL(const QString& filename);
 
   void SetSlicePositionToWorldCenter();
 
@@ -344,6 +345,8 @@ public:
 
   SurfacePath* GetActivePath();
 
+  SurfacePath* GetMadePath(int nPath);
+
   void DeleteActivePath();
 
   int FindPathAt(int vno);
@@ -374,6 +377,8 @@ public:
   {
     m_sSphereFilename = fn;
   }
+
+  SurfaceAnnotation* CreateNewAnnotation(const QString& ct_file, const QString& name = "");
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
@@ -479,6 +484,7 @@ protected slots:
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
   void OnSlicePositionChanged3D();
+  void SetHighlightedLabelOnAnnotation(int n);
 
 protected:
   void InitializeData();

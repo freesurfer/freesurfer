@@ -1500,12 +1500,29 @@ MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol)
 }
 
 /*
-  note that if the v->marked2 fields are set in vertices (e.g. from
-  a .annot file), then these vertices will not be considered in
-  the search for non-cortical vertices (that is, they will be labeled
-  cortex).
+  \fn LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int KeepHipAmyg)
+  \brief This creates the label used for cortex.label. This label has
+  two implications.  First, vertices outside of the label will be
+  frozen in place (ie, white=pial) during surface placement.  Second,
+  vertices outside of the label will be zeroed and/or masked out in
+  many applications (eg, mris_preproc) so they will create holes in
+  the group analysis. This label mostly defines the medial wall, but
+  lesions ({Left,Right}_Lesion) will be excluded as well (but vertices
+  near WMSAs are left intact because they are rarely next to cortex).
+  Lesion vertices are not removed if they are in too small of a cluster.
+  See also MRIScortexLabelDECC(). If KeepHipAmyg is set to 1, then vertices
+  near hippocampus and amygdala are included in the label. In general,
+  this is NOT desired as they are part of the medial wall. However, when
+  placing the pial surface, it is beneficial to let these vertices float
+  so that entorhinal and parahippo gyri are not affected. After the pial
+  is placed, those vertices can be shifted back to the white surface.
+
+  Note that if the v->ripflag or v->marked2 fields are set in vertices
+  (e.g. from a .annot file), then these vertices will not be
+  considered in the search for non-cortical vertices (that is, they
+  will be labeled cortex).
 */
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // BEVIN mris_make_surfaces 5
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int KeepHipAmyg)  // BEVIN mris_make_surfaces 5
 {
   LABEL *lcortex;
   int vno, label, nvox, total_vox, adjacent, x, y, z, target_label, l, base_label, left, right;
@@ -1513,7 +1530,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
   double xv, yv, zv, val, xs, ys, zs, d;
   MRI_REGION box;
 
-  printf("generating cortex label...\n");
+  printf(" Generating cortex label... RemoveHipAmgy=%d\n",KeepHipAmyg);
 
   mri_aseg = MRIcopy(mri_aseg, NULL);  // so we can mess with it
 
@@ -1533,6 +1550,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
           if (label == target_label) MRIsetVoxVal(mri_aseg, x, y, z, 0, 0);  // erase it
         }
   }
+
+  // First, set all v->marked=1. Then removed vertices below
   MRISsetMarks(mris, 1);
 
   ROMP_PF_begin
@@ -1546,10 +1565,11 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
     if (v->ripflag || v->marked2 > 0)  // already must be cortex
       continue;
     if (vno == Gdiag_no) DiagBreak();
+    v->marked3 = 0;
 
     // don't sample inside here due to thin parahippocampal wm.
     // The other interior labels
-    // will already have been ripped (and hence not marked)
+    // will already have been ripped (and hence not marked, but all marks set to 1 above)
     base_label = 0;
     for (d = 0; d <= 2; d += 0.5) {
       xs = v->x + d * v->nx;
@@ -1563,16 +1583,21 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
       label = nint(val);
       if (FZERO(d)) base_label = label;
 
-      if (label == Left_Lateral_Ventricle ||
+      if(label == Left_Lateral_Ventricle ||
+          ( !KeepHipAmyg && (IS_HIPPO(label) || IS_AMYGDALA(label)) ) ||
           (IS_WM(label) && IS_WM(base_label) && (base_label != label)) ||  // crossed hemi staying in wm
           label == Right_Lateral_Ventricle || label == Third_Ventricle || label == Left_Accumbens_area ||
           label == Right_Accumbens_area || label == Left_Caudate || label == Right_Caudate || IS_CC(label) ||
-          label == Left_Pallidum || label == Right_Pallidum || IS_HIPPO(label) || IS_AMYGDALA(label) ||
+          label == Left_Pallidum || label == Right_Pallidum || 
           IS_LAT_VENT(label) || label == Third_Ventricle || label == Right_Thalamus ||
           label == Left_Thalamus || label == Brain_Stem || label == Left_VentralDC || label == Right_VentralDC) {
         if (label == Left_Putamen || label == Right_Putamen) DiagBreak();
         if (vno == Gdiag_no) DiagBreak();
         v->marked = 0;
+      }
+      if(label == Left_Lesion || label == Right_Lesion) {
+        v->marked = 0;
+        v->marked3 = 1; // keep track of lesion
       }
     }
 
@@ -1673,8 +1698,11 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
     for (n = 0; n < nlabels; n++) {
       if (label_array[n]->n_points < min_vertices) {
         printf("erasing segment %d (vno[0] = %d)\n", n, label_array[n]->lv[0].vno);
-        for (i = 0; i < label_array[n]->n_points; i++)
-          mris->vertices[label_array[n]->lv[i].vno].marked = 0;  // mark it as cortex
+        for (i = 0; i < label_array[n]->n_points; i++){
+	  v = &(mris->vertices[label_array[n]->lv[i].vno]);
+          if(v->marked3) continue; // don't unmark lesions
+          v->marked = 0;  // mark it as cortex
+	}
       }
       LabelFree(&label_array[n]);
     }
@@ -1690,27 +1718,29 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // B
 }
 
 /*!
-  \fn LABEL *MRIScortexLabelCC(MRIS *mris, MRI *mri_aseg, int min_vertices)
+  \fn LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int min_vertices, int KeepHipAmyg)
   \brief Creates a label of cortex that is better defined than that
   produced by MRIScortexLabel(). It runs MRIScortexLabel() first, then
   refines it by dilating (D) and eroding (E) then excluding all but
   the largest connected component (CC). This replaces what is in
   mris_make_surfaces when ndilate=nerode=4 and min_vertices=-1.
  */
-LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices)
+LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, int min_vertices, int KeepHipAmyg)
 {
   LABEL *lcortex, **labels ;
   int   n, max_l, max_n, nlabels ;
   
-  lcortex = MRIScortexLabel(mris, mri_aseg, min_vertices) ;
+  lcortex = MRIScortexLabel(mris, mri_aseg, min_vertices, KeepHipAmyg) ;
   LabelErode(lcortex, mris, nerode) ; // Erode the label by 4
   LabelDilate(lcortex, mris, ndilate, CURRENT_VERTICES) ;// Dilate the label by 4
 
-  // Create clusters of the labels and take the biggest
-  MRISclearMarks(mris) ;
+  // Create clusters of the labels and take the biggest. This works on
+  // the label to remove label islands. If there are wholes (eg, made
+  // by lesions), then these are left intact. 
+  MRISclearMarks(mris) ; // only clears v->marked
   LabelMark(lcortex, mris) ;
-  MRISsegmentMarked(mris, &labels, &nlabels, 1) ; 
-  
+  MRISsegmentMarked(mris, &labels, &nlabels, 1) ; // 1=minlabelarea
+
   // Find the label with the most points in it
   max_n = 0 ;
   max_l = labels[0]->n_points ;
@@ -1720,6 +1750,7 @@ LABEL *MRIScortexLabelDECC(MRIS *mris, MRI *mri_aseg, int ndilate, int nerode, i
       max_n = n ;
     }
   }
+
   // Unmark the vertices if they are not part of the biggest label 
   for (n = 0 ; n < nlabels ; n++){
     if (n != max_n){

@@ -1,0 +1,472 @@
+#!/bin/tcsh -f
+# rca-base-init - initialize base subject for recon-all processing. Mostly, code was just
+# cut out of recon-all, so there are some things that look funny (eg, DoCreateBaseSubj is
+# explicitly set to 1 and checked eventhough that is what this script does). I wanted
+# to keep things as consistent as possible with recon-all. While this can be run outside
+# of recon-all, it is mostly supposed to be run from within recon-all. It creates its
+# own "local" log file but will append to log, status, and cmd files if they are passed.
+#
+
+setenv FS_LOAD_DWI 0 # turn off trying to load DWI
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set RunIt = 1;
+set DoCreateBaseInput  = 1
+set DoCreateBaseSubj = 1
+set BaseSubjsList = (); # list of cross subjects to use in base
+set DoAffineBase = 0;
+set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median
+set DoTime = 1
+set NoRandomness = 1
+set DoSkullStrip = 1
+set LF = ();
+set LFappend = 1
+set CF = ();
+set CF_DEFAULT_NAME = recon-all.cmd
+set SF = ();
+set SF_DEFAULT_NAME = recon-all-status.log
+set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
+set BaseSubjInvol = (orig.mgz); # -base-invol allows using some other file
+
+set PWD = pwd;
+if ( -e /bin/pwd ) set PWD = /bin/pwd # better yet, make sure the real pwd is used:
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if ($DoTime) then
+  fs_time ls >& /dev/null
+  if ( ! $status) set fs_time=(fs_time)
+endif
+
+set StartTime = `date`;
+
+set subjdir = $SUBJECTS_DIR/$subjid
+set touchdir = $subjdir/touch
+foreach d (touch scripts mri/transforms surf tmp)
+  mkdir -p $subjdir/$d
+end
+
+if($#CF == 0) set CF = $subjdir/scripts/$CF_DEFAULT_NAME
+if($#SF == 0) set SF = $subjdir/scripts/$SF_DEFAULT_NAME
+set LLF = $subjdir/scripts/rca-base-init.log
+rm -f $LLF
+
+# Set up log file
+if($#LF == 0) set LF = /dev/null
+if($LF != /dev/null && ! $LFappend) rm -f $LF
+echo "Log file for rca-base-init" >> $LLF
+date  | tee -a $LLF
+echo "" | tee -a $LLF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LLF
+echo "cd `pwd`"  | tee -a $LLF
+echo $0 $inputargs | tee -a $LLF
+echo "" | tee -a $LLF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LLF
+echo $VERSION | tee -a $LLF
+uname -a  | tee -a $LLF
+echo "pid $$" | tee -a $LLF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LLF
+endif
+
+#========================================================
+if($DoCreateBaseInput && $DoCreateBaseSubj) then
+  echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
+  echo "#@# Longitudinal Base Subject Creation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+  cd $subjdir 
+  $PWD |& tee -a $LF |& tee -a $LLF
+
+  if($RunIt) rm -f ${BaseSubjsListFname};
+  set subjInVols=();
+  set normInVols=();
+  set ltaXforms=();
+  set lta1forms=();
+  set ltaAforms=();
+  set headInVols=();
+  set geodiff=0;
+  foreach s ($BaseSubjsList)
+    if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
+    set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
+    set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
+    set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
+    set ltaname = ${s}_to_${subjid}.lta
+    set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
+    set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
+    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)
+
+    # check if geometry differs across time
+    if ( "$s" != "$BaseSubjsList[1]" ) then
+      set cmd = (  mri_diff --notallow-pix --notallow-geo \
+                       ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
+                       ${SUBJECTS_DIR}/$BaseSubjsList[1]/mri/rawavg.mgz )
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF  |& tee -a $LLF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF  |& tee -a $LLF
+        if($status) set geodiff = 1;
+      endif
+    endif
+  end
+
+  if ( "$geodiff" == "1" ) then
+    echo "\n*******************************************************************************" |& tee -a $LF |& tee -a $LLF
+    echo "WARNING: Image parameters differ across time, maybe due to aquisition changes?" |& tee -a $LF |& tee -a $LLF
+    echo "         Consistent changes in, e.g., resolution can potentially bias a " |& tee -a $LF |& tee -a $LLF
+    echo "         longitudinal study! You can check image parameters by running mri_info" |& tee -a $LF |& tee -a $LLF
+    echo "         on each input image. Will continue in 10 seconds ..." |& tee -a $LF |& tee -a $LLF
+    echo "*******************************************************************************\n" |& tee -a $LF |& tee -a $LLF
+    sleep 10
+  endif
+
+  if ($#BaseSubjsList == 1) then
+    # if only a single time point, create fake 'base' by making the image upright
+    # this assures that also subjects with a single time point get processes as the other
+    # subjects in the longitudinal stream
+
+    # 1. make the norm upright (base space)
+    set cmd = ( make_upright $normInVols[1] ${subjdir}/mri/norm_template.mgz $ltaXforms[1] )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+      if($status) goto error_exit;
+    endif
+
+    # 2. create the upright orig volume
+    set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+      if($status) goto error_exit;
+    endif
+
+  else #more than 1 time point:
+
+    # create the 'mean/median' norm volume:
+    set cmd = (mri_robust_template --mov ${normInVols})
+    if ($DoAffineBase) then
+      # this is only initial rigid reg
+      set cmd = ($cmd --lta ${lta1forms})
+      set cmd = ($cmd --template ${subjdir}/mri/norm1_template.mgz)
+    else
+      # this is final rigid reg
+      set cmd = ($cmd --lta ${ltaXforms})
+      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+    endif
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --sat 4.685 )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+      if($status) goto error_exit;
+    endif
+
+    if ($DoAffineBase) then
+      # use registration on norm.mgz to initialize affine reg on full head imgs:
+      set cmd = (mri_robust_template --mov ${headInVols})
+      set cmd = ($cmd --lta ${ltaAforms})
+      set cmd = ($cmd --average ${robust_template_avg_arg})
+      set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
+      set cmd = ($cmd --sat 4.685 )
+      set cmd = ($cmd --ixforms ${lta1forms})
+      set cmd = ($cmd --affine)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+        if($status) goto error_exit;
+      endif
+      # use affine reg to init rigid reg on norm.mgz (fine tuning)
+      # not sure if it is really necessary
+      set cmd = (mri_robust_template --mov ${normInVols})
+      set cmd = ($cmd --lta ${ltaXforms})
+      set cmd = ($cmd --average ${robust_template_avg_arg})
+      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+      set cmd = ($cmd --sat 4.685 )
+      set cmd = ($cmd --ixforms ${ltaAforms})
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+        if($status) goto error_exit;
+      endif
+    endif
+
+    # create the 'mean/median' input (orig) volume:
+    set cmd = (mri_robust_template --mov ${subjInVols})
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --ixforms ${ltaXforms})
+    set cmd = ($cmd --noit)
+    set cmd = ($cmd --template ${subjdir}/mri/orig.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF  |& tee -a $LLF
+      if($status) goto error_exit;
+    endif
+
+  endif # more than one time point
+
+  # now create the inverse transforms
+  cd $subjdir/mri/transforms > /dev/null
+  $PWD |& tee -a $LF
+  foreach s ($BaseSubjsList)
+    set cmd = (mri_concatenate_lta -invert1)
+    set cmd = ($cmd ${s}_to_${subjid}.lta)
+    set cmd = ($cmd identity.nofile)
+    set cmd = ($cmd ${subjid}_to_${s}.lta)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+      if($status) goto error_exit;
+    endif
+  end
+  touch $touchdir/base.touch
+endif
+
+#----------------------------------------------------------
+if($DoSkullStrip) then
+  echo "Preparing for skull stripping" | tee -a $LLF
+  if($DoCreateBaseSubj) then
+    set BMA = brainmask.auto.mgz
+    # set BM  = brainmask.mgz  #used later -- account for this in recon-all
+    # create lists with all cross brainmasks and all ltas:
+    set bmInVols=""
+    set ltaXforms=""
+    foreach s ($BaseSubjsList)
+      set bmInVols = ($bmInVols ${SUBJECTS_DIR}/${s}/mri/brainmask.mgz)
+      set ltaname = ${s}_to_${subjid}.lta
+      set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
+    end
+
+    set BMT = $subjdir/mri/brainmask_template.mgz
+    if ($#bmInVols == 1) then
+      # only a single time point in base
+      set cmd = (mri_convert -at $ltaXforms[1] -rt nearest $bmInVols[1] $BMT)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF  |& tee -a $LLF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+        if($status) goto error_exit;
+      endif
+    else
+      # map all brainmask with nearest neighbor and average 0=mean=logicalOR:
+      set cmd = (mri_robust_template --mov ${bmInVols})
+      set cmd = ($cmd --average 0)
+      set cmd = ($cmd --ixforms ${ltaXforms})
+      set cmd = ($cmd --noit)
+      set cmd = ($cmd --finalnearest)
+      set cmd = ($cmd --template $BMT)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF |& tee -a $LLF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF |& tee -a $LLF
+        if($status) goto error_exit;
+      endif
+    endif # more than 1 tp
+
+    # This part is in recon-all (has to be because T1.mgz)
+    # create brainmask.auto by applying brainmask_template to T1
+    # first apply mask and keep deletion edits (1)
+    # set cmd = (mri_mask -keep_mask_deletion_edits)
+    # set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
+    # echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    # if($RunIt) $fs_time $cmd |& tee -a $LF
+    # if($status) goto error_exit;
+    # then copy over the 255 (edits) and still keep deletions (1)
+    # set cmd = (mri_mask -transfer 255)
+    # set cmd = ($cmd -keep_mask_deletion_edits)
+    # set cmd = ($cmd $BMA brainmask_template.mgz $BMA)
+    # echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    # if($RunIt) $fs_time $cmd |& tee -a $LF
+    # if($status) goto error_exit;
+    # goto skipped_skullstrip; 
+
+  endif
+endif
+
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "rca-base-init Done" |& tee -a $LF
+exit 0
+
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-s":
+      if($#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      breaksw
+
+    case "-sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "-base-affine":
+      set DoAffineBase = 1;
+      # don't break here, but also switch on -base:
+    case "-base":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      set subjid = `basename $subjid`; # removes trailing /
+      set DoCreateBaseSubj = 1;
+      set NoRandomness = 1;
+      breaksw
+
+    case "-base-init":
+      set DoCreateBaseInput = 1;
+      breaksw
+    case "-nobase-init":
+      set DoCreateBaseInput = 0;
+      breaksw
+
+    case "-base-tp":
+    case "-tp":
+      if ( $#argv < 1) goto arg1err;
+      set basetpid = $argv[1]; shift;
+      set basetpid = `basename $basetpid`; # removes trailing /
+      set BaseSubjsList = ($BaseSubjsList $basetpid);
+      if($DoCreateBaseSubj) then
+        if ("$basetpid" == "$subjid") then
+          echo "ERROR: you need to specify a new ID for the base/template. "
+          echo "It cannot be one of the time points."
+          echo "Find more info at:"
+          echo "http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+          exit 1;
+        endif
+      endif
+      breaksw
+
+    case "-base-invol":
+      if ( $#argv < 1) goto arg1err;
+      set BaseSubjInvol = $argv[1]; shift;
+      breaksw
+
+    case "-skullstrip":
+      set DoSkullStrip = 1;
+      breaksw
+    case "-noskullstrip":
+      set DoSkullStrip = 0;
+      breaksw
+
+    case "-log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-cf":
+      if($#argv < 1) goto arg1err;
+      set CF = $argv[1]; shift;
+      breaksw
+
+    case "-sf":
+      if($#argv < 1) goto arg1err;
+      set SF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+    case "-no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subjid == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+
+if($#BaseSubjsList == 0) then
+  echo "ERROR: must specify subjects for base subject using -base-tp"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "command"
+  echo ""
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+rca-base-init - initialize base subject for recon-all processing. Mostly, code was just
+cut out of recon-all, so there are some things that look funny (eg, DoCreateBaseSubj is
+explicitly set to 1 and checked eventhough that is what this script does). I wanted
+to keep things as consistent as possible with recon-all. While this can be run outside
+of recon-all, it is mostly supposed to be run from within recon-all. It creates its
+own "local" log file but will append to log, status, and cmd files if they are passed.

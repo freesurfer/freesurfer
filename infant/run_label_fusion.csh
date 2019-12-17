@@ -7,6 +7,7 @@
 # echo ARG LIST $argv
 ## read input
 set kneighbor = 0;
+set regtype   = NIFTYREG;
 set trainingsubjects = ()
 set cmdline = ($argv);
 while( $#argv != 0 )
@@ -39,6 +40,10 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set kneighbor = $argv[1]; shift;
       set selected = 0;
+      breaksw
+    case "--regtype":
+      if ( $#argv < 1) goto arg1err;
+      set regtype = $argv[1]; shift;
       breaksw
     default:
       echo ERROR: Flag $flag unrecognized.
@@ -88,10 +93,10 @@ echo TRAINING SUBJECTS $trainingsubjects
 
 set trainingdata = ()  
 foreach subj ($trainingsubjects)
-  set DRAMMSmovedmanseg = $outputdir/manseg-${subj}-2-${testsubj}.DRAMMS.nii.gz
-  echo MOVED SEG FILE $DRAMMSmovedmanseg
-  if (-e $DRAMMSmovedmanseg) then
-    set trainingdata = ($trainingdata $DRAMMSmovedmanseg)
+  set movedmanseg = $outputdir/manseg-${subj}-2-${testsubj}.$regtype.nii.gz
+  echo MOVED SEG FILE $movedmanseg
+  if (-e $movedmanseg) then
+    set trainingdata = ($trainingdata $movedmanseg)
   endif
 end
 echo TRAININGDATA $trainingdata

@@ -44,6 +44,7 @@
 #include <QDebug>
 #include <QMenu>
 #include "RenderView3D.h"
+#include "SurfacePath.h"
 
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
@@ -103,6 +104,8 @@ void InfoTreeWidget::UpdateAll()
   LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   LayerCollection* lc_surf = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
+  int nPrecision = MainWindow::GetMainWindow()->GetSetting("Precision").toInt();
+  bool bComma = MainWindow::GetMainWindow()->GetSetting("UseComma").toBool();
   if ( lc_mri->IsEmpty() && lc_surf->IsEmpty())
   {
     return;
@@ -177,11 +180,11 @@ void InfoTreeWidget::UpdateAll()
       dvalue = layer->GetVoxelValue( m_dRAS );
       //      else
       //        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
-      QString valueStrg = QString("%1").arg(dvalue, 0, 'f', 6);
-      while (valueStrg[valueStrg.size()-1] != '.' && valueStrg[valueStrg.size()-1] == '0')
-        valueStrg.resize(valueStrg.size()-1);
-      if (valueStrg[valueStrg.size()-1] == '.')
-        valueStrg.resize(valueStrg.size()-1);
+      QString valueStrg = MyUtils::RealToNumber(dvalue, nPrecision);
+//      while (valueStrg[valueStrg.size()-1] != '.' && valueStrg[valueStrg.size()-1] == '0')
+//        valueStrg.resize(valueStrg.size()-1);
+//      if (valueStrg[valueStrg.size()-1] == '.')
+//        valueStrg.resize(valueStrg.size()-1);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 6)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames((int)(fIndex[0]+0.5), (int)(fIndex[1]+0.5), (int)(fIndex[2]+0.5));
@@ -193,11 +196,11 @@ void InfoTreeWidget::UpdateAll()
         }
         QStringList strgs;
         foreach (double value, values)
-          strgs << QString("%1").arg(value);
-        valueStrg = strgs.join(" ");
+          strgs << MyUtils::RealToNumber(value, nPrecision);
+        valueStrg = strgs.join(bComma?", ":" ");
         if (values.size() == 6)
         {
-          valueStrg = "("+strgs.mid(0, 3).join(" ") + ") (" + strgs.mid(3,3).join(" ")+")";
+          valueStrg = "("+strgs.mid(0, 3).join(bComma?", ":" ") + ") (" + strgs.mid(3,3).join(bComma?", ":" ")+")";
         }
       }
       for (int j = 0; j < 3; j++)
@@ -226,6 +229,7 @@ void InfoTreeWidget::UpdateAll()
         strg += "  " + labelStrg;
       }
       item->setText(1, strg);
+      item->setToolTip(1, strg);
       map.clear();
       map["Type"] = "MRI";
       map["EditableText"] = editable;
@@ -242,7 +246,7 @@ void InfoTreeWidget::UpdateAll()
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
       item->setText(0, surf->GetName());
       int nVertex = -1;
-      bool bMappingVertex = (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
+      bool bMappingVertex = (surf->IsInflated() && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
       if (bMappingVertex)
         nVertex = (m_bForCursor ? surf->GetCurrentVertex() : surf->GetMouseVertex());
 
@@ -306,7 +310,7 @@ void InfoTreeWidget::UpdateAll()
         if ( surf->HasCurvature() && m_bShowSurfaceCurvature)
         {
           item = new QTreeWidgetItem(this);
-          item->setText(1, QString("Curvature \t%1").arg(surf->GetCurvatureValue(nVertex)));
+          item->setText(1, QString("Curvature \t%1").arg(MyUtils::RealToNumber(surf->GetCurvatureValue(nVertex), nPrecision)));
         }
 
         int nOverlays = surf->GetNumberOfOverlays();
@@ -314,7 +318,7 @@ void InfoTreeWidget::UpdateAll()
         {
           SurfaceOverlay* overlay = surf->GetOverlay( i );
           item = new QTreeWidgetItem(this);
-          item->setText(1, QString("%1 \t%2").arg(overlay->GetName()).arg(overlay->GetDataAtVertex( nVertex )));
+          item->setText(1, QString("%1 \t%2").arg(overlay->GetName()).arg(MyUtils::RealToNumber(overlay->GetDataAtVertex( nVertex ), nPrecision)));
           item->setToolTip(1, item->text(1));
         }
 
@@ -325,6 +329,17 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(annot->GetName()).arg(annot->GetAnnotationNameAtVertex( nVertex )));
           item->setToolTip(1, item->text(1));
+        }
+
+        int nPath = surf->FindPathAt(nVertex);
+        if (nPath >= 0)
+        {
+            SurfacePath* path = surf->GetMadePath(nPath);
+            if (path)
+            {
+                item = new QTreeWidgetItem(this);
+                item->setText(1, QString("Path %1 \t%2 mm").arg(nPath).arg(path->GetLength(), 0, 'f', 2));
+            }
         }
       }
       else

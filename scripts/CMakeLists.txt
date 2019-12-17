@@ -191,6 +191,8 @@ install(PROGRAMS
   rbbr
   rcbf-prep
   rebuild_gca_atlas.csh
+  rca-base-init
+  rca-long-tp-init
   recon-all
   recon-all-exvivo
   recon-all.makefile
@@ -257,6 +259,7 @@ install(PROGRAMS
   trac-paths
   trac-preproc
   tractstats2table
+  train-gcs-atlas
   unpack_ima.tcl
   unpack_ima1.tcl
   unpack_mnc.tcl
@@ -269,6 +272,7 @@ install(PROGRAMS
   vertexvol
   vno_match_check
   vol2segavg
+  vol2subfield
   vol2symsurf
   vsm-smooth
   wfilemask
@@ -283,6 +287,8 @@ install(PROGRAMS
   xsanatreg
   DESTINATION bin
 )
+
+install_pyscript(rca-config rca-config2csh)
 
 install_append_help(bbregister bbregister.help.xml bin)
 

@@ -1,33 +1,18 @@
 #!/bin/tcsh -ef
 
 ##### scripts location
-
 setenv FSSCRIPTSDIR $FREESURFER_HOME/bin
 
-##### IN ORDER TO ENABLE PICASSO TO RUN
+##### IN ORDER TO ENABLE SSCNN TO RUN
 
-  set FSL_DIR      = /usr/pubsw/packages/fsl/current
-  set FSL_DIR2     = /usr/pubsw/packages/fsl/current/bin
-  set AFNI_DIR     = /usr/pubsw/packages/AFNI/current
-  set N4_DIR       = /usr/pubsw/packages/N4/Build
-  set DRAMMS_DIR   = /usr/pubsw/packages/DRAMMS/1.4.4/bin
-  set DRAMMS_DIR2  = /usr/pubsw/packages/DRAMMS/1.4.4/lib
-  set c3d_DIR      = /usr/pubsw/packages/c3d/bin
-  set NiftySeg_DIR = /usr/pubsw/packages/NiftiSeg/build/seg-apps
-  set ROBEX_DIR    = /usr/pubsw/packages/ROBEX
-  set BSE16a_DIR   = /usr/pubsw/packages/BrainSuite/16a/bin
-  set normalizeFOV_DIR = /usr/pubsw/packages/normalizeFOV/1.2/bin
-  set picasso_DIR  = /usr/pubsw/packages/picasso/bin
+##### 
 
-set AllPicassoPath = ()
-  foreach dir ( ${FSL_DIR} ${FSL_DIR2} ${AFNI_DIR} ${N4_DIR} ${DRAMMS_DIR} ${DRAMMS_DIR2} ${c3d_DIR} ${NiftySeg_DIR} ${ROBEX_DIR} ${BSE16a_DIR}  ${normalizeFOV_DIR} ${picasso_DIR} )
-    if ( -d ${dir} ) then
-        set AllPicassoPath = ( ${AllPicassoPath}:${dir} )
-        #echo "loaded: ${dir}"
-    endif
-  end
+##### IN ORDER TO ENABLE NIFTYREG TO RUN
 
-#####
+setenv NIFTYREG_INSTALL /autofs/space/turan_003/users/lzollei/my_stuff/software/NiftyReg.07092019/niftyreg_install
+set NiftyPath = ${NIFTYREG_INSTALL}/bin
 
-setenv PATH $PATH${AllPicassoPath}:${FSSCRIPTSDIR}
+##########################################
+
+setenv PATH ${PATH}:${NiftyPath}:${FSSCRIPTSDIR}
 echo $PATH

@@ -290,7 +290,8 @@ int main(int argc, char **argv) {
 
   // table header
 
-  tablefile << std::setw(max_id_chars) << "ID";
+  if(input.ltafile.length()) tablefile << "# Reg " << input.ltafile << std::endl;
+  tablefile << std::setw(max_id_chars) << "# ID";
   if (ctab) {
     tablefile << std::left << "    " << std::setw(max_label_chars)
               << "StructName" << std::right;
@@ -302,6 +303,7 @@ int main(int argc, char **argv) {
 
   int table_width = max_id_chars + (cwidth * 3) + 3;
   if (ctab) table_width += max_label_chars + 4;
+  tablefile << "# ";
   tablefile << std::string(table_width, '-') << std::endl;
 
   // table body

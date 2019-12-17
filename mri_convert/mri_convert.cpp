@@ -68,7 +68,6 @@ int ncutends = 0, cutends_flag = 0;
 int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
 int SplitFrames=0;
-COLOR_TABLE *ctab = NULL;
 int DeleteCMDs = 0;
 char NewTransformFname[2000];
 int DoNewTransformFname=0;
@@ -115,6 +114,7 @@ int main(int argc, char *argv[])
   char in_orientation_string[STRLEN];
   int  out_orientation_flag = FALSE;
   char out_orientation_string[STRLEN];
+  char colortablefile[STRLEN] = "";
   char tmpstr[STRLEN], *stem, *ext;
   char ostr[4] = {'\0','\0','\0','\0'};
   char *errmsg = NULL;
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   LTA *lta_transform = NULL;
   MRI *mri_transformed = NULL;
   MRI *mritmp=NULL;
-  int transform_type;
+  int transform_type=-1;
   MATRIX *inverse_transform_matrix;
   int smooth_parcellation_flag, smooth_parcellation_count;
   int in_like_flag;
@@ -799,19 +799,10 @@ int main(int argc, char *argv[])
       }
       in_k_direction_flag = TRUE;
     }
-
     else if(strcmp(argv[i], "--ctab") == 0)
     {
-      char ctabfile[STRLEN];
-      get_string(argc, argv, &i, ctabfile);
-      ctab = CTABreadASCII(ctabfile);
-      if (ctab == NULL){
-	printf("ERROR: reading %s\n",ctabfile);
-	exit(1);
-      }
-      printf("Imbedding color table %s into output volume\n",ctabfile);
+      get_string(argc, argv, &i, colortablefile);
     }
-
     else if(strcmp(argv[i], "--in_orientation") == 0)
     {
       get_string(argc, argv, &i, in_orientation_string);
@@ -1388,6 +1379,9 @@ int main(int argc, char *argv[])
       printf("NRowsOverride %d\n",NRowsOverride);
       sprintf(tmpstr,"%d",NRowsOverride);
       setenv("NROWS_OVERRIDE",tmpstr,1);
+    }
+    else if (strcmp(argv[i], "--mosaic-fix-noascii") == 0) {
+        setenv("FS_MOSAIC_FIX_NOASCII","1",1);
     }
     /*-------------------------------------------------------------*/
     else if ( (strcmp(argv[i], "--nspmzeropad") == 0) ||
@@ -3045,20 +3039,21 @@ int main(int argc, char *argv[])
 	GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
 
         // check whether the volume to be morphed and the morph have the same dimensions
+#if 0
 	if ((gcam->image.width == mri->width) &&
 	    (gcam->image.height == mri->height) &&
 	    (gcam->image.depth == mri->depth))
 	  mri_transformed = MRIclone(mri, NULL);
 	else  // when morphing atlas to subject using -ait <3d morph> must resample atlas to 256 before applying morph
 	{
-	  MRI *mri_template = MRIalloc(gcam->image.width,  gcam->image.height, gcam->image.depth, mri->type), *mri_tmp  ;
-	  useVolGeomToMRI(&gcam->atlas, mri_template) ;
-	  mri_tmp = MRIresample(mri, mri_template, resample_type_val);
+	  MRI *mri_tmp ;
+	  mri_transformed = MRIalloc(gcam->image.width,  gcam->image.height, gcam->image.depth, mri->type) ;
+	  useVolGeomToMRI(&gcam->image, mri_transformed) ;
+	  mri_tmp = MRIresample(mri, mri_transformed, resample_type_val);
 	  MRIfree(&mri) ; MRIfree(&mri_template) ; 
 	  mri = mri_tmp ;
-	  useVolGeomToMRI(&gcam->image, mri_template) ;
-    mri_template = mri_template;  // ATH I'm guessing this is a bug and it's supposed to be `mri_transformed = mri_template`
 	}
+#endif
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  
 					     gcam,
@@ -3171,7 +3166,7 @@ int main(int argc, char *argv[])
 
   /* ----- reslice if necessary and not performed during transform ----- */
   float eps = 1e-05; /* (mr) do eps testing to avoid reslicing due to tiny differences, e.g. from IO */
-  if (!out_like_flag
+  if (!out_like_flag && (transform_type != MORPH_3D_TYPE)
    && (fabs(mri->xsize - mri_template->xsize) > eps ||
       fabs(mri->ysize - mri_template->ysize) > eps ||
       fabs(mri->zsize - mri_template->zsize) > eps ||
@@ -3464,8 +3459,21 @@ int main(int argc, char *argv[])
     mri->AutoAlign = AutoAlign ;
   }
 
-  if(ctab != NULL)
-    mri->ct = ctab;
+  // ----- modify color lookup table (specified by --ctab option) -----
+  if (strcmp("remove", colortablefile) == 0) {
+    // remove an embedded ctab
+    if (mri->ct) {
+      std::cout << "removing color lookup table" << std::endl;
+      CTABfree(&mri->ct);
+    }
+  }
+  else if (strlen(colortablefile) != 0) {
+    // add a user-specified ctab
+    std::cout << "embedding color lookup table" << std::endl;
+    if (mri->ct) CTABfree(&mri->ct);
+    mri->ct = CTABreadASCII(colortablefile);
+    if (!mri->ct) fs::fatal() << "could not read lookup table from " << colortablefile;
+  }
 
   /*------ Finally, write the output -----*/
   

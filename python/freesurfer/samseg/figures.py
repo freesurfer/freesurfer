@@ -1,15 +1,6 @@
 import math
 import numpy as np
 
-try:
-    import pyqtgraph as pg
-    from PyQt5 import QtGui
-    from .hdav import view, HdavWindow
-except ImportError:
-    SAMSEG_HAVE_QT_PACKAGES = False
-else:
-    SAMSEG_HAVE_QT_PACKAGES = True
-
 
 # Color palette generated via main method of ColorScheme.py
 DEFAULT_PALETTE = [
@@ -51,9 +42,21 @@ DEFAULT_PALETTE = [
 ]
 
 
+def import_graphical_libraries():
+    try:
+        global pg, QtGui, view, HdavWindow
+        import pyqtgraph as pg
+        from PyQt5 import QtGui
+        from .hdav import view, HdavWindow
+    except ImportError:
+       return False
+    else:
+       return True
+
+
 def initVisualizer(showfigs, movie):
     if showfigs or movie:
-        if not SAMSEG_HAVE_QT_PACKAGES:
+        if not import_graphical_libraries():
             raise RuntimeError('the samseg visualization tool requires pyqtgraph and pyqt5 - '
                 'please install these python packages to show figures')
         else:

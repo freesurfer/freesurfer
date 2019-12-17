@@ -71,7 +71,7 @@ public:
   virtual void Undo();
   virtual void Redo();
 
-  virtual void SaveForUndo(int nPlane = -1);
+  virtual void SaveForUndo(int nPlane = -1, bool bAllFrames = false );
 
   inline LayerPropertyROI* GetProperty()
   {
@@ -128,6 +128,8 @@ protected:
   void InitializeActors();
   void UpdateProperties();
   void OnLabelDataUpdated();
+  void UpdateFilteredImage(vtkImageData* mask_before, vtkImageData* mask_after);
+  vtkSmartPointer<vtkImageData> GetThresholdedMaskImage();
 
   virtual void OnSlicePositionChanged( int nPlane );
 

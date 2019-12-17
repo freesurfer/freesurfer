@@ -19,6 +19,7 @@ SOURCES += \
     DialogLoadDTI.cpp \
     DialogLoadPointSet.cpp \
     DialogLoadVolume.cpp \
+    DialogNewAnnotation.cpp \
     DialogNewROI.cpp \
     DialogNewPointSet.cpp \
     DialogNewVolume.cpp \
@@ -67,6 +68,7 @@ SOURCES += \
     LayerVolumeBase.cpp \
     LivewireTool.cpp \
     LUTDataHolder.cpp \
+    WindowEditAnnotation.cpp \
     main.cpp \
     MainWindow.cpp \
     MyCmdLineParser.cpp \
@@ -179,7 +181,8 @@ SOURCES += \
     BusyIndicator.cpp \
     vtkInteractorStyleMyTrackballCamera.cxx \
     FlowLayout.cpp \
-    WindowLayerInfo.cpp
+    WindowLayerInfo.cpp \
+    DialogScreenshotOverlay.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -195,6 +198,7 @@ HEADERS  += \
     DialogLoadDTI.h \
     DialogLoadPointSet.h \
     DialogLoadVolume.h \
+    DialogNewAnnotation.h \
     DialogPreferences.h \
     DialogNewPointSet.h \
     DialogNewROI.h \
@@ -251,6 +255,7 @@ HEADERS  += \
     PanelROI.h \
     PanelSurface.h \
     PanelVolume.h \
+    WindowEditAnnotation.h \
     qtcolorpicker.h \
     Region2D.h \
     Region2DLine.h \
@@ -347,9 +352,11 @@ HEADERS  += \
     QVTKWidget/QVTKPaintEngine.h \
     vtkInteractorStyleMyTrackballCamera.h \
     FlowLayout.h \
-    WindowLayerInfo.h
+    WindowLayerInfo.h \
+    DialogScreenshotOverlay.h
 
 FORMS    += MainWindow.ui \
+    DialogNewAnnotation.ui \
     PanelVolume.ui \
     PanelSurface.ui \
     PanelROI.ui \
@@ -372,6 +379,7 @@ FORMS    += MainWindow.ui \
     DialogAbout.ui \
     DialogWriteMovieFrames.ui \
     DialogGradientFilter.ui \
+    WindowEditAnnotation.ui \
     WindowQuickReference.ui \
     FloatingStatusBar.ui \
     TermWidget.ui \
@@ -401,7 +409,8 @@ FORMS    += MainWindow.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
     DialogSurfaceLabelOperations.ui \
-    WindowLayerInfo.ui
+    WindowLayerInfo.ui \
+    DialogScreenshotOverlay.ui
 
 RESOURCES += \
     freeview.qrc

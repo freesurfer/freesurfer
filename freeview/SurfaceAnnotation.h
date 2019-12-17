@@ -31,11 +31,13 @@
 
 #include <QObject>
 #include <vtkSmartPointer.h>
-
-
+#include <QMap>
+#include <QColor>
+#include <QVector>
 
 #include "colortab.h"
 
+#define UNASSIGNED_ANNOT_BASE 1000000
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
@@ -43,8 +45,35 @@ class LayerSurface;
 class vtkActor;
 class vtkPolyData;
 
+struct NewAnnotationLabel
+{
+  QString name;
+  QColor color;
+  int id;
+};
+
+struct AnnotUndoRedoBufferItem
+{
+  AnnotUndoRedoBufferItem()
+  {
+    m_data = NULL;
+  }
+
+  void Free()
+  {
+    if (m_data)
+      delete[] m_data;
+    m_data = NULL;
+  }
+
+  int*          m_data;
+  QList<int>    m_listVisibleLabels;
+  QMap<int, NewAnnotationLabel> m_mapNewLabels;
+};
+
 class SurfaceAnnotation  : public QObject
 {
+  Q_OBJECT
 public:
   SurfaceAnnotation ( LayerSurface* surf );
   ~SurfaceAnnotation ();
@@ -56,6 +85,8 @@ public:
   void SetName( const QString& name );
 
   bool LoadAnnotation( const QString& fn );
+
+  bool InitializeNewAnnotation(const QString& ctab_fn);
 
   int* GetIndices()
   {
@@ -96,16 +127,93 @@ public:
     return m_strFilename;
   }
 
+  void SetFilename(const QString& fn)
+  {
+    m_strFilename = fn;
+  }
+
+  QList<int> GetVisibleLabels()
+  {
+    return m_listVisibleLabels;
+  }
+
+  void SetSelectLabel(int nVal, bool bSelected);
+  void SetSelectAllLabels();
+  void SetUnselectAllLabels();
+
+  void SetHighlightedLabel(int n);
+
+  int GetHighlightedLabel()
+  {
+    return m_nHighlightedLabel;
+  }
+
+  int* GetAnnotationData()
+  {
+    return m_data;
+  }
+
+  QList<int> GetExistingAnnotations()
+  {
+    return m_listAnnotations;
+  }
+
+  void EditLabel(const QVector<int>& verts, int fill_index, const QVariantMap& options);
+
+  void ReassignNewLabel(int nId, int ctab_entry);
+
+  QMap<int, NewAnnotationLabel> GetNewLabels()
+  {
+    return m_mapNewLabels;
+  }
+
+  void UpdateLabelInfo(int i, const QString& name, const QColor& color = QColor());
+
+  bool HasColor(const QColor& color)
+  {
+    return m_listColors.contains(color);
+  }
+
+  bool HasUnassignedLabels()
+  {
+    return !m_mapNewLabels.isEmpty();
+  }
+
+  bool SaveToFile(const QString& fn);
+
+  bool HasUndo();
+  bool HasRedo();
+
+signals:
+  void Modified();
+
+public slots:
+  void SetModified()
+  {
+    emit Modified();
+  }
+
+  void Undo();
+  void Redo();
+  void SaveForUndo();
+
 protected:
   void Reset();
+  void UpdateData();
 
 private:
+  QColor GenerateNewColor();
+  void UpdateColorList();
+  int ColorToAnnotation(const QColor& c);
+  AnnotUndoRedoBufferItem SaveCurrentUndoRedoBuffer();
+  void RestoreFromUndoRedoBuffer(const AnnotUndoRedoBufferItem& item);
 
   int*          m_nIndices;
   int*          m_nOutlineIndices;
   int           m_nIndexSize;
   int*          m_nCenterVertices;  // center vertex of each annotation
-  int           m_nAnnotations;     // number of valid annotations
+  int*          m_data;
+  QList<int>    m_listAnnotations;
 
   QString       m_strName;
   COLOR_TABLE*  m_lut;
@@ -113,6 +221,13 @@ private:
   bool          m_bShowOutline;
   double        m_dOpacity;
   QString       m_strFilename;
+  QList<int>    m_listVisibleLabels;
+  int           m_nHighlightedLabel;
+  QMap<int, NewAnnotationLabel> m_mapNewLabels;
+  QVector<QColor> m_listColors;
+
+  QVector<AnnotUndoRedoBufferItem>  m_bufferUndo;
+  QVector<AnnotUndoRedoBufferItem>  m_bufferRedo;
 };
 
 #endif

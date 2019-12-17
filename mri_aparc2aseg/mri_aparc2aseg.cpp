@@ -1160,6 +1160,10 @@ int main(int argc, char **argv)
     CCSegment(ASeg, 4016, Right_Unsegmented_WM); //4016 = rhphwm, 5002 = unsegmented WM right
   }
 
+  // embed color lookup table
+  if (!ASeg->ct) ASeg->ct = CTABreadDefault();
+  if (!AParc->ct) AParc->ct = CTABreadDefault();
+
   printf("Writing output aseg to %s\n",OutASegFile);
   MRIwrite(ASeg,OutASegFile);
 

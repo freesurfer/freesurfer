@@ -90,7 +90,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   // vtkRenderer* renderer = m_view->GetRenderer();
 
   double dLen = ( m_nSize == 100 ? 100000 : m_nSize );
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   dLen *= m_view->devicePixelRatio();
 #endif
 
@@ -143,7 +143,7 @@ void Cursor2D::Update( bool bConnectPrevious )
     w = m_view->rect().width();
     h = m_view->rect().height();
     int nd = 9;
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   if (m_view->devicePixelRatio() > 1)
   {
       w *= m_view->devicePixelRatio();
@@ -187,7 +187,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   mapper->SetTransformCoordinate( coords );
 
   m_actorCursor->SetMapper( mapper );
-#if VTK_MAJOR_VERSION > 5
+#if VTK_MAJOR_VERSION > 7
   m_actorCursor->GetProperty()->SetLineWidth(m_nThickness*m_view->devicePixelRatio());
 #else
   m_actorCursor->GetProperty()->SetLineWidth(m_nThickness);

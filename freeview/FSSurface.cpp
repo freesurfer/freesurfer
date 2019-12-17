@@ -53,12 +53,9 @@
 #include <QDebug>
 #include <QDir>
 
-
-
 #include "mri_identify.h"
 
 using namespace std;
-
 
 FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_MRIS( NULL ),
@@ -69,7 +66,8 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_volumeRef( ref ),
   m_nActiveVector( -1 ),
   m_bSharedMRIS(false),
-  m_dMaxSegmentLength(10.0)
+  m_dMaxSegmentLength(10.0),
+  m_bIgnoreVG(false)
 {
   m_polydata = vtkSmartPointer<vtkPolyData>::New();
   m_polydataVector = vtkSmartPointer<vtkPolyData>::New();
@@ -172,14 +170,15 @@ bool FSSurface::MRISRead( const QString& filename,
     ::MRISfree( &m_MRIS );
   }
 
-  try {
-    m_MRIS = ::MRISread( filename.toLatin1().data() );
-  }
-  catch (int ret)
-  {
-    return false;
-  }
+//  try {
+//    m_MRIS = ::MRISread( filename.toLatin1().data() );
+//  }
+//  catch (int ret)
+//  {
+//    return false;
+//  }
 
+  m_MRIS = ::MRISread( filename.toLatin1().data() );
   if ( m_MRIS == NULL )
   {
     cerr << "MRISread failed\n";
@@ -240,22 +239,8 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   m_SurfaceToRASMatrix[14] = 0;
   m_SurfaceToRASMatrix[15] = 1;
 
-  /*
-  if ( m_MRIS->vg.valid )
-  {
-    m_SurfaceToRASMatrix[3] = m_MRIS->vg.c_r;
-    m_SurfaceToRASMatrix[7] = m_MRIS->vg.c_a;
-    m_SurfaceToRASMatrix[11] = m_MRIS->vg.c_s;
-  }
-  else if ( m_MRIS->lta )
-  {
-    m_SurfaceToRASMatrix[3] = -m_MRIS->lta->xforms[0].src.c_r;
-    m_SurfaceToRASMatrix[7] = -m_MRIS->lta->xforms[0].src.c_a;
-    m_SurfaceToRASMatrix[11] = -m_MRIS->lta->xforms[0].src.c_s;
-  }
-  */
   m_bValidVolumeGeometry = false;
-  if ( m_MRIS->vg.valid )
+  if ( m_MRIS->vg.valid && !m_bIgnoreVG )
   {
     MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR, 1);
     useVolGeomToMRI(&m_MRIS->vg, tmp);
@@ -342,6 +327,11 @@ bool FSSurface::InitializeData(const QString &vector_filename,
     LoadCurvature();
 
   return true;
+}
+
+vtkTransform* FSSurface::GetSurfaceToRasTransform()
+{
+    return m_SurfaceToRASTransform;
 }
 
 void FSSurface::UpdateHashTable(int nSet, int coord)

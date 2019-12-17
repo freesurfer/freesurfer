@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+
+import freesurfer as fs
+from freesurfer.samseg import samsegmentLongitudinal
+from freesurfer.gems import setGlobalDefaultNumberOfThreads
+
+parser = fs.ArgParser()
+parser.add_argument( '-i', '--inputs', nargs='*', required=True)
+parser.add_argument( '-o', '--output', dest='outputDirectory', required=True)
+parser.add_argument( '-n', '--numberOfIterations', type=int, dest='numberOfIterations', default=5)
+parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument( '-sg', '--strengthOfLatentGMMHyperprior', type=float, dest='strengthOfLatentGMMHyperprior', default=0.5)
+parser.add_argument( '-sd', '--strengthOfLatentDeformationHyperprior', type=float, dest='strengthOfLatentDeformationHyperprior', default=10.0)
+args = parser.parse_args()
+
+setGlobalDefaultNumberOfThreads(args.threads)
+
+imageFileNamesList = [[filename] for filename in args.inputs]
+
+samsegmentLongitudinal(
+    imageFileNamesList,
+    '/cluster/koen/koen/testing/20Subjects_smoothing2_down2_smoothingForAffine2_bigventricles',
+    args.outputDirectory,
+    targetIntensity=110, 
+    targetSearchStrings=['Cerebral-White-Matter'],
+    numberOfIterations=args.numberOfIterations,
+    strengthOfLatentGMMHyperprior=args.strengthOfLatentGMMHyperprior,
+    strengthOfLatentDeformationHyperprior=args.strengthOfLatentDeformationHyperprior, 
+    saveHistory=True
+)

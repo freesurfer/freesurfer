@@ -586,3 +586,11 @@ QString MyUtils::Win32PathProof(const QString &path_in)
   return path_in;
 #endif
 }
+
+QString MyUtils::RealToNumber(qreal val, int nPrecision)
+{
+  if (qAbs(val) >= pow(10, nPrecision))
+    return QString("%1").arg(val, 0, 'f', 0);
+  else
+    return QString("%1").arg(val, 0, 'g', nPrecision);
+}

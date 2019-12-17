@@ -15,10 +15,11 @@ set DiceFile = ();
 set SrcLTA = ();
 set SrcNorm = ();
 set UseCoreg = 0;
-set NoEMReg = 0;
 set UseV6LabOpts = 1;
 set m3zSpec = ()
 set brainmask = brainmask.mgz
+set EMRegAseg = 1;
+set ctab = $FREESURFER_HOME/ASegStatsLUT.txt
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -90,23 +91,40 @@ endif
 if($#SrcLTA == 0) then
   # LTA NOT passed on command line, create 
   if($UseCoreg == 0) then
-    # Create LTA using mri_em_register
-    set opts = (-mask $brainmask)
-    set opts = ($opts -uns 3) # used by recon-all, but not with skull
-    # but docs imply it is only with skull that it should be used
-    set cmd = (mri_em_register $opts $input $gca $LTA)
-  else
+    if($EMRegAseg) then
+      # Create LTA using mri_em_register
+      set opts = (-mask $brainmask)
+      set opts = ($opts -uns 3) # used by recon-all, but not with skull
+      # but docs imply it is only with skull that it should be used
+      set cmd = (mri_em_register $opts $input $gca $LTA)
+    else # Use tal.xfm.lta
+      set xfm = transforms/talairach.xfm 
+      set LTA = transforms/talairach.xfm.lta
+      set ud = `UpdateNeeded $LTA $xfm`
+      set cmd = ()
+      if($ud) then
+        set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+        set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
+            --outlta $LTA --subject fsaverage --ltavox2vox)
+        #echo $cmd |& tee -a $LF |& tee -a $CF
+        #$cmd |& tee -a $LF
+        #if($status) exit 1
+      endif # update needed
+    endif # EMRegAseg
+  else # UseCoreg
     # Create LTA using mri_coreg. Use 9dof because that's what em_register does
     set cmd = (mri_coreg --dof 9 --threads $OMP_NUM_THREADS \
       --mov $brainmask --targ $gca --conf-ref --reg $LTA)
-  endif
+  endif # UseCoreg
 else
   # LTA passed on command line
   set cmd = (cp $SrcLTA $LTA)
 endif
-echo $cmd |& tee -a $LF
-fs_time $cmd |& tee -a $LF
-if($status) exit 1;
+if($#cmd) then
+  echo $cmd |& tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 date | tee -a $LF
 
@@ -174,7 +192,7 @@ else
 endif
 set cmd = (mri_segstats --seg $aseg --sum $statsfile \
   --in $norm --pv $norm --empty --excludeid 0 \
-  --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subject \
+  --ctab $ctab --subject $subject \
   --brainmask brainmask.mgz --brain-vol-from-seg \
   --in-intensity-name norm.$gcabase --in-intensity-units MR )
 if(-e transforms/talairach.xfm ) set cmd = ($cmd --etiv);
@@ -264,6 +282,15 @@ while( $#argv != 0 )
       set gcabase = $argv[1]; shift;
       breaksw
 
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      if(! -e $ctab) then
+        echo "ERROR: cannot find $ctab"
+        exit 1;
+      endif
+      breaksw
+
     case "--overwrite":
       set Overwrite = 1;
       breaksw
@@ -337,11 +364,11 @@ while( $#argv != 0 )
       set UseCoreg = 0;
       breaksw
 
-    case "--no-emreg":
-      set NoEMReg = 1;
-      breaksw
     case "--emreg":
-      set NoEMReg = 0;
+      set EMRegAseg = 1;
+      breaksw
+    case "--no-emreg":
+      set EMRegAseg = 0;
       breaksw
 
     case "--no-v6labopts":
@@ -415,9 +442,9 @@ foreach f ($mdir/$brainmask $mdir/$input)
   endif
 end
 
-if($NoEMReg) then
-  set SrcLTA = $mdir/transforms/talairach.lta
-endif
+#if($EMRegAseg == 0) then
+#  set SrcLTA = $mdir/transforms/talairach.lta
+#endif
 
 # Check whether the outputs already exist
 if($#gcabase == 0) set gcabase = `basename $gca .gca`

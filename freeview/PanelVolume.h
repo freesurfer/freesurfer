@@ -71,6 +71,7 @@ protected slots:
   void OnComboColorMap( int nSel );
   void OnComboLookupTable( int nSel );
   void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
+  void OnColorTableItemClicked( QTreeWidgetItem* item);
   void OnColorTableItemDoubleClicked( QTreeWidgetItem* item = NULL );
   void OnLineEditBrushValue( const QString& strg = NULL );
   void OnCheckBoxSelectAllLabels(int nState);
@@ -157,7 +158,7 @@ protected slots:
   void OnLineEditClearBackgroundValue(const QString& text);
 
 protected:
-  void PopulateColorTable( COLOR_TABLE* ctab );
+  void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );
   void DoUpdateWidgets();
   void DoIdle();
   virtual void ConnectLayer( Layer* layer );

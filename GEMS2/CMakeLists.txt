@@ -88,6 +88,7 @@ set(SOURCES
   kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
   kvlAtlasMeshVisitCounter.cxx
+  kvlAtlasMeshValueDrawer.cxx
   kvlAtlasParameterEstimator.cxx
   kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
   kvlCompressionLookupTable.cxx

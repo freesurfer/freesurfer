@@ -260,22 +260,19 @@ def fv(*args, **kwargs):
 
     fv = Freeview()
     for arg in args:
-
-        # try to guess filetype if string
         if isinstance(arg, str):
+            # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
                 fv.vol(arg)
             elif arg.startswith(('lh.', 'rh.')) or arg.endswith('.stl'):
                 fv.surf(arg)
             else:
                 fv.vol(arg)
-
-        # surface
         elif isinstance(arg, Surface):
+            # surface
             fv.surf(arg)
-
-        # assume anything else is a volume
         else:
+            # assume anything else is a volume
             fv.vol(arg)
 
     fv.show(background=background, opts=opts)

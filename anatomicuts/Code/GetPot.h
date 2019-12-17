@@ -38,7 +38,8 @@ extern "C" {
 #include <stdarg.h>
 #include <math.h>
 }
-#include <string>
+#include <string>   // added both string and string.h in order to compile
+#include <string.h>
 #include <vector>
 #include <algorithm>
 

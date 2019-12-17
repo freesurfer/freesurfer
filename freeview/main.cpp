@@ -47,7 +47,7 @@
 #include "fsinit.h"
 #include "log.h"
 #include "chklc.h"
-
+#include "utils.h"
 
 const char* Progname;
 
@@ -56,7 +56,8 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 {
   Q_UNUSED(context);
 
-  if (msg.contains("sRGB profile") || msg.contains("QWidget::create") || msg.contains("unregister timer"))
+  if (msg.contains("sRGB profile") || msg.contains("QWidget::create")
+      || msg.contains("unregister timer") || msg.contains("QPainter::") || msg.contains("Empty filename passed"))
     return;
 
   switch ((int)type)
@@ -124,6 +125,7 @@ int main(int argc, char *argv[])
 
   LineProf::InitializePetsc(true);
   FSinit();
+  setRandomSeed(-1L);
 
   CmdLineEntry cmdLineDesc[] =
   {
@@ -150,6 +152,7 @@ int main(int argc, char *argv[])
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
     "':isosurface_color=color' Set the color of the isosurface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':extract_all_regions=flag' Set isosurface to extract all regions. default setting is on.\n\n"
     "':isosurface_output=filename' Save isosurface to file. Extension can be .vtk or .stl.\n\n"
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
     "':name=display_name' Set the display name of the volume.\n\n"

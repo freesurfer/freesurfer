@@ -36,6 +36,7 @@
 #include <QDebug>
 #include <QSettings>
 #include <QTimer>
+#include "DialogScreenshotOverlay.h"
 
 WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QWidget(parent), UIUpdateHelper(),
@@ -52,11 +53,17 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->checkBoxClearHigher->hide();
   ui->pushButtonFlip->hide();
   ui->widgetColorPicker->setCurrentColor(Qt::green);
-  ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
+  m_rangeOverall[0] = 0;
+  m_rangeOverall[1] = 1;
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
   connect(ui->checkBoxAutoApply, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
   connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
   connect(ui->checkBoxAutoFrame, SIGNAL(toggled(bool)), this, SLOT(OnCheckAutoFrameByVertex(bool)));
+  connect(ui->pushButtonApply, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
+  connect(ui->pushButtonCancel, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
+  connect(ui->pushButtonScreenshot, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
+  connect(ui->pushButtonHelp, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
+  connect(ui->checkBoxFixedAxes, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes(bool)));
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
@@ -74,6 +81,9 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
   connect(lc, SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateUI()));
   connect(MainWindow::GetMainWindow(), SIGNAL(CycleOverlayRequested()), SLOT(OnCycleOverlay()));
+
+  m_dlgScreenshot = new DialogScreenshotOverlay(this);
+  m_dlgScreenshot->hide();
 }
 
 WindowConfigureOverlay::~WindowConfigureOverlay()
@@ -95,6 +105,11 @@ void WindowConfigureOverlay::showEvent(QShowEvent *)
   UpdateUI();
   UpdateGraph();
   UpdateGeometry();
+}
+
+void WindowConfigureOverlay::hideEvent(QHideEvent *)
+{
+  m_dlgScreenshot->hide();
 }
 
 void WindowConfigureOverlay::resizeEvent(QResizeEvent *e)
@@ -125,9 +140,7 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateUI()), Qt::UniqueConnection);
-    connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
+            this, SLOT(OnActiveOverlayChanged()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
             this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
@@ -138,7 +151,13 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
     delete[] m_fDataCache;
   m_fDataCache = 0;
 
+  OnActiveOverlayChanged();
+}
+
+void WindowConfigureOverlay::OnActiveOverlayChanged()
+{
   UpdateUI();
+  OnCheckFixedAxes(ui->checkBoxFixedAxes->isChecked(), false);
   UpdateGraph();
 }
 
@@ -278,19 +297,24 @@ void WindowConfigureOverlay::UpdateUI()
   }
 }
 
-void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
+void WindowConfigureOverlay::OnButtonClicked()
 {
-  if (ui->buttonBox->buttonRole(btn) == QDialogButtonBox::HelpRole)
+  if (sender() == ui->pushButtonHelp)
   {
     QMessageBox::information(this, "Help", "Drag the handle to move point.\n\nAt Custom mode:\nDouble-click on the handle to change point color.\nShift+Click on the handle to remove point.");
   }
-  else if (ui->buttonBox->buttonRole(btn) == QDialogButtonBox::ApplyRole)
+  else if (sender() == ui->pushButtonApply)
   {
-    /*   if (m_fDataCache)
-      delete[] m_fDataCache;
-    m_fDataCache = 0;
-    */
     OnApply();
+  }
+  else if (sender() == ui->pushButtonCancel)
+  {
+    close();
+  }
+  else if (sender() == ui->pushButtonScreenshot)
+  {
+    m_dlgScreenshot->show();
+    m_dlgScreenshot->raise();
   }
 }
 
@@ -448,7 +472,13 @@ void WindowConfigureOverlay::UpdateGraph(bool bApply)
     if ( overlay )
     {
       double range[2];
-      overlay->GetRange( range );
+      if (ui->checkBoxFixedAxes->isChecked())
+      {
+        range[0] = m_rangeOverall[0];
+        range[1] = m_rangeOverall[1];
+      }
+      else
+        overlay->GetRange( range );
       if (range[0] == range[1])
       {
         return;
@@ -912,4 +942,25 @@ void WindowConfigureOverlay::OnCycleOverlay()
   {
     ui->comboBoxOverlayList->setCurrentIndex((m_layerSurface->GetActiveOverlayIndex()+1)%m_layerSurface->GetNumberOfOverlays());
   }
+}
+
+void WindowConfigureOverlay::OnCheckFixedAxes(bool bChecked, bool bUpdateGraph)
+{
+  if (bChecked && m_layerSurface)
+  {
+      m_rangeOverall[0] = 1e10;
+      m_rangeOverall[1] = -1e10;
+      for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+      {
+        SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
+        double range[2];
+        ol->GetRange(range);
+        if (range[0] < m_rangeOverall[0])
+          m_rangeOverall[0] = range[0];
+        if (range[1] > m_rangeOverall[1])
+          m_rangeOverall[1] = range[1];
+      }
+  }
+  if (bUpdateGraph)
+    UpdateGraph();
 }

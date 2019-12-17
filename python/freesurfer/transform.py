@@ -2,6 +2,21 @@ import os
 import numpy as np
 from . import bindings
 
+from . import bindings
+
+
+class Geometry:
+    def __init__(self, shape, voxsize=(1, 1, 1), affine=None):
+        self.shape = shape
+        self.voxsize = voxsize
+        self.affine = affine
+
+
+class TransformType:
+    vox = 0
+    ras = 1
+    physvox = 2
+
 
 class LinearTransform:
     '''Linear transformer that wraps an affine matrix.'''
@@ -133,4 +148,3 @@ class Transformable:
 
     def ras2surf(self):
         return self.geometry().ras2surf()
-

@@ -50,10 +50,7 @@ public:
   Contour2D( RenderView2D* view );
   virtual ~Contour2D();
 
-  vtkImageData* GetInputImage()
-  {
-    return m_imageInput;
-  }
+  vtkImageData* GetInputImage();
 
   void SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation, int active_frame = 0 );
 
@@ -72,7 +69,7 @@ public:
     m_nPlane = nPlane;
   }
 
-  void UpdateSliceLocation( double slice_location );
+  void UpdateSliceLocation( double slice_location, bool bForced = false );
 
   void Reset();
 
@@ -123,7 +120,7 @@ protected:
   double          m_dSliceLocation;
   double          m_dContourValue;
   bool            m_bSmooth;
-  vtkImageData*   m_imageInput;
+  vtkSmartPointer<vtkImageData>   m_imageInput;
   double          m_dContourColor[3];
 
   vtkSmartPointer<vtkImageActor>      m_actorContour;

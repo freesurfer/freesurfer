@@ -11690,6 +11690,18 @@ char *cma_label_to_name(int label)
   if (label == rh_slft) {
     return ("Right Superior Longitudinal Fasciculus - Temporal");
   }
+  if (label == lh_ifof) {
+    return ("Left Inferior Fronto-Occipital Fasciculus  ");
+  }
+  if (label == rh_ifof) {
+    return ("Right Inferior Fronto-Occipital Fasciculus  ");
+  }  
+  if (label == lh_fornix) {
+    return ("Left Fornix");
+  }
+  if (label == rh_fornix) {
+    return ("Right Fornix");
+  }
   if (label == Cbm_Left_I_IV) {
     return ("Cbm_Left_I_IV");
   }

@@ -116,6 +116,7 @@
 #include "Annotation2D.h"
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
+#include <QDebug>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -623,9 +624,16 @@ void MainWindow::LoadSettings()
   {
     m_settings["TextSize"] = 12;
   }
+  if (!m_settings.contains("Precision"))
+  {
+    m_settings["Precision"] = 2;
+  }
 
-  OnPreferences();
-  m_dlgPreferences->hide();
+  if (!m_settings.contains("UseComma"))
+    m_settings["UseComma"] = true;
+
+//  OnPreferences();
+//  m_dlgPreferences->hide();
 
   for (int i = 0; i < 4; i++)
   {
@@ -899,12 +907,26 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
     {
-      QStringList script = QStringList("loadvolume") << floatingArgs[i];
-      if ( parser->Found( "r" ) )
+      QStringList fn_list;
+      if (floatingArgs[i].contains("*"))
       {
-        script << "r";
+        QStringList sublist = floatingArgs[i].split(":");
+        QFileInfoList fi_list = QDir().entryInfoList(QStringList(sublist[0]));
+      //  qDebug() << fi_list;
       }
-      cmds << script;
+      else
+      {
+        fn_list << floatingArgs[i];
+      }
+      for (int j = 0; j < fn_list.size(); j++)
+      {
+        QStringList script = QStringList("loadvolume") << fn_list[j];
+        if ( parser->Found( "r" ) )
+        {
+          script << "r";
+        }
+        cmds << script;
+      }
       bHasVolume = true;
     }
   }
@@ -1351,19 +1373,20 @@ void MainWindow::OnIdle()
   ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
   ui->actionPointSetEdit->setChecked( nMode == RenderView::IM_PointSetEdit );
 
-  if ( nMode == RenderView::IM_ROIEdit )
+  QString type = GetCurrentLayerType();
+  if ( nMode == RenderView::IM_ROIEdit || (nMode == RenderView::IM_Navigate && type == "ROI"))
   {
     LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
     ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
     ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || nMode == RenderView::IM_Navigate )
+  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || (nMode == RenderView::IM_Navigate && type == "MRI"))
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
     ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
     ui->actionRedo->setEnabled( mri && mri->IsVisible() && mri->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_PointSetEdit )
+  else if ( nMode == RenderView::IM_PointSetEdit || (nMode == RenderView::IM_Navigate && type == "PointSet"))
   {
     LayerPointSet* wp = ( LayerPointSet* )GetActiveLayer("PointSet");
     ui->actionUndo->setEnabled( wp && wp->IsVisible() && wp->HasUndo() );
@@ -1769,6 +1792,10 @@ void MainWindow::RunScript()
   {
     CommandSetIsoSurfaceUpsample( sa );
   }
+  else if (cmd == "setextractallregions")
+  {
+    CommandSetExtractAllRegions( sa );
+  }
   else if ( cmd == "loadisosurfaceregion" )
   {
     CommandLoadIsoSurfaceRegion( sa );
@@ -2035,6 +2062,8 @@ void MainWindow::CommandLoadSubject(const QStringList &sa)
                          //                         "%1/surf/rh.orig:edgecolor=green:visible=0 "
                          "%1/surf/lh.inflated:annot=aparc:visible=0 "
                          "%1/surf/rh.inflated:annot=aparc:visible=0 "
+                         "%1/surf/lh.orig.nofix:overlay=%1/surf/lh.defect_labels:edgecolor=overlay:overlay_threshold=0.01,100,percentile:visible=0 "
+                         "%1/surf/rh.orig.nofix:overlay=%1/surf/rh.defect_labels:edgecolor=overlay:overlay_threshold=0.01,100,percentile:visible=0 "
                          "-viewport coronal ").arg(subject_path);
   QString control_pt_file = QString("%1/tmp/control.dat").arg(subject_path);
   if (QFile::exists(control_pt_file))
@@ -2254,6 +2283,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
+      }
+      else if (subOption == "extract_all_regions")
+      {
+        m_scripts.insert( 0,  (QStringList("setextractallregions") << subArgu) );
       }
       else if ( subOption == "surface_region" || subOption == "surface_regions" )
       {
@@ -2869,6 +2902,19 @@ void MainWindow::CommandSetIsoSurfaceUpsample(const QStringList &cmd)
     }
   }
 }
+
+void MainWindow::CommandSetExtractAllRegions(const QStringList &cmd)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    if (cmd[1].toLower() == "off" || cmd[1].toLower() == "false" || cmd[1].toLower() == "0")
+    {
+      mri->GetProperty()->SetContourExtractAllRegions(false);
+    }
+  }
+}
+
 
 void MainWindow::CommandLoadIsoSurfaceRegion( const QStringList& sa )
 {
@@ -3490,6 +3536,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           sup_options["sphere"] = subArgu;
         }
+        else if ( subOption == "ignore_vg" || subOption == "ignore_volume_geometry")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            sup_options["ignore_vg"] = true;
+          }
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -3504,6 +3557,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   }
   if (bNoAutoLoad)
     sup_options["no_autoload"] = true;
+
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
@@ -4088,8 +4142,11 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
+void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd_in )
 {
+  QStringList cmd = cmd_in;
+  while (cmd.size() < 4)
+    cmd << "n/a";
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
@@ -5863,7 +5920,10 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
   layer->GetProperty()->blockSignals(false);
 
-  m_threadIOWorker->LoadSurface( layer );
+  QVariantMap args;
+  if (sup_options.contains("ignore_vg"))
+    args["ignore_vg"] = sup_options["ignore_vg"];
+  m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();
 }
 

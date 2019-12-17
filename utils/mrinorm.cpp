@@ -785,11 +785,12 @@ MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 
   MRInormFillHistograms(mri_src, mni);
   npeaks = MRInormFindPeaks(mni, inputs, outputs);
-  if (npeaks == 0)
-    ErrorReturn(NULL,
-                (ERROR_BADPARM,
-                 "MRInormalize: could not find any valid peaks.\n"
-                 "\nMake sure the Talairach alignment is correct!\n"));
+  if (npeaks == 0){
+    printf("ERROR: MRInormalize(): could not find any valid peaks.\n");
+    printf("Make sure the Talairach alignment is correct. See \n");
+    printf("http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach_freeview\n");
+    ErrorReturn(NULL,(ERROR_BADPARM,""));
+  }
   printf("MRIsplineNormalize(): npeaks = %d\n", npeaks);
   if (npeaks <= 1) {
     printf("ERROR: number of peaks must be > 1 for spline\n");
@@ -2939,7 +2940,7 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
         float mean, val ;
         for (y = y1; y <= y2; y++) {
           for (x = x1; x <= x2; x++) {
-	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, f) ;
+	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
             if (ctrl == CONTROL_MARKED)  // marked point - don't change it
               continue;
 
@@ -3384,6 +3385,8 @@ int MRI3dUseFileControlPoints(MRI *mri, const char *fname)
   int count = 0;
   int useRealRAS = 0;
 
+  if (stricmp(fname, "nofile") == 0)
+    return(NO_ERROR) ;
   pArray = MRIreadControlPoints(fname, &count, &useRealRAS);
 
   {

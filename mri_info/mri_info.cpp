@@ -70,6 +70,7 @@ static int PrintPEDir = 0;
 static int PrintCRes = 0;
 static int PrintType = 0 ;
 static int PrintConformed = 0 ;
+static int PrintColorLookupTable = 0 ;
 static int PrintConformedToMin = 0 ;
 static int PrintIs1mmIso = 0;
 static int PrintRRes = 0;
@@ -363,6 +364,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintTkr2Scanner = 1;
     }
+    else if (!strcasecmp(option, "--ctab"))
+    {
+      PrintColorLookupTable = 1;
+    }
     else if (!strcasecmp(option, "--scanner2tkr"))
     {
       PrintScanner2Tkr = 1;
@@ -521,6 +526,7 @@ static void print_usage(void)
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("   --autoalign : print auto align matrix (if it exists)\n");
+  printf("   --ctab : print embedded color lookup table\n");
   printf("   --cmds : print command-line provenance info\n");
   printf("   --dump : print FA, TR, TE, TI, etc \n");
   printf("   --voxel c r s : dump voxel value from col row slice "
@@ -1033,6 +1039,11 @@ static void do_file(char *fname)
     MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
     return;
   }
+  if (PrintColorLookupTable)
+  {
+    if (mri->ct) CTABprintASCII(mri->ct, fpout);
+    return;
+  }
   if(PrintVoxVolSum)
   {
     double long sum=0;
@@ -1206,12 +1217,6 @@ static void do_file(char *fname)
   printf("\nras to voxel transform:\n");
   PrettyMatrixPrint(m);
   MatrixFree(&m);
-
-  // embedded colortable info:
-  if (mri->ct)
-  {
-    CTABprintASCII(mri->ct, stdout) ;
-  }
 
   // multi-frame info:
   {

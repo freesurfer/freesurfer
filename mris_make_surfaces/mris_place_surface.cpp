@@ -37,6 +37,8 @@ mris_place_surface. This version of mris_place_surface serves as a
 documentation for mris_make_surfaces and reference for changes to
 mris_place_surface.
 
+NOTE: as of 12/3/2019, this command lines probably do not work anymore
+
 Cross-sectional analysis
 
 setenv SUBJECTS_DIR /autofs/cluster/fsm/users/greve/subjects/trt.fsm030
@@ -82,8 +84,24 @@ mris_place_surface --s fsm030.01.long.base.fsm030 rh orig_white white.preaparc.m
 mris_place_surface --use-aparc --s fsm030.01.long.base.fsm030 rh orig_white white.mps --white --long --max-thickness 3.5
 mris_place_surface --use-aparc --long --max-thickness 3.5 --s fsm030.01.long.base.fsm030 rh orig_white pial.mps --pial --init rh.orig_pial
 
+# To run with T2 (or FLAIR)
+# The -nsigma_zzz does not appear to have an effect
+mris_make_surfaces -c -cortex 0 -output .redo -orig_white white -orig_pial woT2.pial \
+  -aseg ../mri/aseg.presurf -nowhite -mgz -T1 brain.finalsurfs -T2 ../mri/T2 \
+  -nsigma_above 2 -nsigma_below 5 dev.hrdecremdn.996782 rh
+# This does not give an exact replication, but it is close
+mris_place_surface --adgws-in autodetstats.lh.dat 
+  --seg ../mri/aseg.presurf.mgz --wm ../mri/wm.mgz --invol ../mri/brain.finalsurfs.mgz 
+  --lh --i lh.woT2.pial --init lh.woT2.pial --o lh.T2.pial 
+  --pial --nsmooth 0 --rip-label ../label/lh.cortex.label
+  --aparc ../label/lh.aparc.annot --repulse-surf lh.white 
+  --mmvol--mmvol ../mri/T2.mgz T2 --white-surf lh.white
+# The role of the input (--i) vs init (--init) surface needs to be clarified
 
- */
+# To run with just an input surface and input volume
+ mris_place_surface --adgws-in autodetstats.lh.dat --invol ../mri/brain.finalsurfs.mgz --lh --i ../surf/lh.orig --white --o lh.junk --no-intensity-proc --no-rip-midline
+
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +127,27 @@ double round(double x);
 #include "label.h"
 #include "annotation.h"
 #include "cmdargs.h"
+#include "cma.h"
 #include "romp_support.h"
+
+
+class RIP_MNGR{
+public:
+  int RipVertices(void);
+  MRIS *surf;
+  MRI *seg, *invol;
+  char *hemi;
+  int RipWMSA = 0;
+  int RipBG = 0;
+  int RipMidline = 1;
+  char *riplabelfile = NULL;
+  char *ripsurffile=NULL;
+  MRIS *ripsurf;
+};
+
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -140,42 +178,64 @@ int max_white_averages = 4 ;
 int min_white_averages = 0 ;
 float pial_sigma = 2.0f ;
 float white_sigma = 2.0f ;
-// Note "max_thickness" here is really a limit on the distance that CBV will
-// search along the normal (inside and out)
-float max_thickness = 5.0 ;
+float max_cbv_dist = 5.0 ; // same as max_thickness in MMS
 int vavgs = 5 ;
 int nthreads = 1;
 int nbrs = 2;
-int nsmoothsurf = 5 ;
+int nsmoothsurf = 0 ;
 
 char *SUBJECTS_DIR;
 char *insurfpath = NULL;
+char *blendsurfpath = NULL;
+double blendweight = 0;
 char *outsurfpath = NULL;
 char *involpath=NULL;
 char *segvolpath=NULL;
 char *wmvolpath=NULL;
 char *aparcpath=NULL;
-char *initsurfpath=NULL;
+char *repulsesurfpath = NULL;
+char *whitesurfpath = NULL;
 
-char *subject = NULL,*hemi = NULL,*insurfname = NULL, *outsurfname = NULL;
+// These are for when using subject 
+char *subject = NULL,*hemi = NULL, *insurfname = NULL, *outsurfname = NULL;
 char *involname="brain.finalsurfs.mgz", *segvolname="aseg.presurf.mgz",*wmvolname="wm.mgz",*aparcname="aparc";
 
 char tmpstr[2000];
 int err=0;
-int longitudinal = 0;
+//int longitudinal = 0; // currently does nothing
 int surftype = -1; //GRAY_WHITE; // GRAY_CSF
 int UseAParc = 0;
 char *adgwsinfile = NULL;
 char *adgwsoutfile = NULL;
 MRIS *surf;
-char *ripfile = NULL;
+char *ripflagout = NULL;
+RIP_MNGR ripmngr;
+LABEL *pinlabel = NULL;
+int DoIntensityProc = 1;
+
+double shrinkThresh = -1;
+
+int mm_contrast_type = -1;
+char *mmvolpath = NULL;
+MRI *mmvol = NULL;
+float T2_min_inside = 110 ;
+float T2_max_inside = 300 ;
+double T2_min_outside = 130;
+double T2_max_outside = 300 ;
+double max_outward_dist = 1 ; // for normal cases, for pathology might be much larger
+double wm_weight = 3 ;    // threshold for finding gm outliers: thresh = (wt*wm + gm )/(wt+1)
+double Ghisto_left_inside_peak_pct = 0.1; //0.01 for flair. typo?
+double Ghisto_right_inside_peak_pct = 0.01;
+double Ghisto_left_outside_peak_pct = 0.5;
+double Ghisto_right_outside_peak_pct = 0.5;
+int n_averages=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
   int nargs, i, msec;
   double        spring_scale = 1;
-  MRI *invol, *seg, *wm, *involCBV, *involPS;
+  MRI *invol, *seg=NULL, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
   AutoDetGWStats adgws;
@@ -260,39 +320,31 @@ int main(int argc, char **argv)
   }
   else {
     err = adgws.Read(adgwsinfile);
-    if(err) exit(1);
+    if(err){
+      printf("ERROR: reading %s\n",adgwsinfile);
+      exit(1);
+    }
   }
   if(adgwsoutfile){
     err = adgws.Write(adgwsoutfile);
     if(err) exit(1);
   }
 
-  double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0,current_sigma=0;
-  int n_averages=0, n_min_averages=0;
-  if(surftype == GRAY_WHITE){
-    current_sigma = white_sigma ;
-    n_averages = max_white_averages;     
-    n_min_averages = min_white_averages; 
-    inside_hi = adgws.white_inside_hi;
-    border_hi = adgws.white_border_hi;
-    border_low = adgws.white_border_low;
-    outside_low = adgws.white_outside_low;
-    outside_hi = adgws.white_outside_hi;
-  }
-  if(surftype == GRAY_CSF){
-    current_sigma = pial_sigma ;
-    n_averages = max_pial_averages;     
-    n_min_averages = min_pial_averages; 
-    inside_hi = adgws.pial_inside_hi;
-    border_hi = adgws.pial_border_hi;
-    border_low = adgws.pial_border_low;
-    outside_low = adgws.pial_outside_low;
-    outside_hi = adgws.pial_outside_hi;
-  }
-
   printf("Reading in input surface %s\n",insurfpath);
   surf = MRISread(insurfpath);
   if(surf==NULL) exit(1);
+
+  if(blendsurfpath){
+    // This is done in long with blendweight=0.25
+    // Save input coords into tmp
+    MRISsaveVertexPositions(surf, TMP_VERTICES);
+    // Read blend surface coords into the current coords
+    err = MRISreadVertexPositions(surf, blendsurfpath);
+    if(err) exit(1);
+    // Average blend with current. 
+    MRISblendXYZandTXYZ(surf, blendweight, 1.0-blendweight);
+  }
+
   MRISedges(surf);
   MRIScorners(surf);
   MRIScomputeMetricProperties(surf);
@@ -308,13 +360,42 @@ int main(int argc, char **argv)
 
   MRIScomputeMetricProperties(surf);
   MRISstoreMetricProperties(surf) ;
-  MRISsaveVertexPositions(surf, ORIGINAL_VERTICES) ;
-  MRISsaveVertexPositions(surf, WHITE_VERTICES) ;
+  MRISremoveIntersections(surf); // done in mris_make_surfaces
   MRISsetVals(surf,-1) ;  /* clear white matter intensities */
+  MRISsetVal2(surf, 0) ;   // will be marked for vertices near lesions
+  MRISclearMark2s(surf) ;  
   MRISfaceMetric(surf,0);
   MRISedgeMetric(surf,0);
   MRIScornerMetric(surf,0);
   MRISprettyPrintSurfQualityStats(stdout, surf);
+
+  if(whitesurfpath){
+    // white coords used in t2/flair and to force pial to white in medial wall
+    printf("Reading white surface coordinates from %s\n",whitesurfpath);
+    MRISsaveVertexPositions(surf, TMP_VERTICES) ; 
+    err = MRISreadVertexPositions(surf, whitesurfpath);
+    if(err) exit(1);
+    MRISsaveVertexPositions(surf, WHITE_VERTICES) ; // This is used for T2 pial
+    MRISrestoreVertexPositions(surf, TMP_VERTICES);
+  }
+  else MRISsaveVertexPositions(surf, WHITE_VERTICES) ;
+
+  if(repulsesurfpath){
+    printf("Reading repulsion surface coordinates from %s\n",repulsesurfpath);
+    MRISsaveVertexPositions(surf, TMP_VERTICES) ; 
+    err = MRISreadVertexPositions(surf, repulsesurfpath);
+    if(err) exit(1);
+    MRISsaveVertexPositions(surf, ORIGINAL_VERTICES) ; // This is used for repulsion
+    MRISrestoreVertexPositions(surf, TMP_VERTICES);
+  }
+  else MRISsaveVertexPositions(surf, ORIGINAL_VERTICES) ; // This is used for repulsion
+
+  if(surftype == GRAY_CSF){
+    MRISsaveVertexPositions(surf, PIAL_VERTICES) ; 
+  }
+
+  // This might not do anything
+  MRISsaveVertexPositions(surf, TMP_VERTICES) ; 
 
   if(aparcpath) {
     printf("Reading in aparc %s\n",aparcpath);
@@ -327,87 +408,129 @@ int main(int argc, char **argv)
   invol = MRIread(involpath);
   if(invol==NULL) exit(1);
 
-  //  =========== intensity volume preprocessing ==============
-  printf("Reading in wm volume %s\n",wmvolpath);
-  wm = MRIread(wmvolpath);
-  if(wm==NULL) exit(1);
-  // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
-  MRIclipBrightWM(invol, wm) ;
-
-  MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
-  MRIfree(&wm);
-  if(surftype == GRAY_WHITE){
-    printf("Masking bright non-wm for white surface\n");
-    // Replace bright and borderbright invol voxels with 0
-    MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
-    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
-  }
-
-  if(surftype == GRAY_CSF){
-    printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
-    // Replace brightborder voxels with MID_GRAY (can be done once?)
-    // Why would you want to do this? The brightborder voxels are >= 100,
-    // but this would make them look like GM and force the pial outside of them.
-    // This would happen, eg, for a bright vessel in cortex
-    MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
-    // Replace bright voxels with 255 (this gets changed below)
-    // Not sure why this is needed except that it gets set to 0 below which
-    // could look like a strong negative gradient
-    involCBV = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 255) ;
-    /* From mris_make_surfaces: Replace bright stuff such as eye
-       sockets with 255.  Simply zeroing it out would make the border
-       always go through the sockets, and ignore subtle local minima
-       in intensity at the border of the sockets.  Will set to 0
-       after border values have been computed so that it doesn't mess
-       up gradients.  */
-    // Replace bright voxels with 0 (mask them out)
-    // This undoes some of the masking above (or vice versa)
-    involPS = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 0);
+  if(DoIntensityProc){
+    // =========== intensity volume preprocessing ==============
+    // It would be nice to do this externally
+    printf("Reading in wm volume %s\n",wmvolpath);
+    wm = MRIread(wmvolpath);
+    if(wm==NULL) exit(1);
+    // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
+    MRIclipBrightWM(invol, wm) ;
+    
+    MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
+    MRIfree(&wm);
+    if(surftype == GRAY_WHITE){
+      printf("Masking bright non-wm for white surface\n");
+      // Replace bright and borderbright invol voxels with 0
+      // Can this be done for pial as well?
+      MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
+      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
+    }
+    
+    if(surftype == GRAY_CSF){
+      // Modify the volume for pial surface
+      printf("Masking bright non-wm for pial surface mid_gray = %g\n",adgws.MID_GRAY);
+      // Replace brightborder voxels with MID_GRAY (can be done once?)
+      // Why would you want to do this? The brightborder voxels are >= 100,
+      // but this would make them look like GM and force the pial outside of them.
+      // This would happen, eg, for a bright vessel in cortex
+      MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, adgws.MID_GRAY);
+      // Replace bright voxels with 255 (this gets changed below)
+      // Not sure why this is needed except that it gets set to 0 below which
+      // could look like a strong negative gradient
+      // Create the volume used to computed the border values
+      involCBV = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 255) ;
+      /* From mris_make_surfaces: Replace bright stuff such as eye
+	 sockets with 255.  Simply zeroing it out would make the border
+	 always go through the sockets, and ignore subtle local minima
+	 in intensity at the border of the sockets.  Will set to 0
+	 after border values have been computed so that it doesn't mess
+	 up gradients.  */
+      // Replace bright voxels with 0 (mask them out)
+      // This undoes some of the masking above (or vice versa)
+      // Create the volume used to position the surface
+      involPS = MRImask(invol, mri_labeled, NULL, BRIGHT_LABEL, 0);
+    }
+    else {
+      // Use the same input for white surface
+      involCBV = invol;
+      involPS  = invol;
+    }
+    MRIfree(&mri_labeled);
+    // ========= End intensity volume preproc ===================
   }
   else {
-    // Use the same input for white surface
     involCBV = invol;
     involPS  = invol;
   }
-  MRIfree(&mri_labeled);
-  // ========= End intensity volume preproc ===================
 
-  printf("Reading in seg volume %s\n",segvolpath);
-  seg = MRIread(segvolpath);
-  if(seg==NULL) exit(1);
-
-  // First interaction of surface and volume
-  if(seg && surftype == GRAY_CSF){
-    printf("Freezing midline and others\n");  fflush(stdout);
-    MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
+  if(segvolpath){
+    printf("Reading in seg volume %s\n",segvolpath);
+    seg = MRIread(segvolpath);
+    if(seg==NULL) exit(1);
+    // Check dims
   }
 
-  if(initsurfpath){
-    if(longitudinal){
-      // Save initial surface location (white) into TMP_VERTICES (v->tx, v->ty, v->tz)
-      // This will be used for the repulsion cost
-      MRISsaveVertexPositions(surf, TMP_VERTICES);
+  // Manage ripping of vertices
+  ripmngr.hemi  = hemi;
+  ripmngr.invol = invol;
+  ripmngr.seg   = seg;
+  ripmngr.surf  = surf;
+  ripmngr.RipVertices();
+
+  if(mmvolpath){
+    printf("Reading in multimodal volume %s\n",mmvolpath);
+    mmvol = MRIread(mmvolpath);
+    if(mmvol==NULL) exit(1);
+    // should check that the dimensions, resolution are the same
+    parms.l_intensity = 0.000;
+    parms.l_location  = 0.500;
+    parms.l_repulse   = 0.025;
+    parms.l_nspring   = 1.000;
+    parms.l_curv      = 0.500;
+    parms.check_tol = 1 ;
+    wm_weight = 3 ;
+    max_pial_averages = 4;
+    max_outward_dist = 3 ;
+    if(mm_contrast_type == CONTRAST_FLAIR) Ghisto_left_inside_peak_pct = 0.01; //0.01 for flair. typo?
+    // Check dims
+  }
+
+  if(parms.l_hinge > 0 || parms.l_spring_nzr > 0){
+    if(parms.l_spring_nzr){
+      double  *edgestats = MRISedgeStats(surf, 0, NULL, NULL);
+      parms.l_spring_nzr_len = edgestats[1];
+      free(edgestats);
     }
-    // Now read in true init surface
-    printf("Reading vertex coordinates from %s\n",initsurfpath);
-    err = MRISreadVertexPositions(surf, initsurfpath);
-    if(err) exit(1);
-    MRISremoveIntersections(surf); // done in mris_make_surfaces
-    MRISsaveVertexPositions(surf, PIAL_VERTICES) ;
-    if(longitudinal) {
-      // In the longitudinal case, reset the starting position to be
-      // slightly inside the orig_pial between final white (insurfpath) and 
-      // init pial. Couldn't this cause intersections?
-      MRISblendXYZandTXYZ(surf, 0.75f, 0.25f);
-    }
-    // This will be used to keep track of which vertices found pial
-    // surface in previous cycle.  Should already be clear, just
-    // including from mris_make_surfaces
-    MRISclearMark2s(surf) ;  
-    MRIScomputeMetricProperties(surf);
-    MRISfaceMetric(surf,0);
-    MRISedgeMetric(surf,0);
-    MRIScornerMetric(surf,0);
+  }
+
+  // Print out to help determine what is what
+  VERTEX *vv = &surf->vertices[(int)round(surf->nvertices/2.0)];
+  printf("vertex %d: xyz = (%g,%g,%g) oxyz = (%g,%g,%g) wxzy = (%g,%g,%g) pxyz = (%g,%g,%g) \n",
+	 (int)round(surf->nvertices/2.0),vv->x,vv->y,vv->z, vv->origx,vv->origy,vv->origz, 
+	 vv->whitex,vv->whitey,vv->whitez,vv->pialx,vv->pialy,vv->pialz); fflush(stdout);
+
+  double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0,current_sigma=0;
+  int n_min_averages=0;
+  if(surftype == GRAY_WHITE){
+    current_sigma = white_sigma ;
+    if(n_averages == 0) n_averages = max_white_averages;     
+    n_min_averages = min_white_averages; 
+    inside_hi = adgws.white_inside_hi;
+    border_hi = adgws.white_border_hi;
+    border_low = adgws.white_border_low;
+    outside_low = adgws.white_outside_low;
+    outside_hi = adgws.white_outside_hi;
+  }
+  if(surftype == GRAY_CSF){
+    current_sigma = pial_sigma ;
+    if(n_averages == 0) n_averages = max_pial_averages;     
+    n_min_averages = min_pial_averages; 
+    inside_hi = adgws.pial_inside_hi;
+    border_hi = adgws.pial_border_hi;
+    border_low = adgws.pial_border_low;
+    outside_low = adgws.pial_outside_low;
+    outside_hi = adgws.pial_outside_hi;
   }
 
   timer.reset() ;
@@ -417,61 +540,72 @@ int main(int argc, char **argv)
     printf("Iteration %d =========================================\n",i);
     printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
-    if(seg && surftype == GRAY_WHITE){
+    if(shrinkThresh >= 0 && i==1){
+      printf("Shrinking big triangles %g\n",shrinkThresh);
+      MRISshrinkFaces(surf, shrinkThresh, 0);
+    }
+
+    if(seg && surftype == GRAY_WHITE && ripmngr.RipMidline){
+      // This is done each cycle with white.preaparc
       printf("Freezing midline and others\n");  fflush(stdout);
-      // This rips the midline vertices so that they do not move (thus
-      // "fix"). It may also rip some vertices near the putamen and
-      // maybe near lesions. It may set v->marked2 which will
-      // influence the cortex.label. At onset, it will set all marked
-      // and marked2 to 0. At then end it will set all marked=0.
-      // It does not unrip any vertices, so, unless they are unripped
-      // at some other point, the number of ripped vertices will 
-      // increase.
-      MRISripMidline(surf, seg, invol, hemi, surftype, 0) ;
-      //field = "ripflag";    MRISwriteField(surf, &field, 1, "lh.white.rip.mgz");
+      ripmngr.RipVertices();
     }
 
     parms.sigma = current_sigma ;
     parms.n_averages = n_averages ;
-    
-    printf("Computing border values \n");
-    // The outputs are set in each vertex structure:
-    //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
-    //   v->val  = max_mag_val; // intensity at target location
-    //   v->d = max_mag_dist;   // dist to target along normal
-    //   v->mean = max_mag;     // derivative at target intensity
-    //   v->marked = 1;         // vertex has good data
-    //   v->targx = v->x + v->nx * v->d; // same for y and z
-    // Note "max_thickness" here is really a limit on the distance that CBV will
-    // search along the normal (inside and out)
-    MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			    current_sigma, 2*max_thickness, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
-    // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
-    // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 
+    if(mmvol == NULL){
+      // Compute the target intensity value (l_intensity)
+      printf("Computing target border values \n");
+      // The outputs are set in each vertex structure:
+      //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
+      //   v->val  = max_mag_val; // intensity at target location
+      //   v->d = max_mag_dist;   // dist to target along normal
+      //   v->mean = max_mag;     // derivative at target intensity
+      //   v->marked = 1;         // vertex has good data
+      //   v->targx = v->x + v->nx * v->d; // same for y and z
+      MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+			      current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+      // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
+      // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
+      
+      if(seg && surftype == GRAY_WHITE){
+	printf("Finding expansion regions\n"); fflush(stdout);
+	// Masks out the v->curv field of vertices with long distances (v->d)
+	MRISfindExpansionRegions(surf) ;
+      }
 
-    if(seg && surftype == GRAY_WHITE){
-      printf("Finding expansion regions\n"); fflush(stdout);
-      // Masks out the v->curv field of vertices with long distances (v->d)
-      MRISfindExpansionRegions(surf) ;
+      if(vavgs > 0) {
+	printf("Averaging target values for %d iterations...\n",vavgs) ;
+	// MRIScomputeBorderValues() sets v->marked=1 for all unripped
+	MRISaverageMarkedVals(surf, vavgs) ;
+      }
+
+      /* BF's note from MMS: There are frequently regions of gray
+	whose intensity is fairly flat. We want to make sure the
+	surface settles at the innermost edge of this region, so on
+	the first pass, set the target intensities artificially high
+	so that the surface will move all the way to white matter
+	before moving outwards to seek the border (I know it's a hack,
+	but it improves the surface in a few areas. The alternative is
+	to explicitly put a gradient-seeking term in the cost
+	functional instead of just using one to find the target
+	intensities). */
+      
+    } 
+    else {
+      // Compute the target xyz coordinate (l_location)
+      printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
+      MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
+					       mm_contrast_type, seg, 
+					       T2_min_inside, T2_max_inside, 
+					       T2_min_outside, T2_max_outside, 
+					       max_outward_dist,
+					       Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
+					       Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
+					       wm_weight, pial_sigma, invol) ;
     }
 
-    if(vavgs > 0) {
-      printf("Averaging target values for %d iterations...\n",vavgs) ;
-      // MRIScomputeBorderValues() sets v->marked=1 for all unripped
-      MRISaverageMarkedVals(surf, vavgs) ;
-    }
-
-    /*There are frequently regions of gray whose intensity is fairly
-      flat. We want to make sure the surface settles at the innermost
-      edge of this region, so on the first pass, set the target
-      intensities artificially high so that the surface will move
-      all the way to white matter before moving outwards to seek the
-      border (I know it's a hack, but it improves the surface in
-      a few areas. The alternative is to explicitly put a gradient-seeking
-      term in the cost functional instead of just using one to find
-      the target intensities).
-    */
 
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 
@@ -507,10 +641,17 @@ int main(int argc, char **argv)
     old_parms.start_t = parms.start_t ;
     INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 
+    // MMS runs	MRISsetCroppedToZero(mris) with T2/FLAIR, but not clear it does anything
+
     if(!n_averages)
       break ; 
 
   } // end major loop placing the white surface using
+
+  if(pinlabel){
+    printf("Pinning medial wall to white surface\n");
+    MRISpinMedialWallToWhite(surf, pinlabel);
+  }
 
   MRISremoveIntersections(surf); //matches mris_make_surface
 
@@ -522,10 +663,10 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if(ripfile){
-    printf("Writing ripfile to %s\n",ripfile);
+  if(ripflagout){
+    printf("Writing ripflagout to %s\n",ripflagout);
     char *field = "ripflag";    
-    MRISwriteField(surf, &field, 1, ripfile);
+    MRISwriteField(surf, &field, 1, ripflagout);
   }
 
   msec = timer.milliseconds() ;
@@ -563,33 +704,203 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--debug"))   debug = 1;
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if(!strcmp(option, "--long")) longitudinal = 1;
+    //else if(!strcmp(option, "--long")) longitudinal = 1; currently does nothing
     else if(!strcmp(option, "--white")) surftype = GRAY_WHITE;
     else if(!strcmp(option, "--pial"))  surftype = GRAY_CSF;
     else if(!strcmp(option, "--use-aparc")) UseAParc = 1;
+    else if(!strcmp(option, "--rip-wmsa"))    ripmngr.RipWMSA = 1;
+    else if(!strcmp(option, "--no-rip-wmsa")) ripmngr.RipWMSA = 0;
+    else if(!strcmp(option, "--rip-bg"))    ripmngr.RipBG = 1;
+    else if(!strcmp(option, "--no-rip-bg")) ripmngr.RipBG = 0;
+    else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
+    else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
+    else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
+    else if(!strcmp(option, "--lh"))  hemi = "lh";
+    else if(!strcmp(option, "--rh"))   hemi = "rh";
+    else if(!strcmp(option, "--pin-medial-wall")){
+      if(nargc < 1) CMDargNErr(option,1);
+      pinlabel = LabelRead("",pargv[0]);
+      if(pinlabel == NULL) exit(1);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--no-pin-medial-wall"))  pinlabel = NULL;
+    else if(!strcasecmp(option, "--seg")){
+      if(nargc < 1) CMDargNErr(option,1);
+      segvolpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--wm")){
+      if(nargc < 1) CMDargNErr(option,1);
+      wmvolpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--invol")){
+      if(nargc < 1) CMDargNErr(option,1);
+      involpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--mmvol")){
+      if(nargc < 2) CMDargNErr(option,2);
+      mmvolpath = pargv[0];
+      if(!stricmp(pargv[1],"t2"))         mm_contrast_type = CONTRAST_T2;
+      else if(!stricmp(pargv[1],"flair")) mm_contrast_type = CONTRAST_FLAIR;
+      else {
+	printf("ERROR: mmvol must be either t2 or flair weighted\n");
+	exit(1);
+      }
+      surftype = GRAY_CSF;
+      nargsused = 2;
+    } 
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcmp(option, "--blend-surf")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&blendweight);
+      blendsurfpath = pargv[1];
+      nargsused = 2;
+    }
+    else if(!strcasecmp(option, "--rip-surf")){
+      if(nargc < 1) CMDargNErr(option,1);
+      ripmngr.ripsurffile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--rip-label")){
+      if(nargc < 1) CMDargNErr(option,1);
+      ripmngr.riplabelfile = pargv[0];
+      ripmngr.RipMidline = 0;
+      nargsused = 1;
+    } 
     else if(!strcmp(option, "--o")){
       if(nargc < 1) CMDargNErr(option,1);
       outsurfpath = pargv[0];
       nargsused = 1;
     }
-    else if(!strcmp(option, "--rip")){
+    else if(!strcmp(option, "--repulse-surf")){
       if(nargc < 1) CMDargNErr(option,1);
-      ripfile = pargv[0];
+      repulsesurfpath = pargv[0];
       nargsused = 1;
     }
-    else if(!strcmp(option, "--init")){
+    else if(!strcmp(option, "--white-surf")){
       if(nargc < 1) CMDargNErr(option,1);
-      initsurfpath = pargv[0];
+      whitesurfpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcmp(option, "--aparc")){
+      if(nargc < 1) CMDargNErr(option,1);
+      aparcpath = pargv[0];
+      UseAParc = 1;
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--max-cbv-dist")){
+      // Limit on the distance that CBV will search along the normal (inside and out)
+      // This is called max_thickness in MMS. Usually set to 3.5mm for long
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&max_cbv_dist);
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--adgws") || !strcasecmp(option, "--adgws-in")){
+      if(nargc < 1) CMDargNErr(option,1);
+      adgwsinfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--adgws-out")){
+      if(nargc < 1) CMDargNErr(option,1);
+      adgwsoutfile = pargv[0];
+      nargsused = 1;
+    } 
     else if(!strcmp(option, "--nsmooth")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nsmoothsurf);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_min_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_min_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_max_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_min_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_min_outside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_max_outside);
+      nargsused = 1;
+    }
+    // ======== Cost function weights ================
+    else if (!stricmp(option, "--intensity")) {
+      parms.l_intensity = atof(pargv[0]) ;
+      printf("l_intensity = %2.3f\n", parms.l_intensity);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--hinge")) {
+      parms.l_hinge = atof(pargv[0]) ;
+      printf("l_hinge = %2.3f\n", parms.l_hinge);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--spring_nzr")) {
+      parms.l_spring_nzr = atof(pargv[0]) ;
+      printf("l_spring_nzr = %2.3f\n", parms.l_spring_nzr) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--spring")) {
+      parms.l_spring = atof(pargv[0]) ;
+      printf("l_spring = %2.3f\n", parms.l_spring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--tspring")) {
+      parms.l_tspring = atof(pargv[0]) ;
+      printf("l_tspring = %2.3f\n", parms.l_tspring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--nspring")) {
+      parms.l_nspring = atof(pargv[0]) ;
+      printf("l_nspring = %2.3f\n", parms.l_nspring) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--curv")){
+      parms.l_curv = atof(pargv[0]) ;
+      printf("l_curv = %2.3f\n", parms.l_curv) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--surf-repulse")){
+      sscanf(pargv[0],"%f",&parms.l_surf_repulse);
+      printf("l_surf_repulse = %2.3f\n", parms.l_surf_repulse);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--repulse")){
+      sscanf(pargv[0],"%f",&parms.l_repulse);
+      printf("l_repulse = %2.3f\n", parms.l_repulse) ;
+      nargsused = 1;
+    }
+    // ======== End Cost function weights ================
+    else if (!stricmp(option, "--n_averages")){
+      sscanf(pargv[0],"%d",&n_averages);
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--shrink")){
+      sscanf(pargv[0],"%lf",&shrinkThresh);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--debug-vertex")){
+      if(nargc < 1) CMDargNErr(option,1);
+      Gdiag_no = atoi(pargv[0]) ;
+      printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--ripflag-out")){
+      // output ripflag overlay
+      if(nargc < 1) CMDargNErr(option,1);
+      ripflagout = pargv[0];
       nargsused = 1;
     }
     else if(!strcmp(option, "--sd")){
@@ -599,6 +910,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if(!strcmp(option, "--s")){
+      // This is meant to make it easier to run by populating the input paths
+      // with files known from the subjectsdir. Might not work anymore
       if(nargc < 4) CMDargNErr(option,4);
       subject = pargv[0];
       hemi = pargv[1];
@@ -609,21 +922,16 @@ static int parse_commandline(int argc, char **argv) {
       // input is white (output is pial)
       if(strcmp(insurfname,"white.preaparc")==0 || strcmp(insurfname,"white")==0) UseAParc=1;
     }
-    else if(!strcasecmp(option, "--max-thickness")){
-      // Note "max_thickness" here is really a limit on the distance that CBV will
-      // search along the normal (inside and out)
+    else if(!strcasecmp(option, "--segvolname")){
+      // Applies to --s
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%f",&max_thickness);
+      segvolname = pargv[0];
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--adgws-in")){
+    else if(!strcasecmp(option, "--involname")){
+      // Applies to --s
       if(nargc < 1) CMDargNErr(option,1);
-      adgwsinfile = pargv[0];
-      nargsused = 1;
-    } 
-    else if(!strcasecmp(option, "--adgws-out")){
-      if(nargc < 1) CMDargNErr(option,1);
-      adgwsoutfile = pargv[0];
+      involname = pargv[0];
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--thickness")){
@@ -649,14 +957,15 @@ static int parse_commandline(int argc, char **argv) {
       MRIScomputeMetricProperties(surf);
       int nbhd_size;
       sscanf(pargv[2],"%d",&nbhd_size);
+      float max_thickness;
       sscanf(pargv[3],"%f",&max_thickness);
-      MRISmeasureCorticalThickness(surf, nbhd_size, max_thickness) ;
+      MRISmeasureCorticalThickness(surf, nbhd_size, max_thickness);
       err = MRISwriteCurvature(surf, pargv[4]);
       if(err) exit(1);
       exit(0);
       nargsused = 4;
     } 
-    else if(!strcasecmp(option, "--curv")){
+    else if(!strcasecmp(option, "--curv-map")){
       // This gives the same result as mris_make_surfaces for
       // white. For pial, there is a band around the ripped vertices
       // where it is different (but the same in the center). The
@@ -668,7 +977,7 @@ static int parse_commandline(int argc, char **argv) {
       // versa). This has implications for the surface-based
       // registration (with white.preaparc).
       if(nargc < 4) {
-	printf("ERROR: usage --curv surf nbrs(2) curvature_avgs(10) out\n");
+	printf("ERROR: usage --curv-map surf nbrs(2) curvature_avgs(10) out\n");
 	exit(1);
       }
       surf = MRISread(pargv[0]);
@@ -687,7 +996,7 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
       nargsused = 3;
     } 
-    else if(!strcasecmp(option, "--area")){
+    else if(!strcasecmp(option, "--area-map")){
       // This appears to give the same result as mris_make_surfaces
       // for white. For pial, it is the same except in vertices of the
       // ripped region. In MRISwriteArea(), the area of non-ripped
@@ -744,6 +1053,10 @@ static int parse_commandline(int argc, char **argv) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
+  if(surftype == -1){
+    printf("ERROR: must specify surface type --white or --pial\n");
+    exit(1);
+  }
   if(insurfpath == NULL && subject == NULL){
     printf("ERROR: no input surface set\n");
     exit(1);
@@ -760,6 +1073,8 @@ static void check_options(void) {
     printf("ERROR: cannot use both --o and --s\n");
     exit(1);
   }
+
+  // When using --s  (might not work anymore)
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(insurfpath == NULL && subject != NULL){
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,insurfname);
@@ -779,8 +1094,24 @@ static void check_options(void) {
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,wmvolname);
     wmvolpath = strcpyalloc(tmpstr);
   }
-  if(surftype == -1){
-    printf("ERROR: must specify surface type --white or --pial\n");
+
+  if(mmvol){
+    if(surftype != GRAY_CSF){
+      printf("ERROR: surface type must be pial with multimodal input\n");
+      exit(1);
+    }
+    if(whitesurfpath == NULL){
+      printf("ERROR: need to specify --white-surf with multimodal input\n");
+    }
+  }
+
+  if(surftype == GRAY_CSF && repulsesurfpath == NULL){
+    printf("ERROR: must supply a repulse surface when placing pial surface\n");
+    exit(1);
+  }
+
+  if(pinlabel &&  whitesurfpath == NULL){
+    printf("ERROR: must spec --white-surf with --pin-medial-wall\n");
     exit(1);
   }
 
@@ -789,25 +1120,19 @@ static void check_options(void) {
 
 
 
-/* --------------------------------------------- */
-static void print_usage(void) 
+#include "mris_place_surface.help.xml.h"
+static void
+print_usage(void)
 {
-  printf("\n");
-  printf("USAGE: ./mris_place_surface\n");
-  printf(" --s subject hemi insurfname outsurfname\n");
-  printf(" --adgws-in input gray/white stats file (see mris_autodet_gwstats)\n");
-  printf("\n");
+  outputHelpXml(mris_place_surface_help_xml,mris_place_surface_help_xml_len);
 }
 
-
-/* --------------------------------------------- */
-static void print_help(void) {
+static void
+print_help(void)
+{
   print_usage() ;
-  printf("\n");
-  printf("\n");
   exit(1) ;
 }
-
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
@@ -830,4 +1155,202 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   return;
 }
+
+int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+{
+  int vno, nripped=0;
+
+  for(vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v;
+    int segid;
+    double   xv, yv, zv, xs, ys, zs, d, val ;
+
+    v = &(surf->vertices[vno]);
+    if(v->ripflag)  continue ;
+
+    for (d = dmin ; d <= dmax ; d += dstep) {
+      xs = v->x + d*v->nx ;
+      ys = v->y + d*v->ny ;
+      zs = v->z + d*v->nz ;
+
+      // Sample the aseg at this distance
+      MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      segid = nint(val) ;
+      if(!IS_WMSA(segid)) continue;
+      v->ripflag = 1;
+      nripped ++;
+      break;
+    }
+  }
+
+  printf("MRISripWMSA(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  return(nripped);
+}
+
+
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+{
+  int vno, nripped=0;
+  int indices[100], nindices=0, n;
+
+  if(! surf->ct){
+    printf("ERROR: MRISripPutamenNucAcc(): surface must have annotation\n");
+    return(-1);
+  }
+
+  nindices=0;
+  CTABfindName(surf->ct, "medialorbitofrontal", &indices[nindices++]);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &indices[nindices++]);
+  CTABfindName(surf->ct, "insula", &indices[nindices++]);
+
+  for(vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v;
+    int segid, hit, index;
+    double   xv, yv, zv, xs, ys, zs, d, val ;
+
+    v = &(surf->vertices[vno]);
+    if(v->ripflag)  continue ;
+
+    CTABfindAnnotation(surf->ct, v->annotation, &index);
+    hit = 0;
+    for(n=0; n < nindices; n++){
+      if(index == indices[n]){
+	hit = 1;
+	break;
+      }
+    }
+    if(! hit) continue;
+
+    for (d = dmin ; d <= dmax ; d += dstep) {
+      xs = v->x + d*v->nx ;
+      ys = v->y + d*v->ny ;
+      zs = v->z + d*v->nz ;
+
+      // Sample the aseg at this distance
+      MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      segid = nint(val) ;
+
+      // Add external and extreme capsules?
+      if(segid != Left_Putamen && segid != Right_Putamen &&
+	 segid != Left_Caudate && segid != Right_Caudate &&
+	 segid != Left_Claustrum && segid != Right_Claustrum &&
+	 segid != Left_Accumbens_area && segid != Right_Accumbens_area) continue;
+
+      v->ripflag = 1;
+      nripped ++;
+      break;
+    }
+  }
+
+  printf("MRISripBasalGanglia(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  return(nripped);
+}
+
+
+int RIP_MNGR::RipVertices(void)
+{
+
+  if(riplabelfile){
+    printf("Ripping vertices not in label %s\n",riplabelfile);
+    LABEL *riplabel = LabelRead("",riplabelfile);
+    if(riplabel == NULL) exit(1);
+    MRISripNotLabel(surf,riplabel);
+    LabelFree(&riplabel);
+  }
+
+  int ripsurfneeded = 0;
+  if(RipMidline || RipBG || RipWMSA){
+    ripsurfneeded = 1;
+    if(seg == NULL){
+      printf("ERROR: need seg for ripping\n");
+      exit(1);
+    }
+  }
+
+  if(ripsurffile && !ripsurfneeded){
+    printf("INFO: ripsurf specified but not needed, so ignoring\n");
+    return(0);
+  }
+
+  if(ripsurffile){
+    printf("Reading in ripping surface %s\n",ripsurffile);
+    ripsurf = MRISread(ripsurffile);
+    if(ripsurf==NULL) exit(1);
+    if(ripsurf->nvertices != surf->nvertices){
+      printf("ERROR: ripsurf dim mismatch %d %d\n",ripsurf->nvertices,surf->nvertices);
+      exit(1);
+    }
+  }
+  else {
+    if(ripsurfneeded){
+      printf("INFO: rip surface needed but not specified, so using input surface\n");
+    }
+    ripsurf = surf;
+  }
+
+  // Merging of surface and volume. This volume-based ripping
+  // really needs to be done with a white-type surface (ie, not pial)
+  if(seg && RipMidline){
+    // probably want to use white for this
+    printf("Freezing midline and others\n");  fflush(stdout);
+    MRISripMidline(ripsurf, seg, invol, hemi, surftype, 0) ;
+  }
+  if(RipBG){
+    // probably want to use white for this
+    printf("Ripping BG\n");
+    MRISripBasalGanglia(ripsurf, seg, -2.0, +2.0, 0.5);
+  }
+  if(RipWMSA){
+    // probably want to use white for this
+    printf("Ripping WMSA\n");
+    MRISripWMSA(ripsurf, seg, -2.0, +2.0, 0.5);
+  }
+
+  if(ripsurffile){
+    // Copy ripflags back into the input surface
+    int vno;
+    for(vno=0; vno < surf->nvertices; vno++){
+      surf->vertices[vno].ripflag = ripsurf->vertices[vno].ripflag;
+    }
+    MRISfree(&ripsurf);
+  }
+
+  return(0);
+}
+
+/*!
+\fn int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex)
+\brief Set the current coordinates to that of white{xyz} in vertices that
+are not represented in the label. The label is named "cortex" but it
+could be anything. This function is used after the pial surface is placed
+without freezing the medial wall next to hippocampus and amyg. This function
+can then be used to force the pial surface back to the white surface in all
+of the medial wall.
+*/
+int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex)
+{
+  int vno,i;
+  int *InLabel;
+  VERTEX *v;
+
+  InLabel = (int*) calloc(sizeof(int),surf->nvertices);
+  for (i = 0; i < cortex->n_points; i++)
+    InLabel[cortex->lv[i].vno] = 1;
+
+  for(vno = 0; vno < surf->nvertices; vno++){
+    if(InLabel[vno]) continue;
+    v = &(surf->vertices[vno]);
+    v->x = v->whitex;
+    v->y = v->whitey;
+    v->z = v->whitez;
+  }
+
+  free(InLabel);
+  return(0);
+}
+
+
+
 
