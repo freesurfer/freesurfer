@@ -16,3 +16,7 @@ set NiftyPath = ${NIFTYREG_INSTALL}/bin
 
 setenv PATH ${PATH}:${NiftyPath}:${FSSCRIPTSDIR}
 echo $PATH
+
+bash;
+export PATH=/space/freesurfer/python/linux/bin:$PATH
+exit
