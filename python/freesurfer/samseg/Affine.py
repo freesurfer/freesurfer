@@ -4,7 +4,7 @@ import scipy.ndimage
 import numpy as np
 
 import freesurfer as fs
-import freesurfer.gems as gems
+from . import gems
 
 from .utilities import requireNumpyArray
 from .lta import LTA, MRI

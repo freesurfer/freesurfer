@@ -1,3 +1,4 @@
+from . import gemsbindings
 from .utilities import Specification, icv
 from .SamsegUtility import *
 from .Affine import Affine

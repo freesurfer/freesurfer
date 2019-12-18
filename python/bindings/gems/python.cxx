@@ -13,7 +13,7 @@ void setGlobalDefaultNumberOfThreads(int maximumNumberOfThreads){
     itk::MultiThreader::SetGlobalDefaultNumberOfThreads( maximumNumberOfThreads );
 }
 
-PYBIND11_MODULE(gems_python, m) {
+PYBIND11_MODULE(gemsbindings, m) {
     py::class_<KvlImage>(m, "KvlImage")
             .def(py::init<const std::string &>())
             .def(py::init<const py::array_t<float> &>())

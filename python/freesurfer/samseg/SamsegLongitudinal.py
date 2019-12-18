@@ -4,7 +4,8 @@ from freesurfer.samseg.figures import initVisualizer
 from freesurfer.samseg.Affine import Affine
 from freesurfer.samseg.ProbabilisticAtlas import ProbabilisticAtlas
 from freesurfer.samseg.Samseg import Samseg
-import freesurfer.gems as gems
+from . import gems
+
 import os
 import numpy as np
 import pickle

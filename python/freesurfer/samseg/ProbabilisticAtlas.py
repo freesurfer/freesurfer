@@ -1,5 +1,6 @@
 import numpy as np
-import freesurfer.gems as gems
+from . import gems
+from freesurfer.samseg.warp_mesh import kvlWarpMesh
 from freesurfer.samseg.utilities import requireNumpyArray
 import freesurfer as fs
 
@@ -38,7 +39,7 @@ class ProbabilisticAtlas:
 
             # Get the estimated warp in template space
             [estimatedNodeDeformationInTemplateSpace, estimated_averageDistance,
-             estimated_maximumDistance] = gems.kvlWarpMesh(
+             estimated_maximumDistance] = kvlWarpMesh(
                 initialDeformationMeshCollectionFileName,
                 initialDeformation,
                 meshCollectionFileName

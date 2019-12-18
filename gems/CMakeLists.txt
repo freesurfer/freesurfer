@@ -20,7 +20,6 @@ option(GEMS_BUILD_EXECUTABLES "Build command line executables" OFF)
 option(GEMS_BUILD_TESTING "Build tests" OFF)
 option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
 option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
-option(GEMS_BUILD_PYTHON "Build Python wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 
 set(GEMS_RUNTIME_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -28,22 +27,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
 
-# Check if GEMS is being added as a subdirectory (and not built independently)
-if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(FS_SOURCE_DIR ${CMAKE_SOURCE_DIR})
-  # Make sure python builds are on during full freesurfer build
-  set(GEMS_BUILD_PYTHON ON)
-else()
-  set(FS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/..)
-  # Make sure pybind is accessible during GEMS-only build
-  if(GEMS_BUILD_PYTHON)
-    set(PYBIND11_PYTHON_VERSION 3.5)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/../packages/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
-  endif()
-endif()
-
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
+
+add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
 
 if(GEMS_BUILD_EXECUTABLES OR GEMS_BUILD_GUI)
   add_definitions(-DUSE_DYNAMIC_MESH)
@@ -102,11 +89,6 @@ set(SOURCES
 # gems libary
 add_library(kvlGEMSCommon ${SOURCES})
 target_link_libraries(kvlGEMSCommon ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
-
-# build python module
-if(GEMS_BUILD_PYTHON)
-  add_subdirectory(python)
-endif()
 
 # build command line executables
 if(GEMS_BUILD_EXECUTABLES)

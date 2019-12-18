@@ -3,7 +3,8 @@
 import os
 import freesurfer as fs
 from freesurfer.samseg import SamsegLongitudinal
-from freesurfer.gems import setGlobalDefaultNumberOfThreads
+from freesurfer.samseg.gemsbindings import setGlobalDefaultNumberOfThreads
+
 
 parser = fs.utils.ArgumentParser()
 parser.add_argument( '-i', '--inputs', nargs='*', required=True)

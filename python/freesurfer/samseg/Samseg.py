@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import freesurfer as fs
-import freesurfer.gems as gems
+from . import gems
+
 from freesurfer.samseg.figures import initVisualizer
 from freesurfer.samseg.utilities import requireNumpyArray, Specification
 from freesurfer.samseg.BiasField import BiasField
@@ -9,6 +10,7 @@ from freesurfer.samseg.ProbabilisticAtlas import ProbabilisticAtlas
 from freesurfer.samseg.GMM import GMM
 from freesurfer.samseg.Affine import Affine
 from freesurfer.samseg.SamsegUtility import *
+from freesurfer.samseg.merge_alphas import kvlMergeAlphas, kvlGetMergingFractionsTable
 import logging
 import pickle
 
@@ -266,8 +268,8 @@ class Samseg:
         #   - classFractions -> a numberOfClasses x numberOfStructures table indicating in each column the mixing weights of the
         #                       various classes in the corresponding structure
         numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
-        self.classFractions, _ = gems.kvlGetMergingFractionsTable(self.modelSpecifications.names,
-                                                                  self.modelSpecifications.sharedGMMParameters)
+        self.classFractions, _ = kvlGetMergingFractionsTable(self.modelSpecifications.names,
+                                                             self.modelSpecifications.sharedGMMParameters)
 
         # Parameter initialization.
         self.gmm = GMM(numberOfGaussiansPerClass, numberOfContrasts=self.imageBuffers.shape[-1],
@@ -297,7 +299,6 @@ class Samseg:
         self.biasField.setBiasFieldCoefficients(initialBiasFieldCoefficients)
 
         # Loop over resolution levels
-        fs.printPeakMemory('samsegment starting resolution loop')
         numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
         for multiResolutionLevel in range(numberOfMultiResolutionLevels):
 
@@ -332,7 +333,7 @@ class Samseg:
                 initialNodePositions, downSampledTransform)
 
             # Set priors in mesh to the merged (super-structure) ones
-            mergedAlphas = gems.kvlMergeAlphas(downSampledMesh.alphas, self.classFractions)
+            mergedAlphas = kvlMergeAlphas(downSampledMesh.alphas, self.classFractions)
             downSampledMesh.alphas = mergedAlphas
 
             #
@@ -346,7 +347,6 @@ class Samseg:
             # Main iteration loop over both EM and deformation
             for iterationNumber in range(maximumNumberOfIterations):
                 logger.debug('iterationNumber=%d', iterationNumber)
-                fs.printPeakMemory('samsegment resolution %d iteration %d' % (multiResolutionLevel, iterationNumber))
 
                 # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -512,9 +512,6 @@ class Samseg:
         # End resolution level loop
 
     def segment(self):
-        #
-        fs.printPeakMemory('samsegment starting segmentation')
-
         # Get the final mesh
         mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
                                                initialDeformation=self.deformation,
