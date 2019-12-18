@@ -242,7 +242,7 @@ class Freeview:
         vgl = all([os.path.exists(path) for path in ('/etc/opt/VirtualGL/vgl_xauth_key', '/usr/pubsw/bin/vglrun')])
         local = any([os.environ.get('DISPLAY', '').endswith(string) for string in (':0', ':0.0')])
         if vgl and not local:
-            if not 'NV-GLX' in collectOutput('xdpyinfo')[0]:
+            if not 'NV-GLX' in collect_output('xdpyinfo')[0]:
                 return '/usr/pubsw/bin/vglrun '
         return ''
 

@@ -11,7 +11,7 @@ from freesurfer.samseg import registerAtlas, samsegment, initVisualizer, icv
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.ArgumentParser()
+parser = fs.utils.ArgumentParser()
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)

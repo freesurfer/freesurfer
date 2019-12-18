@@ -103,9 +103,14 @@ class Surface(Transformable):
 
     # ---- deprecations ----
 
-    def copy_geometry(self):  # TODEP
+    def parameterization_map(self):  # TODEP
         '''Deprecated! '''
-        raise DeprecationWarning('copy_geometry() has been removed! Just use: surf.geom = vol.geometry()')
+        raise DeprecationWarning('parameterization_map() has been removed! Email andrew!') 
+
+    def copy_geometry(self, vol):  # TODEP
+        '''Deprecated! '''
+        warning('copy_geometry(vol) has been removed! Just use: surf.geom = vol.geometry()')
+        self.geom = vol.geometry()
 
     def isSelfIntersecting(self):  # TODEP
         '''Deprecated!'''
@@ -136,3 +141,11 @@ class Surface(Transformable):
     def get_vertex_faces(self):  # TODEP
         '''Deprecated - use Surface.neighboring_faces instead'''
         raise DeprecationWarning('get_vertex_faces has been removed! Use Surface.neighboring_faces or email andrew if you get this!!!!')
+
+    def vox2surf(self, vol):  # TODEP
+        '''Deprecated - vol is no longer needed'''
+        return self.vox2surf()
+
+    def surf2vox(self, vol):  # TODEP
+        '''Deprecated - vol is no longer needed'''
+        return self.surf2vox()

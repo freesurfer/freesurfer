@@ -1534,8 +1534,8 @@ def samsegment( imageFileNames, atlasDir, savePath,
 def saveWarpField(warpName, atlasFileName, templateName, nodePositions, cropping):
 
     # load template volume
-    template = fs.Volume(templateName)
-    shape = template.image.shape[:3]
+    template = fs.Volume.read(templateName)
+    shape = template.shape[:3]
 
     # rasterize the final node coordinates (in image space) using the initial template mesh
     mesh = getMesh(atlasFileName)

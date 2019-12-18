@@ -107,7 +107,7 @@ def computeVolumeValsInNormalDirection(surf, vol, dist):
     vertex_normals = surf.vertex_normals
     voxels = surf.surf2vox().transform(surf.vertices + vertex_normals * dist)
     vi = np.rint(voxels).astype(int)
-    return vol.image[vi[:,0],vi[:,1],vi[:,2],0]
+    return vol.data[vi[:,0], vi[:,1], vi[:,2], 0]
 
 # ---- metrics ----
 
@@ -147,7 +147,6 @@ def sample_patch(mri, point, nx, ny, nz, wsize):
 
 @deprecated('use fs.utils.ArgumentParser instead')
 def ArgParser(*args, **kwargs):
-    # TODO - update all scripts to match
     return fs.utils.ArgumentParser(*args, **kwargs)
 
 def source(filename):
@@ -159,3 +158,6 @@ def collectOutput(command, executable='/bin/bash'):
 
 def read_annotation(*args, **kwargs):
     raise DeprecationWarning('read_annotation is deprecated for now. email Andrew if you get this')
+
+def slicing_origin(slices):
+    return tuple([slc.start for slc in slices])
