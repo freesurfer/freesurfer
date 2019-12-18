@@ -122,6 +122,15 @@ class Volume(ArrayContainerTemplate, Transformable):
         always assumed to be the number of frames.
         '''
 
+        # scan parameters
+        self.te = None
+        self.tr = None
+        self.ti = None
+        self.flip_angle = None
+
+        # lookup table for segmentations
+        self.lut = None
+
         # TODEP - this is a temporary fix to support the previous way of loading from a file - it
         # is not an ideal way of handling things and should be removed as soon as possible
         if isinstance(data, str):
@@ -134,6 +143,10 @@ class Volume(ArrayContainerTemplate, Transformable):
             affine = result.affine
             voxsize = result.voxsize
             self.lut = result.lut
+            self.te = result.te
+            self.tr = result.tr
+            self.ti = result.ti
+            self.flip_angle = result.flip_angle
 
         ArrayContainerTemplate.__init__(self, data)
         self.affine = affine

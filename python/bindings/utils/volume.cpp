@@ -109,6 +109,14 @@ void Bridge::transferParameters(py::object& pyobj)
     }
     pyobj.attr("lut") = lut;
   }
+
+  // transfer scan parameters if volume
+  if (ndims == 3) {
+    if (p_mri->te == 0) { pyobj.attr("te") = py::none(); } else { pyobj.attr("te") = p_mri->te; }
+    if (p_mri->tr == 0) { pyobj.attr("tr") = py::none(); } else { pyobj.attr("tr") = p_mri->tr; }
+    if (p_mri->ti == 0) { pyobj.attr("ti") = py::none(); } else { pyobj.attr("ti") = p_mri->ti; }
+    if (p_mri->flip_angle == 0) { pyobj.attr("flip_angle") = py::none(); } else { pyobj.attr("flip_angle") = p_mri->flip_angle; }
+  }
 }
 
 
@@ -245,6 +253,14 @@ MRI* Bridge::mri()
       ctab->entries[idx]->count = 0;
     }
     mri->ct = ctab;
+  }
+
+  // transfer scan parameters if volume
+  if (ndims == 3) {
+    if (!py::object(source.attr("te")).is(py::none())) mri->te = source.attr("te").cast<float>();
+    if (!py::object(source.attr("tr")).is(py::none())) mri->tr = source.attr("tr").cast<float>();
+    if (!py::object(source.attr("ti")).is(py::none())) mri->ti = source.attr("ti").cast<float>();
+    if (!py::object(source.attr("flip_angle")).is(py::none())) mri->flip_angle = source.attr("flip_angle").cast<double>();
   }
 
   // make sure to register the new MRI instance in the bridge
