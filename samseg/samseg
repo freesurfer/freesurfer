@@ -10,7 +10,6 @@ set exvivo = 0;
 set monly = 0;
 set MLF = ();
 set threads = 1;
-set stiffness = 0.1
 set parallel = 0;
 set DoValGrind = 0
 set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
@@ -38,12 +37,13 @@ set modenamelist = ()
 set refmodename = ();
 set SaveMesh = 0
 set optionsfile = ()
-set longitudinal = 0;
 set basedir = ()
-set ACPVDSC = 1e-4;
 set max_iters = ()
 set SavePosteriors = 0
 set SaveWarp = 1;
+set DoMRF = 1;
+set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
+set DoRefine = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -125,23 +125,6 @@ if($DoImport) then
 endif
 
 #========================================================
-if($longitudinal) then
-  set regmat = $basedir/template_coregistrationMatrices.mat
-  set optionsfile = $outdir/long.options.json
-  rm -f $optionsfile
-  echo '{\
-    "modelSpecifications": {\
-        "atlasFileName": "meshpath"\
-    },\
-    "optimizationOptions": {\
-        "multiResolutionSpecification": [{\
-            "atlasFileName": "meshpath",\
-            "targetDownsampledVoxelSpacing": 1.0\
-        }]\
-    }\
-   }' | sed "s@meshpath@$meshpath@g" > $optionsfile
-endif
-
 set cmd0 = (run_samseg -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#optionsfile) set cmd0 = ($cmd0 --options $optionsfile)
@@ -151,8 +134,6 @@ if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
-# These args are not recognized in the new run_samseg
-#set cmd0 = ($cmd0 --stiffness $stiffness  --acpvdsc $ACPVDSC)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
@@ -180,17 +161,6 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
-# Need to have samseg write out a consistent file name, but until then...
-set seg = `find "$outdir" -iname "*crispSegmentation.nii" -print`
-
-# refine the segmentation:
-if(! $regonly) then
-  set cmd = (mri_refine_seg --debug -i $seg -o $seg)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) goto error_exit;
-endif
-
 if($SaveWarp) then
   set cmd = (/autofs/space/topaz_001/users/ah221/test/fix_samseg_warp $outdir)
   echo $cmd | tee -a $LF
@@ -198,29 +168,61 @@ if($SaveWarp) then
   if($status) goto error_exit;
 endif
 
-# ========================================================
-# Compute dice:
-if($computedice && ! $regonly) then
-  set logfile = $outdir/dice.log
-  set tablefile = $outdir/dice.table.dat
-  rm -f $logfile # need to rm because it just appends
-  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $seg)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) then
-    echo "error: could not compute seg overlap";
-    goto error_exit;
-  endif
-endif
-
 if(! $regonly) then
+
+  # Need to have samseg write out a consistent file name, but until then...
+  set seg = `find "$outdir" -iname "*crispSegmentation.nii" -print`
+
+  if($DoRefine) then
+    set cmd = (mri_refine_seg --debug -i $seg -o $seg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+
   # Compute segstats
   set sumfile = $outdir/crispSegmentation.stats 
   set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
-endif
+
+  if($DoMRF) then
+    set inputbase = `basename $inputlist[1]` 
+    set inputbase = `fname2stem $inputbase`
+    set bc = $outdir/$inputbase"_biasCorrected.nii"
+    if(! -e $bc) then
+      echo "ERROR: cannot find $bc" | tee -a $LF
+      goto error_exit;
+    endif
+    set mrf = $outdir/$inputbase"_crispSegmentation.mrf.nii"
+    set cmd = (mri_ca_label -r $seg -relabel_unlikely 9 .3 \
+       -prior 0.5 -align $bc $outdir/samseg.talairach.lta $mrfgca $mrf)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Compute segstats of the mrf'ed seg
+    set sumfile = $outdir/crispSegmentation.mrf.stats 
+    set cmd = (mri_segstats --ctab-default --seg $mrf --sum $sumfile)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif #MRF
+
+  if($computedice) then
+    set logfile = $outdir/dice.log
+    set tablefile = $outdir/dice.table.dat
+    rm -f $logfile # need to rm because it just appends
+    set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $seg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) then
+      echo "error: could not compute seg overlap";
+      goto error_exit;
+    endif
+  endif
+
+endif # not regonly
 
 # Prep for recon
 if($#subject != 0) then
@@ -304,6 +306,13 @@ while( $#argv != 0 )
 
     case "--recon":
       set DoRecon = 1
+      breaksw
+
+    case "--mrf":
+      set DoMRF = 1
+      breaksw
+    case "--no-mrf":
+      set DoMRF = 0
       breaksw
 
     case "--regmat":
@@ -434,12 +443,6 @@ while( $#argv != 0 )
       set threads =  $1; shift;
       breaksw
 
-    case "--stiffness":
-    case "--K":
-      if( $#argv < 1) goto arg1err;
-      set stiffness =  $1; shift;
-      breaksw
-
     case "--ssdd":
       if( $#argv < 1) goto arg1err;
       setenv SAMSEG_DATA_DIR $1; shift;
@@ -494,25 +497,6 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $optionsfile"
         exit 1;
       endif
-      breaksw
-
-    case "--long":
-      if($#argv < 1) goto arg1err;
-      set basedir = $argv[1]; shift;
-      set meshpath = $basedir/mesh.txt.gz
-      if(! -e $meshpath) then
-        echo "ERROR: cannot find $meshpath"
-        exit 1;
-      endif
-      pushd $basedir > /dev/null
-      set basedir = `pwd`;
-      popd > /dev/null
-      set longitudinal = 1;
-      breaksw
-
-    case "--acpvdsc":
-      if($#argv < 1) goto arg1err;
-      set ACPVDSC = $argv[1]; shift;
       breaksw
 
     case "--max-iters":
@@ -674,17 +658,6 @@ else
   set coregdir  = $outdir/coreg
 endif
 
-if($longitudinal) then
-  if($#optionsfile) then 
-    echo "ERROR: cannot specify --options with --long"
-    exit 1;
-  endif
-  if($#regmat) then 
-    echo "ERROR: cannot specify --regmat with --long"
-    exit 1;
-  endif
-endif
-
 goto check_params_return;
 ############--------------##################
 
@@ -718,18 +691,16 @@ usage_exit:
   echo "  --sd SUBJECTS_DIR"
   echo "  --save-posteriors : save posterior probs"
   echo "  --no-save-warp : do not save m3z-style warp"
+  echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
   echo " --reg-only : only perform registration"
-  echo " --stiffness K : mesh stiffness ($stiffness)"
   echo " --ssdd SAMSEG_DATA_DIR : where the atlas is located"
   echo " --save-mesh : save the mesh (probably for longitudinal analysis)"
   echo " --options optionsfile : to pass to run_samseg"
-  echo " --long basedir : base for longitudinal analysis (base must have mesh)"
-  echo " --acpvdsc ACPVDSC : absoluteCostPerVoxelDecreaseStopCriterion":
   echo " --max-iters iters"
   echo " --dice seg.mgz"
   echo ""
@@ -765,3 +736,10 @@ should be done with T2/FLAIR pial refinement.
 Example,
 samseg --t1w run1.T1.slice0.dicom  --t1w run2.T1.slice0.dicom \
   --t2w T2.nii.gz  --mode pd myPDimage.mgz --flair FLAIR-weighted.dcm ...
+
+To use the --inilta, the LTA should map from the input volume to the
+atlas (eg, $FREESURFER_HOME/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/template.nii)
+
+eg, 
+mri_coreg --mov $atlas --targ orig.mgz --dof 12 --reg coreg.lta 
+

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import freesurfer as fs
-from freesurfer.samseg import samsegmentLongitudinal
+from freesurfer.samseg import SamsegLongitudinal
 from freesurfer.gems import setGlobalDefaultNumberOfThreads
 
 parser = fs.utils.ArgumentParser()
@@ -17,14 +18,16 @@ setGlobalDefaultNumberOfThreads(args.threads)
 
 imageFileNamesList = [[filename] for filename in args.inputs]
 
-samsegmentLongitudinal(
-    imageFileNamesList,
+samsegLongitudinal = SamsegLongitudinal(imageFileNamesList,
     '/cluster/koen/koen/testing/20Subjects_smoothing2_down2_smoothingForAffine2_bigventricles',
     args.outputDirectory,
-    targetIntensity=110, 
+    targetIntensity=110,
     targetSearchStrings=['Cerebral-White-Matter'],
     numberOfIterations=args.numberOfIterations,
     strengthOfLatentGMMHyperprior=args.strengthOfLatentGMMHyperprior,
-    strengthOfLatentDeformationHyperprior=args.strengthOfLatentDeformationHyperprior, 
-    saveHistory=True
-)
+    strengthOfLatentDeformationHyperprior=args.strengthOfLatentDeformationHyperprior,
+    saveHistory=True)
+
+samsegLongitudinal.preProcess()
+samsegLongitudinal.process()
+labels, names, volumes, optimizationSummary = samsegLongitudinal.postProcess()

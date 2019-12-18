@@ -6,7 +6,7 @@ import json
 import scipy.io
 import freesurfer as fs
 from freesurfer.gems import setGlobalDefaultNumberOfThreads
-from freesurfer.samseg import registerAtlas, samsegment, initVisualizer, icv
+from freesurfer.samseg import Affine, Samseg, initVisualizer, icv
 
 
 # ------ Parse Command Line Arguments ------
@@ -83,14 +83,14 @@ elif args.reg:
 else:
     worldToWorldTransformMatrix = None
 
-_, transformedTemplateFileName, optimizationSummary = registerAtlas( args.inputFileNames[0],
+affine = Affine()
+_, transformedTemplateFileName, optimizationSummary = affine.registerAtlas(args.inputFileNames[0],
                                                                      affineRegistrationMeshCollectionFileName,
                                                                      templateFileName,
                                                                      args.outputDirectory,
                                                                      visualizer,
                                                                      worldToWorldTransformMatrix,
-                                                                     args.init_lta
-                                                                   )
+                                                                     args.init_lta)
 
 # Save a summary of the optimization process
 if optimizationSummary:
@@ -120,15 +120,19 @@ if args.options:
 
 fs.printPeakMemory('run_samseg running samsegment')
 
-labels, names, volumes, optimizationSummary = \
-    samsegment( args.inputFileNames, atlasDir, args.outputDirectory,
-                transformedTemplateFileName=transformedTemplateFileName, 
-                userModelSpecifications=userModelSpecifications, 
+samseg = Samseg(args.inputFileNames, atlasDir, args.outputDirectory,
+                transformedTemplateFileName=transformedTemplateFileName,
+                userModelSpecifications=userModelSpecifications,
                 userOptimizationOptions=userOptimizationOptions,
                 visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
                 targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ],
                 savePosteriors=args.save_posteriors,
                 saveWarp=args.save_warp)
+
+samseg.preProcess()
+samseg.process()
+
+labels, names, volumes, optimizationSummary = samseg.postProcess()
 
 # Save a summary of the optimization process
 with open( costfile, "a" ) as file:
