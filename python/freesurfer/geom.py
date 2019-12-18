@@ -4,7 +4,7 @@ from collections.abc import Iterable
 
 
 class Slicing(tuple):
-    '''TODOC'''
+    '''Slice tuple used for indexing subregions of a numpy array.'''
 
     def __new__(cls, start, stop):
         if len(start) != len(stop):
@@ -37,14 +37,10 @@ class Slicing(tuple):
 
 
 def bbox(mask):
-    '''
-    Bounding box around the object in a binary image.
-    '''
+    '''Bounding box around the object in a binary image.'''
     return scipy.ndimage.find_objects(mask)[0]
 
 
 def cmass(image):
-    '''
-    Center of mass of an image.
-    '''
+    '''Center of mass of an image.'''
     return scipy.ndimage.center_of_mass(image)

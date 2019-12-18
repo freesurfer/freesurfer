@@ -5,7 +5,7 @@ namespace transform {
 
 
 /*
-  TODOC
+  Copies a python Geometry object into a VOL_GEOM instance.
 */
 void pythonToVolGeom(py::object geometry, VOL_GEOM* vg)
 {
@@ -51,13 +51,12 @@ void pythonToVolGeom(py::object geometry, VOL_GEOM* vg)
 
 
 /*
-  TODOC
+  Creates a python Geometry object from a VOL_GEOM instance.
 */
 py::object volGeomToPython(VOL_GEOM* vg)
 {
   if (!vg->valid) return py::none();
 
-  // TODOC
   py::object shape = py::make_tuple(vg->width, vg->height, vg->depth);
   py::object size = py::make_tuple(vg->xsize, vg->ysize, vg->zsize);
 

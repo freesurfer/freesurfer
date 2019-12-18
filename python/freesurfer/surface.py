@@ -32,6 +32,7 @@ class Surface(Transformable):
         self.compute_normals()
 
     def __eq__(self, other):
+        '''Check for equality.'''
         equal = np.array_equal(self.vertices, other.vertices) and \
                 np.array_equal(self.faces, other.faces) and \
                 self.hemi == other.hemi and \
@@ -82,9 +83,7 @@ class Surface(Transformable):
         return self.vertices.min(axis=0), self.vertices.max(axis=0)
 
     def geometry(self):
-        '''Returns the geometry associated with the source volume.
-        Note: This is the same as the `geom` member, but is necessary for
-        subclassing `Transformable`.'''
+        '''Returns the geometry associated with the source volume.'''
         return self.geom
 
     # ---- parameterization ----

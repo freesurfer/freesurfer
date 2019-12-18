@@ -2,21 +2,6 @@ import os
 import numpy as np
 from . import bindings
 
-from . import bindings
-
-
-class Geometry:
-    def __init__(self, shape, voxsize=(1, 1, 1), affine=None):
-        self.shape = shape
-        self.voxsize = voxsize
-        self.affine = affine
-
-
-class TransformType:
-    vox = 0
-    ras = 1
-    physvox = 2
-
 
 class LinearTransform:
     '''Linear transformer that wraps an affine matrix.'''
@@ -37,17 +22,20 @@ class LinearTransform:
         self.type = type
 
     @staticmethod
-    def ensure(x):
-        '''TODOC'''
-        if isinstance(x, LinearTransform):
-            return x
-        if isinstance(x, np.ndarray):
-            return LinearTransform(x)
+    def ensure(unknown):
+        '''Ensures that the unknown input is (or gets converted to) a LinearTransform'''
+        if isinstance(unknown, LinearTransform):
+            return unknown
+        if isinstance(unknown, np.ndarray):
+            return LinearTransform(unknown)
         raise ValueError('Cannot convert object of type %s to LinearTransform' % type(unknown).__name__)
 
     @staticmethod
     def matmul(a, b):
-        '''TODOC'''
+        '''
+        Matrix multiplication to join two transforms. Input can be numpy
+        arrays or LinearTransforms.
+        '''
         a = LinearTransform.ensure(a).matrix
         b = LinearTransform.ensure(b).matrix
         return LinearTransform(np.matmul(a, b))
@@ -65,16 +53,19 @@ class LinearTransform:
         return LinearTransform(np.linalg.inv(self.matrix))
 
     def write(self, filename):
+        '''Writes the transform to an LTA file.'''
         bindings.transform.write_lta(self, filename)
 
     @classmethod
     def read(cls, filename):
+        '''Reads a transform from an LTA file.'''
         if not os.path.isfile(filename):
             raise ValueError('transform file %s does not exist' % filename)
         return bindings.transform.read_lta(filename)
 
 
 def LIA(shape=None, voxsize=(1, 1, 1)):
+    '''Affine matrix representing LIA voxel coordinate relationship (also known as RSP).'''
     matrix = np.array([[-1,  0,  0,  0],
                        [ 0,  0,  1,  0],
                        [ 0, -1,  0,  0],
@@ -87,7 +78,7 @@ def LIA(shape=None, voxsize=(1, 1, 1)):
 
 
 class Geometry:
-    '''TODOC'''
+    '''Representation of volume geometry in RAS space.'''
 
     def __init__(self, shape, voxsize=(1, 1, 1), affine=None):
         self.shape = shape
@@ -95,6 +86,7 @@ class Geometry:
         self.affine = affine
 
     def __eq__(self, other):
+        '''Check for equality.'''
         equal = self.shape == other.shape and \
                 self.voxsize == other.voxsize and \
                 np.array_equal(self.affine, other.affine)
@@ -126,10 +118,20 @@ class Geometry:
 
 
 class Transformable:
-    '''TODOC'''
+    '''
+    Helper protocol class that extends the transform routines of the
+    Geometry class to a higher-level transformable object, like a Volume
+    or Surface. Any class that inherits from Transformable must override
+    the geometry() member function for this to work.
+
+    NOTE: For cleanliness, it might be a good idea to actually have Geometry
+    inherit from Transformable so that the transform functions are really
+    defined here. This is rather cyclical though.
+    '''
 
     def geometry(self):
-        raise NotImplementedError('TODOC')
+        '''Returns the geometry associated with the objects.'''
+        raise NotImplementedError('a class that inherits from Transformable must override geometry()')
 
     def vox2ras(self):
         return self.geometry().vox2ras()

@@ -1,3 +1,9 @@
+'''
+These functions are rather specific to Amod's deeplearning code
+and should probably be either moved or completely deleted. It might
+make sense to develop some more universal normalization utility functions.
+'''
+
 import numpy as np
 
 

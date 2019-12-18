@@ -1,3 +1,8 @@
+'''
+Functions and classes to be deprecated soon. Some of these routines
+will raise exceptions, while others will just dispay warnings.
+'''
+
 import warnings
 import functools
 import numpy as np
@@ -57,6 +62,7 @@ def computeVertexNormals(surf):
 # ---- surface coordinate conversions ----
 
 def MRISsampleVertexPatch(mris, mri_normals, mri, vno, wsize):
+    import nibabel as nib
     if isinstance(mri_normals, nib.freesurfer.mghformat.MGHImage) == True:
         mri_normals = mri_normals.get_data().squeeze()
     if (len(mris) == 2):
@@ -86,6 +92,7 @@ def MRIStoVoxel(mris, mri):
     return mris
 
 def MRISnormalsToVoxel(mris, mri_normals, mri):
+    import nibabel as nib
     if isinstance(mri_normals, nib.freesurfer.mghformat.MGHImage):
         mri_normals = mri_normals.get_data().squeeze()
     if (len(mris) == 2):
