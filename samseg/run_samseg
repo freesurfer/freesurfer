@@ -5,23 +5,24 @@ import sys
 import json
 import scipy.io
 import freesurfer as fs
-from freesurfer.samseg import Affine, Samseg, initVisualizer, icv
-from freesurfer.samseg.gemsbindings import setGlobalDefaultNumberOfThreads
+import freesurfer.samseg as samseg
 
 
 # ------ Parse Command Line Arguments ------
 
 parser = fs.utils.ArgumentParser()
 
+default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
+
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
 parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
-parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
 parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
+parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('--reg-mat', metavar='FILE', help='Skip initial affine registration and read matlab transform from file.')
-parser.add_argument('--init-lta', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 # optional debugging options
@@ -33,7 +34,6 @@ parser.add_argument('--save-warp', action='store_true', help='Save the image to 
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
 
 args = parser.parse_args()
-
 
 # ------ Initial Setup ------
 
@@ -48,8 +48,7 @@ timer = fs.utils.Timer()
 os.makedirs(args.outputDirectory, exist_ok=True)
 
 # Specify the maximum number of threads the GEMS code will use
-if args.threads is not None:
-    setGlobalDefaultNumberOfThreads(args.threads)
+samseg.setGlobalDefaultNumberOfThreads(args.threads)
 
 # Remove previous cost log
 costfile = os.path.join( args.outputDirectory, "cost.txt" )
@@ -62,10 +61,10 @@ if args.atlas:
     atlasDir = args.atlas
 if not atlasDir:
     defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
-    atlasDir = os.path.join(fs.fshome(), 'average/samseg', defaultAtlas)
+    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
 
 # Setup the visualization tool
-visualizer = initVisualizer(args.showfigs, args.movie)
+visualizer = samseg.initVisualizer(args.showfigs, args.movie)
 
 # ------ Perform Affine Registration ------
 
@@ -79,14 +78,21 @@ elif args.reg:
 else:
     worldToWorldTransformMatrix = None
 
-affine = Affine()
-_, transformedTemplateFileName, optimizationSummary = affine.registerAtlas(args.inputFileNames[0],
-                                                                     affineRegistrationMeshCollectionFileName,
-                                                                     templateFileName,
-                                                                     args.outputDirectory,
-                                                                     visualizer,
-                                                                     worldToWorldTransformMatrix,
-                                                                     args.init_lta)
+if args.init_reg:
+    initTransform = fs.LinearTransform.read(args.init_reg).matrix
+else:
+    initTransform = None
+
+affine = samseg.Affine()
+_, transformedTemplateFileName, optimizationSummary = affine.registerAtlas(
+    args.inputFileNames[0],
+    affineRegistrationMeshCollectionFileName,
+    templateFileName,
+    args.outputDirectory,
+    visualizer,
+    worldToWorldTransformMatrix,
+    initTransform
+)
 
 # Save a summary of the optimization process
 if optimizationSummary:
@@ -114,35 +120,29 @@ if args.options:
 
 # ------ Run Samsegment ------
 
-samseg = Samseg(args.inputFileNames, atlasDir, args.outputDirectory,
-                transformedTemplateFileName=transformedTemplateFileName,
-                userModelSpecifications=userModelSpecifications,
-                userOptimizationOptions=userOptimizationOptions,
-                visualizer=visualizer, saveHistory=args.history, saveMesh=args.save_mesh,
-                targetIntensity=110, targetSearchStrings=[ 'Cerebral-White-Matter' ],
-                savePosteriors=args.save_posteriors,
-                saveWarp=args.save_warp)
+samseg = samseg.Samseg(
+    args.inputFileNames,
+    atlasDir,
+    args.outputDirectory,
+    transformedTemplateFileName=transformedTemplateFileName,
+    userModelSpecifications=userModelSpecifications,
+    userOptimizationOptions=userOptimizationOptions,
+    visualizer=visualizer,
+    saveHistory=args.history,
+    saveMesh=args.save_mesh,
+    targetIntensity=110,
+    targetSearchStrings=[ 'Cerebral-White-Matter' ],
+    savePosteriors=args.save_posteriors,
+    saveWarp=args.save_warp
+)
 
 samseg.preProcess()
 samseg.process()
-
-labels, names, volumes, optimizationSummary = samseg.postProcess()
+_, _, _, optimizationSummary = samseg.postProcess()
 
 # Save a summary of the optimization process
 with open( costfile, "a" ) as file:
     for multiResolutionLevel, item in enumerate( optimizationSummary ):
         file.write( "atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, item[ 'numberOfIterations' ], item[ 'perVoxelCost' ] ) )
-
-# ------ Volumetric Stats ------
-
-# Write structural volumes
-with open(os.path.join(args.outputDirectory, 'samseg.stats'), 'w') as fid:
-    for volume, name in zip(volumes, names):
-        fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
-
-# Write intracranial volume
-sbtiv = icv(zip(*[names, volumes]))
-with open(os.path.join(args.outputDirectory, 'sbtiv.stats'), 'w') as fid:
-    fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
 timer.mark('run_samseg complete')
