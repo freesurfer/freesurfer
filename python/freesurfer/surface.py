@@ -2,7 +2,7 @@ import os
 import copy
 import numpy as np
 
-from . import bindings, warning
+from . import bindings, warning, Image, Overlay
 from .transform import Transformable, LinearTransform
 
 
@@ -97,7 +97,7 @@ class Surface(Transformable):
 
     def sample_parameterization(self, image):
         '''Samples a parameterized image into an nvertices-length array. Sampling method is barycentric.'''
-        data = Image.ensure(overlay).data
+        data = Image.ensure(image).data
         return bindings.surf.sample_parameterization(self, data)
 
     # ---- deprecations ----

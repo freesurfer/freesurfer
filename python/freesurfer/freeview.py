@@ -44,7 +44,7 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay, mrisp, **kwargs):
+    def surf(self, surface, overlay=None, mrisp=None, **kwargs):
         '''loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
         key/value tags allowed on the command line can be provided as arguments.
@@ -62,11 +62,11 @@ class Freeview:
             return
 
         # if overlay is provided as an array, make sure it's converted
-        if overlay:
+        if overlay is not None:
             kwargs['overlay'] = self._vol_to_file(overlay, force=Overlay)
 
         # if mrisp is provided as an array, make sure it's converted
-        if mrisp:
+        if mrisp is not None:
             kwargs['mrisp'] = self._vol_to_file(mrisp, force=Image)
 
         # build the surface flag
