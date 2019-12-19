@@ -91,7 +91,7 @@ def compareArrays(a, b, tol=1e-12):
     diff = np.abs(a - b)
     maximum = np.max(diff)
     if maximum > tol:
-        fs.errorExit('arrays differ - max: ' + str(maximum))
+        fs.fatal('arrays differ - max: ' + str(maximum))
 
 
 def computeDistanceTransform(labelmask):
@@ -140,7 +140,7 @@ def saveVolume(vol, fname):
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.ArgParser()
+parser = fs.utils.ArgumentParser()
 # Required
 parser.add_argument('-i','--image', metavar='file', required=True, help='Input image filename.')
 parser.add_argument('-s','--segs', metavar='file', nargs='+', required=True, help='Aligned segmentations to fuse.')
@@ -173,7 +173,7 @@ min_param_change = 2
 # Check the output folder
 outdir = os.path.dirname(os.path.abspath(args.out))
 if not os.path.isdir(outdir):
-    fs.errorExit('output directory %s does not exist' % outdir)
+    fs.fatal('output directory %s does not exist' % outdir)
 
 # Load the fixed image
 fixed_image = nib.load(args.image)
@@ -183,7 +183,7 @@ fixed_affine = fixed_image.affine
 # Locate main component of the fixed input
 clusters, numclusters = ndimage.measurements.label(fixed_vol > 0)
 if numclusters == 0:
-    fs.errorExit('cannot find main component in fixed volume')
+    fs.fatal('cannot find main component in fixed volume')
 largest_label = np.argmax(np.bincount(clusters.flat)[1:]) + 1
 mask = ndimage.binary_fill_holes(clusters == largest_label)
 

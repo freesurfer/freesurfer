@@ -80,18 +80,8 @@ if(NOT FS_PACKAGES_DIR)
     set(FS_PACKAGES_DIR /usr/pubsw/packages CACHE INTERNAL "Default Martinos packages dir")
   else()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
-    if(APPLE)
-      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/osx10.11-packages.tar.gz")
-    else()
-      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz")
-    endif()
-    message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
-                        "Required FS dependencies can be built locally by running:\n"
-                        "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
-                        "Or they can be downloaded from here:\n"
-                        "    ${FS_PACKAGES_URL}\n"
-                        "After the dependencies have been setup, cmake should be configured with:\n"
-                        "    -DFS_PACKAGES_DIR=\"/path/to/fs-packages\"")
+    # for more information visit https://surfer.nmr.mgh.harvard.edu/fswiki/BuildRequirements
+    message(WARNING "FS_PACKAGES_DIR is NOT defined - build will be limited")
   endif()
 endif()
 
@@ -301,7 +291,7 @@ set(FS_INCLUDE_DIRS
 )
 
 # build the freesurfer static libraries
-add_subdirectories(utils)
+add_subdirectory(utils)
 
 # the following utility libraries are required for freeview
 add_subdirectories(vtkutils lineprof)
@@ -309,8 +299,8 @@ add_subdirectories(vtkutils lineprof)
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
-# build the gems python library
-add_subdirectories(GEMS2)
+# build the gems library
+add_subdirectory(gems)
 
 # --------------------------------------------------
 #                      programs

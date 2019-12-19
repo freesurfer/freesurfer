@@ -14,11 +14,10 @@ rm -f $fname
 
 # echo NUMS $nums
 if ($nums[1] > 0) then
-  # exit 1
   echo 1
+  # exit 1
 else
   echo 0
   # exit 0 
 endif
-
-exit 0
+# exit 0

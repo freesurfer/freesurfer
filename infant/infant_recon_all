@@ -33,10 +33,14 @@ set setksize            = 0
 
 set computeCCseg        = 1
 
-set useMI               = 0
-set PrintHelp = 0;
+set dostats             = 0
 
-# set gputype = -1 # ny default will not be using the GPU version; CUDA/tensorflow assumes you have and are using a GPU unless otherwise stated with "-1"
+set intnormFSL          = 0
+
+set useMI               = 0
+set PrintHelp           = 0
+
+# set gputype = -1 # by default will not be using the GPU version; CUDA/tensorflow assumes you have and are using a GPU unless otherwise stated with "-1"
 set gpuID   = 0  # unless otherwise specified by the user
 set usegpu  = 0
 
@@ -44,8 +48,10 @@ set usegpu  = 0
 # set regtype   = NIFTYREG # by default instead of dramms -- already set in recon_params.csh
 set usedramms = 0      # still here for backwards compatibility
 
-# source $FREESURFER_HOME/bin/set_infant_recon_params.csh
-source set_infant_recon_params.csh
+setenv INFANTSCRIPTDIR `dirname $0`
+echo InfantReconAll scripts DIR $INFANTSCRIPTDIR
+
+source $INFANTSCRIPTDIR/set_infant_recon_params.csh
 set TEMPLATE_SUBJECTS = ($CNYBCH_SUBJECTS) # the full CNYBCH training set
 set TEMPLATE_AGES     = ($CNYBCH_AGES)
 setenv TEMPLATE_SUBJECTS_DIR  $CNYBCH_TEMPLATE_SUBJECTS_DIR 
@@ -119,9 +125,9 @@ while( $#argv != 0 )
     case "--gmwm":
       set forcegmwm = 1; 
       breaksw
-    case "--gmwm2":
-      set forcegmwm2 = 1; 
-      breaksw
+    #case "--gmwm2": # This is set to 1 by default now
+    #  set forcegmwm2 = 1; 
+    #  breaksw
     case "--usegpu":
       set usegpu = 1;
       breaksw
@@ -133,6 +139,12 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set gpuid = $argv[1]; shift;
       set usegpu = 1;
+      breaksw
+    case "--stats":
+      set dostats = 1; # compute aseg stats
+      breaksw
+    case "--intnormFSL":
+      set intnormFSL = 1; # use alternative intensity normalization
       breaksw
     default:
       echo ERROR: Flag $flag unrecognized.
@@ -262,23 +274,36 @@ if !(-e $infile) then
 endif
 echo "INPUT FILE $infile" | tee -a $sLF | tee -a $LF
 
-set nufile = $WORK_DIR/${infile:t:r:r}.nu.nii.gz
-if !(-e $nufile) then
-  set cmd  = (mri_nu_correct.mni --i $infile --o $nufile --n 2)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
+# intensity normalization
+if !($intnormFSL) then 
+  set nufile = $WORK_DIR/${infile:t:r:r}.nu.nii.gz
+  if !(-e $nufile) then
+    set cmd  = (mri_nu_correct.mni --i $infile --o $nufile --n 2)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1; 
+  endif
+  echo "NU FILE $nufile" | tee -a $sLF | tee -a $LF
+  set infile  = $nufile
+else
+  set maxval = `fslstats $infile -R | awk '{print $2}'`
+  if !(-e $WORK_DIR/${infile:t:r:r}.fslnorm.nii.gz) then
+    set cmd = (fslmaths $infile -div $maxval -mul $WORK_DIR/${infile:t:r:r}.fslnorm.nii.gz -odt char)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1; 
+  endif
+  echo "INTENSITY NORMALIZED FILE $WORK_DIR/${infile:t:r:r}.fslnorm.nii.gz" | tee -a $sLF | tee -a $LF
+  set infile  = $WORK_DIR/${infile:t:r:r}.fslnorm.nii.gz
 endif
-echo "NU FILE $nufile" | tee -a $sLF | tee -a $LF
-
-set infile  = $nufile
-set outfile = ${infile:r:r}.conf.nii.gz
+#
 
 ##
+set outfile = ${infile:r:r}.conf.nii.gz
 if !(-e $outfile) then
-  # set cmd = ( mri_convert -c $infile $outfile )
-  set cmd = ( mri_convert --conform-dc $infile $outfile ) ## NB: 01/10/2017
+  set cmd = ( mri_convert --conform-dc $infile $outfile )
   echo $cmd >> $LF
   echo $cmd >> $sLF 
   $cmd |& tee -a $LF
@@ -287,7 +312,7 @@ endif
 echo "CONFORMED FILE $outfile" | tee -a $sLF | tee -a $LF
 
 if ($checkresults) then 
-  freeview -v $originput $nufile $outfile
+  freeview -v $originput $outfile # $nufile 
 endif
 
 set preprocessedfile = $outfile
@@ -303,7 +328,6 @@ set maskedfile = ${maskfile:r:r}ed.nii.gz
 if !(-e $maskfile) then
     # -use-gpu : use GPU versions of the skullstripper: sscnn_skullstrip.py
     # $gpuID = 0 (otherwise user can specify it)
-
     set cmd = (python sscnn_skullstrip.py -i ${infile} -o $WORK_DIR/sscnn -c t1w -gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
     echo $cmd >> $LF
     echo $cmd >> $sLF
@@ -414,7 +438,7 @@ if (($newborns) && $avoidtraining) then
 endif
 
 #echo $defaultinfants
-if ($defaultinfants) then # need to select $trainingsetsize number of subjects based on age TODO: implement other options, eg MI
+if ($defaultinfants) then 
   echo USING the default set of training dataset....
   set outfname = $WORK_DIR/selectedtrainingsubjects.txt
   echo FINDING $trainingsetsize training subjects to work with...
@@ -445,8 +469,14 @@ if ($forcegmwm) then
   # Make sure that there is at least one training subject with GMWM
   set found = 0;
   foreach tsubj ($TEMPLATE_SUBJECTS)
-    if (`find_cerebral_wm_labels.csh $TEMPLATE_SUBJECTS_DIR/$tsubj/manualseg.nii.gz`) then
-      set found = 1;
+    set cmd = (mri_binarize --match 2 41 --count $TEMPLATE_SUBJECTS_DIR/$tsubj/manualseg.count.txt --i $TEMPLATE_SUBJECTS_DIR/$tsubj/manualseg.nii.gz --noverbose)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if ($status) exit 1;
+    set nums = `cat $TEMPLATE_SUBJECTS_DIR/$tsubj/manualseg.count.txt`
+    if ($nums[1] > 0) then
+      set found = 1; 
       break
     endif
   end
@@ -486,22 +516,30 @@ foreach tsubj ($TEMPLATE_SUBJECTS)
     if !( -e $def ) then 
       if ($regtype == DRAMMS ) then
         set cmd = (dramms -S $in -T $ref -O $out -D $def -v -v ) # > ${logfile})
+        echo $cmd >> $LF
+        echo $cmd >> $sLF
+        $cmd |& tee -a $LF
+        if ($status) exit 1;
       else 
-        set cmd = ($niftycmddir/reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+        set cmd = (reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
                                            -res ${out:r:r}.affine.nii.gz -voff)
-        set cmd = ($cmd; $niftycmddir/reg_f3d -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
+        echo $cmd >> $LF
+        echo $cmd >> $sLF
+        $cmd |& tee -a $LF
+        if ($status) exit 1;
+        set cmd = (reg_f3d -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
                                               -cpp $def -res $out) # -omp
+        echo $cmd >> $LF
+        echo $cmd >> $sLF
+        $cmd |& tee -a $LF
+        if ($status) exit 1;
       endif
 
-      echo $cmd >> $LF
-      echo $cmd >> $sLF
-      $cmd |& tee -a $LF
-      if ($status) exit 1;
       if ($regtype == DRAMMS ) then
-        set cmd = ($niftycmddir/reg_resample -ref $ref -flo $templatefile \
-                                             -trans $def -res $outtemplate -inter 0)
-      else
         set cmd = (dramms-warp $templatefile $def $outtemplate -n)
+      else
+        set cmd = (reg_resample -ref $ref -flo $templatefile \
+                                             -trans $def -res $outtemplate -inter 0)
       endif
       echo $cmd >> $LF
       echo $cmd >> $sLF
@@ -534,10 +572,18 @@ if ($checkresults) then
   freeview -v $maskedfile ${asegfile}:colormap=lut
 endif
 
-if !(`find_cerebral_wm_labels.csh $asegfile`) then 
-  # There was no WM label in the training data sets!
+#### 12/16/2019: Hack to replace below call (does not work with recent bash call....)
+set cmd = (mri_binarize --match 2 41 --count ${asegfile:r:r}.count.txt --i $asegfile --noverbose)
+echo $cmd >> $LF
+echo $cmd >> $sLF
+$cmd |& tee -a $LF
+if ($status) exit 1;
+set nums = `cat ${asegfile:r:r}.count.txt`
+if !($nums[1] > 0) then
+# There was no WM label in the training data sets!
   set withGMWM = 0;
 endif
+####
 
 # (D) postprocessing the segmentation
 
@@ -794,15 +840,6 @@ echo $cmd >> $sLF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
-## add segmentation of the CC
-if ($computeCCseg) then
-set cmd = (mri_cc -aseg aseg.mgz -o aseg_CCseg.mgz $subj)
-echo $cmd >> $LF
-echo $cmd >> $sLF
-$cmd |& tee -a $LF
-if($status) exit 1;
-endif
-
 popd
 
 unsetenv SUBJECTS_DIR
@@ -813,17 +850,47 @@ if !(-e $datadir/$subj/mri/transforms/talairach.auto.xfm) then
   pushd $datadir/$subj/mri/
   set targ = $FREESURFER_HOME/average/mni305.cor.mgz
   set cmd = (mri_convert $targ ./${targ:t:r}.nii.gz)
-  set talaffine = $datadir/$subj/mri/transforms/niftyreg_affine.txt
-  set cmd = ($niftycmddir/reg_aladin -ref ./${targ:t:r}.nii.gz -flo $maskedfile -aff $talaffine \
-                                     -res ${talaffine:r}.nii.gz  -voff)
-  set cmd = ($cmd; lta_convert --inniftyreg $talaffine --outlta ${talaffine:r}.lta \
-                                     --outmni ${talaffine:r}.xfm --src $maskedfile --trg ./${targ:t:r}.nii.gz)
-  set cmd = ($cmd; rm -f ./${targ:t:r}.nii.gz)
-  set cmd = ($cmd; ln -s ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  set talaffine = $datadir/$subj/mri/transforms/niftyreg_affine.txt
+  set cmd = (reg_aladin -ref ./${targ:t:r}.nii.gz -flo $maskedfile -aff $talaffine \
+                                     -res ${talaffine:r}.nii.gz  -voff)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  set cmd = (lta_convert --inniftyreg $talaffine --outlta ${talaffine:r}.lta \
+                                     --outmni ${talaffine:r}.xfm --src $maskedfile --trg ./${targ:t:r}.nii.gz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  set cmd = (rm -f ./${targ:t:r}.nii.gz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  set cmd = (ln -s ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  ## add segmentation of the CC 12/17/2019
+  if ($computeCCseg) then
+    set cmd = (mri_cc -aseg aseg.mgz -o aseg_CCseg.mgz $subj)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+  if($status) exit 1;
+  endif
+
   popd
 endif
 if !(-e $datadir/$subj/mri/transforms/talairach.xfm) then
@@ -835,15 +902,22 @@ if !(-e $datadir/$subj/mri/transforms/talairach.xfm) then
 endif
 ##
 
-if !(`find_cerebral_wm_labels.csh $datadir/$subj/mri/aseg.nii.gz`) then 
+##### 12/16/2019: Hack to replace below call (does not work with recent bash call....)
+set cmd = (mri_binarize --match 2 41 --count $datadir/$subj/mri/aseg.count.txt --i $datadir/$subj/mri/aseg.nii.gz --noverbose)
+echo $cmd >> $LF
+echo $cmd >> $sLF
+$cmd |& tee -a $LF
+if ($status) exit 1;
+set nums = `cat $datadir/$subj/mri/aseg.count.txt`
+if !($nums[1] > 0) then
   echo "SKIPPING surface creation as no GM/WM separation in the segmentation!"
 else
-echo Creating wm surfaces.... >> $LF
-# if !(-e $SUBJECTS_DIR/$subj/surf/rh.white) then
-# if !(-e $SUBJECTS_DIR/$subj/label/rh.aparc.annot) then
+  echo Creating wm surfaces.... >> $LF
+endif
+#####
+
 if (1) then # 06/14/2017
-  # set cmd = (source $FREESURFER_HOME/bin/create_wm_surfaces_mprage_subject.csh --s $subj) 
-  set cmd = (source create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -854,8 +928,7 @@ endif
 echo Creating pial surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.pial) then
 if !(-e $SUBJECTS_DIR/$subj/surf/rh.thickness) then
-  # set cmd = (source $FREESURFER_HOME/bin/create_pial_surfaces_mprage_subject.csh --s $subj)
-  set cmd = (source create_pial_surfaces_mprage_subject.csh --s $subj)
+  set cmd = (create_pial_surfaces_mprage_subject.csh --s $subj)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -889,10 +962,17 @@ foreach hemi (lh rh)
 end
 popd
 
-#pushd $SUBJECTS_DIR/$s.EB
-#set cmd = (mri_segstats --seg mri/aseg.mgz --sum aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --e
-#uler --ctab /usr/local/freesurfer/stable6_0_0/ASegStatsLUT.txt --subject $s.EB)
-#popd
+if ($dostats) then
+pushd $datadir/$subj/
+set cmd = (mri_segstats --seg mri/aseg.mgz --sum aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg --excludeid 0 \
+                        --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol \
+                        --surf-ctx-vol --totalgray --euler --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subj)
+echo $cmd >> $LF
+echo $cmd >> $sLF
+$cmd |& tee -a $LF
+if($status) exit 1;
+popd
+endif
 
 ##
 
@@ -952,7 +1032,7 @@ echo "Successfully finished infant_recon_all" >> $LF
 echo "Successfully finished infant_recon_all" >> $sLF
 set EndTime = `date +%s`;
 @ DiffTime = $EndTime - $StartTime
-set TimeMsg = "infant_recon_all: The whole process took $DiffTie seconds"
+set TimeMsg = "infant_recon_all: The whole process took $DiffTime seconds"
 echo $TimeMsg |& tee -a $sLF
 echo $TimeMsg >> $LF
 exit 0;

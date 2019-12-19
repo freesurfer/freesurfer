@@ -1,4 +1,10 @@
+from . import gemsbindings
 from .utilities import Specification, icv
-from .register_atlas import registerAtlas
-from .samsegment import samsegment, samsegmentLongitudinal
+from .SamsegUtility import *
+from .Affine import Affine
+from .GMM import GMM
+from .BiasField import BiasField
+from .ProbabilisticAtlas import ProbabilisticAtlas
+from .Samseg import Samseg
+from .SamsegLongitudinal import SamsegLongitudinal
 from .figures import initVisualizer

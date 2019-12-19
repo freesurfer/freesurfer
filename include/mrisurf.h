@@ -1684,6 +1684,12 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
                                   int vno,
                                   double *pnx, double *pny, double *pnz) ;
 
+float* MRISgetVertexArray(MRIS *mris);
+float* MRISgetVertexNormalArray(MRIS *mris);
+int*   MRISgetFaceArray(MRIS *mris);
+float* MRISgetFaceNormalArray(MRIS *mris);
+MRIS*  MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces);
+
 #define MRISgetCoords(v,c,vx,vy,vz) \
  MRISvertexCoord2XYZ_float(v,c,vx,vy,vz)
 #if 0 
