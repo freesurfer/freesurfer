@@ -47,10 +47,13 @@ setup(
     author_email='freesurfer@nmr.mgh.harvard.edu',
     url='https://github.com/freesurfer/freesurfer',
     packages=find_packages(include=packages),
-    package_data={'freesurfer': operator.add(
-                       find_libs('bindings'),
-                       find_libs('labelfusion', required=False)),
-                  'freesurfer.gems': find_libs('gems_python')},
+    package_data={
+        'freesurfer': operator.add(
+            find_libs('bindings'),
+            find_libs('labelfusion', required=False)),
+        'freesurfer.samseg':
+            find_libs('gemsbindings')
+    },
     install_requires=requirements,
     include_package_data=True
 )
