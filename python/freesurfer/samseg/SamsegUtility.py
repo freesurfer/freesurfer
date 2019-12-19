@@ -1,9 +1,9 @@
-import freesurfer.gems as gems
 from freesurfer.samseg.figures import initVisualizer
 import numpy as np
-from freesurfer.gems import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+from freesurfer.samseg.io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
 import os
 from freesurfer.samseg.utilities import requireNumpyArray
+from . import gemsbindings as gems
 
 
 def getModelSpecifications(atlasDir, userModelSpecifications={}):

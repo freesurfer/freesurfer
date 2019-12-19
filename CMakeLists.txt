@@ -301,7 +301,7 @@ set(FS_INCLUDE_DIRS
 )
 
 # build the freesurfer static libraries
-add_subdirectories(utils)
+add_subdirectory(utils)
 
 # the following utility libraries are required for freeview
 add_subdirectories(vtkutils lineprof)
@@ -309,8 +309,8 @@ add_subdirectories(vtkutils lineprof)
 # the fem elastic subdir also builds a library, so it should be added first
 add_subdirectory(fem_elastic)
 
-# build the gems python library
-add_subdirectories(GEMS2)
+# build the gems library
+add_subdirectory(gems)
 
 # --------------------------------------------------
 #                      programs

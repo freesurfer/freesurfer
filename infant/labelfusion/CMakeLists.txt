@@ -1,9 +1,9 @@
 project(labelfusion)
 
-include_directories(${CMAKE_SOURCE_DIR}/python/bindings ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 pybind11_add_module(labelfusion
-  ${CMAKE_SOURCE_DIR}/python/bindings/numpy.cpp
+  numpy.cpp
   python.cpp
   cmf3d_ml.cpp
   fib.cpp

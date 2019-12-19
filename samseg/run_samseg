@@ -5,13 +5,13 @@ import sys
 import json
 import scipy.io
 import freesurfer as fs
-from freesurfer.gems import setGlobalDefaultNumberOfThreads
 from freesurfer.samseg import Affine, Samseg, initVisualizer, icv
+from freesurfer.samseg.gemsbindings import setGlobalDefaultNumberOfThreads
 
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.ArgParser()
+parser = fs.utils.ArgumentParser()
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
@@ -34,17 +34,15 @@ parser.add_argument('--movie', action='store_true', default=False, help='Show hi
 
 args = parser.parse_args()
 
-fs.printPeakMemory('run_samseg init')
-
 
 # ------ Initial Setup ------
 
 # Make sure freesurfer has been sourced
 if not fs.fshome():
-    fs.errorExit('FREESURFER_HOME must be set')
+    fs.fatal('FREESURFER_HOME must be set')
 
 # Start the process timer
-timer = fs.Timer()
+timer = fs.utils.Timer()
 
 # Create the output folder
 os.makedirs(args.outputDirectory, exist_ok=True)
@@ -70,8 +68,6 @@ if not atlasDir:
 visualizer = initVisualizer(args.showfigs, args.movie)
 
 # ------ Perform Affine Registration ------
-
-fs.printPeakMemory('run_samseg performing affine reg')
 
 templateFileName = os.path.join(atlasDir, 'template.nii')
 affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
@@ -118,8 +114,6 @@ if args.options:
 
 # ------ Run Samsegment ------
 
-fs.printPeakMemory('run_samseg running samsegment')
-
 samseg = Samseg(args.inputFileNames, atlasDir, args.outputDirectory,
                 transformedTemplateFileName=transformedTemplateFileName,
                 userModelSpecifications=userModelSpecifications,
@@ -151,5 +145,4 @@ sbtiv = icv(zip(*[names, volumes]))
 with open(os.path.join(args.outputDirectory, 'sbtiv.stats'), 'w') as fid:
     fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
-fs.printPeakMemory('#VMPC# run_samseg')
 timer.mark('run_samseg complete')

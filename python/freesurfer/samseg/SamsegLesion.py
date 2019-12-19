@@ -1,11 +1,13 @@
+import numpy as np
+import os
+
 from freesurfer.samseg.Samseg import Samseg
 from freesurfer.samseg.utilities import Specification
 from freesurfer.samseg.SamsegUtility import *
-from freesurfer.gems import kvlReadSharedGMMParameters
+from freesurfer.samseg.io import kvlReadSharedGMMParameters
 from freesurfer.samseg.VAE import VAE
-import freesurfer.gems as gems
-import numpy as np
-import os
+from freesurfer.sameg.merge_alphas import kvlGetMergingFractionsTable
+from . import gems
 
 eps = np.finfo(float).eps
 
@@ -69,7 +71,7 @@ class SamsegLesion(Samseg):
         modelSpecifications = Specification(modelSpecifications)
         numberOfGaussiansPerClass = [param.numberOfComponents for param in modelSpecifications.sharedGMMParameters]
 
-        classFractions, _ = gems.kvlGetMergingFractionsTable(modelSpecifications.names,
+        classFractions, _ = kvlGetMergingFractionsTable(modelSpecifications.names,
                                                           modelSpecifications.sharedGMMParameters)
 
         structureNumbers = np.flatnonzero(classFractions[classNumber, :] == 1)

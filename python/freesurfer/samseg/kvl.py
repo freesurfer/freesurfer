@@ -1,8 +1,6 @@
 import logging
-
-import freesurfer.gems as gems
-
 import numpy as np
+from . import gems
 
 logger = logging.getLogger(__name__)
 

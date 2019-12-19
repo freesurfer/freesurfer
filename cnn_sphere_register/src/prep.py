@@ -7,7 +7,7 @@ import freesurfer as fs
 
 def normCurvature(curvFileName, which_norm='Median'):
 
-        curv = fs.Volume(curvFileName).image.squeeze()
+        curv = fs.Overlay.read(curvFileName).data
         normed = (curv - np.median(curv))/np.std(curv)
 
         return normed
@@ -15,10 +15,10 @@ def normCurvature(curvFileName, which_norm='Median'):
 
 def spherePad(surfName, curvFileName, padSize=8, which_norm='Median'):
 
-        surf = fs.Surface(surfName)
+        surf = fs.Surface.read(surfName)
         curv = normCurvature(curvFileName, which_norm)
 
-        mrisp = surf.parameterize(curv)
+        mrisp = surf.parameterize(curv)  # TODO this might be incorrect now
         cols = mrisp.shape[0]
         rows = mrisp.shape[1]
 
