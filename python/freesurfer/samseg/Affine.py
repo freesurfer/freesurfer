@@ -4,7 +4,7 @@ import scipy.ndimage
 import numpy as np
 
 import freesurfer as fs
-from . import gems
+from . import gems, convertLPSTransformToRAS
 
 from .utilities import requireNumpyArray
 from .figures import initVisualizer
@@ -67,12 +67,11 @@ class Affine:
             if initTransform is None:
                 initialWorldToWorldTransformMatrix = np.identity(4)
             else:
-                print('initializing with transform')
-                RAS2LPS = np.diag([-1, -1, 1, 1])  # for converting from RAS to LPS
-                # Assume the matrix is ras2ras
-                initialWorldToWorldTransformMatrix = RAS2LPS @ initTransform @ np.linalg.inv(RAS2LPS)
+                # Assume the initialization matrix is LPS2LPS
+                print('initializing with predifined transform')
+                initialWorldToWorldTransformMatrix = initTransform
 
-            # Provide an initial (non-identity) affine transform guest estimate
+            # Provide an initial (non-identity) affine transform guestestimate
             rotationMatrix, scalingMatrix = self.computeRotationAndScalingMatrixGuessEstimates()
 
             initialWorldToWorldTransformMatrix = rotationMatrix @ initialWorldToWorldTransformMatrix
@@ -182,6 +181,15 @@ class Affine:
         scipy.io.savemat(os.path.join(savePath, templateFileNameBase + '_coregistrationMatrices.mat'),
                          {'imageToImageTransformMatrix': imageToImageTransformMatrix,
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
+
+        # Save the template transform
+        xform = fs.LinearTransform(convertLPSTransformToRAS(worldToWorldTransformMatrix))
+        xform.type = fs.LinearTransform.Type.ras
+        xform.source = fs.Volume.read(templateFileName).geometry()
+        xform.target = fs.Volume.read(imageFileName).geometry()
+        ltaFileName = os.path.join(savePath, 'template.lta')
+        print('writing template transform to %s' % ltaFileName)
+        xform.write(ltaFileName)
 
         # Compute and save the talairach.xfm
         xform = self.computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix)

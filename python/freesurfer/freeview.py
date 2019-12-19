@@ -45,7 +45,8 @@ class Freeview:
         self.add_flag(flag)
 
     def surf(self, surface, overlay=None, mrisp=None, **kwargs):
-        '''loads a surface in the freeview session. If the surface provided is not
+        '''
+        Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
         key/value tags allowed on the command line can be provided as arguments.
 

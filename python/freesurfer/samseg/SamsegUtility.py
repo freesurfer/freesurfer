@@ -259,6 +259,16 @@ def scaleBiasFields(biasFields, imageBuffers, mask, posteriors, targetIntensity=
     return scalingFactors
 
 
+def convertRASTransformToLPS(ras2ras):
+    ras2lps = np.diag([-1, -1, 1, 1])
+    return ras2lps @ ras2ras @ np.linalg.inv(ras2lps)
+
+
+def convertLPSTransformToRAS(lps2lps):
+    ras2lps = np.diag([-1, -1, 1, 1])
+    return np.linalg.inv(ras2lps) @ lps2lps @ ras2lps
+
+
 def writeResults(imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
                  targetIntensity=None, targetSearchStrings=None, names=None, threshold=None,
                  thresholdSearchString=None, savePosteriors=False):
