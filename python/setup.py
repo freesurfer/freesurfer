@@ -11,7 +11,7 @@ from setuptools import setup, find_packages, Distribution
 # the freesurfer python packages
 packages = [
     'freesurfer',
-    'freesurfer.gems',
+    'freesurfer.utils',
     'freesurfer.samseg',
     'freesurfer.deeplearn'
 ]
