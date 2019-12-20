@@ -52,6 +52,28 @@ class LinearTransform:
         '''Computes the inverse linear transform.'''
         return LinearTransform(np.linalg.inv(self.matrix))
 
+    def as_ras(self):
+        '''Converts affine matrix to a RAS to RAS transform.'''
+        if self.type is None:
+            raise ValueError('transform must have type if converting between spaces')
+        # if already the desired type, return self
+        if self.type == LinearTransform.Type.ras:
+            return self
+        # include source/target RAS information
+        matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
+
+    def as_vox(self):
+        '''Converts affine matrix to a VOX to VOX transform.'''
+        if self.type is None:
+            raise ValueError('transform must have type if converting between spaces')
+        # if already the desired type, return self
+        if self.type == LinearTransform.Type.vox:
+            return self
+        # exclude source/target RAS information
+        matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
+
     def write(self, filename):
         '''Writes the transform to an LTA file.'''
         bindings.transform.write_lta(self, filename)
