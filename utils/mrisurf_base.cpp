@@ -932,36 +932,6 @@ float* MRISgetFaceNormalArray(MRIS *mris)
 }
 
 
-/*
-  Contructs an MRIS instance from a set of vertices and faces.
-
-  \param vertices An (nvertices x 3) array of vertex positions.
-  \param nvertices Number of vertices in mesh.
-  \param faces An (nfaces x 3) array of face indices.
-  \param nfaces Number of faces in mesh.
-*/
-MRIS* MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces)
-{
-  MRIS* mris = MRISalloc(nvertices, nfaces);
-  mris->type = MRIS_TRIANGULAR_SURFACE;
-
-  // vertex positions
-  const float* v = vertices;
-  for (int n = 0 ; n < mris->nvertices ; n++, v += 3) MRISsetXYZ(mris, n, v[0], v[1], v[2]);
-
-  // face positions
-  const int* f = faces;
-  setFaceAttachmentDeferred(mris, true);
-  for (int n = 0 ; n < mris->nfaces ; n++, f += 3) mrisAttachFaceToVertices(mris, n, f[0], f[1], f[2]);
-  setFaceAttachmentDeferred(mris, false);
-
-  mrisCompleteTopology(mris);
-  MRIScomputeMetricProperties(mris);
-
-  return mris;
-}
-
-
 char const * mrisurf_surface_names[3] = {"inflated", "smoothwm", "smoothwm"};
 char const * curvature_names      [3] = {"inflated.H", "sulc", NULL};
 
