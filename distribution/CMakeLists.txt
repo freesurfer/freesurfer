@@ -2,7 +2,6 @@ install(FILES
   ASegStatsLUT.txt
   DefectLUT.txt
   FreeSurferColorLUT.txt
-  recon-config.yaml
   SegmentNoLUT.txt
   Simple_surface_labels2005.txt
   Simple_surface_labels2009.txt
@@ -21,7 +20,7 @@ install(PROGRAMS
   DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
 
-add_subdirectories(average docs fsafd subjects)
+add_subdirectories(average docs fsafd subjects etc)
 
 install_symlinks(
   lib/bem/ic0.tri
