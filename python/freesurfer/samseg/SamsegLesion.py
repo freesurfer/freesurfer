@@ -6,7 +6,7 @@ from freesurfer.samseg.utilities import Specification
 from freesurfer.samseg.SamsegUtility import *
 from freesurfer.samseg.io import kvlReadSharedGMMParameters
 from freesurfer.samseg.VAE import VAE
-from freesurfer.sameg.merge_alphas import kvlGetMergingFractionsTable
+from freesurfer.samseg.merge_alphas import kvlGetMergingFractionsTable
 from . import gems
 
 eps = np.finfo(float).eps
