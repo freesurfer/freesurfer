@@ -17,12 +17,27 @@ set longitudinal = 0
 set tpNid = ()
 set longbaseid = ()
 set CopyBiasFromConf = 0;
-set MMode = T2
-set DoT2 = 1
+set MMode = ()
+set DoT2 = 0
+set DoT2pial = 0
 set DoFLAIR = 0
+set DoFLAIRpial = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
 set DoSurfVolume = 0;
+set mps_n_averages = ()
+set XOptsFile = ()
+set GlobXOptsFile = ()
+set ForceUpdate = 0
+set RunIt = 1
+
+set DoTime = 0;
+if($?SET_FS_CMD_TIMING) set DoTime = 1;
+set fs_time = "";
+if ($DoTime) then
+  fs_time ls >& /dev/null
+  if ( ! $status) set fs_time=(fs_time)
+endif
 
 if($?CONF2HIRES_USEDEV == 0) then
   setenv CONF2HIRES_USEDEV 0
@@ -32,6 +47,7 @@ set usedev = $CONF2HIRES_USEDEV;
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
+set CF = /dev/null
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -99,17 +115,33 @@ cd $mdir
 # orig and rawavg.cmdc share the TkrRAS space.
 set cmd = (mri_convert rawavg.mgz rawavg.cmdc0.mgz --conform-dc --conform_min)
 echo "\n#===============================" | tee -a $LF
+echo "Creating rawavg.cmdc0.mgz"| tee -a $LF
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded rawavg.cmdc0.mgz rawavg.mgz`
+if($ud || $ForceUpdate) then
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+endif
 
 # This one will not be rescaled. Cubic will make a difference here for non-isotropic.
 set cmd = (mri_vol2vol --mov rawavg.mgz --targ rawavg.cmdc0.mgz --regheader \
   --o rawavg.cmdc.mgz --interp cubic)
 echo "\n#===============================" | tee -a $LF
+echo "Creating rawavg.cmdc.mgz"| tee -a $LF
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded rawavg.cmdc.mgz rawavg.cmdc0.mgz rawavg.mgz`
+if($ud || $ForceUpdate) then
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+endif
 
 # Create a registration to go from conformed space to rawavg. 
 set regC2R = transforms/conf2rawavg.dat
@@ -117,9 +149,17 @@ set regC2Rlta = transforms/conf2rawavg.lta
 set cmd = (tkregister2_cmdl --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
   --reg $regC2R  --ltaout $regC2Rlta)
 echo "\n#===============================" | tee -a $LF
+echo "Creating conf2rawavg.lta"| tee -a $LF
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $regC2Rlta orig.mgz rawavg.cmdc.mgz`
+if($ud || $ForceUpdate) then
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+endif
 
 # Create a registration to go from rawavg to conformed space (inv of above)
 set regR2C = transforms/rawavg2conf.dat
@@ -127,18 +167,34 @@ set regR2Clta = transforms/rawavg2conf.lta
 set cmd = (tkregister2_cmdl --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
   --reg $regR2C --ltaout $regR2Clta)
 echo "\n#===============================" | tee -a $LF
+echo "Creating rawavg2conf.lta"| tee -a $LF
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $regR2Clta orig.mgz rawavg.cmdc.mgz`
+if($ud || $ForceUpdate) then
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+endif
 
 # Map the various lowres volumes that mris_make_surfaces needs into the hires coords
 # nearest needed for aseg, but not sure whether it matters for others
 foreach v (wm.mgz filled.mgz aseg.presurf.mgz)
   set cmd = (mri_vol2vol --mov $v --targ rawavg.cmdc.mgz --interp nearest --o rawavg.$v --regheader)
   echo "\n#===============================" | tee -a $LF
+  echo "Creating rawavg.$v"| tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.$v $v`
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
+  endif
 end
 
 # Have to do something special here. Map brain.finalsurfs.mgz but call
@@ -148,11 +204,21 @@ end
 # conformed brain.finalsurfs could have manual edits; it is possible
 # that these edits might not get mapped exactly right due to
 # interpolation effects.
+echo "\n#===============================" | tee -a $LF
+echo "Creating rawavg.brain.fs.mgz"| tee -a $LF
 set cmd = (mri_vol2vol --mov brain.finalsurfs.mgz --targ rawavg.cmdc.mgz \
   --interp nearest --o rawavg.brain.fs.mgz --regheader)
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded rawavg.brain.fs.mgz brain.finalsurfs.mgz`
+if($ud || $ForceUpdate) then
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
 
 # Map the source surf coords into the rawavg space, need to use regR2C here
 foreach hemi ($hemilist)
@@ -160,12 +226,20 @@ foreach hemi ($hemilist)
   set surflist = ($srcsurf)
   if($longitudinal) set surflist = ($surflist orig_pial)
   foreach surf ($surflist) 
+    echo "\n#===============================" | tee -a $LF
+    echo "Creating $hemi.$surf.rawavg"| tee -a $LF
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
      --reg $regR2C rawavg.cmdc.mgz --tval-xyz rawavg.cmdc.mgz --tval $surf.rawavg)
-    echo "\n#===============================" | tee -a $LF
     echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set ud = `UpdateNeeded ../surf/$hemi.$surf.rawavg ../surf/$hemi.$surf $regR2C `
+    if($ud || $ForceUpdate) then
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      else
+        echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+      endif
+    endif
   end
 end
 
@@ -174,7 +248,11 @@ end
 # makes conf and rawavg share the TkrRAS space.
 set UseControlPoints = 0;
 set ControlPointsFile = $SUBJECTS_DIR/$subject/tmp/control.dat
-if(-e $ControlPointsFile) set UseControlPoints = 1;
+if(-e $ControlPointsFile) then
+  set UseControlPoints = 1;
+else
+  set ControlPointsFile = ()
+endif
 
 if($CopyBiasFromConf) then
   # This branch might not work anymore
@@ -222,61 +300,139 @@ else
   if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
   set cmd = ($cmd rawavg.cmdc.mgz rawavg.norm.mgz)
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.norm.mgz rawavg.cmdc.mgz ../surf/?h.$surf.rawavg ../surf/$hemi.$surf $regR2C $ControlPointsFile`
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
+  endif
+
   # Mask the normalized. Remember, rawavg.brain.fs.mgz is the brain.finalsurfs.mgz
   # mapped from the conformed space. This makes the rawavg.brain.finalsurfs.mgz
   # have the proper masking with the new normalization.
   set cmd = (mri_mask rawavg.norm.mgz rawavg.brain.fs.mgz rawavg.brain.finalsurfs.mgz)
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.brain.finalsurfs.mgz rawavg.norm.mgz rawavg.brain.fs.mgz `
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
+  endif
+
   # Map rawavg.brain.finalsurfs.mgz back to conf space for convenience
   set cmd = (mri_vol2vol --mov rawavg.brain.finalsurfs.mgz --targ orig.mgz \
     --regheader --o rawavg.brain.finalsurfs.conf.mgz --interp nearest)
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.brain.finalsurfs.conf.mgz rawavg.brain.finalsurfs.mgz orig.mgz`
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
+  endif
+
 endif
  
-# Place the white and pial surfaces on the highres. This will overwrite thickness.
+# Place the white and pial surfaces on the highres. 
+set bfs  = rawavg.brain.finalsurfs.mgz
+set wm   = rawavg.wm.mgz
+set aseg = rawavg.aseg.presurf.mgz
 foreach hemi ($hemilist)
-  date | tee -a $LF
-  if(! -e $sdir/$hemi.bak.thickness && -e $sdir/$hemi.thickness) then
-    set cmd = (cp $sdir/$hemi.thickness $sdir/$hemi.bak.thickness)
-    echo "\n#===============================" | tee -a $LF
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
+  echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# c2hWhiteSurfs $hemi `date`" |& tee -a $LF |& tee -a $CF
+  set ads  = ../surf/autodet.gw.stats.$hemi.dat
+  set inputsurf = ../surf/$hemi.$srcsurf
+  set aparc  = ../label/$hemi.aparc.annot  
+  set cortex = ../label/$hemi.cortex.label
+  set white = ../surf/$hemi.white.rawavg
+  set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
+    --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $white \
+    --white --nsmooth 0 --rip-label $cortex --rip-bg --rip-wmsa \
+    --rip-surf $inputsurf --aparc $aparc)
+  if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
+  if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+  set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+  echo $cmd    |& tee -a $LF |& tee -a $CF
+  set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex`
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
+    endif
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
   endif
-  if($usedev == 1) set cmd = (mris_make_surfaces.dev -save-res -save-target)
-  if($usedev == 0) set cmd = (mris_make_surfaces)
-  if($#MMode == 0) set pialname = pial.rawavg
-  if($#MMode == 1) set pialname = wo{$MMode}.pial.rawavg
-  set cmd = ($cmd -aseg rawavg.aseg.presurf \
-    -filled rawavg.filled  -wm rawavg.wm -T1 rawavg.brain.finalsurfs \
-    -orig $srcsurf.rawavg -orig_white $srcsurf.rawavg)
-  if($longitudinal) set cmd = ($cmd -orig_pial orig_pial.rawavg -long -max 3.5)
-  set cmd = ($cmd -white white.rawavg -pial $pialname) # outputs
-  set cmd = ($cmd  $subject $hemi)
-  echo "\n#===============================" | tee -a $LF
-  echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+
+  echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# c2hT1PialSurf $hemi `date`" |& tee -a $LF |& tee -a $CF
+  set ads  = ../surf/autodet.gw.stats.$hemi.dat
+  set inputsurf = ../surf/$hemi.white.rawavg
+  if($longitudinal) set inputsurf = ../surf/$hemi.orig_pial
+  set aparc  = ../label/$hemi.aparc.annot  
+  set cortex   = ../label/$hemi.cortex.label
+  set cortexha = ../label/$hemi.cortex+hipamyg.label 
+  set white = ../surf/$hemi.white
+  set pial = ../surf/$hemi.pial.T1.rawavg
+  set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
+      --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
+      --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
+      --aparc $aparc --repulse-surf $white  --white-surf $white)
+  if($longitudinal) then
+    set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
+    set cmd = ($cmd --blend-surf .25 $white)
+  endif
+  if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+  # Things might need to add: noaseg, noaparc, UseFixMtl
+  set xopts = `fsr-getxopts PlaceT1PialSurf $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+  echo $cmd      |& tee -a $LF |& tee -a $CF
+  set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha`
+  if($ud || $ForceUpdate) then
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if($DoT2pial == 0 &&  $DoFLAIRpial == 0)  then
+        cd ../surf; ln -sf $hemi.pial.T1.rawavg $hemi.pial.rawavg; cd ../mri
+      endif
+    endif
+  else
+    echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+  endif
+  # Make curvature file after any T2 refinement
+
   # Map the surf coords back into the conformed space, need to use regC2R here
   # Could do it after T2, but if T2 fails, it never gets done
   set surflist = (white.rawavg)
   if($#MMode) then
-    set surflist = ($surflist wo{$MMode}.pial.rawavg)
+    set surflist = ($surflist pial.T1.rawavg)
   else
     set surflist = ($surflist pial.rawavg)
   endif
   foreach surf ($surflist)
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
       --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
-    echo "\n#===============================" | tee -a $LF
+    echo "\n# Creating $hemi.$surf.conf ====================" | tee -a $LF
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
+    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regC2R orig.mgz`
+    if($ud || $ForceUpdate) then
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
   end
   # Create symbolic links
   pushd $sdir
@@ -284,7 +440,7 @@ foreach hemi ($hemilist)
   if(! $#MMode) then
     ln -sf $hemi.pial.rawavg.conf  $hemi.pial |& tee -a $LF
   else
-    ln -sf $hemi.wo${MMode}.pial.rawavg.conf $hemi.wo${MMode}.pial |& tee -a $LF
+    ln -sf $hemi.pial.T1.rawavg.conf $hemi.pial.T1 |& tee -a $LF
   endif
   popd
 end #hemi
@@ -319,7 +475,7 @@ if($#MMode) then
     if($DontCopy) set OKtoCopy = 0;
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
-    --$MMBBRcon --surf $srcsurf --proj-abs 1.5 --threads $threads)
+    --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -376,24 +532,39 @@ if($#MMode) then
 
   # Now place the pial using the ${MMode}
   # Unlike above, there are no long args for T2 or FLAIR
-  set devargs = (-T2_max_inside 225 -wm_weight 0 -T2_min_outside \
-    110 -min_peak_pct .01 .1 .5 .5 -location 1.0)
   foreach hemi ($hemilist)
-    if($usedev == 1) set cmd = (mris_make_surfaces.dev $devargs)
-    if($usedev == 0) set cmd = (mris_make_surfaces)
-    set cmd = ($cmd  -cortex 0 -noaparc\
-      -pial pial.rawavg -white NOWRITE -nowhite \
-      -orig $srcsurf.rawavg -orig_white white.rawavg -orig_pial wo${MMode}.pial.rawavg \
-      -aseg rawavg.aseg.presurf -wm rawavg.wm -filled rawavg.filled -mgz \
-      -T1 rawavg.brain.finalsurfs)
-    if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
-    if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
-    set cmd = ($cmd $subject $hemi)
-    date | tee -a $LF
-    echo "\n#===============================" | tee -a $LF
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
+    echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
+    echo "#@# c2hMMPialSurf $hemi `date`" |& tee -a $LF |& tee -a $CF
+    set ads  = ../surf/autodet.gw.stats.$hemi.dat
+    set aparc  = ../label/$hemi.aparc.annot  
+    set cortex   = ../label/$hemi.cortex.label
+    set cortexha = ../label/$hemi.cortex+hipamyg.label 
+    set white = ../surf/$hemi.white.rawavg
+    set pialt1 = ../surf/$hemi.pial.T1.rawavg
+    set pialmm = ../surf/$hemi.pial.$MMode.rawavg
+    set mmvol = $MMode.mgz
+    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg  --wm $wm \
+      --invol $bfs --$hemi  --i $pialt1 --o $pialmm --pial --nsmooth 0 \
+      --rip-label $cortexha --pin-medial-wall $cortex --white-surf $white \
+      --aparc $aparc --repulse-surf $white --mmvol $mmvol $MMode)
+    if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    #if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
+    #if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
+    # Things might need to add: noaseg, noaparc, UseFixMtl
+    set xopts = `fsr-getxopts PlaceMMPialSurf $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+    echo $cmd        |& tee -a $LF |& tee -a $CF
+    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm `
+    if($ud || $ForceUpdate) then
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+	cd ../surf; ln -sf $hemi.pial.$MMode.rawavg $hemi.pial; cd ../mri
+      endif
+    else
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
+    endif
     # Map the surf coords back into the conformed space, need to use regC2R here
     set surf = pial.rawavg
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
@@ -485,22 +656,26 @@ while( $#argv != 0 )
     case "--T2":
     case "--t2":
       set DoT2 = 1;
+      set DoT2pial = 1
       set MMode = T2
       breaksw
     case "--no-t2":
     case "--no-T2":
       set DoT2 = 0;
+      set DoT2pial = 0
       set MMode = ()
       breaksw
 
     case "--FLAIR":
     case "--flair":
       set DoFLAIR = 1;
+      set DoFLAIRpial = 1
       set MMode = FLAIR
       breaksw
     case "--no-flair":
     case "--no-FLAIR":
       set DoFLAIR = 0;
+      set DoFLAIRpial = 0
       set MMode = ()
       breaksw
 
@@ -565,6 +740,15 @@ while( $#argv != 0 )
       breaksw
     case "--no-copy-bias-from-conf":
       set CopyBiasFromConf = 0
+      breaksw
+
+    case "-force-update":
+      set ForceUpdate = 1;
+      breaksw
+
+    case "-mps_n_averages"
+      if ( $#argv < 1) goto arg1err;
+      set mps_n_averages = $argv[1]; shift;
       breaksw
 
     case "--log":
