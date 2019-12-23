@@ -125,7 +125,9 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     VolumeFilterDilate.cpp
     VolumeFilterOpen.cpp
     VolumeFilterClose.cpp
+    VolumeFilterBoundary.cpp
     vtkSimpleLabelEdgeFilter.cpp
+    vtkSimpleLabelEdgeFilter3D.cpp
     WidgetHistogram.cpp
     WindowConfigureOverlay.cpp
     WindowQuickReference.cpp

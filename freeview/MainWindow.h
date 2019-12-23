@@ -490,6 +490,7 @@ protected slots:
   void OnVolumeFilterOpen();
   void OnVolumeFilterClose();
   void OnVolumeFilterThreshold();
+  void OnVolumeFilterBoundary();
   void OnResetView();
   void OnSavePoint();
   void OnGoToPoint();

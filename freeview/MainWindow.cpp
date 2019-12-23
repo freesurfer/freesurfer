@@ -73,6 +73,7 @@
 #include "VolumeFilterOpen.h"
 #include "VolumeFilterClose.h"
 #include "VolumeFilterThreshold.h"
+#include "VolumeFilterBoundary.h"
 #include "DialogVolumeFilter.h"
 #include "DialogGradientFilter.h"
 #include "Cursor2D.h"
@@ -6963,6 +6964,17 @@ void MainWindow::OnVolumeFilterThreshold()
   //        mri->ResetWindowLevel();
   //    }
   //  }
+}
+
+void MainWindow::OnVolumeFilterBoundary()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterBoundary* filter = new VolumeFilterBoundary( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
 }
 
 void MainWindow::OnVolumeFilterSobel()

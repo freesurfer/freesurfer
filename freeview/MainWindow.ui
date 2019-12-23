@@ -412,6 +412,7 @@
      <addaction name="actionVolumeFilterDilate"/>
      <addaction name="actionVolumeFilterOpen"/>
      <addaction name="actionVolumeFilterClose"/>
+     <addaction name="actionVolumeFilterBoundary"/>
     </widget>
     <addaction name="menuVolume_Filter"/>
     <addaction name="actionTransformVolume"/>
@@ -1706,6 +1707,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterBoundary">
+   <property name="text">
+    <string>Boundary</string>
    </property>
   </action>
  </widget>
@@ -3547,6 +3553,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionVolumeFilterBoundary</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterBoundary()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3652,5 +3674,6 @@
   <slot>OnReloadPointSet()</slot>
   <slot>OnLoadSurfaceParameterization()</slot>
   <slot>OnStereoRender(bool)</slot>
+  <slot>OnVolumeFilterBoundary()</slot>
  </slots>
 </ui>

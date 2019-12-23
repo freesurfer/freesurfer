@@ -30,5 +30,6 @@ void VolumeFilterWorkerThread::OnFinished()
     emit Progress(100);
     emit Finished(m_filter);
     disconnect(m_filter, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
+    m_filter->deleteLater();
   }
 }

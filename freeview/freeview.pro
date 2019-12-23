@@ -108,6 +108,7 @@ SOURCES += \
     VolumeFilterMedian.cpp \
     VolumeFilterSobel.cpp \
     vtkSimpleLabelEdgeFilter.cpp \
+    vtkSimpleLabelEdgeFilter3D.cpp \
     WidgetHistogram.cpp \
     WindowConfigureOverlay.cpp \
     WindowQuickReference.cpp \
@@ -281,6 +282,7 @@ HEADERS  += \
     VolumeFilter.h \
     VolumeFilterSobel.h \
     vtkSimpleLabelEdgeFilter.h \
+    vtkSimpleLabelEdgeFilter3D.h \
     WidgetHistogram.h \
     WindowConfigureOverlay.h \
     WindowQuickReference.h \
