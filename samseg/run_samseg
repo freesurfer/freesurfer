@@ -24,6 +24,11 @@ parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine reg
 parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
+# optional lesion options
+parser.add_argument('--lesion', action='store_true', default=False, help='Enable lesion segmentation (requires tensorflow).')
+parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -50,7 +55,7 @@ os.makedirs(args.outputDirectory, exist_ok=True)
 samseg.setGlobalDefaultNumberOfThreads(args.threads)
 
 # Remove previous cost log
-costfile = os.path.join( args.outputDirectory, "cost.txt" )
+costfile = os.path.join(args.outputDirectory, 'cost.txt')
 if os.path.exists( costfile ):
     os.remove( costfile ) 
 
@@ -59,7 +64,11 @@ atlasDir = os.environ.get('SAMSEG_DATA_DIR')
 if args.atlas:
     atlasDir = args.atlas
 if not atlasDir:
-    defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
+    # Altas defaults
+    if args.lesion:
+        defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2_lesion'
+    else:
+        defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
     atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
 
 # Setup the visualization tool
@@ -101,8 +110,8 @@ _, transformedTemplateFileName, optimizationSummary = affine.registerAtlas(
 # Save a summary of the optimization process
 if optimizationSummary:
     with open( costfile, "a") as file:
-        file.write( "templateRegistration %d %f\n" % (optimizationSummary['numberOfIterations'],
-                                                      optimizationSummary['cost']))
+        file.write('templateRegistration %d %f\n' % (optimizationSummary['numberOfIterations'],
+                                                     optimizationSummary['cost']))
 
 timer.mark('atlas registration complete')
 if args.reg_only:
@@ -117,36 +126,72 @@ userOptimizationOptions = {}
 if args.options:
     with open(args.options) as f:
         userOptions = json.load(f)
-    if userOptions.get( 'modelSpecifications' ) is not None: 
-        userModelSpecifications = userOptions.get( 'modelSpecifications' )
-    if userOptions.get( 'optimizationOptions' ) is not None: 
-        userOptimizationOptions = userOptions.get( 'optimizationOptions' )
+    if userOptions.get('modelSpecifications') is not None: 
+        userModelSpecifications = userOptions.get('modelSpecifications')
+    if userOptions.get('optimizationOptions') is not None: 
+        userOptimizationOptions = userOptions.get('optimizationOptions')
 
 # ------ Run Samsegment ------
 
-samseg = samseg.Samseg(
-    args.inputFileNames,
-    atlasDir,
-    args.outputDirectory,
+samseg_kwargs = dict(
+    imageFileNames=args.inputFileNames,
+    atlasDir=atlasDir,
+    savePath=args.outputDirectory,
     transformedTemplateFileName=transformedTemplateFileName,
     userModelSpecifications=userModelSpecifications,
     userOptimizationOptions=userOptimizationOptions,
+    targetIntensity=110,
+    targetSearchStrings=[ 'Cerebral-White-Matter' ],
     visualizer=visualizer,
     saveHistory=args.history,
     saveMesh=args.save_mesh,
-    targetIntensity=110,
-    targetSearchStrings=[ 'Cerebral-White-Matter' ],
     savePosteriors=args.save_posteriors,
     saveWarp=args.save_warp
 )
+
+if args.lesion:
+    # The intensities mask is used to mask false positive during the sampling process
+    # The mask is created from the intensityMaskingSearchString structure and depending on the value of
+    # intensityMaskingPattern is masking lesion below the intensityMaskingSearchString structure mean if -1,
+    # and above the mean if 1. 0 means no masking
+    # For MS lesion the best setting is the Cortex structure with 0 for T1, 1 for T2 and/or FLAIR.
+    intensityMaskingSearchString = 'Cortex'
+
+    # Let's assume the first image is T1 and the second is FLAIR or T2 and eventually
+    # the third one is a FLAIR or T2. For extra contrasts just use 0 intensity mask pattern.
+    if len(args.inputFileNames) == 1:
+        intensityMaskingPattern = [0]
+    elif len(args.inputFileNames) == 2:
+        intensityMaskingPattern = [0, 1]
+    elif len(args.inputFileNames) == 3:
+        intensityMaskingPattern = [0, 1, 1]
+    else:
+        intensityMaskingPattern = np.zeros(len(args.inputFileNames))
+        intensityMaskingPattern[1:3] = 1
+
+    # Make sure tensorflow is installed
+    fs.utils.check_tensorflow()
+
+    # Delay import until here so that tensorflow doesn't get loaded unless needed
+    from freesurfer.samseg.SamsegLesion import SamsegLesion
+    samseg = SamsegLesion(**samseg_kwargs,
+        intensityMaskingSearchString=intensityMaskingSearchString,
+        intensityMaskingPattern=intensityMaskingPattern,
+        numberOfBurnInSteps=args.burnin,
+        numberOfSamplingSteps=args.samples,
+        threshold=args.threshold,
+    )
+
+else:
+    samseg = samseg.Samseg(**samseg_kwargs)
 
 samseg.preProcess()
 samseg.process()
 _, _, _, optimizationSummary = samseg.postProcess()
 
 # Save a summary of the optimization process
-with open( costfile, "a" ) as file:
-    for multiResolutionLevel, item in enumerate( optimizationSummary ):
-        file.write( "atlasRegistrationLevel%d %d %f\n" % (multiResolutionLevel, item[ 'numberOfIterations' ], item[ 'perVoxelCost' ] ) )
+with open(costfile, 'a') as file:
+    for multiResolutionLevel, item in enumerate(optimizationSummary):
+        file.write('atlasRegistrationLevel%d %d %f\n' % (multiResolutionLevel, item['numberOfIterations'], item['perVoxelCost']))
 
 timer.mark('run_samseg complete')
