@@ -74,6 +74,28 @@ py::object volGeomToPython(VOL_GEOM* vg)
 
 
 /*
+  Converts a python linear transform to an LTA.
+*/
+LTA* pythonToLTA(py::object transform)
+{
+  LTA* lta = LTAalloc(1, nullptr);
+  LINEAR_TRANSFORM *lt = &lta->xforms[0];
+
+  arrayc<double> casted = transform.attr("matrix").cast<arrayc<double>>();
+  const double *affine = casted.data();
+  for (int i = 0; i < 16; i++) lt->m_L->data[i] = affine[i];
+
+  py::object type = transform.attr("type");
+  if (!type.is(py::none())) lta->type = type.cast<int>();
+
+  pythonToVolGeom(transform.attr("source"), &lt->src);
+  pythonToVolGeom(transform.attr("target"), &lt->dst);
+
+  return lta;
+}
+
+
+/*
   Reads a python transform from file via the LTA bridge.
 */
 py::object readLTA(const std::string& filename)
@@ -100,19 +122,7 @@ py::object readLTA(const std::string& filename)
 */
 void writeLTA(py::object transform, const std::string& filename)
 {
-  LTA* lta = LTAalloc(1, nullptr);
-  LINEAR_TRANSFORM *lt = &lta->xforms[0];
-
-  arrayc<double> casted = transform.attr("matrix").cast<arrayc<double>>();
-  const double *affine = casted.data();
-  for (int i = 0; i < 16; i++) lt->m_L->data[i] = affine[i];
-
-  py::object type = transform.attr("type");
-  if (!type.is(py::none())) lta->type = type.cast<int>();
-
-  pythonToVolGeom(transform.attr("source"), &lt->src);
-  pythonToVolGeom(transform.attr("target"), &lt->dst);
-
+  LTA *lta = pythonToLTA(transform);
   LTAwrite(lta, filename.c_str());
   LTAfree(&lta);
 }

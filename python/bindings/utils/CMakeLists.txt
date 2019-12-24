@@ -2,11 +2,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 pybind11_add_module(bindings
   module.cpp
+  morph.cpp
   numpy.cpp
-  volume.cpp
-  surface.cpp
-  xform.cpp 
   parameterization.cpp
+  surface.cpp
+  volume.cpp
+  xform.cpp 
 )
 
 # link utilities

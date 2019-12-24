@@ -138,34 +138,3 @@ class ProbabilisticAtlas:
             position = self.mesh_collection.reference_mesh.points + arg
         self.mesh_collection.reference_mesh.points = requireNumpyArray(position)
         self.mesh_collection.write(deformedAtlasFileName)
-
-        #
-        return
-
-    def saveWarpField(self, warpName, atlasFileName, templateName, nodePositions, cropping):
-
-        # load template volume
-        template = fs.Volume(templateName)
-        shape = template.image.shape[:3]
-
-        # rasterize the final node coordinates (in image space) using the initial template mesh
-        self.mesh = self.getMesh(atlasFileName)
-        source = self.mesh.rasterize_values(shape, nodePositions).astype('float32')
-
-        # adjust for the offset introduced by volume cropping
-        source[..., 0] += cropping[0].start
-        source[..., 1] += cropping[1].start
-        source[..., 2] += cropping[2].start
-
-        # since m3z can only be converted from a displacement volume (and not a source map),
-        # let's generate a deformation by subtracting grid coordinates from source coordinates
-        x = np.arange(shape[0])
-        y = np.arange(shape[1])
-        z = np.arange(shape[2])
-        deform = source - np.stack(np.meshgrid(x, y, z, indexing='ij'), axis=-1)
-        deform[source == 0] = 0
-
-        # write deformation field to m3z
-        warp = fs.Volume(deform)
-        warp.affine = template.affine
-        warp.write(warpName)

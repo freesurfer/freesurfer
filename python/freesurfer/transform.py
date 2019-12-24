@@ -152,7 +152,7 @@ class Transformable:
     '''
 
     def geometry(self):
-        '''Returns the geometry associated with the objects.'''
+        '''Returns the geometry associated with the object.'''
         raise NotImplementedError('a class that inherits from Transformable must override geometry()')
 
     def vox2ras(self):
@@ -172,3 +172,18 @@ class Transformable:
 
     def ras2surf(self):
         return self.geometry().ras2surf()
+
+
+class Warp:
+    '''
+    TODO
+    '''
+
+    def __init__(self, warp, source=None, target=None, affine=None):
+        self.data = warp
+        self.source = source
+        self.target = target
+        self.affine = affine
+
+    def write(self, filename):
+        bindings.morph.write_gcam(self, filename)
