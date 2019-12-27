@@ -105,6 +105,8 @@ install(PROGRAMS
   isanalyze
   IsLTA
   isnifti
+  isolate_labels.csh
+  isolate_labels_keeporigval.csh
   jkgcatrain
   label_child
   label_elderly_subject
