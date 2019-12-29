@@ -1,18 +1,19 @@
 import os
 import numpy as np
-import freesurfer as fs
-from . import gems
-
-from freesurfer.samseg.figures import initVisualizer
-from freesurfer.samseg.utilities import requireNumpyArray, Specification
-from freesurfer.samseg.BiasField import BiasField
-from freesurfer.samseg.ProbabilisticAtlas import ProbabilisticAtlas
-from freesurfer.samseg.GMM import GMM
-from freesurfer.samseg.Affine import Affine
-from freesurfer.samseg.SamsegUtility import *
-from freesurfer.samseg.merge_alphas import kvlMergeAlphas, kvlGetMergingFractionsTable
 import logging
 import pickle
+import scipy.io
+import freesurfer as fs
+
+from .figures import initVisualizer
+from .utilities import requireNumpyArray, Specification
+from .BiasField import BiasField
+from .ProbabilisticAtlas import ProbabilisticAtlas
+from .GMM import GMM
+from .Affine import Affine
+from .SamsegUtility import *
+from .merge_alphas import kvlMergeAlphas, kvlGetMergingFractionsTable
+from . import gems
 
 eps = np.finfo(float).eps
 
@@ -169,16 +170,10 @@ class Samseg:
                                                      self.threshold, self.thresholdSearchString,
                                                      savePosteriors=self.savePosteriors)
 
-        # Save the template warp (this is temporary)
+        # Save the template warp
         if self.saveWarp:
             print('Saving the template warp')
-            warpName = os.path.join(self.savePath, 'template.m3z')
-            mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
-                                                   initialDeformation=self.deformation,
-                                                   initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
-            templateFileName = os.path.join(self.atlasDir, 'template.nii')
-            self.probabilisticAtlas.saveWarpField(warpName, self.modelSpecifications.atlasFileName, templateFileName,
-                                                  mesh.points, self.cropping)
+            self.saveWarpField(os.path.join(self.savePath, 'template.m3z'))
 
         # Save the final mesh collection
         if self.saveMesh:
@@ -205,6 +200,37 @@ class Samseg:
                 pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
 
         return self.modelSpecifications.FreeSurferLabels, self.modelSpecifications.names, volumesInCubicMm, self.optimizationSummary
+
+    def saveWarpField(self, filename):
+        # extract node positions in image space
+        nodePositions = self.probabilisticAtlas.getMesh(
+            self.modelSpecifications.atlasFileName,
+            self.transform,
+            initialDeformation=self.deformation,
+            initialDeformationMeshCollectionFileName=self.deformationAtlasFileName
+        ).points
+
+        # extract geometries
+        imageGeom = fs.Volume.read(self.imageFileNames[0]).geometry()
+        templateGeom = fs.Volume.read(os.path.join(self.atlasDir, 'template.nii')).geometry()
+
+        # extract image-to-image template transform
+        matricesFileName = os.path.join(self.savePath, 'template_coregistrationMatrices.mat')
+        matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
+
+        # rasterize the final node coordinates (in image space) using the initial template mesh
+        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName)
+        coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions).astype('float')
+
+        # adjust for the offset introduced by volume cropping
+        coordmap[..., :] += [slc.start for slc in self.cropping]
+
+        # the rasterization is a bit buggy and some voxels are not filled - mark these as invalid
+        invalid = np.any(coordmap == 0, axis=-1)
+        coordmap[invalid, :] = -1
+
+        # write the warp file
+        fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
 
     def getDownSampledModel(self, atlasFileName, downSamplingFactors):
 

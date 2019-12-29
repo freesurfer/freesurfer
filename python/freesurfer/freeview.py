@@ -45,7 +45,8 @@ class Freeview:
         self.add_flag(flag)
 
     def surf(self, surface, overlay=None, mrisp=None, **kwargs):
-        '''loads a surface in the freeview session. If the surface provided is not
+        '''
+        Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
         key/value tags allowed on the command line can be provided as arguments.
 
@@ -232,9 +233,11 @@ class Freeview:
             return fullpath
 
         # append numbers until a unique filename is created (stop after 10,000 tries)
-        name, ext = filename.split('.', 1)
+        name_ext = filename.split('.', 1)
+        name = name_ext[0]
+        ext = '.' + name_ext[1] if len(name_ext) == 2 else ''
         for n in range(2, 10000):
-            fullpath = os.path.join(directory, '%s-%d.%s' % (name, n, ext))
+            fullpath = os.path.join(directory, '%s-%d%s' % (name, n, ext))
             if not os.path.exists(fullpath):
                 return fullpath
         raise RuntimeError('could not generate a unique filename for "%s" after trying many times' % (filename))

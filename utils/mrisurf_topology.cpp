@@ -40,6 +40,7 @@ static bool shouldReportWkr(int line) {
   return wasReported;
 }
 
+
 //=============================================================================
 // Vertexs and edges
 //
@@ -2190,6 +2191,52 @@ int mrisRemoveLink(MRIS *mris, int vno1, int vno2)
   }
 
   return (NO_ERROR);
+}
+
+
+/*
+  Contructs an MRIS instance from a set of vertices and faces.
+
+  \param vertices An (nvertices x 3) array of vertex positions.
+  \param nvertices Number of vertices in mesh.
+  \param faces An (nfaces x 3) array of face indices.
+  \param nfaces Number of faces in mesh.
+*/
+MRIS* MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces)
+{
+  MRIS* mris = MRISalloc(nvertices, nfaces);
+  mris->type = MRIS_TRIANGULAR_SURFACE;
+
+  // vertex positions
+  const float* v = vertices;
+  for (int n = 0 ; n < mris->nvertices ; n++, v += 3) MRISsetXYZ(mris, n, v[0], v[1], v[2]);
+
+  // face positions
+  const int* f = faces;
+  setFaceAttachmentDeferred(mris, true);
+  for (int n = 0 ; n < mris->nfaces ; n++, f += 3) {
+
+    int vno[4];
+    vno[0] = f[0];
+    vno[1] = f[1];
+    vno[2] = f[2];
+    vno[3] = f[0];
+
+    for (int i = 0; i < 3; i++) {
+      if (!mrisVerticesAreNeighbors(mris, vno[i], vno[i+1])) mrisAddEdgeWkr(mris, vno[i], vno[i+1]);
+    }
+
+    FACE * const f = &mris->faces[n];
+    if ((f->v[0]|f->v[1]|f->v[2]) == 0) {
+      for (int i = 0; i < 3; i++) mrisAddFaceToVertex(mris, vno[i], n, i);
+    }
+  }
+  setFaceAttachmentDeferred(mris, false);
+
+  mrisCompleteTopology(mris);
+  MRIScomputeMetricProperties(mris);
+
+  return mris;
 }
 
 

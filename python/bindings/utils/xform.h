@@ -7,6 +7,8 @@
 namespace transform {
 
 
+LTA* pythonToLTA(py::object transform);
+
 void pythonToVolGeom(py::object geometry, VOL_GEOM* vg);
 py::object volGeomToPython(VOL_GEOM* vg);
 

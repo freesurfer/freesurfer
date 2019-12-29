@@ -1,14 +1,15 @@
-from freesurfer.samseg.SamsegUtility import *
-from freesurfer.samseg.utilities import requireNumpyArray
-from freesurfer.samseg.figures import initVisualizer
-from freesurfer.samseg.Affine import Affine
-from freesurfer.samseg.ProbabilisticAtlas import ProbabilisticAtlas
-from freesurfer.samseg.Samseg import Samseg
-from . import gems
-
 import os
 import numpy as np
 import pickle
+
+from .SamsegUtility import *
+from .utilities import requireNumpyArray
+from .figures import initVisualizer
+from .Affine import Affine
+from .ProbabilisticAtlas import ProbabilisticAtlas
+from .Samseg import Samseg
+from . import gems
+
 
 """
 Longitudinal version of samsegment
@@ -69,21 +70,27 @@ eps = np.finfo( float ).eps
 
 
 class SamsegLongitudinal:
-    def __init__(self, imageFileNamesList, atlasDir, savePath,
-                 userModelSpecifications={}, userOptimizationOptions={},
-                 visualizer=None, saveHistory=False,
-                 targetIntensity=None, targetSearchStrings=None,
-                 numberOfIterations=5,
-                 strengthOfLatentGMMHyperprior=1.0,
-                 strengthOfLatentDeformationHyperprior=10.0,
-                 saveSSTResults=True,
-                 updateLatentMeans=True,
-                 updateLatentVariances=True,
-                 updateLatentMixtureWeights=True,
-                 updateLatentDeformation=True,
-                 initializeLatentDeformationToZero=False,
-                 threshold=None,
-                 thresholdSearchString=None):
+    def __init__(self,
+        imageFileNamesList,
+        atlasDir,
+        savePath,
+        userModelSpecifications={},
+        userOptimizationOptions={},
+        visualizer=None, 
+        saveHistory=False,
+        targetIntensity=None,
+        targetSearchStrings=None,
+        numberOfIterations=5,
+        strengthOfLatentGMMHyperprior=1.0,
+        strengthOfLatentDeformationHyperprior=14.0,
+        saveSSTResults=True,
+        updateLatentMeans=True,
+        updateLatentVariances=True,
+        updateLatentMixtureWeights=True,
+        updateLatentDeformation=True,
+        initializeLatentDeformationToZero=False,
+        threshold=None,
+        thresholdSearchString=None):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList
@@ -138,6 +145,8 @@ class SamsegLongitudinal:
         self.latentMeansNumberOfMeasurements = None
         self.latentVariancesNumberOfMeasurements = None
         self.latentMixtureWeightsNumberOfMeasurements = None
+        self.timepointVolumesInCubicMm = []
+        self.optimizationSummary = None
         self.history = None
         self.historyOfTotalCost = None
         self.historyOfTotalTimepointCost = None
@@ -147,6 +156,7 @@ class SamsegLongitudinal:
 
         # Generate the subject specific template (sst)
         self.sstFileNames = self.generateSubjectSpecificTemplate()
+        sstDir, _ = os.path.split(self.sstFileNames[0])
 
         # Affine atlas registration to sst
         templateFileName = os.path.join(self.atlasDir, 'template.nii')
@@ -154,7 +164,7 @@ class SamsegLongitudinal:
 
         worldToWorldTransformMatrix, self.sstTransformedTemplateFileName, _ \
             = self.affine.registerAtlas(self.sstFileNames[0], affineRegistrationMeshCollectionFileName,
-                                        templateFileName, self.savePath, visualizer=self.visualizer)
+                                        templateFileName, sstDir, visualizer=self.visualizer)
 
     def preProcess(self):
 
@@ -378,6 +388,10 @@ class SamsegLongitudinal:
                        }
                        }
 
+        # Make latent atlas directory
+        latentAtlasDirectory = os.path.join(self.savePath, 'latentAtlases')
+        os.makedirs(latentAtlasDirectory, exist_ok=True)
+
         while True:
 
             # =======================================================================================
@@ -387,7 +401,7 @@ class SamsegLongitudinal:
             # =======================================================================================
 
             # Create a new atlas that will be the basis to deform the individual time points from
-            latentAtlasFileName = os.path.join(self.savePath, 'latentAtlas_iteration' + str(iterationNumber))
+            latentAtlasFileName = os.path.join(latentAtlasDirectory, 'latentAtlas_iteration_%02d.mgz' % (iterationNumber + 1))
             self.probabilisticAtlas.saveDeformedAtlas(self.latentDeformationAtlasFileName, latentAtlasFileName, self.latentDeformation, True)
 
             # Only use the last resolution level, and with the newly created atlas as atlas
@@ -648,16 +662,15 @@ class SamsegLongitudinal:
         #
         # =======================================================================================
 
-        timepointVolumesInCubicMm = []
+        self.timepointVolumesInCubicMm = []
         for timepointNumber in range(self.numberOfTimepoints):
             #
-            self.timepointModels[timepointNumber].deformation = self.latentDeformation +\
-                                                                self.timepointModels[timepointNumber].deformation
+            self.timepointModels[timepointNumber].deformation = self.latentDeformation + self.timepointModels[timepointNumber].deformation
             self.timepointModels[timepointNumber].deformationAtlasFileName = self.latentDeformationAtlasFileName
             posteriors, biasFields, nodePositions, _, _ = self.timepointModels[timepointNumber].segment()
 
             #
-            timepointDir = os.path.join(self.savePath, 'timepoint' + str(timepointNumber))
+            timepointDir = os.path.join(self.savePath, 'tp%03d' % (timepointNumber + 1))
             os.makedirs(timepointDir, exist_ok=True)
 
             #
@@ -667,27 +680,26 @@ class SamsegLongitudinal:
                                             self.sstModel.modelSpecifications.FreeSurferLabels, self.sstModel.cropping,
                                             self.targetIntensity, self.targetSearchStrings, self.sstModel.modelSpecifications.names)
 
-            timepointVolumesInCubicMm.append(volumesInCubicMm)
+            self.timepointVolumesInCubicMm.append(volumesInCubicMm)
 
         #
-        optimizationSummary = {"historyOfTotalCost": self.historyOfTotalCost,
-                                "historyOfTotalTimepointCost": self.historyOfTotalTimepointCost,
-                                "historyOfLatentAtlasCost": self.historyOfLatentAtlasCost}
+        self.optimizationSummary = {
+            "historyOfTotalCost": self.historyOfTotalCost,
+            "historyOfTotalTimepointCost": self.historyOfTotalTimepointCost,
+            "historyOfLatentAtlasCost": self.historyOfLatentAtlasCost
+        }
 
         if self.saveHistory:
             self.history["labels"] = self.sstModel.modelSpecifications.FreeSurferLabels
             self.history["names"] = self.sstModel.modelSpecifications.names
-            self.history["timepointVolumesInCubicMm"] = timepointVolumesInCubicMm
-            self.history["optimizationSummary"] = optimizationSummary
-            with open(os.path.join(self.savePath, 'historyLongitudinal.p'), 'wb') as file:
+            self.history["timepointVolumesInCubicMm"] = self.timepointVolumesInCubicMm
+            self.history["optimizationSummary"] = self.optimizationSummary
+            with open(os.path.join(self.savePath, 'history.p'), 'wb') as file:
                 pickle.dump(self.history, file, protocol=pickle.HIGHEST_PROTOCOL)
-
-        return self.sstModel.modelSpecifications.FreeSurferLabels, self.sstModel.modelSpecifications.names,\
-               timepointVolumesInCubicMm, optimizationSummary
 
     def generateSubjectSpecificTemplate(self):
 
-        sstDir = os.path.join(self.savePath, 'sst')
+        sstDir = os.path.join(self.savePath, 'base')
         os.makedirs(sstDir, exist_ok=True)
 
         sstFileNames = []
@@ -703,7 +715,7 @@ class SamsegLongitudinal:
 
             # Create an ITK image and write to disk
             sst = gems.KvlImage(requireNumpyArray(imageBuffer))
-            sstFilename = os.path.join(sstDir, 'contrast' + str(contrastNumber) + '_sst.mgz')
+            sstFilename = os.path.join(sstDir, 'contrast_%02d.mgz' % (contrastNumber + 1))
             sst.write(sstFilename, image0.transform_matrix)
 
             #

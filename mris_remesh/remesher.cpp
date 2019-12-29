@@ -1,4 +1,7 @@
 #include <cassert>
+#include <queue>
+#include <utility>
+
 #include "remesher.h"
 
 using namespace std;
@@ -22,7 +25,7 @@ Remesher::Remesher(const MRIS *surf)
     tria[i] = { face->v[0], face->v[1], face->v[2] };
   }
 
-  void init();
+  init();
 }
 
 
@@ -350,7 +353,7 @@ void Remesher::createQualities(double tmin) const
     if (t < worstqual) worstqual = t;
     averagequal += t;
   }
-  averagequal = averagequal/tria.size();
+  averagequal = averagequal / tria.size();
   if (badcount > 0 && verbose > 0)
   {
       cerr << endl;
@@ -368,7 +371,7 @@ void Remesher::remeshBK(unsigned int it, double l, bool ridge)
   //l =  0.355856;
   
   //cout << " checkStructure: " << checkStructure() << endl;
-
+  double qual0 = getAverageQuality();
   //  tangentialSmoothing(3,true);
   
   if (l < 0)
@@ -387,47 +390,134 @@ void Remesher::remeshBK(unsigned int it, double l, bool ridge)
   for (unsigned int ii = 0; ii<it; ii++)
   {
     // 1. Split edges at midpoint that are longer than 4/3 l
-    while ( insertVerticesOnLongEdges(l*4.0/3.0) > 0) {};
+    while ( insertVerticesOnLongEdgesQueue(l*4.0/3.0) > 0) {};
     //insertVerticesOnLongEdges(l*4.0/3.0);
     init(); // v_to_t might be missing
     
-    int cs = checkStructure();
-    if (verbose > 0) cout << " checkStructure (1): " << cs << endl;
-    if (cs > 0 ) exit(cs);
-      if (isnan(computeArea()))
-      {cout <<"ERROR: Area is nan (1)!" << endl; exit(1);}
+    //int cs = checkStructure();
+    //if (verbose > 0) cout << " checkStructure (1): " << cs << endl;
+    //if (cs > 0 ) exit(cs);
+    //  if (isnan(computeArea()))
+    //  {cout <<"ERROR: Area is nan (1)!" << endl; exit(1);}
 //exportOFF("test-i.off");
     assert(onridge.size() == points3d.size() || onridge.size() == 0);
 
     // 2. Collapse edges shorter than 4/5 l into midpoint
     //int ccc = 0;
-    while ( contractShortEdges(l*4.0/5.0) > 0) {};
+    while ( contractShortEdgesQueue(l*4.0/5.0) > 0) {};
     //contractShortEdges(l*4.0/5.0);
-    if (verbose > 0) cout << " checkStructure (2): " << checkStructure() << endl;
-          if (isnan(computeArea()))
-      {cout <<"ERROR: Area is is nan (2)!" << endl; exit(1);}
+    //if (verbose > 0) cout << " checkStructure (2): " << checkStructure() << endl;
+    //      if (isnan(computeArea()))
+    //  {cout <<"ERROR: Area is is nan (2)!" << endl; exit(1);}
 //exportOFF("test-ii.off");
     assert(onridge.size() == points3d.size() || onridge.size() == 0);
 
     
     // 3. Flip edges to optimize valence (6 or 4 on boundary)
     //flipEdges();
-     if (verbose > 0)  cout << " checkStructure (3): " << checkStructure() << endl;
-          if (isnan(computeArea()))
-      {cout <<"ERROR: Area is is nan (3)!" << endl; exit(1);}
+    //if (verbose > 0)  cout << " checkStructure (3): " << checkStructure() << endl;
+    //     if (isnan(computeArea()))
+    // {cout <<"ERROR: Area is is nan (3)!" << endl; exit(1);}
 //exportOFF("test-iii.off");
 
-    assert(onridge.size() == points3d.size() || onridge.size() == 0);
+    //assert(onridge.size() == points3d.size() || onridge.size() == 0);
 
     // 4. Tangential Smoothing
     tangentialSmoothing(2,true);
-        if (isnan(computeArea()))
-      {cout <<"ERROR: Area is is nan (4)!" << endl; exit(1);}
-    if (verbose > 0)   cout << " checkStructure (4): " << checkStructure() << endl;
+    //     if (isnan(computeArea()))
+    //   {cout <<"ERROR: Area is is nan (4)!" << endl; exit(1);}
+    // if (verbose > 0)   cout << " checkStructure (4): " << checkStructure() << endl;
 //exportOFF("test-iiii.off");
-    while ( contractShortEdges(l*4.0/5.0) > 0) {};
+    //while ( contractShortEdgesQueue(l*4.0/5.0) > 0) {};
   }
+ 
+  init();
+  int cs = checkStructure();
+  if (verbose > 0) cout << " checkStructure (final): " << cs << endl;
+  if (cs > 0 ) exit(cs);
+  
+  double qual1 = getAverageQuality();
+  cout << endl;
+  cout << "avg qual before   : " << qual0   << "  after: " << qual1 << endl;
+  cout << endl;
 }
+
+
+/**
+  Remeshing by Botsch and Kobelt 2004
+  vnum is the target vertex number
+  it the number of iterations (paper says 5)
+*/
+void Remesher::remeshBKV(unsigned int it, int vnum, bool ridge)
+{
+  cout << " Remesher::remeshBKV( "<<it << " , " << vnum << " )" << endl;
+  if (vnum < 0) {
+    cerr << "Error: specify number of target vertices!" <<endl;
+    exit(1);
+  }
+  double qual0 = getAverageQuality();
+  
+  int vcount = getPointCount();
+  double avel = getAverageEdgeLength();
+  double area = computeArea();
+  
+  double s0 = sqrt( 2 * area / (sqrt(3)* vcount));
+  double st = sqrt( 2 * area / (sqrt(3)*vnum));
+  
+  cout << "vcount = " << vcount << "  vnum: " << vnum << endl;
+  cout << "area   = " << area   << "  avel: " << avel << endl;
+  cout << "s0     = " << s0     << "  st:   " << st << endl;
+  if (ridge) makeRidge();
+  else onridge.clear();
+  //int maxnup = -1;
+  int maxndown = -1;
+  
+  // loop through iterations
+  for (unsigned int ii = 0; ii<it; ii++)
+  {
+    if (it > 1 && verbose > 0) cout << endl << ">>>  working on iteration " << ii+1 << endl << endl;
+    // get to target vertices in it equal steps
+    // compute target num of vertices and target edge length for this step
+    double ii1 = ii+1.0;
+    int targetn = ((it-ii1)/it)*vcount + (ii1/it) *vnum;
+    double targetl = ((it-ii1)/it)*avel + (ii1/it) *st;
+    
+   
+    cout << endl << "Targetn: " << targetn << endl << "points: " << getPointCount() << endl;
+    cout << "Targetl: " << targetl << "  avg l: " << getAverageEdgeLength() << endl;
+    //cout << " Maxnup: " << maxnup << endl;
+   //exit(1);
+    int n = 100;
+    while (n>0) {n = insertVerticesOnLongEdgesQueue(targetl*4.0/3.0);};
+    init(); // v_to_t might be missing  
+    maxndown = getPointCount() - targetn;
+    // if we want to move further up (more vertices) only go down very little:
+    if (maxndown <0) maxndown = (int)(0.1*fabs(maxndown));
+    // else go down slightly more than targetn:
+    else maxndown = (int)(1.1 * maxndown);
+    // only in last step go exactly to target n
+    if (ii == it-1)
+    {
+      maxndown = getPointCount() - vnum;
+      if (maxndown<0) { cerr<<"Error, too small before last shrinking step: " << getPointCount() << endl; exit(1);}
+      // if this ever happens, we could insert a couple more and then shrink back.
+    }
+    cout << endl << " points: " << getPointCount() << " Maxndown:" << maxndown << endl;
+    
+    n=1; 
+    while ( n>0 && maxndown!=0) { n= contractShortEdgesQueue(targetl*4.0/5.0,maxndown);maxndown-=n;};
+    tangentialSmoothing(2,true);
+    cout << " Points: " << getPointCount() << endl << "  avg edge: " << getAverageEdgeLength() << endl;
+    
+  }
+  assert(maxndown == 0);
+  cout << "Final Points: " << getPointCount() << endl << "final avg edge: " << getAverageEdgeLength() << endl;
+  double qual1 = getAverageQuality();
+  cout << endl;
+  cout << "avg qual before   : " << qual0   << "  after: " << qual1 << endl;
+  cout << endl;
+}
+
 
 
 int Remesher::checkStructure()
@@ -592,7 +682,7 @@ double Remesher::computeArea() const
  Runs through all existing (old) edges, skips contraction for boundary edges.
  Finally removes all collapsed triangles.
  */
-int Remesher::contractShortEdges(double l)
+int Remesher::contractShortEdges(double l, int maxn)
 {
   if (l == -1) l = 0.9 * getAverageEdgeLength() * 4.0/5.0;
   if (verbose > 0) cout << " Remesher::contractShortEdges( "<<l<<" ) " << endl;
@@ -653,6 +743,7 @@ int Remesher::contractShortEdges(double l)
 //          cout << " check: " << cs << endl << endl << endl;    
 //          exit(cs);         
 //       }
+        if (en == maxn) break;
     }
   
   }
@@ -666,21 +757,71 @@ int Remesher::contractShortEdges(double l)
 }
 
 
+int Remesher::contractShortEdgesQueue(double l, int maxn)
+{
+  if (l == -1) l = 0.9 * getAverageEdgeLength() * 4.0/5.0;
+  if (verbose > 0) cout << " Remesher::contractShortEdgesQueue( " << l << " ) " << endl;
+  createElementN(true); // need to check if normals flip
+  int en = 0;
+  //int es = e_to_v.size();
+  int v1,v2;
+  int bskip = 0;
+  //vector < int > rmt;
+  double len = 0.0;
+  
+  std::priority_queue<std::pair<double, int>, std::vector<std::pair<double,int> >, std::greater<std::pair<double,int> >  > q;
+  
+  for (int i = 0;i<(int)e_to_v.size();i++) // only run trough all old edges (ignore newly created edges in this run)
+  {
+    if (e_to_t[i].size() == 0) continue; // edge was deleted
+    v1 = e_to_v[i][0];
+    v2 = e_to_v[i][1];
+    if (e_to_t[i].size() < 2 || onboundary[v1] || onboundary[v2])
+    {
+      //cout << " skipping boundary ( e_to_t[i].size: " << e_to_t[i].size() << " ) " << endl;  
+      bskip++;
+      continue;
+    }
+    len = (points3d[v1] - points3d[v2]).norm();
+    q.push(std::pair<double,int>(len,i));
+  }
+  
+  while (!q.empty() && q.top().first < l && maxn != en)
+  {
+    int i = q.top().second;
+    len = q.top().first;
+    q.pop();
+    if (e_to_t[i].size() == 0) continue; // edge was deleted
+    v1 = e_to_v[i][0];
+    v2 = e_to_v[i][1];
+    double ll = (points3d[v1] - points3d[v2]).norm();
+    if (ll > len) q.push(std::pair<double,int>(ll,i));
+    else if (contractEdge(i,false)) en++;
+  }
+  // remove all collapsed trias:
+  rmTrias(true);
+  if (verbose > 0) cout << "  contractShortEdgesQueue: " << en << " edges contracted ( "<< bskip <<" boundary edges skipped)" << endl;
+  
+  return en;
+}
+
+
 double Remesher::getAverageEdgeLength() const
 {
   double l = 0;
-  for (unsigned int ei = 0; ei<e_to_v.size(); ei++)
+  for (unsigned int ei = 0; ei<e_to_v.size(); ei++) {
     l += (points3d[e_to_v[ei][0]] - points3d[e_to_v[ei][1]]).norm();
-    
-  l/= e_to_v.size();
-    
+  }
+
+  l /= e_to_v.size();
+
   return l;
 }
 
 
 /** Inserts a vertex on the midpoint of all edges longer than l.
  Returns number of inserted vertices. */
-int Remesher::insertVerticesOnLongEdges(double l)
+int Remesher::insertVerticesOnLongEdges(double l, int maxn)
 {
   if (l == -1) l = 0.9 * getAverageEdgeLength() * 4.0/3.0;
   if (verbose > 0) cout << "Remesher::insertVerticesOnLongEdges( "<<l<< " )" << endl;
@@ -696,11 +837,49 @@ int Remesher::insertVerticesOnLongEdges(double l)
     {
       vnum++;
       insertVertexOnEdge(Vector(v1,v2,0.5));
-      //cout << " check: " << checkStructure() << endl;
-
+      // cout << " check: " << checkStructure() << endl;
     }
-  
+    if (vnum == maxn) break;  
   }  
+  if (verbose > 0) cout << "  " << vnum << " vertices inserted! " << endl;
+  return vnum;
+}
+
+
+int Remesher::insertVerticesOnLongEdgesQueue(double l, int maxn)
+{
+  if (l == -1) l = 0.9 * getAverageEdgeLength() * 4.0/3.0;
+  if (verbose > 0) cout << "Remesher::insertVerticesOnLongEdgesQueue( " << l << " )" << endl;
+  int es = e_to_v.size();
+  int vnum = 0;
+  int v1,v2;
+  double len = 0.0;
+  std::priority_queue<std::pair<double, int> > q;
+ 
+  for (int i = 0;i<es;i++) // only run trough all old edges (ignore newly created edges in this run)
+  {
+    v1 = e_to_v[i][0];
+    v2 = e_to_v[i][1];
+    len = (points3d[v1] - points3d[v2]).norm();
+    q.push(std::pair<double,int>(len,i));
+  }
+  
+  while (!q.empty() && q.top().first > l && maxn != vnum)
+  {
+    int i = q.top().second;
+    len = q.top().first;
+    q.pop();
+    if (e_to_t[i].size() == 0) continue; // edge was deleted
+    v1 = e_to_v[i][0];
+    v2 = e_to_v[i][1];
+    double ll = (points3d[v1] - points3d[v2]).norm();
+    if (ll < len) q.push(std::pair<double,int>(ll,i));
+    else 
+    {
+      insertVertexOnEdge(Vector(v1,v2,0.5));
+      vnum++;
+    }
+  }
   if (verbose > 0) cout << "  " << vnum << " vertices inserted! " << endl;
   return vnum;
 }
@@ -1472,7 +1651,7 @@ bool Remesher::removeHangingEdge(unsigned int eidx)
 */
 bool Remesher::removeTria(unsigned int tidx)
 {
-  cout << "TriaNM::removeTria( "<<tidx<<" )" << endl;
+  cout << "Remesher::removeTria( "<<tidx<<" )" << endl;
   assert(tidx < tria.size());
   if (tria[tidx].size() < 3) return false;
 

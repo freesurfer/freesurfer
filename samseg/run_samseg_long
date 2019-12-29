@@ -2,33 +2,63 @@
 
 import os
 import freesurfer as fs
-from freesurfer.samseg import SamsegLongitudinal
-from freesurfer.samseg.gemsbindings import setGlobalDefaultNumberOfThreads
+import freesurfer.samseg as samseg
 
+
+# ------ Parse Command Line Arguments ------
 
 parser = fs.utils.ArgumentParser()
-parser.add_argument( '-i', '--inputs', nargs='*', required=True)
-parser.add_argument( '-o', '--output', dest='outputDirectory', required=True)
-parser.add_argument( '-n', '--numberOfIterations', type=int, dest='numberOfIterations', default=5)
-parser.add_argument('--threads', type=int, default=os.environ.get('OMP_NUM_THREADS', 1), help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
-parser.add_argument( '-sg', '--strengthOfLatentGMMHyperprior', type=float, dest='strengthOfLatentGMMHyperprior', default=0.5)
-parser.add_argument( '-sd', '--strengthOfLatentDeformationHyperprior', type=float, dest='strengthOfLatentDeformationHyperprior', default=10.0)
+
+default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
+
+# required
+parser.add_argument('-t', '--timepoint', nargs='+', action='append', required=True, help='Configure a timepoint with multiple inputs.')
+parser.add_argument('-o', '--output', required=True, help='Output directory.')
+# optional processing options
+parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+
 args = parser.parse_args()
 
-setGlobalDefaultNumberOfThreads(args.threads)
+# ------ Initial Setup ------
 
-imageFileNamesList = [[filename] for filename in args.inputs]
+# Make sure more than 1 timepoint was specified
+if len(args.timepoint) == 1:
+    fs.fatal('must provide more than 1 timepoint')
 
-samsegLongitudinal = SamsegLongitudinal(imageFileNamesList,
-    '/cluster/koen/koen/testing/20Subjects_smoothing2_down2_smoothingForAffine2_bigventricles',
-    args.outputDirectory,
+# Make sure freesurfer has been sourced
+if not fs.fshome():
+    fs.fatal('FREESURFER_HOME must be set')
+
+# Create the output folder
+os.makedirs(args.output, exist_ok=True)
+
+# Specify the maximum number of threads the GEMS code will use
+samseg.setGlobalDefaultNumberOfThreads(args.threads)
+
+# Get the atlas directory
+atlasDir = os.environ.get('SAMSEG_DATA_DIR')
+if args.atlas:
+    atlasDir = args.atlas
+if not atlasDir:
+    defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
+    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+
+# Start the process timer
+timer = fs.utils.Timer()
+
+# ------ Run Samsegment ------
+
+samsegLongitudinal = samseg.SamsegLongitudinal(
+    args.timepoint,
+    atlasDir,
+    args.output,
     targetIntensity=110,
-    targetSearchStrings=['Cerebral-White-Matter'],
-    numberOfIterations=args.numberOfIterations,
-    strengthOfLatentGMMHyperprior=args.strengthOfLatentGMMHyperprior,
-    strengthOfLatentDeformationHyperprior=args.strengthOfLatentDeformationHyperprior,
-    saveHistory=True)
+    targetSearchStrings=['Cerebral-White-Matter']
+)
 
 samsegLongitudinal.preProcess()
 samsegLongitudinal.process()
-labels, names, volumes, optimizationSummary = samsegLongitudinal.postProcess()
+samsegLongitudinal.postProcess()
+
+timer.mark('run_samseg_long complete')

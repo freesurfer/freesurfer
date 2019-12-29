@@ -1,0 +1,21 @@
+<help>
+  <name>mris_remesh</name>
+  <synopsis>mris_remesh [options] -i &lt;insurf&gt; -o &lt;outsurf&gt;</synopsis>
+  <description>Remeshes a surface to a desired edge length or number of vertices. Either --edge-len or --nvert must be specified on the commandline.</description>
+  <arguments>
+    <required-flagged>
+      <argument>-i, --input insurf</argument>
+      <explanation>input surface</explanation>
+      <argument>-o, --output outsurf</argument>
+      <explanation>output surface</explanation>
+      <argument>--edge-len length</argument>
+      <explanation>target edge length for remeshed surface</explanation>
+      <argument>--nvert nvertices</argument>
+      <explanation>target number of vertices for remeshed surface</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--iters niters</argument>
+      <explanation>number of remeshing iterations (default is 5)</explanation>
+    </optional-flagged>
+  </arguments>
+</help>

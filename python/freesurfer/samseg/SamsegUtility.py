@@ -1,8 +1,10 @@
-from freesurfer.samseg.figures import initVisualizer
-import numpy as np
-from freesurfer.samseg.io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
 import os
-from freesurfer.samseg.utilities import requireNumpyArray
+import numpy as np
+
+from .utilities import icv
+from .io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+from .figures import initVisualizer
+from .utilities import requireNumpyArray
 from . import gemsbindings as gems
 
 
@@ -257,6 +259,16 @@ def scaleBiasFields(biasFields, imageBuffers, mask, posteriors, targetIntensity=
     return scalingFactors
 
 
+def convertRASTransformToLPS(ras2ras):
+    ras2lps = np.diag([-1, -1, 1, 1])
+    return ras2lps @ ras2ras @ np.linalg.inv(ras2lps)
+
+
+def convertLPSTransformToRAS(lps2lps):
+    ras2lps = np.diag([-1, -1, 1, 1])
+    return np.linalg.inv(ras2lps) @ lps2lps @ ras2lps
+
+
 def writeResults(imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
                  targetIntensity=None, targetSearchStrings=None, names=None, threshold=None,
                  thresholdSearchString=None, savePosteriors=False):
@@ -328,5 +340,15 @@ def writeResults(imageFileNames, savePath, imageBuffers, mask, biasFields, poste
     # Compute volumes in mm^3
     volumeOfOneVoxel = np.abs(np.linalg.det(exampleImage.transform_matrix.as_numpy_array[0:3, 0:3]))
     volumesInCubicMm = (np.sum(posteriors, axis=0)) * volumeOfOneVoxel
+
+    # Write structural volumes
+    with open(os.path.join(savePath, 'samseg.stats'), 'w') as fid:
+        for volume, name in zip(volumesInCubicMm, names):
+            fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
+
+    # Write intracranial volume
+    sbtiv = icv(zip(*[names, volumesInCubicMm]))
+    with open(os.path.join(savePath, 'sbtiv.stats'), 'w') as fid:
+        fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
 
     return volumesInCubicMm

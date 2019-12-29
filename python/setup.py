@@ -11,7 +11,7 @@ from setuptools import setup, find_packages, Distribution
 # the freesurfer python packages
 packages = [
     'freesurfer',
-    'freesurfer.gems',
+    'freesurfer.utils',
     'freesurfer.samseg',
     'freesurfer.deeplearn'
 ]
@@ -47,10 +47,13 @@ setup(
     author_email='freesurfer@nmr.mgh.harvard.edu',
     url='https://github.com/freesurfer/freesurfer',
     packages=find_packages(include=packages),
-    package_data={'freesurfer': operator.add(
-                       find_libs('bindings'),
-                       find_libs('labelfusion', required=False)),
-                  'freesurfer.gems': find_libs('gems_python')},
+    package_data={
+        'freesurfer': operator.add(
+            find_libs('bindings'),
+            find_libs('labelfusion', required=False)),
+        'freesurfer.samseg':
+            find_libs('gemsbindings')
+    },
     install_requires=requirements,
     include_package_data=True
 )

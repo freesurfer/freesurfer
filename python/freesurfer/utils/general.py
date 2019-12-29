@@ -1,7 +1,10 @@
 import os
+import sys
 import pickle
 import numpy as np
 import datetime as dt
+
+from .logging import error
 
 
 def fshome():
@@ -27,6 +30,19 @@ def read_pickle(filename):
     with open(filename, 'rb') as file:
         item = pickle.load(file)
     return item
+
+
+def check_tensorflow():
+    '''Ensures that tensorflow is installed in fspython.'''
+    try:
+        import tensorflow
+    except ImportError:
+        error('This tool requires tensorflow, but fspython does not ship with tensorflow')
+        print('by default. You (or a sys admin) can install the CPU version via:\n')
+        print('  fspython -m pip install tensorflow\n')
+        print('Or the GPU version via:\n')
+        print('  fspython -m pip install tensorflow-gpu\n')
+        sys.exit(1)
 
 
 class Timer:

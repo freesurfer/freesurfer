@@ -22,6 +22,7 @@ from . import metrics
 from . import geom
 from .transform import Geometry
 from .transform import LinearTransform
+from .transform import Warp
 
 # ND array containers
 from .ndarray import Overlay

@@ -4,10 +4,9 @@ import scipy.ndimage
 import numpy as np
 
 import freesurfer as fs
-from . import gems
+from . import gems, convertLPSTransformToRAS
 
 from .utilities import requireNumpyArray
-from .lta import LTA, MRI
 from .figures import initVisualizer
 
 
@@ -30,7 +29,7 @@ class Affine:
             savePath,
             visualizer=None,
             worldToWorldTransformMatrix=None,
-            initLTAFile=None,
+            initTransform=None,
             K=1e-7,
         ):
 
@@ -65,21 +64,14 @@ class Affine:
             lineSearchMaximalDeformationIntervalStopCriterion = self.maximalDeformationStopCriterion  # Doesn't seem to matter very much
 
             # Initialization
-            if initLTAFile is None:
+            if initTransform is None:
                 initialWorldToWorldTransformMatrix = np.identity(4)
             else:
-                print('using initial transform: %s' % initLTAFile)
-                initLTA = LTA().read(initLTAFile)
-                RAS2LPS = np.diag([-1, -1, 1, 1])  # for converting from RAS to LPS
-                if initLTA.type == 0:
-                    # The LTA is vox2vox
-                    initialWorldToWorldTransformMatrix = RAS2LPS @ initLTA.dstmri.vox2ras0 @ initLTA.xform @ \
-                                                         np.linalg.inv(initLTA.srcmri.vox2ras0) @ np.linalg.inv(RAS2LPS)
-                else:
-                    # The LRA is ras2ras
-                    initialWorldToWorldTransformMatrix = RAS2LPS @ initLTA.xform @ np.linalg.inv(RAS2LPS)
+                # Assume the initialization matrix is LPS2LPS
+                print('initializing with predifined transform')
+                initialWorldToWorldTransformMatrix = initTransform
 
-            # Provide an initial (non-identity) affine transform guest estimate
+            # Provide an initial (non-identity) affine transform guestestimate
             rotationMatrix, scalingMatrix = self.computeRotationAndScalingMatrixGuessEstimates()
 
             initialWorldToWorldTransformMatrix = rotationMatrix @ initialWorldToWorldTransformMatrix
@@ -190,11 +182,20 @@ class Affine:
                          {'imageToImageTransformMatrix': imageToImageTransformMatrix,
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 
+        # Save the template transform
+        xform = fs.LinearTransform(convertLPSTransformToRAS(worldToWorldTransformMatrix))
+        xform.type = fs.LinearTransform.Type.ras
+        xform.source = fs.Volume.read(templateFileName).geometry()
+        xform.target = fs.Volume.read(imageFileName).geometry()
+        ltaFileName = os.path.join(savePath, 'template.lta')
+        print('writing template transform to %s' % ltaFileName)
+        xform.write(ltaFileName)
+
         # Compute and save the talairach.xfm
-        lta = self.computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix)
+        xform = self.computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix)
         ltaFileName = os.path.join(savePath, 'samseg.talairach.lta')
         print('writing talairach transform to %s' % ltaFileName)
-        lta.write(ltaFileName)
+        xform.write(ltaFileName)
 
         # Save the coregistered template. For historical reasons, we applied the estimated transformation to the template... let's do that now
         desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
@@ -219,25 +220,19 @@ class Affine:
         return rotationMatrix, scalingMatrix
 
     def computeTalairach(self, imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix):
-        # Compute the talairach.xfm
         # Load fsaverage orig.mgz -- this is the ultimate target/destination
         fnamedst = os.path.join(fs.fshome(), 'subjects', 'fsaverage', 'mri', 'orig.mgz')
-        fsaorig = MRI().read_header(fnamedst)
+        fsaorig = fs.Volume.read(fnamedst)
+
         # Compute the vox2vox from the template to fsaverage assuming they share world RAS space
         RAS2LPS = np.diag([-1, -1, 1, 1])
-        M = np.linalg.inv(RAS2LPS @ fsaorig.vox2ras) @ templateImageToWorldTransformMatrix
+        M = np.linalg.inv(RAS2LPS @ fsaorig.affine) @ templateImageToWorldTransformMatrix
         # Compute the input to fsaverage vox2vox by combining the input-template vox2vox and the template-fsaverage vox2vox
-        X = M @ np.linalg.inv(imageToImageTransformMatrix)
+        vox2vox = M @ np.linalg.inv(imageToImageTransformMatrix)
+
         # Now write out the LTA. This can be used as the talairach.lta in recon-all
-        invol = MRI().read_header(imageFileName)  # have to reread to get header info
-        lta = LTA()
-        lta.type = 0
-        lta.xform = X
-        lta.srcfile = imageFileName
-        lta.srcmri = invol
-        lta.srcmri.vol = []
-        lta.dstfile = fnamedst
-        lta.dstmri = fsaorig
-        lta.dstmri.vol = []
-        lta.subject = 'fsaverage'
-        return lta
+        xform = fs.LinearTransform(vox2vox)
+        xform.type = fs.LinearTransform.Type.vox
+        xform.source = fs.Volume.read(imageFileName).geometry()
+        xform.target = fsaorig.geometry()
+        return xform
