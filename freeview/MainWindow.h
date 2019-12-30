@@ -393,6 +393,7 @@ protected:
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
   void CommandSetSurfaceOffset  ( const QStringList& cmd );
   void CommandSetSurfaceLabelOutline   ( const QStringList& cmd );
+  void CommandSetSurfaceLabelOpacity   ( const QStringList& cmd );
   void CommandSetSurfaceAnnotationOutline   ( const QStringList& cmd );
   void CommandGoToSurfaceVertex        ( const QStringList& cmd );
   void CommandSetDisplaySurfaceVertex  ( const QStringList& cmd );
