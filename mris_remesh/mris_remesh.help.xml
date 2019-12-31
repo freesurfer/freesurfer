@@ -12,6 +12,8 @@
       <explanation>target edge length for remeshed surface</explanation>
       <argument>--nvert nvertices</argument>
       <explanation>target number of vertices for remeshed surface</explanation>
+      <argument>--desired-face-area faceArea</argument>
+      <explanation>Control the decimation by specifying the desired average face area</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--iters niters</argument>
