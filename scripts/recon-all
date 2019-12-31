@@ -2998,7 +2998,9 @@ if($DoTessellate && ( ! $longitudinal )) then
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
       # than DecimationFaceArea, then the surface is not changed.
-      set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      set cmd = (mris_remesh --desired-face-area $DecimationFaceArea --input ../surf/$hemi.orig.nofix.predec \
+        --output ../surf/$hemi.orig.nofix)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -3252,9 +3254,10 @@ if($DoFix && ( ! $longitudinal )) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     # Remove hemi.inflated, real one created after mris_make_surfaces
+    #   Note sure this is needed anymore
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd
+    if($RunIt) $cmd |& tee -a $LF
     if($UseNewTopoFix && -e ../surf/$hemi.orig_corrected ) then
       # Copy *h.orig_corrected to *h.orig.  orig_corrected is created
       # by mris_topo_fixer, which runs only when mris_fix_topology fails,
@@ -3817,7 +3820,6 @@ endif
 if($DoConf2Hires) then
   # This places the surfaces on the highres T1 (and T2)
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
-  if($DoT2pial == 0)    set cmd = ($cmd --no-T2)
   if($DoT2pial == 1)    set cmd = ($cmd --T2)
   if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
   if($longitudinal) then
@@ -3827,6 +3829,7 @@ if($DoConf2Hires) then
   endif
   if($UseCubic == 1) set cmd = ($cmd --cubic)
   if($UseCubic == 0) set cmd = ($cmd --trilin)
+  if($ForceUpdate)   set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
