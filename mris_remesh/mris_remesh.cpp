@@ -25,10 +25,11 @@ int main(int argc, const char **argv)
   MRIS *surf = MRISread(inputname.c_str());
   if (!surf) fs::fatal() << "could not read input surface " << inputname;
 
-  MRIScomputeMetricProperties(surf);
-
   // number of iterations
   int iters = parser.exists("iters") ? parser.retrieve<int>("iters") : 5;
+  printf("iters = %d\n",iters);
+
+  MRIScomputeMetricProperties(surf);
 
   // init the remesher
   Remesher remesher = Remesher(surf);
@@ -41,12 +42,14 @@ int main(int argc, const char **argv)
 
     // remesh to number of vertices
     int nverts = parser.retrieve<int>("nvert");
+    printf("nverts = %d\n",nverts);
     remesher.remeshBKV(iters, nverts, false);
   }
   else if (parser.exists("edge-len")) {
     // remesh to target edge length
-    float length = parser.retrieve<float>("edge-len");
-    remesher.remeshBK(iters, length);
+    float edgelength = parser.retrieve<float>("edge-len");
+    printf("edge-len = %g\n", edgelength);
+    remesher.remeshBK(iters,  edgelength);
   }
   else if (parser.exists("desired-face-area")) {
     float  desiredFaceArea = parser.retrieve<float>("desired-face-area");
@@ -87,6 +90,7 @@ int main(int argc, const char **argv)
 
   MRISfree(&surf);
   MRISfree(&remeshed);
+  printf("mris_remesh done\n");
 
   exit(0);
 }
