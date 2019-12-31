@@ -44,7 +44,7 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay=None, mrisp=None, **kwargs):
+    def surf(self, surface, overlay=None, mrisp=None, sphere=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
@@ -69,6 +69,10 @@ class Freeview:
         # if mrisp is provided as an array, make sure it's converted
         if mrisp is not None:
             kwargs['mrisp'] = self._vol_to_file(mrisp, force=Image)
+
+        # if sphere is provided as an array, make sure it's converted
+        if sphere is not None:
+            kwargs['sphere'] = self._surf_to_file(sphere)
 
         # build the surface flag
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
