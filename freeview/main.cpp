@@ -203,6 +203,7 @@ int main(int argc, char *argv[])
     "':label_color=colorname' Set the color of the surface label.\n\n"
     "':label_centroid=flag' Move 3D cursor to the centroid of the label. flag can be 'true', 'yes' or '1'.\n\n"
     "':label_visible=flag' Set label visibility.\n\n"
+    "':label_opacity=value' Set label opacity. Value ranges from 0 to 1.\n\n"
     "':label_zorder=number' Set z-order for rendering labels.\n\n"
     "':spline=filename' Load a spline file for display.\n\n"
     "':vertex=flag' Show surface vertices on both 2D and 3D views. flag can be 'true', 'on' or '1'.\n\n"
