@@ -6132,27 +6132,37 @@ int MRISwriteArea(MRI_SURFACE *mris, const char *sname)
 }
 
 
-MRI *
-MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
+MRI *MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
 {
-  MRI_SP *mrisp ;
-  MRI    *mri ;
-  int    frame, nframes, vno ;
+  // ideally, canonical vertices have been saved, but there is no good way to check this
+  // besides probing whether a vertex c-xyz is nonzero
+  VERTEX *v = &mris->vertices[0];
+  bool has_canonical = !(FZERO(v->cx) && FZERO(v->cy) && FZERO(v->cz));
 
-  MRIScomputeMetricProperties(mris) ;
-  mrisp = MRISPread(fname) ;
+  // if the canonical vertices have been saved, let's use those - otherwise let's hope that
+  // the surface's current vertices are already spherical
+  if (has_canonical) {
+    MRISsaveVertexPositions(mris, TMP_VERTICES);
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES);
+    MRIScomputeMetricProperties(mris);
+  }
+
+  MRI_SP *mrisp = MRISPread(fname) ;
   if (mrisp == NULL)
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadParameterizationToSurface: could not open file %s",fname));
 
-  nframes = mrisp->Ip->num_frame;
-  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
+  int nframes = mrisp->Ip->num_frame;
+  MRI *mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
 
-  for (frame = 0 ; frame < nframes ; frame++)
+  for (int frame = 0 ; frame < nframes ; frame++)
   {
     MRISfromParameterizationBarycentric(mrisp, mris, frame) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    for (int vno = 0 ; vno < mris->nvertices ; vno++)
       MRIsetVoxVal(mri, vno, 0, 0, frame, mris->vertices[vno].curv) ;
   }
+
+  // restore the previous vertices if we modified them
+  if (has_canonical) MRISrestoreVertexPositions(mris, TMP_VERTICES);
 
   MRISPfree(&mrisp) ;
   MRIScomputeMetricProperties(mris) ;
