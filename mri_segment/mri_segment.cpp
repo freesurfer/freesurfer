@@ -50,6 +50,7 @@
 static int extract = 0 ;
 static int  verbose = 0 ;
 static int wsize = 11 ;
+double wsizemm = 0;
 static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
@@ -170,6 +171,12 @@ int main(int argc, char *argv[])
     mri_tmp = MRIchangeType(mri_src, MRI_UCHAR, 0, 1000, 1) ;
     MRIfree(&mri_src) ;
     mri_src = mri_tmp ;
+  }
+
+  if(wsizemm > 0){
+    double voxres = (mri_src->xsize + mri_src->ysize + mri_src->zsize)/3.0;
+    wsize = round(wsizemm/voxres);
+    printf("wsizemm = %g, voxres = %g, wsize = %d\n",wsizemm,voxres,wsize);
   }
 
   if (thicken > 1)  {
@@ -599,6 +606,10 @@ get_option(int argc, char *argv[])
   }
   else if (strcmp(option, "polvlen")==0){
     sscanf(argv[2],"%f",&polvlen);
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "wsizemm")==0){
+    sscanf(argv[2],"%lf",&wsizemm);
     nargs = 1 ;
   }
   else if (strcmp(option, "diagno")==0 || strcmp(option, "diag_no")==0){

@@ -1496,6 +1496,7 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterDilate->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterOpen->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterClose->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterBoundary->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionSetCamera->setEnabled(bHasLayer);
   ui->actionSaveCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
   ui->actionLoadCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
@@ -1884,6 +1885,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfacelabeloutline" )
   {
     CommandSetSurfaceLabelOutline( sa );
+  }
+  else if ( cmd == "setsurfacelabelopacity" )
+  {
+    CommandSetSurfaceLabelOpacity( sa );
   }
   else if (cmd == "setsurfacelabelcolor")
   {
@@ -3421,6 +3426,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if ( subOption == "label_opacity" || subOption == "labelopacity")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("setsurfacelabelopacity") << subArgu);
+                break;
+              }
+            }
+          }
+        }
         else if (subOption == "label_color" || subOption == "labelcolor")
         {
           if (!subArgu.isEmpty())
@@ -3570,6 +3589,20 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
     if (cmd[1] == "1")
     {
       surf->SetActiveLabelOutline(true);
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceLabelOpacity(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool ok;
+    cmd[1].toDouble(&ok);
+    if (ok && surf->GetActiveLabel())
+    {
+      surf->GetActiveLabel()->SetOpacity(cmd[1].toDouble());
     }
   }
 }
@@ -7893,6 +7926,8 @@ void MainWindow::OnReloadSurface()
               AddScript(QStringList("setsurfacelabeloutline") << "1");
             if (!label->IsVisible())
               AddScript(QStringList("hidesurfacelabel"));
+            if (label->GetOpacity() != 1)
+              AddScript(QStringList("setsurfacelabelopacity") << QString::number(label->GetOpacity()));
             double* c = label->GetColor();
             AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
           }

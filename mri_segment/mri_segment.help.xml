@@ -83,7 +83,9 @@
       <argument>-x &lt;filename&gt;</argument>
       <explanation>extract options from filename</explanation>
       <argument>-w &lt;w&gt;</argument>
-      <explanation>set wsize (default=11)</explanation>
+      <explanation>set wsize (default=11 voxels)</explanation>
+      <argument>-wsizemm &lt;wsizemm&gt;</argument>
+      <explanation>set wsize based on mm instead of voxels</explanation>
       <argument>-polvwsize &lt;w&gt;</argument>
       <explanation>set wsize for plane of least variance (default=5)</explanation>
       <argument>-polvlen &lt;w&gt;</argument>

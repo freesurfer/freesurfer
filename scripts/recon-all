@@ -138,6 +138,10 @@ set Norm1_b = ();       # passed as -b to the *first* mri_normalize only
 set Norm1_n = ();       # passed as -n to the *first* mri_normalize only
 set Norm2_b = ();       # passed as -b to the *second* mri_normalize only
 set Norm2_n = ();       # passed as -n to the *second* mri_normalize only
+set WMSegFromASeg = 0; # use aseg WM instead of mri_segment
+set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment
+set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
+set MriSegWsizemm = 13  # Sets search region for mri_segment
 set WMSeg_wlo = ();  # from -seg-ghi and -seg-wlo, passed to mri_segment
 set WMSeg_ghi = ();  #                             and mris_make_surfaces
 set FixWithGA = 1;   # for topology fixer
@@ -150,7 +154,6 @@ set UseAseg  = 1 # when set to 0 (using -noaseg),then aseg.presurf.mgz not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.presurf
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
-set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_reg
 set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_reg.
                       # else, add '-nobigventricles'
@@ -158,7 +161,6 @@ set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
 set DoRemesh = 0; # remesh ?h.orig to improve triangle quality
-set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -212,7 +214,6 @@ set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
 set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
 
-set WMSegFromASeg = 0; # use aseg WM instead of mri_segment
 
 # Desired average face area of orig.nofix after decimation. This is
 # set to 0.5 by default because this is the value for the orig.nofix
@@ -2804,7 +2805,7 @@ if($DoSegmentation) then
       set mrisegment_input = antsdn.brain.mgz
     endif
     set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
-    set cmd = (mri_segment);
+    set cmd = (mri_segment -wsizemm $MriSegWsizemm);
     if ($NoThicken) set cmd = ($cmd -thicken 0)
     # note: check for wm.mgz happens so that -dontrun output is correct
     if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
@@ -2998,7 +2999,9 @@ if($DoTessellate && ( ! $longitudinal )) then
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
       # than DecimationFaceArea, then the surface is not changed.
-      set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      set cmd = (mris_remesh --desired-face-area $DecimationFaceArea --input ../surf/$hemi.orig.nofix.predec \
+        --output ../surf/$hemi.orig.nofix)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -3252,9 +3255,10 @@ if($DoFix && ( ! $longitudinal )) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     # Remove hemi.inflated, real one created after mris_make_surfaces
+    #   Note sure this is needed anymore
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd
+    if($RunIt) $cmd |& tee -a $LF
     if($UseNewTopoFix && -e ../surf/$hemi.orig_corrected ) then
       # Copy *h.orig_corrected to *h.orig.  orig_corrected is created
       # by mris_topo_fixer, which runs only when mris_fix_topology fails,
@@ -3817,7 +3821,6 @@ endif
 if($DoConf2Hires) then
   # This places the surfaces on the highres T1 (and T2)
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
-  if($DoT2pial == 0)    set cmd = ($cmd --no-T2)
   if($DoT2pial == 1)    set cmd = ($cmd --T2)
   if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
   if($longitudinal) then
@@ -3827,6 +3830,7 @@ if($DoConf2Hires) then
   endif
   if($UseCubic == 1) set cmd = ($cmd --cubic)
   if($UseCubic == 0) set cmd = ($cmd --trilin)
+  if($ForceUpdate)   set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -6794,9 +6798,15 @@ while( $#argv != 0 )
       set TH3Flag = 0
       breaksw
 
+    case "-wsizemm":
+      if( $#argv < 1) goto arg1err;
+      set MriSegWsizemm = $argv[1]; shift;
+      breaksw
+
     case "-rng-seed":
-      set NoRandomness = 1;
+      if( $#argv < 1) goto arg1err;
       set RngSeed = $argv[1]; shift;
+      set NoRandomness = 1;
       breaksw
 
     case "-expert":

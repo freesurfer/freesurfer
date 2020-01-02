@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -efx
 
 ##
 ## For infants between 0-2yrs of age!
@@ -11,7 +11,6 @@ set checkresults        = 0 # after each processing step FreeView is called to v
 set nolog               = 0 # keep logging the processing steps
 set cleanup             = 1 # eventually turn this on
 
-set withaparc           = 0 # training data set with parcellation labels
 set fsdirset            = 0
 set maskedinput         = 0
 
@@ -31,7 +30,7 @@ set forcegmwm2          = 1 # if set, force to choose at least one training subj
 set avoidtraining       = 0
 set setksize            = 0
 
-set computeCCseg        = 1
+set computeCCseg        = 0
 
 set dostats             = 0
 
@@ -92,9 +91,6 @@ while( $#argv != 0 )
       set FS_DIR = $argv[1]; shift;
       set fsdirset = 1;
       breaksw
-    case "--aparc":
-      set withaparc = 1;
-      breaksw
     case "--masked":
       if ( $#argv < 1) goto arg1err;
       set maskedinputfile = $argv[1]; shift; 
@@ -130,6 +126,9 @@ while( $#argv != 0 )
     #  breaksw
     case "--usegpu":
       set usegpu = 1;
+      breaksw
+    case "--ccseg":
+      set computeCCseg = 1;
       breaksw
     case "--usedramms":
       set usedramms = 1;
@@ -356,7 +355,8 @@ if !(-e $maskfile) then
 
   else
    set maskedfile = $maskedinputfile
-   set cmd = (mri_convert --conform-dc $maskedfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
+   # set cmd = (mri_convert --conform-dc $maskedinputfile $maskedfile)
+   set cmd = (mri_convert --conform-dc $maskedinputfile $WORK_DIR/mprage.nu.conf.masked.nii.gz)
    echo $cmd >> $LF
    echo $cmd >> $sLF
    $cmd |& tee -a $LF
@@ -588,7 +588,8 @@ endif
 # (D) postprocessing the segmentation
 
 if !(-e $WORK_DIR/aseg.nii.gz) then 
-  set cmd = (ln -s $asegfile $WORK_DIR/aseg.nii.gz)
+  # set cmd = (ln -s $asegfile $WORK_DIR/aseg.nii.gz)
+  set cmd = (cp $asegfile $WORK_DIR/aseg.nii.gz)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -611,20 +612,6 @@ if !(-e $WORK_DIR/alllabelmask.nii.gz) then
   if($status) exit 1;    
 endif
 
-# create GM as now there are parcellation labels
-if ($withaparc) then
-  foreach label ($parcellationlabels)
-    if !(-e $WORK_DIR/aseg.binaryLabels_label$label.origval.nii.gz) then
-      echo PLABEL $label
-      set cmd = (isolate_labels_keeporigval.csh --vol $asegfile --outprefix $WORK_DIR/aseg.binaryLabels --L $label)
-      echo $cmd >> $LF
-      echo $cmd >> $sLF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-    endif
-  end
-endif
-
 # aseg with GM/WM and not parcellations
 set aseggmwmfile = ${asegfile:r:r}.GMWM.nii.gz  # TODO: this might be a misnomer if no GMWM
 set cmd = (cp $asegfile $aseggmwmfile)
@@ -632,25 +619,6 @@ echo $cmd >> $LF
 echo $cmd >> $sLF
 $cmd |& tee -a $LF
 if($status) exit 1;    
-
-if ($withaparc) then
-  foreach label ($parcellationlabels[1-7]) 
-    echo PLABEL $label
-    set cmd = (mri_binarize --replace $label 3 --i $aseggmwmfile --o $aseggmwmfile )
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1;   
-  end
-  foreach label ($parcellationlabels[8-14])
-    echo PLABEL $label
-    set cmd = (mri_binarize --replace $label 42 --i $aseggmwmfile --o $aseggmwmfile )
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1;   
-  end
-endif 
 
 if !(-e ${aseggmwmfile:r:r}.edited.nii.gz) then
   if ($withGMWM) then 
@@ -664,94 +632,14 @@ if !(-e ${aseggmwmfile:r:r}.edited.nii.gz) then
   if($status) exit 1;  
 endif
 
-# put parcellation labels back if needed
-if ($withaparc) then
-  set f = ${aseggmwmfile:r:r}.edited.nii.gz
-  # put labels back to GM
-  foreach label (3 42)
-    set cmd = (isolate_labels_keeporigval.csh --vol $f --outprefix ${f:r:r}.binaryLabels --L $label)
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1; 
-  end
-  set filelist = ()
-  foreach label ($parcellationlabels[1-7])
-    set filelist = ($filelist ${f:h}/aseg.binaryLabels_label$label.origval.nii.gz)
-  end
-  set cmd = (mri_or -o $filelist $WORK_DIR/tmp.orig_parcellationlabels_for_label3.nii.gz)
+if !(-e $WORK_DIR/finalaseg.nii.gz) then 
+  # set cmd = (ln -s ${aseggmwmfile:r:r}.edited.nii.gz  $WORK_DIR/finalaseg.nii.gz)
+  set cmd = (cp ${aseggmwmfile:r:r}.edited.nii.gz  $WORK_DIR/finalaseg.nii.gz)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
-  if($status) exit 1; 
-  set filelist = ()
-  foreach label ($parcellationlabels[8-14])
-    set filelist = ($filelist ${f:h}/aseg.binaryLabels_label$label.origval.nii.gz)
-  end
-  set cmd = (mri_or -o $filelist $WORK_DIR/tmp.orig_parcellationlabels_for_label42.nii.gz)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-
-  set cmd = (mri_or -o ${f:r:r}.binaryLabels_label3.origval.nii.gz $WORK_DIR/tmp.orig_parcellationlabels_for_label3.nii.gz $WORK_DIR/tmp.orig_parcellationlabels_with_newlabel3.nii.gz)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-  set cmd = (mri_or -o ${f:r:r}.binaryLabels_label42.origval.nii.gz $WORK_DIR/tmp.orig_parcellationlabels_for_label42.nii.gz $WORK_DIR/tmp.orig_parcellationlabels_with_newlabel42.nii.gz)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-
-  # replace 3 and 42 with closest parcellation label
-  set cmd = (cp ${aseggmwmfile:r:r}.edited.nii.gz ${aseggmwmfile:r:r}.edited.withplabels.nii.gz)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-  foreach f ($WORK_DIR/tmp.orig_parcellationlabels_with_newlabel3.nii.gz  $WORK_DIR/tmp.orig_parcellationlabels_with_newlabel42.nii.gz)
-    set cmd = (mri_update_parcellations $f ${f:r:r}.updated.nii.gz)
-
-    set cmd = ($cmd; mri_update_parcellations  ${f:r:r}.updated.nii.gz ${f:r:r}.updated2.nii.gz)
-
-    set cmd = ($cmd; mri_update_parcellations  ${f:r:r}.updated2.nii.gz ${f:r:r}.updated3.nii.gz)
-
-    set cmd = ($cmd; mri_or -o ${aseggmwmfile:r:r}.edited.withplabels.nii.gz ${f:r:r}.updated.nii.gz  ${aseggmwmfile:r:r}.edited.withplabels.nii.gz )
-
-    set cmd = ($cmd; mri_or -o ${aseggmwmfile:r:r}.edited.withplabels.nii.gz ${f:r:r}.updated2.nii.gz  ${aseggmwmfile:r:r}.edited.withplabels2.nii.gz )
-
-    set cmd = ($cmd; mri_or -o ${aseggmwmfile:r:r}.edited.withplabels.nii.gz ${f:r:r}.updated3.nii.gz  ${aseggmwmfile:r:r}.edited.withplabels3.nii.gz )
-
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1; 
-  end
-  if !(-e $WORK_DIR/finalaseg.nii.gz) then 
-    set cmd = (ln -s ${aseggmwmfile:r:r}.edited.withplabels.nii.gz  $WORK_DIR/finalaseg.nii.gz) # TODO: think about name consistency -- if this one has the parcellations!
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1; 
-  endif 
-
-  set filestoremove = ($WORK_DIR/tmp.*gz)
-  set cmd = (rm -f $filestoremove)
-  echo $cmd >> $LF
-  echo $cmd >> $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-else
-  if !(-e $WORK_DIR/finalaseg.nii.gz) then 
-    set cmd = (ln -s ${aseggmwmfile:r:r}.edited.nii.gz  $WORK_DIR/finalaseg.nii.gz)
-    echo $cmd >> $LF
-    echo $cmd >> $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  endif 
-endif
+  if($status) exit 1;
+endif 
 
 if ($checkresults) then 
   freeview -v $maskedfile $WORK_DIR/finalaseg.nii.gz:colormap=lut
@@ -787,7 +675,8 @@ if($status) exit 1;
 pushd $datadir/$subj/mri
 
 if !(-e norm.nii.gz) then  
-  set cmd = (ln -s $maskedfile norm.nii.gz)
+  # set cmd = (ln -s $maskedfile norm.nii.gz)
+  set cmd = (cp $maskedfile norm.nii.gz)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -828,7 +717,8 @@ if !(-e brainmask.mgz) then
 endif
 # mri/aseg
 if !(-e aseg.nii.gz) then  
-  set cmd = (ln -s $WORK_DIR/finalaseg.nii.gz aseg.nii.gz)
+  # set cmd = (ln -s $WORK_DIR/finalaseg.nii.gz aseg.nii.gz)
+  set cmd = (cp $WORK_DIR/finalaseg.nii.gz aseg.nii.gz)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -876,7 +766,8 @@ if !(-e $datadir/$subj/mri/transforms/talairach.auto.xfm) then
   $cmd |& tee -a $LF
   if($status) exit 1;
 
-  set cmd = (ln -s ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
+  # set cmd = (ln -s ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
+  set cmd = (cp ${talaffine:r}.xfm $datadir/$subj/mri/transforms/talairach.auto.xfm)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -1019,7 +910,7 @@ if($status) exit 1;
 
 ## file cleanup
 if ($cleanup) then
-  set filestoremove = ($WORK_DIR/*gz $WORK_DIR/$subj-with* $WORK_DIR/surf $FS_DIR/surf/*tmp)
+  set filestoremove = ($WORK_DIR/*gz $WORK_DIR/$subj-with* $WORK_DIR/surf $FS_DIR/surf/*tmp $WORK_DIR/work)
   set cmd = (rm -fr  $filestoremove)
   echo $cmd >> $LF
   echo $cmd >> $sLF

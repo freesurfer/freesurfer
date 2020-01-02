@@ -10,13 +10,14 @@ int main(int argc, const char **argv)
   ArgumentParser parser;
   parser.addHelp(mris_remesh_help_xml, mris_remesh_help_xml_len);
   // required
-  parser.addArgument("-i", "--input", 1, String, true);
+  parser.addArgument("-i", "--input",  1, String, true);
   parser.addArgument("-o", "--output", 1, String, true);
   // one of these is required
   parser.addArgument("--nvert", 1, Int);
   parser.addArgument("--edge-len", 1, Float);
   // optional
   parser.addArgument("--iters", 1, Int);
+  parser.addArgument("--desired-face-area", 1, Float);
   parser.parse(argc, argv);
 
   // read input surface
@@ -26,6 +27,9 @@ int main(int argc, const char **argv)
 
   // number of iterations
   int iters = parser.exists("iters") ? parser.retrieve<int>("iters") : 5;
+  printf("iters = %d\n",iters);
+
+  MRIScomputeMetricProperties(surf);
 
   // init the remesher
   Remesher remesher = Remesher(surf);
@@ -38,15 +42,28 @@ int main(int argc, const char **argv)
 
     // remesh to number of vertices
     int nverts = parser.retrieve<int>("nvert");
+    printf("nverts = %d\n",nverts);
     remesher.remeshBKV(iters, nverts, false);
   }
   else if (parser.exists("edge-len")) {
     // remesh to target edge length
-    float length = parser.retrieve<float>("edge-len");
-    remesher.remeshBK(iters, length);
+    float edgelength = parser.retrieve<float>("edge-len");
+    printf("edge-len = %g\n", edgelength);
+    remesher.remeshBK(iters,  edgelength);
+  }
+  else if (parser.exists("desired-face-area")) {
+    float  desiredFaceArea = parser.retrieve<float>("desired-face-area");
+    double avgfacearea = surf->total_area/surf->nfaces;
+    double decimationLevel = avgfacearea/desiredFaceArea;
+    int nverts = round(surf->nvertices*decimationLevel);
+    printf("desiredFaceArea = %g\n",desiredFaceArea);
+    printf("avgfacearea = %g\n",avgfacearea);
+    printf("decimationLevel = %g\n",decimationLevel);
+    printf("targetnvert = %d\n",nverts);
+    remesher.remeshBKV(iters, nverts, false);
   }
   else {
-    fs::fatal() << "must specify target edge length or number of vertices";
+    fs::fatal() << "must specify target edge length or number of vertices or desired face area";
   }
 
   // convert back to MRIS
@@ -73,6 +90,7 @@ int main(int argc, const char **argv)
 
   MRISfree(&surf);
   MRISfree(&remeshed);
+  printf("mris_remesh done\n");
 
   exit(0);
 }
