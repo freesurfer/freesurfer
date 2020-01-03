@@ -945,8 +945,14 @@ get_option(int argc, char *argv[])
             curvature_names[2]) ;
     nargs = 1 ;
   }
-
-
+  else if (!stricmp(option, "threads")){
+    int nthreads;
+    sscanf(argv[2],"%d",&nthreads);
+    #ifdef _OPENMP
+    omp_set_num_threads(nthreads);
+    #endif
+    nargs = 1;
+  } 
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
