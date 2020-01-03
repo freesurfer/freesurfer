@@ -44,7 +44,7 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay=None, mrisp=None, sphere=None, **kwargs):
+    def surf(self, surface, overlay=None, overlay_name=None, mrisp=None, mrisp_name=None, sphere=None, curvature=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
@@ -52,8 +52,13 @@ class Freeview:
 
         Args:
             surface: An existing filename or Surface instance.
-            overlay: A file, array, or Overlay instance to project onto the surface.
-            mrisp: A file, array, or Image parameterization to project onto the surface.
+            overlay: A file, array, or Overlay instance to project onto the surface. Multiple overlays can
+                be provided with a list.
+            overlay_name: String name or list of names for the specified overlay(s).
+            mrisp: A file, array, or Image parameterization to project onto the surface. Multiple parameterizations can
+                be provided with a list.
+            mrisp_name: String name or list of names for the specified mrisp(s).
+            curvature: A file, array, or Overlay instance to load as the surface curvature.
             opts: Additional option string to append to the surface commandline argument.
         '''
 
@@ -62,13 +67,17 @@ class Freeview:
         if filename is None:
             return
 
-        # if overlay is provided as an array, make sure it's converted
-        if overlay is not None:
-            kwargs['overlay'] = self._vol_to_file(overlay, force=Overlay)
+        # if curvature is provided as an array, make sure it's converted
+        if curvature is not None:
+            kwargs['curvature'] = self._vol_to_file(curvature, force=Overlay)
 
-        # if mrisp is provided as an array, make sure it's converted
-        if mrisp is not None:
-            kwargs['mrisp'] = self._vol_to_file(mrisp, force=Image)
+        # configure (potentially multiple) overlays
+        for fname in self._make_named_arrays(overlay, overlay_name, Overlay):
+            kwargs['opts'] = kwargs.get('opts', '') + ':overlay=' + fname
+
+        # configure (potentially multiple) mrisps
+        for fname in self._make_named_arrays(mrisp, mrisp_name, Image):
+            kwargs['opts'] = kwargs.get('opts', '') + ':mrisp=' + fname
 
         # if sphere is provided as an array, make sure it's converted
         if sphere is not None:
@@ -110,11 +119,42 @@ class Freeview:
         # opts is reserved for hardcoded tags
         tags = kwargs.pop('opts', '')
         for key, value in kwargs.items():
-            tags += ':%s=%s' % (key, str(value))
+            if value is not None:
+                tags += ':%s=%s' % (key, str(value))
 
         return tags
 
-    def _vol_to_file(self, volume, force=None):
+    def _make_named_arrays(self, arrays, names, type):
+        '''
+        Utility that will create a series of volume files with optional names.
+        '''
+
+        # it's possible the arrays will be not provided
+        if arrays is None:
+            return []
+
+        # ensure that arrays is a list
+        arrays = list(arrays) if isinstance(arrays, (list, tuple)) else [arrays]
+
+        # ensure that names is a list
+        if names is None:
+            names = [None] * len(arrays)
+        names = list(names) if isinstance(names, (list, tuple)) else [names]
+
+        # make sure names match arrays
+        if len(names) != len(arrays):
+            error('freeview: length of names does not match length of arrays')
+            return []
+
+        # generate files
+        filenames = []
+        for array, name in zip(arrays, names):
+            path = self._vol_to_file(array, name=name, force=type)
+            if path:
+                filenames.append(path)
+        return filenames
+
+    def _vol_to_file(self, volume, name=None, force=None):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -135,21 +175,19 @@ class Freeview:
                 error('cannot convert array of shape %s' % str(array.shape))
                 return None
 
-        # input is a Volume
-        if isinstance(volume, Volume):
-            filename = self._unique_filename('volume.mgz')
-            volume.write(filename)
-            return filename
+        # configure filename
+        if not name:
+            if isinstance(volume, Overlay):
+                filename = self._unique_filename('overlay.mgz')
+            elif isinstance(volume, Image):
+                filename = self._unique_filename('image.mgz')
+            else:
+                filename = self._unique_filename('volume.mgz')
+        else:
+            filename = self._unique_filename(name.replace(' ', '-') + '.mgz')
 
-        # input is an Image
-        if isinstance(volume, Image):
-            filename = self._unique_filename('image.mgz')
-            volume.write(filename)
-            return filename
-
-        # input is an Overlay
-        if isinstance(volume, Overlay):
-            filename = self._unique_filename('overlay.mgz')
+        # check if fs array container
+        if isinstance(volume, (Overlay, Image, Volume)):
             volume.write(filename)
             return filename
 
@@ -159,7 +197,7 @@ class Freeview:
             import nibabel as nib
             if isinstance(volume, nib.spatialimages.SpatialImage):
                 # convert from nib to fs volume, as it's easier to control the filename
-                filename = self._unique_filename('volume.mgz')
+                filename = self._unique_filename(filename)
                 Volume(volume.get_data(), affine=volume.affine).write(filename)
                 return filename
         except ImportError:

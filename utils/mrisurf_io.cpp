@@ -5485,7 +5485,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n", user, cdt.c_str());
+  fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
 
