@@ -184,7 +184,7 @@ class Freeview:
             else:
                 filename = self._unique_filename('volume.mgz')
         else:
-            filename = self._unique_filename(name + '.mgz')
+            filename = self._unique_filename(name.replace(' ', '-') + '.mgz')
 
         # check if fs array container
         if isinstance(volume, (Overlay, Image, Volume)):
