@@ -15,7 +15,7 @@
       <argument>--desired-face-area faceArea</argument>
       <explanation>Control the decimation by specifying the desired average face area in mm2</explanation>
       <argument>--remesh</argument>
-      <explanation>Do not change the topology, only improve the quality</explanation>
+      <explanation>Improve the quality while only reducing vertices by a small amount</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--iters niters</argument>
