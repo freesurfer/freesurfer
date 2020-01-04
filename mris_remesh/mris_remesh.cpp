@@ -15,10 +15,13 @@ int main(int argc, const char **argv)
   // one of these is required
   parser.addArgument("--nvert", 1, Int);
   parser.addArgument("--edge-len", 1, Float);
+  parser.addArgument("--desired-face-area", 1, Float);
+  parser.addArgument("--remesh", 0, Bool,false);
   // optional
   parser.addArgument("--iters", 1, Int);
-  parser.addArgument("--desired-face-area", 1, Float);
   parser.parse(argc, argv);
+
+  int DoRemesh = parser.retrieve<bool>("remesh");
 
   // read input surface
   std::string inputname = parser.retrieve<std::string>("input");
@@ -45,9 +48,11 @@ int main(int argc, const char **argv)
     printf("nverts = %d\n",nverts);
     remesher.remeshBKV(iters, nverts, false);
   }
-  else if (parser.exists("edge-len")) {
-    // remesh to target edge length
-    float edgelength = parser.retrieve<float>("edge-len");
+  else if (parser.exists("edge-len") || DoRemesh) {
+    float edgelength;
+    if(DoRemesh)  edgelength = -1; // don't change number of vertices, just quality
+    else
+      edgelength = parser.retrieve<float>("edge-len"); // remesh to target edge length
     printf("edge-len = %g\n", edgelength);
     remesher.remeshBK(iters,  edgelength);
   }

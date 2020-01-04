@@ -14,6 +14,8 @@
       <explanation>target number of vertices for remeshed surface</explanation>
       <argument>--desired-face-area faceArea</argument>
       <explanation>Control the decimation by specifying the desired average face area in mm2</explanation>
+      <argument>--remesh</argument>
+      <explanation>Do not change the topology, only improve the quality</explanation>
     </required-flagged>
     <optional-flagged>
       <argument>--iters niters</argument>
