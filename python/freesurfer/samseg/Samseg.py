@@ -214,20 +214,28 @@ class Samseg:
         imageGeom = fs.Volume.read(self.imageFileNames[0]).geometry()
         templateGeom = fs.Volume.read(os.path.join(self.atlasDir, 'template.nii')).geometry()
 
-        # extract image-to-image template transform
+        # extract vox-to-vox template transform
+        # TODO: Grabbing the transform from the saved .mat file in either the cross or base
+        # directory is pretty messy. Ideally the affine matrix should be stored in this class
+        # for both cross-sectional and longitudinal models. Also, it's important to note that
+        # longitudinal timepoints might only be aligned in RAS space, not voxel space, so
+        # the cached vox->vox transform computed from the base image should be converted for
+        # the appropriate image geometries
         matricesFileName = os.path.join(self.savePath, 'template_coregistrationMatrices.mat')
+        if not os.path.isfile(matricesFileName):
+            matricesFileName = os.path.join(self.savePath, 'base', 'template_coregistrationMatrices.mat')
         matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
 
         # rasterize the final node coordinates (in image space) using the initial template mesh
         mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName)
-        coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions).astype('float')
-
-        # adjust for the offset introduced by volume cropping
-        coordmap[..., :] += [slc.start for slc in self.cropping]
+        coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions)
 
         # the rasterization is a bit buggy and some voxels are not filled - mark these as invalid
         invalid = np.any(coordmap == 0, axis=-1)
         coordmap[invalid, :] = -1
+
+        # adjust for the offset introduced by volume cropping
+        coordmap[~invalid, :] += [slc.start for slc in self.cropping]
 
         # write the warp file
         fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
