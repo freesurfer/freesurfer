@@ -32,7 +32,7 @@ set auxsegcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set segopacity = 1;
 set fthresh = 2;
 set fmax    = 5;
-set label = ();
+set labellist = ();
 set UseTkMedit = 0;
 set vollist0 = ();
 set CursorCRS = ();
@@ -92,7 +92,11 @@ if(! $UseTkMedit) then
     @ nth = $nth + 1;
     set cmd = ($cmd -v "$v":"lut=$segcolorlist[$nth]":"opacity=$segopacity":"colormap=lut")
   end
-  if($#label) set cmd = ($cmd -l $label)
+  if($#labellist) then
+    foreach label ($labellist)
+      set cmd = ($cmd -l $label)
+    end
+  endif
   foreach ov ($overlay)
     #set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
     set fmid = $fthresh;
@@ -138,7 +142,11 @@ else
     set cmd = ($cmd -t $twfvol)
     if($#twfreg) set cmd = ($cmd -timecourse-reg $twfreg)
   endif
-  if($#label) set cmd = ($cmd -label $label)
+  if($#labellist) then
+    foreach label ($labellist)
+      set cmd = ($cmd -label $label)
+    end
+  endif
   if($#auxsurf) set cmd = ($cmd -aux-surface $auxsurf)
   if($DoSurfs) set cmd = ($cmd -surfs)
 endif
@@ -249,7 +257,7 @@ while( $#argv != 0 )
     case "-label":
     case "-l":
       if($#argv < 1) goto arg1err;
-      set label = $argv[1]; shift;
+      set labellist = ($labellist $argv[1]); shift;
       breaksw
 
     case "-reg":
@@ -349,6 +357,12 @@ while( $#argv != 0 )
     case "-pial":
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.pial rh.pial)
+      set surfcolor = ($surfcolor red red);
+      breaksw
+
+    case "-woT2":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.woT2.pial rh.woT2.pial)
       set surfcolor = ($surfcolor red red);
       breaksw
 
@@ -524,7 +538,8 @@ if($#subject) then
       set surflist = ($surflist $surfpath)
     endif
   end
-  if($#label) then
+  set labellist2 = ()
+  foreach label ($labellist)
     if(! -e $label) then
       set l0 = $SUBJECTS_DIR/$subject/label/$label
       if(! -e $l0 && ! -e $label) then 
@@ -532,8 +547,10 @@ if($#subject) then
         exit 1;
       endif
       set label = $l0
+      set labellist2 = ($labellist2 $label)
     endif
-  endif
+  end
+  set labellist = ($labellist2)
 else
   set mainvol = $mainvol0
   if($#auxvol0) set auxvol = $auxvol0
@@ -542,12 +559,12 @@ else
   set surflist = ($surflist0)
 endif
 
-if($#label) then
+foreach label ($labellist)
   if(! -e $label) then
     echo "ERROR: cannot find $label"
     exit 1;
   endif
-endif
+end
 
 set vollist = ()
 foreach vol0 ($vollist0)
