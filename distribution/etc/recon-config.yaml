@@ -1,12 +1,12 @@
 # default recon-all config parameters
 
 GCA:
-    value: RB_all_2016-05-10.vc700.gca
+    value: RB_all_2020-01-02.gca
     flags: -gca
     descr: Gaussian Classifier Array atlas used for segmentation
 
 GCASkull:
-    value: RB_all_withskull_2016-05-10.vc700.gca
+    value: RB_all_withskull_2020_01_02.gca
     flags: -gca-skull
     descr: Gaussian Classifier Array atlas used for skull stripping
 
