@@ -553,15 +553,11 @@ static void mrismp_setFaceAreaNormal(MRIS_MP* mris, int fno)
 
 
 /*!
-  \fn int mrismp_NormalFace(MRIS *mris, int fac, int n,float norm[])
-  \brief Computes the normal to a triangle face. The normal will not
-  have a unit length unless global variable UnitizeNormalFace=1. fac
-  is the face index in mris->faces. n is the nth (0,1,2) vertex 
-  
-  The definition here results in the length being the sin of the angle at the vertex
-  and is used to bias the sum of the face normal vectors used to compute a vertex normal vector
-  
- */ 
+  Computes the normal to a triangle face. fno is the face index in mris->faces.
+  n is the nth (0,1,2) vertex. The definition here results in the length being
+  the sin of the angle at the vertex and is used to bias the sum of the face
+  normal vectors used to compute a vertex normal vector.
+*/
 static void mrismp_NormalFace(MRIS_MP* mris, int fno, int n, float norm[])
 {
   FACE_TOPOLOGY const * const ft = &mris->faces_topology[fno];
@@ -600,14 +596,6 @@ static void mrismp_NormalFace(MRIS_MP* mris, int fno, int n, float norm[])
   norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
   norm[1] =  v1[0]*v0[2] - v0[0]*v1[2];
   norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
-
-  // Note: cross product is not a unit vector even if inputs
-  // are. Inputs do not need to be unit.  Until Oct 2017, this
-  // function always returned a non-unitized vector. UnitizeNormalFace is a
-  // global variable defined in mrisurf.h that can turn unitization on
-  // and off to test its effect. Note: skull stripping uses this
-  // function.
-  if (UnitizeNormalFace) mrisNormalize(norm);
 }
 
 

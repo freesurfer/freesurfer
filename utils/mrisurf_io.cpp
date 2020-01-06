@@ -6203,7 +6203,7 @@ int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen)
   fprintf(fp,"set(h,'fontsize',%d,'color','%c');\n",fontsize,color);
   if(fabs(NormLen) > 0){
     float snorm[3];
-    mrisNormalFace(surf, faceno, 0, snorm);
+    mrisUnitNormalFace(surf, faceno, snorm);
     //printf("%g %g %g\n",snorm[0],snorm[1],snorm[2]);
     fprintf(fp,"hold on;\n");
     fprintf(fp,"plot3([%6.4f],[%6.4f],[%6.4f],'%c*',",cx,cy,cz,color);

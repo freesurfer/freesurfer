@@ -624,7 +624,6 @@ int          MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteNormalsAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadNormals(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteNormals(MRI_SURFACE *mris,const  char *fname) ;
-int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]);
 int          MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const  char *fname) ;
 int          MRISwriteVTK(MRI_SURFACE *mris,const  char *fname);
 int          MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname);
@@ -640,6 +639,9 @@ int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 #define NORM_MEAN   0
 #define NORM_MEDIAN 1
 #define NORM_MAX    2
+
+int          mrisNormalFace(MRIS *mris, int fac, int n, float norm[]);
+void         mrisUnitNormalFace(MRIS* mris, int fno, float norm[]);
 
 int          MRISnormalizeCurvature(MRI_SURFACE *mris, int norm_type) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
