@@ -25,7 +25,8 @@ set diceseg = none
 set DoRecon = 0;
 set DoFill = 1; # Create filled.mgz in samseg2recon
 set DoNormalization2 = 1; # Do Normalization2 in samseg2recon
-set DoHiRes = 1; 
+set DoHiRes = 1;
+set DoLesion = 0;
 set DoDecimate = 1; 
 set DoImport = 0
 set HaveT1w = 0;
@@ -134,6 +135,7 @@ if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
+if($DoLesion) set cmd0 = ($cmd0 --lesion)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
@@ -306,6 +308,10 @@ while( $#argv != 0 )
 
     case "--recon":
       set DoRecon = 1
+      breaksw
+
+    case "--lesion":
+      set DoLesion = 1
       breaksw
 
     case "--mrf":
