@@ -67,17 +67,12 @@ typedef struct MRIS_HASH_BUCKET
 // of x,y,z to worry about: eg: not necessarily RAS.
 //-----------------------------------------------------------
 
-// FIELD_OF_VIEW: Way more than needed even at 1mm resolution.
-#define FIELD_OF_VIEW  400
-
 // VOXEL_RES: Default value for MHT->vres for when caller doesn't set it.
 #define VOXEL_RES      1.0
 
 // TABLE_SIZE dimensions for array of hash buckets. As defined here
-// TABLE_SIZE = 400.
-//#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 #define TABLE_SIZE     2000
-
+#define TABLE_CENTER   (int)(TABLE_SIZE / 2)
 
 typedef struct mht_face_t {
     // for per-vertex information that should not be stored in the MRIS FACE
