@@ -11,7 +11,7 @@
     </required-flagged>
     <optional-flagged>
       <argument>--rician</argument>
-      <explanation>TODOC</explanation>
+      <explanation>Enable rician noise model (otherwise gaussian is used)</explanation>
     </optional-flagged>
   </arguments>
 </help>
