@@ -119,6 +119,10 @@ class Freeview:
         # opts is reserved for hardcoded tags
         tags = kwargs.pop('opts', '')
         for key, value in kwargs.items():
+
+            if isinstance(value, (list, tuple)):
+                value = ','.join(str(x) for x in value)
+
             if value is not None:
                 tags += ':%s=%s' % (key, str(value))
 
