@@ -160,7 +160,7 @@ set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
-set DoRemesh = 0; # remesh ?h.orig to improve triangle quality
+set DoRemesh = 1; # remesh ?h.orig to improve triangle quality
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -3117,14 +3117,12 @@ endif
 #----------------              -------------------#
 if($DoFix && ( ! $longitudinal )) then
   cd $subjdir/scripts
-
-  set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
-
   set origsurf = orig
   if($DoRemesh) set origsurf = orig.premesh
-
+  set NewTopoFixHemiList = (); # to handle Old/NewTopoFix use cases
   # Removed copying of orig.nofix and inflated.nofix to orig and inflated
   # because they can be specified directly as input.
+
   if($UseOldTopoFix) then
     set CMDFS = () # see earlier notes on -parallel implementation
     foreach hemi ($hemilist)
@@ -3226,22 +3224,19 @@ if($DoFix && ( ! $longitudinal )) then
     endif
   endif # UseNewTopoFix
 
-  # This improves the triangle quality
+  # This improves the triangle quality (changes topology)
+  # Could do this as part of topo fix
   if($DoRemesh) then
     set RemeshIterations = 3; # Does not change much after 3
     foreach hemi ($hemilist)
       set origsurfpath = $SUBJECTS_DIR/$subjid/surf/$hemi.$origsurf
       set remeshpath   = $SUBJECTS_DIR/$subjid/surf/$hemi.orig
-      set cmd = (triaIO --remeshbk $RemeshIterations --outtype vtk \
-       --infile $origsurfpath --outfile $remeshpath.vtk)
+      set xopts = `fsr-getxopts mris_remesh-quality $XOptsFile $GlobXOptsFile`;
+      set cmd = (mris_remesh --remesh --iters $RemeshIterations \
+        --input $origsurfpath --output $remeshpath $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       fs_time $cmd |& tee -a $LF
       if($status) exit 1;
-      set cmd = (mris_convert $remeshpath.vtk $remeshpath)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      fs_time $cmd |& tee -a $LF
-      if($status) exit 1;
-      rm -f $origsurfpath.remesh.vtk
     end
   endif
 
@@ -6024,11 +6019,6 @@ while( $#argv != 0 )
     case "-remesh"
       # Use Martin's code to remesh ?h.orig to improve triangle quality
       set DoRemesh = 1; 
-      which triaIO
-      if($status)  then
-        echo "Cannot find triaIO"
-        exit 1;
-      endif
       breaksw
     case "-noremesh"
     case "-no-remesh"

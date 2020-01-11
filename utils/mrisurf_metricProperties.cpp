@@ -1882,6 +1882,7 @@ int MRISzeroNegativeAreas(MRIS *mris)
   return (NO_ERROR);
 }
 
+
 static int count_MRIScomputeMetricProperties_calls = 0;
 
 #include "mrisurf_metricProperties_slow.h"
@@ -1889,6 +1890,13 @@ static int count_MRIScomputeMetricProperties_calls = 0;
 
 int MRIScomputeMetricProperties(MRIS *mris)
 {
+  if (!!getenv("FS_FASTER_MP")) {
+    // this method has been shown to be 3-8x faster than
+    // the "mrisurf_metricProperties_fast" implementation
+    MRIScomputeMetricPropertiesFaster(mris);
+    return NO_ERROR;
+  }
+
   static int debug_count = 0;
   count_MRIScomputeMetricProperties_calls++;
   if (count_MRIScomputeMetricProperties_calls == debug_count) {
@@ -1902,20 +1910,21 @@ int MRIScomputeMetricProperties(MRIS *mris)
   MRISMP_ctr(&mp);
 
   if (useNewBehaviour) {
-    MRISfreeDistsButNotOrig(mris);                                      // So they can be stolen to avoid unnecessary mallocs and frees
-    MRISMP_load(&mp, mris);                                             // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
-    MRIScomputeMetricProperties(&mp);                                // It should not matter the order these are done in
+    MRISfreeDistsButNotOrig(mris);     // So they can be stolen to avoid unnecessary mallocs and frees
+    MRISMP_load(&mp, mris);            // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
+    MRIScomputeMetricProperties(&mp);  // It should not matter the order these are done in
   }
   
   if (useOldBehaviour) {
     MRIScomputeMetricPropertiesWkr(mris);
   }
   
-  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);       // Verify the two approaches got the same answers, or use the new answers 
+  // Verify the two approaches got the same answers, or use the new answers 
+  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);
 
   MRISMP_dtr(&mp);
-  
-  return (NO_ERROR);
+
+  return NO_ERROR;
 }
 
 // Convenience functions

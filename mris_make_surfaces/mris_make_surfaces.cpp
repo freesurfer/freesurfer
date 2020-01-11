@@ -2339,10 +2339,10 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using min T2 exterior gray matter threshold %2.1f\n", T2_min_outside) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "T2_max_outside"))
+  else if (!stricmp(option, "T2_min_outside"))
   {
-    T2_max_outside = atof(argv[2]) ;
-    fprintf(stderr,  "using max T2 exterior gray matter threshold %2.1f\n", T2_max_outside) ;
+    T2_min_outside = atof(argv[2]) ;
+    fprintf(stderr,  "using max T2 exterior gray matter threshold %2.1f\n", T2_min_outside) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "grad_dir"))

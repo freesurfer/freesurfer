@@ -34,7 +34,7 @@ parser.add_argument('--history', action='store_true', default=False, help='Save 
 parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
-parser.add_argument('--save-warp', action='store_true', help='Save the image to template warp field.')
+parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp field.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
 
 args = parser.parse_args()

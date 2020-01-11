@@ -654,7 +654,7 @@ class SamsegLongitudinal:
                     gaussianNumber = sum(self.sstModel.gmm.numberOfGaussiansPerClass[:classNumber]) + componentNumber
                     self.latentMixtureWeights[gaussianNumber] = solution[componentNumber]
 
-    def postProcess(self):
+    def postProcess(self, saveWarp=False):
 
         # =======================================================================================
         #
@@ -679,6 +679,10 @@ class SamsegLongitudinal:
                                             self.sstModel.mask, biasFields, posteriors,
                                             self.sstModel.modelSpecifications.FreeSurferLabels, self.sstModel.cropping,
                                             self.targetIntensity, self.targetSearchStrings, self.sstModel.modelSpecifications.names)
+
+            # Save the timepoint->template warp
+            if saveWarp:
+                self.timepointModels[timepointNumber].saveWarpField(os.path.join(timepointDir, 'template.m3z'))
 
             self.timepointVolumesInCubicMm.append(volumesInCubicMm)
 

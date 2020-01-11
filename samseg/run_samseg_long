@@ -16,6 +16,7 @@ parser.add_argument('-t', '--timepoint', nargs='+', action='append', required=Tr
 parser.add_argument('-o', '--output', required=True, help='Output directory.')
 # optional processing options
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 
 args = parser.parse_args()
@@ -59,6 +60,6 @@ samsegLongitudinal = samseg.SamsegLongitudinal(
 
 samsegLongitudinal.preProcess()
 samsegLongitudinal.process()
-samsegLongitudinal.postProcess()
+samsegLongitudinal.postProcess(saveWarp=args.save_warp)
 
 timer.mark('run_samseg_long complete')

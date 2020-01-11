@@ -276,7 +276,7 @@ static void mhtVoxelList_SampleTriangle(
   ans.x = abs(a);     \
   ans.y = abs(a.y);   \
   ans.z = abs(a.z)
-#define W2VOL(ares, x) (((x) + FIELD_OF_VIEW / 2) / (ares))
+#define W2VOL(ares, x) ((x / ares) + TABLE_CENTER)
 #define W2VOX(ares, x) ((int)(W2VOL(ares, x)))
 #define PTWORLD2VOXEL(ans, ares, pt) \
   ans.xv = W2VOX(ares, pt.x);        \
@@ -400,6 +400,7 @@ static void mhtVoxelList_SampleTriangle(
     for (rungstep = 1; rungstep <= rungsteps_reqd; rungstep++) {
       PTINC(posn_b2c, delta_b2c);
       PTWORLD2VOXEL(voxco_b2c, mhtres, posn_b2c);
+
       //---------------------------------------------
       // If we crossed a boundary, add voxels in that
       // "path" to voxlist
@@ -521,9 +522,9 @@ struct MRIS_HASH_TABLE_NoSurface : public MRIS_HASH_TABLE {
       
     virtual void computeFaceCentroid(int which, int fno, float *x, float *y, float *z) = 0;
 
-    double WORLD_TO_VOLUME(double x) const { return (x+FIELD_OF_VIEW/2)/vres(); }
+    double WORLD_TO_VOLUME(double x) const { return (x / vres()) + TABLE_CENTER; }
     int    WORLD_TO_VOXEL (double x) const { return int(WORLD_TO_VOLUME(x));  }
-    float  WORLD_TO_VOLUME(float  x) const { return (x+FIELD_OF_VIEW/2)/vres(); }
+    float  WORLD_TO_VOLUME(float  x) const { return (x / vres()) + TABLE_CENTER; }
     int    WORLD_TO_VOXEL (float  x) const { return int(WORLD_TO_VOLUME(x));  }
 
     void checkConstructedWithFaces   () const;
@@ -1148,7 +1149,7 @@ int MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::mhtFaceToMHT(Face const face, boo
 {
     if (face.ripflag()) return (NO_ERROR);
     auto const fno = face.fno();
-    
+
     Vertex const v0 = face.v(0);
     Vertex const v1 = face.v(1);
     Vertex const v2 = face.v(2);
@@ -1178,7 +1179,7 @@ int MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::mhtFaceToMHT(Face const face, boo
         if (on) mhtAddFaceOrVertexAtVoxIx   (i, j, k, fno);
         else    mhtRemoveFaceOrVertexAtVoxIx(i, j, k, fno);
     }
-    
+
     return (NO_ERROR);
 }
 
@@ -1713,7 +1714,7 @@ int MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::findClosestVertexGeneric(
   probez_vol = WORLD_TO_VOLUME( probez);
 
   // (Note: In following (int) truncs toward zero, but that's OK because
-  // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
+  // range of probex_vol is all positive, centered at TABLE_CENTER)
   probex_vox = (int)probex_vol;
   probey_vox = (int)probey_vol;
   probez_vox = (int)probez_vol;
@@ -2003,7 +2004,7 @@ void MRIS_HASH_TABLE_IMPL<Surface,Face,Vertex>::findClosestFaceNoGeneric(
   probez_vol = WORLD_TO_VOLUME( probez);
 
   // (Note: In following (int) truncs toward zero, but that's OK because
-  // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
+  // range of probex_vol is all positive, centered at TABLE_CENTER)
   probex_vox = (int)probex_vol;
   probey_vox = (int)probey_vol;
   probez_vox = (int)probez_vol;
