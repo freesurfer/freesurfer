@@ -684,7 +684,7 @@ compute_surface_sse(MRI_SURFACE *mris, MRI *mri, float sample_dist) {
     if (v->ripflag)
       continue ;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z))
       DiagBreak() ;
     // sample outside - want bright stuff out here
     nx = v->nx ;

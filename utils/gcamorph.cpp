@@ -7655,7 +7655,7 @@ int gcamClearMomentum(GCA_MORPH *gcam)
   ------------------------------------------------------*/
 int finitep(float f)
 {
-  if (!isfinite(f)) {
+  if (!std::isfinite(f)) {
     return (0);
   }
   if (fabs(f) > 1e5) {
@@ -15601,7 +15601,7 @@ double gcamExpansionEnergy(GCA_MORPH *gcam, MRI *mri)
                 continue;
               }
               sse_node += error_n * error_n - error_0 * error_0;
-              if (!isfinite(sse)) {
+              if (!std::isfinite(sse)) {
                 DiagBreak();
               }
             }
@@ -15644,13 +15644,13 @@ double gcamExpansionEnergy(GCA_MORPH *gcam, MRI *mri)
                 continue;
               }
               sse_node += error_0 * error_0 - error_n * error_n;
-              if (!isfinite(sse)) {
+              if (!std::isfinite(sse)) {
                 DiagBreak();
               }
             }
           }
         }
-        if (sse_node < 0 || !isfinite(sse_node)) {
+        if (sse_node < 0 || !std::isfinite(sse_node)) {
           DiagBreak();
         }
         sse += sse_node;
@@ -16598,7 +16598,7 @@ double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri)
           gcap = &gca->priors[x][y][z];
           for (n = 0; n < gcap->nlabels; n++) {
             pval = GCAcomputePosteriorDensity(gcap, gcan, -1, n, vals, gca->ninputs, xn, yn, zn, gca);
-            if (!isfinite(pval)) {
+            if (!std::isfinite(pval)) {
               DiagBreak();
             }
             vox_pval += pval;
@@ -16704,7 +16704,7 @@ int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_mult
             }
             Ierror = gc->means[0] - vals[0];  // divided by covars[0]?
             pval = GCAcomputePosteriorDensity(gcap, gcan, -1, n, vals, gca->ninputs, xn, yn, zn, gca);
-            if (!isfinite(pval)) {
+            if (!std::isfinite(pval)) {
               DiagBreak();
             }
             if (Gx == x && y == Gy && z == Gz && !FZERO(pval)) {
@@ -17029,7 +17029,7 @@ double GCAMlogPosterior(GCA_MORPH *gcam, MRI *mri_inputs)
             max_p = p;
             // best_label = gcap->labels[n];
           }
-          if (!isfinite(p)) {
+          if (!std::isfinite(p)) {
             p = 0;
           }
           if (Gx == x && Gy == y && Gz == z)

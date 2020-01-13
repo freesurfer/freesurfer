@@ -1483,7 +1483,7 @@ double SseTerms_MRIS::NegativeLogPosterior2D( INTEGRATION_PARMS *parms, int *pnv
         if (pval > 1 || pval < 0) DiagBreak();
         if (DZERO(pval)) pval = 1e-20;
         ll = -log10(pval);
-        if (!isfinite(ll)) DiagBreak();
+        if (!std::isfinite(ll)) DiagBreak();
         sse += ll;
         nvox++;
         if (mri_ll) MRIsetVoxVal(mri_ll, x, y, z, 0, ll);
@@ -1682,14 +1682,14 @@ double SseTerms_MRIS::DistanceError( INTEGRATION_PARMS *parms)
       else
         v_sse += delta * delta;
 
-      if (!isfinite(delta) || !isfinite(v_sse)) DiagBreak();
+      if (!std::isfinite(delta) || !std::isfinite(v_sse)) DiagBreak();
     }
     if (v_sse > 10000) DiagBreak();
 
     if (parms->dist_error) parms->dist_error[vno] = v_sse;
 
     sse_dist += v_sse;
-    if (!isfinite(sse_dist) || !isfinite(v_sse)) DiagBreak();
+    if (!std::isfinite(sse_dist) || !std::isfinite(v_sse)) DiagBreak();
     
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
     #undef sse_dist 
@@ -1816,7 +1816,7 @@ double SseTerms_MRIS::CorrelationError( INTEGRATION_PARMS *parms, int use_stds)
     }
 #endif
     delta = (src - target) / std;
-    if (!isfinite(target) || !isfinite(delta)) {
+    if (!std::isfinite(target) || !std::isfinite(delta)) {
       DiagBreak();
     }
     if (parms->geometry_error) {
@@ -2350,7 +2350,7 @@ double SseTerms_MRIS::Error(
       delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
       sse_angle += delta * delta;
     }
-    if (!isfinite(sse_area) || !isfinite(sse_angle))
+    if (!std::isfinite(sse_area) || !std::isfinite(sse_angle))
       ErrorExit(ERROR_BADPARM, "sse (%f, %f) is not finite at face %d!\n", sse_area, sse_angle, fno);
   }
 
@@ -2788,7 +2788,7 @@ double MRIScomputeSSE_template(Surface surface, Some_MRIS* mris, INTEGRATION_PAR
         relevant_angle += delta * delta;
       }
       
-      if (!isfinite(computed_area) || !isfinite(relevant_angle)) {
+      if (!std::isfinite(computed_area) || !std::isfinite(relevant_angle)) {
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n", fno);
       }
 #ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE

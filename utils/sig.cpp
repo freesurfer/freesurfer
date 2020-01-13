@@ -24,6 +24,7 @@
  */
 
 #include <float.h>
+#include <cmath>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +136,7 @@ double sigt(double t, int df)
       sig = sig2;
   }
 
-  if (!isfinite(sig)) printf("### Numerical error: sigt(%e,%d) = %e\n", t, df, sig);
+  if (!std::isfinite(sig)) printf("### Numerical error: sigt(%e,%d) = %e\n", t, df, sig);
   if (sig > 1.0) sig = 1.0;
 
   return sig;

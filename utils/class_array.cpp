@@ -118,14 +118,14 @@ float *CAbuildInputsAtVoxel(VOXEL_LIST *vl,
 
   input = 0;
   if (which_inputs & CA_INPUT_DTRANS) svm_inputs[input++] = MRIgetVoxVal(mri_dtrans, x, y, z, 0);
-  if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+  if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
   if (which_inputs & CA_INPUT_DTRANS_GRAD) {
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 0);
-    if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+    if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 1);
-    if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+    if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 2);
-    if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+    if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
   }
   for (xk = -whalf; xk <= whalf; xk++)
     for (yk = -whalf; yk <= whalf; yk++)
@@ -136,7 +136,7 @@ float *CAbuildInputsAtVoxel(VOXEL_LIST *vl,
           zi = mri_smooth[s]->zi[z + zk];
           if (which_inputs & CA_INPUT_INTENSITY) {
             svm_inputs[input++] = MRIgetVoxVal(mri_smooth[s], xi, yi, zi, 0);
-            if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+            if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
           }
           if (which_inputs & CA_INPUT_GRADIENT) {
             svm_inputs[input++] = MRIgetVoxVal(mri_grad[s], xi, yi, zi, 0);
@@ -146,17 +146,17 @@ float *CAbuildInputsAtVoxel(VOXEL_LIST *vl,
 
           if (which_inputs & CA_INPUT_LAPLACIAN) {
             svm_inputs[input++] = MRIgetVoxVal(mri_laplacian[s], xi, yi, zi, 0);
-            if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+            if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
           }
           if (which_inputs & CA_INPUT_D2I_S) {
             svm_inputs[input++] = MRIgetVoxVal(mri_2nd_deriv_s[s], xi, yi, zi, 0);
-            if (!isfinite(svm_inputs[input - 1])) DiagBreak();
+            if (!std::isfinite(svm_inputs[input - 1])) DiagBreak();
           }
         }
       }
 
   for (input = 0; input < ninputs; input++)
-    if (!isfinite(svm_inputs[input])) DiagBreak();
+    if (!std::isfinite(svm_inputs[input])) DiagBreak();
   return (svm_inputs);
 }
 #define MAX_SCALES 50
