@@ -310,6 +310,7 @@ add_subdirectory(gems)
 # and should be included during a "minimal" install. Extra programs that aren't
 # used in the standard stream should be added further down
 add_subdirectories(
+  AntsDenoiseImageFs
   lta_convert
   mri_and
   mri_add_xform_to_header

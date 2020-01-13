@@ -40,6 +40,11 @@
 #include "colortab.h"
 #include "affine.h"
 #include "fnvhash.h"
+#include "itkImage.h"
+
+#ifndef isfinite
+#define isfinite std::isfinite
+#endif
 
 #define BUFTYPE  unsigned char
 
@@ -82,6 +87,9 @@
 
 #define MB_RADIAL 0
 #define MB_TANGENTIAL 1
+
+// standard itk image type
+typedef itk::Image<float, 3> ITKImageType;
 
 typedef struct
 {
@@ -184,6 +192,10 @@ public:
   void initSlices();
   void write(const std::string& filename);
   FnvHash hash();
+
+  // ITK image conversions
+  ITKImageType::Pointer toITKImage(int frame = 0);
+  void loadITKImage(ITKImageType::Pointer image, int frame = 0);
 
   // ---- image geometry ----
   int width;        // number of columns
