@@ -1528,6 +1528,8 @@ talairach:
       # the brainmask, and talairach.xfm used to find the white matter ball.
       set tal_input = orig_nu.mgz
       set cmd = (mri_nu_correct.mni --no-rescale --i orig.mgz --o $tal_input)
+      if($DoAntsN3) set cmd = ($cmd --ants-n3)
+      if($DoAntsN4) set cmd = ($cmd --ants-n4)
       # -3T flag support:
       if ($DoNuIntensityCor3T) then
         # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
@@ -1805,7 +1807,10 @@ if($DoNuIntensityCor) then
     set cmd = ($cmd --proto-iters 1000 --distance 50)
   endif
   # add user-specified option (from an 'experts file')
-  set cmd = ($cmd --n $NuIterations $xopts)
+  set cmd = ($cmd --n $NuIterations)
+  if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
+  if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
+  set cmd = ($cmd $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -1905,6 +1910,8 @@ if($DoNormalization) then
       endif
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
+      if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
+      if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
       set cmd = ($cmd $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd >& orig_nu.log

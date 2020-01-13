@@ -10,3 +10,14 @@ GCASkull:
     flags: -gca-skull
     descr: Gaussian Classifier Array atlas used for skull stripping
 
+DoAntsN3:
+    value: False
+    flags: -ants-n3
+    action: enable
+    descr: Use ANTS N3BiasFieldCorrection instead of MNI N3
+
+DoAntsN4:
+    value: False
+    flags: -ants-n4
+    action: enable
+    descr: Use ANTS N4BiasFieldCorrection instead of MNI N3
