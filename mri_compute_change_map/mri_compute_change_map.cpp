@@ -486,7 +486,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
           p = HISTOgetCount(hg, fabs(dif));
           p = 1.0 - 1.0*p ;
           logp = -log10(p) ;
-          if (isfinite(logp) == 0 || (DZERO(logp) && p < .1))
+          if (std::isfinite(logp) == 0 || (DZERO(logp) && p < .1))
             MRIsetVoxVal(mri_big, x1, y1, z1, 0, 1) ;
           else
             MRIsetVoxVal(mri_change, x1, y1, z1, 0, logp) ;

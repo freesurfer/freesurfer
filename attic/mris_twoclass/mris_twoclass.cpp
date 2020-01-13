@@ -1819,7 +1819,7 @@ cvector_average_in_label(float *v, LABEL *area, int num) {
   double avg ;
 
   for (avg = 0.0, i = 0 ; i < area->n_points ; i++) {
-    if (!isfinite(v[area->lv[i].vno]))
+    if (!std::isfinite(v[area->lv[i].vno]))
       DiagBreak() ;
     avg += v[area->lv[i].vno] ;
   }

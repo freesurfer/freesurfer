@@ -3151,7 +3151,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
           else
             MRIsampleVolumeType(mri_flash[e], xf, yf, zf,
                                 &val, InterpMethod) ;
-          if (val <= 0 || !isfinite(val))
+          if (val <= 0 || !std::isfinite(val))
           {
             val = 1E-6 ;
           }
@@ -3172,7 +3172,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
         {
           DiagBreak() ;
         }
-        if (!isfinite(T2star))
+        if (!std::isfinite(T2star))
         {
           T2star = 0 ;
         }

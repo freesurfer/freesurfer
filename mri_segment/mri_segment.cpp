@@ -235,8 +235,8 @@ int main(int argc, char *argv[])
       MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
 				&white_mean, &white_sigma, &gray_mean,
 				&gray_sigma) ;
-      if (!isfinite(white_mean) || !isfinite(white_sigma) ||
-	  !isfinite(gray_mean) || !isfinite(gray_sigma))
+      if (!std::isfinite(white_mean) || !std::isfinite(white_sigma) ||
+	  !std::isfinite(gray_mean) || !std::isfinite(gray_sigma))
 	ErrorExit(ERROR_BADPARM,"%s: class statistics not finite - check input volume!", Progname);
       
       printf(" white_mean %g\n",white_mean);

@@ -465,7 +465,7 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR
         } else
           flash = FLASHforwardModel(T1, PD, TR, alpha, TE) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
-        if (!isfinite(flash))
+        if (!std::isfinite(flash))
           DiagBreak() ;
       }
     }
