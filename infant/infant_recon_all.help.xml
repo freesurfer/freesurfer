@@ -25,21 +25,18 @@
 <help>
 	<name>infant_recon_all</name>
 	<synopsis>infant_recon_all [&lt;options&gt;] </synopsis>
-	<description>This program performs recon-all on infants (0-2yrs). Cite Zöllei et al., FreeSurfer image processing pipeline for infant clinical MRI images, 
-HBM2017, Vancouver, Canada while journal submission is pending. Make sure that SUBJECTS_DIR is properly set before calling this script.</description>
+	<description>This program performs recon-all on infant (0-2yrs) T1-weighted brain MRI images. Cite "L. Zöllei, J.E. Iglesias, Y. Ou, P.E. Grant, B. Fischl, Infant FreeSurfer: An automated segmentation and surface extraction pipeline for T1-weighted neuroimaging data of infants 0-2 years. arXiv:2001.03091, 2020" while journal submission is pending. Make sure that SUBJECTS_DIR is properly set before calling this script.</description>
   <arguments>
 
     <required-flagged>
 
       <argument>--s subjid</argument>
-      <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR. This identifies the subject that is to be processed. The input file, unless indicated otherwise, shoudl be located in $SUBJECTS_DIR/$s/mprage.nii.gz before processing is started.</explanation>
+      <argument>--subject subjid</argument>
+      <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR. This identifies the subject that is to be processed. The input file, unless indicated otherwise, should be located in $SUBJECTS_DIR/$s/mprage.nii.gz before processing is started.</explanation>
       <argument>--age age_in_months</argument>
       <explanation>Age of the FreeSurfer subject that is to be processed. </explanation>
-      <argument>--newborn</argument>
-      <explanation>This flag indicates that the subject to be processed is a newborn. All newborn subjects from the training data set will be used. No age input is needed if this flag is set. By default this flag is set to 0.</explanation>
-
     </required-flagged>
-    
+
     <optional-flagged>
 
       <argument>--kneigh num</argument>
@@ -48,25 +45,51 @@ HBM2017, Vancouver, Canada while journal submission is pending. Make sure that S
       <argument>--outdir directory</argument>
       <explanation>Name of the output directory where all the reconall results are written. The default is $SUBJECTS_DIR/$s/, where $s is the subject id of the subject to be reconned.</explanation>
 
-      <argument>--aparc</argument>
-      <explanation>This option indicates that the tarining subjects have cortical parcellations.</explanation>
-
       <argument>--masked masked_input_image</argument>
       <explanation>This flag indicates that there exists a skullstripped version of the input image and that should be used as the input. This means that the skull-stripping step is skipped during the processing.</explanation>
 
       <argument>--force</argument>
+      <explanation>This flag will force all the processing to be redone even if it had been run (partially) before. All previously computed files will be deleted at the beginning of the recon process.</explanation>
 
+      <argument>--help</argument>
+      <explanation>This option will print out detailed information about the recon command and its various options.</explanation>
+
+      <argument>--newborn</argument>
+      <explanation>This flag indicates that the subject to be processed is a newborn. All five newborn subjects from the training data set will be used. No age input is needed if this flag is set. By default this flag is set to 0.</explanation>
+
+      <argument>--oneyear</argument>
+      <explanation>This flag indicates that the subject to be processed is a one-year-old. All five approx one-year-old subjects from the training data set will be used. No age input is needed if this flag is set. By default this flag is set to 0.</explanation>
+
+      <argument>--usegpu</argument>
+      <explanation>Use the powers of GPU for the skullstripping computations.</explanation>
+      
+      <argument>--ccseg</argument>
+      <explanation>If this option is set, compute the corpus callosum segmentation step.</explanation>
+      
+      <argument>--usedramms</argument>
+      <explanation>Use DRAMMS as a non-linear registration tool for aligning training subjects to the test one. (DRAMMS will need to be independently installed by the user and the config file changed accordingly.) The default option is niftyreg.</explanation>
+      
+      <argument>--gpuid</argument>
+      <explanation>This option specifies the specific GPU id to be used for the computations. By default it iset to be 1.</explanation>
+      
+      <argument>--stats</argument>
+      <explanation>If this flag is set, the aseg stats values will be computed as part of the recon process.</explanation>
+      
+      <argument>--intnormFSL</argument>
+      <explanation>FSL will be used for intensity normalization instead of the default MNI tool.</explanation>
+      
       <argument>--avoidtraining</argument>
+      <explanation>This flag will help excluding specific training subject(s) from the processing. (Used for testing purposes)</explanation>      
 
       <argument>--MI</argument>
+      <explanation>Use an image-based similarity metric (mutual information) for deciding on the set of training subjects to use. By default the set of training subjects is decided by age-at-scan information.</explanation>
 
       <argument>--gmwm2</argument>
+      <explanation>This option, if set, will guarantee that at least one of the training subjects has GM/WM information. This option is set to 1 by deafult.</explanation>
 
       <intro>Cleanup Arguments</intro>
       <argument>--nocleanup</argument>
       <explanation>Do not delete temporary files (default is 0). If this option is set, make sure you have ~2G space in the output directory.</explanation>
-
-      <argument>--keepelreg</argument>
 
     </optional-flagged>
   
@@ -79,6 +102,6 @@ HBM2017, Vancouver, Canada while journal submission is pending. Make sure that S
 
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 
-  <references>THESE TWO</references>
+  <references></references>
 
 </help>
