@@ -122,7 +122,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
         v->ty = y / vt->vnum;
         v->tz = z / vt->vnum;
       }
-      if (!isfinite(v->tx)) {
+      if (!std::isfinite(v->tx)) {
         DiagBreak();
       }
     }
@@ -130,7 +130,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
     for (n = 0; n < mris->nvertices; n++) {
       VERTEX * const v  = &mris->vertices[n];
       mrisSphericalProjectXYZ(v->tx, v->ty, v->tz, &v->x, &v->y, &v->z);
-      if (!isfinite(v->x)) {
+      if (!std::isfinite(v->x)) {
         DiagBreak();
       }
     }
@@ -741,7 +741,7 @@ int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian
     sy = l_spring * nc * ny;
     sz = l_spring * nc * nz;
     scale = pow(fabs(vertex->K), gaussian_norm);
-    if (!isfinite(scale)) {
+    if (!std::isfinite(scale)) {
       scale = 0;
     };
     if (scale > 1) {
@@ -800,7 +800,7 @@ int MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm,
       sz = sz / n;
     }
     scale = pow(fabs(vertex->K), gaussian_norm);
-    if (!isfinite(scale)) {
+    if (!std::isfinite(scale)) {
       scale = 0;
     };
     if (scale > 1) {
@@ -885,10 +885,10 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
       continue;
     }
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z)) {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
     }
-    if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz)) {
+    if (!std::isfinite(v->dx) || !std::isfinite(v->dy) || !std::isfinite(v->dz)) {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
     }
 
@@ -1117,7 +1117,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
       continue;
     }
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z)) {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
     }
 
@@ -1126,7 +1126,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
     z = v->z;
 
     if (which_gradient) {
-      if (!isfinite(v->odx) || !isfinite(v->ody) || !isfinite(v->odz)) {
+      if (!std::isfinite(v->odx) || !std::isfinite(v->ody) || !std::isfinite(v->odz)) {
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
       }
 
@@ -1135,7 +1135,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
       dz = v->odz;
     }
     else {
-      if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz)) {
+      if (!std::isfinite(v->dx) || !std::isfinite(v->dy) || !std::isfinite(v->dz)) {
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
       }
 

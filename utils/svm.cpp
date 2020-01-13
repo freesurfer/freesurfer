@@ -23,6 +23,7 @@
  *
  */
 
+#include <cmath>
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -205,7 +206,7 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
           break;
       }
 
-      if (!isfinite(dot)) DiagBreak();
+      if (!std::isfinite(dot)) DiagBreak();
       dot_matrix[i][j] = dot_matrix[j][i] = dot;
     }
   }
@@ -225,7 +226,7 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
 
       da_old[k] = step_size * da;
     }
-    if (!isfinite(da_old[k])) DiagBreak();
+    if (!std::isfinite(da_old[k])) DiagBreak();
 
     /* build permutation */
     for (i = 0; i < ntraining; i++) permutation[i] = i;
@@ -299,12 +300,12 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
       if (ai < 0) ai = 0;
       if (ai >= C) ai = C;
       dai = ai - svm->alpha[i];
-      if (!isfinite(dai)) DiagBreak();
+      if (!std::isfinite(dai)) DiagBreak();
 
       /* move i and j by equal and opposite amounts */
       daj = -dai * y[i] / y[j];
 
-      if (!isfinite(daj)) DiagBreak();
+      if (!std::isfinite(daj)) DiagBreak();
       /* update jth alpha and make sure it stays in the feasible region */
       aj = svm->alpha[j] + daj;
       if (aj < 0) aj = 0;
@@ -612,7 +613,7 @@ static double svm_linear_dot(int ninputs, float *xi, float *xj)
 
   for (dot = 0.0, k = 0; k < ninputs; k++) {
     dot += xi[k] * xj[k];
-    if (!isfinite(dot)) DiagBreak();
+    if (!std::isfinite(dot)) DiagBreak();
   }
   return (1 + dot);
 }

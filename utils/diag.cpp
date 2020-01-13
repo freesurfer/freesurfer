@@ -25,6 +25,7 @@
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -378,7 +379,7 @@ void DiagShowPctDone(float pct_done, int nprints)
 
 int check_finite(const char *where, double what)
 {
-  if (!isfinite(what)) {
+  if (!std::isfinite(what)) {
     ErrorPrintf(ERROR_BADPARM, "%s not finite!\n", where);
     DiagBreak();
     return (0);

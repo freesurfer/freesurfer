@@ -237,7 +237,7 @@ VectorLogLikelihood(VECTOR *v, VECTOR *v_mean, VECTOR *v_var)
       var = 1.0 ;
     }
     ll = SQR(val-mean) / (2*var) ;
-    if (!isfinite(ll) || !isfinite(total_ll))
+    if (!std::isfinite(ll) || !std::isfinite(total_ll))
     {
       DiagBreak() ;
     }

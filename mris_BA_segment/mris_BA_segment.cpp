@@ -359,7 +359,7 @@ compute_MT_log_likelihood(MRI_SURFACE *mris, MRI *mri_profiles, int vno0, double
       ll_vno += -SQR(u_interior[i]-val) / (2*v_interior[i]) ;
     }
     ll += ll_vno ;
-    if (!isfinite(ll))
+    if (!std::isfinite(ll))
       DiagBreak() ;
   }
   if (num == 0)

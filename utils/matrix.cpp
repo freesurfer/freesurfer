@@ -24,6 +24,7 @@
 
 #include <ctype.h>
 #include <math.h>
+#include <cmath>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -271,13 +272,13 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   for (j = 1; j <= rows; j++) {
     for (i = 1; i <= rows; i++) switch (mOut->type) {
         case MATRIX_REAL:
-          if (!isfinite(*MATRIX_RELT(mOut, i, j))) {
+          if (!std::isfinite(*MATRIX_RELT(mOut, i, j))) {
             if (alloced) MatrixFree(&mOut);
             return (NULL); /* was singular */
           }
           break;
         case MATRIX_COMPLEX:
-          if (!isfinite(MATRIX_CELT_REAL(mOut, i, j)) || !isfinite(MATRIX_CELT_IMAG(mOut, i, j))) {
+          if (!std::isfinite(MATRIX_CELT_REAL(mOut, i, j)) || !std::isfinite(MATRIX_CELT_IMAG(mOut, i, j))) {
             if (alloced) MatrixFree(&mOut);
             return (NULL); /* was singular */
           }
@@ -2841,7 +2842,7 @@ int MatrixCheck(MATRIX *m)
   cols = m->cols;
   for (r = 1; r <= rows; r++) {
     for (c = 1; c <= cols; c++) {
-      if (!isfinite(*MATRIX_RELT(m, r, c))) return (ERROR_BADPARM);
+      if (!std::isfinite(*MATRIX_RELT(m, r, c))) return (ERROR_BADPARM);
     }
   }
   return (NO_ERROR);
@@ -3886,7 +3887,7 @@ int MatrixCheckFinite(MATRIX *m)
 
   for (r = 1; r < m->rows; r++)
     for (c = 1; c < m->cols; c++) {
-      if (!isfinite(*MATRIX_RELT(m, r, c))) {
+      if (!std::isfinite(*MATRIX_RELT(m, r, c))) {
         DiagBreak();
         retval = ERROR_BADPARM;
       }

@@ -732,7 +732,7 @@ int MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname)
   for (k = 0; k < mris->nvertices; k++) {
     fwrite3(k, fp);
     f = mris->vertices[k].curv;
-    if (!isfinite(f))
+    if (!std::isfinite(f))
       ErrorPrintf(ERROR_BADPARM,
                   "MRISwriteCurvatureToWFile(%s): val at vertex %d is not"
                   "finite",
@@ -823,7 +823,7 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     if (mris->vertices[k].val != 0) {
       fwrite3(k, fp);
       f = mris->vertices[k].val;
-      if (!isfinite(f)) ErrorPrintf(ERROR_BADPARM, "MRISwriteValues(%s): val at vertex %d is not finite", fname, k);
+      if (!std::isfinite(f)) ErrorPrintf(ERROR_BADPARM, "MRISwriteValues(%s): val at vertex %d is not finite", fname, k);
 
       fwriteFloat(f, fp);
       sum += f;
@@ -5571,11 +5571,11 @@ static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
 #if 0
     v->label = NO_LABEL ;
 #endif
-    if (fabs(v->x) > 10000 || !isfinite(v->x))
+    if (fabs(v->x) > 10000 || !std::isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
-    if (fabs(v->y) > 10000 || !isfinite(v->y))
+    if (fabs(v->y) > 10000 || !std::isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!", Progname, vno, v->y);
-    if (fabs(v->z) > 10000 || !isfinite(v->z))
+    if (fabs(v->z) > 10000 || !std::isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!", Progname, vno, v->z);
   }
   fclose(fp);
@@ -5705,11 +5705,11 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
     MRISsetXYZ(mris,vno, x, y, z);
 
     vt->num = 0; /* will figure it out */
-    if (fabs(v->x) > 10000 || !isfinite(v->x))
+    if (fabs(v->x) > 10000 || !std::isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
-    if (fabs(v->y) > 10000 || !isfinite(v->y))
+    if (fabs(v->y) > 10000 || !std::isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!", Progname, vno, v->y);
-    if (fabs(v->z) > 10000 || !isfinite(v->z))
+    if (fabs(v->z) > 10000 || !std::isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!", Progname, vno, v->z);
   }
 

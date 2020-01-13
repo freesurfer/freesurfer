@@ -241,7 +241,7 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
       v->origarea = SMALL ;
     }
     v->curv = v->area / (v->origarea*area_scale) ;
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
       ErrorPrintf
       (ERROR_BADPARM,
        "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f",
@@ -273,7 +273,7 @@ log_ratios(MRI_SURFACE *mris)
       v->curv = SMALL ;
     }
     v->curv = log10(v->curv) ;
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }
@@ -307,7 +307,7 @@ invert_ratios(MRI_SURFACE *mris)
     {
       v->curv = -1/v->curv ;
     }
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }

@@ -13954,7 +13954,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
       for (z = 0; z < depth; z++) {
         for (f = 0; f < nframes; f++) {
           float val = MRIgetVoxVal(mri_dst, x, y, z, f);
-          if (!isfinite(val)) {
+          if (!std::isfinite(val)) {
             nans++;
 	    if (getenv("FS_LEAVE_NANS") == NULL)
 	      MRIsetVoxVal(mri_dst, x, y, z, f, 0);
