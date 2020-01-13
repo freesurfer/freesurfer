@@ -476,6 +476,8 @@ if($#MMode) then
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
+  set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -742,13 +744,24 @@ while( $#argv != 0 )
       set CopyBiasFromConf = 0
       breaksw
 
+    case "--force-update":
     case "-force-update":
       set ForceUpdate = 1;
       breaksw
 
+    case "--mps_n_averages"
     case "-mps_n_averages"
       if ( $#argv < 1) goto arg1err;
       set mps_n_averages = $argv[1]; shift;
+      breaksw
+
+    case "--expert":
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
       breaksw
 
     case "--log":
@@ -828,6 +841,14 @@ if($usedev) then
     echo "ERROR: cannot find mris_make_surfaces.dev"
     exit 1;
   endif
+endif
+
+set GlobXOptsFile = $SUBJECTS_DIR/global-expert-options.txt
+if(-e $GlobXOptsFile) then
+  fsr-checkxopts $GlobXOptsFile
+  if($status) goto error_exit
+else
+  set GlobXOptsFile = ()
 endif
 
 goto check_params_return;
