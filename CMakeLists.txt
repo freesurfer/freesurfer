@@ -251,7 +251,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-absolute-valu
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
 endif()
