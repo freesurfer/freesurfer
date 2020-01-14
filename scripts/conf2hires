@@ -381,7 +381,7 @@ foreach hemi ($hemilist)
   set aparc  = ../label/$hemi.aparc.annot  
   set cortex   = ../label/$hemi.cortex.label
   set cortexha = ../label/$hemi.cortex+hipamyg.label 
-  set white = ../surf/$hemi.white
+  set white = ../surf/$hemi.white.rawavg
   set pial = ../surf/$hemi.pial.T1.rawavg
   set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
@@ -552,7 +552,7 @@ if($#MMode) then
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     #if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
     #if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
-    # Things might need to add: noaseg, noaparc, UseFixMtl
+    # Things might need to add: noaseg, noaparc
     set xopts = `fsr-getxopts PlaceMMPialSurf $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
