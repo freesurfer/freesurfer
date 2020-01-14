@@ -17435,6 +17435,13 @@ ITKImageType::Pointer MRI::toITKImage(int frame)
   image->SetRegions(region);
   image->Allocate();
 
+  // copy vox size metadata
+  ITKImageType::SpacingType spacing;
+  spacing[0] = this->xsize;
+  spacing[1] = this->ysize;
+  spacing[2] = this->zsize;
+  image->SetSpacing(spacing);
+
   // copy pixel data from MRI
   ITKImageType::IndexType pixelIndex;
   for (int x = 0 ; x < this->width ; x++) {

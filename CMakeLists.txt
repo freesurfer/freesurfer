@@ -311,6 +311,7 @@ add_subdirectory(gems)
 # used in the standard stream should be added further down
 add_subdirectories(
   AntsDenoiseImageFs
+  AntsN4BiasFieldCorrectionFs
   lta_convert
   mri_and
   mri_add_xform_to_header

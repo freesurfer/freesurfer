@@ -1,0 +1,17 @@
+<help>
+  <name>AntsN4BiasFieldCorrectionFs</name>
+  <synopsis>AntsN4BiasFieldCorrectionFs [options] -i &lt;invol&gt; -o &lt;outvol&gt;</synopsis>
+  <description>Runs N4 (nonparameteric, nonuniform normalization) retrospective bias correction on an image. This programs wraps the AntsN4BiasFieldCorrection utility available in the ANTs package (see http://stnava.github.io/ANTs).</description>
+  <arguments>
+    <required-flagged>
+      <argument>-i, --input invol</argument>
+      <explanation>input volume file</explanation>
+      <argument>-o, --output outvol</argument>
+      <explanation>corrected volume file</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--shrink</argument>
+      <explanation>resample factor to decrease computation time (default is 4)</explanation>
+    </optional-flagged>
+  </arguments>
+</help>
