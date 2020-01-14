@@ -67,6 +67,10 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+set PWD = pwd;
+# better yet, make sure the real pwd is used:
+if ( -e /bin/pwd ) set PWD = /bin/pwd
+
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 set year  = `date +%Y`
