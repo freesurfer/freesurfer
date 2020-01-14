@@ -66,13 +66,13 @@ class Freeview:
 
         Overlays can be provided as filenames, numpy arrays, or Overlay instances, but in order
         to configure overlays with custom visualization options, use the OverlayTag class to specify
-        things like filename and threshold:
+        things like desired filename and threshold:
 
             overlay = fs.Freeview.OverlayTag(thickness, name='thickness', threshold=(1, 3))
             fv.surf(surface, overlay=overlay)
 
         The first argument to the OverlayTag constructor can be a filename, numpy array, or Overlay
-        instance. A list of mutliple OverlayTags can be provided as input to the overlay parameter as
+        instance. A list of multiple OverlayTags can be provided as input to the overlay parameter as
         well. A similar configuration class exists for mrisps, named MRISPTag.
 
         Args:
