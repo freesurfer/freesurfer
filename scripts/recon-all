@@ -3547,32 +3547,6 @@ if($DoCurvHK) then
   end
 endif
 
-#----------                            -----------#
-#---------- Curvature Anatomical Stats -----------#
-##---------        -curvstats          -----------#
-#----------                            -----------#
-if($DoCurvStats) then
-  foreach hemi ($hemilist)
-    echo "\n#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Curvature Stats $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/surf > /dev/null
-    $PWD |& tee -a $LF
-    set stats = ../stats/$hemi.curv.stats
-    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
-            -o $stats -F smoothwm \
-            $xopts $subjid $hemi curv sulc);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
-    echo $cmd > $touchdir/$hemi.curvstats.touch
-  end # Loop over hemilist
-endif
-
-
 #-----------             -------------#
 ##---------- AUTORECON 3 -------------#
 #-----------             -------------#
@@ -4174,6 +4148,28 @@ if(1) then
 endif
 
 # stats and GWcontrast must run here, after T2 pial refinement
+
+#----------                            -----------#
+#---------- Curvature Anatomical Stats -----------#
+##---------        -curvstats          -----------#
+#----------                            -----------#
+if($DoCurvStats) then
+  foreach hemi ($hemilist)
+    echo "\n#-----------------------------------------" |& tee -a $LF |& tee -a $CF
+    echo "#@# Curvature Stats $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    set stats = ../stats/$hemi.curv.stats
+    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile $GlobXOptsFile`;
+    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
+            -o $stats -F smoothwm $xopts $subjid $hemi curv sulc);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    rm -f .xdebug_mris_curvature_stats
+    echo $cmd > $touchdir/$hemi.curvstats.touch
+  end # Loop over hemilist
+endif
 
 #----------------                 ------------------#
 #---------------- Cortical Ribbon ------------------#
