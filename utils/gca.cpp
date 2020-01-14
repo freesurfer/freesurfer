@@ -8527,7 +8527,7 @@ double GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_input
         }
         log_posterior += GCAvoxelLogPosterior(gca, mri_labels, mri_inputs, x, y, z, transform);
         num++;
-        if (!isfinite(log_posterior)) {
+        if (!std::isfinite(log_posterior)) {
           DiagBreak();
         }
       }
@@ -13127,7 +13127,7 @@ int GCAlabelMode(GCA *gca, int label, float *modes)
             for (r = 0; r < gca->ninputs; r++) {
               b = nint(gc->means[r]);
               h->counts[b] += prior;
-              if (!isfinite(gc->means[r])) {
+              if (!std::isfinite(gc->means[r])) {
                 DiagBreak();
               }
             }
@@ -13199,7 +13199,7 @@ int GCAclassMode(GCA *gca, int classnum, float *modes)
             for (r = 0; r < gca->ninputs; r++) {
               b = nint(gc->means[r]);
               h->counts[b] += prior;
-              if (!isfinite(gc->means[r])) {
+              if (!std::isfinite(gc->means[r])) {
                 DiagBreak();
               }
             }
@@ -13246,7 +13246,7 @@ int GCAlabelMean(GCA *gca, int label, float *means)
             wt += prior;
             for (r = 0; r < gca->ninputs; r++) {
               means[r] += gc->means[r] * prior;
-              if (!isfinite(gc->means[r])) {
+              if (!std::isfinite(gc->means[r])) {
                 DiagBreak();
               }
             }
@@ -13289,7 +13289,7 @@ int GCAlabelVar(GCA *gca, int label, float *vars)
             for (r = v = 0; r < gca->ninputs; r++)
               for (c = r; c < gca->ninputs; c++, v++) {
                 vars[r] += gc->covars[v] * prior;
-                if (!isfinite(vars[r])) {
+                if (!std::isfinite(vars[r])) {
                   DiagBreak();
                 }
               }
@@ -13350,7 +13350,7 @@ int GCAclassMean(GCA *gca, int classnum, float *means)
             wt += prior;
             for (r = 0; r < gca->ninputs; r++) {
               means[r] += gc->means[r] * prior;
-              if (!isfinite(gc->means[r])) {
+              if (!std::isfinite(gc->means[r])) {
                 DiagBreak();
               }
             }
@@ -13567,7 +13567,7 @@ int GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
                     if (prior != 0) {
                       for (f = 0; f < gca->ninputs; f++) {
                         means[f] += prior * gc->means[f];
-                        if (!isfinite(means[f] / wt)) {
+                        if (!std::isfinite(means[f] / wt)) {
                           DiagBreak();
                         }
                       }
@@ -13582,11 +13582,11 @@ int GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
               continue; /* label didn't occur here */
             }
             for (f = 0; f < gca->ninputs; f++) {
-              if (!isfinite(means[f] / wt)) {
+              if (!std::isfinite(means[f] / wt)) {
                 DiagBreak();
               }
               MRIFseq_vox(mri_means, xn, yn, zn, f) = means[f] / wt;
-              if (!isfinite(MRIFseq_vox(mri_means, xn, yn, zn, f))) {
+              if (!std::isfinite(MRIFseq_vox(mri_means, xn, yn, zn, f))) {
                 DiagBreak();
               }
             }
@@ -13608,7 +13608,7 @@ int GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
               }
               for (f = 0; f < gca->ninputs; f++) {
                 gc->means[f] = MRIFseq_vox(mri_means, xn, yn, zn, f);
-                if (!isfinite(gc->means[f])) {
+                if (!std::isfinite(gc->means[f])) {
                   DiagBreak();
                 }
               }
@@ -16693,7 +16693,7 @@ int GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, f
             for (r = 0; r < gca->ninputs; r++) {
               MRIsampleVolumeFrame(mri, xv, yv, zv, r, &val);
               means[r] += val * prior;
-              if (!isfinite(gc->means[r])) {
+              if (!std::isfinite(gc->means[r])) {
                 DiagBreak();
               }
             }
@@ -17524,7 +17524,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                   delta_i /= fabs(delta_i) ;  // make it +-1
                 }
               }
-              if (!isfinite(delta_i) || !isfinite(delta_j))
+              if (!std::isfinite(delta_i) || !std::isfinite(delta_j))
               {
                 DiagBreak() ;
                 break ;
@@ -19531,7 +19531,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
                   delta_i /= fabs(delta_i);  // make it +-1
                 }
               }
-              if (!isfinite(delta_i) || !isfinite(delta_j)) {
+              if (!std::isfinite(delta_i) || !std::isfinite(delta_j)) {
                 DiagBreak();
                 break;
               }
@@ -20624,7 +20624,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
               else if (!FZERO(delta_i))
                 delta_i /= fabs(delta_i);  // make it +-1
             }
-            if (!isfinite(delta_i) || !isfinite(delta_j)) {
+            if (!std::isfinite(delta_i) || !std::isfinite(delta_j)) {
               DiagBreak();
               break;
             }
@@ -20820,7 +20820,7 @@ int GCAapplyRenormalization(GCA *gca, float *label_scales, float *label_offsets,
                 delta_i /= fabs(delta_i);  // make it +-1
               }
             }
-            if (!isfinite(delta_i) || !isfinite(delta_j)) {
+            if (!std::isfinite(delta_i) || !std::isfinite(delta_j)) {
               DiagBreak();
               break;
             }
@@ -21174,7 +21174,7 @@ int GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
                   delta_i /= fabs(delta_i);  // make it +-1
                 }
               }
-              if (!isfinite(delta_i) || !isfinite(delta_j)) {
+              if (!std::isfinite(delta_i) || !std::isfinite(delta_j)) {
                 DiagBreak();
                 break;
               }
@@ -22804,7 +22804,7 @@ static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame, int borde
                 if (b >= h_gca->nbins) b = h_gca->nbins - 1;
               }
               h_gca->counts[b] += prior;
-              if (!isfinite(gc->means[frame])) DiagBreak();
+              if (!std::isfinite(gc->means[frame])) DiagBreak();
             }
           }
         }
@@ -23832,7 +23832,7 @@ double GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform, in
         if (mri_posterior) {
           MRIsetVoxVal(mri_posterior, x, y, z, 0, log_p);
         }
-        if (!isfinite(log_p)) {
+        if (!std::isfinite(log_p)) {
           DiagBreak();
         }
         total_log_p += log_p;
@@ -24167,7 +24167,7 @@ static int compute_posterior_scale_change(GCA *gca,
           }
           num[ind]++;
           dk[ind] += plike * prior * dist / (fabs(dist));
-          if (!isfinite(dk[ind])) {
+          if (!std::isfinite(dk[ind])) {
             DiagBreak();
           }
         }
@@ -24176,7 +24176,7 @@ static int compute_posterior_scale_change(GCA *gca,
   }
   for (l = 0; l < nlabels; l++)
     if (num[l] > 0) {
-      if (!isfinite(dk[l])) {
+      if (!std::isfinite(dk[l])) {
         DiagBreak();
       }
       dk[l] /= num[l];
@@ -24459,7 +24459,7 @@ double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform)
             entropy += p[c] * log(p[c]);
           }
           num++;
-          if (!isfinite(entropy)) {
+          if (!std::isfinite(entropy)) {
             DiagBreak();
           }
           entropy_total += entropy;
@@ -25775,7 +25775,7 @@ GCA *GCAsmooth(GCA *gca, double sigma)
             DiagBreak();
           }
           gcan->labels[n] = gcan_total->labels[n];
-          if (!isfinite(gcan->gcs[n].means[0])) {
+          if (!std::isfinite(gcan->gcs[n].means[0])) {
             DiagBreak();
           }
           if (gcan->gcs[n].covars == NULL) {
@@ -25836,7 +25836,7 @@ GCA *GCAsmooth(GCA *gca, double sigma)
           GC1D *gc;
           gcap->labels[n] = gcap_total->labels[n];
           gcap->priors[n] = gcap_total->priors[n];
-          if (!isfinite(gcap->priors[n])) {
+          if (!std::isfinite(gcap->priors[n])) {
             DiagBreak();
           }
           GCApriorToNode(gca_smooth, xp, yp, zp, &xn, &yn, &zn);
@@ -25907,7 +25907,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
             DiagBreak();
           }
           gcan->labels[n] = gcan_total->labels[n];
-          if (!isfinite(gcan->gcs[n].means[0])) {
+          if (!std::isfinite(gcan->gcs[n].means[0])) {
             DiagBreak();
           }
           if (gcan->gcs[n].covars == NULL) {
@@ -25968,7 +25968,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
           GC1D *gc;
           gcap->labels[n] = gcap_total->labels[n];
           gcap->priors[n] = gcap_total->priors[n];
-          if (!isfinite(gcap->priors[n])) {
+          if (!std::isfinite(gcap->priors[n])) {
             DiagBreak();
           }
           GCApriorToNode(gca_smooth, xp, yp, zp, &xn, &yn, &zn);

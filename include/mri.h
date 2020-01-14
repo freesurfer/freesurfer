@@ -42,9 +42,6 @@
 #include "fnvhash.h"
 #include "itkImage.h"
 
-#ifndef isfinite
-#define isfinite std::isfinite
-#endif
 
 #define BUFTYPE  unsigned char
 

@@ -943,7 +943,7 @@ MRIS* MRISprojectOntoTranslatedSphere(
     v->y = y - d*y;
     v->z = z - d*z;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z))
       DiagBreak() ;
   }
 
@@ -1314,7 +1314,7 @@ static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
   int n;
   for (n = 0; n < mris->nvertices; n++) {
     R2 += SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz);
-    if (!isfinite(R2)) {
+    if (!std::isfinite(R2)) {
       DiagBreak();
     }
   }
@@ -8014,7 +8014,7 @@ double MRIStotalVariationDifference(MRIS *mris)
     delta = fabs(v->k1 - v->k2);
     delta *= delta;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -8040,7 +8040,7 @@ double MRIStotalVariation(MRIS *mris)
     }
     delta = v->k1 * v->k1 + v->k2 * v->k2;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -9123,9 +9123,9 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
   s11 = ((a+d)/2) + sqrt((4*b*c + (a-d)*(a-d)) / 2);
   s22 = ((a+d)/2) - sqrt((4*b*c + (a-d)*(a-d)) / 2);
 #endif
-  if (!isfinite(s11)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s11)) return (log(SMALL) * log(SMALL));
 
-  if (!isfinite(s22)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s22)) return (log(SMALL) * log(SMALL));
 
   if (s11 <= 0) s11 = SMALL;
 
@@ -9140,7 +9140,7 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
 
   energy = lambda * (1 + det) * (s11 + s22);  // log and square of snn already taken
 
-  if (!isfinite(energy)) DiagBreak();
+  if (!std::isfinite(energy)) DiagBreak();
 
   return (energy / 2);
 }
@@ -9166,7 +9166,7 @@ float mrisSampleAshburnerTriangleEnergy(
   v->z = cz;  // change location to compute energy
   for (sse_total = 0.0, n = 0; n < vt->num; n++) {
     sse = ashburnerTriangleEnergy(mris, vt->f[n], parms->l_ashburner_lambda);
-    if (sse < 0 || !isfinite(sse)) DiagBreak();
+    if (sse < 0 || !std::isfinite(sse)) DiagBreak();
 
     sse_total += sse;
   }
