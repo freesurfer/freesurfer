@@ -38,6 +38,7 @@ void write(Bridge surf, const std::string& filename);
 
 // metrics
 void computeNormals(Bridge surf);
+int computeEulerNumber(Bridge surf);
 
 // parameterization
 py::array parameterize(Bridge surf, const arrayf<float>& overlay);
@@ -53,6 +54,7 @@ inline void bind(py::module &m)
   m.def("read", &read);
   m.def("write", &write);
   m.def("compute_normals", &computeNormals);
+  m.def("compute_euler", &computeEulerNumber);
   m.def("parameterize", &parameterize);
   m.def("sample_parameterization", &sampleParameterization);
   // m.def("read_directly", &read_directly);

@@ -76,6 +76,10 @@ class Surface(Transformable):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
 
+    def compute_euler(self):
+        '''Computes euler number of the mesh.'''
+        return bindings.surf.compute_euler(self)
+
     # ---- geometry ----
 
     def bbox(self):

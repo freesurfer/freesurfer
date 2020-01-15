@@ -128,6 +128,16 @@ void computeNormals(Bridge surf)
 }
 
 
+/*
+  Computes the mesh euler number.
+*/
+int computeEulerNumber(Bridge surf)
+{
+  int unused;
+  return MRIScomputeEulerNumber(surf, &unused, &unused, &unused);
+}
+
+
 
 /*
 
