@@ -25,6 +25,8 @@ class Surface(Transformable):
         self.faces = faces
         self.vertex_normals = None
         self.face_normals = None
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
         self.hemi = hemi
         self.geom = geom
 
@@ -69,16 +71,36 @@ class Surface(Transformable):
         return len(self.faces)
 
     def compute_normals(self):
-        '''Compute and cache face and vertex normals.'''
+        '''Compute and cache face and vertex normals as well as vertex tangents.'''
+
+        # get face and vertex normals from bindings
         bindings.surf.compute_normals(self)
+
+        # compute vertex normal tangents
+        cross1 = np.cross(self.vertex_normals, np.roll(self.vertex_normals, -1, axis=1))
+
+        # check if we happened to pick a parallel vector
+        nearzero = np.linalg.norm(cross1, axis=1) < 0.001
+        if np.any(nearzero):
+            zeronorms = self.vertex_normals[nearzero]
+            cross1[nearzero] = np.cross(zeronorms, np.roll(zeronorms, -1, axis=1) * [1, -1, 1])
+
+        cross2 = np.cross(self.vertex_normals, cross1)
+        self.vertex_tangents_1 = cross1 / np.linalg.norm(cross1, axis=1)[:, np.newaxis]
+        self.vertex_tangents_2 = cross2 / np.linalg.norm(cross2, axis=1)[:, np.newaxis]
+
+    def compute_euler(self):
+        '''Computes euler number of the mesh.'''
+        return bindings.surf.compute_euler(self)
 
     def neighboring_faces(self, vertex):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
 
-    def compute_euler(self):
-        '''Computes euler number of the mesh.'''
-        return bindings.surf.compute_euler(self)
+    def neighboring_vertices(self, vertex):
+        '''List of vertices that immediately neighbor a vertex.'''
+        neighbors = np.unique([self.faces[fno] for fno in self.neighboring_faces(vertex)])
+        return neighbors[neighbors != vertex]  # be sure to remove the central vertex
 
     # ---- geometry ----
 
