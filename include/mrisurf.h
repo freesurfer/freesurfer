@@ -906,7 +906,6 @@ double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               float x, float y, float z, int fno) ;
                               
 MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno) ;
-MRI_SP       *MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, const float *overlay, float scale, int frameno);
 MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) ;
 
 MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
