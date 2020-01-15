@@ -143,6 +143,7 @@ public:
   char *riplabelfile = NULL;
   char *ripsurffile=NULL;
   MRIS *ripsurf;
+  char *aparcpath=NULL;
 };
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
@@ -791,6 +792,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--aparc")){
       if(nargc < 1) CMDargNErr(option,1);
       aparcpath = pargv[0];
+      ripmngr.aparcpath = aparcpath;
       UseAParc = 1;
       nargsused = 1;
     }
@@ -1282,6 +1284,11 @@ int RIP_MNGR::RipVertices(void)
       printf("ERROR: ripsurf dim mismatch %d %d\n",ripsurf->nvertices,surf->nvertices);
       exit(1);
     }
+    if(aparcpath) {
+      printf("Reading in aparc %s for ripsurf\n",aparcpath);
+      if(MRISreadAnnotation(ripsurf, aparcpath) != NO_ERROR)
+	ErrorExit(ERROR_NOFILE, "%s: could not read annotation",aparcpath) ;
+    }
   }
   else {
     if(ripsurfneeded){
@@ -1312,7 +1319,8 @@ int RIP_MNGR::RipVertices(void)
     // Copy ripflags back into the input surface
     int vno;
     for(vno=0; vno < surf->nvertices; vno++){
-      surf->vertices[vno].ripflag = ripsurf->vertices[vno].ripflag;
+      if(ripsurf->vertices[vno].ripflag)  
+	surf->vertices[vno].ripflag = 1;
     }
     MRISfree(&ripsurf);
   }

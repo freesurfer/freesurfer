@@ -8,17 +8,16 @@ namespace surf {
 */
 py::array parameterize(Bridge surf, const arrayf<float>& overlay)
 {
-  // parameterization hangs without doing this
-  MRISsaveVertexPositions(surf, CANONICAL_VERTICES);
-
   // get frames and allocate mrisp
   int nframes = (overlay.ndim() == 2) ? overlay.shape(1) : 1;
   MRI_SP *mrisp = MRISPalloc(1, nframes);
 
   // parameterize
+  MRIS *mris = surf.mris();
   for (int frame = 0; frame < nframes ; frame++) {
     const float* array = overlay.data() + frame * overlay.shape(0);
-    MRIStoParameterizationBarycentric(surf, mrisp, array, 1, frame);
+    for (int vno = 0 ; vno < mris->nvertices ; vno++) mris->vertices[vno].curv = array[vno];
+    MRIStoParameterizationBarycentric(surf, mrisp, 1, frame);
   }
 
   // convert to numpy array
@@ -47,10 +46,11 @@ py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
   int nframes = (image.ndim() == 3) ? image.shape(2) : 1;
 
   // init MRISP
-  MRI_SP *mrisp = MRISPalloc(1, nframes);
+  int scale = int(image.shape(0) / 256);
+  MRI_SP *mrisp = MRISPalloc(scale, nframes);
   int udim = U_DIM(mrisp);
   int vdim = V_DIM(mrisp);
-  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image must be 256 x 512");;
+  if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image does not match scale");
 
   // copy pixel values from image into MRISP
   float const *iptr = image.data();

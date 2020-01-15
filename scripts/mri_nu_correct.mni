@@ -43,6 +43,8 @@ set cleanup = 1;
 set tmpdir = ();
 set DoUchar = 0;
 set talxfm = ();
+set DoAntsN3 = 0;
+set DoAntsN4 = 0;
 
 set debug = 0;
 set PrintHelp = 0;
@@ -78,16 +80,6 @@ echo "nIters $nIters" | tee -a $LF
 echo $VERSION | tee -a $LF
 uname -a | tee -a $LF
 date | tee -a $LF
-nu_correct -version | tee -a $LF
-
-# check for existence of bc (binary calculator)
-# some minimal installs of centos do not have it
-set cmd = (which bc)
-$cmd
-if($status) then
-  echo "ERROR: OS is missing bc (binary calculator) utility" |& tee -a $LF
-  exit 1;
-endif
 
 # check for existence of /dev/shm
 set templocation = $OutDir
@@ -104,74 +96,94 @@ if(! $#tmpdir) set tmpdir = $templocation/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
 echo "tmpdir is $tmpdir" | tee -a $LF
 
-# Convert input to minc
-set cmd = (mri_convert ${HiRes} $InVol $tmpdir/nu0.mnc)
-if($UseFloat) set cmd = ($cmd -odt float)
-pwd |& tee -a $LF
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: converting to minc" |& tee -a $LF
-  exit 1;
-endif
-
-# Convert mask to minc
-if ($#MaskVol) then
-  set cmd1 = (mri_binarize --i $MaskVol --min 1 --o $tmpdir/mask.mgz)
-  if($#nMaskVolDilate) set cmd1 = ($cmd1 --dilate $nMaskVolDilate)
-  set cmd2 = (mri_convert ${HiRes} $tmpdir/mask.mgz $tmpdir/mask.mnc)
-  if($UseFloat) set cmd2 = ($cmd2 -odt float)
+set MaskVol0 = $MaskVol
+if($#MaskVol) then
+  set cmd = (mri_binarize --i $MaskVol0 --min 1 --o $tmpdir/mask.mgz)
+  if($#nMaskVolDilate) set cmd = ($cmd --dilate $nMaskVolDilate)
   pwd |& tee -a $LF
-  echo $cmd1 |& tee -a $LF
-  $cmd1 |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
   if($status) then
     echo "ERROR: binarizing mask vol" |& tee -a $LF
     exit 1;
   endif
-  echo $cmd2 |& tee -a $LF
-  $cmd2 |& tee -a $LF
-  if($status) then
-    echo "ERROR: converting mask vol to minc" |& tee -a $LF
-    exit 1;
+  set MaskVol = $tmpdir/mask.mgz
+  if(! $DoAntsN3 && ! $DoAntsN4) then
+    # Convert mask to minc
+    set cmd = (mri_convert ${HiRes} $tmpdir/mask.mgz $tmpdir/mask.mnc)
+    if($UseFloat) set cmd = ($cmd -odt float)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: converting mask vol to minc" |& tee -a $LF
+      exit 1;
+    endif
   endif
 endif
 
-# Run intensity correction #
-@ nthIter = 1;
-while($nthIter <= $nIters)
-  echo " " |& tee -a $LF
-  echo "--------------------------------------------------------" |& tee -a $LF
-  echo "Iteration $nthIter `date`" |& tee -a $LF
-  @ m = $nthIter - 1
-  set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
-  set cmd = ($cmd -tmpdir ${tmpdir}/${m}/ );
-  if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
-  if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
-  if($#Distance)      set cmd = ($cmd -distance $Distance);
-  if($#FWHM)          set cmd = ($cmd -fwhm $FWHM);
-  if($#Shrink)        set cmd = ($cmd -shrink $Shrink);
-  if($#MaskVol)       set cmd = ($cmd -mask $tmpdir/mask.mnc);
+
+if($DoAntsN3 || $DoAntsN4) then
+  # ANTS nu-correct
+  set numnc = $tmpdir/nu0.mgz
+  if($DoAntsN3) then
+    set cmd = (N3BiasFieldCorrection 3 $InVol $numnc) 
+    # don't know how to add mask
+  endif
+  if($DoAntsN4) then
+    set cmd = (N4BiasFieldCorrection -i $InVol -o $numnc)
+    if($#MaskVol) set cmd = ($cmd -x $MaskVol)
+  endif
+  echo "cd `pwd`" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+else
+  # MNI N3 nu-correct 
+  nu_correct -version | tee -a $LF
+  # Convert input to minc
+  set cmd = (mri_convert ${HiRes} $InVol $tmpdir/nu0.mnc)
+  if($UseFloat) set cmd = ($cmd -odt float)
+  pwd |& tee -a $LF
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: nu_correct" |& tee -a $LF
+    echo "ERROR: converting to minc" |& tee -a $LF
     exit 1;
   endif
-  rm -f $tmpdir/nu${m}.mnc $tmpdir/nu${m}.imp
-  @ nthIter = $nthIter + 1;
+  # Run intensity correction #
+  @ nthIter = 1;
+  while($nthIter <= $nIters)
+    echo " " |& tee -a $LF
+    echo "--------------------------------------------------------" |& tee -a $LF
+    echo "Iteration $nthIter `date`" |& tee -a $LF
+    @ m = $nthIter - 1
+    set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
+    set cmd = ($cmd -tmpdir ${tmpdir}/${m}/ );
+    if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
+    if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
+    if($#Distance)      set cmd = ($cmd -distance $Distance);
+    if($#FWHM)          set cmd = ($cmd -fwhm $FWHM);
+    if($#Shrink)        set cmd = ($cmd -shrink $Shrink);
+    if($#MaskVol)       set cmd = ($cmd -mask $tmpdir/mask.mnc);
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: nu_correct" |& tee -a $LF
+      exit 1;
+    endif
+    rm -f $tmpdir/nu${m}.mnc $tmpdir/nu${m}.imp
+    @ nthIter = $nthIter + 1;
+    echo " " |& tee -a $LF
+  end
+  if($#MaskVol && $cleanup) then
+    rm -f $tmpdir/mask.mnc $tmpdir/mask.imp $tmpdir/mask.mgz
+  endif
   echo " " |& tee -a $LF
-end
-if($#MaskVol && $cleanup) then
-  rm -f $tmpdir/mask.mnc $tmpdir/mask.imp $tmpdir/mask.mgz
+  echo " " |& tee -a $LF
+  set numnc = $tmpdir/nu$nIters.mnc
 endif
-echo " " |& tee -a $LF
-echo " " |& tee -a $LF
-
-set numnc = $tmpdir/nu$nIters.mnc
 
 if($DoRescale) then
-  cp $numnc $tmpdir/pre-scale.mnc
-
   # Rescale so that global mean of output = mean of input
   set ones = $tmpdir/ones.mgz
   set cmd = (mri_binarize --i $numnc --min -1 --o $ones);
@@ -200,7 +212,7 @@ if($DoRescale) then
   if($status) exit 1;
 endif
 
-# Convert nu back to cor or mgz, use --like to keep all the header info
+# Convert nu to get header data using --like to keep all the header info
 if ( ! -e $numnc) then
   echo "ERROR: file $numnc does not exist!" |& tee -a $LF
   exit 1;
@@ -215,12 +227,12 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 if($UseFloat && $DoUchar) then
+  # This should probably be manditory
   set cmd = (mri_make_uchar $OutVol $talxfm $OutVol)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
-
 
 if($cleanup) rm -r $tmpdir
 
@@ -270,6 +282,20 @@ while( $#argv != 0 )
     case "--mask-dilate":
       if ( $#argv == 0) goto arg1err;
       set nMaskVolDilate = $argv[1]; shift;
+      breaksw
+
+    case "--ants-n3":
+      set DoAntsN3 = 1;
+      breaksw
+    case "--no-ants-n3":
+      set DoAntsN3 = 0;
+      breaksw
+
+    case "--ants-n4":
+      set DoAntsN4 = 1;
+      breaksw
+    case "--no-ants-n4":
+      set DoAntsN4 = 0;
       breaksw
 
     case "--n":
@@ -387,6 +413,33 @@ check_params:
   endif
   if($#OutVol == 0) then
     echo "ERROR: must specify an output volume"
+    exit 1;
+  endif
+  if($DoAntsN3 && $DoAntsN4) then
+    echo "ERROR: cannot do both ANTS N3 and N4"
+    exit 1;
+  endif
+  if($DoAntsN3) then
+    which N3BiasFieldCorrection >& /dev/null
+    if($status) then
+      echo "ERROR: cannot find N3BiasFieldCorrection in path"
+      exit 1;
+    endif
+  endif
+  if($DoAntsN4) then
+    which N4BiasFieldCorrection >& /dev/null
+    if($status) then
+      echo "ERROR: cannot find N4BiasFieldCorrection in path"
+      exit 1;
+    endif
+  endif
+
+  # check for existence of bc (binary calculator)
+  # some minimal installs of centos do not have it
+  set cmd = (which bc)
+  $cmd
+  if($status) then
+    echo "ERROR: OS is missing bc (binary calculator) utility" 
     exit 1;
   endif
 

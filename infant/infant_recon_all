@@ -1,4 +1,4 @@
-#!/bin/tcsh -efx
+#!/bin/tcsh -ef
 
 ##
 ## For infants between 0-2yrs of age!
@@ -121,9 +121,9 @@ while( $#argv != 0 )
     case "--gmwm":
       set forcegmwm = 1; 
       breaksw
-    #case "--gmwm2": # This is set to 1 by default now
-    #  set forcegmwm2 = 1; 
-    #  breaksw
+    case "--gmwm2": # This is set to 1 by default now
+      set forcegmwm2 = 1; 
+      breaksw
     case "--usegpu":
       set usegpu = 1;
       breaksw
@@ -559,7 +559,7 @@ set trainingsubjects = ($TEMPLATE_SUBJECTS)
 echo TRAINING SUBJECTS LABELFUSION $trainingsubjects | tee -a $sLF | tee -a $LF
 # if !(-e $WORK_DIR/${subj}-*labels.mrf.nii.gz) then 
 if !(-e $WORK_DIR/aseg.nii.gz) then
-  set cmd = (run_label_fusion.csh --subj $subj --ts $trainingsubjects --regtype $regtype)
+  set cmd = (run_label_fusion.csh --subj $subj --regtype $regtype --ts $trainingsubjects)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF

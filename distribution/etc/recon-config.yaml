@@ -10,3 +10,40 @@ GCASkull:
     flags: -gca-skull
     descr: Gaussian Classifier Array atlas used for skull stripping
 
+DoAntsN3:
+    value: False
+    flags: -ants-n3
+    action: enable
+    descr: Use ANTS N3BiasFieldCorrection instead of MNI N3
+
+DoAntsN4:
+    value: False
+    flags: -ants-n4
+    action: enable
+    descr: Use ANTS N4BiasFieldCorrection instead of MNI N3
+
+DoAntsDenoising:
+    value: False
+    flags: -ants-denoise
+    action: enable
+    descr: Use ANTS DenoiseImage before mri_segment
+
+DoRemesh:
+    value: False
+    flags: -remesh
+    action: enable
+    descr: Use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
+    
+DoDecimation:
+    value: False
+    flags: -decimate
+    action: enable
+    descr: Allow decimation of surface ?h.orig.nofix, good for high res
+
+DecimationFaceArea:
+    value: 0.5
+    flags: -decimation-area
+    descr: Desired area (mm2) of a face after decimation
+
+
+

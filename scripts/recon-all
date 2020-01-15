@@ -139,7 +139,7 @@ set Norm1_n = ();       # passed as -n to the *first* mri_normalize only
 set Norm2_b = ();       # passed as -b to the *second* mri_normalize only
 set Norm2_n = ();       # passed as -n to the *second* mri_normalize only
 set WMSegFromASeg = 0; # use aseg WM instead of mri_segment
-set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment
+#set DoAntsDenoising = 0; # Do not use ANTS denoising prior to mri_segment # see recon-conf.yaml
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set MriSegWsizemm = 13  # Sets search region for mri_segment
 set WMSeg_wlo = ();  # from -seg-ghi and -seg-wlo, passed to mri_segment
@@ -160,7 +160,7 @@ set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
-set DoRemesh = 1; # remesh ?h.orig to improve triangle quality
+#set DoRemesh = 1; # remesh ?h.orig to improve triangle quality# see recon-conf.yaml
 set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -220,8 +220,8 @@ set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, defaul
 # 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
 # or for high res data. Decimation will have no effect if the average
 # face area is already => DecimationFaceArea.
-set DecimationFaceArea = 0.5;
-set DoDecimation = 0;
+#set DecimationFaceArea = 0.5; # see recon-conf.yaml
+#set DoDecimation = 0;
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
 # various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
@@ -1528,6 +1528,8 @@ talairach:
       # the brainmask, and talairach.xfm used to find the white matter ball.
       set tal_input = orig_nu.mgz
       set cmd = (mri_nu_correct.mni --no-rescale --i orig.mgz --o $tal_input)
+      if($DoAntsN3) set cmd = ($cmd --ants-n3)
+      if($DoAntsN4) set cmd = ($cmd --ants-n4)
       # -3T flag support:
       if ($DoNuIntensityCor3T) then
         # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
@@ -1805,7 +1807,10 @@ if($DoNuIntensityCor) then
     set cmd = ($cmd --proto-iters 1000 --distance 50)
   endif
   # add user-specified option (from an 'experts file')
-  set cmd = ($cmd --n $NuIterations $xopts)
+  set cmd = ($cmd --n $NuIterations)
+  if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
+  if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
+  set cmd = ($cmd $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -1905,6 +1910,8 @@ if($DoNormalization) then
       endif
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
+      if($DoAntsN3) set cmd = ($cmd --ants-n3)  # ignores other options
+      if($DoAntsN4) set cmd = ($cmd --ants-n4)  # ignores other options
       set cmd = ($cmd $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd >& orig_nu.log
@@ -2798,7 +2805,7 @@ if($DoSegmentation) then
     # Use the traditional mri_segment to generate the wm.seg.mgz
     set mrisegment_input = brain.mgz
     if($DoAntsDenoising) then
-      set cmd = (DenoiseImage -i brain.mgz -o antsdn.brain.mgz)
+      set cmd = (AntsDenoiseImageFs -i brain.mgz -o antsdn.brain.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -3540,32 +3547,6 @@ if($DoCurvHK) then
   end
 endif
 
-#----------                            -----------#
-#---------- Curvature Anatomical Stats -----------#
-##---------        -curvstats          -----------#
-#----------                            -----------#
-if($DoCurvStats) then
-  foreach hemi ($hemilist)
-    echo "\n#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Curvature Stats $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/surf > /dev/null
-    $PWD |& tee -a $LF
-    set stats = ../stats/$hemi.curv.stats
-    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
-            -o $stats -F smoothwm \
-            $xopts $subjid $hemi curv sulc);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
-    echo $cmd > $touchdir/$hemi.curvstats.touch
-  end # Loop over hemilist
-endif
-
-
 #-----------             -------------#
 ##---------- AUTORECON 3 -------------#
 #-----------             -------------#
@@ -4167,6 +4148,28 @@ if(1) then
 endif
 
 # stats and GWcontrast must run here, after T2 pial refinement
+
+#----------                            -----------#
+#---------- Curvature Anatomical Stats -----------#
+##---------        -curvstats          -----------#
+#----------                            -----------#
+if($DoCurvStats) then
+  foreach hemi ($hemilist)
+    echo "\n#-----------------------------------------" |& tee -a $LF |& tee -a $CF
+    echo "#@# Curvature Stats $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    set stats = ../stats/$hemi.curv.stats
+    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile $GlobXOptsFile`;
+    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
+            -o $stats -F smoothwm $xopts $subjid $hemi curv sulc);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    rm -f .xdebug_mris_curvature_stats
+    echo $cmd > $touchdir/$hemi.curvstats.touch
+  end # Loop over hemilist
+endif
 
 #----------------                 ------------------#
 #---------------- Cortical Ribbon ------------------#
@@ -5864,19 +5867,6 @@ while( $#argv != 0 )
       set DoRemoveNeck = 0;
       breaksw
 
-    # Decimation is done as part of DoTessellate
-    case "-decimate":
-      set DoDecimation = 1;
-      breaksw
-    case "-no-decimate":
-      set DoDecimation = 0;
-      breaksw
-    case "-decimation-area":
-      # desired average face area after decimation
-      set DecimationFaceArea = $argv[1]; shift 
-      set DoDecimation = 1;
-      breaksw
-
     case "-skull-lta":
       set DoSkullLTA  = 1;
       breaksw
@@ -6016,29 +6006,39 @@ while( $#argv != 0 )
       set DoTessellate = 0;
       breaksw
 
-    case "-remesh"
-      # Use Martin's code to remesh ?h.orig to improve triangle quality
-      set DoRemesh = 1; 
-      breaksw
-    case "-noremesh"
-    case "-no-remesh"
-      set DoRemesh = 0; 
-      breaksw
-
     case "-mps_n_averages"
       if ( $#argv < 1) goto arg1err;
       set mps_n_averages = $argv[1]; shift;
       breaksw
 
-    case "-ants-denoise"
-      # Use ANTS denoising prior to mri_segment
-      set DoAntsDenoising = 1; 
-      which DenoiseImage
-      if($status)  then
-        echo "Cannot find DenoiseImage"
-        exit 1;
-      endif
+    # now in recon-config.yaml
+    # Decimation is done as part of DoTessellate
+    #case "-decimate":
+    #  set DoDecimation = 1;
+    #  breaksw
+    #case "-decimation-area":
+    #  desired average face area after decimation
+    #  set DecimationFaceArea = $argv[1]; shift 
+    #  breaksw
+    case "-no-decimate":
+      set DoDecimation = 0;
       breaksw
+
+    # now in recon-config.yaml
+    #case "-remesh"
+      # Use Martin's code to remesh ?h.orig to improve triangle quality
+      #set DoRemesh = 1; 
+      #breaksw
+    case "-noremesh"
+    case "-no-remesh"
+      set DoRemesh = 0; 
+      breaksw
+
+    # now in recon-config.yaml
+    #case "-ants-denoise"
+      # Use ANTS denoising prior to mri_segment
+      #set DoAntsDenoising = 1; 
+      #breaksw
     case "-no-ants-denoise"
       set DoAntsDenoising = 0; 
       breaksw

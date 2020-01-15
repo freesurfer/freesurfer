@@ -20,6 +20,20 @@ class Freeview:
 
     For a quicker but more limited way to view volumes or overlays, see `fv()` and `fvoverlay()`.
     '''
+
+    class OverlayTag:
+        '''Configuration for overlay tags. See surf() for usage.'''
+        def __init__(self, data, name=None, threshold=None):
+            self.data = data
+            self.name = name
+            self.threshold = threshold
+
+    class MRISPTag:
+        '''Configuration for mrisp tags. See surf() for usage.'''
+        def __init__(self, data, name=None):
+            self.data = data
+            self.name = name
+
     def __init__(self):
         self.tempdir = None
         self.flags = []
@@ -44,20 +58,29 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay=None, overlay_name=None, mrisp=None, mrisp_name=None, sphere=None, curvature=None, **kwargs):
+    def surf(self, surface, overlay=None, mrisp=None, sphere=None, curvature=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
         key/value tags allowed on the command line can be provided as arguments.
 
+        Overlays can be provided as filenames, numpy arrays, or Overlay instances, but in order
+        to configure overlays with custom visualization options, use the OverlayTag class to specify
+        things like desired filename and threshold:
+
+            overlay = fs.Freeview.OverlayTag(thickness, name='thickness', threshold=(1, 3))
+            fv.surf(surface, overlay=overlay)
+
+        The first argument to the OverlayTag constructor can be a filename, numpy array, or Overlay
+        instance. A list of multiple OverlayTags can be provided as input to the overlay parameter as
+        well. A similar configuration class exists for mrisps, named MRISPTag.
+
         Args:
             surface: An existing filename or Surface instance.
-            overlay: A file, array, or Overlay instance to project onto the surface. Multiple overlays can
+            overlay: A file, array, Overlay, or OverlayTag instance to project onto the surface. Multiple overlays can
                 be provided with a list.
-            overlay_name: String name or list of names for the specified overlay(s).
-            mrisp: A file, array, or Image parameterization to project onto the surface. Multiple parameterizations can
+            mrisp: A file, array, Image, or MRISPTag to project onto the surface. Multiple parameterizations can
                 be provided with a list.
-            mrisp_name: String name or list of names for the specified mrisp(s).
             curvature: A file, array, or Overlay instance to load as the surface curvature.
             opts: Additional option string to append to the surface commandline argument.
         '''
@@ -67,17 +90,27 @@ class Freeview:
         if filename is None:
             return
 
-        # if curvature is provided as an array, make sure it's converted
+        # if curvature is provided as a np array, make sure it's converted
         if curvature is not None:
             kwargs['curvature'] = self._vol_to_file(curvature, force=Overlay)
 
         # configure (potentially multiple) overlays
-        for fname in self._make_named_arrays(overlay, overlay_name, Overlay):
-            kwargs['opts'] = kwargs.get('opts', '') + ':overlay=' + fname
+        if overlay is not None:
+            overlay = list(overlay) if isinstance(overlay, (list, tuple)) else [overlay]
+            for ol in overlay:
+                config = ol if isinstance(ol, Freeview.OverlayTag) else Freeview.OverlayTag(ol)
+                tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
+                if config.threshold is not None:
+                    tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
+                kwargs['opts'] = kwargs.get('opts', '') + tag
 
         # configure (potentially multiple) mrisps
-        for fname in self._make_named_arrays(mrisp, mrisp_name, Image):
-            kwargs['opts'] = kwargs.get('opts', '') + ':mrisp=' + fname
+        if mrisp is not None:
+            mrisp = list(mrisp) if isinstance(mrisp, (list, tuple)) else [mrisp]
+            for sp in mrisp:
+                config = sp if isinstance(sp, Freeview.MRISPTag) else Freeview.MRISPTag(sp)
+                tag = ':mrisp=%s' % self._vol_to_file(config.data, name=config.name, force=Image)
+                kwargs['opts'] = kwargs.get('opts', '') + tag
 
         # if sphere is provided as an array, make sure it's converted
         if sphere is not None:
@@ -127,36 +160,6 @@ class Freeview:
                 tags += ':%s=%s' % (key, str(value))
 
         return tags
-
-    def _make_named_arrays(self, arrays, names, type):
-        '''
-        Utility that will create a series of volume files with optional names.
-        '''
-
-        # it's possible the arrays will be not provided
-        if arrays is None:
-            return []
-
-        # ensure that arrays is a list
-        arrays = list(arrays) if isinstance(arrays, (list, tuple)) else [arrays]
-
-        # ensure that names is a list
-        if names is None:
-            names = [None] * len(arrays)
-        names = list(names) if isinstance(names, (list, tuple)) else [names]
-
-        # make sure names match arrays
-        if len(names) != len(arrays):
-            error('freeview: length of names does not match length of arrays')
-            return []
-
-        # generate files
-        filenames = []
-        for array, name in zip(arrays, names):
-            path = self._vol_to_file(array, name=name, force=type)
-            if path:
-                filenames.append(path)
-        return filenames
 
     def _vol_to_file(self, volume, name=None, force=None):
         '''
