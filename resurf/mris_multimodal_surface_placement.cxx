@@ -118,9 +118,12 @@ int main(int narg, char*  arg[])
 			t2refinement->addImage(flair);
 		}
 
-		MRI* outbrain = MRIcopy(images[0], NULL);
-		t2refinement->SegmentNonBrainTissue(images[0], images[1],outbrain);
-		t2refinement->SetExclusionMask(outbrain);
+		MRI* whiteMR= MRIcopy(images[0], NULL);
+		MRI* vesselMR= MRIcopy(images[0], NULL);
+		t2refinement->SegmentVessel(images[0], images[1],vesselMR);
+		t2refinement->SegmentWM(images[0], images[1],whiteMR);
+		t2refinement->SetWhiteMR(whiteMR);
+		t2refinement->SetVesselMR(vesselMR);
 
 		t2refinement->SetSphere (sph);
 		for (unsigned j=0;j<surf->nvertices;j++)

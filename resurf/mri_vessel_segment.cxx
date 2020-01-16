@@ -54,16 +54,15 @@ int main(int narg, char * arg[])
 
 		MRI *imageT1 =  MRIread(imageNameT1) ;
 		MRI *imageT2 =  MRIread(imageNameT2) ;
-		MRI *output =  MRIcopy(imageT1, NULL) ;
+		MRI *vesselMR =  MRIcopy(imageT1, NULL) ;
+		//MRI *whiteMR=  MRIcopy(imageT1, NULL) ;
 		MRIS_MultimodalRefinement refinement;
-		refinement.SegmentNonBrainTissue(imageT1, imageT2, output);
+		refinement.SegmentVessel(imageT1, imageT2, vesselMR);
 
-		MRIwrite(output,outputName) ;
+		MRIwrite(vesselMR,outputName) ;
 		MRIfree(&imageT1);	
 		MRIfree(&imageT2);	
-		if(imageAseg)
-			MRIfree(&imageAseg);	
-		MRIfree(&output);	
+		MRIfree(&vesselMR);	
 	}
 	else
 	{

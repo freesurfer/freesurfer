@@ -1596,24 +1596,30 @@ int main(int argc, char *argv[])
 		std::cout << "T2/FLAIR compute target based on gradients "<< std::endl;
 		sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_sphere, suffix) ;
 		printf("reading sphere position from %s...\n", fname) ;
-		MRIS* sph = MRISread(fname);
-		MRIStoParameterization(sph,NULL, 1,0);
+		//MRIS* sph = MRISread(fname);
+		//MRIStoParameterization(sph,NULL, 1,0);
 
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
-		MRI* nonBrain = MRIcopy(mri_T1_pial,NULL);
-		refine->SegmentNonBrainTissue(mri_T1_pial,mri_flair, nonBrain);
+		MRI* whiteMR= MRIcopy(mri_T1_pial,NULL);
+		MRI* vesselMR= MRIcopy(mri_T1_pial,NULL);
+		refine->SegmentWM(mri_T1_pial,mri_flair, whiteMR);
+		refine->SegmentVessel(mri_T1_pial,mri_flair, vesselMR);
 
-		refine->SetStep(.3);
-		refine->SetNumberOfSteps(15);
-		refine->SetGradientSigma(.1);
+		refine->SetStep(.4);
+		refine->SetNumberOfSteps(8);
+		refine->SetGradientSigma(.3);
 		refine->SetSegmentation(mri_aseg);
-		refine->SetExclusionMask(nonBrain);
 		refine->FindMaximumGradient(contrast_type== CONTRAST_T2);
 		refine->addImage(mri_T1_pial);
 		refine->addImage(mri_flair);
-		refine->SetSphere(sph);
+		refine->SetWhiteMR(whiteMR);
+		refine->SetVesselMR(vesselMR);
+		//refine->SetSphere(sph);
 		refine->getTarget(mris); //, debugVertex);
 		
+		MRIfree(&whiteMR);
+		MRIfree(&vesselMR);
+		delete refine;
 	}
 	else
 	{

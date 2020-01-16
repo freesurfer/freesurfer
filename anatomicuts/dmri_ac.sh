@@ -259,11 +259,11 @@ function preGA()
 	std=$4
 	bb=$5	
 
-	Clean ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+#	Clean ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+#	Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+#	Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	SurfaceMeasures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+#	ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	
 }
 function GA()
@@ -277,7 +277,8 @@ function GA()
 	groupB=$7
 	groups=$8
 	thickness=$9
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f thicknessPerStructure -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 2 -gb 1 -l ${lenght} -std ${std} 
@@ -357,7 +358,8 @@ function SurfaceMeasures()
 	anatomicuts=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 	diff=${ODMRI_DIR}/${subject}/dmri/
 	surf=${ODMRI_DIR}/${subject}/surf/
-	dmri_extractSurfaceMeasurements -i ${anatomicuts}/*trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -ri ${diff}/DTI/dti_FA.nii.gz -o ${anatomicuts}/measures/	-r ${anatomicuts}/match/${targetSubject}_${subject}_c200_hungarian.csv 
+	annot=${ODMRI_DIR}/${subject}/label/
+ 	dmri_extractSurfaceMeasurements -i ${anatomicuts}/*trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -ri ${diff}/DTI/dti_FA.nii.gz -al ${annot}/lh.aparc.annot -ar ${annot}/rh.aparc.annot -o ${anatomicuts}/measures/	-r ${anatomicuts}/match/${targetSubject}_${subject}_c200_hungarian.csv 
 
 }
 
@@ -419,9 +421,9 @@ function average()
 	std=$3
 
 	mkdir -p ${ODMRI_DIR}/average/dmri.ac/${lenght}_${std}/images
-        correspondences="["
-        imagesFolder="["
-        outputFolder=\"${ODMRI_DIR}/average/dmri.ac/${lenght}_${std}/images/\"
+        #correspondences="["
+        #imagesFolder="["
+        outputFolder=${ODMRI_DIR}/average/dmri.ac/${lenght}_${std}/images/
         s2=${targetSubject}
 
         cd ${ODMRI_DIR}
@@ -431,15 +433,15 @@ function average()
                 echo $s
                 if [  -f ${ODMRI_DIR}/$s/dmri.ac/${lenght}/HierarchicalHistory.csv ]; then
                         if [ ${#correspondences} -ge 3 ]; then 
-                                correspondences=${correspondences}","
-                                imagesFolder=${imagesFolder}","
+                                correspondences=${correspondences},
+                                imagesFolder=${imagesFolder},
                         fi
-                        correspondences=${correspondences}\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/match/${s2}_${s}_c200_hungarian.csv\"   
-                        imagesFolder=${imagesFolder}\"${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/to${targetSubject}/images/\"
+                        correspondences=${correspondences}${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/match/${s2}_${s}_c200_hungarian.csv   
+                        imagesFolder=${imagesFolder}${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/to${targetSubject}/images/
                 fi
         done    
-        correspondences=${correspondences}"]"
-        imagesFolder=${imagesFolder}"]"
+        correspondences=${correspondences}
+        imagesFolder=${imagesFolder}
 
         echo $correspondences
         echo $imagesFolder

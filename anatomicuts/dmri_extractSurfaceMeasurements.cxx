@@ -1,11 +1,8 @@
-/* Author: Alexander Zsikla
- * Advisor: Viviana Siless
- * Time: August 2019
+/* 
+ * Author: Viviana Siless
  * Name: dmri_extractSurfaceMeasurements.cxx
  *
  * Description:
- * This program is designed to take in a surface, two overlay files, one or multiple volume files, one or multiple streamline files, and an output directory.
- * Based on the streamlines, output metrics will be placed into a CSV file with the name of the original file and include metrics such as curvature, thickness, and FA values.
  *
  */
 
@@ -85,6 +82,7 @@ int main(int narg, char* arg[])
 		     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -tl overlayFile_lh.thickness -cl overlayFile_lh.curv" << endl
 		     << "-sr surfaceFile_rh.orig -tr overlayFile_rh.thickness -cr overlayFile_rh.curv -o outputDirectory" << endl 
 		     << "-ri reference_image (NOTE: only use reference image when FA is not used" << endl
+		     << "-a annotationFile " << endl
 		     << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
 
 		return EXIT_FAILURE;
@@ -137,6 +135,8 @@ int main(int narg, char* arg[])
 	const char *outputDir    = num1.follow("Output Directory Not Found", "-o");
 	
 	const char *refImage     = num1.follow("Reference Image Not Found", "-ri");
+	const char *annotationFileL= num1.follow("Annotation File Not Found", "-al");
+	const char *annotationFileR= num1.follow("Annotation File Not Found", "-ar");
 
 	// Reading in FA file
 	vector<ImageType::Pointer> volumes;
@@ -211,6 +211,7 @@ int main(int narg, char* arg[])
 	surfCL = surfaceCL->GetFSSurface(&*surfCL);
 
 	MRISreadCurvature(surfCL, curvFileL);	
+	MRISreadAnnotation(surfCL, annotationFileL);
 
 	//Left Thickness
 	MRI_SURFACE *surfTL;
@@ -233,6 +234,7 @@ int main(int narg, char* arg[])
 	surfCR = surfaceCR->GetFSSurface(&*surfCR);
 
 	MRISreadCurvature(surfCR, curvFileR);
+	MRISreadAnnotation(surfCR, annotationFileR);
 
 	//Right Thickness
 	MRI_SURFACE *surfTR;
@@ -312,7 +314,7 @@ int main(int narg, char* arg[])
 		}
 
 		// Adds the headers to the files and has option for finding FA values
-		oFile << "streamline,curv.start,curv.end,thickness.start,thickness.end";
+		oFile << "streamline,label.start,label.end,curv.start,curv.end,thickness.start,thickness.end";
 		if (FA_FOUND)
 		{
 			for (int a = 0; a < image_fileNames.size(); a++)
@@ -388,7 +390,25 @@ int main(int narg, char* arg[])
 			vtkIdType ID2 = which_ID(distL, distR, Left_ID2, Right_ID2);
 
 			// Outputting values to the file
-			oFile << "StreamLine" << counter << ",";
+			oFile << "StreamLine" << counter << ", ";
+			
+			if (ID1 == Left_ID1)
+			{
+				oFile << surfCL->vertices[ID1].annotation << ",";
+			}
+			else
+			{
+				oFile << surfCR->vertices[ID1].annotation << ",";
+			}
+			if (ID2 == Left_ID2)
+			{
+				oFile << surfCL->vertices[ID2].annotation << ",";
+			}
+			else
+			{
+				oFile << surfCR->vertices[ID2].annotation << ",";
+			}	
+
 
 			if (ID1 == Left_ID1)
 			{

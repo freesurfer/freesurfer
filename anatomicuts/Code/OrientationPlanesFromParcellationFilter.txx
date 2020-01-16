@@ -590,7 +590,7 @@ float OrientationPlanesFromParcellationFilter<TInputImage,TOutputImage>::Distanc
 
 	for (int i=0;i<3;i++)
 	{
-		center[i]=this->m_centerLR[i];	
+		center[i]=this->m_centerLR[i] -1;	
 		normal[i]=this->m_LeftRight[i];	
 	}
 	vtkPlane::ProjectPoint(pt,center, normal, proj);
