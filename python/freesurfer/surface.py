@@ -71,23 +71,15 @@ class Surface(Transformable):
         return len(self.faces)
 
     def compute_normals(self):
-        '''Compute and cache face and vertex normals as well as vertex tangents.'''
-
-        # get face and vertex normals from bindings
+        '''Compute and cache face and vertex normals.'''
         bindings.surf.compute_normals(self)
+        # reset vertex tangents since normals have been updates
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
 
-        # compute vertex normal tangents
-        cross1 = np.cross(self.vertex_normals, np.roll(self.vertex_normals, -1, axis=1))
-
-        # check if we happened to pick a parallel vector
-        nearzero = np.linalg.norm(cross1, axis=1) < 0.001
-        if np.any(nearzero):
-            zeronorms = self.vertex_normals[nearzero]
-            cross1[nearzero] = np.cross(zeronorms, np.roll(zeronorms, -1, axis=1) * [1, -1, 1])
-
-        cross2 = np.cross(self.vertex_normals, cross1)
-        self.vertex_tangents_1 = cross1 / np.linalg.norm(cross1, axis=1)[:, np.newaxis]
-        self.vertex_tangents_2 = cross2 / np.linalg.norm(cross2, axis=1)[:, np.newaxis]
+    def compute_tangents(self):
+        '''Compute and cache vertex tangents along primary curvature direction.'''
+        bindings.surf.compute_tangents(self)
 
     def compute_euler(self):
         '''Computes euler number of the mesh.'''
