@@ -27,7 +27,7 @@ set name1 = "s1"
 set name2 = "s2"
 set name3 = "s3"
 set name4 = "s4"
-set grayscale = (":grayscale=0,255")
+set grayscale = (":grayscale=10,130")
 set NoSeg = 0;
 #set NoSurf = 0;
 set hemilist = (lh rh)
@@ -72,26 +72,30 @@ foreach vol ($vollist)
       set subject = $subject1
       set surfcolor = ($surfcolor1);
       set name = $name1
+      set sd = $SD1
     endif
     if($s == 2) then
       set subject = $subject2
       set surfcolor = ($surfcolor2);
       set name = $name2
+      set sd = $SD2
     endif
     if($s == 3) then
       set subject = $subject3
       set surfcolor = ($surfcolor3);
       set name = $name3
+      set sd = $SD3
     endif
     if($s == 4) then
       set subject = $subject4
       set surfcolor = ($surfcolor4);
       set name = $name4
+      set sd = $SD4
     endif
     set sname = `basename $subject`
     set volbase = `basename $vol .mgz`
     set cue = $name-$volbase
-    set v = $subject/mri/$vol
+    set v = $sd/$subject/mri/$vol
     set cmd = ($cmd -v "$v":"name=$cue$grayscale")
   end
 end
@@ -101,25 +105,29 @@ foreach seg ($seglist)
       set subject = $subject1
       set surfcolor = ($surfcolor1);
       set name = $name1;
+      set sd = $SD1
     endif
     if($s == 2) then
       set subject = $subject2
       set surfcolor = ($surfcolor2);
       set name = $name2;
+      set sd = $SD2
     endif
     if($s == 3) then
       set subject = $subject3
       set surfcolor = ($surfcolor3);
       set name = $name3;
+      set sd = $SD3
     endif
     if($s == 4) then
       set subject = $subject4
       set surfcolor = ($surfcolor4);
       set name = $name4;
+      set sd = $SD4
     endif
     set segbase = `basename $seg .mgz`
     set cue = $name-$segbase
-    set v = $subject/mri/$seg
+    set v = $sd/$subject/mri/$seg
     set cmd = ($cmd -v "$v":"lut=$segcolor":"opacity=$segopacity":"colormap=lut":"name=$cue")
   end
 end
@@ -132,30 +140,30 @@ foreach hemi ($hemilist)
         set subject = $subject1
         set surfcolor = ($surfcolor1);
         set name = $name1
+        set sd = $SD1
       endif
       if($s == 2) then
         set subject = $subject2
         set surfcolor = ($surfcolor2);
         set name = $name2
+        set sd = $SD2
       endif
       if($s == 3) then
         set subject = $subject3
         set surfcolor = ($surfcolor3);
         set name = $name3
+        set sd = $SD3
       endif
       if($s == 4) then
         set subject = $subject4
         set surfcolor = ($surfcolor4);
         set name = $name4
+        set sd = $SD4
       endif
       set cue = "$name-$hemi.$surf-$surfcolor[$nth]"
-      set surfarg = "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue"
+      set surfarg = "$sd/$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue"
       if($#annot) then
-        if($s == 1) set SD = $SD1
-        if($s == 2) set SD = $SD2
-        if($s == 3) set SD = $SD3
-        if($s == 4) set SD = $SD4
-        set annotfile = $subject/label/$hemi.$annot
+        set annotfile = $sd/$subject/label/$hemi.$annot
         if(! -e $annotfile) then
           echo "ERROR: cannot find $annotfile"
           exit 1;

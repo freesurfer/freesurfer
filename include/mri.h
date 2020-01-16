@@ -40,6 +40,8 @@
 #include "colortab.h"
 #include "affine.h"
 #include "fnvhash.h"
+#include "itkImage.h"
+
 
 #define BUFTYPE  unsigned char
 
@@ -82,6 +84,9 @@
 
 #define MB_RADIAL 0
 #define MB_TANGENTIAL 1
+
+// standard itk image type
+typedef itk::Image<float, 3> ITKImageType;
 
 typedef struct
 {
@@ -181,8 +186,13 @@ public:
   ~MRI();
 
   void initIndices();
+  void initSlices();
   void write(const std::string& filename);
   FnvHash hash();
+
+  // ITK image conversions
+  ITKImageType::Pointer toITKImage(int frame = 0);
+  void loadITKImage(ITKImageType::Pointer image, int frame = 0);
 
   // ---- image geometry ----
   int width;        // number of columns
@@ -234,7 +244,7 @@ public:
   double mean;
   int brightness = 1;
   int yinvert = 1;              // for converting between MNC and coronal slices
-  int dof;
+  int dof = 1;
   MRI_FRAME *frames = nullptr;
   COLOR_TABLE *ct = nullptr;
   MRI_REGION roi;
@@ -274,6 +284,7 @@ public:
   size_t vox_per_vol = 0;       // number of voxels per volume frame
   size_t vox_total = 0;         // total number of voxels in the volume
   int ischunked;                // indicates whether the buffer is chunked (contiguous)
+  bool owndata = true;          // indicates ownership of the chunked buffer data
   BUFTYPE ***slices = nullptr;  // fallback non-contiguous storage for 3D-indexed image data
   void *chunk = nullptr;        // default contiguous storage for image data
 };

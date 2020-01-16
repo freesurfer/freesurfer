@@ -1934,7 +1934,7 @@ static int MRIScomputeBorderValues_new(
       outward_dist = dist - step_size / 2;
       
       // Are the bounds found?
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak();
 
       if (inward_dist <= 0 || outward_dist >= 0) {
@@ -2760,7 +2760,7 @@ static int MRIScomputeBorderValues_old(
 
       outward_dist = dist - step_size / 2;
       
-      if (!isfinite(outward_dist)) {
+      if (!std::isfinite(outward_dist)) {
         DiagBreak();
       }
       if (inward_dist <= 0 || outward_dist >= 0) {
@@ -4354,7 +4354,7 @@ int MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smo
         }
       }
     }
-    if (!isfinite(min_val) || !isfinite(max_mag) || !isfinite(mag)) {
+    if (!std::isfinite(min_val) || !std::isfinite(max_mag) || !std::isfinite(mag)) {
       DiagBreak();
     }
     if (min_val > 0) {
@@ -4472,7 +4472,7 @@ int MRISaccumulateStandardErrorsInVolume(
       mris_sigma = vertex->val;
       mri_sigma = mris_sigma * SQR(mris_dof) + mri_sigma * SQR(mri_dof);
       mri_sigma /= SQR(ndof);
-      if (!isfinite(mri_sigma)) {
+      if (!std::isfinite(mri_sigma)) {
         fprintf(stderr, "variance not finite at vno %d!\n", vno);
         DiagBreak();
       }

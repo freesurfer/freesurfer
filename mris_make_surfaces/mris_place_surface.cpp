@@ -143,6 +143,7 @@ public:
   char *riplabelfile = NULL;
   char *ripsurffile=NULL;
   MRIS *ripsurf;
+  char *aparcpath=NULL;
 };
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
@@ -228,6 +229,7 @@ double Ghisto_left_inside_peak_pct = 0.1; //0.01 for flair. typo?
 double Ghisto_right_inside_peak_pct = 0.01;
 double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
+int n_averages=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -510,10 +512,10 @@ int main(int argc, char **argv)
 	 vv->whitex,vv->whitey,vv->whitez,vv->pialx,vv->pialy,vv->pialz); fflush(stdout);
 
   double inside_hi=0, border_hi=0, border_low=0, outside_low=0, outside_hi=0,current_sigma=0;
-  int n_averages=0, n_min_averages=0;
+  int n_min_averages=0;
   if(surftype == GRAY_WHITE){
     current_sigma = white_sigma ;
-    n_averages = max_white_averages;     
+    if(n_averages == 0) n_averages = max_white_averages;     
     n_min_averages = min_white_averages; 
     inside_hi = adgws.white_inside_hi;
     border_hi = adgws.white_border_hi;
@@ -523,7 +525,7 @@ int main(int argc, char **argv)
   }
   if(surftype == GRAY_CSF){
     current_sigma = pial_sigma ;
-    n_averages = max_pial_averages;     
+    if(n_averages == 0) n_averages = max_pial_averages;     
     n_min_averages = min_pial_averages; 
     inside_hi = adgws.pial_inside_hi;
     border_hi = adgws.pial_border_hi;
@@ -790,6 +792,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--aparc")){
       if(nargc < 1) CMDargNErr(option,1);
       aparcpath = pargv[0];
+      ripmngr.aparcpath = aparcpath;
       UseAParc = 1;
       nargsused = 1;
     }
@@ -813,6 +816,26 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--nsmooth")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nsmoothsurf);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_min_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_min_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_inside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&T2_max_inside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_min_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_min_outside);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--mm_max_outside")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&T2_max_outside);
       nargsused = 1;
     }
     // ======== Cost function weights ================
@@ -851,12 +874,21 @@ static int parse_commandline(int argc, char **argv) {
       printf("l_curv = %2.3f\n", parms.l_curv) ;
       nargsused = 1;
     }
+    else if (!stricmp(option, "--surf-repulse")){
+      sscanf(pargv[0],"%f",&parms.l_surf_repulse);
+      printf("l_surf_repulse = %2.3f\n", parms.l_surf_repulse);
+      nargsused = 1;
+    }
     else if (!stricmp(option, "--repulse")){
       sscanf(pargv[0],"%f",&parms.l_repulse);
-      printf("l_curv = %2.3f\n", parms.l_repulse) ;
+      printf("l_repulse = %2.3f\n", parms.l_repulse) ;
       nargsused = 1;
     }
     // ======== End Cost function weights ================
+    else if (!stricmp(option, "--n_averages")){
+      sscanf(pargv[0],"%d",&n_averages);
+      nargsused = 1;
+    }
     else if (!stricmp(option, "--shrink")){
       sscanf(pargv[0],"%lf",&shrinkThresh);
       nargsused = 1;
@@ -1252,9 +1284,16 @@ int RIP_MNGR::RipVertices(void)
       printf("ERROR: ripsurf dim mismatch %d %d\n",ripsurf->nvertices,surf->nvertices);
       exit(1);
     }
+    if(aparcpath) {
+      printf("Reading in aparc %s for ripsurf\n",aparcpath);
+      if(MRISreadAnnotation(ripsurf, aparcpath) != NO_ERROR)
+	ErrorExit(ERROR_NOFILE, "%s: could not read annotation",aparcpath) ;
+    }
   }
   else {
-    printf("INFO: rip surface needed but not specified, so using input surface\n");
+    if(ripsurfneeded){
+      printf("INFO: rip surface needed but not specified, so using input surface\n");
+    }
     ripsurf = surf;
   }
 
@@ -1280,7 +1319,8 @@ int RIP_MNGR::RipVertices(void)
     // Copy ripflags back into the input surface
     int vno;
     for(vno=0; vno < surf->nvertices; vno++){
-      surf->vertices[vno].ripflag = ripsurf->vertices[vno].ripflag;
+      if(ripsurf->vertices[vno].ripflag)  
+	surf->vertices[vno].ripflag = 1;
     }
     MRISfree(&ripsurf);
   }

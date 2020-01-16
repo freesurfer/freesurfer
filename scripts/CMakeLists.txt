@@ -105,6 +105,8 @@ install(PROGRAMS
   isanalyze
   IsLTA
   isnifti
+  isolate_labels.csh
+  isolate_labels_keeporigval.csh
   jkgcatrain
   label_child
   label_elderly_subject
@@ -192,6 +194,7 @@ install(PROGRAMS
   rcbf-prep
   rebuild_gca_atlas.csh
   rca-base-init
+  rca-long-tp-init
   recon-all
   recon-all-exvivo
   recon-all.makefile

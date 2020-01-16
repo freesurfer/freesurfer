@@ -17,7 +17,8 @@ import os
 import matplotlib.pyplot as plt
 import csv
 import pandas as pd
-import freesurfer as fs
+import argparse
+
 
 def main(inputDirectory, labels, structure):
     # Check for correct inputs
@@ -164,7 +165,7 @@ def main(inputDirectory, labels, structure):
 
 
 # Obtain variables from command line
-parser = fs.ArgParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--inputDirectory', required=True, help='Directory with all subjects')
 parser.add_argument('-l', '--labels', required=True, help='CSV file with group labels')
 parser.add_argument('-s', '--structure', required=True, help='Name of structure')

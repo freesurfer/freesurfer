@@ -184,8 +184,6 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
   // return early if we're not allocating the image buffer
   if (!alloc) return;
 
-  initIndices();
-
   // should this be defaulted in the header instead?
   ras_good_flag = 1;
 
@@ -193,17 +191,28 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
   chunk = calloc(bytes_total, 1);
   ischunked = bool(chunk);
 
-  // allocate an array of slice pointers - this is done regardless of chunking
-  // so that we can still support 3d-indexing and not produce any weird issues
+  // initialize slices and indices
+  initSlices();
+  initIndices();
+}
+
+
+/**
+  Allocates array of slice pointers - this is done regardless of chunking so that we
+  can still support 3D-indexing and not produce any weird issues. This function should
+  only be called once for a single volume.
+*/
+void MRI::initSlices()
+{
   int nslices = depth * nframes;
   slices = (BUFTYPE ***)calloc(nslices, sizeof(BUFTYPE **));
-  if (!slices) logFatal(1) << "could not allocate memory for " << nslices << " slices";
+  if (!slices) fs::fatal() << "could not allocate memory for " << nslices << " slices";
 
   void *ptr = chunk;
   for (int slice = 0; slice < nslices; slice++) {
     // allocate an array of row pointers
     slices[slice] = (BUFTYPE **)calloc(height, sizeof(BUFTYPE *));
-    if (!slices[slice]) logFatal(1) << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
+    if (!slices[slice]) fs::fatal() << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
 
     if (ischunked) {
       // point the rows to the appropriate locations in the chunked buffer
@@ -226,7 +235,7 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
     } else {
       // allocate the actual slice buffer
       BUFTYPE *buffer = (BUFTYPE *)calloc(width * height * bytes_per_vox, 1);
-      if (!buffer) logFatal(1) << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
+      if (!buffer) fs::fatal() << "could not allocate memory for slice " << slice + 1 << " out of " << nslices;
 
       // point the rows to the appropriate locations in the slice buffer
       for (int row = 0; row < height; row++) {
@@ -303,7 +312,7 @@ MRI::~MRI()
       free(slices);
     }
   } else {
-    free(chunk);
+    if (owndata) free(chunk);
     if (slices) {
       for (int slice = 0; slice < depth * nframes; slice++)
         if (slices[slice]) free(slices[slice]);
@@ -13382,7 +13391,7 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
             while (q < FLT_MIN) q = RFdrawVal(rfs);
             v = (log(L) - log(L * q)) / L;
             MRIsetVoxVal(mrirandexp, c, r, s, f2, v);
-            if (!isfinite(v)) {
+            if (!std::isfinite(v)) {
               printf("WARNING: MRIrandexp(): voxel not finite\n");
               printf("%3d %3d %3d %2d mu = %lf; L = %lf; q=%30.30lf; v=%lf;\n", c, r, s, f2, mu, L, q, v);
               fflush(stdout);
@@ -15184,8 +15193,8 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
   }
 
   outvol = MRIclone(invol, outvol);
-  if(invol->bvals) outvol->bvals = MatrixAlloc(invol->depth, 1, MATRIX_REAL);
-  if(invol->bvecs) outvol->bvecs = MatrixAlloc(invol->depth, 3, MATRIX_REAL);
+  if(invol->bvals) outvol->bvals = MatrixAlloc(invol->nframes, 1, MATRIX_REAL);
+  if(invol->bvecs) outvol->bvecs = MatrixAlloc(invol->nframes, 3, MATRIX_REAL);
 
   s2 = invol->depth;
   for (s1 = 0; s1 < invol->depth; s1++) {
@@ -15198,13 +15207,16 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
         }
       }
     }
-    if(invol->bvals) outvol->bvals->rptr[s2+1][1] = invol->bvals->rptr[s1+1][1];
-    if(invol->bvecs){
-      for(k=0; k < 3; k++)
-	outvol->bvecs->rptr[s2+1][k+1] = invol->bvecs->rptr[s1+1][k+1];
-    }
   }
 
+  for(f=0; f < invol->nframes; f++) {
+    if(invol->bvals) outvol->bvals->rptr[f+1][1] = invol->bvals->rptr[f+1][1];
+    if(invol->bvecs){
+      for(k=0; k < 3; k++)
+	outvol->bvecs->rptr[f+1][k+1] = invol->bvecs->rptr[f+1][k+1];
+    }
+  }
+  outvol->bvec_space = invol->bvec_space;
 
   return (outvol);
 }
@@ -17397,4 +17409,80 @@ int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
 	 nthresholded,WM_MIN_VAL,DEFAULT_DESIRED_WHITE_MATTER_VALUE);
 
   return(NO_ERROR) ;
+}
+
+
+/*
+  Creates an 3D ITK float image from a given frame.
+*/
+ITKImageType::Pointer MRI::toITKImage(int frame)
+{
+  // configure image region
+  ITKImageType::RegionType region;
+
+  ITKImageType::IndexType start;
+  start.Fill(0);
+  region.SetIndex(start);
+
+  ITKImageType::SizeType size;
+  size[0] = this->width;
+  size[1] = this->height;
+  size[2] = this->depth;
+  region.SetSize(size);
+
+  // construct image
+  ITKImageType::Pointer image = ITKImageType::New();
+  image->SetRegions(region);
+  image->Allocate();
+
+  // copy vox size metadata
+  ITKImageType::SpacingType spacing;
+  spacing[0] = this->xsize;
+  spacing[1] = this->ysize;
+  spacing[2] = this->zsize;
+  image->SetSpacing(spacing);
+
+  // copy pixel data from MRI
+  ITKImageType::IndexType pixelIndex;
+  for (int x = 0 ; x < this->width ; x++) {
+    for (int y = 0 ; y < this->height ; y++) {
+      for (int z = 0 ; z < this->depth ; z++) {
+        pixelIndex[0] = x;
+        pixelIndex[1] = y;
+        pixelIndex[2] = z;
+        float val = MRIgetVoxVal(this, x, y, z, frame);
+        image->SetPixel(pixelIndex, val);
+      }
+    }
+  }
+
+  return image;
+}
+
+
+/*
+  Loads pixel data from a 3D ITK image into the MRI buffer
+  for a given frame.
+*/
+void MRI::loadITKImage(ITKImageType::Pointer image, int frame)
+{
+  // make sure sizes match
+  const ITKImageType::SizeType size = image->GetLargestPossibleRegion().GetSize();
+  if (size[0] != this->width || size[1] != this->height || size[2] != this->depth) {
+    fs::fatal() << "ITK image size does not match MRI size";
+  }
+
+  // copy pixel data into MRI
+  ITKImageType::IndexType pixelIndex;
+  for (int x = 0 ; x < this->width ; x++) {
+    for (int y = 0 ; y < this->height ; y++) {
+      for (int z = 0 ; z < this->depth ; z++) {
+        pixelIndex[0] = x;
+        pixelIndex[1] = y;
+        pixelIndex[2] = z;
+        float val = image->GetPixel(pixelIndex);
+        MRIsetVoxVal(this, x, y, z, frame, val);
+      }
+    }
+  }
 }

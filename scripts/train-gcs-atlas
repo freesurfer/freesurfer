@@ -115,9 +115,10 @@ if($#xsubject) then
   date | tee -a $LFX
   set xannotfile = $hemi.$annotbase
   # perform labeling
-  set cmd = (mris_ca_label -l $sd/label/$hemi.cortex.label \
-    -aseg $sd/mri/$asegname -seed 1234 \
-     $xsubject $hemi $sd/surf/$hemi.sphere.reg $gcsfile $xannotfile)
+  set cmd = (mris_ca_label -l $sd/label/$hemi.cortex.label -seed 1234)
+  if($#asegname) set cmd = ($cmd -aseg $sd/mri/$asegname)
+  set cmd = ($cmd $xsubject $hemi $sd/surf/$hemi.sphere.reg $gcsfile $xannotfile)
+
   echo $cmd | tee -a $LF | tee -a $LFX
   $cmd | tee -a $LF | tee -a $LFX
   if($status) goto error_exit
@@ -193,6 +194,10 @@ while( $#argv != 0 )
     case "--aseg":
       if($#argv < 1) goto arg1err;
       set asegname = $argv[1]; shift;
+      breaksw
+
+    case "--no-aseg":
+      set asegname = ();
       breaksw
 
     case "--x":
@@ -317,7 +322,7 @@ foreach subject ($subjects)
     exit 1;
   endif
   if(! -e $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot) then
-    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$srcaprc.annot"
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$manparc.annot"
     exit 1;
   endif
   if($#xsubject && $xsubject == $subject) set xok = 1
@@ -356,10 +361,10 @@ usage_exit:
   echo "  --o gcsfile"
   echo ""
   echo "  --reg surfreg (default is $surfreg)"
-  echo "  --aseg asegname (default is $asegname)"
   echo "  --ctab colortable"
   echo "  --x subject : exclude subject from atlas (will also label and compute overlap)"
   echo "  --jackknife : pbsubmit a job for each subject excluding it"
+  echo "  --aseg asegname (default is $asegname) only needed when applying"
   echo ""
   echo "  --threads nthreads : probably not needed, this runs pretty fast < 5min"
   echo ""

@@ -335,12 +335,12 @@ main(int argc, char *argv[]) {
           last_T1 = MRISvox(mri_T1, x, y, z) ;
           last_PD = MRISvox(mri_PD, x, y, z) ;
           total_rms += sqrt(sse/nvolumes) ;
-          if (!isfinite(total_rms))
+          if (!std::isfinite(total_rms))
             DiagBreak() ;
         }
       }
       avg_rms = total_rms / nvox ;
-      if (!isfinite(avg_rms))
+      if (!std::isfinite(avg_rms))
         DiagBreak() ;
     }
   }
@@ -747,7 +747,7 @@ computeVoxelSSE(MRI **mri_flash, int nflash, int x,
     err = (MRISvox(mri,x,y,z)- estimate) ;
     sse += err*err ;
   }
-  if (!isfinite(sse))
+  if (!std::isfinite(sse))
     DiagBreak() ;
   return(sse) ;
 }

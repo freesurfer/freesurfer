@@ -943,7 +943,7 @@ MRIS* MRISprojectOntoTranslatedSphere(
     v->y = y - d*y;
     v->z = z - d*z;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z))
       DiagBreak() ;
   }
 
@@ -1314,7 +1314,7 @@ static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
   int n;
   for (n = 0; n < mris->nvertices; n++) {
     R2 += SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz);
-    if (!isfinite(R2)) {
+    if (!std::isfinite(R2)) {
       DiagBreak();
     }
   }
@@ -1882,6 +1882,7 @@ int MRISzeroNegativeAreas(MRIS *mris)
   return (NO_ERROR);
 }
 
+
 static int count_MRIScomputeMetricProperties_calls = 0;
 
 #include "mrisurf_metricProperties_slow.h"
@@ -1889,6 +1890,13 @@ static int count_MRIScomputeMetricProperties_calls = 0;
 
 int MRIScomputeMetricProperties(MRIS *mris)
 {
+  if (!!getenv("FS_FASTER_MP")) {
+    // this method has been shown to be 3-8x faster than
+    // the "mrisurf_metricProperties_fast" implementation
+    MRIScomputeMetricPropertiesFaster(mris);
+    return NO_ERROR;
+  }
+
   static int debug_count = 0;
   count_MRIScomputeMetricProperties_calls++;
   if (count_MRIScomputeMetricProperties_calls == debug_count) {
@@ -1902,20 +1910,21 @@ int MRIScomputeMetricProperties(MRIS *mris)
   MRISMP_ctr(&mp);
 
   if (useNewBehaviour) {
-    MRISfreeDistsButNotOrig(mris);                                      // So they can be stolen to avoid unnecessary mallocs and frees
-    MRISMP_load(&mp, mris);                                             // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
-    MRIScomputeMetricProperties(&mp);                                // It should not matter the order these are done in
+    MRISfreeDistsButNotOrig(mris);     // So they can be stolen to avoid unnecessary mallocs and frees
+    MRISMP_load(&mp, mris);            // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
+    MRIScomputeMetricProperties(&mp);  // It should not matter the order these are done in
   }
   
   if (useOldBehaviour) {
     MRIScomputeMetricPropertiesWkr(mris);
   }
   
-  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);       // Verify the two approaches got the same answers, or use the new answers 
+  // Verify the two approaches got the same answers, or use the new answers 
+  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);
 
   MRISMP_dtr(&mp);
-  
-  return (NO_ERROR);
+
+  return NO_ERROR;
 }
 
 // Convenience functions
@@ -8005,7 +8014,7 @@ double MRIStotalVariationDifference(MRIS *mris)
     delta = fabs(v->k1 - v->k2);
     delta *= delta;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -8031,7 +8040,7 @@ double MRIStotalVariation(MRIS *mris)
     }
     delta = v->k1 * v->k1 + v->k2 * v->k2;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -9114,9 +9123,9 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
   s11 = ((a+d)/2) + sqrt((4*b*c + (a-d)*(a-d)) / 2);
   s22 = ((a+d)/2) - sqrt((4*b*c + (a-d)*(a-d)) / 2);
 #endif
-  if (!isfinite(s11)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s11)) return (log(SMALL) * log(SMALL));
 
-  if (!isfinite(s22)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s22)) return (log(SMALL) * log(SMALL));
 
   if (s11 <= 0) s11 = SMALL;
 
@@ -9131,7 +9140,7 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
 
   energy = lambda * (1 + det) * (s11 + s22);  // log and square of snn already taken
 
-  if (!isfinite(energy)) DiagBreak();
+  if (!std::isfinite(energy)) DiagBreak();
 
   return (energy / 2);
 }
@@ -9157,7 +9166,7 @@ float mrisSampleAshburnerTriangleEnergy(
   v->z = cz;  // change location to compute energy
   for (sse_total = 0.0, n = 0; n < vt->num; n++) {
     sse = ashburnerTriangleEnergy(mris, vt->f[n], parms->l_ashburner_lambda);
-    if (sse < 0 || !isfinite(sse)) DiagBreak();
+    if (sse < 0 || !std::isfinite(sse)) DiagBreak();
 
     sse_total += sse;
   }

@@ -823,7 +823,7 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
           p = 1e-20 ;
           MRIFvox(mri_stats, x, y, z) = 20 ;
         } else {
-          if (!isfinite(-log(p)))
+          if (!std::isfinite(-log(p)))
             DiagBreak() ;
           MRIFvox(mri_stats, x, y, z) = -log(p) ;
         }

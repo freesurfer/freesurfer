@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import os
+import freesurfer as fs
+import freesurfer.samseg as samseg
+
+
+# ------ Parse Command Line Arguments ------
+
+parser = fs.utils.ArgumentParser()
+
+default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
+
+# required
+parser.add_argument('-t', '--timepoint', nargs='+', action='append', required=True, help='Configure a timepoint with multiple inputs.')
+parser.add_argument('-o', '--output', required=True, help='Output directory.')
+# optional processing options
+parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
+parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+
+args = parser.parse_args()
+
+# ------ Initial Setup ------
+
+# Make sure more than 1 timepoint was specified
+if len(args.timepoint) == 1:
+    fs.fatal('must provide more than 1 timepoint')
+
+# Make sure freesurfer has been sourced
+if not fs.fshome():
+    fs.fatal('FREESURFER_HOME must be set')
+
+# Create the output folder
+os.makedirs(args.output, exist_ok=True)
+
+# Specify the maximum number of threads the GEMS code will use
+samseg.setGlobalDefaultNumberOfThreads(args.threads)
+
+# Get the atlas directory
+atlasDir = os.environ.get('SAMSEG_DATA_DIR')
+if args.atlas:
+    atlasDir = args.atlas
+if not atlasDir:
+    defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
+    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+
+# Start the process timer
+timer = fs.utils.Timer()
+
+# ------ Run Samsegment ------
+
+samsegLongitudinal = samseg.SamsegLongitudinal(
+    args.timepoint,
+    atlasDir,
+    args.output,
+    targetIntensity=110,
+    targetSearchStrings=['Cerebral-White-Matter']
+)
+
+samsegLongitudinal.preProcess()
+samsegLongitudinal.process()
+samsegLongitudinal.postProcess(saveWarp=args.save_warp)
+
+timer.mark('run_samseg_long complete')

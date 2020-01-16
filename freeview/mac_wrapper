@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-exit $($FREESURFER_HOME/Freeview.app/Contents/MacOS/freeview "$@")
+$FREESURFER_HOME/Freeview.app/Contents/MacOS/freeview "$@"
+exit $?

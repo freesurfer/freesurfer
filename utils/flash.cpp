@@ -225,7 +225,7 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
       best_PD = norm_im / upper_norm;
       // best_sse = upper_sse;
     }
-    if (!isfinite(best_PD)) {
+    if (!std::isfinite(best_PD)) {
       printf("best_PD is not finite at %d (%2.1f)\n", mid_j, mid_T1);
       DiagBreak();
       exit(0);

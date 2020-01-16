@@ -17,7 +17,7 @@ import dipy.reconst.dti as dti
 from dipy.io.streamline import save_trk
 from dipy.io.image import save_nifti
 from scipy.ndimage.filters import gaussian_filter
-import freesurfer as fs
+import argparse
 #from dipy.tracking.eudx import EuDX
 #from dipy.reconst import peaks, shm
 #from dipy.tracking import utils
@@ -194,8 +194,7 @@ def invert_bvecs(fbval, fbvec, axis, foutbvec):
 	for i in range(len(bvecs)):
 		outFile.write(str(bvecs[i][0])+" "+str(bvecs[i][1])+" "+str(bvecs[i][2])+ "\n") 
 
-parser = fs.ArgParser()
-# Required
+parser = argparse.ArgumentParser()
 parser.add_argument('-f','--function',  required=True, help='Function to use getMaps or tractography.')
 parser.add_argument('-d','--dwi', metavar='file',required=False,  help='Diffusion MRI image.')
 parser.add_argument('-b','--bval', metavar='file', required=False, help='bvalue file.')
@@ -203,9 +202,9 @@ parser.add_argument('-v','--bvec', metavar='file', required=False, help='bvector
 parser.add_argument('-s','--subject_folder', required=False, help='subject folder')
 parser.add_argument('-a','--axis', metavar='int', required=False, help='inversion axis for bvec')
 parser.add_argument('-o','--output', required=False, help='output file')
-
-
 args = parser.parse_args()
+
+
 if args.function == "TckToTrk" or args.function == "RemoveHeader":
 	eval(args.function)(args.subject_folder)
 elif args.function == "invert_bvecs":

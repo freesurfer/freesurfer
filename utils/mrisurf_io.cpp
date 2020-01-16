@@ -732,7 +732,7 @@ int MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname)
   for (k = 0; k < mris->nvertices; k++) {
     fwrite3(k, fp);
     f = mris->vertices[k].curv;
-    if (!isfinite(f))
+    if (!std::isfinite(f))
       ErrorPrintf(ERROR_BADPARM,
                   "MRISwriteCurvatureToWFile(%s): val at vertex %d is not"
                   "finite",
@@ -823,7 +823,7 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     if (mris->vertices[k].val != 0) {
       fwrite3(k, fp);
       f = mris->vertices[k].val;
-      if (!isfinite(f)) ErrorPrintf(ERROR_BADPARM, "MRISwriteValues(%s): val at vertex %d is not finite", fname, k);
+      if (!std::isfinite(f)) ErrorPrintf(ERROR_BADPARM, "MRISwriteValues(%s): val at vertex %d is not finite", fname, k);
 
       fwriteFloat(f, fp);
       sum += f;
@@ -5485,7 +5485,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
   if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
-  fprintf(fp, "created by %s on %s\n", user, cdt.c_str());
+  fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
   fwriteInt(mris->nvertices, fp);
   fwriteInt(mris->nfaces, fp); /* # of triangles */
 
@@ -5571,11 +5571,11 @@ static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
 #if 0
     v->label = NO_LABEL ;
 #endif
-    if (fabs(v->x) > 10000 || !isfinite(v->x))
+    if (fabs(v->x) > 10000 || !std::isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
-    if (fabs(v->y) > 10000 || !isfinite(v->y))
+    if (fabs(v->y) > 10000 || !std::isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!", Progname, vno, v->y);
-    if (fabs(v->z) > 10000 || !isfinite(v->z))
+    if (fabs(v->z) > 10000 || !std::isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!", Progname, vno, v->z);
   }
   fclose(fp);
@@ -5705,11 +5705,11 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
     MRISsetXYZ(mris,vno, x, y, z);
 
     vt->num = 0; /* will figure it out */
-    if (fabs(v->x) > 10000 || !isfinite(v->x))
+    if (fabs(v->x) > 10000 || !std::isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
-    if (fabs(v->y) > 10000 || !isfinite(v->y))
+    if (fabs(v->y) > 10000 || !std::isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!", Progname, vno, v->y);
-    if (fabs(v->z) > 10000 || !isfinite(v->z))
+    if (fabs(v->z) > 10000 || !std::isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!", Progname, vno, v->z);
   }
 
@@ -6132,33 +6132,39 @@ int MRISwriteArea(MRI_SURFACE *mris, const char *sname)
 }
 
 
-MRI *
-MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
+MRI *MRISreadParameterizationToSurface(MRI_SURFACE *mris, char *fname)
 {
-  MRI_SP *mrisp ;
-  MRI    *mri ;
-  int    frame, nframes, vno ;
+  // ideally, canonical vertices have been saved, but there is no good way to check this
+  // besides probing whether a vertex c-xyz is nonzero
+  VERTEX *v = &mris->vertices[0];
+  bool has_canonical = !(FZERO(v->cx) && FZERO(v->cy) && FZERO(v->cz));
 
-//  MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
-  MRISsaveVertexPositions(mris, TMP_VERTICES);
-  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris) ;
-  mrisp = MRISPread(fname) ;
+  // if the canonical vertices have been saved, let's use those - otherwise let's hope that
+  // the surface's current vertices are already spherical
+  if (has_canonical) {
+    MRISsaveVertexPositions(mris, TMP_VERTICES);
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES);
+    MRIScomputeMetricProperties(mris);
+  }
+
+  MRI_SP *mrisp = MRISPread(fname) ;
   if (mrisp == NULL)
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadParameterizationToSurface: could not open file %s",fname));
 
-  nframes = mrisp->Ip->num_frame;
-  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
+  int nframes = mrisp->Ip->num_frame;
+  MRI *mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, nframes) ;
 
-  for (frame = 0 ; frame < nframes ; frame++)
+  for (int frame = 0 ; frame < nframes ; frame++)
   {
     MRISfromParameterizationBarycentric(mrisp, mris, frame) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    for (int vno = 0 ; vno < mris->nvertices ; vno++)
       MRIsetVoxVal(mri, vno, 0, 0, frame, mris->vertices[vno].curv) ;
   }
 
+  // restore the previous vertices if we modified them
+  if (has_canonical) MRISrestoreVertexPositions(mris, TMP_VERTICES);
+
   MRISPfree(&mrisp) ;
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   return(mri) ;
 }

@@ -14,6 +14,8 @@ install_symlinks(
   RB_all_withskull_2016-05-10.vc700.gca
   RB_all_2019_10_25.talxfm.mni305.gca
   RB_all_withskull_2019_10_22.talxfm.mni305.gca
+  RB_all_2020-01-02.gca
+  RB_all_withskull_2020_01_02.gca
   # tiff
   rigidly_aligned_brain_template.tif
   lh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif

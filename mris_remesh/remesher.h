@@ -274,6 +274,7 @@ public:
   MRIS * toSurface();
 
   void remeshBK(unsigned int it, double l = -1, bool ridge = false);
+  void remeshBKV(unsigned int it, int vnum, bool ridge = false);
   
   int verbose = 0;
 
@@ -301,6 +302,7 @@ private:
   void createElementN(bool force = false) const;
   void createVertexNSimple(bool force = false) const;
 
+  int getPointCount(void) const { return points3d.size(); }
   std::vector<int> get1Ring(unsigned int i, bool ordered = true) const;
 
   SparseMatrix v_to_e;
@@ -331,10 +333,13 @@ private:
   bool rmEdgeInVtoE(int eidx);
   double getAverageEdgeLength() const;
   int replaceVertexInEdges(int vold, int vnew, bool simulate = false, int vtip0=-1, int vtip1=-1);
-  int contractShortEdges(double l);
+  int contractShortEdges(double l, int maxn=-1);
+  int contractShortEdgesQueue(double l, int maxn=-1);
+
   void contractEdgeInTria(int eidx, int tidx);
   int createVertexOnEdge(const Vector& pos);
-  int insertVerticesOnLongEdges(double l);
+  int insertVerticesOnLongEdges(double l, int maxn=-1);
+  int insertVerticesOnLongEdgesQueue(double l, int maxn=-1);
   int makeRidge(double angle =-1);
 
   int removeCollapsedTrias(int vidx, int mididx);
@@ -343,6 +348,7 @@ private:
   double computeArea(unsigned int tidx) const;
 
   double computeQuality(int tInd) const;
+  double getAverageQuality() const { return averagequal; }
   int checkStructure();
 
   void tangentialSmoothing(int it = 1,bool gravity = true, bool tangent = true);

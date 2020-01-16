@@ -925,7 +925,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
             continue ;
           num++ ;
           new_scale += val1 / val2 ;
-          if (!isfinite(new_scale))
+          if (!std::isfinite(new_scale))
             DiagBreak()  ;
         }
       }

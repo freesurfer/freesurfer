@@ -73,6 +73,7 @@
 #include "VolumeFilterOpen.h"
 #include "VolumeFilterClose.h"
 #include "VolumeFilterThreshold.h"
+#include "VolumeFilterBoundary.h"
 #include "DialogVolumeFilter.h"
 #include "DialogGradientFilter.h"
 #include "Cursor2D.h"
@@ -1495,6 +1496,7 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterDilate->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterOpen->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterClose->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterBoundary->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionSetCamera->setEnabled(bHasLayer);
   ui->actionSaveCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
   ui->actionLoadCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
@@ -1883,6 +1885,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfacelabeloutline" )
   {
     CommandSetSurfaceLabelOutline( sa );
+  }
+  else if ( cmd == "setsurfacelabelopacity" )
+  {
+    CommandSetSurfaceLabelOpacity( sa );
   }
   else if (cmd == "setsurfacelabelcolor")
   {
@@ -3420,6 +3426,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if ( subOption == "label_opacity" || subOption == "labelopacity")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("setsurfacelabelopacity") << subArgu);
+                break;
+              }
+            }
+          }
+        }
         else if (subOption == "label_color" || subOption == "labelcolor")
         {
           if (!subArgu.isEmpty())
@@ -3536,6 +3556,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           sup_options["sphere"] = subArgu;
         }
+        else if ( subOption == "ignore_vg" || subOption == "ignore_volume_geometry")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            sup_options["ignore_vg"] = true;
+          }
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -3550,6 +3577,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   }
   if (bNoAutoLoad)
     sup_options["no_autoload"] = true;
+
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
@@ -3561,6 +3589,20 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
     if (cmd[1] == "1")
     {
       surf->SetActiveLabelOutline(true);
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceLabelOpacity(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool ok;
+    cmd[1].toDouble(&ok);
+    if (ok && surf->GetActiveLabel())
+    {
+      surf->GetActiveLabel()->SetOpacity(cmd[1].toDouble());
     }
   }
 }
@@ -4134,8 +4176,11 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
+void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd_in )
 {
+  QStringList cmd = cmd_in;
+  while (cmd.size() < 4)
+    cmd << "n/a";
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
@@ -5909,7 +5954,10 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
   layer->GetProperty()->blockSignals(false);
 
-  m_threadIOWorker->LoadSurface( layer );
+  QVariantMap args;
+  if (sup_options.contains("ignore_vg"))
+    args["ignore_vg"] = sup_options["ignore_vg"];
+  m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();
 }
 
@@ -6951,6 +6999,17 @@ void MainWindow::OnVolumeFilterThreshold()
   //  }
 }
 
+void MainWindow::OnVolumeFilterBoundary()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterBoundary* filter = new VolumeFilterBoundary( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
+}
+
 void MainWindow::OnVolumeFilterSobel()
 {
   LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
@@ -7867,6 +7926,8 @@ void MainWindow::OnReloadSurface()
               AddScript(QStringList("setsurfacelabeloutline") << "1");
             if (!label->IsVisible())
               AddScript(QStringList("hidesurfacelabel"));
+            if (label->GetOpacity() != 1)
+              AddScript(QStringList("setsurfacelabelopacity") << QString::number(label->GetOpacity()));
             double* c = label->GetColor();
             AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
           }

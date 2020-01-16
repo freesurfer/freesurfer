@@ -40,6 +40,10 @@
       <explanation>Passes Np as argument of the -iterations flag of nu_correct. This is different than the --n flag above. Default is not to pass nu_correct the -iterations flag.</explanation>
     </required-flagged>
     <optional-flagged>
+      <argument>--ants-n3 </argument>
+      <explanation>Run N3 using ANTS N3BiasFieldCorrection.</explanation>
+      <argument>--ants-n4 </argument>
+      <explanation>Run N4 using ANTS N4BiasFieldCorrection.</explanation>
       <argument>--mask maskvol</argument>
       <explanation>brainmask volume. Input can be any format accepted by mri_convert.</explanation>
       <argument>--stop thresh</argument>

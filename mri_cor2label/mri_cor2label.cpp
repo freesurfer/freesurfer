@@ -118,6 +118,7 @@ char *infile;
 char *labelfile;
 char *volfile;
 int  labelid;
+int DoStat;
 char *hemi, *SUBJECTS_DIR;
 char *surfname = "white";
 MRI *mri;
@@ -133,11 +134,13 @@ float xsum, ysum, zsum;
 char tmpstr[2000];
 MRIS *surf = NULL;
 
+
 /*----------------------------------------------------*/
 int main(int argc, char **argv) {
   FILE *fp;
   int nargs,nv,nth;
   MATRIX *vox2rastkr=NULL, *crs=NULL, *xyz=NULL;
+  double voxval;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.12 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
@@ -202,8 +205,16 @@ int main(int argc, char **argv) {
       for (xi=0; xi < mri->width; xi++) {
 	nth++;
 
-        c = (int) MRIgetVoxVal(mri,xi,yi,zi,0);
-        if(c != labelid) continue;
+        voxval = MRIgetVoxVal(mri,xi,yi,zi,0);
+
+	if(DoStat == 0){
+	  c = (int)voxval;
+	  if(c != labelid) continue;
+	}
+	else {
+	  if(voxval == 0) continue;
+	  lb->lv[nlabel].stat = voxval;
+	}
 
 	if(surf == NULL){
 	  crs->rptr[1][1] = xi;
@@ -311,6 +322,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&labelid);
       nargs = 2;
     }
+    /* ---- copy voxel value to stat field ---------- */
+    else if (!strcmp(option, "--stat")) {
+      DoStat = 1;
+      nargs = 1;
+    }
 
     /* ---- label id ---------- */
     else if (!strcmp(option, "--surf")) {
@@ -361,6 +377,7 @@ printf("\n");
 printf("mri_cor2label \n");
 printf("   --i  input     : vol or surface overlay\n");
 printf("   --id labelid   : value to match in the input\n");
+printf("   --stat   : use all non-zero valued voxels and copy value to stat field\n");
 printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
@@ -439,8 +456,12 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: must be supply a label or volume file\n");
     exit(1);
   }
-  if (labelid == -1) {
-    fprintf(stderr,"ERROR: must supply a label id\n");
+  if(labelid == -1 && DoStat == 0) {
+    fprintf(stderr,"ERROR: must supply a label id or --stat\n");
+    exit(1);
+  }
+  if(labelid != -1 && DoStat != 0) {
+    fprintf(stderr,"ERROR: cannot supply both label id and --stat\n");
     exit(1);
   }
 

@@ -906,7 +906,6 @@ double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               float x, float y, float z, int fno) ;
                               
 MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno) ;
-MRI_SP       *MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, const float *overlay, float scale, int frameno);
 MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) ;
 
 MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
@@ -1683,6 +1682,12 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
                                   MRI *mri,
                                   int vno,
                                   double *pnx, double *pny, double *pnz) ;
+
+float* MRISgetVertexArray(MRIS *mris);
+float* MRISgetVertexNormalArray(MRIS *mris);
+int*   MRISgetFaceArray(MRIS *mris);
+float* MRISgetFaceNormalArray(MRIS *mris);
+MRIS*  MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int *faces, int nfaces);
 
 #define MRISgetCoords(v,c,vx,vy,vz) \
  MRISvertexCoord2XYZ_float(v,c,vx,vy,vz)

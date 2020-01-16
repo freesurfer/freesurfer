@@ -146,6 +146,8 @@
       <explanation>Supplies a vertex number for diagnostics</explanation>
       <argument>-vector</argument>
       <explanation>Prints some help for Multiframe mode including listing field names/numbers</explanation>
+      <argument>-threads nthreads</argument>
+      <explanation>Set OMP threads</explanation>
       <argument>--version</argument>
       <explanation>print version</explanation>
     </optional-flagged>

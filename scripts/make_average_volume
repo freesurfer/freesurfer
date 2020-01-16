@@ -344,7 +344,11 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $fname"
         exit 1;
       endif
-      set SUBJECTS = ($SUBJECTS `cat $fname`)
+      if($?SUBJECTS) then
+        set SUBJECTS = ($SUBJECTS `cat $fname`)
+      else
+        set SUBJECTS = (`cat $fname`)
+      endif
       breaksw
 
     case "--out":

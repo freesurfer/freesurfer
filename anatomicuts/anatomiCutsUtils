@@ -16,6 +16,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import freesurfer as fs
+import argparse
+
 def getCorrespondingClusters(correspondance,order=True):
 		corr=dict()
 		distances=dict()
@@ -439,7 +441,7 @@ def GA(classificationFile, classification_cols, target_subject, subjects_dir, gr
 
 
 cta=[200]
-parser = fs.ArgParser()
+parser = argparse.ArgumentParser()
 # Required
 parser.add_argument('-f','--function',  required=True, help='Function to use: GA for group analysis.')
 parser.add_argument('-m','--model',required=False,  help='Model, which could be DTI or DKI')
@@ -462,6 +464,7 @@ parser.add_argument('-t','--thickness',required=False,  help='analyze thickness'
 
 
 args = parser.parse_args()
+
 if args.function == "GA":
 	columns=  np.asarray(args.classification_columns.split(":"), dtype=np.int)
 	print(columns, columns[0])

@@ -184,7 +184,7 @@ class StableDict(dict):
                 if not self.is_ordered(arg):
                     _warn(_WRNnoOrderArg, RuntimeWarning, stacklevel=2)
                 super(StableDict, self).__init__(arg, **kw)
-                self.__ksl = arg.keys()
+                self.__ksl = list(arg.keys())
             else: # Must be a sequence of 2-tuples.
                 super(StableDict, self).__init__(**kw)
                 self.__ksl = []
@@ -200,7 +200,7 @@ class StableDict(dict):
                     self.__ksl = ksl
         else: # No positional argument given.
             super(StableDict, self).__init__(**kw)
-            self.__ksl = super(StableDict, self).keys()
+            self.__ksl = list(super(StableDict, self).keys())
         if len(kw) > 1:
             # There have been additionial keyword arguments.
             # Since Python passes them in an (unordered) dict

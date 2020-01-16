@@ -108,6 +108,7 @@ SOURCES += \
     VolumeFilterMedian.cpp \
     VolumeFilterSobel.cpp \
     vtkSimpleLabelEdgeFilter.cpp \
+    vtkSimpleLabelEdgeFilter3D.cpp \
     WidgetHistogram.cpp \
     WindowConfigureOverlay.cpp \
     WindowQuickReference.cpp \
@@ -181,7 +182,8 @@ SOURCES += \
     BusyIndicator.cpp \
     vtkInteractorStyleMyTrackballCamera.cxx \
     FlowLayout.cpp \
-    WindowLayerInfo.cpp
+    WindowLayerInfo.cpp \
+    DialogScreenshotOverlay.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -280,6 +282,7 @@ HEADERS  += \
     VolumeFilter.h \
     VolumeFilterSobel.h \
     vtkSimpleLabelEdgeFilter.h \
+    vtkSimpleLabelEdgeFilter3D.h \
     WidgetHistogram.h \
     WindowConfigureOverlay.h \
     WindowQuickReference.h \
@@ -351,7 +354,8 @@ HEADERS  += \
     QVTKWidget/QVTKPaintEngine.h \
     vtkInteractorStyleMyTrackballCamera.h \
     FlowLayout.h \
-    WindowLayerInfo.h
+    WindowLayerInfo.h \
+    DialogScreenshotOverlay.h
 
 FORMS    += MainWindow.ui \
     DialogNewAnnotation.ui \
@@ -407,7 +411,8 @@ FORMS    += MainWindow.ui \
     DialogSelectSplines.ui \
     DialogCustomFill.ui \
     DialogSurfaceLabelOperations.ui \
-    WindowLayerInfo.ui
+    WindowLayerInfo.ui \
+    DialogScreenshotOverlay.ui
 
 RESOURCES += \
     freeview.qrc
