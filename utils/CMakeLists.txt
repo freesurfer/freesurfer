@@ -149,6 +149,7 @@ add_library(utils STATIC
   mrisurf_metricProperties_faster.cpp
   mrisurf_mri.cpp
   mrisurf_project.cpp
+  mrisurf_sphere_interp.cpp
   mrisurf_sseTerms.cpp
   mrisurf_timeStep.cpp
   mrisurf_topology.cpp

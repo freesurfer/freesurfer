@@ -25,6 +25,8 @@ class Surface(Transformable):
         self.faces = faces
         self.vertex_normals = None
         self.face_normals = None
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
         self.hemi = hemi
         self.geom = geom
 
@@ -71,10 +73,26 @@ class Surface(Transformable):
     def compute_normals(self):
         '''Compute and cache face and vertex normals.'''
         bindings.surf.compute_normals(self)
+        # reset vertex tangents since normals have been updates
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
+
+    def compute_tangents(self):
+        '''Compute and cache vertex tangents along primary curvature direction.'''
+        bindings.surf.compute_tangents(self)
+
+    def compute_euler(self):
+        '''Computes euler number of the mesh.'''
+        return bindings.surf.compute_euler(self)
 
     def neighboring_faces(self, vertex):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
+
+    def neighboring_vertices(self, vertex):
+        '''List of vertices that immediately neighbor a vertex.'''
+        neighbors = np.unique([self.faces[fno] for fno in self.neighboring_faces(vertex)])
+        return neighbors[neighbors != vertex]  # be sure to remove the central vertex
 
     # ---- geometry ----
 
