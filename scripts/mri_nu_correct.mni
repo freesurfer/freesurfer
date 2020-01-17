@@ -130,7 +130,7 @@ if($DoAntsN3 || $DoAntsN4) then
     # don't know how to add mask
   endif
   if($DoAntsN4) then
-    set cmd = (N4BiasFieldCorrection -i $InVol -o $numnc)
+    set cmd = (AntsN4BiasFieldCorrectionFs -i $InVol -o $numnc)
     if($#MaskVol) set cmd = ($cmd -x $MaskVol)
   endif
   echo "cd `pwd`" | tee -a $LF
@@ -427,9 +427,9 @@ check_params:
     endif
   endif
   if($DoAntsN4) then
-    which N4BiasFieldCorrection >& /dev/null
+    which AntsN4BiasFieldCorrectionFs >& /dev/null
     if($status) then
-      echo "ERROR: cannot find N4BiasFieldCorrection in path"
+      echo "ERROR: cannot find AntsN4BiasFieldCorrectionFs in path"
       exit 1;
     endif
   endif
