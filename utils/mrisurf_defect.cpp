@@ -11532,7 +11532,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
         computeVertexPseudoNormal(mris, vn, n_v2, 0);
       }
     }
-    if (isnan(n_v0[0]) || isnan(n_v1[0]) || isnan(n_v2[0])) {
+    if (std::isnan(n_v0[0]) || std::isnan(n_v1[0]) || std::isnan(n_v2[0])) {
       fprintf(stderr,
               ".%d & %d[%d(%d) %d(%d) %d(%d)][%f %f %f]\n",
               wsurf,
