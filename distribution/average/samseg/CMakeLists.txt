@@ -7,4 +7,5 @@ install_symlinks(
   TYPE files
   DESTINATION average/samseg
   samseg.talairach.lta.mrf.gca
+  samseg.talairach.m3z.mrf.gca
 )

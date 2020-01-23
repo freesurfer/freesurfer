@@ -432,7 +432,7 @@ double RFstat2PVal(RFS *rfs, double stat)
     printf("ERROR: RFstat2PVal(): field type %s unknown\n", rfs->name);
     return (10000000000.0);
   }
-  if (isinf(p) || p < FLT_MIN) p = FLT_MIN;
+  if (std::isinf(p) || p < FLT_MIN) p = FLT_MIN;
   return (p);
 }
 
