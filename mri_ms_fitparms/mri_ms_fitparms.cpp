@@ -3006,7 +3006,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
           {
             DiagBreak() ;
           }
-          if (isnan(PD))
+          if (std::isnan(PD))
           {
             DiagBreak() ;
           }
