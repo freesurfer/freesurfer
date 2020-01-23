@@ -42,8 +42,9 @@ set basedir = ()
 set max_iters = ()
 set SavePosteriors = 0
 set SaveWarp = 1;
-set DoMRF = 1;
-set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
+set DoMRF = 0;
+#set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
+set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 set DoRefine = 0
 
 set inputargs = ($argv);
@@ -163,13 +164,6 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
-if($SaveWarp) then
-  set cmd = (/autofs/space/topaz_001/users/ah221/test/fix_samseg_warp $outdir)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) goto error_exit;
-endif
-
 if(! $regonly) then
 
   # Need to have samseg write out a consistent file name, but until then...
@@ -198,8 +192,10 @@ if(! $regonly) then
       goto error_exit;
     endif
     set mrf = $outdir/$inputbase"_crispSegmentation.mrf.nii"
+    #set reg = $outdir/samseg.talairach.lta
+    set reg = $outdir/template.m3z
     set cmd = (mri_ca_label -r $seg -relabel_unlikely 9 .3 \
-       -prior 0.5 -align $bc $outdir/samseg.talairach.lta $mrfgca $mrf)
+       -prior 0.5 -align $bc $reg $mrfgca $mrf)
     echo $cmd | tee -a $LF
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
