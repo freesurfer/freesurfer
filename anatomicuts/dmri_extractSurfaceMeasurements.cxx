@@ -61,6 +61,15 @@
 #include "mri.h"
 #include "vtkKdTreePointLocator.h"
 #include "vtkCurvatures.h"
+#include "itkTransformFileReader.h"
+#include "itkTransformFactoryBase.h"
+#include "itkTransformFactory.h"
+#include "itkTransformMeshFilter.h"
+#include "itkAffineTransform.h"
+#include <itkMatrixOffsetTransformBase.h>
+#include "itkTransformFileReader.h"
+#include "transform.h"
+
 
 using namespace std;
 
@@ -81,7 +90,9 @@ int main(int narg, char* arg[])
 		cerr << "Usage: " << endl
 		     << arg[0] << " -i streamlineFile.trk -sl surfaceFile_lh.orig -tl overlayFile_lh.thickness -cl overlayFile_lh.curv" << endl
 		     << "-sr surfaceFile_rh.orig -tr overlayFile_rh.thickness -cr overlayFile_rh.curv -o outputDirectory" << endl 
-		     << "-ri reference_image (NOTE: only use reference image when FA is not used" << endl
+		     << "-rid reference_image (NOTE: only use reference image when FA is not used" << endl
+		     << "-ria reference image for anatomical space (NOTE: when diffusion and anatomical spaces are not registered) " << endl
+		     << "-t transformation from diffusion to anatomical space " << endl
 		     << "-a annotationFile " << endl
 		     << "OPTION: -fa <numFiles> <Filename> FA_file.nii.gz ... <Filename> <fileAddress>" << endl;
 
@@ -101,6 +112,7 @@ int main(int narg, char* arg[])
 		PointDataType, PointDimension, MaxTopologicalDimension,
 		CoordinateType, InterpolationWeightType, PointDataType > MeshTraits;
 	typedef itk::Mesh< PixelType, PointDimension, MeshTraits > HistogramMeshType;
+	typedef itk::MatrixOffsetTransformBase<double, 3,3> MatrixOffsetTransformBase_double_3_3;
 
 	typedef itk::Image<float, 3> ImageType;
 	
@@ -121,7 +133,7 @@ int main(int narg, char* arg[])
 	for (string inputName = string(num1.follow("", 2, "-i", "-I")); access(inputName.c_str(), 0) == 0; inputName = string(num1.next("")))
 		TRKFiles.push_back(inputName);
 
-	const char *fileCorr =num1.follow("output.csv",2,"-r","-R"); 
+	const char *fileCorr =num1.follow("output.csv",2,"-p","-P"); 
 	// Left Hemisphere
 	const char *surfaceFileL = num1.follow("Left Surface File Not Found", "-sl");
 	const char *thickFileL   = num1.follow("Left Thickness File Not Found", "-tl");
@@ -134,10 +146,19 @@ int main(int narg, char* arg[])
 	
 	const char *outputDir    = num1.follow("Output Directory Not Found", "-o");
 	
-	const char *refImage     = num1.follow("Reference Image Not Found", "-ri");
+	const char *refImageDiffusion     = num1.follow("Reference Image Not Found", "-rid");
+	const char *refImageSurface = num1.follow("Reference Image Not Found", "-ria");
 	const char *annotationFileL= num1.follow("Annotation File Not Found", "-al");
 	const char *annotationFileR= num1.follow("Annotation File Not Found", "-ar");
-
+	const char *transformationFile= num1.follow("Transformation matrix not found Not Found", "-t");
+	//TRANSFORM* trans  = TransformRead(transformationFile);
+	//LTA* lta  = LTAread(transformationFile);
+	
+	FSENV *fsenv = FSENVgetenv();
+	char tmpstr[2000];	
+	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+	COLOR_TABLE* ct = CTABreadASCII(tmpstr);
+	
 	// Reading in FA file
 	vector<ImageType::Pointer> volumes;
 	vector<string> image_fileNames;
@@ -146,11 +167,15 @@ int main(int narg, char* arg[])
 	
 	typedef itk::ImageFileReader<ImageType> ImageReaderType;
 	ImageReaderType::Pointer readerS = ImageReaderType::New();
-	readerS->SetFileName(refImage);
+	readerS->SetFileName(refImageDiffusion);
+	readerS->Update();
+	ref_Image.push_back(readerS->GetOutput());	
+	readerS = ImageReaderType::New();
+	readerS->SetFileName(refImageSurface);
 	readerS->Update();
 	ref_Image.push_back(readerS->GetOutput());
 
-	image = MRIread(refImage);
+	image = MRIread(refImageDiffusion);
 	
 	int numFiles = num1.follow(0, "-fa");
 	bool FA_FOUND = num1.search("-fa");
@@ -163,10 +188,10 @@ int main(int narg, char* arg[])
 			image_fileNames.push_back(string(num1.next("")));
 			const char *inFile = num1.next("");
 			typedef itk::ImageFileReader<ImageType> ImageReaderType;
-			ImageReaderType::Pointer readerS = ImageReaderType::New();
-			readerS->SetFileName(inFile);
-			readerS->Update();
-			ImageType::Pointer image  = readerS->GetOutput();
+			ImageReaderType::Pointer readerF = ImageReaderType::New();
+			readerF->SetFileName(inFile);
+			readerF->Update();
+			ImageType::Pointer image  = readerF->GetOutput();
 			volumes.push_back(image);	
 		}
 	} 
@@ -182,7 +207,8 @@ int main(int narg, char* arg[])
 
 	cerr << "Left Surface:    " << surfaceFileL << endl << "Left Thickness:  " << thickFileL << endl << "Left Curvature:  " << curvFileL << endl 
 	     << "Right Surface:   " << surfaceFileR << endl << "Right Thickness: " << thickFileR << endl << "Right Curvature: " << curvFileR << endl
-	     << "Output:          " << outputDir << endl << "Reference Image: " << refImage << endl;
+	     << "Output:          " << outputDir << endl << "Reference Image: " << refImageDiffusion << endl << " Reference Image surface: "<< refImageSurface << endl
+		<< " Transformation diffusion to surface: " << transformationFile <<endl  ;
 	
 	if (FA_FOUND)
 	{	
@@ -209,7 +235,7 @@ int main(int narg, char* arg[])
 	surfaceCL->Load(&*surfCL);
 	
 	surfCL = surfaceCL->GetFSSurface(&*surfCL);
-
+	surfCL->ct = ct;
 	MRISreadCurvature(surfCL, curvFileL);	
 	MRISreadAnnotation(surfCL, annotationFileL);
 
@@ -232,7 +258,7 @@ int main(int narg, char* arg[])
 	surfaceCR->Load(&*surfCR);
 
 	surfCR = surfaceCR->GetFSSurface(&*surfCR);
-
+	surfCR->ct = ct;
 	MRISreadCurvature(surfCR, curvFileR);
 	MRISreadAnnotation(surfCR, annotationFileR);
 
@@ -263,9 +289,10 @@ int main(int narg, char* arg[])
 	surfTreeR->BuildLocator();	
 
 	// The first and last points in both PointType and an array
-	PointType firstPt, lastPt;
+	PointType firstPt, lastPt, auxPt;
 	firstPt.Fill(0);
 	lastPt.Fill(0);
+	auxPt.Fill(0);
 	double firstPt_array[3];	
 	double lastPt_array[3];
 
@@ -295,10 +322,8 @@ int main(int narg, char* arg[])
 		getline ( file, value, ',' ); 
 		long long v2 = atoll(value.c_str());
 		correspondences.push_back(v2);		
-		std::cout << v2 << std::endl;
+		std::cout << " v2 " <<  v2 << std::endl;
 	} 	
-
-
 	// Cycling through the TRK files
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
@@ -374,9 +399,30 @@ int main(int narg, char* arg[])
 
 			// Changing the point to an index, then the index to the surface
 			ImageType::IndexType first_index, last_index;
-                	ref_Image.at(0)->TransformPhysicalPointToIndex(firstPt, first_index);
-			ref_Image.at(0)->TransformPhysicalPointToIndex(lastPt, last_index);
-                	MRIvoxelToSurfaceRAS(image, first_index[0], first_index[1], first_index[2], &firstPt_array[0], &firstPt_array[1], &firstPt_array[2]);
+         		if( num1.search("-t"))
+			{
+				//TransformSampleReal2(trans, firstPt[0], firstPt[1], firstPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
+				//LTAworldToWorld(lta, firstPt[0], firstPt[1], firstPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
+	/*		       	auxPt.Fill();
+				for(int w=0; w<3;w++)
+				{
+					auxPt[0]+=lta->xforms[0].m_L(0,w) * firstPt[w] ;  
+					auxPt[1]+=lta->xforms[0]->m_L[1][w] * firstPt[w] ;  
+					auxPt[2]+=lta->xforms[0]->m_L[2][w] * firstPt[w] ;  
+				}
+				auxPt[0]+=lta->xforms[0]->m_L[0][3] ;  
+				auxPt[1]+=lta->xforms[0]->m_L[1][3] ;  
+				auxPt[2]+=lta->xforms[0]->m_L[2][3] ;  */
+				/*ref_Image.at(1)->TransformPhysicalPointToIndex(auxPt, first_index);
+				LTAworldToWorld(lta, lastPt[0], lastPt[1], lastPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
+				ref_Image.at(1)->TransformPhysicalPointToIndex(auxPt, last_index);*/
+                	}
+			else
+			{
+			       	ref_Image.at(0)->TransformPhysicalPointToIndex(firstPt, first_index);
+				ref_Image.at(0)->TransformPhysicalPointToIndex(lastPt, last_index);
+                	}
+			MRIvoxelToSurfaceRAS(image, first_index[0], first_index[1], first_index[2], &firstPt_array[0], &firstPt_array[1], &firstPt_array[2]);
                 	MRIvoxelToSurfaceRAS(image, last_index[0], last_index[1], last_index[2], &lastPt_array[0], &lastPt_array[1], &lastPt_array[2]);
 
 			// Finding the vertice number
@@ -389,25 +435,46 @@ int main(int narg, char* arg[])
 			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(1000, lastPt_array, distR);			
 			vtkIdType ID2 = which_ID(distL, distR, Left_ID2, Right_ID2);
 
+
 			// Outputting values to the file
 			oFile << "StreamLine" << counter << ", ";
-			
+			int structure;
 			if (ID1 == Left_ID1)
 			{
-				oFile << surfCL->vertices[ID1].annotation << ",";
+		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID1].annotation, &structure);
+				std::cout << ID1 << " " <<   surfCL->vertices[ID1].annotation << " " <<structure<< std::endl;
+				if( structure <10)
+					oFile << 100 << structure << ",";
+				else
+					oFile << 10 << structure << ",";
 			}
 			else
 			{
-				oFile << surfCR->vertices[ID1].annotation << ",";
+		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID1].annotation, &structure);
+				std::cout << ID1 << " " <<   surfCR->vertices[ID1].annotation << " " <<structure<< std::endl;
+				if( structure <10)
+					oFile << 200 << structure << ",";
+				else
+					oFile << 20 << structure << ",";
 			}
 			if (ID2 == Left_ID2)
 			{
-				oFile << surfCL->vertices[ID2].annotation << ",";
+		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID2].annotation, &structure);
+				std::cout << ID2 << " " <<   surfCL->vertices[ID2].annotation << " " <<structure<< std::endl;
+				if( structure <10)
+					oFile << 100 << structure << ",";
+				else
+					oFile << 10 << structure << ",";
 			}
 			else
 			{
-				oFile << surfCR->vertices[ID2].annotation << ",";
-			}	
+		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID2].annotation, &structure);
+				std::cout << ID2 << " " <<   surfCR->vertices[ID2].annotation << " " <<structure<< std::endl;
+				if( structure <10)
+					oFile << 200 << structure << ",";
+				else
+					oFile << 20 << structure << ",";
+			}
 
 
 			if (ID1 == Left_ID1)

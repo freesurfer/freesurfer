@@ -128,6 +128,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 	std::vector<float> magnitudes(this->numberOfSteps*5+1,0);
 	std::vector<float> ps(this->numberOfSteps*5+1,0);
 	std::vector<float> masks(this->numberOfSteps*5+1,0);
+	std::vector<float> masksW(this->numberOfSteps*5+1,0);
 	std::vector<float> segs(this->numberOfSteps*5+1,0);
 
 	std::cout << " ps size " << ps.size() << " images size " << images.size() << std::endl;	
@@ -351,6 +352,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 			MRIsampleVolume(this->whiteMR, x, y, z, &whiteIntensity);
 			MRIsampleVolume(this->vesselMR, x, y, z, &vesselIntensity);
 			masks[t+numberOfSteps]= vesselIntensity;
+			masksW[t+numberOfSteps]= whiteIntensity;
 			if(t <this->numberOfSteps && vesselIntensity > .1)
 				vertexMask += vesselIntensity;
 			
@@ -394,6 +396,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 			double label=0, prevLabel=0, lastCortexLabel=0;
 			float touchedStructure =0;
 			float changeHemis=0;
+			float changeHemisAseg=0;
 			bool good=true; 
 			for(int i=1;(i< numberOfSteps+1 || ( ps[i-1] > 1e-15 && i < ps.size() -1));i++)
 			{
@@ -412,11 +415,15 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 
 				float leftP = orientationFilter->DistanceToMidline(xt,yt,zt);				
 				leftP /= fabs(leftP);
-				if(  label ==53 || label == 17 || label == 16 || label == 47 || label == 8 || ((label != 2 && label !=  41 )&& masks[i+1] > .1 ) ) // &&leftP - leftW > 0 && fabs(leftP) >2 )
+				if(  label ==53 || label == 17 || label == 16 || label == 47 || label == 8 || ((label != 2 && label !=  41 )&& masksW[i] <.1 && masks[i+1] > .1 && masksW[i+1]<.01) ) // &&leftP - leftW > 0 && fabs(leftP) >2 )
 				{
 					touchedStructure ++;
 				}
-				else if (( label!= 0 && lastCortexLabel != 0  && fabs(label -lastCortexLabel) > 900 ) || fabs(label -lastCortexLabel) == 39|| (label== 0 && fabs(leftW + leftP)  ==0)  )
+				else if (( label>1000 && lastCortexLabel > 1000  && fabs(label -lastCortexLabel) > 900 )  )
+				{
+					changeHemisAseg ++;
+				}
+				else if ((label== 0 && fabs(leftW + leftP)  ==0)  )
 				{
 					changeHemis ++;
 				}
@@ -427,10 +434,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 				if (vertexDebug ==j)
 					std::cout << lastCortexLabel << " " << label << " " << touchedStructure << " distance midplane " << leftP << " " <<leftW << std::endl;
 				//label = (label>.5)?1:0;
-				if (  touchedStructure>1  ||changeHemis >3  ) //|| (!IS_BRAIN(label) && masks[i] >.5 ))
-					break;
-
-				if((fabs(magnitudes[i])>opt_mag && ps[i] > 1e-15)  || touchedStructure || (changeHemis && fabs(magnitudes[i]) *1.5 > opt_mag) )
+				if((fabs(magnitudes[i])>opt_mag && ps[i] > 1e-15)  || touchedStructure || ((changeHemis || changeHemisAseg) && fabs(magnitudes[i]) *1.5 > opt_mag) )
 				{
 
 					int w=i;
@@ -458,7 +462,10 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 						}
 					}
 				}		
-				prevLabel= label;
+				if (  touchedStructure>0  ||changeHemis >2  || changeHemisAseg >0) //|| (!IS_BRAIN(label) && masks[i] >.5 ))
+					break;
+
+			prevLabel= label;
 			}
 		}
 		else
@@ -553,7 +560,7 @@ void  MRIS_MultimodalRefinement::SegmentWM(MRI* t1, MRI* t2, MRI* output)
 				int val = 0;
 				if(1.3*T1val > T2val &&  T1val +  T2val >= 180 )
 				{
-					val =2;
+					val =1;
 				}
 
 				MRIsetVoxVal(output, x, y, z, 0, val) ;

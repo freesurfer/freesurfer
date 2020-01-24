@@ -355,13 +355,60 @@ function SurfaceMeasures()
 	lenght=$3
 	std=$4
 
+	anatomicuts=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/toAnat/
+	anatomicutsdiff=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/
+	diff=${ODMRI_DIR}/${subject}/dmri/
+	surf=${ODMRI_DIR}/${subject}/surf/
+	annot=${ODMRI_DIR}/${subject}/label/
+	mri=${ODMRI_DIR}/${subject}/mri/
+	
+	#flirt -in ${diff}/DTI/dti_FA.nii.gz -ref ${mri}/brain.nii.gz  -omat ${diff}/xfms/fa2brain.mat
+
+	#lta_convert  --infsl ${diff}/xfms/fa2brain.mat --outlta ${diff}/xfms/diff2anat.bbr.lta --trg ${mri}/brain.mgz  --src ${diff}/DTI/dti_FA.nii.gz 
+
+ 	${FREESURFER_HOME}/bin/dmri_extractSurfaceMeasurements -i ${anatomicuts}/*trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -rid ${mri}/brain.nii.gz -ria ${mri}/brain.nii.gz  -al ${annot}/lh.aparc.annot -ar ${annot}/rh.aparc.annot -o ${anatomicutsdiff}/measures/	-p ${anatomicutsdiff}/match/${targetSubject}_${subject}_c200_hungarian.csv 
+
+}
+function ToAnat()
+{
+       	subject=$1
+	lenght=$3
+	std=$4
+
+        common="toAnat/"
 	anatomicuts=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 	diff=${ODMRI_DIR}/${subject}/dmri/
 	surf=${ODMRI_DIR}/${subject}/surf/
 	annot=${ODMRI_DIR}/${subject}/label/
- 	dmri_extractSurfaceMeasurements -i ${anatomicuts}/*trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -ri ${diff}/DTI/dti_FA.nii.gz -al ${annot}/lh.aparc.annot -ar ${annot}/rh.aparc.annot -o ${anatomicuts}/measures/	-r ${anatomicuts}/match/${targetSubject}_${subject}_c200_hungarian.csv 
+	mri=${ODMRI_DIR}/${subject}/mri/
+	
+
+	if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz ]] ;
+	then 
+		wmIn=${DMRI_DIR}/${subject}/dmri/wm2009parc2dwi.nii.gz
+		wmOut=${DMRI_DIR}/${subject}/mri/brain.nii.gz
+	else
+		wmIn=${DMRI_DIR}/${subject}/dmri/wmparc2dwi.nii.gz
+		wmOut=${DMRI_DIR}/${subject}/mri/brain.nii.gz
+	fi
+	mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
+        
+	common_clustering=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
+
+	flirt -in ${diff}/DTI/dti_FA.nii.gz -ref ${mri}/brain.nii.gz  -omat ${diff}/xfms/fa2brain.mat
+
+	cd ${DMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
+        for f in *trk 
+        do
+                echo $f
+
+                dmri_trk2trk --in ${f} --out ${common_clustering}/${f} --inref ${wmIn} --outref ${wmOut} --reg ${diff}/xfms/fa2brain.mat  
+ 
+        done
+        cp HierarchicalHistory.csv ${common_clustering}/
 
 }
+
 
 function ToTarget()
 {

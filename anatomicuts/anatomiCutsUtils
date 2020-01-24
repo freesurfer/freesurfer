@@ -87,8 +87,6 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 			except Exception as e:
 				print("ERROR",e)
 		ww+=1
-		if ww>10:
-			break
 
 	try:
 
@@ -103,14 +101,18 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 			colors=[]
 			for k,v in thicknesses[1][i].items():
 				
-				if  len(v)*100 /total > 10 and k in thicknesses[2][i]  and np.mean(v) >1:
+				if  len(v)*100 /total > 20 and k in thicknesses[1][i] and k in thicknesses[2][i]  and np.mean(v) >1 and str(k).isnumeric() :
 					print("plot", len(v)*100/total)
 					toplot.append(v)				
+					toplot.append(thicknesses[1][i][k])				
 					toplot.append(thicknesses[2][i][k])				
-					labels.append(k)
-					labels.append(k)
+					labels.append(lut[int(k)].name)
+					labels.append("")
+					labels.append("")
+					print(lut[int(k)].name , int(k), k)
 					colors.append('r')
 					colors.append('b')
+					colors.append('g')
 
 			if len(toplot) >0:
 				parts =	plt.violinplot(toplot)
@@ -122,7 +124,7 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 				plt.xticks(range(1,len(labels)+1), labels)
 				plt.savefig(f"{subjects_dir}/average/{i}.png")
 	except Exception as e :
-		print(str(e))
+		print(e)
 	#bash /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/dmri_ac.sh GA BAKP64e_nrecon-trio3_vb17 40 5 /space/snoke/1/public/vivros/hd_tracula/labels_hd.csv  0:2 999999999 2 [0,1,2] True)
 
 def averageCorrespondingClusters(correspondences, imagesFolder, outputFolder,  clusterIndeces):
