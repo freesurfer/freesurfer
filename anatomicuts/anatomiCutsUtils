@@ -15,6 +15,7 @@ from nipy.modalities.fmri.glm import GeneralLinearModel
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+import freesurfer as fs
 import argparse
 
 def getCorrespondingClusters(correspondance,order=True):
@@ -39,10 +40,97 @@ def getCorrespondingClusters(correspondance,order=True):
 					else:
 						header=False
 		return corr, distances, indeces
+def thicknessPerStructure(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
+	ac_folder=f"dmri.ac/{lenght}/{std}"
+	clusterNum=200
+	lut = fs.LookupTable.read("/usr/local/freesurfer/dev/FreeSurferColorLUT.txt")
+	print(lut[28].name)
+
+	indeces=[]
+	groups_cat = {row[classification_cols[0]] :row[classification_cols[1]] for _, row in pd.read_csv(classificationFile, delimiter=delimiter).iterrows()}
+	print(groups_cat)
+	significant_childs=set()
+	thicknesses=[[],[],[],[]]
+
+	for j in range(len(thicknesses)):
+		for i in range(200):
+			thicknesses[j].append(dict())
+
+	ww=0
+	for s , cat2 in groups_cat.items():
+	
+		if cat2 > 10:
+			cat = 0
+		else:
+			cat =  cat2
+		print(s,cat)
+		gres = glob.glob(f'{subjects_dir}/{s}*')
+		if len(gres)>0 and cat< len(thicknesses):
+			subject=gres[0].split("/")[-1]
+			try:
+				correspondences= f"{subjects_dir}/{subject}/{ac_folder}/match/{target_subject}_{subject}_c{clusterNum}_hungarian.csv"
+				for i in range(clusterNum):
+					corr, distances, indeces =  getCorrespondingClusters(correspondences, False)
+					values=pd.read_csv(f"{subjects_dir}/{subject}/{ac_folder}/measures/surf/"+corr[indeces[i]]+".csv")
+					#print(values.shape[0])
+					for j in range(values.shape[0]):
+						if values['label.start'][j] in thicknesses[cat][i]:
+							thicknesses[cat][i][values['label.start'][j]].append(values['thickness.start'][j])
+						else:
+							thicknesses[cat][i][values['label.start'][j]]= [values['thickness.start'][j]]
+
+						if values['label.end'][j] in thicknesses[cat][i]:
+							thicknesses[cat][i][values['label.end'][j]].append(values['thickness.end'][j])
+						else:
+							thicknesses[cat][i][values['label.end'][j]]= [values['thickness.end'][j]]
+
+			except Exception as e:
+				print("ERROR",e)
+		ww+=1
+
+	try:
+
+		for i in range(200):
+			total =0
+			plt.figure()
+			print("hola")
+			for k,v in thicknesses[1][i].items():
+				total += len(v)
+			toplot=[]
+			labels=[]
+			colors=[]
+			for k,v in thicknesses[1][i].items():
+				
+				if  len(v)*100 /total > 20 and k in thicknesses[1][i] and k in thicknesses[2][i]  and np.mean(v) >1 and str(k).isnumeric() :
+					print("plot", len(v)*100/total)
+					toplot.append(v)				
+					toplot.append(thicknesses[1][i][k])				
+					toplot.append(thicknesses[2][i][k])				
+					labels.append(lut[int(k)].name)
+					labels.append("")
+					labels.append("")
+					print(lut[int(k)].name , int(k), k)
+					colors.append('r')
+					colors.append('b')
+					colors.append('g')
+
+			if len(toplot) >0:
+				parts =	plt.violinplot(toplot)
+				for v , pc in enumerate(parts['bodies']):
+					pc.set_facecolor(colors[v])
+					pc.set_edgecolor(colors[v])
+					pc.set_alpha(1)
+				
+				plt.xticks(range(1,len(labels)+1), labels)
+				plt.savefig(f"{subjects_dir}/average/{i}.png")
+	except Exception as e :
+		print(e)
+	#bash /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/dmri_ac.sh GA BAKP64e_nrecon-trio3_vb17 40 5 /space/snoke/1/public/vivros/hd_tracula/labels_hd.csv  0:2 999999999 2 [0,1,2] True)
 
 def averageCorrespondingClusters(correspondences, imagesFolder, outputFolder,  clusterIndeces):
 		averages=dict()
 		norm=dict()
+
 		for s_i, correspondance in enumerate(correspondences):
 				try:
 					for clusterIndex in clusterIndeces:
@@ -111,7 +199,7 @@ def readTree(numNodes, histogramFile,header=True):
             
     return nodes_childs, whos_dad
 
-def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1]):
+def groupAnalysis( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groupA=[0], groupB=[1], thickness=False):
 	ac_folder=f"dmri.ac/{lenght}/{std}"
 	
 
@@ -119,7 +207,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 	groups_cat = {row[classification_columns[0]] :row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	print(groups_cat)
 
-  significant_childs=set()
+	significant_childs=set()
 	for c_i, clusterNum in enumerate(clustersToAnalyze):
 		
 		childs, dads = readTree(clusterNum, f"{subjects_dir}/{target_subject}/{ac_folder}/HierarchicalHistory.csv")
@@ -140,12 +228,15 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 			gres = glob.glob(f'{subjects_dir}/{s}*')
 			if len(gres)>0:
 				subject=gres[0].split("/")[-1]
-				measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+				if thickness:
+					measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/surfaceMeasures.csv"
+				else:
+					measures=f"{subjects_dir}/{subject}/{ac_folder}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
 				if os.path.exists(measures):
 					data = pd.read_csv(measures,delimiter=",", header=0, names=headers, usecols=cols)
 					#print(measures, headers, cols)
 					if len(data[headers[0]])>= clusterNum:
-						print(int(groups_cat[s]	), groupA, groupB)
+						#print(int(groups_cat[s]	), groupA, groupB)
 						if int(groups_cat[s]) in groupA:
 							X=np.append(X,[1, 0])
 			
@@ -206,7 +297,7 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 	return indeces
 					
 
-def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]]):
+def plotAverageMeasures( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]], thickness=False):
 	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
 	clusterNum=200
 	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
@@ -226,7 +317,10 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 		gres = glob.glob(f'{subjects_dir}/{s}*')
 		if len(gres)>0:
 			subject=gres[0].split("/")[-1]
-			measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+			if thickness:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/surfaceMeasures.csv"
+			else:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
 			try:
 				data = pd.read_csv(measuresFile,delimiter=",", header=0, names=headers, usecols=cols)
 				#print(measures)
@@ -238,45 +332,112 @@ def plotAverageMeasures( headers, cols , groups_classification, classification_c
 							for j in range(clusterNum):
 								if not math.isnan(data[h][j]):
 									measures[group][i][j].append(data[h][j])
-			except:
-				print (measuresFile)
+			except Exception as e:
+				print (e, measuresFile)
 	for j, h in enumerate(headers):
 		for i in clustersToAnalyze:
 			plt.figure()
 			plt.title(headers[j])
-			print("hola")
+			#print(headers[j])
 			for gi, g in enumerate( groups):
-				print(measures[gi][j][i] ,[gi])
+				#print(measures[gi][j][i] ,[gi])
 				plt.violinplot(measures[gi][j][i], [gi],  showmeans=True )
-				print("dwhola")
+				#print("dwhola")
 			plt.savefig(f"{subjects_dir}/average/dmri.ac/{lenght}_{std}/"+str(i)+"_"+headers[j]+".png")		
 	#plt.show()
+def plotScatter( headers, cols , groups_classification, classification_columns, clustersToAnalyze, subjects_dir, target_subject, lenght, std, delimiter=",", groups=[[0],[1],[2],[3]], thickness=False):
+	groups_cat = {row[classification_columns[0]] : row[classification_columns[1]] for _, row in pd.read_csv(groups_classification, delimiter=delimiter).iterrows()}
+	clusterNum=200
+	order_nodes= pd.read_csv(f"{subjects_dir}/{target_subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{target_subject}_c{clusterNum}.csv",delimiter=",", header=0,usecols=[0])
+	measures=[]
+	for g in groups:
+		measures.append([])
+	for gi,g in enumerate(groups):
+		for a in headers:
+			measures[gi].append([])
+		
+	for gi, g in enumerate(groups):
+		for i in range(clusterNum):
+			for j in range(len(headers)):
+				measures[gi][j].append([])
+	
+	for s in groups_cat.keys():
+		gres = glob.glob(f'{subjects_dir}/{s}*')
+		if len(gres)>0:
+			subject=gres[0].split("/")[-1]
+			if thickness:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/surfaceMeasures.csv"
+			else:
+				measuresFile=f"{subjects_dir}/{subject}/dmri.ac/{lenght}/{std}/measures/{target_subject}_{subject}_c{clusterNum}.csv"
+			try:
+				data = pd.read_csv(measuresFile,delimiter=",", header=0, names=headers, usecols=cols)
+				#print(measures)
+				if len(data[headers[0]])>= clusterNum:
+					val  = [ i for i in range(len(groups))  if int(groups_cat[s]) in groups[i]]
+					if len(val)>0:
+						group=val[0]
+						for i,h in enumerate(headers):
+							for j in range(clusterNum):
+								if not math.isnan(data[h][j]):
+									measures[group][i][j].append(data[h][j])
+			except Exception as e:
+				print (e, measuresFile)
+	for j, h in enumerate(headers):
+		for i in clustersToAnalyze:
+			plt.figure()
+			plt.title(headers[j])
+			#print(headers[j])
+			todo=[]
+			for gi, g in enumerate( groups):
+				#print(measures[gi][j][i] ,[gi])
+				todo.append	(measures[gi][j][i])
+			plt.boxplot( todo )
+			#print("dwhola")
+			plt.savefig(f"{subjects_dir}/average/dmri.ac/{lenght}_{std}/"+str(i)+"_"+headers[j]+"_scatter.png")		
+			plt.close()
+	#plt.show()
 
-def GA(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," ):
+def GA(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
 	measures=['FA','MD','RD','AD']
 	if model == 'DKI':
 		measures=measures+['MK','RK','AK']
-	
-	indeces = groupAnalysis(headers=["N"],cols=[1], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
-	headers= ["N"]
-	columns=[1]
+
+	indeces = []	
+	headers = []
+	columns = []
+
+
+	#indeces += groupAnalysis(headers=["N"],cols=[1], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+	#headers+= ["N"]
+	#columns+=[1]
+
 	for i, m in enumerate(measures):
 		print("mean"+m, " " , 2+4*i, classification_cols)
-		headers += ["mean"+m]
+		headers += [" mean"+m+" "]
 		columns+=[2+i*4]
-		indeces += groupAnalysis(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		indeces += groupAnalysis(headers=[" mean"+m+" "],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
 		#plotAverageMeasures(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
 
-
+	
 	for i, m in enumerate(measures):
-		headers += ["meanCentroid"+m]
+		headers += ["   meanCentroid"+m+" "]
 		columns+=[4+i*4]
 		print("meanCentroid"+m, " " , 2+4*i, classification_cols)
-		indeces += groupAnalysis(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
+		indeces += groupAnalysis(headers=["   meanCentroid"+m+" "],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
 		#plotAverageMeasures(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+		plotScatter(headers=["meanCentroid"+m],cols=[4+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+	
+	if thickness:
+		measures=["curv.star","curv.end","thickness.start", "thickness.end"]
 
+		for i, m in enumerate(measures):
+			indeces += groupAnalysis(headers=[m],cols=[1+i], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std, thickness=thickness)
+
+			#plotAverageMeasures(headers=measures,cols=[0,1,2,3], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=True) #groups=[groupA,groupB], 
+			plotScatter(headers=measures,cols=[0,1,2,3], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=True) #groups=[groupA,groupB], 
 	print(columns, headers,indeces)
-	plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
+	#plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=False) #groups=[groupA,groupB], 
+	plotScatter(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=False) #groups=[groupA,groupB], 
 
 
 
@@ -287,6 +448,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-f','--function',  required=True, help='Function to use: GA for group analysis.')
 parser.add_argument('-m','--model',required=False,  help='Model, which could be DTI or DKI')
 parser.add_argument('-cf','--classification_file', metavar='file', required=False, help='classification file')
+parser.add_argument('-co','--corresponding_file_list',  required=False, help='corresponding file list')
+parser.add_argument('-if','--imagesFolder', required=False, help='images folder list')
+parser.add_argument('-of','--outputFolder', required=False, help='output folder')
+parser.add_argument('-in','--clusterIndeces',required=False, help='input clusters')
 parser.add_argument('-cc','--classification_columns',required=False,  help='classification columns')
 parser.add_argument('-cta','--clusters_to_analyze',required=False,  help='Clusters to analyze')
 parser.add_argument('-ts','--target_subject',required=False,  help='target subject')
@@ -296,6 +461,10 @@ parser.add_argument('-gb','--group_b',required=False,  help='group b')
 parser.add_argument('-d','--delimiter',required=False,  help='delimiter for classification file')
 parser.add_argument('-l','--lenght',required=False,  help='minimum lenght')
 parser.add_argument('-std','--std',required=False,  help='standard deviation of clusters')
+parser.add_argument('-pt','--plot_groups',required=False,  help='groups for plot')
+parser.add_argument('-t','--thickness',required=False,  help='analyze thickness')
+
+
 args = parser.parse_args()
 
 if args.function == "GA":
@@ -304,62 +473,33 @@ if args.function == "GA":
 	group_a = np.asarray(args.group_a.split(":"), dtype=np.int)
 	group_b =np.asarray(args.group_b.split(":"), dtype=np.int)
 	clusters_to_analyze= np.asarray(args.clusters_to_analyze.split(":"), dtype=np.int)
-	
-	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter )
-"""
-groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
+		
+	#groups=np.asarray(args.plot_groups.split(":"), dtype=np.int)
+	groups=[[999999999,0],[1],[2]]
+	print(groups)
+
+	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter,groups, args.thickness )
+elif args.function == "thicknessPerStructure":
+	columns=  np.asarray(args.classification_columns.split(":"), dtype=np.int)
+	print(columns, columns[0])
+	group_a = np.asarray(args.group_a.split(":"), dtype=np.int)
+	group_b =np.asarray(args.group_b.split(":"), dtype=np.int)
+	clusters_to_analyze= np.asarray(args.clusters_to_analyze.split(":"), dtype=np.int)
+		
+	#groups=np.asarray(args.plot_groups.split(":"), dtype=np.int)
+	groups=[[999999999,0],[1],[2]]
+	print(groups)
+
+	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter,groups )
 
 
-
-groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1], clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
-#groupAnalysis(headers=["meanADC"],cols=[6], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1], clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
-#groupAnalysis(headers=["meanRD"],cols=[10], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1], clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
-#groupAnalysis(headers=["meanAD"],cols=[14], groups_classification="/space/vault/7/users/vsiless/lilla/classification.csv", classification_columns=[0,1],clustersToAnalyze=[50,100, 150,200],target_subject="INF007",subjects_dir="/space/vault/7/users/vsiless/lilla/AnatomiCuts/babybold/")
-
-
-
-groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanRD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanAD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanMK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-groupAnalysis(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=cta,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[3], groupB=[2])
-
-print ("group3")
-indeces= groupAnalysis(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-
-indeces =  groupAnalysis(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
+elif args.function == "averageCorrespondingClusters":
+	corresponding_folders =  args.corresponding_file_list.replace("]","").replace("[","").split(",")
+	images_folders =  args.imagesFolder.replace("]","").replace("[","").split(",")
+	cluster_indeces =  np.asarray(args.clusterIndeces.replace("]","").replace("[","").split(","),dtype=np.int)
+	eval(args.function)(corresponding_folders, images_folders, args.outputFolder,cluster_indeces)
 
 
-indeces = indeces +groupAnalysis(headers=["meanRD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meaniRD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-
-indeces = indeces +groupAnalysis(headers=["meanAD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanAD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-
-indeces = indeces +groupAnalysis(headers=["meanMK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanMK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-
-indeces = indeces +groupAnalysis(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-
-indeces = indeces +groupAnalysis(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=[200],target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groupA=[1], groupB=[3])
-plotAverageMeasures(headers=["meanAK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-"""
-#print(indices)
-#indeces=[41,10]
-"""
-plotAverageMeasures(headers=["meanFA"],cols=[2], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanMD"],cols=[6], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanAD"],cols=[10], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanRD"],cols=[14], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanAK"],cols=[18], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanRK"],cols=[22], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-plotAverageMeasures(headers=["meanMK"],cols=[26], groups_classification="/space/snoke/1/public/vivros/data/demos_fullID2.csv", classification_columns=[0,6],clustersToAnalyze=indeces,target_subject="6002_16_01192018",subjects_dir="/space/snoke/1/public/vivros/AnatomiCuts_l35/", delimiter=" ", groups=[[1],[2],[3]])
-"""
 """ts="BAKP64e_nrecon-trio3_vb17"
 #classFile="/space/snoke/1/public/vivros/labels.csv"
 classFile="/autofs/space/snoke_001/public/vivros/hd_tracula/labels.csv"

@@ -29,6 +29,7 @@
 #include "fsenv.h"
  
 #include "mrisurf.h"
+
 #include "itkVTKPolyDataWriter.h"
 #include "mris_multimodal_refinement.h"
 #include "itkImage.h"
@@ -57,29 +58,36 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -i surface -o surface -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc  -w whitesurface -p pOfCSF  -min/max -m numberOfImages image1 image2 image3"  << std::endl;   
+			std::cout<< arg[0] << " -i surface -o surface -b spheresurf -n normals.vtk -v values.vtk -d debugVertex -s step_size -k numberOfSteps  -g gradientSigma -a aseg.aparc  -w whitesurface -p pOfCSF  -min/max -t1 image -t2 image -flair image"  << std::endl;   
 			return -1;
 		}
-		const char *inSurf= cl.follow ("", "-i");
-		const char *whSurf= cl.follow ("", "-w");
-		const char *outSurf = cl.follow ("", "-o");
-		const char *outNormals = cl.follow ("", "-n");
-		const char *outValues= cl.follow ("", "-v");
-		const char *overlayFilename= cl.follow ("", "-p");
+		const char* inSurf= cl.follow ("", "-i");
+		const char* inSphere= cl.follow ("", "-b");
+		const char* whSurf= cl.follow ("", "-w");
+		const char* outSurf = cl.follow ("", "-o");
+		const char* outNormals = cl.follow ("", "-n");
+		const char* outValues= cl.follow ("", "-v");
+		const char* overlayFilename= cl.follow ("", "-p");
 		int debugVertex= cl.follow (-1, "-d");
 		float step_size= cl.follow (.4, "-s");
 		int numberOfSteps= cl.follow (20, "-k");
-		const char *asegFile= cl.follow ("", "-a");
+		const char* asegFile= cl.follow ("", "-a");
 		float gradientSigma= cl.follow (.20, "-g");
 		bool maxGradient = !cl.search("-min");
 		std::cout << maxGradient << std::endl;
 
-		//MRI_SURFACE *whiteSurf;
-		//whiteSurf = MRISread(whSurf);
-		MRI_SURFACE *surf;
+		MRI_SURFACE* whiteSurf;
+		whiteSurf = MRISread(whSurf);
+		MRI_SURFACE* surf;
 		surf = MRISread(inSurf);
 		MRIScomputeMetricProperties(surf);
 		MRISstoreMetricProperties(surf);
+
+		MRIS* sph = MRISread(inSphere);
+		//	MRIScomputeMetricProperties(sphere);
+		MRI_SP* sphere =  MRIStoParameterization(sph,NULL, 1,0);
+
+		std::cout << " sphere " << sph->vertices[9].phi << " " << sph->vertices[9].theta << " " << MRISaverageRadius(sph) << std::endl;
 /*		MRISedges(surf);
 		MRIScorners(surf);
 		MRISfaceMetric(surf,0);
@@ -89,22 +97,41 @@ int main(int narg, char*  arg[])
 		std::cout << "debug vertex " << debugVertex << " " <<surf->vertices[debugVertex].x << " "  << surf->vertices[debugVertex].y<< " " <<surf->vertices[debugVertex].z << std::endl; 
 
 
-
-		int imageNumber = cl.follow(0,"-m");
-		
+		MRIS_MultimodalRefinement* t2refinement = new MRIS_MultimodalRefinement();	
 		std::vector<MRI*> images; 
-
-		MRIS_MultimodalRefinement* t2refinement = new MRIS_MultimodalRefinement();
-
-
-
-		std::vector<std::string> fileNames;
-		for(;imageNumber>0;imageNumber--)
+		if( cl.search("-t1"))
 		{
-			fileNames.push_back(cl.next(""));
-			MRI *imageFS =  MRIread(fileNames[fileNames.size()-1].c_str()) ;
-			images.push_back(imageFS);
-			t2refinement->addImage(imageFS);
+			MRI *t1 = MRIread(cl.follow("","-t1"));
+			images.push_back(t1);
+			t2refinement->addImage(t1);
+		}
+		if ( cl.search("-t2"))	
+		{
+			MRI *t2 = MRIread(cl.follow("","-t2"));
+			images.push_back(t2);
+			t2refinement->addImage(t2);
+		}
+		if( cl.search("-flair"))
+		{
+			MRI *flair = MRIread(cl.follow("","-flair"));
+			images.push_back(flair);
+			t2refinement->addImage(flair);
+		}
+
+		MRI* whiteMR= MRIcopy(images[0], NULL);
+		MRI* vesselMR= MRIcopy(images[0], NULL);
+		t2refinement->SegmentVessel(images[0], images[1],vesselMR);
+		t2refinement->SegmentWM(images[0], images[1],whiteMR);
+		t2refinement->SetWhiteMR(whiteMR);
+		t2refinement->SetVesselMR(vesselMR);
+
+		t2refinement->SetSphere (sph);
+		for (unsigned j=0;j<surf->nvertices;j++)
+		{
+			
+			surf->vertices[j].whitex = whiteSurf->vertices[j].x;
+			surf->vertices[j].whitey = whiteSurf->vertices[j].y;
+			surf->vertices[j].whitez = whiteSurf->vertices[j].z;
 		}
 
 		MRI *aseg= MRIread(asegFile);
@@ -115,7 +142,7 @@ int main(int narg, char*  arg[])
 		t2refinement->SetNumberOfSteps(numberOfSteps);
 		t2refinement->SetGradientSigma(gradientSigma);
 		t2refinement->FindMaximumGradient(maxGradient);
-		//t2refinement->SetWhite(whiteSurf); //, debugVertex);
+		t2refinement->SetWhite(whiteSurf); //, debugVertex);
 		t2refinement->getTarget(surf); //, debugVertex);
 		double x,y,z;
 		vtkSmartPointer<vtkPoints> points = vtkPoints::New();
