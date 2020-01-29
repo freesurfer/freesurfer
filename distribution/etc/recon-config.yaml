@@ -48,7 +48,7 @@ DoRemesh:
     
 DoRemesh:
     value: True
-    flags: -remesh
+    flags: -no-remesh
     action: disable
     descr: Do not use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
     
