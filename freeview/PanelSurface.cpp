@@ -825,6 +825,7 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
       DialogNewAnnotation dlg(this, QFileInfo(surf->GetFileName()).dir().path());
       if (dlg.exec() == QDialog::Accepted)
         surf->CreateNewAnnotation(dlg.GetColorTableFile(), dlg.GetName());
+      QTimer::singleShot(100, this, SLOT(OnButtonEditAnnotation()));
     }
     UpdateWidgets();
   }
@@ -965,6 +966,8 @@ void PanelSurface::OnButtonConfigureOverlay()
 void PanelSurface::OnButtonEditAnnotation()
 {
   m_wndEditAnnotation->show();
+  ui->actionPath->setChecked(true);
+  ui->actionPathFill->trigger();
 }
 
 void PanelSurface::OnButtonRemoveOverlay()
@@ -1424,7 +1427,7 @@ void PanelSurface::OnButtonDeletePath()
 void PanelSurface::OnButtonCustomFillPath()
 {
   m_dlgCustomFill->show();
-  m_dlgCustomFill->raise();
+//  m_dlgCustomFill->raise();
 }
 
 void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
