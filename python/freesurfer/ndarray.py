@@ -113,7 +113,22 @@ class Image(ArrayContainerTemplate, Transformable):
 
 
 class Volume(ArrayContainerTemplate, Transformable):
-    '''3D volume with specific geometry.'''
+    '''
+    3D volume with specific geometry.
+    
+    Attributes:
+        data: Pointer to internal 3D (or 4D) array.
+        image: Alias to data member (legacy).
+        shape: Shape of the internal volume array.
+        voxsize: Voxel sizes in millimeters.
+        affine: 4x4 vox-to-ras transform matrix.
+        nframes: Number of volume frames.
+        lut: Embedded label lookup-table for segmentations.
+        te: Scan echo time in ms.
+        tr: Scan repetition time in ms.
+        ti: Scan inversion time in ms.
+        flip_angle: Scan flip angle in degrees.
+    '''
     basedims = 3
 
     def __init__(self, data, affine=None, voxsize=None):
