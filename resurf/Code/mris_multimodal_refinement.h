@@ -416,6 +416,7 @@ std::vector<std::pair<float, float>> MRIS_MultimodalRefinement::GetMeanAndVarian
 		varGrey =  sqrt(varGrey);
 		mean_variance.push_back(std::pair<float,float> (meanGrey,varGrey));
 
+		SurfHopListFree(&hops);
 	}
 	std::cout << " hi " << std::endl;
 	return mean_variance;
