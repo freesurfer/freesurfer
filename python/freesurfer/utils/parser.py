@@ -134,8 +134,22 @@ class HelpFormatter(argparse.HelpFormatter):
             return join(['\n', heading, item_help, '\n'])
 
 
+class ExtendAction(argparse.Action):
+    '''
+    Custom action to extend arguments into a list so that both of these
+    are allowed:
+
+    command --input 1 2 3
+    command --input 1 --input 2 --input 3
+    '''
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest) or []
+        items.extend(values)
+        setattr(namespace, self.dest, items)
+
+
 class ArgumentParser(argparse.ArgumentParser):
-    """ArgumentParser subclass to format the help interface to the freesurfer standard."""
+    '''ArgumentParser subclass to format the help interface to the freesurfer standard.'''
 
     # use the custom freesurfer help formatter by default
     def __init__(self, add_help=True, allow_abbrev=False, formatter_class=HelpFormatter, *args, **kwargs):
@@ -149,6 +163,8 @@ class ArgumentParser(argparse.ArgumentParser):
         # By default, argparse adds the help flag at the beginning of the argument list. To get the help
         # flag at the end, we'll add it manually in parse_args()
         self.add_help = add_help
+        # register our custom extend action
+        self.register('action', 'extend', ExtendAction)
 
     # wrap the default parse_args
     def parse_args(self, args=None, namespace=None):

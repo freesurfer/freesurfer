@@ -16,7 +16,7 @@ default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
-parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
+parser.add_argument('-i', '--input', nargs='+', action='extend', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
 parser.add_argument('-m', '--modality', nargs='+', help='Output basenames for the input image modalities.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
