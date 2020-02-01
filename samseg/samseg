@@ -166,8 +166,7 @@ if($status) goto error_exit;
 
 if(! $regonly) then
 
-  # Need to have samseg write out a consistent file name, but until then...
-  set seg = `find "$outdir" -iname "*crispSegmentation.nii" -print`
+  set seg = "$outdir/seg.mgz"
 
   if($DoRefine) then
     set cmd = (mri_refine_seg --debug -i $seg -o $seg)
@@ -177,7 +176,7 @@ if(! $regonly) then
   endif
 
   # Compute segstats
-  set sumfile = $outdir/crispSegmentation.stats 
+  set sumfile = $outdir/seg.stats 
   set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
@@ -186,12 +185,12 @@ if(! $regonly) then
   if($DoMRF) then
     set inputbase = `basename $inputlist[1]` 
     set inputbase = `fname2stem $inputbase`
-    set bc = $outdir/$inputbase"_biasCorrected.nii"
+    set bc = "$outdir/modality01_bias_corrected.mgz"
     if(! -e $bc) then
       echo "ERROR: cannot find $bc" | tee -a $LF
       goto error_exit;
     endif
-    set mrf = $outdir/$inputbase"_crispSegmentation.mrf.nii"
+    set mrf = "$outdir/seg.mrf.mgz"
     #set reg = $outdir/samseg.talairach.lta
     set reg = $outdir/template.m3z
     set cmd = (mri_ca_label -r $seg -relabel_unlikely 9 .3 \
@@ -200,7 +199,7 @@ if(! $regonly) then
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
     # Compute segstats of the mrf'ed seg
-    set sumfile = $outdir/crispSegmentation.mrf.stats 
+    set sumfile = $outdir/seg.mrf.stats 
     set cmd = (mri_segstats --ctab-default --seg $mrf --sum $sumfile)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
