@@ -91,7 +91,7 @@ class SamsegLongitudinal:
         initializeLatentDeformationToZero=False,
         threshold=None,
         thresholdSearchString=None,
-        modalityNames=None):
+        modeNames=None):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList
@@ -105,7 +105,7 @@ class SamsegLongitudinal:
         self.numberOfIterations = numberOfIterations
         self.strengthOfLatentGMMHyperprior = strengthOfLatentGMMHyperprior
         self.strengthOfLatentDeformationHyperprior = strengthOfLatentDeformationHyperprior
-        self.modalityNames = modalityNames
+        self.modeNames = modeNames
 
         # Initialize some objects
         self.affine = Affine()
@@ -185,7 +185,7 @@ class SamsegLongitudinal:
                                userModelSpecifications=self.userModelSpecifications,
                                userOptimizationOptions=self.userOptimizationOptions,
                                visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
-                               targetSearchStrings=self.targetSearchStrings, modalityNames=self.modalityNames)
+                               targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames)
 
         # =======================================================================================
         #
@@ -237,7 +237,7 @@ class SamsegLongitudinal:
                 saveHistory=True,
                 targetIntensity=self.targetIntensity,
                 targetSearchStrings=self.targetSearchStrings,
-                modalityNames=self.modalityNames
+                modeNames=self.modeNames
             ))
             self.timepointModels[timepointNumber].mask = self.sstModel.mask
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
@@ -726,7 +726,7 @@ class SamsegLongitudinal:
 
             # Create an ITK image and write to disk
             sst = gems.KvlImage(requireNumpyArray(imageBuffer))
-            sstFilename = os.path.join(sstDir, 'modality%02d_average.mgz' % (contrastNumber + 1))
+            sstFilename = os.path.join(sstDir, 'mode%02d_average.mgz' % (contrastNumber + 1))
             sst.write(sstFilename, image0.transform_matrix)
 
             #

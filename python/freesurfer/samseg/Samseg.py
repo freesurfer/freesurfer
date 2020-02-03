@@ -22,7 +22,7 @@ class Samseg:
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
-                 targetIntensity=None, targetSearchStrings=None, modalityNames=None):
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
@@ -33,12 +33,12 @@ class Samseg:
         self.targetIntensity = targetIntensity
         self.targetSearchStrings = targetSearchStrings
 
-        # Use defualt if modality names aren't provided
-        if not modalityNames:
-            modalityNames = ['modality%02d' % (n + 1) for n in range(len(imageFileNames))]
-        elif len(modalityNames) != len(imageFileNames):
-            raise ValueError('number of modality names does not match number of input images')
-        self.modalityNames = modalityNames
+        # Use defualt if mode names aren't provided
+        if not modeNames:
+            modeNames = ['mode%02d' % (n + 1) for n in range(len(imageFileNames))]
+        elif len(modeNames) != len(imageFileNames):
+            raise ValueError('number of mode names does not match number of input images')
+        self.modeNames = modeNames
 
         # Initialize some objects
         self.affine = Affine()
@@ -248,7 +248,7 @@ class Samseg:
 
         for contrastNumber, imageFileName in enumerate(self.imageFileNames):
             # Contrast-specific filename prefix
-            contastPrefix = os.path.join(self.savePath, self.modalityNames[contrastNumber])
+            contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
 
             # Write bias field and bias-corrected image
             self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
