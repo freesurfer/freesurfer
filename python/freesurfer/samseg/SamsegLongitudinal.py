@@ -726,7 +726,7 @@ class SamsegLongitudinal:
 
             # Create an ITK image and write to disk
             sst = gems.KvlImage(requireNumpyArray(imageBuffer))
-            sstFilename = os.path.join(sstDir, 'contrast_%02d.mgz' % (contrastNumber + 1))
+            sstFilename = os.path.join(sstDir, 'modality%02d_average.mgz' % (contrastNumber + 1))
             sst.write(sstFilename, image0.transform_matrix)
 
             #
