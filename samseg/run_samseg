@@ -16,8 +16,9 @@ default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
-parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
+parser.add_argument('-i', '--input', nargs='+', action='extend', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
+parser.add_argument('-m', '--modality', nargs='+', help='Output basenames for the input image modalities.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
 parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
@@ -147,7 +148,8 @@ samseg_kwargs = dict(
     saveHistory=args.history,
     saveMesh=args.save_mesh,
     savePosteriors=args.save_posteriors,
-    saveWarp=args.save_warp
+    saveWarp=args.save_warp,
+    modalityNames=args.modality
 )
 
 if args.lesion:

@@ -105,7 +105,6 @@ class ProbabilisticAtlas:
             'BFGS-MaximumMemoryLength': 12
         }
         optimizationParameters.update(userOptimizationParameters)
-        print(optimizationParameters)
         optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
 
         # Run deformation optimization
