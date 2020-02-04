@@ -1093,7 +1093,7 @@ of each frame</string>
        <bool>false</bool>
       </attribute>
       <attribute name="headerShowSortIndicator" stdset="0">
-       <bool>false</bool>
+       <bool>true</bool>
       </attribute>
       <column>
        <property name="text">
