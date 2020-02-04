@@ -48,30 +48,30 @@ setenv LANG en_US.UTF-8
 
 #------------ Set default options -----------------------------------------#
 
-set PrintHelp = 0	# Print help and exit
-set DoVersionsOnly = 0	# Print versions and exit
+set PrintHelp = 0       # Print help and exit
+set DoVersionsOnly = 0  # Print versions and exit
 
-set debug = 0		# Generate more output
-set umaskid = ()	# Unix file permission mask
-set groupid = ()	# Unix user group ID
-set allowcore = 0	# Unlimit core dump size
+set debug = 0           # Generate more output
+set umaskid = ()        # Unix file permission mask
+set groupid = ()        # Unix user group ID
+set allowcore = 0       # Unlimit core dump size
 
-set DoTime = 0		# Time main commands
+set DoTime = 0          # Time main commands
 set fs_time = ()
 
-set submitfile = ()	# Name of file for writing jobs to be run in parallel
+set submitfile = ()     # Name of file for writing jobs to be run in parallel
 
-set logfile = ()	# Name of log file
-set cmdfile = ()	# Name of command file
-set AppendLog = 1	# Append to log file if it exists
+set logfile = ()        # Name of log file
+set cmdfile = ()        # Name of command file
+set AppendLog = 1       # Append to log file if it exists
 
 set DoIsRunning = 1     # Create a lock file while processing continues
 
-set RunIt = 1		# If 0, do everything but run commands (for debugging)
+set RunIt = 1           # If 0, do everything but run commands (for debugging)
 
-set DoCleanCSDF = 0	# If 1, ignore FREESURFER_HOME of previous processing
+set DoCleanCSDF = 0     # If 1, ignore FREESURFER_HOME of previous processing
 
-set dopreproc = 0	# Perform select processing steps
+set dopreproc = 0       # Perform select processing steps
 set dobedpost = 0
 set dopaths = 0
 set dostats = 0
@@ -84,7 +84,9 @@ set domasks = 0
 set dotensor = 0
 set dopriors = 0
 
-set rcfile = ()		# Run command file
+set rcfile = ()         # Run command file
+
+set infant = 0          # Traculina
 
 #------------ Parse input arguments and configuration file ----------------#
 
@@ -153,7 +155,7 @@ set dopathsubdirs = 0
 set nstick = 2
 set fmin = 0.05
 set nburnin = 200
-set nsample = ()		# Default is set below
+set nsample = ()                # Default is set below
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 1
@@ -227,7 +229,7 @@ if ($allowcore) set cmdopts = ($cmdopts -allowcoredump)
 set subjdirs = ()
 set basedirs = ()
 
-if ($#baselist == 0) then	#--->>> A single time point for each subject
+if ($#baselist == 0) then       #--->>> A single time point for each subject
   foreach isubj ($runlist)
     set subj = $subjlist[$isubj]
 
@@ -372,18 +374,18 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     endif
 
     echo "########################################" >> $LF
-    echo "Program versions:"		>> $LF
-    echo $VERSION               	>> $LF
-    mri_convert --all-info		>> $LF
-    flirt -version			>> $LF
-    bbregister --version		>> $LF
-    mri_cvs_register --version		>> $LF
-    $trcdir/dmri_motion --all-info	>> $LF
-    $trcdir/dmri_train --all-info	>> $LF
-    $trcdir/dmri_paths --all-info	>> $LF
-    $trcdir/dmri_pathstats --all-info	>> $LF
-    $trcdir/dmri_mergepaths --all-info	>> $LF
-    $trcdir/dmri_group --all-info	>> $LF
+    echo "Program versions:"            >> $LF
+    echo $VERSION                       >> $LF
+    mri_convert --all-info              >> $LF
+    flirt -version                      >> $LF
+    bbregister --version                >> $LF
+    mri_cvs_register --version          >> $LF
+    $trcdir/dmri_motion --all-info      >> $LF
+    $trcdir/dmri_train --all-info       >> $LF
+    $trcdir/dmri_paths --all-info       >> $LF
+    $trcdir/dmri_pathstats --all-info   >> $LF
+    $trcdir/dmri_mergepaths --all-info  >> $LF
+    $trcdir/dmri_group --all-info       >> $LF
 
     if ($DoVersionsOnly) continue
 
@@ -411,95 +413,95 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     set RCF = $dtdir/scripts/dmrirc.local
     if (-e $RCF) mv -f $RCF $RCF.orig
 
-    echo "# Run command file generated automatically by $ProgName" 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
-    echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
-    echo "set dtroot = ($dtroot)"					>> $RCF
-    echo "set subj = ($subj)"						>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Processing steps to be performed"			 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set docorr = ($docorr)"					>> $RCF
-    echo "set doqa = ($doqa)"						>> $RCF
-    echo "set dointra = ($dointra)"					>> $RCF
-    echo "set dointer = ($dointer)"					>> $RCF
-    echo "set domasks = ($domasks)"					>> $RCF
-    echo "set dotensor = ($dotensor)"					>> $RCF
-    echo "set dopriors = ($dopriors)"					>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Options for image corrections and tensor fit"	 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set dcmroot = ($dcmroot)"					>> $RCF
-    echo "set dcmfile = ($dcmlist[$isubj])"				>> $RCF
+    echo "# Run command file generated automatically by $ProgName"      >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "setenv FREESURFER_HOME $FREESURFER_HOME"                      >> $RCF
+    echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"                            >> $RCF
+    echo "set dtroot = ($dtroot)"                                       >> $RCF
+    echo "set subj = ($subj)"                                           >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Processing steps to be performed"                           >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set docorr = ($docorr)"                                       >> $RCF
+    echo "set doqa = ($doqa)"                                           >> $RCF
+    echo "set dointra = ($dointra)"                                     >> $RCF
+    echo "set dointer = ($dointer)"                                     >> $RCF
+    echo "set domasks = ($domasks)"                                     >> $RCF
+    echo "set dotensor = ($dotensor)"                                   >> $RCF
+    echo "set dopriors = ($dopriors)"                                   >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Options for image corrections and tensor fit"               >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set dcmroot = ($dcmroot)"                                     >> $RCF
+    echo "set dcmfile = ($dcmlist[$isubj])"                             >> $RCF
     if ($#bveclist) then
-      echo "set bvecfile = ($bveclist[$isubj])"				>> $RCF
+      echo "set bvecfile = ($bveclist[$isubj])"                         >> $RCF
     else
-      echo "set bvecfile = ($bvecfile)"					>> $RCF
+      echo "set bvecfile = ($bvecfile)"                                 >> $RCF
     endif
     if ($#bvallist) then
-      echo "set bvalfile = ($bvallist[$isubj])"				>> $RCF
+      echo "set bvalfile = ($bvallist[$isubj])"                         >> $RCF
     else
-      echo "set bvalfile = ($bvalfile)"					>> $RCF
+      echo "set bvalfile = ($bvalfile)"                                 >> $RCF
     endif
-    echo "set nb0 = ($nb0)"						>> $RCF
-    echo "set dob0 = ($dob0)"						>> $RCF
+    echo "set nb0 = ($nb0)"                                             >> $RCF
+    echo "set dob0 = ($dob0)"                                           >> $RCF
     if ($#b0mlist) then
-      echo "set b0mfile = ($b0mlist[$isubj])"				>> $RCF
+      echo "set b0mfile = ($b0mlist[$isubj])"                           >> $RCF
     else
-      echo "set b0mfile = ()"						>> $RCF
+      echo "set b0mfile = ()"                                           >> $RCF
     endif
     if ($#b0plist) then
-      echo "set b0pfile = ($b0plist[$isubj])"				>> $RCF
+      echo "set b0pfile = ($b0plist[$isubj])"                           >> $RCF
     else
-      echo "set b0pfile = ()"						>> $RCF
+      echo "set b0pfile = ()"                                           >> $RCF
     endif
-    echo "set echospacing = ($echospacing)"				>> $RCF
-    echo "set doeddy = ($doeddy)"					>> $RCF
-    echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
-    echo "set thrbet = ($thrbet)"					>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Options for registrations"				 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set doregflt = ($doregflt)"					>> $RCF
-    echo "set doregbbr = ($doregbbr)"					>> $RCF
-    echo "set doregmni = ($doregmni)"					>> $RCF
-    echo "set doregcvs = ($doregcvs)"					>> $RCF
-    echo "set mnitemp = ($mnitemp)"					>> $RCF
-    echo "set cvstempdir = ($cvstempdir)"				>> $RCF
-    echo "set cvstemp = ($cvstemp)"					>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Options for ball-and-stick model fit"		 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set nstick = ($nstick)"					>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Options for path reconstructions"				>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set usemaskanat = ($usemaskanat)"				>> $RCF
-    echo "set pathlist = ($pathlist)"					>> $RCF
-    echo "set ncpts = ($ncpts)"						>> $RCF
-    echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
-    echo "set ntrainlist = ($ntrainlist)"				>> $RCF
-    echo "set avgname = ($avgname)"					>> $RCF
-    echo "set reinit = ($reinit)"					>> $RCF
-    echo "set usetrunc = ($usetrunc)"					>> $RCF
-    echo "set doxyzprior = ($doxyzprior)"				>> $RCF
-    echo "set dosegprior = ($dosegprior)"				>> $RCF
-    echo "set dotangprior = ($dotangprior)"				>> $RCF
-    echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
-    echo "set fmin = ($fmin)"						>> $RCF
-    echo "set nburnin = ($nburnin)"					>> $RCF
-    echo "set nsample = ($nsample)"					>> $RCF
-    echo "set nupdate = ($nupdate)"					>> $RCF
-    echo "set nkeep = ($nkeep)"						>> $RCF
-    echo "set doinitprop = ($doinitprop)"				>> $RCF
-    echo "set overwrite = ($overwrite)"					>> $RCF
-    echo "#"							 	>> $RCF
-    echo "# Location of TRACULA executables"			 	>> $RCF
-    echo "#"							 	>> $RCF
-    echo "set trcdir = ($trcdir)"					>> $RCF
+    echo "set echospacing = ($echospacing)"                             >> $RCF
+    echo "set doeddy = ($doeddy)"                                       >> $RCF
+    echo "set dorotbvecs = ($dorotbvecs)"                               >> $RCF
+    echo "set thrbet = ($thrbet)"                                       >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Options for registrations"                                  >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set doregflt = ($doregflt)"                                   >> $RCF
+    echo "set doregbbr = ($doregbbr)"                                   >> $RCF
+    echo "set doregmni = ($doregmni)"                                   >> $RCF
+    echo "set doregcvs = ($doregcvs)"                                   >> $RCF
+    echo "set mnitemp = ($mnitemp)"                                     >> $RCF
+    echo "set cvstempdir = ($cvstempdir)"                               >> $RCF
+    echo "set cvstemp = ($cvstemp)"                                     >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Options for ball-and-stick model fit"                       >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set nstick = ($nstick)"                                       >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Options for path reconstructions"                           >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set usemaskanat = ($usemaskanat)"                             >> $RCF
+    echo "set pathlist = ($pathlist)"                                   >> $RCF
+    echo "set ncpts = ($ncpts)"                                         >> $RCF
+    echo "set trainsubjlist = ($trainsubjlist)"                         >> $RCF
+    echo "set ntrainlist = ($ntrainlist)"                               >> $RCF
+    echo "set avgname = ($avgname)"                                     >> $RCF
+    echo "set reinit = ($reinit)"                                       >> $RCF
+    echo "set usetrunc = ($usetrunc)"                                   >> $RCF
+    echo "set doxyzprior = ($doxyzprior)"                               >> $RCF
+    echo "set dosegprior = ($dosegprior)"                               >> $RCF
+    echo "set dotangprior = ($dotangprior)"                             >> $RCF
+    echo "set dopathsubdirs = ($dopathsubdirs)"                         >> $RCF
+    echo "set fmin = ($fmin)"                                           >> $RCF
+    echo "set nburnin = ($nburnin)"                                     >> $RCF
+    echo "set nsample = ($nsample)"                                     >> $RCF
+    echo "set nupdate = ($nupdate)"                                     >> $RCF
+    echo "set nkeep = ($nkeep)"                                         >> $RCF
+    echo "set doinitprop = ($doinitprop)"                               >> $RCF
+    echo "set overwrite = ($overwrite)"                                 >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "# Location of TRACULA executables"                            >> $RCF
+    echo "#"                                                            >> $RCF
+    echo "set trcdir = ($trcdir)"                                       >> $RCF
 
-    if ($dopreproc) then	# Pre-processing #############
+    if ($dopreproc) then        # Pre-processing #############
       set cmd = trac-preproc
       set cmd = ($cmd -c $RCF)
       set cmd = ($cmd -log $LF)
@@ -512,7 +514,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
         $cmd
         if ($status) exit 1
       endif
-    else if ($dobedpost) then	# Bedpost ####################
+    else if ($dobedpost) then   # Bedpost ####################
       if (! $onpbs) then
         if ($#submitfile) then
           set cmd =  (bedpostx_preproc.sh $dtdir/dmri)
@@ -541,7 +543,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
           endif
         endif
       endif
-    else if ($dopaths) then	# Path reconstruction ########
+    else if ($dopaths) then     # Path reconstruction ########
       set cmd = trac-paths
       set cmd = ($cmd -c $RCF)
       set cmd = ($cmd -log $LF)
@@ -556,7 +558,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       endif
     endif
   end
-else				#--->>> Multiple time points for each subject
+else                            #--->>> Multiple time points for each subject
   if (! $do1out) then
     # Find which base subjects will be processed
     set bsubjlist = ()
@@ -757,17 +759,17 @@ else				#--->>> Multiple time points for each subject
       endif
 
       echo "########################################" >> $LF
-      echo "Program versions:"			>> $LF
-      echo $VERSION               		>> $LF
-      mri_convert --all-info			>> $LF
-      flirt -version				>> $LF
-      bbregister --version			>> $LF
-      mri_cvs_register --version		>> $LF
-      $trcdir/dmri_train --all-info		>> $LF
-      $trcdir/dmri_paths --all-info		>> $LF
-      $trcdir/dmri_pathstats --all-info		>> $LF
-      $trcdir/dmri_mergepaths --all-info	>> $LF
-      $trcdir/dmri_group --all-info		>> $LF
+      echo "Program versions:"                  >> $LF
+      echo $VERSION                             >> $LF
+      mri_convert --all-info                    >> $LF
+      flirt -version                            >> $LF
+      bbregister --version                      >> $LF
+      mri_cvs_register --version                >> $LF
+      $trcdir/dmri_train --all-info             >> $LF
+      $trcdir/dmri_paths --all-info             >> $LF
+      $trcdir/dmri_pathstats --all-info         >> $LF
+      $trcdir/dmri_mergepaths --all-info        >> $LF
+      $trcdir/dmri_group --all-info             >> $LF
 
       if ($DoVersionsOnly) continue
 
@@ -795,115 +797,115 @@ else				#--->>> Multiple time points for each subject
       set RCF = $dtdir/scripts/dmrirc.local
       if (-e $RCF) mv -f $RCF $RCF.orig
 
-      echo "# Run command file generated automatically by $ProgName" 	>> $RCF
-      echo "#"							 	>> $RCF
+      echo "# Run command file generated automatically by $ProgName"    >> $RCF
+      echo "#"                                                          >> $RCF
       if ($subj == $bsubj) then
-        echo "# This is a base template for longitudinal tractography"	>> $RCF
-        echo "set tplist = ($tplist)"					>> $RCF
+        echo "# This is a base template for longitudinal tractography"  >> $RCF
+        echo "set tplist = ($tplist)"                                   >> $RCF
       else
-        echo "# This is a time point for longitudinal tractography"	>> $RCF
+        echo "# This is a time point for longitudinal tractography"     >> $RCF
       endif
-      echo "#"							 	>> $RCF
-      echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
-      echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
-      echo "set dtroot = ($dtroot)"					>> $RCF
-      echo "set subj = ($subj)"						>> $RCF
-      echo "#"							 	>> $RCF
-      echo "# Processing steps to be performed"			 	>> $RCF
-      echo "#"							 	>> $RCF
+      echo "#"                                                          >> $RCF
+      echo "setenv FREESURFER_HOME $FREESURFER_HOME"                    >> $RCF
+      echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"                          >> $RCF
+      echo "set dtroot = ($dtroot)"                                     >> $RCF
+      echo "set subj = ($subj)"                                         >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Processing steps to be performed"                         >> $RCF
+      echo "#"                                                          >> $RCF
       if ($subj == $bsubj) then
-        echo "set docorr = (0)"						>> $RCF
-        echo "set doqa = (0)"						>> $RCF
-        echo "set dointra = (0)"					>> $RCF
+        echo "set docorr = (0)"                                         >> $RCF
+        echo "set doqa = (0)"                                           >> $RCF
+        echo "set dointra = (0)"                                        >> $RCF
       else
-        echo "set docorr = ($docorr)"					>> $RCF
-        echo "set doqa = ($doqa)"					>> $RCF
-        echo "set dointra = ($dointra)"					>> $RCF
+        echo "set docorr = ($docorr)"                                   >> $RCF
+        echo "set doqa = ($doqa)"                                       >> $RCF
+        echo "set dointra = ($dointra)"                                 >> $RCF
       endif
-      echo "set dointer = ($dointer)"					>> $RCF
-      echo "set domasks = ($domasks)"					>> $RCF
+      echo "set dointer = ($dointer)"                                   >> $RCF
+      echo "set domasks = ($domasks)"                                   >> $RCF
       if ($subj == $bsubj) then
-        echo "set dotensor = (0)"					>> $RCF
-        echo "set dopriors = ($dopriors)"				>> $RCF
+        echo "set dotensor = (0)"                                       >> $RCF
+        echo "set dopriors = ($dopriors)"                               >> $RCF
       else
-        echo "set dotensor = ($dotensor)"				>> $RCF
-        echo "set dopriors = (0)"					>> $RCF
+        echo "set dotensor = ($dotensor)"                               >> $RCF
+        echo "set dopriors = (0)"                                       >> $RCF
       endif
-      echo "#"							 	>> $RCF
-      echo "# Options for image corrections and tensor fit"	 	>> $RCF
-      echo "#"							 	>> $RCF
-      echo "set dcmroot = ($dcmroot)"					>> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Options for image corrections and tensor fit"             >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "set dcmroot = ($dcmroot)"                                   >> $RCF
       if ($subj != $bsubj) then
-        echo "set dcmfile = ($dcmlist[$itps[$iproc]])"			>> $RCF
+        echo "set dcmfile = ($dcmlist[$itps[$iproc]])"                  >> $RCF
       else
-        echo "set dcmfile = ()"						>> $RCF
+        echo "set dcmfile = ()"                                         >> $RCF
       endif
       if ($#bveclist && $subj != $bsubj) then
-        echo "set bvecfile = ($bveclist[$itps[$iproc]])"		>> $RCF
+        echo "set bvecfile = ($bveclist[$itps[$iproc]])"                >> $RCF
       else
-        echo "set bvecfile = ($bvecfile)"				>> $RCF
+        echo "set bvecfile = ($bvecfile)"                               >> $RCF
       endif
       if ($#bvallist && $subj != $bsubj) then
-        echo "set bvalfile = ($bvallist[$itps[$iproc]])"		>> $RCF
+        echo "set bvalfile = ($bvallist[$itps[$iproc]])"                >> $RCF
       else
-        echo "set bvalfile = ($bvalfile)"				>> $RCF
+        echo "set bvalfile = ($bvalfile)"                               >> $RCF
       endif
-      echo "set nb0 = ($nb0)"						>> $RCF
-      echo "set dob0 = ($dob0)"						>> $RCF
+      echo "set nb0 = ($nb0)"                                           >> $RCF
+      echo "set dob0 = ($dob0)"                                         >> $RCF
       if ($subj != $bsubj && $#b0mlist) then
-        echo "set b0mfile = ($b0mlist[$itps[$iproc]])"			>> $RCF
+        echo "set b0mfile = ($b0mlist[$itps[$iproc]])"                  >> $RCF
       else
-        echo "set b0mfile = ()"						>> $RCF
+        echo "set b0mfile = ()"                                         >> $RCF
       endif
       if ($subj != $bsubj && $#b0plist) then
-        echo "set b0pfile = ($b0plist[$itps[$iproc]])"			>> $RCF
+        echo "set b0pfile = ($b0plist[$itps[$iproc]])"                  >> $RCF
       else
-        echo "set b0pfile = ()"						>> $RCF
+        echo "set b0pfile = ()"                                         >> $RCF
       endif
-      echo "set echospacing = ($echospacing)"				>> $RCF
-      echo "set doeddy = ($doeddy)"					>> $RCF
-      echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
-      echo "set thrbet = ($thrbet)"					>> $RCF
-      echo "set usemaskanat = ($usemaskanat)"				>> $RCF
-      echo "#"							 	>> $RCF
-      echo "# Options for registrations"			 	>> $RCF
-      echo "#"							 	>> $RCF
-      echo "set doregflt = ($doregflt)"					>> $RCF
-      echo "set doregbbr = ($doregbbr)"					>> $RCF
-      echo "set doregmni = ($doregmni)"					>> $RCF
-      echo "set doregcvs = ($doregcvs)"					>> $RCF
-      echo "set mnitemp = ($mnitemp)"					>> $RCF
-      echo "set cvstempdir = ($cvstempdir)"				>> $RCF
-      echo "set cvstemp = ($cvstemp)"					>> $RCF
-      echo "#"							 	>> $RCF
-      echo "# Options for ball-and-stick model fit"		 	>> $RCF
-      echo "#"							 	>> $RCF
-      echo "set nstick = ($nstick)"					>> $RCF
-      echo "#"						 		>> $RCF
-      echo "# Options for path reconstructions"				>> $RCF
-      echo "#"							 	>> $RCF
-      echo "set pathlist = ($pathlist)"					>> $RCF
-      echo "set ncpts = ($ncpts)"					>> $RCF
-      echo "set trainsubjlist = ($trainsubjlist)"			>> $RCF
-      echo "set ntrainlist = ($ntrainlist)"				>> $RCF
-      echo "set avgname = ($avgname)"					>> $RCF
-      echo "set reinit = ($reinit)"					>> $RCF
-      echo "set usetrunc = ($usetrunc)"					>> $RCF
-      echo "set doxyzprior = ($doxyzprior)"				>> $RCF
-      echo "set dosegprior = ($dosegprior)"				>> $RCF
-      echo "set dotangprior = ($dotangprior)"				>> $RCF
-      echo "set dopathsubdirs = ($dopathsubdirs)"			>> $RCF
-      echo "set fmin = ($fmin)"						>> $RCF
-      echo "set nburnin = ($nburnin)"					>> $RCF
-      echo "set nsample = ($nsample)"					>> $RCF
-      echo "set nupdate = ($nupdate)"					>> $RCF
-      echo "set nkeep = ($nkeep)"					>> $RCF
-      echo "set doinitprop = ($doinitprop)"				>> $RCF
-      echo "set overwrite = ($overwrite)"				>> $RCF
-      echo "#"							 	>> $RCF
-      echo "# Location of TRACULA executables"			 	>> $RCF
-      echo "#"							 	>> $RCF
-      echo "set trcdir = ($trcdir)"					>> $RCF
+      echo "set echospacing = ($echospacing)"                           >> $RCF
+      echo "set doeddy = ($doeddy)"                                     >> $RCF
+      echo "set dorotbvecs = ($dorotbvecs)"                             >> $RCF
+      echo "set thrbet = ($thrbet)"                                     >> $RCF
+      echo "set usemaskanat = ($usemaskanat)"                           >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Options for registrations"                                >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "set doregflt = ($doregflt)"                                 >> $RCF
+      echo "set doregbbr = ($doregbbr)"                                 >> $RCF
+      echo "set doregmni = ($doregmni)"                                 >> $RCF
+      echo "set doregcvs = ($doregcvs)"                                 >> $RCF
+      echo "set mnitemp = ($mnitemp)"                                   >> $RCF
+      echo "set cvstempdir = ($cvstempdir)"                             >> $RCF
+      echo "set cvstemp = ($cvstemp)"                                   >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Options for ball-and-stick model fit"                     >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "set nstick = ($nstick)"                                     >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Options for path reconstructions"                         >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "set pathlist = ($pathlist)"                                 >> $RCF
+      echo "set ncpts = ($ncpts)"                                       >> $RCF
+      echo "set trainsubjlist = ($trainsubjlist)"                       >> $RCF
+      echo "set ntrainlist = ($ntrainlist)"                             >> $RCF
+      echo "set avgname = ($avgname)"                                   >> $RCF
+      echo "set reinit = ($reinit)"                                     >> $RCF
+      echo "set usetrunc = ($usetrunc)"                                 >> $RCF
+      echo "set doxyzprior = ($doxyzprior)"                             >> $RCF
+      echo "set dosegprior = ($dosegprior)"                             >> $RCF
+      echo "set dotangprior = ($dotangprior)"                           >> $RCF
+      echo "set dopathsubdirs = ($dopathsubdirs)"                       >> $RCF
+      echo "set fmin = ($fmin)"                                         >> $RCF
+      echo "set nburnin = ($nburnin)"                                   >> $RCF
+      echo "set nsample = ($nsample)"                                   >> $RCF
+      echo "set nupdate = ($nupdate)"                                   >> $RCF
+      echo "set nkeep = ($nkeep)"                                       >> $RCF
+      echo "set doinitprop = ($doinitprop)"                             >> $RCF
+      echo "set overwrite = ($overwrite)"                               >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "# Location of TRACULA executables"                          >> $RCF
+      echo "#"                                                          >> $RCF
+      echo "set trcdir = ($trcdir)"                                     >> $RCF
 
       set LFlist  = ($LFlist $LF)
       set CFlist  = ($CFlist $CF)
@@ -912,7 +914,7 @@ else				#--->>> Multiple time points for each subject
       @ iproc = $iproc + 1
     end
 
-    if ($dopreproc) then	# Pre-processing #############
+    if ($dopreproc) then        # Pre-processing #############
       set cmd = ()
       @ iproc = 1
       while ($iproc <= $#proclist)
@@ -930,7 +932,7 @@ else				#--->>> Multiple time points for each subject
         /bin/tcsh -fc "$cmd"
         if ($status) exit 1
       endif
-    else if ($dobedpost) then	# Bedpost ####################
+    else if ($dobedpost) then   # Bedpost ####################
       @ iproc = 1
       while ($iproc <= $#proclist)
         if (! $onpbs) then
@@ -964,7 +966,7 @@ else				#--->>> Multiple time points for each subject
         endif
         @ iproc = $iproc + 1
       end
-    else if ($dopaths) then	# Path reconstruction ########
+    else if ($dopaths) then     # Path reconstruction ########
       set cmd = trac-paths
       set cmd = ($cmd -c $RCF)
       set cmd = ($cmd -log $LF)
@@ -984,6 +986,9 @@ else				#--->>> Multiple time points for each subject
 endif
 
 if ($dostats) then
+
+ echo IN DO STATS
+
   # Check root diffusion directory
   if (! -w $dtroot) then
     echo "ERROR: cannot write in $dtroot"
@@ -1010,6 +1015,100 @@ if ($dostats) then
   if ($doregflt) set reglist = ($reglist flt)
   if ($doregbbr) set reglist = ($reglist bbr)
 
+  echo STARTING THE FOR LOOPS for NTRAIN $ntrainlist XSPACE $xspacelist and REG $reglist
+
+  if ($infant) then # LZ:  put here
+    foreach ntrain ($ntrainlist)
+      set outdir = dpath
+
+      if ($dopathsubdirs) then
+        set outdir = $outdir/${nsample}samp
+
+        set ptype = ()
+
+        if ($dosegprior) then
+          set ptype = seg14
+        endif
+        if ($dotangprior) then
+          if ($#ptype) then
+            set ptype = $ptype.tang
+          else
+            set ptype = tang
+          endif
+        endif
+        if ($doxyzprior) then
+          if ($#ptype) then
+            set ptype = $ptype.xyz
+          else
+            set ptype = xyz
+          endif
+        endif
+        if (! $#ptype) then
+          set ptype = none
+        endif
+
+        set outdir = $outdir/$ptype
+      endif
+
+
+      set avgmode = $avgname${ntrain}
+
+      foreach pathname ($pathlist)
+        if ($RunIt) then
+          rm -f $statdir/$pathname.$avgmode.inputs.txt
+
+          @ k = 1
+          while ($k <= $#subjdirs)
+            set pathdir = $subjdirs[$k]/$outdir/${pathname}_$avgmode
+            if (-e $pathdir/path.pd.nii.gz) then
+              if ($#baselist == 0) then         # Cross-sectional
+                set xfmdir = $subjdirs[$k]/dmri/xfms
+                set labdir = $subjdirs[$k]/dlabel
+                set refvol = $labdir/diff/aparc+aseg_mask.nii.gz
+              else                                      # Longitudinal
+                set xfmdir = $basedirs[$k]/dmri/xfms
+                set labdir = $basedirs[$k]/dlabel
+                set refvol = $labdir/anatorig/aparc+aseg_mask.nii.gz
+              endif
+
+              set inputs = ($pathdir $refvol)
+
+              set inputs = ($inputs $xfmdir/diff2rob.mat)
+
+              echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
+            endif
+
+            @ k = $k + 1
+          end
+
+          echo PATH TO RECONSTRUCTIONS: $statdir/$pathname.$avgmode.inputs.txt  ## LZ: to debug!!
+          if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
+            echo "ERROR: no pathway reconstructions found"
+            exit 1
+          endif
+        endif
+
+        set cmd = $trcdir/dmri_group
+        set cmd = ($cmd --list  $statdir/$pathname.$avgmode.inputs.txt)
+        set cmd = ($cmd --ref $SPATIAL_TEMPLATE) 
+
+        set cmd = ($cmd --out   $statdir/$pathname.$avgmode)
+
+        set LF = $statdir/$pathname.$avgmode.log
+
+        if ($RunIt) then
+          if ($#submitfile) then
+            echo "$cmd |& tee -a $LF" >> $submitfile
+          else
+            echo $cmd
+            $cmd |& tee -a $LF
+            if ($status) exit 1
+          endif
+        endif
+      end
+    end
+  # if infant end
+  else
   foreach ntrain ($ntrainlist)
     foreach xspace ($xspacelist)
       foreach reg ($reglist)
@@ -1055,11 +1154,11 @@ if ($dostats) then
               set pathdir = $subjdirs[$k]/$outdir/${pathname}_$avgmode
 
               if (-e $pathdir/path.pd.nii.gz) then
-                if ($#baselist == 0) then		# Cross-sectional
+                if ($#baselist == 0) then               # Cross-sectional
                   set xfmdir = $subjdirs[$k]/dmri/xfms
                   set labdir = $subjdirs[$k]/dlabel
                   set refvol = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
-                else					# Longitudinal
+                else                                    # Longitudinal
                   set xfmdir = $basedirs[$k]/dmri/xfms
                   set labdir = $basedirs[$k]/dlabel
                   set refvol = $labdir/anatorig/aparc+aseg_mask.nii.gz
@@ -1067,31 +1166,34 @@ if ($dostats) then
 
                 set inputs = ($pathdir $refvol)
 
+                
+
                 if ($xspace == mni) then
-                  if ($#baselist == 0) then		# Cross-sectional
+                  if ($#baselist == 0) then             # Cross-sectional
                     set inputs = ($inputs $xfmdir/diff2mni.$reg.mat)
-                  else					# Longitudinal
+                  else                                  # Longitudinal
                     set inputs = ($inputs $xfmdir/anatorig2mni.mat)
                   endif
                 else if ($xspace == cvs) then
-                  if ($#baselist == 0) then		# Cross-sectional
+                  if ($#baselist == 0) then             # Cross-sectional
                     set inputs = ($inputs $xfmdir/diff2anatorig.$reg.mat)
                     if (-e $xfmdir/cvs/$cvswarp.m3z) then
                       set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
                     endif
-                  else					# Longitudinal
+                  else                                  # Longitudinal
                     if (-e $xfmdir/cvs/$cvswarp.m3z) then
                       set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
                     endif
                   endif
                 endif
-
+               
                 echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
               endif
 
               @ k = $k + 1
             end
 
+            echo PATH TO RECONSTRUCTIONS: $statdir/$pathname.$avgmode.inputs.txt  ## LZ: to debug!!
             if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
               echo "ERROR: no pathway reconstructions found"
               exit 1
@@ -1121,8 +1223,8 @@ if ($dostats) then
         end
       end
     end
-  end
-endif
+  endif
+endif # if dostats
 
 if ($onpbs && $RunIt) then
   if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
@@ -1182,7 +1284,7 @@ while( $#argv != 0 )
     case "-s":
       if ($#argv < 1) goto arg1err;
       set subjlist = $argv[1]; shift;
-      set subjlist = `basename $subjlist`	# to remove trailing /
+      set subjlist = `basename $subjlist`       # to remove trailing /
       breaksw
 
     case "-i":
@@ -1404,6 +1506,10 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-traculina":
+      set infant = 1
+      breaksw
+
     case "-debug":
       set debug = 1
       breaksw
@@ -1439,14 +1545,14 @@ check_params:
         # Leave-one-out training file:
         # The first subject of each line is the test subject,
         # the remaining subjects of the line are the training subjects
-        if ($#baselist == 0) then	# A single time point for each subject
+        if ($#baselist == 0) then       # A single time point for each subject
           set subjlist = `cat $trainfile | awk '{print $1}'`
 
           set runlist = 1
           while ($runlist[$#runlist] < $#subjlist)
             set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
           end
-        else				# Multiple time points for each subject
+        else                            # Multiple time points for each subject
           set bsubjlist = `cat $trainfile | awk '{print $1}'`
         endif
 
@@ -1473,7 +1579,7 @@ check_params:
       exit 1
     endif
 
-    if ($#runlist == 0) then			# Process all subjects
+    if ($#runlist == 0) then                    # Process all subjects
       set runlist = 1
       while ($runlist[$#runlist] < $#subjlist)
         set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
@@ -1504,7 +1610,7 @@ check_params:
     setenv SUBJECTS_DIR `pwd`;
     popd > /dev/null
 
-    if (! $#dtroot) then		# Save output under SUBJECTS_DIR
+    if (! $#dtroot) then                # Save output under SUBJECTS_DIR
       set dtroot = $SUBJECTS_DIR
     endif
 

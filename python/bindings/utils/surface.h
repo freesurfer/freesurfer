@@ -20,6 +20,7 @@ public:
   // py::object Surface conversions
   Bridge(py::object src) : source(src) {}
   operator py::object() { return python(); }
+  py::object source = py::none();
   void updateSource();
 
 private:
@@ -28,7 +29,6 @@ private:
   void transferParameters(py::object& pyobj);
 
   std::shared_ptr<MRIS> p_mris;
-  py::object source = py::none();
 };
 
 // IO
@@ -38,6 +38,7 @@ void write(Bridge surf, const std::string& filename);
 
 // metrics
 void computeNormals(Bridge surf);
+void computeTangents(Bridge surf);
 int computeEulerNumber(Bridge surf);
 
 // parameterization
@@ -54,6 +55,7 @@ inline void bind(py::module &m)
   m.def("read", &read);
   m.def("write", &write);
   m.def("compute_normals", &computeNormals);
+  m.def("compute_tangents", &computeTangents);
   m.def("compute_euler", &computeEulerNumber);
   m.def("parameterize", &parameterize);
   m.def("sample_parameterization", &sampleParameterization);

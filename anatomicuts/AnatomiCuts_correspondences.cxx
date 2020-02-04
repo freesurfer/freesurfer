@@ -109,7 +109,7 @@ int SymmetricLabelId(int id)
 	  }*/
 	return  symId;
 }
-std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes, ImageType::Pointer segmentation, bool removeInterHemispheric)
+std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointer> basicMeshes, ImageType::Pointer segmentation, float  interHemiThreshold )
 {
 	if( ct == NULL)
 	{
@@ -140,7 +140,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 			BasicMeshType::PointType pt=0; 
 			int left=0, right=0;
 
-			if(removeInterHemispheric)
+			if(interHemiThreshold>0)
 			{ 
 				for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
 				{
@@ -163,7 +163,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 
 				}
 			}
-			if (right == 0 || left ==0 || !removeInterHemispheric )
+			if (right == 0 || left ==0 || interHemiThreshold<=0 )
 			{
 				for(pointIdIt  = cellIt.Value()->PointIdsBegin();pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
 				{
@@ -189,7 +189,7 @@ std::vector<MeshType::Pointer> BasicMeshToMesh(std::vector<BasicMeshType::Pointe
 		}
 		float val =(float)out / ((float)indexCell+out);
 		//std::cout << " val " << val << std::endl;
-		if( val> 0.20)
+		if( val> interHemiThreshold)
 		{
 			meshes.push_back(MeshType::New());
 		}
@@ -435,7 +435,7 @@ int main(int narg, char*  arg[])
 		if(cl.size()==1 || cl.search(2,"--help","-h"))
 		{
 			std::cout<<"Usage: " << std::endl;
-			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -labels (-euclid for Eucildean) -bb -sym -o output"  << std::endl;   
+			std::cout<< arg[0] << " -s1 parcellation1 -s2 parcellation2 -c numClusters -h1 clusteringPath1  -h2 clusterinPath2 -labels (-euclid for Eucildean) -bb -sym interHemiRatioClusterRemoval -o output"  << std::endl;   
 			return -1;
 		}
 		int numClusters = cl.follow(0,"-c");
@@ -449,7 +449,7 @@ int main(int narg, char*  arg[])
 
 
 		segFile = cl.follow ("", "-s2");
-		bool symm =  cl.search("-sym");
+		float symm =  cl.follow(0.0,"-sym");
 		std::cout << "Symmetry " << symm << std::endl;
 		bool bb =  cl.search("-bb");
 		std::cout << "Baby Mode " << bb << std::endl;

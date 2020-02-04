@@ -283,7 +283,7 @@ int main(int narg, char*  arg[])
 		curvature->SetCurvatureTypeToGaussian();
 		#else
 		vtkSmartPointer<vtkPCACurvatureEstimation> curvature =   vtkPCACurvatureEstimation::New();
-		curvature->SetSampleSize(100);
+		//curvature->SetSampleSize(100);
 		curvature->SetInputData(FSToVTK(surf));
 		#endif
 

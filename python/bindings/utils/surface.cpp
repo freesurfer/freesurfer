@@ -129,6 +129,37 @@ void computeNormals(Bridge surf)
 
 
 /*
+  Runs MRIScomputeSecondFundamentalForm() to compute vertex tangents along the
+  primary curvature directions. No need to call surf.updateSource() at the
+  end of this function since we're only updating tangents, which are parameters
+  that might not be defined in the surface (so they shouldn't be handled in
+  the transferParameters() function anyway).
+*/
+void computeTangents(Bridge surf)
+{
+  MRIScomputeSecondFundamentalForm(surf);
+
+  // pass along tangent vectors
+  MRIS *mris = surf.mris();
+  float * const e1_buffer = new float[mris->nvertices * 3];
+  float * const e2_buffer = new float[mris->nvertices * 3];
+  float * e1_ptr = e1_buffer;
+  float * e2_ptr = e2_buffer;
+  for (int n = 0 ; n < mris->nvertices ; n++) {
+    VERTEX *v = &mris->vertices[n];
+    *e1_ptr++ = v->e1x;
+    *e1_ptr++ = v->e1y;
+    *e1_ptr++ = v->e1z;
+    *e2_ptr++ = v->e2x;
+    *e2_ptr++ = v->e2y;
+    *e2_ptr++ = v->e2z;
+  }
+  surf.source.attr("vertex_tangents_1") = makeArray({mris->nvertices, 3}, MemoryOrder::C, e1_buffer);
+  surf.source.attr("vertex_tangents_2") = makeArray({mris->nvertices, 3}, MemoryOrder::C, e2_buffer);
+}
+
+
+/*
   Computes the mesh euler number.
 */
 int computeEulerNumber(Bridge surf)

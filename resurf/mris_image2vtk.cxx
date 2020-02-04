@@ -329,6 +329,7 @@ int main( int argc, char* argv[] )
 
 	vtkSurface = conn->GetOutput();
 
+	std::cout << " num points " << vtkSurface->GetNumberOfPoints()<< std::endl;
 
 //	for(int i =0;i<vtkSmoothingIterations;i++)
 	{

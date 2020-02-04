@@ -64,10 +64,14 @@ public:
 
   int GetFrameLabel(int nFrame);
 
+  QList<int> GetVisibleLabels();
+
 public slots:
   void Highlight(int nLabel);
   void RestoreColors();
+  void ShowAllLabels(bool bShow);
   void SetLabelVisible(int nLabel, bool bVisible);
+  void SetFrameVisible(int nFrame, bool bVisible);
 
 protected slots:
   void UpdateFrameActor(int n);
@@ -77,6 +81,7 @@ protected slots:
 
 protected:
   QList< vtkSmartPointer<vtkActor> >  m_actors;
+  QList< bool > m_bVisiblities;
   COLOR_TABLE* m_ctabStripped;
 };
 

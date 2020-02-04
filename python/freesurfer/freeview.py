@@ -102,7 +102,7 @@ class Freeview:
                 tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
                 if config.threshold is not None:
                     tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
-                kwargs['opts'] = kwargs.get('opts', '') + tag
+                kwargs['opts'] = tag + kwargs.get('opts', '')
 
         # configure (potentially multiple) mrisps
         if mrisp is not None:
@@ -110,7 +110,7 @@ class Freeview:
             for sp in mrisp:
                 config = sp if isinstance(sp, Freeview.MRISPTag) else Freeview.MRISPTag(sp)
                 tag = ':mrisp=%s' % self._vol_to_file(config.data, name=config.name, force=Image)
-                kwargs['opts'] = kwargs.get('opts', '') + tag
+                kwargs['opts'] = tag + kwargs.get('opts', '')
 
         # if sphere is provided as an array, make sure it's converted
         if sphere is not None:
@@ -120,12 +120,13 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts=''):
+    def show(self, background=True, opts='', verbose=False):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
             opts: Additional arguments to append to the command.
+            verbose: Print the freeview command before running. Defaults to False.
         '''
 
         # compile the command
@@ -134,6 +135,9 @@ class Freeview:
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir:
             command = '%s ; rm -rf %s' % (command, self.tempdir)
+
+        if verbose:
+            print(command)
 
         # run it
         run(command, background=background)
@@ -150,7 +154,9 @@ class Freeview:
             kwargs['name'] = kwargs['name'].replace(' ', '-')
 
         # opts is reserved for hardcoded tags
-        tags = kwargs.pop('opts', '')
+        extra_tags = kwargs.pop('opts', '')
+
+        tags = ''
         for key, value in kwargs.items():
 
             if isinstance(value, (list, tuple)):
@@ -159,7 +165,7 @@ class Freeview:
             if value is not None:
                 tags += ':%s=%s' % (key, str(value))
 
-        return tags
+        return tags + extra_tags
 
     def _vol_to_file(self, volume, name=None, force=None):
         '''
@@ -337,14 +343,15 @@ def fv(*args, **kwargs):
     fv.show(background=background, opts=opts)
 
 
-def fvoverlay(surface, overlay, background=True, opts=''):
+def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 
     Args:
         surface: An existing surface filename.
         overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
         background: Run freeview as a background process. Defaults to True.
+        verbose: Print the freeview command before running. Defaults to False.
     '''
     fv = Freeview()
     fv.surf(surface, overlay=overlay)
-    fv.show(background=background, opts=opts)
+    fv.show(background=background, opts=opts, verbose=verbose)

@@ -7052,6 +7052,7 @@ while( $#argv != 0 )
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;
+      set DoDecimation = 1;
       echo "INFO: hi-res volumes are conformed to the min voxel size"
       # per testing by Natalia Zaretskaya, Mar 2015, the flags which
       # normally disable the aseg steps are no longer necessary (which

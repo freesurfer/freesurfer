@@ -171,7 +171,8 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "smoothed", "smoothed", "", "Use smoothed display as the default display method for volumes." ),
     CmdLineEntry( CMD_LINE_OPTION, "colormap", "colormap", "<TYPE>", "Use the give colormap type as the colormap for all the volumes to be loaded after.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 1000 ),
-    CmdLineEntry( CMD_LINE_OPTION, "tv", "tract-volume", "<FILE>...", "Load one or more tract volumes.", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "tv", "tract-volume", "<FILE>...", "Load one or more tract volumes.Available sub-options are:\n\n"
+    "':frame=frame_number' Show only a single tract by frame number.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n"
     "':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n"
     "':curvature_method=method' method to display curvature. available options are 'off', 'binary' or 'threshold'. default is 'threshold'.\n\n"
@@ -236,7 +237,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "p-lut", "p-lut", "<NAME>...", "Set the look up table name to use for p-label display. name can be the name of a stock lookup table or the file name of a lookup table file. default is the default freesurfer look up table.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "cmat", "connectome-matrix", "<CMAT_FILE> <PARCELLATION_FILE>", "Load connectome matrix data files. Requires a cmat file and a parcellation volume file. Available sub-options are:\n\n'lut=color_table' Enter the name or file name of the color table to be used. Default is the FreeSurfer default LUT.\n", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "fcd", "fcd", "<SUBJECT_DIR> <SUBJECT> [SUFFIX]", "Load FCD data. Requires subject directory and subject. Suffix is optional.\n", 2, 3 ),
-    CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "lineprofile", "lineprofile", "<OUTPUT_FILE>", "Compute the thickness of layers along line profiles and export them to given csv file. Initial lines (waypoints) must be loaded in order with waypoint options. Available sub-options are:\n\n"
@@ -273,6 +274,9 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "nocursor", "nocursor", "", "Hide the cursor." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-frames", "hide-3d-frames", "", "Hide slice frames in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-x-slice", "hide-x-slice", "", "Hide x slice in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-y-slice", "hide-y-slice", "", "Hide y slice in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-z-slice", "hide-z-slice", "", "Hide z slice in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "auto-load-surf", "auto-load-surf", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),

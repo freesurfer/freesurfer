@@ -16,8 +16,9 @@ default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
-parser.add_argument('-i', '--input', action='append', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
+parser.add_argument('-i', '--input', nargs='+', action='extend', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
 # optional processing options
+parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 parser.add_argument('--reg-only', action='store_true', default=False, help='Only perform initial affine registration.')
 parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
@@ -29,6 +30,7 @@ parser.add_argument('--lesion', action='store_true', default=False, help='Enable
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-mask', type=int, nargs='+', help='Lesion mask (1 for each input): -1 below WM mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -146,7 +148,8 @@ samseg_kwargs = dict(
     saveHistory=args.history,
     saveMesh=args.save_mesh,
     savePosteriors=args.save_posteriors,
-    saveWarp=args.save_warp
+    saveWarp=args.save_warp,
+    modeNames=args.mode
 )
 
 if args.lesion:
@@ -156,18 +159,22 @@ if args.lesion:
     # and above the mean if 1. 0 means no masking
     # For MS lesion the best setting is the Cortex structure with 0 for T1, 1 for T2 and/or FLAIR.
     intensityMaskingSearchString = 'Cortex'
-
-    # Let's assume the first image is T1 and the second is FLAIR or T2 and eventually
+    
+    # If no intensity masking pattern is specified by the user,
+    # let's assume the first image is T1 and the second is FLAIR or T2 and eventually
     # the third one is a FLAIR or T2. For extra contrasts just use 0 intensity mask pattern.
-    if len(args.inputFileNames) == 1:
-        intensityMaskingPattern = [0]
-    elif len(args.inputFileNames) == 2:
-        intensityMaskingPattern = [0, 1]
-    elif len(args.inputFileNames) == 3:
-        intensityMaskingPattern = [0, 1, 1]
+    if args.lesion_mask is None:
+        if len(args.inputFileNames) == 1:
+            intensityMaskingPattern = [0]
+        elif len(args.inputFileNames) == 2:
+            intensityMaskingPattern = [0, 1]
+        elif len(args.inputFileNames) == 3:
+            intensityMaskingPattern = [0, 1, 1]
+        else:
+            intensityMaskingPattern = np.zeros(len(args.inputFileNames))
+            intensityMaskingPattern[1:3] = 1
     else:
-        intensityMaskingPattern = np.zeros(len(args.inputFileNames))
-        intensityMaskingPattern[1:3] = 1
+        intensityMaskingPattern = args.lesion_mask
 
     # Make sure tensorflow is installed
     fs.utils.check_tensorflow()

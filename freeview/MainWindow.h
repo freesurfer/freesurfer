@@ -248,6 +248,7 @@ Q_SIGNALS:
   void CycleOverlayRequested();
   void SupplementLayerChanged();
   void OverlayMaskRequested(const QString& fn);
+  void RefreshLookUpTableRequested();
 
 public slots:
   void SetMode( int nMode );
@@ -427,6 +428,7 @@ protected:
   void CommandSetActiveFrame    ( const QStringList& cmd );
   void CommandSetActiveLayer    ( const QStringList& cmd );
   void CommandExportLineProfileThickness  (const QStringList& cmd);
+  void CommandSetVolumeTrackFrame   ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
