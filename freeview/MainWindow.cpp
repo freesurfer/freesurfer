@@ -3040,17 +3040,19 @@ void MainWindow::CommandLoadVolumeTrack( const QStringList& sa )
 
 void MainWindow::CommandSetVolumeTrackFrame(const QStringList &cmd)
 {
-  int nFrame = cmd[1].toInt();
   Layer* layer = GetActiveLayer("MRI");
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
      LayerVolumeTrack* vt = (LayerVolumeTrack*)layer;
-     if (nFrame >= 0)
+     QStringList frames = cmd[1].split(",");
+     vt->ShowAllLabels(false);
+     for (int i = 0; i < frames.size(); i++)
      {
-      vt->ShowAllLabels(false);
-      vt->SetFrameVisible(nFrame, true);
-      emit RefreshLookUpTableRequested();
+       int nFrame = frames[i].toInt();
+       if (nFrame >= 0)
+        vt->SetFrameVisible(nFrame, true);
      }
+     emit RefreshLookUpTableRequested();
   }
 }
 

@@ -909,9 +909,13 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
     {
       labels = layer->GetAvailableLabels();
       if (layer->IsTypeOf("VolumeTrack"))
+      {
         selectedLabels = ((LayerVolumeTrack*)layer)->GetVisibleLabels();
+      }
       else
+      {
         selectedLabels = layer->GetProperty()->GetSelectedLabels();
+      }
     }
     int nValidCount = 0;
     bool bHasSelected = false, bHasUnselected = false;

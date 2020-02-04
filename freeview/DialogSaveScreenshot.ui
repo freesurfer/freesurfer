@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>366</width>
-    <height>324</height>
+    <width>374</width>
+    <height>364</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -52,10 +52,10 @@
       <string>Options</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="checkBoxHideAnnotation">
+      <item row="4" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBoxKeepWindow">
         <property name="text">
-         <string>Hide coordinates</string>
+         <string>Do not close this window after save</string>
         </property>
        </widget>
       </item>
@@ -63,6 +63,27 @@
        <widget class="QCheckBox" name="checkBoxHideScaleBar">
         <property name="text">
          <string>Hide scale bar</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="checkBoxHideCursor">
+        <property name="text">
+         <string>Hide cursor</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBoxAntiAliasing">
+        <property name="text">
+         <string>Enable anti-aliasing (3D view only)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="checkBoxHideAnnotation">
+        <property name="text">
+         <string>Hide coordinates</string>
         </property>
        </widget>
       </item>
@@ -100,20 +121,6 @@
         </item>
        </layout>
       </item>
-      <item row="3" column="0" colspan="2">
-       <widget class="QCheckBox" name="checkBoxAntiAliasing">
-        <property name="text">
-         <string>Enable anti-aliasing (3D view only)</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0" colspan="2">
-       <widget class="QCheckBox" name="checkBoxKeepWindow">
-        <property name="text">
-         <string>Do not close this window after save</string>
-        </property>
-       </widget>
-      </item>
       <item row="5" column="0" colspan="2">
        <widget class="QCheckBox" name="checkBoxAutoTrim">
         <property name="text">
@@ -121,10 +128,11 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="checkBoxHideCursor">
+      <item row="6" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBoxCycle">
         <property name="text">
-         <string>Hide cursor</string>
+         <string>Cycle through every volume or surface layer.
+Use wildcard %name as layer name in the filename.</string>
         </property>
        </widget>
       </item>
@@ -142,14 +150,28 @@
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <property name="bottomMargin">
+      <number>0</number>
      </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
-     </property>
-    </widget>
+     <item>
+      <widget class="QLabel" name="labelProgress">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
