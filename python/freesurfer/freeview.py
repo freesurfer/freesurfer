@@ -120,12 +120,13 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts=''):
+    def show(self, background=True, opts='', verbose=False):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
             opts: Additional arguments to append to the command.
+            verbose: Print the freeview command before running. Defaults to False.
         '''
 
         # compile the command
@@ -134,6 +135,9 @@ class Freeview:
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir:
             command = '%s ; rm -rf %s' % (command, self.tempdir)
+
+        if verbose:
+            print(command)
 
         # run it
         run(command, background=background)
@@ -337,14 +341,15 @@ def fv(*args, **kwargs):
     fv.show(background=background, opts=opts)
 
 
-def fvoverlay(surface, overlay, background=True, opts=''):
+def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 
     Args:
         surface: An existing surface filename.
         overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
         background: Run freeview as a background process. Defaults to True.
+        verbose: Print the freeview command before running. Defaults to False.
     '''
     fv = Freeview()
     fv.surf(surface, overlay=overlay)
-    fv.show(background=background, opts=opts)
+    fv.show(background=background, opts=opts, verbose=verbose)
