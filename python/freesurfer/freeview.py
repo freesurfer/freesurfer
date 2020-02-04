@@ -120,7 +120,7 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts='', verbose=False):
+    def show(self, background=True, opts='', verbose=False, noclean=False):
         '''Opens the configured freeview session.
 
         Args:
@@ -133,7 +133,7 @@ class Freeview:
         command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
 
         # be sure to remove the temporary directory (if it exists) after freeview closes
-        if self.tempdir:
+        if self.tempdir and not noclean:
             command = '%s ; rm -rf %s' % (command, self.tempdir)
 
         if verbose:
