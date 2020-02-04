@@ -132,7 +132,7 @@
        <widget class="QCheckBox" name="checkBoxCycle">
         <property name="text">
          <string>Cycle through every volume or surface layer.
-Use wildcard %name as layer name in filename.</string>
+Use wildcard %name as layer name in the filename.</string>
         </property>
        </widget>
       </item>
