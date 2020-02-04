@@ -102,7 +102,7 @@ class Freeview:
                 tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
                 if config.threshold is not None:
                     tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
-                kwargs['opts'] = kwargs.get('opts', '') + tag
+                kwargs['opts'] = tag + kwargs.get('opts', '')
 
         # configure (potentially multiple) mrisps
         if mrisp is not None:
@@ -110,7 +110,7 @@ class Freeview:
             for sp in mrisp:
                 config = sp if isinstance(sp, Freeview.MRISPTag) else Freeview.MRISPTag(sp)
                 tag = ':mrisp=%s' % self._vol_to_file(config.data, name=config.name, force=Image)
-                kwargs['opts'] = kwargs.get('opts', '') + tag
+                kwargs['opts'] = tag + kwargs.get('opts', '')
 
         # if sphere is provided as an array, make sure it's converted
         if sphere is not None:
@@ -154,7 +154,9 @@ class Freeview:
             kwargs['name'] = kwargs['name'].replace(' ', '-')
 
         # opts is reserved for hardcoded tags
-        tags = kwargs.pop('opts', '')
+        extra_tags = kwargs.pop('opts', '')
+
+        tags = ''
         for key, value in kwargs.items():
 
             if isinstance(value, (list, tuple)):
@@ -163,7 +165,7 @@ class Freeview:
             if value is not None:
                 tags += ':%s=%s' % (key, str(value))
 
-        return tags
+        return tags + extra_tags
 
     def _vol_to_file(self, volume, name=None, force=None):
         '''
