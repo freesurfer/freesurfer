@@ -598,6 +598,7 @@ endif()
 
 if(INFANT_MODULE)
   add_subdirectory(infant)
+  add_subdirectory(sscnn_skullstripping)
 endif()
 
 if(TKTOOLS_MODULE)
