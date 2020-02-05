@@ -103,7 +103,7 @@ class Freeview:
                 tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
                 if config.threshold is not None:
                     tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
-                if config.overlay is not None:
+                if config.opacity is not None:
                     tag += ':overlay_opacity=%f' % config.opacity
                 kwargs['opts'] = tag + kwargs.get('opts', '')
 
