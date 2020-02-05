@@ -344,6 +344,10 @@ class Samseg:
         downSampledTransform = gems.KvlTransform(
             requireNumpyArray(downSamplingTransformMatrix @ self.transform.as_numpy_array))
 
+        # Downsample the initial deformation, if specified
+        if self.deformation is not None:
+            self.deformation = self.deformation / downSamplingFactors
+
         # Get the mesh
         downSampledMesh, downSampledInitialDeformationApplied = self.probabilisticAtlas.getMesh(atlasFileName,
                                                                                                 downSampledTransform,
