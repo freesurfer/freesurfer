@@ -90,6 +90,7 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set FS_DIR = $argv[1]; shift;
       # set the "true" FS_DIR path
+      mkdir -p $FS_DIR
       pushd $FS_DIR > /dev/null
       set FS_DIR = `pwd`
       popd > /dev/null
