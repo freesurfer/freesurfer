@@ -29,7 +29,8 @@ if not os.path.isfile(input_file):
 
 # conform input image
 conformed_file = os.path.join(args.output_dir, 'conformed.nii.gz')
-fs.run('mri_convert --conform %s %s' % (input_file, conformed_file))
+if fs.run('mri_convert --conform %s %s' % (input_file, conformed_file)) != 0:
+    fs.fatal('could not conform input image')
 
 # device handling
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
