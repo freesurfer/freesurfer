@@ -23,10 +23,11 @@ class Freeview:
 
     class OverlayTag:
         '''Configuration for overlay tags. See surf() for usage.'''
-        def __init__(self, data, name=None, threshold=None):
+        def __init__(self, data, name=None, threshold=None, opacity=None):
             self.data = data
             self.name = name
             self.threshold = threshold
+            self.opacity = opacity
 
     class MRISPTag:
         '''Configuration for mrisp tags. See surf() for usage.'''
@@ -102,6 +103,8 @@ class Freeview:
                 tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
                 if config.threshold is not None:
                     tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
+                if config.opacity is not None:
+                    tag += ':overlay_opacity=%f' % config.opacity
                 kwargs['opts'] = tag + kwargs.get('opts', '')
 
         # configure (potentially multiple) mrisps
