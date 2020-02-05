@@ -116,8 +116,10 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate
-find_package(GTS)
+# only used by mris_decimate (not available on mac)
+if(NOT APPLE)
+  find_package(GTS)
+endif()
 
 # -------- openMP --------
 find_package(OpenMP)
