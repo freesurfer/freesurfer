@@ -1427,7 +1427,7 @@ void PanelSurface::OnButtonDeletePath()
 void PanelSurface::OnButtonCustomFillPath()
 {
   m_dlgCustomFill->show();
-//  m_dlgCustomFill->raise();
+  m_dlgCustomFill->raise();
 }
 
 void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
