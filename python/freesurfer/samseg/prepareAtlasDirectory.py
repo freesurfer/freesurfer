@@ -137,7 +137,6 @@ def smoothMeshCollection( meshCollection, sigma, returnPriors=False, showFigures
 
 def prepareAtlasDirectory( directoryName,
                            meshCollectionFileName, 
-                           FreeSurferLookupTableFileName,
                            compressionLookupTableFileName,
                            sharedGMMParameters,
                            templateFileName,
@@ -145,6 +144,7 @@ def prepareAtlasDirectory( directoryName,
                            smoothingSigmaForFirstLevel=2, meshCollectionFileNameForFirstLevel=None,
                            smoothingSigmaForAffine=2, meshCollectionFileNameForAffine=None,
                            affineClassDefinitions=None,
+                           FreeSurferLookupTableFileName=None,
                            showFigures=True ):
     #
     if showFigures:
@@ -156,10 +156,6 @@ def prepareAtlasDirectory( directoryName,
     # Create the output directory
     os.makedirs( directoryName, exist_ok=True )
 
-
-    # Copy the FreeSurferLookupTable
-    shutil.copy( FreeSurferLookupTableFileName, 
-                 os.path.join( directoryName, 'modifiedFreeSurferColorLUT.txt' ) )
 
     # Write sharedGMMParameters to file
     kvlWriteSharedGMMParameters( sharedGMMParameters, 
@@ -245,6 +241,16 @@ def prepareAtlasDirectory( directoryName,
 
     visualizer.show( mesh=meshCollection.reference_mesh, shape=size, title="Atlas for affine" )
     meshCollection.write( os.path.join( directoryName, 'atlasForAffineRegistration.txt' ) )
+
+
+    # Copy the FreeSurferLookupTable
+    if FreeSurferLookupTableFileName:
+        #
+        shutil.copy( FreeSurferLookupTableFileName, 
+                     os.path.join( directoryName, 'modifiedFreeSurferColorLUT.txt' ) )
+
+
+
 
     return
   
