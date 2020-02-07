@@ -136,7 +136,7 @@ if(NOT APPLE)
 endif()
 
 # -------- X11 ---------
-find_package(X11 REQUIRED)
+find_package(X11)
 
 # search for GUI libraries
 if(BUILD_GUIS)
