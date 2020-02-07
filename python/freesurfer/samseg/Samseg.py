@@ -346,9 +346,9 @@ class Samseg:
 
         # Get the mesh
         downSampledMesh, downSampledInitialDeformationApplied = self.probabilisticAtlas.getMesh(atlasFileName,
-                                                                                                self.deformation,
+                                                                                                downSampledTransform,
                                                                                                 self.modelSpecifications.K,
-                                                                                                downSampledDeformation,
+                                                                                                self.deformation,
                                                                                                 self.deformationAtlasFileName,
                                                                                                 returnInitialDeformationApplied=True)
 
