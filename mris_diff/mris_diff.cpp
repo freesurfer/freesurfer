@@ -1155,6 +1155,7 @@ static void print_usage(void) {
   printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
+  printf("   --simple : just report whether the surfaces are different\n");
   printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
          MAX_NUM_ERRORS);
