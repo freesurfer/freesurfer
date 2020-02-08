@@ -137,7 +137,11 @@ public:
   MRIS *surf;
   MRI *seg, *invol;
   char *hemi;
+  int RipFreeze = 1;
+  int RipLesion = 0;
   int RipWMSA = 0;
+  int nRipSegs= 0;
+  int RipSegNo[100];
   int RipBG = 0;
   int RipMidline = 1;
   char *riplabelfile = NULL;
@@ -147,7 +151,7 @@ public:
 };
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
-int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISripSegs(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
 
 static int  parse_commandline(int argc, char **argv);
@@ -164,9 +168,8 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-"$Id: mri_glmfit.c,v 1.246 2017/02/15 21:04:18 greve Exp $";
-const char *Progname = "mri_glmfit";
+static char vcid[] = "$Id$";
+const char *Progname = "mris_place_surfaces";
 
 INTEGRATION_PARMS parms, old_parms ;
 int lh_label = LH_LABEL ;
@@ -711,6 +714,10 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--use-aparc")) UseAParc = 1;
     else if(!strcmp(option, "--rip-wmsa"))    ripmngr.RipWMSA = 1;
     else if(!strcmp(option, "--no-rip-wmsa")) ripmngr.RipWMSA = 0;
+    else if(!strcmp(option, "--rip-freeze"))    ripmngr.RipFreeze = 1;
+    else if(!strcmp(option, "--no-rip-freeze")) ripmngr.RipFreeze = 0;
+    else if(!strcmp(option, "--rip-lesion"))    ripmngr.RipLesion = 1;
+    else if(!strcmp(option, "--no-rip-lesion"))    ripmngr.RipLesion = 0;
     else if(!strcmp(option, "--rip-bg"))    ripmngr.RipBG = 1;
     else if(!strcmp(option, "--no-rip-bg")) ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
@@ -1158,9 +1165,14 @@ static void dump_options(FILE *fp) {
   return;
 }
 
-int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+int MRISripSegs(MRIS *surf, MRI *seg, const int *SegNo, const int nSegNos, 
+		const double dmin, const double dmax, const double dstep)
 {
-  int vno, nripped=0;
+  int vno, nripped=0, k;
+
+  printf("Starting MRISripSegs() %g %g %g ",dmin,dmax,dstep);
+  for(k=0; k < nSegNos; k++) printf("%d ",SegNo[k]);
+  printf("\n");
 
   for(vno=0; vno < surf->nvertices; vno++){
     VERTEX *v;
@@ -1179,14 +1191,21 @@ int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, cons
       MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       segid = nint(val) ;
-      if(!IS_WMSA(segid)) continue;
-      v->ripflag = 1;
-      nripped ++;
-      break;
-    }
-  }
+      for(k=0; k < nSegNos; k++){
+	if(segid == SegNo[k]){
+	  //if(!IS_WMSA(segid)) continue;
+	  //printf("Ripping vertex %d at %g %g %g  depth=%g seg=%d\n",vno,round(xv),round(yv),round(zv),d,segid);
+	  v->ripflag = 1;
+	  nripped ++;
+	  break;
+	}
+      } // k
+      if(v->ripflag) break; // no need to continue along normal
+    } // dist
 
-  printf("MRISripWMSA(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  } // vertex
+
+  printf("MRISripSegs(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
   return(nripped);
 }
 
@@ -1254,6 +1273,24 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dm
 int RIP_MNGR::RipVertices(void)
 {
 
+  if(RipFreeze){
+    printf("Ripping frozen voxels\n");
+    RipSegNo[nRipSegs++] = 267;
+    RipSegNo[nRipSegs++] = 268;
+    RipSegNo[nRipSegs++] = 269;
+  }
+  if(RipWMSA){
+    printf("Ripping WMSA voxels\n");
+    RipSegNo[nRipSegs++] = 77;
+    RipSegNo[nRipSegs++] = 78;
+    RipSegNo[nRipSegs++] = 79;
+  }
+  if(RipLesion){
+    printf("Ripping Lesion voxels\n");
+    RipSegNo[nRipSegs++] = 25;
+    RipSegNo[nRipSegs++] = 57;
+  }
+
   if(riplabelfile){
     printf("Ripping vertices not in label %s\n",riplabelfile);
     LABEL *riplabel = LabelRead("",riplabelfile);
@@ -1263,7 +1300,7 @@ int RIP_MNGR::RipVertices(void)
   }
 
   int ripsurfneeded = 0;
-  if(RipMidline || RipBG || RipWMSA){
+  if(RipMidline || RipBG || nRipSegs){
     ripsurfneeded = 1;
     if(seg == NULL){
       printf("ERROR: need seg for ripping\n");
@@ -1309,10 +1346,10 @@ int RIP_MNGR::RipVertices(void)
     printf("Ripping BG\n");
     MRISripBasalGanglia(ripsurf, seg, -2.0, +2.0, 0.5);
   }
-  if(RipWMSA){
+  if(nRipSegs){
     // probably want to use white for this
     printf("Ripping WMSA\n");
-    MRISripWMSA(ripsurf, seg, -2.0, +2.0, 0.5);
+    MRISripSegs(ripsurf, seg, RipSegNo, nRipSegs, -2.0, +2.0, 0.5);
   }
 
   if(ripsurffile){

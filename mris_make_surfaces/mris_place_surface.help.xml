@@ -69,10 +69,16 @@
       <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
 
       <argument>--rip-wmsa</argument>
-      <explanation>Do not move vertices near white-matter signal abnormalities (77 as defined by seg)</explanation>
+      <explanation>Do not move vertices near white-matter signal abnormalities (77,78,79 as defined in seg)</explanation>
+
+      <argument>--rip-lesion</argument>
+      <explanation>Do not move vertices near lesions (25 and 57 as defined in seg)</explanation>
+
+      <argument>--no-rip-freeze</argument>
+      <explanation>DO move vertices near freeze voxels (266,267,258 as defined in seg)</explanation>
 
       <argument>--ripsurface rip-surface</argument>
-      <explanation>Use this surface with ripping midline, BG, and WMSA.</explanation>
+      <explanation>Use this surface with ripping midline, BG, Freezes, Lesions, and WMSA.</explanation>
 
       <argument>--repulse-surf repulse-surface</argument>
       <explanation>Force input surface away from this surface (usually the white surface when placing the pial). Sets the orig{xyz} coords of the input surface to this surface</explanation>
