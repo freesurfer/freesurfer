@@ -70,3 +70,9 @@ RipWMSA:
     action: enable
     descr: Allow ripping/freezing of WMSA voxels when placing white surface
 
+RipLesion:
+    value: False
+    flags: -rip-lesion
+    action: enable
+    descr: Allow ripping/freezing of Lesion-labeled voxels when placing white surface
+
