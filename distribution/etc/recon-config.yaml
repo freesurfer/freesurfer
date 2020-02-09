@@ -63,16 +63,15 @@ DecimationFaceArea:
     flags: -decimation-area
     descr: Desired area (mm2) of a face after decimation
 
-
 RipWMSA:
     value: False
     flags: -rip-wmsa
     action: enable
-    descr: Allow ripping/freezing of WMSA voxels when placing white surface
+    descr: Allow ripping/freezing of WMSA (77, 78, 79) voxels when placing white surface
 
 RipLesion:
     value: False
     flags: -rip-lesion
     action: enable
-    descr: Allow ripping/freezing of Lesion-labeled voxels when placing white surface
+    descr: Allow ripping/freezing of Lesion-labeled (25, 57) voxels when placing white surface
 

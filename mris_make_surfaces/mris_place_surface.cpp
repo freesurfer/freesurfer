@@ -148,6 +148,7 @@ public:
   char *ripsurffile=NULL;
   MRIS *ripsurf;
   char *aparcpath=NULL;
+  double dmin = -2.0, dmax = +2.0, dstep = 0.5;
 };
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
@@ -725,6 +726,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))   hemi = "rh";
+    else if(!strcmp(option, "--rip-projection")){
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%lf",&ripmngr.dmin);
+      sscanf(pargv[1],"%lf",&ripmngr.dmax);
+      sscanf(pargv[2],"%lf",&ripmngr.dstep);
+      nargsused = 3;
+    }
     else if(!strcmp(option, "--pin-medial-wall")){
       if(nargc < 1) CMDargNErr(option,1);
       pinlabel = LabelRead("",pargv[0]);
@@ -1170,7 +1178,7 @@ int MRISripSegs(MRIS *surf, MRI *seg, const int *SegNo, const int nSegNos,
 {
   int vno, nripped=0, k;
 
-  printf("Starting MRISripSegs() %g %g %g ",dmin,dmax,dstep);
+  printf("Starting MRISripSegs() d = (%g %g %g) segnos: ",dmin,dmax,dstep);
   for(k=0; k < nSegNos; k++) printf("%d ",SegNo[k]);
   printf("\n");
 
@@ -1275,9 +1283,7 @@ int RIP_MNGR::RipVertices(void)
 
   if(RipFreeze){
     printf("Ripping frozen voxels\n");
-    RipSegNo[nRipSegs++] = 267;
-    RipSegNo[nRipSegs++] = 268;
-    RipSegNo[nRipSegs++] = 269;
+    RipSegNo[nRipSegs++] = 247;
   }
   if(RipWMSA){
     printf("Ripping WMSA voxels\n");
@@ -1344,12 +1350,12 @@ int RIP_MNGR::RipVertices(void)
   if(RipBG){
     // probably want to use white for this
     printf("Ripping BG\n");
-    MRISripBasalGanglia(ripsurf, seg, -2.0, +2.0, 0.5);
+    MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
   }
   if(nRipSegs){
     // probably want to use white for this
     printf("Ripping WMSA\n");
-    MRISripSegs(ripsurf, seg, RipSegNo, nRipSegs, -2.0, +2.0, 0.5);
+    MRISripSegs(ripsurf, seg, RipSegNo, nRipSegs, dmin,dmax,dstep);
   }
 
   if(ripsurffile){
