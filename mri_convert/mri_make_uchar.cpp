@@ -1,5 +1,5 @@
 /**
- * @file  mri_make_uchar.c
+ * @file  mri_make_uchar.cpp
  * @brief change a volume to 8 bits/voxel
  *
  * uses the Tal xform to find a ball of voxels that are mostly brain.

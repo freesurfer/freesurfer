@@ -3,7 +3,7 @@
 
 
 /**
- * @file  mgh_malloc.c
+ * @file  mgh_malloc.cpp
  * @brief overrides or wraps malloc et. al. with code that allows us
  *        to measure their uses and debug their failures
  *

@@ -1,5 +1,5 @@
 /**
- * @file  mris_mef_surfaces.c
+ * @file  mris_mef_surfaces.cpp
  * @brief repositions cortical surface to gray/white boundary
  *
  * This program positions the tessellation of the cortical surface

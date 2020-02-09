@@ -1,5 +1,5 @@
 /**
- * @file  mri_segstats.c
+ * @file  mri_segstats.cpp
  * @brief Computes statistics from a segmentation.
  *
  * This program will compute statistics on segmented volumes. In its

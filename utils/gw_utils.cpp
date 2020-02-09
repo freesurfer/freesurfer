@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  gw_utils.c
+ * @file  gw_utils.cpp
  * @brief miscellaneous utility functions contributed by Graham Wideman
  *
  */

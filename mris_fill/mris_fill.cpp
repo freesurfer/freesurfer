@@ -1,5 +1,5 @@
 /**
- * @file  mris_density.c
+ * @file  mris_density.cpp
  * @brief fills the interior of a surface.
  *
  * program to fill the interior of a surface at an arbitrary resolution

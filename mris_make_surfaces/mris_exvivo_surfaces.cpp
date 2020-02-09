@@ -1,5 +1,5 @@
 /**
- * @file  mris_exvivo_surfaces.c
+ * @file  mris_exvivo_surfaces.cpp
  * @brief tailored for the ex-vivo MEF data
  *
  * This version is tailored for the ex-vivo MEF data. There are 6 channels

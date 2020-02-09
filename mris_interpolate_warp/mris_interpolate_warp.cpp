@@ -1,5 +1,5 @@
 /**
- * @file  mris_interpolate_warp.c
+ * @file  mris_interpolate_warp.cpp
  * @brief interpolate a surface warp into the volume
  *
  * take two surfaces and interpret the spatial difference in their

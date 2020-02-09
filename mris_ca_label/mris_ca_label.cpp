@@ -1,5 +1,5 @@
 /**
- * @file  mris_ca_label.c
+ * @file  mris_ca_label.cpp
  * @brief parcellate the cortex based on an atlas
  *
  * "Automatically Parcellating the Human Cerebral Cortex", Fischl et al.

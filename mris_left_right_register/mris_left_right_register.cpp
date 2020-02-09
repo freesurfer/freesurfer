@@ -1,5 +1,5 @@
 /**
- * @file  mris_left_right_register.c
+ * @file  mris_left_right_register.cpp
  * @brief cmd line utility for registering a subject's surface with an atlas,
  *
  * Command line utility for registering a subject's surface with an atlas.

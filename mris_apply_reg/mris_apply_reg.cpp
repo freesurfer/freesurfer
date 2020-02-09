@@ -1,5 +1,5 @@
 /**
- * @file  mris_apply_reg.c
+ * @file  mris_apply_reg.cpp
  * @brief Applies multiple surface registrations
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

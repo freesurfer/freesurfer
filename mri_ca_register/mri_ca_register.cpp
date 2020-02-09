@@ -1,5 +1,5 @@
 /**
- * @file  mri_ca_register.c
+ * @file  mri_ca_register.cpp
  * @brief high-dimensional alignment with canonical atlas
  *
  * Example usage:

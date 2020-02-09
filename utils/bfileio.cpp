@@ -1,5 +1,5 @@
 /**
- * @file  bfileio.c
+ * @file  bfileio.cpp
  * @brief Routines for handling bfile (bshort and bfloat) I/O.
  *
  * Bfile names are assumed to have the following format:

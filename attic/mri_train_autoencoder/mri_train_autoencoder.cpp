@@ -1,5 +1,5 @@
 /**
- * @file  mri_train_autoencoder.c
+ * @file  mri_train_autoencoder.cpp
  * @brief main program for creating and training a stacked autoencoder for feature extraction.
  *
 H.-C. Shin, M. R. Orton, D. J. Collins, S. J. Doran, and M. O. Leach,

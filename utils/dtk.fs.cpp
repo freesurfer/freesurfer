@@ -1,5 +1,5 @@
 /**
- * @file  dtk.fs.c
+ * @file  dtk.fs.cpp
  * @brief FS interface to Diffusion Toolkit and TrackVis data.
  *
  * DTk http://trackvis.org/docs/?subsect=fileformat

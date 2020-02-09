@@ -1,5 +1,5 @@
 /**
- * @file  mris_register_label_map.c
+ * @file  mris_register_label_map.cpp
  * @brief register the resting state patterns from one label map to another based on priors
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

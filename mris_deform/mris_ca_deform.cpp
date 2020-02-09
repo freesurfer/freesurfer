@@ -1,5 +1,5 @@
 /**
- * @file  mris_deform.c
+ * @file  mris_deform.cpp
  * @brief generic surface deformation binary.
  *
  * binary for deforming a surface of a voxel segmentation to more smoothly and

@@ -1,5 +1,5 @@
 /**
- * @file  mris_init_global_tractography.c
+ * @file  mris_init_global_tractography.cpp
  * @brief MCMC for computing posterior of splines connecting cortical parcellation with itself
  *
  * Fit a Catmull Rom spline to each pair of points in the cortex, initializing it with a connection along the

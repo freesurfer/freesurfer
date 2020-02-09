@@ -1,5 +1,5 @@
 /**
- * @file  mri_morphology.c
+ * @file  mri_morphology.cpp
  * @brief applies morphological operations to a volume.
  *
  * Program for applying morphological operations open, close, dilate, and erode either to an

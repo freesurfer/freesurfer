@@ -1,5 +1,5 @@
 /**
- * @file  mris_parcellate_connectivity.c
+ * @file  mris_parcellate_connectivity.cpp
  * @brief tool for parcellating a cortical model into relatively uniform connectivity regions.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

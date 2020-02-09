@@ -1,5 +1,5 @@
 /**
- * @file  mri_vol2roi.c
+ * @file  mri_vol2roi.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
 

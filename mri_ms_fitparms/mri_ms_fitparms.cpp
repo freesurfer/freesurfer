@@ -1,5 +1,5 @@
 /**
- * @file  mri_ms_fitparms.c
+ * @file  mri_ms_fitparms.cpp
  * @brief estimates T1 and PD values and transform from a set of FLASH images
  *
  * This program takes an arbitrary # of FLASH images as input, and estimates

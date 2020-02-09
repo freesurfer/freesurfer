@@ -1,5 +1,5 @@
 /**
- * @file  mri_add_xform_to_header.c
+ * @file  mri_add_xform_to_header.cpp
  * @brief Just adds specified xform to the volume header
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file  mri_average.c
+ * @file  mri_average.cpp
  * @brief create an average of a set of volumes
  *
  */

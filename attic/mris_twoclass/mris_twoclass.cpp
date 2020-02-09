@@ -1,5 +1,5 @@
 /**
- * @file  mris_twoclass.c
+ * @file  mris_twoclass.cpp
  * @brief computes autocorrelation function of a curvature file
  *
  */

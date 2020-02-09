@@ -1,5 +1,5 @@
 /**
- * @file  mri_path2label.c
+ * @file  mri_path2label.cpp
  * @brief Converts a path file format to a label file.
  *
  * Purpose: Converts a path file to a label or a label file to a path

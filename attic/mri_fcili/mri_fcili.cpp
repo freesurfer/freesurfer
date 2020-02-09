@@ -1,5 +1,5 @@
 /**
- * @file  mri_fcili.c
+ * @file  mri_fcili.cpp
  * @brief Computes intrinsic laterality index (iLI) based on supplied waveforms.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  chklc.c
+ * @file  chklc.cpp
  * @brief Routine to check .license file
  *
  */

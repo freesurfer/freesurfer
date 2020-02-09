@@ -1,5 +1,5 @@
 /**
- * @file  mri_info.c
+ * @file  mri_info.cpp
  * @brief Prints mri volume information found in .mgz file.
  *
  * Dumps information about the volume to stdout.

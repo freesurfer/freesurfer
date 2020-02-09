@@ -1,5 +1,5 @@
 /**
- * @file  mris_longitudinal_surfaces.c
+ * @file  mris_longitudinal_surfaces.cpp
  * @brief make surface for longitudinal stream
  *
  * This program positions the tessellation of the cortical surface

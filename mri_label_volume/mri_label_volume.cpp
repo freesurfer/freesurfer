@@ -1,5 +1,5 @@
 /**
- * @file  mri_label_volume.c
+ * @file  mri_label_volume.cpp
  * @brief program for computing the volume of a set of labeled voxels
  *
  */

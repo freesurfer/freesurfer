@@ -1,5 +1,5 @@
 /**
- * @file  mri_make_bem_surfaces.c
+ * @file  mri_make_bem_surfaces.cpp
  * @brief creates a skull surface for use with the MNE tools
  *
  */

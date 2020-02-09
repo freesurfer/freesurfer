@@ -1,5 +1,5 @@
 /**
- * @file  mriset.c
+ * @file  mriset.cpp
  * @brief utilities for MRI data structure
  *
  * Operators like union, intersection, erosion, dialation and masking on

@@ -1,5 +1,5 @@
 /**
- * @file  mris_compute_parc_overlap.c
+ * @file  mris_compute_parc_overlap.cpp
  * @brief compare two parcellated (annotated) surfaces and computes accuracy.
  *
  * Compares two parcellated (annotated) surfaces

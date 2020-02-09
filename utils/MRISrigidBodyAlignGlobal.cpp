@@ -1,5 +1,5 @@
 /**
- * @file  MRISrigidBodyAlignGlobal.c
+ * @file  MRISrigidBodyAlignGlobal.cpp
  * @brief functions for finding the best rotation for aligning a MRIS with a target
  *
  */

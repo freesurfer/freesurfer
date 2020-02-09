@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_volume_intensities.c
+ * @file  mri_compute_volume_intensities.cpp
  * @brief compute the unpartial-volumed intensities given an input volume and volume fracion maps
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  surfcluster.c
+ * @file  surfcluster.cpp
  * @brief routines for growing clusters on the surface
  *
  * routines for growing clusters on the surface

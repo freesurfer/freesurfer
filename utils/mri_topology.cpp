@@ -1,5 +1,5 @@
 /**
- * @file  mri_topology.c
+ * @file  mri_topology.cpp
  * @brief topology routines
  *
  * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",

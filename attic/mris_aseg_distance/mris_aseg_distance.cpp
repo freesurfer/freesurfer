@@ -1,5 +1,5 @@
 /**
- * @file  mris_aseg_distance.c
+ * @file  mris_aseg_distance.cpp
  * @brief computes a map of distances between each point in the cortex and
  * a subcortical centroid
  *

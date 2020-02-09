@@ -1,5 +1,5 @@
 /**
- * @file  mris_surface_change.c
+ * @file  mris_surface_change.cpp
  * @brief compute the change in the normal direction of a pair of surfaces
  *
  * compute the (longitudinal) change in a surface such as the pial or white.

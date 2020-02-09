@@ -1,5 +1,5 @@
 /**
- * @file  mri_transform.c
+ * @file  mri_transform.cpp
  * @brief program to transform an mri or cmat structure using a linear transform
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

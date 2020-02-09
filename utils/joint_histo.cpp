@@ -1,5 +1,5 @@
 /**
- * @file  histo.c
+ * @file  histo.cpp
  * @brief 1d histogram utilities.
  *
  * Utilities for computing and analyzing 2 dimensional histograms.

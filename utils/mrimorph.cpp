@@ -1,5 +1,5 @@
 /**
- * @file  mrimorph.c
+ * @file  mrimorph.cpp
  * @brief utilities for 3d morph of one volume into another
  *
  */

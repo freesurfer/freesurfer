@@ -1,5 +1,5 @@
 /**
- * @file  mri_hausdorff_dist.c
+ * @file  mri_hausdorff_dist.cpp
  * @brief Computes the modified (mean) Hausdorff distance
  *    
  *

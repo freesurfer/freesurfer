@@ -1,5 +1,5 @@
 /**
- * @file  mri_label_accuracy.c
+ * @file  mri_label_accuracy.cpp
  * @brief computes the accuracy of the labeling of two images -  one input and one reference.
  *
  * Program computes the accuracy of the labeling of two images -  one input and one reference.

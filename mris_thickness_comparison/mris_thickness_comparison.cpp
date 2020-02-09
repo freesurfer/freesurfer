@@ -1,5 +1,5 @@
 /**
- * @file  mris_thickness_comparison.c
+ * @file  mris_thickness_comparison.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

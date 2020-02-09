@@ -1,5 +1,5 @@
 /**
- * @file  mri_simulate_atrophy.c
+ * @file  mri_simulate_atrophy.cpp
  * @brief simulate atrophy in cortical or subcortical regions
   *
  * program to simulate atrophic changes in a cortical or subcortical structure by

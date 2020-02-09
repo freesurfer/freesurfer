@@ -1,5 +1,5 @@
 /**
- * @file  mri_segment.c
+ * @file  mri_segment.cpp
  * @brief segments white matter from a brain volume
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface

@@ -1,5 +1,5 @@
 /**
- * @file  mri_fuse_intensity_images.c
+ * @file  mri_fuse_intensity_images.cpp
  * @brief Normalize a set of longituindal volumes 
  *
  */

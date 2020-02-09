@@ -1,5 +1,5 @@
 /**
- * @file  mri_segment_tumor.c
+ * @file  mri_segment_tumor.cpp
  * @brief program for segmenting tumors from multispectral data.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

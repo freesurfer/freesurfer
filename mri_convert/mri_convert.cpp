@@ -1,5 +1,5 @@
 /**
- * @file  mri_convert.c
+ * @file  mri_convert.cpp
  * @brief performs all kinds of conversion and reformatting of MRI volume files
  *
  */

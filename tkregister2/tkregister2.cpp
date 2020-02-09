@@ -1,5 +1,5 @@
 /**
- * @file  tkregister2.c
+ * @file  tkregister2.cpp
  * @brief Tcl/Tk-based MRI volume registration utility
  *
  * See: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach

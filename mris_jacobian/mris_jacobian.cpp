@@ -1,5 +1,5 @@
 /**
- * @file  mris_jacobian.c
+ * @file  mris_jacobian.cpp
  * @brief computes the jacobian of a surface mapping
  */
 /*

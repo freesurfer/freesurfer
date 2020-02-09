@@ -1,5 +1,5 @@
 /**
- * @file  mriio.c
+ * @file  mriio.cpp
  * @brief utilities for reading/writing MRI data structure
  *
  * Reading and writing most of the major MRI volume types, to and from

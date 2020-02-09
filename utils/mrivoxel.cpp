@@ -1,5 +1,5 @@
 /**
- * @file  mrivoxel.c
+ * @file  mrivoxel.cpp
  * @brief voxel utilities for MRI data structure
  *
  */

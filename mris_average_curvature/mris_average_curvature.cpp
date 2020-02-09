@@ -1,5 +1,5 @@
 /**
- * @file  mris_average_curvature.c
+ * @file  mris_average_curvature.cpp
  * @brief program for averaging "curvature" (scalar fields on the surface).
  *
  * average "curvature" format files (scalar fields on the surface) across subjects

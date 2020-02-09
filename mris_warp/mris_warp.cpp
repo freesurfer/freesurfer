@@ -1,5 +1,5 @@
 /**
- * @file  mris_warp.c
+ * @file  mris_warp.cpp
  * @brief apply a specified displacement field to warp a surface
  *
  * applies a specified displacement field specified as a volume (M3Z)

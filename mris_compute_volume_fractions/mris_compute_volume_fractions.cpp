@@ -1,5 +1,5 @@
 /**
- * @file  mris_compute_volume_fractions.c
+ * @file  mris_compute_volume_fractions.cpp
  * @brief Computes accurate volume fractions remaining within a surface
  *
  * This program computes an accurate estimate of the fraction of the volume 

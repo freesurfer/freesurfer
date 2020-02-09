@@ -1,5 +1,5 @@
 /**
- * @file  connectgraph.c
+ * @file  connectgraph.cpp
  * @brief Convert connectivity data to graphviz data format 
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
@@ -25,7 +25,7 @@
 
 
 /**
- * @file   myown.c
+ * @file   myown.cpp
  * @author Yasunari Tosa
  * @date   Wed Oct 13 11:48:26 2004
  *

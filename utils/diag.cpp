@@ -1,5 +1,5 @@
 /**
- * @file  diag.c
+ * @file  diag.cpp
  * @brief diagnostic routines
  *
  */

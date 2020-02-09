@@ -1,5 +1,5 @@
 /**
- * @file  mri_sbbr.c
+ * @file  mri_sbbr.cpp
  * @brief Slice-to-volume registation with in-plane bbr
  *
  * Slice-to-volume registation with in-plane bbr

@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mris_convert.c
+ * @file  mris_convert.cpp
  * @brief Format conversions of surface files and scalar overlay files
  *
  */

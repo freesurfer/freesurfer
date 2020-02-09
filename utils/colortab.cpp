@@ -1,5 +1,5 @@
 /**
- * @file  colortab.c
+ * @file  colortab.cpp
  * @brief color table utilities
  *
  * An entry in a color table has:

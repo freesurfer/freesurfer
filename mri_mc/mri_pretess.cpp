@@ -1,5 +1,5 @@
 /**
- * @file  mri_pretess.c
+ * @file  mri_pretess.cpp
  * @brief make sure a filled volume can be tessellated
  *
  * Changes white matter (WM) segmentation so that the neighbors of all

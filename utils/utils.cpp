@@ -1,5 +1,5 @@
 /**
- * @file  utils.c
+ * @file  utils.cpp
  * @brief miscellaneous utility functions
  *
  * Among other junk, the central routine for random number generation is here.

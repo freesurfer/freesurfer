@@ -1,5 +1,5 @@
 /**
- * @file  label_border.c
+ * @file  label_border.cpp
  * @brief 
  *
  * compute the boundary of a label

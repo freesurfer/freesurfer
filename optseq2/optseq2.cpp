@@ -1,5 +1,5 @@
 /**
- * @file  optseq2.c
+ * @file  optseq2.cpp
  * @brief a tool for automatically scheduling events for fMRI experiments
  *
  * optseq2 is a tool for automatically scheduling events for

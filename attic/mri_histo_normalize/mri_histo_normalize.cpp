@@ -1,5 +1,5 @@
 /**
- * @file  mri_histo_normalize.c
+ * @file  mri_histo_normalize.cpp
  * @brief do linear normalization of a set of histograms
  */
 /*

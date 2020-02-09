@@ -1,5 +1,5 @@
 /**
- * @file  mris_wm_volume.c
+ * @file  mris_wm_volume.cpp
  * @brief computes the interior volume of the ?h.white surfaces 
  * (excluding subcortical labels)
  *

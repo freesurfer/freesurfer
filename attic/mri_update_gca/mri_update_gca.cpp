@@ -1,5 +1,5 @@
 /**
- * @file  mri_update_gca.c
+ * @file  mri_update_gca.cpp
  * @brief program to update intensity distributions in a gca with an example aseg/norm
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

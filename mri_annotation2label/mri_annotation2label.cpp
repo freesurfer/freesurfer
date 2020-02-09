@@ -1,5 +1,5 @@
 /**
- * @file  mri_annotation2label.c
+ * @file  mri_annotation2label.cpp
  * @brief Converts an annotation to labels files
  *
  */

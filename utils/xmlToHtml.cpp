@@ -1,5 +1,5 @@
 /**
- * @file  xmlToHtml.c
+ * @file  xmlToHtml.cpp
  * @brief Reads an .xml file and outputs it in html format
  *
  */

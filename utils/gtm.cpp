@@ -1,5 +1,5 @@
 /**
- * @file  gtm.c
+ * @file  gtm.cpp
  * @brief Routines to create and analyze the Geometric Transfer Matrix (GTM)
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

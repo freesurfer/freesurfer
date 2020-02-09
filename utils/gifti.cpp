@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  gifti.c
+ * @file  gifti.cpp
  * @brief local utilities for GIFTI library
  *
  * This file has some some extra functions for use with the GIFTI

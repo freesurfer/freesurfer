@@ -1,5 +1,5 @@
 /**
- * @file  mris_compute_layer_intensities.c
+ * @file  mris_compute_layer_intensities.cpp
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

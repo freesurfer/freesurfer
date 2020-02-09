@@ -1,5 +1,5 @@
 /**
- * @file  transform.c
+ * @file  transform.cpp
  * @brief utilities for linear transforms
  *
  */

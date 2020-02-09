@@ -1,5 +1,5 @@
 /**
- * @file  fsgdf.c
+ * @file  fsgdf.cpp
  * @brief Utilities for reading freesurfer group descriptor file format
  *
  * See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt

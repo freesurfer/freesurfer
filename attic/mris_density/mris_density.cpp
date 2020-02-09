@@ -1,5 +1,5 @@
 /**
- * @file  mris_density.c
+ * @file  mris_density.cpp
  * @brief program for generating a surface map of the density of the interior voxels.
  *
  * Compute the # of voxels that are interior to the surface in a user-specified radius

@@ -1,5 +1,5 @@
 /**
- * @file  mri_probedicom.c
+ * @file  mri_probedicom.cpp
  * @brief program allows the user to query a dicom file
  *
  * In its most basic usage, the user supplies the DICOM group and

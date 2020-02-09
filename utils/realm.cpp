@@ -1,7 +1,7 @@
 #include "realm.h"
 
 /**
- * @file  realm.c
+ * @file  realm.cpp
  * @brief support quickly scanning all the vertices or faces on an MRI for
  *        for those that might intersect a brick
  *

@@ -1,5 +1,5 @@
 /**
- * @file  retinotopy.c
+ * @file  retinotopy.cpp
  * @brief Utilities for retinotopy analysis.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

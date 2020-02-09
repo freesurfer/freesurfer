@@ -1,5 +1,5 @@
 /**
- * @file  mri_jacobian.c
+ * @file  mri_jacobian.cpp
  * @brief Computes the (determinant of the) jacobian of the input non-linear morph.
  */
 /*

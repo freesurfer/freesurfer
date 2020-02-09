@@ -1,5 +1,5 @@
 /**
- * @file  mri_mask.c
+ * @file  mri_mask.cpp
  * @brief applies a mask volume
  *
  * Usage: mri_mask [options] <in vol> <mask vol> <out vol>

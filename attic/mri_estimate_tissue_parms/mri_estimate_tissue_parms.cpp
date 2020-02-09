@@ -1,5 +1,5 @@
 /**
- * @file  mri_estimate_tissue_parms.c
+ * @file  mri_estimate_tissue_parms.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

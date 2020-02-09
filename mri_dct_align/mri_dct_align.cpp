@@ -1,5 +1,5 @@
 /**
- * @file  mri_dct_align.c
+ * @file  mri_dct_align.cpp
  * @brief program for computing a nonlinear alignment using a discrete cosine transform
  *
  * compute the discrete cosine transform to align two binary images, typically

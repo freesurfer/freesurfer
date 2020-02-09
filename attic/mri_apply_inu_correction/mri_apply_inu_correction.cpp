@@ -1,5 +1,5 @@
 /**
- * @file  mri_apply_inu_correction.c
+ * @file  mri_apply_inu_correction.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

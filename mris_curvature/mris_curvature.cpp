@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mris_curvature.c
+ * @file  mris_curvature.cpp
  * @brief program for computing various curvature metrics of a surface
  *
  * program for computing various curvature metrics of a surface.

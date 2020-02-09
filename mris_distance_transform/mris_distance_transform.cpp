@@ -1,5 +1,5 @@
 /**
- * @file  mris_distance_transform.c
+ * @file  mris_distance_transform.cpp
  * @brief program for computing a distance transform on the surface
  *
  */

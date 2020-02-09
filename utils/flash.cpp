@@ -1,5 +1,5 @@
 /**
- * @file  flash.c
+ * @file  flash.cpp
  * @brief utilities for computing flash intensities from T1/PD pairs
  *
  */

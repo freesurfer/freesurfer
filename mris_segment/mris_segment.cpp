@@ -1,5 +1,5 @@
 /**
- * @file  mris_segment.c
+ * @file  mris_segment.cpp
  * @brief segments cortical areas based on connectivity/correlation/intensity profiles
  *
  */

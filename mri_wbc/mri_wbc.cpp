@@ -1,5 +1,5 @@
 /**
- * @file  dummy.c
+ * @file  dummy.cpp
  * @brief Computes whole-brain connectivity
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

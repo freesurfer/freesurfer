@@ -1,5 +1,5 @@
 /**
- * @file  mri_concatenate_lta.c
+ * @file  mri_concatenate_lta.cpp
  * @brief Concatenate two (or more?) LTAs into one final LTA
  *
  * This program concatenate two consecutive LTA transformations into one

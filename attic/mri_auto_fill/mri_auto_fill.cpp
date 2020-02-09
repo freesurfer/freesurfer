@@ -1,5 +1,5 @@
 /**
- * @file  mri_auto_fill.c
+ * @file  mri_auto_fill.cpp
  * @brief usage: ./mri_auto_fill filledvol T1vol m3dxform templvol outvol
  *
  */

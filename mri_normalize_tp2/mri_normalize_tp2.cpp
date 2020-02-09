@@ -1,5 +1,5 @@
 /**
- * @file  mri_normalize_tp2.c
+ * @file  mri_normalize_tp2.cpp
  * @brief use tp1's ctrl volume to normalize tp2
  *
  * Used in longitudinal processing.  Rather than calculating the control

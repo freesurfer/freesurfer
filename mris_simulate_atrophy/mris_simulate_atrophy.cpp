@@ -1,5 +1,5 @@
 /**
- * @file  mris_simulate_atrophy.c
+ * @file  mris_simulate_atrophy.cpp
  * @brief simulate cortical atrophy
   *
  * program to simulate atrophic changes in the cortical by

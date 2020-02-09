@@ -1,5 +1,5 @@
 /**
- * @file  dti_tensoreig.c
+ * @file  dti_tensoreig.cpp
  * @brief calculates eigensystem and fa
  *
  */

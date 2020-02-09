@@ -1,5 +1,5 @@
 /**
- * @file  mri_label_vals.c
+ * @file  mri_label_vals.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

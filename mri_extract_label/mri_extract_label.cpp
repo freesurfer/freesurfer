@@ -1,5 +1,5 @@
 /**
- * @file  mri_extract_label.c
+ * @file  mri_extract_label.cpp
  * @brief Create a volume containing just the specified labels
  *
  */

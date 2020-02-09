@@ -1,5 +1,5 @@
 /**
- * @file  matrix.c
+ * @file  matrix.cpp
  * @brief Matrix utilities
  *
  */

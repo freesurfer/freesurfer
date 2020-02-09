@@ -1,5 +1,5 @@
 /**
- * @file  mri_edit_segmentation_with_surfaces.c
+ * @file  mri_edit_segmentation_with_surfaces.cpp
  * @brief relabel aseg.mgz gm/wm voxels interior/exterier to the surfaces
  *
  */

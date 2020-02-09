@@ -1,5 +1,5 @@
 /**
- * @file  mri_fit_bias.c
+ * @file  mri_fit_bias.cpp
  * @brief Computes spatial intensity bias field by fitting to a parametric model
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

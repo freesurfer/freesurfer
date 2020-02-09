@@ -1,6 +1,6 @@
 
 /**
- * @file  mri_rf_long_train.c
+ * @file  mri_rf_long_train.cpp
  * @brief Creates a Random Forest classifier for longitudinal data
  *
  * See:

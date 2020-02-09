@@ -1,5 +1,5 @@
 /**
- * @file  mri_segreg.c
+ * @file  mri_segreg.cpp
  * @brief compute/optimize cost function of segmentation-based registration
  *
  */

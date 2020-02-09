@@ -1,5 +1,5 @@
 /**
- * @file  mri_ca_normalize.c
+ * @file  mri_ca_normalize.cpp
  * @brief Normalize a volume making use of subcortical atlas data
  *
  */

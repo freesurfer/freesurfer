@@ -1,5 +1,5 @@
 /**
- * @file  mris_euler_number.c
+ * @file  mris_euler_number.cpp
  * @brief calculates the Euler number of a surface (=2 if perfect)
  *
  */

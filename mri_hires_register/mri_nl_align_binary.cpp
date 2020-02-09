@@ -1,5 +1,5 @@
 /**
- * @file  mri_nl_align_binary.c
+ * @file  mri_nl_align_binary.cpp
  * @brief nonlinear alignment of binary images.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

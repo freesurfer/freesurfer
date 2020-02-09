@@ -1,7 +1,7 @@
 static const int debug = 0;
 
 /**
- * @file  romp_support.c
+ * @file  romp_support.cpp
  * @brief prototypes and structures for getting reproducible results from and for timing omp loops.
  *
  */

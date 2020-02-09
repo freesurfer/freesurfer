@@ -1,5 +1,5 @@
 /**
- * @file  mris_make_face_parcellation.c
+ * @file  mris_make_face_parcellation.cpp
  * @brief create a parcellation of equal areas
  *
  * make a parcellation where each unit is assigned based on the face 

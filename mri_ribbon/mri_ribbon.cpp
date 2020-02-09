@@ -1,5 +1,5 @@
 /**
- * @file  mri_ribbon.c
+ * @file  mri_ribbon.cpp
  * @brief extract cortical ribbon
  *
  * Usage: mri_ribbon \

@@ -1,5 +1,5 @@
 /**
- * @file  talairach_afd.c
+ * @file  talairach_afd.cpp
  * @brief Automatically detect Talairach alignment failures.
  *
  * Detect bad Talairach alignment by checking subjects Talairach transform

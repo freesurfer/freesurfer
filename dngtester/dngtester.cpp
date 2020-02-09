@@ -1,5 +1,5 @@
 /**
- * @file  dngtester.c
+ * @file  dngtester.cpp
  * @brief dougs super special test code
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file  mri_conform.c
+ * @file  mri_conform.cpp
  * @brief resample volume to isotropic 1mm^3
  *
  */

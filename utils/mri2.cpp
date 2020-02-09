@@ -1,5 +1,5 @@
 /**
- * @file  mri2.c
+ * @file  mri2.cpp
  * @brief more routines for loading, saving, and operating on MRI structures
  *
  */

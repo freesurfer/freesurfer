@@ -1,5 +1,5 @@
 /**
- * @file  mri_gtmseg.c
+ * @file  mri_gtmseg.cpp
  * @brief Creates a segmentation used with the geometric transfer matrix.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  matfile.c
+ * @file  matfile.cpp
  * @brief read matlab files
  *
  */

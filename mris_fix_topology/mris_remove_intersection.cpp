@@ -1,5 +1,5 @@
 /**
- * @file  mris_remove_intersection.c
+ * @file  mris_remove_intersection.cpp
  * @brief removes surface intersections
  *
  */

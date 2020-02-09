@@ -1,5 +1,5 @@
 /**
- * @file  mris_register_to_label.c
+ * @file  mris_register_to_label.cpp
  * @brief program for computing/optimizing registration of a surface to a volume
  *        
  *

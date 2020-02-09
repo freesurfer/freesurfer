@@ -1,5 +1,5 @@
 /**
- * @file  mri_mosaic.c
+ * @file  mri_mosaic.cpp
  * @brief program for taking a set of images and constructing one large image 
  * that contains them all
  *

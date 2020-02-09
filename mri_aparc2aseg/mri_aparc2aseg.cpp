@@ -1,5 +1,5 @@
 /**
- * @file  mri_aparc2aseg.c
+ * @file  mri_aparc2aseg.cpp
  * @brief Maps aparc labels to aseg
  *
  * Maps the cortical labels from the automatic cortical parcellation (aparc)

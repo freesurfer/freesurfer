@@ -1,5 +1,5 @@
 /**
- * @file  main_template.c
+ * @file  main_template.cpp
  * @brief MCMC for computing posterior of splines connecting cortex with ventricle
  *
  * Fit a Catmull Rom spline to each point in the cortex, initializing it with a connection along the

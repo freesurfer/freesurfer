@@ -1,5 +1,5 @@
 /**
- * @file  mris_shrinkwrap.c
+ * @file  mris_shrinkwrap.cpp
  * @brief program for shrinkwrapping BEM surfaces onto a segmentation volume
  *
  */

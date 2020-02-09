@@ -1,5 +1,5 @@
 /**
- * @file  mri_glmfit.c
+ * @file  mri_glmfit.cpp
  * @brief GLM analysis with or without FSGD files
  *
  * Performs general linear model (GLM) analysis in the volume or the

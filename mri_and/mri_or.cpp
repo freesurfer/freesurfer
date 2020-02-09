@@ -1,5 +1,5 @@
 /**
- * @file  mri_or.c
+ * @file  mri_or.cpp
  * @brief performs a logical or at each voxel on a series of volumes
  *
  * performs a logical or at each voxel on a series of volumes

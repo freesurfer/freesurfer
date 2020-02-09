@@ -1,5 +1,5 @@
 /**
- * @file  imageio.c
+ * @file  imageio.cpp
  * @brief image processing utilities
  *
  */

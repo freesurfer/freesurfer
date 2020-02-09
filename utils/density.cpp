@@ -1,5 +1,5 @@
 /**
- * @file  density.c
+ * @file  density.cpp
  * @brief utilities for computing joint densities from images
  *
  */

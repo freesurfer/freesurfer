@@ -1,5 +1,5 @@
 /**
- * @file  surfgrad.c
+ * @file  surfgrad.cpp
  * @brief Utilities to compute gradients on the surface
  *
  */

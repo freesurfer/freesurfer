@@ -1,5 +1,5 @@
 /**
- * @file  mriflood.c
+ * @file  mriflood.cpp
  * @brief flood and erode voxels
  *
  */

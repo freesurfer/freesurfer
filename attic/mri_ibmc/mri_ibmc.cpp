@@ -1,5 +1,5 @@
 /**
- * @file  mri_ibmc.c
+ * @file  mri_ibmc.cpp
  * @brief Intersection-based motion correction
  *
  * Intersection-based motion correction based on Kim, et al, TMI,

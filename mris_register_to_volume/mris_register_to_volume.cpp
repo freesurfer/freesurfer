@@ -1,5 +1,5 @@
 /**
- * @file  mris_register_to_volume.c
+ * @file  mris_register_to_volume.cpp
  * @brief program for computing/optimizing registration of a surface to a volume
  *        
  *

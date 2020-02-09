@@ -1,5 +1,5 @@
 /**
- * @file  mris_calc.c
+ * @file  mris_calc.cpp
  * @brief A *very* simple calculator for FreeSurfer curvature files.
  *
  * 'mris_calc' performs some simple mathematical operations on

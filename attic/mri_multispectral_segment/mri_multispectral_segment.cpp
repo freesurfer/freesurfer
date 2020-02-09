@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mri_multispectral_segment.c
+ * @file  mri_multispectral_segment.cpp
  * @brief segment tissue classes based on T1/PD volumes
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

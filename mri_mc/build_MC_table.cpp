@@ -1,5 +1,5 @@
 /**
- * @file  build_MC_table.c
+ * @file  build_MC_table.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

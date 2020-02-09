@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  gw_ic2562.c
+ * @file  gw_ic2562.cpp
  *
  * GW version of ic2562.c, which creates a "surface" having two separate
  * icosahedons, which can be placed with specific sizes at specific centers.

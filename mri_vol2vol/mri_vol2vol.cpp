@@ -1,5 +1,5 @@
 /**
- * @file  mri_vol2vol.c
+ * @file  mri_vol2vol.cpp
  * @brief converts values in one volume to another volume
  *
  * Resamples a volume into another field-of-view using various types of 

@@ -1,5 +1,5 @@
 /**
- * @file  dct.c
+ * @file  dct.cpp
  * @brief utilities for computing and applying a discrete cosine transform.
  *
  * utilities for computing and applying a discrete cosine transform.

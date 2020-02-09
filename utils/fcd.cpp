@@ -1,5 +1,5 @@
 /**
- * @file  fcd.c
+ * @file  fcd.cpp
  * @brief I/O and analysis algorithms for FCDs (focal cortical dysplasias)
  *
  */

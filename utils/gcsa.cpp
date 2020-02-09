@@ -1,5 +1,5 @@
 /**
- * @file  gcsa.c
+ * @file  gcsa.cpp
  * @brief Gaussian Classifier (Surface) Atlas utilities
  *
  * Utilities for creating and using the cortical parcellation atlas.

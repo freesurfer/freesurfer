@@ -1,5 +1,5 @@
 /**
- * @file  mri_fill.c
+ * @file  mri_fill.cpp
  * @brief fill interior holes of components representing white matter
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface

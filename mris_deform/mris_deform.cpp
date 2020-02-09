@@ -1,5 +1,5 @@
 /**
- * @file  mris_deform.c
+ * @file  mris_deform.cpp
  * @brief program for deforming a surface to lie at the gray/white or pial boundary from 
  *  ultra-high res data
  *

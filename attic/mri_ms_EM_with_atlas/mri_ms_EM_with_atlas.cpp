@@ -1,5 +1,5 @@
 /**
- * @file  mri_ms_EM_with_atlas.c
+ * @file  mri_ms_EM_with_atlas.cpp
  * @brief takes an arbitrary # of FLASH images, performs EM-seg
  *
  * Trying to use more heuristics for MEF segmentation

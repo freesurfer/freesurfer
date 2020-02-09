@@ -1,5 +1,5 @@
 /**
- * @file  connectgraph.c
+ * @file  connectgraph.cpp
  * @brief Export connectivity data to graphviz data format
  *
  */

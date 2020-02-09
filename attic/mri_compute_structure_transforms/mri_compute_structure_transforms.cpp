@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_structure_transforms.c
+ * @file  mri_compute_structure_transforms.cpp
  * @brief compute optimal linear transform for each struct to the atlas
  *
  * use an SVG pseudo inverse to

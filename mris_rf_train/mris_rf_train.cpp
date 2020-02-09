@@ -1,5 +1,5 @@
 /**
- * @file  mris_rf_train.c
+ * @file  mris_rf_train.cpp
  * @brief main program for training a random forest on the surface
  *
  * program for building a set of features across subjects on the surface and using them to train

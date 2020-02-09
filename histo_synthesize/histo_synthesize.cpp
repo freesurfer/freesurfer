@@ -1,5 +1,5 @@
 /**
- * @file  histo_synthesize.c
+ * @file  histo_synthesize.cpp
  * @brief synthesize a histological volume from an MRI
  *
  * synthesize a histological volume from an MRI

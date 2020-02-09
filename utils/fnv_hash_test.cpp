@@ -1,5 +1,5 @@
 /**
- * @file  fnv_hash_test.c
+ * @file  fnv_hash_test.cpp
  * @brief Tests for the hash function that can be used to replace getting a sequence of random numbers
  *
  */

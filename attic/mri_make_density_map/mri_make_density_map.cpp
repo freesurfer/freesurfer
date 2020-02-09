@@ -1,5 +1,5 @@
 /**
- * @file  mri_make_density_map.c
+ * @file  mri_make_density_map.cpp
  * @brief make a tissue density map from a segmentation
  *
  * apply a transform (optionally jacobian correcting it) to

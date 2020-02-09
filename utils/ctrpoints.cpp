@@ -1,5 +1,5 @@
 /**
- * @file  ctrpoints.c
+ * @file  ctrpoints.cpp
  * @brief utilities handling control points
  *
  */

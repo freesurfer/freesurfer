@@ -1,5 +1,5 @@
 /**
- * @file  version.c
+ * @file  version.cpp
  * @brief freesurfer version functions defined here
  *
  * Looks for the --version, -version, --all-info, or -all-info tag in the

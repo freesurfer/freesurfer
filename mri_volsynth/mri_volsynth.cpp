@@ -1,5 +1,5 @@
 /**
- * @file  mri_volsynth.c
+ * @file  mri_volsynth.cpp
  * @brief Synthesizes data with various statistical properties.
  *
  */

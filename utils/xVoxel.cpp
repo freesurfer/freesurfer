@@ -1,5 +1,5 @@
 /**
- * @file  xVoxel.c
+ * @file  xVoxel.cpp
  * @brief general-purpose utils
  */
 /*

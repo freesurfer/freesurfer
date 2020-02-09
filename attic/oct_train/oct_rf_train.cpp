@@ -1,5 +1,5 @@
 /**
- * @file  oct_rf_train.c
+ * @file  oct_rf_train.cpp
  * @brief main program for training a cellular classifier from labeled OCT data
  *
  * program for trainin a random forest from a set of convolutional layers, and applying the

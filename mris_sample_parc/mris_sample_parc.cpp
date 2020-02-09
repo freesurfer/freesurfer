@@ -1,5 +1,5 @@
 /**
- * @file  mris_sample_parc.c
+ * @file  mris_sample_parc.cpp
  * @brief program for sampling a volumetric parcellation onto a surface model
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

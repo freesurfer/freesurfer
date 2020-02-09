@@ -1,5 +1,5 @@
 /**
- * @file  mris_spherical_average.c
+ * @file  mris_spherical_average.cpp
  * @brief spherical averaging of labels, curvs and vals.
  *
  * apply spherical averaging to various scalars (see Fischl et al, HBM, 1999)

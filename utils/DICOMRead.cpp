@@ -1,5 +1,5 @@
 /**
- * @file  DICOMRead.c
+ * @file  DICOMRead.cpp
  * @brief DICOM 3.0 reading functions
  *
  */

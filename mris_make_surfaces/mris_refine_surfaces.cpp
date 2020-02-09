@@ -1,5 +1,5 @@
 /**
- * @file  mris_refine_surfaces.c
+ * @file  mris_refine_surfaces.cpp
  * @brief refines the surfaces lh(rh).pial and lh(rh).white
  *
  * This program refines the surfaces lh(rh).pial and lh(rh).white

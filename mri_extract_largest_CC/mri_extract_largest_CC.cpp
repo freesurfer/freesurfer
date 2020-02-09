@@ -1,5 +1,5 @@
 /**
- * @file  mri_extract_largest_CC.c
+ * @file  mri_extract_largest_CC.cpp
  * @brief extract the largest connected component from a volume and write it into another volume
  *
  * extract the largest connected component from a volume and write it into another volume

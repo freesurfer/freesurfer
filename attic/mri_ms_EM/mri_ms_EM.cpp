@@ -1,5 +1,5 @@
 /**
- * @file  mri_ms_EM.c
+ * @file  mri_ms_EM.cpp
  * @brief does bias field correction as well
  *
  * Implementation based on: H. Ichihashi et al. "Gaussian Mixture PDF

@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_volume_fraction.c
+ * @file  mri_compute_volume_fraction.cpp
  * @brief compute the % of gm, wm and CSF in each voxel in a volume
  *
  * Program to compute partial volume fractions for every voxel in e.g. an EPI image using

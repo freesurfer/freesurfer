@@ -1,5 +1,5 @@
 /**
- * @file  mri_gcab_train.c
+ * @file  mri_gcab_train.cpp
  * @brief train a gca boundary atlas
  *
  * Routines for supporting boundary deformations to refine the

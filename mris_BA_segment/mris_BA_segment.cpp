@@ -1,5 +1,5 @@
 /**
- * @file  mris_BA_segment.c
+ * @file  mris_BA_segment.cpp
  * @brief program for segmenting a Brodmann area from MRI.
  *
  * This program uses laminar intensity profiles to segment Brodmann areas from

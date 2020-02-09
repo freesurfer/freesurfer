@@ -1,5 +1,5 @@
 /**
- * @file  connectcomp.c
+ * @file  connectcomp.cpp
  * @brief utilities for computing connected components
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
@@ -752,7 +752,7 @@ MRI *BinaryClose26(MRI *ori, MRI *out, int R)
 }
 
 /**
- * @file  myutils.c
+ * @file  myutils.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

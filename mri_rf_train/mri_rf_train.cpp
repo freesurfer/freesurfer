@@ -1,6 +1,6 @@
 
 /**
- * @file  mri_rf_train.c
+ * @file  mri_rf_train.cpp
  * @brief Creates the Randomg Forest Array (RFA) atlas from training set
  *
  * See:

@@ -1,5 +1,5 @@
 /**
- * @file  mri_and.c
+ * @file  mri_and.cpp
  * @brief performs a logical and at each voxel on a series of volumes
  *
  * performs a logical and at each voxel on a series of volumes

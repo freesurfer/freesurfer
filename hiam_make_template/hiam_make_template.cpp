@@ -1,5 +1,5 @@
 /**
- * @file  hiam_make_template.c
+ * @file  hiam_make_template.cpp
  * @brief hippocampus and amygdala version of mris_make_templace
  *
  * This code is a modified version of mris_make_template.c for being 

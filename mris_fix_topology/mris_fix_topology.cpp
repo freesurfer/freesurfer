@@ -1,5 +1,5 @@
 /**
- * @file  mris_fix_topology.c
+ * @file  mris_fix_topology.cpp
  * @brief Finds and corrects defects in surface topology.
  *
  * "Topology Correction of Subcortical Segmentation",

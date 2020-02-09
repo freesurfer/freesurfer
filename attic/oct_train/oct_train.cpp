@@ -1,5 +1,5 @@
 /**
- * @file  oct_train.c
+ * @file  oct_train.cpp
  * @brief main program for training a cellular classifier from labeled OCT data
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

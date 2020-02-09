@@ -1,5 +1,5 @@
 /**
- * @file  ic12.c
+ * @file  ic12.cpp
  * @brief ic0.tri - icosahedron
  *
  * in memory version of ic0.tri

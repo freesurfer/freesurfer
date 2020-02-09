@@ -1,5 +1,5 @@
 /**
- * @file  label2patch.c
+ * @file  label2patch.cpp
  * @brief convert a label into a patch suitable for flattening
  *
  * convert a label into a patch suitable for flattening

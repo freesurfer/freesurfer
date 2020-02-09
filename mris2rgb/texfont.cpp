@@ -1,5 +1,5 @@
 /**
- * @file  texfont.c
+ * @file  texfont.cpp
  * @brief OpenGL stuff
  *
  */

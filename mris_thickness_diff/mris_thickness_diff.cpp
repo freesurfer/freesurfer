@@ -1,5 +1,5 @@
 /**
- * @file  mris_thickness_diff.c
+ * @file  mris_thickness_diff.cpp
  * @brief  computes the difference of two surface data sets
  *
  * Given two surfaces with two functions defined on each of them,

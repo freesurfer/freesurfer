@@ -1,5 +1,5 @@
 /**
- * @file  talairachex.c
+ * @file  talairachex.cpp
  * @brief new talairach related routines with Ex
  *
  * takes lta as the talairach transform (use LTAreadEx routine)

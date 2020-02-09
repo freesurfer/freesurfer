@@ -1,5 +1,5 @@
 /**
- * @file  mris_ca_train.c
+ * @file  mris_ca_train.cpp
  * @brief builds a cortical parcellation atlas (.gcs) file from a training set
  *
  * Creates a cortical parcellation atlas file based on one or more annotated

@@ -1,5 +1,5 @@
 /**
- * @file  mri_cc.c
+ * @file  mri_cc.cpp
  * @brief program for segmenting the corpus callosum
  *
  * segments the callosum into 5 parts divided along the primary

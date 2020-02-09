@@ -1,5 +1,5 @@
 /**
- * @file  mri_em_register.c
+ * @file  mri_em_register.cpp
  * @brief linear registration to a gca atlas
  *
  * pick a bunch of samples and use them to find the transform that

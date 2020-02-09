@@ -1,5 +1,5 @@
 /**
- * @file  mris_annot_to_segmentation.c
+ * @file  mris_annot_to_segmentation.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

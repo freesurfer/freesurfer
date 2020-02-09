@@ -1,5 +1,5 @@
 /**
- * @file  dmatrix.c
+ * @file  dmatrix.cpp
  * @brief Matrix utilities using doubles instead of floats
  *
  */

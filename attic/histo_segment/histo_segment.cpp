@@ -1,5 +1,5 @@
 /**
- * @file  histo_stereology.c
+ * @file  histo_stereology.cpp
  * @brief program to segment neurons from a nissl stain
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

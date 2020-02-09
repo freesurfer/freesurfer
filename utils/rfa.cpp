@@ -1,5 +1,5 @@
 /**
- * @file  rfa.c
+ * @file  rfa.cpp
  * @brief Creates the Random Forest Array (RFA) atlas from training set
  *
  */

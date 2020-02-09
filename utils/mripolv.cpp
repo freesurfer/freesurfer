@@ -1,5 +1,5 @@
 /**
- * @file  mripolv.c
+ * @file  mripolv.cpp
  * @brief utils for calcing/filtring MRI data based on planes of least variance
  *
  */

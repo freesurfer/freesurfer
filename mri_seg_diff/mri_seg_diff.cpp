@@ -1,5 +1,5 @@
 /**
- * @file  mri_seg_diff.c
+ * @file  mri_seg_diff.cpp
  * @brief Computes and merge differences in segmentation.
  *
  * This program computes and merges differences in segmentation volumes

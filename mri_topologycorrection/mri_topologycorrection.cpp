@@ -1,5 +1,5 @@
 /**
- * @file  mri_topologycorrection.c
+ * @file  mri_topologycorrection.cpp
  * @brief topology correction routines
  *
  * "A Hybrid Approach to the Skull-Stripping Problem in MRI",

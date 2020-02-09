@@ -1,5 +1,5 @@
 /**
- * @file  mri_gdfglm.c
+ * @file  mri_gdfglm.cpp
  * @brief performs glm analysis given group descriptor file and dep. var. table
  *
  * Things to do:

@@ -1,5 +1,5 @@
 /**
- * @file  mri_evaluate_morph.c
+ * @file  mri_evaluate_morph.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

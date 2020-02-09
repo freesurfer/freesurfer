@@ -1,5 +1,5 @@
 /**
- * @file  mri_stats2seg.c
+ * @file  mri_stats2seg.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

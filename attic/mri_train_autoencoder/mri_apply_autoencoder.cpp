@@ -1,5 +1,5 @@
 /**
- * @file  mri_apply_autoencoder.c
+ * @file  mri_apply_autoencoder.cpp
  * @brief main program for applying a stacked autoencoder for feature extraction.
  *
 H.-C. Shin, M. R. Orton, D. J. Collins, S. J. Doran, and M. O. Leach,

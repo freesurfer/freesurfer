@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_layer_fraction.c
+ * @file  mri_compute_layer_fraction.cpp
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

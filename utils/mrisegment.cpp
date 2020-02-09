@@ -1,5 +1,5 @@
 /**
- * @file  mrisegment.c
+ * @file  mrisegment.cpp
  * @brief calc and filter MRI data based on planes of least variance
  *
  */

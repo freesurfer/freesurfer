@@ -1,5 +1,5 @@
 /**
- * @file  voxlist.c
+ * @file  voxlist.cpp
  * @brief utilities to create and process lists of voxels
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

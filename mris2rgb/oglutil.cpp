@@ -1,5 +1,5 @@
 /**
- * @file  oglutil.c
+ * @file  oglutil.cpp
  * @brief OpenGL utils
  *
  */

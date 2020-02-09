@@ -1,5 +1,5 @@
 /**
- * @file  mris_congeal.c
+ * @file  mris_congeal.cpp
  * @brief cmd line utility for registering a subject's surface with an atlas,
  *
  * Command line utility for registering a subject's surface with an atlas.

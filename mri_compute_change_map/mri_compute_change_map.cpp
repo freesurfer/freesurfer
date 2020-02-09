@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_change_map.c
+ * @file  mri_compute_change_map.cpp
  * @brief computes longitudinal change map for a pair of (registered) images
  *
  * Program for computing a change map for a pair of registered images by

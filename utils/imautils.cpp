@@ -1,5 +1,5 @@
 /**
- * @file  imautils.c
+ * @file  imautils.cpp
  * @brief Siemens IMA file format utilities
  *
  */

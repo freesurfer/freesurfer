@@ -1,5 +1,5 @@
 /**
- * @file  mris_diff.c
+ * @file  mris_diff.cpp
  * @brief Compare two surfaces.
  *
  */

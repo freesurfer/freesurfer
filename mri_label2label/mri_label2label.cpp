@@ -1,5 +1,5 @@
 /**
- * @file  mri_label2label.c
+ * @file  mri_label2label.cpp
  * @brief map a label from one subject to another
  *
  * Purpose: Converts a label in one subject's space to a label

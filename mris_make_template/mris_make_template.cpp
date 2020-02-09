@@ -1,5 +1,5 @@
 /**
- * @file  mris_make_template.c
+ * @file  mris_make_template.cpp
  * @brief program to add a template into an average surface
  *
  */

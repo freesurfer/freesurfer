@@ -1,5 +1,5 @@
 /**
- * @file  ic42.c
+ * @file  ic42.cpp
  * @brief 1st order icosahedral subdivision with 42 vertices.
  *
  * in memory version of ic1.tri

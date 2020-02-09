@@ -1,5 +1,5 @@
 /**
- * @file  rfutils.c
+ * @file  rfutils.cpp
  * @brief Utilitie functions for Random Forests on surfaces and in volumes.
  *
  */

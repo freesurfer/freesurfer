@@ -1,5 +1,5 @@
 /**
- * @file  mris_flatten.c
+ * @file  mris_flatten.cpp
  * @brief flatten a surface patch
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a

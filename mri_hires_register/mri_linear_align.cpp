@@ -1,5 +1,5 @@
 /**
- * @file  mri_linear_align.c
+ * @file  mri_linear_align.cpp
  * @brief optimal linear alignment of two MR volumes
  *
  * compute the optimal linear alignment between two MR volumes

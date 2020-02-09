@@ -1,5 +1,5 @@
 /**
- * @file  mri_build_priors.c
+ * @file  mri_build_priors.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

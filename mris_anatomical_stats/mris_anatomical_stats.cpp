@@ -1,5 +1,5 @@
 /**
- * @file  mris_anatomical_stats.c
+ * @file  mris_anatomical_stats.cpp
  * @brief measures a variety of anatomical properties
  *
  */

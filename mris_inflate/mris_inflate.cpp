@@ -1,5 +1,5 @@
 /**
- * @file  mris_inflate.c
+ * @file  mris_inflate.cpp
  * @brief binary for inflating a surface.
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a

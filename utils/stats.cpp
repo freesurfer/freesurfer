@@ -1,5 +1,5 @@
 /**
- * @file  stats.c
+ * @file  stats.cpp
  * @brief utilities for manipulating statistical volumes
  *
  */

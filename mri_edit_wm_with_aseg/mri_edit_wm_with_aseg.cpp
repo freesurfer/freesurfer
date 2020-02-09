@@ -1,5 +1,5 @@
 /**
- * @file  mri_edit_wm_with_aseg.c
+ * @file  mri_edit_wm_with_aseg.cpp
  * @brief fixup the wm vol based on segmentations found in aseg
  *
  */

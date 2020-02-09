@@ -1,5 +1,5 @@
 /**
- * @file  mris_distance_map.c
+ * @file  mris_distance_map.cpp
  * @brief program for computing a distance map on the surface
  *
  * compute the distance of each point on the surface to a reference point (usually vertex 0).

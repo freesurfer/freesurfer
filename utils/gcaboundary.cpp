@@ -1,5 +1,5 @@
 /**
- * @file  gcaboundary.c
+ * @file  gcaboundary.cpp
  * @brief Routines for boundary deformations based on gca.
  *
  * Reference:

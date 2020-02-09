@@ -1,5 +1,5 @@
 /**
- * @file  fsPrintHelp.c
+ * @file  fsPrintHelp.cpp
  * @brief utility to read an .xml file and output it in a readable format
  *
  * routines for printing of help text formated in xml

@@ -1,5 +1,5 @@
 /**
- * @file  mris_volume.c
+ * @file  mris_volume.cpp
  * @brief compute the enclosed volume of a surface
  *
  * Use Strokes theorem to compute the volume enclosed by a surface.

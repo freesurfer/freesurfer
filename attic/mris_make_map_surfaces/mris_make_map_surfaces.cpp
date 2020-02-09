@@ -1,5 +1,5 @@
 /**
- * @file  mris_make_map_surfaces.c
+ * @file  mris_make_map_surfaces.cpp
  * @brief surface deformation that maximizes likelihood of underlying MRI data
 
  *

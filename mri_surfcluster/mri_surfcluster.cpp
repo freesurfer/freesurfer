@@ -1,5 +1,5 @@
 /**
- * @file  mri_surfcluster.c
+ * @file  mri_surfcluster.cpp
  * @brief Finds clusters on the surface.
  *
  */

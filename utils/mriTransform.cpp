@@ -1,5 +1,5 @@
 /**
- * @file  mriTransform.c
+ * @file  mriTransform.cpp
  * @brief general purpose utils
  */
 /*

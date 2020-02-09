@@ -1,5 +1,5 @@
 /**
- * @file  mri_ca_train.c
+ * @file  mri_ca_train.cpp
  * @brief Creates the Gaussian Classifier Array (GCA) atlas from training set
  *
  * See:

@@ -1,5 +1,5 @@
 /**
- * @file  sig.c
+ * @file  sig.cpp
  * @brief stats routines
  *
  * such things as FDR and beta and gamma incomplete functions

@@ -1,5 +1,5 @@
 /**
- * @file  mris_extract_main_component.c
+ * @file  mris_extract_main_component.cpp
  * @brief extract the main connected component from a surface
  *
  */

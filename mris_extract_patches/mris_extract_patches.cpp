@@ -1,5 +1,5 @@
 /**
- * @file  mris_extract_patches.c
+ * @file  mris_extract_patches.cpp
  * @brief extract volume patches from a surface and a label file
  *
  * Extract volumetric patches around each labeled vertex and the corresponding vertex in the other hemi

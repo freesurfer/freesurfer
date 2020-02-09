@@ -1,5 +1,5 @@
 /**
- * @file  mri_extract_conditions.c
+ * @file  mri_extract_conditions.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  tags.c
+ * @file  tags.cpp
  * @brief utils for adding tags (meta info) to mgz/h files
  *
  */

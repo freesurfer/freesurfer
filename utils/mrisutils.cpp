@@ -1,5 +1,5 @@
 /**
- * @file  mrisutils.c
+ * @file  mrisutils.cpp
  * @brief more surface processing utils
  *
  */

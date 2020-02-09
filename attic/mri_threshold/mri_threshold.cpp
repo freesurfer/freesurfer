@@ -1,5 +1,5 @@
 /**
- * @file  mri_threshold.c
+ * @file  mri_threshold.cpp
  * @brief Function to lower (or upper) threshold the input volume.
  *
  * This is a function that allows for intensity thresholding the input volume. By default the threshold is a lower threshold, but with the -u flag this can be changed to be an upper one.

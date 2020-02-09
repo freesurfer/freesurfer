@@ -1,5 +1,5 @@
 /**
- * @file  mri_place_surface.c
+ * @file  mri_place_surface.cpp
  * @brief Places surface based on an intensity input image. This is meant to provide
  * replacement functionality for mris_make_surfaces in a form that is easier to 
  * maintain.

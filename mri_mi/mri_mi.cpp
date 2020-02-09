@@ -1,5 +1,5 @@
 /**
- * @file  mri_mi.c
+ * @file  mri_mi.cpp
  * @brief computes the mi between two input volumes
  *
  * computes the mutual information (mi) between two input volumes

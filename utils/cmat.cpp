@@ -1,5 +1,5 @@
 /**
- * @file  cmat.c
+ * @file  cmat.cpp
  * @brief utilities for reading/writing a Connectome MATrix structure
  *
  * Reading and writing and utilities for the Connectome Matrix (CMAT)

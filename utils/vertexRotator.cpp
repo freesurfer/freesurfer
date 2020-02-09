@@ -1,5 +1,5 @@
 /**
- * @file  vertexRotator.c
+ * @file  vertexRotator.cpp
  * @brief rapidly rotate vertexs around the x=0 y=0 z=0 axes
  */
 /*

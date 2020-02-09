@@ -1,5 +1,5 @@
 /**
- * @file  mrisp.c
+ * @file  mrisp.cpp
  * @brief utilities for spherical parameterization of an MRIS
  *
  * mrisp = MRIS parameterization contains utilities for writing various

@@ -1,5 +1,5 @@
 /**
- * @file  mri_surf2surf.c
+ * @file  mri_surf2surf.cpp
  * @brief Resamples data from one surface onto another.
  *
  * Purpose: Resamples data from one surface onto another. If

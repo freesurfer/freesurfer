@@ -1,5 +1,5 @@
 /**
- * @file  mri_diff.c
+ * @file  mri_diff.cpp
  * @brief Determines whether two volumes differ.
  *
  * The basic usage is something like:

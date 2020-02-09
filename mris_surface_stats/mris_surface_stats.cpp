@@ -1,5 +1,5 @@
 /**
- * @file  mris_surface_stats.c
+ * @file  mris_surface_stats.cpp
  * @brief compute the stat-map of scalars defined on the surface
  *
  * This command computes the mean and std of both the signed and unsigned

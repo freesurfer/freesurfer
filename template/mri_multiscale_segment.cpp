@@ -1,5 +1,5 @@
 /**
- * @file  mri_multiscale_segment.c
+ * @file  mri_multiscale_segment.cpp
  * @brief update a conformed segmentation with hires data
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

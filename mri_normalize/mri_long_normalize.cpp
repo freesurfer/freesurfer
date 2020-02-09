@@ -1,5 +1,5 @@
 /**
- * @file  mri_normalize.c
+ * @file  mri_normalize.cpp
  * @brief Normalize the white-matter, based on control points.
  *
  * The variation in intensity due to the B1 bias field is corrected.

@@ -1,5 +1,5 @@
 /**
- * @file  mri_nl_align.c
+ * @file  mri_nl_align.cpp
  * @brief nonlinear volumetric alignment
  *
  * see (Fischl et al., Neuroimage, 2004)

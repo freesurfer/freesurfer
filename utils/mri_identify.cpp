@@ -1,5 +1,5 @@
 /**
- * @file  mri_identify.c
+ * @file  mri_identify.cpp
  * @brief Identify MRI volume format based on filename extension.
  *
  */

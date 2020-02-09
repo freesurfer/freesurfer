@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mri_mc.c
+ * @file  mri_mc.cpp
  * @brief generates a marching cubes triangulation
  *
  * Generates a marching cubes triangulation that is topologically consistent

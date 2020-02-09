@@ -1,5 +1,5 @@
 /**
- * @file  mri_cal_normalize.c
+ * @file  mri_cal_normalize.cpp
  * @brief Normalize a set of longituindal volumes making use of subcortical atlas data
  *
  */

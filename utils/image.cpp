@@ -1,5 +1,5 @@
 /**
- * @file  image.c
+ * @file  image.cpp
  * @brief image processing utilities
  *
  */

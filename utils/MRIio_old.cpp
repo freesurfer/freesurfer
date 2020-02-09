@@ -1,5 +1,5 @@
 /**
- * @file  MRIio_old.c
+ * @file  MRIio_old.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

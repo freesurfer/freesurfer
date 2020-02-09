@@ -1,5 +1,5 @@
 /**
- * @file  mri_relabel_hypointensities.c
+ * @file  mri_relabel_hypointensities.cpp
  * @brief relabels hypointense wm voxels
  *
  */

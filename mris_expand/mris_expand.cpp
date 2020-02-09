@@ -1,5 +1,5 @@
 /**
- * @file  mris_expand.c
+ * @file  mris_expand.cpp
  * @brief expand a surface outwards by a specified amount
  *
  * Expands a surface (typically ?h.white) outwards while maintaining smoothness

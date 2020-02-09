@@ -1,5 +1,5 @@
 /**
- * @file  mriclass.c
+ * @file  mriclass.cpp
  * @brief utilities for MRI classification using a variety of classifiers
  *
  */

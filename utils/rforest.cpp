@@ -1,5 +1,5 @@
 /**
- * @file  rforest.c
+ * @file  rforest.cpp
  * @brief types and prototypes for random forest classifier
  *
  * Base on Leo Breiman's random forest classification algorithm

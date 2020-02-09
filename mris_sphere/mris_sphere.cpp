@@ -1,5 +1,5 @@
 /**
- * @file  mris_sphere.c
+ * @file  mris_sphere.cpp
  * @brief Inflates a surface to a sphere
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a

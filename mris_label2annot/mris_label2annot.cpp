@@ -1,5 +1,5 @@
 /**
- * @file  mris_label2annot.c
+ * @file  mris_label2annot.cpp
  * @brief rogram to convert one or more labels into an annotation
  *
  * Converts a set of surface labels to an annotation file.

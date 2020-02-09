@@ -1,5 +1,5 @@
 /**
- * @file  mri_gtmpvc.c
+ * @file  mri_gtmpvc.cpp
  * @brief Peforms Partial volume correction based on the geometric transfer matrix GTM
  *
  *

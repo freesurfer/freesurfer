@@ -1,5 +1,5 @@
 /**
- * @file  mrishash.c
+ * @file  mrishash.cpp
  * @brief Implements a hash table mechanism to speed comparing vertices
  *
  * The purpose of MRI hash tables is to vastly accelerate algorithms which

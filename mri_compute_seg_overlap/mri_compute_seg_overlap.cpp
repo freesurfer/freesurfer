@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_seg_overlap.c
+ * @file  mri_compute_seg_overlap.cpp
  * @brief Compute Dice coefficent comparing two segmentation volumes.
  *
  * This program compares two segmentation volumes and

@@ -3,7 +3,7 @@
 #define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
 
 /**
- * @file  gcamorph.c
+ * @file  gcamorph.cpp
  * @brief Utilities to morph the Gaussian Classifier Atlas (gca) data
  *
  * Reference:

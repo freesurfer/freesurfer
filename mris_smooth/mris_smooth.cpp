@@ -1,5 +1,5 @@
 /**
- * @file  mris_smooth.c
+ * @file  mris_smooth.cpp
  * @brief iterative averaging of vertex positions to smooth a surface.
  *
  * See (Fischl et al, NeuroImage, 1999)

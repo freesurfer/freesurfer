@@ -1,5 +1,5 @@
 /**
- * @file  mri_extract_fcd_features.c
+ * @file  mri_extract_fcd_features.cpp
  * @brief program to extract features from a recon dir to use as input to an FCD classifier.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

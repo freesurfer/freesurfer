@@ -1,5 +1,5 @@
 /**
- * @file  annotation.c
+ * @file  annotation.cpp
  * @brief utilities for surface-based parcellations
  *
  * utilities for surface-based parcellations (see Fischl et al.,

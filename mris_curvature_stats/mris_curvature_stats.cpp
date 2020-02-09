@@ -1,5 +1,5 @@
 /**
- * @file  mris_curvature_stats.c
+ * @file  mris_curvature_stats.cpp
  * @brief Determine the mean and std of curvature files, and much much more.
  *
  * 'mris_curvature_stats' calculates statistics on curvature across a surface.

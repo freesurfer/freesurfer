@@ -1,5 +1,5 @@
 /**
- * @file  mrisp_paint.c
+ * @file  mrisp_paint.cpp
  * @brief extracts an array ("a variable") from surface-registration template
  *
  */

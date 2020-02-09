@@ -1,5 +1,5 @@
 /**
- * @file  mri_coreg.c
+ * @file  mri_coreg.cpp
  * @brief Computes registration between two volumes
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  mris_glm.c
+ * @file  mris_glm.cpp
  * @brief Computes glm inferences on the surface.
  *
  */

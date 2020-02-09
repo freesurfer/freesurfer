@@ -1,5 +1,5 @@
 /**
- * @file  mris_make_average_surface.c
+ * @file  mris_make_average_surface.cpp
  * @brief create single surface from averages of a subject list
  *
  * This program will average the orig surfaces from the given subject

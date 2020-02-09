@@ -1,5 +1,5 @@
 /**
- * @file  mris_compute_optimal_kernel.c
+ * @file  mris_compute_optimal_kernel.cpp
  * @brief program for computing the optimal blurring kernel between an individual label and a group.
  *
  * computes the isotropic gaussian blurring kernel that is optimal in the lms sense between a

@@ -1,5 +1,5 @@
 /**
- * @file  mrifilter.c
+ * @file  mrifilter.cpp
  * @brief filter routines on MRI data
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file  mri_strip_nonwhite.c
+ * @file  mri_strip_nonwhite.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

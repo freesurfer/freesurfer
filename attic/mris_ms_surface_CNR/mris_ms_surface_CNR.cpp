@@ -1,5 +1,5 @@
 /**
- * @file  mris_ms_surface_CNR.c
+ * @file  mris_ms_surface_CNR.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

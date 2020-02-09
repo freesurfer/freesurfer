@@ -1,5 +1,5 @@
 /**
- * @file  mri_compile_edits.c
+ * @file  mri_compile_edits.cpp
  * @brief program to find all edits made to a subject and write out
  *    a .mgz volume summarizing them.
  *

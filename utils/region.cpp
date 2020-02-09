@@ -1,5 +1,5 @@
 /**
- * @file  region.c
+ * @file  region.cpp
  * @brief utilities for the REGION data structure
  *
  */

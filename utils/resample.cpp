@@ -1,5 +1,5 @@
 /**
- * @file  resample.c
+ * @file  resample.cpp
  * @brief code to perform resapling from one space to another
  *
  * Purpose: code to perform resapling from one space to another,

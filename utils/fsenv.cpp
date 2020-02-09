@@ -1,5 +1,5 @@
 /**
- * @file  fsenv.c
+ * @file  fsenv.cpp
  * @brief Utils to get, set, and print freesurfer environment vars
  *
  */

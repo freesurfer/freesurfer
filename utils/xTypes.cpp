@@ -1,5 +1,5 @@
 /**
- * @file  xTypes.c
+ * @file  xTypes.cpp
  * @brief general purpose utils
  */
 /*

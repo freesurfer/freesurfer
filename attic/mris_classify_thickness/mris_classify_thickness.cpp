@@ -1,5 +1,5 @@
 /**
- * @file  mris_classify_thickness.c
+ * @file  mris_classify_thickness.cpp
  * @brief Use a random forest classifier to classify thickness patterns
  *
  * read in thickness vectors that have been mapped to a common coordinate sytem (e.g. fsaverage5)

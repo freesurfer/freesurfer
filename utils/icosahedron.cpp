@@ -1,6 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  icosahedron.c
+ * @file  icosahedron.cpp
  * @brief utilies for readind and converting icosahedra
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

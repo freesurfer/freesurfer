@@ -1,5 +1,5 @@
 /**
- * @file  mrihisto.c
+ * @file  mrihisto.cpp
  * @brief utilities for MRI data structure histograms
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file  mri_binarize.c
+ * @file  mri_binarize.cpp
  * @brief binarizes an image
  *
  * Program to binarize a volume (or volume-encoded surface file). Can also

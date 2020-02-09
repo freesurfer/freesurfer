@@ -1,5 +1,5 @@
 /**
- * @file  mri_train.c
+ * @file  mri_train.cpp
  * @brief program for training voxel-based classifiers
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

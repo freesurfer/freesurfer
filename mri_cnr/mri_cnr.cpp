@@ -1,5 +1,5 @@
 /**
- * @file  mri_cnr.c
+ * @file  mri_cnr.cpp
  * @brief use white and pial surfaces to compute the CNR of a volume
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE

@@ -1,5 +1,5 @@
 /**
- * @file  autoencoder.c
+ * @file  autoencoder.cpp
  * @brief header file for creating and training a stacked autoencoder for
 feature extraction.
  *

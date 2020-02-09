@@ -1,5 +1,5 @@
 /**
- * @file  label.c
+ * @file  label.cpp
  * @brief utilities for manipulating ROIs.
  *
  * utilities (surface and volume) for manipulating arbitrary lists of

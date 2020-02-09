@@ -1,5 +1,5 @@
 /**
- * @file  mris_rf_label.c
+ * @file  mris_rf_label.cpp
  * @brief main program for labeling a surface based on a previously trained random forest on the surface
  *
  * program for labeling a surfaced based on a set of features across subjects on the surface and that had

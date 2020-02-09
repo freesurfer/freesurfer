@@ -1,5 +1,5 @@
 /**
- * @file  mri_ca_label.c
+ * @file  mri_ca_label.cpp
  * @brief anisotropic nonstationary markov random field labeling
  *
  * Program for computing the MAP segmentation modeling the labeling as an

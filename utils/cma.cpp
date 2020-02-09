@@ -1,5 +1,5 @@
 /**
- * @file  cma.c
+ * @file  cma.cpp
  * @brief constants for neuroanatomical structures.
  *
  * constants and macros for neuroanatomical and some vascular structures.

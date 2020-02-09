@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_overlap.c
+ * @file  mri_compute_overlap.cpp
  * @brief computing label overlap measures
  *
  * Computing three label overlap measures: volume difference, Dice and Jaccard.

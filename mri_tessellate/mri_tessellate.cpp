@@ -1,5 +1,5 @@
 /**
- * @file  mri_tessellate.c
+ * @file  mri_tessellate.cpp
  * @brief tessellate a volume to create a surface
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface

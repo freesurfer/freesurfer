@@ -1,5 +1,5 @@
 /**
- * @file  xDebug.c
+ * @file  xDebug.cpp
  * @brief X debugging routines: creates .xdebug_tkmedit and .xdebug_tksurfer
  *
  */

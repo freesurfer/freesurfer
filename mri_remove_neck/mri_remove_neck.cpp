@@ -1,5 +1,5 @@
 /**
- * @file  mri_remove_neck.c
+ * @file  mri_remove_neck.cpp
  * @brief removes neck fromm t1 (stuff below brain)
  *
  */

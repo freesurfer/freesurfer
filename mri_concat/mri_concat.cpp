@@ -1,5 +1,5 @@
 /**
- * @file  mri_concat.c
+ * @file  mri_concat.cpp
  * @brief Concatenates input data sets.
  *
  * EXAMPLES:

@@ -1,5 +1,5 @@
 /**
- * @file  mri_map_cpdat.c
+ * @file  mri_map_cpdat.cpp
  * @brief map a control.dat file (manual edits) to another space
  *
  */

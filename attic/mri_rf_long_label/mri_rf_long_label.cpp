@@ -1,5 +1,5 @@
 /**
- * @file  mri_rf_long_label.c
+ * @file  mri_rf_long_label.cpp
  * @brief random forest classification
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file  mri_label2vol.c
+ * @file  mri_label2vol.cpp
  * @brief Converts a label to a segmentation volume.
  *
  * Converts a label or a set of labels into a volume. For a single label,

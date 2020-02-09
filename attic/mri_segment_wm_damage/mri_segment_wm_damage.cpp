@@ -1,5 +1,5 @@
 /**
- * @file  mri_segment_wm_damage.c
+ * @file  mri_segment_wm_damage.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
