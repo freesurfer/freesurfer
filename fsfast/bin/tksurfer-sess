@@ -41,6 +41,7 @@ set TCL = ();
 set FWHM = ();
 set DoWhite = 1;
 set DoPial = 1;
+set DoInflated = 1;
 
 set Delink = 0;
 set UseVol2Surf = 1;
@@ -55,7 +56,6 @@ set DoFieldSign = 0;
 set UseTalairach = 0;
 set RegDOF = 6;
 set regfile = ();
-set UseVGLRun = 0;
 
 if($?FSF_USE_FV == 0) setenv FSF_USE_FV 1
 set UseFreeview = $FSF_USE_FV
@@ -296,7 +296,7 @@ foreach sess ($SessList)
     if($#annot) set cmd = ($cmd -annot $annot)
     if($surf != white && $DoWhite) set cmd = ($cmd -surf white);
     if($surf != pial && $DoPial) set cmd = ($cmd -surf pial);
-    if($surf != inflated) set cmd = ($cmd -surf inflated);
+    if($surf != inflated && $DoInflated) set cmd = ($cmd -surf inflated);
     set cmd = ($cmd -fminmax $fthresh $fmax)
   endif
 
@@ -316,12 +316,7 @@ foreach sess ($SessList)
   echo ""
 
   # Runit
-  if($UseVGLRun == 0) then
-    $cmd
-  else
-    setenv VGL_DISPLAY :0
-    exec /usr/pubsw/bin/vglrun $cmd
-  endif
+  fsvglrun $cmd
 
   # delete tmp files
   rm -f $mapconcatfile
@@ -426,6 +421,11 @@ while( $#argv != 0 )
       set RegDOF = $argv[1];shift;
       breaksw
 
+    case "-surf":
+      if($#argv == 0) goto arg1err;
+      set surf = $argv[1];shift;
+      breaksw
+
     case "-freeview":
     case "-fv":
       set UseFreeview = 1;
@@ -472,6 +472,13 @@ while( $#argv != 0 )
       set DoPial = 1;
       breaksw
 
+    case "-no-inflated":
+      set DoInflated = 0;
+      breaksw
+    case "-inflated":
+      set DoInflated = 1;
+      breaksw
+
     case "-delink":
       set Delink = 1;
       breaksw
@@ -491,7 +498,11 @@ while( $#argv != 0 )
       breaksw
 
     case "-vgl":
-      set UseVGLRun = 1;
+      setenv FS_ALLOW_VGLRUN 1
+      breaksw
+    case "-novgl":
+    case "-no-vgl":
+      unsetenv FS_ALLOW_VGLRUN 
       breaksw
 
     case "-self":
