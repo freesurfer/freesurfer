@@ -11,15 +11,9 @@ class Surface(Transformable):
 
     def __init__(self, vertices, faces=None, hemi=None, geom=None):
 
-        # TODEP - this is a temporary fix to support the previous way of loading from a file - it
-        # is not an ideal way of handling things and should be removed as soon as possible
+        # make sure a string isn't being provided
         if isinstance(vertices, str):
-            warning('moving foward, please load surfaces via fs.Surface.read(filename)')
-            result = Surface.read(vertices)
-            vertices = result.vertices
-            faces = result.faces
-            hemi = result.hemi
-            geom = result.geom
+            raise ValueError('if loading from file, use the Surface.read() class method')
 
         self.vertices = vertices
         self.faces = faces
