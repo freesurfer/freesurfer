@@ -95,6 +95,10 @@
       <argument>--mmvol MultiModalInput Type</argument>
       <explanation>Specify a T2 or FLAIR input volume used for placing the pial surface (Type must be T2 or FLAIR). It must be in registration with the input volume </explanation>
 
+      <argument>--mm-refine</argument>
+      <explanation>Use Siless' MultimodalRefinement. Sets tspring=nspring=0.3</explanation>
+
+
       <argument>--pin-medial-wall cortexlabel</argument>
       <explanation>Set coordinates in vertices NOT in cortexlabel to be that of the white{xyz} coordinates. Done after the surface is placed.</explanation>
 

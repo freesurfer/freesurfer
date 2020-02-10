@@ -129,7 +129,7 @@ double round(double x);
 #include "cmdargs.h"
 #include "cma.h"
 #include "romp_support.h"
-
+#include "mris_multimodal_refinement.h"
 
 class RIP_MNGR{
 public:
@@ -234,6 +234,7 @@ double Ghisto_right_inside_peak_pct = 0.01;
 double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
+int UseMMRefine = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -601,7 +602,8 @@ int main(int argc, char **argv)
     else {
       // Compute the target xyz coordinate (l_location)
       printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
-      MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
+      if(!UseMMRefine){
+	MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
 					       mm_contrast_type, seg, 
 					       T2_min_inside, T2_max_inside, 
 					       T2_min_outside, T2_max_outside, 
@@ -609,8 +611,29 @@ int main(int argc, char **argv)
 					       Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
 					       Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
 					       wm_weight, pial_sigma, invol) ;
+      }
+      else{
+	printf("UseMMRefine\n");
+	MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
+	MRI* whiteMR  = MRIcopy(invol,NULL);
+	MRI* vesselMR = MRIcopy(invol,NULL);
+	refine->SegmentWM(invol,mmvol, whiteMR);
+	refine->SegmentVessel(invol,mmvol, vesselMR);
+	refine->SetStep(.4);
+	refine->SetNumberOfSteps(8);
+	refine->SetGradientSigma(.3);
+	refine->SetSegmentation(seg);
+	refine->FindMaximumGradient(mm_contrast_type == CONTRAST_T2);
+	refine->addImage(invol);
+	refine->addImage(mmvol);
+	refine->SetWhiteMR(whiteMR);
+	refine->SetVesselMR(vesselMR);
+	refine->getTarget(surf); //, debugVertex);
+	MRIfree(&whiteMR);
+	MRIfree(&vesselMR);
+	delete refine;
+      }
     }
-
 
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 
@@ -767,9 +790,12 @@ static int parse_commandline(int argc, char **argv) {
       surftype = GRAY_CSF;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--mm-refine"))   UseMMRefine = 1;
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
+      parms.l_tspring = 0.3;
+      parms.l_nspring = 0.3;
       nargsused = 1;
     }
     else if(!strcmp(option, "--blend-surf")){
