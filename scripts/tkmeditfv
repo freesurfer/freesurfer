@@ -39,7 +39,6 @@ set CursorCRS = ();
 set CenterCursor = 0;
 set Zoom = ();
 set altargs = ()
-set UseVGLRun = 0
 set DoDefects = 0;
 set SegOutline = 0;
 set mainmin = ()
@@ -151,12 +150,10 @@ else
   if($DoSurfs) set cmd = ($cmd -surfs)
 endif
 echo $cmd
-if($UseVGLRun == 0) then
-  $cmd
-else
-  setenv VGL_DISPLAY :0
-  exec /usr/pubsw/bin/vglrun $cmd
-endif
+fsvglrun $cmd
+#setenv VGL_DISPLAY :0
+#  exec /usr/pubsw/bin/vglrun $cmd
+
 
 #========================================================
 
@@ -411,11 +408,11 @@ while( $#argv != 0 )
       breaksw
 
     case "-vgl":
-      set UseVGLRun = 1;
+      setenv FS_ALLOW_VGLRUN 1
       breaksw
     case "-novgl":
     case "-no-vgl":
-      set UseVGLRun = 0;
+      unsetenv FS_ALLOW_VGLRUN 
       breaksw
 
     case "--nolog":
