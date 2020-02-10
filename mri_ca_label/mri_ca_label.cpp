@@ -1402,9 +1402,6 @@ int main(int argc, char *argv[])
   if (fcd)
     gcaCheckForFCDs(mri_labeled, mri_labeled, gca, transform, mri_inputs) ;
 
-  // convert back to uchar if possible
-  MRItoUCHAR(&mri_labeled);
-
   printf("writing labeled volume to %s\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
   {
