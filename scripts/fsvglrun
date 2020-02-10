@@ -32,7 +32,6 @@ fi
 if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
   # VGL is not installed
   set FS_ALLOW_VGLRUN=0
-  #  #export VGL_DISPLAY=:0 
 fi
 
 if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]] ; then
@@ -41,13 +40,14 @@ if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]] ; then
 fi
 
 if [ ! $FS_ALLOW_VGLRUN ]; then
-  echo "Not using VGL"
-  $@
+  #echo "Not using VGL"
+  exec "$@"
   exit $status
 fi
 
 echo "Using VGL"
-$vglrun $@
+#export VGL_DISPLAY=:0 # is this needed?
+exec $vglrun "$@"
 exit $status
 
 #ps auxw | grep X | grep -v NX
