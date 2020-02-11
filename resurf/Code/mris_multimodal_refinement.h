@@ -150,7 +150,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 	 	double dmin=0;
 		int numberOfHops = 2;
 		SURFHOPLIST* hops = SetSurfHopList(j, surf, numberOfHops);
-			for(int t=1; t<5 ; t++)
+		for(int t=1; t<5 ; t++)
 		{
 			int vno1, nthface, faceno2,vno2,k; 
 			float dminv;
@@ -256,7 +256,7 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 		}
 		if( vertexDebug == j)
 			std::cout << "dist to white" <<  (dx + dy + dz   ) << " dist to next sulcus " <<   dmin  << " vessel ?  " << vertexMask  << std::endl;
-		if(((dx + dy + dz >1  ) &&  (dmin <3)) || vertexMask >.5)
+		if(((dx + dy + dz >1  ) &&  (dmin <3))) // || vertexMask >.5)
 		{
 
 
