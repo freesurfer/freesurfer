@@ -4086,6 +4086,7 @@ LabelFromSurface(MRI_SURFACE *mris, int which, double thresh)
 LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb)
 {
   LABEL *lbinv, *lbinvNoIslands, *lbNoHoles;
+  int n;
 
   // Invert the label
   lbinv = MRISlabelInvert(surf, lb);
@@ -4098,6 +4099,14 @@ LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb)
 
   LabelFree(&lbinv);
   LabelFree(&lbinvNoIslands);
+
+  // Copy the original stat back (not possible in a whol)
+  double *stat = (double *)calloc(sizeof(double),surf->nvertices);
+  for(n=0; n < lb->n_points; n++)
+    stat[lb->lv[n].vno] = lb->lv[n].stat;
+  for(n=0; n < lbNoHoles->n_points; n++)
+    lbNoHoles->lv[n].stat = stat[lbNoHoles->lv[n].vno];
+  free(stat);
   
   return(lbNoHoles);
 }
@@ -4144,6 +4153,7 @@ LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb)
     lbcluster->lv[n].x = surf->vertices[vtxno].x;
     lbcluster->lv[n].y = surf->vertices[vtxno].y;
     lbcluster->lv[n].z = surf->vertices[vtxno].z;
+    lbcluster->lv[n].stat = surf->vertices[vtxno].stat;
     n++;
   }
   free(scs);
@@ -4153,10 +4163,20 @@ LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb)
 
 LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb)
 {
+  int n;
   printf("Removing label holes\n");
   LABEL *tmplabel = LabelRemoveHolesSurf(surf, lb);
   printf("Removing label islands\n");
   LABEL *tmplabel2 = LabelRemoveIslandsSurf(surf, tmplabel);
   LabelFree(&tmplabel);
+
+  // Copy the original stat back (not possible in a whol)
+  double *stat = (double *)calloc(sizeof(double),surf->nvertices);
+  for(n=0; n < lb->n_points; n++)
+    stat[lb->lv[n].vno] = lb->lv[n].stat;
+  for(n=0; n < tmplabel2->n_points; n++)
+    tmplabel2->lv[n].stat = stat[tmplabel2->lv[n].vno];
+
+  free(stat);
   return(tmplabel2);
 }
