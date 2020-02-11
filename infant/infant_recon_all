@@ -39,9 +39,9 @@ set intnormFSL          = 0
 set useMI               = 0
 set PrintHelp           = 0
 
-# set gputype = -1 # by default will not be using the GPU version; CUDA/tensorflow assumes you have and are using a GPU unless otherwise stated with "-1"
-set gpuID   = 0  # unless otherwise specified by the user
-set usegpu  = 0
+# don't use GPU by default
+set gpuid = -1
+set usegpu = 0
 
 # non-linear registration choice
 # set regtype   = NIFTYREG # by default instead of dramms -- already set in recon_params.csh
@@ -89,6 +89,11 @@ while( $#argv != 0 )
     case "--outdir":
       if ( $#argv < 1) goto arg1err;
       set FS_DIR = $argv[1]; shift;
+      # set the "true" FS_DIR path
+      mkdir -p $FS_DIR
+      pushd $FS_DIR > /dev/null
+      set FS_DIR = `pwd`
+      popd > /dev/null
       set fsdirset = 1;
       breaksw
     case "--masked":
@@ -327,7 +332,7 @@ set maskedfile = ${maskfile:r:r}ed.nii.gz
 if !(-e $maskfile) then
     # -use-gpu : use GPU versions of the skullstripper: sscnn_skullstrip.py
     # $gpuID = 0 (otherwise user can specify it)
-    set cmd = (python sscnn_skullstrip.py -i ${infile} -o $WORK_DIR/sscnn -c t1w -gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
+    set cmd = (sscnn_skullstrip -i ${infile} -o $WORK_DIR/sscnn -c t1w --gpu $gpuid) # this will produce the mask file $WORK_DIR/sscnn/sscnn_skullstrip.nii.gz
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF

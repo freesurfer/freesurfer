@@ -129,7 +129,7 @@ double round(double x);
 #include "cmdargs.h"
 #include "cma.h"
 #include "romp_support.h"
-
+#include "mris_multimodal_refinement.h"
 
 class RIP_MNGR{
 public:
@@ -137,17 +137,22 @@ public:
   MRIS *surf;
   MRI *seg, *invol;
   char *hemi;
+  int RipFreeze = 1;
+  int RipLesion = 0;
   int RipWMSA = 0;
+  int nRipSegs= 0;
+  int RipSegNo[100];
   int RipBG = 0;
   int RipMidline = 1;
   char *riplabelfile = NULL;
   char *ripsurffile=NULL;
   MRIS *ripsurf;
   char *aparcpath=NULL;
+  double dmin = -2.0, dmax = +2.0, dstep = 0.5;
 };
 
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
-int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISripSegs(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
 
 static int  parse_commandline(int argc, char **argv);
@@ -164,9 +169,8 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-"$Id: mri_glmfit.c,v 1.246 2017/02/15 21:04:18 greve Exp $";
-const char *Progname = "mri_glmfit";
+static char vcid[] = "$Id$";
+const char *Progname = "mris_place_surfaces";
 
 INTEGRATION_PARMS parms, old_parms ;
 int lh_label = LH_LABEL ;
@@ -230,6 +234,7 @@ double Ghisto_right_inside_peak_pct = 0.01;
 double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
+int UseMMRefine = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -597,7 +602,8 @@ int main(int argc, char **argv)
     else {
       // Compute the target xyz coordinate (l_location)
       printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
-      MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
+      if(!UseMMRefine){
+	MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
 					       mm_contrast_type, seg, 
 					       T2_min_inside, T2_max_inside, 
 					       T2_min_outside, T2_max_outside, 
@@ -605,8 +611,29 @@ int main(int argc, char **argv)
 					       Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
 					       Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
 					       wm_weight, pial_sigma, invol) ;
+      }
+      else{
+	printf("UseMMRefine\n");
+	MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
+	MRI* whiteMR  = MRIcopy(invol,NULL);
+	MRI* vesselMR = MRIcopy(invol,NULL);
+	refine->SegmentWM(invol,mmvol, whiteMR);
+	refine->SegmentVessel(invol,mmvol, vesselMR);
+	refine->SetStep(.4);
+	refine->SetNumberOfSteps(8);
+	refine->SetGradientSigma(.3);
+	refine->SetSegmentation(seg);
+	refine->FindMaximumGradient(mm_contrast_type == CONTRAST_T2);
+	refine->addImage(invol);
+	refine->addImage(mmvol);
+	refine->SetWhiteMR(whiteMR);
+	refine->SetVesselMR(vesselMR);
+	refine->getTarget(surf); //, debugVertex);
+	MRIfree(&whiteMR);
+	MRIfree(&vesselMR);
+	delete refine;
+      }
     }
-
 
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 
@@ -711,6 +738,10 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--use-aparc")) UseAParc = 1;
     else if(!strcmp(option, "--rip-wmsa"))    ripmngr.RipWMSA = 1;
     else if(!strcmp(option, "--no-rip-wmsa")) ripmngr.RipWMSA = 0;
+    else if(!strcmp(option, "--rip-freeze"))    ripmngr.RipFreeze = 1;
+    else if(!strcmp(option, "--no-rip-freeze")) ripmngr.RipFreeze = 0;
+    else if(!strcmp(option, "--rip-lesion"))    ripmngr.RipLesion = 1;
+    else if(!strcmp(option, "--no-rip-lesion"))    ripmngr.RipLesion = 0;
     else if(!strcmp(option, "--rip-bg"))    ripmngr.RipBG = 1;
     else if(!strcmp(option, "--no-rip-bg")) ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
@@ -718,6 +749,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))   hemi = "rh";
+    else if(!strcmp(option, "--rip-projection")){
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%lf",&ripmngr.dmin);
+      sscanf(pargv[1],"%lf",&ripmngr.dmax);
+      sscanf(pargv[2],"%lf",&ripmngr.dstep);
+      nargsused = 3;
+    }
     else if(!strcmp(option, "--pin-medial-wall")){
       if(nargc < 1) CMDargNErr(option,1);
       pinlabel = LabelRead("",pargv[0]);
@@ -752,9 +790,12 @@ static int parse_commandline(int argc, char **argv) {
       surftype = GRAY_CSF;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--mm-refine"))   UseMMRefine = 1;
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
+      parms.l_tspring = 0.3;
+      parms.l_nspring = 0.3;
       nargsused = 1;
     }
     else if(!strcmp(option, "--blend-surf")){
@@ -1158,9 +1199,14 @@ static void dump_options(FILE *fp) {
   return;
 }
 
-int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+int MRISripSegs(MRIS *surf, MRI *seg, const int *SegNo, const int nSegNos, 
+		const double dmin, const double dmax, const double dstep)
 {
-  int vno, nripped=0;
+  int vno, nripped=0, k;
+
+  printf("Starting MRISripSegs() d = (%g %g %g) segnos: ",dmin,dmax,dstep);
+  for(k=0; k < nSegNos; k++) printf("%d ",SegNo[k]);
+  printf("\n");
 
   for(vno=0; vno < surf->nvertices; vno++){
     VERTEX *v;
@@ -1179,14 +1225,21 @@ int MRISripWMSA(MRIS *surf, MRI *seg, const double dmin, const double dmax, cons
       MRISsurfaceRASToVoxelCached(surf, seg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(seg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       segid = nint(val) ;
-      if(!IS_WMSA(segid)) continue;
-      v->ripflag = 1;
-      nripped ++;
-      break;
-    }
-  }
+      for(k=0; k < nSegNos; k++){
+	if(segid == SegNo[k]){
+	  //if(!IS_WMSA(segid)) continue;
+	  //printf("Ripping vertex %d at %g %g %g  depth=%g seg=%d\n",vno,round(xv),round(yv),round(zv),d,segid);
+	  v->ripflag = 1;
+	  nripped ++;
+	  break;
+	}
+      } // k
+      if(v->ripflag) break; // no need to continue along normal
+    } // dist
 
-  printf("MRISripWMSA(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  } // vertex
+
+  printf("MRISripSegs(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
   return(nripped);
 }
 
@@ -1254,6 +1307,22 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dm
 int RIP_MNGR::RipVertices(void)
 {
 
+  if(RipFreeze){
+    printf("Ripping frozen voxels\n");
+    RipSegNo[nRipSegs++] = 247;
+  }
+  if(RipWMSA){
+    printf("Ripping WMSA voxels\n");
+    RipSegNo[nRipSegs++] = 77;
+    RipSegNo[nRipSegs++] = 78;
+    RipSegNo[nRipSegs++] = 79;
+  }
+  if(RipLesion){
+    printf("Ripping Lesion voxels\n");
+    RipSegNo[nRipSegs++] = 25;
+    RipSegNo[nRipSegs++] = 57;
+  }
+
   if(riplabelfile){
     printf("Ripping vertices not in label %s\n",riplabelfile);
     LABEL *riplabel = LabelRead("",riplabelfile);
@@ -1263,7 +1332,7 @@ int RIP_MNGR::RipVertices(void)
   }
 
   int ripsurfneeded = 0;
-  if(RipMidline || RipBG || RipWMSA){
+  if(RipMidline || RipBG || nRipSegs){
     ripsurfneeded = 1;
     if(seg == NULL){
       printf("ERROR: need seg for ripping\n");
@@ -1307,12 +1376,12 @@ int RIP_MNGR::RipVertices(void)
   if(RipBG){
     // probably want to use white for this
     printf("Ripping BG\n");
-    MRISripBasalGanglia(ripsurf, seg, -2.0, +2.0, 0.5);
+    MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
   }
-  if(RipWMSA){
+  if(nRipSegs){
     // probably want to use white for this
     printf("Ripping WMSA\n");
-    MRISripWMSA(ripsurf, seg, -2.0, +2.0, 0.5);
+    MRISripSegs(ripsurf, seg, RipSegNo, nRipSegs, dmin,dmax,dstep);
   }
 
   if(ripsurffile){

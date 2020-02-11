@@ -79,6 +79,7 @@ install(PROGRAMS
   fsr-getxopts
   fsr-import
   fsutils.py
+  fsvglrun
   fvcompare
   gca-apply
   gcainit

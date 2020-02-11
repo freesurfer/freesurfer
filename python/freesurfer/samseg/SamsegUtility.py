@@ -43,22 +43,24 @@ def getOptimizationOptions(atlasDir, userOptimizationOptions={}):
         'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
         'maximalDeformationAppliedStopCriterion': 0.0,
         'BFGSMaximumMemoryLength': 12,
-        'multiResolutionSpecification':
-            [
-                {'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
-                 'targetDownsampledVoxelSpacing': 2.0,
-                 'maximumNumberOfIterations': 100,
-                 'estimateBiasField': True
-                 },
-                {'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
-                 'targetDownsampledVoxelSpacing': 1.0,
-                 'maximumNumberOfIterations': 100,
-                 'estimateBiasField': True
-                 }
-            ]
+        'multiResolutionSpecification': [
+            {
+                # level 1
+                'atlasFileName': os.path.join(atlasDir, 'atlas_level1.txt.gz'),
+                'targetDownsampledVoxelSpacing': 2.0,
+                'maximumNumberOfIterations': 100,
+                'estimateBiasField': True
+            }, {
+                # level 2
+                'atlasFileName': os.path.join(atlasDir, 'atlas_level2.txt.gz'),
+                'targetDownsampledVoxelSpacing': 1.0,
+                'maximumNumberOfIterations': 100,
+                'estimateBiasField': True
+            }
+        ]
     }
 
-    # Over-write with any user specified options. The 'multiResolutionSpecification' key has as value a list
+    # Overwrite with any user specified options. The 'multiResolutionSpecification' key has as value a list
     # of dictionaries which we shouldn't just over-write, but rather update themselves, so this is special case
     userOptimizationOptionsCopy = userOptimizationOptions.copy()
     key = 'multiResolutionSpecification'
@@ -267,88 +269,3 @@ def convertRASTransformToLPS(ras2ras):
 def convertLPSTransformToRAS(lps2lps):
     ras2lps = np.diag([-1, -1, 1, 1])
     return np.linalg.inv(ras2lps) @ lps2lps @ ras2lps
-
-
-def writeResults(imageFileNames, savePath, imageBuffers, mask, biasFields, posteriors, FreeSurferLabels, cropping,
-                 targetIntensity=None, targetSearchStrings=None, names=None, threshold=None,
-                 thresholdSearchString=None, savePosteriors=False):
-
-    # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
-    if threshold is not None:
-        # Figure out the structure number of the special snowflake structure
-        for structureNumber, name in enumerate(names):
-            if thresholdSearchString in name:
-                thresholdStructureNumber = structureNumber
-                break
-
-        # Threshold
-        print('thresholding posterior of ', names[thresholdStructureNumber], 'with threshold:', threshold)
-        tmp = posteriors[:, thresholdStructureNumber].copy()
-        posteriors[:, thresholdStructureNumber] = posteriors[:, thresholdStructureNumber] > threshold
-
-        # Majority voting
-        structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
-
-        # Undo thresholding in posteriors
-        posteriors[:, thresholdStructureNumber] = tmp
-
-    else:
-        # Majority voting
-        structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
-
-    freeSurferSegmentation = np.zeros(imageBuffers.shape[0:3], dtype=np.uint16)
-    FreeSurferLabels = np.array(FreeSurferLabels, dtype=np.uint16)
-    freeSurferSegmentation[mask] = FreeSurferLabels[structureNumbers]
-
-    #
-    scalingFactors = scaleBiasFields(biasFields, imageBuffers, mask, posteriors, targetIntensity,
-                                     targetSearchStrings, names)
-
-    # Get corrected intensities and bias field images in the non-log transformed domain
-    expImageBuffers, expBiasFields = undoLogTransformAndBiasField(imageBuffers, biasFields, mask)
-
-    # Write out various images - segmentation first
-    exampleImage = gems.KvlImage(imageFileNames[0])
-    image_base_path, _ = os.path.splitext(imageFileNames[0])
-    _, scanName = os.path.split(image_base_path)
-    writeImage(os.path.join(savePath, scanName + '_crispSegmentation.nii'), freeSurferSegmentation, cropping,
-              exampleImage)
-    for contrastNumber, imageFileName in enumerate(imageFileNames):
-        image_base_path, _ = os.path.splitext(imageFileName)
-        _, scanName = os.path.split(image_base_path)
-
-        # Bias field
-        writeImage(os.path.join(savePath, scanName + '_biasField.nii'), expBiasFields[..., contrastNumber],
-                   cropping, exampleImage)
-
-        # Bias field corrected image
-        writeImage(os.path.join(savePath, scanName + '_biasCorrected.nii'), expImageBuffers[..., contrastNumber],
-                   cropping, exampleImage)
-
-        # Save a note indicating the scaling factor
-        with open(os.path.join(savePath, scanName + '_scaling-factor.txt'), 'w') as f:
-            print(scalingFactors[contrastNumber], file=f)
-
-    if savePosteriors:
-        posteriorPath = os.path.join(savePath, 'posteriors')
-        os.makedirs(posteriorPath, exist_ok=True)
-        for i, name in enumerate(names):
-            pvol = np.zeros(imageBuffers.shape[:3], dtype=np.float32)
-            pvol[mask] = posteriors[:, i]
-            writeImage(os.path.join(posteriorPath, name + '.nii'), pvol, cropping, exampleImage)
-
-    # Compute volumes in mm^3
-    volumeOfOneVoxel = np.abs(np.linalg.det(exampleImage.transform_matrix.as_numpy_array[0:3, 0:3]))
-    volumesInCubicMm = (np.sum(posteriors, axis=0)) * volumeOfOneVoxel
-
-    # Write structural volumes
-    with open(os.path.join(savePath, 'samseg.stats'), 'w') as fid:
-        for volume, name in zip(volumesInCubicMm, names):
-            fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
-
-    # Write intracranial volume
-    sbtiv = icv(zip(*[names, volumesInCubicMm]))
-    with open(os.path.join(savePath, 'sbtiv.stats'), 'w') as fid:
-        fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
-
-    return volumesInCubicMm

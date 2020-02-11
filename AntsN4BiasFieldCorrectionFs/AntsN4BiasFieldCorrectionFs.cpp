@@ -45,6 +45,9 @@ int main(int argc, char const *argv[])
   // convert to ITK image
   ITKImageType::Pointer inputImage = mri->toITKImage();
 
+  // set itk threads to 1
+  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(1);
+
   // create a "mask" that just covers the whole image
   ITKImageType::Pointer maskImage = ITKImageType::New();
   maskImage->CopyInformation(inputImage);

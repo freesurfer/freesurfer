@@ -44,7 +44,8 @@ class QTreeWidget;
 class ColorTableItem : public QTreeWidgetItem
 {
 public:
-  ColorTableItem(QTreeWidget* tree) : QTreeWidgetItem(tree) {}
+  explicit ColorTableItem(int type = Type) : QTreeWidgetItem(type) {}
+  explicit ColorTableItem(QTreeWidget* tree) : QTreeWidgetItem(tree) {}
 
   enum SORT_TYPE  { ST_VALUE = 0, ST_NAME };
 
@@ -156,6 +157,8 @@ protected slots:
   void UpdateOpacity(double val);
 
   void OnLineEditClearBackgroundValue(const QString& text);
+
+  void RefreshColorTable();
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );

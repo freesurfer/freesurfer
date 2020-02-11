@@ -178,7 +178,7 @@ class Affine:
         # ------ Save Registration Results ------
 
         # Save the image-to-image and the world-to-world affine registration matrices
-        scipy.io.savemat(os.path.join(savePath, templateFileNameBase + '_coregistrationMatrices.mat'),
+        scipy.io.savemat(os.path.join(savePath, 'template_transforms.mat'),
                          {'imageToImageTransformMatrix': imageToImageTransformMatrix,
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 

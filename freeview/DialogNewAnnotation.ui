@@ -42,7 +42,7 @@
         </size>
        </property>
        <property name="text">
-        <string>Unamed</string>
+        <string>Unnamed</string>
        </property>
       </widget>
      </item>

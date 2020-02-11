@@ -544,6 +544,7 @@ QColor SurfaceAnnotation::GenerateNewColor()
   while (!c.isValid() || m_listColors.contains(c))
   {
     c = QColor::fromHslF(currentHue, 1.0, 0.5);
+    c = c.toRgb();
     currentHue += 0.618033988749895f;
     currentHue = std::fmod(currentHue, 1.0f);
   }

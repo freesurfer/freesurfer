@@ -59,7 +59,7 @@ add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake
 # xxd is used to generate the helptext headers
 find_program(XXD xxd)
 if(NOT XXD)
-  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+  message(WARNING "MISSING xxd - required to build executable help texts")
 endif()
 
 # Most of the packages required by freesurfer are located by custom find-modules stored in the
@@ -116,8 +116,10 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate
-find_package(GTS)
+# only used by mris_decimate (not available on mac)
+if(NOT APPLE)
+  find_package(GTS)
+endif()
 
 # -------- openMP --------
 find_package(OpenMP)
@@ -134,7 +136,7 @@ if(NOT APPLE)
 endif()
 
 # -------- X11 ---------
-find_package(X11 REQUIRED)
+find_package(X11)
 
 # search for GUI libraries
 if(BUILD_GUIS)
@@ -598,6 +600,7 @@ endif()
 
 if(INFANT_MODULE)
   add_subdirectory(infant)
+  add_subdirectory(sscnn_skullstripping)
 endif()
 
 if(TKTOOLS_MODULE)

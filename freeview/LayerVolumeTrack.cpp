@@ -143,6 +143,16 @@ void LayerVolumeTrack::RebuildActors()
     }
     m_actors << actor;
   }
+  if (m_bVisiblities.isEmpty())
+  {
+    for (int i = 0; i < m_actors.size(); i++)
+      m_bVisiblities << true;
+  }
+  else
+  {
+    for (int i = 0; i < m_actors.size(); i++)
+      m_actors[i]->SetVisibility(m_bVisiblities[i]?1:0);
+  }
   emit ActorChanged();
 }
 
@@ -226,7 +236,7 @@ void LayerVolumeTrack::SetVisible(bool bVisible)
 {
   for (int i = 0; i < m_actors.size(); i++)
   {
-    m_actors[i]->SetVisibility(bVisible);
+    m_actors[i]->SetVisibility(bVisible?m_bVisiblities[i]:false);
   }
   LayerMRI::SetVisible(bVisible);
 }
@@ -278,6 +288,16 @@ void LayerVolumeTrack::Highlight(int nLabel)
   }
 }
 
+void LayerVolumeTrack::ShowAllLabels(bool bShow)
+{
+  for (int i = 0; i < m_actors.size(); i++)
+  {
+    m_actors[i]->SetVisibility(bShow?1:0);
+    m_bVisiblities[i] = bShow;
+  }
+  emit ActorUpdated();
+}
+
 void LayerVolumeTrack::SetLabelVisible(int nLabel, bool bVisible)
 {
   MRI* mri = m_volumeSource->GetMRI();
@@ -286,7 +306,32 @@ void LayerVolumeTrack::SetLabelVisible(int nLabel, bool bVisible)
     if (nLabel == mri->frames[i].label)
     {
       m_actors[i]->SetVisibility(bVisible?1:0);
+      m_bVisiblities[i] = bVisible;
       emit ActorUpdated();
     }
   }
+}
+
+void LayerVolumeTrack::SetFrameVisible(int nFrame, bool bVisible)
+{
+    if (m_actors.size() > nFrame)
+    {
+      m_actors[nFrame]->SetVisibility(bVisible?1:0);
+      m_bVisiblities[nFrame] = bVisible;
+      emit ActorUpdated();
+    }
+}
+
+QList<int> LayerVolumeTrack::GetVisibleLabels()
+{
+  QList<int> list;
+  MRI* mri = m_volumeSource->GetMRI();
+  for (int i = 0; i < mri->nframes; i++)
+  {
+    if (m_bVisiblities[i])
+    {
+      list << mri->frames[i].label;
+    }
+  }
+  return list;
 }

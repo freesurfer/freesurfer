@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# This script that will run its argument with vglrun is allowed and possible.
+# vglrun allows some graphical applications to run faster when on remote desktops
+# such as NoMachine. There are several conditions that must be met before
+# vglrun will be used:
+#   1. the environment variable FS_ALLOW_VGLRUN but be set to non-zero
+#   2. vglrun must exist in the path or in /usr/pubsw/bin/vglrun
+#   3. the shell should not be local (ie, must be a remote shell), 
+#      thought it might not hurt to use vglrun if it is local
+#
+# Eg: fsvglrun freeview orig.mgz
+#
+
+if [ $# == 0 ]; then
+  echo "USAGE: fsvglrun command args ..."
+  exit 1
+fi
+
+if [[ ! $?FS_ALLOW_VGLRUN ]]; then
+  FS_ALLOW_VGLRUN=0
+fi
+
+which vglrun > /dev/null
+if [ ! $status ]; then
+  vglrun=`which vglrun`
+elif [ -e /usr/pubsw/bin/vglrun ]; then
+  vglrun=/usr/pubsw/bin/vglrun
+else
+  FS_ALLOW_VGLRUN=0
+fi
+if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
+  # VGL is not installed
+  set FS_ALLOW_VGLRUN=0
+fi
+
+if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]] ; then
+  # definitely local
+  FS_ALLOW_VGLRUN=0
+fi
+
+if [ ! $FS_ALLOW_VGLRUN ]; then
+  #echo "Not using VGL"
+  exec "$@"
+  exit $status
+fi
+
+echo "Using VGL"
+#export VGL_DISPLAY=:0 # is this needed?
+exec $vglrun "$@"
+exit $status
+
+#ps auxw | grep X | grep -v NX
+#root      3177  0.2  0.3 1261528 501372 tty1   Ssl+ Jan10 147:24 /usr/bin/X :2 -background none -noreset -audit 4 -verbose -auth /run/gdm/auth-for-gdm-X9uybc/database -seat seat0 vt1
+
+

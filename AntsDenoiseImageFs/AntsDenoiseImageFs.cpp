@@ -39,6 +39,9 @@ int main(int argc, char const *argv[])
 
   MRI* mri = MRIread(inputname.c_str());
 
+  // set itk threads to 1
+  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(1);
+
   for (int frame = 0 ; frame < mri->nframes ; frame++) {
     // convert frame to ITK image
     ITKImageType::Pointer image = mri->toITKImage(frame);

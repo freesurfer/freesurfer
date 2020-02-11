@@ -90,7 +90,8 @@ class SamsegLongitudinal:
         updateLatentDeformation=True,
         initializeLatentDeformationToZero=False,
         threshold=None,
-        thresholdSearchString=None):
+        thresholdSearchString=None,
+        modeNames=None):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList
@@ -104,6 +105,7 @@ class SamsegLongitudinal:
         self.numberOfIterations = numberOfIterations
         self.strengthOfLatentGMMHyperprior = strengthOfLatentGMMHyperprior
         self.strengthOfLatentDeformationHyperprior = strengthOfLatentDeformationHyperprior
+        self.modeNames = modeNames
 
         # Initialize some objects
         self.affine = Affine()
@@ -183,7 +185,7 @@ class SamsegLongitudinal:
                                userModelSpecifications=self.userModelSpecifications,
                                userOptimizationOptions=self.userOptimizationOptions,
                                visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
-                               targetSearchStrings=self.targetSearchStrings)
+                               targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames)
 
         # =======================================================================================
         #
@@ -224,14 +226,19 @@ class SamsegLongitudinal:
 
         # Construction of the cross sectional model for each timepoint
         for timepointNumber in range(self.numberOfTimepoints):
-            self.timepointModels.append(Samseg(imageFileNames=self.imageFileNamesList[timepointNumber],
-                                               atlasDir=self.atlasDir, savePath=self.savePath,
-                                               transformedTemplateFileName=self.sstTransformedTemplateFileName,
-                                               userModelSpecifications=self.userModelSpecifications,
-                                               userOptimizationOptions=self.userOptimizationOptions,
-                                               visualizer=self.visualizer, saveHistory=True,
-                                               targetIntensity=self.targetIntensity,
-                                               targetSearchStrings=self.targetSearchStrings))
+            self.timepointModels.append(Samseg(
+                imageFileNames=self.imageFileNamesList[timepointNumber],
+                atlasDir=self.atlasDir,
+                savePath=self.savePath,
+                transformedTemplateFileName=self.sstTransformedTemplateFileName,
+                userModelSpecifications=self.userModelSpecifications,
+                userOptimizationOptions=self.userOptimizationOptions,
+                visualizer=self.visualizer,
+                saveHistory=True,
+                targetIntensity=self.targetIntensity,
+                targetSearchStrings=self.targetSearchStrings,
+                modeNames=self.modeNames
+            ))
             self.timepointModels[timepointNumber].mask = self.sstModel.mask
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
             self.timepointModels[timepointNumber].voxelSpacing = self.sstModel.voxelSpacing
@@ -665,24 +672,24 @@ class SamsegLongitudinal:
         self.timepointVolumesInCubicMm = []
         for timepointNumber in range(self.numberOfTimepoints):
             #
-            self.timepointModels[timepointNumber].deformation = self.latentDeformation + self.timepointModels[timepointNumber].deformation
-            self.timepointModels[timepointNumber].deformationAtlasFileName = self.latentDeformationAtlasFileName
-            posteriors, biasFields, nodePositions, _, _ = self.timepointModels[timepointNumber].segment()
+            timepointModel = self.timepointModels[timepointNumber]
+
+            #
+            timepointModel.deformation = self.latentDeformation + timepointModel.deformation
+            timepointModel.deformationAtlasFileName = self.latentDeformationAtlasFileName
+            posteriors, biasFields, nodePositions, _, _ = timepointModel.segment()
 
             #
             timepointDir = os.path.join(self.savePath, 'tp%03d' % (timepointNumber + 1))
             os.makedirs(timepointDir, exist_ok=True)
 
             #
-            volumesInCubicMm = writeResults(self.imageFileNamesList[timepointNumber],
-                                            timepointDir, self.imageBuffersList[timepointNumber],
-                                            self.sstModel.mask, biasFields, posteriors,
-                                            self.sstModel.modelSpecifications.FreeSurferLabels, self.sstModel.cropping,
-                                            self.targetIntensity, self.targetSearchStrings, self.sstModel.modelSpecifications.names)
+            timepointModel.savePath = timepointDir
+            volumesInCubicMm = timepointModel.writeResults(biasFields, posteriors)
 
             # Save the timepoint->template warp
             if saveWarp:
-                self.timepointModels[timepointNumber].saveWarpField(os.path.join(timepointDir, 'template.m3z'))
+                timepointModel.saveWarpField(os.path.join(timepointDir, 'template.m3z'))
 
             self.timepointVolumesInCubicMm.append(volumesInCubicMm)
 
@@ -719,7 +726,7 @@ class SamsegLongitudinal:
 
             # Create an ITK image and write to disk
             sst = gems.KvlImage(requireNumpyArray(imageBuffer))
-            sstFilename = os.path.join(sstDir, 'contrast_%02d.mgz' % (contrastNumber + 1))
+            sstFilename = os.path.join(sstDir, 'mode%02d_average.mgz' % (contrastNumber + 1))
             sst.write(sstFilename, image0.transform_matrix)
 
             #

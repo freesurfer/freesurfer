@@ -15,6 +15,7 @@ default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 parser.add_argument('-t', '--timepoint', nargs='+', action='append', required=True, help='Configure a timepoint with multiple inputs.')
 parser.add_argument('-o', '--output', required=True, help='Output directory.')
 # optional processing options
+parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
@@ -55,7 +56,8 @@ samsegLongitudinal = samseg.SamsegLongitudinal(
     atlasDir,
     args.output,
     targetIntensity=110,
-    targetSearchStrings=['Cerebral-White-Matter']
+    targetSearchStrings=['Cerebral-White-Matter'],
+    modeNames=args.mode
 )
 
 samsegLongitudinal.preProcess()

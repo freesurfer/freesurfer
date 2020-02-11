@@ -1256,6 +1256,13 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ((RenderView3D*)m_views[3])->HideSlices();
   }
 
+  if (parser->Found("hide-x-slice", &sa))
+    ((RenderView3D*)m_views[3])->ShowSlice(0, false);
+  if (parser->Found("hide-y-slice", &sa))
+    ((RenderView3D*)m_views[3])->ShowSlice(1, false);
+  if (parser->Found("hide-z-slice", &sa))
+    ((RenderView3D*)m_views[3])->ShowSlice(2, false);
+
   if (parser->Found("hide-3d-frames", &sa) )
   {
     ((RenderView3D*)m_views[3])->SetShowSliceFrames(false);
@@ -1629,6 +1636,10 @@ void MainWindow::RunScript()
   else if ( cmd == "loadtrackvolume" || cmd == "loadvolumetrack")
   {
     CommandLoadVolumeTrack( sa );
+  }
+  else if ( cmd == "settrackvolumeframe" )
+  {
+    CommandSetVolumeTrackFrame(sa);
   }
   else if ( cmd == "loadsurface" )
   {
@@ -3016,7 +3027,33 @@ void MainWindow::CommandLoadVolumeTrack( const QStringList& sa )
   {
     bResample = true;
   }
-  this->LoadVolumeTrackFile(sa[1], bResample);
+
+  QStringList list = sa[1].split(":");
+  if (list.size() > 1)
+  {
+    QStringList sublist = list[1].split("=");
+    if (sublist.size() > 1 && sublist[0] == "frame")
+      m_scripts.insert(0, QStringList("settrackvolumeframe") << sublist[1]);
+  }
+  this->LoadVolumeTrackFile(list[0], bResample);
+}
+
+void MainWindow::CommandSetVolumeTrackFrame(const QStringList &cmd)
+{
+  Layer* layer = GetActiveLayer("MRI");
+  if (layer && layer->IsTypeOf("VolumeTrack"))
+  {
+     LayerVolumeTrack* vt = (LayerVolumeTrack*)layer;
+     QStringList frames = cmd[1].split(",");
+     vt->ShowAllLabels(false);
+     for (int i = 0; i < frames.size(); i++)
+     {
+       int nFrame = frames[i].toInt();
+       if (nFrame >= 0)
+        vt->SetFrameVisible(nFrame, true);
+     }
+     emit RefreshLookUpTableRequested();
+  }
 }
 
 void MainWindow::CommandLoadPVolumes( const QStringList& cmd )

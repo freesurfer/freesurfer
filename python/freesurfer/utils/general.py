@@ -39,9 +39,9 @@ def check_tensorflow():
     except ImportError:
         error('This tool requires tensorflow, but fspython does not ship with tensorflow')
         print('by default. You (or a sys admin) can install the CPU version via:\n')
-        print('  fspython -m pip install tensorflow\n')
+        print('  fspython -m pip install tensorflow==1.13.1\n')
         print('Or the GPU version via:\n')
-        print('  fspython -m pip install tensorflow-gpu\n')
+        print('  fspython -m pip install tensorflow-gpu==1.13.1\n')
         sys.exit(1)
 
 

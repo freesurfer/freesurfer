@@ -22,7 +22,7 @@ class Samseg:
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
-                 targetIntensity=None, targetSearchStrings=None):
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
@@ -32,6 +32,13 @@ class Samseg:
         self.thresholdSearchString = thresholdSearchString
         self.targetIntensity = targetIntensity
         self.targetSearchStrings = targetSearchStrings
+
+        # Use defualt if mode names aren't provided
+        if not modeNames:
+            modeNames = ['mode%02d' % (n + 1) for n in range(len(imageFileNames))]
+        elif len(modeNames) != len(imageFileNames):
+            raise ValueError('number of mode names does not match number of input images')
+        self.modeNames = modeNames
 
         # Initialize some objects
         self.affine = Affine()
@@ -118,11 +125,11 @@ class Samseg:
         # Background masking: simply setting intensity values outside of a very rough brain mask to zero
         # ensures that they'll be skipped in all subsequent computations
         self.imageBuffers, self.mask = maskOutBackground(self.imageBuffers,
-                                                                      self.modelSpecifications.atlasFileName,
-                                                                      self.transform,
-                                                                      self.modelSpecifications.brainMaskingSmoothingSigma,
-                                                                      self.modelSpecifications.brainMaskingThreshold,
-                                                                      self.probabilisticAtlas)
+                                                         self.modelSpecifications.atlasFileName,
+                                                         self.transform,
+                                                         self.modelSpecifications.brainMaskingSmoothingSigma,
+                                                         self.modelSpecifications.brainMaskingThreshold,
+                                                         self.probabilisticAtlas)
 
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
@@ -161,14 +168,7 @@ class Samseg:
         posteriors, biasFields, nodePositions, _, _ = self.segment()
 
         # Write out segmentation and bias field corrected volumes
-        volumesInCubicMm = writeResults(self.imageFileNames, self.savePath, self.imageBuffers, self.mask,
-                                                     biasFields,
-                                                     posteriors, self.modelSpecifications.FreeSurferLabels,
-                                                     self.cropping,
-                                                     self.targetIntensity, self.targetSearchStrings,
-                                                     self.modelSpecifications.names,
-                                                     self.threshold, self.thresholdSearchString,
-                                                     savePosteriors=self.savePosteriors)
+        volumesInCubicMm = self.writeResults(biasFields, posteriors)
 
         # Save the template warp
         if self.saveWarp:
@@ -178,11 +178,8 @@ class Samseg:
         # Save the final mesh collection
         if self.saveMesh:
             print('Saving the final mesh in template space')
-            image_base_path, _ = os.path.splitext(self.imageFileNames[0])
-            _, scanName = os.path.split(image_base_path)
-            deformedAtlasFileName = os.path.join(self.savePath, scanName + '_meshCollection.txt')
-            self.probabilisticAtlas.saveDeformedAtlas(self.modelSpecifications.atlasFileName, deformedAtlasFileName,
-                                                      nodePositions)
+            deformedAtlasFileName = os.path.join(self.savePath, 'mesh.txt')
+            self.probabilisticAtlas.saveDeformedAtlas(self.modelSpecifications.atlasFileName, deformedAtlasFileName, nodePositions)
 
         # Save the history of the parameter estimation process
         if self.saveHistory:
@@ -200,6 +197,93 @@ class Samseg:
                 pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
 
         return self.modelSpecifications.FreeSurferLabels, self.modelSpecifications.names, volumesInCubicMm, self.optimizationSummary
+
+    def writeImage(self, data, path, saveLabels=False):
+        geom = fs.Volume.read(self.imageFileNames[0]).geometry()
+        uncropped = np.zeros(geom.shape, dtype=data.dtype, order='F')
+        uncropped[self.cropping] = data
+        volume = fs.Volume(uncropped, affine=geom.affine, voxsize=geom.voxsize)
+        if saveLabels:
+            volume.lut = fs.LookupTable.read(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
+        volume.write(path)
+
+    def writeResults(self, biasFields, posteriors):
+
+        # Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
+        names = self.modelSpecifications.names
+        if self.threshold is not None:
+            # Figure out the structure number of the special snowflake structure
+            for structureNumber, name in enumerate(names):
+                if self.thresholdSearchString in name:
+                    thresholdStructureNumber = structureNumber
+                    break
+
+            # Threshold
+            print('thresholding posterior of ', names[thresholdStructureNumber], 'with threshold:', self.threshold)
+            tmp = posteriors[:, thresholdStructureNumber].copy()
+            posteriors[:, thresholdStructureNumber] = posteriors[:, thresholdStructureNumber] > self.threshold
+
+            # Majority voting
+            structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
+
+            # Undo thresholding in posteriors
+            posteriors[:, thresholdStructureNumber] = tmp
+
+        else:
+            # Majority voting
+            structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
+
+        segmentation = np.zeros(self.imageBuffers.shape[:3], dtype=np.int32)
+        fslabels = np.array(self.modelSpecifications.FreeSurferLabels, dtype=np.int32)
+        segmentation[self.mask] = fslabels[structureNumbers]
+
+        #
+        scalingFactors = scaleBiasFields(biasFields, self.imageBuffers, self.mask, posteriors, self.targetIntensity, self.targetSearchStrings, names)
+
+        # Get corrected intensities and bias field images in the non-log transformed domain
+        expImageBuffers, expBiasFields = undoLogTransformAndBiasField(self.imageBuffers, biasFields, self.mask)
+
+        # Write out various images - segmentation first
+        self.writeImage(segmentation, os.path.join(self.savePath, 'seg.mgz'), saveLabels=True)
+
+        for contrastNumber, imageFileName in enumerate(self.imageFileNames):
+            # Contrast-specific filename prefix
+            contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
+
+            # Write bias field and bias-corrected image
+            self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
+            self.writeImage(expImageBuffers[..., contrastNumber], contastPrefix + '_bias_corrected.mgz')
+
+            # Save a note indicating the scaling factor
+            with open(contastPrefix + '_scaling.txt', 'w') as fid:
+                print(scalingFactors[contrastNumber], file=fid)
+
+        if self.savePosteriors:
+            posteriorPath = os.path.join(self.savePath, 'posteriors')
+            os.makedirs(posteriorPath, exist_ok=True)
+            for structureNumber, name in enumerate(names):
+                # Write the posteriors to seperate volume files
+                posteriorVol = np.zeros(self.imageBuffers.shape[:3], dtype=np.float32)
+                posteriorVol[self.mask] = posteriors[:, structureNumber]
+                self.writeImage(os.path.join(posteriorPath, name + '.mgz'), posteriorVol)
+
+        # Compute volumes in mm^3
+        # TODO: cache the source geometry in __init__, as this is also loaded by writeImage
+        exampleImage = gems.KvlImage(self.imageFileNames[0])
+        volumeOfOneVoxel = np.abs(np.linalg.det(exampleImage.transform_matrix.as_numpy_array[:3, :3]))
+        volumesInCubicMm = np.sum(posteriors, axis=0) * volumeOfOneVoxel
+
+        # Write structural volumes
+        with open(os.path.join(self.savePath, 'samseg.stats'), 'w') as fid:
+            for volume, name in zip(volumesInCubicMm, names):
+                fid.write('# Measure %s, %.6f, mm^3\n' % (name, volume))
+
+        # Write intracranial volume
+        sbtiv = icv(zip(*[names, volumesInCubicMm]))
+        with open(os.path.join(self.savePath, 'sbtiv.stats'), 'w') as fid:
+            fid.write('# Measure Intra-Cranial, %.6f, mm^3\n' % sbtiv)
+
+        return volumesInCubicMm
 
     def saveWarpField(self, filename):
         # extract node positions in image space
@@ -221,9 +305,9 @@ class Samseg:
         # longitudinal timepoints might only be aligned in RAS space, not voxel space, so
         # the cached vox->vox transform computed from the base image should be converted for
         # the appropriate image geometries
-        matricesFileName = os.path.join(self.savePath, 'template_coregistrationMatrices.mat')
+        matricesFileName = os.path.join(self.savePath, 'template_transforms.mat')
         if not os.path.isfile(matricesFileName):
-            matricesFileName = os.path.join(self.savePath, 'base', 'template_coregistrationMatrices.mat')
+            matricesFileName = os.path.join(self.savePath, 'base', 'template_transforms.mat')
         matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
 
         # rasterize the final node coordinates (in image space) using the initial template mesh
@@ -380,7 +464,7 @@ class Samseg:
 
             # Main iteration loop over both EM and deformation
             for iterationNumber in range(maximumNumberOfIterations):
-                logger.debug('iterationNumber=%d', iterationNumber)
+                print('iterationNumber: %d' % iterationNumber)
 
                 # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
 
@@ -474,7 +558,6 @@ class Samseg:
                                                        self.gmm.numberOfGaussiansPerClass, optimizationParameters)
 
                 # print summary of iteration
-                print('iterationNumber: %d' % iterationNumber)
                 print('maximalDeformationApplied: %.4f' % maximalDeformationApplied)
                 print('=======================================================')
                 self.visualizer.show(mesh=downSampledMesh, images=downSampledImageBuffers,
