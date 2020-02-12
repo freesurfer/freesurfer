@@ -1,16 +1,16 @@
-#!/usr/bin/env python2
-from __future__ import print_function
+#!/usr/bin/env python
+
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import optparse
 import logging
 import csv
 
-# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/')
-import fsutils
-from fsutils import AsegStatsParser, BadFileError, aseglogger
+import freesurfer.utils.legacy as fsutils
+from freesurfer.utils.legacy import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
@@ -306,7 +306,7 @@ def assemble_inputs(o):
         if o.qdec is not None:
             o.subjects = []
             try:
-                f = open(o.qdec, 'rb')
+                f = open(o.qdec, 'r')
                 dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
                 reader = csv.DictReader(f, dialect=dialect)
@@ -322,7 +322,7 @@ def assemble_inputs(o):
         if o.qdeclong is not None:
             o.subjects = []
             try:
-                f = open(o.qdeclong, 'rb')
+                f = open(o.qdeclong, 'r')
                 dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
                 reader = csv.DictReader(f, dialect=dialect)
