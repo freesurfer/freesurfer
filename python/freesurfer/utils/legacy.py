@@ -4,11 +4,11 @@
 # copied here. Those particular python scripts, like aparcstats2table, will
 # now import 'fsuilts' via:
 #
-# import freesurfer.utils.legacy fsutils
+# import freesurfer.utils.legacy as fsutils
 #
 # Ideally, everything in this file should either be phased out or integrated
 # cleanly with the rest of the freesurfer package, but for now this is an easy
-# to get the old scripts running with fspython without having to modify much.
+# way to get the old scripts running with fspython without having to modify much.
 
 import os
 import sys
