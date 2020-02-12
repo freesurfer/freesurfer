@@ -1,15 +1,16 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
-from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
-import os, sys, optparse
+
+import os
+import sys
+import optparse
 import logging
 import csv
 
-# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/') 
-import fsutils
-from fsutils import AparcStatsParser, BadFileError, aparclogger
+import freesurfer.utils.legacy as fsutils
+from freesurfer.utils.legacy import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH

@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python
 
 #
 # long_mris_slopes
@@ -23,9 +22,11 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 #
+
 from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import shlex
@@ -35,8 +36,8 @@ import subprocess
 import tempfile
 import shutil
 from sys import platform as _platform
-from subject_info import *
-from LongQdecTable import *
+from freesurfer.utils.legacy import LongQdecTable
+
 
 # logging 
 ch = logging.StreamHandler()

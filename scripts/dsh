@@ -1,6 +1,6 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python2
 
+from __future__ import print_function
 import 	os
 import 	sys
 import 	getopt
@@ -13,8 +13,54 @@ from   	threading	import *
 #import 	popen2
 from    subprocess      import *
 import 	SocketServer
-from	dgmsocket	import *
+import socket
 import  time
+
+
+class C_dgmsocket :
+
+	mstr_obj	= 'C_dgmsocket';	# name of object class
+	mstr_name	= 'void';			# name of object variable
+	m_id		= -1; 				# id of agent
+	m_iter		= 0;				# current iteration in an
+	m_verbosity	= 0;				# verbosity 
+	m_warnings	= 0;				# show warnings 
+	m_dgmsocket	= None;
+	mstr_remoteHost	= 'localhost';
+	m_port		= 1701;
+	
+	def __init__(self, astr_hostname = 'localhost', a_port = 1701):
+		self.core_construct()
+		self.mstr_remoteHost	= astr_hostname
+		self.m_port 		= a_port
+		self.m_dgmsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+	def core_construct(	self,
+				astr_obj	= 'C_dgmsocket',
+				astr_name	= 'void',
+				a_id		= -1,
+				a_iter		= 0,
+				a_verbosity	= 0,
+				a_warnings	= 0) :
+		self.mstr_obj		= astr_obj
+		self.mstr_name		= astr_name
+		self.m_id		= a_id
+		self.m_iter		= a_iter
+		self.m_verbosity	= a_verbosity
+		self.m_warnings		= a_warnings
+
+	def __str__(self):
+		print('mstr_obj\t\t= %s' 	% self.mstr_obj)
+		print('mstr_name\t\t= %s' 	% self.mstr_name)
+		print('m_id\t\t\t= %d' 		% self.m_id)
+		print('m_iter\t\t\t= %d'	% self.m_iter)
+		print('m_verbosity\t\t= %d'	% self.m_verbosity)
+		print('m_warnings\t\t= %d'	% self.m_warnings)
+		return 'This class provides a *very* simple wrapper framework about datagram sockets.'
+
+	def tx(self, str_payload):
+		self.m_dgmsocket.sendto(str_payload, (self.mstr_remoteHost, self.m_port))
+
 
 # Some global defaults
 Gstr_sourceScript	= '-x'

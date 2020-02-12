@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python
 
 #
 # merge_stats_tables
@@ -23,9 +22,10 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 #
-from __future__ import print_function
+
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import shlex
@@ -34,8 +34,8 @@ import logging
 import subprocess
 import tempfile
 import shutil
-from subject_info import *
-import fsutils
+import freesurfer.utils.legacy as fsutils
+
 
 # logging 
 ch = logging.StreamHandler()

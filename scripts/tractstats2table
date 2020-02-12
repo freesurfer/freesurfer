@@ -1,13 +1,16 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import optparse
 import logging
-import fsutils
-from fsutils import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
+import csv
+
+import freesurfer.utils.legacy as fsutils
+from freesurfer.utils.legacy import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
 # $Id: tractstats2table,v 1.5 2011/04/02 00:54:53 krish Exp $
