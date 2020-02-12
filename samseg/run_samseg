@@ -47,6 +47,11 @@ args = parser.parse_args()
 if not fs.fshome():
     fs.fatal('FREESURFER_HOME must be set')
 
+
+# Make sure tensorflow is installed if doing lesion segmentation
+if args.lesion:
+    fs.utils.check_tensorflow()
+
 # Start the process timer
 timer = fs.utils.Timer()
 
@@ -175,9 +180,6 @@ if args.lesion:
             intensityMaskingPattern[1:3] = 1
     else:
         intensityMaskingPattern = args.lesion_mask
-
-    # Make sure tensorflow is installed
-    fs.utils.check_tensorflow()
 
     # Delay import until here so that tensorflow doesn't get loaded unless needed
     from freesurfer.samseg.SamsegLesion import SamsegLesion
