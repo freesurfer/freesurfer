@@ -36,7 +36,7 @@ import subprocess
 import tempfile
 import shutil
 from sys import platform as _platform
-from freesurfer.utils.legacy import LongQdecTable
+from freesurfer.utils.legacy import LongQdecTable, BadFileError
 
 
 # logging 
@@ -686,7 +686,7 @@ if __name__=="__main__":
         defaultvar = options.time
         # compute correct index (starting with 1, 0 is the tpID)
         foundidx = False
-        for index in (i for i in xrange(len(variables)) if variables[i].upper()==defaultvar.upper()):
+        for index in (i for i in range(len(variables)) if variables[i].upper()==defaultvar.upper()):
             varidx = index
             foundidx = True
             #print('found: '+str(varidx)+' '+variables[varidx])

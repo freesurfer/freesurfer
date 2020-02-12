@@ -38,7 +38,7 @@ import time
 import math
 import stat
 
-from freesurfer.utils.legacy import LongQdecTable
+from freesurfer.utils.legacy import LongQdecTable, BadFileError
 
 
 # logging 

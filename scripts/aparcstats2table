@@ -227,7 +227,7 @@ def assemble_inputs(options):
     if o.qdec is not None:
         o.subjects=[]
         try:
-            f = open(o.qdec, 'rb')
+            f = open(o.qdec, 'r')
             dialect = csv.Sniffer().sniff(f.readline())
             f.seek(0)
             reader = csv.DictReader(f,dialect=dialect)
@@ -244,7 +244,7 @@ def assemble_inputs(options):
     if o.qdeclong is not None:
         o.subjects=[]
         try:
-            f = open(o.qdeclong, 'rb')
+            f = open(o.qdeclong, 'r')
             dialect = csv.Sniffer().sniff(f.readline())
             f.seek(0)
             reader = csv.DictReader(f,dialect=dialect)
