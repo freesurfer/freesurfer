@@ -18,7 +18,8 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
-  connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(OnExistingLabelClicked(QTreeWidgetItem*)));
+  connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+          SLOT(OnExistingLabelClicked(QTreeWidgetItem*)), Qt::QueuedConnection);
   connect(ui->treeWidgetExistingLabels, SIGNAL(itemChanged(QTreeWidgetItem*,int)), SLOT(OnExistingLabelItemChanged(QTreeWidgetItem*)));
   connect(ui->checkBoxShowAll, SIGNAL(stateChanged(int)), SLOT(OnCheckBoxShowAllLabels(int)));
   connect(ui->lineEditName, SIGNAL(returnPressed()), SLOT(OnButtonSet()));
@@ -26,7 +27,8 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
   connect(ui->lineEditColor, SIGNAL(returnPressed()), SLOT(OnButtonSet()));
   connect(ui->lineEditColor, SIGNAL(textChanged(QString)), SLOT(OnEditColorTextChanged()));
   connect(ui->colorpicker, SIGNAL(colorChanged(QColor)), SLOT(OnColorChanged(QColor)), Qt::QueuedConnection);
-  connect(ui->treeWidgetAvailableLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(OnAvailableLabelClicked(QTreeWidgetItem*)));
+  connect(ui->treeWidgetAvailableLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+          SLOT(UpdateActions()), Qt::QueuedConnection);
   connect(ui->actionRedo, SIGNAL(triggered(bool)), SLOT(OnButtonRedo()));
   connect(ui->actionUndo, SIGNAL(triggered(bool)), SLOT(OnButtonUndo()));
   connect(ui->pushButtonSet, SIGNAL(clicked(bool)), SLOT(OnButtonSet()));
@@ -98,6 +100,8 @@ void WindowEditAnnotation::UpdateActions()
   SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
   ui->actionRedo->setEnabled(annot && annot->HasRedo());
   ui->actionUndo->setEnabled(annot && annot->HasUndo());
+  ui->pushButtonFromCTab->setEnabled(!ui->treeWidgetAvailableLabels->selectedItems().isEmpty() &&
+                                !ui->treeWidgetExistingLabels->selectedItems().isEmpty());
 }
 
 void WindowEditAnnotation::PopulateAvailableColorTable(bool bForce)
@@ -240,8 +244,8 @@ void WindowEditAnnotation::OnExistingLabelClicked(QTreeWidgetItem *item)
       emit LabelClicked(item->data(0, ANNOT_INDEX_ROLE).toInt());
 
     UpdateInfoFromItem(item);
-//    ui->treeWidgetAvailableLabels->setCurrentItem(NULL);
   }
+  UpdateActions();
 }
 
 void WindowEditAnnotation::OnExistingLabelItemChanged(QTreeWidgetItem *item)
@@ -254,7 +258,6 @@ void WindowEditAnnotation::OnExistingLabelItemChanged(QTreeWidgetItem *item)
     m_layerSurface->GetActiveAnnotation()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
     ui->checkBoxShowAll->setCheckState(m_layerSurface->GetActiveAnnotation()->GetVisibleLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
-
   ui->checkBoxShowAll->blockSignals(false);
 }
 
@@ -407,15 +410,6 @@ void WindowEditAnnotation::OnColorChanged(const QColor &color)
     ui->lineEditColor->blockSignals(true);
     ui->lineEditColor->setText(QString("%1 %2 %3").arg(color.red()).arg(color.green()).arg(color.blue()));
     ui->lineEditColor->blockSignals(false);
-  }
-}
-
-void WindowEditAnnotation::OnAvailableLabelClicked(QTreeWidgetItem *item)
-{
-  if (item)
-  {
-  //  UpdateInfoFromItem(item);
-    ui->pushButtonFromCTab->setEnabled(true);
   }
 }
 

@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Edit Annotation</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,0,1">
+  <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0">
    <property name="leftMargin">
     <number>0</number>
    </property>
@@ -27,7 +27,7 @@
     <number>9</number>
    </property>
    <property name="verticalSpacing">
-    <number>1</number>
+    <number>3</number>
    </property>
    <item row="1" column="2">
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -152,24 +152,10 @@
      </item>
     </layout>
    </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QToolBar" name="widgetToolBar">
-     <addaction name="actionSave"/>
-     <addaction name="separator"/>
-     <addaction name="actionUndo"/>
-     <addaction name="actionRedo"/>
-     <addaction name="separator"/>
-     <addaction name="actionPathFill"/>
-     <addaction name="actionMakePath"/>
-     <addaction name="actionMakeClosedPath"/>
-     <addaction name="actionDeletePath"/>
-     <addaction name="actionClearMarks"/>
-    </widget>
-   </item>
    <item row="1" column="0">
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <property name="spacing">
-      <number>7</number>
+      <number>4</number>
      </property>
      <property name="leftMargin">
       <number>9</number>
@@ -179,6 +165,9 @@
      </property>
      <item>
       <layout class="QGridLayout" name="gridLayout">
+       <property name="verticalSpacing">
+        <number>4</number>
+       </property>
        <item row="0" column="1" colspan="2">
         <widget class="QLineEdit" name="lineEditName">
          <property name="toolTip">
@@ -270,6 +259,49 @@
       </layout>
      </item>
      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <property name="topMargin">
+        <number>5</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Annotation</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBoxShowAll">
+         <property name="text">
+          <string>All</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+         <property name="tristate">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
       <widget class="QTreeWidget" name="treeWidgetExistingLabels">
        <property name="rootIsDecorated">
         <bool>false</bool>
@@ -286,44 +318,19 @@
      </item>
     </layout>
    </item>
-   <item row="2" column="0" colspan="3">
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <property name="leftMargin">
-      <number>9</number>
-     </property>
-     <property name="topMargin">
-      <number>4</number>
-     </property>
-     <property name="rightMargin">
-      <number>9</number>
-     </property>
-     <item>
-      <widget class="QCheckBox" name="checkBoxShowAll">
-       <property name="text">
-        <string>All</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-       <property name="tristate">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_3">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
+   <item row="0" column="0" colspan="3">
+    <widget class="QToolBar" name="widgetToolBar">
+     <addaction name="actionSave"/>
+     <addaction name="separator"/>
+     <addaction name="actionUndo"/>
+     <addaction name="actionRedo"/>
+     <addaction name="separator"/>
+     <addaction name="actionPathFill"/>
+     <addaction name="actionMakePath"/>
+     <addaction name="actionMakeClosedPath"/>
+     <addaction name="actionDeletePath"/>
+     <addaction name="actionClearMarks"/>
+    </widget>
    </item>
   </layout>
   <action name="actionMakePath">
@@ -416,7 +423,6 @@
   <tabstop>lineEditIndex</tabstop>
   <tabstop>lineEditColor</tabstop>
   <tabstop>pushButtonFromCTab</tabstop>
-  <tabstop>checkBoxShowAll</tabstop>
   <tabstop>treeWidgetExistingLabels</tabstop>
   <tabstop>treeWidgetAvailableLabels</tabstop>
   <tabstop>pushButtonSet</tabstop>
