@@ -265,7 +265,7 @@ class Samseg:
                 # Write the posteriors to seperate volume files
                 posteriorVol = np.zeros(self.imageBuffers.shape[:3], dtype=np.float32)
                 posteriorVol[self.mask] = posteriors[:, structureNumber]
-                self.writeImage(os.path.join(posteriorPath, name + '.mgz'), posteriorVol)
+                self.writeImage(posteriorVol, os.path.join(posteriorPath, name + '.mgz'))
 
         # Compute volumes in mm^3
         # TODO: cache the source geometry in __init__, as this is also loaded by writeImage
