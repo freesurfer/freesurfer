@@ -142,7 +142,10 @@ bool SurfaceAnnotation::InitializeNewAnnotation(const QString& ct_fn)
 {
   if ( m_surface )
   {
-    m_lut = CTABreadASCII(ct_fn.toLatin1().data());
+    if (ct_fn.isEmpty())
+      m_lut = CTABalloc(0);
+    else
+      m_lut = CTABreadASCII(ct_fn.toLatin1().data());
     if (m_lut)
     {
       UpdateColorList();
@@ -203,6 +206,13 @@ void SurfaceAnnotation::UpdateData()
     }
   }
   qSort(annotIndices);
+  QList<int> new_ids = m_mapNewLabels.keys();
+  foreach (int id, new_ids)
+  {
+    if (!annotIndices.contains(id))
+      m_mapNewLabels.remove(id);
+  }
+
   int nAnnots = annotIndices.size();
   //   CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
   if (m_nCenterVertices)
@@ -511,10 +521,7 @@ void SurfaceAnnotation::EditLabel(const QVector<int> &verts, int fill_index, con
     fill_annot = ColorToAnnotation(nl.color);
     m_listColors << nl.color;
   }
-  else
-  {
-
-  }
+  setProperty("current_fill_index", fill_index);
 
   if (options.value("RemoveFromLabel").toBool())
   {
@@ -539,22 +546,77 @@ void SurfaceAnnotation::EditLabel(const QVector<int> &verts, int fill_index, con
 
 QColor SurfaceAnnotation::GenerateNewColor()
 {
-  static float currentHue = 0.0;
   QColor c;
-  while (!c.isValid() || m_listColors.contains(c))
+  while (!c.isValid() || (c.red()+c.green()+c.blue())/3 < 50 ||
+         m_listColors.contains(c))
   {
-    c = QColor::fromHslF(currentHue, 1.0, 0.5);
-    c = c.toRgb();
-    currentHue += 0.618033988749895f;
-    currentHue = std::fmod(currentHue, 1.0f);
+    c = QColor(qrand()%256, qrand()%256, qrand()%256);
   }
-  return c.toRgb();
+  return c;
 }
 
-void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id)
+void SurfaceAnnotation::UpdateColorTable(int nIndex, const QString &name, const QColor &color)
+{
+  CTE* cte;
+  if (nIndex < m_lut->nentries)
+  {
+    cte = m_lut->entries[nIndex];
+    if (!cte)
+    {
+      cte = (CTE *)malloc(sizeof(CTE));
+      m_lut->entries[nIndex] = cte;
+    }
+  }
+  else
+  {
+    COLOR_TABLE* ct = CTABalloc(nIndex+1);
+    for (int i = 0; i < m_lut->nentries; i++)
+    {
+      if (m_lut->entries[i])
+        memmove(ct->entries[i], m_lut->entries[i], sizeof(COLOR_TABLE_ENTRY));
+      else
+      {
+        free(ct->entries[i]);
+        ct->entries[i] = NULL;
+      }
+    }
+    for (int i = m_lut->nentries; i < nIndex; i++)
+    {
+      free(ct->entries[i]);
+      ct->entries[i] = NULL;
+    }
+    CTABfree(&m_lut);
+    m_lut = ct;
+    cte = m_lut->entries[nIndex];
+  }
+  memset(cte->name, 0, STRLEN);
+  sprintf(cte->name, "%s", qPrintable(name));
+  cte->ri = color.red();
+  cte->gi = color.green();
+  cte->bi = color.blue();
+  cte->rf = color.redF();
+  cte->gf = color.greenF();
+  cte->bf = color.blueF();
+}
+
+void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id, const QString& name, const QColor& color)
 {
   SaveForUndo();
-  int src_annot;
+
+  int nValid = 0;
+  if (ctab_id >= 0 && ctab_id < m_lut->nentries)
+    CTABisEntryValid( m_lut, ctab_id, &nValid );
+  if (!nValid)
+  {
+    if (name.isEmpty() || !color.isValid())
+    {
+      qDebug() << "Invalid index in color table: " << ctab_id;
+      return;
+    }
+    UpdateColorTable(ctab_id, name, color);
+  }
+
+  int src_annot;  
   if (nId >= UNASSIGNED_ANNOT_BASE)
   {
     QColor color = m_mapNewLabels[nId].color;
@@ -581,6 +643,32 @@ void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id)
   SetModified();
 }
 
+void SurfaceAnnotation::DeleteLabel(int nId)
+{
+  SaveForUndo();
+  int src_annot;
+  if (nId >= UNASSIGNED_ANNOT_BASE)
+  {
+    QColor color = m_mapNewLabels[nId].color;
+    m_mapNewLabels.remove(nId);
+    src_annot = ColorToAnnotation(color);
+  }
+  else
+  {
+     CTABannotationAtIndex(m_lut, nId, &src_annot);
+  }
+  m_listVisibleLabels.removeOne(nId);
+  for (int i = 0; i < m_nIndexSize; i++)
+  {
+    if (m_data[i] == src_annot)
+      m_data[i] = -1;
+  }
+  if (m_nHighlightedLabel == nId)
+    m_nHighlightedLabel = -1;
+  UpdateData();
+  SetModified();
+}
+
 void SurfaceAnnotation::UpdateColorList()
 {
   m_listColors.clear();
@@ -602,11 +690,13 @@ void SurfaceAnnotation::UpdateColorList()
 void SurfaceAnnotation::UpdateLabelInfo(int i, const QString &name, const QColor &color)
 {
   SaveForUndo();
+
   QColor old_color;
   if (i < UNASSIGNED_ANNOT_BASE)
   {
     if (!name.isEmpty())
     {
+      memset(m_lut->entries[i]->name, 0, STRLEN);
       strncpy(m_lut->entries[i]->name, name.toLatin1().data(), name.size());
     }
     if (color.isValid())
@@ -663,7 +753,10 @@ bool SurfaceAnnotation::SaveToFile(const QString &fn)
   for (int i = 0; i < m_nIndexSize; i++)
     mris->vertices[i].annotation = m_data[i];
 
-  return (::MRISwriteAnnotation(mris, qPrintable(fn)) == 0);
+  bool ret = (::MRISwriteAnnotation(mris, qPrintable(fn)) == 0);
+  if (ret)
+    m_strFilename = fn;
+  return ret;
 }
 
 bool SurfaceAnnotation::HasUndo()
@@ -683,6 +776,7 @@ AnnotUndoRedoBufferItem SurfaceAnnotation::SaveCurrentUndoRedoBuffer()
   memcpy(item.m_data, m_data, sizeof(int)*m_nIndexSize);
   item.m_listVisibleLabels = m_listVisibleLabels;
   item.m_mapNewLabels = m_mapNewLabels;
+  item.m_ctab = CTABdeepCopy(m_lut);
   return item;
 }
 
@@ -691,6 +785,8 @@ void SurfaceAnnotation::RestoreFromUndoRedoBuffer(const AnnotUndoRedoBufferItem 
   memcpy(m_data, item.m_data, sizeof(int)*m_nIndexSize);
   m_listVisibleLabels = item.m_listVisibleLabels;
   m_mapNewLabels = item.m_mapNewLabels;
+  CTABfree(&m_lut);
+  m_lut = CTABdeepCopy(item.m_ctab);
   UpdateData();
   SetModified();
 }
@@ -741,4 +837,22 @@ void SurfaceAnnotation::SaveForUndo()
     m_bufferRedo[i].Free();
   }
   m_bufferRedo.clear();
+}
+
+void SurfaceAnnotation::CleanUpColorTable()
+{
+  SaveForUndo();
+
+  for (int i = 0; i < m_lut->nentries; i++)
+  {
+    CTE* cte = m_lut->entries[i];
+    if (cte)
+    {
+      if (!m_listAnnotations.contains(i))
+      {
+        free(cte);
+        m_lut->entries[i] = NULL;
+      }
+    }
+  }
 }

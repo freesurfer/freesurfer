@@ -40,6 +40,10 @@ mri_cor2label
    --v  volfile   : write label volume in file
    --surf subject hemi <surf> : interpret input as surface overlay
    --opt target delta valmap
+   --remove-holes-islands  : remove holes in label and islands (with --surf only)
+   --dilate ndilations : dilate label (with --surf only)
+   --erode  nerosions  : erode label (with --surf only)
+     Note: dilation is done first, then erode
    --help         :print out help information
 
 ENDUSAGE --------------------------------------------------------------
@@ -149,6 +153,10 @@ double optDelta; //eg, step size in brute force search
 char *optValMapFile; // eg lh.area
 int DoOptThresh=0;
 double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta);
+int label_erode = 0 ; // requires surface
+int label_dilate = 0 ;// requires surface
+int RemoveHolesAndIslands = 0;// requires surface
+
 
 /*----------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -296,6 +304,23 @@ int main(int argc, char **argv) {
     printf("ERROR: found no voxels matching id %d \n",labelid);
     exit(1);
   }
+
+  if(RemoveHolesAndIslands){
+    printf("Removing holes and islands\n");
+    LABEL *tmplabel = LabelRemoveHolesAndIslandsSurf(surf, lb);
+    LabelFree(&lb);
+    lb = tmplabel;
+  }
+
+  if(label_dilate && surf){
+    printf("Dilating label %d times\n",label_dilate);
+    LabelDilate(lb, surf, label_dilate, CURRENT_VERTICES) ;
+  }
+  if(label_erode){
+    printf("Eroding label %d times\n",label_erode);
+    LabelErode(lb, surf, label_erode) ;
+  }
+
   printf("Writing label file %s\n",labelfile);
   LabelWrite(lb,labelfile);
 
@@ -382,9 +407,23 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%lf",&optTargetSum); //eg, target area of label
       sscanf(pargv[2],"%lf",&optDelta); //eg, target area of label
       optValMapFile = pargv[3]; // eg, lh.area
+      labelid = 1;
       nargs = 4;
     }
-
+    else if (!strcmp(option, "--dilate")) {
+      if (nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%d",&label_dilate);
+      nargs = 2;
+    }
+    else if (!strcmp(option, "--erode")) {
+      if (nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%d",&label_erode);
+      nargs = 2;
+    }
+    else if (!strcmp(option, "--remove-holes-islands")) {
+      RemoveHolesAndIslands = 1;// requires surface
+      nargs = 1;
+    }
     /* ---- synthesize the label ---------- */
     else if (!strcmp(option, "--synthlabel")) {
       synthlabel = 1;
@@ -419,6 +458,10 @@ printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
 printf("   --opt target delta valmap\n");
+printf("   --remove-holes-islands  : remove holes in label and islands (with --surf only)\n");
+printf("   --dilate ndilations : dilate label (with --surf only)\n");
+printf("   --erode  nerosions  : erode label (with --surf only)\n");
+printf("     Note: dilation is done first, then erode\n");
 printf("   --help         :print out help information\n");
 printf("\n");
 }
@@ -511,6 +554,18 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: cannot supply both label id and --stat\n");
     exit(1);
   }
+  if(label_dilate && subject_name == NULL){
+    printf("ERROR: --dilate requires a surface\n");
+    exit(1);
+  }
+  if(label_erode && subject_name == NULL){
+    printf("ERROR: --erode requires a surface\n");
+    exit(1);
+  }
+  if(RemoveHolesAndIslands && subject_name == NULL){
+    printf("ERROR: --remove-holes-islands requires a surface\n");
+    exit(1);
+  }
 
   return;
 }
@@ -565,6 +620,4 @@ double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta)
 
   return(optThresh);
 }
-
-
 

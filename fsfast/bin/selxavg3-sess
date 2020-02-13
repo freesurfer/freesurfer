@@ -63,7 +63,7 @@ set SynthSeed = -1;
 set ReduceToMask = 1;
 set threads = "-singleCompThread"; # one single thread
 if(! $?FS_SXA3_USE_BIN)  setenv FS_SXA3_USE_BIN 0
-if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/8.3
+if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/9.5
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then

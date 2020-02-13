@@ -22,11 +22,11 @@ void DialogNewAnnotation::OnOK()
     QMessageBox::information(this, "Error", "Please enter a name for the new annotation");
     return;
   }
-  else if (GetColorTableFile().isEmpty())
-  {
-    QMessageBox::information(this, "Error", "Please select a color table file for the new annotation");
-    return;
-  }
+//  else if (GetColorTableFile().isEmpty())
+//  {
+//    QMessageBox::information(this, "Error", "Please select a color table file for the new annotation");
+//    return;
+//  }
   accept();
 }
 

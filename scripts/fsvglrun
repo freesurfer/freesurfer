@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 
 # This script that will run its argument with vglrun is allowed and possible.
 # vglrun allows some graphical applications to run faster when on remote desktops
@@ -17,16 +17,19 @@ if [ $# == 0 ]; then
   exit 1
 fi
 
-if [[ ! $?FS_ALLOW_VGLRUN ]]; then
+if [[ ! -v FS_ALLOW_VGLRUN ]]; then
   FS_ALLOW_VGLRUN=0
 fi
 
-which vglrun > /dev/null
-if [ ! $status ]; then
+which vglrun > /dev/null 2> /dev/null 
+if [ $? -eq 0 ]; then
+  #echo "Found vglrun"
   vglrun=`which vglrun`
 elif [ -e /usr/pubsw/bin/vglrun ]; then
   vglrun=/usr/pubsw/bin/vglrun
+  #echo "Found $vglrun"
 else
+  #echo "Could not find vglrun"
   FS_ALLOW_VGLRUN=0
 fi
 if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
@@ -34,13 +37,13 @@ if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
   set FS_ALLOW_VGLRUN=0
 fi
 
-if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]] ; then
+if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]]; then
   # definitely local
+  #echo "local"
   FS_ALLOW_VGLRUN=0
 fi
 
-if [ ! $FS_ALLOW_VGLRUN ]; then
-  #echo "Not using VGL"
+if [  $FS_ALLOW_VGLRUN -eq 0 ]; then
   exec "$@"
   exit $status
 fi

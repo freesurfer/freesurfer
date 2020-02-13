@@ -6,7 +6,7 @@ function err = fast_selxavg3b(configfile)
 % selxavg3-sess instead of  fast_selxavg3.m
 % To compile run
 %   unalias matlab
-%   set path = ( /usr/pubsw/common/matlab/8.3/bin/ $path )
+%   set path = ( /usr/pubsw/common/matlab/V.V/bin/ $path )
 %   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
 %   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
 %

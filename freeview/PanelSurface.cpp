@@ -25,6 +25,7 @@
 #include "MainWindow.h"
 #include "ui_PanelSurface.h"
 #include "ui_MainWindow.h"
+#include "ui_WindowEditAnnotation.h"
 #include <QToolBar>
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
@@ -125,8 +126,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_widgetsAnnotation << ui->checkBoxAnnotationOutline
                       << ui->labelLabelZOrderAnnotation
                       << ui->spinBoxZOrderAnnotation
-                      << ui->pushButtonEditAnnotation
-                      << ui->pushButtonSaveAnnotation;
+                      << ui->pushButtonEditAnnotation;
+  //                  << ui->pushButtonSaveAnnotation;
+  ui->pushButtonSaveAnnotation->hide();
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -168,6 +170,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndEditAnnotation->hide();
   connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndEditAnnotation, SLOT(OnActiveSurfaceChanged(Layer*)));
+  connect(m_wndEditAnnotation->ui->actionMakePath, SIGNAL(triggered(bool)), ui->actionMakePath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionMakeClosedPath, SIGNAL(triggered(bool)), ui->actionMakeClosedPath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionDeletePath, SIGNAL(triggered(bool)), ui->actionDeletePath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionClearMarks, SIGNAL(triggered(bool)), ui->actionClearMarks, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionPathFill, SIGNAL(triggered(bool)), ui->actionPathFill, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionSave, SIGNAL(triggered(bool)), ui->pushButtonSaveAnnotation, SLOT(click()));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -824,8 +832,10 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
     {
       DialogNewAnnotation dlg(this, QFileInfo(surf->GetFileName()).dir().path());
       if (dlg.exec() == QDialog::Accepted)
+      {
         surf->CreateNewAnnotation(dlg.GetColorTableFile(), dlg.GetName());
-      QTimer::singleShot(100, this, SLOT(OnButtonEditAnnotation()));
+        QTimer::singleShot(100, this, SLOT(OnButtonEditAnnotation()));
+      }
     }
     UpdateWidgets();
   }
@@ -966,6 +976,7 @@ void PanelSurface::OnButtonConfigureOverlay()
 void PanelSurface::OnButtonEditAnnotation()
 {
   m_wndEditAnnotation->show();
+  m_wndEditAnnotation->raise();
   ui->actionPath->setChecked(true);
   ui->actionPathFill->trigger();
 }
@@ -1456,11 +1467,12 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(verts, options);
-
-    if (m_wndEditAnnotation->isVisible())
     {
-      m_wndEditAnnotation->UpdateUI();
+      surf->FillPath(verts, options);
+      if (m_wndEditAnnotation->isVisible())
+      {
+        m_wndEditAnnotation->UpdateUI(surf->GetActiveAnnotation()->property("current_fill_index").toInt());
+      }
     }
   }
 }

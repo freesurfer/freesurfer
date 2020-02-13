@@ -41,6 +41,7 @@
 #include "minc.h"
 #include "proto.h"
 #include "utils.h"
+#include "surfcluster.h"
 
 #include "label.h"
 
@@ -4082,3 +4083,100 @@ LabelFromSurface(MRI_SURFACE *mris, int which, double thresh)
   return(area) ;
 }
 
+LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb)
+{
+  LABEL *lbinv, *lbinvNoIslands, *lbNoHoles;
+  int n;
+
+  // Invert the label
+  lbinv = MRISlabelInvert(surf, lb);
+
+  // Remove the island from the inverted label
+  lbinvNoIslands = LabelRemoveIslandsSurf(surf, lbinv);
+
+  // Invert it back
+  lbNoHoles = MRISlabelInvert(surf, lbinvNoIslands);
+
+  LabelFree(&lbinv);
+  LabelFree(&lbinvNoIslands);
+
+  // Copy the original stat back (not possible in a whol)
+  double *stat = (double *)calloc(sizeof(double),surf->nvertices);
+  for(n=0; n < lb->n_points; n++)
+    stat[lb->lv[n].vno] = lb->lv[n].stat;
+  for(n=0; n < lbNoHoles->n_points; n++)
+    lbNoHoles->lv[n].stat = stat[lbNoHoles->lv[n].vno];
+  free(stat);
+  
+  return(lbNoHoles);
+}
+
+
+LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb)
+{
+  int n,vtxno,NClusters,MaxSize,nMax;
+  SURFCLUSTERSUM *scs;
+  LABEL *lbcluster=NULL;
+
+  // Set val to 0 in al vertices
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++)
+    surf->vertices[vtxno].val = 0;
+
+  for(n=0; n < lb->n_points; n++)
+    surf->vertices[lb->lv[n].vno].val = 1;
+
+  scs = sclustMapSurfClusters(surf,0.5,2,+1,0,&NClusters,NULL,NULL);
+  printf("-------------------------------------\n");
+  DumpSurfClusterSum(stdout, scs, NClusters);
+  printf("-------------------------------------\n");
+
+  MaxSize = 0;
+  nMax = 0;
+  for(n=0; n < NClusters; n++){
+    printf("%d \n",scs[n].nmembers);
+    if(MaxSize < scs[n].nmembers){
+      MaxSize = scs[n].nmembers;
+      nMax = n;
+    }
+  }
+
+  printf("n = %d %d\n",nMax,MaxSize);
+  lbcluster = LabelAlloc(scs[nMax].nmembers+1, lb->subject_name, NULL);
+  lbcluster->coords = lb->coords;
+  lbcluster->n_points = scs[nMax].nmembers;
+  strcpy(lbcluster->space,lb->space);
+  n = 0;
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    if(surf->vertices[vtxno].undefval != nMax+1) continue;
+    //printf("%d %d  %d\n",vtxno,surf->vertices[vtxno].undefval,n);
+    lbcluster->lv[n].vno = vtxno;
+    lbcluster->lv[n].x = surf->vertices[vtxno].x;
+    lbcluster->lv[n].y = surf->vertices[vtxno].y;
+    lbcluster->lv[n].z = surf->vertices[vtxno].z;
+    lbcluster->lv[n].stat = surf->vertices[vtxno].stat;
+    n++;
+  }
+  free(scs);
+
+  return(lbcluster);
+}
+
+LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb)
+{
+  int n;
+  printf("Removing label holes\n");
+  LABEL *tmplabel = LabelRemoveHolesSurf(surf, lb);
+  printf("Removing label islands\n");
+  LABEL *tmplabel2 = LabelRemoveIslandsSurf(surf, tmplabel);
+  LabelFree(&tmplabel);
+
+  // Copy the original stat back (not possible in a whol)
+  double *stat = (double *)calloc(sizeof(double),surf->nvertices);
+  for(n=0; n < lb->n_points; n++)
+    stat[lb->lv[n].vno] = lb->lv[n].stat;
+  for(n=0; n < tmplabel2->n_points; n++)
+    tmplabel2->lv[n].stat = stat[tmplabel2->lv[n].vno];
+
+  free(stat);
+  return(tmplabel2);
+}
