@@ -15,6 +15,7 @@ class QTreeWidgetItem;
 
 class WindowEditAnnotation : public QWidget
 {
+  friend class PanelSurface;
   Q_OBJECT
 
 public:
@@ -30,22 +31,27 @@ signals:
 
 public slots:
   void OnActiveSurfaceChanged(Layer* layer);
-  void UpdateUI();
-  void PopulateColorTable(bool bForce = false);
+  void UpdateUI(int nIndex = -1);
+  void PopulateColorTable(int nIndex = -1);
   void OnExistingLabelClicked(QTreeWidgetItem* item);
   void OnExistingLabelItemChanged(QTreeWidgetItem *item);
   void OnCheckBoxShowAllLabels(int);
   void OnSurfaceVertexClicked(LayerSurface* surf);
-  void OnEditNameReturnPressed();
+  void OnEditColorTextChanged();
   void OnColorChanged(const QColor& color);
-  void PopulateAvailableColorTable();
+  void PopulateAvailableColorTable(bool bForce = false);
   void OnAvailableLabelClicked(QTreeWidgetItem* item);
   void OnButtonSet();
+  void OnButtonFromCTab();
   void OnButtonUndo();
   void OnButtonRedo();
+  void OnButtonDelete();
+  void OnButtonCleanUp();
+  void UpdateActions();
 
 private:
   void UpdateLabelItem(QTreeWidgetItem* item, int i, const QString& name, const QColor& color);
+  void UpdateInfoFromItem(QTreeWidgetItem* item);
 
   Ui::WindowEditAnnotation *ui;
 

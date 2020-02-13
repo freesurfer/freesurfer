@@ -57,6 +57,9 @@
        <property name="text">
         <string/>
        </property>
+       <property name="placeholderText">
+        <string>Leave empty to create new </string>
+       </property>
       </widget>
      </item>
      <item row="1" column="4">

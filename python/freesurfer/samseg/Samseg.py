@@ -20,7 +20,7 @@ eps = np.finfo(float).eps
 
 class Samseg:
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
-                 transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
+                 transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=False,
                  saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
                  targetIntensity=None, targetSearchStrings=None, modeNames=None):
 
@@ -70,9 +70,16 @@ class Samseg:
             self.visualizer = initVisualizer(False, False)
         else:
             self.visualizer = visualizer
+        
+        # Configure posterior saving option
+        if savePosteriors is True:
+            self.savePosteriors = self.modelSpecifications.names
+        elif isinstance(savePosteriors, list):
+            self.savePosteriors = savePosteriors
+        else:
+            self.savePosteriors = None
 
         self.saveHistory = saveHistory
-        self.savePosteriors = savePosteriors
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
 
@@ -263,9 +270,11 @@ class Samseg:
             os.makedirs(posteriorPath, exist_ok=True)
             for structureNumber, name in enumerate(names):
                 # Write the posteriors to seperate volume files
-                posteriorVol = np.zeros(self.imageBuffers.shape[:3], dtype=np.float32)
-                posteriorVol[self.mask] = posteriors[:, structureNumber]
-                self.writeImage(os.path.join(posteriorPath, name + '.mgz'), posteriorVol)
+                for searchString in self.savePosteriors:
+                    if searchString in name:
+                        posteriorVol = np.zeros(self.imageBuffers.shape[:3], dtype=np.float32)
+                        posteriorVol[self.mask] = posteriors[:, structureNumber]
+                        self.writeImage(posteriorVol, os.path.join(posteriorPath, name + '.mgz'))
 
         # Compute volumes in mm^3
         # TODO: cache the source geometry in __init__, as this is also loaded by writeImage
