@@ -1,14 +1,14 @@
 #ifndef DialogCustomFill_H
 #define DialogCustomFill_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QVariantMap>
 
 namespace Ui {
 class DialogCustomFill;
 }
 
-class DialogCustomFill : public QDialog
+class DialogCustomFill : public QWidget
 {
   Q_OBJECT
 

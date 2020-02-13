@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>DialogCustomFill</class>
- <widget class="QDialog" name="DialogCustomFill">
+ <widget class="QWidget" name="DialogCustomFill">
   <property name="windowTitle">
    <string>Custom Fill</string>
   </property>
