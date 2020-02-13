@@ -8,11 +8,27 @@ from .utilities import requireNumpyArray
 from . import gemsbindings as gems
 
 
-def getModelSpecifications(atlasDir, userModelSpecifications={}):
+def getModelSpecifications(atlasDir, userModelSpecifications={}, onlyT1=False):
 
     # Create default model specifications as a dictionary
     FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(os.path.join(atlasDir, 'compressionLookupTable.txt'))
     sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(atlasDir, 'sharedGMMParameters.txt'))
+
+    # If only T1 is given remove from the sharedGMMParameters 'Pallidum' as an independent class
+    # and move it into 'GlobalWM'.
+    if onlyT1:
+        pallidumGMMNumber = None
+        globalWMGMMNumber = None
+        for classNumber, mergeOption in enumerate(sharedGMMParameters):
+            if 'Pallidum' == mergeOption.mergedName:
+                pallidumGMMNumber = classNumber
+            elif 'GlobalWM' == mergeOption.mergedName:
+                globalWMGMMNumber = classNumber
+
+        if pallidumGMMNumber is None or globalWMGMMNumber is None:
+            raise ValueError('Cannot find Pallidum and/or GlobalWM in sharedGMMParameters')
+        sharedGMMParameters[globalWMGMMNumber].searchStrings.append('Pallidum')
+        sharedGMMParameters.pop(pallidumGMMNumber)
 
     modelSpecifications = {
         'FreeSurferLabels': FreeSurferLabels,

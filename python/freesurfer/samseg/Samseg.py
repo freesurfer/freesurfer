@@ -42,26 +42,18 @@ class Samseg:
         self.affine = Affine()
         self.probabilisticAtlas = ProbabilisticAtlas()
 
-        # Get full model specifications and optimization options (using default unless overridden by user)
-        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications)
-        self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
-
         # Here we assume that the first image is a T1.
         # If only T1 is given remove from the sharedGMMParameters 'Pallidum' as an independent class
-        # and move it into 'GlobalWM'
+        # and move it into 'GlobalWM'. Note that this behaviour can always be changed by specifying
+        # a different model specification with userModelSpecifications
         if len(imageFileNames) == 1:
-            pallidumGMMNumber = None
-            globalWMGMMNumber = None
-            for classNumber, mergeOption in enumerate(self.modelSpecifications['sharedGMMParameters']):
-                if 'Pallidum' == mergeOption.mergedName:
-                    pallidumGMMNumber = classNumber
-                elif 'GlobalWM' == mergeOption.mergedName:
-                    globalWMGMMNumber = classNumber
+            onlyT1 = True
+        else:
+            onlyT1 = False
 
-            if pallidumGMMNumber is None or globalWMGMMNumber is None:
-                raise ValueError('Cannot find Pallidum and/or GlobalWM in sharedGMMParameters')
-            self.modelSpecifications['sharedGMMParameters'][globalWMGMMNumber].searchStrings.append('Pallidum')
-            self.modelSpecifications['sharedGMMParameters'].pop(pallidumGMMNumber)
+        # Get full model specifications and optimization options (using default unless overridden by user)
+        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications, onlyT1)
+        self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
 
         # Get transformed template, if any
         self.transformedTemplateFileName = transformedTemplateFileName
