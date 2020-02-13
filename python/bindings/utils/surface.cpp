@@ -77,8 +77,8 @@ MRIS* Bridge::mris()
   if (source.is(py::none())) throw py::value_error("cannot generate MRIS instance without source object");
 
   // construct the MRIS from vertex and face arrays
-  py::array_t<float> vertices = source.attr("vertices").cast<py::array_t<float>>();
-  py::array_t<int> faces = source.attr("faces").cast<py::array_t<int>>();
+  arrayc<float> vertices = source.attr("vertices").cast<arrayc<float>>();
+  arrayc<int> faces = source.attr("faces").cast<arrayc<int>>();
   MRIS *mris = MRISfromVerticesAndFaces(vertices.data(), vertices.shape(0), faces.data(), faces.shape(0));
 
   // transfer hemisphere info

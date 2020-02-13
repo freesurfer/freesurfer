@@ -46,7 +46,7 @@ class LinearTransform:
         if pts.ndim == 1:
             pts = pts[np.newaxis]
         pts = np.c_[pts, np.ones(pts.shape[0])].T
-        return np.dot(self.matrix, pts).T.squeeze()[..., :-1]
+        return np.ascontiguousarray(np.dot(self.matrix, pts).T.squeeze()[..., :-1])
 
     def inverse(self):
         '''Computes the inverse linear transform.'''
