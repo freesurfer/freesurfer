@@ -24,13 +24,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>346</width>
+     <width>350</width>
      <height>1641</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0">
     <property name="leftMargin">
-     <number>0</number>
+     <number>5</number>
     </property>
     <property name="topMargin">
      <number>0</number>
@@ -117,7 +117,7 @@
     <item>
      <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
       <property name="leftMargin">
-       <number>5</number>
+       <number>0</number>
       </property>
       <property name="spacing">
        <number>6</number>
