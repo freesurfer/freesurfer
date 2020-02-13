@@ -33,7 +33,7 @@ parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in sa
 parser.add_argument('--lesion-mask', type=int, nargs='+', help='Lesion mask (1 for each input): -1 below WM mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
-parser.add_argument('--save-posteriors', action='store_true', default=False, help='Save posterior volumes to the "posteriors" subdirectory.')
+parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp field.')
@@ -46,7 +46,6 @@ args = parser.parse_args()
 # Make sure freesurfer has been sourced
 if not fs.fshome():
     fs.fatal('FREESURFER_HOME must be set')
-
 
 # Make sure tensorflow is installed if doing lesion segmentation
 if args.lesion:
@@ -138,6 +137,12 @@ if args.options:
     if userOptions.get('optimizationOptions') is not None: 
         userOptimizationOptions = userOptions.get('optimizationOptions')
 
+# Check if --save-posteriors was specified without any structure search string
+if args.save_posteriors is not None and len(args.save_posteriors) == 0:
+    savePosteriors = True
+else:
+    savePosteriors = args.save_posteriors
+
 # ------ Run Samsegment ------
 
 samseg_kwargs = dict(
@@ -152,7 +157,7 @@ samseg_kwargs = dict(
     visualizer=visualizer,
     saveHistory=args.history,
     saveMesh=args.save_mesh,
-    savePosteriors=args.save_posteriors,
+    savePosteriors=savePosteriors,
     saveWarp=args.save_warp,
     modeNames=args.mode
 )
