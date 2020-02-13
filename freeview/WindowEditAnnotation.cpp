@@ -32,7 +32,7 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
   connect(ui->actionRedo, SIGNAL(triggered(bool)), SLOT(OnButtonRedo()));
   connect(ui->actionUndo, SIGNAL(triggered(bool)), SLOT(OnButtonUndo()));
   connect(ui->pushButtonSet, SIGNAL(clicked(bool)), SLOT(OnButtonSet()));
-  connect(ui->pushButtonFromCTab, SIGNAL(clicked(bool)), SLOT(OnButtonFromCTab()));
+  connect(ui->toolButtonFromCTab, SIGNAL(clicked(bool)), SLOT(OnButtonFromCTab()));
   connect(ui->pushButtonDelete, SIGNAL(clicked(bool)), SLOT(OnButtonDelete()));
   connect(ui->pushButtonCleanUp, SIGNAL(clicked(bool)), SLOT(OnButtonCleanUp()));
 
@@ -86,7 +86,7 @@ void WindowEditAnnotation::UpdateUI(int nIndex)
       w->blockSignals(true);
 
     PopulateColorTable(nIndex);
-    ui->pushButtonFromCTab->setEnabled(ui->treeWidgetAvailableLabels->currentItem() != NULL);
+    ui->toolButtonFromCTab->setEnabled(ui->treeWidgetAvailableLabels->currentItem() != NULL);
 
     foreach (QWidget* w, list)
       w->blockSignals(false);
@@ -100,7 +100,7 @@ void WindowEditAnnotation::UpdateActions()
   SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
   ui->actionRedo->setEnabled(annot && annot->HasRedo());
   ui->actionUndo->setEnabled(annot && annot->HasUndo());
-  ui->pushButtonFromCTab->setEnabled(!ui->treeWidgetAvailableLabels->selectedItems().isEmpty() &&
+  ui->toolButtonFromCTab->setEnabled(!ui->treeWidgetAvailableLabels->selectedItems().isEmpty() &&
                                 !ui->treeWidgetExistingLabels->selectedItems().isEmpty());
 }
 

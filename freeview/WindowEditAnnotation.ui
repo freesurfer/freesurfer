@@ -18,16 +18,13 @@
     <number>0</number>
    </property>
    <property name="topMargin">
-    <number>3</number>
+    <number>0</number>
    </property>
    <property name="rightMargin">
     <number>0</number>
    </property>
    <property name="horizontalSpacing">
     <number>9</number>
-   </property>
-   <property name="verticalSpacing">
-    <number>3</number>
    </property>
    <item row="1" column="2">
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -116,24 +113,12 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButtonFromCTab">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>25</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>Overwrite Annotation</string>
-       </property>
+      <widget class="QToolButton" name="toolButtonFromCTab">
        <property name="text">
         <string>&lt;-</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextOnly</enum>
        </property>
       </widget>
      </item>
@@ -422,7 +407,6 @@
   <tabstop>lineEditName</tabstop>
   <tabstop>lineEditIndex</tabstop>
   <tabstop>lineEditColor</tabstop>
-  <tabstop>pushButtonFromCTab</tabstop>
   <tabstop>treeWidgetExistingLabels</tabstop>
   <tabstop>treeWidgetAvailableLabels</tabstop>
   <tabstop>pushButtonSet</tabstop>
