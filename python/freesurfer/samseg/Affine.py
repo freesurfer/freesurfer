@@ -14,7 +14,6 @@ class Affine:
     def __init__(self,
                  scaling=0.9,
                  theta=np.pi / 180 * -10.0,
-                 K=1e-7,
                  targetDownsampledVoxelSpacing=3.0,
                  maximalDeformationStopCriterion=0.005):
         self.scaling = scaling

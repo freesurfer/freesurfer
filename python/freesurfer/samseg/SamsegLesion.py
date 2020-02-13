@@ -13,13 +13,12 @@ eps = np.finfo(float).eps
 
 
 class SamsegLesion(Samseg):
-    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
+    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=0.3, thresholdSearchString='Lesion',
-                 targetIntensity=None, targetSearchStrings=None, modeNames=None,
-                 numberOfSamplingSteps=50, numberOfBurnInSteps=50,
-                 numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
-                 intensityMaskingPattern=None, intensityMaskingSearchString=None
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None, numberOfSamplingSteps=50,
+                 numberOfBurnInSteps=50, numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
+                 intensityMaskingPattern=None,  intensityMaskingSearchString='Cortex'
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  transformedTemplateFileName, visualizer, saveHistory, savePosteriors,
@@ -30,7 +29,30 @@ class SamsegLesion(Samseg):
         self.numberOfPseudoSamplesMean = numberOfPseudoSamplesMean
         self.numberOfPseudoSamplesVariance = numberOfPseudoSamplesVariance
         self.rho = rho
-        self.intensityMaskingPattern = intensityMaskingPattern
+
+        if intensityMaskingPattern is not None:
+            if len(intensityMaskingPattern) != len(imageFileNames):
+                raise ValueError('Number of intensity mask pattern does not match the number of input images.')
+            self.intensityMaskingPattern = intensityMaskingPattern
+        else:
+            # The intensities mask is used to mask false positive during the sampling process
+            # The mask is created from the intensityMaskingSearchString structure and depending on the value of
+            # intensityMaskingPattern is masking lesion below the intensityMaskingSearchString structure mean if -1,
+            # and above the mean if 1. 0 means no masking
+
+            # If no intensity masking pattern is specified by the user,
+            # let's assume the first image is T1 and the second is FLAIR or T2 and eventually
+            # the third one is a FLAIR or T2. For extra contrasts just use 0 intensity mask pattern.
+            if len(imageFileNames) == 1:
+                self.intensityMaskingPattern = [0]
+            elif len(imageFileNames) == 2:
+                self.intensityMaskingPattern = [0, 1]
+            elif len(imageFileNames) == 3:
+                self.intensityMaskingPattern = [0, 1, 1]
+            else:
+                self.intensityMaskingPattern = np.zeros(len(imageFileNames))
+                self.intensityMaskingPattern[1:3] = 1
+
         self.intensityMaskingClassNumber = self.getClassNumber(intensityMaskingSearchString)
 
         # Check conditions on white matter and lesion gaussian/structure and
@@ -46,9 +68,7 @@ class SamsegLesion(Samseg):
             return None
 
         #
-        sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(self.atlasDir, 'sharedGMMParameters.txt'))
-
-        for classNumber, mergeOption in enumerate(sharedGMMParameters):
+        for classNumber, mergeOption in enumerate(self.modelSpecifications.sharedGMMParameters):
             for searchString in mergeOption.searchStrings:
                 if structureSearchString in searchString:
                     structureClassNumber = classNumber
@@ -68,12 +88,10 @@ class SamsegLesion(Samseg):
         classNumber = self.getClassNumber(searchString)
 
         # Get class fractions
-        modelSpecifications = getModelSpecifications(self.atlasDir)
-        modelSpecifications = Specification(modelSpecifications)
-        numberOfGaussiansPerClass = [param.numberOfComponents for param in modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
 
-        classFractions, _ = kvlGetMergingFractionsTable(modelSpecifications.names,
-                                                          modelSpecifications.sharedGMMParameters)
+        classFractions, _ = kvlGetMergingFractionsTable(self.modelSpecifications.names,
+                                                          self.modelSpecifications.sharedGMMParameters)
 
         structureNumbers = np.flatnonzero(classFractions[classNumber, :] == 1)
         gaussianNumbers = [sum(numberOfGaussiansPerClass[0: classNumber])]
@@ -91,9 +109,9 @@ class SamsegLesion(Samseg):
         self.gmm.fullHyperVariancesNumberOfMeasurements[self.lesionGaussianNumber] = self.numberOfPseudoSamplesVariance
         self.gmm.tiedGaussiansInit(self.wmGaussianNumber, self.lesionGaussianNumber, self.rho)
 
-    def segment(self):
+    def computeFinalSegmentation(self):
 
-        _, biasFields, nodePositions, data, priors = Samseg.segment(self)
+        _, biasFields, nodePositions, data, priors = Samseg.computeFinalSegmentation(self)
 
         #
         numberOfVoxels = data.shape[0]

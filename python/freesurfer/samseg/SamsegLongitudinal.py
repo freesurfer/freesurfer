@@ -154,22 +154,18 @@ class SamsegLongitudinal:
         self.historyOfTotalTimepointCost = None
         self.historyOfLatentAtlasCost = None
 
-    def constructAndRegisterSubjectSpecificTemplate(self):
+    def segment(self, saveWarp=False):
+        # =======================================================================================
+        #
+        # Main function that runs the whole longitudinal segmentation pipeline
+        #
+        # =======================================================================================
+        self.register()
+        self.preProcess()
+        self.fitModel()
+        return self.postProcess(saveWarp=saveWarp)
 
-        # Generate the subject specific template (sst)
-        self.sstFileNames = self.generateSubjectSpecificTemplate()
-        sstDir, _ = os.path.split(self.sstFileNames[0])
-
-        # Affine atlas registration to sst
-        templateFileName = os.path.join(self.atlasDir, 'template.nii')
-        affineRegistrationMeshCollectionFileName = os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz')
-
-        worldToWorldTransformMatrix, self.sstTransformedTemplateFileName, _ \
-            = self.affine.registerAtlas(self.sstFileNames[0], affineRegistrationMeshCollectionFileName,
-                                        templateFileName, sstDir, visualizer=self.visualizer)
-
-    def preProcess(self):
-
+    def register(self):
         # =======================================================================================
         #
         # Construction and affine registration of subject-specific template (sst)
@@ -187,6 +183,21 @@ class SamsegLongitudinal:
                                visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
                                targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames)
 
+    def constructAndRegisterSubjectSpecificTemplate(self):
+
+        # Generate the subject specific template (sst)
+        self.sstFileNames = self.generateSubjectSpecificTemplate()
+        sstDir, _ = os.path.split(self.sstFileNames[0])
+
+        # Affine atlas registration to sst
+        templateFileName = os.path.join(self.atlasDir, 'template.nii')
+        affineRegistrationMeshCollectionFileName = os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz')
+
+        worldToWorldTransformMatrix, self.sstTransformedTemplateFileName, _ \
+            = self.affine.registerAtlas(self.sstFileNames[0], affineRegistrationMeshCollectionFileName,
+                                        templateFileName, sstDir, visualizer=self.visualizer)
+
+    def preProcess(self):
         # =======================================================================================
         #
         # Preprocessing (reading and masking of data)
@@ -249,7 +260,7 @@ class SamsegLongitudinal:
         for timepointNumber in range(self.numberOfTimepoints):
             self.visualizer.show(images=self.imageBuffersList[timepointNumber], title='time point ' + str(timepointNumber))
 
-    def process(self):
+    def fitModel(self):
 
         # =======================================================================================
         #
@@ -257,7 +268,7 @@ class SamsegLongitudinal:
         #
         # =======================================================================================
 
-        self.sstModel.process()
+        self.sstModel.fitModel()
 
         if hasattr(self.visualizer, 'show_flag'):
             import matplotlib.pyplot as plt  # avoid importing matplotlib by default
@@ -677,7 +688,7 @@ class SamsegLongitudinal:
             #
             timepointModel.deformation = self.latentDeformation + timepointModel.deformation
             timepointModel.deformationAtlasFileName = self.latentDeformationAtlasFileName
-            posteriors, biasFields, nodePositions, _, _ = timepointModel.segment()
+            posteriors, biasFields, nodePositions, _, _ = timepointModel.computeFinalSegmentation()
 
             #
             timepointDir = os.path.join(self.savePath, 'tp%03d' % (timepointNumber + 1))

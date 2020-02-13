@@ -60,8 +60,6 @@ samsegLongitudinal = samseg.SamsegLongitudinal(
     modeNames=args.mode
 )
 
-samsegLongitudinal.preProcess()
-samsegLongitudinal.process()
-samsegLongitudinal.postProcess(saveWarp=args.save_warp)
+samsegLongitudinal.segment(saveWarp=args.save_warp)
 
 timer.mark('run_samseg_long complete')
