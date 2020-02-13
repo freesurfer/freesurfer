@@ -1205,11 +1205,11 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     m_imageData->GetDimensions( nDim );
     long long nSize = ((long long)nDim[0])*nDim[1]*nDim[2]*m_imageData->GetScalarSize()*(nFrame >= 0 ? 1 : m_imageData->GetNumberOfScalarComponents());
     QFile file(this->GenerateCacheFileName());
-    if (!file.open(QIODevice::WriteOnly))
+    if (!file.open(QIODevice::WriteOnly) || file.write((char*)m_imageData->GetScalarPointer() + (nFrame >= 0 ? nSize*nFrame : 0), nSize) != nSize)
     {
+      qDebug() << "Could not write undo cache to disk";
       return;
     }
-    file.write((char*)m_imageData->GetScalarPointer() + (nFrame >= 0 ? nSize*nFrame : 0), nSize);
     file.close();
     item.cache_filename = file.fileName();
     if (this->IsTypeOf("MRI"))
