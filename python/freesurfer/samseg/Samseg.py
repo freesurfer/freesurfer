@@ -211,7 +211,7 @@ class Samseg:
         uncropped[self.cropping] = data
         volume = fs.Volume(uncropped, affine=geom.affine, voxsize=geom.voxsize)
         if saveLabels:
-            volume.lut = fs.LookupTable.read(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
+            volume.lut = fs.LookupTable.read_default()
         volume.write(path)
 
     def writeResults(self, biasFields, posteriors):
