@@ -40,7 +40,6 @@ public slots:
   void OnEditColorTextChanged();
   void OnColorChanged(const QColor& color);
   void PopulateAvailableColorTable(bool bForce = false);
-  void OnAvailableLabelClicked(QTreeWidgetItem* item);
   void OnButtonSet();
   void OnButtonFromCTab();
   void OnButtonUndo();

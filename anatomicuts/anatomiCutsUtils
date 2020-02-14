@@ -101,7 +101,7 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 			colors=[]
 			for k,v in thicknesses[1][i].items():
 				
-				if  len(v)*100 /total > 20 and k in thicknesses[1][i] and k in thicknesses[2][i]  and np.mean(v) >1 and str(k).isnumeric() :
+				if  len(v)*100 /total > 5 and k in thicknesses[1][i] and k in thicknesses[2][i]  and np.mean(v) >1 and str(k).isnumeric() :
 					print("plot", len(v)*100/total)
 					toplot.append(v)				
 					toplot.append(thicknesses[1][i][k])				
@@ -120,7 +120,7 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 					pc.set_facecolor(colors[v])
 					pc.set_edgecolor(colors[v])
 					pc.set_alpha(1)
-				
+				plt.gcf().set_size_inches(len(labels),5)	
 				plt.xticks(range(1,len(labels)+1), labels)
 				plt.savefig(f"{subjects_dir}/average/{i}.png")
 	except Exception as e :
