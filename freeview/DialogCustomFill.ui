@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>DialogCustomFill</class>
- <widget class="QDialog" name="DialogCustomFill">
+ <widget class="QWidget" name="DialogCustomFill">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>306</width>
+    <height>376</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Custom Fill</string>
   </property>

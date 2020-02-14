@@ -42,7 +42,7 @@
         </size>
        </property>
        <property name="text">
-        <string>Unamed</string>
+        <string>Unnamed</string>
        </property>
       </widget>
      </item>
@@ -56,6 +56,9 @@
        </property>
        <property name="text">
         <string/>
+       </property>
+       <property name="placeholderText">
+        <string>Leave empty to create new </string>
        </property>
       </widget>
      </item>

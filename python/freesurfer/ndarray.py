@@ -24,14 +24,21 @@ class ArrayContainerTemplate:
         the array should have ndims equal to the subclass' basedims (or basedims + 1).
         Any extra dimension is assumed to represent data frames.
         '''
+        # get class name
+        classname = self.__class__.__name__
+
         # make sure this template class isn't being used directly
         if self.basedims is None:
-            raise TypeError('%s should never be initialized directly' % self.__class__.__name)
+            raise TypeError('%s should never be initialized directly' % classname)
+
+        # make sure a string isn't being provided
+        if isinstance(data, str):
+            raise ValueError('if loading from file, use the %s.read() class method' % classname)
+
         self.data = np.array(data, copy=False)
         # extra dim is assumed to represent data frames
         if self.data.ndim < self.basedims or self.data.ndim > self.basedims + 1:
-            raise ValueError('%s (%dD) cannot be initialized by an array with %d dims'
-                % (self.__class__.__name__, self.basedims, self.data.ndim))
+            raise ValueError('%s (%dD) cannot be initialized by an array with %d dims' % (classname, self.basedims, self.data.ndim))
 
         # any array type might have a valid lookup table
         self.lut = None
@@ -146,22 +153,13 @@ class Volume(ArrayContainerTemplate, Transformable):
         # lookup table for segmentations
         self.lut = None
 
-        # TODEP - this is a temporary fix to support the previous way of loading from a file - it
-        # is not an ideal way of handling things and should be removed as soon as possible
-        if isinstance(data, str):
-            print('moving foward, please load volumes via fs.Volume.read(filename)')
-            result = Volume.read(data)
-            if not isinstance(result, Volume):
-                classname = result.__class__.__name__
-                raise ValueError('file "%s" must be read as a %s, like this: %s.read(filename)' % (data, classname, classname))
-            data = result.data
-            affine = result.affine
-            voxsize = result.voxsize
-            self.lut = result.lut
-            self.te = result.te
-            self.tr = result.tr
-            self.ti = result.ti
-            self.flip_angle = result.flip_angle
+        # allow for Volumes to be constructed from arrays with less than 3
+        # dimensions in order to act as a catch-all. The appropriate array container
+        # classes should really be used if possible since this 'feature' will
+        # totally breakdown with multiframe data
+        if data.ndim < 3:
+            newaxes = [1] * (3 - data.ndim)
+            data = data.reshape(*data.shape, *newaxes)
 
         ArrayContainerTemplate.__init__(self, data)
         self.affine = affine

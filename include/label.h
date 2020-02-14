@@ -192,5 +192,8 @@ int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 double LabelAverageVal(LABEL *area, MRI_SURFACE *mris) ;
 LABEL  *LabelFromSurface(MRI_SURFACE *mris, int which, double thresh) ;
+LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb);
+LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb);
+LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb);
 
 #endif

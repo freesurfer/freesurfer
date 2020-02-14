@@ -3829,8 +3829,10 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     set white = ../surf/$hemi.white
     set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $white \
-      --white --nsmooth 0 --rip-label $cortex --rip-bg --rip-wmsa \
+      --white --nsmooth 0 --rip-label $cortex --rip-bg \
       --rip-surf $inputsurf --aparc $aparc)
+    if($RipWMSA)   set cmd = ($cmd --rip-wmsa)
+    if($RipLesion) set cmd = ($cmd --rip-lesion)
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;

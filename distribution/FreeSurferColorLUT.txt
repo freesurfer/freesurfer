@@ -247,7 +247,7 @@
 245  molecular_layer_HP-head                      100 25   25   0
 246  molecular_layer_HP-body                      128 0   0   0
 
-
+247 FreezeSurface                        10 100  100 0
 
 250 Fornix                                  255 0   0   0
 251 CC_Posterior                            0   0   64  0

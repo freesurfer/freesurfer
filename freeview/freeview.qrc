@@ -122,5 +122,6 @@
         <file>resource/icons/surface_path_fill.png</file>
         <file>resource/icons/surface_clear_marks.png</file>
         <file>resource/icons/voxel_draw_move.png</file>
+        <file>resource/icons/annot_save.png</file>
     </qresource>
 </RCC>

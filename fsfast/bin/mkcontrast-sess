@@ -49,6 +49,7 @@ set UseSXADat = 0;
 set PrintHelp = 0;
 set mfile = ();
 if(! $?FS_MKCON_USE_BIN)  setenv FS_MKCON_USE_BIN 0
+#FS_MCRROOT set in mkcontrast2
 set UseNew = 1;
 
 set UseOctave = 0;

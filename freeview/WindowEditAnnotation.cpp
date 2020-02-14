@@ -18,15 +18,23 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
-  connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(OnExistingLabelClicked(QTreeWidgetItem*)));
+  connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+          SLOT(OnExistingLabelClicked(QTreeWidgetItem*)), Qt::QueuedConnection);
   connect(ui->treeWidgetExistingLabels, SIGNAL(itemChanged(QTreeWidgetItem*,int)), SLOT(OnExistingLabelItemChanged(QTreeWidgetItem*)));
   connect(ui->checkBoxShowAll, SIGNAL(stateChanged(int)), SLOT(OnCheckBoxShowAllLabels(int)));
-  connect(ui->lineEditName, SIGNAL(returnPressed()), SLOT(OnEditNameReturnPressed()));
+  connect(ui->lineEditName, SIGNAL(returnPressed()), SLOT(OnButtonSet()));
+  connect(ui->lineEditIndex, SIGNAL(returnPressed()), SLOT(OnButtonSet()));
+  connect(ui->lineEditColor, SIGNAL(returnPressed()), SLOT(OnButtonSet()));
+  connect(ui->lineEditColor, SIGNAL(textChanged(QString)), SLOT(OnEditColorTextChanged()));
   connect(ui->colorpicker, SIGNAL(colorChanged(QColor)), SLOT(OnColorChanged(QColor)), Qt::QueuedConnection);
-  connect(ui->treeWidgetAvailableLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(OnAvailableLabelClicked(QTreeWidgetItem*)));
+  connect(ui->treeWidgetAvailableLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+          SLOT(UpdateActions()), Qt::QueuedConnection);
+  connect(ui->actionRedo, SIGNAL(triggered(bool)), SLOT(OnButtonRedo()));
+  connect(ui->actionUndo, SIGNAL(triggered(bool)), SLOT(OnButtonUndo()));
   connect(ui->pushButtonSet, SIGNAL(clicked(bool)), SLOT(OnButtonSet()));
-  connect(ui->pushButtonRedo, SIGNAL(clicked(bool)), SLOT(OnButtonRedo()));
-  connect(ui->pushButtonUndo, SIGNAL(clicked(bool)), SLOT(OnButtonUndo()));
+  connect(ui->toolButtonFromCTab, SIGNAL(clicked(bool)), SLOT(OnButtonFromCTab()));
+  connect(ui->pushButtonDelete, SIGNAL(clicked(bool)), SLOT(OnButtonDelete()));
+  connect(ui->pushButtonCleanUp, SIGNAL(clicked(bool)), SLOT(OnButtonCleanUp()));
 
   QSettings settings;
   QVariant v = settings.value("WindowEditAnnotation/Geometry");
@@ -69,7 +77,7 @@ void WindowEditAnnotation::OnActiveSurfaceChanged(Layer* layer)
   }
 }
 
-void WindowEditAnnotation::UpdateUI()
+void WindowEditAnnotation::UpdateUI(int nIndex)
 {
   if (m_layerSurface)
   {
@@ -77,19 +85,26 @@ void WindowEditAnnotation::UpdateUI()
     foreach (QWidget* w, list)
       w->blockSignals(true);
 
-    PopulateColorTable();
-    ui->pushButtonSet->setEnabled(ui->treeWidgetAvailableLabels->currentItem() != NULL);
+    PopulateColorTable(nIndex);
+    ui->toolButtonFromCTab->setEnabled(ui->treeWidgetAvailableLabels->currentItem() != NULL);
 
     foreach (QWidget* w, list)
       w->blockSignals(false);
 
-    SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
-    ui->pushButtonRedo->setEnabled(annot && annot->HasRedo());
-    ui->pushButtonUndo->setEnabled(annot && annot->HasUndo());
+    UpdateActions();
   }
 }
 
-void WindowEditAnnotation::PopulateAvailableColorTable()
+void WindowEditAnnotation::UpdateActions()
+{
+  SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
+  ui->actionRedo->setEnabled(annot && annot->HasRedo());
+  ui->actionUndo->setEnabled(annot && annot->HasUndo());
+  ui->toolButtonFromCTab->setEnabled(!ui->treeWidgetAvailableLabels->selectedItems().isEmpty() &&
+                                !ui->treeWidgetExistingLabels->selectedItems().isEmpty());
+}
+
+void WindowEditAnnotation::PopulateAvailableColorTable(bool bForce)
 {
   if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
     return;
@@ -97,7 +112,7 @@ void WindowEditAnnotation::PopulateAvailableColorTable()
   ui->treeWidgetAvailableLabels->blockSignals(true);
   SurfaceAnnotation* annot = m_layerSurface->GetActiveAnnotation();
   COLOR_TABLE* ct = annot->GetColorTable();
-  if (ct && ct != m_ctab)
+  if (ct && (bForce || ct != m_ctab))
   {
     m_ctab = ct;
     ui->treeWidgetAvailableLabels->clear();
@@ -137,7 +152,7 @@ void WindowEditAnnotation::UpdateLabelItem(QTreeWidgetItem* item, int i,
   item->setData(0, ANNOT_NAME_ROLE, name);
 }
 
-void WindowEditAnnotation::PopulateColorTable(bool bForce)
+void WindowEditAnnotation::PopulateColorTable(int nIndex)
 {
   if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
     return;
@@ -151,6 +166,8 @@ void WindowEditAnnotation::PopulateColorTable(bool bForce)
     int last_index = -1;
     if (item)
       last_index = item->data(0, ANNOT_INDEX_ROLE).toInt();
+    if (nIndex >= 0)
+      last_index = nIndex;
     ui->treeWidgetExistingLabels->clear();
     int nTotalCount = 0;
     CTABgetNumberOfTotalEntries( ct, &nTotalCount );
@@ -204,25 +221,10 @@ void WindowEditAnnotation::PopulateColorTable(bool bForce)
         nValidCount++;
       }
     }
-//    QMap<int, NewAnnotationLabel> temp_labels = annot->GetNewLabels();
-//    QList<int> temp_ids = temp_labels.keys();
-//    foreach(int id, temp_ids)
-//    {
-//      NewAnnotationLabel nl = temp_labels[id];
-//      QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidgetAvailableLabels);
-//      item->setText( 0, QString("%1").arg(nl.name) );
-//      item->setToolTip( 0, nl.name );
-//      QPixmap pix(13, 13);
-//      pix.fill( nl.color );
-//      item->setIcon(0, QIcon(pix) );
-//      item->setData(0, ANNOT_COLOR_ROLE, nl.color);
-//      item->setData(0, ANNOT_INDEX_ROLE, nl.id);
-//      item->setData(0, ANNOT_NAME_ROLE, nl.name);
-//      item->setCheckState(0,  selectedLabels.contains(nl.id)?Qt::Checked:Qt::Unchecked);
-//    }
     if ( nSel >= 0 )
     {
       ui->treeWidgetExistingLabels->setCurrentItem( ui->treeWidgetExistingLabels->topLevelItem( nSel ) );
+      UpdateInfoFromItem(ui->treeWidgetExistingLabels->currentItem());
     }
     if (bHasSelected && !bHasUnselected)
       ui->checkBoxShowAll->setCheckState(Qt::Checked);
@@ -241,15 +243,9 @@ void WindowEditAnnotation::OnExistingLabelClicked(QTreeWidgetItem *item)
     if (isVisible())
       emit LabelClicked(item->data(0, ANNOT_INDEX_ROLE).toInt());
 
-    ui->lineEditName->blockSignals(true);
-    ui->lineEditName->setText(item->data(0, ANNOT_NAME_ROLE).toString());
-    ui->lineEditName->blockSignals(false);
-    ui->colorpicker->blockSignals(true);
-    ui->colorpicker->setCurrentColor(item->data(0, ANNOT_COLOR_ROLE).value<QColor>());
-    ui->colorpicker->blockSignals(false);
-
-    ui->treeWidgetAvailableLabels->setCurrentItem(NULL);
+    UpdateInfoFromItem(item);
   }
+  UpdateActions();
 }
 
 void WindowEditAnnotation::OnExistingLabelItemChanged(QTreeWidgetItem *item)
@@ -262,7 +258,6 @@ void WindowEditAnnotation::OnExistingLabelItemChanged(QTreeWidgetItem *item)
     m_layerSurface->GetActiveAnnotation()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
     ui->checkBoxShowAll->setCheckState(m_layerSurface->GetActiveAnnotation()->GetVisibleLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
-
   ui->checkBoxShowAll->blockSignals(false);
 }
 
@@ -319,19 +314,69 @@ int WindowEditAnnotation::GetCurrentIndex()
     return -1;
 }
 
-void WindowEditAnnotation::OnEditNameReturnPressed()
+void WindowEditAnnotation::OnEditColorTextChanged()
+{
+  QStringList list = ui->lineEditColor->text().split(" ", QString::SkipEmptyParts);
+  if (list.size() == 3)
+  {
+    int rgb[3];
+    for (int i = 0; i < 3; i++)
+    {
+      bool ok;
+      rgb[i] = list[i].toInt(&ok);
+      if (!ok || rgb[i] < 0 || rgb[i] > 255)
+        return;
+    }
+    QColor c(rgb[0], rgb[1], rgb[2]);
+    ui->colorpicker->blockSignals(true);
+    ui->colorpicker->setCurrentColor(c);
+    ui->colorpicker->blockSignals(false);
+  }
+}
+
+void WindowEditAnnotation::OnButtonSet()
 {
   QTreeWidgetItem* item = ui->treeWidgetExistingLabels->currentItem();
-  QString name = ui->lineEditName->text().trimmed();
-  if (!name.isEmpty() && item)
+  if (item)
   {
     ui->treeWidgetExistingLabels->blockSignals(true);
-    int i = item->data(0, ANNOT_INDEX_ROLE).toInt();
-    item->setText(0, QString("%1 %2").arg(i).arg(name));
-    item->setData(0, ANNOT_NAME_ROLE, name);
+    int index_old = item->data(0, ANNOT_INDEX_ROLE).toInt();
+    bool ok;
+    int index_new = ui->lineEditIndex->text().toInt(&ok);
+    if (!ok || index_new < 0)
+      index_new = index_old;
+    QColor color = ui->colorpicker->currentColor();
+    QString name = ui->lineEditName->text().trimmed();
+    if (name.isEmpty())
+    {
+      QMessageBox::warning(this, "Error", "Please provide an unique name for annotation");
+      return;
+    }
+    for ( int n = 0; n < ui->treeWidgetExistingLabels->topLevelItemCount(); n++ )
+    {
+      QTreeWidgetItem* aitem = ui->treeWidgetExistingLabels->topLevelItem( n );
+      if (aitem != item && aitem->data(0, ANNOT_INDEX_ROLE).toInt() == index_new)
+      {
+        if (QMessageBox::question(this, "Confirm", "This label already exists in the annotation. Do you want to combine them?")
+            != QMessageBox::Yes)
+          return;
+        else
+          delete ui->treeWidgetExistingLabels->takeTopLevelItem(n);
+      }
+    }
+
+    UpdateLabelItem(item, index_new, name, color);
+
     ui->treeWidgetExistingLabels->blockSignals(false);
     if (m_layerSurface && m_layerSurface->GetActiveAnnotation())
-      m_layerSurface->GetActiveAnnotation()->UpdateLabelInfo(i, name);
+    {
+      if (index_new != index_old)
+        m_layerSurface->GetActiveAnnotation()->ReassignNewLabel(index_old, index_new, name, color);
+      else
+        m_layerSurface->GetActiveAnnotation()->UpdateLabelInfo(index_old, name, color);
+      PopulateAvailableColorTable(true);
+    }
+    UpdateActions();
   }
 }
 
@@ -352,67 +397,53 @@ void WindowEditAnnotation::OnColorChanged(const QColor &color)
         return;
       }
     }
-    ui->treeWidgetExistingLabels->blockSignals(true);
-    int i = item->data(0, ANNOT_INDEX_ROLE).toInt();
-    item->setData(0, ANNOT_COLOR_ROLE, color);
-    QPixmap pix(13, 13);
-    pix.fill( color );
-    item->setIcon(0, QIcon(pix));
-    ui->treeWidgetExistingLabels->blockSignals(false);
-    if (m_layerSurface && m_layerSurface->GetActiveAnnotation())
-      m_layerSurface->GetActiveAnnotation()->UpdateLabelInfo(i, "", color);
+//    ui->treeWidgetExistingLabels->blockSignals(true);
+//    int i = item->data(0, ANNOT_INDEX_ROLE).toInt();
+//    item->setData(0, ANNOT_COLOR_ROLE, color);
+//    QPixmap pix(13, 13);
+//    pix.fill( color );
+//    item->setIcon(0, QIcon(pix));
+//    ui->treeWidgetExistingLabels->blockSignals(false);
+//    if (m_layerSurface && m_layerSurface->GetActiveAnnotation())
+//      m_layerSurface->GetActiveAnnotation()->UpdateLabelInfo(i, "", color);
+
+    ui->lineEditColor->blockSignals(true);
+    ui->lineEditColor->setText(QString("%1 %2 %3").arg(color.red()).arg(color.green()).arg(color.blue()));
+    ui->lineEditColor->blockSignals(false);
   }
 }
 
-void WindowEditAnnotation::OnAvailableLabelClicked(QTreeWidgetItem *item)
+void WindowEditAnnotation::UpdateInfoFromItem(QTreeWidgetItem *item)
 {
-  if (item)
-  {
-    ui->lineEditName->blockSignals(true);
-    ui->lineEditName->setText(item->data(0, ANNOT_NAME_ROLE).toString());
-    ui->lineEditName->blockSignals(false);
-    ui->colorpicker->blockSignals(true);
-    ui->colorpicker->setCurrentColor(item->data(0, ANNOT_COLOR_ROLE).value<QColor>());
-    ui->colorpicker->blockSignals(false);
-    ui->pushButtonSet->setEnabled(true);
-  }
+  ui->lineEditName->blockSignals(true);
+  ui->lineEditName->setText(item->data(0, ANNOT_NAME_ROLE).toString());
+  ui->lineEditName->blockSignals(false);
+
+  ui->colorpicker->blockSignals(true);
+  QColor c = item->data(0, ANNOT_COLOR_ROLE).value<QColor>();
+  ui->colorpicker->setCurrentColor(c);
+  ui->colorpicker->blockSignals(false);
+  ui->lineEditColor->blockSignals(true);
+  ui->lineEditColor->setText(QString("%1 %2 %3").arg(c.red()).arg(c.green()).arg(c.blue()));
+  ui->lineEditColor->blockSignals(false);
+
+  ui->lineEditIndex->blockSignals(true);
+  int nIndex = item->data(0, ANNOT_INDEX_ROLE).toInt();
+  if (nIndex < UNASSIGNED_ANNOT_BASE)
+    ui->lineEditIndex->setText(QString::number(nIndex));
+  else
+    ui->lineEditIndex->clear();
+  ui->lineEditIndex->blockSignals(false);
 }
 
-void WindowEditAnnotation::OnButtonSet()
+void WindowEditAnnotation::OnButtonFromCTab()
 {
   QTreeWidgetItem* itemTo = ui->treeWidgetExistingLabels->currentItem();
   QTreeWidgetItem* itemFrom = ui->treeWidgetAvailableLabels->currentItem();
   if (itemTo && itemFrom)
   {
-    int i = itemFrom->data(0, ANNOT_INDEX_ROLE).toInt();
-    int old_i = itemTo->data(0, ANNOT_INDEX_ROLE).toInt();
-    bool bMerged = false;
-    if (i != old_i)
-    {
-      for ( int n = 0; n < ui->treeWidgetExistingLabels->topLevelItemCount(); n++ )
-      {
-        QTreeWidgetItem* item = ui->treeWidgetExistingLabels->topLevelItem( n );
-        if (item != itemTo && item->data(0, ANNOT_INDEX_ROLE).toInt() == i)
-        {
-          if (QMessageBox::question(this, "Confirm", "This label already exists in the annotation. Do you want to combine them?")
-              != QMessageBox::Yes)
-            return;
-          else
-            bMerged = true;
-        }
-      }
-    }
-    QString name = ui->lineEditName->text().trimmed();
-    QColor color = ui->colorpicker->currentColor();
-    ui->treeWidgetExistingLabels->blockSignals(true);
-    UpdateLabelItem(itemTo, i, name, color);
-    ui->treeWidgetExistingLabels->blockSignals(false);
-    if (m_layerSurface && m_layerSurface->GetActiveAnnotation())
-    {
-      m_layerSurface->GetActiveAnnotation()->ReassignNewLabel(old_i, i);
-      if (bMerged)
-        PopulateColorTable();
-    }
+    UpdateInfoFromItem(itemFrom);
+    OnButtonSet();
   }
 }
 
@@ -423,6 +454,7 @@ void WindowEditAnnotation::OnButtonUndo()
 
   m_layerSurface->GetActiveAnnotation()->Undo();
   UpdateUI();
+  PopulateAvailableColorTable(true);
 }
 
 void WindowEditAnnotation::OnButtonRedo()
@@ -432,4 +464,36 @@ void WindowEditAnnotation::OnButtonRedo()
 
   m_layerSurface->GetActiveAnnotation()->Redo();
   UpdateUI();
+  PopulateAvailableColorTable(true);
+}
+
+void WindowEditAnnotation::OnButtonDelete()
+{
+  if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
+      return;
+
+  QTreeWidgetItem* item = ui->treeWidgetExistingLabels->currentItem();
+  if (item)
+  {
+    m_layerSurface->GetActiveAnnotation()->DeleteLabel(item->data(0, ANNOT_INDEX_ROLE).toInt());
+    int n = ui->treeWidgetExistingLabels->indexOfTopLevelItem(item);
+    ui->treeWidgetExistingLabels->takeTopLevelItem(n);
+    delete item;
+    if (n < ui->treeWidgetExistingLabels->topLevelItemCount())
+      ui->treeWidgetExistingLabels->setCurrentItem(ui->treeWidgetExistingLabels->topLevelItem(n));
+    else if (ui->treeWidgetExistingLabels->topLevelItemCount() > 0)
+      ui->treeWidgetExistingLabels->setCurrentItem(ui->treeWidgetExistingLabels->topLevelItem(0));
+
+    UpdateActions();
+  }
+}
+
+void WindowEditAnnotation::OnButtonCleanUp()
+{
+  if (m_layerSurface && m_layerSurface->GetActiveAnnotation())
+  {
+    m_layerSurface->GetActiveAnnotation()->CleanUpColorTable();
+    UpdateActions();
+    PopulateAvailableColorTable(true);
+  }
 }

@@ -18,8 +18,11 @@ set aparclist = (aparc BA aparc.a2009s)
 set ASegLUT = $FREESURFER_HOME/ASegStatsLUT.txt
 set WMParcLUT = $FREESURFER_HOME/WMParcStatsLUT.txt
 set OverWrite = 0;
-set mapmeaslist = (thickness area volume) # adding curv here breaks aparcastats2table
+set mapmeaslist = (thickness area volume curv sulc) 
 set DoAparcStats = 1
+set DoAsegStats = 1
+set DoWMParcStats = 1
+set SrcSurfReg = sphere.reg
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -121,6 +124,7 @@ foreach aparc ($aparclist)
     if($aparc == aparc.a2009s && $surf == pial) continue;
     foreach hemi ($hemilist)
       foreach meas ($mapmeaslist)
+        if($meas == curv || $meas == sulc) continue # curv breaks aparcstats2table
         set parc = $aparc
 	if($aparc == BA) set parc = BA$BAex
         if($surf == pial) set parc = pial.$aparc; # only aparc
@@ -144,6 +148,7 @@ end # aparc
 endif
 
 # ASEG Stats ----------------------------------------------------
+if($DoAsegStats) then
 foreach hemi ($hemilist other)
   set segidlist = /tmp/segidlist.$$.dat
   if($hemi == lh) then
@@ -179,8 +184,10 @@ foreach hemi ($hemilist other)
   end # meas
   rm -f $segidlist
 end # hemi
+endif 
 
 # WMParc Stats --------------------------------------------
+if($DoWMParcStats) then
 set segids = (`grep -v \# $WMParcLUT | awk '{if($1 >= 3001 && $1 <= 3035 && $1 != 3004) print $1; if($1 >= 4001 && $1 <= 4035 && $1 != 4004) print $1;}'`)
 set outfile =  $outdir/rois/wmparc.vol.dat
 if(! -e $outfile || $OverWrite) then
@@ -195,6 +202,7 @@ if(! -e $outfile || $OverWrite) then
   $cmd | tee -a $LF
   if($status) exit 1;
 endif
+endif
 
 # Maps and GLM ---------------------------------------
 if($DoMaps) then
@@ -203,7 +211,7 @@ if($DoMaps) then
       # concat data ---------------------
       set outfile =  $outdir/maps/$meas.$hemi.sm00.mgh
       if(! -e $outfile || $OverWrite) then
-        set cmd = (mris_preproc --meas $meas --fsgd $fsgd --hemi $hemi --o $outfile)
+        set cmd = (mris_preproc --meas $meas --fsgd $fsgd --hemi $hemi --o $outfile --srcsurfreg $SrcSurfReg)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -297,6 +305,11 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--srcsurfreg":
+      if($#argv < 1) goto arg1err;
+      set SrcSurfReg = $argv[1]; shift;
+      breaksw
+
     case "--no-maps":
       set DoMaps = 0;
       breaksw
@@ -320,6 +333,20 @@ while( $#argv != 0 )
 
     case "--no-aparcstats":
       set DoAparcStats = 0
+      breaksw
+
+    case "--no-asegstats":
+      set DoAsegStats = 0
+      breaksw
+
+    case "--no-wmparcstats":
+      set DoAsegStats = 0
+      breaksw
+
+    case "--no-stats":
+      set DoAparcStats = 0
+      set DoAsegStats = 0
+      set DoWMParcStats = 0
       breaksw
 
     case "--log":
@@ -418,7 +445,11 @@ usage_exit:
   echo "  --rh : only analyze rh"
   echo "  --sd SUBJECTS_DIR"
   echo "  --m map : use given mapname "
+  echo "  --srcsurfreg SrcSurfReg (default is $SrcSurfReg)"
   echo "  --no-aparcstats : do not do aparcstats"
+  echo "  --no-asegstats : do not do asegstats"
+  echo "  --no-wparcstats : do not do wmparcstats"
+  echo "  --no-stats : do not do any ROI stats"
   echo "  --new : append .new.mris_make_surfaces to map names"
   echo "  "
 

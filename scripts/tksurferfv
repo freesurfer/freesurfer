@@ -19,7 +19,6 @@ set UseTkSurfer = 0;
 set curv = curv
 set DoAllSurfs = 0;
 set altargs = ()
-set UseVGLRun = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -89,12 +88,7 @@ else
 endif
 set cmd = ($cmd $altargs)
 echo $cmd
-if($UseVGLRun == 0) then
-  $cmd
-else
-  setenv VGL_DISPLAY :0
-  exec /usr/pubsw/bin/vglrun $cmd
-endif
+fsvglrun $cmd
 
 #========================================================
 
@@ -222,7 +216,11 @@ while( $#argv != 0 )
       breaksw
 
     case "-vgl":
-      set UseVGLRun = 1;
+      setenv FS_ALLOW_VGLRUN 1
+      breaksw
+    case "-novgl":
+    case "-no-vgl":
+      unsetenv FS_ALLOW_VGLRUN 
       breaksw
 
     case "--nolog":
@@ -345,7 +343,8 @@ usage_exit:
   echo "Can have multiple annotations"
   echo ""
   echo "-all : load white, pial, inflated"
-  echo "-vgl : setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
+  echo "-vgl : runs freeview with /usr/pubsw/bin/vglrun"
+  echo "-no-vgl : does not run freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

@@ -24,6 +24,17 @@ def kvlReadSharedGMMParameters(fileName):
     return sharedGMMParameters
 
 
+def kvlWriteSharedGMMParameters( sharedGMMParameters, fileName ):
+    #
+    with open( fileName, 'w' ) as fid:
+        print( '# The format is: mergedName numberOfComponents searchStrings\n\n', file=fid ) 
+        numberOfStructures = len( sharedGMMParameters )
+        
+        for GMMparameter in sharedGMMParameters:
+            print( GMMparameter.mergedName, GMMparameter.numberOfComponents, 
+                  *GMMparameter.searchStrings, file=fid )
+
+
 def kvlReadCompressionLookupTable(fileName):
     # Format is "FreeSurferLabel compressedLabel name R G B A"
     table = []
@@ -44,3 +55,16 @@ def kvlReadCompressionLookupTable(fileName):
     table = sorted(table, key=itemgetter('compressedLabel'))
     FreeSurferLabels, names, colors = [[entry[key] for entry in table] for key in ['FreeSurferLabel', 'name', 'color']]
     return FreeSurferLabels, names, colors
+
+
+def kvlWriteCompressionLookupTable( fileName, FreeSurferLabels, names, colors ):
+    #
+    # Format is "FreeSurferLabel compressedLabel name R G B A"
+    #
+    with open( fileName, 'w' ) as fid:
+        #
+        for i in range( 0, len( names ) ):
+            #
+            print( FreeSurferLabels[ i ], i, names[ i ], *colors[ i ], file=fid )
+
+

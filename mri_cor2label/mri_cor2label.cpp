@@ -39,6 +39,11 @@ mri_cor2label
    --l  labelfile : name of output file
    --v  volfile   : write label volume in file
    --surf subject hemi <surf> : interpret input as surface overlay
+   --opt target delta valmap
+   --remove-holes-islands  : remove holes in label and islands (with --surf only)
+   --dilate ndilations : dilate label (with --surf only)
+   --erode  nerosions  : erode label (with --surf only)
+     Note: dilation is done first, then erode
    --help         :print out help information
 
 ENDUSAGE --------------------------------------------------------------
@@ -57,6 +62,16 @@ mri volume, it was designed to convert parcellation volumes, which
 happen to be stored in mri format.  See tkmedit for more information
 on parcellations. For volumes, the volume of the labvel in mm^3 can be
 written to the text file designated in by the --v flag. 
+
+If --opt is used, then treats input as a probability map. It
+thresholds the probability map such that the sum of the suprathreshold
+voxels in the valmap will be closest to target. The application is
+where one is trying to create a label where the total area is as
+close to the mean of the individual labels as possible, eg, 
+   mri_cor2label --i label.prob.mgz --id 1 --l ./lh.junk.label \
+     --surf fsaverage lh --opt 922.18 .001 \
+    $SUBJECTS_DIR/fsaverage/surf/lh.white.avg.area.mgh
+Performs a brute-force seach of thresholds from 0-1 step delta.
 
 Note: the name of this program is a bit misleading as it will operate
 on anything readble by mri_convert (eg, mgz, mgh, nifti, bhdr,
@@ -133,6 +148,14 @@ int verbose = 0;
 float xsum, ysum, zsum;
 char tmpstr[2000];
 MRIS *surf = NULL;
+double optTargetSum; //eg, target area of label
+double optDelta; //eg, step size in brute force search
+char *optValMapFile; // eg lh.area
+int DoOptThresh=0;
+double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta);
+int label_erode = 0 ; // requires surface
+int label_dilate = 0 ;// requires surface
+int RemoveHolesAndIslands = 0;// requires surface
 
 
 /*----------------------------------------------------*/
@@ -168,6 +191,18 @@ int main(int argc, char **argv) {
   fprintf(stderr,"Loading mri %s\n",infile);
   mri = MRIread(infile);
   nv = mri->width*mri->height*mri->depth;
+
+  if(DoOptThresh){
+    printf("Computing optimal threshold\n");
+    MRI *valmap = MRIread(optValMapFile);
+    if(valmap==NULL) exit(1);
+    double OptThresh = GetOptThresh(optTargetSum, valmap, mri, optDelta);
+    printf("Binarizing at %g\n",OptThresh);
+    MRI *tmp = MRIbinarize(mri, NULL, OptThresh, 0,1);
+    MRIfree(&mri);
+    mri = tmp;
+    MRIfree(&valmap);
+  }
 
   if(hemi == NULL){
     vox2rastkr = MRIxfmCRS2XYZtkreg(mri);
@@ -269,6 +304,23 @@ int main(int argc, char **argv) {
     printf("ERROR: found no voxels matching id %d \n",labelid);
     exit(1);
   }
+
+  if(RemoveHolesAndIslands){
+    printf("Removing holes and islands\n");
+    LABEL *tmplabel = LabelRemoveHolesAndIslandsSurf(surf, lb);
+    LabelFree(&lb);
+    lb = tmplabel;
+  }
+
+  if(label_dilate && surf){
+    printf("Dilating label %d times\n",label_dilate);
+    LabelDilate(lb, surf, label_dilate, CURRENT_VERTICES) ;
+  }
+  if(label_erode){
+    printf("Eroding label %d times\n",label_erode);
+    LabelErode(lb, surf, label_erode) ;
+  }
+
   printf("Writing label file %s\n",labelfile);
   LabelWrite(lb,labelfile);
 
@@ -347,6 +399,31 @@ static int parse_commandline(int argc, char **argv) {
       nargs = 2;
     }
 
+    /* ---- opt-thresholded label ---------- */
+    else if (!strcmp(option, "--opt")) {
+      if(nargc < 4) argnerr(option,3); // target delta valmap 
+      // Will interpet the input as a p-map
+      DoOptThresh=1;
+      sscanf(pargv[1],"%lf",&optTargetSum); //eg, target area of label
+      sscanf(pargv[2],"%lf",&optDelta); //eg, target area of label
+      optValMapFile = pargv[3]; // eg, lh.area
+      labelid = 1;
+      nargs = 4;
+    }
+    else if (!strcmp(option, "--dilate")) {
+      if (nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%d",&label_dilate);
+      nargs = 2;
+    }
+    else if (!strcmp(option, "--erode")) {
+      if (nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%d",&label_erode);
+      nargs = 2;
+    }
+    else if (!strcmp(option, "--remove-holes-islands")) {
+      RemoveHolesAndIslands = 1;// requires surface
+      nargs = 1;
+    }
     /* ---- synthesize the label ---------- */
     else if (!strcmp(option, "--synthlabel")) {
       synthlabel = 1;
@@ -377,11 +454,14 @@ printf("\n");
 printf("mri_cor2label \n");
 printf("   --i  input     : vol or surface overlay\n");
 printf("   --id labelid   : value to match in the input\n");
-printf("   --stat   : use all non-zero valued voxels and copy value to stat field\n");
 printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
-printf("   --sd subjectsdir : override $SUBJECTS_DIR\n");
+printf("   --opt target delta valmap\n");
+printf("   --remove-holes-islands  : remove holes in label and islands (with --surf only)\n");
+printf("   --dilate ndilations : dilate label (with --surf only)\n");
+printf("   --erode  nerosions  : erode label (with --surf only)\n");
+printf("     Note: dilation is done first, then erode\n");
 printf("   --help         :print out help information\n");
 printf("\n");
 }
@@ -400,6 +480,16 @@ printf("mri volume, it was designed to convert parcellation volumes, which\n");
 printf("happen to be stored in mri format.  See tkmedit for more information\n");
 printf("on parcellations. For volumes, the volume of the labvel in mm^3 can be\n");
 printf("written to the text file designated in by the --v flag. \n");
+printf("\n");
+printf("If --opt is used, then treats input as a probability map. It\n");
+printf("thresholds the probability map such that the sum of the suprathreshold\n");
+printf("voxels in the valmap will be closest to target. The application is\n");
+printf("where one is trying to create a label where the total area is as\n");
+printf("close to the mean of the individual labels as possible, eg, \n");
+printf("   mri_cor2label --i label.prob.mgz --id 1 --l ./lh.junk.label \\n");
+printf("     --surf fsaverage lh --opt 922.18 .001 \\n");
+printf("    $SUBJECTS_DIR/fsaverage/surf/lh.white.avg.area.mgh\n");
+printf("Performs a brute-force seach of thresholds from 0-1 step delta.\n");
 printf("\n");
 printf("Note: the name of this program is a bit misleading as it will operate\n");
 printf("on anything readble by mri_convert (eg, mgz, mgh, nifti, bhdr,\n");
@@ -464,6 +554,70 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: cannot supply both label id and --stat\n");
     exit(1);
   }
+  if(label_dilate && subject_name == NULL){
+    printf("ERROR: --dilate requires a surface\n");
+    exit(1);
+  }
+  if(label_erode && subject_name == NULL){
+    printf("ERROR: --erode requires a surface\n");
+    exit(1);
+  }
+  if(RemoveHolesAndIslands && subject_name == NULL){
+    printf("ERROR: --remove-holes-islands requires a surface\n");
+    exit(1);
+  }
 
   return;
 }
+
+
+/*!
+  \fn double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta)
+  \brief Determines a threshold for pmap where the sum of valmap over the suprathreshold
+  voxels in pmap is closest to targetSumVal. The application here is when trying to 
+  threshold a probablistic label map so that the total area of the label is the same
+  as the average areas of the individual. Performs a brute-force search for threshold
+  from 0-1 step delta.
+  \param targetSumVal - target value (eg, average area of the label)
+  \param valmap - map to get the values to sum (eg, lh.white.avg.area.mgh)
+  \param pmap - probability of seeing a label at a given vertex
+  \param delta - step size when performing brute force search.
+ */
+double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta)
+{
+  int c, r, s, nhits;
+  double thresh, p, val, SumVal, optThresh, err, errmin, optSumVal;
+
+  errmin = 10e10;
+  optThresh = 0;
+  optSumVal = 0;
+  for(thresh = delta; thresh < 1; thresh += delta){
+    SumVal = 0;
+    nhits = 0;
+    for(c=0; c < pmap->width; c++){
+      for(r=0; r < pmap->height; r++){
+	for(s=0; s < pmap->depth; s++){
+	  p = MRIgetVoxVal(pmap,c,r,s,0);
+	  if(p<thresh) continue;
+	  nhits++;
+	  val = MRIgetVoxVal(valmap,c,r,s,0);
+	  SumVal += val;
+	}
+      }
+    }
+    err = fabs(SumVal-targetSumVal);
+    //printf("%6.4f %8.4f %8.4f %8.4f\n",thresh,SumVal,targetSumVal,err);
+    if(errmin > err){
+      errmin = err;
+      optThresh = thresh;
+      optSumVal = SumVal;
+    }
+    if(nhits == 0) break;
+  }
+  printf("GetOptThresh: optThresh=%g, optSumVal=%g, targetSumVal=%g, errmin=%g\n",
+	 optThresh, optSumVal, targetSumVal, errmin);
+
+
+  return(optThresh);
+}
+

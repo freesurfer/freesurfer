@@ -16,14 +16,15 @@ class SamsegLesion(Samseg):
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=0.3, thresholdSearchString='Lesion',
-                 targetIntensity=None, targetSearchStrings=None, numberOfSamplingSteps=50, numberOfBurnInSteps=50,
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None,
+                 numberOfSamplingSteps=50, numberOfBurnInSteps=50,
                  numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
                  intensityMaskingPattern=None, intensityMaskingSearchString=None
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  transformedTemplateFileName, visualizer, saveHistory, savePosteriors,
                  saveWarp, saveMesh, threshold, thresholdSearchString,
-                 targetIntensity, targetSearchStrings)
+                 targetIntensity, targetSearchStrings, modeNames)
         self.numberOfSamplingSteps = numberOfSamplingSteps
         self.numberOfBurnInSteps = numberOfBurnInSteps
         self.numberOfPseudoSamplesMean = numberOfPseudoSamplesMean

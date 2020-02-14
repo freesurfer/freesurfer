@@ -59,7 +59,7 @@ add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake
 # xxd is used to generate the helptext headers
 find_program(XXD xxd)
 if(NOT XXD)
-  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+  message(WARNING "MISSING xxd - required to build executable help texts")
 endif()
 
 # Most of the packages required by freesurfer are located by custom find-modules stored in the
@@ -95,7 +95,7 @@ add_definitions(-DHAVE_ZLIB)
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
-    HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
+    HINTS /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
   find_library(BLAS_LIBRARIES NAMES libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
@@ -116,8 +116,10 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate
-find_package(GTS)
+# only used by mris_decimate (not available on mac)
+if(NOT APPLE)
+  find_package(GTS)
+endif()
 
 # -------- openMP --------
 find_package(OpenMP)
@@ -134,7 +136,7 @@ if(NOT APPLE)
 endif()
 
 # -------- X11 ---------
-find_package(X11 REQUIRED)
+find_package(X11)
 
 # search for GUI libraries
 if(BUILD_GUIS)

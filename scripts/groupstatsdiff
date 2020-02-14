@@ -15,6 +15,9 @@ set DoOSGM = 0;
 set DoCommon = 1;
 set nomeaslist = ();
 set NoBA = 0;
+set DoAparcStats = 1
+set DoAsegStats = 1
+set DoWMParcStats = 1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -73,17 +76,19 @@ endif
 #========================================================
 
 # APARC Stats ----------------------------------------------------
+if($DoAparcStats) then
 foreach aparc ($aparclist)
   foreach surf ($surflist)
     if($aparc == aparc.a2009s && $surf == pial) continue;
     if($NoBA  && $aparc == BA) continue;
     foreach hemi ($hemilist)
       foreach meas ($mapmeaslist)
+        if($meas == curv || $meas == sulc) continue # curv breaks aparcstats2table
         set Skip = 0;
         foreach nomeas ($nomeaslist)
           if($meas == $nomeas) then
             set Skip = 1;
-            break;
+            break; 
           endif
         end
 	if($Skip) continue;
@@ -109,8 +114,10 @@ foreach aparc ($aparclist)
     end # hemi
   end # surf
 end # aparc
+endif
 
 # ASEG Stats ----------------------------------------------------
+if($DoAsegStats) then
 foreach hemi ($hemilist other)
   foreach meas (volume mean)
     set b = aseg.$hemi.$meas
@@ -130,8 +137,10 @@ foreach hemi ($hemilist other)
     if($status) exit 1;
   end # meas
 end # hemi
+endif
 
 # WMParc Stats --------------------------------------------
+if($DoWMParcStats) then
 set table1 =  $g1dir/rois/wmparc.vol.dat
 set table2 =  $g2dir/rois/wmparc.vol.dat
 set difftable = $outdir/rois/diff.wmparc.vol
@@ -145,6 +154,7 @@ set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
 echo "#C# $cmd"  | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
+endif
 
 # Maps and GLM ---------------------------------------
 if($DoMaps) then
@@ -274,6 +284,24 @@ while( $#argv != 0 )
       set nomeaslist = ($nomeaslist volume)
       breaksw
 
+    case "--no-aparcstats":
+      set DoAparcStats = 0
+      breaksw
+
+    case "--no-asegstats":
+      set DoAsegStats = 0
+      breaksw
+
+    case "--no-wmparcstats":
+      set DoAsegStats = 0
+      breaksw
+
+    case "--no-stats":
+      set DoAparcStats = 0
+      set DoAsegStats = 0
+      set DoWMParcStats = 0
+      breaksw
+
     case "--no-BA":
     case "--no-ba":
     case "--noba":
@@ -379,6 +407,10 @@ usage_exit:
   echo "  --no-area : do not compute area diffs"
   echo "  --no-volume : do not compute volume diffs"
   echo "  --no-ba : do not compute diffs for BA labels"
+  echo "  --no-aparcstats : do not do aparcstats"
+  echo "  --no-asegstats : do not do asegstats"
+  echo "  --no-wparcstats : do not do wmparcstats"
+  echo "  --no-stats : do not do any ROI stats"
   echo "  "
 
   if(! $PrintHelp) exit 1;

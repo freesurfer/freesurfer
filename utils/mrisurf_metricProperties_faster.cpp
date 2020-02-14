@@ -131,6 +131,8 @@ void MetricPropertiesCalculator::init()
   nfaces = mris->nfaces;
   nvertices = mris->nvertices;
 
+  weight_norms_by_angle = !!getenv("FS_WEIGHTS_NORMS_BY_ANGLE");
+
   // configure some initial settings
   surf_is_3d = !(mris->status == MRIS_PLANE || mris->status == MRIS_CUT);
   vertex_area_fix_value = MRISgetFixVertexAreaValue() ? 3.0 : 2.0;
