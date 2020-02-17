@@ -77,19 +77,12 @@ main(int argc, char *argv[])
   int          input, ninputs ;
   Timer start ;
   TRANSFORM    *transform ;
-  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
+  char         line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
   FILE         *fp ;
 
-  make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_cal_renormalize_gca.c,v 1.2 2015/10/02 17:16:23 mreuter Exp $",
-     "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_cal_renormalize_gca");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_cal_renormalize_gca.c,v 1.2 2015/10/02 17:16:23 mreuter Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_cal_renormalize_gca");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

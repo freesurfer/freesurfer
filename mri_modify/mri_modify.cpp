@@ -122,11 +122,7 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
 
 int main(int argc, char *argv[]) {
   int nargs;
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_modify.cpp,v 1.10 2013/08/05 17:57:07 fischl Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_modify");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

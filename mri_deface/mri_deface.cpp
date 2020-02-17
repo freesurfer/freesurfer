@@ -275,9 +275,7 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_deface.c,v 1.25 2014/07/18 02:11:40 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_deface");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit

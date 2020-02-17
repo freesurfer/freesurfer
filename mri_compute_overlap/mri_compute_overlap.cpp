@@ -78,11 +78,7 @@ main(int argc, char *argv[]) {
   float  nvox_mean, nunion, total_nunion ;
   float tmp = 0.0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.19 2015/10/20 20:07:19 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_overlap");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

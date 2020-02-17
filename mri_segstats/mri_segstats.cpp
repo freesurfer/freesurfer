@@ -219,8 +219,7 @@ int main(int argc, char **argv)
   nhits = 0;
   vol = 0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segstats");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -80,8 +80,7 @@ int main(int argc, char *argv[])
   double hdist, hdists[MAX_VOLUMES] ;
   FILE   *fp  ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_hausdorff_dist");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

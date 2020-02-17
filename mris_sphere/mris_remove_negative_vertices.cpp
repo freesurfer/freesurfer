@@ -66,18 +66,9 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_remove_negative_vertices");
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mris_remove_negative_vertices.c,v 1.5 2011/03/02 00:04:34 nicks Exp $", 
-     "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_remove_negative_vertices.c,v 1.5 2011/03/02 00:04:34 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_remove_negative_vertices");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -101,8 +101,7 @@ main(int argc, char *argv[]) {
   LABEL        *area ;
   MRI_SURFACE  *mris ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.9 2016/12/11 15:13:53 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "label2flat");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

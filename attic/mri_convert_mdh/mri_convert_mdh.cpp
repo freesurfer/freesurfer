@@ -254,8 +254,7 @@ int main(int argc, char **argv) {
   //DumpMDH_VB13(argv[1]);
   return(0);
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.27 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_convert_mdh");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

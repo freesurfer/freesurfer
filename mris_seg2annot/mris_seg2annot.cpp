@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
   int nargs,nv;
   char tmpstr[2000];
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_seg2annot");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

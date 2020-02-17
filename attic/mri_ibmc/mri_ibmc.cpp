@@ -712,7 +712,7 @@ int main(int argc, char *argv[])
   ibmc = (IBMC *) calloc(sizeof(IBMC),1);
   ibmc->DoSmooth = 0;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ibmc");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

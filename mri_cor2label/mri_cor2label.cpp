@@ -165,8 +165,7 @@ int main(int argc, char **argv) {
   MATRIX *vox2rastkr=NULL, *crs=NULL, *xyz=NULL;
   double voxval;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.12 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_cor2label");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

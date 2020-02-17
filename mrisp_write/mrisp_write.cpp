@@ -86,8 +86,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp, *mrisp_contra = NULL ;
   MRI          *mri_overlay ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mrisp_write");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

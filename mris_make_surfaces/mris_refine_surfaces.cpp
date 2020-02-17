@@ -196,11 +196,7 @@ main(int argc, char *argv[]) {
   MATRIX        *m_reg = NULL ;
   /*  LT            *lt =0;*/
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.23 2016/12/10 22:57:53 fischl Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_refine_surfaces");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

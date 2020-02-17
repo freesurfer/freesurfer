@@ -18,7 +18,7 @@
 
 static PointSet::Point sras2ras(MRIS* surf, PointSet::Point point);
 
-int main(int argc, const char **argv) 
+int main(int argc, char **argv) 
 {
 
   // --- setup ----

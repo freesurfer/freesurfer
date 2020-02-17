@@ -1606,7 +1606,7 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
 // convert all vertex positions
 int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta);
 void MRISsetReadFrame(int frame);
-int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) ;
+int MRISaddCommandLine(MRI_SURFACE *mris, const std::string& cmdline);
 int MRISgetReadFrame(void);
 int MRISabsCurvature(MRI_SURFACE *mris) ;
 int MRISabsVals(MRI_SURFACE *mris) ;

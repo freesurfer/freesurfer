@@ -75,8 +75,7 @@ main(int argc, char *argv[])
   LABEL         *lprior, *lout ;
   MRI           *mri ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.4 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_BA_segment");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

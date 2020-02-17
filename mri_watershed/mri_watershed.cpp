@@ -922,13 +922,8 @@ int main(int argc, char *argv[])
   GCA_PRIOR *gcap;
   float value_brain, value_cer, value_cergw;
   STRIP_PARMS *parms;
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.103 2016/06/17 18:00:49 zkaufman Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_watershed");
 
   Progname=argv[0];
 
@@ -936,11 +931,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.103 2016/06/17 18:00:49 zkaufman Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_watershed");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

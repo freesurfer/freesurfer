@@ -378,7 +378,7 @@ int main(int argc, char *argv[]) {
   FACE *face1, *face2;
   float maxdiff, rms;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_diff");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

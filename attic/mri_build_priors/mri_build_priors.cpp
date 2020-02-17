@@ -56,8 +56,7 @@ main(int argc, char *argv[]) {
   int    fno, nfiles ;
   MRI    *mri_src, *mri_target, *mri_wm, *mri_priors = NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_build_priors.c,v 1.8 2011/03/02 00:04:13 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_build_priors");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

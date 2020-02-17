@@ -141,11 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
   int n ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.28 2014/12/08 19:49:02 greve Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_surf2vol");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

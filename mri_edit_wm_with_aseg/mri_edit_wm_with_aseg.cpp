@@ -94,12 +94,11 @@ main(int argc, char *argv[])
   MRI    *mri_wm, *mri_aseg, *mri_T1 ;
   Timer then ;
   int    msec, nargs ;
-  char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
+  char *output_file_name,*input_file_name, *edits_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.25 2012/03/29 13:17:38 fischl Exp $", "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_edit_wm_with_aseg");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.25 2012/03/29 13:17:38 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_edit_wm_with_aseg");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

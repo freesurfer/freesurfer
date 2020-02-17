@@ -235,10 +235,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_ca_register.c,v 1.99 2016/10/22 17:31:24 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ca_register");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

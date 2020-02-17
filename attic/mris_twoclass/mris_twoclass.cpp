@@ -254,8 +254,7 @@ main(int argc, char *argv[]) {
   if (write_flag && DIAG_VERBOSE_ON)
     fp = fopen("scalespace.dat", "w") ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.13 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_twoclass");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

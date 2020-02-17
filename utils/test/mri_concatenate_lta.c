@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.6 2016/02/27 20:38:29 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_concatenate_lta");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
