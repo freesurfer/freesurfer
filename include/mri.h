@@ -1503,7 +1503,7 @@ MRI *MRIconformSliceOrder(MRI *mri);
     Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
                           int label, float max_dist, int mode, MRI *mri_mask);
-int MRIaddCommandLine(MRI *mri, char *cmdline) ;
+int MRIaddCommandLine(MRI *mri, const std::string& cmdline);
 MRI *MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup,
                        float thresh, int thresh_dir) ;
 MRI *MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst,

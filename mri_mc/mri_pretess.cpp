@@ -1057,24 +1057,16 @@ int main(int argc, char *argv[])
   MRI *mri_seg,*mri_orig, *mri_seg_orig, *mri_old = NULL;
   int niter=100,ntotal=0,nmodified,i,j,k,nvoxels, ac ;
   int label, nargs,nvox;
-  char cmdline[CMD_LINE_LEN], **av ;
+  char **av ;
   int x, y, z ,convert=0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_pretess");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
   }
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_pretess");
 
   Progname=argv[0];
 

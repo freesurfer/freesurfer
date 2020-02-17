@@ -74,7 +74,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_overlays[MAX_SUBJECTS] ;
   MRI_SURFACE  *mris[MAX_SUBJECTS] ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mris_segmentation_stats.c,v 1.2 2012/08/26 00:41:44 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_segmentation_stats");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

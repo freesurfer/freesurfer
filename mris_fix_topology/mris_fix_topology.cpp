@@ -106,22 +106,10 @@ main(int argc, char *argv[])
   float         max_len ;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc,
-   argv,
-   "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_fix_topology");
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc,
-     argv,
-     "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_fix_topology");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

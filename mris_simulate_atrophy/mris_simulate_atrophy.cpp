@@ -107,12 +107,7 @@ main(int argc, char *argv[])
   MATRIX       *m_vox2vox ;
   char         extension[STRLEN] ;
 
-  /* rkt: check for and handle version tag */
-  nargs = 
-    handle_version_option
-    (argc, argv,
-     "$Id: mris_simulate_atrophy.c,v 1.3 2013/05/18 21:16:30 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_simulate_atrophy");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

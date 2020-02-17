@@ -60,8 +60,7 @@ main(int argc, char *argv[]) {
   FILE   *log_fp ;
   HISTOGRAM *histo ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_histo.c,v 1.5 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_label_histo");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

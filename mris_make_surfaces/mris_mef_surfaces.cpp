@@ -192,19 +192,9 @@ main(int argc, char *argv[]) {
   double        current_sigma ;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_mef_surfaces");
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mris_mef_surfaces.c,v 1.7 2015/02/05 23:34:41 zkaufman Exp $", 
-     "$Name:  $", 
-     cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_mef_surfaces.c,v 1.7 2015/02/05 23:34:41 zkaufman Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_mef_surfaces");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

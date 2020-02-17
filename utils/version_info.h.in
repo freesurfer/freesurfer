@@ -1,0 +1,5 @@
+#pragma once
+
+// cmake-configured macros
+#define FS_VERSION "${FS_VERSION}"
+#define FS_BUILD_STAMP "${BUILD_STAMP}"

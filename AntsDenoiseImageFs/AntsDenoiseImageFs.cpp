@@ -24,7 +24,7 @@
 #include "AntsDenoiseImageFs.help.xml.h"
 
 
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
   // parse args
   ArgumentParser parser;

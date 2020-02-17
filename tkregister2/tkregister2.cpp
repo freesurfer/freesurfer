@@ -4967,11 +4967,7 @@ int main(int argc, char **argv)   /* new main */
 {
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc, argv,
-     "$Id: tkregister2.c,v 1.133 2016/08/02 21:17:11 greve Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "tkregister2");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

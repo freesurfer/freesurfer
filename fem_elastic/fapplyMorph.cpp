@@ -137,13 +137,13 @@ struct IoParams
 
   unsigned int zlibBuffer;
 
-  void parse(int ac, const char** av);
+  void parse(int ac, char** av);
 };
 
 //------------------------------------------------------
 
 int
-main(int argc, const char** argv)
+main(int argc, char** argv)
 {
   // cmd-line
   IoParams params;
@@ -295,7 +295,7 @@ main(int argc, const char** argv)
 //---------------------
 
 void
-IoParams::parse(int ac, const char** av)
+IoParams::parse(int ac, char** av)
 {
   ArgumentParser parser;
   // required

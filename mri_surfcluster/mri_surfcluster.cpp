@@ -183,8 +183,7 @@ int main(int argc, char **argv) {
   char *cmdline, cwd[2000];
   double cmaxsize,fwhmvtx;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.60 2016/11/01 19:49:22 greve Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_surfcluster");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

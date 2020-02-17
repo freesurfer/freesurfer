@@ -67,8 +67,7 @@ main(int argc, char *argv[]) {
   LTA         *lta ;
   MATRIX      *m ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_paint.c,v 1.5 2011/03/02 00:04:23 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_paint");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

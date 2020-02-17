@@ -110,8 +110,7 @@ main(int argc, char *argv[]) {
   int            *training_classes ;
   int xi, yi, xk, yk, fno ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_rf_train.c,v 1.1 2014/09/26 15:27:08 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "oct_rf_train");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

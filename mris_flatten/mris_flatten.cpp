@@ -266,11 +266,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI          *mri_vertices ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_flatten.c,v 1.42 2016/12/10 22:57:46 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_flatten");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

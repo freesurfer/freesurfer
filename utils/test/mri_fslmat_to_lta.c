@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_fslmat_to_lta.c,v 1.3 2011/03/02 00:04:55 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_fslmat_to_lta");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;

@@ -410,7 +410,7 @@ int main(int argc, char *argv[])
   cout << vcid << endl << endl;
 
   // Default initialization
-  int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
+  int nargs = handleVersionOption(argc, argv, "mri_warp_convert");
   if (nargs && argc - nargs == 1)
   {
     exit(0);

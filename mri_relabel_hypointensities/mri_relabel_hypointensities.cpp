@@ -69,17 +69,7 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg ;
 
-  char cmdline[CMD_LINE_LEN] ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $",
-   "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_relabel_hypointensities");
   if (nargs && argc - nargs == 1) {
     exit (0);
   }

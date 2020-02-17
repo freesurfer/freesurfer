@@ -140,8 +140,7 @@ int main(int argc, char **argv)
   TRANSFORM *xform  = NULL;
   GCA *gca = NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_aparc2aseg");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

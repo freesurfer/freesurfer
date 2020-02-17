@@ -81,19 +81,12 @@ main(int argc, char *argv[])
   int          input, ninputs ;
   Timer start ;
   TRANSFORM    *transform = NULL ;
-  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, subject[STRLEN], sdir[STRLEN], base_name[STRLEN] ;
+  char         line[STRLEN], *cp, subject[STRLEN], sdir[STRLEN], base_name[STRLEN] ;
   FILE         *fp ;
 
-  make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_fuse_intensity_images.c,v 1.2 2011/06/02 14:05:10 fischl Exp $",
-     "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_fuse_intensity_images");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_fuse_intensity_images.c,v 1.2 2011/06/02 14:05:10 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_fuse_intensity_images");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

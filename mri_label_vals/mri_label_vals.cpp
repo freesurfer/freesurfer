@@ -68,8 +68,7 @@ main(int argc, char *argv[]) {
   MRI    *mri,  *mri_seg ;
   double xw, yw, zw, xv, yv, zv, val;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.16 2015/08/24 18:22:05 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_label_vals");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

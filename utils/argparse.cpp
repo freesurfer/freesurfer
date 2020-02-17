@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "argparse.h"
+#include "version.h"
 #include "utils.h"
 
 
@@ -182,17 +183,18 @@ void ArgumentParser::addHelp(const unsigned char *text, unsigned int size)
 }
 
 
-/// Parses the command line from the standard main() function arguments
-void ArgumentParser::parse(size_t argc, const char** argv)
-{
-  parse(StringVector(argv, argv + argc));
-}
-
-
 /// The main parsing routine. This will error out if the command line input
 /// does not match the argument configuration
-void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
+void ArgumentParser::parse(size_t ac, char** av)
 {
+  // TODO progname should be an optionally-set member variable, but extracting from argv for now
+  std::string progname;
+  std::stringstream progss(av[0]);
+  while (std::getline(progss, progname, '/'));  // do nothing in loop, just get basename
+
+  // create argv vector
+  StringVector argv = StringVector(av, av + ac);
+
   // name the app
   if (!argv.empty()) app_name = argv[0];
 
@@ -301,6 +303,19 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
   }
   // validate the final argument
   if (active.valid) active.validate();
+  
+  // check if the default --version or --all-info flags were provided
+  int numInfoFlags = 0;
+  if (exists("version"))  {
+    std::cout << progname << " freesurfer " << getVersion() << std::endl;
+    numInfoFlags += 1;
+  }
+  if (exists("all-info")) {
+    std::cout << getAllInfo(ac, av, progname) << std::endl;
+    numInfoFlags += 1;
+  }
+  // exit cleanly if only --version or --all-info commands were used
+  if ((numInfoFlags > 0) && (ac - numInfoFlags) == 1) exit(0);
 
   // check for the help flag
   if ((helptextsize > 0) && (exists("help"))) {

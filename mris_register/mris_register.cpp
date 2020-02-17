@@ -145,19 +145,10 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
-  char cmdline[CMD_LINE_LEN],cwd[2000],*cmdline2 ;
+  char cwd[2000],*cmdline2 ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_register");
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
-   "$Name:  $",
-   cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_register");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -101,8 +101,7 @@ main(int argc, char *argv[]) {
   MRI          *mri, *mri_aseg, *mri_pvals ;
   TRANSFORM    *xform ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.4 2012/06/16 12:48:24 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_transmantle_dysplasia_paths");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

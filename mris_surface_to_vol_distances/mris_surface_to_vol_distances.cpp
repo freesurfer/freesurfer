@@ -65,8 +65,7 @@ main(int argc, char *argv[]) {
   float        ***histograms ;
   FILE         *fp ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_surface_to_vol_distances.c,v 1.4 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_surface_to_vol_distances");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

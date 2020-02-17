@@ -59,8 +59,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   float        alpha, beta, gamma ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_rotate.c,v 1.6 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_rotate");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

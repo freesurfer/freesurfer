@@ -47,7 +47,7 @@ struct IoParams
   typedef std::vector<int> IntVectorType;
   IntVectorType vDbgCoords;
 
-  void parse(int ac, const char** av);
+  void parse(int ac, char** av);
 };
 
 //==================================================
@@ -58,7 +58,7 @@ MRI*
 CopyGcamToDeltaField(GCA_MORPH* gcam, MRI* field);
 
 int
-main(int argc, const char** argv)
+main(int argc, char** argv)
 {
   IoParams params;
   try
@@ -241,7 +241,7 @@ main(int argc, const char** argv)
 
 
 void
-IoParams::parse(int ac, const char** av)
+IoParams::parse(int ac, char** av)
 {
   ArgumentParser parser;
   // required

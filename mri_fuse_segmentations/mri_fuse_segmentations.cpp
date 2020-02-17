@@ -72,10 +72,7 @@ static void printUsage(void);
 
 int main(int argc, char *argv[])
 {
-  /* rkt: check for and handle version tag */
-  int nargs = handle_version_option(argc, argv,
-    "$Id: mri_fuse_segmentations.cpp,v 1.8 2011/03/02 00:04:15 nicks Exp $",
-    "$Name:  $");
+  int nargs = handleVersionOption(argc, argv, "mri_fuse_segmentations");
   if (nargs && argc - nargs == 1) exit(EXIT_SUCCESS);
   argc -= nargs;
   

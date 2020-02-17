@@ -49,8 +49,7 @@ main(int argc, char *argv[]) {
   char   *in_fname, *out_fname ;
   int    label, nvox ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_copy_values.c,v 1.5 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_copy_values");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

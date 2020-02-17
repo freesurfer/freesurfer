@@ -164,7 +164,7 @@ static bool voxelTouches(MRI *seg, intvec labels, int c, int r, int s)
 }
 
 
-int main(int argc, const char **argv) {
+int main(int argc, char **argv) {
 
   // ------ setup ------
 

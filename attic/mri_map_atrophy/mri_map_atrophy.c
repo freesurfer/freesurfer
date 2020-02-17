@@ -84,8 +84,7 @@ main(int argc, char *argv[]) {
   MRI         *mri_time1, *mri_time2, *mri_tmp, *mri_atrophy ;
   TRANSFORM   *transform1, *transform2 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_map_atrophy.c,v 1.4 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_map_atrophy");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
