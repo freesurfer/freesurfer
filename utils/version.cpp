@@ -1,31 +1,3 @@
-/**
- * @file  version.c
- * @brief freesurfer version functions defined here
- *
- * Looks for the --version, -version, --all-info, or -all-info tag in the
- * argv and if found, prints out version information, namely this:
- * ProgramVersion, TimeStamp, CVS, User, Machine, Platform, PlatformVersion
- * CompilerName, and CompilerVersion.
- */
-/*
- * Original Author: Kevin Teich
- * Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 8c0544cb51c408c315be1f6cae68f38fc534b7da $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,35 +69,6 @@ static std::string ver_string(int a, int b, int c) {
 #else
   #define COMPILER_VERSION 0
 #endif
-
-
-/* This function looks for the --version, or -version tag in the
-   argv and if found, prints out version information. This can be used
-   in any binary. It will return the number of options processed and
-   copy the remaining items in argv back, so the caller can shorten
-   their own argc variable, like this:
-
-   nargs = handle_version_option (argc, argv, "dollarIDdollar");
-   argc -= nargs ;
-
-   (This is done so that it can easily be used with older programs
-   that make assumptions about argument counts instead of scanning for
-   options.)
-
-   It will print out the id string passed in, which should just be
-   dollar sign + ID + dollar sign, which CVS will expand to include
-   the CVS information including CVS file, revision number, date,
-   peson who checked it in, and tag, as well as the OS and GCC
-   information.
-
-   The binary may also want to exit if there are no other options to
-   handle, i.e.
-
-   nargs = handle_version_option (argc, argv, "dollarIDdollar");
-   if (nargs && argc - nargs == 1)
-   exit (0);
-   argc -= nargs;
-*/
 
 
 /*------------------------------------------------------------------------
@@ -226,6 +169,52 @@ char *VERcurTimeStamp(void)
 }
 
 
+
+/*
+  Returns the freesurfer version string.
+*/
+std::string getVersion()
+{
+  return FS_VERSION;
+}
+
+
+/*
+  Returns the freesurfer build stamp ID.
+*/
+std::string getBuildStamp()
+{
+  return FS_BUILD_STAMP;
+}
+
+
+/*
+  This function looks for the --version, or -version tag in the
+  argv and if found, prints out version information. This can be used
+  in any binary. It will return the number of options processed and
+  copy the remaining items in argv back, so the caller can shorten
+  their own argc variable, like this:
+
+  nargs = handleVersionOption(argc, argv, "dollarIDdollar");
+  argc -= nargs;
+
+  (This is done so that it can easily be used with older programs
+  that make assumptions about argument counts instead of scanning for
+  options.)
+
+  It will print out the id string passed in, which should just be
+  dollar sign + ID + dollar sign, which CVS will expand to include
+  the CVS information including CVS file, revision number, date,
+  peson who checked it in, and tag, as well as the OS and GCC
+  information.
+
+  The binary may also want to exit if there are no other options to
+  handle, i.e.
+
+  nargs = handleVersionOption(argc, argv, "dollarIDdollar");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+*/
 int handleVersionOption(int argc, char **argv, const char *progname)
 {
   char *myarg;
@@ -255,18 +244,6 @@ int handleVersionOption(int argc, char **argv, const char *progname)
 
   // return the number of arguments processed
   return num_processed_args;
-}
-
-
-std::string getVersion()
-{
-  return FS_VERSION;
-}
-
-
-std::string getBuildStamp()
-{
-  return FS_BUILD_STAMP;
 }
 
 
@@ -312,19 +289,24 @@ std::string getAllInfo(int argc, char **argv, const std::string& progname)
     strcpy(platform_version, kernel_info.release);
   }
 
-  std::ostringstream oss;
-  oss << "ProgramName: " << progname
-      // << "  ProgramArguments: " << argstr
-      << "  ProgramVersion: " << getVersion()
-      << "  TimeStamp: " << current_time_stamp
-      << "  BuildTime: " << build_time
-      << "  BuildStamp: " << getBuildStamp()
-      << "  User: " << username
-      << "  Machine: " << machine
-      << "  Platform: " << PLATFORM
-      << "  PlatformVersion: " << platform_version
-      << "  CompilerName: " << COMPILER_NAME
-      << "  CompilerVersion: " << COMPILER_VERSION;
+  // get args as string
+  std::ostringstream argvss;
+  argvss << argv[0];
+  for (int i = 1; i < argc ; i++) argvss << " " << argv[i];
 
-  return oss.str();
+  std::ostringstream infoss;
+  infoss << "ProgramName: " << progname
+         << "  ProgramArguments: " << argvss.str()
+         << "  ProgramVersion: " << getVersion()
+         << "  TimeStamp: " << current_time_stamp
+         << "  BuildTime: " << build_time
+         << "  BuildStamp: " << getBuildStamp()
+         << "  User: " << username
+         << "  Machine: " << machine
+         << "  Platform: " << PLATFORM
+         << "  PlatformVersion: " << platform_version
+         << "  CompilerName: " << COMPILER_NAME
+         << "  CompilerVersion: " << COMPILER_VERSION;
+
+  return infoss.str();
 }
