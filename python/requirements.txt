@@ -1,4 +1,5 @@
 six
+nibabel
 numpy
 scipy
 sklearn
