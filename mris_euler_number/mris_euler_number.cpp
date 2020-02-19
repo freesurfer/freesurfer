@@ -62,11 +62,7 @@ main(int argc, char *argv[])
   int          ac, nargs, nvertices, nfaces, nedges, eno, dno ;
   MRI_SURFACE  *mris ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_euler_number.c,v 1.10 2013/01/14 22:39:14 greve Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_euler_number");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -97,6 +97,10 @@ class LookupTable(dict):
                 lut.add(int(idx), name, color)
         return lut
 
+    @classmethod
+    def read_default(cls):
+        return cls.read(os.path.join(fshome(), 'FreeSurferColorLUT.txt'))
+
     def write(self, filename):
         col1 = len(str(max(self.keys()))) + 1  # find largest index
         col2 = max([len(elt.name) for elt in self.values()]) + 2  # find longest name

@@ -5,7 +5,7 @@
 #include "mris_remesh.help.xml.h"
 
 
-int main(int argc, const char **argv) 
+int main(int argc, char **argv) 
 {
   ArgumentParser parser;
   parser.addHelp(mris_remesh_help_xml, mris_remesh_help_xml_len);

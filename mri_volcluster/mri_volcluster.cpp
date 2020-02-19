@@ -212,12 +212,7 @@ int main(int argc, char **argv) {
 
   setRandomSeed(53);
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc, argv,
-     "$Id: mri_volcluster.c,v 1.49 2016/11/01 19:51:04 greve Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_volcluster");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

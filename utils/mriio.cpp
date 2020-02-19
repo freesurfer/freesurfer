@@ -13978,16 +13978,15 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   return (mri_dst);
 }
 
-int MRIaddCommandLine(MRI *mri, char *cmdline)
+int MRIaddCommandLine(MRI *mri, const std::string& cmdline)
 {
-  int i;
   if (mri->ncmds >= MAX_CMDS)
-    ErrorExit(ERROR_NOMEMORY, "MRIaddCommandLine: can't add cmd %s (%d)", cmdline, mri->ncmds);
+    fs::error() << "can't add cmd to mri since max cmds (" << mri->ncmds <<  ") has been reached";
 
-  i = mri->ncmds++;
-  mri->cmdlines[i] = (char *)calloc(strlen(cmdline) + 1, sizeof(char));
-  strcpy(mri->cmdlines[i], cmdline);
-  return (NO_ERROR);
+  int i = mri->ncmds++;
+  mri->cmdlines[i] = (char *)calloc(cmdline.size() + 1, sizeof(char));
+  strcpy(mri->cmdlines[i], cmdline.c_str());
+  return NO_ERROR;
 }
 
 /*------------------------------------------------------------------

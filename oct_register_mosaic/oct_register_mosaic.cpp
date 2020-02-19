@@ -121,8 +121,7 @@ main(int argc, char *argv[]) {
   double       x0d[MAX_IMAGES], y0d[MAX_IMAGES], ax[MAX_IMAGES], ay[MAX_IMAGES] ;
 //  HISTOGRAM    *h0 = NULL, *h1 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.4 2016/04/18 19:19:35 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "oct_register_mosaic");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

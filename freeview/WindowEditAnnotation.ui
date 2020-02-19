@@ -114,6 +114,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="toolButtonFromCTab">
+       <property name="toolTip">
+        <string>Copy To</string>
+       </property>
        <property name="text">
         <string>&lt;-</string>
        </property>

@@ -73,11 +73,7 @@ main(int argc, char *argv[])
   // default output file name:
   out_fname = strcpyalloc("edits.mgz");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_compile_edits.c,v 1.8 2012/02/08 20:33:17 nicks Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compile_edits");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

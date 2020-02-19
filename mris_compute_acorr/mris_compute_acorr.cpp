@@ -132,8 +132,7 @@ main(int argc, char *argv[]) {
   LABEL        *area ;
   FILE         *fp ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_acorr.c,v 1.7 2011/03/02 00:04:30 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_compute_acorr");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

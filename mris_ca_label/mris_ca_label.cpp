@@ -104,8 +104,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_ca_label");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

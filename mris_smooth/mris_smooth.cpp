@@ -86,18 +86,9 @@ main(int argc, char *argv[])
   int                ac, nargs, start_t, pass ;
   MRI_SURFACE        *mris ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_smooth");
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $",
-   "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_smooth");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

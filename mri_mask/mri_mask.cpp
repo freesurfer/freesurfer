@@ -89,12 +89,7 @@ int main(int argc, char *argv[])
   float value;
   MRI_REGION *region;
 
-  nargs =
-    handle_version_option
-    (
-      argc, argv,
-      "$Id: mri_mask.c,v 1.24 2016/11/28 20:30:57 fischl Exp $", "$Name:  $"
-    );
+  nargs = handleVersionOption(argc, argv, "mri_mask");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

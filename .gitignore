@@ -10,7 +10,9 @@ ld_map.txt
 # generated help files
 *.help.xml.h
 .idea/**/*.xml
-# generated cxx files
+
+# generated source files
+utils/version_info.h
 qdec/QdecLibInit.cxx
 qdec/vtkKWQdecAppTcl.cxx
 qdec/vtkKWQdecViewTcl.cxx

@@ -3,7 +3,5 @@ nibabel
 numpy
 scipy
 sklearn
-nipype
-dipy
 matplotlib
 pyyaml

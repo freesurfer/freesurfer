@@ -84,8 +84,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris, *mris_contra ;
   LABEL        *cortex ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_fcd_features.c,v 1.1 2016/06/15 17:51:09 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_extract_fcd_features");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

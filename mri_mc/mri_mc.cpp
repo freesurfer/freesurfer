@@ -800,12 +800,9 @@ int main(int argc, char *argv[]) {
   MRIS **mris_table, *mris,*mris_corrected;
   MRI *mri;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mri_mc.c,v 1.23 2014/03/22 01:40:02 greve Exp $", "$Name:  $", 
-     cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_mc");
+
   Progname=argv[0];
 
   if (argc > 1 && (stricmp(argv[1], "-d") == 0)) {

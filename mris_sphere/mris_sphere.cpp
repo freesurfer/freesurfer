@@ -119,18 +119,9 @@ main(int argc, char *argv[])
   Timer then ;
   float        max_dim ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_sphere");
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $",
-   "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_sphere");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

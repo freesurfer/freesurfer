@@ -116,18 +116,10 @@ main(int argc, char *argv[])
   RFA          *rfa = NULL ;
   RANDOM_FOREST *rf = NULL ;  // if single_classifier_flag is true
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_rf_long_label.c,v 1.1 2012/06/13 20:47:45 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_rf_long_label");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_rf_long_label.c,v 1.1 2012/06/13 20:47:45 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_rf_long_label");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

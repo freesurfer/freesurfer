@@ -61,8 +61,7 @@ main(int argc, char *argv[]) {
   Timer start ;
   MRI          *mri[MAX_INPUT_IMAGES], *mri_mosaic ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_mosaic.c,v 1.1 2015/09/25 16:05:20 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_mosaic");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

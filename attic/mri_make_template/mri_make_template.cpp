@@ -121,8 +121,7 @@ main(int argc, char *argv[]) {
   /*  LTA    *lta;*/
   MRI *mri_tmp=0 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.26 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_make_template");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

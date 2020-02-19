@@ -490,15 +490,7 @@ double scanXold(MRI * mri_in, MRI* mri_grad, MRI* mri_mask)
 int main(int argc, char *argv[])
 {
 
-//   // Default initialization
-//   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-//   if (nargs && argc - nargs == 1) exit (0);
-//   argc -= nargs;
   Progname = argv[0];
-//   argc --;
-//   argv++;
-//  if (vcid)
-//  {};
 
   if (argc < 2)
   {

@@ -65,8 +65,7 @@ main(int argc, char *argv[]) {
   VERTEX             *v ;
   double             entropy, total_len, min_w ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_entropy.c,v 1.7 2011/03/02 00:04:31 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_entropy");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

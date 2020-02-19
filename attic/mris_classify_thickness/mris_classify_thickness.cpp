@@ -191,8 +191,7 @@ main(int argc, char *argv[]) {
   RANDOM_FOREST *rf ;
   double       **training_data ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_classify_thickness");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -494,7 +493,6 @@ main(int argc, char *argv[]) {
   float        *test_thickness, *test_avg_thickness ;
   double       label_avg ;
 
-  /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

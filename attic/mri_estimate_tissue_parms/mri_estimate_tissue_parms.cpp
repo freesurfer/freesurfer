@@ -109,8 +109,7 @@ main(int argc, char *argv[]) {
   int          msec, minutes, seconds, nvolumes ;
   Timer start ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_estimate_tissue_parms.c,v 1.10 2015/03/12 20:24:06 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_estimate_tissue_parms");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

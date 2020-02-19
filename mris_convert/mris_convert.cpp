@@ -148,11 +148,7 @@ main(int argc, char *argv[])
   char *in2_fname=NULL;
   MRI_SURFACE *mris2=NULL;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id$",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_convert");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

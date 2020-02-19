@@ -61,11 +61,7 @@ int main(int argc, char *argv[]) {
   DIR *dp;
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: check_siemens_dir.c,v 1.10 2011/03/02 00:04:01 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "check_siemens_dir");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

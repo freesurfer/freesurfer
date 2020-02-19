@@ -187,12 +187,10 @@ main(int argc, char *argv[])
   Timer then ;
   M3D           *m3d ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.8 2015/11/09 04:18:29 zkaufman Exp $", "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_longitudinal_surfaces");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.8 2015/11/09 04:18:29 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_longitudinal_surfaces");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

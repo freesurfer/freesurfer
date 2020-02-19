@@ -255,19 +255,11 @@ int main(int argc, char *argv[])
   GCA          *gca ;
   TRANSFORM     *transform ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
   FSinit() ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_ca_label");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ca_label");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

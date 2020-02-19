@@ -155,11 +155,7 @@ main(int argc, char *argv[])
   parms.training_fraction = .5 ;
   parms.feature_fraction = 1 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_rf_long_train.c,v 1.5 2012/06/15 12:22:28 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_rf_long_train");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

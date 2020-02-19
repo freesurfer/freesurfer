@@ -125,7 +125,7 @@ static void check_face(MRI *mri, int im0, int i0, int j0,
                        int im1, int i1,int j1,
                        int f, int n, int v_ind, int prev_flag) ;
 static void make_surface(MRI *mri) ;
-static void write_binary_surface(char *fname, MRI *mri, char *cmdline) ;
+static void write_binary_surface(char *fname, MRI *mri, std::string& cmdline) ;
 static int get_option(int argc, char *argv[]) ;
 static void usage_exit(int code);
 
@@ -134,21 +134,14 @@ int UseMRIStessellate=0;
 
 int main(int argc, char *argv[])
 {
-  char cmdline[CMD_LINE_LEN], ofpref[STRLEN] /*,*data_dir*/;
+  char ofpref[STRLEN] /*,*data_dir*/;
   int  nargs ;
   MRI *mri = 0;
   int xnum, ynum, numimg;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_tessellate.c,v 1.39 2016/07/20 21:05:04 zkaufman Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_tessellate");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_tessellate.c,v 1.39 2016/07/20 21:05:04 zkaufman Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_tessellate");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -482,7 +475,7 @@ static void make_surface(MRI *mri)
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-static void write_binary_surface(char *fname, MRI *mri, char *cmdline)
+static void write_binary_surface(char *fname, MRI *mri, std::string& cmdline)
 {
   int k,n;
   double x,y,z;
@@ -582,7 +575,7 @@ static void write_binary_surface(char *fname, MRI *mri, char *cmdline)
     getVolGeom(mri, &vg);
     writeVolGeom(fp, &vg);
   }
-  TAGwrite(fp, TAG_CMDLINE, cmdline, strlen(cmdline)+1) ;
+  TAGwrite(fp, TAG_CMDLINE, &cmdline[0], cmdline.size() + 1) ;
 #endif
 
   fclose(fp);

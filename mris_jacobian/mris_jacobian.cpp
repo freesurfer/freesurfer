@@ -64,11 +64,7 @@ main(int argc, char *argv[])
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_jacobian.c,v 1.11 2015/02/05 23:34:40 zkaufman Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_jacobian");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -107,16 +107,15 @@ int MRISSfree(SMALL_SURFACE **pmriss)
   return (NO_ERROR);
 }
 
-int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
+int MRISaddCommandLine(MRI_SURFACE *mris, const std::string& cmdline)
 {
-  int i;
   if (mris->ncmds >= MAX_CMDS)
-    ErrorExit(ERROR_NOMEMORY, "MRISaddCommandLine: can't add cmd %s (%d)", cmdline, mris->ncmds);
+    fs::error() << "can't add cmd to surface since max cmds (" << mris->ncmds <<  ") has been reached";
 
-  i = mris->ncmds++;
-  mris->cmdlines[i] = (char *)calloc(strlen(cmdline) + 1, sizeof(char));
-  strcpy(mris->cmdlines[i], cmdline);
-  return (NO_ERROR);
+  int i = mris->ncmds++;
+  mris->cmdlines[i] = (char *)calloc(cmdline.size() + 1, sizeof(char));
+  strcpy(mris->cmdlines[i], cmdline.c_str());
+  return NO_ERROR;
 }
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  

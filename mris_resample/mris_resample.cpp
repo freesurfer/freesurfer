@@ -95,11 +95,11 @@ struct IoParams
   std::string strOutput;
   std::string strOutAnnotation;
 
-  void parse(int ac, const char** av);
+  void parse(int ac, char** av);
 };
 
 int
-main(int ac, const char** av)
+main(int ac, char** av)
 {
   // parse cmd-line
   IoParams params;
@@ -153,7 +153,7 @@ main(int ac, const char** av)
 }
 
 void
-IoParams::parse(int ac, const char** av)
+IoParams::parse(int ac, char** av)
 {
   ArgumentParser parser;
   // required
