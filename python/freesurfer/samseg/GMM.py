@@ -303,7 +303,7 @@ class GMM:
         soft_sum_1 = np.sum(posterior_1)
         soft_sum_2 = np.sum(posterior_2)
         tmp = ((hyperMeanNumberOfMeasurements_2 * soft_sum_2) /
-                         (soft_sum_2 + hyperMeanNumberOfMeasurements_2)) * np.linalg.solve(variance_2_previous, variance_1_previous)\
+               (soft_sum_2 + hyperMeanNumberOfMeasurements_2)) * np.linalg.solve(variance_2_previous, variance_1_previous)
 
         # Updates for the means
         mean_1 = np.linalg.solve((soft_sum_1 + hyperMeanNumberOfMeasurements_1) * np.eye(self.numberOfContrasts) +
