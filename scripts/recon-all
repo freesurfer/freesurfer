@@ -4737,8 +4737,7 @@ if ($DoBaLabels) then
 
     # generate labels
     # run in three sets, so as not to consume more than 4GB in parallel mode
-    #foreach labelset ($EV_IDXS 4)
-    foreach labelset (4)
+    foreach labelset ($EV_IDXS 4)
       set CMDFS = () # see earlier notes on -parallel implementation
       foreach balabel ( $ALL_EV_LABELS[$labelset] )
         set cmd=(mri_label2label \
