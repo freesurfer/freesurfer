@@ -93,10 +93,11 @@
 87  Right_future_WMSA                       200 121  255 0
 88  future_WMSA                             200 122  255 0
 
-
 96  Left-Amygdala-Anterior                  205 10  125 0
 97  Right-Amygdala-Anterior                 205 10  125 0
 98  Dura                                    160 32  240 0
+
+99  Lesion                                  255 165 0   0
 
 100 Left-wm-intensity-abnormality           124 140 178 0
 101 Left-caudate-intensity-abnormality      125 140 178 0
