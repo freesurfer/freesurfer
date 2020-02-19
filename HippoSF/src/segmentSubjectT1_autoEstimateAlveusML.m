@@ -132,6 +132,8 @@ if exist(tempdir,'dir')==0
     mkdir(tempdir);
 end
 
+tempdir=getFullPath(tempdir)
+
 cd(tempdir);
 
 % Next: register image dump to automated segmentation
