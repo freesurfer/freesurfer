@@ -14,7 +14,7 @@ set annotlist = ();
 set hemi = ();
 set fthresh = 2;
 set fmax    = 5;
-set label = ();
+set labellist = ();
 set UseTkSurfer = 0;
 set curv = curv
 set DoAllSurfs = 0;
@@ -72,7 +72,11 @@ if(! $UseTkSurfer) then
       set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax"
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
-    if($#label) set surfarg = "$surfarg":"label=$label"
+    if($#labellist) then
+      foreach label ($labellist)
+        set surfarg = "$surfarg":"label=$label"
+      end
+    endif
     if($DoAllSurfs) set surfarg = "$surfarg":"all=true"
     set cmd = ($cmd $surfarg)
   end
@@ -81,7 +85,7 @@ else
   ### tksurfer ####----------------------------------------------
   set cmd = (tksurfer $subject $hemi $surflist0[1] -fminmax $fthresh $fmax)
   if($#annotlist) set cmd = ($cmd -annot $annotlist[1])
-  if($#label) set cmd = ($cmd -label $label)
+  if($#labellist) set cmd = ($cmd -label $labellist[1])
   foreach overlay ($overlaylist)
     set cmd = ($cmd -overlay $overlay)
   end
@@ -115,6 +119,7 @@ while( $#argv != 0 )
     case "-l":
       if($#argv < 1) goto arg1err;
       set label = $argv[1]; shift;
+      set labellist = ($labellist $label)
       breaksw
 
     case "-reg":
@@ -291,15 +296,18 @@ foreach surf ($surflist0)
 end
 
 
-if($#label) then
-  if(! -e $label) then
-    set l0 = $SUBJECTS_DIR/$subject/label/$label
-    if(! -e $l0 && ! -e $label) then 
-      echo "ERROR: cannot find $label or $l0"
-      exit 1;
+if($#labellist) then
+  set labellist2 = ()
+  foreach label ($labellist)
+    if(! -e $label) then
+      set l0 = $SUBJECTS_DIR/$subject/label/$label
+      if(! -e $l0 && ! -e $label) then 
+        echo "ERROR: cannot find $label or $l0"
+        exit 1;
+      endif
+      set labellist2 = ($labellist2 $l0)
     endif
-    set label = $l0
-  endif
+  end
 endif
 set annotfilelist = ()
 foreach annot ($annotlist)
