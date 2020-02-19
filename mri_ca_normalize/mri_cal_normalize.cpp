@@ -140,19 +140,12 @@ main(int argc, char *argv[])
   Timer start ;
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
-  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
+  char         line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
   FILE         *fp ;
 
-  make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.11 2015/10/02 17:12:53 mreuter Exp $",
-     "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_cal_normalize");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.11 2015/10/02 17:12:53 mreuter Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_cal_normalize");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

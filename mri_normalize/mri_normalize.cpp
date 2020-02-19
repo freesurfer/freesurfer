@@ -171,23 +171,10 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   Timer start ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_normalize.c,v 1.92 2017/01/27 22:31:34 ah221 Exp $",
-   "$Name:  $",
-   cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_normalize.c,v 1.92 2017/01/27 22:31:34 ah221 Exp $",
-           "$Name:  $");
-  if (nargs && argc - nargs == 1)
-  {
-    exit (0);
-  }
+  std::string cmdline = getAllInfo(argc, argv, "mri_normalize");
+  nargs = handleVersionOption(argc, argv, "mri_normalize");
+  if (nargs && argc - nargs == 1) exit(0);
   argc -= nargs;
 
   Progname = argv[0] ;

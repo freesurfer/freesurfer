@@ -71,12 +71,7 @@ main(int argc, char *argv[])
   Timer start ;
   MRI         *mri_aseg, *mri_norm, *mri_norm_atrophy, *mri_noise ;
 
-  /* rkt: check for and handle version tag */
-  nargs = 
-    handle_version_option
-    (argc, argv,
-     "$Id: mri_simulate_atrophy.c,v 1.6 2014/07/24 21:37:18 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_simulate_atrophy");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

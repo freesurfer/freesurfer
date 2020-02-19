@@ -46,7 +46,7 @@ struct IoParams
   unsigned int zlibBuffer;
   int doTest;
 
-  void parse(int ac, const char** av);
+  void parse(int ac, char** av);
 };
 
 char* getChar(const std::string& str)
@@ -68,7 +68,7 @@ void initOctree2( gmp::VolumeMorph& morph)
 }
 
 int
-main(int ac, const char** av)
+main(int ac, char** av)
 {
   Timer timer;
 
@@ -184,7 +184,7 @@ main(int ac, const char** av)
 //---------------------------
 
 void
-IoParams::parse(int ac, const char** av)
+IoParams::parse(int ac, char** av)
 {
   ArgumentParser parser;
   // required

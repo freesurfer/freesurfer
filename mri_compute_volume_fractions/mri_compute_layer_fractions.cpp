@@ -91,8 +91,7 @@ main(int argc, char *argv[])
   MATRIX      *m_regdat ;
   float       intensity, betplaneres, inplaneres ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_layer_fractions.c,v 1.4 2012/04/11 17:52:45 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_layer_fractions");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

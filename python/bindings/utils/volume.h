@@ -38,6 +38,11 @@ py::object read(const std::string& filename);
 void write(Bridge vol, const std::string& filename);
 
 
+// TODOC
+using sample_array = py::array_t<float, py::array::f_style>;
+void sampleIntoVolume(sample_array volume, sample_array weights, arrayc<float> coords, arrayc<float> values);
+
+
 // volume submodule binding
 inline void bind(py::module &m)
 {
@@ -46,6 +51,7 @@ inline void bind(py::module &m)
 
   m.def("read", &read);
   m.def("write", &write);
+  m.def("sample_into_volume", &sampleIntoVolume);
 }
 
 

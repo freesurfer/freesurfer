@@ -1,7 +1,6 @@
 import os
 import tempfile
 import numpy as np
-import nibabel as nib
 
 from . import error, run, Image, Overlay, Volume, Surface, collect_output
 

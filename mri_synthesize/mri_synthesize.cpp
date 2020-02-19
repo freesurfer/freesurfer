@@ -105,12 +105,10 @@ main(int argc, char *argv[]) {
   MRI         *mri_T1, *mri_PD, *mri_out, *mri_T2star = NULL ;
   float       TR, TE, alpha ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_synthesize");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_synthesize");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

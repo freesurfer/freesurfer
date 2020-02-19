@@ -66,11 +66,7 @@ main(int argc, char *argv[])
   Timer then ;
   double        hdist ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_hausdorff_dist.c,v 1.3 2011/03/02 00:04:32 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_hausdorff_dist");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

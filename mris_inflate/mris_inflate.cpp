@@ -87,18 +87,10 @@ main(int argc, char *argv[])
   Timer then ;
   float         radius ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_inflate");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_inflate");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

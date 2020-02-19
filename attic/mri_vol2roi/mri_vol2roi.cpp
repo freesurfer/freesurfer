@@ -161,8 +161,7 @@ int main(int argc, char **argv) {
   int nargs;
   //int endian,roitype;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.32 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_vol2roi");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

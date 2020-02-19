@@ -2019,20 +2019,12 @@ main(int argc, char *argv[])
   MATRIX *m_L;
   VOL_GEOM *dst=0;
   VOL_GEOM *src=0;
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $", "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_fill");
 
   // Gdiag = 0xFFFFFFFF;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_fill");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

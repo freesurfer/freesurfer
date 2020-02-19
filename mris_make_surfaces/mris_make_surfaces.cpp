@@ -326,22 +326,14 @@ int main(int argc, char *argv[])
   INTEGRATION_PARMS old_parms ;
   int memusage[5];
   char *cmdline2, cwd[2000];
-  char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
   VERTEX *vgdiag;
 
   FSinit() ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_make_surfaces");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_surfaces");
   getcwd(cwd,2000);
   cmdline2 = argv2cmdline(argc,argv);
 

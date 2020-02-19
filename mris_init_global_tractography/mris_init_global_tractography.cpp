@@ -138,8 +138,7 @@ main(int argc, char *argv[]) {
   CMAT         *cmat ;
   MRI          *mri_tmp, *mri_wm_only ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.4 2016/07/18 15:42:20 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_init_global_tractography");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

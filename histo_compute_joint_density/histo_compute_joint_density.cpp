@@ -78,8 +78,7 @@ main(int argc, char *argv[]) {
   char fname[STRLEN] ;
   MRI         *mri1_pyramid[MAX_LEVELS], *mri2_pyramid[MAX_LEVELS];
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_compute_joint_density.c,v 1.4 2011/03/02 00:04:09 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "histo_compute_joint_density");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

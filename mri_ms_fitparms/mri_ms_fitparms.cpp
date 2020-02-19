@@ -226,21 +226,12 @@ main(int argc, char *argv[])
   MRI *mri_tmp = NULL;
   float thresh;
   int b, segno;
-  char cmdline[CMD_LINE_LEN] ;
 
   FA = TE = TR = 0;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.76 2016/11/30 21:46:55 fischl Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_ms_fitparms");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (
-            argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.76 2016/11/30 21:46:55 fischl Exp $",
-            "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ms_fitparms");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

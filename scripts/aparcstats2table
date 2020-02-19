@@ -100,6 +100,7 @@ def options_parse():
     h_s = ' subjectname'
     h_subf = 'name of the file which has the list of subjects ( one subject per line)'
     h_qdec = 'name of the qdec table which has the column of subjects ids (fsid)'
+    h_fsgd = 'name of the fsgd file to extract subjects from'
     h_qdeclong = 'name of the longitudinal qdec table which has the column of tp ids (fsid) and subject templates (fsid-base)'
     h_hemi = '(REQUIRED) lh or rh'
     h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
@@ -123,6 +124,7 @@ def options_parse():
     parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--qdec-long', dest='qdeclong', help=h_qdeclong)
+    parser.add_option('--fsgd', dest='fsgd', help=h_fsgd)
     parser.add_option('--hemi', dest='hemi',
                       choices=('lh','rh'), help=h_hemi)
     parser.add_option('-t', '--tablefile', dest='outputfile',
@@ -159,7 +161,7 @@ def options_parse():
             print('ERROR: atleast 1 subject must be provided')
             sys.exit(1)
         
-    if options.subjects is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
+    if options.subjects is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None and options.fsgd is None: 
         print('ERROR: Specify one of --subjects, --subjectsfile --qdec or --qdec-long')
         print('       or run with --help for help.')
         sys.exit(1)
@@ -173,7 +175,9 @@ def options_parse():
         count = count+1;
     if options.qdeclong is not None:
         count = count+1;
-    if count >1:
+    if options.fsgd is not None:
+        count = count+1;
+    if count > 1:
         print('ERROR: Please specify just one of  --subjects, --subjectsfile --qdec or --qdec-long.')
         sys.exit(1)
 
@@ -257,7 +261,17 @@ def assemble_inputs(options):
         except IOError:
             print('ERROR: the file %s doesnt exist'%o.qdeclong)
             sys.exit(1)
-            
+    if o.fsgd is not None:
+        o.subjects = []
+        if not os.path.isfile(o.fsgd):
+            print('ERROR: fsgd file %s does not exist' % o.fsgd)
+            sys.exit(1)
+        with open(o.fsgd, 'r') as f:
+            for line in f:
+                splitline = line.rstrip().split()
+                if splitline[0].upper() == 'INPUT':
+                    o.subjects.append(splitline[1])
+
     for sub in o.subjects:
         specs_paths.append( (sub,  os.path.join(subjdir, sub, 'stats',
                              o.hemi + '.' + o.parc+'.stats')) )

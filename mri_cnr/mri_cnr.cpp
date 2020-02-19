@@ -70,8 +70,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE *mris ;
   double      cnr_total, cnr = 0.0 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.11 2016/05/05 18:44:03 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_cnr");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

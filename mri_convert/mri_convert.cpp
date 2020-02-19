@@ -196,7 +196,6 @@ int main(int argc, char *argv[])
   int nthframe=-1;
   int reduce = 0 ;
   float fwhm, gstd;
-  char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
   int LeftRightReversePix = FALSE;
@@ -220,11 +219,7 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_convert");
 
   for(i=0; i<argc; i++)
   {
@@ -343,14 +338,7 @@ int main(int argc, char *argv[])
   STAT_TABLE *StatTable=NULL;
   STAT_TABLE *OutStatTable=NULL;
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (
-      argc, argv,
-      "$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $",
-      "$Name:  $"
-    );
+  nargs = handleVersionOption(argc, argv, "mri_convert");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

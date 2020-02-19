@@ -176,17 +176,7 @@ main(int argc, char *argv[])
               ez_x, ez_y, ez_z, zf, zf_low=256, zf_high=0;
   MATRIX      *m_evectors ;
 
-  char cmdline[CMD_LINE_LEN] ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
-   "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_cc");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

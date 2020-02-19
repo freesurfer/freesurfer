@@ -53,8 +53,7 @@ main(int argc, char *argv[]) {
   char   *in_dir, *out_dir ;
   MRI_REGION box ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract.c,v 1.8 2016/06/08 13:42:17 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_extract");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -287,4 +287,150 @@ void write(Bridge vol, const std::string& filename)
 }
 
 
+/*
+  Interpolates and adds a set of values at given coordinates into a volume.
+
+  Documentation to be added...
+*/
+void sampleIntoVolume(sample_array volume, sample_array weights, arrayc<float> coords, arrayc<float> values)
+{
+    const float * coords_ptr = coords.data();
+    const float * vals_ptr = values.data();
+
+    int xlim = volume.shape(0);
+    int ylim = volume.shape(1);
+    int zlim = volume.shape(2);
+
+    int nvalues = values.shape(0); 
+
+    if (volume.ndim() == 3) {
+
+        auto volume_m = volume.mutable_unchecked<3>();
+        auto weights_m = weights.mutable_unchecked<3>();
+
+        for (int n = 0; n < nvalues; n++) {
+            float x = *coords_ptr++;
+            float y = *coords_ptr++;
+            float z = *coords_ptr++;
+
+            int x_low = int(floor(x));
+            int y_low = int(floor(y));
+            int z_low = int(floor(z));
+
+            int x_high = x_low + 1;
+            int y_high = y_low + 1;
+            int z_high = z_low + 1;
+
+            if (x_high == xlim) x_high = x_low;
+            if (y_high == ylim) y_high = y_low;
+            if (z_high == zlim) z_high = z_low;
+
+            x -= x_low;
+            y -= y_low;
+            z -= z_low;
+
+            float dx = 1.0f - x;
+            float dy = 1.0f - y;
+            float dz = 1.0f - z;
+
+            float w0 = dx * dy * dz;
+            float w1 = x  * dy * dz;
+            float w2 = dx * y  * dz;
+            float w3 = dx * dy * z;
+            float w4 = x  * dy * z;
+            float w5 = dx * y  * z;
+            float w6 = x  * y  * dz;
+            float w7 = x  * y  * z;
+
+            float val = *vals_ptr++;
+            volume_m(x_low , y_low , z_low ) += w0 * val;
+            volume_m(x_high, y_low , z_low ) += w1 * val;
+            volume_m(x_low , y_high, z_low ) += w2 * val;
+            volume_m(x_low , y_low , z_high) += w3 * val;
+            volume_m(x_high, y_low , z_high) += w4 * val;
+            volume_m(x_low , y_high, z_high) += w5 * val;
+            volume_m(x_high, y_high, z_low ) += w6 * val;
+            volume_m(x_high, y_high, z_high) += w7 * val;
+
+            weights_m(x_low , y_low , z_low ) += w0;
+            weights_m(x_high, y_low , z_low ) += w1;
+            weights_m(x_low , y_high, z_low ) += w2;
+            weights_m(x_low , y_low , z_high) += w3;
+            weights_m(x_high, y_low , z_high) += w4;
+            weights_m(x_low , y_high, z_high) += w5;
+            weights_m(x_high, y_high, z_low ) += w6;
+            weights_m(x_high, y_high, z_high) += w7;
+        }
+
+    }
+    else if (volume.ndim() == 4) {
+
+        int nframes = volume.shape(3);
+
+        auto volume_m = volume.mutable_unchecked<4>();
+        auto weights_m = weights.mutable_unchecked<3>();
+
+        for (int n = 0; n < nvalues; n++) {
+            float x = *coords_ptr++;
+            float y = *coords_ptr++;
+            float z = *coords_ptr++;
+
+            int x_low = int(floor(x));
+            int y_low = int(floor(y));
+            int z_low = int(floor(z));
+
+            int x_high = x_low + 1;
+            int y_high = y_low + 1;
+            int z_high = z_low + 1;
+
+            if (x_high == xlim) x_high = x_low;
+            if (y_high == ylim) y_high = y_low;
+            if (z_high == zlim) z_high = z_low;
+
+            x -= x_low;
+            y -= y_low;
+            z -= z_low;
+
+            float dx = 1.0f - x;
+            float dy = 1.0f - y;
+            float dz = 1.0f - z;
+
+            float w0 = dx * dy * dz;
+            float w1 = x  * dy * dz;
+            float w2 = dx * y  * dz;
+            float w3 = dx * dy * z;
+            float w4 = x  * dy * z;
+            float w5 = dx * y  * z;
+            float w6 = x  * y  * dz;
+            float w7 = x  * y  * z;
+
+            for (int fno = 0; fno < nframes; fno++) {
+                float val = *vals_ptr++;
+                volume_m(x_low , y_low , z_low , fno) += w0 * val;
+                volume_m(x_high, y_low , z_low , fno) += w1 * val;
+                volume_m(x_low , y_high, z_low , fno) += w2 * val;
+                volume_m(x_low , y_low , z_high, fno) += w3 * val;
+                volume_m(x_high, y_low , z_high, fno) += w4 * val;
+                volume_m(x_low , y_high, z_high, fno) += w5 * val;
+                volume_m(x_high, y_high, z_low , fno) += w6 * val;
+                volume_m(x_high, y_high, z_high, fno) += w7 * val;
+            }
+
+            weights_m(x_low , y_low , z_low ) += w0;
+            weights_m(x_high, y_low , z_low ) += w1;
+            weights_m(x_low , y_high, z_low ) += w2;
+            weights_m(x_low , y_low , z_high) += w3;
+            weights_m(x_high, y_low , z_high) += w4;
+            weights_m(x_low , y_high, z_high) += w5;
+            weights_m(x_high, y_high, z_low ) += w6;
+            weights_m(x_high, y_high, z_high) += w7;
+        }
+
+    }
+    else {
+        fs::fatal() << "target volume must be 3D or 4D";
+    }
+}
+
+
 }  // end namespace vol

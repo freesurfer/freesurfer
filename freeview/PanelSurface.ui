@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>346</width>
+    <width>405</width>
     <height>1641</height>
    </rect>
   </property>
@@ -24,7 +24,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>350</width>
+     <width>405</width>
      <height>1641</height>
     </rect>
    </property>
@@ -491,6 +491,29 @@
           </property>
          </spacer>
         </item>
+        <item>
+         <widget class="QLabel" name="labelLabelZOrderAnnotation">
+          <property name="text">
+           <string>Z-order</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBoxZOrderAnnotation">
+          <property name="minimum">
+           <number>0</number>
+          </property>
+          <property name="maximum">
+           <number>9</number>
+          </property>
+          <property name="value">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item row="29" column="0">
@@ -605,29 +628,6 @@
            </size>
           </property>
          </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="labelLabelZOrderAnnotation">
-          <property name="text">
-           <string>Z-order</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="spinBoxZOrderAnnotation">
-          <property name="minimum">
-           <number>0</number>
-          </property>
-          <property name="maximum">
-           <number>9</number>
-          </property>
-          <property name="value">
-           <number>2</number>
-          </property>
-         </widget>
         </item>
        </layout>
       </item>

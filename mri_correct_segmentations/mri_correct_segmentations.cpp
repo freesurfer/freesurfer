@@ -47,8 +47,7 @@ int main(int argc, char *argv[])
   char **av ;
   MRI  *outmri0 = NULL, *outmri1 = NULL, *outmri2 = NULL, *outmri3 = NULL, *outmri4 = NULL, *segmri ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_correct_segmentations");
   if (nargs && argc - nargs == 1)
     exit (0);
   Progname = argv[0] ;

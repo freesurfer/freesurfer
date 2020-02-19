@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
   GCA       *gca ;
   TRANSFORM *xform ;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segment_tumor");
 
   if (nargs && argc - nargs == 1) 
     exit (0);

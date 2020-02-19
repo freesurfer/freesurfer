@@ -250,12 +250,7 @@ main(int argc, char *argv[])
 
   FSinit() ;
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc, argv,
-     "$Id: mri_em_register.c,v 1.106 2016/10/22 17:31:12 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_em_register");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -82,9 +82,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
 
   InitDebugging( "mris_curvature_vectors" ) ;
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_vectors.c,v 1.1 2011/11/20 01:17:34 jonp Exp $", "$Name:  $") ;
+  nargs = handleVersionOption(argc, argv, "mris_curvature_vectors");
 
   //Progname = argv[0] ;
   sprintf(Progname, "mris_curvature_vectors") ;

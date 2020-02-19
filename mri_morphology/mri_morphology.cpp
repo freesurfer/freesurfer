@@ -75,8 +75,7 @@ main(int argc, char *argv[]) {
   int          msec, minutes, seconds ;
   Timer start ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.15 2012/03/15 18:31:07 lzollei Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_morphology");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

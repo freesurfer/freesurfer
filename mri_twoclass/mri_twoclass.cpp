@@ -150,8 +150,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *transform ;
   VLI          *vli1 = NULL, *vli2 = NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.16 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_twoclass");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
