@@ -152,6 +152,7 @@ if exist(tempdir,'dir')==0
 end
 
 T2volumeFileName=getFullPath(T2volumeFileName); % Eugenio November 2017: before we cd
+tempdir=getFullPath(tempdir)
 
 cd(tempdir);
 

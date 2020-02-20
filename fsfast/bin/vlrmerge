@@ -10,6 +10,7 @@ set rhsurf = ();
 set lrvol = ();
 set subcortmask = ();
 set DoCorrection = 0; # Correction for multiple comparsisons
+set subject = fsaverage
 
 set tmpdir = ();
 set cleanup = 1;
@@ -69,7 +70,7 @@ uname -a  | tee -a $LF
 # 1. Map the lh and rh into the volume
 set surfvol = $tmpdir/junk.mgh
 set cmd = (mri_surf2vol --fstal 2 \
-  --template $SUBJECTS_DIR/fsaverage/mri.2mm/orig.mgz \
+  --template $SUBJECTS_DIR/$subject/mri.2mm/orig.mgz \
   --hemi lh --surfval $lhsurf --o $surfvol --fillribbon)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF

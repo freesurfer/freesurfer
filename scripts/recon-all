@@ -4721,32 +4721,23 @@ if ($DoBaLabels) then
   endif
 
   foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-        |& tee -a $LF |& tee -a $CF
-    echo "#@# BA_exvivo Labels $hemi `date`" \
-        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF 
+    echo "#@# BA_exvivo Labels $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
     # need to split parallel processing into sets so as not to exceed 4GB
-    set EV_LABELS_1 = (BA1_exvivo \
-                       BA2_exvivo \
-                       BA3a_exvivo \
-                       BA3b_exvivo \
-                       BA4a_exvivo)
-    set EV_LABELS_2 = (BA4p_exvivo \
-                       BA6_exvivo \
-                       BA44_exvivo \
-                       BA45_exvivo)
-    set EV_LABELS_3 = (V1_exvivo \
-                       V2_exvivo \
-                       MT_exvivo \
-                       entorhinal_exvivo \
-                       perirhinal_exvivo)
-    set ALL_EV_LABELS = ("$EV_LABELS_1" "$EV_LABELS_2" "$EV_LABELS_3")
-    set EV_IDXS = (1 2 3)
+    set EV_LABELS_1 = (BA1_exvivo  BA2_exvivo BA3a_exvivo  BA3b_exvivo  BA4a_exvivo)
+    set EV_LABELS_2 = (BA4p_exvivo BA6_exvivo BA44_exvivo  BA45_exvivo)
+    set EV_LABELS_3 = (V1_exvivo V2_exvivo MT_exvivo entorhinal_exvivo perirhinal_exvivo)
+    # labels from Grill-Spector at the Stanford Vision and Perception Neuroscience Lab
+    # http://vpnl.stanford.edu/vcAtlas, MPM = max prop map
+    set EV_LABELS_4 = (FG1.mpm.vpnl FG2.mpm.vpnl FG3.mpm.vpnl FG4.mpm.vpnl \
+                       hOc1.mpm.vpnl hOc2.mpm.vpnl hOc3v.mpm.vpnl hOc4v.mpm.vpnl)
+    set ALL_EV_LABELS = ("$EV_LABELS_1" "$EV_LABELS_2" "$EV_LABELS_3" "$EV_LABELS_4")
+    set EV_IDXS = (1 2 3) # Don't include 4 here
 
     # generate labels
     # run in three sets, so as not to consume more than 4GB in parallel mode
-    foreach labelset ($EV_IDXS)
+    foreach labelset ($EV_IDXS 4)
       set CMDFS = () # see earlier notes on -parallel implementation
       foreach balabel ( $ALL_EV_LABELS[$labelset] )
         set cmd=(mri_label2label \
@@ -4771,6 +4762,20 @@ if ($DoBaLabels) then
         if($status) goto error_exit;
       endif
     end # labelset
+
+    # merge labels from Grill-Spector at the Stanford Vision and Perception Neuroscience Lab
+    set annot = ./$hemi.mpm.vpnl.annot
+    if($RunIt) rm -f $annot
+    set ctabvpnl = $FREESURFER_HOME/average/colortable_vpnl.txt
+    set cmd = (mris_label2annot --s $subjid  --ctab $ctabvpnl --hemi $hemi \
+       --a mpm.vpnl --maxstatwinner --noverbose \
+       --l $hemi.FG1.mpm.vpnl.label   --l $hemi.FG2.mpm.vpnl.label \
+       --l $hemi.FG3.mpm.vpnl.label   --l $hemi.FG4.mpm.vpnl.label \
+       --l $hemi.hOc1.mpm.vpnl.label  --l $hemi.hOc2.mpm.vpnl.label \
+       --l $hemi.hOc3v.mpm.vpnl.label --l $hemi.hOc4v.mpm.vpnl.label)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
 
     # generate .thresh labels
     # run in three sets, so as not to consume more than 4GB in parallel mode

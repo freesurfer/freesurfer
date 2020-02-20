@@ -295,7 +295,7 @@ while( $#argv != 0 )
       # For convenience, for now
       set gca = /autofs/cluster/fsm/users/greve/subjects/gca.limbic4/gca/gca.i02.gca
       set ctab = /autofs/cluster/fsm/users/greve/subjects/gca.limbic4/fsm.jca.2017c.lut
-      set base = gca.limbic4
+      set gcabase = gca.limbic4
       breaksw
 
     case "--overwrite":

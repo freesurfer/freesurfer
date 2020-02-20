@@ -23,6 +23,7 @@ install_symlinks(
   # txt
   colortable_desikan_killiany.txt
   colortable_BA.txt
+  colortable_vpnl.txt
   # mgz
   mni305.cor.mgz
   mni305.cor.subfov1.mgz
