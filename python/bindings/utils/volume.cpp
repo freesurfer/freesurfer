@@ -433,7 +433,7 @@ void sampleIntoVolume(sample_array volume, sample_array weights, arrayc<float> c
 
 
 
-py::array resampleVolume(py::array_t<float> source_vol, py::object target_shape, py::array_t<float> target2source)
+py::array_t<float> resampleVolume(py::array_t<float> source_vol, py::object target_shape, py::array_t<float> target2source)
 {
   // make target volume
   py::module numpy = py::module::import("numpy");

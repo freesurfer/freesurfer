@@ -3,6 +3,7 @@ import numpy as np
 import copy
 
 from . import bindings, warning
+from .geom import resample
 from .transform import Transformable, LinearTransform, Geometry
 
 
@@ -165,9 +166,110 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.affine = affine
         self.voxsize = voxsize if voxsize else (1.0, 1.0, 1.0)
 
+    def __getitem__(self, idx):
+        '''Returns the cropped volume with a recomputed affine matrix.'''
+        return self.crop(idx)
+
     def geometry(self):
         '''Returns volume geometry as a `Geometry` instance.'''
         return Geometry(self.shape, self.voxsize, self.affine)
+
+    def copy_metadata(self, vol):
+        '''Copies metadata from another volume.'''
+        self.lut = vol.lut
+        self.te = vol.te
+        self.tr = vol.tr
+        self.ti = vol.ti
+        self.flip_angle = vol.flip_angle
+
+    def copy_geometry(self, vol):
+        '''Copies voxsize and affine information from another volume.'''
+        self.affine = vol.affine
+        self.voxsize = vol.voxsize
+
+    def reslice(self, voxsize):
+        '''
+        Returns the resampled volume with a given resolution determined by voxel
+        size in mm.
+
+        Parameter:
+            voxsize: Voxel size of target volume.
+        '''
+        src_shape = self.shape[:3]
+        target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
+        
+        # get source-to-RAS matrix
+        src2ras = self.affine if self.affine is not None else fs.transform.LIA(src_shape, self.voxsize)
+
+        # compute target-to-RAS matrix
+        pcrs = np.append(np.array(src_shape) / 2, 1)
+        cras = np.matmul(src2ras, pcrs)[:3]
+        trg2ras = np.eye(4)
+        trg2ras[:3, :3] = self.affine[:3, :3] * voxsize / self.voxsize
+        pcrs = np.append(np.array(target_shape) / 2, 1)
+        trg2ras[:3, 3] = cras - np.matmul(trg2ras, pcrs)[:3]
+
+        # compute target-to-source matrix
+        ras2src = np.linalg.inv(src2ras)
+        trg2src = np.matmul(ras2src, trg2ras)
+
+        # resample into new volume
+        if self.data.ndim != 3:
+            target_shape = (*target_shape, self.nframes)
+        resliced_data = resample(self.data, target_shape, trg2src)
+        resliced_vol = Volume(resliced_data, affine=trg2ras, voxsize=voxsize)
+        resliced_vol.copy_metadata(self)
+        return resliced_vol
+
+    def crop(self, cropping):
+        '''
+        Returns the cropped volume with a recomputed affine matrix.
+        Avoid using this function directly, and instead use direct indexing
+        on the volume object, like so:
+
+            cropped = vol[:, 10:-10, :]
+
+        Parameter:
+            cropping: Tuple of crop indices (slices).
+        '''
+        # convert cropping into list
+        idxs = [cropping] if not isinstance(cropping, (tuple, list)) else cropping
+        
+        # we need to extract starting coordinates, and dealing with ellipsis is
+        # way too much work for now, so let's not support it
+        if Ellipsis in idxs:
+            raise NotImplementedError('Ellipsis is not yet supported in cropping indices')
+        
+        # extract the starting coordinate of the cropping
+        start_coords = []
+        for i in idxs:
+            if isinstance(i, slice):
+                start_coords.append(i.start if i.start is not None else 0)
+            elif isinstance(i, int):
+                raise ValueError('volume cropping does not support dimension removal - crop the data array directly')
+            else:
+                raise ValueError('volume cropping must be indexed by slices (:) only')
+
+        # crop the raw array
+        cropped_data = self.data[cropping]
+
+        # compute new affine if one exists
+        if self.affine is not None:
+            matrix = np.eye(4)
+            matrix[:3, :3] = self.affine[:3, :3]
+            p0 = self.vox2ras().transform(start_coords[:3])
+            matrix[:3, 3] = p0
+            pcrs = np.append(np.array(cropped_data.shape[:3]) / 2, 1)
+            cras = np.matmul(matrix, pcrs)[:3]
+            matrix[:3, 3] = 0
+            matrix[:3, 3] = cras - np.matmul(matrix, pcrs)[:3]
+        else:
+            matrix = None
+
+        # construct cropped volume
+        cropped_vol = Volume(cropped_data, affine=matrix, voxsize=self.voxsize)
+        cropped_vol.copy_metadata(self)
+        return cropped_vol
 
     @property
     def image(self):

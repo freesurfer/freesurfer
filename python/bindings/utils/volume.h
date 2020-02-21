@@ -41,7 +41,7 @@ void write(Bridge vol, const std::string& filename);
 // TODOC
 using sample_array = py::array_t<float, py::array::f_style>;
 void sampleIntoVolume(sample_array volume, sample_array weights, arrayc<float> coords, arrayc<float> values);
-py::array resampleVolume(py::array_t<float> source_vol, py::object target_shape, py::array_t<float> target2source);
+py::array_t<float> resampleVolume(py::array_t<float> source_vol, py::object target_shape, py::array_t<float> target2source);
 
 
 // volume submodule binding

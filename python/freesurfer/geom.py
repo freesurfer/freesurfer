@@ -52,12 +52,12 @@ def cmass(image):
 def resample(source, target_shape, affine):
     '''
     Resamples a volume array from one space to another given
-    a source-to-volume transformation matrix.
+    a target-to-source transformation matrix.
 
     Parameters:
         source: Source array to sample from. Must be 3D or 4D.
         target_shape: Shape of the returned target array.
-        affine: 4x4 affine matrix that transforms source coords to target coords.
+        affine: 4x4 affine matrix that transforms target coords to source coords.
     '''
     if source.ndim > 4:
         raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
