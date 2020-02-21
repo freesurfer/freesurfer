@@ -294,142 +294,241 @@ void write(Bridge vol, const std::string& filename)
 */
 void sampleIntoVolume(sample_array volume, sample_array weights, arrayc<float> coords, arrayc<float> values)
 {
-    const float * coords_ptr = coords.data();
-    const float * vals_ptr = values.data();
+  const float * coords_ptr = coords.data();
+  const float * vals_ptr = values.data();
 
-    int xlim = volume.shape(0);
-    int ylim = volume.shape(1);
-    int zlim = volume.shape(2);
+  int xlim = volume.shape(0);
+  int ylim = volume.shape(1);
+  int zlim = volume.shape(2);
 
-    int nvalues = values.shape(0); 
+  int nvalues = values.shape(0); 
 
-    if (volume.ndim() == 3) {
+  if (volume.ndim() == 3) {
 
-        auto volume_m = volume.mutable_unchecked<3>();
-        auto weights_m = weights.mutable_unchecked<3>();
+    auto volume_m = volume.mutable_unchecked<3>();
+    auto weights_m = weights.mutable_unchecked<3>();
 
-        for (int n = 0; n < nvalues; n++) {
-            float x = *coords_ptr++;
-            float y = *coords_ptr++;
-            float z = *coords_ptr++;
+    for (int n = 0; n < nvalues; n++) {
+      float x = *coords_ptr++;
+      float y = *coords_ptr++;
+      float z = *coords_ptr++;
 
-            int x_low = int(floor(x));
-            int y_low = int(floor(y));
-            int z_low = int(floor(z));
+      int x_low = int(floor(x));
+      int y_low = int(floor(y));
+      int z_low = int(floor(z));
 
-            int x_high = x_low + 1;
-            int y_high = y_low + 1;
-            int z_high = z_low + 1;
+      int x_high = x_low + 1;
+      int y_high = y_low + 1;
+      int z_high = z_low + 1;
 
-            if (x_high == xlim) x_high = x_low;
-            if (y_high == ylim) y_high = y_low;
-            if (z_high == zlim) z_high = z_low;
+      if (x_high == xlim) x_high = x_low;
+      if (y_high == ylim) y_high = y_low;
+      if (z_high == zlim) z_high = z_low;
 
-            x -= x_low;
-            y -= y_low;
-            z -= z_low;
+      x -= x_low;
+      y -= y_low;
+      z -= z_low;
 
-            float dx = 1.0f - x;
-            float dy = 1.0f - y;
-            float dz = 1.0f - z;
+      float dx = 1.0f - x;
+      float dy = 1.0f - y;
+      float dz = 1.0f - z;
 
-            float w0 = dx * dy * dz;
-            float w1 = x  * dy * dz;
-            float w2 = dx * y  * dz;
-            float w3 = dx * dy * z;
-            float w4 = x  * dy * z;
-            float w5 = dx * y  * z;
-            float w6 = x  * y  * dz;
-            float w7 = x  * y  * z;
+      float w0 = dx * dy * dz;
+      float w1 = x  * dy * dz;
+      float w2 = dx * y  * dz;
+      float w3 = dx * dy * z;
+      float w4 = x  * dy * z;
+      float w5 = dx * y  * z;
+      float w6 = x  * y  * dz;
+      float w7 = x  * y  * z;
 
-            float val = *vals_ptr++;
-            volume_m(x_low , y_low , z_low ) += w0 * val;
-            volume_m(x_high, y_low , z_low ) += w1 * val;
-            volume_m(x_low , y_high, z_low ) += w2 * val;
-            volume_m(x_low , y_low , z_high) += w3 * val;
-            volume_m(x_high, y_low , z_high) += w4 * val;
-            volume_m(x_low , y_high, z_high) += w5 * val;
-            volume_m(x_high, y_high, z_low ) += w6 * val;
-            volume_m(x_high, y_high, z_high) += w7 * val;
+      float val = *vals_ptr++;
+      volume_m(x_low , y_low , z_low ) += w0 * val;
+      volume_m(x_high, y_low , z_low ) += w1 * val;
+      volume_m(x_low , y_high, z_low ) += w2 * val;
+      volume_m(x_low , y_low , z_high) += w3 * val;
+      volume_m(x_high, y_low , z_high) += w4 * val;
+      volume_m(x_low , y_high, z_high) += w5 * val;
+      volume_m(x_high, y_high, z_low ) += w6 * val;
+      volume_m(x_high, y_high, z_high) += w7 * val;
 
-            weights_m(x_low , y_low , z_low ) += w0;
-            weights_m(x_high, y_low , z_low ) += w1;
-            weights_m(x_low , y_high, z_low ) += w2;
-            weights_m(x_low , y_low , z_high) += w3;
-            weights_m(x_high, y_low , z_high) += w4;
-            weights_m(x_low , y_high, z_high) += w5;
-            weights_m(x_high, y_high, z_low ) += w6;
-            weights_m(x_high, y_high, z_high) += w7;
+      weights_m(x_low , y_low , z_low ) += w0;
+      weights_m(x_high, y_low , z_low ) += w1;
+      weights_m(x_low , y_high, z_low ) += w2;
+      weights_m(x_low , y_low , z_high) += w3;
+      weights_m(x_high, y_low , z_high) += w4;
+      weights_m(x_low , y_high, z_high) += w5;
+      weights_m(x_high, y_high, z_low ) += w6;
+      weights_m(x_high, y_high, z_high) += w7;
+    }
+
+  }
+  else if (volume.ndim() == 4) {
+
+    int nframes = volume.shape(3);
+
+    auto volume_m = volume.mutable_unchecked<4>();
+    auto weights_m = weights.mutable_unchecked<3>();
+
+    for (int n = 0; n < nvalues; n++) {
+      float x = *coords_ptr++;
+      float y = *coords_ptr++;
+      float z = *coords_ptr++;
+
+      int x_low = int(floor(x));
+      int y_low = int(floor(y));
+      int z_low = int(floor(z));
+
+      int x_high = x_low + 1;
+      int y_high = y_low + 1;
+      int z_high = z_low + 1;
+
+      if (x_high == xlim) x_high = x_low;
+      if (y_high == ylim) y_high = y_low;
+      if (z_high == zlim) z_high = z_low;
+
+      x -= x_low;
+      y -= y_low;
+      z -= z_low;
+
+      float dx = 1.0f - x;
+      float dy = 1.0f - y;
+      float dz = 1.0f - z;
+
+      float w0 = dx * dy * dz;
+      float w1 = x  * dy * dz;
+      float w2 = dx * y  * dz;
+      float w3 = dx * dy * z;
+      float w4 = x  * dy * z;
+      float w5 = dx * y  * z;
+      float w6 = x  * y  * dz;
+      float w7 = x  * y  * z;
+
+      for (int fno = 0; fno < nframes; fno++) {
+          float val = *vals_ptr++;
+          volume_m(x_low , y_low , z_low , fno) += w0 * val;
+          volume_m(x_high, y_low , z_low , fno) += w1 * val;
+          volume_m(x_low , y_high, z_low , fno) += w2 * val;
+          volume_m(x_low , y_low , z_high, fno) += w3 * val;
+          volume_m(x_high, y_low , z_high, fno) += w4 * val;
+          volume_m(x_low , y_high, z_high, fno) += w5 * val;
+          volume_m(x_high, y_high, z_low , fno) += w6 * val;
+          volume_m(x_high, y_high, z_high, fno) += w7 * val;
+      }
+
+      weights_m(x_low , y_low , z_low ) += w0;
+      weights_m(x_high, y_low , z_low ) += w1;
+      weights_m(x_low , y_high, z_low ) += w2;
+      weights_m(x_low , y_low , z_high) += w3;
+      weights_m(x_high, y_low , z_high) += w4;
+      weights_m(x_low , y_high, z_high) += w5;
+      weights_m(x_high, y_high, z_low ) += w6;
+      weights_m(x_high, y_high, z_high) += w7;
+    }
+  }
+  else {
+      fs::fatal() << "target volume must be 3D or 4D";
+  }
+}
+
+
+
+py::array resampleVolume(py::array_t<float> source_vol, py::object target_shape, py::array_t<float> target2source)
+{
+  // make target volume
+  py::module numpy = py::module::import("numpy");
+  py::array_t<float> target_vol = numpy.attr("zeros")(target_shape);
+  int nx = target_vol.shape(0);
+  int ny = target_vol.shape(1);
+  int nz = target_vol.shape(2);
+  int nf = target_vol.shape(3);
+
+  // get indexing functions
+  auto source_m = source_vol.unchecked<4>();
+  auto target_m = target_vol.mutable_unchecked<4>();
+
+  // cache affine values
+  auto t2s_m = target2source.unchecked<2>();
+  float a11 = t2s_m(0, 0); float a12 = t2s_m(0, 1); float a13 = t2s_m(0, 2); float a14 = t2s_m(0, 3);
+  float a21 = t2s_m(1, 0); float a22 = t2s_m(1, 1); float a23 = t2s_m(1, 2); float a24 = t2s_m(1, 3);
+  float a31 = t2s_m(2, 0); float a32 = t2s_m(2, 1); float a33 = t2s_m(2, 2); float a34 = t2s_m(2, 3);
+
+  // get source limits
+  int sxlim = source_vol.shape(0);
+  int sylim = source_vol.shape(1);
+  int szlim = source_vol.shape(2);
+
+  for (int z = 0; z < nz; z++) {
+    for (int y = 0; y < ny; y++) {
+      for (int x = 0; x < nx; x++) {
+
+        // compute source coordinate
+        float sx = (a11 * x) + (a12 * y) + (a13 * z) + a14;
+        float sy = (a21 * x) + (a22 * y) + (a23 * z) + a24;
+        float sz = (a31 * x) + (a32 * y) + (a33 * z) + a34;
+
+        // get low and high coords
+        int sx_low = int(floor(sx));
+        int sy_low = int(floor(sy));
+        int sz_low = int(floor(sz));
+        int sx_high = sx_low + 1;
+        int sy_high = sy_low + 1;
+        int sz_high = sz_low + 1;
+
+        // get coordinate diff
+        sx -= sx_low;
+        sy -= sy_low;
+        sz -= sz_low;
+        float dsx = 1.0f - sx;
+        float dsy = 1.0f - sy;
+        float dsz = 1.0f - sz;
+
+        // make sure voxels are within the source volume
+        bool valid_xl = (sx_low >= 0 && sx_low < sxlim);
+        bool valid_yl = (sy_low >= 0 && sy_low < sylim);
+        bool valid_zl = (sz_low >= 0 && sz_low < szlim);
+        bool valid_xh = (sx_high + 1 >= 0 && sx_high + 1 < sxlim);
+        bool valid_yh = (sy_high + 1 >= 0 && sy_high + 1 < sylim);
+        bool valid_zh = (sz_high + 1 >= 0 && sz_high + 1 < szlim);
+
+        float w0 = dsx * dsy * dsz;
+        float w1 = sx  * dsy * dsz;
+        float w2 = dsx * sy  * dsz;
+        float w3 = dsx * dsy * sz;
+        float w4 = sx  * dsy * sz;
+        float w5 = dsx * sy  * sz;
+        float w6 = sx  * sy  * dsz;
+        float w7 = sx  * sy  * sz;
+
+        for (int f = 0; f < nf; f++) {
+
+          // extract (valid) voxel values
+          float v0 = (valid_xl && valid_yl && valid_zl) ? source_m(sx_low , sy_low , sz_low , f) : 0.0;
+          float v1 = (valid_xh && valid_yl && valid_zl) ? source_m(sx_high, sy_low , sz_low , f) : 0.0;
+          float v2 = (valid_xl && valid_yh && valid_zl) ? source_m(sx_low , sy_high, sz_low , f) : 0.0;
+          float v3 = (valid_xl && valid_yl && valid_zh) ? source_m(sx_low , sy_low , sz_high, f) : 0.0;
+          float v4 = (valid_xh && valid_yl && valid_zh) ? source_m(sx_high, sy_low , sz_high, f) : 0.0;
+          float v5 = (valid_xl && valid_yh && valid_zh) ? source_m(sx_low , sy_high, sz_high, f) : 0.0;
+          float v6 = (valid_xh && valid_yh && valid_zl) ? source_m(sx_high, sy_high, sz_low , f) : 0.0;
+          float v7 = (valid_xh && valid_yh && valid_zh) ? source_m(sx_high, sy_high, sz_high, f) : 0.0;
+
+          // interpolate
+          float val = w0 * v0 +
+                      w1 * v1 +
+                      w2 * v2 +
+                      w3 * v3 +
+                      w4 * v4 +
+                      w5 * v5 +
+                      w6 * v6 +
+                      w7 * v7;
+
+          target_m(x, y, z, f) = val;
         }
-
+      }
     }
-    else if (volume.ndim() == 4) {
+  }
 
-        int nframes = volume.shape(3);
-
-        auto volume_m = volume.mutable_unchecked<4>();
-        auto weights_m = weights.mutable_unchecked<3>();
-
-        for (int n = 0; n < nvalues; n++) {
-            float x = *coords_ptr++;
-            float y = *coords_ptr++;
-            float z = *coords_ptr++;
-
-            int x_low = int(floor(x));
-            int y_low = int(floor(y));
-            int z_low = int(floor(z));
-
-            int x_high = x_low + 1;
-            int y_high = y_low + 1;
-            int z_high = z_low + 1;
-
-            if (x_high == xlim) x_high = x_low;
-            if (y_high == ylim) y_high = y_low;
-            if (z_high == zlim) z_high = z_low;
-
-            x -= x_low;
-            y -= y_low;
-            z -= z_low;
-
-            float dx = 1.0f - x;
-            float dy = 1.0f - y;
-            float dz = 1.0f - z;
-
-            float w0 = dx * dy * dz;
-            float w1 = x  * dy * dz;
-            float w2 = dx * y  * dz;
-            float w3 = dx * dy * z;
-            float w4 = x  * dy * z;
-            float w5 = dx * y  * z;
-            float w6 = x  * y  * dz;
-            float w7 = x  * y  * z;
-
-            for (int fno = 0; fno < nframes; fno++) {
-                float val = *vals_ptr++;
-                volume_m(x_low , y_low , z_low , fno) += w0 * val;
-                volume_m(x_high, y_low , z_low , fno) += w1 * val;
-                volume_m(x_low , y_high, z_low , fno) += w2 * val;
-                volume_m(x_low , y_low , z_high, fno) += w3 * val;
-                volume_m(x_high, y_low , z_high, fno) += w4 * val;
-                volume_m(x_low , y_high, z_high, fno) += w5 * val;
-                volume_m(x_high, y_high, z_low , fno) += w6 * val;
-                volume_m(x_high, y_high, z_high, fno) += w7 * val;
-            }
-
-            weights_m(x_low , y_low , z_low ) += w0;
-            weights_m(x_high, y_low , z_low ) += w1;
-            weights_m(x_low , y_high, z_low ) += w2;
-            weights_m(x_low , y_low , z_high) += w3;
-            weights_m(x_high, y_low , z_high) += w4;
-            weights_m(x_low , y_high, z_high) += w5;
-            weights_m(x_high, y_high, z_low ) += w6;
-            weights_m(x_high, y_high, z_high) += w7;
-        }
-
-    }
-    else {
-        fs::fatal() << "target volume must be 3D or 4D";
-    }
+  return target_vol;
 }
 
 

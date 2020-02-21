@@ -2,6 +2,9 @@ import numpy as np
 import scipy.ndimage
 from collections.abc import Iterable
 
+from . import bindings
+from .transform import LinearTransform
+
 
 class Slicing(tuple):
     '''Slice tuple used for indexing subregions of a numpy array.'''
@@ -44,3 +47,34 @@ def bbox(mask):
 def cmass(image):
     '''Center of mass of an image.'''
     return scipy.ndimage.center_of_mass(image)
+
+
+def resample(source, target_shape, affine):
+    '''
+    Resamples a volume array from one space to another given
+    a source-to-volume transformation matrix.
+
+    Parameters:
+        source: Source array to sample from. Must be 3D or 4D.
+        target_shape: Shape of the returned target array.
+        affine: 4x4 affine matrix that transforms source coords to target coords.
+    '''
+    if source.ndim > 4:
+        raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
+    elif source.ndim < 3:
+        raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
+
+    if len(target_shape) != source.ndim:
+        raise ValueError('resampled target shape (%sD) must match source dims (%sD)' % (len(target_shape), source.ndim))
+ 
+    # the resample binding function only works with 4D inputs for easier maintenance, so let's add an axis to any 3D input
+    orig_target_shape = target_shape
+    if source.ndim == 3:
+        source = source[..., np.newaxis]
+        target_shape = (*target_shape, 1)
+
+    if target_shape[-1] != source.shape[-1]:
+        raise ValueError('resampled target must have the same number of frames as the source')
+
+    affine = LinearTransform.ensure(affine).matrix
+    return bindings.vol.resample_volume(source, target_shape, affine).reshape(orig_target_shape)
