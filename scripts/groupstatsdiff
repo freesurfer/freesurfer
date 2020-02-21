@@ -18,6 +18,7 @@ set NoBA = 0;
 set DoAparcStats = 1
 set DoAsegStats = 1
 set DoWMParcStats = 1
+set fwhmlist = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -65,7 +66,7 @@ uname -a  | tee -a $LF
 set mapmeaslist  = `cat $g1dir/mapmeas.list.txt`
 set hemilist     = `cat $g1dir/hemi.list.txt`
 set aparclist    = `cat $g1dir/aparc.list.txt`
-set fwhmlist     = `cat $g1dir/fwhm.list.txt`
+if($#fwhmlist == 0) set fwhmlist     = `cat $g1dir/fwhm.list.txt`
 
 if($DoOSGM) then
    set gcmd = (--osgm)
@@ -263,6 +264,11 @@ while( $#argv != 0 )
       set DoOSGM = 1;
       breaksw
 
+    case "--fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhmlist = ($fwhmlist $argv[1]); shift;
+      breaksw
+
     case "--common":
       set DoCommon = 1;
       breaksw
@@ -411,6 +417,7 @@ usage_exit:
   echo "  --no-asegstats : do not do asegstats"
   echo "  --no-wparcstats : do not do wmparcstats"
   echo "  --no-stats : do not do any ROI stats"
+  echo "  --fwhm fwhm <--fwhm fwhm> : override the fwhm from group ana (must be present)"
   echo "  "
 
   if(! $PrintHelp) exit 1;
