@@ -81,6 +81,9 @@ static int distance_to_label(MRI *mri_labeled, int label, int x,
 
 const char *Progname ;
 
+static int lh_only = 0 ;
+static int rh_only = 0 ;
+
 static int fillven = 1 ;
 static int keep_edits = 0 ;
 static int keep_edits_input = 0 ;
@@ -187,9 +190,24 @@ main(int argc, char *argv[])
            MRIgetVoxVal(mri_old,115,126,128,0));
     MRIfree(&mri_old) ;
   }
+  if (lh_only || rh_only)
+  {
+    int x, y, z, label ;
+    for (x = 0 ; x < mri_wm->width ; x++)
+      for (y = 0 ; y < mri_wm->height ; y++)
+	for (z = 0 ; z < mri_wm->depth ; z++)
+	{
+	  label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+	  if ((lh_only && IS_RH_CLASS(label)) ||
+	      (rh_only && IS_LH_CLASS(label)))
+	    MRIsetVoxVal(mri_wm, x, y, z, 0, 0) ;
+	  
+	}
+  }
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
 
+  
   msec = then.milliseconds() ;
   fprintf(stderr, "auto filling took %2.2f minutes\n",
           (float)msec/(1000.0f*60.0f));
@@ -228,6 +246,16 @@ get_option(int argc, char *argv[])
   {
     fcd = 1 ;
     fprintf(stderr, "preserving focal cortical dysplasias - not filling non-wm lesions\n");
+  }
+  else if (!stricmp(option, "lh"))
+  {
+    lh_only = 1 ;
+    fprintf(stderr, "assuming input is only lh\n") ;
+  }
+  else if (!stricmp(option, "rh"))
+  {
+    rh_only = 1 ;
+    fprintf(stderr, "assuming input is only rh\n") ;
   }
   else if (!stricmp(option, "keep-in"))
   {
