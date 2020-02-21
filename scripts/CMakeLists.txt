@@ -225,7 +225,6 @@ install(PROGRAMS
   spmmat2register
   spmregister
   sratio
-  stattablediff
   stem2fname
   surfreg
   tal_compare
@@ -282,6 +281,7 @@ install_pyscript(
   aparcstats2table
   asegstats2table
   tractstats2table
+  stattablediff
   merge_stats_tables
   fspalm
   rca-config
