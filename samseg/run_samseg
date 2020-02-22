@@ -157,7 +157,8 @@ else:
 _, _, _, optimizationSummary = samseg.segment(costfile=costfile,
                                               timer=timer,
                                               worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-                                              initTransform=initTransform)
+                                              initTransform=initTransform,
+                                              reg_only=args.reg_only)
 
 # Save a summary of the optimization process
 with open(costfile, 'a') as file:
