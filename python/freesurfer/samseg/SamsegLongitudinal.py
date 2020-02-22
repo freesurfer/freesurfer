@@ -92,7 +92,7 @@ class SamsegLongitudinal:
         threshold=None,
         thresholdSearchString=None,
         modeNames=None,
-        pallidumAsWM=False):
+        pallidumAsWM=True):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList

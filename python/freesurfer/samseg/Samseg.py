@@ -20,7 +20,7 @@ class Samseg:
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=False,
                  saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
-                 targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=False):
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames

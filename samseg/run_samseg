@@ -25,7 +25,7 @@ parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine reg
 parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
-parser.add_argument('--pallidum-as-wm', action='store_true', default=False, help='Move pallidum into global white matter class. Use this flag when only T1 is specified.')
+parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 # optional lesion options
 parser.add_argument('--lesion', action='store_true', default=False, help='Enable lesion segmentation (requires tensorflow).')
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
@@ -134,7 +134,7 @@ samseg_kwargs = dict(
     savePosteriors=savePosteriors,
     saveWarp=args.save_warp,
     modeNames=args.mode,
-    pallidumAsWM=args.pallidum_as_wm
+    pallidumAsWM=(not args.pallidum_separate)
 )
 
 if args.lesion:

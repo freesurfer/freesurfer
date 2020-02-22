@@ -8,7 +8,7 @@ from .utilities import requireNumpyArray
 from . import gemsbindings as gems
 
 
-def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=False):
+def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=True):
 
     # Create default model specifications as a dictionary
     FreeSurferLabels, names, colors = kvlReadCompressionLookupTable(os.path.join(atlasDir, 'compressionLookupTable.txt'))
