@@ -820,7 +820,6 @@ MATRIX *DTIloadBValues(const char *bvalfile)
 {
   FILE *fp;
   double b;
-  int nbvalues;
   MATRIX *bvals;
 
   printf("Loading BValues from %s\n", bvalfile);
@@ -831,21 +830,15 @@ MATRIX *DTIloadBValues(const char *bvalfile)
   }
 
   // First just go through and count them
-  nbvalues = 0;
-  if (fscanf(fp, "%lf", &b) != 1) {
-    printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvalfile);
-  }
+  int nbvalues = 0;
   while (!feof(fp)) {
-    if (fscanf(fp, "%lf", &b) != 1) {
-      printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvalfile);
-    }
-    nbvalues++;
+    if (fscanf(fp, "%lf", &b) == 1) nbvalues++;
   }
   fclose(fp);
-  printf("Found %d bvalues\n", nbvalues);
+  std::cout << "Found " << nbvalues << " bvalues" << std::endl;
   if (nbvalues == 0) {
-    printf("ERROR: DTIloadBValues: no bvalues found in %s\n", bvalfile);
-    return (NULL);
+    fs::error() << "DTIloadBValues: no bvalues found in " << bvalfile;
+    return nullptr;
   }
 
   // Alloc the matrix
@@ -854,15 +847,11 @@ MATRIX *DTIloadBValues(const char *bvalfile)
   // Now read them in
   fp = fopen(bvalfile, "r");
   nbvalues = 0;
-  if (fscanf(fp, "%lf", &b) != 1) {
-    printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvalfile);
-  }
   while (!feof(fp)) {
-    bvals->rptr[nbvalues + 1][1] = b;
-    if (fscanf(fp, "%lf", &b) != 1) {
-      printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvalfile);
+    if (fscanf(fp, "%lf", &b) == 1) {
+      bvals->rptr[nbvalues + 1][1] = b;
+      nbvalues++;
     }
-    nbvalues++;
   }
   fclose(fp);
 
@@ -895,7 +884,7 @@ MATRIX *DTIloadBVectors(const char *bvecfile)
 {
   FILE *fp;
   double gx, gy, gz;
-  int nbvecs, isFSL;
+  int isFSL;
   MATRIX *bvecs;
 
   // Could add something to autodetect FSL format
@@ -909,62 +898,43 @@ MATRIX *DTIloadBVectors(const char *bvecfile)
   }
 
   // First just go through and count them
-  nbvecs = 0;
-  if (fscanf(fp, "%lf %lf %lf", &gx, &gy, &gz) != 3) {
-    printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-  }
+  int nbvecs = 0;
   while (!feof(fp)) {
-    if (fscanf(fp, "%lf %lf %lf", &gx, &gy, &gz) != 3) {
-      printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-    }
+    if (fscanf(fp, "%lf %lf %lf", &gx, &gy, &gz) == 3) nbvecs++;
   }
   fclose(fp);
-  printf("Found %d bvectorss\n", nbvecs);
+  std::cout << "Found " << nbvecs << " bvectors" << std::endl;
   if (nbvecs == 0) {
-    printf("ERROR: DTIloadBValues: no bvectors found in %s\n", bvecfile);
-    return (NULL);
+    fs::error() << "DTIloadBVectors: no bvectors found in " << bvecfile;
+    return nullptr;
   }
 
   // Alloc the matrix
-  bvecs = MatrixAlloc(nbvecs, 3, MATRIX_REAL);
+  bvecs = MatrixAlloc(nbvecs,3,MATRIX_REAL);
 
   isFSL = DTIisFSLBVec(bvecfile);
 
   // Now read them in
-  fp = fopen(bvecfile, "r");
-  if (!isFSL) {
+  fp = fopen(bvecfile,"r");
+  if(!isFSL){
     printf("Detected BVec file as MGH formatted\n");
     nbvecs = 0;
-    if (fscanf(fp, "%lf %lf %lf", &gx, &gy, &gz) != 3) {
-      printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
+    fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+    while(!feof(fp)){
+      bvecs->rptr[nbvecs+1][1] = gx;
+      bvecs->rptr[nbvecs+1][2] = gy;
+      bvecs->rptr[nbvecs+1][3] = gz;
+      fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+      nbvecs ++;
     }
-    while (!feof(fp)) {
-      bvecs->rptr[nbvecs + 1][1] = gx;
-      bvecs->rptr[nbvecs + 1][2] = gy;
-      bvecs->rptr[nbvecs + 1][3] = gz;
-      if (fscanf(fp, "%lf %lf %lf", &gx, &gy, &gz) != 3) {
-        printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-      }
-      nbvecs++;
-    }
-  }
-  else {
+  } else {
     printf("Detected BVec file as FSL formatted\n");
-    for (nbvecs = 0; nbvecs < bvecs->rows; nbvecs++) {
-      if (fscanf(fp, "%f", &(bvecs->rptr[nbvecs + 1][1]))) {
-        printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-      }
-    }
-    for (nbvecs = 0; nbvecs < bvecs->rows; nbvecs++) {
-      if (fscanf(fp, "%f", &(bvecs->rptr[nbvecs + 1][2]))) {
-        printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-      }
-    }
-    for (nbvecs = 0; nbvecs < bvecs->rows; nbvecs++) {
-      if (fscanf(fp, "%f", &(bvecs->rptr[nbvecs + 1][3]))) {
-        printf("ERROR: DTIloadBValues(%s): could not scan value(s)\n", bvecfile);
-      }
-    }
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][1]));
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][2]));
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][3]));
   }
   fclose(fp);
 
