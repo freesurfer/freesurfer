@@ -98,6 +98,42 @@ class Surface(Transformable):
         '''Returns the geometry associated with the source volume.'''
         return self.geom
 
+    def transform(self, lt):
+        '''
+        Returns a realigned surface in a coordinate space defined by
+        the provided LinearTransform. For example, to convert surface
+        vertices from fs surface coordinates to voxel coordinates:
+
+        xform = surf.surf2vox()
+        voxelsurf = surf.transform(xform)
+        '''
+        vertices = LinearTransform.ensure(lt).transform(self.vertices)
+        return Surface(vertices, self.faces, hemi=self.hemi, geom=self.geom)
+
+    def surf2vox(self, vol=None):
+        '''
+        LinearTransform that maps surface coordinates to crs coordinates.
+        Target coordinates correspond to the source volume geometry, unless
+        the optional vol argument is provided, in which case it will map
+        to a different volume.
+        '''
+        if vol is not None:
+            return LinearTransform.matmul(vol.geometry().ras2vox(), self.surf2ras())
+        else:
+            return super().surf2vox()
+
+    def vox2surf(self, vol=None):
+        '''
+        LinearTransform that maps crs coordinates to surface coordinates.
+        Source coordinates are assumed to be in source volume space, unless
+        the optional vol argument is provided, in which case it will map
+        from a different volume.
+        '''
+        if vol is not None:
+            return LinearTransform.matmul(self.ras2surf(), vol.geometry().vox2ras())
+        else:
+            return super().vox2surf()
+
     # ---- parameterization ----
 
     def parameterize(self, overlay):
